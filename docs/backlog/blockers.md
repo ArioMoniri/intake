@@ -29,6 +29,7 @@
 | INT-095 | awaiting-human (on-hardware evidence; a real turn ran, on a dev bridge) | owner (procurement) | The acceptance closes only on a real turn **on the target GPU**; there is no pilot card and no signed capacity contract, so `make live-smoke` records `target=dev-bridge` and the issue stays open. | HB-I4, HB-I5 |
 | INT-380 (split from INT-121, 27 Sep 2026) | awaiting-human (no corpus; the harness ships and refuses) | owner, with the DPO/counsel | Which named, dated, licensed set of Turkish documents is the records eval corpus, and on which machine or store does it live — given that a lab report is a patient record and `06 §5` forbids PHI in this repository and in CI, so it may not be committed here? Until you answer, `records_corpus_root()` refuses, `LoincUnitMeasurement` cannot be built without a named corpus and two dates, and no accuracy figure exists anywhere. | HB-A13 (with HB-A10, HB-A2) |
 | INT-121, INT-124 | awaiting-human (unit expectations; the guard ships with an EMPTY table and fails closed) | physician of record (**Dr Efe Onganer**) with a clinical biochemist | For which analytes, in which unit and which magnitude band, and against which committed Turkish source, should ingestion check a printed lab value — given that `03 §4.9.6`'s own worked examples are two published Turkish handbooks that printed the unit wrong by 1000x, so the document cannot be its own authority? The guard (`intake_platform.records.unit_guard`, INT-124) flags and never converts; with no expectation authored every value is flagged `no_expectation`, a value that reads two ways (`12.500`) stops rather than being read, and every analyte it did not check is named in `units_unchecked`. A row of the table must cite `{guideline_id, version, date, url, retrieved_on}` or it cannot be built. | HB-C24 |
+| INT-123 | todo (index, per-patient RLS, confirmed-only indexing, consent refusal, erasure and the `retrieve_records` Work ship; no embedding model is pinned, so every index Work and every retrieval refuses) | owner (model-stack author) | Which open-weights, commercially usable text-embedding model — Turkish-capable, its licence read from the raw LICENSE blob, pinned `model_id@revision + sha256`, served in-country — becomes the files/03 §4.9.1 row for the record index, given that §4.9.1 names none today (row 18 is a *speaker* embedding, ephemeral and never persisted under invariant 15, and may not be used)? Until you answer, `RECORD_EMBEDDING_ROW` is `None`, the default embedder raises `EmbeddingModelUnregistered`, every index receipt says so, no vector exists anywhere, and `retrieve_records` stays unregistered in the composition root. | — (no HB row; coordinator to allocate) |
 | INT-381 | todo, blocked on GPU capacity (INT-124's adapter, pin and guard ship; the PHI gate refuses while no host serves row 9) | owner (procurement; the AWS G-quota cases) | Which host serves the pinned row-9 model `Qwen/Qwen3.6-35B-A3B@995ad96` — on the target GPU, and in-country before it reads a patient's document — so INT-381 can mirror and re-hash the 26 shards against the registry, flip `self_hosted_now` and measure row 9's "< 3 s" target, given that the us-east-1 and eu-central-1 G-quota requests are still `CASE_OPENED`? | HB-I4, HB-I5 (PHI residency: HB-L11) |
 | INT-136 | awaiting-human (ordinal anchors; the overlay ships and reports itself not-ready) | physician of record (**Dr Efe Onganer**) | Under `overlay.low_literacy`, which three or four Turkish ordinal anchors stand in for the eleven-point pain score — or is the numeric scale simply not asked of a patient running that overlay, given that files/02 §3 requires severity to be **numeracy-free** and `packages/protocols`' own base layer records that no anchor wording is authored for either end of that scale? | — (no HB row; ids move under concurrent merges, so the coordinator should allocate one) |
 | INT-160 | note (mechanism shipped; registry empty and refusing) | owner + counsel (DPA), `platform_owner` (approval), owner (OpenBao) | Register the first connector destination — which hospital endpoint, under which executed DPA, approved by which recorded tier-3 decision, with the application credential and the mTLS client material already written to OpenBao paths under `connectors/`, and does that hospital's agreement state that it honours an `Idempotency-Key`? Until all five exist `infra/connectors/destinations.yaml` holds zero rows and every push refuses; the fifth has no default, because an undeclared receiver turns an ambiguous outcome into a `needs_human` parking rather than an automatic retry that could duplicate a clinical record. | **HB-A15** (allocated by the coordinator; HB-A5 covers the *adapter* half — what interfaces a given hospital exposes — and this is the destination half) |
@@ -471,3 +472,34 @@ state and `test_the_shipped_allocation_table_declares_no_prefixes_and_cannot_ref
 supplying the list is a visible change and not a silent one. What stands against SMS pumping
 today is what files/10 §2 now says stands against it: the rolling request budgets and the
 Turkish-mobile-only normalisation.
+
+## INT-401 (split from INT-187) — a rollback button needs something to roll back
+
+**Named human:** the owner (where continuous delivery runs), with whoever administers the target.
+
+**What shipped.** `/cicd` renders recent GitHub Actions runs per workflow with their failing
+jobs, every PR-triggered gate on `main` and on the open PRs, releases with their signing
+outcome, this deployment's stamped `/version`, the error budget and the deploy freeze. The
+freeze is enforced where deploys actually happen: `infra/staging/deploy.sh` runs a release
+gate before it restarts anything, and refuses while deploys are frozen, while an SLO's error
+budget is exhausted, or while the freeze cannot be read. Freezing is one key; lifting is four
+eyes (files/08 §8.2).
+
+**What waits is the rollback button (4-eyes).** files/08 §3 and §9 describe CD as GitOps
+through Argo CD, where a rollback moves an Application to an earlier revision and a canary is
+an Argo Rollout. Neither exists: `infra/` holds no Argo CD Application, no Rollout, and there is
+no cluster to run them on — the same siting question HB-I13 asks for the edge tier. The only
+deploy path is the operator running `deploy.sh` on the host over SSM, which the console cannot
+command. A two-key ceremony whose approval changes nothing is not a control, so the button is
+rendered **disabled, with that reason**, and the canary tile says "not deployed" rather than
+painting a state that does not exist. `tests/admin/test_cicd_console.py` fails the day an
+Argo CD manifest lands under `infra/`, so the tile gets wired instead of left claiming absence.
+
+**One sentence closes it:** where does continuous delivery run — a cluster with Argo CD (and
+Argo Rollouts for the canary), and on which host — or is `deploy.sh` the release path for the
+foreseeable future, in which case "rollback" becomes "redeploy a previous release through
+`deploy.sh`", which the console can gate (a four-eyes pin the gate enforces) but not execute?
+
+**The id is the coordinator's to allocate.** HB-I13 is the nearest existing row (a place to
+run a cluster), but it is about the edge tier; a CD-tier row, or a widening of HB-I13, is a
+coordinator decision, not one an agent mints.

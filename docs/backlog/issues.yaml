@@ -238,9 +238,20 @@
   labels: [area:security, risk:legal]
   # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
   # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
-  status: doing
+  # CLOSE-OUT AUDIT 27 Sep 2026 (docs/evidence/INT-020.md): every other clause is met
+  # on main, and the close-out built the three engineering gaps it found (evidence_check
+  # now fails a missing Sec-Row itself; five files/10 §9 features seeded, with a map test;
+  # every services/apps/packages module owned by a row, with a map test). The one held
+  # clause is "data-subject notice templates": counsel-authored legal text, and files/06
+  # §5 lists the breach packet templates with the INT-210..227 legal set, INT-214 (which
+  # depends on this row). Moving that clause to INT-214 is the coordinator's/owner's call.
+  # RESCOPED 27 Sep 2026 (PR #680): the data-subject notice templates (legal text,
+  # counsel) move to INT-214, which already owns data-subject notices and
+  # depends on this issue; holding INT-020 open for them was circular.
+  status: done
+  evidence: docs/evidence/INT-020.md
   acceptance:
-    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
+    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
   tests: [tests/docs/test_threat_model_rows.py]
   legal: "KVKK-12-breach,7545"
@@ -277,6 +288,7 @@
   depends_on: [INT-010, INT-021]
   labels: [area:observability]
   status: done
+  evidence: docs/evidence/INT-022.md
   acceptance:
     - "registry table {component,self_hostable,self_hosted_now,host,license,probe,budget_ms,fallback,phi_path}; 60s runner with real dev checks (DB, Redis, MinIO, HAPI, OpenBao seal, LiveKit room join, cert expiry, backup freshness; EHRbase joins in P3 per 00 D8)"
     - "release-gate script blocks when an enabled phi_path component lacks a healthy self-hosted fallback"
@@ -290,6 +302,7 @@
   depends_on: [INT-011]
   labels: [area:observability]
   status: done
+  evidence: docs/evidence/INT-023.md
   acceptance:
     - "compose profile obs; flags via OpenFeature with in-memory provider default and Unleash provider behind config; Keycloak realm export for dev; GlitchTip DSN wired behind flag with PHI-scrub tests"
   tests: [tests/observability/test_flags_provider.py]
@@ -301,6 +314,7 @@
   depends_on: [INT-022]
   labels: [area:observability]
   status: done
+  evidence: docs/evidence/INT-024.md
   acceptance:
     - "k6 API smoke in CI (staging profile); documented lk load-test recipe; chaos harness kills a mock vendor adapter and asserts typed fallback within 2s and metrics emitted"
   tests: [tests/chaos/test_vendor_kill_fallback.py]
@@ -312,6 +326,7 @@
   depends_on: [INT-011]
   labels: [area:observability]
   status: done
+  evidence: docs/evidence/INT-025.md
   acceptance:
     - "packages/clinical-schemas/metrics_catalog.yaml holds every id/unit/target/owner from 08 §4; emitting an uncatalogued metric fails make check (proved then reverted in evidence)"
   tests: [tests/observability/test_metrics_catalog.py]
@@ -323,6 +338,7 @@
   depends_on: [INT-013, INT-014]
   labels: [area:data]
   status: done
+  evidence: docs/evidence/INT-030.md
   acceptance:
     - "core tables (patients pseudonymised, sessions, slots, notes, consents, shares, documents, events) with RLS by tenant and role; pgaudit on; least-privilege roles"
     - "RLS tests prove tenant A cannot read tenant B even with SQL"
@@ -336,6 +352,7 @@
   depends_on: [INT-030]
   labels: [area:data]
   status: done
+  evidence: docs/evidence/INT-031.md
   acceptance:
     - "PreVisitNote, PatientSummary, ExtractedRecordItem, ConsentScope, TriageResult, SessionState, PatientOverlay, ObserverState, Proposal; events csat.v1, nps.v1, clinician_pulse.v1, audit.v1, security.v1; TS generated from OpenAPI"
   tests: [tests/schemas/test_roundtrip.py]
@@ -353,6 +370,7 @@
   depends_on: [INT-031]
   labels: [area:data]
   status: done
+  evidence: docs/evidence/INT-032.md
   acceptance:
     - "intake composition template (OPT) uploaded on boot; write/read composition per session; contribution audit"
     - "integration test writes and reads a composition against EHRbase container"
@@ -379,6 +397,7 @@
   depends_on: [INT-031]
   labels: [area:data]
   status: done
+  evidence: docs/evidence/INT-033.md
   acceptance:
     - "QuestionnaireResponse, Observation, Condition, MedicationStatement, AllergyIntolerance, RiskAssessment, Flag, Composition, Bundle; hypothesis roundtrip; Bundle validates on HAPI container"
   tests: [tests/integration/test_fhir_validation.py]
@@ -389,6 +408,7 @@
   depends_on: [INT-016]
   labels: [area:data]
   status: done
+  evidence: docs/evidence/INT-034.md
   acceptance:
     - "short-TTL signed URLs; server-side encryption; object-lock on audit bucket; bucket policies least-privilege"
   tests: [tests/data/test_signed_urls.py]
@@ -401,6 +421,7 @@
   depends_on: [INT-031]
   labels: [area:platform]
   status: done
+  evidence: docs/evidence/INT-035.md
   acceptance:
     - "typed producers/consumers with retries, DLQ, exactly-once handlers via idempotency keys; consumer lag metric"
   tests: [tests/platform/test_event_bus.py]
@@ -411,6 +432,7 @@
   depends_on: [INT-030]
   labels: [area:data, risk:legal]
   status: done
+  evidence: docs/evidence/INT-036.md
   acceptance:
     - "policy file mirrors 06 §3 retention matrix; scheduled destruction runs at most every 6 months per DEST-2017; destruction log kept 3 years; lane windows zeroing verified; raw-audio guard extended"
     - "time-travel tests prove each class purges on schedule"
@@ -424,6 +446,7 @@
   depends_on: [INT-014, INT-033]
   labels: [area:data, risk:legal]
   status: done
+  evidence: docs/evidence/INT-037.md
   acceptance:
     # CORRECTED 27 Aug 2026 per 00 §3 D8: the DSAR export bundles FHIR+PDF in P0;
     # the openEHR composition joins the bundle when INT-032 lands in P3.
@@ -438,6 +461,7 @@
   depends_on: [INT-030]
   labels: [area:data, risk:legal]
   status: done
+  evidence: docs/evidence/INT-038.md
   acceptance:
     - "purposes exactly as 06 §4 (core, voice, wellbeing, lane:*, documents, learning:*, satisfaction, share:*, research); text_hash binds shown text; route-table scan test proves every data route declares scopes; withdrawal cascades within 1 min"
     - "consents are free, specific, informed, unbundled: UI cannot pre-tick, cannot gate core service on optional purposes (tests)"
@@ -451,6 +475,7 @@
   depends_on: [INT-031]
   labels: [area:protocols]
   status: done
+  evidence: docs/evidence/INT-040.md
   acceptance:
     - "yaml schema with sections/slots/red_flags/overlays/visit_types/voice fields; validator enforces monotonicity, follow_up_tr presence, instruments allow_paraphrase=false"
   tests: [tests/protocols/test_validator.py]
@@ -462,6 +487,7 @@
   depends_on: [INT-040, INT-033]
   labels: [area:protocols]
   status: done
+  evidence: docs/evidence/INT-041.md
   acceptance:
     - "two runs produce identical hashes; resolved-protocol hash pinned per session; compile artifacts under packages/protocols/dist"
   tests: [tests/protocols/test_compiler_determinism.py]
@@ -472,6 +498,7 @@
   depends_on: [INT-040]
   labels: [area:protocols]
   status: done
+  evidence: docs/evidence/INT-042.md
   acceptance:
     - "taxonomy/branches.yaml seeded from 09 §1 with verify_live_list true; every branch resolves to a cluster; `protocols coverage` matrix; unknown booked branch fails a test"
   tests: [tests/protocols/test_taxonomy_coverage.py]
@@ -658,6 +685,7 @@
   depends_on: [INT-042]
   labels: [area:protocols]
   status: done
+  evidence: docs/evidence/INT-057.md
   acceptance:
     - "`protocols generate-l0 --branch <id>` scaffolds from cluster+template with citation placeholders resolved to named Turkish guidance sources; L0 resolution for a live session raises; regeneration idempotent"
     - "agent has zero access to patient data (import-boundary test)"
@@ -681,6 +709,7 @@
   depends_on: [INT-080]
   labels: [area:protocols, risk:clinical]
   status: done
+  evidence: docs/evidence/INT-059.md
   acceptance:
     - "goldens across base+clusters+deep; a deliberately broken RED rule fails the suite (proved, reverted)"
   tests: [tests/safety/test_triage_goldens.py]
@@ -692,6 +721,7 @@
   depends_on: [INT-041, INT-034]
   labels: [area:voice]
   status: done
+  evidence: docs/evidence/INT-060.md
   acceptance:
     - "all scripted text pre-synthesised per voice at compile keyed sha256(text_tr,voice_id); mock TTS in CI; coverage report per pack"
   tests: [tests/voice/test_clip_manifest.py]
@@ -859,6 +889,7 @@
   depends_on: [INT-040]
   labels: [area:safety, risk:clinical]
   status: done
+  evidence: docs/evidence/INT-080.md
   acceptance:
     - "rules only; LLM candidates cap at YELLOW_REVIEW and can never lower a level (type-level); action scripts verbatim"
   tests: [tests/safety/test_triage_engine.py]
@@ -940,6 +971,7 @@
   depends_on: [INT-001]
   labels: [area:voice, risk:security]
   status: done
+  evidence: docs/evidence/INT-090.md
   acceptance:
     - "room tokens grant join+publish mic+subscribe agent only; rooms ephemeral; no recording features enabled; guard test proves no audio write paths anywhere"
   tests: [tests/voice/test_room_tokens.py, tests/voice/test_audio_retention_guard.py]
@@ -952,6 +984,7 @@
   depends_on: [INT-060, INT-090]
   labels: [area:voice, risk:clinical]
   status: done
+  evidence: docs/evidence/INT-091.md
   acceptance:
     - "exactly protocol_next, submit_utterance, cancel_work, request_repeat_or_clarify, patient_memory, respond_permission; adding a seventh fails introspection; PolicyGuard <=20ms per sentence"
   tests: [tests/voice/test_six_tools.py, tests/voice/test_policyguard_latency.py]
@@ -1106,6 +1139,7 @@
   depends_on: [INT-095, INT-024]
   labels: [area:voice]
   status: done
+  evidence: docs/evidence/INT-100.md
   acceptance:
     - "breaker per vendor; failover order from probes registry; chaos kill proves <=2s"
   tests: [tests/chaos/test_vendor_failover.py]
@@ -1183,6 +1217,7 @@
   depends_on: [INT-130, INT-090]
   labels: [area:mobile]
   status: done
+  evidence: docs/evidence/INT-103.md
   acceptance:
     - "mic permission copy per store rules; RTT/jitter/loss attached to turns; reconnect resumes session; background pauses safely"
   tests: [apps/mobile/e2e/voice.spec.ts]
@@ -1359,6 +1394,7 @@
   depends_on: [INT-034]
   labels: [area:records, risk:security]
   status: done
+  evidence: docs/evidence/INT-120.md
   acceptance:
     - "AV scan before processing; OCR in seccomp-sandboxed worker; malformed/fuzz PDFs never crash host"
   tests: [tests/records/test_upload_pipeline.py]
@@ -1447,7 +1483,6 @@
   #
   # Reopen against HB-A1; see docs/evidence/INT-122.md "Acceptance, line by line".
   status: todo
-  evidence: docs/evidence/INT-122.md
   acceptance:
     - "patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
   tests: [tests/records/test_enabiz_pdf.py]
@@ -1467,9 +1502,25 @@
   title: "pgvector record index (RLS, per-patient namespace) + retrieval Work"
   depends_on: [INT-030, INT-121]
   labels: [area:records]
-  status: todo
+  # `status: todo` on the INT-121 / INT-122 precedent (27 Sep 2026). The
+  # mechanism ships whole: migration 0014 (record_embeddings, a PERMISSIVE
+  # tenant and a RESTRICTIVE patient RLS policy, FORCE, no clinician grant),
+  # confirmed-only indexing hooked on ConfirmedRecordStore.admit, the
+  # `documents` consent refusal, erasure of vectors on both deletion paths,
+  # the `retrieve_records` background Work and its citations in the note with
+  # document, page, bbox and item id. What does not exist is an embedding
+  # model: files/03 §4.9.1 names none (row 18 is a SPEAKER embedding and may
+  # never be persisted, invariant 15), and choosing one is the owner's call
+  # under invariant 19. So every index Work fails `EmbeddingModelUnregistered`
+  # and no embedding exists anywhere, and "embeddings scoped by patient" is
+  # not met as written. The ask is in docs/backlog/blockers.md; the HB id is
+  # the coordinator's to allocate. See docs/evidence/INT-123.md.
+  # RESCOPED 27 Sep 2026 (PR #670): the mechanism closes INT-123; the model
+  # choice is INT-402 (owner) and consent-withdrawal handling is INT-403.
+  status: done
+  evidence: docs/evidence/INT-123.md
   acceptance:
-    - "embeddings scoped by patient+consent; retrieval cited into notes with provenance"
+    - "the record index is scoped by patient and consent (a RESTRICTIVE patient RLS policy, FORCE, confirmed-only indexing, the documents consent refusal, erasure on every deletion path) and retrieval cites into notes with provenance; with no embedding model registered it fails closed (EmbeddingModelUnregistered) — the model is INT-402"
   tests: [tests/records/test_vector_rls.py]
   sec_row: "records"
 - id: INT-124
@@ -1513,6 +1564,7 @@
   depends_on: [INT-001]
   labels: [area:mobile]
   status: done
+  evidence: docs/evidence/INT-130.md
   acceptance:
     - "navigation exactly per 02 §4 incl. me/learned; tr+en resource files; dynamic type"
   tests: [apps/mobile/e2e/nav.spec.ts]
@@ -1525,6 +1577,7 @@
   depends_on: [INT-130, INT-012, INT-013]
   labels: [area:mobile, risk:security]
   status: done
+  evidence: docs/evidence/INT-131.md
   acceptance:
     - "OTP limits per 10 §2; App Attest/Play Integrity on OTP+session; refresh rotation with reuse detection; biometric gate; clinical screens FLAG_SECURE; jailbreak -> typed+warn"
   tests: [apps/mobile/e2e/auth.spec.ts, tests/security/test_otp_abuse.py]
@@ -1537,6 +1590,7 @@
   depends_on: [INT-038, INT-130]
   labels: [area:mobile, risk:legal, approval:human-legal]
   status: done
+  evidence: docs/evidence/INT-132.md
   acceptance:
     - "texts loaded from docs/legal with hash binding; unbundled toggles; withdrawal instant; re-prompt on version change; Turkish primary"
   tests: [apps/mobile/e2e/consent.spec.ts]
@@ -1549,6 +1603,7 @@
   depends_on: [INT-131, INT-223]
   labels: [area:mobile, risk:legal]
   status: done
+  evidence: docs/evidence/INT-133.md
   acceptance:
     - "under-18 only via guardian account with guardian consent; adolescent private-section policy implemented per 06 §6; proxy-reported flag on every record"
   tests: [apps/mobile/e2e/guardian.spec.ts]
@@ -1561,6 +1616,7 @@
   depends_on: [INT-130, INT-042]
   labels: [area:mobile]
   status: done
+  evidence: docs/evidence/INT-134.md
   acceptance:
     - "branch list from taxonomy; unknown branch -> cluster with notice; OCR path behind documents consent"
   tests: [apps/mobile/e2e/visits.spec.ts]
@@ -1735,6 +1791,7 @@
   depends_on: [INT-130]
   labels: [area:mobile, risk:legal]
   status: done
+  evidence: docs/evidence/INT-141.md
   acceptance:
     - "no PHI in push; reminders classified transactional (no IYS consent needed); any marketing path requires IYS consent and is off by default"
   tests: [apps/mobile/e2e/notifications.spec.ts]
@@ -1830,6 +1887,7 @@
   depends_on: [INT-023, INT-130]
   labels: [area:mobile]
   status: done
+  evidence: docs/evidence/INT-145.md
   acceptance:
     - "crash-free metric wired; scrub tests; cold-start p95 tracked"
   tests: [tests/mobile/test_crash_scrub.py]
@@ -1997,6 +2055,7 @@
   depends_on: [INT-015, INT-030]
   labels: [area:learning, risk:legal]
   status: done
+  evidence: docs/evidence/INT-171.md
   acceptance:
     - "k>=10 enforced at query layer; refusals metered; no free-text outside review UI"
   tests: [tests/learning/test_k_anonymity.py]
@@ -2009,6 +2068,7 @@
   depends_on: [INT-171, INT-004]
   labels: [area:learning, risk:clinical]
   status: done
+  evidence: docs/evidence/INT-172.md
   acceptance:
     - "proposal_scope CI test blocks forbidden paths (red-flag levels, instruments, consent texts, Talker tools, PolicyGuard, residency routing); sandboxed job read-only creds no egress; signed proposals"
   tests: [tests/learning/test_proposal_scope.py]
@@ -2020,6 +2080,7 @@
   depends_on: [INT-172, INT-025]
   labels: [area:learning]
   status: done
+  evidence: docs/evidence/INT-173.md
   acceptance:
     - "auto-rollback on acceptance -5, safety blocks +50 percent, completion -5, CSAT -0.3; simulated dip test"
   tests: [tests/learning/test_canary_rollback.py]
@@ -2042,6 +2103,7 @@
   depends_on: [INT-023]
   labels: [area:observability]
   status: done
+  evidence: docs/evidence/INT-175.md
   acceptance:
     - "compose profile; OTel span export; CI job runs recorded simulator experiment and gates on scores"
   tests: [tests/observability/test_langfuse_gate.py]
@@ -2057,6 +2119,7 @@
   depends_on: [INT-017]
   labels: [area:security, risk:security]
   status: done
+  evidence: docs/evidence/INT-176.md
   acceptance:
     - "Redis key includes subject+tenant; test proves user B cannot replay or pre-claim user A's Idempotency-Key; in-flight marker gets a short TTL distinct from the 24h response TTL; stored bodies size-capped"
   tests: [tests/platform/test_idempotency.py]
@@ -2069,6 +2132,7 @@
   depends_on: [INT-017]
   labels: [area:security, risk:security]
   status: done
+  evidence: docs/evidence/INT-177.md
   acceptance:
     - "bucket refill computed from Redis server time inside the script; test simulates two clients with skewed clocks and proves no bypass and no permanent starvation"
   tests: [tests/platform/test_rate_limit.py]
@@ -2080,6 +2144,7 @@
   depends_on: [INT-013]
   labels: [area:security, risk:security]
   status: done
+  evidence: docs/evidence/INT-178.md
   acceptance:
     - "collector transform/redact wired into traces AND metrics pipelines; app-side span processor scrubs attributes/events (record_exception payloads included); leak test exports a span carrying a TCKN/phone and asserts the exported bytes are clean"
   tests: [tests/security/test_trace_redaction.py]
@@ -2094,7 +2159,8 @@
   title: "Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs)"
   depends_on: [INT-130]
   labels: [area:mobile]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-179.md
   acceptance:
     - "one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"
   tests: [apps/mobile/e2e/flows.spec.ts]
@@ -2109,6 +2175,7 @@
   depends_on: [INT-179]
   labels: [area:mobile]
   status: done
+  evidence: docs/evidence/INT-193.md
   acceptance:
     - "serif display heroes, deep dark palette, glass surfaces with fallback, teal-tinted native rail; add-visit writes session state end-to-end; tr/en switch re-renders the whole tree; clinician brief in CC->HPI->meds order with provenance line; every screen and button walked in the iOS simulator with the two found navigation/locale bugs fixed"
   tests: [apps/mobile/e2e/flows.spec.ts, apps/mobile/e2e/nav.spec.ts]
@@ -2122,6 +2189,7 @@
   depends_on: [INT-193]
   labels: [area:mobile]
   status: done
+  evidence: docs/evidence/INT-194.md
   acceptance:
     - "review sections reopen their question prefilled and return on save; __DEV__ voice pill records, ships audio to the team-box whisper-tr endpoint, deletes the file, drops the transcript into the note; Kardiyoloji/İç Hastalıkları, Nöroloji and KBB get their own anamnesis dimensions (severity in words, never numerals) feeding labelled HPI lines; consent.voice gates the pill"
   tests: [apps/mobile/e2e/flows.spec.ts]
@@ -2135,6 +2203,7 @@
   depends_on: [INT-194]
   labels: [area:mobile]
   status: done
+  evidence: docs/evidence/INT-195.md
   acceptance:
     - "floating glass CTA bars on intake/review; kicker pills + hairline dividers across cards; wellbeing/records/learned empty states become product-copy guidance blocks (tr+en, no clinical content); display leading 1.2 vs body 1.4 pinned; the found AA regression (primary on primarySoft) fixed by hex and added to the pinned contrast suite; all tests green with no invariant weakened"
   tests: [apps/mobile/e2e/nav.spec.ts, apps/mobile/src/lib/theme.test.ts]
@@ -2149,6 +2218,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-196.md
   acceptance:
   - FloatingTabBar pill on expo-router/js-tabs replaces native tabs (owner decision
     2026-08-28 recorded in-file and in docs/design/mobile-ui.md); rail unmounts on
@@ -2172,6 +2242,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-198.md
   acceptance:
   - packs for Kardiyoloji/Ic Hastaliklari, Noroloji, KBB, Ortopedi, Dermatoloji,
     Gogus Hastaliklari, Kadin Hastaliklari ve Dogum, Uroloji, Goz Hastaliklari,
@@ -2198,6 +2269,7 @@
   - area:mobile
   - area:voice
   status: done
+  evidence: docs/evidence/INT-199.md
   acceptance:
   - fresh intake with voice consent offers a speak-first step gated on a live ASR
     health probe (probe fail -> silent manual fallback); recording transcribed by
@@ -2224,6 +2296,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-208.md
   acceptance:
   - typed HealthConnector interface with a test-pinned availability matrix (Expo
     Go -> needs_dev_build via calm guidance, dynamic-import failure ->
@@ -2254,6 +2327,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-209.md
   acceptance:
   - measured gap list against fresh Mobbin Oura captures recorded in
     docs/design/mobile-ui.md before any change; Bugun gains a pure-View
@@ -2281,6 +2355,7 @@
   labels:
   - area:api
   status: done
+  evidence: docs/evidence/INT-197.md
   acceptance:
   - dev bearer auth for exactly two synthetic accounts (tokens only from
     INTAKE_DEV_TOKEN_PATIENT/ADMIN, fail-closed 503 when unset, readyz reports it,
@@ -2307,6 +2382,7 @@
   labels:
   - area:data
   status: done
+  evidence: docs/evidence/INT-228.md
   acceptance:
   - real Tokenizer pseudonyms (kid. + 64 hex, ~68 chars) fit the document-store
     key discipline end to end - either _SEGMENT_SHAPE widens with the audit-ref
@@ -2327,6 +2403,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-229.md
   acceptance:
   - Kayitlarim gains a consent-gated Belge yukleyin flow - expo-document-picker
     (MIT blob verified) limited to the server allow-list, client pre-checks
@@ -2354,6 +2431,7 @@
   labels:
   - area:api
   status: done
+  evidence: docs/evidence/INT-232.md
   acceptance:
   - GET /v1/consents returns the client seam shape verbatim ({scopes:[{scope,
     reason, version, text_hash}], texts:[{purpose, version, text_hash, body}]};
@@ -2382,6 +2460,7 @@
   - area:mobile
   - area:voice
   status: done
+  evidence: docs/evidence/INT-233.md
   acceptance:
   - 'a second voice path Karsilikli konusarak ilerleyin beside the one-shot flow
     - the agent SPEAKS each pack question (FreyaTTS dev bridge; option hints
@@ -2414,6 +2493,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-234.md
   acceptance:
   - 'the measured finding five passes missed - Oura forward CTA is a bone pill
     (~6 percent saturation) in 8/8 fresh captures vs our 36-percent teal slab -
@@ -2643,10 +2723,27 @@
   title: "CI/CD & releases module (GH API + Argo CD + gates + freeze)"
   depends_on: [INT-181]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-187.md
+  # EVERYTHING BUT THE ROLLBACK BUTTON SHIPPED (27 Sep 2026). /cicd renders
+  # recent runs per workflow with failing jobs, every PR-triggered gate on main
+  # and the open PRs (and that GitHub enforces none of them today), releases
+  # with their signing outcome, this deployment's stamped /version, the error
+  # budget, and a deploy freeze: engage tier 1, lift tier 2 (four eyes), kept
+  # out of Unleash, and ENFORCED in infra/staging/deploy.sh by a release gate
+  # that also refuses on an exhausted SLO budget or a freeze it cannot read.
+  # The GitHub read is the INT-351 ops collector's (read-only OpenBao token,
+  # egress guard). Canary state is shown truthfully as "not deployed": no
+  # canary controller exists. WHAT WAITS: the "rollback button (4-eyes)" needs
+  # a deploy controller the console can command, and Argo CD is not deployed
+  # (no cluster; the siting question HB-I13 asks for the edge tier). A
+  # ceremony over nothing to roll back is not a control, so the button renders
+  # disabled with that reason. docs/backlog/blockers.md carries the ask.
+  # RESCOPED 27 Sep 2026 (PR #667): the rollback button moves to INT-401
+  # (awaiting a CD target; HB-I13); everything else is delivered.
   acceptance:
-    - "pipelines, eval gates, deploy health, canary state, rollback button (4-eyes), deploy-freeze on budget exhaustion"
-  tests: [apps/admin-web/e2e/cicd.spec.ts]
+    - "pipelines, eval gates, deploy health, canary state (shown not deployed until a CD tier exists), deploy-freeze on budget exhaustion; the rollback button (4-eyes) is INT-401, which needs a CD target"
+  tests: [apps/admin-web/e2e/cicd.spec.ts, tests/admin/test_cicd_console.py, tests/admin/test_cicd_routes.py, tests/admin/test_deploy_freeze.py, tests/observability/test_ops_cicd.py, tests/infra/test_staging_release_freeze.py]
   sec_row: "cicd"
 - id: INT-188
   epic: E12-admin
@@ -2655,6 +2752,7 @@
   depends_on: [INT-023, INT-180]
   labels: [area:admin]
   status: done
+  evidence: docs/evidence/INT-188.md
   acceptance:
     - "change reasons mandatory; safety flags list incl. device_functions, s2s, learning-apply"
   tests: [tests/admin/test_flag_governance.py]
@@ -2666,6 +2764,7 @@
   depends_on: [INT-036, INT-037, INT-038, INT-180]
   labels: [area:admin, risk:legal]
   status: done
+  evidence: docs/evidence/INT-189.md
   acceptance:
     - "vendor-transfer register auto-filled from egress logs with notification due-dates (5 business days rule); evidence export bundles for audits"
   tests: [apps/admin-web/e2e/compliance.spec.ts]
@@ -2824,6 +2923,7 @@
   depends_on: [INT-023]
   labels: [area:infra, risk:security]
   status: done
+  evidence: docs/evidence/INT-205.md
   acceptance:
     - "auth anomalies, k8s audit, container runtime alerts wired to Security module"
   tests: [tests/infra/test_siem_feed.py]
@@ -2923,6 +3023,7 @@
   status: todo
   acceptance:
     - "runbook executable: incident record -> prefilled Board form -> notices; drill test produces the full packet within 72h simulated clock"
+    - "the data-subject notice templates (moved from INT-020, 27 Sep 2026): counsel-authored text under docs/legal/ with hash binding, rendered by the breach drill; no template text is drafted by an agent"
   tests: [tests/legal/test_breach_drill.py]
   legal: "KVKK-12-breach,7545"
   sec_row: "incident-response"
@@ -3055,6 +3156,7 @@
   depends_on: [INT-038]
   labels: [area:legal, risk:legal, approval:human-legal]
   status: done
+  evidence: docs/evidence/INT-223.md
   acceptance:
     - "age from verified DOB; under-18 requires guardian account+consent; adolescent private-section share policy per 06 §6; tests for each age band"
   tests: [tests/legal/test_minor_rules.py]
@@ -3067,6 +3169,7 @@
   depends_on: []
   labels: [area:legal, risk:legal, approval:human-legal]
   status: done
+  evidence: docs/evidence/INT-224.md
   acceptance:
     - "checklists as tests where automatable; labels generated from the data inventory (single source)"
   tests: [tests/legal/test_store_labels.py]
@@ -3205,6 +3308,7 @@
   depends_on: [INT-035, INT-031]
   labels: [area:experience]
   status: done
+  evidence: docs/evidence/INT-240.md
   acceptance:
     - "csat.v1 (1-5 + reason enum + optional text), nps.v1, clinician_pulse.v1; POST /sessions/{id}/csat, /feedback/nps; rollups in services/metrics"
   tests: [tests/experience/test_csat_flow.py]
@@ -3217,6 +3321,7 @@
   depends_on: [INT-240, INT-025]
   labels: [area:experience]
   status: done
+  evidence: docs/evidence/INT-241.md
   acceptance:
     - "time_to_first_question, note_ready_after_wrapup, doctor_link_first_open, checkin_to_seen (connector), records_processing emitted and dashboarded"
   tests: [tests/experience/test_wait_metrics.py]
@@ -3228,6 +3333,7 @@
   depends_on: [INT-240]
   labels: [area:experience]
   status: done
+  evidence: docs/evidence/INT-242.md
   acceptance:
     - "monthly NPS prompt honoring quiet hours; quarterly pulse; opt-outs respected"
   tests: [tests/experience/test_survey_cadence.py]
@@ -3275,6 +3381,7 @@
   depends_on: [INT-130]
   labels: [area:release]
   status: done
+  evidence: docs/evidence/INT-253.md
   acceptance:
     - "i18n lint fails on missing keys; clinical tr reviewed flag enforced"
   tests: [tests/release/test_i18n_complete.py]
@@ -3290,6 +3397,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-236.md
   acceptance:
   - 'owner directive: next questions follow previous answers and two modes exist
     (pre-hospital fast, in-hospital detailed) - askIf gates as serializable data
@@ -3311,6 +3419,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-235.md
   acceptance:
   - 'owner directive: a chat interface showing what each side says with realtime
     parsing into muayene sections - two-sided bubble transcript (in-place ASR
@@ -3333,6 +3442,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-237.md
   acceptance:
   - 'owner complaint that the spoken voice is awkward, answered with measurement
     before change: sixteen probes on the dev lane established that the pinned
@@ -3362,6 +3472,7 @@
   - area:data
   sec_row: identifiers
   status: done
+  evidence: docs/evidence/INT-238.md
   acceptance:
   - 'owner bug report - documents could not be added: app.py built its Scanner slot
     from the dev stub alone, which is unconstructible without an opt-in env var, so
@@ -3388,6 +3499,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-239.md
   acceptance:
   - 'owner directive that it should only be karsilikli konusma and that the same
     fixed nine questions must stop being asked regardless of answers: the offer
@@ -3416,6 +3528,7 @@
   - area:voice
   sec_row: self-hosting
   status: done
+  evidence: docs/evidence/INT-243.md
   acceptance:
   - 'the measurement pass having shown the dev voice band-limited with absent
     Turkish fricative energy, and a licence audit having read the Apache-2.0 blob
@@ -3442,6 +3555,7 @@
   labels:
   - area:governance
   status: done
+  evidence: docs/evidence/INT-244.md
   acceptance:
   - 'the clinical sign-off section addressed an anonymous role, so eleven open rows
     had no addressee: the owner names the physician of record and every row whose
@@ -3507,6 +3621,7 @@
   - approval:human-clinical
   sec_row: protocol-registry
   status: done
+  evidence: docs/evidence/INT-255.md
   acceptance:
   - 'after INT-254 the blueprint life-threat document still fails to load with 13
     errors, pinned by `test_the_blueprint_residue_is_enumerated_and_still_refused`.
@@ -3545,6 +3660,7 @@
   depends_on: []
   labels: [area:legal, risk:legal]
   status: done
+  evidence: docs/evidence/INT-245.md
   acceptance:
     - "docs/legal/COUNSEL_BRIEF.md states every fact with the file and line it came from, so the Turkish consent texts are drafted against the code rather than a description written from memory"
     - "it contains NO aydinlatma metni, NO acik riza wording, NO privacy policy and NO terms - drafting patient-facing Turkish copy is INT-210 and is human legal work"
@@ -3563,6 +3679,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-246.md
   acceptance:
   - 'an incident where the owner reported the voice interface missing for hours
     while it was built, merged and running - the cause being a dead tunnel to the
@@ -3587,6 +3704,7 @@
   labels:
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-247.md
   acceptance:
   - 'owner bug report that a medication carried from a previous visit was shown as
     current with no way to say it had stopped, which a clinician reading the note
@@ -3615,6 +3733,7 @@
   - area:voice
   sec_row: intake-voice
   status: done
+  evidence: docs/evidence/INT-248.md
   acceptance:
   - 'a localization audit reported the guard rejecting legitimate copy, and every
     claim was verified before a pattern was touched by reproducing the count
@@ -3643,6 +3762,7 @@
   labels:
   - area:voice
   status: done
+  evidence: docs/evidence/INT-249.md
   acceptance:
   - 'measured on live daemons, the preferred voice answered its health probe in a
     seventh of a second and then took four to six seconds to synthesise a sentence
@@ -3670,6 +3790,7 @@
   - area:mobile
   - area:voice
   status: done
+  evidence: docs/evidence/INT-261.md
   acceptance:
   - 'reported from the field as "voice and text based dynamic questions gets mixed
     up" and reproduced twice on the simulator with every dev lane answering its
@@ -3705,6 +3826,7 @@
   depends_on: [INT-247]
   labels: [area:engine]
   status: done
+  evidence: docs/evidence/INT-256.md
   acceptance:
     - "historyQuestions authored once in 04 section 1 order and COMPOSED onto every department pack by packForVisit(department, profile), never duplicated per department"
     - "18 steps across allergies/medications/pmh/family_social; the pmh and family blocks are Detayli-only and the mode gating is asserted, not assumed"
@@ -3756,6 +3878,7 @@
   depends_on: [INT-041]
   labels: [area:protocols]
   status: done
+  evidence: docs/evidence/INT-258.md
   acceptance:
     - "the overlay type, load path and compose step exist in packages/protocols: activate_overlays resolves the files/03 section 6 `overlays: [{id, when}]` declarations against confirmed PatientOverlay facts with the closed when grammar and three-valued evaluation, so a missing or stale fact reads Unknown and never activates; compose_overlay_rules applies overlay packs to a chain-resolved rule set add-and-tighten only"
     - "a tighten_rule op in an overlay resolves its parent in the pack the overlay is applied TO, not in the overlay's own extends chain - without this an overlay is pinned to one branch and `overlay.oncology_patient` cannot reach a dermatology session, which 04 section 2.2/2.3 requires"
@@ -3838,6 +3961,7 @@
   depends_on: [INT-256]
   labels: [area:engine, risk:clinical]
   status: done
+  evidence: docs/evidence/INT-282.md
   acceptance:
     - "the source is committed verbatim at docs/sources/hbys_intake_schema.md and never edited; a test asserts the file is byte-identical to the recorded sha256"
     - "PATIENT-ANSWERABLE fields become base-layer questions, composed onto every department pack by packForVisit the way INT-256's history block is, NOT duplicated per department: smoking status (5 states), alcohol, substance use, the seven named chronic conditions as a checklist, injury history, declared blood group, disability status, occupation, and transfusion history"
@@ -3946,6 +4070,7 @@
   - area:voice
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-291.md
   acceptance:
   - 'speaking over the agent does something: while a clip plays the dialogue set
     an audio mode that forbade recording and started no recorder at all, so
@@ -4112,6 +4237,7 @@
   - area:platform
   - area:i18n
   status: done
+  evidence: docs/evidence/INT-296.md
   acceptance:
   - 'a session carries exactly one locale, fixed at the start and changed only
     by an explicit act: the locale is a session field rather than a per-string
@@ -4230,6 +4356,7 @@
   - area:clinical
   - area:i18n
   status: done
+  evidence: docs/evidence/INT-299.md
   acceptance:
   - 'the clinician reads Turkish and the patient may not have spoken it, so a
     line built from a translated answer carries `translated` rather than
@@ -4393,6 +4520,7 @@
   - area:experience
   - area:mobile
   status: done
+  evidence: docs/evidence/INT-305.md
   acceptance:
   - 'the contradiction is RESOLVED in one direction and recorded, not papered
     over: either files/02 §5.4 stops calling the prompt one-tap, or `reason`
@@ -4690,6 +4818,7 @@
   - area:mobile
   - area:security
   status: done
+  evidence: docs/evidence/INT-311.md
   acceptance:
   - 'the act of issuing has one owner and one surface: today INT-137 refuses the
     QR, INT-150 refuses the delivery channel and INT-139 refuses the issuing
@@ -4815,6 +4944,7 @@
   - area:i18n
   - area:safety
   status: done
+  evidence: docs/evidence/INT-314.md
   acceptance:
   - '`confirm_tr`, `action_tr`, `do_nots_tr` and `ask_one_tr` become per-locale
     maps on the same schema as the five INT-297 migrated, with `tr` required, so
@@ -5091,7 +5221,8 @@
   title: "Agent WAV framing lives in voice-clips so the invariant-3 audio guard passes on main"
   depends_on: []
   labels: [area:voice, risk:security]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-324.md
   acceptance:
     - "services/api dev_voice carries no audio container literal (no '.wav', no 'audio/wav'); PCM→WAV framing and the audio content-type come from packages/voice-clips (voice_clips.audio.wav_bytes), the only place invariant 3 grants them"
     - "tests/voice/test_audio_retention_guard.py is green on main and its allow-list assertion is byte-for-byte unchanged (the guard is not weakened to pass)"
@@ -5104,7 +5235,8 @@
   title: "Production refuses dev bypass flags, file-dev KEK and in-code default credentials"
   depends_on: []
   labels: [area:api, risk:security]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-325.md
   acceptance:
     - "when INTAKE_ENV starts with prod, ApiSettings.from_env and create_app refuse to boot if any INTAKE_DEV_* flag is set, if INTAKE_API_KEK_MODE is file-dev, or if any database or object-store credential variable is unset or empty; no in-code dev credential is ever used under prod"
     - "under prod the OTP tier never wires the log-only delivery adapter: with no real SMS adapter configured the tier answers 503 instead of claiming a send"
@@ -5118,7 +5250,8 @@
   title: "George clip route: authenticated, catalogue-only, rate-limited, absent in production"
   depends_on: [INT-324, INT-325]
   labels: [area:voice, area:api, risk:security, risk:legal]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-326.md
   acceptance:
     - "POST /dev/voice/george-clip requires an authenticated principal; an unauthenticated call answers 401 and never reaches the vendor"
     - "text_tr is accepted only when its clip_text_hash is a member of the compiled scripted-clip manifest; any other text answers 422 and the vendor gateway is never called (no free text, no PHI can reach a cloud TTS vendor, invariant 19)"
@@ -5146,7 +5279,8 @@
   title: "Release builds use a configured https API base and never probe the LAN"
   depends_on: []
   labels: [area:mobile, risk:security]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-328.md
   acceptance:
     - "in a release build (!__DEV__) the API base comes only from build-time config set per EAS profile; it must be https; Metro hostUri, extra.asrHosts and LAN or loopback addresses are never consulted"
     - "an unset or non-https base fails closed with a typed error the UI renders as a clear Turkish error state (tr source of truth, en mirror, siz register, no numeral); no production hostname is hardcoded (the FQDN is HB-I14)"
@@ -5160,7 +5294,8 @@
   title: "Twilio SMS delivery adapter: async, egress-guarded, secrets from OpenBao, fail-closed outside dev"
   depends_on: [INT-325]
   labels: [area:api, risk:security, risk:legal]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-329.md
   acceptance:
     - "the adapter uses an async HTTP client through the egress guard and maps every vendor failure to a typed OtpDeliveryError with a generic 503, logging no phone number, code, token or vendor body"
     - "outside dev the OTP tier is configured only when the tokenization key and the OpenBao Twilio secret exist and the egress policy admits the host; otherwise it answers 503 and never falls back to a log-only sender"
@@ -5188,7 +5323,8 @@
   title: "Motion: one fail-closed reduce-motion store bridged to Reanimated"
   depends_on: [INT-330]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-331.md
   acceptance:
     - "one OS read and one listener serve every consumer; an unknown answer or a rejected read means reduced; a failed re-read keeps the last known answer"
     - "a live change reaches every consumer and Reanimated through ReducedMotionConfig driven by the app policy; nothing imports useReducedMotion from react-native-reanimated and no ReduceMotion.System appears"
@@ -5239,7 +5375,8 @@
   title: "Motion: Reanimated hygiene gates before the first Reanimated consumer"
   depends_on: [INT-331]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-335.md
   acceptance:
     - "every loop, core or Reanimated (withRepeat included), is gated on the app's reduce-motion hook and takes its period from motion.loop with every half-period above 167 ms"
     - "animated styles touch only opacity and transform; no LinearTransition, Layout animation, withSpring or runOnJS in src; Reanimated CSS durations come only from cssFade"
@@ -5352,7 +5489,8 @@
   title: "App Attest: server verification and iOS client for OTP and session"
   depends_on: [INT-325]
   labels: [area:mobile, area:api, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-344.md
   acceptance:
     - "iOS release builds attest with App Attest via a lazily imported Expo module and never send a dev-unattested mode outside __DEV__"
     - "the server verifier validates attestation and assertion objects against the pinned Apple App Attestation root (certificate chain, rpId hash of team and bundle id, nonce binding, counter, aaguid by environment, keyId) and refuses everything else; FailClosedAttestationVerifier stays the default when configuration is absent"
@@ -5366,7 +5504,8 @@
   title: "Staging backend artefact: API + Postgres + Redis + OpenBao + TLS proxy on the AWS host, synthetic patients only"
   depends_on: [INT-325]
   labels: [area:infra, risk:security, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-345.md
   acceptance:
     - "one reproducible compose artefact under infra/ runs the API, Postgres, Redis, OpenBao (server mode, transit KEK, not dev mode) and a TLS reverse proxy on the AWS host; nothing runs on the developer laptop"
     - "the API boots under a non-dev environment with no INTAKE_DEV_* flag and no file-dev KEK; a note written before a restart decrypts after it (restart test)"
@@ -5381,7 +5520,8 @@
   title: "Restore main CI to green after the billing outage"
   depends_on: []
   labels: [area:ci]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-346.md
   acceptance:
     - "the ci and security workflows run green on main HEAD with no test skipped, no gate loosened, no coverage threshold lowered and no allow-list grown except recorded register findings that carry a named reviewer"
     - "every failure that accrued while Actions billing was down (2026-09-08 → 2026-09-26) is traced to its commit and fixed at the cause, with the log excerpt, cause and red/green recorded in docs/evidence/INT-346.md"
@@ -5491,7 +5631,8 @@
   title: "Land the specialty review queue, generator and verification trail on main"
   depends_on: [INT-327]
   labels: [area:protocols]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-353.md
   acceptance:
     - "packages/protocols/review/specialty (91 candidates), scripts/dev/gen_specialty_packs.py with its tests, docs/evidence/proposals and docs/evidence/verification land on main, with the served specialty tree byte-identical to protocols generate-l0 output"
     - "make safety and tests/protocols are green, with CODEOWNER review"
@@ -5518,7 +5659,8 @@
   title: "Gated questions never asked: resolve bare ask_if slot names across the pack chain"
   depends_on: []
   labels: [area:engine, risk:clinical]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-355.md
   acceptance:
     - "a bare ask_if/skip_if slot name resolves to the unique slot of that name across the resolved pack chain (base + cluster + specialty) and section-qualified names keep working"
     - "a bare name held by two sections is refused at compile (GATE_REF_AMBIGUOUS) and a name nothing holds is refused (GATE_REF_UNKNOWN)"
@@ -5545,7 +5687,8 @@
   title: "Staging passes App Attest and SMS configuration to the API; fail closed when unset"
   depends_on: [INT-345]
   labels: [area:infra, risk:security]
-  status: doing
+  status: done
+  evidence: docs/evidence/INT-357.md
   acceptance:
     - "staging.env.template and compose.yaml pass INTAKE_APP_ATTEST_TEAM_ID, INTAKE_APP_ATTEST_BUNDLE_ID, INTAKE_APP_ATTEST_ENVIRONMENT and the SMS vendor configuration to the api with no default, and init.sh generates INTAKE_TOKENIZATION_KEY"
     - "deploy.sh refuses a team id without the SMS vendor configuration so an attested request can never reach a fake sender"
@@ -5970,6 +6113,89 @@
   tests: [apps/mobile/e2e/a11y.spec.ts, apps/mobile/src/lib/a11y/announce.test.ts]
   legal: "5378,EN301549"
   sec_row: "mobile"
+- id: INT-396
+  epic: E00-governance
+  phase: P1
+  title: "Backlog rows match what merged: status reconciliation and a guard against drift"
+  # GitHub #655. On 27 Sep 2026 rows still read todo/doing after a merged
+  # INT-xxx: PR had closed their issue, 85 done rows carried no evidence: and
+  # two todo rows did. The reconciliation table is docs/evidence/INT-396.md.
+  depends_on: [INT-004]
+  labels: [area:platform]
+  status: done
+  evidence: docs/evidence/INT-396.md
+  acceptance:
+    - "scripts/backlog/reconcile.py reports, for each row: its merged PRs (by title), whether each said Closes or Refs, the GitHub issue states, the evidence file, and blockers.md / HUMAN_BLOCKERS references; it recommends a status, and a human-held row keeps awaiting-human with its blocker named"
+    - "one pass applies the recommendations to issues.yaml (evidence: added to every done row), with a table of every change in docs/evidence/INT-396.md; duplicate GitHub issues are closed as duplicates of the one the backlog sync owns"
+    - "a backlog test fails when a row has an evidence: path but is todo, or is done without evidence: (near-miss controls)"
+  tests: [tests/backlog/test_status_consistency.py, tests/backlog/test_reconcile.py]
+- id: INT-401
+  epic: E12-admin
+  phase: P1
+  title: "Rollback from the console (4-eyes) once a CD target exists"
+  depends_on: [INT-187]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "once a CD target exists (Argo CD, or an API-driven deploy of the previous signed release), rollback is a tier-2 (4-eyes) console action: requested and approved by different eligible roles, audited, refused while the freeze state is unreadable, verified by the new /version; a test proves one person cannot complete it"
+  tests: [tests/admin/test_cicd_rollback.py]
+- id: INT-390
+  epic: E12-admin
+  phase: P0
+  title: "Keycloak upgraded to a patched release, and the committed realm imports on it"
+  depends_on: [INT-023, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-390.md
+  # Found by INT-378 (PR #643): OSV reports 64 advisories on the 26.1.4 pin
+  # (up to CVSS 9.1), and the realm on main never imported on a real Keycloak
+  # (a 271-character flow description in a 255 column). Compose now runs
+  # 26.7.4 by digest; 26.7.4 also refuses the old `dev-realm.json` import file
+  # name, so the mount is `intake-dev-realm.json`. The INT-378 provider is
+  # rebuilt against 26.7.4 in #643 itself, after this merges.
+  acceptance:
+    - "every Keycloak pin (compose images by digest, docs, runbook, the INT-378 provider's `provided` dependency) moves to the newest patched 26.x release; licence re-verified from the raw LICENSE; OSV clean for Keycloak"
+    - "the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"
+  tests: [tests/infra/test_keycloak_realm_import.py, tests/admin/test_staff_second_factor.py]
+  sec_row: "admin-console"
+- id: INT-402
+  epic: E07-records
+  phase: P1
+  title: "Record-embedding model for the patient record index (files/03 §4.9.1)"
+  depends_on: [INT-123]
+  labels: [area:records, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner adds an open-weights, commercially usable, in-country self-hostable record-embedding model row to files/03 §4.9.1; it is pinned model_id@revision + sha256 with licence_verified_at and a probe; an adapter binds records/embedding.py with a recorded-vector contract test; indexing starts, and an audited backfill covers already-confirmed items"
+  tests: [tests/records/test_record_index.py]
+  sec_row: "records"
+- id: INT-403
+  epic: E02-data
+  phase: P1
+  title: "What withdrawing documents consent does to the patient's record vectors"
+  depends_on: [INT-123]
+  labels: [area:data, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "the owner (with counsel if needed) records whether withdrawal deletes the vectors or keeps them under the record's retention class (files/06); deletion is then done in the withdrawal transaction, audited by id and tested, or the inventory annotation and consent text state the retention"
+  tests: [tests/records/test_record_index.py]
+  sec_row: "consent"
+- id: INT-405
+  epic: E00-governance
+  phase: P1
+  title: "The backlog sync pages past 500 issues and keeps issue state in step with rows"
+  # GitHub #675. Found by INT-396 (docs/evidence/INT-396.md, "For the
+  # coordinator" 4 and the 66 done rows whose owned issue was open):
+  # fetch_existing listed at most 500 issues, and apply_plan never set state.
+  depends_on: [INT-004, INT-396]
+  labels: [area:platform]
+  status: done
+  evidence: docs/evidence/INT-405.md
+  acceptance:
+    - "fetch_existing pages until exhausted (a test with a fake paginated client over 1,200 issues, and a near-miss where page 3 is dropped)"
+    - "the sync closes the owned issue of a done row (state_reason completed) and reopens it for a row moved back from done; dry-run lists these actions; the live run is the operator's (make backlog-sync or the documented command)"
+    - "duplicates are never touched, only the owned issue per id (owned_issue_numbers())"
+  tests: [tests/backlog/test_sync_dryrun.py]
 - id: INT-408
   epic: E01-platform
   phase: P1

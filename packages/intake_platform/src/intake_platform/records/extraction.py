@@ -54,7 +54,7 @@ printed name, a magnitude or a document line (invariant 6).
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -474,10 +474,17 @@ class ConfirmedRecordStore:
     runtime check below is the belt for a caller that arrived through ``Any``
     (a JSON body, a dynamic dispatch), where the type has already stopped
     helping.
+
+    ``on_admit`` (INT-123) is called with each item *after* it is admitted —
+    the record index binds its queue here, with the patient's ``documents``
+    consent, so the only door into the index is this one. The hook is handed
+    the confirmed type the store has just checked; it cannot see anything the
+    store refused.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, on_admit: Callable[[ConfirmedRecordItem], object] | None = None) -> None:
         self._admitted: list[ConfirmedRecordItem] = []
+        self._on_admit = on_admit
 
     def admit(self, item: ConfirmedRecordItem) -> None:
         if not isinstance(item, ConfirmedRecordItem):
@@ -486,6 +493,8 @@ class ConfirmedRecordStore:
                 "looked at does not reach a note, a slot or triage (files/03 §4.6)"
             )
         self._admitted.append(item)
+        if self._on_admit is not None:
+            self._on_admit(item)
 
     @property
     def admitted(self) -> tuple[ConfirmedRecordItem, ...]:
