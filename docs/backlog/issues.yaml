@@ -6247,4 +6247,22 @@
   acceptance:
     - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
   tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
+- id: INT-409
+  epic: E08-mobile
+  phase: P1
+  title: "The visits list uses the real date, not a pinned TODAY_FIXTURE, in every build"
+  # GitHub #688. Found by INT-179's close-out (PR #687): Vizitlerim pinned
+  # "today" to one date in every build, release included, so the upcoming/past
+  # split and the INT-370 calendar were wrong for every real patient. The
+  # issue names src/app/(tabs)/visits/visits.test.ts; a .test.ts under src/app
+  # is an expo-router route and breaks the release export, so the tests sit in
+  # src/lib and e2e (docs/evidence/INT-409.md).
+  depends_on: [INT-370]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-409.md
+  acceptance:
+    - "\"today\" comes from an injectable clock (the device date in the app's time zone, Europe/Istanbul for date boundaries); tests inject a fixed clock; no build contains a pinned date"
+    - "a test fails if any source under `apps/mobile/src` (outside tests and fixtures) pins a calendar date constant used as \"now\", with a near-miss control"
+  tests: [apps/mobile/src/lib/clock.test.ts, apps/mobile/e2e/pinnedToday.spec.ts]
   sec_row: "mobile"

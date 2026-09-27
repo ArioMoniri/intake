@@ -124,7 +124,10 @@ def test_ids_unique_and_well_formed() -> None:
     # consistency guard; GitHub #655, carried by its own PR).
     # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
     # step with rows; found by INT-396, GitHub #675).
-    assert len(ids) == 319
+    # + INT-409 (Vizitlerim reads "today" from an injected clock in the
+    # Europe/Istanbul day instead of a date pinned in every build; found by
+    # INT-179's close-out, GitHub #688).
+    assert len(ids) == 320
     import re
 
     for i in ids:
