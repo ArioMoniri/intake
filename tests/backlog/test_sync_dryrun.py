@@ -71,7 +71,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-386 (the typed rail, note, summary and FHIR narrative quantities, GitHub #638)
     # + INT-387 (the a11y conformance report re-rated after INT-361..363, GitHub #640)
     # + INT-397 (the last three SC 4.1.3 status lines are announced, GitHub #659)
-    assert len(actions) == 309
+    assert len(actions) == 310
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

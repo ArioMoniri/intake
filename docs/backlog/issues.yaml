@@ -251,7 +251,9 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: awaiting-human
+  # RESCOPED 27 Sep 2026 (PR #685): the workers tier and its SLI targets move to
+  # INT-408 (owner); every other service, app and job is covered.
+  status: done
   evidence: docs/evidence/INT-021.md
   # NOTE 27 Sep 2026 (close-out): every SLO file now generates its burn-rate
   # rules (7 files, 8 SLOs, 24 alerts; api.yaml alone until now) and its own
@@ -265,7 +267,7 @@
   # it, and its one spec objective (note ready <= 60 s, 99 %) has no emitter —
   # the owner's decision, docs/backlog/blockers.md INT-021.
   acceptance:
-    - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
+    - "docs/slo/{api,voice-runtime}.yaml (and every other service's SLO file; workers is INT-408) with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
   sec_row: "monitoring-contract"
 - id: INT-022
@@ -5968,3 +5970,14 @@
   tests: [apps/mobile/e2e/a11y.spec.ts, apps/mobile/src/lib/a11y/announce.test.ts]
   legal: "5378,EN301549"
   sec_row: "mobile"
+- id: INT-408
+  epic: E11-observability
+  phase: P1
+  title: "Workers tier SLOs: the owner decides the tier and its targets"
+  depends_on: [INT-021]
+  labels: [area:observability]
+  status: awaiting-human
+  acceptance:
+    - "the owner records whether the workers tier becomes services/workers and the targets for its SLIs (upload promotion, retention runs, event-bus dead letters, notification dispatch); docs/slo/workers.yaml declares them, the generator emits rules and a dashboard, every SLI series is emitted and catalogued live, and the coverage manifest drops the workers exception"
+  tests: [tests/observability/test_slo_coverage.py]
+  sec_row: "monitoring-contract"
