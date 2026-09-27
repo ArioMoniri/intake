@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**297 issues.** By phase: P0 156 · P1 87 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 161 · todo 94 · withdrawn 1.
+**298 issues.** By phase: P0 157 · P1 87 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 162 · todo 94 · withdrawn 1.
 
 ## P0
 
@@ -161,12 +161,13 @@
 | INT-348 | Play Integrity verification and a real-device OTP login smoke on TestFlight and Play | E08-mobile | INT-344 | area:mobile, area:api, risk:security | awaiting-human |
 | INT-349 | Sensitive slot categories: per-slot data-category tag, encrypted storage, fail-closed register gate | E02-data | INT-327 | area:data, risk:legal, risk:security | doing |
 | INT-350 | CI part 2: check-integration builds the pinned edge plugin; osv findings fixed | E13-infra | INT-346 | area:ci | todo |
-| INT-352 | Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host) | E13-infra | INT-345, INT-347, INT-325 | area:infra, risk:security, risk:legal | todo |
+| INT-352 | Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host) | E13-infra | INT-345, INT-347, INT-325 | area:infra, risk:security, risk:legal | done |
 | INT-354 | Consolidate int-demo into main; main becomes the TestFlight build source | E17-release | INT-328, INT-344 | area:mobile, area:release | todo |
 | INT-355 | Gated questions never asked: resolve bare ask_if slot names across the pack chain | E04-engines | — | area:engine, risk:clinical | doing |
 | INT-356 | Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject notice) | E14-legal | INT-349 | area:legal, risk:legal | awaiting-human |
 | INT-357 | Staging passes App Attest and SMS configuration to the API; fail closed when unset | E13-infra | INT-345 | area:infra, risk:security | doing |
 | INT-358 | SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery | E14-legal | INT-329 | area:legal, risk:legal, risk:security | awaiting-human |
+| INT-376 | Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved | E13-infra | INT-352 | area:infra, risk:legal | todo |
 
 ## P1
 
