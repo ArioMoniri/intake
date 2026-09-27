@@ -5,9 +5,9 @@ import { SymbolView } from "expo-symbols";
 
 import { StatusChip } from "@/components/StatusChip";
 import { AppText, Card, useFontScale, useTheme } from "@/components/Themed";
-import type { VisitFixture } from "@/lib/dev/accounts";
 import { getLocale, t } from "@/lib/i18n";
 import { radius, spacing, tracking } from "@/lib/theme";
+import type { VisitFixture } from "@/lib/types/account";
 import { CHEVRON_GAP, CHEVRON_SIZE, chevronPlacement } from "@/lib/visitCardLayout";
 
 /**

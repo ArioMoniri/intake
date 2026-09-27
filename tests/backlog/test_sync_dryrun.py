@@ -93,7 +93,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-398..400 (split out of INT-122 by its own PR, #663)
     # + INT-401 (console rollback split out of INT-187)
     # + INT-409 (Vizitlerim reads today from the device clock, not a pinned date, GitHub #688)
-    assert len(actions) == 320
+    # + INT-410 (release bundles carry no synthetic seed accounts, audit F30, GitHub #689)
+    assert len(actions) == 321
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

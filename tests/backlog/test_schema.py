@@ -127,7 +127,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-409 (Vizitlerim reads "today" from an injected clock in the
     # Europe/Istanbul day instead of a date pinned in every build; found by
     # INT-179's close-out, GitHub #688).
-    assert len(ids) == 320
+    # + INT-410 (the synthetic seed accounts leave the release bundle, proven
+    # over the production export; audit F30, found by INT-179's close-out,
+    # GitHub #689).
+    assert len(ids) == 321
     import re
 
     for i in ids:
