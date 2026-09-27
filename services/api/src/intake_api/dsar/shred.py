@@ -20,9 +20,9 @@ Order inside a run, and the reason for it:
    envelope-bearing field belonging to the subject has its wrapped DEK
    destroyed (``intake_platform.envelope``) before the rows go, so even a
    transaction that never commits leaves nothing readable behind. Rows are
-   deleted in dependency order: previsit outputs, shares, documents,
-   rectifications, notes, learned facts and their header, slots — then the
-   telemetry de-link below, then the sessions.
+   deleted in dependency order, children first: previsit outputs, Doctor
+   Links, shares, documents, rectifications, notes, learned facts and their
+   header, slots — then the telemetry de-link below, then the sessions.
 3. **Telemetry is de-linked, not deleted.** ``events.session_id`` is a FK to
    ``sessions.id`` with no ON DELETE clause, so the sessions cannot be dropped
    while events reference them. Telemetry has its own files/06 §3 clock
@@ -40,6 +40,18 @@ Order inside a run, and the reason for it:
    same ref the hospital read-back audits a disclosure under, so the chain
    shows both what left and when it was erased (files/06 §2.3: a copy a
    hospital already holds is the hospital's as controller).
+5. **Doctor Links go before their shares, and by name (INT-393).** A Doctor
+   Link (INT-150) is one addressed, expiring way of reaching a share, and its
+   row is annotated ``RET_SHARE``: "grant row retained with the record", so
+   it follows the record and goes with it. Its recipient label is an
+   envelope, so its wrapped DEK is destroyed with the note's. The filing
+   already revoked every link (``revoke_live_shares``); this step removes
+   them. ``doctor_links.share_id`` keeps NO ACTION for the reason point 4
+   gives, and each removed link and each removed share is audited against
+   ``doctor_link:<id>`` / ``share:<id>``, the refs their issue and opens
+   were audited under. tests/data/test_session_delete_contract.py declares
+   what an erasure does to every key reachable from ``patients`` and
+   ``sessions``, and checks this executor against it.
 
 Every statement carries an explicit ``tenant_id`` predicate even though
 postgres enforces the same boundary with RLS — most of all the DELETEs, which
@@ -68,6 +80,7 @@ from typing import Any, cast
 
 from intake_platform.db.envelope_json import encrypted_field_from_json, encrypted_field_to_json
 from intake_platform.db.models import (
+    DoctorLink,
     Document,
     DsarKind,
     DsarRectification,
@@ -198,7 +211,7 @@ async def execute_due_shreds(
 
         shredded_fields = 0
         removed_rows = 0
-        answered: list[tuple[uuid.UUID, uuid.UUID, tuple[uuid.UUID, ...]]] = []
+        answered: list[tuple[uuid.UUID, uuid.UUID, tuple[tuple[str, str], ...]]] = []
         for request in due:
             erased = await _erase_subject(
                 session, tenant_id=tenant_id, patient_id=request.patient_id
@@ -207,23 +220,23 @@ async def execute_due_shreds(
             removed_rows += erased.removed
             request.status = DsarStatus.COMPLETED
             request.completed_at = now
-            answered.append((request.id, request.patient_id, erased.output_ids))
+            answered.append((request.id, request.patient_id, erased.audited))
 
     DSAR_DELETE_TOTAL.labels(
         subject_count=str(len({patient_id for _, patient_id, _ in answered}))
     ).inc()
-    for request_id, patient_id, output_ids in answered:
+    for request_id, patient_id, audited in answered:
         await audit.record(
             actor=f"patient:{patient_id}",
             action="dsar.delete.shred",
             resource_ref=f"dsar-request:{request_id}",
             consent_scope=DSAR_BASIS_REF,
         )
-        for output_id in output_ids:
+        for action, resource_ref in audited:
             await audit.record(
                 actor=f"patient:{patient_id}",
-                action="dsar.delete.previsit_output",
-                resource_ref=f"previsit_output:{output_id}",
+                action=action,
+                resource_ref=resource_ref,
                 consent_scope=DSAR_BASIS_REF,
             )
     return ShredReport(len(answered), shredded_fields, removed_rows)
@@ -231,12 +244,13 @@ async def execute_due_shreds(
 
 @dataclass(frozen=True)
 class _Erased:
-    """One subject's erasure: fields shredded, rows removed, and the previsit
-    outputs among them by id — the ids the audit names after the commit."""
+    """One subject's erasure: fields shredded, rows removed, and the rows the
+    audit names by id after the commit, as ``(action, resource_ref)`` in the
+    order they were removed."""
 
     shredded: int
     removed: int
-    output_ids: tuple[uuid.UUID, ...]
+    audited: tuple[tuple[str, str], ...]
 
 
 async def _erase_subject(
@@ -299,10 +313,31 @@ async def _erase_subject(
         output.payload = _shredded(dict(output.payload))
         flag_modified(output, "payload")
         shredded += 1
+    # INT-393: the Doctor Links issued over the subject's shares (INT-150).
+    # Queried here for the same reason: the export has no resource for a
+    # grant, and erasure needs none. The recipient label is the envelope.
+    share_ids = [row.id for row in record.shares]
+    links = (
+        tuple(
+            (
+                await session.scalars(
+                    select(DoctorLink).where(
+                        DoctorLink.tenant_id == tenant_id, DoctorLink.share_id.in_(share_ids)
+                    )
+                )
+            ).all()
+        )
+        if share_ids
+        else ()
+    )
+    for link in links:
+        link.recipient = _shredded(dict(link.recipient))
+        flag_modified(link, "recipient")
+        shredded += 1
     await session.flush()
 
     session_ids = [row.id for row in record.sessions]
-    note_ids = [row.id for row in record.notes]
+    link_ids = [link.id for link in links]
     removed = 0
     # First: the one row a hospital may already have fetched (module docstring,
     # point 4). Its key to sessions is NO ACTION, so skipping this raises.
@@ -313,10 +348,21 @@ async def _erase_subject(
             PreVisitOutputRow.patient_id == patient_id,
         ),
     )
-    if note_ids:
+    # Children first (module docstring, point 5), each by the id it is
+    # audited under: a link or share that appeared after the sweep is not in
+    # these lists, so its NO ACTION key stops the parent's delete and the
+    # whole run rolls back rather than removing a row nobody audited.
+    if link_ids:
         removed += await _delete(
             session,
-            delete(Share).where(Share.tenant_id == tenant_id, Share.note_id.in_(note_ids)),
+            delete(DoctorLink).where(
+                DoctorLink.tenant_id == tenant_id, DoctorLink.id.in_(link_ids)
+            ),
+        )
+    if share_ids:
+        removed += await _delete(
+            session,
+            delete(Share).where(Share.tenant_id == tenant_id, Share.id.in_(share_ids)),
         )
     removed += await _delete(
         session,
@@ -367,4 +413,9 @@ async def _erase_subject(
                 IntakeSession.tenant_id == tenant_id, IntakeSession.id.in_(session_ids)
             ),
         )
-    return _Erased(shredded, removed, tuple(output.id for output in outputs))
+    audited = (
+        *(("dsar.delete.previsit_output", f"previsit_output:{row.id}") for row in outputs),
+        *(("dsar.delete.doctor_link", f"doctor_link:{link_id}") for link_id in link_ids),
+        *(("dsar.delete.share", f"share:{share_id}") for share_id in share_ids),
+    )
+    return _Erased(shredded, removed, audited)

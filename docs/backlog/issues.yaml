@@ -5865,3 +5865,26 @@
   tests: [tests/data/test_session_delete_contract.py, tests/legal/test_dsar_flows.py, tests/api/test_api_postgres.py, tests/integration/test_session_erasure.py]
   legal: "KVKK-7,KVKK-11,DEST-2017"
   sec_row: "data-at-rest"
+- id: INT-393
+  epic: E02-data
+  phase: P0
+  title: "Patient erasure removes Doctor Links, and the retention source text matches the post-INT-317 tree"
+  depends_on: [INT-036, INT-037, INT-150, INT-392]
+  labels: [area:data, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-393.md
+  # Found by INT-392 (GitHub #649; INT-392 evidence §8): INT-150's migration
+  # 0012 added doctor_links.share_id -> shares.id with no ON DELETE rule, and
+  # neither the DSAR erasure nor the retention clinical_record executor removed
+  # Doctor Links before deleting the subject's shares, so erasing a patient who
+  # ever issued a Doctor Link raised ForeignKeyViolation on postgres. Mechanism:
+  # the INT-392 pattern one level down (explicit removal, children first,
+  # recipient envelope shredded, each removed link and share audited by id, the
+  # key kept NO ACTION). No migration; no retention period changed.
+  acceptance:
+    - "DSAR erasure and the relevant retention class remove or shred the patient's Doctor Links and their shares in the documented order, audited by id, with the FK kept strict as a backstop (the INT-392 pattern)"
+    - "tests/data/test_session_delete_contract.py is extended into a contract that every FK in the erasure graph declares what erasure does to it, with a near-miss control; a CI integration test erases a patient with a Doctor Link (red on main)"
+    - "retention_policy.yaml's clinical_record source text lists the tree as it now is (INT-317 outputs, INT-320/150 Doctor Links)"
+  tests: [tests/legal/test_dsar_flows.py, tests/integration/test_session_erasure.py, tests/data/test_session_delete_contract.py]
+  legal: "KVKK-7,KVKK-11,DEST-2017"
+  sec_row: "data-at-rest"

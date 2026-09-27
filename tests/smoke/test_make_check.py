@@ -253,7 +253,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # console's claims, found by INT-365); grows only with a stated reason.
     # previsit routing) + INT-392 (a session with a previsit output can be
     # deleted again, found on check-integration); grows only with a stated reason.
-    assert len(ids) == 304, f"expected 175 blueprint + 129 added issues, got {len(ids)}"
+    # deleted again, found on check-integration) + INT-393 (a patient who issued
+    # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
+    assert len(ids) == 305, f"expected 175 blueprint + 130 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

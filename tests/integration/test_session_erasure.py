@@ -1,5 +1,5 @@
-"""INT-392 — a session with a previsit output can still be deleted, on postgres
-(integration).
+"""INT-392 / INT-393 — a session with a previsit output, and a patient who
+issued a Doctor Link, can still be erased, on postgres (integration).
 
 The defect this lane caught first: INT-317 (migration 0013) added
 ``previsit_outputs.session_id`` → ``sessions.id`` with no ON DELETE rule, so
@@ -22,6 +22,13 @@ deliberately not granted (events are append-only for the app role, 0001).
 Which role runs erasure in production is a separate question, recorded in
 docs/evidence/INT-392.md; this file proves the foreign-key order, which is
 the defect.
+
+INT-393 is the same defect one level down: INT-150 (migration 0012) added
+``doctor_links.share_id`` → ``shares.id`` with no ON DELETE rule, and both
+paths deleted the subject's shares without removing their Doctor Links first,
+so erasing a patient who ever issued one raised ``ForeignKeyViolation`` on
+``fk_doctor_links_share_id_shares``. The ``linked`` fixture adds a share and a
+Doctor Link to the visit, and the same three proofs run over it.
 
 Runs via ``make check-integration``. Every row is synthetic and belongs to a
 tenant created for the test, removed again afterwards. Sec row: data-at-rest.
@@ -63,10 +70,12 @@ SUPERPASS = os.environ.get("POSTGRES_PASSWORD", "intake-dev-only")
 AUDIT_WRITER = ("svc_audit_writer", "svc-audit-writer-dev-only")
 
 OUTPUT_FK = "fk_previsit_outputs_session_id_sessions"
+DOCTOR_LINK_FK = "fk_doctor_links_share_id_shares"
 
 #: Children before parents, for the teardown: it has to clear the residue of a
 #: red run (nothing deleted) as well as a green one.
 _TENANT_ROWS = (
+    "doctor_links",
     "previsit_outputs",
     "csat_texts",
     "shares",
@@ -113,6 +122,13 @@ class Visit:
     session_id: uuid.UUID
     output_id: uuid.UUID
     event_id: int
+
+
+@dataclass(frozen=True)
+class Linked:
+    visit: Visit
+    share_id: uuid.UUID
+    link_id: uuid.UUID
 
 
 @pytest.fixture
@@ -218,7 +234,10 @@ def test_the_key_still_refuses_a_session_delete_that_forgets_the_output(visit: V
     assert _count("sessions", "id = %s", visit.session_id) == 1
 
 
-def test_the_dsar_erasure_deletes_a_session_that_has_a_previsit_output(visit: Visit) -> None:
+def _erase_as_dsar(visit: Visit) -> tuple[ShredReport, list[tuple[str, str, str]]]:
+    """File a delete request whose grace has run, execute the erasure, and
+    return the report with this subject's audit entries as
+    (action, actor, resource_ref)."""
     now = datetime.now(UTC)
     with _connect() as conn, conn.cursor() as cur:
         cur.execute(
@@ -249,7 +268,20 @@ def test_the_dsar_erasure_deletes_a_session_that_has_a_previsit_output(visit: Vi
         finally:
             await engine.dispose()
 
-    report = asyncio.run(_erase())
+    try:
+        report = asyncio.run(_erase())
+        entries = [
+            (entry.action, entry.actor, entry.resource_ref)
+            for entry in SqlAlchemyAuditStore(audit_engine).entries()
+            if entry.actor == f"patient:{visit.patient_id}"
+        ]
+    finally:
+        audit_engine.dispose()
+    return report, entries
+
+
+def test_the_dsar_erasure_deletes_a_session_that_has_a_previsit_output(visit: Visit) -> None:
+    report, entries = _erase_as_dsar(visit)
 
     assert report.shredded_requests == 1
     assert report.shredded_fields == 2, "the note's DEK and the output's DEK"
@@ -258,15 +290,16 @@ def test_the_dsar_erasure_deletes_a_session_that_has_a_previsit_output(visit: Vi
     assert _count("slots", "session_id = %s", visit.session_id) == 0
     assert _count("sessions", "id = %s", visit.session_id) == 0
     assert _event_session(visit.event_id) is None
-    erased = [
-        entry
-        for entry in SqlAlchemyAuditStore(audit_engine).entries()
-        if entry.action == "dsar.delete.previsit_output"
-        and entry.resource_ref == f"previsit_output:{visit.output_id}"
-    ]
-    assert len(erased) == 1
-    assert erased[0].actor == f"patient:{visit.patient_id}"
-    audit_engine.dispose()
+    assert (
+        entries.count(
+            (
+                "dsar.delete.previsit_output",
+                f"patient:{visit.patient_id}",
+                f"previsit_output:{visit.output_id}",
+            )
+        )
+        == 1
+    )
 
 
 def test_the_retention_executor_deletes_a_session_that_has_a_previsit_output(
@@ -283,5 +316,82 @@ def test_the_retention_executor_deletes_a_session_that_has_a_previsit_output(
     assert _count("previsit_outputs", "id = %s", visit.output_id) == 0
     assert _count("notes", "session_id = %s", visit.session_id) == 0
     assert _count("slots", "session_id = %s", visit.session_id) == 0
+    assert _count("sessions", "id = %s", visit.session_id) == 0
+    assert _event_session(visit.event_id) is None
+
+
+# --- INT-393: a patient who issued a Doctor Link ------------------------------------
+
+
+@pytest.fixture
+def linked(visit: Visit) -> Linked:
+    """The visit's note shared, and one Doctor Link issued over that share
+    (INT-150), its recipient label an envelope as the issue route writes it.
+    The ``visit`` teardown removes both, Doctor Links first."""
+    cipher = EnvelopeCipher(FileKekProvider())
+    share, link = uuid.uuid4(), uuid.uuid4()
+    recipient = encrypted_field_to_json(cipher.encrypt_field(str(visit.tenant_id), b"Dr. Sentetik"))
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO shares (id, tenant_id, note_id, scope_sections, expires_at) "
+            "SELECT %s, tenant_id, id, %s, now() + interval '72 hours' "
+            "FROM notes WHERE session_id = %s",
+            (share, Jsonb({"section_ids": ["chief_complaint"]}), visit.session_id),
+        )
+        cur.execute(
+            "INSERT INTO doctor_links (id, tenant_id, share_id, token_fingerprint, "
+            "recipient, expires_at, view_limit) "
+            "VALUES (%s, %s, %s, %s, %s, now() + interval '72 hours', %s)",
+            (link, visit.tenant_id, share, uuid.uuid4().hex * 2, Jsonb(recipient), 3),
+        )
+    return Linked(visit, share, link)
+
+
+def test_the_key_refuses_a_share_delete_that_forgets_its_doctor_link(linked: Linked) -> None:
+    """The backstop INT-393 keeps on purpose: ``doctor_links.share_id`` stays
+    NO ACTION, so a path that deletes a share and forgets its link fails
+    loudly instead of dropping the link's envelope unshredded and unaudited."""
+    with _connect() as conn, conn.cursor() as cur:
+        with pytest.raises(psycopg.errors.ForeignKeyViolation) as refused:
+            cur.execute("DELETE FROM shares WHERE id = %s", (linked.share_id,))
+    assert refused.value.diag.constraint_name == DOCTOR_LINK_FK
+    assert _count("shares", "id = %s", linked.share_id) == 1
+
+
+def test_the_dsar_erasure_erases_a_patient_who_issued_a_doctor_link(linked: Linked) -> None:
+    visit = linked.visit
+
+    report, entries = _erase_as_dsar(visit)
+
+    assert report.shredded_requests == 1
+    assert report.shredded_fields == 3, "the note's, the output's and the recipient's DEKs"
+    assert _count("doctor_links", "id = %s", linked.link_id) == 0
+    assert _count("shares", "id = %s", linked.share_id) == 0
+    assert _count("notes", "session_id = %s", visit.session_id) == 0
+    assert _count("sessions", "id = %s", visit.session_id) == 0
+    assert _event_session(visit.event_id) is None
+    actor = f"patient:{visit.patient_id}"
+    removed = [entry for entry in entries if entry[0] != "dsar.delete.shred"]
+    assert removed == [
+        ("dsar.delete.previsit_output", actor, f"previsit_output:{visit.output_id}"),
+        ("dsar.delete.doctor_link", actor, f"doctor_link:{linked.link_id}"),
+        ("dsar.delete.share", actor, f"share:{linked.share_id}"),
+    ]
+
+
+def test_the_retention_executor_deletes_a_session_whose_note_has_a_doctor_link(
+    linked: Linked,
+) -> None:
+    visit = linked.visit
+    engine = create_engine(_url(SUPERUSER, SUPERPASS))
+    try:
+        destroyers = sqlalchemy_destroyers(engine, remove_object=_no_objects)
+        count = destroyers[DestroyableClass.CLINICAL_RECORD]([str(visit.session_id)])
+    finally:
+        engine.dispose()
+
+    assert count == 1
+    assert _count("doctor_links", "id = %s", linked.link_id) == 0
+    assert _count("shares", "id = %s", linked.share_id) == 0
     assert _count("sessions", "id = %s", visit.session_id) == 0
     assert _event_session(visit.event_id) is None

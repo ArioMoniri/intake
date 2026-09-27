@@ -100,7 +100,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-392 (a session with a previsit output could not be deleted by the
     # DSAR erasure, the retention executor or the integration teardown; found
     # on main's check-integration, fixed and closed in the same PR).
-    assert len(ids) == 304
+    # + INT-393 (a patient who issued a Doctor Link could not be erased; found
+    # by INT-392, fixed and closed in the same PR).
+    assert len(ids) == 305
     import re
 
     for i in ids:
