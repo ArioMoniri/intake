@@ -159,12 +159,30 @@ measures:
 
   - id: "2ç"
     quote: "ç) Periyodik olarak yetki kontrollerinin gerçekleştirilmesi,"
-    controls: []
+    controls:
+      # INT-366 answered the engineering gap that stood here ("which issue
+      # builds the console-generated quarterly access review"). What remains is
+      # the owner's wiring of the console to Keycloak and OpenBao, below, and
+      # the organisational review itself.
+      - id: generated-access-review
+        summary: "The console generates the periodic access review from the Keycloak admin API (every staff account, its effective roles and last login) and the audit log (each holder's last console action and each section's last countersignature); a section is signed by its files/08 §2.7 reviewer and countersigned by a second person, from another organisation for platform_owner; and a review older than 100 days, or none, makes platform_owner and tenant_admin read-only and pages."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/access/review.py
+          - services/api/src/intake_api/admin/access_console.py
+          - docs/runbooks/access-review.md
+        tests:
+          - tests/admin/test_access_review.py::TestGeneratedDocument::test_holders_are_exactly_the_staff_role_holders_in_keycloak
+          - tests/admin/test_access_review.py::TestSignAndCountersign::test_platform_owner_needs_a_countersignature_from_another_organisation
+          - tests/admin/test_access_review.py::TestReadOnlyPastOneHundredDays::test_one_second_either_side_of_one_hundred_days
+          - tests/admin/test_access_review.py::TestReadOnlyEnforcedAtTheRoute::test_past_one_hundred_days_platform_owner_writes_are_refused_and_audited
+        signals:
+          - metric: admin_access_review_age_days
+            status: live
     gaps:
       - id: access-review-generator
-        kind: engineering
-        owner: security_owner
-        ask: "Which issue builds the console-generated quarterly access review of files/08 §2.7, produced from Keycloak, the role grants and the audit log and downgrading platform_owner and tenant_admin sessions to read-only past 100 days, given that nothing in the repository generates one and admin_access_review_age_days is catalogued as planned?"
+        kind: organisational
+        owner: owner
+        ask: "On what date did the owner give the console its Keycloak admin client, OpenBao KV entry and login-event retention (docs/runbooks/access-review.md, Owner steps), so that the access review is generated from the production realm rather than refused?"
       - id: access-review-performed
         kind: organisational
         owner: owner
@@ -204,11 +222,30 @@ measures:
         signals:
           - probe: openbao
             status: registered
+      # INT-366 answered the engineering gap that stood here ("which issue
+      # builds the one-action offboarding and its 60-day auto-disable"). What
+      # remains is the owner's scheduler, credentials and the three consoles
+      # still offboarded by hand, below.
+      - id: one-action-offboarding-and-dormancy
+        summary: "One console action disables the person's Keycloak account, ends their sessions, disables their OpenBao identity and revokes its tokens and leases, and lists every other console account as a manual step that keeps the offboarding incomplete until an audited confirmation; a scheduled job offboards every staff account with no login for 60 days through the same pipeline, and refuses when the realm keeps less than 60 days of login history."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/access/offboarding.py
+          - packages/intake_platform/src/intake_platform/access_hygiene/job.py
+          - infra/admin/console-accounts.yaml
+          - docs/runbooks/access-review.md
+        tests:
+          - tests/admin/test_offboarding.py::TestOneActionOffboarding::test_every_system_is_revoked_or_listed_in_one_call
+          - tests/admin/test_offboarding.py::TestOneActionOffboarding::test_manual_steps_close_only_by_audited_confirmation
+          - tests/admin/test_offboarding.py::TestSixtyDayAutoDisable::test_dormant_accounts_are_disabled_and_nobody_else
+          - tests/admin/test_offboarding.py::TestSixtyDayAutoDisable::test_without_sixty_days_of_login_history_nobody_is_disabled
+        signals:
+          - metric: admin_offboarding_total
+            status: live
     gaps:
       - id: one-action-offboarding
-        kind: engineering
-        owner: security_owner
-        ask: "Which issue builds the one-action offboarding of files/08 §2.4 (a single disable that revokes Keycloak sessions, OpenBao leases and every other console account together) and its 60-day auto-disable on no login, given that neither exists in the repository today?"
+        kind: organisational
+        owner: owner
+        ask: "On what date did the owner grant the offboarding OpenBao policy and start the daily access-hygiene run (docs/runbooks/access-review.md, Owner steps, which also record whether Grafana, Langfuse and Unleash stay manual offboarding steps)?"
       - id: inventory-return
         kind: organisational
         owner: owner

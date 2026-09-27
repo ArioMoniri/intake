@@ -21,10 +21,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from intake_platform.admin import AdminWiring, IpAllowList
+from intake_platform.admin.access import ConsoleSystemsRefused, IdentityWiring
+from intake_platform.admin.access.config import (
+    ENV_KEYCLOAK_URL,
+    IdentityUnconfigured,
+    identity_from_env,
+)
 from intake_platform.admin.oidc import KeycloakClaimsVerifier, load_jwks
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
@@ -32,7 +39,7 @@ from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKek
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
-from intake_platform.secrets import SecretsProvider
+from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
 from intake_platform.voice_control import voice_control_store_from_env
 from sqlalchemy import create_engine, text
@@ -54,6 +61,7 @@ from intake_api import (
     otp_routes,
     previsit_output,
     profile_routes,
+    record_items,
     satisfaction,
     taxonomy_routes,
     visits,
@@ -331,7 +339,24 @@ def _admin_from_env() -> AdminWiring | None:
         claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
         voice_controls=voice_controls,
+        identity=_identity_from_env(),
     )
+
+
+def _identity_from_env() -> IdentityWiring | None:
+    """INT-366: Keycloak and OpenBao admin access for the access review and
+    offboarding. Any fact absent — the Keycloak origin or realm, the OpenBao
+    auth mount, the admin client in OpenBao KV, or a loadable console-systems
+    file — leaves both answering 503 (fail closed). The §2.7 read-only
+    downgrade does not depend on this: it reads the audit chain."""
+    if not os.environ.get(ENV_KEYCLOAK_URL):
+        return None
+    try:
+        return identity_from_env(os.environ, SecretsProvider.from_env())
+    except (SecretsBootError, IdentityUnconfigured, ConsoleSystemsRefused, httpx.HTTPError) as err:
+        # the exception class names what is missing; no value is logged
+        logger.warning("access review unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
@@ -420,6 +445,13 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                     await ensure_consumer_tenant(w.bootstrap_engine or w.engine)
                 except Exception:  # noqa: BLE001 — readiness reports; ids-only log
                     logger.warning("consumer tenant bootstrap deferred: database not ready")
+        if w.admin is not None:
+            # INT-366: read the review state off the chain at start, so the
+            # review-age gauge is not +Inf until the first admin request.
+            try:
+                await w.admin.review_ledger.refresh(audit)
+            except Exception:  # noqa: BLE001 — the gauge stays +Inf and pages; ids-only log
+                logger.warning("access review ledger deferred: audit chain not readable")
         yield
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
@@ -506,6 +538,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)
     app.include_router(documents.router)
+    app.include_router(record_items.router)
     app.include_router(otp_routes.router)
     app.include_router(consents.router)
     app.include_router(profile_routes.router)

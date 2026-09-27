@@ -75,6 +75,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
+    # + INT-396 (backlog status reconciliation and its drift guard).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -97,9 +98,19 @@ def test_ids_unique_and_well_formed() -> None:
     # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
     # + INT-373 (the Keycloak realm emits the claims the admin console
     # requires; found by INT-365).
-    # + INT-396 (backlog rows reconciled with what merged, and the status
-    # consistency guard; GitHub #655, carried by its own PR).
-    assert len(ids) == 304
+    # + INT-392 (a session with a previsit output could not be deleted by the
+    # DSAR erasure, the retention executor or the integration teardown; found
+    # on main's check-integration, fixed and closed in the same PR).
+    # + INT-393 (a patient who issued a Doctor Link could not be erased; found
+    # by INT-392, fixed and closed in the same PR).
+    # + INT-391 (the console accepts every valid WebAuthn credential id; found
+    # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, with a guard against rows that outlive their fix;
+    # found by INT-360's PR, filed as GitHub #640).
+    assert len(ids) == 309
     import re
 
     for i in ids:
