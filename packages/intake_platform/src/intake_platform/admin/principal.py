@@ -16,10 +16,22 @@ whose own claim carries no tenant precisely because its scope is all of them.
 **Roles are intersected, not trusted.** A Keycloak realm carries roles that
 are not console roles (`clinician`, `patient`); those are dropped, and a token
 left with none is refused rather than admitted as an empty-privilege session.
+
+**The second factor is checked here, once, for every verifier** (INT-365).
+Every claim set reaches the console through this function, whichever
+verifier produced it, so this is the one place a token issued without the
+factors files/08 §2.3 demands can be refused. The check runs as soon as the
+console roles are known, because the roles decide what counts as enough.
+
+**``credential_id`` is a WebAuthn credential id, not a generic id** (INT-391).
+It is decoded, not pattern-matched, so every id an authenticator may mint is
+admitted and nothing else is.
 """
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -27,6 +39,7 @@ from typing import Any, Protocol
 
 from intake_platform.admin.four_eyes import ActorBlock
 from intake_platform.admin.roles import ADMIN_ROLES, AdminRole
+from intake_platform.admin.second_factor import require_second_factor
 
 __all__ = [
     "AdminClaimsVerifier",
@@ -45,6 +58,19 @@ __all__ = [
 #: mapper is refused at the door rather than raising deep inside an append.
 #: Free text in a claim is how narrative reaches a log (invariant 6).
 _ID_SHAPE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
+
+#: WebAuthn Level 3 (https://www.w3.org/TR/webauthn-3/) §4 "Credential ID":
+#: at most 1023 bytes, and an authenticator mints at least 16. The claim
+#: carries it in §3's Base64url Encoding, the RFC 4648 §5 alphabet with every
+#: trailing '=' omitted, which is what the INT-378 provider writes. The id
+#: never enters the audit chain (its rows name the subject), so the chain's
+#: 128-character ref shape does not bound it.
+_CREDENTIAL_ID_MIN_BYTES = 16
+_CREDENTIAL_ID_MAX_BYTES = 1023
+_BASE64URL = re.compile(r"[A-Za-z0-9_-]+")
+#: ceil(1023 * 4 / 3): 1023 bytes encode to exactly 1364 characters. A
+#: longer string is refused before anything decodes it.
+_CREDENTIAL_ID_MAX_CHARS = (_CREDENTIAL_ID_MAX_BYTES * 4 + 2) // 3
 
 _ROLE_VALUES = {role.value: role for role in ADMIN_ROLES}
 
@@ -124,6 +150,41 @@ def _required_id(claims: Mapping[str, Any], key: str) -> str:
     return value
 
 
+def _id_or_none(value: object) -> str | None:
+    return value if isinstance(value, str) and _ID_SHAPE.fullmatch(value) else None
+
+
+def _is_credential_id(value: str) -> bool:
+    """True when ``value`` is the one spelling of a 16–1023-byte credential id.
+
+    The alphabet check refuses '+', '/', '=' and anything else outside RFC
+    4648 §5. It also keeps non-ASCII text away from the decoder, which raises
+    ``ValueError`` for it rather than ``binascii.Error``. The decoder refuses
+    4n+1 characters. The last step re-encodes the decoded bytes, which refuses
+    a string whose pad bits are set. RFC 4648 §3.5 has an encoder zero those
+    bits and Python's decoder ignores them, so without it a second string
+    would name the same credential. Four-eyes compares credential ids as
+    strings, so each credential must have one spelling.
+    """
+    if len(value) > _CREDENTIAL_ID_MAX_CHARS or not _BASE64URL.fullmatch(value):
+        return False
+    try:
+        raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    except binascii.Error:
+        return False
+    if base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii") != value:
+        return False
+    return _CREDENTIAL_ID_MIN_BYTES <= len(raw) <= _CREDENTIAL_ID_MAX_BYTES
+
+
+def _required_credential_id(claims: Mapping[str, Any]) -> str:
+    value = claims.get("credential_id")
+    if not isinstance(value, str) or not _is_credential_id(value):
+        # the value stays out of the message, as in _required_id (invariant 6)
+        raise MalformedClaims("claim 'credential_id' is absent or not a WebAuthn credential id")
+    return value
+
+
 def principal_from_claims(claims: Mapping[str, Any], *, source_ip: str) -> AdminPrincipal:
     realm_access = claims.get("realm_access")
     raw_roles = realm_access.get("roles", ()) if isinstance(realm_access, Mapping) else ()
@@ -132,6 +193,7 @@ def principal_from_claims(claims: Mapping[str, Any], *, source_ip: str) -> Admin
     )
     if not roles:
         raise NoConsoleRole("the token carries no files/08 §2.1 console role")
+    require_second_factor(claims.get("amr"), roles, subject=_id_or_none(claims.get("sub")))
     tenant = claims.get("tenant")
     if tenant is not None and (not isinstance(tenant, str) or not _ID_SHAPE.fullmatch(tenant)):
         raise MalformedClaims("claim 'tenant' is not id-shaped")
@@ -142,7 +204,7 @@ def principal_from_claims(claims: Mapping[str, Any], *, source_ip: str) -> Admin
         tenant=tenant,
         session_id=_required_id(claims, "sid"),
         authenticator_aaguid=_required_id(claims, "aaguid"),
-        credential_id=_required_id(claims, "credential_id"),
+        credential_id=_required_credential_id(claims),
         source_ip=source_ip,
     )
 

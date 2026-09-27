@@ -231,7 +231,48 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-321 (mobile intake mode chooser up front) + INT-322 (embed intake
     # mode bound inside the signed launch ticket) + INT-323 (department-dynamic
     # previsit routing); grows only with a stated reason.
-    assert len(ids) == 280, f"expected 175 blueprint + 105 added issues, got {len(ids)}"
+    # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron);
+    # grows only with a stated reason.
+    # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
+    # previsit routing) + INT-317 (previsit output store + hospital read-back,
+    # filed on int-demo and carried to main by INT-354); grows only with a
+    # stated reason.
+    # previsit routing) ... + INT-376 (Frankfurt host move, split out of
+    # INT-352; the full list is in tests/backlog/test_schema.py); grows only
+    # with a stated reason.
+    # previsit routing) + INT-318 (Acıbadem read source and /v1/visits/sync,
+    # INT-354 slice S2); grows only with a stated reason.
+    # previsit routing) + INT-377 (probe-results file fails closed on the
+    # admin console, found by INT-181); grows only with a stated reason.
+    # + INT-380 (INT-121 clause 3, the corpus score, awaiting-human) + INT-381
+    # (INT-124's on-hardware latency and live smoke, gpu), both split out by
+    # INT-124's PR; grows only with a stated reason.
+    # + INT-385 (record quantities render with the locale's decimal separator,
+    # found by INT-124's PR as GitHub #635); grows only with a stated reason.
+    # previsit routing) + INT-373 (the Keycloak realm emits the admin
+    # console's claims, found by INT-365); grows only with a stated reason.
+    # previsit routing) + INT-392 (a session with a previsit output can be
+    # deleted again, found on check-integration); grows only with a stated reason.
+    # deleted again, found on check-integration) + INT-393 (a patient who issued
+    # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
+    # + INT-391 (the console accepts every valid WebAuthn credential id, found
+    # by INT-378's PR as GitHub #646); grows only with a stated reason.
+    # found by INT-124's PR as GitHub #635) + INT-386 (the typed rail, note,
+    # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638);
+    # grows only with a stated reason.
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, found by INT-360's PR as GitHub #640); grows only
+    # with a stated reason.
+    # + INT-397 (the three status lines INT-362 left silent are announced, found
+    # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
+    # + INT-390 (Keycloak upgrade and realm import, found by INT-378); grows
+    # only with a stated reason.
+    # + INT-396 (backlog status reconciliation and drift guard, GitHub #655);
+    # grows only with a stated reason.
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
+    # in step with rows, found by INT-396, GitHub #675); grows only with a
+    # stated reason.
+    assert len(ids) == 315, f"expected 175 blueprint + 140 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

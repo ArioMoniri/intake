@@ -10,8 +10,8 @@
  * INT-138 adds the other half of the acceptance: a CAMERA capture beside the
  * file picker (one pre-check, one upload path, and the JPEG metadata
  * container stripped on the way), and the READING section — the confirm
- * cards and their provenance boxes, behind the extraction seam that refuses
- * until something publishes a feed.
+ * cards and their provenance boxes, fed by the extraction route and settled
+ * only on the server's acknowledgement.
  */
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -20,6 +20,7 @@ import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -27,13 +28,13 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { RecordReading } from "@/components/RecordReading";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
-import { joinParts, labelled } from "@/lib/a11y/labels";
-import { useLiveAnnouncement } from "@/lib/a11y/prefs";
+import { joinParts } from "@/lib/a11y/labels";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
 import {
   ALLOWED_DOCUMENT_TYPES,
   RecordsApiError,
+  apiExtractionSource,
   cameraFile,
   docDisplayName,
   downloadUrl,
@@ -47,7 +48,6 @@ import {
   type RecordDoc,
   type ScanState,
 } from "@/lib/records/api";
-import { noExtractionFeed } from "@/lib/records/extraction";
 import { useSession, type RecordFixture, type VisitFixture } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -151,10 +151,6 @@ function OtpRecords() {
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const noticeIsError = notice !== null && notice !== "records.scanningInfo";
-  // Android hears the live region on the line; this is the iOS half.
-  useLiveAnnouncement(
-    notice === null ? null : noticeIsError ? labelled(t("a11y.error"), t(notice)) : t(notice),
-  );
 
   const refresh = useCallback(async (visit: VisitFixture) => {
     setPhase("loading");
@@ -413,7 +409,7 @@ function OtpRecords() {
         <RecordReading
           visitId={serverVisitId}
           docs={docs}
-          source={noExtractionFeed}
+          source={apiExtractionSource}
           onOpenDocument={(doc) => void onOpen(doc)}
         />
       ) : null}
@@ -423,9 +419,12 @@ function OtpRecords() {
         // and announced assertively — dressing a scan-in-progress message as
         // an error would be worse than not announcing it. Visible copy is
         // unchanged either way.
-        <AppText role="body" color="amber" live={noticeIsError ? "assertive" : "polite"}>
-          {t(notice)}
-        </AppText>
+        <AnnouncedText
+          tone={noticeIsError ? "error" : "status"}
+          role="body"
+          color="amber"
+          message={t(notice)}
+        />
       ) : null}
       <View style={styles.actions}>
         <SecondaryButton

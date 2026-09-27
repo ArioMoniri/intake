@@ -58,9 +58,70 @@ def test_ids_unique_and_well_formed() -> None:
     # pack chain, so gated questions were never asked)
     # + INT-356 (counsel-supplied values for the data-category register that
     # INT-349's fail-closed gate reads; split out because no agent may author
-    # them).
+    # them)
+    # + INT-357 (staging passes App Attest and SMS configuration to the API
+    # and fails closed when unset; the work of PR #573, filed so it closes its
+    # own issue instead of INT-352's)
+    # + INT-358 (the owner's SMS vendor decision — DPA, KVKK Art. 9
+    # cross-border mechanism, egress allow-list row — split out of INT-329
+    # because no agent may make it)
+    # + INT-359 (accessibility device audit and statement publication, split
+    # out of INT-226 because they are owner and counsel work)
+    # + INT-360..363 (the four WCAG defects the INT-226 report found:
+    # orientation lock, OTP paste/autofill, iOS error/status announcements,
+    # kiosk idle warning)
+    # + INT-364 (the owner's organisational evidence and counsel's readings
+    # for Board decision 2018/10, split out of INT-215)
+    # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
+    # second factor and session bounds, access review and offboarding, key
+    # rotation schedule, dependency updates, API fuzzing in CI).
+    # + INT-396 (backlog status reconciliation and its drift guard).
+    # + INT-401 (console rollback split out of INT-187; waits on a CD target).
+    # + INT-402..403 (split out of INT-123: the embedding-model choice and
+    # the consent-withdrawal handling of record vectors; both the owner's).
     # Grow this count only with a stated reason.
-    assert len(ids) == 280
+    # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
+    # ported to main as its own one-issue PR).
+    # + INT-370 (slice S3 of INT-354: the int-demo visits calendar and Geçmiş
+    # list, ported to main as its own one-issue PR).
+    # + INT-317 (previsit output store + hospital read-back: filed on int-demo
+    # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
+    # id is held by no other row on main or any remote branch).
+    # + INT-376 (the production API's move to Frankfurt, split out of INT-352
+    # because it waits on AWS approving the eu-central-1 GPU quota).
+    # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
+    # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
+    # kiosk idle warning).
+    # + INT-377 (a malformed probe-results file 500'd /admin/models and
+    # /admin/ops; found by INT-181, fixed and closed in the same PR).
+    # + INT-380 (INT-121 clause 3, the LOINC+unit score on a named corpus,
+    # awaiting-human) + INT-381 (INT-124's on-hardware latency and live smoke,
+    # gpu), both split out by INT-124's PR so each delivered row can close.
+    # + INT-385 (record quantities render with the locale's decimal separator;
+    # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
+    # + INT-373 (the Keycloak realm emits the claims the admin console
+    # requires; found by INT-365).
+    # + INT-392 (a session with a previsit output could not be deleted by the
+    # DSAR erasure, the retention executor or the integration teardown; found
+    # on main's check-integration, fixed and closed in the same PR).
+    # + INT-393 (a patient who issued a Doctor Link could not be erased; found
+    # by INT-392, fixed and closed in the same PR).
+    # + INT-391 (the console accepts every valid WebAuthn credential id; found
+    # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, with a guard against rows that outlive their fix;
+    # found by INT-360's PR, filed as GitHub #640).
+    # + INT-397 (the three status lines INT-362 left silent are announced, and
+    # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
+    # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
+    # main never imported; found by INT-378, fixed and closed in the same PR).
+    # + INT-396 (backlog rows reconciled with what merged, and the status
+    # consistency guard; GitHub #655, carried by its own PR).
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
+    # step with rows; found by INT-396, GitHub #675).
+    assert len(ids) == 315
     import re
 
     for i in ids:

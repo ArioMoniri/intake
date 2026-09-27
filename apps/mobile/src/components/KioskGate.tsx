@@ -12,14 +12,23 @@
  * live in lib/kiosk/nativeKiosk.ts, reached lazily so this file stays off the
  * native path and off the a11y timer surface).
  *
+ * INT-363 (WCAG 2.2 SC 2.2.1): the idle wipe warns first. After 40 s without
+ * a touch the warning is shown and announced assertively, the screen reader's
+ * focus moves onto its one action ("Devam edin"), and the session behind it is
+ * hidden from the reader while it stands. The patient then has 20 s; the
+ * action, or any touch, restarts the full minute, as often as needed. With no
+ * answer the same wipe as before runs.
+ *
  * The clinic PIN is verified against the MDM-provisioned salted hash and never
  * stored here (HUMAN_BLOCKERS.md Rule 1). No dev-only bypass exists: with no
  * provisioning the gate is simply a normal phone, and with no confirmed
  * lockdown a provisioned kiosk is tampered — both fail closed.
  */
 import { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
-import { ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { AccessibilityInfo, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { AnnouncedText } from "@/components/Announced";
 import {
   AppText,
   PrimaryButton,
@@ -39,6 +48,8 @@ import {
   pinLockedOut,
   tamperDetected,
   verifyClinicPin,
+  type KioskIdleClock,
+  type KioskIdlePhase,
   type KioskLockdown,
   type KioskProvisioning,
 } from "@/lib/kiosk";
@@ -52,7 +63,10 @@ export function KioskGate({ children }: { children: ReactNode }) {
   const [checked, setChecked] = useState(false);
   const [mode, dispatch] = useReducer(kioskReducer, initialKioskMode);
   const [exiting, setExiting] = useState(false);
-  const touchRef = useRef<() => void>(() => {});
+  const [idlePhase, setIdlePhase] = useState<KioskIdlePhase>("active");
+  const watchRef = useRef<KioskIdleClock | null>(null);
+  const extendRef = useRef<View>(null);
+  const theme = useTheme();
 
   // Read the MDM provisioning and probe the lockdown once, through the lazy
   // native adapter (both fail closed in the managed runtime).
@@ -96,31 +110,56 @@ export function KioskGate({ children }: { children: ReactNode }) {
     }
   }, [mode.phase]);
 
-  // While armed, watch the two wipe triggers. onBackground both wipes AND
-  // flags a tamper: a locked-down kiosk should not be backgroundable, so
-  // leaving the foreground means the lockdown is no longer trustworthy.
+  // While armed, watch the two wipe triggers. The idle clock warns before it
+  // wipes (INT-363); onBackground both wipes AND flags a tamper: a locked-down
+  // kiosk should not be backgroundable, so leaving the foreground means the
+  // lockdown is no longer trustworthy.
   useEffect(() => {
     if (!provisioned || mode.phase !== "armed") {
       return;
     }
-    let watch: { touch(): void; stop(): void } | null = null;
+    let live = true;
+    let watch: KioskIdleClock | null = null;
     void import("@/lib/kiosk/nativeKiosk")
       .then((native) => {
+        if (!live) {
+          // Torn down while the adapter loaded: never start a clock nobody stops.
+          return;
+        }
         watch = native.watchKiosk({
-          onIdle: () => wipeSession(),
+          onIdlePhase: (phase) => {
+            setIdlePhase(phase);
+            if (phase === "wiped") {
+              wipeSession();
+            }
+          },
           onBackground: () => {
             wipeSession();
             dispatch({ type: "tamper" });
           },
         });
-        touchRef.current = () => watch?.touch();
+        watchRef.current = watch;
       })
       .catch(() => {});
     return () => {
+      live = false;
       watch?.stop();
-      touchRef.current = () => {};
+      watchRef.current = null;
+      setIdlePhase("active");
     };
   }, [provisioned, mode.phase, wipeSession]);
+
+  const warned = idlePhase === "warning";
+
+  // SC 2.2.1 / 2.4.3: when the warning appears, the screen reader's focus
+  // moves onto its one action, so answering it is a single double-tap. The
+  // warning's own words are announced by its AnnouncedText, at high priority.
+  useEffect(() => {
+    const target = extendRef.current;
+    if (warned && target !== null) {
+      AccessibilityInfo.sendAccessibilityEvent(target, "focus");
+    }
+  }, [warned]);
 
   const submitArm = useCallback(
     (pin: string) => {
@@ -172,15 +211,48 @@ export function KioskGate({ children }: { children: ReactNode }) {
 
   if (mode.phase === "armed" && !exiting) {
     return (
-      <View style={styles.armedRoot} onTouchStart={() => touchRef.current()}>
-        <View style={styles.armedContent}>{children}</View>
-        <View style={styles.staffBar}>
-          <SecondaryButton
-            label={t("kiosk.exit")}
-            hint={t("kiosk.exitHint")}
-            onPress={() => setExiting(true)}
-          />
+      <View style={styles.armedRoot} onTouchStart={() => watchRef.current?.touch()}>
+        <View
+          style={styles.armedContent}
+          // While the warning stands the reader meets it and nothing behind it.
+          accessibilityElementsHidden={warned}
+          importantForAccessibility={warned ? "no-hide-descendants" : "auto"}
+        >
+          {children}
         </View>
+        {/* INT-360: the gate's own chrome sits outside every Screen, so it
+            keeps the safe edges itself: the home indicator below and, in
+            landscape, the notch and the rounded corners at the sides. At the
+            kiosk's large type a landscape window cannot always hold the
+            warning and the staff bar together; they scroll then, rather than
+            push the exit off the bottom of the screen. */}
+        <SafeAreaView edges={["left", "right", "bottom"]} style={styles.chrome}>
+          <ScrollView style={styles.chromeScroll}>
+            {warned ? (
+              <View
+                style={[
+                  styles.idleWarning,
+                  { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                ]}
+              >
+                <AnnouncedText tone="warning" role="title" message={t("kiosk.idle.warning")} />
+                <PrimaryButton
+                  ref={extendRef}
+                  label={t("kiosk.idle.extend")}
+                  hint={t("kiosk.idle.extendHint")}
+                  onPress={() => watchRef.current?.extend()}
+                />
+              </View>
+            ) : null}
+            <View style={styles.staffBar}>
+              <SecondaryButton
+                label={t("kiosk.exit")}
+                hint={t("kiosk.exitHint")}
+                onPress={() => setExiting(true)}
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
       </View>
     );
   }
@@ -274,11 +346,20 @@ function KioskPinScreen({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        contentContainerStyle={styles.body}
+        // SC 1.3.4 (INT-360): the PIN field scrolls clear of the keyboard,
+        // which takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
+      >
         {tamper ? (
-          <AppText role="title" color="amber" heading live="assertive">
-            {t("kiosk.tamper.banner")}
-          </AppText>
+          <AnnouncedText
+            tone="error"
+            role="title"
+            color="amber"
+            heading
+            message={t("kiosk.tamper.banner")}
+          />
         ) : null}
         <AppText role="hero" heading>
           {t(titleKey)}
@@ -311,13 +392,14 @@ function KioskPinScreen({
           ]}
         />
         {lockedOut ? (
-          <AppText role="body" color="amber" live="assertive">
-            {t("kiosk.pin.lockedOut")}
-          </AppText>
+          <AnnouncedText
+            tone="error"
+            role="body"
+            color="amber"
+            message={t("kiosk.pin.lockedOut")}
+          />
         ) : pinFailures > 0 || malformed ? (
-          <AppText role="body" color="amber" live="assertive">
-            {t("kiosk.pin.wrong")}
-          </AppText>
+          <AnnouncedText tone="error" role="body" color="amber" message={t("kiosk.pin.wrong")} />
         ) : null}
         <PrimaryButton
           label={t(submitKey)}
@@ -347,5 +429,10 @@ const styles = StyleSheet.create({
   },
   armedRoot: { flex: 1 },
   armedContent: { flex: 1 },
+  // Natural height while it fits; it gives height back, then scrolls, once
+  // the window is shorter than the chrome (INT-360).
+  chrome: { flexShrink: 1 },
+  chromeScroll: { flexGrow: 0, flexShrink: 1 },
+  idleWarning: { borderTopWidth: 1, gap: spacing.md, padding: spacing.md },
   staffBar: { padding: spacing.md },
 });

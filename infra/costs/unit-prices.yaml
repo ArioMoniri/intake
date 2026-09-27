@@ -1,0 +1,178 @@
+# infra/costs/unit-prices.yaml — the cost module's only source of money (INT-190).
+#
+# OWNER-FILLED. Every price and every budget limit ships EMPTY, and each stays
+# empty until a human supplies it together with a `source` (who said so: an
+# invoice, a contract, a quote reference) and an `as_of` date. No agent writes a
+# number here: a plausible invented price is worse than a missing one, because
+# no diff makes it look wrong (files/HUMAN_BLOCKERS.md rule 1; HB-O8 (b)).
+#
+# What an empty field does — it fails closed, never to zero:
+# - a component with no price renders "price not configured" on the admin
+#   console. Its cost is unknown, not 0, and every total it belongs to is
+#   withheld rather than shown partial;
+# - a budget with no limit renders "budget not configured", and
+#   infra/observability/cost-rules.yaml carries a CostBudgetNotConfigured alert
+#   for it that fires until the limit is set.
+#
+# Shape:
+# - `currency` is pinned to USD because observability/metrics_catalog.yaml
+#   denominates cost_per_session in USD.
+# - `components`: one row per thing that costs money.
+#   - `usage` names the CATALOGUED series that meters the component (CLAUDE.md
+#     invariant 13) and how a quantity is read off it. `usage: null` means no
+#     catalogued series meters it yet; `usage_note` says why.
+#   - `profiles` lists the voice profiles a directly attributed component
+#     spends in (invariant 19: residency_tr and typed are the only two). An
+#     empty list means the component is shared, and the console allocates it
+#     evenly across every session metered in the window.
+#   - `vendor: null` means no vendor has been chosen; `vendor_note` says why.
+#     Such a component counts toward the all-vendor budgets only.
+#   - `price.usd_per_unit` is USD per ONE `unit`. The unit must agree with the
+#     usage series' catalogued unit (tests/admin/test_cost_module.py holds it).
+# - `budgets`: per vendor and for all vendors together, per day (rolling 1d)
+#   and per month (rolling 30d, inside files/06 §3's 30 d hot telemetry window).
+#
+# After an edit, re-emit the alert rules and the console fixtures:
+#   uv run python scripts/observability/cost_rules.py --emit infra/observability/cost-rules.yaml
+#   uv run python scripts/dev/record_cost_fixture.py
+# tests/observability/test_cost_rules.py and tests/admin/test_cost_module.py
+# fail on drift.
+schema_version: 1
+currency: USD
+
+components:
+  - component: asr
+    vendor: self-hosted
+    vendor_note: null
+    unit: audio_second
+    profiles: [residency_tr]
+    usage:
+      metric: voice_stt_audio_s
+      aggregation: histogram_sum
+      selector: {vendor: self-hosted}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: tts_dynamic
+    vendor: self-hosted
+    vendor_note: null
+    unit: character
+    profiles: [residency_tr]
+    usage:
+      metric: voice_tts_chars
+      aggregation: histogram_sum
+      selector: {vendor: self-hosted}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: llm_talker
+    vendor: self-hosted
+    vendor_note: null
+    unit: token
+    profiles: [residency_tr, typed]
+    usage:
+      metric: voice_talker_tokens
+      aggregation: histogram_sum
+      selector: {vendor: self-hosted}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: llm_extraction
+    vendor: self-hosted
+    vendor_note: null
+    unit: token
+    profiles: [residency_tr, typed]
+    usage: null
+    usage_note: >-
+      the INT-101 session ledger counts extract_slots tokens per session, and
+      no catalogued series exports them (docs/evidence/INT-101.md F1)
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: clip_synthesis
+    vendor: elevenlabs
+    vendor_note: null
+    unit: character
+    profiles: []
+    usage: null
+    usage_note: >-
+      the offline scripted-clip build (ADR-028, make clips) has no catalogued
+      synthesis series on main
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: sms
+    vendor: null
+    vendor_note: >-
+      no SMS provider has been chosen: notification dispatch reports
+      blocked_transport_unconfigured for the sms channel
+    unit: message
+    profiles: []
+    usage:
+      metric: notification_dispatch_total
+      aggregation: counter_increase
+      selector: {channel: sms, status: delivered}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: gpu_host_onvizit_api
+    vendor: aws
+    vendor_note: null
+    unit: host_hour
+    profiles: []
+    usage: null
+    usage_note: >-
+      the dedicated AWS host of INT-352; no catalogued host-uptime series
+      exists on main
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: gpu_host_team
+    vendor: null
+    vendor_note: >-
+      the team GPU server that serves the dev and synthetic model lanes
+      (observability/registry.yaml); no provider or billing is recorded for it
+    unit: host_hour
+    profiles: []
+    usage: null
+    usage_note: no catalogued host-uptime series exists on main
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+budgets:
+  - budget_id: all-vendors-day
+    scope: all_vendors
+    vendor: null
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: all-vendors-month
+    scope: all_vendors
+    vendor: null
+    period: month
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: self-hosted-day
+    scope: vendor
+    vendor: self-hosted
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: self-hosted-month
+    scope: vendor
+    vendor: self-hosted
+    period: month
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: elevenlabs-day
+    scope: vendor
+    vendor: elevenlabs
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: elevenlabs-month
+    scope: vendor
+    vendor: elevenlabs
+    period: month
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: aws-day
+    scope: vendor
+    vendor: aws
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: aws-month
+    scope: vendor
+    vendor: aws
+    period: month
+    limit: {usd: null, source: null, as_of: null}

@@ -10,6 +10,8 @@ registered."""
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
@@ -26,6 +28,17 @@ __all__ = ["router"]
 router = APIRouter(prefix="/v1/auth", tags=["auth"], dependencies=[pre_auth()])
 
 AUTH_TIER_OTP = "otp"
+
+
+class AttestKeyIn(BaseModel):
+    """An App Attest attestation for one key (INT-344). The attestation object
+    runs to several kilobytes, which is why it travels in a body once rather
+    than in a header on every call."""
+
+    platform: Literal["ios"]
+    key_id: str = Field(max_length=64)
+    attestation: str = Field(max_length=16384)
+    challenge: str = Field(max_length=64)
 
 
 class OtpRequestIn(BaseModel):
@@ -73,6 +86,15 @@ async def attest_challenge(request: Request, state: State) -> dict[str, object]:
     """Single-use attestation nonce (files/10 §2: attestation on OTP request
     and session start binds to a server challenge, not a client value)."""
     return await _service(request, state).issue_challenge()
+
+
+@router.post("/attest/key", status_code=201)
+async def attest_key(payload: AttestKeyIn, request: Request, state: State) -> dict[str, str]:
+    """Register an App Attest key (INT-344): the attestation spends one
+    challenge; every later OTP call carries an assertion from this key."""
+    return await _service(request, state).register_attested_key(
+        payload.key_id, payload.attestation, payload.challenge
+    )
 
 
 @router.post("/otp/request", status_code=202)

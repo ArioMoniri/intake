@@ -23,6 +23,7 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { ReduceMotion, ReducedMotionConfig } from "react-native-reanimated";
 
 import { KioskGate } from "@/components/KioskGate";
 import { useReducedMotion } from "@/lib/a11y/prefs";
@@ -33,6 +34,18 @@ import { clientTelemetry, installCrashHandler } from "@/lib/telemetry/expoTeleme
 
 /** Evaluated when the root module loads — the earliest clock this app has. */
 const APP_START_MS = Date.now();
+
+/**
+ * INT-331 (motion S-2): Reanimated follows the app's reduce-motion policy, the
+ * OS setting OR the in-app switch and reduced until the OS answers, and
+ * follows it live. Its own "follow the system" mode is read once at module
+ * load and never sees the in-app switch, so it is never used. This sits
+ * inside AppearanceProvider, or the switch could not reach it.
+ */
+function ReanimatedMotionPolicy() {
+  const reduceMotion = useReducedMotion();
+  return <ReducedMotionConfig mode={reduceMotion ? ReduceMotion.Always : ReduceMotion.Never} />;
+}
 
 function LocalizedStack() {
   const { locale } = useSession();
@@ -81,6 +94,7 @@ export default function RootLayout() {
     // policy are read by the navigators themselves — a provider inside the
     // session would leave the shell's own chrome on the OS values.
     <AppearanceProvider>
+      <ReanimatedMotionPolicy />
       <SessionProvider>
         <StatusBar style="auto" />
         {/* INT-143 — on a clinic-provisioned kiosk this gates entry/exit on

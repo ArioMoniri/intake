@@ -1,11 +1,14 @@
 """The probe runner: one pure sweep + the 60 s loop shell (INT-022).
 
 `run_probes_once` is the tested loop body: registry rows × injected clients →
-typed results. `build_dev_clients` composes the real dev-tier clients (DB,
-Redis, MinIO, HAPI, OpenBao seal, backup freshness, the deid artefact, the
-LiveKit typed-Skipped probe, and — when their env targets exist — the LLM
-health endpoint and the TLS edge). `main` is the thin scheduler shell that
-loops with sleep(60); the deployment issues wire it into systemd/compose.
+typed results, each stamped with the instant its probe started (INT-181: the
+reliability console shows every probe's last result AND its age, and flags a
+result older than three sweeps as stale rather than current).
+`build_dev_clients` composes the real dev-tier clients (DB, Redis, MinIO, HAPI,
+OpenBao seal, backup freshness, the deid artefact, the LiveKit typed-Skipped
+probe, and — when their env targets exist — the LLM health endpoint and the
+TLS edge). `main` is the thin scheduler shell that loops with
+sleep(SWEEP_INTERVAL_S); the deployment issues wire it into systemd/compose.
 """
 
 from __future__ import annotations
@@ -16,10 +19,12 @@ import sys
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import StrEnum
 from functools import partial
 from os import environ
 from pathlib import Path
+from typing import Final
 
 import httpx
 from intake_platform.ci import CiPolicyError, RunnerPools, load_runner_pools
@@ -29,6 +34,7 @@ from intake_probes.probes import Failed, Outcome, Skipped, SupportsPing
 from intake_probes.registry import Registry, load_registry
 
 __all__ = [
+    "SWEEP_INTERVAL_S",
     "DevProbeConfig",
     "ProbeFn",
     "ProbeResult",
@@ -43,6 +49,9 @@ ProbeFn = Callable[[], Outcome]
 _DEFAULT_REGISTRY = Path("observability") / "registry.yaml"
 _DEFAULT_RUNNER_POOLS = Path("infra") / "ci" / "runners.yaml"
 _HTTP_TIMEOUT_S = 5.0
+#: files/10 §6: "services/probes exercises every model and service every 60 s".
+#: The scheduler shell sleeps this long; the console derives staleness from it.
+SWEEP_INTERVAL_S: Final = 60
 
 
 class ProbeStatus(StrEnum):
@@ -58,6 +67,8 @@ class ProbeResult:
     status: ProbeStatus
     latency_ms: float | None
     detail: str
+    #: when this probe started (UTC); ``None`` only for a result built by hand
+    checked_at: datetime | None = None
 
     def to_json(self) -> dict[str, object]:
         return {
@@ -66,17 +77,33 @@ class ProbeResult:
             "status": self.status.value,
             "latency_ms": self.latency_ms,
             "detail": self.detail,
+            "checked_at": (
+                None
+                if self.checked_at is None
+                else self.checked_at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            ),
         }
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 def run_probes_once(
     registry: Registry,
     clients: Mapping[str, ProbeFn],
     clock: Callable[[], float] = time.perf_counter,
+    now: Callable[[], datetime] = _utc_now,
 ) -> list[ProbeResult]:
-    """One sweep over the registry — pure over its inputs, never raises."""
+    """One sweep over the registry — pure over its inputs, never raises.
+
+    ``clock`` measures latency (monotonic); ``now`` stamps each result with the
+    wall-clock instant its probe started, so a reader can tell a result from
+    this sweep from one three sweeps old.
+    """
     results: list[ProbeResult] = []
     for entry in registry:
+        checked_at = now()
         fn = clients.get(entry.component)
         if fn is None:
             results.append(
@@ -86,6 +113,7 @@ def run_probes_once(
                     status=ProbeStatus.SKIPPED,
                     latency_ms=None,
                     detail=f"no probe client configured for {entry.component} in this environment",
+                    checked_at=checked_at,
                 )
             )
             continue
@@ -96,18 +124,27 @@ def run_probes_once(
             outcome = Failed(f"probe raised: {err}")
         latency_ms = (clock() - started) * 1000.0
         results.append(
-            _to_result(entry.component, entry.probe.value, entry.budget_ms, outcome, latency_ms)
+            _to_result(
+                entry.component, entry.probe.value, entry.budget_ms, outcome, latency_ms, checked_at
+            )
         )
     return results
 
 
 def _to_result(
-    component: str, probe: str, budget_ms: int, outcome: Outcome, latency_ms: float
+    component: str,
+    probe: str,
+    budget_ms: int,
+    outcome: Outcome,
+    latency_ms: float,
+    checked_at: datetime,
 ) -> ProbeResult:
     if isinstance(outcome, Skipped):
-        return ProbeResult(component, probe, ProbeStatus.SKIPPED, None, outcome.reason)
+        return ProbeResult(component, probe, ProbeStatus.SKIPPED, None, outcome.reason, checked_at)
     if isinstance(outcome, Failed):
-        return ProbeResult(component, probe, ProbeStatus.UNHEALTHY, latency_ms, outcome.detail)
+        return ProbeResult(
+            component, probe, ProbeStatus.UNHEALTHY, latency_ms, outcome.detail, checked_at
+        )
     if latency_ms > budget_ms:
         return ProbeResult(
             component,
@@ -115,8 +152,11 @@ def _to_result(
             ProbeStatus.UNHEALTHY,
             latency_ms,
             f"healthy but over budget: {latency_ms:.0f}ms > {budget_ms}ms",
+            checked_at,
         )
-    return ProbeResult(component, probe, ProbeStatus.HEALTHY, latency_ms, outcome.detail)
+    return ProbeResult(
+        component, probe, ProbeStatus.HEALTHY, latency_ms, outcome.detail, checked_at
+    )
 
 
 # --- dev client composition -----------------------------------------------------------
@@ -186,6 +226,19 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
     llm_health_url = env.get("INTAKE_LLM_HEALTH_URL", "")
     if llm_health_url:
         wiring["qwen3.5-9b"] = partial(probes.http_health, http_client, llm_health_url)
+
+    # INT-124: files/03 §4.9.1 row 9 is pinned and served by no host. Always
+    # wired, so the sweep says "unavailable" in words rather than "no client";
+    # it becomes a real health check the moment a host is named (INT-381).
+    lab_health_url = env.get("INTAKE_LAB_EXTRACTION_HEALTH_URL", "")
+    wiring["qwen3.6-35b-a3b"] = (
+        partial(probes.http_health, http_client, lab_health_url)
+        if lab_health_url
+        else partial(
+            probes.model_not_served,
+            "no host serves files/03 §4.9.1 row 9 (the extraction LLM); INT-381 serves it",
+        )
+    )
 
     # INT-175: the Langfuse tier lives in its own compose file and is not part
     # of `make dev`, so it is wired only where its target exists — otherwise
@@ -305,7 +358,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     while True:  # pragma: no cover — the 60 s scheduler shell; the body is tested above
-        time.sleep(60)
+        time.sleep(SWEEP_INTERVAL_S)
         results = run_probes_once(registry, clients)
         _write_results(results, args.out)
 

@@ -17,6 +17,7 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import {
@@ -29,8 +30,7 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
-import { joinParts, labelled } from "@/lib/a11y/labels";
-import { useLiveAnnouncement } from "@/lib/a11y/prefs";
+import { joinParts } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -81,15 +81,13 @@ export default function NewVisit() {
     };
   }, []);
 
-  // One string, used for the visible line and (prefixed) for the spoken one.
+  // One string: the visible line, and (prefixed "Hata") the spoken one.
   const problemText =
     form.problem === null
       ? null
       : form.problem === "missing_fields"
         ? t("visits.new.missingFields")
         : t("visits.new.badDate");
-  // Android hears the live region on the line; this is the iOS half.
-  useLiveAnnouncement(problemText === null ? null : labelled(t("a11y.error"), problemText));
 
   const bookable = useMemo(() => intakeBranches(taxonomy.branches, taxonomy.clusters), [taxonomy]);
   const shown = useMemo(() => visibleBranches(bookable, query, BROWSE_LIMIT), [bookable, query]);
@@ -129,7 +127,13 @@ export default function NewVisit() {
   return (
     <Screen edges={["left", "right"]}>
       <Stack.Screen options={headerOptions(t("visits.new.title"))} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+        keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): each field scrolls clear of the keyboard, which
+        // takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
+      >
         <AppText role="caption" color="inkFaint">
           {t("visits.new.hint")}
         </AppText>
@@ -155,16 +159,16 @@ export default function NewVisit() {
             disabled={form.sms.trim().length === 0}
           />
           {form.smsNotice !== null ? (
-            <AppText
-              role="body"
-              color={form.smsNotice === "filled" ? "inkSoft" : "amber"}
+            <AnnouncedText
               // The paste either filled the form or did not; either way the
               // result appears above the fields the patient is looking at
-              // (SC 3.3.1).
-              live="assertive"
-            >
-              {t(NOTICE_KEYS[form.smsNotice])}
-            </AppText>
+              // (SC 3.3.1, 4.1.3). A fill is a status; a miss is an error the
+              // patient has to act on.
+              tone={form.smsNotice === "filled" ? "status" : "error"}
+              role="body"
+              color={form.smsNotice === "filled" ? "inkSoft" : "amber"}
+              message={t(NOTICE_KEYS[form.smsNotice])}
+            />
           ) : null}
           {!ocrOffered ? (
             <AppText role="caption" color="inkFaint">
@@ -311,11 +315,9 @@ export default function NewVisit() {
           </AppText>
         </Card>
 
-        {form.problem !== null ? (
+        {problemText !== null ? (
           // Visible copy unchanged; the spoken form carries "Hata".
-          <AppText role="body" color="amber" live="assertive">
-            {problemText}
-          </AppText>
+          <AnnouncedText tone="error" role="body" color="amber" message={problemText} />
         ) : null}
         <PrimaryButton label={t("visits.new.save")} onPress={save} />
       </ScrollView>

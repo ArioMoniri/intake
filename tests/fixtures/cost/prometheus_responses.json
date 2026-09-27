@@ -1,0 +1,53 @@
+{
+  "_comment": "TEST FIXTURE (INT-190). Prometheus HTTP API /api/v1/query instant-vector responses, keyed by the exact PromQL the cost module's fixed query table emits for tests/fixtures/cost/unit-prices.priced.yaml. Synthetic usage over synthetic sessions: no tenant, branch, patient or session identifier appears, because the queries aggregate those labels away. Used by tests and by scripts/dev/record_cost_fixture.py to build the priced console fixture; never read on a serving path.",
+  "queries": {
+    "sum by (profile) (increase(voice_sessions_metered_total[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          { "metric": { "profile": "residency_tr" }, "value": [1790424000, "40"] },
+          { "metric": { "profile": "typed" }, "value": [1790424000, "10"] }
+        ]
+      }
+    },
+    "sum by (profile) (increase(voice_sessions_metered_total[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          { "metric": { "profile": "residency_tr" }, "value": [1790424000, "900"] },
+          { "metric": { "profile": "typed" }, "value": [1790424000, "300"] }
+        ]
+      }
+    },
+    "sum by (profile) (increase(voice_tts_chars_sum{vendor=\"self-hosted\"}[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [{ "metric": { "profile": "residency_tr" }, "value": [1790424000, "48000"] }]
+      }
+    },
+    "sum by (profile) (increase(voice_tts_chars_sum{vendor=\"self-hosted\"}[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [{ "metric": { "profile": "residency_tr" }, "value": [1790424000, "1080000"] }]
+      }
+    },
+    "sum(increase(notification_dispatch_total{channel=\"sms\",status=\"delivered\"}[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [{ "metric": {}, "value": [1790424000, "25"] }]
+      }
+    },
+    "sum(increase(notification_dispatch_total{channel=\"sms\",status=\"delivered\"}[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [{ "metric": {}, "value": [1790424000, "700"] }]
+      }
+    }
+  }
+}

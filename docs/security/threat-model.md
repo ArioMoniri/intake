@@ -21,13 +21,16 @@ and where this file and files/10 disagree, files/10 wins and this file is the de
   insiders (support, hospital IT, contractors); a compromised vendor or dependency; a
   malicious patient or companion (voice/document injection, impersonation, triage
   manipulation); a hostile network; an attacker with physical access to a kiosk or lost phone.
-- **Signals convention.** No `observability/metrics_catalog.yaml` exists in the repo yet
-  (CLAUDE.md invariant 13; the catalogue itself lands with INT-025), so no section cites a
-  catalogued metric as if it were already emitted. Metric names quoted in backticks are the
-  names files/10 gives; each signal says which issue lands it.
+- **Signals convention.** Metric names quoted in backticks are the names files/10 gives;
+  each signal says which issue lands it. The closed registry is
+  `observability/metrics_catalog.yaml` (INT-025, CLAUDE.md invariant 13): a name is emitted
+  today only where its entry says `status: live`, and a `planned` entry is a committed name,
+  not a signal. (Until the INT-020 close-out this bullet said the catalogue did not exist
+  yet; it has since INT-025.)
 - **Tests convention.** Paths named without qualification exist in the repo today. Everything
   else says "lands with INT-nnn" — a guard cited for a property it does not yet test is worse
-  than no guard (files/10 §3).
+  than no guard (files/10 §3) — or, where no backlog row carries the guard at all, says
+  "unowned" rather than naming an issue that does not exist.
 - **No performance figures.** Per ADR-022 and CLAUDE.md invariant 20, this file carries no
   model-quality numbers of any kind; measurements live in docs/evidence/ with a date and a
   named corpus. `tests/security/test_threat_model.py` scans this file for claim language.
@@ -35,6 +38,76 @@ and where this file and files/10 disagree, files/10 wins and this file is the de
   50–65 are reserved and unspecified (files/10 §9.2) — nothing here cites them as enforced.
 
 Incident handling for everything below: `docs/security/incident-runbook.md`.
+
+## Seeding map: files/10 §9 features
+
+Every row of the files/10 §9 matrix, by its first cell verbatim, and the section(s) that carry
+it here. The anchor is a phrase the named section(s) must contain, so an entry cannot claim a
+feature its section never discusses. `tests/docs/test_threat_model_rows.py` reads this table
+against files/10 in both directions: a §9 feature with no entry fails, an entry for a feature
+§9 no longer has fails, and an anchor absent from its sections fails. Added at the INT-020
+close-out, when four §9 features (offline drafts, break-glass, the sealed research store, RED
+acknowledgement) turned out to have no section carrying them.
+
+| files/10 §9 feature | section(s) | anchor |
+|---|---|---|
+| Onboarding / OTP / profile | `onboarding` | `SMS pumping` |
+| Consent layers | `consent` | `re-prompt` |
+| Companion / guardian profiles | `companions` | `proxy` |
+| Visit creation / SMS screenshot OCR | `visits` | `OCR` |
+| Voice intake (runtime) | `intake-voice`, `voice-runtime` | `DTLS-SRTP` |
+| Typed intake | `intake-typed` | `input limits` |
+| Triage RED / YELLOW | `triage` | `set me green` |
+| Wellbeing screening & observer lanes | `wellbeing`, `observer-lanes` | `biometric drift` |
+| Records upload & ingestion | `records` | `ClamAV` |
+| Review & send | `review-send` | `over-share` |
+| Doctor Link | `doctor-link` | `watermark` |
+| Clinician web / clinic console | `clinic-console` | `session hijack` |
+| Share centre / issue / revoke / export / delete | `share-centre`, `dsar` | `INT-311` |
+| Connectors (FHIR/HBYS/e-Nabız) | `connectors` | `SSRF` |
+| Residency / self-hosting attestation (public-hospital, INT-221) | `self-hosting` | `Genelge 2019/12` |
+| Partner embed / white-label launch (`embed`) | `embed` | `ADR-029` |
+| Check-in / kiosk | `kiosk` | `ephemeral` |
+| Notifications / reminders | `notifications` | `content-free` |
+| Offline drafts + sync (`mobile`, INT-142) | `mobile` | `INT-142` |
+| Protocol registry & clip cache | `protocol-registry` | `tampered clip` |
+| Learning loops | `learning-loops` | `proposal_scope` |
+| Admin console | `admin-console` | `IDOR` |
+| Break-glass / access to patient content | `admin-console` | `POST /admin/break-glass` |
+| Device mode & study lifecycle | `device-boundary` | `approval_valid_until` |
+| Protocol pack lifecycle & safety strings | `clinical-content`, `protocol-registry` | `override_text` |
+| Instrument licensing | `wellbeing`, `clinical-content` | `inv. 45` |
+| Research store (sealed) | `device-boundary` | `sealed research store` |
+| Clinician provisioning | `tenants` | `tenant_clinical_responsible` |
+| RED acknowledgement (`02 §8`) | `triage` | `inv. 49` |
+| Observability pipeline | `observability-pipeline` | `SafeError` |
+| Backups / DR | `backups` | `restore` |
+| Billing (later) | `billing` | `PAN` |
+
+## Module map: services, apps and packages
+
+Every top-level directory under `services/`, `apps/` and `packages/`, and the row(s) that own
+its threats. A new module fails `tests/docs/test_threat_model_rows.py` until it has an entry
+here, and an entry naming a module that no longer exists, or a row with no section, fails too.
+The first row listed is the module's primary owner; the rest are rows whose controls live in
+it or whose tests exercise it.
+
+| module | row(s) | what it holds |
+|---|---|---|
+| `apps/admin-web` | `admin-console` | the rendered ops console |
+| `apps/embed-sample-partner` | `embed` | a synthetic dev-tier partner over the real handshake |
+| `apps/mobile` | `mobile`, `onboarding`, `intake-voice`, `records`, `share-centre`, `kiosk`, `notifications` | the patient app |
+| `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
+| `packages/connectors` | `connectors` | hospital-system adapters |
+| `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
+| `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
+| `packages/voice-clips` | `protocol-registry`, `cloud-clipgen`, `voice-runtime` | the clip cache, its build and the agent-audio framing |
+| `services/api` | `api`, `api-surface` | the FastAPI service |
+| `services/learning` | `learning-loops` | proposal-only learning |
+| `services/metrics` | `experience` | satisfaction and wait-time rollups |
+| `services/probes` | `self-hosting`, `monitoring-contract`, `backups` | synthetic probes, the self-hosting registry, residency attestation |
+| `services/voice-runtime` | `voice-runtime`, `observer-lanes`, `llm-boundary` | the agent worker, lanes and gateways |
 
 ---
 
@@ -69,7 +142,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
-  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided.
+  an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
+  is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
+  update** past review and the licence gate.
 - **Controls (files/10):** §8 in full — OSV/Trivy/Checkov fail-on high, licence check, Syft
   SBOM, cosign keyless signing with SLSA provenance, schemathesis, MobSF; CI carries no
   secrets and never calls a vendor (ci.yml header; CLAUDE.md). **INT-206 adds the
@@ -80,15 +156,34 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   corpus may not be printed into the job log, uploaded as an artefact or cached; every
   `runs-on` must resolve to a known hosted label or a declared pool, failing closed
   otherwise. The gate's own report carries digests, never values — it runs in a job whose
-  stdout is retained 30 d hot / 1 y cold (files/10 §6).
+  stdout is retained 30 d hot / 1 y cold (files/10 §6). **INT-368 adds Renovate**
+  (`.github/renovate.json`, runbook `docs/runbooks/dependency-updates.md`): every uv, pnpm,
+  container-digest and Actions pin is watched, security updates open immediately outside
+  the weekly schedule, and nothing auto-merges — each update is a PR through the same gates,
+  carried under an `INT-` issue because the evidence and sec_row gates refuse a bot title.
 - **Signals:** integrity failures — image and protocol signature — are §7 hard signals; land
   with INT-019 (security.yml) and INT-187/INT-192 (console surfaces). Runner liveness is the
   `ci-runners` registry row's `runner_heartbeat` probe (files/08 §6), reported as a typed
-  Skipped naming HB-I7 while no pool is declared — never as healthy.
+  Skipped naming HB-I7 while no pool is declared — never as healthy. **INT-187 adds the
+  console surface** (`/cicd`, `GET /admin/cicd`): recent runs per workflow with failing jobs,
+  every PR-triggered gate per ref on `main` and the open PRs, **whether GitHub itself enforces
+  any of them** (today: no — branch protection off, no ruleset, read from the API rather than
+  assumed), releases with the `sign-and-attest` job's outcome, and this deployment's stamped
+  `/version`. The GitHub read is the ops collector's (read-only token from OpenBao, egress
+  guard, purpose `issue_tracking`); run actors, commit messages, PR titles and users never
+  become labels (`ops_cicd_*`, catalogued). **The deploy freeze** is a §8.2 pair — engage
+  tier 1, lift tier 2 — kept out of Unleash (a CI-held token must not lift it), and enforced
+  in `infra/staging/deploy.sh` by the release gate, which also refuses on an exhausted SLO
+  error budget and on a freeze it cannot read; `admin.deploy_freeze_changes_total` is the
+  alert. Argo CD and a deploy canary are shown as not deployed — none exists in `infra/`.
 - **Tests:** tests/ci/test_evidence_check.py; tests/ci/test_no_placeholders.py;
   tests/security/test_threat_model.py (the sec_row linkage gate);
   tests/infra/test_ci_no_phi.py (INT-206: the six surfaces, the pool schema and the
-  heartbeat probe); full gate job lands with INT-019.
+  heartbeat probe); tests/ci/test_dependency_updates.py (INT-368: ecosystem coverage from
+  the tree, unscheduled security updates, no auto-merge anywhere); full gate job lands
+  with INT-019. INT-187: tests/admin/test_cicd_console.py, tests/admin/test_cicd_routes.py,
+  tests/admin/test_deploy_freeze.py, tests/observability/test_ops_cicd.py,
+  tests/infra/test_staging_release_freeze.py and apps/admin-web/e2e/cicd.spec.ts.
 
 ## `secrets` — OpenBao and service credentials
 
@@ -131,7 +226,10 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   mechanism; §2 — RLS per tenant with the GUC from the OIDC claim and a per-request DB role.
 - **Signals:** key-rotation countdowns (§7) land with INT-192.
 - **Tests:** tests/security/test_envelope_encryption.py;
-  tests/security/test_envelope_transit_unit.py; RLS exercise lands with INT-030.
+  tests/security/test_envelope_transit_unit.py; RLS exercise lands with INT-030;
+  tests/data/test_sensitive_slot_categories.py (INT-349: an answer in any protocol data
+  category but `general_health` is an envelope bound to its session and slot, never
+  plaintext at rest).
 
 ## `api` — API security baseline
 
@@ -291,7 +389,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §5 LLM10 budgets and circuit breakers; §6 capacity — autoscaling
   on queue depth, monthly chaos experiments; typed fallback within 2 s (backlog INT-100).
 - **Signals:** budget exhaustion and vendor errors (§9 voice row) land with INT-024/INT-100.
+  **(INT-100)** `vendor_breaker_state` (one-hot per component), `vendor_breaker_transitions_total`
+  and `vendor_failovers_total` (`to_component="typed"` when no speech lane is left), all
+  catalogued live.
 - **Tests:** chaos harness and fallback timing land with INT-024, INT-100, INT-207.
+  **(INT-100)** `tests/chaos/test_vendor_failover.py` kills the primary TTS lane mid-turn (dead,
+  dying in flight, hung) under a real Talker turn and proves the next lane or the screen within
+  2 s of virtual time, with the Backend stalled underneath (invariant 9); the order is read from
+  `observability/registry.yaml` and a cloud fallback on the PHI path is refused (invariant 19).
+  Unit coverage in `tests/voice/test_vendor_resilience.py`.
 
 ## `self-hosting` — model supply chain and residency
 
@@ -377,6 +483,38 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   `services/api/src/intake_api/auth_store.py` (`otp_request_gate`), constant work per request
   over a key set of one sorted set per (dimension, identifier) holding at most that
   dimension's limit.
+- **The device-attestation bound, stated (INT-344):** on iOS the OTP request and the
+  session start each carry an Apple App Attest **assertion** from a Secure Enclave key the
+  server registered once from an **attestation** (`POST /v1/auth/attest/key`). The
+  attestation must chain to the Apple App Attestation Root CA committed at
+  `services/api/src/intake_api/trust/` and pinned by SHA-256 in code and in a test; commit
+  to SHA256(authData ‖ SHA256(clientData)) in credCert's extension
+  1.2.840.113635.100.8.2; carry this app's rpIdHash (team id from
+  `INTAKE_APP_ATTEST_TEAM_ID`, never a literal), counter 0 and the production aaguid
+  (`appattestdevelop` only when development is configured explicitly); and name its own
+  key. Each assertion must verify under the stored key, carry the rpIdHash, and move the
+  counter strictly forward (an atomic compare-and-set). clientData binds the call's purpose
+  and a single-use server challenge, which the service spends **before** any verifier runs —
+  so a proof is good for one call, and a refused one still burns its challenge. Absent
+  Apple config the verifier fails closed with `app_attest_not_configured`. **Android fails
+  closed** (`play_integrity_not_configured`): the Play Integrity verdict policy exists, but
+  no decoder can exist until the Play Console organisation account does (HB-A3). The
+  stored record is a public key, a counter and an environment — the same class of datum as
+  the DPoP thumbprint — kept 30 days rolling.
+- **The SMS delivery bound, stated (INT-329):** outside dev the OTP tier is wired only when
+  the egress policy admits `EgressPurpose.SMS_OTP_DELIVERY` to `api.twilio.com` **and** OpenBao
+  holds `secret/api/twilio` (`account_sid`, `auth_token`, `from`). The `TWILIO_*` environment
+  variables are never read. Anything missing leaves every `/v1/auth` route at 503, and the dev
+  event logger is never the fallback (INT-325). The send is async, over the INT-018 guard's
+  async twin, which runs the same admission step and pins and records exactly as the sync one
+  does. The call is declared `DataClass.PHI`, so it can only reach a `phi_allowed` row that
+  carries a recorded approval. **No such row ships.** Personal data to a processor abroad is
+  the owner's DPA and cross-border decision (docs/evidence/INT-329.md), so today the tier
+  stays at 503 outside dev, and the guard would refuse the call before a byte left anyway. A
+  failed delivery is one generic `503 otp_delivery_unavailable`, never a claimed "sent". The
+  log line carries the vendor message id, the HTTP status, a closed-vocabulary reason and
+  Twilio's numeric error code, never the phone, the code, the token or a vendor body (its
+  errors echo the number). No retry: a retried SMS would put a second code in flight.
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
@@ -385,7 +523,19 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`tests/security/test_otp_abuse.py`); the carrier/geo asymmetry (a failing lookup admits,
   a positive signal refuses before any SMS), its near-miss controls (an allocated prefix
   under the same table still gets its SMS; a partial list has no opinion) and the
-  no-new-storage assertion with INT-308 (same file); schemathesis with INT-019.
+  no-new-storage assertion with INT-308 (same file); schemathesis with INT-019. App Attest
+  with INT-344: every attestation and assertion check refusing on its own, Apple's
+  published example verifying against the pinned root, the pin itself, the replayed and
+  misbound challenge end to end, and the Play Integrity verdict policy
+  (`tests/api/test_attestation_verifier.py`, `tests/api/test_attestation_otp_flow.py`,
+  `apps/mobile/src/lib/auth/attestation.test.ts`). SMS delivery with INT-329: each vendor
+  outcome mapped to one typed reason over MockTransport; no phone, code or token in any log
+  record, error chain or transfer record; the event loop keeps running during a send; the
+  wiring matrix for `prod` and `staging`; the route's generic 503
+  (`tests/api/test_otp_twilio.py`, `tests/api/test_otp_twilio_wiring.py`). The async guard
+  matches the sync one on a parity table (`tests/security/test_egress_async.py`), and the
+  shipped allow-list refuses the SMS purpose on every tier
+  (`tests/security/test_egress_allowlist.py`).
 
 ## `consent` — layered consent and scope enforcement
 
@@ -461,8 +611,14 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Controls (files/10):** §10 — evidence accumulates automatically from the console; §8 —
   DPIA delta check when vendors or consent texts change; CLAUDE.md invariant 18 — every new
   data field carries its inventory annotation.
-- **Signals:** access-review age and drill status (§7) land with INT-189.
+- **Signals:** access-review age and drill status (§7) land with INT-189. INT-215 binds each
+  KVKK 2018/10 measure to a catalogued metric or a registered probe, and a control with no
+  live signal must own that absence as a gap rather than read as done.
 - **Tests:** schema-annotation completeness lands with INT-211; module tests with INT-189.
+  `tests/legal/test_2018_10_mapping.py` (INT-215) answers [R] for the Board's adequate
+  measures: every measure quoted verbatim from a committed snapshot of RG 30353, every cited
+  path, test id and signal resolving, every gap naming an owner, and the auditor packet
+  (`make evidence-2018-10`) exported through the invariant-47 guard.
 
 ---
 
@@ -615,14 +771,28 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Threats (STRIDE/LINDDUN):** [T] manipulation — "set me green" via model or input; a
   missed RED (patient safety, the highest-consequence failure in the product); [D] false-RED
   volume eroding clinician trust.
+  **RED acknowledgement (§9 row, files/02 §8):** [D/De] the alert fires and **nobody
+  answers** — no queue, no clock, no metric, no alert; `triage.events_total` counts REDs that
+  fired, not REDs anyone answered; a RED visit rescheduled or cancelled out of everyone's
+  sight.
 - **Controls (files/10):** §9 triage row — deterministic rules only, LLM cannot set levels,
   preemption path tested, rule changes via ADR plus sign-off; monotonic inheritance with
   `base.life_threat` unextendable (CLAUDE.md invariant 7); RED three axes with no default
   register/location (invariant 21, ADR-023).
+  **RED acknowledgement (§9, inv. 49):** every RED produces a clinic inbox entry within 60 s
+  regardless of connector presence and starts an acknowledgement clock; a Safety queue in the
+  console (files/08 §3, F19) where `tenant_clinical_responsible` acknowledges; an SLA breach
+  pages; a files/02 §2b reschedule or cancel on a RED visit raises an entry regardless of
+  connector presence.
 - **Signals:** RED events (`triage.events_total`, named in §9), preemption latency,
   false-RED reviews, missed-flag reports — land with INT-080 and INT-025.
+  `clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` (§9) are catalogued
+  `planned` in `observability/metrics_catalog.yaml`; nothing emits them yet.
 - **Tests:** golden suite with near-miss negatives and mutation tests land with INT-059;
-  preemption timing with INT-093.
+  preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is **unowned**:
+  the INT-020 close-out found no backlog row whose acceptance carries the Safety queue, the
+  acknowledgement clock or inv. 49, and records the gap in docs/evidence/INT-020.md for the
+  coordinator to allocate (an agent does not mint an issue id).
 
 ## `wellbeing` — screening instruments
 
@@ -903,6 +1073,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   than noted — the egress allow-list names no Ministry host so default-deny already refuses
   one, no file under `packages/`·`services/`·`apps/`·`infra/`·`scripts/` names one, and no
   module on the ingestion path imports an HTTP client or takes a locator (INT-122).
+  The one model on this path is files/03 §4.9.1 row 9, reached only through a gateway that
+  refuses a vendor host and a pin that is not licence-verified, pinned and served; while no
+  host serves it the PHI path refuses with no fallback (INT-124). Every lab value it returns
+  passes the unit-resolution guard, which flags and never converts, and with no authored
+  expectation table (HB-C24) flags every value.
 - **Signals:** upload scan results and parse failures (§9) land with INT-120;
   `sec_injection_suspected_total` is shared with the `llm-boundary` row — INT-121's document
   fence and INT-083's transcript fence are one control in
@@ -912,10 +1087,19 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`tests/records/test_extraction_eval.py`); the two patient-supplied sources — the
   six-column lab table, the MHRS SMS screenshot's candidate visit fields, the printed-date
   guard and the three no-scraping checks — with INT-122
-  (`tests/records/test_enabiz_pdf.py`); the patient-facing half of the confirm gate,
+  (`tests/records/test_enabiz_pdf.py`); the unit-resolution guard, the row-9 adapter and
+  its PHI gate with INT-124 (`tests/records/test_unit_resolution_guard.py`,
+  `tests/records/test_labjson_eval.py`); the patient-facing half of the confirm gate,
   the client-side level-shaped-key refusal and the camera path with INT-138
   (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
-  RLS namespace tests with INT-123.
+  the pgvector index with INT-123 — a PERMISSIVE tenant and a RESTRICTIVE patient RLS
+  policy checked against the model metadata, A-cannot-read-B live under the app role with
+  the same probe shown red on a copy of the table without RLS, confirmed-only indexing, the
+  `documents` consent refusal, erasure of vectors on both deletion paths and retrieval
+  cited into the note with document, page, box and item id
+  (`tests/records/test_vector_rls.py`, `tests/records/test_record_index.py`,
+  `tests/voice/test_retrieve_records_work.py`). files/03 §4.9.1 names no embedding model,
+  so indexing and retrieval refuse (`EmbeddingModelUnregistered`) with no fallback.
 - **INT-138 addition — the capture is a second way in, and it carries metadata.** A
   photograph of a report taken in the app reaches the same object store as an uploaded
   file, so it goes through the same allow-list pre-check, size cap and digest. On the
@@ -937,6 +1121,29 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
      and XMP, so it is a third metadata container beside the two the JPEG strip names.
      Reachable through the file picker only — the camera path produces JPEG — so the
      probability is lower, but the exposure is the same one.
+- **INT-138 addition — the extraction reaches the patient, and the verdict comes back.**
+  `GET /v1/visits/{visit_id}/documents/{doc_id}/extraction` publishes a scanned-clean
+  document's items; `POST …/extraction/decisions` takes `{card_id, decision}`
+  (`services/api/src/intake_api/record_items.py`). New boundary: extracted text ↔ the
+  patient's screen. Threats and their controls: [I] another patient's items — the
+  caller's own visit and document under the RLS tenant session, the `documents` consent
+  scope enforced on both routes, clinic principals refused; [T] a caller asserting who
+  confirmed, or restating the value — the body is closed to those two fields and
+  `confirm_record_item` takes no `by=`, so the actor is read off INT-170's vocabulary;
+  [T/S] document text shaped as a control — an item carrying the data-boundary control
+  token, or a box pointing into another document, refuses the extraction whole (the one
+  fence's own check, not a second one), and nothing on this path reaches a model; [T] a
+  flagged magnitude tidied in transit — `summary` and `unit_conflict` are carried byte
+  for byte, no parse, no conversion; [R] every read and verdict appends `doc:<id>` to the
+  hash chain, ids only, before the verdict takes effect. Only a clean document is ever
+  passed to a source. The production source (`NoExtractionSource`) answers *unread* for
+  every document while every producer is shut.
+- ⚠️ **One limit of that transport, named for a human.** A confirmed item is admitted to
+  INT-121's `ConfirmedRecordStore`, which lives in process memory: a restart loses the
+  verdict and the card returns to *pending*, which reaches no note — the safe direction.
+  A durable store would persist a structured copy of patient health values, which needs
+  its invariant-18 annotation and an owner's decision (CLAUDE.md, *when to stop and
+  ask*); none was made here. Tests: `tests/records/test_extraction_transport.py`.
 
 ## `documents` — the object store
 
@@ -1048,6 +1255,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   staff reads ↔ patient visibility (every break-glass grant appears in the log — §3).
 - **Threats (STRIDE/LINDDUN):** [I] stale access outliving intent; [Nc] incomplete deletion
   after revocation; [U] the patient unable to see who has access.
+  **Issuing (§9 share row, INT-311):** [I] a bearer credential rendered on the patient's
+  phone (screenshot, shoulder-surf); [U] copy implying a code was "sent" on a channel that
+  does not exist (HB-O7).
 - **Controls (files/10):** §9 share row — instant token revocation, crypto-shredding, signed
   export URLs, deletion SLA; §3 patient-visible access log covering shares and staff reads.
   **INT-139 adds the patient's surface for the first two**: the grants over a note, a stop
@@ -1061,6 +1271,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   so. *[U] the patient unable to see who has access* — the log is on the patient's own screen,
   and its footer states out loud that it carries a role and never a name, so a missing name reads
   as a design choice rather than as something withheld.
+  **Issuing (§9, INT-311):** issuing is shown in-app only. The link and code are minted over
+  the patient's authenticated session and never delivered (HB-O7 open); the copy names no
+  channel; capture is blocked and the credential is held in memory only. Issuance is
+  consent-gated and audited (`api.doctor_link.issued`) against a redemption path that checks
+  the share consent scope and writes a hash-chained audit entry (`api.doctor_link.opened`).
 - **Signals:** revocation latency and the deletion SLA (§9) are **still owed**. INT-139 does not
   emit one: the interval is a server-side property and a client metric measuring it on a phone
   would be measuring the wrong clock, while `observability/metrics_catalog.yaml` carries no entry
@@ -1078,7 +1293,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   "cascades to tokens". That third one is worth reading: `redeem` checks the SHARE's `revoked_at`
   before the link's, so a cascade that stopped after the first row still refused every redemption,
   and the test had to assert the rows as well as the behaviour to catch it. Deletion-proof tests
-  remain INT-037's.
+  remain INT-037's. Issuing landed with INT-311: `apps/mobile/e2e/issueLink.spec.ts` (the
+  issuing-surface spec §9 names) and `apps/mobile/src/lib/shares/issue.test.ts` (the transport,
+  without a network).
 
 ## `clinic-console` — the clinician web surface
 
@@ -1188,6 +1405,41 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   pack fails closed while the SBSGM list is uncommitted, and the processor-role DPA clause set
   anchors to real repo documents.
 
+### INT-318 — the read direction: an on-premises appointments source and `/v1/visits/sync`
+
+- **Assets:** the clinical read-source registry (`infra/connectors/sources.yaml`), the
+  upstream directory of upcoming patients (names, mobile numbers, TC Kimlik — PHI), one
+  patient's appointments, the verified phone the app submits.
+- **Trust boundaries:** our server ↔ a hospital LAN host reached by a private IPv4 literal,
+  possibly over plaintext; the signed-in patient ↔ another patient's record.
+- **Threats (STRIDE/LINDDUN):** [E/I] a source row built in code so the read goes live on
+  environment variables alone (audit 2026-09-26 F06); [I] patient A reading B's visits by
+  submitting B's number; [I] a shared handset showing one patient's visits to the other; [I]
+  a service consent standing in for a hospital-record read; [Dd] SSRF through the read
+  guard; [D] an upstream blip breaking sign-in.
+- **Controls (files/10):** the row is read from the registry and never built — the file
+  ships with zero rows, so nothing is wired and the route answers `unavailable`; a row must
+  name a signed DPA, a tier-3 approval, a purpose from the closed INT-038 registry and, for
+  `http`, a separate recorded plaintext decision; `LanSourcePolicy` accepts only the
+  registered RFC 1918 literal (the exact complement of the vendor allow-list), performs no
+  DNS, disables redirects and needs `INTAKE_ALLOW_LAN_SOURCE=explicit-yes` at runtime; the
+  credential is read from OpenBao by the row's reference; the row serves only its own
+  tenant; the submitted phone must tokenize to the caller's own pseudonym before the feed is
+  touched; identity is `resolve_identity` with a terminal ambiguous refusal; the read clears
+  `core` at the door and the row's own purpose inside, and is audited (hash chain, ids
+  only); an upstream failure is `upstream_unavailable`, 200, no visits.
+- **Signals:** the egress decision lands in the KVKK transfer register, and a denial counts
+  on `sec_egress_denied_total` — the same series and the same `EgressDenied` as the vendor guard.
+  No new metric.
+- **Tests:** `tests/connectors/test_acibadem.py` — the guard in both directions, the schema's
+  refusals, identity resolution. `tests/api/test_visits_acibadem_sync.py` — the route's
+  behaviour (own visits only, A-cannot-read-B with an untouched feed, the shared handset,
+  consent at the door, the audit, upstream failures). `tests/api/test_visits_acibadem_registry.py`
+  — zero rows wire nothing even with the int-demo environment set, no `intake_api` module
+  builds a row or names a binding ref (derived from the schema), core alone does not unlock a
+  row registered for another purpose, another tenant's row serves no one, the runtime gate,
+  and an invalid, ambiguous or plaintext-without-decision registry wiring nothing.
+
 ## `embed` — the partner white-label launch handshake
 
 - **Assets:** the tenant embed registry (branding + recorded human facts), per-tenant
@@ -1282,14 +1534,26 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   screens, crash reports serialising local variables; [S/T] OTA supply-chain substitution or
   a repackaged app; [I] transport interception where pinning does not cover a path (§4: a
   fetch-patching shim does not pin WebRTC/DTLS or file uploads — pin natively).
+  **Offline drafts (§9 offline-drafts row, INT-142):** [I] a plaintext draft written to disk;
+  [Dd] a draft outliving its session; [L/Dd] another account's draft surfacing on a shared
+  device; [T] a tampered blob read as a sound draft; [D] silent data loss when a local edit
+  meets a newer server copy.
 - **Controls (files/10):** §4 mobile — SecureStore with biometrics, FLAG_SECURE, EAS Update
   code signing, MobSF on every build, jailbreak/root as a soft signal degrading to typed
   mode, native ATS/`network_security_config` pinning with a documented rotation recovery
   path, first-party attestation module (App Attest + Play Integrity + DPoP key) filed as its
   own issue; `include_local_variables=False` server-side (§3).
+  **Offline drafts (§9, INT-142):** an AES-256-GCM envelope over the typed draft only, never
+  audio (CLAUDE.md invariant 3), with the DEK in the Keychain/Keystore
+  `WHEN_UNLOCKED_THIS_DEVICE_ONLY`; the GCM tag fails the open on tamper; a deterministic
+  last-writer-wins rule that preserves the losing copy, so no loss is silent; account-scoped
+  hydration; visit-id path sanitisation; crypto-shred of the blobs and the DEK on sign-out.
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
-  land with INT-145/INT-146.
-- **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145.
+  land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
+  design (§9); the crash-free rate covers them (INT-145).
+- **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
+  drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
+  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`.
 
 ## `experience` — satisfaction and wait-time measurement
 
@@ -1374,12 +1638,40 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   authorization plane (Grafana/Langfuse/Unleash reached directly); [T] an unrecorded
   `device_functions` flip or a forged four-eyes ceremony; [I/L] IDOR via `?tenant=` and
   single-patient aggregates; [S] a phished approver.
+  **Break-glass (§9 break-glass row):** [I] four unmanaged read paths to patient content —
+  Langfuse spans, Grafana Explore over Loki/Tempo, `replay(event_log)` and break-glass
+  itself; [Nc] a "de-identified" claim that Turkish NLP cannot support; [U] the patient never
+  informed that staff read their content.
 - **Controls (files/10):** §9 admin row — server-rendered panels only, gated-capability
   service with tier-3 four-eyes and write-ahead audit, signed Study Registry with expiry and
   no grace, tenant scope from the OIDC claim with a per-request DB role, four-eyes as a
   server-side pending-action protocol (distinct AAGUID/credential id), asymmetric authority,
   k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48), `DangerousAction` registry
   (inv. 33).
+  **Break-glass (§9, inv. 38/39):** one path, `POST /admin/break-glass`, which §9 requires
+  to be proven by an import-boundary test; a closed-category reason plus at least 20 characters; a distinct
+  human and a distinct authenticator; a controller-instruction reference for processor
+  tenants; one session id, TTL ≤ 60 min, single use; watermarked, no download, no bulk
+  pagination, no adjacent-session navigation; audit **before** the read; a patient
+  access-log entry within 24 h, whose window is counsel's question (HB-L6). INT-180 ships the
+  ceremony with the tenant-to-deployment map empty, so break-glass refuses every tenant until
+  files/08 §2.6's controller/processor question is answered per tenant; the operating steps
+  are docs/runbooks/break-glass.md.
+  - **Controls added by INT-190 (Cost module):** money has one source, the owner-filled
+    `infra/costs/unit-prices.yaml`, and the schema refuses any price or budget limit without a
+    `source` and an `as_of` date, so an invented rate cannot land without a visible diff (HB-O8).
+    Every quantity is a catalogued series bound at load time (inv 13), read through a fixed
+    PromQL table no request field reaches; a response carrying any label the query did not
+    group by, a profile outside the closed pair or a non-quantity is refused as a source error
+    (inv 6, 19). Per-session cost is a mean over `voice_sessions_metered_total`, so no session
+    identifier exists on the surface. The console projection refuses a figure without a
+    configured price or observed usage (`CostFigureWithoutPrice`, `CostFigureWithoutUsage` — the
+    invented zero), a partial total (`PartialTotalRendered`), a budget declared kept on a lower
+    bound (`UnsoundBudgetVerdict`), an unsourced value (`UnsourcedPrice`), a non-id identifier
+    (`CostContentLeaked`) and a foreign currency. Budget alerts are generated rules
+    (`infra/observability/cost-rules.yaml`, drift-gated); an unset budget fires
+    `CostBudgetNotConfigured` rather than staying silent, and an overrun threshold is a sound
+    lower bound (`or vector(0)` per term) with `CostBudgetIncomplete` naming what it cannot see.
   - **Controls added by INT-186 (Experience & Satisfaction module):** the console
     projection refuses a satisfaction figure shown for a cohort below the k ≥ 10 floor
     (`SuppressedCohortLeaked`), a distribution key that is not id-shaped (`SatisfactionFigureLeaked`,
@@ -1390,13 +1682,159 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     and an SDS-01 export column that would re-identify a cohort or a cell that would evaluate in
     a spreadsheet (`SdsColumnForbidden`, `UnsafeExportCell`, inv 47). The SDS-01 export is the
     committed `intake_metrics.sds01.SDS01_COLUMNS`, aggregate only.
+  - **Controls added by INT-351 (the rendered ops console, audit F26):** `apps/admin-web`
+    gains the Next.js App Router shell and its first page, `/ops`, server-rendered only. The
+    page forwards the caller's bearer to `GET /admin/ops` and renders nothing else until that
+    INT-180 gate answers 200 — no bearer means no call at all, and a refused caller does not
+    reach the API's health endpoints either — so the OIDC verifier, the HB-A16 allow-list (empty
+    admits nobody), the platform-scope role set and the audit wrapper are the one admission
+    control, not a second verifier that could disagree with it. `/admin/ops` runs only the API's
+    own fixed PromQL table (every series catalogued, test-held) plus the registry projection; no
+    request field reaches a query (F1). A tile whose label set differs from its query's, or
+    whose label value is not id-shaped, turns unknown instead of painting it (inv 6); unknown
+    tiles carry no figure and the console refuses one that does (inv 17); CSAT and wait means
+    are withheld below k = 10; no target is rendered (inv 20). GPU and CI facts come from an ops
+    collector in `services/probes` that runs server-side — `nvidia-smi` beside the host, a
+    read-only GitHub token read from OpenBao at collection time through the egress guard
+    (`issue_tracking` purpose on the existing `api.github.com` row) — and exports only ids
+    (actor and commit message are dropped). CSP: per-request nonce, `strict-dynamic`, no
+    `unsafe-*` outside `next dev`, `frame-src`/`frame-ancestors 'none'`, `base-uri 'none'`, plus
+    `no-referrer`, `nosniff` and `DENY` framing. **Known limit, owner decision:** the API sees the
+    admin-web server, not the browser, as its transport peer, so HB-A16's ranges must name the
+    admin-web host and the browser ranges move to the OIDC-terminating ingress in front of it.
+  - **Controls added by INT-181 (the rendered overview: SLOs, probes, dependency health):**
+    `/overview` is server-rendered through the same admission step as `/ops` (one shared
+    `admit()`), forwarding the bearer to the new `GET /admin/reliability`
+    (`admin.reliability.read`, platform-scope roles, audited like every route, RBAC matrix and
+    drive derived from the served route table); a refused caller does not reach `/readyz`
+    either. Every PromQL the composite runs is derived from the committed `docs/slo` files or
+    is a fixed query, names catalogued series only (test-held) and takes no request field
+    (F1); an SLI written outside the one grammar the console reads is refused rather than
+    guessed. A label set other than the query's, or a value that is not id-shaped, turns the
+    tile unknown (inv 6); the probe runner's free-text `detail` never leaves the API. Every
+    tile fails closed on its own source (inv 17), and a probe result past three sweeps is
+    flagged stale in the matrix and is *unknown* as a dependency's health — the last value is
+    never shown as the current one. The view-model refuses a burn condition that is not exactly
+    "both windows above the factor", a budget that does not follow from its SLI and objective,
+    and a stale result rendered fresh, so neither a bent payload nor a stale tab can hide a
+    burning budget.
+  - **Controls added by INT-365 (staff second factor and session bounds, files/08 §2.3):**
+    against [S] a phished approver. Every staff token reaches the console through
+    `principal_from_claims`, which refuses it unless `amr` shows `pwd` plus a second factor
+    (`otp` or `hwk`). A role whose §2.1 patient-content cell is not "no" needs `hwk`: TOTP is
+    phishable. `platform_owner`, `tenant_clinical_responsible`, `clinical_lead`,
+    `investigator`, `compliance_officer` and `support` therefore need it. The set is derived
+    from `PatientContentPath` and never listed in code. `amr` must be a JSON array of exact,
+    case-sensitive strings. An absent claim, a bare string, a mapping or a non-string member is
+    no evidence, and `acr` alone never admits. The refusal is RFC 9470's 401
+    `insufficient_user_authentication`, with one body for "no second factor" and "not
+    WebAuthn", so the response does not reveal whether an account reaches patient content. It
+    is audited under the verified subject id and nothing else. The committed realm configures
+    the OTP policy (TOTP, 6 digits, 30 s, code not reusable) and the WebAuthn policy (user
+    verification required). Its browser flow is a password and then WebAuthn or TOTP, each
+    execution tagged with the `amr` reference the verifier accepts. The realm bounds every
+    session to 8 h and 30 minutes idle, offline sessions included. The `amr` references expire
+    at the same 8 h, so after that bound the API refuses a refreshed token too.
+  - **Controls added by INT-182 (the Voice module: kill switch, profile switch, canary):**
+    the per-tenant voice control lives in its own Redis record written **only** by
+    `services/api/admin` — not in Unleash, whose tokens flip flags with no audit row (F1,
+    inv 34) — and the runtime reads it at every session start and on a 1 s poll, so the kill
+    switch takes effect without a deploy. **Asymmetric authority, from the `DangerousAction`
+    registry:** pulling the kill switch (toward `typed`) is tier 1 — one `sre_oncall`,
+    `clinical_lead` or `platform_owner`, audited, no approver (F17); releasing it, switching a
+    tenant's default profile and setting a canary weight (toward voice) are tier-2 four-eyes
+    ceremonies through the INT-180 pending-action protocol, `sre_oncall` on neither side. An
+    approval binds to the record revision its brief showed and is refused if the control moved
+    since — a kill switch pulled mid-ceremony cannot be undone by approving the stale request.
+    Fail-closed in three places: a tenant with no record is `typed` (voice is opt-in by a
+    tier-2 switch, and a store that loses its keys falls every tenant to the keyboard); a
+    control the runtime cannot read starts the session `typed` and is counted; a speech worker
+    without the store is not ready. Only `residency_tr` and `typed` parse (inv 19); weights are
+    integers 0..100; bodies are closed and refused by field name; the change reason's free text
+    never enters the record, the ceremony evidence, a label or a response (inv 6). The admin-web
+    forms are script-free, same-origin only (`Sec-Fetch-Site`), and cannot approve — approval
+    needs a fresh WebAuthn assertion the console does not mint yet. **Known limit, owner
+    decision:** the tier-2 second key is still two accounts, not two proven humans (the
+    INT-180 limit), and the step-up ceremony in the browser is unbuilt.
+  - **Controls added by INT-373 (the realm emits the console's claims):** the committed realm's
+    `admin-web` client carries an audience mapper naming `api` and attribute mappers for `org`
+    and `tenant`. The realm's user profile declares both attributes admin-only (view and edit),
+    single-valued, and pattern-bound to the console's id shape. A staff member therefore cannot
+    move their own tenant scope ([E]), and a malformed value is refused when it is saved.
+    `aaguid` and `credential_id` are mapped from user-session notes that no stock Keycloak
+    26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
+    closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
+    `tests/admin/test_realm_claim_mappers.py`.
+  - **Controls added by INT-366 (quarterly access review, one-action offboarding, 60-day
+    auto-disable; files/08 §2.4, §2.7):** against [E] access that outlives its need and a
+    departure that leaves one identity store open. `GET /admin/access/review` is generated
+    from the Keycloak admin API (effective realm roles, enabled flag, last login from LOGIN
+    events) and the audit chain (last console action; each section's last countersignature) —
+    ids only: Keycloak's names and mail are never copied, a non-id username is dropped, and
+    the section digest is 128 bits so nothing on the page is chain-hash-shaped (HB-I12).
+    Signing a section is a tier-2 ceremony (it lifts the read-only downgrade, so it is the
+    dangerous direction): the §2.7 reviewer signs the population's digest, a second person
+    countersigns with a fresh single-use assertion, `platform_owner` needs the countersigner
+    from another organisation, and a grant between the two keys voids the signature. The
+    countersignature is an `admin.access_review.signed` row on the chain, so the review state
+    has no second store to forge and every replica reads it back. **Enforced by the router,
+    not the page:** past 100 days, or with no review, every write reached only through
+    `platform_owner` or `tenant_admin` is refused (`access_review_overdue`) and audited; an
+    unread chain counts as no review (fail closed). Offboarding is tier 1 (the safe direction;
+    §8.2 "token revoke"): Keycloak account disabled before its sessions are ended, the OpenBao
+    entity disabled and each of its tokens revoked (with their leases), the person's pending
+    four-eyes requests expired, and every other console system from
+    `infra/admin/console-accounts.yaml` listed — a system without a programmatic adapter is a
+    manual step that keeps the offboarding incomplete until an audited confirmation; the loader
+    refuses a file that would skip one. Each step is write-ahead on the chain; a failed step is
+    reported and the rest still run. The subject is path-shape-checked before it reaches a
+    Keycloak or OpenBao URL. The 60-day job offboards through the same pipeline under
+    `svc:access-hygiene` and refuses to disable anyone when the realm keeps under 60 days of
+    login history (an expired login must not read as "never logged in"). **Known limits, owner
+    decisions:** the admin client, the OpenBao offboarding policy (which needs `sudo` to list
+    token accessors), the scheduler and the first countersigned review are unwired, so the
+    console is read-only for `platform_owner`/`tenant_admin` until the owner acts; Grafana,
+    Langfuse and Unleash stay manual steps; access tokens already issued live until their
+    expiry (INT-365's session bounds).
+  - **Controls added by INT-391 (the credential id is WebAuthn's, not a generic id):**
+    `principal_from_claims` decodes `credential_id` instead of matching the 128-character id
+    shape. It admits exactly the ids WebAuthn Level 3 lets an authenticator mint: unpadded
+    base64url (§3), 16 to 1023 bytes once decoded (§4). The old shape refused a valid staff key
+    at random (an id starting with `-` or `_`, about 2 in 64, or longer than 96 bytes). It also
+    admitted strings that are no credential id (`/`, `.`, `:` or `@` inside, fewer than 16
+    bytes). A padded id, the standard alphabet, a dangling character and a second spelling of
+    the same bytes (pad bits set) are refused. Each credential therefore has one spelling, and
+    four-eyes' distinct-credential check, which compares strings, compares credentials. The
+    refusal is the generic 403 every malformed claim gets, audited as `admin:unresolved`; it
+    names the claim and never its value (inv 6). `aaguid` keeps its shape: the provider writes
+    UUID text, which that shape always admits.
+  - **Controls added by INT-390 (the identity provider's own patch level):** against [E] an
+    identity provider with published advisories. Compose runs Keycloak 26.7.4 pinned by
+    index digest (26.1.4 carried 64 OSV advisories on the artefacts INT-378 compiles against).
+    The committed realm is held to the columns 26.7.4's import writes, derived from that
+    tag's changelogs and measured in UTF-16 units, and every string field must be classified,
+    so a realm that cannot load fails CI rather than `make obs`. The realm is mounted under
+    the file name 26.7.4's directory import requires. **Known limit:** three OSV records
+    still match 26.7.4 through open-ended ranges whose GitHub source bounds them below it
+    (docs/evidence/INT-390.md); a scanner that reads the Keycloak artefacts reports them.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
   audit `seq` gaps, external-anchor age, access-review age; `sec.admin_actions_total` and
   `sec.break_glass_total` with alerts actually attached — land with INT-180…INT-192.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
-  the role × tenant matrix with INT-180.
+  the role × tenant matrix with INT-180; the second factor, the realm flow and the session
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
+  the same file, with property tests over generated ids (INT-391).
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the realm-import column
+  limits, the image digest and the import file name in
+  `tests/infra/test_keycloak_realm_import.py` (INT-390).
+  the same file, with property tests over generated ids (INT-391). Break-glass (INT-180):
+  the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
+  `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both
+  break-glass routes in `tests/admin/test_admin_audit.py`; only break-glass roles carrying the
+  path in `tests/admin/test_rbac_matrix.py`. Inv. 38's import-graph half and inv. 39 (replay
+  is not a read channel) are not tests yet and land with the console issues.
 
 ## `device-boundary` — MDSW mode and the study lifecycle
 
@@ -1407,17 +1845,31 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Threats (STRIDE/LINDDUN):** [Nc] an uncertified Class IIb device function placed into
   service; [T] a stale study assertion outliving its approval — the default outcome rather
   than an attack (§9); [R] a device-mode change with no attributable record.
+  **Research store (§9 research-store row):** the sealed research store is the **only** place
+  raw patient audio persists (files/06 §3's one exception), so [Dd/Nc] a store with no role,
+  no surface and no clock becomes an unbounded audio archive; [E] an investigator reaching
+  production clinical data from it.
 - **Controls (files/10):** §9 device row — gated-capability service as the sole write path,
   `clinical_lead` + `qms_owner` from different organisations, server-side study-reference
   validation, write-ahead audit, immediate page, 60 s reconciliation probe failing closed,
   signed registry with `approval_valid_until`, daily fail-closed probe, weekly reconciliation
   against the enrolment log, study-close runbook; inv. 34/35.
+  **Research store (§9):** `investigator` scoped to one `study_id` and no production clinical
+  data; its own key custody and access log; automated destruction at the ≤ 12-month ceiling
+  with destruction records kept ≥ 3 years (DEST-2017, RG 30224). It is a separately audited
+  exception outside the retention engine: `retention_policy.yaml` carries no audio class and
+  its loader refuses one (the policy half of inv. 27), so the exception cannot leak into the
+  general engine.
 - **Signals:** `admin.device_functions_changed_total{direction}`,
   `admin.study_assertion_changed_total`, `acoustic.assertion_expiry_days`,
   `admin.study_registry_probe_status` (named in §9) — land with INT-117 and the console
-  issues.
+  issues. The research store's per-file retention countdown, destruction evidence and access
+  log (§9) land with the store itself.
 - **Tests:** the INT-117 gate test (INT-117's acceptance); inv. 34/35 extend it to the
-  registration side with the console issues.
+  registration side with the console issues. The engine-side refusal is
+  `tests/legal/test_retention_engine.py::test_loader_refuses_an_audio_retention_class`
+  (INT-036). The store itself lands with INT-115, its only writer (the `acoustic` lane's
+  ordinal band), and the study-close runbook drill (§9) with it.
 
 ## `learning-loops` — proposal-only learning
 

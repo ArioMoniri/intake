@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Patient/clinician JSON API — dev-tier slice (INT-197): dev-bearer auth over two synthetic accounts, visits, notes, documents on the INT-030 schema; real OIDC auth is INT-131"
 requires-python = ">=3.12"
 dependencies = [
+    "cbor2>=6.1.4",
     "fastapi>=0.115",
     "intake-clinical-schemas",
+    "intake-connectors",
     "intake-metrics",
     "intake-platform",
     "intake-probes",
@@ -21,6 +23,7 @@ dependencies = [
 
 [tool.uv.sources]
 intake-clinical-schemas = { workspace = true }
+intake-connectors = { workspace = true }
 # INT-241: the admin Experience surface renders the rollups services/metrics
 # owns. Declared rather than duplicated — a second k-anonymity floor is a
 # floor that gets lowered by accident (files/08 §0c F9).

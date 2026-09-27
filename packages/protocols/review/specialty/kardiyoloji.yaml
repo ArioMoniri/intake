@@ -1,0 +1,130 @@
+# L0 — QUESTIONS authored; NOT servable until physician-of-record sign-off (HB-C1).
+# TRIAGE deferred. Provenance (honest):
+# The pre-visit QUESTIONS below are AI-assembled from INTERNATIONAL guidelines
+# (ESC ACS 2023, ESC Syncope 2018, ESC HF 2021 — see docs/evidence/proposals/
+# kardiyoloji.md for the verbatim citations), clinician-DIRECTED by the product
+# owner (A. Moniri) under an explicit in-session instruction, and intended
+# to be double-verified. They are symptom-capture prompts only (invariant 2/10),
+# not diagnosis and not triage.
+#
+# TRIAGE IS NOT AUTHORED HERE and is NOT fabricated. Every red-flag acuity in this
+# system is bound by EK-4 (Yataklı Sağlık Tesisleri Acil Servis Tebliği, RG
+# 13/9/2022 sayı 31952) — binding Turkish LAW whose verbatim text is not committed
+# under packages/protocols/sources/ — and every trigger is owned by the physician
+# of record (HB-C1/C2/C7). The red_flags stub below therefore stays
+# draft_needs_source (the compiler excludes it from the served pack, invariant 17);
+# RED/life-threat stays in base.life_threat, untouched (invariant 7). This pack
+# raises acuity for nothing on its own — it only asks cardiology questions and
+# feeds the existing base gates.
+kind: pack
+id: specialty.kardiyoloji
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Kardiyoloji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/kardiyoloji.md"
+  kardiyak_belirtiler:
+    slots:
+      gogus_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda göğsünüzde ağrı, baskı ya da sıkışma hissi oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      gogus_agrisi_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Göğüs ağrınız olduğunda genellikle ne kadar sürüyor?
+        follow_up_tr:
+          tr: Yaklaşık kaç dakika sürdüğünü söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      nefes_darligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde nefes darlığı yaşadınız mı? Örneğin yürürken ya da dinlenirken.
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      bayginlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda bayıldığınız ya da bayılacak gibi olduğunuz oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      efor_bayginlik:
+        type: boolean
+        required: false
+        ask_if: "bayginlik == true"
+        ask_tr:
+          tr: Bu baygınlık ya da göz kararması hissi, yürürken veya merdiven çıkarken mi oldu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      carpinti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kalbinizin hızlı, düzensiz ya da çok güçlü çarptığını fark ettiniz mi?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      bacak_sisligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ayak bileklerinizde ya da bacaklarınızda şişlik fark ettiniz mi?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+  kalp_gecmisi:
+    slots:
+      kalp_tanilari:
+        type: string
+        required: false
+        ask_tr:
+          tr: Daha önce kalbinizle ilgili bir tanı aldınız mı? Örneğin kalp yetmezliği, ritim bozukluğu ya da yüksek tansiyon.
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+      kalp_ilaclari:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şu anda kalbiniz ya da tansiyonunuz için düzenli kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/kardiyoloji.md"
+red_flags:
+- id: rf.kardiyoloji_l0_taslak
+  label_tr: Kardiyoloji — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: kardiyoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Rule set not yet authored: trigger, EK-4 level and route await clinical sign-off. The `when` field carries the sole permitted pending-value literal (CLAUDE.md invariant 17); level YESIL and route EXPEDITE are the schema''s lowest rungs and assert nothing clinically; this rule is never compiled into a served pack (files/04 §8.1 rule 3). ESC-sourced candidate triggers (chest pain lasting longer than fifteen minutes or recurrent within one hour — ESC-ACS-2023; exertional or supine syncope — ESC-SYNCOPE-2018) are recorded in docs/evidence/proposals/kardiyoloji.md as candidates for the physician of record, but the acuity level is bound by EK-4 law (RG 13/9/2022 sayı 31952) whose verbatim snapshot is absent from packages/protocols/sources/, so no level is asserted here. Owner: physician of record (HB-C1, HB-C2, HB-C7).'

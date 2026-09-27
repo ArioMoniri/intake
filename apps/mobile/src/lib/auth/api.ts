@@ -1,6 +1,8 @@
 /**
  * Auth API client (INT-131): challenge → attested OTP request → attested
  * verify with a DPoP proof → DPoP-bound session; refresh with rotation.
+ * INT-344: in release iOS builds "attested" means Apple App Attest — a key
+ * registered once through /v1/auth/attest/key, then an assertion per call.
  *
  * Every error surfaces as a typed, GENERIC kind (02 §8.2: generic errors;
  * the UI maps kinds to tr copy) — no server narrative is ever rendered.
@@ -12,7 +14,14 @@
  * throws `ApiBaseUnconfigured` (kind `unconfigured`) without one; a dev build
  * walks the LAN exactly as before.
  */
-import { buildAttestation } from "./attestation";
+import { attestationPorts, forgetAttestKey } from "./attestation";
+import {
+  AttestationFailureError,
+  type KeyRegistration,
+  buildAttestationHeader,
+  isAttestationRefusal,
+  shouldReattest,
+} from "./attestationPlan";
 import { dpopProof } from "./dpop";
 import { AuthApiError } from "./errors";
 import { buildApiBase } from "./expoApiBase";
@@ -87,13 +96,73 @@ async function fetchChallenge(base: string): Promise<string> {
   return body.challenge;
 }
 
-async function attestationHeader(base: string): Promise<Record<string, string>> {
-  const nonce = await fetchChallenge(base);
-  const payload = await buildAttestation(nonce);
-  if (payload === null) {
-    throw new AuthApiError("attestation");
+/** App Attest key registration (INT-344): a refusal is typed for the key
+ * lifecycle, which forgets the key so the next attempt starts clean. */
+async function registerAttestKey(base: string, registration: KeyRegistration): Promise<void> {
+  const response = await fetch(`${base}/v1/auth/attest/key`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(registration),
+  });
+  if (response.ok) {
+    return;
   }
-  return { "X-Intake-Attestation": payload };
+  const body = (await parseBody(response)) as ErrorBody;
+  if (isAttestationRefusal(response.status, body.error)) {
+    throw new AttestationFailureError("rejected");
+  }
+  throw mapError(response.status, body);
+}
+
+interface AttestedResponse {
+  response: Response;
+  body: Record<string, unknown>;
+}
+
+/** POST with a fresh X-Intake-Attestation (files/10 §2: attestation on OTP
+ * request AND session start). ``perAttempt`` supplies headers that must be
+ * minted per request (the DPoP proof's jti). A refused App Attest assertion
+ * is retried once with a newly attested key — the server's record of the old
+ * one may have aged out. */
+async function attestedPost(
+  base: string,
+  path: string,
+  purpose: "otp.request" | "otp.verify",
+  payload: unknown,
+  perAttempt: (url: string) => Promise<Record<string, string>> = async () => ({}),
+): Promise<AttestedResponse> {
+  const url = `${base}${path}`;
+  for (let attempt = 0; ; attempt += 1) {
+    const ports = await attestationPorts({
+      challenge: () => fetchChallenge(base),
+      registerKey: (registration) => registerAttestKey(base, registration),
+    });
+    let header: string;
+    try {
+      header = await buildAttestationHeader(purpose, ports);
+    } catch (error) {
+      if (error instanceof AttestationFailureError) {
+        throw new AuthApiError("attestation", null, error.failure);
+      }
+      throw error;
+    }
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Intake-Attestation": header,
+        ...(await perAttempt(url)),
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = await parseBody(response);
+    const errorCode = typeof body.error === "string" ? body.error : undefined;
+    if (shouldReattest({ status: response.status, errorCode, attempt, mode: ports.mode.kind })) {
+      await forgetAttestKey();
+      continue;
+    }
+    return { response, body };
+  }
 }
 
 export interface OtpRequestResult {
@@ -102,12 +171,9 @@ export interface OtpRequestResult {
 
 export async function requestOtp(phoneE164: string): Promise<OtpRequestResult> {
   const base = await apiBase();
-  const response = await fetch(`${base}/v1/auth/otp/request`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...(await attestationHeader(base)) },
-    body: JSON.stringify({ phone: phoneE164 }),
+  const { response, body } = await attestedPost(base, "/v1/auth/otp/request", "otp.request", {
+    phone: phoneE164,
   });
-  const body = await parseBody(response);
   if (!response.ok) {
     throw mapError(response.status, body as ErrorBody);
   }
@@ -139,17 +205,13 @@ async function storeBundle(body: TokenBundleBody): Promise<string> {
  * is returned (the server created the account when it did not exist). */
 export async function verifyOtp(phoneE164: string, code: string): Promise<string> {
   const base = await apiBase();
-  const url = `${base}/v1/auth/otp/verify`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(await attestationHeader(base)),
-      DPoP: await dpopProof({ method: "POST", url }),
-    },
-    body: JSON.stringify({ phone: phoneE164, code }),
-  });
-  const body = await parseBody(response);
+  const { response, body } = await attestedPost(
+    base,
+    "/v1/auth/otp/verify",
+    "otp.verify",
+    { phone: phoneE164, code },
+    async (url) => ({ DPoP: await dpopProof({ method: "POST", url }) }),
+  );
   if (!response.ok) {
     throw mapError(response.status, body as ErrorBody);
   }
@@ -228,4 +290,69 @@ export async function devPeekOtp(phoneE164: string): Promise<string | null> {
   }
   const body = await parseBody(response);
   return typeof body.code === "string" ? body.code : null;
+}
+
+/**
+ * One visit as the hospital feed returns it, already in the shell's visit
+ * shape (structurally a `VisitFixture`). Declared here rather than imported
+ * from lib/dev, so the auth client's source names no dev module (INT-328):
+ * the feed carries no taxonomy branch, visit type or note state, so those are
+ * null by type.
+ */
+export interface SyncedVisit {
+  id: string;
+  hospital: string;
+  department: string;
+  branchId: null;
+  visitType: null;
+  date: string | null;
+  noteStatus: null;
+}
+
+/**
+ * INT-318: pull the signed-in patient's upcoming visits from the hospital feed
+ * after OTP verification. The phone is sent once, over the DPoP-bound session,
+ * and the server refuses it unless it tokenizes to this same caller — so it is
+ * never a way to read another patient's visits. Maps the API rows to the
+ * shell's visit shape. A failure returns [] rather than throwing: a patient
+ * with no matched appointment still gets a working home screen.
+ */
+export async function syncVisits(
+  phoneE164: string,
+): Promise<{ patientName: string | null; visits: SyncedVisit[] }> {
+  try {
+    const response = await authedFetch("/v1/visits/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phoneE164 }),
+    });
+    if (!response.ok) {
+      return { patientName: null, visits: [] };
+    }
+    const data = (await response.json()) as {
+      outcome: string;
+      patient_name: string | null;
+      visits: Array<{
+        id: string;
+        hospital: string;
+        department: string;
+        date: string | null;
+        time: string | null;
+      }>;
+    };
+    return {
+      patientName: data.patient_name ?? null,
+      visits: data.visits.map((v) => ({
+        id: v.id,
+        hospital: v.hospital,
+        department: v.time ? `${v.department} · ${v.time}` : v.department,
+        branchId: null,
+        visitType: null,
+        date: v.date,
+        noteStatus: null,
+      })),
+    };
+  } catch {
+    return { patientName: null, visits: [] };
+  }
 }

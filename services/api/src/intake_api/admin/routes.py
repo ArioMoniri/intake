@@ -31,6 +31,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from intake_platform.admin import (
     ADMIN_ROUTES,
@@ -46,6 +47,7 @@ from intake_platform.admin import (
     build_break_glass_justification,
     dangerous_action,
 )
+from intake_platform.admin.access.review import AuditRows
 from intake_platform.admin.four_eyes import SelfApproval
 from intake_platform.admin.metrics import (
     ADMIN_BREAK_GLASS_OPENED_TOTAL,
@@ -58,16 +60,22 @@ from intake_platform.compliance import AuditSearchQuery
 from intake_platform.compliance.audit_search import AuditSearchContentRefused
 from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
-from intake_api.admin import compliance_source, views
+from intake_api.admin import access_console, compliance_source, views
+from intake_api.admin.cicd_routes import CICD_HANDLERS
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.models_source import (
     load_models_module,
+    load_probe_sweep,
     resolve_benchmark,
     run_benchmark,
 )
+from intake_api.admin.ops_console import load_ops_console
+from intake_api.admin.reliability_console import load_reliability_console
+from intake_api.admin.voice_routes import VOICE_HANDLERS
 from intake_api.consent_guard import administrative_action
 from intake_api.db import tenant_session
 from intake_api.errors import (
+    InsufficientUserAuthentication,
     admin_refused,
     benchmark_refused,
     break_glass_refused,
@@ -211,7 +219,28 @@ async def _break_glass_approve(
 async def _models(
     request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
 ) -> dict[str, Any]:
-    return views.models_module_view(load_models_module())
+    # INT-377: the sweep is read once, and a file that is not one is refused
+    # to `unknown` rather than raised through the route.
+    sweep = load_probe_sweep()
+    return views.models_module_view(load_models_module(sweep), sweep)
+
+
+async def _ops(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    # INT-351. Prometheus and the registry, server-side; the query table is the
+    # API's own and nothing in the request reaches it (files/08 §0b F1). The
+    # composite is synchronous httpx, so it runs off the event loop.
+    return await run_in_threadpool(load_ops_console, datetime.now(UTC))
+
+
+async def _reliability(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    # INT-181. The SLO files, Prometheus, the registry and the probe sweep,
+    # server-side; every query derives from committed files and nothing in the
+    # request reaches one (files/08 §0b F1). Synchronous httpx, off the loop.
+    return await run_in_threadpool(load_reliability_console, datetime.now(UTC))
 
 
 #: The closed body shape of a benchmark trigger. Anything else is refused
@@ -356,6 +385,8 @@ _HANDLERS: dict[str, Handler] = {
     "admin.access.roles.read": _roles,
     "admin.actions.read": _actions,
     "admin.models.read": _models,
+    "admin.ops.read": _ops,
+    "admin.reliability.read": _reliability,
     "admin.models.benchmark": _models_benchmark,
     "admin.break_glass.open": _break_glass_open,
     "admin.break_glass.brief.read": _break_glass_brief,
@@ -365,7 +396,37 @@ _HANDLERS: dict[str, Handler] = {
     "admin.compliance.audit_search.read": _compliance_audit_search,
     "admin.compliance.dsar.read": _compliance_dsar,
     "admin.compliance.evidence.export": _compliance_evidence,
+    # INT-182 — the Voice module; its handlers live beside their composite.
+    **VOICE_HANDLERS,
+    # INT-187 — the CI/CD & releases module, the same shape.
+    **CICD_HANDLERS,
+    # INT-366 — Access & identity (files/08 §2.4, §2.7)
+    "admin.access.review.read": access_console.review_read,
+    "admin.access.review.sign": access_console.review_sign,
+    "admin.access.review.countersign": access_console.review_countersign,
+    "admin.access.offboard": access_console.offboard_run,
+    "admin.access.offboard.confirm": access_console.offboard_confirm,
 }
+
+#: HTTP methods that write. The §2.7 read-only downgrade applies to these.
+_MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+async def _effective_role(
+    route: AdminRoute, caller: AdminCaller, wiring: AdminWiring, audit: AuditRows
+) -> AdminRole | None:
+    """The role a write proceeds under once the §2.7 downgrade is applied.
+
+    files/08 §2.7: "a review older than 100 days downgrades every
+    platform_owner and tenant_admin session to read-only". The review state is
+    re-read from the chain on every write, so a countersignature on any
+    replica is seen by all of them. A caller who also holds a role the
+    downgrade does not touch keeps writing under that role; a caller who
+    reaches the route only through a downgraded role is refused.
+    """
+    await wiring.review_ledger.refresh(audit)
+    read_only = wiring.review_ledger.read_only_roles()
+    return caller.principal.first_permitted(route.permitted_roles - read_only)
 
 
 def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
@@ -391,9 +452,16 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
             caller = resolve_caller(request, wiring)
         except HTTPException as refusal:
             # a request refused before the caller is known is still an admin
-            # action, and is exactly the one an investigator wants to see
+            # action, and is exactly the one an investigator wants to see.
+            # A second-factor refusal (INT-365) comes from a token whose
+            # signature verified, so its id-shaped subject is known and the
+            # row names it. An OTP login to a patient-content account, which
+            # is what a phished TOTP produces, is then attributed, not anonymous.
+            actor = _UNRESOLVED_ACTOR
+            if isinstance(refusal, InsufficientUserAuthentication) and refusal.subject:
+                actor = refusal.subject
             async with AdminActionRecord(
-                sink, actor=_UNRESOLVED_ACTOR, action=route.audit_action, detail=base
+                sink, actor=actor, action=route.audit_action, detail=base
             ) as record:
                 record.mark_failed()
             raise refusal
@@ -408,6 +476,10 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
         ):
             if role is None:
                 raise admin_refused(RoleNotPermitted.code)
+            if route.method in _MUTATING:
+                role = await _effective_role(route, caller, wiring, sink)
+                if role is None:
+                    raise admin_refused("access_review_overdue")
             return JSONResponse(await handler(request, caller, wiring, role))
 
     return endpoint

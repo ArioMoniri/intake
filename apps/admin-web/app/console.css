@@ -1,0 +1,256 @@
+/* INT-351 — the console's one stylesheet. Served from 'self'; the CSP has no
+   unsafe-inline, so nothing is styled by attribute. */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #16191d;
+  --muted: #5d6671;
+  --line: #dde1e6;
+  --ok: #1d7a46;
+  --warn: #9a5b00;
+  --bad: #b3261e;
+  --unknown: #6b5fa8;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418;
+    --surface: #1a1e23;
+    --ink: #e8ebee;
+    --muted: #9aa4af;
+    --line: #2c3238;
+    --ok: #5cc98c;
+    --warn: #e0a345;
+    --bad: #f07b72;
+    --unknown: #b0a6f0;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.ops {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.ops h1 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.page-head p,
+.window {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-width: 0;
+  border-top: 3px solid var(--ok);
+}
+
+.tile-unknown {
+  border-top-color: var(--unknown);
+}
+
+.tile[data-tile="models"],
+.tile[data-tile="probe_matrix"],
+.tile[data-tile="dep_components"],
+.tile[data-tile="pipelines"],
+.tile[data-tile="gates"] {
+  grid-column: 1 / -1;
+}
+
+/* INT-181 — the overview's bands and the link between console pages. */
+.console-nav {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.console-nav a {
+  color: var(--muted);
+}
+
+.console-nav [aria-current="page"] {
+  font-weight: 650;
+}
+
+.band {
+  margin-top: 24px;
+}
+
+.band-head {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.stale,
+[data-stale="true"] td {
+  color: var(--muted);
+}
+
+[data-condition="met"],
+[data-overspent="true"] {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.tile-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+
+.tile-head h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.unknown {
+  margin: 0;
+  color: var(--unknown);
+}
+
+.unknown code {
+  margin-left: 6px;
+  color: var(--muted);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0 0 8px;
+}
+
+.facts dt {
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.sub {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.cell-unknown,
+.suppressed {
+  color: var(--unknown);
+}
+
+.badge {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+[data-state="alive"],
+[data-state="ready"],
+[data-state="up"],
+[data-state="healthy"],
+[data-state="success"],
+[data-state="ok"],
+[data-state="open"] {
+  color: var(--ok);
+}
+
+[data-state="attention"],
+[data-state="degraded"],
+[data-state="no_result"],
+[data-state="skipped"],
+[data-state="cancelled"],
+[data-state="pending"],
+[data-state="sign_pending"],
+[data-state="not_signed"] {
+  color: var(--warn);
+}
+
+[data-state="not_ready"],
+[data-state="down"],
+[data-state="unhealthy"],
+[data-state="failure"],
+[data-state="timed_out"],
+[data-state="startup_failure"],
+[data-state="blocking"],
+[data-state="blocked"],
+[data-state="missing"],
+[data-state="sign_failed"] {
+  color: var(--bad);
+}
+
+.refusal {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--bad);
+  border-radius: 8px;
+}

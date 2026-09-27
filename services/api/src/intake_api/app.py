@@ -19,11 +19,19 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from intake_platform.admin import AdminWiring, IpAllowList
+from intake_platform.admin.access import ConsoleSystemsRefused, IdentityWiring
+from intake_platform.admin.access.config import (
+    ENV_KEYCLOAK_URL,
+    IdentityUnconfigured,
+    identity_from_env,
+)
 from intake_platform.admin.oidc import KeycloakClaimsVerifier, load_jwks
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
@@ -31,8 +39,10 @@ from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKek
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
-from intake_platform.secrets import SecretsProvider
+from intake_platform.release_freeze import release_freeze_store_from_env
+from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
+from intake_platform.voice_control import voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -50,10 +60,13 @@ from intake_api import (
     notes,
     notification_prefs,
     otp_routes,
+    previsit_output,
     profile_routes,
+    record_items,
     satisfaction,
     taxonomy_routes,
     visits,
+    visits_acibadem,
 )
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
@@ -70,8 +83,16 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.settings import ApiSettings
+from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
+
+if TYPE_CHECKING:
+    from intake_connectors.acibadem import AcibademAppointmentsClient
+    from redis import Redis
+
+    from intake_api.app_attest import AppAttestVerifier
+    from intake_api.attestation import FailClosedAttestationVerifier
+    from intake_api.otp_twilio import KvSecrets
 
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
 
@@ -117,6 +138,11 @@ class ApiWiring:
     # unconfigured (no dev flag / no key), so /dev/voice/george-clip answers
     # 503 and the mobile falls back to the self-hosted TTS (fail closed).
     george: GeorgeWiring | None = None
+    # INT-318: the Acıbadem appointments read client, built from the one row
+    # infra/connectors/sources.yaml registers for it and from nothing else.
+    # None = no row (the shipped state), so /v1/visits/sync answers
+    # "unavailable" (fail closed).
+    acibadem: AcibademAppointmentsClient | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -157,10 +183,12 @@ def _documents_from_env() -> DocumentsConfig:
             scanner = DevNullScanner()
         except DevScannerForbiddenError:
             scanner = None
+    # the dev defaults below never apply outside dev: ApiSettings.from_env
+    # has already refused a non-dev boot with either variable absent (INT-325)
     client = Minio(
         os.environ.get("MINIO_ENDPOINT", "127.0.0.1:9000"),
-        access_key=os.environ.get("MINIO_ROOT_USER", "intake-dev"),
-        secret_key=os.environ.get("MINIO_ROOT_PASSWORD", "intake-dev-only"),
+        access_key=os.environ.get(ENV_MINIO_USER, "intake-dev"),
+        secret_key=os.environ.get(ENV_MINIO_PASSWORD, "intake-dev-only"),
         secure=os.environ.get("INTAKE_MINIO_SECURE", "") == "true",
     )
     return DocumentsConfig(
@@ -171,36 +199,77 @@ def _documents_from_env() -> DocumentsConfig:
     )
 
 
-def _auth_from_settings(settings: ApiSettings) -> AuthWiring | None:
+def _app_attest_from_settings(
+    settings: ApiSettings, redis_client: Redis
+) -> AppAttestVerifier | FailClosedAttestationVerifier:
+    """INT-344. No team id → fail closed, typed. A malformed team id, bundle id
+    or environment word — or a trust anchor that is not the pinned Apple root —
+    also fails closed, with its own reason and one log line naming no value."""
+    from intake_api.app_attest import AppAttestConfig, AppAttestConfigError, AppAttestVerifier
+    from intake_api.app_attest_store import RedisAppAttestKeyStore
+    from intake_api.attestation import AttestationReason, FailClosedAttestationVerifier
+
+    if settings.app_attest_team_id is None:
+        return FailClosedAttestationVerifier(AttestationReason.APP_ATTEST_NOT_CONFIGURED)
+    try:
+        config = AppAttestConfig.parse(
+            settings.app_attest_team_id,
+            settings.app_attest_bundle_id,
+            settings.app_attest_environment,
+        )
+        return AppAttestVerifier(config, RedisAppAttestKeyStore(redis_client))
+    except AppAttestConfigError:
+        logger.warning("app attest configuration refused; iOS attestation fails closed")
+        return FailClosedAttestationVerifier(AttestationReason.APP_ATTEST_CONFIG_INVALID)
+
+
+def _auth_from_settings(
+    settings: ApiSettings, secrets: KvSecrets | None = None
+) -> AuthWiring | None:
     """INT-131 wiring. No tokenization key → None → the OTP tier answers
-    503 (fail closed) and the dev-bearer tier stays load-bearing. The
-    attestation verifier is fail-closed unless the dev phrase is set, and
-    the delivery adapter is the dev event logger — the SMS vendor contract
-    is awaiting-human (docs/evidence/INT-131.md)."""
+    503 (fail closed) and the dev-bearer tier stays load-bearing. Attestation
+    routes by mode (INT-344): App Attest when the Apple team id is configured,
+    Play Integrity never until HB-A3 supplies a decoder, the dev tier only
+    under the dev phrase — every unconfigured piece fails closed with a typed
+    reason. Delivery (INT-329): the dev logger in dev; outside dev Twilio or
+    nothing, never the dev logger (INT-325) — see otp_twilio. ``secrets`` is
+    the OpenBao reader, injectable for tests."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
+        return None
+    from intake_api.otp_twilio import otp_delivery_from_settings
+
+    if (delivery := otp_delivery_from_settings(settings, secrets)) is None:
         return None
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
 
     from intake_api.attestation import (
+        AttestationReason,
         DevStructuralAttestationVerifier,
         FailClosedAttestationVerifier,
+        PlatformAttestationVerifier,
     )
     from intake_api.carrier_geo import carrier_geo_from_path
-    from intake_api.otp import DevLogDeliveryAdapter
 
+    redis_client = Redis.from_url(settings.redis_url)
+    app_attest = _app_attest_from_settings(settings, redis_client)
     return AuthWiring(
-        redis_client=Redis.from_url(settings.redis_url),
+        redis_client=redis_client,
         tokenizer=Tokenizer(
             keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
             active_key_id=settings.tokenization_key_id,
         ),
-        delivery=DevLogDeliveryAdapter(),
-        attestation=(
-            DevStructuralAttestationVerifier()
-            if settings.dev_allow_unattested
-            else FailClosedAttestationVerifier()
+        delivery=delivery,
+        attestation=PlatformAttestationVerifier(
+            app_attest=app_attest,
+            # HB-A3: no decoder exists until the Play Console organisation account
+            # and its service account do (intake_api.play_integrity)
+            play_integrity=FailClosedAttestationVerifier(
+                AttestationReason.PLAY_INTEGRITY_NOT_CONFIGURED
+            ),
+            dev=DevStructuralAttestationVerifier() if settings.dev_allow_unattested else None,
         ),
+        key_attestation=app_attest,
         dev_otp_peek=settings.dev_otp_peek,
         # INT-308: files/10 §2's carrier/geo check. The committed table
         # declares no prefixes, so this admits every request and says so in
@@ -259,10 +328,45 @@ def _admin_from_env() -> AdminWiring | None:
         # ids only, and never the path's contents (invariant 6)
         logger.warning("admin console unconfigured: the JWKS mirror is absent or unusable")
         return None
+    try:
+        # INT-182: the store the voice runtime reads the kill switch from.
+        # Unset, the voice controls answer 503 rather than writing somewhere
+        # the runtime is not reading; a malformed URL is the same, loudly.
+        voice_controls = voice_control_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("voice controls unconfigured: the store URL is not a redis URL")
+        voice_controls = None
+    try:
+        # INT-187: the deployment's deploy-freeze record, which deploy.sh's
+        # release gate reads too. Unset or malformed, the freeze controls
+        # answer 503 and the console shows the gate refusing — never "open".
+        release_freeze = release_freeze_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("deploy freeze unconfigured: the store URL is not a redis URL")
+        release_freeze = None
     return AdminWiring(
         claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
+        voice_controls=voice_controls,
+        release_freeze=release_freeze,
+        identity=_identity_from_env(),
     )
+
+
+def _identity_from_env() -> IdentityWiring | None:
+    """INT-366: Keycloak and OpenBao admin access for the access review and
+    offboarding. Any fact absent — the Keycloak origin or realm, the OpenBao
+    auth mount, the admin client in OpenBao KV, or a loadable console-systems
+    file — leaves both answering 503 (fail closed). The §2.7 read-only
+    downgrade does not depend on this: it reads the audit chain."""
+    if not os.environ.get(ENV_KEYCLOAK_URL):
+        return None
+    try:
+        return identity_from_env(os.environ, SecretsProvider.from_env())
+    except (SecretsBootError, IdentityUnconfigured, ConsoleSystemsRefused, httpx.HTTPError) as err:
+        # the exception class names what is missing; no value is logged
+        logger.warning("access review unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
@@ -317,6 +421,7 @@ def wiring_from_env() -> ApiWiring:
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
         george=george_wiring_from_env(redis_url=settings.redis_url),
+        acibadem=visits_acibadem.acibadem_client_from_registry(settings.clinical_sources_path),
     )
 
 
@@ -333,6 +438,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
         doctor_link=_doctor_link_service(w.auth),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
+        acibadem=w.acibadem,
     )
 
     @asynccontextmanager
@@ -349,6 +455,13 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                     await ensure_consumer_tenant(w.bootstrap_engine or w.engine)
                 except Exception:  # noqa: BLE001 — readiness reports; ids-only log
                     logger.warning("consumer tenant bootstrap deferred: database not ready")
+        if w.admin is not None:
+            # INT-366: read the review state off the chain at start, so the
+            # review-age gauge is not +Inf until the first admin request.
+            try:
+                await w.admin.review_ledger.refresh(audit)
+            except Exception:  # noqa: BLE001 — the gauge stays +Inf and pages; ids-only log
+                logger.warning("access review ledger deferred: audit chain not readable")
         yield
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
@@ -416,20 +529,26 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     async def _dev_auth_ready() -> bool:
         return w.settings.dev_auth_configured
 
-    mount_health(
-        app,
-        readiness=[
-            ReadinessCheck("db", _db_ready),
-            ReadinessCheck("audit_store", state.audit.healthy),
-            ReadinessCheck("dev_auth", _dev_auth_ready),
-        ],
-    )
+    readiness = [
+        ReadinessCheck("db", _db_ready),
+        ReadinessCheck("audit_store", state.audit.healthy),
+    ]
+    if w.settings.dev_tier_expected:
+        # INT-197 dev tier: not ready until both dev bearers are set. Only the
+        # dev environment expects them (INT-325): every other environment,
+        # staging included, refuses them at boot, so anywhere else this check
+        # would hold the API not-ready forever.
+        readiness.append(ReadinessCheck("dev_auth", _dev_auth_ready))
+    mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
+    app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
+    app.include_router(previsit_output.router)
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)
     app.include_router(documents.router)
+    app.include_router(record_items.router)
     app.include_router(otp_routes.router)
     app.include_router(consents.router)
     app.include_router(profile_routes.router)

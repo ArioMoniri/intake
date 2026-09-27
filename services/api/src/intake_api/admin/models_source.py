@@ -14,18 +14,28 @@ day it matters.
 
 **The sweep may be absent, and the console says so rather than assuming.**
 ``INTAKE_PROBE_RESULTS_PATH`` names the runner's results file. When it is
-unset or unreadable the module renders an empty sweep, which makes every
+unset or names no file the module renders an empty sweep, which makes every
 enabled row's own probe read *"no probe result in this sweep"* and makes the
 release gate block on any fallback it cannot see the health of. That is the
 fail-closed direction: an unobserved fallback is not a healthy one.
+
+**A file that is present and not a sweep is refused, never raised (INT-377).**
+Malformed, truncated, empty, not UTF-8 or wrongly shaped: :func:`load_probe_sweep`
+returns an empty sweep marked ``probe_results_unreadable``, every tile that
+reads it says ``unknown``, and one log record names the reason and the
+exception class — never the path, the content or the parser's message, which
+echoes the offending input (invariant 6: ``detail`` is free text).
 """
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from os import environ
 from pathlib import Path
+from typing import Final
 
 from intake_probes.app import registry_path_from_env
 from intake_probes.console import (
@@ -44,10 +54,17 @@ from intake_probes.runner import DevProbeConfig, build_dev_clients
 __all__ = [
     "PROBE_CLIENTS_ENV",
     "PROBE_RESULTS_ENV",
+    "PROBE_RESULTS_MISSING",
+    "PROBE_RESULTS_UNCONFIGURED",
+    "PROBE_RESULTS_UNREADABLE",
+    "ProbeSweep",
     "load_models_module",
+    "load_probe_sweep",
     "resolve_benchmark",
     "run_benchmark",
 ]
+
+logger = logging.getLogger("intake_api.admin.models_source")
 
 #: Set to ``dev`` to let the benchmark trigger actually dial the dev stack.
 #: Unset by default, and unset in every test: a console route that opens a
@@ -60,23 +77,69 @@ PROBE_CLIENTS_ENV = "INTAKE_PROBE_CLIENTS"
 PROBE_RESULTS_ENV = "INTAKE_PROBE_RESULTS_PATH"
 
 
-def _results() -> Mapping[str, ProbeResultRecord]:
-    raw = environ.get(PROBE_RESULTS_ENV)
+#: Why there is no sweep to read. The same three codes INT-181's reliability
+#: composite uses, so one file reads the same way on every console page.
+PROBE_RESULTS_UNCONFIGURED: Final = "probe_results_unconfigured"
+PROBE_RESULTS_MISSING: Final = "probe_results_missing"
+PROBE_RESULTS_UNREADABLE: Final = "probe_results_unreadable"
+
+
+@dataclass(frozen=True)
+class ProbeSweep:
+    """The runner's last sweep, or the reason there is none to read.
+
+    ``records`` is empty unless a file was read, so a caller that only needs
+    the fail-closed empty sweep can pass it straight to the release gate.
+    ``reason`` is ``None`` exactly when a file was read.
+    """
+
+    records: Mapping[str, ProbeResultRecord] = field(default_factory=dict)
+    reason: str | None = None
+
+    @property
+    def readable(self) -> bool:
+        return self.reason is None
+
+    @property
+    def refused(self) -> bool:
+        """A file was there and was not a sweep — distinct from no file at all."""
+        return self.reason == PROBE_RESULTS_UNREADABLE
+
+
+def load_probe_sweep() -> ProbeSweep:
+    """Read the sweep ``INTAKE_PROBE_RESULTS_PATH`` names; never raise."""
+    raw = environ.get(PROBE_RESULTS_ENV, "").strip()
     if not raw:
-        return {}
+        return ProbeSweep(reason=PROBE_RESULTS_UNCONFIGURED)
     path = Path(raw)
     if not path.is_file():
-        return {}
-    return load_results(path)
+        return ProbeSweep(reason=PROBE_RESULTS_MISSING)
+    try:
+        return ProbeSweep(records=load_results(path))
+    except (OSError, ValueError) as exc:
+        # JSONDecodeError, UnicodeDecodeError and pydantic's ValidationError are
+        # all ValueErrors. str(exc) is never logged: pydantic's carries the input.
+        logger.warning(
+            "probe results refused: %s (%s reading %s)",
+            PROBE_RESULTS_UNREADABLE,
+            type(exc).__name__,
+            PROBE_RESULTS_ENV,
+        )
+        return ProbeSweep(reason=PROBE_RESULTS_UNREADABLE)
 
 
 def _registry() -> Registry:
     return load_registry(registry_path_from_env())
 
 
-def load_models_module() -> ModelsModule:
-    """The whole module: every registry row, plus the release decision."""
-    return models_module(_registry(), _results())
+def load_models_module(sweep: ProbeSweep | None = None) -> ModelsModule:
+    """The whole module: every registry row, plus the release decision.
+
+    Pass the sweep a caller already read so one request reads the file once;
+    an unreadable sweep contributes no record, so the gate blocks on it.
+    """
+    records = (sweep if sweep is not None else load_probe_sweep()).records
+    return models_module(_registry(), records)
 
 
 def resolve_benchmark(component: str, kind: BenchmarkKind, corpus_id: str | None) -> BenchmarkPlan:

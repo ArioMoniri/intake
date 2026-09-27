@@ -34,6 +34,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -110,6 +111,9 @@ export default function IssueDoctorLink() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
         keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): the recipient field scrolls clear of the
+        // keyboard, which takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
       >
         <AppText role="hero" heading style={styles.heroLine}>
           {t("shares.issue.title")}
@@ -146,12 +150,10 @@ export default function IssueDoctorLink() {
               disabled={busy}
             />
             {error !== null ? (
-              // The colour is the sighted redundancy; `live` is the signal
-              // (SC 1.4.1 / SC 3.3.1) — this screen never carries an error by
-              // colour alone.
-              <AppText role="body" color="amber" live="assertive">
-                {t(ERROR_KEY[error])}
-              </AppText>
+              // The colour is the sighted redundancy; the announcement is the
+              // signal (SC 1.4.1 / SC 3.3.1), on both platforms — it had only
+              // the Android live region until INT-362, so VoiceOver was silent.
+              <AnnouncedText tone="error" role="body" color="amber" message={t(ERROR_KEY[error])} />
             ) : null}
           </Card>
         ) : (

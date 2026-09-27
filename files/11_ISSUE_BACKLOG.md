@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**280 issues.** By phase: P0 154 · P1 72 · P2 47 · P3 7. By status: awaiting-human 21 · doing 13 · done 150 · todo 95 · withdrawn 1.
+**315 issues.** By phase: P0 160 · P1 101 · P2 47 · P3 7. By status: awaiting-human 29 · doing 6 · done 201 · todo 78 · withdrawn 1.
 
 ## P0
 
@@ -25,7 +25,7 @@
 | INT-017 | OpenBao dev server + per-service policies + dynamic DB creds | E01-platform | INT-001 | area:security | done |
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | done |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | awaiting-human |
-| INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | doing |
+| INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | done |
 | INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | doing |
 | INT-022 | services/probes: synthetic checks + self-hosting registry + release gate | E01-platform | INT-010, INT-021 | area:observability | done |
 | INT-023 | Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip | E01-platform | INT-011 | area:observability | done |
@@ -78,7 +78,7 @@
 | INT-116 | Wellbeing engine: PHQ-2/GAD-2 -> PHQ-9/GAD-7 -> C-SSRS, crisis script, verbatim items, clinician-only outputs | E06-lanes | INT-081, INT-112 | area:clinical, risk:clinical, approval:human-clinical | todo |
 | INT-117 | device_functions flag: MDSW boundary enforced (Stage A non-device vs investigation mode) | E06-lanes | INT-116, INT-093, INT-038 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-120 | Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR | E07-records | INT-034 | area:records, risk:security | done |
-| INT-121 | Document extraction -> FHIR with provenance + confirm cards + eval corpus | E07-records | INT-120, INT-083 | area:records | todo |
+| INT-121 | Document extraction -> FHIR with provenance + confirm cards + eval corpus | E07-records | INT-120, INT-083 | area:records | done |
 | INT-130 | Expo app shell: SDK 57 dev build, navigation map per 02, i18n tr-first, theme, a11y base | E08-mobile | INT-001 | area:mobile | done |
 | INT-131 | Onboarding & auth: OTP + attestation + DPoP + biometrics + SecureStore + pinning + FLAG_SECURE | E08-mobile | INT-130, INT-012, INT-013 | area:mobile, risk:security | done |
 | INT-132 | Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what | E08-mobile | INT-038, INT-130 | area:mobile, risk:legal, approval:human-legal | done |
@@ -86,7 +86,7 @@
 | INT-134 | Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types | E08-mobile | INT-130, INT-042 | area:mobile | done |
 | INT-136 | Typed intake UI (Detayli) + chips + instruments verbatim | E08-mobile | INT-096, INT-130 | area:mobile | done |
 | INT-137 | Review & send + Doctor Link QR + CSAT prompt | E08-mobile | INT-084, INT-240 | area:mobile | done |
-| INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | todo |
+| INT-138 | Records screens: upload, processing, confirm cards, provenance viewer | E08-mobile | INT-121, INT-130 | area:mobile | done |
 | INT-139 | Share centre: active shares, revoke <=1min, access log | E08-mobile | INT-150 | area:mobile | done |
 | INT-140 | Me: consents, connectors, language, security, export/delete, learned facts | E08-mobile | INT-037, INT-170 | area:mobile | done |
 | INT-150 | Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index | E09-clinician | INT-084, INT-016 | area:clinician, risk:security | done |
@@ -95,7 +95,7 @@
 | INT-176 | Idempotency keys must be scoped by authenticated principal + tenant (cross-user replay/PHI disclosure) | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-177 | Rate limiter: replace per-process monotonic clock with Redis TIME in the Lua script | E01-platform | INT-017 | area:security, risk:security | done |
 | INT-178 | Redact traces and metrics pipelines (app-side span scrubbing + collector processors) — errors are not a side channel | E01-platform | INT-013 | area:security, risk:security | done |
-| INT-179 | Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs) | E08-mobile | INT-130 | area:mobile | doing |
+| INT-179 | Mobile flow shells: typed-intake chips + review-and-send on fixture data (Mobbin-grounded designs) | E08-mobile | INT-130 | area:mobile | done |
 | INT-193 | Premium visual pass: Liquid Glass + Oura register, working add-visit, language switching, standardized clinician brief; first simulator smoke | E08-mobile | INT-179 | area:mobile | done |
 | INT-194 | Editable review, dev-lane voice notes via own whisper-tr ASR, department-based intake packs | E08-mobile | INT-193 | area:mobile | done |
 | INT-195 | Design pass 3: Oura-register glass layering, kicker/hairline anatomy, guidance-block empty states, Fraunces leading, AA fix | E08-mobile | INT-194 | area:mobile | done |
@@ -110,7 +110,7 @@
 | INT-233 | Spoken intake dialogue (dev tier): agent asks aloud, barge-in, per-turn confirm - LiveKit Talker remains the production path | E08-mobile | INT-198, INT-199 | area:mobile, area:voice | done |
 | INT-234 | Design pass 6: CTA saturation register (bone pill), tonal secondaries, focused-flow exits, glyph-badge empty states | E08-mobile | INT-209 | area:mobile | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | done |
-| INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
+| INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | done |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | done |
 | INT-210 | Legal document set v1 (tr primary): aydinlatma x5, acik riza per purpose, gizlilik, kullanim kosullari, KVKK basvuru formu, cookie | E14-legal | INT-038 | area:legal, risk:legal, approval:human-legal | awaiting-human |
 | INT-211 | VERBIS registration pack + data inventory generated from schema annotations + irtibat kisisi | E14-legal | INT-031, INT-210 | area:legal, risk:legal, approval:human-legal | todo |
@@ -150,21 +150,27 @@
 | INT-303 | One numeric carrier end to end: a Decimal slot value that reads Unknown to every gate that compares it, and the float it crossed the seam as | E03-protocols | INT-080, INT-083 | area:protocols, area:voice | done |
 | INT-313 | Nothing carries an extraction to the phone: the confirm-card transport is owned by no issue | E07-records | INT-121, INT-138 | area:records, area:api | todo |
 | INT-312 | A TCKN said aloud is not masked: the redactors match a contiguous eleven-digit run and speech arrives as groups or as words | E01-platform | INT-102 | area:security, area:platform, area:voice | done |
-| INT-324 | Agent WAV framing lives in voice-clips so the invariant-3 audio guard passes on main | E05-voice | — | area:voice, risk:security | doing |
-| INT-325 | Production refuses dev bypass flags, file-dev KEK and in-code default credentials | E01-platform | — | area:api, risk:security | doing |
-| INT-326 | George clip route: authenticated, catalogue-only, rate-limited, absent in production | E05-voice | INT-324, INT-325 | area:voice, area:api, risk:security, risk:legal | doing |
-| INT-328 | Release builds use a configured https API base and never probe the LAN | E08-mobile | — | area:mobile, risk:security | doing |
-| INT-344 | App Attest: server verification and iOS client for OTP and session | E08-mobile | INT-325 | area:mobile, area:api, risk:security | todo |
-| INT-345 | Staging backend artefact: API + Postgres + Redis + OpenBao + TLS proxy on the AWS host, synthetic patients only | E13-infra | INT-325 | area:infra, risk:security, risk:legal | todo |
-| INT-346 | Restore main CI to green after the billing outage | E13-infra | — | area:ci | doing |
+| INT-324 | Agent WAV framing lives in voice-clips so the invariant-3 audio guard passes on main | E05-voice | — | area:voice, risk:security | done |
+| INT-325 | Production refuses dev bypass flags, file-dev KEK and in-code default credentials | E01-platform | — | area:api, risk:security | done |
+| INT-326 | George clip route: authenticated, catalogue-only, rate-limited, absent in production | E05-voice | INT-324, INT-325 | area:voice, area:api, risk:security, risk:legal | done |
+| INT-328 | Release builds use a configured https API base and never probe the LAN | E08-mobile | — | area:mobile, risk:security | done |
+| INT-344 | App Attest: server verification and iOS client for OTP and session | E08-mobile | INT-325 | area:mobile, area:api, risk:security | done |
+| INT-345 | Staging backend artefact: API + Postgres + Redis + OpenBao + TLS proxy on the AWS host, synthetic patients only | E13-infra | INT-325 | area:infra, risk:security, risk:legal | done |
+| INT-346 | Restore main CI to green after the billing outage | E13-infra | — | area:ci | done |
 | INT-347 | Replace the withdrawn minio/minio image with an owner-approved, digest-pinned S3-compatible store | E13-infra | INT-346 | area:infra, risk:security | awaiting-human |
 | INT-348 | Play Integrity verification and a real-device OTP login smoke on TestFlight and Play | E08-mobile | INT-344 | area:mobile, area:api, risk:security | awaiting-human |
 | INT-349 | Sensitive slot categories: per-slot data-category tag, encrypted storage, fail-closed register gate | E02-data | INT-327 | area:data, risk:legal, risk:security | doing |
 | INT-350 | CI part 2: check-integration builds the pinned edge plugin; osv findings fixed | E13-infra | INT-346 | area:ci | todo |
-| INT-352 | Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host) | E13-infra | INT-345, INT-347, INT-325 | area:infra, risk:security, risk:legal | todo |
+| INT-352 | Production API on the dedicated AWS host, TLS, stress test and GPU-quota watch (backup until the Frankfurt host) | E13-infra | INT-345, INT-347, INT-325 | area:infra, risk:security, risk:legal | done |
 | INT-354 | Consolidate int-demo into main; main becomes the TestFlight build source | E17-release | INT-328, INT-344 | area:mobile, area:release | todo |
-| INT-355 | Gated questions never asked: resolve bare ask_if slot names across the pack chain | E04-engines | — | area:engine, risk:clinical | doing |
+| INT-355 | Gated questions never asked: resolve bare ask_if slot names across the pack chain | E04-engines | — | area:engine, risk:clinical | done |
 | INT-356 | Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject notice) | E14-legal | INT-349 | area:legal, risk:legal | awaiting-human |
+| INT-357 | Staging passes App Attest and SMS configuration to the API; fail closed when unset | E13-infra | INT-345 | area:infra, risk:security | done |
+| INT-358 | SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery | E14-legal | INT-329 | area:legal, risk:legal, risk:security | awaiting-human |
+| INT-376 | Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved | E13-infra | INT-352 | area:infra, risk:legal | todo |
+| INT-392 | Deleting a session removes its previsit outputs in every erasure and retention path | E02-data | INT-036, INT-037, INT-317 | area:data, risk:legal | done |
+| INT-393 | Patient erasure removes Doctor Links, and the retention source text matches the post-INT-317 tree | E02-data | INT-036, INT-037, INT-150, INT-392 | area:data, risk:legal | done |
+| INT-390 | Keycloak upgraded to a patched release, and the committed realm imports on it | E12-admin | INT-023, INT-365 | area:admin, risk:security | done |
 
 ## P1
 
@@ -172,14 +178,14 @@
 |---|---|---|---|---|---|
 | INT-095 | Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke | E05-voice | INT-094, INT-018 | area:voice, approval:human-infra, gpu | awaiting-human |
 | INT-099 | Backchannels + ack styles + preemptive generation + per-profile NFR harness in CI | E05-voice | INT-095 | area:voice | todo |
-| INT-100 | Vendor failover + circuit breakers + typed fallback <=2s + chaos test | E05-voice | INT-095, INT-024 | area:voice | todo |
+| INT-100 | Vendor failover + circuit breakers + typed fallback <=2s + chaos test | E05-voice | INT-095, INT-024 | area:voice | done |
 | INT-102 | Adversarial suite RT-09..14 in make safety + nightly LLM red-team job | E05-voice | INT-094, INT-083 | area:safety, risk:security | done |
 | INT-103 | Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background | E05-voice | INT-130, INT-090 | area:mobile | done |
 | INT-111 | affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set | E06-lanes | INT-110 | area:lanes, approval:human-clinical | awaiting-human |
 | INT-113 | asr_quality lane: shadow-STT disagreement + confirm-by-card trigger | E06-lanes | INT-110, INT-095 | area:lanes, approval:human-legal | awaiting-human |
 | INT-114 | engagement lane -> satisfaction proxies + pacing hints | E06-lanes | INT-110 | area:lanes, approval:human-legal | awaiting-human |
 | INT-122 | e-Nabız export/PDF import parser + MHRS SMS screenshot OCR | E07-records | INT-121 | area:records | todo |
-| INT-123 | pgvector record index (RLS, per-patient namespace) + retrieval Work | E07-records | INT-030, INT-121 | area:records | todo |
+| INT-123 | pgvector record index (RLS, per-patient namespace) + retrieval Work | E07-records | INT-030, INT-121 | area:records | done |
 | INT-135 | Voice intake UI (Hizli): states, recording indicator, inline cards, barge-in, RED UI, typed fallback | E08-mobile | INT-103, INT-096, INT-117 | area:mobile, risk:clinical | todo |
 | INT-141 | Notifications: content-free reminders, quiet hours, opt-out; transactional-only | E08-mobile | INT-130 | area:mobile, risk:legal | done |
 | INT-142 | Offline drafts + sync + resilience | E08-mobile | INT-136 | area:mobile | done |
@@ -193,13 +199,13 @@
 | INT-161 | FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth) | E10-connectors | INT-160, INT-033 | area:connectors, approval:human-vendor, live-smoke | awaiting-human |
 | INT-175 | Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate | E11-learning | INT-023 | area:observability | done |
 | INT-228 | Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape | E02-data | INT-034 | area:data | done |
-| INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | todo |
+| INT-182 | Voice module + kill switch + profile switch + canary weights (4-eyes) | E12-admin | INT-181, INT-094 | area:admin, risk:clinical | done |
 | INT-185 | Clinical quality & safety module + annotation-queue links | E12-admin | INT-175, INT-180 | area:admin | done |
 | INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | INT-240, INT-180 | area:admin, approval:human-legal | awaiting-human |
-| INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | todo |
+| INT-187 | CI/CD & releases module (GH API + Argo CD + gates + freeze) | E12-admin | INT-181 | area:admin | done |
 | INT-188 | Flags module (Unleash) + 4-eyes on safety flags | E12-admin | INT-023, INT-180 | area:admin | done |
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | done |
-| INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | todo |
+| INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | awaiting-human |
 | INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | done |
 | INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
 | INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security, blocked:runtime | awaiting-human |
@@ -207,11 +213,11 @@
 | INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | INT-002 | area:infra, approval:human-infra, blocked:contract | awaiting-human |
 | INT-213 | DPIA v1 + vendor transfer register + SCC set + Board notification workflow (5 business days) + hospital DPA template | E14-legal | INT-018, INT-210 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-214 | Breach machinery: KVKK 72h Board form automation + data-subject notices + USOM report (7545) + hospital notices | E14-legal | INT-020 | area:legal, risk:legal | todo |
-| INT-215 | Special-category adequate measures (Board 2018/10) mapping + evidence export | E14-legal | INT-019, INT-023 | area:legal, risk:legal | todo |
+| INT-215 | Special-category adequate measures (Board 2018/10) mapping + evidence export | E14-legal | INT-019, INT-023 | area:legal, risk:legal | done |
 | INT-217 | QMS core (ISO 13485): quality manual, design controls, ISO 14971 risk file, IEC 62304 class B plan, IEC 62366-1 usability, IEC 81001-5-1 security lifecycle, PMS plan, PRRC | E14-legal | INT-216 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-218 | Clinical investigation package: protocol + ICF(tr) + KAEK ethics submission + TITCK application + insurance + registration | E14-legal | INT-217 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-224 | Store compliance: Apple health guidelines + Google Play Health policy + Data safety/privacy labels + IARC | E14-legal | — | area:legal, risk:legal, approval:human-legal | done |
-| INT-226 | Accessibility conformance report (WCAG 2.2 AA / EN 301 549) + statement page | E14-legal | INT-144 | area:legal | todo |
+| INT-226 | Accessibility conformance report (WCAG 2.2 AA / EN 301 549) generated from the a11y CI results | E14-legal | INT-144 | area:legal | done |
 | INT-241 | Wait-time metrics end-to-end + SDS-01 style exports | E16-experience | INT-240, INT-025 | area:experience | done |
 | INT-242 | NPS scheduling + clinician pulse survey cadence | E16-experience | INT-240 | area:experience | done |
 | INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console | E17-release | INT-019, INT-183 | area:release | todo |
@@ -230,18 +236,47 @@
 | INT-311 | Nobody owns issuing a Doctor Link from the patient's phone, and three issues have refused it in a row | E08-mobile | INT-150, INT-139 | area:mobile, area:security | done |
 | INT-314 | Four spoken fields are still Turkish-only, so a red-flag action script cannot yet be per-locale | E03-protocols | INT-297 | area:protocols, area:i18n, area:safety | done |
 | INT-315 | assert_restore_target_outside_workspace resolves the target and not the workspace, so a symlinked directory INSIDE the repo reads as outside | E13-infra | — | area:infra, area:security | done |
+| INT-317 | previsit output store + hospital read-back: one frozen versioned document per completed previsit, fetched by patient number under a consent scope and an audit entry | E10-connectors | — | area:connectors, area:api, area:data, area:security | doing |
+| INT-318 | Acıbadem appointments read source, /v1/visits/sync and the phone-first login it feeds | E10-connectors | INT-160, INT-131 | area:connectors, area:api, risk:security | done |
 | INT-319 | Dev on-prem expressive-TTS lane for scripted questions + latency assessment harness | E05-voice | — | area:voice, area:lanes, gpu, approval:human-vendor | awaiting-human |
 | INT-321 | Intake asks its mode up front; 'Sıranız geldi' becomes 'Bitirdim' and the per-question mode row is retired | E08-mobile | INT-295, INT-286 | area:mobile, area:a11y | done |
 | INT-323 | Department-dynamic previsit routing: inbound department → branch → served pack | E03-protocols | INT-042, INT-134 | area:protocols, area:connectors | done |
 | INT-327 | Specialty-pack generator assembles the pending-value marker so no_placeholders stays green | E03-protocols | — | area:protocols | doing |
-| INT-329 | Twilio SMS delivery adapter: tested, async, fail-closed under prod, egress and inventory rows | E01-platform | INT-325 | area:api, risk:security, risk:legal | todo |
+| INT-329 | Twilio SMS delivery adapter: async, egress-guarded, secrets from OpenBao, fail-closed outside dev | E01-platform | INT-325 | area:api, risk:security, risk:legal | done |
 | INT-330 | Motion: native-stack transition policy — 120 ms on every stack, legal instant, intake gesture-locked | E08-mobile | — | area:mobile | todo |
-| INT-331 | Motion: one fail-closed reduce-motion store bridged to Reanimated | E08-mobile | INT-330 | area:mobile | todo |
+| INT-331 | Motion: one fail-closed reduce-motion store bridged to Reanimated | E08-mobile | INT-330 | area:mobile | done |
 | INT-332 | ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer) | E00-governance | — | area:mobile, approval:owner | todo |
 | INT-333 | Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic | E08-mobile | INT-330, INT-332 | area:mobile, risk:clinical | todo |
 | INT-343 | Mobile George client authenticates and requests only compiled-pack clip text | E08-mobile | INT-326 | area:mobile, area:voice, risk:security | todo |
-| INT-351 | Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD | E12-admin | INT-181, INT-186, INT-187 | area:admin | todo |
-| INT-353 | Land the specialty review queue, generator and verification trail on main | E03-protocols | INT-327 | area:protocols | todo |
+| INT-351 | Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD | E12-admin | INT-181, INT-186, INT-187 | area:admin | done |
+| INT-353 | Land the specialty review queue, generator and verification trail on main | E03-protocols | INT-327 | area:protocols | done |
+| INT-359 | Accessibility device audit (DA-01..DA-08) and the statement published in-app and web | E14-legal | INT-226 | area:legal, risk:legal | awaiting-human |
+| INT-360 | WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential | E08-mobile | INT-226 | area:mobile, risk:legal | done |
+| INT-361 | WCAG 3.3.8: the OTP field accepts a pasted or autofilled code | E08-mobile | INT-226 | area:mobile, risk:legal | done |
+| INT-362 | WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack | E08-mobile | INT-226 | area:mobile, risk:legal | done |
+| INT-363 | WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend | E08-mobile | INT-226 | area:mobile, risk:legal | done |
+| INT-364 | Board 2018/10 organisational measures: the owner's evidence and counsel's four readings | E14-legal | INT-215 | area:legal, risk:legal | awaiting-human |
+| INT-365 | Staff second factor and session bounds: the console refuses a token issued without a second factor | E12-admin | INT-215 | area:admin, risk:security | done |
+| INT-366 | Quarterly access review generated by the console, and one-action offboarding with a 60-day auto-disable | E12-admin | INT-365 | area:admin, risk:security | done |
+| INT-367 | Scheduled quarterly key rotation that emits sec_secret_rotation_due_days | E02-data | INT-215 | area:security, risk:security | done |
+| INT-368 | Continuous dependency security updates (Renovate) for every lockfile | E13-infra | INT-215 | area:infra, risk:security | done |
+| INT-369 | schemathesis API fuzzing runs in CI instead of being recorded as deferred | E13-infra | INT-215 | area:infra, risk:security | todo |
+| INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
+| INT-370 | Visits calendar view and Geçmiş (past) list on Vizitlerim | E08-mobile | INT-341 | area:mobile | done |
+| INT-377 | /admin/models and /admin/ops fail closed on a malformed probe-results file | E12-admin | INT-183, INT-351 | area:admin | done |
+| INT-373 | Keycloak realm emits the claims the admin console requires (aud=api, org, tenant, aaguid, credential_id) | E12-admin | INT-180 | area:admin, risk:security | done |
+| INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
+| INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | INT-124 | area:records, gpu | todo |
+| INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
+| INT-391 | The console accepts every valid WebAuthn credential id (leading - or _, and longer than 96 bytes) | E12-admin | INT-180, INT-365 | area:admin, risk:security | done |
+| INT-386 | Clinical quantities in the typed lane, note, patient summary and FHIR document text use the locale decimal separator | E07-records | INT-385 | area:records, risk:clinical | done |
+| INT-387 | The accessibility conformance report reflects the INT-361, INT-362 and INT-363 fixes | E14-legal | INT-226, INT-361, INT-362, INT-363 | area:legal | done |
+| INT-397 | WCAG 4.1.3: the last three status lines are announced (notifications pending, review sent, consent queue) | E08-mobile | INT-362, INT-387 | area:mobile, risk:legal | done |
+| INT-396 | Backlog rows match what merged: status reconciliation and a guard against drift | E00-governance | INT-004 | area:platform | done |
+| INT-401 | Rollback from the console (4-eyes) once a CD target exists | E12-admin | INT-187 | area:admin, risk:security | awaiting-human |
+| INT-402 | Record-embedding model for the patient record index (files/03 §4.9.1) | E07-records | INT-123 | area:records, risk:security | awaiting-human |
+| INT-403 | What withdrawing documents consent does to the patient's record vectors | E02-data | INT-123 | area:data, risk:legal | awaiting-human |
+| INT-405 | The backlog sync pages past 500 issues and keeps issue state in step with rows | E00-governance | INT-004, INT-396 | area:platform | done |
 
 ## P2
 
@@ -262,7 +297,7 @@
 | INT-073 | Deep pack: dentistry_general | E03-protocols | INT-050 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-098 | WITHDRAWN - Profile s2s_cloud. Replaced by a test that proves no S2S/cloud profile can be constructed | E05-voice | INT-094 | area:voice, risk:security | withdrawn |
 | INT-115 | acoustic lane (M3, investigational device module): our own ordinal head, in-memory window, zeroing, study assertion | E06-lanes | INT-110, INT-117 | area:lanes, risk:clinical, approval:human-clinical, blocked:study-site | todo |
-| INT-124 | Lab-report->JSON via the self-hosted extraction LLM (03 §4.9.1 row 9) + Turkish unit-resolution eval | E07-records | INT-121 | area:records, gpu | todo |
+| INT-124 | Lab-report->JSON via the self-hosted extraction LLM (03 §4.9.1 row 9) + Turkish unit-resolution eval | E07-records | INT-121 | area:records | done |
 | INT-162 | HBYS/SBYS adapter kit (HL7v2 ORU / file drop / FHIR) + USVS mapping + KTS registration pack | E10-connectors | INT-160 | area:connectors, risk:legal, approval:human-legal | done |
 | INT-163 | Check-in: signed QR payload + desk verification + checkin_to_seen metric | E10-connectors | INT-160, INT-143 | area:connectors | done |
 | INT-171 | De-identified analytics views + k-anonymity helper + rollups | E11-learning | INT-015, INT-030 | area:learning, risk:legal | done |
@@ -288,11 +323,11 @@
 | INT-320 | Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold) | E10-connectors | INT-250 | area:release, risk:security, risk:legal, approval:human-legal | doing |
 | INT-322 | Embed handshake: intake mode (hastanede/brief) bound inside the signed launch ticket | E10-connectors | INT-320 | area:release, risk:security, risk:legal | done |
 | INT-334 | Motion: arbiter and commit windows (pure) | E08-mobile | INT-333 | area:mobile | todo |
-| INT-335 | Motion: Reanimated hygiene gates before the first Reanimated consumer | E08-mobile | INT-331 | area:mobile | todo |
+| INT-335 | Motion: Reanimated hygiene gates before the first Reanimated consumer | E08-mobile | INT-331 | area:mobile | done |
 | INT-336 | Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners | E08-mobile | INT-332, INT-334, INT-335 | area:mobile, risk:clinical | todo |
 | INT-337 | Motion: dialogue transients wired to the arbiter | E08-mobile | INT-334, INT-335, INT-336 | area:mobile | todo |
 | INT-338 | Motion: section sheet — measured fade budget, instant privacy and RED closes | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | todo |
-| INT-339 | Motion: typed lane, fallback and completion | E08-mobile | INT-330, INT-335 | area:mobile | todo |
+| INT-339 | Motion: typed lane, fallback and completion | E08-mobile | INT-330, INT-335 | area:mobile | done |
 | INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | todo |
 
 ## P3

@@ -1,0 +1,1550 @@
+# docs/compliance/accessibility-conformance.yaml — the source of record for the
+# accessibility conformance report (INT-226).
+#
+# Rendered by scripts/compliance/render_a11y_report.py into
+# docs/compliance/accessibility-conformance-report.md. Edit this file, re-render,
+# and commit both. tests/legal/test_a11y_report.py fails when they drift.
+#
+# Rules the gate enforces, so a row cannot say more than its evidence:
+#   - every WCAG 2.2 Level A and AA success criterion appears exactly once;
+#   - every row except Not Evaluated cites at least one automated test
+#     (`tests`, as `<path>::<exact it/test title>`, in a vitest file CI runs) or
+#     one recorded manual check (`manual`, an id under `manual_checks`);
+#   - a cited title must name exactly one test in that file;
+#   - Partially Supports and Does Not Support carry a `finding`;
+#   - Not Evaluated means a device audit item `decides` the row, and a row a
+#     device audit item decides cannot carry any other status;
+#   - a contrast pair listed under `contrast` is measured from
+#     apps/mobile/src/lib/theme.ts at render time, and the row's status must
+#     agree with the measurement;
+#   - a Partially Supports or Does Not Support row cannot lean on an issue
+#     that docs/backlog/issues.yaml marks `done` (an INT id its finding or
+#     remarks name, or an issue whose title opens `WCAG <sc>:`). Re-assess the
+#     row, or record `still_open_because:` with what the fix left open; the
+#     report prints that reason in the row (INT-387).
+#
+# Status vocabulary: Supports · Partially Supports · Does Not Support ·
+# Not Applicable · Not Evaluated. The first four are the ITI VPAT terms.
+# Not Evaluated is used for Level A and AA rows here, which a VPAT reserves for
+# AAA, because the alternative would be a Supports this report cannot back.
+
+report:
+  product_short: Vizite mobile (`apps/mobile`)
+  product: Vizite — patient pre-visit intake, mobile application (`apps/mobile`)
+  platforms: >-
+    iOS and Android from one Expo / React Native code base, phone form factor
+    (`supportsTablet: false`)
+  assessed_on: 2026-09-27
+  tree: >-
+    `origin/main` at `066fb8a5`, re-assessed on branch `int-226-a11y-conformance`.
+    INT-387 re-assessed 3.3.1, 3.3.8 and 4.1.3, and the 3.2.2 remark, against
+    `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`.
+    INT-397 re-assessed 4.1.3 on branch `int-397-status-lines`, built on
+    `int-387-conformance-refresh` at `76d98388`
+  assessed_by: >-
+    INT-226 engineering pass: automated source assertions, code inspection and
+    palette arithmetic. Rows re-assessed since, by the same method: 1.3.4 and
+    1.4.10 (INT-360), 2.2.1 (INT-363), 3.3.1, 3.3.8, 4.1.3 and the 3.2.2
+    remark (INT-387), and 4.1.3 again (INT-397)
+  standards: >-
+    WCAG 2.2 (W3C Recommendation, 5 October 2023), Level A and AA. EN 301 549
+    V3.2.1 (2021-03), clauses 5, 11 and 12 as they apply to a mobile application.
+    The Ministry's "Erişilebilirlik Kontrol Listesi — A Seviyesi" through the BK
+    numbers on the Level A rows (Cumhurbaşkanlığı Genelgesi 2025/10, RG 32933;
+    HUMAN_BLOCKERS.md HB-L9).
+  method: >-
+    Automated: vitest suites under `apps/mobile` that read the source and assert
+    the accessibility properties each screen declares. Each citation names one
+    test, and CI runs every one of them in `make check-ts`. Manual: code reading
+    and repository searches, each recorded in §6 with its date, the command or
+    file read, and what it found. Contrast: computed from the palette in
+    `apps/mobile/src/lib/theme.ts` with the WCAG 2.x relative-luminance formula
+    each time this report is rendered.
+  not_done: >-
+    No VoiceOver, TalkBack, Switch Control, Voice Control, external-keyboard or
+    braille session. No run on hardware at the largest text size. No testing
+    with disabled users. The device audit in §5 covers the first two, and the
+    owner performs it.
+  reading_notes:
+    - >-
+      **This report states tested results. It is not a declaration of
+      conformance.** Every status is backed by at least one named automated test
+      or one dated manual check, and the evidence column names them. No row rests
+      on a device screen-reader run, because none has been performed.
+    - >-
+      **What the automated evidence can and cannot prove.** React Native has no
+      DOM, so no axe-style engine can run: the accessibility tree is built by the
+      OS at runtime, on a device. The tests prove that the source declares what
+      that tree is built from: roles, names, states, languages, announcements,
+      target sizes and the motion policy. A Supports row therefore means the
+      mechanism is present, asserted and read. Nobody has yet heard it through a
+      screen reader. The device audit (§5) confirms or overturns these rows.
+    - >-
+      **The BK numbers are derived, not transcribed** (HB-L9). WCAG 2.2 Level A
+      has exactly 31 criteria, and the Ministry checklist has 31 Başarı Kriteri
+      mapped 1:1, so the correspondence is forced. The order follows canonical
+      WCAG numbering. Check each number against the Ministry's published
+      checklist before citing it in an İnceleme Komisyonu submission.
+    - >-
+      **Scope.** Every screen of `apps/mobile`. Kiosk mode is built but cannot
+      activate in the current runtime (`readKioskProvisioning` returns null until
+      the dev-build native layer exists), so it is out of scope except where a
+      row names it. The RED emergency delivery route still has no user
+      interface: on 2026-09-26, `grep -rn lib/livekit apps/mobile/src/app
+      apps/mobile/src/components` returned nothing. Nothing on that route is
+      assessed. `docs/compliance/accessibility-conformance.md` §4 lists the
+      requirements the issue that builds it must carry. `apps/clinician-web` and
+      `apps/admin-web` (EN 301 549 clause 9) are not assessed.
+    - >-
+      **Relation to INT-144's report.** `docs/compliance/accessibility-conformance.md`
+      (29 August 2026) remains the narrative assessment, and rows here cite its
+      sections. Where the two differ, this report is the status of record.
+      Re-assessment changed these rows: 1.3.4 (unverified, then Does Not
+      Support because the app config locked portrait, and Supports since INT-360
+      removed the lock); 3.3.1 (supported, then Partially Supports because
+      error lines added since were silent under VoiceOver, and Supports since
+      INT-362 routed every error line through one announcer); 3.3.8 (not
+      assessed before, then Does Not Support, and Supports since INT-361 let a
+      delivered code fill the boxes); 4.1.3 (not assessed before, then
+      Partially Supports because INT-362 closed the three lines INT-226 named
+      and three others stayed silent, and Supports since INT-397 announced
+      those three when they happen); 3.1.2 (unverified, now Partially Supports); 1.3.5
+      (partial, now Supports, on a recorded field inventory); 1.4.12 and 2.4.5
+      (supported by inspection, now Not Applicable, with the reason in each
+      row). Two of INT-144's supporting statements did not hold on 26
+      September: the OTP autofill mitigation named under BK26 (MC-16), which
+      the source carries since INT-361 and DA-07 confirms on a device, and
+      "exactly one timer in the whole app" under BK13,
+      which is true of screens and components only (MC-08).
+  status_meanings:
+    Supports: >-
+      Met as far as the cited evidence reaches, with no known failure. Not yet
+      heard through a screen reader on a device.
+    Partially Supports: >-
+      Part of the app meets the criterion and a named part does not. The finding
+      says which part.
+    Does Not Support: >-
+      The app, or its only path through the function concerned, fails the
+      criterion. The finding says how.
+    Not Applicable: The app contains nothing the criterion governs. The evidence shows the absence.
+    Not Evaluated: >-
+      The criterion turns on runtime behaviour that only a device run can decide.
+      The row names the device audit item that decides it. It is neither a pass
+      nor a failure.
+  en_clause_11_note: >-
+    EN 301 549 V3.2.1 clauses 11.1 to 11.4 apply WCAG 2.1 Level A and AA to
+    non-web software under the same numbers with an `11.` prefix, so each row
+    below carries the status of the WCAG row it restates. Vizite is open
+    functionality (it works through the platform screen readers), so the
+    "closed functionality" variants of those clauses do not apply. The standard
+    declares some of these clauses void for non-web software. They are not
+    marked here, because the standard's text is not in this repository and a
+    void clause can only remove an obligation this report already assesses. The
+    six criteria new in WCAG 2.2 have no clause in V3.2.1 and appear only in §1
+    and §2. Clauses addressed to platform software or assistive technology
+    (11.5.2.1, 11.5.2.2, 11.5.2.4, 11.6.1) do not apply to an application and
+    are not tabulated.
+
+# ----------------------------------------------------------------- WCAG 2.2
+
+wcag:
+  - sc: "1.1.1"
+    name: Non-text Content
+    level: A
+    bk: BK1
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityLabel"
+      - "apps/mobile/e2e/a11y.spec.ts::the send button is icon-only, so its name and disabled state are explicit"
+      - "apps/mobile/e2e/a11y.spec.ts::the intake progress dots are decoration and are hidden from the reader"
+      - "apps/mobile/e2e/a11y.spec.ts::the prep gauge reports a value, not only a rendered arc"
+    manual: [MC-01]
+    remarks: >-
+      Glyphs sit inside a named control or are hidden as decoration. The one
+      graphical data display, the preparation gauge, exposes a progress value.
+      The app renders no image content (MC-01).
+
+  - sc: "1.2.1"
+    name: Audio-only and Video-only (Prerecorded)
+    level: A
+    bk: BK2
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/askAhead.spec.ts::builds the bubble body from the catalog, never from the playback flag"
+      - "apps/mobile/e2e/askAhead.spec.ts::keeps every {body} out of a playback-gated expression"
+    manual: [MC-02]
+    remarks: >-
+      The agent's speech is pre-synthesised audio. The same question text renders
+      in the transcript without waiting for playback, so audio is never the only
+      carrier. There is no video.
+
+  - sc: "1.2.2"
+    name: Captions (Prerecorded)
+    level: A
+    bk: BK3
+    status: Not Applicable
+    manual: [MC-02]
+    remarks: No synchronised media. The app has no video and no audio paired with moving images.
+
+  - sc: "1.2.3"
+    name: Audio Description or Media Alternative (Prerecorded)
+    level: A
+    bk: BK4
+    status: Not Applicable
+    manual: [MC-02]
+    remarks: No synchronised media, for the same reason as 1.2.2.
+
+  - sc: "1.3.1"
+    name: Info and Relationships
+    level: A
+    bk: BK5
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every screen that renders a hero line marks one as a heading"
+      - "apps/mobile/e2e/a11y.spec.ts::AppText carries the heading semantic itself, so screens cannot spell it wrong"
+      - "apps/mobile/e2e/a11y.spec.ts::guidance blocks title their own section"
+      - "apps/mobile/e2e/a11y.spec.ts::every TextInput declares accessibilityLabel"
+      - "apps/mobile/e2e/a11y.spec.ts::the transcript itself is a named region"
+      - "apps/mobile/e2e/appearance.spec.ts::the container declares the group and its name"
+    remarks: >-
+      Headings, groups and form labels are declared. React Native's header role
+      has no level, so a screen's title and its section titles present as one
+      flat list of headings. That is a platform limit, recorded here rather than
+      claimed away (INT-144 report §6.2).
+
+  - sc: "1.3.2"
+    name: Meaningful Sequence
+    level: A
+    bk: BK6
+    status: Not Evaluated
+    remarks: >-
+      Reading order follows render order. Only the bottom chrome is positioned,
+      and it renders last. Whether VoiceOver and TalkBack traverse the dialogue's
+      four stacked regions in that order is for DA-01 to decide.
+
+  - sc: "1.3.3"
+    name: Sensory Characteristics
+    level: A
+    bk: BK7
+    status: Supports
+    manual: [MC-03]
+    remarks: >-
+      No instruction relies on shape, colour, size or position alone. Three
+      strings refer to content "aşağıdaki" (below) that follows in reading
+      order. DA-01 confirms that order.
+
+  - sc: "1.4.1"
+    name: Use of Color
+    level: A
+    bk: BK8
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the intake progress dots are decoration and are hidden from the reader"
+      - "apps/mobile/e2e/a11y.spec.ts::the status ladder speaks which rungs are reached"
+      - "apps/mobile/e2e/a11y.spec.ts::an error is never carried by colour alone"
+      - "apps/mobile/e2e/appearance.spec.ts::the active item is still not carried by colour alone once the label is gone"
+      - "apps/mobile/e2e/appearance.spec.ts::the knob moves as well as recolouring — state is never hue alone"
+      - "apps/mobile/e2e/appearance.spec.ts::selection is marked by more than a fill once the rows stack"
+    remarks: Progress, status, selection, switch state and errors each carry a word, a shape or an announcement beside the colour.
+
+  - sc: "1.4.2"
+    name: Audio Control
+    level: A
+    bk: BK9
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the agent's words stay in the agent bubble's name while it is speaking"
+      - "apps/mobile/e2e/intakeMode.spec.ts::the mode chooser is wired before the questions and records the choice"
+    remarks: >-
+      The agent's speech plays automatically and often runs longer than three
+      seconds. Tapping the speaking bubble pauses it (barge-in). The bubble keeps
+      the spoken words as its name and carries the affordance as a hint. The
+      typed mode, offered before the first question, is the standing alternative
+      for a patient who cannot use audio.
+
+  - sc: "2.1.1"
+    name: Keyboard
+    level: A
+    bk: BK10
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityRole"
+    remarks: >-
+      Every control is a Pressable with a declared role, which is the
+      precondition for keyboard and Switch Control operation. Whether each
+      control is actually reached and activated is for DA-02 to decide.
+
+  - sc: "2.1.2"
+    name: No Keyboard Trap
+    level: A
+    bk: BK11
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the flag sits on the sheet, not on <Modal>, where RN would drop it"
+    remarks: >-
+      The section sheet declares itself modal on the sheet container, the only
+      placement React Native honours. It neither moves focus in on open nor
+      restores it on close. Whether that traps a keyboard or Switch Control user
+      is for DA-02 to decide.
+
+  - sc: "2.1.4"
+    name: Character Key Shortcuts
+    level: A
+    bk: BK12
+    status: Not Applicable
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::BK12 / SC 2.1.4 — no character key shortcuts exist"
+    remarks: The app defines no single-character shortcut.
+
+  - sc: "2.2.1"
+    name: Timing Adjustable
+    level: A
+    bk: BK13
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::BK13 / SC 2.2.1 — every timer under src, lib included, limits nothing or warns before it acts"
+      - "apps/mobile/e2e/a11y.spec.ts::a timer planted outside a screen, or a time limit that skips the warning, is caught — the near-miss control"
+      - "apps/mobile/e2e/a11y.spec.ts::the kiosk warning gives at least 20 seconds to extend, and the wipe still falls at 60 s"
+      - "apps/mobile/src/lib/kiosk/kioskState.test.ts::with no action the wipe falls at T — the old 60 s — and only after the warning"
+      - "apps/mobile/src/lib/kiosk/kioskState.test.ts::one action — extend — returns to active and restarts the full timeout"
+      - "apps/mobile/src/lib/kiosk/kioskState.test.ts::can be extended again and again — ten times and more, never wiping"
+      - "apps/mobile/e2e/kiosk.spec.ts::offers one action that extends, and moves the screen reader's focus onto it"
+    manual: [MC-08]
+    remarks: >-
+      In the phone app the only time limit a patient meets is the OTP resend
+      cooldown. It is a server rate limit and takes nothing away when it runs
+      out. Kiosk mode's 60-second idle wipe is a time limit, and since INT-363
+      it meets the criterion's Extend option. After 40 seconds without a touch
+      it shows a warning, announces it assertively and moves screen-reader focus
+      to its one action, "Devam edin". The patient then has 20 seconds. That
+      action, or any touch, restarts the full minute, as often as needed. With
+      no answer, the same wipe as before runs. The automated check now reads
+      every script under `src`, `src/lib` included. Every timer must either be
+      recorded as limiting nothing (request deadlines, retry delays, the
+      barge-in meter) or run through a warning. MC-08 is the manual pass that
+      found the kiosk gap. DA-08 confirms on a device that the warning is heard
+      and focus lands on the button. Kiosk mode cannot activate today.
+
+  - sc: "2.2.2"
+    name: Pause, Stop, Hide
+    level: A
+    bk: BK14
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every looping animation, core or Reanimated, is gated on the app's reduce-motion hook"
+      - "apps/mobile/src/lib/a11y/motion.test.ts::stops looping decoration — SC 2.2.2, the listening pulse"
+      - "apps/mobile/e2e/motion.spec.ts::the root mounts ReducedMotionConfig from the app policy"
+      - "apps/mobile/e2e/appearance.spec.ts::useReducedMotion folds the stored override in"
+    remarks: >-
+      The one looping animation, the listening pulse, stops when the OS asks or
+      when the patient uses the app's own motion switch. Transitions and
+      programmatic scrolling collapse to zero under the same policy. Nothing
+      auto-updates, scrolls as a marquee or rotates as a carousel.
+
+  - sc: "2.3.1"
+    name: Three Flashes or Below Threshold
+    level: A
+    bk: BK15
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every loop period comes from motion.loop, and every half-period exceeds 167 ms"
+    remarks: The listening pulse is an opacity fade at about 0.7 Hz, and nothing else repeats.
+
+  - sc: "2.4.1"
+    name: Bypass Blocks
+    level: A
+    bk: BK16
+    status: Not Applicable
+    manual: [MC-09]
+    remarks: >-
+      No screen repeats a block of content that another screen carries. The tab
+      rail is the navigation itself and is rendered once, by the tabs layout.
+      WCAG2ICT reads this criterion, for non-web software, as applying to a set
+      of software programs. Vizite is one program.
+
+  - sc: "2.4.2"
+    name: Page Titled
+    level: A
+    bk: BK17
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every screen that renders a hero line marks one as a heading"
+    remarks: >-
+      Pushed screens set a navigator title. The intake and review flows carry
+      their title as an in-body heading. Whether a screen reader announces that
+      heading on arrival is for DA-01 to decide.
+
+  - sc: "2.4.3"
+    name: Focus Order
+    level: A
+    bk: BK18
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the flag sits on the sheet, not on <Modal>, where RN would drop it"
+    remarks: >-
+      The OTP screen moves focus after every digit. The section sheet neither
+      takes focus on open nor restores it on close. Both are for DA-03 to decide.
+
+  - sc: "2.4.4"
+    name: Link Purpose (In Context)
+    level: A
+    bk: BK19
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityLabel"
+      - "apps/mobile/e2e/a11y.spec.ts::no accessibilityLabel is a bare source string"
+      - "apps/mobile/src/lib/a11y/labels.test.ts::puts the VISIBLE label first so voice control can reach the control"
+    remarks: >-
+      Every Pressable declares its name. Names that repeat on one screen (the
+      review screen's share switches, a consent row and its switch, visit cards)
+      are composed with their context.
+
+  - sc: "2.5.1"
+    name: Pointer Gestures
+    level: A
+    bk: BK20
+    status: Not Applicable
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::BK20 / SC 2.5.1 — no path-based or multipoint gesture is required"
+    remarks: Every action is a single tap. Scrolling is the platform's own.
+
+  - sc: "2.5.2"
+    name: Pointer Cancellation
+    level: A
+    bk: BK21
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/motion.spec.ts::no Pressable narrows the platform's press-retention default"
+    manual: [MC-11]
+    remarks: >-
+      Every control is React Native's Pressable. It fires on release and aborts
+      when the pointer leaves the target first. No handler acts on the down
+      event.
+
+  - sc: "2.5.3"
+    name: Label in Name
+    level: A
+    bk: BK22
+    status: Supports
+    tests:
+      - "apps/mobile/src/lib/a11y/labels.test.ts::puts the VISIBLE label first so voice control can reach the control"
+      - "apps/mobile/e2e/a11y.spec.ts::no accessible name is assembled with an ad-hoc separator"
+      - "apps/mobile/e2e/a11y.spec.ts::a bubble's name ends in the words the bubble actually shows"
+    remarks: >-
+      A composed name always starts with the control's visible words, so a
+      Voice Control user who says them reaches the control.
+
+  - sc: "2.5.4"
+    name: Motion Actuation
+    level: A
+    bk: BK23
+    status: Not Applicable
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::BK23 / SC 2.5.4 — nothing is actuated by moving the device"
+    remarks: No feature is operated by moving the device.
+
+  - sc: "3.1.1"
+    name: Language of Page
+    level: A
+    bk: BK24
+    status: Partially Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every line carries a BCP-47 tag matching the active catalog"
+      - "apps/mobile/e2e/a11y.spec.ts::no screen renders a bare react-native Text, bypassing that declaration"
+    finding: >-
+      `accessibilityLanguage` is iOS-only in React Native. Android exposes no
+      per-element language, and TalkBack speaks in its own locale. When the app
+      language differs from the device language, TalkBack reads Turkish with a
+      foreign voice, or the reverse.
+    remarks: On iOS every line of text declares `tr-TR` or `en-GB` from the active catalog.
+
+  - sc: "3.2.1"
+    name: On Focus
+    level: A
+    bk: BK25
+    status: Not Evaluated
+    remarks: >-
+      No handler changes context on focus. `autoFocus` on the first OTP box sets
+      the starting position and changes nothing else. DA-04 decides.
+
+  - sc: "3.2.2"
+    name: On Input
+    level: A
+    bk: BK26
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/src/lib/auth/phone.test.ts::typing one digit is unchanged: this box only, then the next box"
+      - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into the first box fills all six"
+    manual: [MC-16]
+    remarks: >-
+      The OTP screen moves focus to the next box after each typed digit and
+      does not tell the patient. Whether a screen-reader user meets that as an
+      unexpected change of context is for DA-04 to decide. INT-144 named
+      `textContentType="oneTimeCode"` as the mitigation. On 26 September it did
+      not hold, because a delivered code could not fill the six boxes (MC-16).
+      Since INT-361 a pasted or suggested code fills all six at once (3.3.8), so
+      a patient who takes the code that way meets no box-by-box focus move. A
+      patient who types it still does.
+
+  - sc: "3.2.6"
+    name: Consistent Help
+    level: A
+    bk: BK27
+    wcag22_new: true
+    status: Not Applicable
+    manual: [MC-12]
+    remarks: >-
+      No screen offers a help mechanism. If one is added, it must sit in the
+      same relative place on every screen that carries it.
+
+  - sc: "3.3.1"
+    name: Error Identification
+    level: A
+    bk: BK28
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::%s announces its error on BOTH platforms"
+      - "apps/mobile/e2e/a11y.spec.ts::the discovery walks the tree and reaches every line the INT-226 report named"
+      - "apps/mobile/e2e/a11y.spec.ts::a newly added unannounced error line is caught — the near-miss control"
+      - "apps/mobile/e2e/a11y.spec.ts::the announcer puts both halves on every line: Android's live region and iOS's announcement"
+      - "apps/mobile/e2e/a11y.spec.ts::AppText maps `live` onto the platform's own announcement props"
+      - "apps/mobile/e2e/a11y.spec.ts::an error is never carried by colour alone"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::an error is spoken with the error word first; the visible copy is not touched"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::iOS gets the words, and an error interrupts what is being read"
+    remarks: >-
+      Every error is described in text on screen, and since INT-362 every
+      error line goes through one announcer (`components/Announced.tsx`). It
+      sets the Android live region and posts the iOS announcement, and speaks
+      "Hata" before the message without changing the visible words. That
+      covers the phone, OTP, new-visit and records screens, the Doctor Link
+      error and the record card's "not saved" notice that INT-226 found silent
+      under VoiceOver, the kiosk PIN lines, and the data, learned-fact and
+      share write failures. The automated check no longer lists screens by
+      hand. It walks every `.tsx` under `src` and fails on a line in the error
+      colour, with failure copy or with a hand-made live region that sits
+      outside the announcer. DA-08 confirms that each error is spoken once, on
+      both platforms.
+
+  - sc: "3.3.2"
+    name: Labels or Instructions
+    level: A
+    bk: BK29
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every TextInput declares accessibilityLabel"
+      - "apps/mobile/e2e/a11y.spec.ts::the composer is reachable and described"
+      - "apps/mobile/e2e/a11y.spec.ts::no accessibilityHint is a bare source string"
+      - "apps/mobile/e2e/auth.spec.ts::phone entry states why the number is asked (02 §8.2) from tr keys"
+    remarks: >-
+      Every field keeps a visible label and has an accessible name. Format and
+      purpose lines are also the field's hint.
+
+  - sc: "3.3.7"
+    name: Redundant Entry
+    level: A
+    bk: BK30
+    wcag22_new: true
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/typed_intake.spec.ts::resumes through the pack layer, so the rule is unit-testable"
+    manual: [MC-15]
+    remarks: >-
+      Nothing is asked twice in one process. The intake resumes at the first
+      unanswered question. The phone number carries from the phone screen to the
+      OTP screen. The MHRS SMS paste fills the new-visit form.
+
+  - sc: "4.1.2"
+    name: Name, Role, Value
+    level: A
+    bk: BK31
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityRole"
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityLabel"
+      - "apps/mobile/e2e/a11y.spec.ts::a switch or checkbox declares its state, not just its role"
+      - "apps/mobile/e2e/a11y.spec.ts::a single-choice turn offers radios, not checkboxes"
+      - "apps/mobile/e2e/a11y.spec.ts::ListRow forwards a secondary action for its trailing control"
+      - "apps/mobile/e2e/a11y.spec.ts::the consent switch — the withdrawal path — uses it"
+      - "apps/mobile/e2e/appearance.spec.ts::each option is a radio that says whether it is the chosen one"
+      - "apps/mobile/e2e/appearance.spec.ts::declares the platform role and the value"
+    remarks: >-
+      Every interactive element declares a role and a name, and every switch,
+      checkbox and radio declares its state. The consent switch nested in a
+      pressable row is reachable through a custom action.
+
+  - sc: "1.2.4"
+    name: Captions (Live)
+    level: AA
+    status: Not Applicable
+    manual: [MC-02]
+    remarks: No live synchronised media. The voice intake is audio with a live text transcript, not video.
+
+  - sc: "1.2.5"
+    name: Audio Description (Prerecorded)
+    level: AA
+    status: Not Applicable
+    manual: [MC-02]
+    remarks: No prerecorded video.
+
+  - sc: "1.3.4"
+    name: Orientation
+    level: AA
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::SC 1.3.4 — app.json follows the device in every build profile"
+      - "apps/mobile/e2e/a11y.spec.ts::SC 1.3.4 — every orientation lock in the app is registered as essential, with its reason"
+      - "apps/mobile/e2e/a11y.spec.ts::a planted lock that is not registered is caught — the near-miss control"
+      - "apps/mobile/e2e/a11y.spec.ts::every Modal rotates with the device — iOS presents one portrait-only unless told otherwise"
+      - "apps/mobile/src/lib/a11y/orientation.test.ts::lists every orientation the app declares, both landscapes included"
+      - "apps/mobile/e2e/a11y.spec.ts::no layout decides a height the landscape window cannot hold"
+      - "apps/mobile/e2e/a11y.spec.ts::every scroller that holds a text field keeps it above the keyboard"
+      - "apps/mobile/e2e/a11y.spec.ts::the dialogue's bottom stack pins to the keyboard's edge and never outgrows its frame"
+    manual: [MC-04]
+    # SC 1.3.4's exception: a screen may keep one orientation only where that
+    # orientation is essential. Each entry is {lock: "<file> › <kind>", reason}
+    # and the report names it; apps/mobile/e2e/a11y.spec.ts fails on a lock in
+    # the app that this list does not hold, and on an entry whose lock is gone.
+    essential_locks: []
+    remarks: >-
+      Since INT-360, `apps/mobile/app.json` sets `"orientation": "default"` in
+      every build profile. iOS declares all four orientations, and Android
+      follows the device. The automated check reads every script under `src`,
+      the config plugins, `app.json` and `app.config.ts`. It looks for every
+      way the app could lock a screen: an orientation setting, the orientation
+      API, a native orientation key, or a `<Modal>` that does not rotate. React
+      Native shows a Modal portrait-only on an iPhone unless the Modal lists its
+      orientations. The section sheet was such a Modal, and it now lists all
+      four. A lock the check finds must be listed here as essential, with its
+      reason. None is: the records camera is the system's own capture screen,
+      and a photo's upright travels in its EXIF tag. MC-04 is the manual pass
+      that found the app-config lock. The source is checked for landscape
+      layouts at the largest text size: no fixed or percentage height the
+      window cannot hold, no size read from the long side, side safe areas, and
+      no field left under the keyboard. DA-05 confirms each screen on hardware.
+
+  - sc: "1.3.5"
+    name: Identify Input Purpose
+    level: AA
+    status: Supports
+    manual: [MC-05]
+    remarks: >-
+      Only one field collects information about the patient from the WCAG
+      input-purpose list: the phone number. It declares `autoComplete="tel"` and
+      `textContentType="telephoneNumber"`.
+
+  - sc: "1.4.3"
+    name: Contrast (Minimum)
+    level: AA
+    status: Partially Supports
+    tests:
+      - "apps/mobile/src/lib/theme.test.ts::%s body text meets WCAG AA (4.5:1)"
+      - "apps/mobile/src/lib/theme.test.ts::%s: the known sub-AA pairs hold their measured floor"
+    finding: >-
+      The quietest text tone, `inkFaint`, carries 13 pt caption text below
+      4.5 : 1 on every light ground and on the dark raised ground. The light
+      "Dosyaya eklendi" chip (`success` on `successSoft`) also falls short. The
+      measurements are in §4.
+    remarks: >-
+      Body text, soft ink, primary, status-pill and CTA pairs meet 4.5 : 1 in
+      both schemes. Closing the gap needs a palette decision from the design
+      owner (INT-144 report §5.1 and §5.2).
+
+  - sc: "1.4.4"
+    name: Resize Text
+    level: AA
+    status: Supports
+    tests:
+      - "apps/mobile/src/lib/theme.test.ts::follows the user's scale up to 2.0 and no further (02 §8.2)"
+      - "apps/mobile/e2e/a11y.spec.ts::a TextInput that applies scaledSize disables the OS multiplier"
+      - "apps/mobile/e2e/appearance.spec.ts::nothing in the app can truncate a string"
+      - "apps/mobile/e2e/overflow.spec.ts::no module renders a Screen it cannot move"
+      - "apps/mobile/src/lib/prefs/appearance.test.ts::a tie resolves to the LARGER step — accessibility never rounds down"
+    remarks: >-
+      Text follows the OS size, or the app's own text-size step, up to 200 %
+      through one clamp. No string can be truncated and every screen scrolls.
+      DA-05 confirms the layouts on hardware.
+
+  - sc: "1.4.5"
+    name: Images of Text
+    level: AA
+    status: Supports
+    manual: [MC-01]
+    remarks: All type is live text. The app renders no image content.
+
+  - sc: "1.4.10"
+    name: Reflow
+    level: AA
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/e2e/overflow.spec.ts::no module renders a Screen it cannot move"
+      - "apps/mobile/e2e/appearance.spec.ts::nothing in the app can truncate a string"
+      - "apps/mobile/e2e/a11y.spec.ts::no layout decides a height the landscape window cannot hold"
+    remarks: >-
+      Layouts are flex-based, with no fixed-width content, and every screen
+      scrolls vertically. No scroller runs sideways. Since INT-360 the app
+      turns with the phone (1.3.4), so a patient also meets these layouts in a
+      landscape window 320 to 390 pt tall. DA-05 decides, in both orientations.
+
+  - sc: "1.4.11"
+    name: Non-text Contrast
+    level: AA
+    status: Partially Supports
+    manual: [MC-24]
+    finding: >-
+      In light mode an unselected interactive chip's only boundary is the
+      `border` hairline. The hairline measures below 3 : 1 against both the chip
+      fill and the screen ground (§4), and the chip fill barely differs from the
+      ground.
+    remarks: >-
+      Selected chips (a `primary` border) and every dark-mode chip (filled,
+      tonal) are distinguishable. INT-144 report §5.3 gives the recommended fix.
+
+  - sc: "1.4.12"
+    name: Text Spacing
+    level: AA
+    status: Not Applicable
+    manual: [MC-06]
+    remarks: >-
+      The criterion is scoped to content implemented in markup languages that
+      support the text-style properties. The app renders native views and no
+      WebView or HTML. INT-144 recorded this row as supported by inspection.
+      Reading roles keep a 1.4× line height regardless.
+
+  - sc: "1.4.13"
+    name: Content on Hover or Focus
+    level: AA
+    status: Not Applicable
+    manual: [MC-07]
+    remarks: Nothing appears on hover or focus.
+
+  - sc: "2.4.5"
+    name: Multiple Ways
+    level: AA
+    status: Not Applicable
+    manual: [MC-10]
+    remarks: >-
+      WCAG2ICT reads this criterion, for non-web software, as applying to a set
+      of software programs. Vizite is one program. Read instead as a set of web
+      pages, a visit is reachable two ways (Bugün and Vizitlerim), but each
+      Profilim sub-screen only one way. INT-144's third route, through
+      Kayıtlarım, does not navigate to a visit.
+
+  - sc: "2.4.6"
+    name: Headings and Labels
+    level: AA
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every screen that renders a hero line marks one as a heading"
+      - "apps/mobile/e2e/a11y.spec.ts::no accessibilityLabel is a bare source string"
+      - "apps/mobile/e2e/nav.spec.ts::labels come from i18n, never literals (rail renders t(labelKey))"
+      - "apps/mobile/e2e/a11y.spec.ts::every a11y.* key referenced in a screen exists in both catalogs"
+    remarks: Every heading and label comes from the Turkish-first catalogue and names what it heads or labels.
+
+  - sc: "2.4.7"
+    name: Focus Visible
+    level: AA
+    status: Not Evaluated
+    remarks: >-
+      Keyboard and Switch Control focus is drawn by the OS. The app draws no
+      focus style of its own. DA-02 decides.
+
+  - sc: "2.4.11"
+    name: Focus Not Obscured (Minimum)
+    level: AA
+    wcag22_new: true
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/e2e/overflow.spec.ts::every bar reports its height to the screen that scrolls under it"
+    remarks: >-
+      The dialogue and review screens pin a glass bar over the bottom of a
+      scroller. Scrolled content is padded clear of it. Whether a focused control
+      can end up behind the bar is for DA-06 to decide.
+
+  - sc: "2.5.7"
+    name: Dragging Movements
+    level: AA
+    wcag22_new: true
+    status: Not Applicable
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::BK20 / SC 2.5.1 — no path-based or multipoint gesture is required"
+    remarks: Nothing in the app is dragged.
+
+  - sc: "2.5.8"
+    name: Target Size (Minimum)
+    level: AA
+    wcag22_new: true
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::no Pressable relies on its content happening to be tall enough"
+      - "apps/mobile/e2e/a11y.spec.ts::slop is vertical only — horizontal slop would swallow the next chip"
+      - "apps/mobile/e2e/a11y.spec.ts::slop sizes are computed from the laid-out height, not guessed"
+      - "apps/mobile/src/lib/a11y/target.test.ts::is 44 — above SC 2.5.8's 24 and at the platform guideline"
+      - "apps/mobile/e2e/appearance.spec.ts::the collapsed item still reaches the target floor"
+      - "apps/mobile/e2e/appearance.spec.ts::rows reach the target floor by box, never by slop"
+    manual: [MC-25]
+    remarks: >-
+      The app's floor is 44 pt, above the criterion's 24. Height is asserted for
+      every Pressable. Width is not asserted by the suite; MC-25 records the
+      widths of the controls that carry no text.
+
+  - sc: "3.1.2"
+    name: Language of Parts
+    level: AA
+    status: Partially Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every line carries a BCP-47 tag matching the active catalog"
+    manual: [MC-18]
+    finding: >-
+      In the English locale, Turkish taxonomy names (branch names from
+      `branch.nameTr`) render untranslated. They are tagged `en-GB` with the rest
+      of their line, so an English voice reads Turkish words.
+    remarks: In the Turkish locale, catalogue and taxonomy text are both Turkish.
+
+  - sc: "3.2.3"
+    name: Consistent Navigation
+    level: AA
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/nav.spec.ts::has no routes beyond the map (no stealth surfaces)"
+      - "apps/mobile/e2e/nav.spec.ts::registers the %s screen"
+      - "apps/mobile/e2e/nav.spec.ts::labels come from i18n, never literals (rail renders t(labelKey))"
+    remarks: One tab rail, in one order, on every tabbed screen. The route tree is asserted to be exactly the navigation map.
+
+  - sc: "3.2.4"
+    name: Consistent Identification
+    level: AA
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the composition helpers are what the screens actually use"
+      - "apps/mobile/e2e/a11y.spec.ts::no accessibilityLabel is a bare source string"
+    remarks: Controls with the same function take their names from the same catalogue keys through the same helpers.
+
+  - sc: "3.3.3"
+    name: Error Suggestion
+    level: AA
+    status: Supports
+    manual: [MC-13]
+    remarks: >-
+      Every error names the correction or the next step. The generic auth errors
+      are generic by security design (files/02 §8.2).
+
+  - sc: "3.3.4"
+    name: Error Prevention (Legal, Financial, Data)
+    level: AA
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/review_send.spec.ts::gives every section a switch that names the section it governs"
+      - "apps/mobile/src/lib/dsar/requests.test.ts::is withdrawable while the grace is running"
+      - "apps/mobile/e2e/consent.spec.ts::withdrawing voice drags lane:affect down in the same pass; linguistic survives"
+    manual: [MC-14]
+    remarks: >-
+      The note is sent only from the review screen, after the whole note and its
+      per-section share scope are shown (checked). Erasure takes two taps and can
+      be withdrawn during its grace period (reversible). A consent withdrawal can
+      be granted again.
+
+  - sc: "3.3.8"
+    name: Accessible Authentication (Minimum)
+    level: AA
+    wcag22_new: true
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the six boxes are one TextInput rendered once per register"
+      - "apps/mobile/e2e/a11y.spec.ts::every box asks the OS for the one-time code on each platform"
+      - "apps/mobile/e2e/a11y.spec.ts::no field cap cuts a pasted or autofilled code down to its first digit"
+      - "apps/mobile/e2e/a11y.spec.ts::every box hands its whole new text to the shared distributor"
+      - "apps/mobile/e2e/auth.spec.ts::the OTP entry is one masked field per register, six registers"
+      - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into the first box fills all six"
+      - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into box %i still fills all six from the first"
+      - "apps/mobile/src/lib/auth/phone.test.ts::a code pasted beside the digit a box already shows fills all six"
+      - "apps/mobile/src/lib/auth/phone.test.ts::more than six digits keeps the first six"
+    remarks: >-
+      Sign-in asks for a six-digit SMS code, a cognitive function test, and
+      since INT-361 a mechanism completes it: the patient does not have to
+      transcribe the code. A code pasted into any box, or handed over by the
+      OS, fills all six boxes (`enterOtp`), with the rest of a copied message
+      dropped. Every box declares `textContentType="oneTimeCode"` for the iOS
+      "From Messages" suggestion, and `autoComplete` `sms-otp` for Android's
+      SMS-code autofill and `one-time-code` for the web. No field cap cuts a
+      code short. Whether each platform offers its suggestion is for DA-07 to
+      confirm on hardware. INT-144 did not assess this criterion. INT-226
+      rated it Does Not Support (MC-16) before INT-361.
+
+  - sc: "4.1.3"
+    name: Status Messages
+    level: AA
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::listening / speaking / transcribing are announced, not just animated"
+      - "apps/mobile/e2e/a11y.spec.ts::the turn state is announced ONCE — not by a hook and a live region both"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::says the same message once, not on every re-render"
+      - "apps/mobile/e2e/a11y.spec.ts::%s announces its error on BOTH platforms"
+      - "apps/mobile/e2e/a11y.spec.ts::no live region is declared anywhere but the announcer"
+      - "apps/mobile/e2e/a11y.spec.ts::every announced line states its tone, and the announcer — not the call site — picks the politeness"
+      - "apps/mobile/e2e/a11y.spec.ts::the announcer puts both halves on every line: Android's live region and iOS's announcement"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::iOS queues a status behind current speech"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::announces once per change — never for an unchanged or an empty message"
+      - "apps/mobile/e2e/a11y.spec.ts::the three outcome lines MC-26 named are found by the walk, and each is announced only as news"
+      - "apps/mobile/e2e/a11y.spec.ts::an outcome line announced on arrival, or not at all, is caught — the near-miss control (INT-397)"
+      - "apps/mobile/e2e/a11y.spec.ts::a line's news is always a transition from useNews — no line is muted with a literal"
+      - "apps/mobile/e2e/a11y.spec.ts::a line that is not news is shown without either half, and turning into news makes it anew (INT-397)"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::a line found standing on arrival is not news — a revisit is silent"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::the outcome arriving in front of the patient is news — just sent, just queued"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::an outcome that arrives behind another screen is not news, then or when the screen returns"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::announces once per change: each new failure is news again, a standing one is not"
+      - "apps/mobile/src/lib/notifications/store.test.ts::while the server has not answered, the save is saving — never failed"
+      - "apps/mobile/src/lib/notifications/store.test.ts::each retry passes through saving, so every failure is its own change"
+      - "apps/mobile/src/lib/consent/store.test.ts::a change the server takes at once is sending, then clear — never held"
+      - "apps/mobile/src/lib/consent/store.test.ts::a retry that fails again is not a new transition"
+    manual: [MC-17, MC-26]
+    remarks: >-
+      The dialogue's turn state and every line the automated check discovers
+      are announced on both platforms without moving focus: errors
+      assertively, statuses politely and once per change. That includes the
+      records screen's notices, the record-reading line, the voice check, the
+      health section's lines and the kiosk warning. Since INT-397 it also
+      includes the three lines that state how the patient's own action stands
+      and stay on screen afterwards: the notification settings' "not saved
+      yet" line, the "your note was sent" line on the review screen and the
+      visit detail, and the consent screens' queued-change note. Each is
+      announced when its store moves into that state while the screen is in
+      front (a save fails, the note is sent, a consent change cannot reach the
+      server), and is shown without an announcement when the patient comes
+      back to it. The notification store now tells a save in flight from a
+      failed one, so only a failure is announced, as an error. MC-17 and MC-26
+      are the manual passes that found the gaps; the tests cited here
+      supersede them. DA-08 confirms each line on a device. INT-144 did not
+      assess this criterion.
+
+# ----------------------------------------------------------------- EN 301 549
+
+en301549:
+  - clause: "5.2"
+    name: Activation of accessibility features
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/appearance.spec.ts::has a route, registered in the tabs layout"
+      - "apps/mobile/e2e/appearance.spec.ts::the container declares the group and its name"
+      - "apps/mobile/e2e/appearance.spec.ts::declares the platform role and the value"
+    remarks: >-
+      The app's own accessibility features, the text-size, colour-scheme and
+      motion controls on Profilim › Görünüm, are ordinary named controls that a
+      screen reader reaches. The OS settings apply without any activation in the
+      app.
+
+  - clause: "5.3"
+    name: Biometrics
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/auth.spec.ts::capability-detected: no hardware or no enrolment degrades gracefully"
+    manual: [MC-19]
+    remarks: >-
+      The biometric gate never relies on a biometric alone. The platform prompt
+      keeps its device-passcode fallback, and a device with no enrolled factor
+      passes through.
+
+  - clause: "5.9"
+    name: Simultaneous user actions
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::BK20 / SC 2.5.1 — no path-based or multipoint gesture is required"
+    remarks: No mode of operation requires more than one action at a time.
+
+  - clause: "11.4.1.1"
+    name: Parsing
+    status: Not Applicable
+    manual: [MC-06]
+    remarks: >-
+      Removed from WCAG 2.2 as obsolete, and still present in EN 301 549 V3.2.1.
+      The app exposes native views to assistive technology and gives it no
+      markup to parse.
+
+  - clause: "11.5.1"
+    name: Closed functionality
+    status: Not Applicable
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityRole"
+    remarks: The app is open functionality. It works through the platform screen readers and does not replace them.
+
+  - clause: "11.5.2.3"
+    name: Use of accessibility services
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityRole"
+      - "apps/mobile/e2e/a11y.spec.ts::AppText maps `live` onto the platform's own announcement props"
+      - "apps/mobile/e2e/a11y.spec.ts::every line carries a BCP-47 tag matching the active catalog"
+    remarks: >-
+      Roles, names, states, languages and announcements go through React Native's
+      mapping onto UIAccessibility and AccessibilityNodeInfo. The app builds no
+      accessibility layer of its own.
+
+  - clause: "11.5.2.5"
+    name: Object information
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityRole"
+      - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityLabel"
+      - "apps/mobile/e2e/a11y.spec.ts::a switch or checkbox declares its state, not just its role"
+    remarks: Role, name and state are declared for every user-interface element.
+
+  - clause: "11.5.2.6"
+    name: Row, column, and headers
+    status: Not Applicable
+    manual: [MC-21]
+    remarks: The app presents no data table.
+
+  - clause: "11.5.2.7"
+    name: Values
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the prep gauge reports a value, not only a rendered arc"
+      - "apps/mobile/e2e/appearance.spec.ts::declares the platform role and the value"
+      - "apps/mobile/e2e/a11y.spec.ts::a switch or checkbox declares its state, not just its role"
+    remarks: The gauge exposes its value, and every switch, checkbox and radio exposes its state.
+
+  - clause: "11.5.2.8"
+    name: Label relationships
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::every TextInput declares accessibilityLabel"
+      - "apps/mobile/e2e/a11y.spec.ts::the composer is reachable and described"
+    remarks: Each field's label is its accessible name, and its visible instruction lines are its hint.
+
+  - clause: "11.5.2.9"
+    name: Parent-child relationships
+    status: Not Evaluated
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::the transcript itself is a named region"
+    remarks: >-
+      Groups are declared: the status ladder as a list, and radio groups. DA-08
+      inspects how the platform tree exposes the nesting.
+
+  - clause: "11.5.2.10"
+    name: Text
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::no screen renders a bare react-native Text, bypassing that declaration"
+    remarks: All text is a platform text node rendered through one component, which assistive technology can read.
+
+  - clause: "11.5.2.11"
+    name: List of available actions
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::ListRow forwards a secondary action for its trailing control"
+    remarks: A row with a nested control lists that control's action to assistive technology.
+
+  - clause: "11.5.2.12"
+    name: Execution of available actions
+    status: Supports
+    tests:
+      - "apps/mobile/e2e/a11y.spec.ts::ListRow forwards a secondary action for its trailing control"
+      - "apps/mobile/e2e/a11y.spec.ts::the consent switch — the withdrawal path — uses it"
+    remarks: Assistive technology can run the listed action. This is the path by which a screen-reader user withdraws a consent.
+
+  - clause: "11.5.2.13"
+    name: Tracking of focus and selection attributes
+    status: Not Evaluated
+    remarks: Handled by the platform for native views. DA-08 inspects it.
+
+  - clause: "11.5.2.14"
+    name: Modification of focus and selection attributes
+    status: Not Evaluated
+    remarks: Handled by the platform for native views. DA-08 inspects it.
+
+  - clause: "11.5.2.15"
+    name: Change notification
+    status: Not Evaluated
+    remarks: >-
+      Announcements are declared (see 4.1.3). DA-08 inspects how state and
+      value changes are notified.
+
+  - clause: "11.5.2.16"
+    name: Modifications of states and properties
+    status: Not Evaluated
+    remarks: Handled by the platform for native views. DA-08 inspects it.
+
+  - clause: "11.5.2.17"
+    name: Modifications of values and text
+    status: Not Evaluated
+    remarks: Handled by the platform for native views. DA-08 inspects it.
+
+  - clause: "11.6.2"
+    name: No disruption of accessibility features
+    status: Supports
+    tests:
+      - "apps/mobile/src/lib/prefs/appearance.test.ts::null follows the phone exactly"
+      - "apps/mobile/e2e/appearance.spec.ts::useFontScale reads the stored step and the OS value, and nothing else"
+      - "apps/mobile/e2e/appearance.spec.ts::useReducedMotion folds the stored override in"
+      - "apps/mobile/e2e/appearance.spec.ts::useScheme resolves the stored override, and useTheme goes through it"
+    remarks: >-
+      The app follows the OS text size, colour scheme and reduce-motion settings.
+      Its own controls replace or add to them only when the patient chooses to,
+      and the motion control can only add reduction.
+
+  - clause: "11.7"
+    name: User preferences
+    status: Partially Supports
+    tests:
+      - "apps/mobile/src/lib/prefs/appearance.test.ts::null follows the phone exactly"
+      - "apps/mobile/e2e/appearance.spec.ts::useScheme resolves the stored override, and useTheme goes through it"
+      - "apps/mobile/e2e/motion.spec.ts::the root mounts ReducedMotionConfig from the app policy"
+    manual: [MC-20]
+    finding: >-
+      The OS increase-contrast and bold-text preferences are not read. The
+      palette is fixed and the app bundles its own typefaces.
+    remarks: Colour scheme, text size and reduce-motion follow the platform settings.
+
+  - clause: "11.8"
+    name: Authoring tools (11.8.1 to 11.8.5)
+    status: Not Applicable
+    manual: [MC-22]
+    remarks: The app offers no authoring of content for other people. The system builds the clinical note from the patient's answers.
+
+  - clause: "12.1.1"
+    name: Accessibility and compatibility features
+    status: Does Not Support
+    manual: [MC-23]
+    finding: No product documentation lists the app's accessibility features or explains how to use them.
+    remarks: >-
+      Writing that documentation means writing patient-facing Turkish copy, which
+      belongs to the owner and counsel. §1 to §3 of this report hold the facts it
+      needs. INT-144's statement placed this obligation under clause 11.6, which
+      concerns platform software.
+
+  - clause: "12.1.2"
+    name: Accessible documentation
+    status: Not Applicable
+    manual: [MC-23]
+    remarks: No product documentation is provided yet. This clause applies to the 12.1.1 documentation once it exists.
+
+  - clause: "12.2.2"
+    name: Information on accessibility and compatibility features
+    status: Not Applicable
+    manual: [MC-23]
+    remarks: >-
+      No support service is offered. The accessibility statement's feedback
+      channel, which the Genelge requires regardless, is waiting on the owner
+      (`docs/legal/accessibility-statement.md` §5).
+
+  - clause: "12.2.3"
+    name: Effective communication
+    status: Not Applicable
+    manual: [MC-23]
+    remarks: No support service is offered (see 12.2.2).
+
+  - clause: "12.2.4"
+    name: Accessible documentation
+    status: Not Applicable
+    manual: [MC-23]
+    remarks: No support service is offered (see 12.2.2).
+
+# ----------------------------------------------------------------- contrast
+# Pairs measured from apps/mobile/src/lib/theme.ts every time the report
+# renders. `required` is the WCAG threshold for the use named.
+
+contrast:
+  "1.4.3":
+    - {scheme: light, fg: inkFaint, bg: background, required: 4.5, use: "13 pt caption on the screen ground"}
+    - {scheme: light, fg: inkFaint, bg: surface, required: 4.5, use: "13 pt caption on a card"}
+    - {scheme: light, fg: inkFaint, bg: surfaceRaised, required: 4.5, use: "13 pt caption on a raised chip or well"}
+    - {scheme: dark, fg: inkFaint, bg: background, required: 4.5, use: "13 pt caption on the screen ground"}
+    - {scheme: dark, fg: inkFaint, bg: surface, required: 4.5, use: "13 pt caption on a card"}
+    - {scheme: dark, fg: inkFaint, bg: surfaceRaised, required: 4.5, use: "13 pt caption on a raised chip or well"}
+    - {scheme: light, fg: success, bg: successSoft, required: 4.5, use: "the filed-status chip"}
+    - {scheme: dark, fg: success, bg: successSoft, required: 4.5, use: "the filed-status chip"}
+  "1.4.11":
+    - {scheme: light, fg: border, bg: surface, required: 3.0, use: "unselected chip hairline against the chip fill"}
+    - {scheme: light, fg: border, bg: background, required: 3.0, use: "unselected chip hairline against the screen ground"}
+
+# ----------------------------------------------------------------- device audit
+
+device_audit:
+  owner: owner
+  status: pending
+  purpose: >-
+    Each Not Evaluated row turns on something only a device can show: what a
+    screen reader announces, where focus goes, or what a keyboard reaches. Each
+    item below is a scripted walkthrough, run on a release build on a physical
+    iPhone with VoiceOver and a physical Android phone with TalkBack unless the
+    item says otherwise. For each item, record the device, OS version, build,
+    date and what was observed. Then set the rows it decides to the status the
+    observation supports, and re-render. Items also list the Supports rows they
+    confirm; an observation that contradicts one of those changes it too.
+  items:
+    DA-01:
+      title: Reading order and arrival on each screen
+      platforms: [iPhone with VoiceOver, Android phone with TalkBack]
+      decides: ["1.3.2", "2.4.2"]
+      confirms: ["1.3.1", "1.3.3"]
+      steps: >-
+        On every screen in the route tree, swipe from the first element to the
+        last. Record whether the order matches the visual and logical order,
+        especially on the dialogue screen (transcript, section strip, CTA stack,
+        composer). Navigate into every screen and record the first thing
+        announced: the navigator title, or the in-body heading on the intake
+        and review flows. Open the headings rotor on three screens and record
+        what it lists. On the three screens whose copy says "aşağıdaki", confirm
+        that the content referred to follows in reading order.
+    DA-02:
+      title: Keyboard, Switch Control and a visible focus
+      platforms:
+        - iPhone with Full Keyboard Access and Switch Control
+        - Android phone with a hardware keyboard and Switch Access
+      decides: ["2.1.1", "2.1.2", "2.4.7"]
+      confirms: ["4.1.2"]
+      steps: >-
+        With an external keyboard, then with switch access, reach and activate
+        every control on every screen. Include the section sheet, the consent
+        switch's custom action, the OTP boxes and the dialogue composer. Record
+        any control that cannot be reached or activated, any place focus cannot
+        leave, and whether the focus indicator is visible on each control in
+        both colour schemes.
+    DA-03:
+      title: Focus order and the section sheet
+      platforms: [iPhone with VoiceOver, Android phone with TalkBack]
+      decides: ["2.4.3"]
+      steps: >-
+        In the dialogue, open and close the section sheet. Record where focus
+        lands on open and on close. Move through the phone, OTP and new-visit
+        forms and record the focus order, including the jump the OTP screen makes
+        after each digit.
+    DA-04:
+      title: Changes of context on focus and on input
+      platforms: [iPhone with VoiceOver, Android phone with TalkBack]
+      decides: ["3.2.1", "3.2.2"]
+      steps: >-
+        Enter a code on the OTP screen and record what is announced when focus
+        advances after each digit, and whether the patient can tell where they
+        are. Move focus across every control on the new-visit and review screens
+        without activating anything, and record any change of screen, sheet or
+        content.
+    DA-05:
+      title: Largest text, reflow and landscape
+      platforms: [iPhone, Android phone]
+      decides: ["1.4.10"]
+      confirms: ["1.3.4", "1.4.4"]
+      steps: >-
+        Set the OS text size to its largest accessibility size, then, separately,
+        choose the app's largest text-size step. On every screen, record clipped
+        or overlapping text, controls pushed off screen, and any need to scroll in
+        two directions. Then hold the phone in landscape (INT-360) and walk every
+        screen again with both text settings, on a 6.1-inch phone and on the
+        smallest phone available. Take a screenshot of each screen. Include the
+        sign-in screens, the tab screens, the intake's typed steps, the
+        dialogue with the keyboard up in the composer and on a typed text
+        answer, the section sheet, and the review screen. Include the kiosk
+        warning and staff bar once kiosk mode can be armed. Record any screen
+        that stays in portrait when the phone turns, any control the keyboard
+        hides while its field has focus, and anything under the notch.
+    DA-06:
+      title: Focus under the glass bars
+      platforms:
+        - iPhone with Full Keyboard Access
+        - Android phone with a hardware keyboard
+      decides: ["2.4.11"]
+      steps: >-
+        With keyboard focus, move through the review screen and the dialogue.
+        Record any focused control that is entirely hidden behind the glass bar.
+    DA-07:
+      title: One-time code entry
+      platforms: [iPhone, Android phone]
+      decides: []
+      confirms: ["3.3.8"]
+      steps: >-
+        With a real SMS code on each platform: (a) with focus in the first box,
+        take the keyboard's code suggestion (iOS "From Messages", or Android's SMS
+        suggestion if one appears); (b) copy the code from the messages app and
+        paste it into the first box. Record what each of the six boxes holds
+        after each attempt.
+    DA-08:
+      title: Announcements and the platform accessibility tree
+      platforms:
+        - iPhone with VoiceOver and Xcode Accessibility Inspector
+        - Android phone with TalkBack and Accessibility Scanner
+      decides:
+        - EN 11.5.2.9
+        - EN 11.5.2.13
+        - EN 11.5.2.14
+        - EN 11.5.2.15
+        - EN 11.5.2.16
+        - EN 11.5.2.17
+      confirms: ["2.2.1", "3.1.1", "3.3.1", "4.1.2", "4.1.3"]
+      steps: >-
+        Trigger every error and status line on both platforms, and record whether
+        each is spoken once, errors with "Hata" first: every line in the table in
+        `docs/evidence/INT-362.md` (the four screens' errors, the Doctor Link
+        error, the record card's notices, the kiosk PIN lines and the write
+        failures among them), the dialogue's listening, speaking and transcribing
+        states, and the records upload, scan and reading lines. Send a note,
+        and with the device offline change a consent and a notification
+        setting. Record that each outcome line is spoken once when it happens
+        (the notification line with "Hata" first) and is not spoken when its
+        screen is opened again or while the change is still on its way. Once
+        kiosk mode can be armed (the dev build, HB-A3), leave an armed session
+        untouched for 40 seconds. Record whether the idle warning is spoken in
+        full, whether focus lands on its "Devam edin" button, and whether one
+        double-tap keeps the session. Set
+        the app language differently from the device language and record whether
+        each reader uses the right voice. Inspect the running app with the
+        platform inspector for the section sheet, the consent list and the intake
+        chips. Record the parent-child structure exposed, whether focus and
+        selection changes are reported, whether state and value changes are
+        notified, and whether assistive technology can set them.
+
+# ----------------------------------------------------------------- manual checks
+# Each check was performed on the assessed tree on the date given. `method` is
+# the command run or the file read; `result` is what it showed.
+
+manual_checks:
+  MC-01:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rnE '<Image[ />]|ImageBackground|from \"expo-image\"' apps/mobile/src`"
+    result: >-
+      No matches. The only image-related import is `expo-image-picker` in
+      `records.tsx`, which captures a document and renders no image.
+  MC-02:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rnE 'expo-video|<Video|expo-av' apps/mobile/src`; `grep -rln createAudioPlayer apps/mobile/src`"
+    result: >-
+      No video or synchronised-media component. Audio playback appears only in
+      `src/lib/dialogue/useDialogueSession.ts`, for the agent's speech.
+  MC-03:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      `grep -niE 'sağdaki|soldaki|yukarıdaki|aşağıdaki|yuvarlak|kırmızı|yeşil|mavi|turuncu'
+      apps/mobile/src/lib/i18n/tr.ts`, the English equivalents in `en.ts`, each
+      hit read in context
+    result: >-
+      Three Turkish strings (and their English mirrors) refer to content
+      "aşağıdaki" (below), which renders next on the same screen. "On the
+      right/left side" are symptom answer options, not instructions. No
+      instruction depends on shape, colour, size or position alone.
+  MC-04:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "Read `apps/mobile/app.json`; `grep -rnE 'ScreenOrientation|lockAsync' apps/mobile/src`"
+    result: >-
+      `"orientation": "portrait"` under `expo`, which locks both platforms to
+      portrait. No code changes it (0 matches).
+  MC-05:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Every `<TextInput>` under `apps/mobile/src` (7 files) read with its label
+      and props; `grep -rnE 'autoComplete=|textContentType=' apps/mobile/src`
+    result: >-
+      Fields: phone number, OTP boxes, MHRS SMS paste, hospital, branch search,
+      visit date, intake free-text answers, dialogue composer, Doctor Link
+      recipient, kiosk PIN. Only the phone number collects information about the
+      patient from the WCAG 2.2 input-purpose list. It declares
+      `autoComplete="tel"` and `textContentType="telephoneNumber"`.
+  MC-06:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rnE 'WebView|react-native-webview|markdown' apps/mobile/src`"
+    result: No matches. The interface is native views, and no content is implemented in a markup language.
+  MC-07:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rnE 'onHoverIn|onHoverOut|onFocus=|Tooltip' apps/mobile/src`"
+    result: No matches. Nothing appears on hover or focus.
+  MC-08:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rnE 'setTimeout|setInterval' apps/mobile/src`, test files excluded, each hit read"
+    result: >-
+      `otp.tsx` holds the resend cooldown, the only timer in a screen or
+      component. Request deadlines and retry delays sit in `lib/extract.ts`,
+      `lib/dialogue/tts.ts`, `lib/dialogue/ttsLane.ts`,
+      `lib/dialogue/georgeClip.ts`, `lib/auth/expoApiBase.ts`,
+      `lib/livekit/session.ts` and `lib/dev/hosts.ts`; none limits the patient's
+      time to respond. The barge-in level meter is in
+      `lib/dialogue/useDialogueSession.ts`. Kiosk mode's idle wipe is in
+      `lib/kiosk/nativeKiosk.ts` (`KIOSK_IDLE_WIPE_MS = 60_000`, no warning, no
+      extension). It cannot run while `readKioskProvisioning` returns null.
+  MC-09:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: Read `apps/mobile/src/app/(tabs)/_layout.tsx` and the route files under `apps/mobile/src/app`
+    result: >-
+      The tab rail is rendered once, by the tabs layout (`tabBar={(props) =>
+      <FloatingTabBar {...props} />}`). No screen repeats a block of content that
+      another screen carries.
+  MC-10:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rn 'visits/${' apps/mobile/src/app`, and every route file read for its entry points"
+    result: >-
+      A visit's detail screen is linked from `today.tsx` and `visits/index.tsx`.
+      `records.tsx` links only to `visits/new`. The screens under Profilim are
+      reached one way, through Profilim.
+  MC-11:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rn onPressIn apps/mobile/src`"
+    result: No matches.
+  MC-12:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Both catalogues searched for a help, support or contact affordance (help,
+      support, contact, yardım, destek, iletişim), each hit read
+    result: >-
+      None is a help mechanism. The hits are a satisfaction reason chip
+      ("Yardımcı oldu") and unsupported-device messages.
+  MC-13:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Every error string in `apps/mobile/src/lib/i18n/tr.ts` read (`auth.error.*`,
+      `records.err.*`, `shares.issue.error.*`, `visits.new.sms*`)
+    result: >-
+      Each names the correction or the next step, for example "Kodu kontrol edin
+      ya da yeni kod isteyin", "PDF, JPEG veya PNG seçin", "Vizit tarihini
+      ekleyin" and "Listeden siz seçin". The generic auth errors are generic by
+      design (files/02 §8.2).
+  MC-14:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      `grep -rn 'type: "send"' apps/mobile/src`, test files excluded; read
+      `visits/[visitId]/review.tsx` and `me/data.tsx`
+    result: >-
+      The note is sent only from the review screen's call to action, below the
+      whole note and its per-section share switches. Erasure on the data screen
+      takes two taps (arm, then confirm) and can be withdrawn during its grace
+      period.
+  MC-15:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Read `(auth)/phone.tsx`, `(auth)/otp.tsx` (`setPendingPhone`,
+      `getPendingPhone`) and `visits/new.tsx` (`parseMhrsSms`)
+    result: >-
+      The phone number entered on the phone screen reaches the OTP screen and is
+      not asked again. The MHRS SMS paste fills the new-visit form.
+  MC-16:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Read `apps/mobile/src/app/(auth)/otp.tsx`; `grep -rnE 'sms-otp|one-time-code'
+      apps/mobile/src`
+    result: >-
+      Six `TextInput` boxes, each with `maxLength={1}` and
+      `textContentType="oneTimeCode"`. `setDigit` keeps only the last character
+      it receives (`value.replace(/\D/g, "").slice(-1)`) and moves focus to the
+      next box. Nothing spreads a pasted or autofilled code across the boxes.
+      No Android SMS-code autofill is declared (0 matches). A six-digit SMS code
+      must be typed digit by digit.
+  MC-17:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rn ' live=\"' apps/mobile/src` compared against `grep -rn 'useLiveAnnouncement(' apps/mobile/src`"
+    result: >-
+      The phone, OTP, new-visit and records screens and the dialogue call
+      `useLiveAnnouncement`, the half VoiceOver hears. `visits/[visitId]/issue-link.tsx`,
+      `components/ConfirmCard.tsx` and `components/KioskGate.tsx` set
+      `live="assertive"` on an error line, and `components/RecordReading.tsx`
+      sets `live="polite"` on its progress line, and none of them calls it. Those
+      lines are announced on Android only.
+  MC-18:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: "`grep -rn nameTr apps/mobile/src --include='*.tsx'`; read `components/Themed.tsx` (`SPEECH_LANGUAGE`)"
+    result: >-
+      `visits/new.tsx` renders `branch.nameTr` as visible text and as a control's
+      `accessibilityLabel` in every locale. `AppText` tags it with the active
+      catalogue's language, which is `en-GB` under English.
+  MC-19:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Read `apps/mobile/src/lib/auth/biometrics.ts` and `components/BiometricGate.tsx`;
+      `grep -rn disableDeviceFallback apps/mobile/src`
+    result: >-
+      `authenticateAsync({ promptMessage })` is called without
+      `disableDeviceFallback` (0 matches), so the platform prompt keeps its
+      passcode fallback. With no hardware or no enrolment, the gate passes
+      through.
+  MC-20:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      `grep -rnE 'isBoldTextEnabled|HighTextContrast|increaseContrast|PlatformColor|DynamicColorIOS'
+      apps/mobile/src`; read the font setup in `components/Themed.tsx`
+    result: >-
+      No matches. The app loads bundled typefaces. Colour scheme, text size and
+      reduce-motion are read (see the cited tests); increase-contrast and bold
+      text are not.
+  MC-21:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: Every component under `apps/mobile/src/components` read for tabular data
+    result: >-
+      None presents data in rows and columns. The "grouped-table" anatomy of
+      `SectionPanel` is a vertical list of rows.
+  MC-22:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: Product scope read against EN 301 549 V3.2.1 clause 11.8 (authoring tools)
+    result: >-
+      The patient answers questions, and the system builds the clinical note.
+      The app offers no authoring of content, in any content technology, for
+      other people to use.
+  MC-23:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      `apps/mobile` and `docs/` searched for user documentation and for a support
+      channel; `docs/legal/accessibility-statement.md` §5 read
+    result: >-
+      No product documentation of accessibility features exists in the app or
+      the repository, and no support service is offered. The statement's
+      feedback channel is waiting on the owner.
+  MC-24:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Chip styles read in `visits/[visitId]/intake.tsx` and `visits/new.tsx`;
+      contrast of the tokens computed in §4
+    result: >-
+      In light mode an unselected chip is a `surface` fill with a `border`
+      hairline (`intake.tsx`: `backgroundColor: on ? theme.primarySoft :
+      theme.surface`, `borderColor: on ? theme.primary : dark ? "transparent" :
+      theme.border`). `surface` on `background` is about 1.06 : 1 in light mode,
+      so the hairline is the only boundary.
+  MC-25:
+    date: 2026-09-26
+    by: INT-226 engineering pass
+    method: >-
+      Every Pressable whose only child is a glyph read for its width (files that
+      import a symbol component: `DialogueIntake.tsx`, `FloatingTabBar.tsx`,
+      `ListRow.tsx`, `Segmented.tsx`, `SectionPanel.tsx`, `VisitCard.tsx`,
+      `GuidanceBlock.tsx`, `me/consents/[purpose].tsx`)
+    result: >-
+      Two controls carry no text. The dialogue send button is 44 × 44
+      (`styles.sendButton`). The tab items are at least 54 wide, and
+      `minWidth: MIN_TAP` (44) when collapsed. Every other Pressable carries
+      visible text at row or chip width.
+  MC-26:
+    date: 2026-09-27
+    by: INT-387 re-assessment
+    method: >-
+      The three lines INT-362 left unrouted (`docs/evidence/INT-362.md`, "Deliberately
+      not routed"): `grep -rn 'notifications.pending\|review.sentInfo\|consent.queue.note'
+      apps/mobile/src`, test files excluded, each hit read in context; read
+      `saveNotificationPrefs` in `apps/mobile/src/lib/notifications/store.ts`
+    result: >-
+      Five hits, each a plain `AppText` with no live region and outside
+      `AnnouncedText` and `AnnouncedRegion`: `me/notifications.tsx`
+      (`notifications.pending`, shown while `pending`),
+      `visits/[visitId]/review.tsx` and `visits/[visitId]/index.tsx`
+      (`review.sentInfo`, shown once the note's status is sent), and
+      `me/consents/index.tsx` and `me/consents/[purpose].tsx`
+      (`consent.queue.note`, shown while a consent change waits in the queue).
+      The store sets `pending: true` before every save and keeps it when the
+      server does not confirm, so the one flag means both "in flight" and
+      "failed".

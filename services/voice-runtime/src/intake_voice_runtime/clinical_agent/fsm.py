@@ -296,6 +296,11 @@ class IntakeEngine:
         Only ``ASKED_PRESENT`` / ``ASKED_ABSENT`` carry a readable value —
         the same three-valued reading ``protocols.triage.context`` applies,
         so a gate and a red-flag predicate agree about every slot.
+
+        ``ref`` is always a step id: the plan rewrote every gate atom to its
+        ``<section>.<slot>`` at build, bare names included (INT-355), so a
+        name that reaches this lookup and misses is a slot not yet answered,
+        never a spelling the engine failed to resolve.
         """
         if self._states.get(ref) not in {
             AnswerState.ASKED_PRESENT,

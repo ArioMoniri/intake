@@ -1,0 +1,137 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/sualti_ve_hiperbarik_tip.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.sualti_ve_hiperbarik_tip
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Sualtı ve Hiperbarik Tıp ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sualtı ve hiperbarik tıp polikliniğine gelme nedeniniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+  sorular:
+    slots:
+      dalis_deneyimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce hiç tüplü dalış ya da serbest dalış yaptınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      vurgun_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dalıştan sonra daha önce vurgun ya da benzeri bir rahatsızlık geçirdiniz mi?
+        ask_if: dalis_deneyimi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      dalista_kulak_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dalış sırasında ya da sonrasında kulağınızda ağrı, işitme azalması veya çınlama oldu mu?
+        ask_if: dalis_deneyimi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      dalis_sonrasi_ucus:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dalıştan kısa süre sonra uçağa bindiğiniz oluyor mu?
+        ask_if: dalis_deneyimi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      basinc_esitleme_zorlugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kulaklarınızdaki basıncı eşitlemekte, örneğin uçak inerken, zorlandığınız olur mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      guncel_ust_solunum_sikayeti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda nezle, burun tıkanıklığı ya da sinüs şikâyetiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      akciger_sonmesi_gogus_ameliyati:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce akciğer sönmesi ya da göğüs ameliyatı geçirdiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      nobet_bayilma_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce hiç sara, yani epilepsi nöbeti ya da nedeni bilinmeyen bayılma geçirdiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      kapali_alan_huzursuzluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kapalı ya da dar alanlarda bulunmak sizi çok huzursuz eder mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      iyilesmeyen_yara:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: İyileşmesi uzun süren ya da kapanmayan bir yaranız var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      ani_isitme_azalmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda işitmenizde ani bir azalma oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+      onceki_isin_tedavisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce vücudunuzun herhangi bir bölgesine ışın tedavisi uygulandı mı?
+        follow_up_tr:
+          tr: Daha önce radyoterapi aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md'
+red_flags:
+- id: rf.sualti_ve_hiperbarik_tip_l0_taslak
+  label_tr: Sualtı ve Hiperbarik Tıp ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: sualti_ve_hiperbarik_tip branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/sualti_ve_hiperbarik_tip.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

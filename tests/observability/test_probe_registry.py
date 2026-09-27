@@ -27,6 +27,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 from intake_probes.app import create_app
+from intake_probes.gate import ProbeResultRecord
 from intake_probes.probes import (
     Failed,
     Ok,
@@ -45,6 +46,7 @@ from intake_probes.probes import (
 )
 from intake_probes.registry import ProbeId, Registry, load_registry
 from intake_probes.runner import (
+    SWEEP_INTERVAL_S,
     DevProbeConfig,
     ProbeStatus,
     build_dev_clients,
@@ -247,6 +249,80 @@ def test_voxcpm2_licence_is_verified_from_a_named_blob_not_a_card_tag() -> None:
     note = entry.licence_note.lower()
     assert "no license" in note, "the note must say plainly that the HF repo carries no LICENSE"
     assert "openbmb/voxcpm" in note, "the note must say where the blob came from"
+
+
+# --- INT-124: files/03 §4.9.1 row 9, the extraction LLM ----------------------------
+
+_ROW9 = "qwen3.6-35b-a3b"
+_ROW9_REVISION = "995ad96eacd98c81ed38be0c5b274b04031597b0"
+
+
+def test_row9_is_pinned_by_revision_and_all_26_weight_shards() -> None:
+    entry = load_registry(REGISTRY_PATH).get(_ROW9)
+    assert entry.model_id == "Qwen/Qwen3.6-35B-A3B"
+    assert entry.revision == _ROW9_REVISION
+    assert entry.weights_sha256 is not None
+    assert sorted(entry.weights_sha256) == [
+        f"model-{n:05d}-of-00026.safetensors" for n in range(1, 27)
+    ]
+    assert entry.weights_sha256["model-00001-of-00026.safetensors"] == (
+        "adee7bcb930aed22e0677e58d4873b48dadb1ed8001cb5c6a0487286eadb3478"
+    )
+    assert entry.weights_sha256["model-00026-of-00026.safetensors"] == (
+        "1a97404220077ed3d4182e10385b152004cab608377f50cec9f54a6b8d28b613"
+    )
+
+
+def test_row9_licence_is_the_raw_blob_at_the_pinned_revision() -> None:
+    entry = load_registry(REGISTRY_PATH).get(_ROW9)
+    assert entry.licence_verified_at == date(2026, 9, 27)
+    assert entry.licence_blob_url == (
+        f"https://huggingface.co/Qwen/Qwen3.6-35B-A3B/raw/{_ROW9_REVISION}/LICENSE"
+    )
+    assert entry.licence_blob_sha256 == (
+        "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32"
+    )
+    assert entry.licence_note is not None
+    note = entry.licence_note.lower()
+    assert "apache" in note and "lfs" in note, "the note must say what was read and where"
+
+
+def test_row9_is_on_the_phi_path_and_served_by_no_host() -> None:
+    """Invariant 19: self-hostable, on the PHI path, and not running anywhere
+    — so the release gate does not treat it as enabled, and the probe says so."""
+    entry = load_registry(REGISTRY_PATH).get(_ROW9)
+    assert (entry.self_hostable, entry.phi_path, entry.self_hosted_now) == (True, True, False)
+    assert entry.probe is ProbeId.HTTP_HEALTH
+    # no served fallback exists, and a cloud one may not (invariant 19)
+    assert entry.fallback == "none"
+    assert "INT-381" in entry.host
+
+
+def _row9_config(tmp_path: Path, env: dict[str, str], status: int = 200) -> DevProbeConfig:
+    return DevProbeConfig(
+        env={"INTAKE_BACKUP_DIR": str(tmp_path), **env},
+        http_transport=httpx.MockTransport(lambda request: httpx.Response(status)),
+        redis_client=fakeredis.FakeRedis(),
+        postgres_select1=lambda: 1,
+    )
+
+
+def test_row9_probe_reports_unavailable_while_no_host_serves_it(tmp_path: Path) -> None:
+    registry = load_registry(REGISTRY_PATH)
+    clients = build_dev_clients(registry, _row9_config(tmp_path, {}))
+    outcome = clients[_ROW9]()
+    assert isinstance(outcome, Skipped)
+    assert "unavailable" in outcome.reason and "INT-381" in outcome.reason
+    results = {result.component: result for result in run_probes_once(registry, clients)}
+    assert results[_ROW9].status is ProbeStatus.SKIPPED
+
+
+def test_row9_probe_checks_health_once_a_host_is_named(tmp_path: Path) -> None:
+    registry = load_registry(REGISTRY_PATH)
+    env = {"INTAKE_LAB_EXTRACTION_HEALTH_URL": "http://127.0.0.1:8811/health"}
+    assert isinstance(build_dev_clients(registry, _row9_config(tmp_path, env))[_ROW9](), Ok)
+    failing = build_dev_clients(registry, _row9_config(tmp_path, env, status=503))
+    assert isinstance(failing[_ROW9](), Failed)
 
 
 def test_declaring_a_model_id_requires_the_full_pin() -> None:
@@ -629,8 +705,51 @@ def test_run_probes_once_survives_a_raising_client() -> None:
 def test_probe_result_serialises_to_the_gate_wire_shape() -> None:
     registry = _registry(_entry(component="up", probe="redis_ping"))
     record = run_probes_once(registry, {"up": lambda: Ok("pong")})[0].to_json()
-    assert set(record) == {"component", "probe", "status", "latency_ms", "detail"}
+    assert set(record) == {"component", "probe", "status", "latency_ms", "detail", "checked_at"}
     assert record["status"] == "healthy"
+
+
+# --- INT-181: every result says WHEN it was taken ------------------------------------
+
+
+def test_every_result_is_stamped_with_the_instant_its_probe_started() -> None:
+    """The reliability console shows each probe's last result AND its age; an
+    age needs an instant the runner itself recorded, not the file's mtime."""
+    registry = _registry(
+        _entry(component="up", probe="redis_ping"),
+        _entry(component="unwired", probe="http_health"),
+    )
+    instants = iter(
+        [datetime(2026, 9, 27, 9, 0, 0, tzinfo=UTC), datetime(2026, 9, 27, 9, 0, 1, tzinfo=UTC)]
+    )
+    results = run_probes_once(registry, {"up": lambda: Ok("pong")}, now=lambda: next(instants))
+    wire = [result.to_json() for result in results]
+    assert [row["checked_at"] for row in wire] == ["2026-09-27T09:00:00Z", "2026-09-27T09:00:01Z"]
+
+
+def test_the_stamp_round_trips_through_the_gate_record() -> None:
+    registry = _registry(_entry(component="up", probe="redis_ping"))
+    at = datetime(2026, 9, 27, 9, 0, 0, tzinfo=UTC)
+    wire = run_probes_once(registry, {"up": lambda: Ok("pong")}, now=lambda: at)[0].to_json()
+    assert ProbeResultRecord.model_validate(wire).checked_at == at
+
+
+def test_a_results_file_written_before_the_stamp_still_parses_without_one() -> None:
+    # near-miss: the field is new, so an older sweep must read as "instant
+    # unknown" rather than fail the release gate that reads the same file
+    legacy = {
+        "component": "up",
+        "probe": "redis_ping",
+        "status": "healthy",
+        "latency_ms": 1.0,
+        "detail": "pong",
+    }
+    assert ProbeResultRecord.model_validate(legacy).checked_at is None
+
+
+def test_the_sweep_interval_is_one_named_constant() -> None:
+    # files/10 §6: "every 60 s" — the console derives staleness from this
+    assert SWEEP_INTERVAL_S == 60
 
 
 # --- dev client composition ---------------------------------------------------------
@@ -792,8 +911,17 @@ def test_runner_main_once_writes_the_wire_shape(tmp_path: Path) -> None:
     records = json.loads(out.read_text(encoding="utf-8"))
     assert {r["component"] for r in records} == {e.component for e in load_registry(REGISTRY_PATH)}
     for record in records:
-        assert set(record) == {"component", "probe", "status", "latency_ms", "detail"}
+        assert set(record) == {
+            "component",
+            "probe",
+            "status",
+            "latency_ms",
+            "detail",
+            "checked_at",
+        }
         assert record["status"] in {"healthy", "unhealthy", "skipped"}
+        # INT-181: every row of a real sweep says when it was taken
+        assert datetime.strptime(record["checked_at"], "%Y-%m-%dT%H:%M:%SZ")
 
 
 def test_runner_main_once_prints_to_stdout_without_out(capsys: pytest.CaptureFixture[str]) -> None:

@@ -125,6 +125,30 @@ def test_motion_adr_records_each_open_question_awaiting_its_owner() -> None:
         assert "Meanwhile" in line, f"ADR-033 {qid} states no fail-closed default"
 
 
+def test_motion_adr_recommendations_do_not_ratify() -> None:
+    """Each open question carries a recommended resolution, and a
+    recommendation leaves the question open: the owner or the ClinicalAuthor
+    still answers it, so its row stays awaiting-human and the ADR Proposed."""
+    text = _adr_file(33).read_text(encoding="utf-8")
+    section = re.search(r"^### 9\. Recommended resolution.*?(?=^## |\Z)", text, re.M | re.S)
+    assert section, "ADR-033 has no recommended-resolution section"
+    body = section.group(0)
+    assert "not a ratification" in body
+    for qid in MOTION_QUESTION_OWNERS:
+        rec = re.search(rf"^\*\*{qid} — Recommended resolution:\*\*\s*(.+)$", body, re.M)
+        assert rec, f"ADR-033 has no recommended resolution for {qid}"
+        # Grounded: every recommendation cites Apple's guidance or the spec.
+        para = body[rec.start() : body.find("\n\n", rec.start())]
+        assert re.search(
+            r"developer\.apple\.com/design/human-interface-guidelines|files/02", para
+        ), f"ADR-033 {qid} recommendation cites neither Apple's HIG nor files/02"
+    # The recommendation changes no status: the rows and the Status line hold.
+    assert re.search(r"^Status:\s+Proposed", text, re.M)
+    for qid in MOTION_QUESTION_OWNERS:
+        row = re.search(rf"^\|\s*\*\*{qid}\*\*\s*\|.*$", text, re.M)
+        assert row and "awaiting-human" in row.group(0)
+
+
 def test_blueprint_files_present() -> None:
     files = REPO / "files"
     expected = [

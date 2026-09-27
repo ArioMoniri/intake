@@ -10,13 +10,21 @@ in context with INT-132/INT-038, so every clinical read stays behind the
 consent gate from the first second (invariant 4).
 
 Honest tiering:
-- SMS delivery: no vendor contract exists (awaiting-human). The ONLY
-  adapter is :class:`DevLogDeliveryAdapter`, which records a delivery EVENT
-  (ids only — never the code, never the phone) and claims nothing more; the
-  code is reachable solely through the peek endpoint behind
-  ``INTAKE_DEV_OTP_PEEK=explicit-yes``. A vendor lands by implementing
-  :class:`OtpDeliveryAdapter` against the contract.
-- Attestation: the verifier seam fails closed (attestation.py).
+- SMS delivery (INT-329): the seam is :class:`OtpDeliveryAdapter`, and it is
+  async so a vendor call never holds the event loop. Dev wires
+  :class:`DevLogDeliveryAdapter`, which records a delivery EVENT (ids only —
+  never the code, never the phone) and claims nothing more; the code is
+  reachable solely through the peek endpoint behind
+  ``INTAKE_DEV_OTP_PEEK=explicit-yes``. Outside dev the only adapter is
+  ``intake_api.otp_twilio``, wired only when its credentials are in OpenBao
+  and the egress policy admits the vendor (the owner's DPA and cross-border
+  decision), otherwise the tier stays 503. A failed delivery is a typed
+  :class:`OtpDeliveryError` and a generic 503, never a claimed "sent".
+- Attestation (INT-344): iOS registers an App Attest key once
+  (``/attest/key``) and signs every OTP call with an assertion from it; the
+  verifier is real when the Apple team id is configured and fails closed with
+  a typed reason when it is not. Android fails closed until HB-A3
+  (attestation.py, app_attest.py, play_integrity.py).
 """
 
 from __future__ import annotations
@@ -30,6 +38,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Protocol
 
 import redis
@@ -39,7 +48,16 @@ from intake_platform.tokenization import Tokenizer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from intake_api.attestation import AttestationPayload, AttestationVerifier, parse_attestation
+from intake_api.attestation import (
+    AttestationPayload,
+    AttestationReason,
+    AttestationVerifier,
+    AttestPurpose,
+    FailClosedAttestationVerifier,
+    KeyAttestationRegistrar,
+    attestation_client_data,
+    parse_attestation,
+)
 from intake_api.audit import AuditWriter
 from intake_api.auth_store import (
     ACCESS_TTL_S,
@@ -60,6 +78,7 @@ from intake_api.errors import (
     challenge_invalid,
     dpop_invalid,
     not_found,
+    otp_delivery_unavailable,
     otp_invalid,
     otp_limited,
     phone_invalid,
@@ -75,6 +94,8 @@ __all__ = [
     "DevLogDeliveryAdapter",
     "OtpAuthService",
     "OtpDeliveryAdapter",
+    "OtpDeliveryError",
+    "OtpDeliveryFailure",
     "TokenBundle",
     "ensure_consumer_tenant",
     "normalise_tr_phone",
@@ -110,20 +131,52 @@ class DeliveryReceipt:
     delivery_id: str
 
 
-class OtpDeliveryAdapter(Protocol):
-    """The SMS seam. The vendor adapter implements this once a contract
-    exists (awaiting-human — docs/evidence/INT-131.md); until then only the
-    dev adapter below is wired, and it never claims an SMS went out."""
+class OtpDeliveryFailure(StrEnum):
+    """Why a delivery failed — an id-shaped vocabulary, safe to log."""
 
-    def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt: ...
+    EGRESS_DENIED = "egress_denied"
+    TIMEOUT = "timeout"
+    UNREACHABLE = "unreachable"
+    AUTH_FAILED = "auth_failed"
+    RATE_LIMITED = "rate_limited"
+    REJECTED = "rejected"
+    VENDOR_UNAVAILABLE = "vendor_unavailable"
+    MALFORMED_RESPONSE = "malformed_response"
+
+
+class OtpDeliveryError(Exception):
+    """The SMS vendor could not deliver the code (INT-329). The tier fails
+    closed: it never claims a code was sent. Carries a reason, the HTTP status
+    and the vendor's numeric error code — never the code, the phone, a
+    credential or a vendor body (invariant 6)."""
+
+    def __init__(
+        self,
+        reason: OtpDeliveryFailure,
+        *,
+        status_code: int | None = None,
+        vendor_code: int | None = None,
+    ) -> None:
+        self.reason = reason
+        self.status_code = status_code
+        self.vendor_code = vendor_code
+        super().__init__(f"otp delivery failed: {reason} (status {status_code or '-'})")
+
+
+class OtpDeliveryAdapter(Protocol):
+    """The SMS seam (INT-131; async since INT-329). ``send`` returns the
+    vendor's delivery id or raises :class:`OtpDeliveryError`."""
+
+    async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt: ...
 
 
 class DevLogDeliveryAdapter:
     """Records the delivery EVENT with ids only (invariant 6): no code, no
     phone, no vendor claim. The code is reachable exclusively through the
-    peek endpoint behind INTAKE_DEV_OTP_PEEK=explicit-yes."""
+    peek endpoint behind INTAKE_DEV_OTP_PEEK=explicit-yes. Dev only: outside
+    dev it is never wired (INT-325)."""
 
-    def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
+    async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
         del phone_e164, code  # never logged; the peek store is the only dev exposure
         receipt = DeliveryReceipt(delivery_id=uuid.uuid4().hex)
         logger.info(
@@ -149,6 +202,12 @@ class AuthWiring:
     # authority and therefore admits everything, which is the correct state for
     # a wiring nobody gave one to; the env path builds the file-backed one.
     carrier_geo: CarrierGeoCheck = field(default_factory=CarrierGeoCheck)
+    # INT-344: who registers App Attest keys. The default registers nobody.
+    key_attestation: KeyAttestationRegistrar = field(
+        default_factory=lambda: FailClosedAttestationVerifier(
+            AttestationReason.APP_ATTEST_NOT_CONFIGURED
+        )
+    )
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -204,27 +263,70 @@ class OtpAuthService:
         challenge = await asyncio.to_thread(self._store.issue_challenge)
         return {"challenge": challenge, "expires_in": CHALLENGE_TTL_S}
 
-    async def _require_attested(self, request: Request) -> AttestationPayload:
+    async def _consume(self, challenge: str) -> None:
+        """Spend the challenge BEFORE any verifier runs: single-use whatever the
+        outcome, so nobody retries verification against one challenge, and the
+        App Attest counter only ever moves under a live challenge (INT-344)."""
+        if not await asyncio.to_thread(self._store.consume_challenge, challenge):
+            raise challenge_invalid()
+
+    async def _require_attested(
+        self, request: Request, purpose: AttestPurpose
+    ) -> AttestationPayload:
         raw = request.headers.get(ATTESTATION_HEADER)
         if raw is None:
             raise attestation_required()
         payload = parse_attestation(raw)
         if payload is None:
             raise attestation_invalid()
-        result = self._wiring.attestation.verify(payload)
+        await self._consume(payload.nonce)
+        result = await asyncio.to_thread(
+            self._wiring.attestation.verify,
+            payload,
+            client_data=attestation_client_data(purpose, payload.nonce),
+        )
         if not result.ok:
             # ids-only breadcrumb; the reason code carries no device data
             logger.info("attestation refused reason=%s", result.reason)
             raise attestation_unverified()
-        if not await asyncio.to_thread(self._store.consume_challenge, payload.nonce):
-            raise challenge_invalid()
         return payload
+
+    async def register_attested_key(
+        self, key_id: str, attestation: str, challenge: str
+    ) -> dict[str, str]:
+        """App Attest key registration (INT-344): the attestation, bound to a
+        server challenge, proves a genuine instance of this app holds the key;
+        from then on its OTP calls carry assertions from that key."""
+        await self._consume(challenge)
+        result = await asyncio.to_thread(
+            self._wiring.key_attestation.register,
+            key_id,
+            attestation,
+            client_data=attestation_client_data("attest.key", challenge),
+        )
+        if not result.ok:
+            logger.info("app attest key registration refused reason=%s", result.reason)
+            raise attestation_unverified()
+        return {"key_id": key_id}
 
     def _require_phone(self, raw: str) -> tuple[str, str]:
         phone = normalise_tr_phone(raw)
         if phone is None:
             raise phone_invalid()
         return phone, self._tokenizer.pseudonym(phone)
+
+    def pseudonym_for(self, phone_raw: str) -> str | None:
+        """The pseudonym the OTP tier keys a patient by for a raw phone, or
+        ``None`` when it is not a Turkish mobile.
+
+        Same normalisation + tokenisation ``verify`` used to create the
+        account, exposed so an ownership check elsewhere (INT-318: is this the
+        caller's *own* number?) resolves the identical pseudonym rather than a
+        second, divergent one."""
+        phone = normalise_tr_phone(phone_raw)
+        if phone is None:
+            return None
+        return self._tokenizer.pseudonym(phone)
 
     async def _verify_proof(self, request: Request, access_token: str | None = None) -> str:
         header = request.headers.get("DPoP")
@@ -247,7 +349,7 @@ class OtpAuthService:
     # --- the OTP flow -----------------------------------------------------------------
 
     async def request_code(self, request: Request, phone_raw: str) -> dict[str, object]:
-        payload = await self._require_attested(request)
+        payload = await self._require_attested(request, "otp.request")
         phone, pseudonym = self._require_phone(phone_raw)
         ip = request.client.host if request.client is not None else "unknown"
         retry_after = await asyncio.to_thread(
@@ -273,7 +375,12 @@ class OtpAuthService:
             code_digest(pseudonym, code),
             code if self._wiring.dev_otp_peek else None,
         )
-        receipt = self._wiring.delivery.send(phone_e164=phone, code=code)
+        try:
+            receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
+        except OtpDeliveryError:
+            # the adapter logged the reason (ids only); the caller gets one
+            # generic code whatever the cause, and nothing was "sent"
+            raise otp_delivery_unavailable() from None
         await self._audit.record(
             actor=f"phone:{self._tokenizer.log_ref(phone)}",
             action="auth.otp.requested",
@@ -345,7 +452,7 @@ class OtpAuthService:
         )
 
     async def verify_code(self, request: Request, phone_raw: str, code: str) -> TokenBundle:
-        await self._require_attested(request)
+        await self._require_attested(request, "otp.verify")
         phone, pseudonym = self._require_phone(phone_raw)
         jkt = await self._verify_proof(request)
         verdict = await asyncio.to_thread(

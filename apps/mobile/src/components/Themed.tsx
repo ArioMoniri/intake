@@ -7,7 +7,7 @@
  * Oura/Tiimo signature); light-mode cards float on a soft wide shadow,
  * dark mode separates tonally.
  */
-import { type ComponentProps, type ReactNode } from "react";
+import { type ComponentProps, type ReactNode, type Ref } from "react";
 import {
   Platform,
   Pressable,
@@ -34,6 +34,7 @@ import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import {
   fonts,
   lineHeight,
+  motion,
   palette,
   radius,
   scaledSize,
@@ -169,8 +170,19 @@ interface AppTextProps {
    * that a sighted user notices by their position and colour. `assertive`
    * interrupts (a validation error the patient must fix before continuing);
    * `polite` waits for a gap (a background status).
+   *
+   * This is the ANDROID half only. Set it through `AnnouncedText`
+   * (src/components/Announced.tsx), which also posts the iOS announcement;
+   * e2e/a11y.spec.ts fails on a `live` set anywhere else (INT-362).
    */
   live?: "polite" | "assertive";
+  /**
+   * What a screen reader says for this line when it differs from the visible
+   * words — an error line is spoken with "Hata" first (SC 3.3.1). Set only by
+   * `AnnouncedText`, so the live region, the VoiceOver announcement and the
+   * element's own name all say the same thing.
+   */
+  spokenAs?: string;
   children: ReactNode;
 }
 
@@ -180,6 +192,7 @@ export function AppText({
   style,
   heading = false,
   live,
+  spokenAs,
   children,
 }: AppTextProps) {
   const theme = useTheme();
@@ -205,6 +218,7 @@ export function AppText({
       allowFontScaling={false}
       accessibilityRole={heading ? "header" : live !== undefined ? "alert" : undefined}
       accessibilityLiveRegion={live}
+      accessibilityLabel={spokenAs}
       accessibilityLanguage={SPEECH_LANGUAGE[getLocale()]}
       style={flat}
     >
@@ -311,6 +325,11 @@ interface ButtonProps {
    * (SC 2.5.3 — the visible words stay the accessible name).
    */
   hint?: string;
+  /**
+   * The button's host view, for a screen that must move the screen reader's
+   * focus onto it (INT-363: the kiosk idle warning's extend action).
+   */
+  ref?: Ref<View>;
 }
 
 /**
@@ -320,22 +339,26 @@ interface ButtonProps {
  * slab; light mode carries the inverse ink pill). The teal accent (02 §5.2:
  * single accent) now lives in selection, progress and status moments.
  */
-export function PrimaryButton({ label, onPress, disabled = false, hint }: ButtonProps) {
+export function PrimaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
+      ref={ref}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
       // Declared rather than left to RN's implicit merge: a dimmed CTA the
       // patient cannot use must SAY it is unavailable, not just look it
-      // (SC 1.4.1 — the 0.5 opacity is the sighted half of this signal).
+      // (SC 1.4.1 — the disabled opacity is the sighted half of this signal).
       accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.primaryButton,
-        { backgroundColor: theme.cta, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
+        {
+          backgroundColor: theme.cta,
+          opacity: disabled ? motion.press.disabledOpacity : pressed ? motion.press.opacity : 1,
+        },
       ]}
     >
       <AppText role="body" color="onCta" style={styles.buttonLabel}>
@@ -351,10 +374,11 @@ export function PrimaryButton({ label, onPress, disabled = false, hint }: Button
  * buttons and tag chips are filled, never outlined; the pass-5 hairline
  * outline was our invention).
  */
-export function SecondaryButton({ label, onPress, disabled = false, hint }: ButtonProps) {
+export function SecondaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
+      ref={ref}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
@@ -365,7 +389,7 @@ export function SecondaryButton({ label, onPress, disabled = false, hint }: Butt
         styles.primaryButton,
         {
           backgroundColor: theme.surfaceRaised,
-          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled ? motion.press.disabledOpacity : pressed ? motion.press.opacity : 1,
         },
       ]}
     >

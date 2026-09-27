@@ -20,6 +20,14 @@ __all__ = [
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
     "TALKER_TOOL_CALLS_TOTAL",
+    "VENDOR_BREAKER_STATE",
+    "VENDOR_BREAKER_TRANSITIONS_TOTAL",
+    "VENDOR_FAILOVERS_TOTAL",
+    "VOICE_CONTROL_READ_FAILURES_TOTAL",
+    "VOICE_KILL_SWITCH_FLIPS_TOTAL",
+    "VOICE_SESSIONS_METERED",
+    "VOICE_SESSION_ROUTES_TOTAL",
+    "VOICE_SPEECH_CALLS_TOTAL",
     "VOICE_TTS_CHARS",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
@@ -181,4 +189,89 @@ VOICE_TTS_CHARS = Histogram(
     "Characters synthesised per turn, by tenant, profile, branch and vendor.",
     ["tenant", "profile", "branch", "vendor"],
     buckets=(16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1_024.0, float("inf")),
+)
+
+
+# --- per-vendor circuit breakers and speech-lane failover (INT-100) ---------------
+#
+# files/10 §5 LLM10 names "circuit breakers per vendor" and §9's voice row
+# names "vendor errors" as a console signal; neither is a files/08 §4 id, so
+# these three carry no ``id`` — the precedent is INT-024's ``vendor_adapter_*``
+# families. Every label value is a registry component name, a closed breaker
+# state, or ``typed`` (the text lane, which is a profile rather than a
+# component). No session id, no text (invariant 6).
+
+#: One-hot: exactly one of ``closed``/``open``/``half_open`` is 1 per component.
+#: A state set rather than a numeric code, so a dashboard reads the state by
+#: name and an alert selects ``state="open"`` without knowing an encoding.
+VENDOR_BREAKER_STATE = Gauge(
+    "vendor_breaker_state",
+    "Circuit breaker state per vendor component; 1 for the current state, 0 otherwise.",
+    ["component", "state"],
+)
+
+VENDOR_BREAKER_TRANSITIONS_TOTAL = Counter(
+    "vendor_breaker_transitions_total",
+    "Circuit breaker state transitions by vendor component, from state and to state.",
+    ["component", "from_state", "to_state"],
+)
+
+#: A session left a speech lane for the next one in the registry's order, or —
+#: ``to_component="typed"`` — for the text lane because none was left.
+VENDOR_FAILOVERS_TOTAL = Counter(
+    "vendor_failovers_total",
+    "Speech-lane failovers by the lane a session left and the lane it moved to.",
+    ["from_component", "to_component"],
+)
+
+#: Sessions composed around a ``SessionMeter`` (INT-190). The cost module's
+#: per-session figure is usage in a window divided by this count over the same
+#: window, so it is emitted by the same meter that emits the usage series — a
+#: ratio of two populations would be a number about neither. One increment per
+#: session, never a session id: tenant, profile and branch only (invariant 6).
+VOICE_SESSIONS_METERED = Counter(
+    "voice_sessions_metered_total",
+    "Sessions composed with a cost meter, by tenant, profile and branch.",
+    ["tenant", "profile", "branch"],
+)
+
+
+# --- the Voice module: routing, the kill switch, speech-call errors (INT-182) -----
+#
+# files/08 §3 "Voice runtime" asks for per-profile metrics and a kill switch
+# that works without a deploy; these four are what make both observable. None
+# is a files/08 §4 id — the INT-100 precedent: catalogued, no ``id``. Every
+# label is a tenant id, a closed enumeration or a registry component name; no
+# session id, no text (invariant 6).
+
+#: One increment per session start, by the profile the runtime routed it to and
+#: why: ``default``, ``canary``, ``kill_switch`` or ``control_unreadable``.
+VOICE_SESSION_ROUTES_TOTAL = Counter(
+    "voice_session_routes_total",
+    "Session starts by tenant, routed profile and route reason.",
+    ["tenant", "profile", "reason"],
+)
+
+#: A live voice session moved to typed by the kill switch's poll
+#: (``switched``), or left in voice because it has no screen (``not_armed``).
+VOICE_KILL_SWITCH_FLIPS_TOTAL = Counter(
+    "voice_kill_switch_flips_total",
+    "Live sessions the kill switch moved to typed, or could not, by tenant and outcome.",
+    ["tenant", "outcome"],
+)
+
+#: The control store could not answer — at a session start (the session went
+#: typed) or on the poll (live sessions kept their last-known state).
+VOICE_CONTROL_READ_FAILURES_TOTAL = Counter(
+    "voice_control_read_failures_total",
+    "Voice control reads that failed, by phase and machine code.",
+    ["phase", "code"],
+)
+
+#: Every ASR or TTS call that reached a wire, by registry component, kind and
+#: outcome — the numerator and denominator of the module's error rate.
+VOICE_SPEECH_CALLS_TOTAL = Counter(
+    "voice_speech_calls_total",
+    "Speech model calls that reached a wire, by component, kind (asr/tts) and outcome.",
+    ["component", "kind", "outcome"],
 )

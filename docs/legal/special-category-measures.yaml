@@ -1,0 +1,622 @@
+# docs/legal/special-category-measures.yaml — KVKK Board decision 2018/10,
+# mapped measure by measure (INT-215; files/06 §1 row KVKK-12 + 2018-10, §4).
+#
+# "Özel Nitelikli Kişisel Verilerin İşlenmesinde Veri Sorumlularınca Alınması
+# Gereken Yeterli Önlemler" — Kişisel Verileri Koruma Kurulu, 31.01.2018,
+# karar 2018/10; Resmî Gazete 07.03.2018, sayı 30353.
+#
+# How to read it:
+# - `quote` is the measure's own line in the committed snapshot, verbatim. The
+#   loader (intake_platform.compliance.adequate_measures) refuses a quote that
+#   differs by one character, and parses the measure ids out of the snapshot,
+#   so a measure cannot be skipped or invented here.
+# - A `control` names the code that carries the measure (`paths`), the tests
+#   that prove it (`tests`, pytest ids resolved by AST) and the signal that
+#   shows it in operation (`signals`: a catalogued metric with the status the
+#   catalogue gives it, or a registered component probe).
+# - A `gap` names what is missing, its `owner` (from `owners` below) and the
+#   one question that owner must answer. `human_blocker` cites an existing
+#   files/HUMAN_BLOCKERS.md row; `tracking` cites existing backlog issues. No
+#   id is minted here.
+# - There is no `status` field. Status is derived: no control is
+#   not_implemented, any open gap is partial, and only a control with a live
+#   signal and no gap is implemented. Closing a gap is a human act recorded in
+#   this file's diff, with the evidence it rests on.
+#
+# The decision binds the data controller. INTAKE is the controller of the
+# consumer app and a processor for hospital tenants under their DPA (files/06
+# §0.1), where KVKK m.12(2) makes it jointly responsible for these measures and
+# the DPA's security annex (files/10) carries them. The organisational measures
+# below bind INTAKE's own people and premises in both roles.
+#
+# Invariant 20 applies to this tree: nothing here states a performance figure.
+# Regenerate the auditor packet with `make evidence-2018-10`.
+schema_version: 1
+
+decision:
+  title: "Özel Nitelikli Kişisel Verilerin İşlenmesinde Veri Sorumlularınca Alınması Gereken Yeterli Önlemler"
+  board_decision: "2018/10"
+  decision_date: "2018-01-31"
+  gazette_date: "2018-03-07"
+  gazette_number: "30353"
+  gazette_url: "https://www.resmigazete.gov.tr/eskiler/2018/03/20180307-7.pdf"
+  gazette_pdf_file: "docs/legal/sources/kvkk-2018-10/rg-30353-20180307-7.pdf"
+  gazette_pdf_sha256: "5cffa6c804e503f52a3d38ae5b2b168bf1b43ca4940f8875d668e35412e865e9"
+  text_url: "https://www.kvkk.gov.tr/Icerik/4110/2018-10"
+  text_file: "docs/legal/sources/kvkk-2018-10/karar-2018-10.tr.txt"
+  text_sha256: "c30ebdb8d87b5e6c52c78e11148d0e650246d7519636e25829fe24e12cbab5bb"
+  text_note: >-
+    The Resmî Gazete PDF is three scanned page images with no text layer. The
+    text file is the decision as the Kurum publishes it at text_url: markup
+    stripped, one text node per line, surrounding whitespace trimmed, no word
+    changed. It was compared against the three gazette page images and the
+    measures agree word for word; the gazette places the closing "gerekir." of
+    item 5 on its own line, the Kurum's text joins it to 5(ç).
+  retrieved_on: "2026-09-26"
+
+owners:
+  owner: >-
+    The product owner, acting for INTAKE as controller of the consumer app and
+    as processor for hospital tenants (files/06 §0.1) — the `owner` of
+    files/HUMAN_BLOCKERS.md.
+  counsel: >-
+    Turkish counsel (KVKK / health-law), instructed by the owner — for a legal
+    reading nobody in engineering may make.
+  security_owner: >-
+    The security owner of files/10 §10 (the founder until a security lead
+    exists). Owns an engineering gap until an issue carries it; issue ids are
+    allocated by the coordinator, never minted in this file.
+
+measures:
+  - id: "1"
+    quote: "1- Özel nitelikli kişisel verilerin güvenliğine yönelik sistemli, kuralları net bir şekilde belli, yönetilebilir ve sürdürülebilir ayrı bir politika ve prosedürün belirlenmesi,"
+    controls: []
+    gaps:
+      - id: policy-adopted
+        kind: organisational
+        owner: owner
+        ask: "Which separate, written policy and procedure for the security of special-category data has the controller adopted, who approved it, on what date and on what review cycle, given that files/10 and docs/security/threat-model.md are this repository's engineering specification rather than a policy anyone has adopted?"
+        tracking: [INT-225]
+
+  - id: "2a"
+    quote: "a) Kanun ve buna bağlı yönetmelikler ile özel nitelikli kişisel veri güvenliği konularında düzenli olarak eğitimler verilmesi,"
+    controls: []
+    gaps:
+      - id: staff-training
+        kind: organisational
+        owner: owner
+        ask: "Who gives the regular training on KVKK, its regulations and special-category data security to every person who processes patient data, on what cadence, and where is each attendance record kept?"
+        tracking: [INT-225]
+
+  - id: "2b"
+    quote: "b) Gizlilik sözleşmelerinin yapılması,"
+    controls: []
+    gaps:
+      - id: confidentiality-undertakings
+        kind: organisational
+        owner: owner
+        ask: "Has every person with access to patient data (staff, contractors and the physician of record) signed a confidentiality undertaking, and where are the signed copies held?"
+      - id: undertaking-text
+        kind: determination
+        owner: counsel
+        ask: "What must the confidentiality undertaking say, including the TCK 135-137 reference that files/06 §1 says staff training and DPAs cite?"
+
+  - id: "2c"
+    quote: "c) Verilere erişim yetkisine sahip kullanıcıların, yetki kapsamlarının ve sürelerinin net olarak tanımlanması,"
+    controls:
+      - id: console-role-registry
+        summary: "Console access is a closed role set with a per-route permitted-role matrix, and the tenant comes from the verified token claim, never from the request (files/08 §2.1, §8)."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/roles.py
+          - packages/intake_platform/src/intake_platform/admin/wiring.py
+        tests:
+          - tests/admin/test_rbac_matrix.py::TestRoleRegistry::test_registry_is_exactly_the_spec_table
+          - tests/admin/test_rbac_matrix.py::TestRoleRegistry::test_platform_admin_reaches_no_patient_content
+          - tests/admin/test_rbac_matrix.py::TestRouteMatrix::test_matrix_is_driven_for_every_role
+          - tests/admin/test_rbac_matrix.py::TestRouteMatrix::test_tenant_query_parameter_is_refused_below_platform_owner
+        signals:
+          - metric: sec_admin_actions_total
+            status: live
+      - id: break-glass-bounded
+        summary: "Staff reach patient content only through a break-glass grant with a closed reason, a distinct approver and a lifetime capped at the files/10 §9 ceiling."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/break_glass.py
+          - packages/intake_platform/src/intake_platform/admin/four_eyes.py
+        tests:
+          - tests/admin/test_four_eyes.py::TestBreakGlassJustification::test_the_grant_ttl_is_the_spec_ceiling
+          - tests/admin/test_four_eyes.py::TestDistinctness::test_self_approval_is_refused
+        signals:
+          - metric: admin_break_glass_opened_total
+            status: live
+      - id: consent-scoped-routes
+        summary: "Every patient-data API route declares the consent scope it reads under, and the guard refuses a read outside it."
+        paths:
+          - services/api/src/intake_api/consent_guard.py
+        tests:
+          - tests/legal/test_consent_guard.py::test_every_data_route_declares_consent_scopes
+          - tests/legal/test_consent_guard.py::test_guard_refusal_names_the_purpose_id_and_nothing_else
+        signals: []
+      - id: clinician-link-bounded
+        summary: "A Doctor Link reaches only the shared sections, expires at a stated instant, carries a view limit and is revocable at once."
+        paths:
+          - packages/intake_platform/src/intake_platform/doctor_link.py
+        tests:
+          - tests/clinician/test_doctor_link.py::test_expiry_is_exact
+          - tests/clinician/test_doctor_link.py::test_the_default_view_limit_is_applied_and_can_only_be_tightened
+          - tests/clinician/test_doctor_link.py::test_revocation_is_immediate
+        signals:
+          - metric: doctor_link_events_total
+            status: live
+    gaps:
+      - id: staff-session-lifetime
+        kind: engineering
+        owner: security_owner
+        ask: "Where is the staff session bound of files/08 §2.3 (at most 8 h, and a 30-minute idle timeout on any session that can reach patient data) configured and asserted, given that the committed Keycloak realm sets no session or token lifespan and no test checks one?"
+      - id: named-grant-register
+        kind: organisational
+        owner: owner
+        ask: "Which named people hold which console role, from what date and until when, and where is that register kept, given that the repository defines the roles but not who holds them?"
+
+  - id: "2ç"
+    quote: "ç) Periyodik olarak yetki kontrollerinin gerçekleştirilmesi,"
+    controls:
+      # INT-366 answered the engineering gap that stood here ("which issue
+      # builds the console-generated quarterly access review"). What remains is
+      # the owner's wiring of the console to Keycloak and OpenBao, below, and
+      # the organisational review itself.
+      - id: generated-access-review
+        summary: "The console generates the periodic access review from the Keycloak admin API (every staff account, its effective roles and last login) and the audit log (each holder's last console action and each section's last countersignature); a section is signed by its files/08 §2.7 reviewer and countersigned by a second person, from another organisation for platform_owner; and a review older than 100 days, or none, makes platform_owner and tenant_admin read-only and pages."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/access/review.py
+          - services/api/src/intake_api/admin/access_console.py
+          - docs/runbooks/access-review.md
+        tests:
+          - tests/admin/test_access_review.py::TestGeneratedDocument::test_holders_are_exactly_the_staff_role_holders_in_keycloak
+          - tests/admin/test_access_review.py::TestSignAndCountersign::test_platform_owner_needs_a_countersignature_from_another_organisation
+          - tests/admin/test_access_review.py::TestReadOnlyPastOneHundredDays::test_one_second_either_side_of_one_hundred_days
+          - tests/admin/test_access_review.py::TestReadOnlyEnforcedAtTheRoute::test_past_one_hundred_days_platform_owner_writes_are_refused_and_audited
+        signals:
+          - metric: admin_access_review_age_days
+            status: live
+    gaps:
+      - id: access-review-generator
+        kind: organisational
+        owner: owner
+        ask: "On what date did the owner give the console its Keycloak admin client, OpenBao KV entry and login-event retention (docs/runbooks/access-review.md, Owner steps), so that the access review is generated from the production realm rather than refused?"
+      - id: access-review-performed
+        kind: organisational
+        owner: owner
+        ask: "Who performs and signs each periodic access review (compliance_officer for INTAKE staff, tenant_clinical_responsible for clinician accounts, an external signature for platform_owner), and where is each signed review kept?"
+
+  - id: "2d"
+    quote: "d) Görev değişikliği olan ya da işten ayrılan çalışanların bu alandaki yetkilerinin derhal kaldırılması. Bu kapsamda, veri sorumlusu tarafından kendisine tahsis edilen envanterin iade alınması,"
+    controls:
+      - id: short-lived-console-tokens
+        summary: "Console access rests on short-lived tokens verified on every request; a token past its expiry, or with none, is refused, so an account disabled at the identity provider loses the console when its token lapses."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/oidc.py
+        tests:
+          - tests/admin/test_oidc_verifier.py::TestNegatives::test_an_expired_token_is_refused
+          - tests/admin/test_oidc_verifier.py::TestNegatives::test_a_token_with_no_expiry_is_refused
+          - tests/admin/test_rbac_matrix.py::TestRouteMatrix::test_token_without_a_console_role_is_refused
+        signals:
+          - metric: sec_admin_actions_total
+            status: live
+      - id: pending-approvals-expire
+        summary: "A pending four-eyes action expires unapproved rather than waiting for somebody to inherit it."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/four_eyes.py
+        tests:
+          - tests/admin/test_four_eyes.py::TestSingleUseAndExpiry::test_an_expired_action_cannot_be_approved
+          - tests/admin/test_four_eyes.py::TestSingleUseAndExpiry::test_expire_due_sweeps_and_counts
+        signals:
+          - metric: admin_pending_action_expired_total
+            status: live
+      - id: service-credentials-expire
+        summary: "Services hold no standing database password: OpenBao issues dynamic database credentials with a lease, and production refuses to boot without OpenBao."
+        paths:
+          - packages/intake_platform/src/intake_platform/secrets.py
+        tests:
+          - tests/security/test_openbao_wiring.py::test_prod_without_openbao_fails_closed
+          - tests/security/test_openbao_wiring.py::test_service_boots_reads_kv_and_gets_dynamic_db_creds
+        signals:
+          - probe: openbao
+            status: registered
+      # INT-366 answered the engineering gap that stood here ("which issue
+      # builds the one-action offboarding and its 60-day auto-disable"). What
+      # remains is the owner's scheduler, credentials and the three consoles
+      # still offboarded by hand, below.
+      - id: one-action-offboarding-and-dormancy
+        summary: "One console action disables the person's Keycloak account, ends their sessions, disables their OpenBao identity and revokes its tokens and leases, and lists every other console account as a manual step that keeps the offboarding incomplete until an audited confirmation; a scheduled job offboards every staff account with no login for 60 days through the same pipeline, and refuses when the realm keeps less than 60 days of login history."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/access/offboarding.py
+          - packages/intake_platform/src/intake_platform/access_hygiene/job.py
+          - infra/admin/console-accounts.yaml
+          - docs/runbooks/access-review.md
+        tests:
+          - tests/admin/test_offboarding.py::TestOneActionOffboarding::test_every_system_is_revoked_or_listed_in_one_call
+          - tests/admin/test_offboarding.py::TestOneActionOffboarding::test_manual_steps_close_only_by_audited_confirmation
+          - tests/admin/test_offboarding.py::TestSixtyDayAutoDisable::test_dormant_accounts_are_disabled_and_nobody_else
+          - tests/admin/test_offboarding.py::TestSixtyDayAutoDisable::test_without_sixty_days_of_login_history_nobody_is_disabled
+        signals:
+          - metric: admin_offboarding_total
+            status: live
+    gaps:
+      - id: one-action-offboarding
+        kind: organisational
+        owner: owner
+        ask: "On what date did the owner grant the offboarding OpenBao policy and start the daily access-hygiene run (docs/runbooks/access-review.md, Owner steps, which also record whether Grafana, Langfuse and Unleash stay manual offboarding steps)?"
+      - id: inventory-return
+        kind: organisational
+        owner: owner
+        ask: "What procedure ends a departing or reassigned person's access on the same day and recovers every device and credential the controller issued them, and where is each completed checklist kept?"
+
+  - id: "3a"
+    quote: "a) Verilerin kriptografik yöntemler kullanılarak muhafaza edilmesi,"
+    controls:
+      - id: envelope-encryption
+        summary: "Transcripts, notes, learned facts and answers in a sensitive category are stored under per-tenant AES-256-GCM envelope encryption; tampering is detected and destroying the tenant key makes the ciphertext unrecoverable."
+        paths:
+          - packages/intake_platform/src/intake_platform/envelope.py
+        tests:
+          - tests/security/test_envelope_encryption.py::test_roundtrip_per_tenant
+          - tests/security/test_envelope_encryption.py::test_tampered_ciphertext_nonce_and_aad_are_detected
+          - tests/security/test_envelope_encryption.py::test_destroying_the_tenant_key_makes_ciphertext_unrecoverable
+          - tests/api/test_notes.py::test_note_payload_at_rest_is_an_envelope_never_plaintext
+          - tests/data/test_sensitive_slot_categories.py::test_a_tagged_answer_leaves_no_plaintext_at_rest
+        signals: []
+      - id: identifier-tokenisation
+        summary: "TC Kimlik and phone numbers are never stored in clear in application tables: a keyed pseudonym serves joins and the value sits encrypted in a separate vault table."
+        paths:
+          - packages/intake_platform/src/intake_platform/tokenization.py
+        tests:
+          - tests/security/test_tokenization_roundtrip.py::test_no_app_table_defines_raw_identifier_columns
+          - tests/security/test_tokenization_roundtrip.py::test_vault_ddl_stores_only_pseudonym_and_ciphertext
+        signals: []
+      - id: encrypted-backups
+        summary: "The pgBackRest repository is encrypted at rest and its cipher passphrase is not in the configuration file."
+        paths:
+          - infra/backup/pgbackrest.conf
+        tests:
+          - tests/infra/test_restore_drill.py::TestPgBackRestConfig::test_the_repository_is_encrypted_at_rest
+          - tests/infra/test_restore_drill.py::TestPgBackRestConfig::test_the_cipher_passphrase_is_not_in_the_file
+        signals: []
+    gaps:
+      - id: encryption-signal
+        kind: signal
+        owner: security_owner
+        ask: "Which catalogued signal should show that special-category fields are still being written under envelope encryption in production, given that files/08 §4 names none and every control above is proven only by tests?"
+
+  - id: "3b"
+    quote: "b) Kriptografik anahtarların güvenli ve farklı ortamlarda tutulması,"
+    controls:
+      - id: kek-in-openbao
+        summary: "Key-encryption keys live in OpenBao's Transit engine, a service apart from the database that holds the ciphertext; the application holds only wrapped data keys, and rotation re-wraps without touching the ciphertext."
+        paths:
+          - packages/intake_platform/src/intake_platform/envelope.py
+          - packages/intake_platform/src/intake_platform/secrets.py
+        tests:
+          - tests/security/test_envelope_transit_unit.py::test_wrap_parses_the_key_version_from_transit_ciphertext
+          - tests/security/test_envelope_encryption.py::test_rewrap_rotates_the_kek_without_touching_ciphertext
+          - tests/security/test_openbao_wiring.py::test_prod_refuses_the_dev_root_token
+          - tests/security/test_openbao_wiring.py::test_env_file_carries_only_address_and_token
+        signals:
+          - probe: openbao
+            status: registered
+      - id: tokenisation-key-rotation
+        summary: "The identifier pseudonym key is selected by key id and rotated forward, and an unknown key id is refused."
+        paths:
+          - packages/intake_platform/src/intake_platform/tokenization.py
+        tests:
+          - tests/security/test_tokenization_roundtrip.py::test_rotation_moves_new_writes_and_keeps_old_verifiable
+          - tests/security/test_tokenization_roundtrip.py::test_unknown_key_id_is_refused
+        signals: []
+      - id: backup-key-apart
+        summary: "The backup cipher passphrase reaches the backup container from the environment, never from a committed file."
+        paths:
+          - infra/docker-compose.backup.yml
+        tests:
+          - tests/infra/test_restore_drill.py::TestBackupComposeTier::test_the_repository_passphrase_reaches_the_container_from_the_environment
+          - tests/infra/test_restore_drill.py::TestPgBackRestConfig::test_no_credential_literal_anywhere_in_the_backup_tier
+        signals: []
+    gaps:
+      - id: unseal-key-custody
+        kind: organisational
+        owner: owner
+        ask: "Who holds the production OpenBao unseal or recovery key shares, in which separate locations, and where is that custody recorded, given that the repository records none?"
+      - id: rotation-schedule
+        kind: engineering
+        owner: security_owner
+        ask: "Which job runs the quarterly key rotation of files/10 §3 and emits sec_secret_rotation_due_days, given that the repository has the re-wrap operation but nothing that schedules it and the metric is catalogued as planned?"
+
+  - id: "3c"
+    quote: "c) Veriler üzerinde gerçekleştirilen tüm hareketlerin işlem kayıtlarının güvenli olarak loglanması,"
+    controls:
+      - id: hash-chained-audit
+        summary: "Clinical reads and writes, consent grants and withdrawals, Doctor Link opens and every admin action append to one hash-chained audit log; a read that cannot be audited does not answer, and free text is refused from audit fields."
+        paths:
+          - packages/intake_platform/src/intake_platform/audit.py
+          - services/api/src/intake_api/audit.py
+          - packages/intake_platform/src/intake_platform/admin/audit.py
+        tests:
+          - tests/security/test_audit_chain.py::test_tampered_middle_entry_is_named_by_exact_seq
+          - tests/security/test_audit_chain.py::test_deleted_middle_entry_is_named_by_the_missing_seq
+          - tests/security/test_audit_chain.py::test_free_text_fields_are_refused_with_the_field_named
+          - tests/api/test_visits.py::test_reads_are_audited_against_the_core_scope
+          - tests/api/test_wiring.py::test_broken_audit_store_flips_readiness
+          - tests/admin/test_admin_audit.py::TestAuditOnEveryAction::test_driving_a_route_appends_intent_then_outcome
+          - tests/clinician/test_doctor_link.py::test_every_open_is_audited_and_visible_to_the_patient
+          - tests/legal/test_consent_guard.py::test_grant_and_withdraw_are_audited_on_the_chain
+        signals:
+          - metric: sec_admin_actions_total
+            status: live
+      - id: daily-verifier
+        summary: "A daily verifier re-walks the chain against an externally anchored head; with no anchor it reports failure rather than a pass."
+        paths:
+          - packages/intake_platform/src/intake_platform/audit_verifier
+        tests:
+          - tests/security/test_audit_verifier.py::test_case5_full_reforge_is_invisible_locally_and_caught_only_by_the_anchor
+          - tests/security/test_audit_verifier.py::test_no_anchor_is_a_refusal_not_a_pass
+        signals:
+          - metric: sec_audit_chain_ok
+            status: live
+    gaps:
+      - id: external-anchor
+        kind: organisational
+        owner: owner
+        human_blocker: HB-I12
+        ask: "Which organisation's object store, or which named Turkish TSP, receives the hourly audit-chain head, and who signs that arrangement?"
+      - id: production-worm-target
+        kind: organisational
+        owner: owner
+        human_blocker: HB-I9
+        ask: "Is the production copy of the audit log kept on MinIO with a documented CVE watch and a paid-support escape hatch, or on a purpose-built WORM target?"
+
+  - id: "3ç"
+    quote: "ç) Verilerin bulunduğu ortamlara ait güvenlik güncellemelerinin sürekli takip edilmesi, gerekli güvenlik testlerinin düzenli olarak yapılması/yaptırılması, test sonuçlarının kayıt altına alınması,"
+    controls:
+      - id: ci-security-gates
+        summary: "The security workflow runs gitleaks, Semgrep and Bandit, Trivy and OSV-Scanner (failing on critical or high), Checkov, the licence gate, an SBOM and the PHI and claims scans on every pull request and every push to main, and make security runs the same list locally."
+        paths:
+          - .github/workflows/security.yml
+          - Makefile
+        tests:
+          - tests/ci/test_security_gates.py::test_security_workflow_triggers
+          - tests/ci/test_security_gates.py::test_invariant_14_tools_all_present
+          - tests/ci/test_security_gates.py::test_fail_on_critical_high
+          - tests/ci/test_security_gates.py::test_make_security_runs_the_same_list_as_ci
+        signals:
+          - metric: sec_vulns_open
+            status: planned
+      - id: runtime-detection
+        summary: "Wazuh and Falco rule sets cover authentication anomalies, Kubernetes audit and container runtime alerts, fed to the console's Security module after scrubbing."
+        paths:
+          - packages/intake_platform/src/intake_platform/siem
+          - infra/docker-compose.siem.yml
+        tests:
+          - tests/infra/test_siem_feed.py::TestWazuhRuleset::test_all_three_acceptance_signals_are_actually_covered
+          - tests/infra/test_siem_feed.py::TestFalcoRuleset::test_the_shipped_ruleset_parses
+        signals:
+          - metric: siem_alerts_ingested_total
+            status: live
+      # INT-368 answered the engineering gap that stood here ("which tool
+      # follows security updates continuously"): Renovate, configured in the
+      # repository. What remains is the owner's installation, below.
+      - id: dependency-update-config
+        summary: "Renovate follows updates for every lockfile and pin in the repository (uv, pnpm, container digests, GitHub Actions): a security update opens a pull request at once, outside the weekly schedule, and nothing is merged automatically, so each update runs the CI, security and licence gates and waits for a human."
+        paths:
+          - .github/renovate.json
+          - docs/runbooks/dependency-updates.md
+        tests:
+          - tests/ci/test_dependency_updates.py::test_every_manifest_and_lockfile_in_the_tree_falls_to_an_enabled_manager
+          - tests/ci/test_dependency_updates.py::test_every_digest_pinned_image_in_the_tree_is_reachable
+          - tests/ci/test_dependency_updates.py::test_security_updates_open_without_a_schedule
+          - tests/ci/test_dependency_updates.py::test_nothing_auto_merges_anywhere
+        signals: []
+    gaps:
+      - id: dependency-update-tracking
+        kind: organisational
+        owner: owner
+        ask: "On what date did the owner install the Renovate GitHub App on ArioMoniri/intake with Dependabot alerts enabled, so that the committed configuration (docs/runbooks/dependency-updates.md) actually opens its update pull requests?"
+      - id: external-pen-test
+        kind: organisational
+        owner: owner
+        ask: "Who performs the external penetration test files/10 §7 requires before the P2 pilot and yearly after it, and where are its report and remediation record kept?"
+
+  - id: "3d"
+    quote: "d) Verilere bir yazılım aracılığı ile erişiliyorsa bu yazılıma ait kullanıcı yetkilendirmelerinin yapılması, bu yazılımların güvenlik testlerinin düzenli olarak yapılması/yaptırılması, test sonuçlarının kayıt altına alınması,"
+    controls:
+      - id: console-token-verification
+        summary: "The console verifies every Keycloak token's RS256 signature, issuer, audience and expiry, refuses a tampered payload, and answers 503 when no verifier is wired."
+        paths:
+          - packages/intake_platform/src/intake_platform/admin/oidc.py
+        tests:
+          - tests/admin/test_oidc_verifier.py::TestNegatives::test_every_algorithm_but_rs256_is_refused
+          - tests/admin/test_oidc_verifier.py::TestNegatives::test_a_tampered_payload_is_refused
+          - tests/admin/test_rbac_matrix.py::TestFailClosed::test_admin_surface_is_503_when_no_verifier_is_wired
+        signals:
+          - metric: sec_admin_actions_total
+            status: live
+      - id: patient-token-binding
+        summary: "Patient access tokens are bound to the device key (DPoP): a token without its proof, with the wrong key or with a replayed proof is refused, and refresh-token reuse revokes the whole family."
+        paths:
+          - services/api/src/intake_api/dpop.py
+          - services/api/src/intake_api/auth.py
+        tests:
+          - tests/security/test_otp_abuse.py::test_access_token_without_proof_or_with_wrong_key_is_401
+          - tests/security/test_otp_abuse.py::test_dpop_proof_replay_is_rejected
+          - tests/security/test_otp_abuse.py::test_refresh_rotates_and_reuse_revokes_the_family
+        signals:
+          - metric: sec_token_reuse_detected
+            status: planned
+      - id: ci-security-gates
+        summary: "The software is scanned on every pull request and every push to main by the same security gate set measure 3(ç) cites, and the run is recorded by CI."
+        paths:
+          - .github/workflows/security.yml
+        tests:
+          - tests/ci/test_security_gates.py::test_security_workflow_triggers
+          - tests/ci/test_security_gates.py::test_workflow_default_permissions_read_only
+        signals: []
+    gaps:
+      - id: api-fuzzing
+        kind: engineering
+        owner: security_owner
+        ask: "Which issue wires the schemathesis API fuzzing of files/10 §4 into CI, given that the security workflow still records it as deferred?"
+      - id: software-pen-test
+        kind: organisational
+        owner: owner
+        ask: "Does the external penetration test of measure 3(ç) cover the patient API, the clinician surface and the admin console, and where are its findings tracked to closure?"
+
+  - id: "3e"
+    quote: "e) Verilere uzaktan erişim gerekiyorsa en az iki kademeli kimlik doğrulama sisteminin sağlanması,"
+    controls:
+      - id: patient-possession-factors
+        summary: "A patient reaches their own data only after a one-time code to their phone and from a device whose key is attested and bound to every token (App Attest and DPoP); an unregistered key cannot even request a code."
+        paths:
+          - services/api/src/intake_api/otp.py
+          - services/api/src/intake_api/attestation.py
+          - services/api/src/intake_api/dpop.py
+        tests:
+          - tests/api/test_attestation_otp_flow.py::test_an_attested_device_signs_up_end_to_end
+          - tests/api/test_attestation_otp_flow.py::test_an_unregistered_key_cannot_request_a_code
+          - tests/security/test_otp_abuse.py::test_verify_issues_dpop_bound_tokens_and_creates_one_patient
+          - tests/security/test_otp_abuse.py::test_refresh_is_device_bound
+        signals:
+          - metric: sec_attestation_failures
+            status: planned
+          - metric: sec_otp_abuse_blocks
+            status: planned
+    gaps:
+      - id: staff-second-factor
+        kind: engineering
+        owner: security_owner
+        ask: "Which issue makes the console refuse a staff token that was not issued after a second factor (WebAuthn for anything touching patient content, per files/08 §2.3), given that the verifier checks no amr or acr claim and the committed Keycloak realm configures no OTP or WebAuthn policy?"
+      - id: patient-factor-reading
+        kind: determination
+        owner: counsel
+        ask: "Does a one-time code to the patient's phone combined with an attested, device-bound key amount to 'en az iki kademeli kimlik doğrulama' under measure 3(e) for a patient reaching their own data?"
+      - id: authentication-signal
+        kind: signal
+        owner: security_owner
+        ask: "Which service will emit sec_attestation_failures and sec_otp_abuse_blocks, given that both are catalogued as planned and no live signal reports authentication abuse today?"
+
+  - id: "4a"
+    quote: "a) Özel nitelikli kişisel verilerin bulunduğu ortamın niteliğine göre yeterli güvenlik önlemlerinin (elektrik kaçağı, yangın, su baskını, hırsızlık vb. durumlara karşı) alındığından emin olunması,"
+    controls: []
+    gaps:
+      - id: hosting-environmental-controls
+        kind: organisational
+        owner: owner
+        ask: "Which data centre hosts each system that holds special-category data, and which certificate or audit report shows its power, fire, flood and theft controls are in place?"
+        tracking: [INT-352]
+
+  - id: "4b"
+    quote: "b) Bu ortamların fiziksel güvenliğinin sağlanarak yetkisiz giriş çıkışların engellenmesi,"
+    controls: []
+    gaps:
+      - id: premises-access-control
+        kind: organisational
+        owner: owner
+        ask: "What stops unauthorised physical entry to the data-centre space and to any office where patient data is viewed, and where is that evidence kept?"
+        tracking: [INT-352]
+
+  - id: "5a"
+    quote: "a) Verilerin e-posta yoluyla aktarılması gerekiyorsa şifreli olarak kurumsal e-posta adresiyle veya Kayıtlı Elektronik Posta (KEP) hesabı kullanılarak aktarılması,"
+    controls:
+      - id: no-software-email-path
+        summary: "No software path sends special-category data by e-mail: the PHI-path egress tier admits no external host at all, an unlisted host is refused, the Doctor Link delivery adapter refuses rather than sends, and notification bodies are content-free."
+        paths:
+          - infra/security/egress-allowlist.yaml
+          - packages/intake_platform/src/intake_platform/egress.py
+          - packages/intake_platform/src/intake_platform/notifications
+        tests:
+          - tests/security/test_egress_policy.py::test_shipped_allowlist_validates_and_phi_path_is_empty
+          - tests/security/test_egress_policy.py::test_unknown_host_denied_by_default
+          - tests/clinician/test_doctor_link.py::test_the_only_wired_delivery_adapter_refuses
+          - tests/legal/test_notifications.py::TestContentFreedom::test_the_dispatcher_refuses_to_hand_a_leaky_message_to_a_transport
+        signals:
+          - metric: sec_egress_denied_total
+            status: live
+    gaps:
+      - id: staff-email-practice
+        kind: organisational
+        owner: owner
+        ask: "When a person must send special-category data by e-mail, which encrypted corporate mailbox or KEP account do they use, and which written rule forbids every other channel?"
+
+  - id: "5b"
+    quote: "b) Taşınabilir Bellek, CD, DVD gibi ortamlar yoluyla aktarılması gerekiyorsa kriptografik yöntemlerle şifrelenmesi ve kriptografik anahtarın farklı ortamda tutulması,"
+    controls: []
+    gaps:
+      - id: removable-media-rule
+        kind: organisational
+        owner: owner
+        ask: "Which written rule governs moving special-category data on USB drives, CDs or DVDs (encrypted, with the key kept on a different medium), and who approves each exception?"
+
+  - id: "5c"
+    quote: "c) Farklı fiziksel ortamlardaki sunucular arasında aktarma gerçekleştiriliyorsa, sunucular arasında VPN kurularak veya sFTP yöntemiyle veri aktarımının gerçekleştirilmesi,"
+    controls:
+      - id: connector-mutual-tls
+        summary: "Pushes to a hospital system go only to a registered destination over mutually authenticated TLS (client certificate from OpenBao, TLS 1.2 or higher, hostname and chain verified)."
+        paths:
+          - packages/connectors/src/intake_connectors/tls.py
+          - packages/connectors/src/intake_connectors/destinations.py
+        tests:
+          - tests/connectors/test_credentials_and_tls.py::test_the_transport_factory_carries_the_context
+          - tests/connectors/test_credentials_and_tls.py::test_a_destination_whose_certificate_document_is_absent_does_not_send
+        signals:
+          - metric: connector_push_total
+            status: live
+      - id: inbound-transport-register
+        summary: "An inbound hospital feed is registered with its transport (mtls, sftp or lan_plaintext), and a plaintext LAN feed does not load without its own recorded approval."
+        paths:
+          - packages/connectors/src/intake_connectors/inbound.py
+          - infra/connectors/inbound_sources.yaml
+        tests:
+          - tests/connectors/test_inbound_channels.py::test_a_plaintext_lan_source_without_its_own_approval_is_refused
+          - tests/connectors/test_inbound_channels.py::test_the_shipped_inbound_source_registry_holds_zero_rows
+        signals:
+          - metric: connector_inbound_messages_total
+            status: live
+      - id: egress-transfer-control
+        summary: "Outbound calls pass an allow-list that refuses personal data bound for a destination not approved for it, pins the resolved address and writes every decision as a transfer record."
+        paths:
+          - packages/intake_platform/src/intake_platform/egress.py
+        tests:
+          - tests/security/test_egress_allowlist.py::test_personal_data_bound_for_a_non_personal_destination_is_refused
+          - tests/security/test_egress_allowlist.py::test_every_decision_writes_one_transfer_record_with_the_acceptance_fields
+        signals:
+          - metric: sec_egress_denied_total
+            status: live
+    gaps:
+      - id: tls-versus-vpn-sftp
+        kind: determination
+        owner: counsel
+        ask: "Does mutually authenticated TLS between servers in different physical environments satisfy measure 5(c), which names a VPN or sFTP, or must those transfers run inside a VPN?"
+      - id: plaintext-lan-feed
+        kind: determination
+        owner: counsel
+        ask: "May an inbound lan_plaintext hospital feed ever be registered for special-category data under measure 5(c), and if so only when both servers share one physical environment?"
+      - id: backup-second-location
+        kind: organisational
+        owner: owner
+        human_blocker: HB-I8
+        ask: "Which named second location in Türkiye receives the replicated backups, and how long does it keep them?"
+
+  - id: "5ç"
+    quote: "ç) Verilerin kağıt ortamı yoluyla aktarımı gerekiyorsa evrakın çalınması, kaybolması ya da yetkisiz kişiler tarafından görülmesi gibi risklere karşı gerekli önlemlerin alınması ve evrakın “gizlilik dereceli belgeler” formatında gönderilmesi gerekir."
+    controls: []
+    gaps:
+      - id: paper-handling-rule
+        kind: organisational
+        owner: owner
+        ask: "When a printed note, a DSAR export or any other paper carrying special-category data must be sent, which procedure guards it against theft, loss and unauthorised viewing and sends it as a 'gizlilik dereceli belge'?"
+
+  - id: "6"
+    quote: "6- Yukarıda belirtilen önlemlerin yanı sıra Kişisel Verileri Koruma Kurumunun internet sitesinde yayımlanan Kişisel Veri Güvenliği Rehberinde belirtilen uygun güvenlik düzeyini temin etmeye yönelik teknik ve idari tedbirler de dikkate alınmalıdır."
+    controls: []
+    gaps:
+      - id: guide-not-read
+        kind: source
+        owner: security_owner
+        ask: "Which technical and administrative measures of the Kurum's Kişisel Veri Güvenliği Rehberi apply here, mapped the way this file maps 2018/10, given that this issue did not retrieve or snapshot the guide and so claims nothing about it?"
+        tracking: [INT-225]

@@ -14,14 +14,19 @@
 # What it does:
 #   1. Creates the root-only state dir and env file, and generates every
 #      secret in it here, once: the database and Redis passwords, the
-#      object store's root pair and the API's OpenBao token.
-#   2. Starts OpenBao in server mode, initialises it with 3 key shares
+#      object store's root pair, the API's OpenBao token and the OTP tier's
+#      tokenization key. It writes the operator's App Attest and SMS keys
+#      empty, for the operator to fill (INT-352).
+#   2. Builds the API image and has syft write its SBOM into the release
+#      directory, as deploy.sh does (INT-352). compose needs the SBOM's
+#      digest for every call, so this comes before anything starts.
+#   3. Starts OpenBao in server mode, initialises it with 3 key shares
 #      (threshold 2), and unseals it. The shares and the root token go to a
 #      separate root-only file.
-#   3. Sets up the transit engine, the intake-api policy, the restart-probe
+#   4. Sets up the transit engine, the intake-api policy, the restart-probe
 #      KEK and the API's periodic token.
-#   4. Builds the API image, runs the alembic migrations, and re-keys the
-#      migration roles away from their committed dev passwords.
+#   5. Runs the alembic migrations, and re-keys the migration roles away
+#      from their committed dev passwords.
 #
 # Next: ./deploy.sh, then ./smoke.sh.
 set -euo pipefail
@@ -41,6 +46,8 @@ generate_missing_secrets
 
 load_env
 stamp_revision
+build_api_image
+stamp_sbom
 
 compose up -d postgres redis openbao
 wait_for_openbao
@@ -49,7 +56,6 @@ unseal_openbao
 configure_openbao
 
 wait_healthy postgres
-compose build api
 run_migrations
 rotate_role_passwords
 

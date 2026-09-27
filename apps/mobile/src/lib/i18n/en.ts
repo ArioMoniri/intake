@@ -51,6 +51,12 @@ export const en: Record<MessageKey, string> = {
     "This version of the app is not connected to the service yet. Please update the app and try again.",
   "auth.error.attestation":
     "This device could not be verified. Please update the app and try again.",
+  "auth.error.attestationUnsupported":
+    "This device does not support secure sign-in. Please try from another phone.",
+  "auth.error.attestationPending":
+    "Secure sign-in is not available on this device yet. Please try again later.",
+  "auth.error.attestationService":
+    "The device check service cannot be reached right now. Please try again shortly.",
   "auth.biometric.prompt": "Verify your identity to continue.",
   "auth.biometric.locked": "Screen locked",
   "auth.biometric.retry": "Try again",
@@ -111,6 +117,19 @@ export const en: Record<MessageKey, string> = {
   "visits.type.teleconsult": "Remote consultation",
   "visits.detail.noteStatus": "Note status",
   "visits.detail.notStarted": "The conversation has not started yet.",
+
+  // Calendar view + past list on Vizitlerim (02 §4). Month/day names come
+  // from Intl (same source as components/VisitCard.tsx); only the screen's
+  // own chrome lives here.
+  "visits.view.label": "View",
+  "visits.view.list": "List",
+  "visits.view.calendar": "Calendar",
+  "visits.pastEmpty": "You have no past visits.",
+  "visits.calendar.prevMonth": "Previous month",
+  "visits.calendar.nextMonth": "Next month",
+  "visits.calendar.hasVisits": "has a visit",
+  "visits.calendar.noVisitsOnDay": "You have no visits on this day.",
+  "visits.calendar.monthEmpty": "You have no visits this month.",
 
   "records.title": "My records",
   "records.synthetic": "Sample data — synthetic",
@@ -791,6 +810,7 @@ export const en: Record<MessageKey, string> = {
   "a11y.backHint": "Double tap to go back.",
   "a11y.closeHint": "Double tap to close.",
   "a11y.selectHint": "Double tap to select.",
+  "a11y.visits.dayHint": "Double tap to see this day's visits.",
   "a11y.confirmHint": "Double tap to confirm.",
   "a11y.shareHint": "Double tap to share or stop sharing this section.",
   "a11y.typedHint": "Double tap to continue by typing instead of speaking.",
@@ -1250,4 +1270,8 @@ export const en: Record<MessageKey, string> = {
   "kiosk.tamper.body":
     "This device's kiosk lock is no longer active. Before continuing, staff must re-lock the device, then enter the clinic PIN.",
   "kiosk.privacy.note": "This is a shared device. Your information is not stored here.",
+  "kiosk.idle.warning":
+    "Are you still there? To protect your information, the session will close shortly.",
+  "kiosk.idle.extend": "Continue",
+  "kiosk.idle.extendHint": "Keeps the session open.",
 };
