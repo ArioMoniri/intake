@@ -20,6 +20,7 @@ import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -27,8 +28,7 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { RecordReading } from "@/components/RecordReading";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
-import { joinParts, labelled } from "@/lib/a11y/labels";
-import { useLiveAnnouncement } from "@/lib/a11y/prefs";
+import { joinParts } from "@/lib/a11y/labels";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
 import {
@@ -151,10 +151,6 @@ function OtpRecords() {
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const noticeIsError = notice !== null && notice !== "records.scanningInfo";
-  // Android hears the live region on the line; this is the iOS half.
-  useLiveAnnouncement(
-    notice === null ? null : noticeIsError ? labelled(t("a11y.error"), t(notice)) : t(notice),
-  );
 
   const refresh = useCallback(async (visit: VisitFixture) => {
     setPhase("loading");
@@ -423,9 +419,12 @@ function OtpRecords() {
         // and announced assertively — dressing a scan-in-progress message as
         // an error would be worse than not announcing it. Visible copy is
         // unchanged either way.
-        <AppText role="body" color="amber" live={noticeIsError ? "assertive" : "polite"}>
-          {t(notice)}
-        </AppText>
+        <AnnouncedText
+          tone={noticeIsError ? "error" : "status"}
+          role="body"
+          color="amber"
+          message={t(notice)}
+        />
       ) : null}
       <View style={styles.actions}>
         <SecondaryButton

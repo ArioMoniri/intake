@@ -55,9 +55,11 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     ]
     plan = _plan(tmp_path, existing)
     actions = {a["id"]: a for a in plan["actions"]}
+    # tracks test_schema.py (175 blueprint + added issues incl. INT-321 + INT-322 + INT-323)
     # tracks test_schema.py (175 blueprint + added issues incl. INT-321 + INT-322 + INT-323,
+    # and INT-372 from the INT-354 consolidation)
     # and INT-370 from the INT-354 consolidation)
-    assert len(actions) == 288
+    assert len(actions) == 295
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
