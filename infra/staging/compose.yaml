@@ -34,8 +34,10 @@
 # publishes ports, and only 80 and 443.
 #
 # Images are pinned by digest. Digests were resolved from the registries' v2
-# APIs on 26 Sep 2026. Licences:
-#   postgres    PostgreSQL Licence
+# APIs on 26 Sep 2026 (pgvector on 27 Sep 2026). Licences:
+#   postgres    PostgreSQL Licence; the pgvector extension is PostgreSQL
+#               Licence too, read from the raw LICENSE blob at tag v0.8.6
+#               (docs/evidence/INT-421.md)
 #   redis 7.4   RSALv2/SSPLv1. Internal self-hosting is permitted, as recorded
 #               in observability/registry.yaml.
 #   openbao     MPL-2.0
@@ -117,7 +119,12 @@ services:
     logging: *logging
 
   postgres:
-    image: postgres:16.15-trixie@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    # INT-421: pgvector, because migration 0014 (INT-123) runs CREATE EXTENSION
+    # vector and the plain postgres image has no vector.control, so main could
+    # not migrate here. 0.8.6-pg16-trixie carries the same server package as
+    # the image it replaces (PG_VERSION 16.15-1.pgdg13+2, Debian trixie), so
+    # the existing data volume and its collations are unchanged.
+    image: pgvector/pgvector:0.8.6-pg16-trixie@sha256:c8483555ce48101872f888c1df8a895ff689d6c7c7a5f7ac266475f9dfe89e0b
     environment:
       POSTGRES_USER: intake
       POSTGRES_DB: intake
