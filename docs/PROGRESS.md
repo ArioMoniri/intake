@@ -74,6 +74,38 @@
 - Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
 - Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
 - Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-26T23:20:00Z · INT-352 · done (PR open)
+- Goal: close INT-352 (GitHub #558) by stamping `/version`'s `sbom_digest` on the production API (audit F18), and split the Frankfurt move into INT-376 (#613). Acceptance verbatim:
+  - *"main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"*
+  - *"a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"*
+  - *"the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file; the move to Frankfurt is tracked here and is INT-376"* (rescoped from "and the host moves to Frankfurt when the eu-central-1 request is approved")
+  - *"real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"*
+- Plan:
+  - init.sh and deploy.sh build the api image, then have syft, pinned by digest, write its SPDX SBOM into `/etc/intake-staging/releases/<commit>/`, outside the build context.
+  - The file's sha256 becomes `INTAKE_SBOM_DIGEST`, a required compose interpolation.
+  - The final up is `--no-build`.
+  - smoke.sh reads the SBOM from disk and fails `dev` in any stamp, a digest mismatch, or a different running image.
+- Tests added: `TestSbomStamp` in `tests/infra/test_staging_compose.py` (57 tests), with near-miss negatives:
+  - a syft that exits 0 with empty or non-SPDX output;
+  - a well-formed digest one character off the file's;
+  - the required interpolation, which the no-`dev`-fallback scan must pass.
+  - A docker shim runs the stamp logic without a container runtime.
+  - RED: 43 failed, 201 passed. GREEN: 244 passed. Mutations M1 and M2 killed.
+- Result:
+  - tests/backlog, tests/smoke/test_make_check.py and tests/infra: 648 passed.
+  - tests/docs and the security-gate tests: green.
+  - bash -n and shellcheck: clean. `no_placeholders` OK after staging. `evidence_check` OK.
+  - `make check` was not run whole (check-integration is CI-only). `make safety` and `make security` were not run: no protocol, PolicyGuard or Python security surface changed.
+  - Nothing was deployed. The live stamp is shown by the coordinator's next `deploy.sh` and `smoke.sh` run.
+- Invariants touched and still passing:
+  - **14**: syft is pinned by digest, its licence was verified from the raw LICENSE blob, and it runs offline on a read-only archive without the docker socket.
+  - **15**: `/version` gets all three stamps.
+  - **17**: no placeholder. The build-time value is documented, bound to one call, never exported, and rejected by smoke.
+  - **19**: syft is Apache-2.0.
+- Decisions / ADRs / `00_STATE.md` rows: none. The acceptance's Frankfurt clause is rescoped to INT-376 as the coordinator directed.
+- Blocked on: nothing for this PR. INT-376 waits on AWS quota request `c6c0d271…`. Acceptance 2 names p50, and the Part 1 k6 table has p95 and max only, so the next deploy's k6 run must record the median (evidence Part 3, item 4).
+- Next: PR `INT-352: stamped /version (sbom_digest) on the production API; Frankfurt move split to INT-376` (Closes #558, Sec-Row platform), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
