@@ -572,3 +572,297 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// MOTION-11 — haptics (INT-340)
+// ---------------------------------------------------------------------------
+
+/*
+ * docs/design/motion/motion-verification.md §4 MOTION-11 and ADR-033 §6. The
+ * policy itself is proved in src/lib/motion/haptics.test.ts. These guards hold
+ * what only the source and the build config can show: where the native module
+ * is reached from, which Android permission the build refuses, which handlers
+ * ask for a haptic at all, and that every microphone reports itself to the
+ * gate. The module's name is assembled from parts, so no scan here finds it
+ * spelled in this file.
+ */
+
+const HAPTICS_MODULE = ["expo", "haptics"].join("-");
+const HAPTICS_ENGINE = "src/lib/motion/native/hapticsEngine.ts";
+const APP_HAPTICS = "src/lib/motion/appHaptics.ts";
+const VIBRATE = ["android", "permission", "VIBRATE"].join(".");
+const VIBRATION = ["Vibra", "tion"].join("");
+
+/** Every string literal naming the haptics module, split by how it is reached. */
+function hapticsSpecifiers(source: string): { readonly lazy: number; readonly other: number } {
+  const text = code(source);
+  const specifier = new RegExp(`(["'\`])${HAPTICS_MODULE}(?:/[^"'\`]*)?\\1`, "g");
+  let lazy = 0;
+  let other = 0;
+  for (const m of text.matchAll(specifier)) {
+    if (/\bimport\s*\(\s*$/.test(text.slice(0, m.index))) {
+      lazy += 1;
+    } else {
+      other += 1;
+    }
+  }
+  return { lazy, other };
+}
+
+/** Index just past the bracket that closes the one opened at `open`; strings are skipped. */
+function pastClosing(text: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < text.length; i += 1) {
+    const c = text[i];
+    if (c === '"' || c === "'" || c === "`") {
+      for (i += 1; i < text.length && text[i] !== c; i += 1) {
+        if (text[i] === "\\") {
+          i += 1;
+        }
+      }
+    } else if ("([{".includes(c)) {
+      depth += 1;
+    } else if (")]}".includes(c)) {
+      depth -= 1;
+      if (depth === 0) {
+        return i + 1;
+      }
+    }
+  }
+  return text.length;
+}
+
+/** The argument list of every call to `callee(`, from its `(` to its `)`. */
+function callSpansOf(source: string, callee: RegExp): string[] {
+  const text = code(source);
+  return [...text.matchAll(new RegExp(callee.source, "g"))].map((m) => {
+    const open = m.index + m[0].length - 1;
+    return text.slice(open, pastClosing(text, open));
+  });
+}
+
+const HAPTIC_EVENT_NAMES = ["select", "toggleOn", "toggleOff", "arm", "success"];
+
+/** Each haptic a file asks for: the events and surfaces named in its requests. */
+function hapticRequests(source: string): {
+  readonly events: string[];
+  readonly surfaces: string[];
+} {
+  const spans = callSpansOf(source, /(?<![\w.])haptic\s*\(|\bappHaptics\s*\.\s*request\s*\(/);
+  const events = new Set<string>();
+  const surfaces = new Set<string>();
+  for (const span of spans) {
+    for (const m of span.matchAll(/["'](\w+)["']/g)) {
+      if (HAPTIC_EVENT_NAMES.includes(m[1])) {
+        events.add(m[1]);
+      }
+    }
+    for (const m of span.matchAll(/\bsurface\s*:\s*["'](\w+)["']/g)) {
+      surfaces.add(m[1]);
+    }
+  }
+  return { events: [...events].sort(), surfaces: [...surfaces].sort() };
+}
+
+/** The handlers wired by INT-340, each with what it may ask for. This list may only change with a test. */
+const WIRED_HAPTICS: Record<string, { events: string[]; surfaces: string[] }> = {
+  "src/app/(tabs)/me/appearance.tsx": {
+    events: ["select", "toggleOff", "toggleOn"],
+    surfaces: ["settings"],
+  },
+  "src/app/(tabs)/me/data.tsx": { events: ["arm", "success"], surfaces: ["dsar"] },
+  "src/app/(tabs)/visits/[visitId]/issue-link.tsx": {
+    events: ["success"],
+    surfaces: ["shareIssue"],
+  },
+  "src/app/(tabs)/visits/[visitId]/shares.tsx": {
+    events: ["arm", "success"],
+    surfaces: ["shareRevoke"],
+  },
+  "src/app/(tabs)/visits/index.tsx": { events: ["select"], surfaces: ["visits"] },
+};
+
+/** Every recorder in the app, each registered with the gate for as long as it lives. */
+const MICROPHONE_OWNERS = [
+  "src/components/VoiceNote.tsx",
+  "src/lib/dialogue/useDialogueSession.ts",
+];
+
+describe("MOTION-11 — haptics reach the device through one lazy adapter", () => {
+  it("expo-haptics is imported only by the engine adapter, and only via import()", () => {
+    // Non-vacuity: every static shape is caught, both lazy shapes are
+    // accepted, and a comment is not an import.
+    const statics = [
+      `import * as Haptics from "${HAPTICS_MODULE}";`,
+      `import { impactAsync } from '${HAPTICS_MODULE}';`,
+      `import type { AndroidHaptics } from "${HAPTICS_MODULE}";`,
+      `import "${HAPTICS_MODULE}";`,
+      `const h = require("${HAPTICS_MODULE}");`,
+      `export { selectionAsync } from "${HAPTICS_MODULE}";`,
+      `import x from "${HAPTICS_MODULE}/build/Haptics";`,
+    ];
+    for (const sample of statics) {
+      expect(hapticsSpecifiers(sample), sample).toEqual({ lazy: 0, other: 1 });
+    }
+    for (const sample of [
+      `const h = await import("${HAPTICS_MODULE}");`,
+      `type H = typeof import('${HAPTICS_MODULE}');`,
+      `loaded ??= import(\n  "${HAPTICS_MODULE}"\n);`,
+    ]) {
+      expect(hapticsSpecifiers(sample), sample).toEqual({ lazy: 1, other: 0 });
+    }
+    expect(hapticsSpecifiers(`// ${HAPTICS_MODULE} is reached lazily`)).toEqual({
+      lazy: 0,
+      other: 0,
+    });
+
+    // The dependency is real, at the version the Expo SDK pins.
+    const pkg = JSON.parse(readFileSync(join(MOBILE, "package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies[HAPTICS_MODULE]).toMatch(/^~57\.0\.\d+$/);
+
+    // One file names the module, and only inside import().
+    const reaching = TREE.filter((f) => {
+      const { lazy, other } = hapticsSpecifiers(f.source);
+      return lazy + other > 0;
+    }).map((f) => f.name);
+    expect(reaching).toEqual([HAPTICS_ENGINE]);
+    const engine = hapticsSpecifiers(file(HAPTICS_ENGINE));
+    expect(engine.other).toBe(0);
+    expect(engine.lazy).toBeGreaterThanOrEqual(1);
+
+    // The adapter is itself reached only lazily, from the one app gate, so no
+    // node-tested import path pulls react-native in through it.
+    const staticImporters = TREE.filter((f) =>
+      [...code(f.source).matchAll(FROM)].some((m) => /native\/hapticsEngine$/.test(m[2])),
+    ).map((f) => f.name);
+    expect(staticImporters).toEqual([]);
+    expect(code(file(APP_HAPTICS))).toMatch(/import\(\s*["']\.\/native\/hapticsEngine["']\s*\)/);
+
+    // The policy and the gate stay pure: no platform, no adapter, no loader.
+    for (const pure of ["src/lib/motion/haptics.ts", "src/lib/motion/hapticGate.ts"]) {
+      const source = code(file(pure));
+      const specifiers = [...source.matchAll(FROM)].map((m) => m[2]);
+      expect(
+        specifiers.filter((s) => /react-native|native\/|^expo/.test(s)),
+        pure,
+      ).toEqual([]);
+      expect(source, pure).not.toMatch(/\bimport\s*\(|\brequire\s*\(/);
+    }
+  });
+
+  it("the Android build blocks VIBRATE", async () => {
+    const { resolveAppConfig } = await import("../app.config");
+    type Config = import("expo/config").ExpoConfig;
+    const appJson = (JSON.parse(readFileSync(join(MOBILE, "app.json"), "utf8")) as { expo: Config })
+      .expo;
+    const qualified = (p: string): string => (p.includes(".") ? p : `android.permission.${p}`);
+    const profiles = [
+      {},
+      { EAS_BUILD_PROFILE: "development" },
+      { EAS_BUILD_PROFILE: "preview" },
+      { EAS_BUILD_PROFILE: "production" },
+    ];
+    // Non-vacuity: a config that asks for the permission, in either
+    // spelling, and one that already blocks something else.
+    const asking: Config = {
+      ...appJson,
+      android: {
+        ...appJson.android,
+        permissions: [...(appJson.android?.permissions ?? []), "VIBRATE", VIBRATE],
+      },
+    };
+    const otherBlock = ["android", "permission", "READ_CONTACTS"].join(".");
+    const blocking: Config = {
+      ...appJson,
+      android: { ...appJson.android, blockedPermissions: [otherBlock] },
+    };
+    for (const config of [appJson, asking, blocking]) {
+      for (const env of profiles) {
+        const android = resolveAppConfig(config, env).android;
+        const blocked = android?.blockedPermissions ?? [];
+        expect(
+          blocked.filter((p) => qualified(p) === VIBRATE),
+          JSON.stringify(env),
+        ).toHaveLength(1);
+        expect((android?.permissions ?? []).map(qualified)).not.toContain(VIBRATE);
+      }
+    }
+    expect(resolveAppConfig(blocking, {}).android?.blockedPermissions).toContain(otherBlock);
+    // The block removes one permission and adds none: the inventory app.json
+    // declares resolves unchanged.
+    expect(resolveAppConfig(appJson, {}).android?.permissions).toEqual(
+      appJson.android?.permissions,
+    );
+
+    // Without the block the permission would arrive anyway: the haptics
+    // library's own manifest declares it, and the Gradle merge carries it in.
+    const libraryManifest = readFileSync(
+      join(MOBILE, "node_modules", HAPTICS_MODULE, "android", "src", "main", "AndroidManifest.xml"),
+      "utf8",
+    );
+    expect(libraryManifest).toContain(`android:name="${VIBRATE}"`);
+
+    // Nothing in the app needs what the block removes: react-native's own
+    // vibration API requires the permission and would throw without it.
+    const takesVibration = (source: string): boolean =>
+      clausesFrom(code(source), "react-native").some((c) =>
+        new RegExp(`\\b${VIBRATION}\\b`).test(c),
+      );
+    expect(takesVibration(`import { View, ${VIBRATION} } from "react-native";`)).toBe(true);
+    expect(takesVibration(`import { View } from "react-native";`)).toBe(false);
+    expect(APP_SOURCE.filter((f) => takesVibration(f.source)).map((f) => f.name)).toEqual([]);
+  });
+});
+
+describe("MOTION-11 — who asks for a haptic, and who reports the microphone", () => {
+  it("only the wired handlers ask, never an intake, consent, legal or error surface", () => {
+    // Non-vacuity: both call forms, a conditional event and the surface.
+    expect(
+      hapticRequests(`haptic(next ? "toggleOn" : "toggleOff", { surface: "settings" });`),
+    ).toEqual({ events: ["toggleOff", "toggleOn"], surfaces: ["settings"] });
+    expect(
+      hapticRequests(`void appHaptics.request("arm", { surface: "dsar", actionId: a });`),
+    ).toEqual({ events: ["arm"], surfaces: ["dsar"] });
+    expect(hapticRequests(`const haptic = "select"; hapticFor("success", c);`)).toEqual({
+      events: [],
+      surfaces: [],
+    });
+
+    const asking = Object.fromEntries(
+      APP_SOURCE.map((f) => [f.name, hapticRequests(f.source)] as const).filter(
+        ([, r]) => r.events.length + r.surfaces.length > 0,
+      ),
+    );
+    expect(asking).toEqual(WIRED_HAPTICS);
+
+    // A success states the server's answer; it never asserts one.
+    for (const name of Object.keys(WIRED_HAPTICS)) {
+      const successes = callSpansOf(file(name), /(?<![\w.])haptic\s*\(/).filter((s) =>
+        s.includes('"success"'),
+      );
+      for (const span of successes) {
+        expect(span, name).toMatch(/\bserverConfirmed\s*:/);
+        expect(span, name).not.toMatch(/\bserverConfirmed\s*:\s*true\b/);
+      }
+    }
+  });
+
+  it("every microphone owner reports itself to the haptic gate for as long as it lives", () => {
+    const owners = APP_SOURCE.filter((f) => /\buseAudioRecorder\s*\(/.test(code(f.source))).map(
+      (f) => f.name,
+    );
+    expect(owners).toEqual(MICROPHONE_OWNERS);
+    const registration =
+      /useEffect\(\s*\(\)\s*=>\s*appHaptics\.register\(\{([\s\S]*?)\}\)\s*,\s*(?:\/\/[^\n]*\n\s*)*\[\s*\]\s*,?\s*\)/;
+    for (const name of MICROPHONE_OWNERS) {
+      const found = registration.exec(code(file(name)));
+      expect(found, `${name} registers with the gate in a mount effect`).not.toBeNull();
+      // Read live from the recorder at fire time, never from the route or a turn.
+      expect(found![1], name).toMatch(/\bmicHot\s*:\s*\(\)\s*=>\s*\w+\.isRecording\b/);
+    }
+    const dialogue = registration.exec(code(file("src/lib/dialogue/useDialogueSession.ts")));
+    expect(dialogue![1]).toMatch(/\bvoiceSessionActive\s*:\s*\(\)\s*=>/);
+  });
+});

@@ -58,6 +58,7 @@ import { configuredServiceCandidates } from "../dev/expoHosts";
 import { BARGE_IN_SAMPLE_MS, createSpeechOnsetDetector } from "./bargeIn";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
+import { appHaptics } from "../motion/appHaptics";
 import { discardRecording, transcribeRecording } from "../voice";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
@@ -503,6 +504,20 @@ export function useDialogueSession({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
   }, []);
+
+  // INT-340: no haptic while this conversation holds the audio session or the
+  // microphone. The gate asks at fire time: the session is open until it
+  // closes, and the microphone is whatever the recorder reports at that
+  // moment, never a guess from the route or the turn.
+  useEffect(
+    () =>
+      appHaptics.register({
+        voiceSessionActive: () => !closedRef.current,
+        micHot: () => recorder.isRecording,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per session; both probes read live values
+    [],
+  );
 
   /** The reconcile tail every utterance shares: extract against every
    * remaining unanswered question (the daemon accepts any subset), then
