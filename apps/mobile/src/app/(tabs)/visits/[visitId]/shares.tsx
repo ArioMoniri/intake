@@ -59,6 +59,7 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, Screen, useStackHeader } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
+import { appHaptics, haptic } from "@/lib/motion/appHaptics";
 import {
   categoryLabelKey,
   formatShareMoment,
@@ -152,9 +153,18 @@ export default function ShareCentre() {
                     onPress={() => {
                       if (isArmed) {
                         setArmed(null);
-                        void revokeShare(visit, link.id);
+                        // INT-340: felt only when the server's row says stopped.
+                        const action = appHaptics.action();
+                        void revokeShare(visit, link.id).then((confirmed) =>
+                          haptic("success", {
+                            surface: "shareRevoke",
+                            actionId: action,
+                            serverConfirmed: confirmed,
+                          }),
+                        );
                         return;
                       }
+                      haptic("arm", { surface: "shareRevoke" });
                       setArmed(link.id);
                     }}
                   />,

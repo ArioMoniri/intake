@@ -50,8 +50,21 @@ import {
   useDsarRequests,
   withdrawErasure,
 } from "@/lib/dsar/store";
+import { appHaptics, haptic } from "@/lib/motion/appHaptics";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
+
+/**
+ * INT-340: a filing or a withdrawal is felt once, and only when the
+ * controller's own record came back; the press itself is never felt, and a
+ * request that did not land stays silent beside its unsent line.
+ */
+function feltWhenRecorded(filing: typeof fileExport): void {
+  const action = appHaptics.action();
+  void filing().then((recorded) =>
+    haptic("success", { surface: "dsar", actionId: action, serverConfirmed: recorded }),
+  );
+}
 
 export default function Data() {
   const { account } = useSession();
@@ -89,7 +102,7 @@ export default function Data() {
             icon="tray.and.arrow.down"
             label={t("data.export")}
             hint={t("a11y.data.exportHint")}
-            onPress={() => void fileExport()}
+            onPress={() => feltWhenRecorded(fileExport)}
           />
           {lastExport === null ? null : (
             <ListRow label={t("data.due")} sublabel={formatDsarDay(lastExport.dueAt)} />
@@ -105,9 +118,10 @@ export default function Data() {
                 onPress={() => {
                   if (armed) {
                     setArmed(false);
-                    void fileErasure();
+                    feltWhenRecorded(fileErasure);
                     return;
                   }
+                  haptic("arm", { surface: "dsar" });
                   setArmed(true);
                 }}
               />
@@ -125,7 +139,7 @@ export default function Data() {
               <ListRow
                 label={t("data.delete.withdraw")}
                 hint={t("a11y.data.withdrawHint")}
-                onPress={() => void withdrawErasure(liveErasure.id)}
+                onPress={() => feltWhenRecorded(() => withdrawErasure(liveErasure.id))}
               />
             ) : null}
           </ListGroup>

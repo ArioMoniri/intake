@@ -5439,7 +5439,8 @@
   title: "Haptics: one policy, sticky suppression, server-confirmed success"
   depends_on: [INT-332, INT-333]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-340.md
   acceptance:
     - "no haptic while the voice session is active or the microphone is hot (read at fire time), for any RED register, or for the rest of a session in which a SILENT RED or a third party occurred"
     - "no haptic for consent, errors or intake chips; success fires only on a server-confirmed outcome; HapticCall has no error, warning or heavy member"

@@ -1,5 +1,49 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T15:30:00+03:00 · INT-340 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #539):
+  - *"no haptic while the voice session is active or the microphone is hot (read at fire time), for any RED register, or for the rest of a session in which a SILENT RED or a third party occurred"*
+  - *"no haptic for consent, errors or intake chips; success fires only on a server-confirmed outcome; HapticCall has no error, warning or heavy member"*
+  - *"expo-haptics is imported only by the engine adapter via import(); its licence is verified from the raw LICENSE blob; the Android build blocks VIBRATE"*
+- Plan:
+  - A pure `hapticFor` policy (`motion/haptics.ts`) and a pure live gate (`motion/hapticGate.ts`). The gate reads probes at fire time, and again before the native call. Its SILENT/third-party flag cannot be cleared, and it lets one haptic through per commit and per action id.
+  - One adapter (`motion/native/hapticsEngine.ts`), the only file that names expo-haptics, reached through `import()`. Android plays `performAndroidHapticsAsync` only.
+  - `app.config.ts` blocks VIBRATE for every profile; app.json is untouched.
+  - Wiring, each a one-line call in a handler beside its visual:
+    - `select`: Görünüm's three `Segmented`, the visits Liste/Takvim switch and a calendar day;
+    - `toggleOn`/`toggleOff`: the two Görünüm `SwitchRow`s;
+    - `arm`: the share revoke's and the DSAR erasure's first tap;
+    - `success`: link issued, link revoked and DSAR recorded or withdrawn, each after the server's answer.
+  - The dialogue (`voiceSessionActive`, `micHot`) and `VoiceNote` (`micHot`) register live probes. The companion declaration marks the session.
+  - Not wired, each with its reason: note sent (the review send is local and has no server confirmation), CSAT, the notification rows and every consent row.
+  - Dependency: expo-haptics ~57.0.3 (`npx expo install`). MIT, read from the raw root LICENSE at the package's `gitHead` 9e5319c0 and byte-identical to the tarball's copy (sha256 fb3ca4a8…), retrieved 2026-09-27.
+- Tests added (with the near-miss negative for any safety rule):
+  - `motion/haptics.test.ts` (17): the 12 DoD titles verbatim, plus a positive control, the companion wiring, errors, fail-closed inputs and engine failure. Near misses:
+    - the mic turns hot while the adapter loads;
+    - the mic is hot when asked and cold later;
+    - a stale caller-supplied mic state;
+    - a dismissed ALERT or CALM (not sticky);
+    - DEFERRED_CLINICIAN (invisible);
+    - an unknown register;
+    - the patient alone (no mark).
+  - `e2e/motion.spec.ts` MOTION-11 (4): lazy-only import, the VIBRATE block over four profiles and three configs, the closed wiring list, and the microphone owners.
+  - One store test each for shares and DSAR.
+  - RED: 4 guards failed and the policy module was missing; the 2 store tests failed against `main`'s stores. GREEN: 58/58, and the whole mobile suite 113 files, 2283 tests.
+  - Mutants: 19 of 19 killed (2 of them by `tsc` at the `expectTypeOf` pins), each restored with `cp`.
+- Result:
+  - Passed: `make check-ts` exit 0 (mobile lint 0 errors), `make check-i18n` 30 passed, `tests/backlog` + `tests/smoke` + `test_threat_model` 81 passed, the licence gate, prettier, `expo export --platform ios --dev` (the lazy import resolved) and `expo config --type introspect` (VIBRATE `tools:node="remove"`).
+  - The first `check-i18n` run caught a generic that the scanner read as a JSX text node; it was fixed.
+  - `make check` was not run whole (check-integration is CI-only); `make safety` and `make security` were not run (no protocol, triage or Python change).
+- Invariants touched and still passing: 3 and 9 (the dialogue edit reads `recorder.isRecording` and a ref only), 6 (nothing logs), 8 (+23 tests), 17 (every module has its consumer; `presentRed` is for INT-135's RED layer), 19 (MIT, verified from the raw blob), 21 (no RED path touched; ADR-033 Q2's default of none).
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+  - It follows ADR-033 §6 (Proposed) in its fail-closed defaults.
+  - The session boundary is the app process, the same life as the companion declaration. It over-suppresses, which is the fail-closed direction.
+  - iOS maps toggles to the selection tick and arm to a Light impact (spec §6.1). Android excludes Long_Press and Drag_Start, which AOSP maps to a heavy click.
+  - `docs/security/threat-model.md` `mobile` gains "Controls added by INT-340".
+- Blocked on: nothing. DoD B: the legal-reviewer confirms the permission inventory, the licence-auditor confirms MIT, and ClinicalAuthor Dr Efe Onganer answers ADR-033 Q2 (default: none).
+- Next: PR `INT-340: Haptics: one policy, sticky suppression, server-confirmed success` (Closes #539, Sec-Row mobile).
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
 - Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
   - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*

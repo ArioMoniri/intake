@@ -50,6 +50,7 @@ import {
 } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t, type MessageKey } from "@/lib/i18n";
+import { appHaptics, haptic } from "@/lib/motion/appHaptics";
 import { issueDoctorLink, type IssueFailure, type IssuedCredential } from "@/lib/shares/issue";
 import { formatShareMoment } from "@/lib/shares/links";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
@@ -86,10 +87,13 @@ export default function IssueDoctorLink() {
   const create = async () => {
     setBusy(true);
     setError(null);
+    const action = appHaptics.action();
     const result = await issueDoctorLink(visit, recipient);
     setBusy(false);
     if (result.ok) {
       setCredential(result.credential);
+      // INT-340: the same feedback as a revoke, and only on the server's word.
+      haptic("success", { surface: "shareIssue", actionId: action, serverConfirmed: result.ok });
       return;
     }
     setError(result.reason);
