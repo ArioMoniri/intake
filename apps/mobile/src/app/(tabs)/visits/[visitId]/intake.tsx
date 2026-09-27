@@ -521,6 +521,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        // SC 1.3.4 (INT-360): the answer field scrolls clear of the keyboard,
+        // which takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
       >
         {finishNowBar}
         {/* The deferral notice (02 §33) lived on the old mode row; it stays,

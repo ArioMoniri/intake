@@ -973,6 +973,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   than noted — the egress allow-list names no Ministry host so default-deny already refuses
   one, no file under `packages/`·`services/`·`apps/`·`infra/`·`scripts/` names one, and no
   module on the ingestion path imports an HTTP client or takes a locator (INT-122).
+  The one model on this path is files/03 §4.9.1 row 9, reached only through a gateway that
+  refuses a vendor host and a pin that is not licence-verified, pinned and served; while no
+  host serves it the PHI path refuses with no fallback (INT-124). Every lab value it returns
+  passes the unit-resolution guard, which flags and never converts, and with no authored
+  expectation table (HB-C24) flags every value.
 - **Signals:** upload scan results and parse failures (§9) land with INT-120;
   `sec_injection_suspected_total` is shared with the `llm-boundary` row — INT-121's document
   fence and INT-083's transcript fence are one control in
@@ -982,7 +987,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`tests/records/test_extraction_eval.py`); the two patient-supplied sources — the
   six-column lab table, the MHRS SMS screenshot's candidate visit fields, the printed-date
   guard and the three no-scraping checks — with INT-122
-  (`tests/records/test_enabiz_pdf.py`); the patient-facing half of the confirm gate,
+  (`tests/records/test_enabiz_pdf.py`); the unit-resolution guard, the row-9 adapter and
+  its PHI gate with INT-124 (`tests/records/test_unit_resolution_guard.py`,
+  `tests/records/test_labjson_eval.py`); the patient-facing half of the confirm gate,
   the client-side level-shaped-key refusal and the camera path with INT-138
   (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
   RLS namespace tests with INT-123.
@@ -1584,6 +1591,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     needs a fresh WebAuthn assertion the console does not mint yet. **Known limit, owner
     decision:** the tier-2 second key is still two accounts, not two proven humans (the
     INT-180 limit), and the step-up ceremony in the browser is unbuilt.
+  - **Controls added by INT-373 (the realm emits the console's claims):** the committed realm's
+    `admin-web` client carries an audience mapper naming `api` and attribute mappers for `org`
+    and `tenant`. The realm's user profile declares both attributes admin-only (view and edit),
+    single-valued, and pattern-bound to the console's id shape. A staff member therefore cannot
+    move their own tenant scope ([E]), and a malformed value is refused when it is saved.
+    `aaguid` and `credential_id` are mapped from user-session notes that no stock Keycloak
+    26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
+    closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
+    `tests/admin/test_realm_claim_mappers.py`.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),

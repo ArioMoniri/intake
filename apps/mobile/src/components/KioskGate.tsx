@@ -26,6 +26,7 @@
  */
 import { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AnnouncedText } from "@/components/Announced";
 import {
@@ -219,29 +220,39 @@ export function KioskGate({ children }: { children: ReactNode }) {
         >
           {children}
         </View>
-        {warned ? (
-          <View
-            style={[
-              styles.idleWarning,
-              { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
-            ]}
-          >
-            <AnnouncedText tone="warning" role="title" message={t("kiosk.idle.warning")} />
-            <PrimaryButton
-              ref={extendRef}
-              label={t("kiosk.idle.extend")}
-              hint={t("kiosk.idle.extendHint")}
-              onPress={() => watchRef.current?.extend()}
-            />
-          </View>
-        ) : null}
-        <View style={styles.staffBar}>
-          <SecondaryButton
-            label={t("kiosk.exit")}
-            hint={t("kiosk.exitHint")}
-            onPress={() => setExiting(true)}
-          />
-        </View>
+        {/* INT-360: the gate's own chrome sits outside every Screen, so it
+            keeps the safe edges itself: the home indicator below and, in
+            landscape, the notch and the rounded corners at the sides. At the
+            kiosk's large type a landscape window cannot always hold the
+            warning and the staff bar together; they scroll then, rather than
+            push the exit off the bottom of the screen. */}
+        <SafeAreaView edges={["left", "right", "bottom"]} style={styles.chrome}>
+          <ScrollView style={styles.chromeScroll}>
+            {warned ? (
+              <View
+                style={[
+                  styles.idleWarning,
+                  { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                ]}
+              >
+                <AnnouncedText tone="warning" role="title" message={t("kiosk.idle.warning")} />
+                <PrimaryButton
+                  ref={extendRef}
+                  label={t("kiosk.idle.extend")}
+                  hint={t("kiosk.idle.extendHint")}
+                  onPress={() => watchRef.current?.extend()}
+                />
+              </View>
+            ) : null}
+            <View style={styles.staffBar}>
+              <SecondaryButton
+                label={t("kiosk.exit")}
+                hint={t("kiosk.exitHint")}
+                onPress={() => setExiting(true)}
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
       </View>
     );
   }
@@ -335,7 +346,12 @@ function KioskPinScreen({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        contentContainerStyle={styles.body}
+        // SC 1.3.4 (INT-360): the PIN field scrolls clear of the keyboard,
+        // which takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
+      >
         {tamper ? (
           <AnnouncedText
             tone="error"
@@ -413,6 +429,10 @@ const styles = StyleSheet.create({
   },
   armedRoot: { flex: 1 },
   armedContent: { flex: 1 },
+  // Natural height while it fits; it gives height back, then scrolls, once
+  // the window is shorter than the chrome (INT-360).
+  chrome: { flexShrink: 1 },
+  chromeScroll: { flexGrow: 0, flexShrink: 1 },
   idleWarning: { borderTopWidth: 1, gap: spacing.md, padding: spacing.md },
   staffBar: { padding: spacing.md },
 });

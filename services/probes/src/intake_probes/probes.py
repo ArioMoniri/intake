@@ -33,6 +33,7 @@ __all__ = [
     "http_health",
     "livekit_room_join",
     "minio_ready",
+    "model_not_served",
     "openbao_seal_status",
     "postgres_select1",
     "redis_ping",
@@ -218,6 +219,20 @@ def livekit_room_join() -> Outcome:
     Skipped status — visible in every probe sweep, never counted healthy.
     """
     return Skipped(reason="livekit lands with INT-090")
+
+
+# --- models ---------------------------------------------------------------------------
+
+
+def model_not_served(what: str) -> Outcome:
+    """A pinned model that no host serves reports so, and is never healthy.
+
+    INT-124: files/03 §4.9.1 row 9 is pinned and licence-verified in the
+    registry and runs nowhere yet. There is no endpoint to probe, and probing
+    a guessed one would be a fake result (invariant 17), so the outcome is a
+    typed Skipped that says *unavailable* and names what serves it.
+    """
+    return Skipped(reason=f"unavailable: {what}")
 
 
 # --- ci -------------------------------------------------------------------------------
