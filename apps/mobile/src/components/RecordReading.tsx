@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { ConfirmCard } from "@/components/ConfirmCard";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -133,15 +134,24 @@ export function RecordReading({
           </View>
         );
       })}
+      {/* SC 4.1.3: the wait and its outcome are both announced, politely, on
+          both platforms. The reading line had only the Android live region
+          until INT-362; a refusal is a status, never an error (see above). */}
       {reading ? (
-        <AppText role="label" color="inkSoft" live="polite">
-          {t("records.state.reading")}
-        </AppText>
+        <AnnouncedText
+          tone="status"
+          role="label"
+          color="inkSoft"
+          message={t("records.state.reading")}
+        />
       ) : null}
       {refused ? (
-        <AppText role="body" color="inkSoft">
-          {t("records.reading.refused")}
-        </AppText>
+        <AnnouncedText
+          tone="status"
+          role="body"
+          color="inkSoft"
+          message={t("records.reading.refused")}
+        />
       ) : null}
       {noneRead ? (
         <GuidanceBlock

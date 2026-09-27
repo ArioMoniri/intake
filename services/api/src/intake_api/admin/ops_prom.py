@@ -14,11 +14,18 @@ would feed reads *unknown* (invariant 17).
 **Every failure is one refusal with a machine code** — unreachable, a non-2xx
 status, an error body, a body of the wrong shape — never a partial result and
 never the server's own error text (which can echo the query).
+
+:class:`PromSession` is one console build's view of Prometheus, shared by the
+ops composite (INT-351) and the reliability composite (INT-181): it runs only
+queries from the caller's fixed table, holds every answer to the label set that
+query asked for (ids only, invariant 6), and fails fast once Prometheus is
+unreachable.
 """
 
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final
@@ -26,10 +33,25 @@ from urllib.parse import urlsplit
 
 import httpx
 
-__all__ = ["ENV_PROMETHEUS_URL", "PromClient", "PromUnavailable", "Sample", "prom_client_from_env"]
+__all__ = [
+    "BRANCH_LABEL",
+    "ENV_PROMETHEUS_URL",
+    "ID_LABEL",
+    "PromClient",
+    "PromSession",
+    "PromUnavailable",
+    "Sample",
+    "TileUnknown",
+    "prom_client_from_env",
+]
 
 ENV_PROMETHEUS_URL: Final = "INTAKE_OPS_PROMETHEUS_URL"
 _TIMEOUT_S: Final = 5.0
+
+#: A label value a console will paint. Lowercase ids, digits, ``_ . -``.
+ID_LABEL: Final = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,63}$")
+#: A git ref name (the CI tile's ``branch`` label is the one exception to ids).
+BRANCH_LABEL: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
 
 
 class PromUnavailable(Exception):
@@ -102,6 +124,64 @@ class PromClient:
             labels = {str(k): str(v) for k, v in row["metric"].items() if k != "__name__"}
             samples.append(Sample(labels=labels, value=value))
         return tuple(samples)
+
+
+class TileUnknown(Exception):
+    """A tile's source could not answer; ``reason`` is the machine code it shows."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+class PromSession:
+    """One console build's view of Prometheus: validated, and fail-fast.
+
+    Once Prometheus is unreachable every later query is refused at once — a
+    console build should not wait out one timeout per tile to say the same
+    thing. ``answered`` counts queries Prometheus answered successfully, which
+    is what lets the reliability console call Prometheus itself healthy.
+    """
+
+    def __init__(
+        self,
+        prom: PromClient,
+        queries: Mapping[str, str],
+        labels: Mapping[str, frozenset[str]],
+    ) -> None:
+        self._prom = prom
+        self._queries = queries
+        self._labels = labels
+        self.unreachable = False
+        self.answered = 0
+        self.failure: str | None = None
+
+    def fetch(self, query_id: str) -> tuple[Sample, ...]:
+        if self.unreachable:
+            raise TileUnknown("prometheus_unreachable")
+        try:
+            samples = self._prom.vector(self._queries[query_id])
+        except PromUnavailable as failure:
+            if failure.code == "prometheus_unreachable":
+                self.unreachable = True
+            self.failure = self.failure or failure.code
+            raise TileUnknown(failure.code) from None
+        self.answered += 1
+        expected = self._labels[query_id]
+        for sample in samples:
+            if frozenset(sample.labels) != expected:
+                raise TileUnknown("unexpected_label")
+            for name, value in sample.labels.items():
+                pattern = BRANCH_LABEL if name == "branch" else ID_LABEL
+                if not pattern.match(value):
+                    raise TileUnknown("label_not_id_shaped")
+        return samples
+
+    def scalar(self, query_id: str) -> float | None:
+        samples = self.fetch(query_id)
+        if len(samples) > 1:
+            raise TileUnknown("unexpected_label")
+        return samples[0].value if samples else None
 
 
 def prom_client_from_env(env: Mapping[str, str]) -> PromClient | None:

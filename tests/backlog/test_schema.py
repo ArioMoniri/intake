@@ -70,10 +70,15 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-360..363 (the four WCAG defects the INT-226 report found:
     # orientation lock, OTP paste/autofill, iOS error/status announcements,
     # kiosk idle warning)
+    # + INT-364 (the owner's organisational evidence and counsel's readings
+    # for Board decision 2018/10, split out of INT-215)
+    # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
+    # second factor and session bounds, access review and offboarding, key
+    # rotation schedule, dependency updates, API fuzzing in CI).
+    # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
-    # Grow this count only with a stated reason.
-    assert len(ids) == 288
+    assert len(ids) == 294
     import re
 
     for i in ids:
