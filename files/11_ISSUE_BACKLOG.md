@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**314 issues.** By phase: P0 160 · P1 100 · P2 47 · P3 7. By status: awaiting-human 29 · doing 7 · done 200 · todo 77 · withdrawn 1.
+**315 issues.** By phase: P0 160 · P1 101 · P2 47 · P3 7. By status: awaiting-human 29 · doing 7 · done 201 · todo 77 · withdrawn 1.
 
 ## P0
 
@@ -276,6 +276,7 @@
 | INT-401 | Rollback from the console (4-eyes) once a CD target exists | E12-admin | INT-187 | area:admin, risk:security | awaiting-human |
 | INT-402 | Record-embedding model for the patient record index (files/03 §4.9.1) | E07-records | INT-123 | area:records, risk:security | awaiting-human |
 | INT-403 | What withdrawing documents consent does to the patient's record vectors | E02-data | INT-123 | area:data, risk:legal | awaiting-human |
+| INT-405 | The backlog sync pages past 500 issues and keeps issue state in step with rows | E00-governance | INT-004, INT-396 | area:platform | done |
 
 ## P2
 
