@@ -251,7 +251,19 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: doing
+  status: awaiting-human
+  evidence: docs/evidence/INT-021.md
+  # NOTE 27 Sep 2026 (close-out): every SLO file now generates its burn-rate
+  # rules (7 files, 8 SLOs, 24 alerts; api.yaml alone until now) and its own
+  # golden-signal dashboard, and every alert Prometheus loads links a runbook
+  # heading that resolves (the 8 cost alerts had none). observability/
+  # slo_coverage.yaml covers every discovered service, app and job; the gates
+  # are tests/observability/test_{slo_generator,alert_rules,slo_coverage}.py.
+  # Found and fixed: services/probes never emitted the series its SLO reads;
+  # nothing read sec_audit_chain_ok (files/08 §5 pages on it). What remains is
+  # docs/slo/workers.yaml: services/workers does not exist and no row creates
+  # it, and its one spec objective (note ready <= 60 s, 99 %) has no emitter —
+  # the owner's decision, docs/backlog/blockers.md INT-021.
   acceptance:
     - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]

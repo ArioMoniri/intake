@@ -26,7 +26,9 @@ SLO rules (INT-021). Per budget, up to three alerts, each carrying the
 
 Every series an expression names is catalogued (CLAUDE.md invariant 13); the
 rules carry budget ids, vendor ids and periods, never anything patient-shaped
-(invariant 6).
+(invariant 6). Every alert links its heading in ``docs/runbooks/cost-budgets.md``
+(files/10 §6; held for every loaded rule by tests/observability/test_alert_rules.py
+since the INT-021 close-out).
 """
 
 from __future__ import annotations
@@ -46,6 +48,7 @@ __all__ = [
     "ALERT_NOT_CONFIGURED",
     "CONFIG_PATH",
     "RULES_PATH",
+    "RUNBOOK",
     "budget_alert_names",
     "cost_rule_groups",
     "countable_gap",
@@ -60,6 +63,18 @@ ALERT_EXCEEDED: Final = "CostBudgetExceeded"
 ALERT_INCOMPLETE: Final = "CostBudgetIncomplete"
 #: A budget overrun is money, not a patient: it opens a ticket, it does not page.
 SEVERITY: Final = "ticket"
+RUNBOOK: Final = "docs/runbooks/cost-budgets.md"
+#: files/10 §6 — the heading each alert links, one per alert kind.
+_RUNBOOK_ANCHOR: Final = {
+    ALERT_NOT_CONFIGURED: "budget-not-configured",
+    ALERT_EXCEEDED: "budget-exceeded",
+    ALERT_INCOMPLETE: "budget-incomplete",
+}
+
+
+def _runbook(alert: str) -> str:
+    return f"{RUNBOOK}#{_RUNBOOK_ANCHOR[alert]}"
+
 
 _HEADER: Final = f"""\
 # {RULES_PATH} — budget alerts for the cost module (INT-190).
@@ -120,6 +135,7 @@ def _budget_rules(budget: Budget, resolved: tuple[ResolvedComponent, ...]) -> li
                         f"{who} spend over the last {window} is not watched until limit.usd "
                         f"is set, with its source and as_of date, in {CONFIG_PATH} (HB-O8)"
                     ),
+                    "runbook": _runbook(ALERT_NOT_CONFIGURED),
                 },
             }
         ]
@@ -147,6 +163,7 @@ def _budget_rules(budget: Budget, resolved: tuple[ResolvedComponent, ...]) -> li
                         "the spend is a lower bound over the priced, metered components; "
                         f"any CostBudgetIncomplete for {budget.budget_id} names the rest"
                     ),
+                    "runbook": _runbook(ALERT_EXCEEDED),
                 },
             }
         )
@@ -161,6 +178,7 @@ def _budget_rules(budget: Budget, resolved: tuple[ResolvedComponent, ...]) -> li
                 "annotations": {
                     "summary": f"cost budget {budget.budget_id} cannot be evaluated completely",
                     "missing": "; ".join(missing),
+                    "runbook": _runbook(ALERT_INCOMPLETE),
                 },
             }
         )

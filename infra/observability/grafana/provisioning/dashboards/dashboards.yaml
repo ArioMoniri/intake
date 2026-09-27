@@ -1,7 +1,8 @@
 # Grafana dashboard provider — obs profile (INT-023). Dashboards are code:
-# the json files under infra/observability/grafana/ are mounted read-only
-# into /var/lib/grafana/dashboards, so the INT-021 api-slo dashboard appears
-# without any click-ops and cannot be edited away in the UI.
+# infra/observability/grafana/dashboards/ — one generated golden-signal
+# dashboard per docs/slo file (INT-021) — is mounted read-only into
+# /var/lib/grafana/dashboards, so every SLO's dashboard appears without any
+# click-ops and cannot be edited away in the UI.
 apiVersion: 1
 
 providers:

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**307 issues.** By phase: P0 159 · P1 94 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 178 · todo 86 · withdrawn 1.
+**307 issues.** By phase: P0 159 · P1 94 · P2 47 · P3 7. By status: awaiting-human 27 · doing 15 · done 178 · todo 86 · withdrawn 1.
 
 ## P0
 
@@ -26,7 +26,7 @@
 | INT-018 | Egress proxy with vendor allow-list + transfer log | E01-platform | INT-001 | area:security, risk:legal | done |
 | INT-019 | security.yml CI job: full gate set + signing | E01-platform | INT-002 | area:ci, risk:security | awaiting-human |
 | INT-020 | Threat model + incident runbook + PR linkage | E01-platform | INT-003 | area:security, risk:legal | doing |
-| INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | doing |
+| INT-021 | SLO files + Prometheus rules + Grafana dashboards as code + runbooks | E01-platform | INT-011 | area:observability | awaiting-human |
 | INT-022 | services/probes: synthetic checks + self-hosting registry + release gate | E01-platform | INT-010, INT-021 | area:observability | done |
 | INT-023 | Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip | E01-platform | INT-011 | area:observability | done |
 | INT-024 | k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s) | E01-platform | INT-022 | area:observability | done |
