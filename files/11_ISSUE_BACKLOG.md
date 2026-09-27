@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**311 issues.** By phase: P0 159 · P1 98 · P2 47 · P3 7. By status: awaiting-human 27 · doing 7 · done 197 · todo 79 · withdrawn 1.
+**312 issues.** By phase: P0 160 · P1 98 · P2 47 · P3 7. By status: awaiting-human 27 · doing 7 · done 198 · todo 79 · withdrawn 1.
 
 ## P0
 
@@ -170,6 +170,7 @@
 | INT-376 | Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved | E13-infra | INT-352 | area:infra, risk:legal | todo |
 | INT-392 | Deleting a session removes its previsit outputs in every erasure and retention path | E02-data | INT-036, INT-037, INT-317 | area:data, risk:legal | done |
 | INT-393 | Patient erasure removes Doctor Links, and the retention source text matches the post-INT-317 tree | E02-data | INT-036, INT-037, INT-150, INT-392 | area:data, risk:legal | done |
+| INT-390 | Keycloak upgraded to a patched release, and the committed realm imports on it | E12-admin | INT-023, INT-365 | area:admin, risk:security | done |
 
 ## P1
 

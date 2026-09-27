@@ -1679,6 +1679,15 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     refusal is the generic 403 every malformed claim gets, audited as `admin:unresolved`; it
     names the claim and never its value (inv 6). `aaguid` keeps its shape: the provider writes
     UUID text, which that shape always admits.
+  - **Controls added by INT-390 (the identity provider's own patch level):** against [E] an
+    identity provider with published advisories. Compose runs Keycloak 26.7.4 pinned by
+    index digest (26.1.4 carried 64 OSV advisories on the artefacts INT-378 compiles against).
+    The committed realm is held to the columns 26.7.4's import writes, derived from that
+    tag's changelogs and measured in UTF-16 units, and every string field must be classified,
+    so a realm that cannot load fails CI rather than `make obs`. The realm is mounted under
+    the file name 26.7.4's directory import requires. **Known limit:** three OSV records
+    still match 26.7.4 through open-ended ranges whose GitHub source bounds them below it
+    (docs/evidence/INT-390.md); a scanner that reads the Keycloak artefacts reports them.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -1688,6 +1697,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
   the same file, with property tests over generated ids (INT-391).
+  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the realm-import column
+  limits, the image digest and the import file name in
+  `tests/infra/test_keycloak_realm_import.py` (INT-390).
 
 ## `device-boundary` — MDSW mode and the study lifecycle
 
