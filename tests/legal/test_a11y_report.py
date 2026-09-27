@@ -220,6 +220,51 @@ def test_rows_below_supports_state_their_finding(source: dict[str, Any]) -> None
             assert row.get("tests") or row.get("manual"), R.row_id(row)
 
 
+# ---------------------------------------------------------------- orientation (INT-360)
+# SC 1.3.4 allows a screen to keep one orientation only where that orientation
+# is essential. apps/mobile/e2e/a11y.spec.ts finds every lock in the app and
+# fails on one this register does not list with its reason; this half makes the
+# register part of the report, so the exception is named where it is claimed.
+
+_LOCK = "src/app/(tabs)/records.tsx › orientation API"
+
+
+def test_the_orientation_row_carries_its_essential_lock_register(source: dict[str, Any]) -> None:
+    row = _row(source, "1.3.4")
+    assert isinstance(row.get("essential_locks"), list), "SC 1.3.4 names its exceptions, even none"
+    for lock in row["essential_locks"]:
+        assert str(lock.get("lock", "")).strip() and str(lock.get("reason", "")).strip(), lock
+
+
+def test_an_essential_lock_without_a_reason_is_refused(source: dict[str, Any]) -> None:
+    broken = copy.deepcopy(source)
+    _row(broken, "1.3.4")["essential_locks"] = [{"lock": _LOCK}]
+    assert any("1.3.4" in p and "reason" in p for p in R.validate(broken))
+    _row(broken, "1.3.4")["essential_locks"] = [{"lock": _LOCK, "reason": "  "}]
+    assert any("1.3.4" in p and "reason" in p for p in R.validate(broken))
+
+
+def test_only_the_orientation_row_registers_a_lock(source: dict[str, Any]) -> None:
+    broken = copy.deepcopy(source)
+    _row(broken, "1.4.10")["essential_locks"] = []
+    assert any("1.4.10" in p and "essential_locks" in p for p in R.validate(broken))
+
+
+def test_the_report_names_every_essential_lock_and_says_so_when_there_is_none(
+    source: dict[str, Any],
+) -> None:
+    def orientation_line(text: str) -> str:
+        return next(line for line in text.splitlines() if line.startswith("| 1.3.4 "))
+
+    registered = copy.deepcopy(source)
+    reason = "The capture guide is drawn for a portrait page."
+    _row(registered, "1.3.4")["essential_locks"] = [{"lock": _LOCK, "reason": reason}]
+    named = orientation_line(R.render(registered))
+    assert "records.tsx" in named and reason in named and "essential" in named
+    if not _row(source, "1.3.4")["essential_locks"]:
+        assert "No screen keeps an orientation lock" in orientation_line(R.render(source))
+
+
 # ---------------------------------------------------------------- device audit
 
 

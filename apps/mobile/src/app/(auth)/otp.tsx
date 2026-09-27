@@ -151,7 +151,13 @@ export default function OtpEntry() {
           physical bottom, so the last control was left under the home
           indicator. */}
       <Stack.Screen options={headerOptions(t("auth.otp.title"))} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): the boxes scroll clear of the keyboard, which
+        // takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
+      >
         <AppText role="body" color="inkSoft">
           {t("auth.otp.body")}
         </AppText>
