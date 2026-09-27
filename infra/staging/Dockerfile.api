@@ -6,7 +6,9 @@
 # /version is stamped from the GIT_SHA and BUILT_AT build args. They become
 # INTAKE_GIT_SHA and INTAKE_BUILT_AT, the names intake_platform.health.
 # VersionInfo reads. deploy.sh supplies both. A build without them, or with
-# "dev", is refused in the runtime stage.
+# "dev", is refused in the runtime stage. The third stamp, sbom_digest,
+# describes this image, so the image cannot carry it: deploy.sh passes it to
+# the container at start (INT-352).
 #
 # Digests were resolved from the registries' v2 APIs on 26 Sep 2026:
 #   ghcr.io/astral-sh/uv:0.12.19       (MIT OR Apache-2.0)
