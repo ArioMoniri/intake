@@ -76,6 +76,7 @@ def test_ids_unique_and_well_formed() -> None:
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
     # + INT-396 (backlog status reconciliation and its drift guard).
+    # + INT-401 (console rollback split out of INT-187; waits on a CD target).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -112,7 +113,7 @@ def test_ids_unique_and_well_formed() -> None:
     # found by INT-360's PR, filed as GitHub #640).
     # + INT-397 (the three status lines INT-362 left silent are announced, and
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
-    assert len(ids) == 310
+    assert len(ids) == 311
     import re
 
     for i in ids:

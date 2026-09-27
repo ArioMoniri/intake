@@ -48,6 +48,7 @@ __all__ = [
     "previsit_output_unconfigured",
     "purpose_unknown",
     "refresh_reused",
+    "release_freeze_refused",
     "taxonomy_unconfigured",
     "unauthorized",
     "unknown_embed_tenant",
@@ -396,6 +397,16 @@ def voice_control_refused(status: int, code: str) -> HTTPException:
     control's state forbids it (nothing to release, the control moved since
     the request); 503 — no store wired, or the store unreachable. ``code`` is
     machine-shaped and echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
+def release_freeze_refused(status: int, code: str) -> HTTPException:
+    """INT-187: the CI/CD module refused a deploy-freeze change or could not
+    reach its store. 422 — a body it will not take (an unexpected field, an
+    unknown reason class, a reason too short); 409 — the freeze's state
+    forbids it (nothing to lift, the freeze moved since the request); 503 — no
+    store wired, or the store unreachable. ``code`` is machine-shaped and
+    echoes no submitted value (invariant 6)."""
     return HTTPException(status_code=status, detail={"error": code})
 
 
