@@ -238,6 +238,13 @@
   labels: [area:security, risk:legal]
   # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
   # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
+  # CLOSE-OUT AUDIT 27 Sep 2026 (docs/evidence/INT-020.md): every other clause is met
+  # on main, and the close-out built the three engineering gaps it found (evidence_check
+  # now fails a missing Sec-Row itself; five files/10 §9 features seeded, with a map test;
+  # every services/apps/packages module owned by a row, with a map test). The one held
+  # clause is "data-subject notice templates": counsel-authored legal text, and files/06
+  # §5 lists the breach packet templates with the INT-210..227 legal set, INT-214 (which
+  # depends on this row). Moving that clause to INT-214 is the coordinator's/owner's call.
   status: doing
   acceptance:
     - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
