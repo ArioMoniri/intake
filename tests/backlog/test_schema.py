@@ -115,7 +115,10 @@ def test_ids_unique_and_well_formed() -> None:
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
     # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
     # main never imported; found by INT-378, fixed and closed in the same PR).
-    assert len(ids) == 312
+    # ported to main as its own one-issue PR)
+    # + INT-379 (the question-set generator's duration=omit, code answers and
+    # skip_if, asked for by the department verifications, GitHub #623).
+    assert len(ids) == 313
     import re
 
     for i in ids:

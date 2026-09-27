@@ -65,7 +65,7 @@ sections:
         ask_tr:
           tr: Alışılmadık şekilde çok su içiyor ya da ağzınızda kuruluk hissediyor musunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/diyabet_poliklinigi.md'
-      aciklanamayan_kilo_kaybi:
+      istemsiz_kilo_kaybi:
         type: boolean
         required: false
         ask_tr:

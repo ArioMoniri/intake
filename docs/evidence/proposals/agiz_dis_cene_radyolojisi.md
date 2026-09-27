@@ -246,24 +246,32 @@ authoritative)** per S1.
 **Q8 — Facial/jaw/under-tongue swelling (airway pair, part one)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig symptom labels — "Neck swelling"; "Tongue swelling or protrusion …")
 > "Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?"
-gen: slot=yuz_cene_dil_alti_sislik; type=boolean
+gen: slot=yuz_cene_sisligi; type=boolean
 CANDIDATE — clinician to approve wording. Airway pair in the wave 4–5 endodonti soru_7 form.
 
 **Q9 — Breathing or swallowing difficulty (airway pair, part two; not gated)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig — "Breathing difficulty is an emergency situation")
 > "Nefes almakta ya da yutkunmakta zorlanıyor musunuz?"
-gen: slot=nefes_yutma_zorlugu; type=boolean
+gen: slot=nefes_yutkunma_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. Deliberately **not** gated on Q8. Candidate_flag:
 **candidate acute-airway concern, pending clinician + rules-engine confirmation — NOT
 authoritative**; source is patient-education (S2, LOW–MEDIUM), RED script/axes NOT supplied (§4).
 Whether the dental cluster carries this screen in every dental pack is still open (finding 26).
 
-**Q10 — Antiresorptive / bone medication** · archetype: `ACTION.medication.v1` · source: S6 (AAOMS MRONJ —
+**Q10a — Antiresorptive / bone medication** · archetype: `ACTION.medication.v1` · source: S6 (AAOMS MRONJ —
 antiresorptive medication + jaw bone; relevant to jaw imaging interpretation)
 > "Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?"
-gen: slot=kemik_ilaci
+gen: slot=kemik_ilaci; type=boolean
 CANDIDATE — clinician to approve wording. Past use counts for MRONJ; medication history only, no
-diagnosis asserted. Kept as a free-text slot so the drug name is captured.
+diagnosis asserted. Yes/no gate for Q10b, the same `kemik_ilaci` boolean the dental cluster and
+periodontoloji and protetik declare (verification wave 8 §A, cluster-wave-b §F).
+
+**Q10b — Name of that medicine** · archetype: `ACTION.medication.v1` · source: S6 (AAOMS MRONJ)
+> "Hatırlıyorsanız bu ilacın adını söyleyebilir misiniz?"
+gen: slot=kemik_ilaci_adi; type=string; ask_if=kemik_ilaci == true
+CANDIDATE — clinician to approve wording. Split from Q10: a boolean slot cannot store the medicine's
+name, so it has its own string slot. Text and pair as periodontoloji and protetik Q11a/Q11b
+(verification wave 8 §C).
 
 **Q11 — Recent facial/jaw trauma** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 (Table 1
 positive clinical sign: "evidence of dental/facial trauma")
@@ -271,8 +279,8 @@ positive clinical sign: "evidence of dental/facial trauma")
 gen: slot=yuz_cene_darbe; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(11 candidate questions after revision: Q4–Q9 source-derived red-flag context; Q3/Q10/Q11 sourced
-imaging context; Q1–Q2 general intake. Pregnancy and allergy are asked by the base layer.)*
+*(12 candidate questions after revision, Q10 split into Q10a and Q10b: Q4–Q9 source-derived red-flag
+context; Q3/Q10/Q11 sourced imaging context; Q1–Q2 general intake. Pregnancy and allergy are asked by the base layer.)*
 
 ---
 

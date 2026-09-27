@@ -47,7 +47,7 @@ sections:
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_enfeksiyon_hastaliklari.md'
   sorular:
     slots:
-      ates_oldu:
+      ates_var_mi:
         type: boolean
         required: false
         ask_tr:
@@ -58,7 +58,7 @@ sections:
         required: false
         ask_tr:
           tr: Çocuğunuzun ateşi ne zamandır sürüyor?
-        ask_if: ates_oldu == true
+        ask_if: ates_var_mi == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_enfeksiyon_hastaliklari.md'
       emebiliyor_icebiliyor:
         type: boolean
@@ -78,7 +78,7 @@ sections:
         ask_tr:
           tr: Çocuğunuz bu hastalık sırasında havale ya da nöbet geçirdi mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_enfeksiyon_hastaliklari.md'
-      asiri_uykulu_halsiz:
+      uykulu_tepkisiz:
         type: boolean
         required: false
         ask_tr:
@@ -102,7 +102,7 @@ sections:
         ask_tr:
           tr: Çocuğunuzun nefes alışverişinde zorlanma ya da her zamankinden hızlı soluma fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_enfeksiyon_hastaliklari.md'
-      suregen_hastalik_tanisi:
+      suregen_tani:
         type: boolean
         required: false
         ask_tr:

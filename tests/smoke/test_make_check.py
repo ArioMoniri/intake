@@ -231,7 +231,8 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-321 (mobile intake mode chooser up front) + INT-322 (embed intake
     # mode bound inside the signed launch ticket) + INT-323 (department-dynamic
     # previsit routing); grows only with a stated reason.
-    # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron);
+    # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron)
+    # + INT-379 (the generator's duration=omit, code answers and skip_if);
     # grows only with a stated reason.
     # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
     # previsit routing) + INT-317 (previsit output store + hospital read-back,
@@ -267,7 +268,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
     # + INT-390 (Keycloak upgrade and realm import, found by INT-378); grows
     # only with a stated reason.
-    assert len(ids) == 312, f"expected 175 blueprint + 137 added issues, got {len(ids)}"
+    assert len(ids) == 313, f"expected 175 blueprint + 138 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

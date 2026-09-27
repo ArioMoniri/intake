@@ -341,6 +341,26 @@
 - Blocked on: nothing.
 - Next: PR (Sec-Row `records`, Closes #635). Merge after #634.
 
+### 2026-09-27T12:00:00Z · INT-379 · done (PR open, not merged; depends on #582)
+- Goal: acceptance verbatim (GitHub #623):
+  - *"the generator accepts `pack: duration=omit` (no duration slot emitted), `gen: type=code; options=<ids>` (each option id from a fixed vocabulary with committed tr labels, never free text), and `gen: skip_if=<expr>` under the same earlier-slot rule as `ask_if` (INT-355 resolution; INT-375 ordering)"*
+  - *"capabilities only: no proposal or candidate changes in this issue; choosing where to use them is the clinician's (HB-C1, HB-C3, HB-C5)"*
+  - *"unknown keys stay refused; each new key has refusal tests and a near-miss control; every candidate regenerates byte-identically"*
+- Plan: extend `scripts/dev/gen_specialty_packs.py` on top of PR #582's version of it (the branch is based on `int-353-sibling-rebinds`).
+  - `duration=omit` drops `sikayet_suresi`. Under a cluster that declares the slot, the candidate also carries a `suppress_slot` op, because the merge would otherwise keep the cluster's slot.
+  - `type=code; options=` takes ids from `CODE_OPTIONS`, whose labels are base.intake's own code-slot labels, verbatim. It emits `valueset: vs.<slot>` and `choices_tr`.
+  - `skip_if` shares `ask_if`'s parse and earlier-slot rule. The refusal now names self, later and undeclared reads, and `skip_if` reads count in #582's `reorder` op.
+- Tests added: 21 functions (44 cases) in `tests/protocols/test_gen_specialty_packs.py`. Each key has acceptance tests, refusal tests and a near-miss control.
+  - Refusals: contradictory combinations (omit with a duration text; options on a non-code type; `ask_if` with `skip_if`; either new key on Q1) and unknown-key spellings.
+  - Chain: base → `cluster.medical` → a generated branch, validated and merged with ops applied.
+  - RED: 33 failed, 75 passed. GREEN: 108 passed. Six mutations of the generator are each killed.
+- Result: `tests/protocols` 836 passed. `make safety` rc 0 (triage 100 %, 18/18 mutations, voice-runtime 98.56 %, adversarial 121). `make check-py` rc 0. The regenerate-all run changes no candidate or tr-baseline byte, and its run log is identical to the pre-change one. Chain validation: 100 packs, 0 findings.
+- Invariants touched and still passing: 1 and 7 (no rule or triage change; suppression only of the non-must-ask duration slot); 2, 10 and 22 (the new keys emit base.intake text only; no digit in any label); 17 (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing. Recorded for the clinician (HB-C1): where to use the keys; labels outside base's vocabulary (wave 7 noroloji `baslangic_sekli`: "aniden" / "yavaş yavaş"); the stub's `tense_anchor` under `omit`.
+- Next: PR `INT-379: generator capabilities — duration=omit, code answers, skip_if` (Closes #623, Sec-Row protocol-registry). It must merge after #582 and is left open for CODEOWNER review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:

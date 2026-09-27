@@ -194,6 +194,7 @@ CANDIDATE — clinician to approve wording.
 
 **Q7 — Eye pain (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: G-S1 ("Gözde ve göz çevresinde ağrı hissi"), G-S4, G-S6 (PACD "eye pain")
 > "Gözünüzde ya da göz çevresinde ağrı var mı?"
+gen: slot=goz_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: acute angle-closure (§2.2).**
 
 **Q8 — Eye redness (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: G-S1 ("Göz çevresindeki deride ve gözde kızarıklık"), G-S6 (PACD "eye redness")
@@ -202,6 +203,7 @@ CANDIDATE — clinician to approve wording. **Overlap: acute angle-closure (§2.
 
 **Q9 — Coloured halos around lights (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: G-S1 ("Işıkların çevresinde renkli halkalar görme"), G-S6 (PACD "halos around lights")
 > "Işıkların çevresinde renkli halkalar görüyor musunuz?"
+gen: slot=isik_cevresinde_halka; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: acute angle-closure (§2.2).**
 
 **Q10 — Double vision (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: G-S1 ("Çift görme")
@@ -210,6 +212,7 @@ CANDIDATE — clinician to approve wording. **Overlap: `rf.stroke_fast` when sud
 
 **Q11 — Contact-lens wear** · archetype: `OBSERVATION.story.v1` (narrative only) · source: G-S5, G-S6 (Conjunctivitis history; Bacterial Keratitis education)
 > "Kontakt lens kullanıyor musunuz?"
+gen: slot=kontakt_lens; type=boolean
 CANDIDATE — clinician to approve wording. Risk-factor context for Q7/Q8 (G-S5); not a flag by itself.
 
 **Q12 — Known diabetes** · archetype: `EVALUATION.problem_diagnosis.v1` · source: G-S1 ("Şeker hastalığı")

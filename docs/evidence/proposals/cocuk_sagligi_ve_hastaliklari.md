@@ -173,10 +173,12 @@ CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (can
 authoritative)**; severe respiratory distress is owned by `base.life_threat`.
 
 **Q6 — Chest indrawing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED respiratory ("Moderate or severe chest indrawing") — **feeds `base.life_threat`**
-> "Nefes alırken çocuğunuzun kaburgalarının arası içeri çekiliyor mu?"
+> "Nefes alırken çocuğunuzun kaburgalarının altı ya da arası içeri çekiliyor mu?"
 gen: slot=gogus_icine_cekilme; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
-authoritative)**; RED owned by `base.life_threat`.
+authoritative)**; RED owned by `base.life_threat`. Text is cluster_child_health Q10's: the IMCI
+lower-chest-wall sign plus intercostal indrawing (verification cluster-wave-b §C, §F). The
+paediatrician confirms the text against the IMCI source (cluster-wave-b §A.1).
 
 **Q7 — Grunting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 RED respiratory ("Grunting") — **feeds `base.life_threat`**
 > "Çocuğunuz nefes verirken inler gibi bir ses çıkarıyor mu?"

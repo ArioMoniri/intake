@@ -216,9 +216,11 @@ CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (can
 `base.life_threat` (invariant 7), not this pack.
 
 **Q8 — Chest indrawing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("chest indrawing") — **feeds `base.life_threat`**
-> "Nefes alırken çocuğunuzun kaburgalarının arası içeri çekiliyor mu?"
-gen: slot=gogus_ice_cekilmesi; type=boolean
-CANDIDATE — clinician to approve wording. Candidate_flag: as Q7.
+> "Nefes alırken çocuğunuzun kaburgalarının altı ya da arası içeri çekiliyor mu?"
+gen: slot=gogus_icine_cekilme; type=boolean
+CANDIDATE — clinician to approve wording. Candidate_flag: as Q7. Text and slot id are
+cluster_child_health Q10's: the IMCI lower-chest-wall sign plus intercostal indrawing (verification
+cluster-wave-b §C, §F). The paediatrician confirms the text against the IMCI source (cluster-wave-b §A.1).
 
 **Q9 — Grunting** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Grunting") — **feeds `base.life_threat`**
 > "Çocuğunuz nefes verirken inler gibi bir ses çıkarıyor mu?"
