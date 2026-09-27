@@ -125,11 +125,16 @@ class WorkType(enum.StrEnum):
     triage runs synchronously inside ``apply_extraction`` — so there is no
     member for it here either. The Talker submits transcripts and document
     reads; it cannot ask for a triage, a note or a share (files/03 §4.2).
+
+    ``RETRIEVE_RECORDS`` (INT-123) is files/03 §4.3's ``retrieve_records(query)``
+    and files/12 §7.4 puts it in the background lane: it reads the patient's
+    record index and hands citations to the note, and it can write nothing.
     """
 
     EXTRACT_SLOTS = "extract_slots"
     PLAN_FOLLOW_UPS = "plan_follow_ups"
     PARSE_DOCUMENT = "parse_document"
+    RETRIEVE_RECORDS = "retrieve_records"
 
 
 class WorkState(enum.StrEnum):

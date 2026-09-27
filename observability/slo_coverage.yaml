@@ -1,0 +1,219 @@
+# observability/slo_coverage.yaml — monitoring coverage per subject (INT-021
+# close-out; CLAUDE.md invariant 15; files/10 §6).
+#
+# Schema: intake_platform.slo_coverage.CoverageManifest. Checked by
+# tests/observability/test_slo_coverage.py and printed by `make slo-report`.
+#
+# Subjects are DISCOVERED from the tree — every services/<x> with a
+# pyproject.toml, every apps/<x> with a package.json, every
+# intake_platform/<x>/__main__.py — and each must have an entry here. Tiers
+# (a boundary inside another process) and absent subjects the spec names
+# (`workers`) are listed by hand.
+#
+# Each entry states each facet exactly once:
+#   slo:    docs/slo/<x>.yaml  | exempt.slo: <why none is needed> | gaps.slo: <what is missing>
+#   probe:  probes: [<registry component>, ...] | exempt.probe | gaps.probe
+# `alerts` names the non-burn alerts the subject relies on (they must be
+# loaded by Prometheus; their runbooks are held by test_alert_rules.py).
+# `gaps.alert` records an alert that exists but cannot fire yet.
+# `awaiting` names who closes a gap and the question they must answer.
+#
+# Objectives are never invented here: where neither files/08 §4 A, files/10
+# §6 nor files/02 §8 gives a target, the gap says so and names the owner.
+
+subjects:
+  # --- services (invariant 15: an SLO file and a probe row, no exemptions) ------
+
+  - subject: api
+    kind: service
+    slo: docs/slo/api.yaml
+    probes: [api]
+
+  - subject: learning
+    kind: service
+    slo: docs/slo/learning.yaml
+    probes: [learning]
+
+  - subject: metrics
+    kind: service
+    slo: docs/slo/metrics.yaml
+    probes: [metrics]
+
+  # also hosts the INT-351 ops collector (GPU hosts, CI runs, clip builds) on
+  # its own /metrics; its CI/CD extension (INT-187) lands in the same process
+  - subject: probes
+    kind: service
+    slo: docs/slo/probes.yaml
+    probes: [probes]
+
+  - subject: voice-runtime
+    kind: service
+    slo: docs/slo/voice-runtime.yaml
+    probes: [voice-runtime]
+
+  - subject: workers
+    kind: service
+    exempt:
+      probe: >-
+        No process exists to probe. The entry is here because the INT-021
+        acceptance names docs/slo/workers.yaml and files/10 §6 lists workers
+        among the telemetry sources; tests/observability/test_slo_files.py
+        binds the SLO file the moment services/workers appears.
+    gaps:
+      slo: >-
+        services/workers does not exist and no backlog row creates it. The work
+        it would host — upload promotion (intake_platform.uploads), retention
+        destruction (intake_platform.retention), event-bus consumers,
+        notification dispatch — is library code that no deployed process runs,
+        so its catalogued series (document_upload_pipeline,
+        retention_destruction_runs_total, event_bus_dead_lettered_total,
+        notification_dispatch_total) carry no data. files/08 §4 A gives the
+        tier one objective, note ready within 60 s for 99 % of sessions; its
+        series note_time_to_ready_s is planned, not emitted. An SLI over
+        series nobody serves is an objective nobody could breach, so no
+        docs/slo/workers.yaml is written.
+    awaiting: >-
+      owner (backlog) — does the worker tier become services/workers, under
+      which issue, and what objective does each worker SLI the spec leaves
+      open carry (upload promotion, retention runs, event-bus dead letters,
+      notification dispatch)? note_ready_within_60s 99 % is already set by
+      files/08 §4 A.
+
+  # --- boundary tiers (a library inside another process) ------------------------
+
+  - subject: langfuse
+    kind: tier
+    slo: docs/slo/langfuse.yaml
+    probes: [langfuse, langfuse-clickhouse]
+
+  # --- apps ------------------------------------------------------------------------
+
+  - subject: admin-web
+    kind: app
+    exempt:
+      slo: >-
+        Every byte the console renders comes from services/api /admin/* routes,
+        which the api availability and latency SLOs measure; the Next server
+        itself serves no /metrics, and no spec gives it an objective (files/08
+        §4 A and files/10 §6 name none for the console).
+    gaps:
+      probe: >-
+        files/08 §6 names the console's probe — /healthz plus a CSP header
+        assertion — and app/healthz/route.ts serves the first half, but
+        observability/registry.yaml has no admin-web row. Adding one changes
+        the recorded runner sweep (tests/fixtures/reliability/probe_sweep.json,
+        held equal to the registry by tests/admin/test_reliability_console.py)
+        and the admin-web e2e payloads recorded from it; both are re-taken on
+        the recording host with scripts/dev/record_reliability_fixture.py
+        --sweep, and a CSP-asserting probe id does not exist yet.
+
+  - subject: mobile
+    kind: app
+    exempt:
+      probe: >-
+        A device app has no endpoint to probe; the API it calls is probed
+        (registry row api).
+    gaps:
+      slo: >-
+        files/10 §6 and files/02 §8.4 set the client objective — crash-free
+        sessions >= 99.5 % — but client_crash_free_sessions is planned: no
+        GlitchTip/Sentry emitter exists, so there is no series to write the SLI
+        over.
+
+  - subject: embed-sample-partner
+    kind: app
+    exempt:
+      slo: >-
+        A synthetic dev-tier sample partner page (INT-320 follow-up, ADR-029);
+        it is never deployed and no patient reaches it.
+      probe: >-
+        Never deployed; the embed API routes it calls are part of services/api
+        and are probed with it.
+
+  # --- jobs (python -m intake_platform.<job>, run to completion by a scheduler) ----
+
+  - subject: intake_platform.access_hygiene
+    kind: job
+    alerts: [AccessReviewOverdue, OffboardingIncomplete]
+    exempt:
+      slo: >-
+        A daily run-to-completion tick, not a service: files/08 §2.4 and §2.7
+        state its obligations as deadlines, carried by AccessReviewOverdue
+        (review older than 100 days, pages) and OffboardingIncomplete (an
+        offboarding ended with a system open, ticket).
+      probe: >-
+        A one-shot job has no endpoint; a failed tick exits non-zero to the
+        scheduler that ran it (docs/runbooks/access-review.md).
+    gaps:
+      alert: >-
+        admin_offboarding_total lives in the process that ran the tick; no
+        scheduler exists yet (docs/runbooks/key-rotation.md "What runs where"),
+        so an auto-disable offboarding reaches Prometheus only once the tick
+        runs inside a scraped process. AccessReviewOverdue reads the api
+        replicas' gauge and is unaffected.
+
+  - subject: intake_platform.audit_verifier
+    kind: job
+    alerts: [AuditChainVerificationFailed]
+    exempt:
+      slo: >-
+        A daily verification, not a service: files/08 §5 pages on any
+        audit-chain verification failure, which is AuditChainVerificationFailed
+        over sec_audit_chain_ok.
+      probe: >-
+        A one-shot job has no endpoint; it exits 2 on a broken chain and 3 with
+        no anchor (docs/runbooks/audit-chain.md).
+    gaps:
+      alert: >-
+        sec_audit_chain_ok lives in the process that ran the verification; no
+        scheduler runs it and no scrape reaches it yet, the same export gap
+        docs/runbooks/key-rotation.md records for the rotation countdown.
+        Until one does, the page has no series to fire on.
+
+  - subject: intake_platform.backup
+    kind: job
+    probes: [backups]
+    exempt:
+      slo: >-
+        A scheduled backup and restore drill, not a service: its objective is
+        freshness, which the backups registry row's backup_freshness probe
+        checks and the release gate reads.
+    gaps:
+      alert: >-
+        files/08 §5 pages on backup age > 30 min; sec_backup_age_min is
+        planned — the job emits no metric — so no rule can read it. The drill
+        itself is blocked by HB-I1 and HB-I2 (docs/evidence/INT-202.md).
+
+  - subject: intake_platform.ci
+    kind: job
+    exempt:
+      slo: >-
+        The no-PHI-in-CI policy check (`make ci-policy`) runs inside CI; a
+        failure fails the build, which is its alert. Nothing runs in
+        production.
+      probe: >-
+        Runs only inside a CI job; the ci-runners registry row covers the
+        runners it runs on.
+
+  - subject: intake_platform.key_rotation
+    kind: job
+    alerts: [SecretRotationOverdue]
+    exempt:
+      slo: >-
+        A daily run-to-completion tick, not a service: files/10 §3 states its
+        objective as a deadline (every tenant KEK rotated quarterly), which is
+        SecretRotationOverdue over sec_secret_rotation_due_days.
+      probe: >-
+        A one-shot job has no endpoint; a tick exits non-zero while any key
+        stays overdue (docs/runbooks/key-rotation.md).
+    gaps:
+      alert: >-
+        docs/runbooks/key-rotation.md "What runs where" item 2: the gauge
+        lives in the process that ran the tick, and until the tick runs inside
+        a scraped process the alert has no series to fire on.
+
+  # the SIEM feed CLI is the scrub boundary docs/slo/siem.yaml measures
+  - subject: intake_platform.siem
+    kind: job
+    slo: docs/slo/siem.yaml
+    probes: [wazuh-manager, wazuh-indexer, falco]

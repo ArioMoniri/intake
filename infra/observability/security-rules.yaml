@@ -23,6 +23,23 @@ groups:
         §3). Every ciphertext still decrypts; the rotation is late, not
         destructive.
       runbook: docs/runbooks/key-rotation.md#overdue
+  # tests/observability/test_alert_rules.py (INT-021 close-out). files/08 §5
+  # pages on "audit-chain verification failure". The INT-016 daily verifier
+  # (intake_platform.audit_verifier) sets the gauge to 0 on a broken chain AND
+  # when no external anchor was supplied (HB-I12): a chain checked only
+  # against itself is not a verified chain, so both page. Until the close-out
+  # nothing read the gauge, although the job's own docstring said it paged.
+  - alert: AuditChainVerificationFailed
+    expr: sec_audit_chain_ok == 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'the daily audit-chain verification did not verify the chain'
+      description: >-
+        Either the hash chain does not hold (exit 2) or no externally anchored
+        head was supplied to check it against (exit 3). Neither is copied to
+        the WORM bucket.
+      runbook: docs/runbooks/audit-chain.md#verification-failed
 - name: admin-access
   rules:
   # tests/admin/test_access_review.py. files/08 §2.7: "a review older than
