@@ -73,6 +73,10 @@ services:
       INTAKE_API_AUDIT_DB_URL: postgresql+psycopg://svc_audit_writer:${PG_AUDIT_WRITER_PASSWORD:?run init.sh}@postgres:5432/intake
       INTAKE_API_BOOTSTRAP_DB_URL: postgresql+psycopg://intake:${POSTGRES_PASSWORD:?run init.sh}@postgres:5432/intake
       INTAKE_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-187: the deploy freeze. The console writes it here and deploy.sh's
+      # release gate reads it, in a one-off api container, before it restarts
+      # anything; unset, the gate refuses every deploy.
+      INTAKE_RELEASE_FREEZE_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
       # The object store: the minio service below, over the internal backend
       # network. The API creates its buckets itself on first use, the audit
       # bucket with object lock, so nothing here pre-creates one.

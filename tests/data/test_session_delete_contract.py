@@ -34,6 +34,13 @@ no audit entry. So every deletion path removes the child explicitly, and the
 key keeps NO ACTION as the fail-closed backstop: a path that forgets the
 child raises instead of losing it silently.
 
+INT-123 adds ``record_embeddings``: erased with the subject (the DSAR erasure
+deletes the subject's vectors, setting the patient GUC first), and its only
+key in the graph is ``patient_id``, to a row the erasure keeps. It has no key
+to ``sessions`` or ``documents`` — a vector is keyed to its document by the
+``doc:<documents.id>`` ref — so the retention executor is held to removing the
+vector of the document it destroys by an explicit assertion below.
+
 Sec row: data-at-rest (files/10 §9).
 """
 
@@ -51,6 +58,7 @@ from types import MappingProxyType
 from typing import Any, Final
 
 import pytest
+from clinical_schemas.records import RecordItemKind
 from intake_api.audit import AuditWriter
 from intake_api.dsar.shred import execute_due_shreds
 from intake_platform.audit import InMemoryAuditStore
@@ -75,6 +83,7 @@ from intake_platform.db.models import (
     Patient,
     PatientOverlayHeader,
     PreVisitOutputRow,
+    RecordEmbedding,
     SessionStatus,
     Share,
     Slot,
@@ -82,6 +91,7 @@ from intake_platform.db.models import (
     Tenant,
 )
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider
+from intake_platform.records.index import document_ref_of
 from intake_platform.retention import DestroyableClass, sqlalchemy_destroyers
 from sqlalchemy import (
     Column,
@@ -158,6 +168,7 @@ ROWS_ON_ERASURE: Final[Mapping[str, RowFate]] = MappingProxyType(
         "dsar_rectifications": RowFate.ERASED,
         "overlay_facts": RowFate.ERASED,
         "patient_overlays": RowFate.ERASED,
+        "record_embeddings": RowFate.ERASED,
     }
 )
 
@@ -206,6 +217,7 @@ ON_ERASURE: Final[Mapping[str, OnErasure]] = MappingProxyType(
         "notification_preferences.patient_id": OnErasure.PARENT_KEPT,
         "overlay_facts.patient_id": OnErasure.PARENT_KEPT,
         "patient_overlays.patient_id": OnErasure.PARENT_KEPT,
+        "record_embeddings.patient_id": OnErasure.PARENT_KEPT,
     }
 )
 
@@ -482,6 +494,7 @@ def _seed_graph(db: Engine) -> Seeded:
         expires_at=T0 + timedelta(hours=72),
         **ids,
     )
+    document_id = uuid.uuid4()
     levels: list[list[object]] = [
         [tenant],
         [patient],
@@ -522,7 +535,7 @@ def _seed_graph(db: Engine) -> Seeded:
                 **ids,
             ),
             Document(
-                id=uuid.uuid4(),
+                id=document_id,
                 **subject,
                 session_id=target.id,
                 object_ref="intake-docs/clean/t/k1.int393/deadbeef",
@@ -547,6 +560,23 @@ def _seed_graph(db: Engine) -> Seeded:
                 request_id=request.id,
                 target_ref=f"note:{note.id}",
                 payload=envelope(),
+            ),
+            # INT-123: the vector indexed from the session's document
+            RecordEmbedding(
+                id=uuid.uuid4(),
+                **subject,
+                item_ref="ri_" + "0" * 32,
+                document_ref=document_ref_of(document_id),
+                page=1,
+                bbox=[0.1, 0.2, 0.6, 0.24],
+                char_start=0,
+                char_end=12,
+                kind=RecordItemKind.LAB,
+                model_ref="fixture/recorded-embedder@0123456789abcdef0123456789abcdef01234567",
+                dimensions=3,
+                embedding=(1.0, 0.0, 0.0),
+                consent_scope_ref="scope:documents",
+                created_at=T0,
             ),
         ],
         [
@@ -622,6 +652,9 @@ def test_the_retention_executor_removes_the_whole_session_tree(db: Engine) -> No
     for table in sorted(session_tree):
         if ROWS_ON_ERASURE[table] is RowFate.ERASED:
             assert _count(db, table) == 0, f"{table} survived its session"
+    # INT-123: not reachable from sessions by a key, so named here — the
+    # vector indexed from the destroyed document goes with it
+    assert _count(db, "record_embeddings") == 0, "record_embeddings survived its document"
     with Session(db) as s:
         assert s.scalars(select(IntakeSession.id)).all() == [seeded.keep]
         # telemetry keeps its own clock; only the link to the erased session goes
