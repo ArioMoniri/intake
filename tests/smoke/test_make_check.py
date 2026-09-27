@@ -245,7 +245,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing) + INT-318 (Acıbadem read source and /v1/visits/sync,
     # INT-354 slice S2); grows only with a stated reason.
     # + INT-378 (the Keycloak WebAuthn session-notes provider, found by INT-373).
-    assert len(ids) == 300, f"expected 175 blueprint + 125 added issues, got {len(ids)}"
+    # previsit routing) + INT-377 (probe-results file fails closed on the
+    # admin console, found by INT-181); grows only with a stated reason.
+    assert len(ids) == 301, f"expected 175 blueprint + 126 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

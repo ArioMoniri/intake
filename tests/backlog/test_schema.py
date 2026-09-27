@@ -92,7 +92,9 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
     # + INT-378 (the Keycloak WebAuthn provider that writes the aaguid and
     # credential_id session notes; found by INT-373).
-    assert len(ids) == 300
+    # + INT-377 (a malformed probe-results file 500'd /admin/models and
+    # /admin/ops; found by INT-181, fixed and closed in the same PR).
+    assert len(ids) == 301
     import re
 
     for i in ids:

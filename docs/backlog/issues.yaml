@@ -5759,4 +5759,20 @@
     - "a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"
     - "owner decision (awaiting-human): INT-365 admits TOTP for roles outside the patient-content set, but a TOTP login has no AAGUID and the console requires one. Either (a) require WebAuthn for every console role, or (b) require `aaguid` only when `amr` contains `hwk`. The implementation follows the recorded choice."
   tests: [tests/admin/test_webauthn_session_notes_provider.py]
+- id: INT-377
+  epic: E12-admin
+  phase: P1
+  title: "/admin/models and /admin/ops fail closed on a malformed probe-results file"
+  depends_on: [INT-183, INT-351]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-377.md
+  # Found by INT-181 (PR #612): models_source read INTAKE_PROBE_RESULTS_PATH
+  # unguarded, so a present file that is not a sweep raised JSONDecodeError
+  # through both routes. The loader now refuses it to probe_results_unreadable
+  # (INT-181's own vocabulary) and logs the reason and exception class only.
+  acceptance:
+    - "a malformed, truncated, empty or wrongly shaped probe-results file makes every tile that reads it show `unknown`, with no 500; the refusal is logged without the file's content"
+    - "one test per malformation, plus a near-miss control with a valid file"
+  tests: [tests/admin/test_probe_results_fail_closed.py, apps/admin-web/e2e/models.spec.ts, apps/admin-web/e2e/ops.spec.ts]
   sec_row: "admin-console"
