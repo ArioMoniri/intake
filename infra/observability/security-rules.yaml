@@ -1,0 +1,25 @@
+# infra/observability/security-rules.yaml — security countdown alerts
+# (INT-367; files/10 §3 "key rotation quarterly", §6 "docs/runbooks/ linked
+# from every alert", §7 "secret-rotation and certificate-expiry countdowns").
+#
+# Hand-written, not generated: each rule is pinned by the test named beside
+# it, and every series it reads is catalogued in
+# observability/metrics_catalog.yaml (CLAUDE.md invariant 13).
+groups:
+- name: security-countdowns
+  rules:
+  # tests/security/test_rotation_schedule.py. The scheduled rotation
+  # (intake_platform.key_rotation) re-arms the countdown whenever it rotates
+  # a key, so the gauge goes below zero only when a due rotation did not
+  # happen: the rotate failed, or nothing ran the job.
+  - alert: SecretRotationOverdue
+    expr: sec_secret_rotation_due_days < 0
+    labels:
+      severity: ticket
+    annotations:
+      summary: 'tenant KEK {{ $labels.key }} is past its quarterly rotation'
+      description: >-
+        The key's latest Transit version is more than a quarter old (files/10
+        §3). Every ciphertext still decrypts; the rotation is late, not
+        destructive.
+      runbook: docs/runbooks/key-rotation.md#overdue
