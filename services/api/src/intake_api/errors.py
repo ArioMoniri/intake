@@ -43,6 +43,8 @@ __all__ = [
     "otp_invalid",
     "otp_limited",
     "phone_invalid",
+    "previsit_output_recipient_unregistered",
+    "previsit_output_unconfigured",
     "purpose_unknown",
     "refresh_reused",
     "taxonomy_unconfigured",
@@ -114,6 +116,29 @@ def consent_text_missing(scope: str) -> HTTPException:
     """No docs/legal text exists for the purpose — no text, no grant
     (invariant 18, matching INT-038's ConsentTextMissingError)."""
     return HTTPException(status_code=409, detail={"error": "text_missing", "scope": scope})
+
+
+# --- the previsit-output read-back (owner directive) ------------------------------------
+
+
+def previsit_output_recipient_unregistered() -> HTTPException:
+    """No approved reader answers for this tenant.
+
+    503 rather than 403 because this is a statement about the SERVICE, not
+    about the caller: no DPA is executed and no tier-3 approval exists, so the
+    interface is not configured to serve anybody. The body says nothing about
+    which tenants do have a row (infra/previsit_output/recipients.yaml).
+    """
+    return HTTPException(
+        status_code=503, detail={"error": "previsit_output_recipient_unregistered"}
+    )
+
+
+def previsit_output_unconfigured() -> HTTPException:
+    """No tokenization key, so a hospital patient number cannot be resolved to
+    the pseudonym that addresses a patient (invariant 14). Fail closed — a
+    scan of every patient row is not the fallback."""
+    return HTTPException(status_code=503, detail={"error": "previsit_output_unconfigured"})
 
 
 def not_found() -> HTTPException:

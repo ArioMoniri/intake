@@ -37,6 +37,43 @@
 - Decisions / ADRs / `00_STATE.md` rows: none new. Fixed a defect found on the way: `docs/slo/langfuse.yaml` and `siem.yaml` declared GOOD ratios under the error-ratio convention (would burn ~1000× on a healthy boundary once the rule generator grows past api.yaml). Reported, not fixed: `/admin/models` and `/admin/ops` raise on a malformed `INTAKE_PROBE_RESULTS_PATH` file (`models_source._results` is unguarded).
 - Blocked on: nothing new. Admission remains HB-A16 (already open).
 - Next: PR (Sec-Row `admin-console`, Closes #132); the owner sets `INTAKE_PROBE_RESULTS_PATH` once the runner's 60 s loop is deployed.
+
+### 2026-09-27T01:45:00Z · INT-372 · delivered (PR open, device screenshots pending)
+- Goal: acceptance verbatim (GitHub #606): *"the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"*. Slice S5 of INT-354, int-demo `01e224a2`.
+- Plan: cherry-pick `01e224a2`, then adapt. Its 24 pt inset breaks "Hastalıkları" (245.2 pt in Newsreader 500 at 48 pt) mid-word on a 320 pt card that has 246 pt. So the chevron is laid out, not painted: a flex column below the large-text scale, and the end of the date line from it up (`lib/visitCardLayout.ts`, the Card's own `isLargeText` threshold).
+- Tests added: `src/lib/visitCardLayout.test.ts` (4) and `e2e/visitCard.spec.ts` (7: wiring, Themed geometry, measured fits over every branch word). RED: module missing; then the wiring test on main's and the as-ported `VisitCard.tsx`. GREEN: 11/11. Mutation (always beside) is killed by 3 tests.
+- Result: mobile vitest 106 files / 2023 tests; `pnpm -r typecheck`, expo lint and prettier clean; `make check-i18n` 30 passed; backlog + smoke 28 passed; `no_placeholders` OK after staging. `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (no copy changed), 8 (tests only added), 17 (the residual is a recorded measurement, not a skip).
+- Decisions: at 1.3 on a 320 pt screen three subspecialty words break inside the word under the column (recorded in `COLUMN_RESIDUAL`, shrink-only). The date-line form at every scale removes it, and that design call is the owner's. Pins 287 → 288.
+- Blocked on: nothing. Device screenshots are an owner step.
+- Next: INT-370 (S3), then INT-371 (S4). These PRs merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-27T02:10:00Z · INT-370 · delivered (PR open; clinical-reviewer and device screenshots pending)
+- Goal: acceptance verbatim (GitHub #604):
+  - *"Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"*
+  - *"the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"*
+  - *"INT-341's calendar press tokens apply"*
+
+  This is slice S3 of INT-354, int-demo `148a7dbd`.
+- Plan:
+  - Cherry-pick `148a7dbd`. It auto-merged, and git's conflict list was empty.
+  - Point the calendar's three Pressables at `motion.press`: the days and arrows 0.6 → `rowOpacity` 0.7, and the agenda row `opacity`.
+  - Record the day hint as a register finding instead of rewriting it.
+- Tests added:
+  - `src/lib/calendar.test.ts` (16, ported) and `e2e/visits.spec.ts` (+6: toggle, one visits list, the Geçmiş group always shown with an empty state, a pure date-only model, MIN_TAP targets, tr keys).
+  - `tests/release` records `a11y.visits.dayHint`.
+  - RED: 6 failed plus a missing module; the i18n gate is red on the unrecorded key; `motion.spec` is red on the 3 literals after the cherry-pick. GREEN: 42/42 targeted.
+- Result:
+  - mobile vitest 105 files / 2034 tests;
+  - `pnpm -r typecheck` and expo lint clean;
+  - `make check-i18n` 30 passed;
+  - the Python suites that read `apps/mobile` 526 passed;
+  - `no_placeholders` OK after staging;
+  - `make check` not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (tr source of truth, en mirror), 18 (no new field, nothing persisted), 17, 8.
+- Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
+- Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
+- Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
@@ -140,6 +177,63 @@
 - Blocked on: nothing. PR #583 (INT-226) is not on `main`, so `docs/backlog/issues.yaml` and `files/11` are untouched; the row flips to done after both merge.
 - Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T12:00:00Z · INT-317 (INT-354 slice 1) · delivered (PR open; the read-back stays shut on HB-A18 and HB-L27)
+- Goal: INT-354 acceptance 1, one slice at a time. INT-317 is the first slice: previsit
+  output store and hospital read-back. Its acceptance is verbatim in its backlog row.
+  - Work: land int-demo's INT-317 work on main as one PR.
+  - Carry: its backlog row and HB-A18, both int-demo-only.
+  - Strip: F06/F21 demo-scoped content.
+- Plan:
+  - Classify all 26 `origin/main..origin/int-demo` commits: issue, on-main by content,
+    F06/held, slice. See `docs/evidence/INT-354.md`.
+  - Cherry-pick the nine INT-317 commits and squash them into three:
+    - red;
+    - implementation;
+    - backlog and evidence.
+  - Regenerate the exports on current main.
+  - Drop `545abfa7`, the demo recipient overlay and guide.
+- Tests added: none new. The int-demo suites are carried unchanged:
+  - `tests/api/test_previsit_output.py`;
+  - `tests/schemas/test_previsit_output_contract.py`;
+  - `tests/platform/test_previsit_output_recipients.py`;
+  - the `tests/data` table checks.
+
+  Their near-miss controls are carried too: no scope → refused and unaudited; no stored
+  previsit → 404; the note grant does not unlock the output scope. RED on main: 3
+  collection errors plus 4 `tests/data` failures. GREEN: 62 passed on the INT-317 suites
+  and 357 on the wider set.
+- Result: `make check` was not run whole, because check-integration needs a container
+  runtime. The `check-py` lanes were run instead:
+  - ruff and format clean; `mypy --strict` clean on 436 files;
+  - the whole-tree pytest: 7106 passed at 95.74 % (floor 85). There were 4 `test_deid_ner`
+    failures, caused by the model cache being absent from a fresh worktree;
+  - schemas 189 passed at 91.76 % (floor 90);
+  - `pnpm -r typecheck` 0; `no_placeholders` OK after staging; phi and claims scans OK.
+
+  `make safety`: not touched, because nothing changed under protocols or voice-runtime.
+- Invariants touched and still passing:
+  - **1**: `triage` is rules-or-`not_evaluated` only;
+  - **4**: a share means a consent check plus an audit entry before the answer;
+  - **6/14**: the patient number is body-only, tokenized and never stored, and the payload
+    is envelope-encrypted;
+  - **17**: an empty registry fails closed;
+  - **18**: every column is annotated;
+  - **22**: magnitude and unit are one object, on the ADR-030 carrier.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No new ADR.
+  - `ADR-029` → `ADR-030` references were corrected, because main de-collided the number.
+  - INT-317 and HB-A18 were carried, not minted. The check found no other use on main, on
+    any remote branch or on GitHub.
+  - Migration `0013_previsit_output` → `0012_int150`, with one alembic head.
+- Blocked on:
+  - **owner + hospital IT + counsel (HB-A18):** which credential a hospital system presents,
+    and the DPA's `dpa_ref`/`approval_ref`/`retention_ref`;
+  - **counsel (HB-L27):** the `share` consent text.
+- Next:
+  - The owner confirms INT-318 and allocates ids for the mobile slices.
+  - Then S2 INT-318, with the F06 route rebuilt registry-only.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
 - Goal: acceptance verbatim (GitHub #528):
