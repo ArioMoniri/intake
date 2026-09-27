@@ -10,9 +10,13 @@ Invariant 1's interop face: the note's ``llm_candidates`` never cross into
 the document — no FHIR resource, no narrative line. The RiskAssessment and
 Flag entries carry the rules result only.
 
-Narrative text is generated, escaped XHTML. Clinical quantities in the
-konuşma özellikleri narrative render without grouping and with a
-non-breaking space binding number to unit (CLAUDE.md invariant 22).
+Narrative text is generated, escaped XHTML. Every clinical quantity in it —
+the self-reported measurements and the konuşma özellikleri speech measures —
+is written by :mod:`clinical_schemas.quantity` for the document's reader
+(``meta.language``): that language's decimal point, no grouping, and a
+non-breaking space binding number to unit (CLAUDE.md invariant 22; INT-386).
+The narrative is text for a person. The structured values (an Observation's
+``valueQuantity``, a screening score) are numbers and never pass through it.
 """
 
 from __future__ import annotations
@@ -49,13 +53,16 @@ from clinical_schemas.mappers.to_r4 import (
     pmh_item_to_condition,
     screening_to_observations,
 )
-from clinical_schemas.note import KonusmaOzellikleri, NoteTriage, PreVisitNote
+from clinical_schemas.note import (
+    KonusmaOzellikleri,
+    NoteTriage,
+    PreVisitNote,
+    SelfReportedMeasure,
+)
+from clinical_schemas.quantity import float_magnitude, quantity_atom
 from clinical_schemas.triage import TriageLevel
 
 _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "urn:intake:fhir:document")
-
-# One non-breaking space: number + unit is one atom (CLAUDE.md invariant 22).
-_NBSP = "\u00a0"
 
 
 def _div(lines: Iterable[str]) -> Narrative:
@@ -112,13 +119,26 @@ def _open_map_lines(prefix: str, mapping: dict[str, JsonValue]) -> list[str]:
     return [f"{prefix}.{key}: {value}" for key, value in mapping.items()]
 
 
-def _konusma_lines(block: KonusmaOzellikleri) -> list[str]:
+def _measure_line(item: SelfReportedMeasure, *, locale: str) -> str:
+    """One self-reported measure: its code, then number + unit as one atom
+    written for a reader of ``locale`` (invariant 22)."""
+    return f"{item.code.value}: {quantity_atom(item.magnitude, item.unit, locale=locale)}"
+
+
+def _konusma_lines(block: KonusmaOzellikleri, *, locale: str) -> list[str]:
+    """The speech measures. Each is a float field, read by the digits Python
+    prints for it (:func:`~clinical_schemas.quantity.float_magnitude`) and
+    written for a reader of ``locale``."""
+
+    def atom(value: float, unit: str | None) -> str:
+        return quantity_atom(float_magnitude(value), unit, locale=locale)
+
     lines = [
-        f"speech_rate_syll_s: {block.speech_rate_syll_s}{_NBSP}syll/s",
-        f"pause_ratio: {block.pause_ratio}",
-        f"f0_mean_hz: {block.f0_mean_hz}{_NBSP}Hz",
-        f"f0_sd_hz: {block.f0_sd_hz}{_NBSP}Hz",
-        f"response_latency_ms_mean: {block.response_latency_ms_mean}{_NBSP}ms",
+        f"speech_rate_syll_s: {atom(block.speech_rate_syll_s, 'syll/s')}",
+        f"pause_ratio: {atom(block.pause_ratio, None)}",
+        f"f0_mean_hz: {atom(block.f0_mean_hz, 'Hz')}",
+        f"f0_sd_hz: {atom(block.f0_sd_hz, 'Hz')}",
+        f"response_latency_ms_mean: {atom(block.response_latency_ms_mean, 'ms')}",
     ]
     lines.extend(_open_map_lines("reference_ranges", dict(block.reference_ranges)))
     lines.append(f"recording_conditions_caveat_tr: {block.recording_conditions_caveat_tr}")
@@ -127,7 +147,9 @@ def _konusma_lines(block: KonusmaOzellikleri) -> list[str]:
 
 def _section_lines(note: PreVisitNote, section_id: str) -> list[str]:
     """Narrative lines per text-only section — factual key:value renderings
-    of the files/04 §5 fields, no interpretation added."""
+    of the files/04 §5 fields, no interpretation added. Quantities are
+    written for the document's reader, ``meta.language``."""
+    locale = note.meta.language
     if section_id == "triage":
         lines = [f"level: {note.triage.level.value}"]
         lines.extend(f"rule {rule.id}: {rule.evidence}" for rule in note.triage.rules)
@@ -174,14 +196,12 @@ def _section_lines(note: PreVisitNote, section_id: str) -> list[str]:
             lines.append(f"living_situation: {social.living_situation}")
         return lines
     if section_id == "measurements":
-        # invariant 22: no grouping, and number + unit is one non-breaking
-        # atom. Decimal's own str() never groups, so the atom is the whole
-        # guarantee here rather than a locale setting.
-        return [
-            f"{item.code.value}: {item.magnitude}{_NBSP}{item.unit}" for item in note.measurements
-        ]
+        # invariant 22: no grouping, the reader's decimal point, and number +
+        # unit as one non-breaking atom, all from the one renderer (INT-386).
+        return [_measure_line(item, locale=locale) for item in note.measurements]
     if section_id == "konusma_ozellikleri":
-        return _konusma_lines(note.konusma_ozellikleri) if note.konusma_ozellikleri else []
+        block = note.konusma_ozellikleri
+        return _konusma_lines(block, locale=locale) if block else []
     if section_id == "imported_objective":
         return [
             f"{item.type}: {item.summary}"

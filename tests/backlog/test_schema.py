@@ -75,6 +75,8 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
     # second factor and session bounds, access review and offboarding, key
     # rotation schedule, dependency updates, API fuzzing in CI).
+    # + INT-396 (backlog status reconciliation and its drift guard).
+    # + INT-401 (console rollback split out of INT-187; waits on a CD target).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -102,9 +104,18 @@ def test_ids_unique_and_well_formed() -> None:
     # on main's check-integration, fixed and closed in the same PR).
     # + INT-393 (a patient who issued a Doctor Link could not be erased; found
     # by INT-392, fixed and closed in the same PR).
+    # + INT-391 (the console accepts every valid WebAuthn credential id; found
+    # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, with a guard against rows that outlive their fix;
+    # found by INT-360's PR, filed as GitHub #640).
+    # + INT-397 (the three status lines INT-362 left silent are announced, and
+    # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
     # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
     # main never imported; found by INT-378, fixed and closed in the same PR).
-    assert len(ids) == 306
+    assert len(ids) == 312
     import re
 
     for i in ids:

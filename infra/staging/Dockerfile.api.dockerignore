@@ -11,6 +11,9 @@
 !observability/
 !infra/
 !docs/legal/
+# INT-187: the SLO files, which the release gate deploy.sh runs reads to
+# evaluate the error budget (and the reliability console reads for its tiles).
+!docs/slo/
 # Never sent, wherever they sit. The host's root-only env file lives outside
 # the tree (/etc/intake-staging), and these rules catch a stray copy anyway.
 **/.env
