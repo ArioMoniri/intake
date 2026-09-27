@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**316 issues.** By phase: P0 160 · P1 102 · P2 47 · P3 7. By status: awaiting-human 30 · doing 5 · done 202 · todo 78 · withdrawn 1.
+**316 issues.** By phase: P0 160 · P1 102 · P2 47 · P3 7. By status: awaiting-human 30 · doing 5 · done 203 · todo 77 · withdrawn 1.
 
 ## P0
 
@@ -148,7 +148,7 @@
 | INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they differ | E14-legal | INT-296, INT-210 | area:legal, area:i18n, approval:human-legal | todo |
 | INT-304 | The share scope can express three sections and the note has eight, so a withheld section is not recorded anywhere | E08-mobile | INT-137 | area:mobile, area:api, risk:legal | done |
 | INT-303 | One numeric carrier end to end: a Decimal slot value that reads Unknown to every gate that compares it, and the float it crossed the seam as | E03-protocols | INT-080, INT-083 | area:protocols, area:voice | done |
-| INT-313 | Nothing carries an extraction to the phone: the confirm-card transport is owned by no issue | E07-records | INT-121, INT-138 | area:records, area:api | todo |
+| INT-313 | Nothing carries an extraction to the phone: the confirm-card transport is owned by no issue | E07-records | INT-121, INT-138 | area:records, area:api | done |
 | INT-312 | A TCKN said aloud is not masked: the redactors match a contiguous eleven-digit run and speech arrives as groups or as words | E01-platform | INT-102 | area:security, area:platform, area:voice | done |
 | INT-324 | Agent WAV framing lives in voice-clips so the invariant-3 audio guard passes on main | E05-voice | — | area:voice, risk:security | done |
 | INT-325 | Production refuses dev bypass flags, file-dev KEK and in-code default credentials | E01-platform | — | area:api, risk:security | done |

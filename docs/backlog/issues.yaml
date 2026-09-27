@@ -4858,7 +4858,8 @@
   labels:
   - area:records
   - area:api
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-313.md
   acceptance:
   - 'a route publishes extracted items for a document the patient owns, scoped
     by consent and audited on every read like every other clinical read
