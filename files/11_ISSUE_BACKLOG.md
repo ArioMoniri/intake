@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**301 issues.** By phase: P0 157 · P1 90 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 171 · todo 87 · withdrawn 1.
+**304 issues.** By phase: P0 158 · P1 92 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 175 · todo 86 · withdrawn 1.
 
 ## P0
 
@@ -168,6 +168,7 @@
 | INT-357 | Staging passes App Attest and SMS configuration to the API; fail closed when unset | E13-infra | INT-345 | area:infra, risk:security | doing |
 | INT-358 | SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery | E14-legal | INT-329 | area:legal, risk:legal, risk:security | awaiting-human |
 | INT-376 | Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved | E13-infra | INT-352 | area:infra, risk:legal | todo |
+| INT-392 | Deleting a session removes its previsit outputs in every erasure and retention path | E02-data | INT-036, INT-037, INT-317 | area:data, risk:legal | done |
 
 ## P1
 
@@ -248,7 +249,7 @@
 | INT-351 | Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD | E12-admin | INT-181, INT-186, INT-187 | area:admin | done |
 | INT-353 | Land the specialty review queue, generator and verification trail on main | E03-protocols | INT-327 | area:protocols | todo |
 | INT-359 | Accessibility device audit (DA-01..DA-08) and the statement published in-app and web | E14-legal | INT-226 | area:legal, risk:legal | awaiting-human |
-| INT-360 | WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential | E08-mobile | INT-226 | area:mobile, risk:legal | todo |
+| INT-360 | WCAG 1.3.4: the app is not locked to portrait unless a screen's orientation is essential | E08-mobile | INT-226 | area:mobile, risk:legal | done |
 | INT-361 | WCAG 3.3.8: the OTP field accepts a pasted or autofilled code | E08-mobile | INT-226 | area:mobile, risk:legal | done |
 | INT-362 | WCAG 3.3.1 / 4.1.3: error and status lines are announced under VoiceOver as well as TalkBack | E08-mobile | INT-226 | area:mobile, risk:legal | done |
 | INT-363 | WCAG 2.2.1: the kiosk idle wipe warns before it clears and lets the patient extend | E08-mobile | INT-226 | area:mobile, risk:legal | done |
@@ -261,8 +262,10 @@
 | INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
 | INT-370 | Visits calendar view and Geçmiş (past) list on Vizitlerim | E08-mobile | INT-341 | area:mobile | done |
 | INT-377 | /admin/models and /admin/ops fail closed on a malformed probe-results file | E12-admin | INT-183, INT-351 | area:admin | done |
+| INT-373 | Keycloak realm emits the claims the admin console requires (aud=api, org, tenant, aaguid, credential_id) | E12-admin | INT-180 | area:admin, risk:security | done |
 | INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
 | INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | INT-124 | area:records, gpu | todo |
+| INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
 
 ## P2
 

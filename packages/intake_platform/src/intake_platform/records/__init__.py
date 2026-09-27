@@ -86,9 +86,11 @@ from intake_platform.records.mhrs import (
     resolve_printed_branch,
 )
 from intake_platform.records.numbers import (
+    DECIMAL_SEPARATORS,
     NBSP,
     PrintedMagnitudeAmbiguous,
     PrintedMagnitudeUnreadable,
+    QuantityLocaleUnknown,
     UnitResolution,
     parse_printed_magnitude,
     quantity_atom,
@@ -129,6 +131,7 @@ __all__ = [
     "CandidateVisitFields",
     "ConfirmedRecordStore",
     "ConfirmedVisitFields",
+    "DECIMAL_SEPARATORS",
     "DROPPED_COLUMNS",
     "DateOrder",
     "DocumentBoundaryEscape",
@@ -154,6 +157,7 @@ __all__ = [
     "PrintedTimeAmbiguous",
     "PrintedTimeNotFound",
     "PrintedTimeUnreadable",
+    "QuantityLocaleUnknown",
     "RecordSchemaViolation",
     "RegionUnknown",
     "TOP_LEVEL_KEYS",
