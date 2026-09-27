@@ -78,6 +78,49 @@
 - Blocked on: nothing.
 - Next: PR `INT-334: Motion: arbiter and commit windows (pure)` (Closes #533, Sec-Row mobile).
 
+### 2026-09-27T11:00:00Z · INT-404 · done (PR open; CODEOWNER review pending)
+- Goal: acceptance verbatim (GitHub #673):
+  - *"a rule's evidence line renders every quantity through the shared locale renderer (`clinical_schemas.quantity`): tr comma, `useGrouping:false`, number + unit as one non-breaking atom. The rule's thresholds and semantics are untouched (the stored comparison value stays numeric)"*
+  - *"golden tests with a near-miss (a full stop in tr fails); `make safety` green; CODEOWNER review"*
+- Plan:
+  - The evidence line is generated, not authored (`protocols.triage.engine._evidence`). The engine now records the reading in parts too: `RuleFire.evidence_slots` holds the slot, the carried values as numbers, and the declared unit. The unit comes from the new `TriageContext.units`, which is evidence only.
+  - The engine's `evidence` text stays byte-identical.
+  - A new `clinical_schemas.rule_evidence.render_rule_evidence(rule, *, locale)` writes the parts through `quantity_atom`.
+  - The SOAP/PDF note, the FHIR triage narrative and the document RiskAssessment's `reasonCode.text` write for `meta.language`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_triage_evidence_render.py` (91):
+    - nine synthetic engine-fired goldens in tr and en, each checked for the full-stop near miss and for a byte-identical engine text;
+    - the threshold near miss (37.99 vs `>= 38`);
+    - units change no level;
+    - `Decimal` scale and wire round trip;
+    - three faces × nine readings;
+    - renderer edge cases, and no text renderer imported by `packages/protocols`.
+  - `test_fhir_mappers.py` (+5), `test_note_golden.py` (+1, SOAP/PDF/FHIR), `test_numeric_carrier.py` (one expectation), and `test_quantity_render.py` (the new module joins the TTS boundary list).
+  - RED: 4 collection errors. Then, with only the schema and the renderer in place, the faces printed `38.50` for tr: 4 failed, and 79 failed on `TriageContext.units`.
+  - Mutants: 47, 8, 18, 7 and 8 tests fail respectively.
+- Result:
+  - No golden file changed. The one `make safety` expectation that changed is the clinician line in `test_numeric_carrier`, now `38,50` with `38.50` asserted absent.
+  - `make safety` exit 0: triage 100 % branch, 18/18 mutations both on the base and on this branch.
+  - `make check-py` exit 0: ruff/format clean, `mypy --strict` clean (474 files), whole tree 8563 passed at 96.11 %, every scoped lane at its floor (clinical-schemas 92.22 %).
+  - `make check` was not run whole: check-integration is CI-only, and the only TS change is generated `models.ts`, whose package was checked directly.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check`, sec-row linkage, gitleaks (staged) and bandit: OK.
+  - Codegen regenerated. The clinical-schemas TS package typechecks, lints and tests clean.
+- Invariants touched and still passing:
+  - 1: levels come only from the rules, and units cannot change one.
+  - 6: refusals echo nothing.
+  - 7 and 10: no rule, threshold or `text_tr` changed.
+  - 8: tests only added; `rule_evidence.py` 100 %, triage 100 %.
+  - 22: display half on the evidence line; the TTS boundary is extended to the new module.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `RuleFire` gains an optional field, and the files/04 §5 `evidence` string is unchanged.
+  - Found, not fixed: the standalone `to_r4.triage_to_risk_assessment` still writes the engine's text. It has no locale and no production caller.
+  - Found, not fixed: nothing in production builds a `TriageContext` yet, so nothing fills `units`.
+  - Built on #657's branch, and rebased onto `main` once #657 merged (`f0564e93`). Pins 307 → 308 against `main`, and files/11 is regenerated.
+  - Re-run on the rebased tree: `make safety` exit 0 (18/18); `make check-py` exit 0 (8811 passed, 95.78 %, mypy clean over 487 files).
+- Blocked on: nothing technical. CODEOWNER review for `packages/protocols/**` must be requested by hand, because there is no `.github/CODEOWNERS`.
+- Next: PR (Sec-Row `triage`, Closes #673).
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*

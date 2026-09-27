@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**323 issues.** By phase: P0 160 · P1 109 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 212 · todo 73 · withdrawn 1.
+**324 issues.** By phase: P0 160 · P1 110 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 213 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -285,6 +285,7 @@
 | INT-410 | Release bundles carry no synthetic seed accounts (audit F30) | E08-mobile | INT-130 | area:mobile, risk:security | done |
 | INT-412 | Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal | E08-mobile | INT-360 | area:mobile | done |
 | INT-413 | Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices) | E14-legal | INT-215 | area:legal, risk:legal | done |
+| INT-404 | Triage rule evidence strings render quantities with the locale decimal separator | E03-protocols | INT-386 | area:protocols, risk:clinical | done |
 
 ## P2
 

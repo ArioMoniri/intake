@@ -598,6 +598,8 @@ TTS_PATH: tuple[str, ...] = (
 #: Every module that writes a clinical quantity as screen or document text.
 SCREEN_RENDERERS: tuple[str, ...] = (
     "clinical_schemas.quantity",
+    # INT-404: a fired rule's evidence line, written for the note's reader.
+    "clinical_schemas.rule_evidence",
     "clinical_schemas.mappers.document",
     "intake_platform.records.numbers",
     "intake_voice_runtime.typed.render",

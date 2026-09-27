@@ -103,6 +103,14 @@ class TriageContext(FrozenModel):
         description="Answers keyed by the dotted slot reference exactly as the "
         "rule's when predicate spells it (files/03 §6 atoms).",
     )
+    units: dict[str, str] = Field(
+        default_factory=dict,
+        description="The declared unit of each quantity slot (files/03 §6 ``unit:``), "
+        "keyed like ``answers``. Evidence only: it travels with the value into "
+        "``RuleFire.evidence_slots`` so a reader sees number and unit as one atom "
+        "(CLAUDE.md invariant 22; INT-404). No predicate reads it, because a rule "
+        "compares the bare magnitude.",
+    )
 
     def candidate_values(self, ref: str) -> tuple[JsonValue, ...] | None:
         """The value(s) a predicate may read for ``ref``; None reads Unknown."""
