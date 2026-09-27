@@ -549,6 +549,42 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
 - **Signals:** OCR failures and processing time (§9) land with INT-134.
 - **Tests:** image fuzzing lands with INT-134 and INT-122.
 
+### INT-407 — the visit lifecycle (files/02 §2b): a RED visit cannot silently move
+
+- **Assets:** the visit's lifecycle state (`visit.lifecycle`, a plain slot on the session
+  row — no new table or column), its datetime, the shares and Doctor Links hanging off its
+  note, the queued T-24h confirm, the clinic Safety inbox.
+- **Threats:** [D·safety] a RED-flagged visit rescheduled or cancelled with nobody told —
+  *"invisible to everyone"*; [S·safety] a check-in that claims `ON_SITE` from a geofence in
+  the car park or a QR scanned by a relative, turning a RED's 112 into "walk to the acil"
+  for someone outside; [I] a cancelled visit's note still readable by the clinic or through
+  a Doctor Link; [I] a Doctor Link that expires before (issue-time anchoring) or outlives
+  (a stale anchor after a reschedule) the visit it serves; [T] a lost update re-planning a
+  cancelled visit; [R] a move with no record of who made it.
+- **Controls:** a typed machine refuses every move outside the table (409, nothing
+  written) and audits each move by id (`visit:<id>/transition:<id>`); the row is locked
+  `FOR UPDATE` for the move. A reschedule or cancel reads the INT-406 inbox **before**
+  writing and writes its entry **before** committing — unwired or unreachable, the move is
+  refused (503); no connector is on the path. The patient re-show is a pointer (rule,
+  register, location) at the pre-positioned script, in the RED's recorded register, with
+  location re-derived — `UNKNOWN` outside a session; a register never recorded is not
+  guessed and `DEFERRED_CLINICIAN` is not shown. Check-in evidence is certain only on an
+  affirmative signal; anything else is `UNKNOWN`, never `ON_SITE` (invariant 21). A cancel
+  revokes every share and link (routing hints dropped) and withdraws the clinic's read;
+  a reschedule re-pins live links (row and hint) to the new `visit_datetime + 72 h` and
+  never revives a revoked or expired one. The T-24h confirm is queued transactional-only,
+  has no `sent` state, and the dispatch seam refuses before any transport (no SMS vendor,
+  INT-358; no reviewed body). The delta-session offer is behind a safety flag.
+- **Signals:** every move and every hook is a hash-chained audit row by id
+  (`api.visit.transition.*`, `api.note.share_revoked`, `api.doctor_link.revoked`,
+  `api.visit.clinician_entry_withdrawn`, `api.doctor_link.expiry_repinned`); the RED moves
+  land in the Safety queue and page on INT-406's clock.
+- **Tests:** `tests/platform/test_visit_lifecycle_machine.py` (every (from, to) pair, the
+  guards, location, the confirm gate), `tests/api/test_visit_lifecycle.py` (route, cancel,
+  reschedule with the issue-time near-miss, staleness, check-in doubt, the queued confirm),
+  `tests/safety/test_red_visit_transition.py` (RED move → entry with no connector on a fake
+  clock, the re-show per register, near-miss controls, fail-closed inbox).
+
 ## `intake-voice` — the patient-facing voice session
 
 - **Assets:** live audio, session tokens, the RED delivery path, patient trust in the voice.

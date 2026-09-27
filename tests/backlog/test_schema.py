@@ -113,7 +113,9 @@ def test_ids_unique_and_well_formed() -> None:
     # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
-    assert len(ids) == 310
+    # + INT-407 (the files/02 §2b visit lifecycle — a RED visit cannot silently
+    # move; found by INT-406's PR, whose visit_transition had no caller, #684).
+    assert len(ids) == 311
     import re
 
     for i in ids:

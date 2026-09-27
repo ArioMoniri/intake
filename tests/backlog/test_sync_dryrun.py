@@ -72,7 +72,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-387 (the a11y conformance report re-rated after INT-361..363, GitHub #640)
     # + INT-397 (the last three SC 4.1.3 status lines are announced, GitHub #659)
     # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
-    assert len(actions) == 310
+    # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
+    assert len(actions) == 311
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

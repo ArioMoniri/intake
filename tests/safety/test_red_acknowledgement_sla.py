@@ -287,7 +287,11 @@ class TestEveryRedProducesAnEntryWithinSixtySeconds:
             "created_at",
             "acknowledged_at",
             "acknowledged_by",
+            # INT-407: the register the RED was told in — a closed enum, for
+            # the files/02 §2b re-show when the visit moves; never words
+            "register",
         }
+        assert entry.register is RED_RULE.register
 
     def test_the_red_settles_even_when_the_inbox_write_cannot_happen_yet(self) -> None:
         """The shared store is down: the RED still settles and seals, the
