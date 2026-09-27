@@ -1,5 +1,34 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T02:00:00Z · INT-181 · done
+- Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
+- Plan:
+  - `GET /admin/reliability` (`intake.admin.reliability.v1`, platform scope, audited): one tile per SLO in `docs/slo`, each SLI re-ranged over every window its file declares (5m/30m/1h/6h/3d lanes, 28d objective window) for SLI, budget remaining, burn per window and the alert condition; the probe matrix from the registry × the runner's results file; dependency health from the sweep (self-hosted components + fallback edges), Prometheus as the API sees it, `ops_gpu_host_up` and INT-100's `vendor_breaker_state`.
+  - The runner stamps each result with `checked_at` and names `SWEEP_INTERVAL_S`; stale = three missed sweeps.
+  - `/overview` on the INT-351 pattern; the INT-351 session, guards, tile primitives and admission step become shared modules instead of copies. `/` lands on `/overview`.
+  - `scripts/dev/record_reliability_fixture.py` records a real runner sweep and the live dev API's `/readyz` + `/version`, and builds the e2e payloads with the shipped composite.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_reliability_console.py` (78): query table catalogued and derived from the files; `or vector(0)` only beside traffic (no traffic is no SLI); one tile per SLO; burn condition (near-miss: long over, short under = not met); overspent budget negative; one fail-closed test per tile/section; stale at 181 s not 180 s; `detail` never leaves; ids only; drift gate on the e2e fixtures; route RBAC.
+  - `apps/admin-web/e2e/overview.spec.ts` (51): admission (a refused caller never reaches `/readyz`); every tile rendered and each failing closed; `OverviewBurnInconsistent`, `OverviewBudgetInconsistent`, `OverviewStaleRenderedFresh` each with its near-miss.
+  - `tests/observability/test_probe_registry.py` (+4), RBAC matrix and audit drive rows.
+  - RED: pytest collection rc=2 (2 import errors) + 6 RBAC/audit failures; vitest rc=1 (module missing). GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); its lanes run individually — ruff/format clean (1157 files), `mypy --strict` clean (445 files), whole-tree pytest at the 85 % floor **7312 passed**, 0 failed, 95.95 %; `tests/admin tests/observability` + siem 902 passed; admin-web vitest 233 passed; `pnpm -r lint` and `pnpm -r typecheck` green; `next build` clean. `no_placeholders`, `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged), sec-row linkage: OK. `make safety` exits 0 (nothing under packages/protocols, PolicyGuard or the runtime changed). `make security`'s container/SBOM scanners are CI-only here; no dependency was added.
+- Invariants touched and still passing: 6 (ids only; `detail` dropped), 13 (catalogued series only; registry projection), 15, 16 (Sec-Row admin-console; threat-model controls), 17 (per-tile unknown; stale never current), 20 (no target key; no verdict copy), 22 (atoms, no grouping).
+- Decisions / ADRs / `00_STATE.md` rows: none new. Fixed a defect found on the way: `docs/slo/langfuse.yaml` and `siem.yaml` declared GOOD ratios under the error-ratio convention (would burn ~1000× on a healthy boundary once the rule generator grows past api.yaml). Reported, not fixed: `/admin/models` and `/admin/ops` raise on a malformed `INTAKE_PROBE_RESULTS_PATH` file (`models_source._results` is unguarded).
+- Blocked on: nothing new. Admission remains HB-A16 (already open).
+- Next: PR (Sec-Row `admin-console`, Closes #132); the owner sets `INTAKE_PROBE_RESULTS_PATH` once the runner's 60 s loop is deployed.
+
+### 2026-09-27T01:45:00Z · INT-372 · delivered (PR open, device screenshots pending)
+- Goal: acceptance verbatim (GitHub #606): *"the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"*. Slice S5 of INT-354, int-demo `01e224a2`.
+- Plan: cherry-pick `01e224a2`, then adapt. Its 24 pt inset breaks "Hastalıkları" (245.2 pt in Newsreader 500 at 48 pt) mid-word on a 320 pt card that has 246 pt. So the chevron is laid out, not painted: a flex column below the large-text scale, and the end of the date line from it up (`lib/visitCardLayout.ts`, the Card's own `isLargeText` threshold).
+- Tests added: `src/lib/visitCardLayout.test.ts` (4) and `e2e/visitCard.spec.ts` (7: wiring, Themed geometry, measured fits over every branch word). RED: module missing; then the wiring test on main's and the as-ported `VisitCard.tsx`. GREEN: 11/11. Mutation (always beside) is killed by 3 tests.
+- Result: mobile vitest 106 files / 2023 tests; `pnpm -r typecheck`, expo lint and prettier clean; `make check-i18n` 30 passed; backlog + smoke 28 passed; `no_placeholders` OK after staging. `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (no copy changed), 8 (tests only added), 17 (the residual is a recorded measurement, not a skip).
+- Decisions: at 1.3 on a 320 pt screen three subspecialty words break inside the word under the column (recorded in `COLUMN_RESIDUAL`, shrink-only). The date-line form at every scale removes it, and that design call is the owner's. Pins 287 → 288.
+- Blocked on: nothing. Device screenshots are an owner step.
+- Next: INT-370 (S3), then INT-371 (S4). These PRs merge one at a time, because each one raises the same three pinned counts.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
 - Goal: acceptance verbatim (GitHub #538):
   - *"the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"*

@@ -1,0 +1,218 @@
+[
+  {
+    "component": "postgres",
+    "probe": "postgres_select1",
+    "status": "unhealthy",
+    "latency_ms": 100.41079111397266,
+    "detail": "select 1 failed: connection failed: connection to server at \"127.0.0.1\", port 5432 failed: could not receive data from server: Connection refused",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "redis",
+    "probe": "redis_ping",
+    "status": "unhealthy",
+    "latency_ms": 1.9367500208318233,
+    "detail": "redis ping failed: Error 61 connecting to 127.0.0.1:6379. Connection refused.",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "minio",
+    "probe": "minio_ready",
+    "status": "unhealthy",
+    "latency_ms": 0.44454075396060944,
+    "detail": "http request failed: [Errno 61] Connection refused",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "hapi",
+    "probe": "http_health",
+    "status": "unhealthy",
+    "latency_ms": 0.32129092141985893,
+    "detail": "http request failed: [Errno 61] Connection refused",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "ehrbase",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for ehrbase in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "openbao",
+    "probe": "openbao_seal_status",
+    "status": "unhealthy",
+    "latency_ms": 0.1805843785405159,
+    "detail": "http request failed: [Errno 61] Connection refused",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "api",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for api in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "probes",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for probes in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "metrics",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for metrics in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "learning",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for learning in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "voice-runtime",
+    "probe": "livekit_room_join",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "livekit lands with INT-090",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "edge-tls",
+    "probe": "cert_expiry_days",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for edge-tls in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "backups",
+    "probe": "backup_freshness",
+    "status": "unhealthy",
+    "latency_ms": 0.030749943107366562,
+    "detail": "no artefact directory at .cache/backups",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "ci-runners",
+    "probe": "runner_heartbeat",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "No self-hosted runner pool is declared in infra/ci/runners.yaml, and none may be invented. HB-I7 owns it (self-hosted CI runners \u2014 175 issues x a 35-60 min PR gate is 100-175 CPU-hours; owner, spend), and HB-L11 is why naming a facility is a decision rather than a lookup: physical residency is not legal residency, and the residency claim files/06 \u00a75 makes about CI has to be one somebody can check. Note what does NOT block this: HB-I5's 'no in-country provider' finding is about GPU supply, and a CI runner needs CPU \u2014 files/00_STATE.md \u00a72 records the AWS Istanbul Local Zone as GA with C7i/M7i/R7i, which is this shape exactly. The constraint is the decision and the spend, not capacity. Until a pool exists, CI runs on GitHub-hosted runners, which files/08 \u00a76 records as the fallback exactly because no PHI is ever in CI.",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "langfuse",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for langfuse in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "langfuse-clickhouse",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for langfuse-clickhouse in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "qwen3.5-9b",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for qwen3.5-9b in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "whisper-tr-medical",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for whisper-tr-medical in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "freya-tts",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for freya-tts in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "voxcpm2-tts",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for voxcpm2-tts in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "deid-tr-ner-v1",
+    "probe": "backup_freshness",
+    "status": "unhealthy",
+    "latency_ms": 0.008166767656803131,
+    "detail": "no artefact directory at .cache/deid-tr-ner-v1",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "wazuh-manager",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for wazuh-manager in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "wazuh-indexer",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for wazuh-indexer in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "falco",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for falco in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "egress-proxy",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for egress-proxy in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "edge-ingress",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for edge-ingress in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  },
+  {
+    "component": "edge-crowdsec",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for edge-crowdsec in this environment",
+    "checked_at": "2026-09-26T22:19:41Z"
+  }
+]

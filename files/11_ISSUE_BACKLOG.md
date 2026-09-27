@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**293 issues.** By phase: P0 156 · P1 83 · P2 47 · P3 7. By status: awaiting-human 25 · doing 15 · done 157 · todo 95 · withdrawn 1.
+**294 issues.** By phase: P0 156 · P1 84 · P2 47 · P3 7. By status: awaiting-human 25 · doing 15 · done 159 · todo 94 · withdrawn 1.
 
 ## P0
 
@@ -110,7 +110,7 @@
 | INT-233 | Spoken intake dialogue (dev tier): agent asks aloud, barge-in, per-turn confirm - LiveKit Talker remains the production path | E08-mobile | INT-198, INT-199 | area:mobile, area:voice | done |
 | INT-234 | Design pass 6: CTA saturation register (bone pill), tonal secondaries, focused-flow exits, glyph-badge empty states | E08-mobile | INT-209 | area:mobile | done |
 | INT-180 | Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives | E12-admin | INT-023, INT-016 | area:admin, risk:security | done |
-| INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | todo |
+| INT-181 | Modules: Overview + Ops + Reliability (real dev telemetry) | E12-admin | INT-180, INT-021, INT-022 | area:admin | done |
 | INT-183 | Models & self-hosting registry module + release gate surface | E12-admin | INT-022, INT-180 | area:admin | done |
 | INT-210 | Legal document set v1 (tr primary): aydinlatma x5, acik riza per purpose, gizlilik, kullanim kosullari, KVKK basvuru formu, cookie | E14-legal | INT-038 | area:legal, risk:legal, approval:human-legal | awaiting-human |
 | INT-211 | VERBIS registration pack + data inventory generated from schema annotations + irtibat kisisi | E14-legal | INT-031, INT-210 | area:legal, risk:legal, approval:human-legal | todo |
@@ -255,6 +255,7 @@
 | INT-367 | Scheduled quarterly key rotation that emits sec_secret_rotation_due_days | E02-data | INT-215 | area:security, risk:security | todo |
 | INT-368 | Continuous dependency security updates (Renovate) for every lockfile | E13-infra | INT-215 | area:infra, risk:security | todo |
 | INT-369 | schemathesis API fuzzing runs in CI instead of being recorded as deferred | E13-infra | INT-215 | area:infra, risk:security | todo |
+| INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
 
 ## P2
 

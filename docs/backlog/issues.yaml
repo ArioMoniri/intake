@@ -2433,7 +2433,20 @@
   title: "Modules: Overview + Ops + Reliability (real dev telemetry)"
   depends_on: [INT-180, INT-021, INT-022]
   labels: [area:admin]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-181.md
+  # NOTE 27 Sep 2026: `/overview` renders one tile per SLO declared in
+  # docs/slo (objective, SLI and budget remaining over 28 d, burn on both
+  # windows of every declared lane and the alert condition), the probe
+  # matrix (every registry probe x the runner's last result, latency, age;
+  # stale past three sweeps), and dependency health (self-hosted components
+  # with fallback edges, the live API's /readyz, Prometheus, GPU hosts,
+  # INT-100 vendor breakers) from GET /admin/reliability. Ops is INT-351's
+  # /ops, whose session, guards, tiles and admission step it now shares.
+  # Every tile fails closed on its own source. Runtime reads live sources
+  # only; tests read recordings (a real runner sweep, the live API's /readyz)
+  # held to the composite by a drift test. Found and fixed: langfuse.yaml and
+  # siem.yaml declared GOOD ratios under the error-ratio convention.
   acceptance:
     - "SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"
   tests: [apps/admin-web/e2e/overview.spec.ts]
@@ -5552,3 +5565,15 @@
   tests: [tests/ci/test_security_workflow.py]
   legal: "2018-10"
   sec_row: "cicd"
+- id: INT-372
+  epic: E08-mobile
+  phase: P1
+  title: "Visit-card chevron clears long department names"
+  depends_on: []
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-372.md
+  acceptance:
+    - "the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"
+  tests: [apps/mobile/e2e/visitCard.spec.ts, apps/mobile/src/lib/visitCardLayout.test.ts]
+  sec_row: "mobile"
