@@ -408,6 +408,36 @@ def test_unreadable_metadata_is_reported_and_never_guessed() -> None:
     assert not report.ok
 
 
+def test_a_creation_time_that_is_not_epoch_seconds_is_unreadable() -> None:
+    """Asymmetric Transit keys report an RFC 3339 string per version; a KEK
+    that ever answered that way is not parsed as a time it is not."""
+    world = World()
+    world.write("a", b"note")
+    world.transit.created["tenant-a"] = {1: "2026-01-15T03:00:00Z"}  # type: ignore[dict-item]
+
+    report = world.tick(next_rotation_due(T0) + timedelta(days=1))
+
+    assert _outcome(report, "tenant-a").action is RotationAction.UNREADABLE
+    assert world.transit.keys["tenant-a"] == 1
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{"data": {"keys": "tenant-a"}}, {"data": {"keys": [1, 2]}}, {"data": None}, {}],
+)
+def test_a_malformed_key_list_is_refused_not_read_as_empty(
+    body: dict[str, object], capsys: pytest.CaptureFixture[str]
+) -> None:
+    secrets = SecretsProvider(addr="http://transit.test", token="unit")
+    secrets._client = httpx.Client(
+        base_url="http://transit.test",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json=body)),
+    )
+
+    assert main([], secrets=secrets, clock=lambda: T0) == EXIT_REFUSED
+    assert "refused" in capsys.readouterr().out
+
+
 def test_a_rotate_that_transit_did_not_record_is_a_failure() -> None:
     world = World()
     world.write("a", b"note")
