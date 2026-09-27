@@ -136,7 +136,7 @@ sections:
         ask_tr:
           tr: Kasıklarınızda sık sık gelen bası ya da kasılma hissi oluyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/perinatoloji.md'
-      gorme_bulanikligi:
+      gebelikte_gorme_bozuklugu:
         type: boolean
         required: false
         ask_tr:

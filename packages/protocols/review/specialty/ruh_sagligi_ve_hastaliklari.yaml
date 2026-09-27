@@ -113,6 +113,7 @@ sections:
         required: false
         ask_tr:
           tr: Alkol ve sigara dışında keyif verici bir madde kullanıyor musunuz?
+        ask_if: subject_role == 'kendim'
         delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ruh_sagligi_ve_hastaliklari.md'
 red_flags:

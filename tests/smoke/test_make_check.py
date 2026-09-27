@@ -267,7 +267,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
     # + INT-390 (Keycloak upgrade and realm import, found by INT-378); grows
     # only with a stated reason.
-    assert len(ids) == 312, f"expected 175 blueprint + 137 added issues, got {len(ids)}"
+    # + INT-388 (physician sign-off packets from the review queue and the
+    # verification trail); grows only with a stated reason.
+    assert len(ids) == 313, f"expected 175 blueprint + 138 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

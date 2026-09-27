@@ -22,6 +22,11 @@ Proposal format (section titled "Candidate …", or `## 3.` when it holds Q item
 The `gen:` line is optional. Q1 fills basvuru_nedeni. `hold=` keeps an item out
 of the pack (unsourced or unverified). An ask with more than one question mark,
 or with a digit, is refused (invariants 2 and 22).
+
+A specialty pack merges into its cluster's `sorular` section, where a re-declared
+cluster id keeps the cluster's position (the resolver's `_merge_chain`). When that
+would put a gated question before its gate slot, the candidate carries a `reorder`
+op (files/12 §3.1) that asks every gate slot first (files/13 §9.5).
 """
 
 from __future__ import annotations
@@ -42,6 +47,11 @@ SPEC = ROOT / "packages/protocols/specialty"
 REVIEW = ROOT / "packages/protocols/review/specialty"
 REVIEW_CLUSTER = ROOT / "packages/protocols/review/cluster"
 SERVED_CLUSTER = ROOT / "packages/protocols/cluster"
+# Where a specialty candidate's parent cluster is read from, served first. Bound here,
+# not read through REVIEW_CLUSTER, so that regenerating into another directory still
+# orders a branch against the committed cluster it extends.
+CLUSTER_PARENT_ROOTS = (SERVED_CLUSTER, REVIEW_CLUSTER)
+REORDER_POINTER = "/sections/sorular/slots"
 PROP = ROOT / "docs/evidence/proposals"
 TAXONOMY = ROOT / "packages/protocols/taxonomy/branches.yaml"
 CLUSTER_PREFIX = "cluster_"
@@ -217,6 +227,63 @@ def _slot(q: Question, slug: str) -> dict[str, Any]:
     return slot
 
 
+def gate_reads(slot: dict[str, Any]) -> frozenset[str]:
+    """The slot names a slot's `ask_if` reads."""
+    return frozenset(GATE_NAME.findall(slot.get("ask_if") or ""))
+
+
+def ask_order(keys: list[str], reads: dict[str, frozenset[str]]) -> list[str]:
+    """`keys` reordered so that every slot follows the slots of `keys` its gate reads.
+
+    Stable: each step takes the earliest remaining key whose gate slots are already
+    placed (a gate slot outside `keys` lives in an earlier section or in base). That
+    is the order the engine's frontier asks them in (files/13 §9.2): the lowest
+    position among the steps whose gate can open. Raises ValueError on a gate cycle.
+    """
+    inside = set(keys)
+    remaining = list(keys)
+    placed: list[str] = []
+    while remaining:
+        ready = [k for k in remaining if (reads.get(k, frozenset()) & inside) <= set(placed)]
+        if not ready:
+            raise ValueError(f"gate cycle among {remaining}")
+        remaining.remove(ready[0])
+        placed.append(ready[0])
+    return placed
+
+
+def _reorder_ops(
+    parent_slots: dict[str, dict[str, Any]], sorular: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """A `reorder` op when the merged `sorular` would ask a gated slot before its gate.
+
+    The merge is the resolver's: a re-declared parent id keeps the parent's position
+    with this pack's definition, and a new id goes after every parent slot.
+    """
+    merged = {**parent_slots, **sorular}
+    keys = list(merged)
+    order = ask_order(keys, {key: gate_reads(slot) for key, slot in merged.items()})
+    if order == keys:
+        return []
+    return [{"op": "reorder", "pointer": REORDER_POINTER, "order": order}]
+
+
+def parent_sorular(extends: str) -> dict[str, dict[str, Any]]:
+    """The `sorular` slots, in order, of the cluster pack `extends` names ({} if none)."""
+    name = extends.removeprefix("cluster.")
+    if name == extends:
+        return {}
+    for root in CLUSTER_PARENT_ROOTS:
+        path = root / f"{name}.yaml"
+        if path.exists():
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+            slots: dict[str, dict[str, Any]] = (
+                (doc.get("sections") or {}).get("sorular") or {}
+            ).get("slots") or {}
+            return slots
+    return {}
+
+
 def build_pack(
     draft: dict[str, Any],
     slug: str,
@@ -225,12 +292,16 @@ def build_pack(
     base_slots: frozenset[str] = frozenset(),
     options: dict[str, str] | None = None,
     layer: str = "specialty",
+    parent_slots: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Pure: the pack document for `slug` (maturity L0 until signed).
 
     Raises ValueError on a duplicate slot id or an ask_if that reads a slot
     neither declared earlier in this pack nor by base.intake — such a gate
     never opens, so the question would silently never be asked.
+
+    `parent_slots` is the parent cluster's `sorular` section. When merging over it
+    would ask a gated slot before its gate slot, the pack carries a `reorder` op.
     """
     options = options or {}
     reason = questions[0]
@@ -251,7 +322,8 @@ def build_pack(
             if missing:
                 raise ValueError(f"{slug}: {sid} ask_if reads undeclared slot(s) {missing}")
         sorular[sid] = _slot(q, slug)
-    return {
+    ops = _reorder_ops(parent_slots or {}, sorular)
+    pack: dict[str, Any] = {
         "kind": "pack",
         "id": draft["id"],
         "layer": layer,
@@ -286,6 +358,7 @@ def build_pack(
             },
             "sorular": {"slots": sorular},
         },
+        **({"ops": ops} if ops else {}),
         "red_flags": [
             {
                 "id": f"rf.{slug}_l0_taslak",
@@ -314,6 +387,7 @@ def build_pack(
             }
         ],
     }
+    return pack
 
 
 def header(slug: str) -> str:
@@ -397,7 +471,13 @@ def gen(slug: str) -> tuple[str, bool]:
         return f"SKIP {slug}: Q1 (reason for visit) was refused or held{notes}", False
     try:
         pack = build_pack(
-            draft, slug, qs, base_slots=base_slot_names(), options=options, layer=layer
+            draft,
+            slug,
+            qs,
+            base_slots=base_slot_names(),
+            options=options,
+            layer=layer,
+            parent_slots=parent_sorular(draft.get("extends", "cluster.medical")),
         )
     except ValueError as exc:
         return f"SKIP {slug}: {exc}{notes}", False
@@ -436,6 +516,8 @@ def main(argv: list[str] | None = None) -> int:
     slugs = args.slugs or sorted(
         Path(p).stem for p in glob.glob(str(PROP / "*.md")) if not Path(p).stem.startswith("_")
     )
+    # Clusters first: a specialty candidate's ask order is read from its cluster.
+    slugs = sorted(slugs, key=lambda slug: not slug.startswith(CLUSTER_PREFIX))
     ok = True
     for slug in slugs:
         line, good = gen(slug)

@@ -209,7 +209,7 @@ CANDIDATE — clinician to approve wording.
 
 **Q9 — Unusually listless or sleepy (acute metabolic decompensation)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 ("altered mental status and vomiting"; "poor feeding … lethargy") — **feeds `base.life_threat`**
 > "Çocuğunuz şu sıralarda alışılmadık şekilde halsiz ya da uykulu mu?"
-gen: slot=alisilmadik_halsizlik; type=boolean
+gen: slot=uykulu_tepkisiz; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate — NOT
 authoritative)**; the authoritative RED for acute metabolic decompensation is owned by
 `base.life_threat` (invariant 7). Source caveat: S3 is a LOW-confidence review summary — re-source

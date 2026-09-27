@@ -214,7 +214,7 @@ CANDIDATE — clinician to approve wording.
 
 **Q8 — Groin or lower abdominal pain** · archetype: `OBSERVATION.symptom_sign.v1` · source: JO-S3 ("Kasık ağrısı"), JO-S7 ("Pelvik veya karın (göbek) ağrısı")
 > "Kasığınızda ya da karnınızın alt kısmında ağrı oluyor mu?"
-gen: slot=kasik_alt_karin_agrisi; type=boolean; follow_up=Göbeğinizin altında ağrı ya da baskı hissi var mı?
+gen: slot=alt_karin_agrisi; type=boolean; follow_up=Göbeğinizin altında ağrı ya da baskı hissi var mı?
 CANDIDATE — clinician to approve wording.
 
 **Q9 — Urinary frequency or urgency** · archetype: `OBSERVATION.symptom_sign.v1` · source: JO-S7 ("Acil ya da sık sık idrara çıkma ihtiyacı"), JO-S5 ("Sık idrara çıkma, tuvalete yetişememe"), JO-S3, JO-S8

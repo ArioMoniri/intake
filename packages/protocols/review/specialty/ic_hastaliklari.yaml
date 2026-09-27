@@ -53,8 +53,8 @@ sections:
         ask_tr:
           tr: Bu şikâyetiniz başladığından beri zamanla nasıl bir değişim gösterdi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
-      soru_2:
-        type: string
+      istemsiz_kilo_kaybi:
+        type: boolean
         required: false
         ask_tr:
           tr: Son aylarda diyet yapmadan kilo verdiğinizi fark ettiniz mi?

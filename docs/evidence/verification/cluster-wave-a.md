@@ -240,7 +240,7 @@ Method:
 | medical `son_gunlerde_ates` (= aile_hekimligi) | enfeksiyon_hastaliklari Q2 (identical ask) | `ates_var_mi` | enfeksiyon rebinds, and its Q3 gate follows |
 | medical `istemsiz_kilo_kaybi` (8 siblings) | diyabet_poliklinigi Q5 | `aciklanamayan_kilo_kaybi` | diyabet rebinds |
 | medical `yuksek_tansiyon_tanisi` (after §C) | tibbi_ekoloji Q8 | `yuksek_tansiyon_oykusu` | tibbi_ekoloji rebinds |
-| medical `gece_terlemesi`, `istemsiz_kilo_kaybi`, `son_gunlerde_ates` | ic_hastaliklari Q5, Q3, Q4 | `soru_N` (no `gen:` lines, wave 9) | ic_hastaliklari adds `gen:` lines with the cluster ids |
+| medical `gece_terlemesi`, `istemsiz_kilo_kaybi`, `son_gunlerde_ates` | ic_hastaliklari Q5, Q3, Q4 | `soru_N` (no `gen:` lines, wave 9) | ic_hastaliklari adds `gen:` lines with the cluster ids. NOTE: Q4 (unexplained fever) is a near duplicate of `son_gunlerde_ates`, not the same fact; the clinician keeps or merges (PR #582 review §D-1) |
 | surgical `travma_sonrasi_basladi` | el_cerrahisi Q2 | `yaralanma_sonrasi_basladi` | el_cerrahisi rebinds, or the clinician keeps the hand-specific fact |
 | sensory `ani_isitme_azalmasi`, `donme_hissi`, `ses_kisikligi`, `boyunda_sislik` | kulak_burun_bogaz Q2, Q5, Q8, Q7 | `soru_N` | KBB adds `gen:` lines. Its Q7 still says "kitle" (wave 1–3 finding 14) |
 | sensory Q2–Q9 | goz_hastaliklari Q2–Q11 (Q9 and Q11 identical to cluster Q7 and Q8) | `soru_N` | göz adds `gen:` lines with the cluster ids |
