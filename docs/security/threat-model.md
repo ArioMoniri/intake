@@ -309,10 +309,21 @@ it or whose tests exercise it.
 - **Controls (files/10):** §6 in full — the shared health package, OTel propagation with
   hashed session ids, golden-signal dashboards, synthetic probes every 60 s; CLAUDE.md
   invariant 15 (a new service without the contract fails `make check`).
-- **Signals:** burn-rate alerts land with INT-021; probe registry with INT-022; the metrics
-  catalogue itself with INT-025.
-- **Tests:** tests/platform/test_health_contract.py; catalogue completeness test lands with
-  INT-025.
+- **Signals:** multiwindow burn-rate alerts for every SLO file (INT-021); probe registry with
+  INT-022; the metrics catalogue itself with INT-025.
+- **Controls added by INT-021 (close-out, 27 Sep 2026):** a blind spot is now a failing test
+  rather than an absence. Every `docs/slo/*.yaml` generates its recording rules, its three
+  burn lanes and its golden-signal dashboard, and a hand edit to either output fails. Every
+  alert in every rule file Prometheus loads links a `docs/runbooks/` heading that resolves,
+  and every series a rule reads is catalogued and `live`, so a rule over a series nothing
+  emits cannot pass as coverage. `observability/slo_coverage.yaml` states, for every
+  discovered service, app and job, its SLO file and probe rows or the recorded reason it has
+  none. An HTTP SLI must have a `mount_http_metrics` emitter in its own service (services/probes
+  had none). The daily audit-chain verification now pages when it fails
+  (`AuditChainVerificationFailed`, files/08 §5).
+- **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
+  (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
+  test_slo_coverage.py (INT-021).
 
 ## `observability-pipeline` — logs, traces, errors are not a side channel
 
@@ -900,7 +911,11 @@ it or whose tests exercise it.
   wires the tier into a service, not before.
 - **Tests:** `tests/integration/test_ehrbase_roundtrip.py` (INT-032) — OPT upload → fetch →
   parse → archetype-root identity against the committed template; composition envelope write →
-  read → identity; the CONTRIBUTION audit. `tests/schemas/test_openehr_export.py` holds [T]
+  read → identity; the CONTRIBUTION audit. Since INT-257 the upload is the committed, sha-pinned
+  bytes with no fixture, and the wire status is asserted to be 201.
+  `tests/protocols/test_opt_schema.py` (INT-257) validates that file offline against the
+  digest-pinned openEHR OPT 1.4 schema (ITS-XML Release-1.0.2). It also refuses a node id the
+  template's terminology does not define, which is a 500 in EHRbase that the schema cannot see. `tests/schemas/test_openehr_export.py` holds [T]
   shut from the other side: an answered slot with no leaf binding is refused, never dropped and
   never bound to an invented `atNNNN` (files/HUMAN_BLOCKERS.md HB-C12).
   `tests/platform/test_ehrbase_client.py` pins [I]: no clinical text reaches a log line or an
@@ -1084,6 +1099,12 @@ it or whose tests exercise it.
   than noted — the egress allow-list names no Ministry host so default-deny already refuses
   one, no file under `packages/`·`services/`·`apps/`·`infra/`·`scripts/` names one, and no
   module on the ingestion path imports an HTTP client or takes a locator (INT-122).
+  No byte of an upload meets a document-reading engine unless files/03 §4.9.1 row 20
+  (text layer — the MHRS screenshot) or row 21 (layout — the six-column lab table) is
+  registered under a pin that row names, with a licence read from the raw blob, declared
+  self-hostable on the PHI path, and served (§4.9.2(f)); neither row is registered, so
+  both read paths refuse with a status before the engine runs, and an engine that reads
+  nothing is a refusal, never an empty document (INT-122, `records/document_engine.py`).
   The one model on this path is files/03 §4.9.1 row 9, reached only through a gateway that
   refuses a vendor host and a pin that is not licence-verified, pinned and served; while no
   host serves it the PHI path refuses with no fallback (INT-124). Every lab value it returns
@@ -1098,7 +1119,9 @@ it or whose tests exercise it.
   (`tests/records/test_extraction_eval.py`); the two patient-supplied sources — the
   six-column lab table, the MHRS SMS screenshot's candidate visit fields, the printed-date
   guard and the three no-scraping checks — with INT-122
-  (`tests/records/test_enabiz_pdf.py`); the unit-resolution guard, the row-9 adapter and
+  (`tests/records/test_enabiz_pdf.py`), and the rows 20-21 engine gate, both byte-level
+  read paths and the lab table's route through the unit guard to the confirm cards with
+  INT-122's second pass (`tests/records/test_enabiz_mhrs_read_paths.py`); the unit-resolution guard, the row-9 adapter and
   its PHI gate with INT-124 (`tests/records/test_unit_resolution_guard.py`,
   `tests/records/test_labjson_eval.py`); the patient-facing half of the confirm gate,
   the client-side level-shaped-key refusal and the camera path with INT-138

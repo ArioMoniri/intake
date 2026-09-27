@@ -13,11 +13,12 @@
  * the glyph is soft ink, never the accent.
  */
 import { StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
+import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
 import { AppText, useTheme } from "@/components/Themed";
 import { t, type MessageKey } from "@/lib/i18n";
+import type { SymbolKey } from "@/lib/symbols";
 import { spacing } from "@/lib/theme";
 
 interface GuidanceBlockProps {
@@ -26,8 +27,8 @@ interface GuidanceBlockProps {
   bodyKey: MessageKey;
   /** The one block per screen that carries the accent kicker. */
   accent?: boolean;
-  /** SF Symbol for the outlined-badge mark; set it on ONE block per screen. */
-  icon?: string;
+  /** Symbol registry row for the outlined-badge mark; set it on ONE block per screen. */
+  icon?: SymbolKey;
 }
 
 export function GuidanceBlock({
@@ -46,7 +47,7 @@ export function GuidanceBlock({
           importantForAccessibility="no"
           style={[styles.badge, { borderColor: theme.border }]}
         >
-          <SymbolView name={icon as never} size={24} tintColor={theme.inkSoft} />
+          <Icon name={icon} size={24} tintColor={theme.inkSoft} />
         </View>
       ) : null}
       <Kicker label={t(kickerKey)} tone={accent ? "accent" : "neutral"} />

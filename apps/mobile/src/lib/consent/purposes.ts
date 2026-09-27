@@ -19,8 +19,8 @@
  * - `optout` — the two learning purposes: on by default under their stated
  *   non-consent bases, with an opt-out switch and honest basis copy.
  */
-import type { ConsentState } from "@/lib/dev/accounts";
 import type { MessageKey } from "@/lib/i18n";
+import type { ConsentState } from "@/lib/types/account";
 
 export type PurposeId =
   | "core"

@@ -14,7 +14,9 @@ WHAT THIS LANE PROVES, AND WHAT IT CANNOT.
 
 The roundtrip is real in both directions — internal value → canonical
 openEHR → EHRbase → read back → internal value → identity — for the
-composition **envelope** and for the operational template. It carries no
+composition **envelope** and for the operational template. Since INT-257 the
+template uploaded is the COMMITTED file, byte-for-byte and pinned by
+``OPT_SHA256``: no fixture, no in-test edit. It carries no
 clinical content, and that is the finding rather than a shortcut: the
 committed template (files/12 §8.1, INT-041) constrains archetype ROOTS only.
 A root path addresses an ENTRY; a value needs a leaf ``atNNNN`` path, no
@@ -32,7 +34,6 @@ from __future__ import annotations
 import datetime
 import hashlib
 import os
-import re
 import uuid
 from pathlib import Path
 
@@ -53,9 +54,10 @@ from clinical_schemas.mappers.openehr import (
 )
 from clinical_schemas.session import SessionBudget, SessionState, SessionStatus
 from intake_platform.ehrbase import (
+    OPENEHR_BASE_PATH,
     EhrbaseClient,
     EhrbaseConfig,
-    EhrbaseTemplateRejectedError,
+    TemplateState,
 )
 from intake_platform.tokenization import Tokenizer
 from protocols.bindings import OPT_PATH, OPT_SHA256, load_opt
@@ -64,10 +66,7 @@ pytestmark = pytest.mark.integration
 
 REPO = Path(__file__).resolve().parents[2]
 COMMITTED_OPT = REPO / OPT_PATH
-FIXTURE_OPT = REPO / "tests/fixtures/openehr/previsit_intake.v1.aom-occurrences.opt"
-#: Pins the fixture the way ``OPT_SHA256`` pins the committed template: an edit
-#: to either file has to be a deliberate, reviewed change.
-FIXTURE_SHA256 = "631b80c5bae04e0b397b08a8a7599ead4e6dd5bf2ee9120354a7cc28c08d9772"
+TEMPLATE_UPLOAD_PATH = f"{OPENEHR_BASE_PATH}/definition/template/adl1.4"
 
 BASE_URL = os.environ.get("INTAKE_EHRBASE_URL", "http://127.0.0.1:8092/ehrbase")
 USERNAME = os.environ.get("INTAKE_EHRBASE_USER", "intake-dev")
@@ -77,23 +76,59 @@ REFERENCE_TIME = datetime.datetime(2026, 8, 28, 10, 0, tzinfo=datetime.UTC)
 SHA = "ab" * 32
 
 
+class _StatusRecorder(httpx.BaseTransport):
+    """The real network transport, plus a log of ``(method, path, status)``.
+
+    ``TemplateState`` folds 200 and 201 into ``uploaded=True``; the INT-257
+    acceptance names 201, so the test reads the status off the wire. ``close``
+    stays BaseTransport's no-op so the wrapped pool outlives the per-request
+    ``httpx.Client`` the production client opens and closes; :meth:`shutdown`
+    releases it.
+    """
+
+    def __init__(self) -> None:
+        self._inner = httpx.HTTPTransport()
+        self.exchanges: list[tuple[str, str, int]] = []
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        response = self._inner.handle_request(request)
+        self.exchanges.append((request.method, request.url.path, response.status_code))
+        return response
+
+    def shutdown(self) -> None:
+        self._inner.close()
+
+
+def _config() -> EhrbaseConfig:
+    return EhrbaseConfig(base_url=BASE_URL, username=USERNAME, password=PASSWORD)
+
+
 @pytest.fixture(scope="module")
 def client() -> EhrbaseClient:
     # EHRbase boots a Spring context and a jOOQ pool; the first call after a
     # cold container pays for both.
-    return EhrbaseClient(
-        EhrbaseConfig(base_url=BASE_URL, username=USERNAME, password=PASSWORD),
-        timeout_s=120.0,
-    )
+    return EhrbaseClient(_config(), timeout_s=120.0)
 
 
 @pytest.fixture(scope="module")
-def uploaded_template(client: EhrbaseClient) -> str:
-    """The template the CDR can actually hold today — see the module docstring
-    and the fixture's own header. Root-identical to the committed one, which
-    :func:`test_the_fixture_is_root_identical_to_the_committed_template` pins."""
-    client.ensure_template(FIXTURE_OPT.read_bytes(), template_id=TEMPLATE_ID)
-    return TEMPLATE_ID
+def first_upload() -> tuple[TemplateState, list[tuple[str, str, int]]]:
+    """The module's first contact with the template: the production client,
+    the COMMITTED bytes exactly as read from disk, and the wire status kept.
+    Every test that needs the template depends on this, so whatever the test
+    order, the recorded upload is the first one."""
+    recorder = _StatusRecorder()
+    try:
+        state = EhrbaseClient(_config(), timeout_s=120.0, transport=recorder).ensure_template(
+            COMMITTED_OPT.read_bytes(), template_id=TEMPLATE_ID
+        )
+    finally:
+        recorder.shutdown()
+    return state, recorder.exchanges
+
+
+@pytest.fixture(scope="module")
+def uploaded_template(first_upload: tuple[TemplateState, list[tuple[str, str, int]]]) -> str:
+    return first_upload[0].template_id
 
 
 def _subject_token() -> str:
@@ -153,32 +188,20 @@ def test_the_container_is_the_pinned_ehrbase(client: EhrbaseClient) -> None:
     )
 
 
-def test_the_committed_template_is_rejected_today(client: EhrbaseClient) -> None:
-    """The gap INT-032 reports rather than patches. The committed OPT declares
-    ``occurrences`` on the COMPOSITION root and on none of its content
-    children; EHRbase dereferences the missing interval and answers 500. The
-    client surfaces that as a typed refusal and never repairs the bytes."""
+def test_the_committed_template_uploads_with_201(
+    first_upload: tuple[TemplateState, list[tuple[str, str, int]]],
+) -> None:
+    """INT-257. INT-032 recorded HTTP 500 here — ``occurrences`` missing on the
+    content roots. The committed file now validates against the OPT 1.4 schema
+    (tests/protocols/test_opt_schema.py) and the CDR creates it."""
     assert hashlib.sha256(COMMITTED_OPT.read_bytes()).hexdigest() == OPT_SHA256
-    with pytest.raises(EhrbaseTemplateRejectedError) as excinfo:
-        client.ensure_template(COMMITTED_OPT.read_bytes(), template_id=TEMPLATE_ID)
-    assert excinfo.value.status_code == 500
-
-
-def test_the_fixture_is_root_identical_to_the_committed_template() -> None:
-    committed = load_opt(COMMITTED_OPT)
-    fixture = load_opt(FIXTURE_OPT, expected_sha256=FIXTURE_SHA256)
-    assert fixture.template_id == committed.template_id
-    assert fixture.roots == committed.roots
-    committed_xml = _without_comments(COMMITTED_OPT)
-    fixture_xml = _without_comments(FIXTURE_OPT)
-    added = fixture_xml.count("<occurrences>") - committed_xml.count("<occurrences>")
-    assert added == len(committed.roots), (
-        "the fixture must differ from the committed template by exactly one "
-        "<occurrences> element per archetype root"
+    state, exchanges = first_upload
+    assert state.uploaded is True
+    uploads = [(m, status) for m, path, status in exchanges if path.endswith(TEMPLATE_UPLOAD_PATH)]
+    assert uploads == [("POST", 201)], (
+        "expected exactly one template POST answered 201 by a fresh CDR; a 409 means "
+        f"this container already held {TEMPLATE_ID!r} (got {uploads!r})"
     )
-    # …and by nothing else: strip the added blocks back out and the two markup
-    # bodies are byte-identical.
-    assert _without_occurrences(fixture_xml) == _without_occurrences(committed_xml)
 
 
 def test_template_roundtrips_through_the_cdr(client: EhrbaseClient, uploaded_template: str) -> None:
@@ -197,7 +220,7 @@ def test_template_roundtrips_through_the_cdr(client: EhrbaseClient, uploaded_tem
 def test_uploading_the_same_template_twice_is_not_an_error(
     client: EhrbaseClient, uploaded_template: str
 ) -> None:
-    state = client.ensure_template(FIXTURE_OPT.read_bytes(), template_id=uploaded_template)
+    state = client.ensure_template(COMMITTED_OPT.read_bytes(), template_id=uploaded_template)
     assert state.uploaded is False, "a second boot must not re-create the template"
 
 
@@ -253,16 +276,6 @@ def test_a_session_with_answers_writes_nothing(
     with httpx.Client(base_url=BASE_URL, auth=(USERNAME, PASSWORD), timeout=60.0) as raw:
         response = raw.get(f"/rest/openehr/v1/ehr/{ehr_id}/composition/{uuid.uuid4()}")
     assert response.status_code == 404, "the EHR must hold no composition at all"
-
-
-def _without_comments(path: Path) -> str:
-    """The markup, without the XML comments — the fixture's header explains
-    itself at length and that prose is not part of the comparison."""
-    return re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8"), flags=re.DOTALL).strip()
-
-
-def _without_occurrences(xml: str) -> str:
-    return re.sub(r"\s*<occurrences>.*?</occurrences>", "", xml, flags=re.DOTALL)
 
 
 def _write_tmp(payload: bytes) -> Path:
