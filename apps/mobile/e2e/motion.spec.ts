@@ -37,11 +37,23 @@
  *
  * React Native has no DOM here, so these are source guards. Each detector is
  * first run on samples that prove it is not vacuous.
+ *
+ * INT-342 (MOTION-13; docs/design/motion/motion-verification.md §1.2 P6/P7,
+ * §4 MOTION-13) — content reveal and a static skeleton.
+ *
+ * The plan is proved in src/lib/motion/reveal.test.ts. These read the source
+ * that runs it: the skeleton never moves once it is shown, Records and the
+ * share centre render the skeleton and the content as the two branches of one
+ * conditional, the device half keeps the delay under reduce-motion, and the
+ * wait is exposed to a screen reader as busy, with a label from both
+ * catalogues.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { en } from "../src/lib/i18n/en";
+import { tr } from "../src/lib/i18n/tr";
 import { animatable, animatedStyleKeys, code, literalDurations, loops } from "./motionSource";
 
 const MOBILE = join(__dirname, "..");
@@ -570,5 +582,330 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
 
     const offenders = APP_SOURCE.filter((f) => setsRetention(f.source)).map((f) => f.name);
     expect(offenders).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOTION-13 — content reveal and a static skeleton (INT-342)
+// ---------------------------------------------------------------------------
+
+const SKELETON = "src/components/Skeleton.tsx";
+const REVEAL_ADAPTER = "src/lib/motion/native/reanimated.ts";
+
+/**
+ * The screens that wait for their data behind a skeleton, each with the
+ * expression that says the wait is over. It is read from the load state,
+ * never from an animation.
+ */
+const REVEAL_CONSUMERS: Readonly<Record<string, string>> = {
+  "src/app/(tabs)/records.tsx": 'phase !== "loading"',
+  "src/app/(tabs)/visits/[visitId]/shares.tsx": "loaded || unreachable",
+};
+
+/** What would make a skeleton move, spelled from parts so this file never names them whole. */
+const SHIMMER = ["shim", "mer"].join("");
+const TRANSLATE = ["trans", "late"].join("");
+const GRADIENT = ["Linear", "Gradient"].join("");
+
+function squash(text: string): string {
+  return text.replace(/\s+/g, "");
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Index of the bracket that closes the one opened at `open`, strings skipped. */
+function closingBracket(text: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      let j = i + 1;
+      while (j < text.length && text[j] !== ch) {
+        j += text[j] === "\\" ? 2 : 1;
+      }
+      i = j;
+    } else if ("([{".includes(ch)) {
+      depth += 1;
+    } else if (")]}".includes(ch)) {
+      depth -= 1;
+      if (depth === 0) {
+        return i;
+      }
+    }
+  }
+  return text.length;
+}
+
+/** The source of `function name(…) { … }`, signature and body. */
+function functionSource(text: string, name: string): string {
+  const start = text.search(new RegExp(`\\bfunction\\s+${name}\\s*\\(`));
+  expect(start, `function ${name}`).toBeGreaterThanOrEqual(0);
+  const params = closingBracket(text, text.indexOf("(", start));
+  const body = text.indexOf("{", params);
+  return text.slice(start, closingBracket(text, body) + 1);
+}
+
+/** Every way a skeleton could move once it is shown, by name. */
+function skeletonMotion(source: string): string[] {
+  const text = code(source);
+  const checks: readonly (readonly [string, boolean])[] = [
+    [SHIMMER, new RegExp(SHIMMER, "i").test(text) || new RegExp(`\\b${GRADIENT}\\b`).test(text)],
+    [TRANSLATE, new RegExp(`\\b${TRANSLATE}[XY]?\\b`, "i").test(text)],
+    ["transform", /\btransform\s*:/.test(text)],
+    ["loop", loops(source)],
+    ["sequence", /\bwithSequence\b|\bAnimated\s*\.\s*sequence\b/.test(text)],
+    ["entrance or exit", /\b(?:entering|exiting)\s*[=:]/.test(text)],
+  ];
+  return checks.filter(([, hit]) => hit).map(([name]) => name);
+}
+
+interface RevealSlot {
+  readonly ready: string;
+  readonly plan: string;
+}
+
+/** `{ready ? (<Animated.View entering={enteringFor(plan.enter)} …>`: the content branch opening. */
+const CONTENT_BRANCH =
+  /\{\s*(\w+)\s*\?\s*\(\s*<Animated\.View\s+entering=\{enteringFor\(\s*(\w+)\.enter\s*\)\}/g;
+
+/**
+ * Every conditional whose two branches are the reveal's: the content, one
+ * element entering from the plan, and the skeleton, from the same plan.
+ *
+ *   {ready ? (<Animated.View entering={enteringFor(p.enter)}>…</Animated.View>) : (<Skeleton plan={p.skeleton} />)}
+ */
+function revealSlots(source: string): RevealSlot[] {
+  const text = code(source);
+  return [...text.matchAll(CONTENT_BRANCH)].flatMap((m) => {
+    const open = text.indexOf("(", m.index + m[0].indexOf("?"));
+    const close = closingBracket(text, open);
+    const content = text.slice(open + 1, close).trim();
+    const skeleton = new RegExp(
+      `^\\s*:\\s*\\(?\\s*<Skeleton\\s+plan=\\{${m[2]}\\.skeleton\\}\\s*/>\\s*\\)?\\s*\\}`,
+    );
+    const oneElement = content.endsWith("</Animated.View>") && !/<Skeleton\b/.test(content);
+    return skeleton.test(text.slice(close + 1)) && oneElement ? [{ ready: m[1], plan: m[2] }] : [];
+  });
+}
+
+/** What a reveal consumer is missing; `readyExpression` is its load-state test. */
+function revealFindings(source: string, readyExpression: string): string[] {
+  const text = code(source);
+  const findings: string[] = [];
+  const imports: readonly (readonly [string, string])[] = [
+    ["@/components/Skeleton", "Skeleton"],
+    ["@/lib/motion/reveal", "revealPlan"],
+    ["@/lib/motion/native/reanimated", "enteringFor"],
+    ["@/lib/a11y/prefs", HOOK],
+  ];
+  for (const [module, name] of imports) {
+    if (!clausesFrom(text, module).some((clause) => new RegExp(`\\b${name}\\b`).test(clause))) {
+      findings.push(`import ${name}`);
+    }
+  }
+  const plan =
+    /const\s+(\w+)\s*=\s*revealPlan\(\{\s*availableAtMount,\s*reduce:\s*(\w+)\s*\}\);/.exec(text);
+  if (plan === null) {
+    findings.push("plan");
+    return findings;
+  }
+  if (!new RegExp(`const\\s+${plan[2]}\\s*=\\s*${HOOK}\\(\\);`).test(text)) {
+    findings.push("hook");
+  }
+  const frozen = /const\s+\[availableAtMount\]\s*=\s*useState\((\w+)\);/.exec(text);
+  if (frozen === null) {
+    findings.push("frozen at mount");
+    return findings;
+  }
+  const ready = frozen[1];
+  if (!new RegExp(`const\\s+${ready}\\s*=\\s*${escapeRegExp(readyExpression)}\\s*;`).test(text)) {
+    findings.push("ready");
+  }
+  const slots = revealSlots(source).filter((s) => s.ready === ready && s.plan === plan[1]);
+  if (slots.length !== 1 || [...text.matchAll(/<Skeleton\b/g)].length !== 1) {
+    findings.push("slot");
+  }
+  if (/\bwithCallback\b|\bon(?:Animation|Transition)\w*\s*=|\bexiting\b/.test(text)) {
+    findings.push("callback");
+  }
+  return findings;
+}
+
+describe("MOTION-13 — content reveal and a static skeleton", () => {
+  it("no shimmer or translate on skeleton components", () => {
+    // Non-vacuity: each way a skeleton could move is caught…
+    const moving: readonly (readonly [string, string])[] = [
+      [`const band = <${GRADIENT} colors={c} />;`, SHIMMER],
+      [`const ${SHIMMER}Style = useAnimatedStyle(() => ({ opacity: o.get() }));`, SHIMMER],
+      ["const s = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));", TRANSLATE],
+      ["const s = useAnimatedStyle(() => ({ transform: [{ scale: k.get() }] }));", "transform"],
+      ["o.set(withRepeat(withTiming(1, t), -1, true));", "loop"],
+      ["Animated.loop(Animated.timing(o, t)).start();", "loop"],
+      ["o.set(withSequence(withTiming(0, t), withTiming(1, t)));", "sequence"],
+      ["<Animated.View entering={FadeIn} />", "entrance or exit"],
+    ];
+    for (const [sample, name] of moving) {
+      expect(skeletonMotion(sample), sample).toContain(name);
+    }
+    // …and static blocks, or a comment that names the ban, are not.
+    const still = "<View style={[s.line, { backgroundColor: c.surfaceRaised }]} />";
+    expect(skeletonMotion(still)).toEqual([]);
+    expect(skeletonMotion(`// no ${SHIMMER} and no ${TRANSLATE} here\nconst x = 1;`)).toEqual([]);
+
+    // Every file that is a skeleton or drives one: by its name, or by a
+    // function named for one (the adapter's hook, read on its own).
+    const skeletons = APP_SOURCE.filter(
+      (f) => /skeleton/i.test(f.name) || /\bfunction\s+\w*Skeleton\w*\s*\(/.test(code(f.source)),
+    );
+    expect(skeletons.map((f) => f.name)).toEqual(
+      expect.arrayContaining([SKELETON, REVEAL_ADAPTER]),
+    );
+    const offenders = skeletons.flatMap((f) => {
+      const text =
+        f.name === REVEAL_ADAPTER ? functionSource(code(f.source), "useSkeletonOpacity") : f.source;
+      return skeletonMotion(text).map((name) => `${f.name}: ${name}`);
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  it("Records and the share centre render the skeleton and the content as the two branches of one conditional, from revealPlan", () => {
+    const screen = (slot: string) =>
+      [
+        `const reduceMotion = ${HOOK}();`,
+        'const ready = phase !== "loading";',
+        "const [availableAtMount] = useState(ready);",
+        "const reveal = revealPlan({ availableAtMount, reduce: reduceMotion });",
+        `return (\n  <>\n${slot}\n  </>\n);`,
+      ].join("\n");
+    const good = screen(
+      [
+        "    {ready ? (",
+        "      <Animated.View entering={enteringFor(reveal.enter)}>",
+        "        <List />",
+        "      </Animated.View>",
+        "    ) : (",
+        "      <Skeleton plan={reveal.skeleton} />",
+        "    )}",
+      ].join("\n"),
+    );
+    const imports = [
+      'import { Skeleton } from "@/components/Skeleton";',
+      `import { ${HOOK} } from "@/lib/a11y/prefs";`,
+      'import { enteringFor } from "@/lib/motion/native/reanimated";',
+      'import { revealPlan } from "@/lib/motion/reveal";',
+    ].join("\n");
+    const loading = 'phase !== "loading"';
+    expect(revealFindings(`${imports}\n${good}`, loading)).toEqual([]);
+
+    // Near misses, each caught by name.
+    const twoConditionals = screen(
+      [
+        "{ready ? (<Animated.View entering={enteringFor(reveal.enter)}><List /></Animated.View>) : null}",
+        "{ready ? null : <Skeleton plan={reveal.skeleton} />}",
+      ].join("\n"),
+    );
+    const misses: readonly (readonly [string, string, string])[] = [
+      ["two conditionals", twoConditionals, "slot"],
+      [
+        "the skeleton removed on an animation's end",
+        good
+          .replace('const ready = phase !== "loading";', "const ready = skeletonFaded;")
+          .concat("\nconst out = FadeOut.withCallback(() => setSkeletonFaded(true));"),
+        "ready",
+      ],
+      [
+        "an exit on the skeleton",
+        good.replace("plan={reveal.skeleton} />", "plan={reveal.skeleton} exiting={FadeOut} />"),
+        "callback",
+      ],
+      [
+        "content with no entrance from the plan",
+        good.replace("entering={enteringFor(reveal.enter)}", "entering={FadeIn}"),
+        "slot",
+      ],
+      [
+        "availability read on every render, not frozen at mount",
+        good.replace("revealPlan({ availableAtMount,", "revealPlan({ availableAtMount: ready,"),
+        "plan",
+      ],
+      [
+        "reduce-motion not from the app's hook",
+        good.replace(`const reduceMotion = ${HOOK}();`, "const reduceMotion = false;"),
+        "hook",
+      ],
+    ];
+    for (const [what, sample, finding] of misses) {
+      // Each near miss really is a different screen, not a replace that missed.
+      expect(sample, what).not.toBe(good);
+      expect(revealFindings(`${imports}\n${sample}`, loading), what).toContain(finding);
+    }
+    expect(revealFindings(good, loading)).toContain("import Skeleton");
+
+    // The two consumers the spec names.
+    for (const [name, readyExpression] of Object.entries(REVEAL_CONSUMERS)) {
+      expect(revealFindings(file(name), readyExpression), name).toEqual([]);
+    }
+    // Nothing else renders a skeleton or takes a reveal plan outside these guards.
+    const renderers = APP_SOURCE.filter((f) => /<Skeleton\b|\brevealPlan\(/.test(code(f.source)))
+      .map((f) => f.name)
+      .filter((name) => name !== "src/lib/motion/reveal.ts")
+      .sort();
+    expect(renderers).toEqual(Object.keys(REVEAL_CONSUMERS).sort());
+  });
+
+  it("the skeleton steps in after the delay on the UI thread, and keeps the delay under reduce-motion", () => {
+    const adapter = file(REVEAL_ADAPTER);
+    const hook = squash(functionSource(code(adapter), "useSkeletonOpacity"));
+    // Hidden on its first frame…
+    const value = /const(\w+)=useSharedValue\(0\);/.exec(hook);
+    expect(value, "useSharedValue(0)").not.toBeNull();
+    const shown = value![1];
+    // …then shown in one step once the plan's delay has passed. The delay
+    // opts out of Reanimated's reduced-motion skip (a wait is not movement),
+    // and the step is the plan's instant duration, so nothing moves at any
+    // setting. No callback is passed to either.
+    expect(hook).toContain(
+      `${shown}.set(withDelay(plan.delayMs,withTiming(1,{duration:plan.stepMs}),${ENUM}.Never`,
+    );
+    expect(hook).toContain(`useAnimatedStyle(()=>({opacity:${shown}.get()}))`);
+    expect(hook).not.toMatch(/\bset(?:Timeout|Interval)\b|\brequestAnimationFrame\b|withCallback/);
+    expect(literalDurations(adapter)).toEqual([]);
+    expect(animatedStyleKeys(adapter).map((k) => k.key)).toEqual(["opacity"]);
+
+    // That delay is the one place the app opts out of reduced motion; the
+    // root's config (MOTION-2) is the only other place the enum member is named.
+    const never = new RegExp(`\\b${ENUM}\\s*\\.\\s*Never\\b`);
+    const optOuts = APP_SOURCE.filter(
+      (f) => f.name !== "src/app/_layout.tsx" && never.test(code(f.source)),
+    ).map((f) => f.name);
+    expect(optOuts).toEqual([REVEAL_ADAPTER]);
+
+    // The skeleton's one animated element takes its opacity from there.
+    const skeleton = code(file(SKELETON));
+    const opacity = /const\s+(\w+)\s*=\s*useSkeletonOpacity\(plan\);/.exec(skeleton);
+    expect(opacity, "useSkeletonOpacity(plan)").not.toBeNull();
+    const roots = [...skeleton.matchAll(/<Animated\.View\b([^>]*)>/g)];
+    expect(roots).toHaveLength(1);
+    expect(squash(roots[0][1])).toMatch(new RegExp(`style=\\{\\[[^\\]]*,${opacity![1]},?\\]\\}`));
+  });
+
+  it("the skeleton is announced as busy, with a label from both catalogues", () => {
+    const skeleton = code(file(SKELETON));
+    const roots = [...skeleton.matchAll(/<Animated\.View\b([^>]*)>/g)];
+    expect(roots).toHaveLength(1);
+    const props = roots[0][1];
+    // One element for a screen reader, busy, from the commit that mounts it.
+    expect(props).toMatch(/\baccessible\b(?!=)/);
+    expect(squash(props)).toContain("accessibilityState={{busy:true}}");
+    expect([...skeleton.matchAll(/\baccessible\b(?!=)/g)]).toHaveLength(1);
+    // Its label comes from the catalogue, in Turkish first and in English.
+    const label = /accessibilityLabel=\{t\("([\w.]+)"\)\}/.exec(props);
+    expect(label, "accessibilityLabel={t(key)}").not.toBeNull();
+    const key = label![1] as keyof typeof tr;
+    expect(tr[key]?.trim()).toBeTruthy();
+    expect(en[key]?.trim()).toBeTruthy();
+    expect(en[key]).not.toBe(tr[key]);
   });
 });

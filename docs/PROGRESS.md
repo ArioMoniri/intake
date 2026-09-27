@@ -1,5 +1,33 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T14:40:00+03:00 · INT-342 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #541):
+  - *"content already available never animates; a load under the skeleton delay shows no skeleton; the skeleton is static (no shimmer, no loop) and unmounts in the commit that mounts the content"*
+  - *"reduce motion keeps the delay and drops every fade; busy state is announced with a tr/en label"*
+- Plan (MOTION-13, `docs/design/motion/motion-verification.md` §4, P6/P7 as revised):
+  - `motion.reveal.skeletonDelayMs` 300 lands with its first consumer.
+  - A pure `revealPlan({ availableAtMount, reduce })` returns one slot: a static skeleton plan (delay 300, instant step, no exit, `loop: false`, `shimmer: false`) and the content's `enterFor` entrance, or none when the content was already there.
+  - `useSkeletonOpacity` in `native/reanimated.ts` runs the delay on the UI thread with `withDelay(…, ReduceMotion.Never)`, because Reanimated otherwise skips the wait under reduced motion.
+  - A `Skeleton` component, busy, with a new `a11y.loading` label.
+  - Records and the share centre render skeleton and content as the two branches of one conditional.
+- Tests added (with the near-miss negative for any safety rule):
+  - `src/lib/motion/reveal.test.ts`: the 6 DoD titles, over a per-millisecond frame model, 6 reduce-motion settings and 9 load times, each with a near miss.
+  - `e2e/motion.spec.ts` MOTION-13 block: 4 source guards, each detector run on samples first, with 6 named near misses for the one-conditional rule.
+  - RED: the module is missing, and 4 guards fail. GREEN: 20/20. Mutants: 12 of 12 killed, each restored with `cp`.
+- Result:
+  - Mobile vitest 113 files and 2270 tests pass.
+  - `make check-ts` exit 0 (lint 0 errors, `pnpm -r typecheck` Done); `make check-i18n` 30 passed; `tests/backlog` + `tests/smoke` 63 passed.
+  - Prettier is clean. The iOS Metro export bundles, with the worklet compiled.
+  - `no_placeholders` is OK after staging.
+  - `make check` was not run whole (check-integration is CI-only; no Python changed). `make safety` and `make security` were not run locally: no protocol, triage, dependency or security surface changed.
+- Invariants touched and still passing: 5 (`a11y.loading` in tr first, en mirrored), 6 (nothing logs), 8 (tests only added; the MOTION-2/6/12 and BK13–BK15 guards are unchanged and green), 17 (the token, the adapter hook and the component each land with their consumer).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `ReduceMotion.Never` on the skeleton's delay is the plan's own rule (a wait is not motion), not an exception to reduce-motion. The guard pins the adapter as the only file besides the root layout that names it.
+  - No live announcement for the skeleton: it is a busy, labelled element on the tree.
+  - Found, not fixed: the share store is never reset, so the centre shows another visit's held grants for one frame; an unreachable read still prints the log's empty footer.
+- Blocked on: nothing. Device timing and screen-reader phrasing are not recorded (the reference devices are unnamed, INT-330).
+- Next: PR `INT-342: Motion: content reveal and a static skeleton` (Closes #541, Sec-Row mobile).
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**315 issues.** By phase: P0 160 · P1 101 · P2 47 · P3 7. By status: awaiting-human 29 · doing 7 · done 200 · todo 78 · withdrawn 1.
+**315 issues.** By phase: P0 160 · P1 101 · P2 47 · P3 7. By status: awaiting-human 29 · doing 7 · done 201 · todo 77 · withdrawn 1.
 
 ## P0
 
@@ -340,5 +340,5 @@
 | INT-225 | ISO 27001 ISMS: scope, SoA, risk register, policies, internal audit, certification audit | E14-legal | INT-215, INT-192 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-251 | Billing: hospital e-Fatura via provider; patient subscription via PSP (iyzico/PayTR); never store PAN | E17-release | INT-222 | area:release, risk:legal, approval:human-legal | todo |
 | INT-341 | Motion: press-opacity tokens | E08-mobile | INT-330 | area:mobile | todo |
-| INT-342 | Motion: content reveal and a static skeleton | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | todo |
+| INT-342 | Motion: content reveal and a static skeleton | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | done |
 

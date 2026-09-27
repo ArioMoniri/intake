@@ -834,6 +834,7 @@ export const tr = {
   // no ALL-CAPS. The `…Hint` keys describe what activation does; they never
   // replace a control's visible words (SC 2.5.3).
   "a11y.error": "Hata",
+  "a11y.loading": "İçerik yükleniyor",
   "a11y.openHint": "Ayrıntıları açmak için iki kez dokunun.",
   "a11y.backHint": "Önceki ekrana dönmek için iki kez dokunun.",
   "a11y.closeHint": "Kapatmak için iki kez dokunun.",
