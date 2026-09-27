@@ -1,0 +1,382 @@
+{
+  "schema": "intake.admin.reliability.v1",
+  "generated_at": "2026-09-26T22:19:41Z",
+  "sources": {
+    "prometheus": "unconfigured",
+    "slo_files": "ok",
+    "registry": "ok",
+    "probe_sweep": "probe_results_unconfigured"
+  },
+  "slos": {
+    "state": "ok",
+    "reason": null,
+    "tiles": [
+      {
+        "service": "api",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.9,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "api",
+        "slo": "latency",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.0,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "langfuse",
+        "slo": "trace_emission",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.9,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "learning",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "metrics",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "probes",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "siem",
+        "slo": "alert_scrub",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.9,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      },
+      {
+        "service": "voice-runtime",
+        "slo": "availability",
+        "state": "unknown",
+        "reason": "prometheus_unconfigured",
+        "objective_percent": 99.5,
+        "slo_window": "28d",
+        "sli_percent": null,
+        "error_budget_remaining": null,
+        "burn_rates": [
+          {
+            "lane": "fast",
+            "severity": "page",
+            "factor": 14.4,
+            "long_window": "1h",
+            "short_window": "5m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "slow",
+            "severity": "page",
+            "factor": 6.0,
+            "long_window": "6h",
+            "short_window": "30m",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          },
+          {
+            "lane": "ticket",
+            "severity": "ticket",
+            "factor": 1.0,
+            "long_window": "3d",
+            "short_window": "6h",
+            "long_burn": null,
+            "short_burn": null,
+            "condition_met": null
+          }
+        ]
+      }
+    ]
+  },
+  "probe_matrix": {
+    "state": "unknown",
+    "reason": "probe_results_unconfigured",
+    "rows": [],
+    "sweep_interval_s": 60,
+    "stale_after_s": 180
+  },
+  "dependencies": {
+    "components": {
+      "state": "unknown",
+      "reason": "probe_results_unconfigured",
+      "rows": []
+    },
+    "prometheus": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "health": null,
+      "health_reason": null
+    },
+    "gpu_hosts": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "rows": []
+    },
+    "vendors": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "rows": []
+    }
+  }
+}

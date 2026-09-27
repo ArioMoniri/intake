@@ -1486,6 +1486,22 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
     `no-referrer`, `nosniff` and `DENY` framing. **Known limit, owner decision:** the API sees the
     admin-web server, not the browser, as its transport peer, so HB-A16's ranges must name the
     admin-web host and the browser ranges move to the OIDC-terminating ingress in front of it.
+  - **Controls added by INT-181 (the rendered overview: SLOs, probes, dependency health):**
+    `/overview` is server-rendered through the same admission step as `/ops` (one shared
+    `admit()`), forwarding the bearer to the new `GET /admin/reliability`
+    (`admin.reliability.read`, platform-scope roles, audited like every route, RBAC matrix and
+    drive derived from the served route table); a refused caller does not reach `/readyz`
+    either. Every PromQL the composite runs is derived from the committed `docs/slo` files or
+    is a fixed query, names catalogued series only (test-held) and takes no request field
+    (F1); an SLI written outside the one grammar the console reads is refused rather than
+    guessed. A label set other than the query's, or a value that is not id-shaped, turns the
+    tile unknown (inv 6); the probe runner's free-text `detail` never leaves the API. Every
+    tile fails closed on its own source (inv 17), and a probe result past three sweeps is
+    flagged stale in the matrix and is *unknown* as a dependency's health — the last value is
+    never shown as the current one. The view-model refuses a burn condition that is not exactly
+    "both windows above the factor", a budget that does not follow from its SLI and objective,
+    and a stale result rendered fresh, so neither a bent payload nor a stale tab can hide a
+    burning budget.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),

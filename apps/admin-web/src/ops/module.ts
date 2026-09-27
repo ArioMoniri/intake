@@ -22,87 +22,43 @@
  */
 
 import {
-  OPS_SCHEMA,
-  type HealthResponses,
-  type OpsPayload,
-  type TileBase,
-  type TileState,
-} from "./payload";
+  ID,
+  ISO,
+  OpsLabelLeaked,
+  OpsPayloadRefused,
+  OpsSchemaMismatch,
+  OpsSuppressedCohortLeaked,
+  blank,
+  count,
+  decimal,
+  id,
+  ms,
+  noTarget,
+  percent,
+  reason,
+  withUnit,
+} from "./guards";
+import { OPS_SCHEMA, type HealthResponses, type OpsPayload, type TileState } from "./payload";
 
 export type * from "./payload";
 export { OPS_SCHEMA } from "./payload";
-
-// --- refusals ------------------------------------------------------------------
-
-export class OpsPayloadRefused extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = new.target.name;
-  }
-}
-export class OpsSchemaMismatch extends OpsPayloadRefused {}
-export class OpsLabelLeaked extends OpsPayloadRefused {}
-export class OpsSuppressedCohortLeaked extends OpsPayloadRefused {}
-export class OpsTargetRendered extends OpsPayloadRefused {}
-export class OpsUnknownCarriesFigure extends OpsPayloadRefused {}
+// The refusals live in ./guards (shared with the INT-181 overview); re-exported
+// here so every existing import of them keeps its path.
+export {
+  OpsLabelLeaked,
+  OpsPayloadRefused,
+  OpsSchemaMismatch,
+  OpsSuppressedCohortLeaked,
+  OpsTargetRendered,
+  OpsUnknownCarriesFigure,
+} from "./guards";
 
 // --- shapes --------------------------------------------------------------------
 
-const ID = /^[a-z0-9][a-z0-9_.-]{0,63}$/;
 const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/;
 const PIN = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}@[A-Za-z0-9._-]{1,64}$/;
 const SHA = /^[0-9a-f]{7,40}$/;
-const REASON = /^[a-z][a-z0-9_]{0,63}$/;
-const ISO = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2}))?$/;
-const NBSP = " ";
 const GIB = 1024 ** 3;
-
-function id(value: string, what: string): string {
-  if (!ID.test(value)) {
-    throw new OpsLabelLeaked("label_not_id_shaped", `${what} is not id-shaped (invariant 6)`);
-  }
-  return value;
-}
-
-function reason(tile: TileBase, what: string): string | null {
-  if (tile.state !== "ok" && tile.state !== "unknown") {
-    throw new OpsPayloadRefused("unknown_state", `${what}: state must be ok or unknown`);
-  }
-  if (tile.state === "ok") return null;
-  if (typeof tile.reason !== "string" || !REASON.test(tile.reason)) {
-    throw new OpsPayloadRefused("reason_not_a_code", `${what}: an unknown tile names a code`);
-  }
-  return tile.reason;
-}
-
-function noTarget(value: unknown, path: string): void {
-  if (value === null || typeof value !== "object") return;
-  for (const [key, inner] of Object.entries(value)) {
-    if (key === "target" || key.endsWith("_target")) {
-      throw new OpsTargetRendered(
-        "target_rendered",
-        `${path}.${key}: a target beside a figure turns a measurement into a claim (invariant 20)`,
-      );
-    }
-    noTarget(inner, `${path}.${key}`);
-  }
-}
-
-function blank(tile: TileBase, figures: unknown[], what: string): void {
-  if (tile.state !== "unknown") return;
-  for (const figure of figures) {
-    const empty = figure === null || (Array.isArray(figure) && figure.length === 0);
-    if (!empty) {
-      throw new OpsUnknownCarriesFigure(
-        "unknown_carries_figure",
-        `${what} is unknown and still carries a figure (invariant 17)`,
-      );
-    }
-  }
-}
 
 function floor(
   n: number | null,
@@ -122,32 +78,10 @@ function floor(
 
 // --- formatting (invariant 22) -------------------------------------------------
 
-function count(value: number | null): string | null {
-  return value === null || !Number.isFinite(value) ? null : String(Math.round(value));
-}
-
-function withUnit(value: string | null, unit: string): string | null {
-  return value === null ? null : `${value}${NBSP}${unit}`;
-}
-
 function gib(bytes: number | null): string | null {
   return bytes === null || !Number.isFinite(bytes)
     ? null
     : withUnit((bytes / GIB).toFixed(1), "GiB");
-}
-
-function percent(ratio: number | null): string | null {
-  return ratio === null || !Number.isFinite(ratio)
-    ? null
-    : withUnit(String(Math.round(ratio * 100)), "%");
-}
-
-function ms(value: number | null): string | null {
-  return withUnit(count(value), "ms");
-}
-
-function decimal(value: number | null, digits: number): string | null {
-  return value === null || !Number.isFinite(value) ? null : value.toFixed(digits);
 }
 
 // --- the view ------------------------------------------------------------------
