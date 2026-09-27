@@ -152,6 +152,7 @@ LANE_OF: Final[Mapping[WorkType, WorkLane]] = {
     WorkType.EXTRACT_SLOTS: WorkLane.STATE,
     WorkType.PLAN_FOLLOW_UPS: WorkLane.STATE,
     WorkType.PARSE_DOCUMENT: WorkLane.BACKGROUND,
+    WorkType.RETRIEVE_RECORDS: WorkLane.BACKGROUND,
 }
 
 

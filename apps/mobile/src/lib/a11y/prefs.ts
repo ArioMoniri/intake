@@ -1,5 +1,7 @@
 /**
- * The two OS accessibility signals the app reacts to (INT-144).
+ * The OS accessibility signals the app reacts to (INT-144; Reduce
+ * Transparency since the Apple-native pass, docs/design/apple-native/spec.md
+ * §4).
  *
  * Kept apart from ./motion so the policy stays unit-testable without a
  * React Native runtime: this file is the thin adapter that reads the
@@ -8,7 +10,12 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { AccessibilityInfo, Platform } from "react-native";
 
-import { createReduceMotionStore, deferredReduceMotionSource } from "@/lib/motion/policyStore";
+import {
+  createOsSettingStore,
+  createReduceMotionStore,
+  deferredOsSettingSource,
+  deferredReduceMotionSource,
+} from "@/lib/motion/policyStore";
 import { reducedMotion } from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 
@@ -53,6 +60,38 @@ export function useReducedMotion(): boolean {
     reduceMotionStore.getSnapshot,
   );
   return reducedMotion(prefs.reduceMotion, os);
+}
+
+/**
+ * The app's one Reduce Transparency store: the same shared, fail-closed store
+ * as reduce motion, over the iOS setting. The device adapter is loaded lazily
+ * on the first subscription, so no node-tested import reaches react-native
+ * through it.
+ */
+const reduceTransparencyStore = createOsSettingStore(
+  deferredOsSettingSource(() =>
+    import("@/lib/a11y/native/reduceTransparencySource").then(
+      (native) => native.nativeReduceTransparencySource,
+    ),
+  ),
+);
+
+/**
+ * Whether the OS asks for less transparency: `true`, `false`, or `null` until
+ * it has answered. The caller decides what `null` means. The glass policy
+ * (lib/a11y/glass.ts) reads it as "solid", because an unknown answer must
+ * never put a see-through surface under a patient who asked for none.
+ *
+ * There is no in-app switch for this. Android has no such setting, and iOS's
+ * applies system-wide.
+ */
+export function useReducedTransparency(): boolean | null {
+  return useSyncExternalStore(
+    reduceTransparencyStore.subscribe,
+    reduceTransparencyStore.getSnapshot,
+    // Static web rendering has no OS to ask: unknown.
+    reduceTransparencyStore.getSnapshot,
+  );
 }
 
 /**
