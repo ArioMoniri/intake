@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**303 issues.** By phase: P0 157 · P1 92 · P2 47 · P3 7. By status: awaiting-human 26 · doing 7 · done 187 · todo 82 · withdrawn 1.
+**304 issues.** By phase: P0 157 · P1 93 · P2 47 · P3 7. By status: awaiting-human 26 · doing 7 · done 188 · todo 82 · withdrawn 1.
 
 ## P0
 
@@ -265,6 +265,7 @@
 | INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
 | INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | INT-124 | area:records, gpu | todo |
 | INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
+| INT-396 | Backlog rows match what merged: status reconciliation and a guard against drift | E00-governance | INT-004 | area:platform | done |
 
 ## P2
 

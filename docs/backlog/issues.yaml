@@ -5934,3 +5934,19 @@
     - "no numeral reaches TTS (the compiler expansion path is untouched)"
   tests: [tests/records/test_quantity_render.py, apps/mobile/src/lib/records/extraction.test.ts]
   sec_row: "records"
+- id: INT-396
+  epic: E00-governance
+  phase: P1
+  title: "Backlog rows match what merged: status reconciliation and a guard against drift"
+  # GitHub #655. On 27 Sep 2026 rows still read todo/doing after a merged
+  # INT-xxx: PR had closed their issue, 85 done rows carried no evidence: and
+  # two todo rows did. The reconciliation table is docs/evidence/INT-396.md.
+  depends_on: [INT-004]
+  labels: [area:platform]
+  status: done
+  evidence: docs/evidence/INT-396.md
+  acceptance:
+    - "scripts/backlog/reconcile.py reports, for each row: its merged PRs (by title), whether each said Closes or Refs, the GitHub issue states, the evidence file, and blockers.md / HUMAN_BLOCKERS references; it recommends a status, and a human-held row keeps awaiting-human with its blocker named"
+    - "one pass applies the recommendations to issues.yaml (evidence: added to every done row), with a table of every change in docs/evidence/INT-396.md; duplicate GitHub issues are closed as duplicates of the one the backlog sync owns"
+    - "a backlog test fails when a row has an evidence: path but is todo, or is done without evidence: (near-miss controls)"
+  tests: [tests/backlog/test_status_consistency.py, tests/backlog/test_reconcile.py]
