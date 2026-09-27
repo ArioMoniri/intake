@@ -14,7 +14,7 @@
  */
 
 /** Index of the quote that closes the string opened at `open`. */
-function endOfString(source: string, open: number): number {
+export function endOfString(source: string, open: number): number {
   const quote = source[open];
   let i = open + 1;
   while (i < source.length) {
@@ -105,7 +105,7 @@ export function literalDurations(source: string): string[] {
 }
 
 /** Index of the bracket that closes the one opened at `open`. */
-function closeOf(text: string, open: number): number {
+export function closeOf(text: string, open: number): number {
   let depth = 0;
   for (let i = open; i < text.length; i += 1) {
     const c = text[i];

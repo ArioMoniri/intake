@@ -199,6 +199,8 @@ export function DialogueIntake({
   const [selected, setSelected] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  // INT-338: the strip that opens the sheet, where focus returns on close.
+  const stripRef = useRef<View>(null);
   const scrollRef = useRef<ScrollView>(null);
   // INT-284: the bar reports its own height. This one stacks the section
   // strip, up to two CTAs and the composer, and which of those are present
@@ -681,6 +683,7 @@ export function DialogueIntake({
               the patient is typing into stays in view. */}
             <ScrollView style={styles.barScroll} keyboardShouldPersistTaps="handled">
               <SectionStrip
+                ref={stripRef}
                 filled={model.filled}
                 total={model.total}
                 onPress={() => setSheetOpen(true)}
@@ -784,6 +787,7 @@ export function DialogueIntake({
 
       <SectionSheet
         visible={sheetOpen}
+        opener={stripRef}
         model={model}
         onClose={() => setSheetOpen(false)}
         onConfirmRow={confirmRow}

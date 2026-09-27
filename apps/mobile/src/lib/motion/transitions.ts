@@ -26,9 +26,29 @@
  *
  * Reduce-motion removes every transition that remains (INT-144, SC 2.2.2),
  * through the kept primitives `screenAnimation` and `motionMs`.
+ *
+ * The section sheet, the app's one RN `Modal` (INT-338, MOTION-9;
+ * motion-verification.md §1.1 C12, §1.2 P15, §2.1 #3 and #16):
+ *
+ * - the platform never animates it. React Native's `"fade"` is a UIKit
+ *   cross-dissolve on iOS, whose length UIKit owns and no prop sets
+ *   (`RCTModalHostViewComponentView.mm`), and a window animation of
+ *   `config_shortAnimTime` on Android (`catalyst_fade_in.xml`, 200 ms in
+ *   AOSP). Neither fits the 120 ms budget, so `animationType` is always
+ *   `"none"`, which presents and dismisses unanimated on both;
+ * - the app owns the entrance: the sheet's content, backdrop and panel
+ *   together, fades in with the one fade (`enterFor`), and not at all under
+ *   reduce-motion;
+ * - every exit is instant, whatever closes the sheet: the patient, a privacy
+ *   hide or a presented RED. A fading privacy surface stays readable while it
+ *   fades, and a fading exit is a second animated element (§2.1 #3). Because
+ *   the type is `"none"` from the moment the sheet opens, the commit before
+ *   `visible` turns false already carries it (C12), with nothing to switch.
+ *   Whether a RED closes the sheet at all is ./sheetOnRed's decision.
  */
-import { motionMs, screenAnimation, type ScreenAnimation } from "../a11y/motion";
+import { modalAnimation, motionMs, screenAnimation, type ScreenAnimation } from "../a11y/motion";
 import { motion } from "../theme";
+import { enterFor, type FadeSpec } from "./fade";
 
 export const ROUTE_CLASSES = ["hierarchy", "auth", "intake", "legal"] as const;
 
@@ -114,4 +134,54 @@ export function transitionFor(cls: RouteClass, context: TransitionContext): Stac
 export function tabTransition(cls: RouteClass, context: TransitionContext): TabTransition {
   const { animation, ms } = fadeOf(cls, context);
   return { animation, transitionSpec: { animation: "timing", config: { duration: ms } } };
+}
+
+/** What an owned RN `Modal` takes. Each field is a literal type where it pins a rule. */
+export interface ModalTransition {
+  /** RN's `animationType`: the platform presents and dismisses it unanimated. */
+  readonly animationType: "none";
+  /** The content's entrance: the one fade, or none under reduce-motion. */
+  readonly enter: FadeSpec | undefined;
+  /** No exit animation: the content is gone in the commit that closes it. */
+  readonly exitMs: typeof motion.duration.instant;
+}
+
+/** Every reason a sheet closes. */
+export const SHEET_CLOSE_REASONS = ["user", "privacy", "red"] as const;
+
+/**
+ * - `user`: the close control, a tap on the backdrop, or Android back;
+ * - `privacy`: the "gizle" control or the third-party auto-hide (02 §5.2a rule 6);
+ * - `red`: a RED the patient is shown (./sheetOnRed).
+ */
+export type SheetCloseReason = (typeof SHEET_CLOSE_REASONS)[number];
+
+/** How a sheet leaves the screen. */
+export interface SheetClose {
+  readonly reason: SheetCloseReason;
+  /** The type the platform dismisses with, already in place before the close. */
+  readonly animationType: ModalTransition["animationType"];
+  readonly exitMs: ModalTransition["exitMs"];
+}
+
+/** The platform's answer for a modal the app owns: the still one, at every setting. */
+const OWNED = true;
+
+/** An owned RN `Modal`'s transition: `animationType` and the content's entrance. */
+export function modalTransition({ reduce }: TransitionContext): ModalTransition {
+  return {
+    animationType: modalAnimation(OWNED),
+    enter: enterFor({ reduce }),
+    exitMs: motion.duration.instant,
+  };
+}
+
+/**
+ * A sheet's close, for any reason, at any reduce-motion setting: the
+ * transition it opened with, which never animates out. The reason changes
+ * nothing about the motion; it is typed so a new kind of close is a decision.
+ */
+export function sheetClose(reason: SheetCloseReason, context: TransitionContext): SheetClose {
+  const { animationType, exitMs } = modalTransition(context);
+  return { reason, animationType, exitMs };
 }
