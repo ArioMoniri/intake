@@ -244,7 +244,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-354 slice S2); grows only with a stated reason.
     # previsit routing) + INT-377 (probe-results file fails closed on the
     # admin console, found by INT-181); grows only with a stated reason.
-    assert len(ids) == 299, f"expected 175 blueprint + 124 added issues, got {len(ids)}"
+    # + INT-380 (INT-121 clause 3, the corpus score, awaiting-human) + INT-381
+    # (INT-124's on-hardware latency and live smoke, gpu), both split out by
+    # INT-124's PR; grows only with a stated reason.
+    assert len(ids) == 301, f"expected 175 blueprint + 126 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

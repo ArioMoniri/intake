@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**299 issues.** By phase: P0 157 · P1 88 · P2 47 · P3 7. By status: awaiting-human 25 · doing 16 · done 168 · todo 89 · withdrawn 1.
+**301 issues.** By phase: P0 157 · P1 90 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 170 · todo 88 · withdrawn 1.
 
 ## P0
 
@@ -78,7 +78,7 @@
 | INT-116 | Wellbeing engine: PHQ-2/GAD-2 -> PHQ-9/GAD-7 -> C-SSRS, crisis script, verbatim items, clinician-only outputs | E06-lanes | INT-081, INT-112 | area:clinical, risk:clinical, approval:human-clinical | todo |
 | INT-117 | device_functions flag: MDSW boundary enforced (Stage A non-device vs investigation mode) | E06-lanes | INT-116, INT-093, INT-038 | area:legal, risk:legal, approval:human-legal | todo |
 | INT-120 | Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR | E07-records | INT-034 | area:records, risk:security | done |
-| INT-121 | Document extraction -> FHIR with provenance + confirm cards + eval corpus | E07-records | INT-120, INT-083 | area:records | todo |
+| INT-121 | Document extraction -> FHIR with provenance + confirm cards + eval corpus | E07-records | INT-120, INT-083 | area:records | done |
 | INT-130 | Expo app shell: SDK 57 dev build, navigation map per 02, i18n tr-first, theme, a11y base | E08-mobile | INT-001 | area:mobile | done |
 | INT-131 | Onboarding & auth: OTP + attestation + DPoP + biometrics + SecureStore + pinning + FLAG_SECURE | E08-mobile | INT-130, INT-012, INT-013 | area:mobile, risk:security | done |
 | INT-132 | Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what | E08-mobile | INT-038, INT-130 | area:mobile, risk:legal, approval:human-legal | done |
@@ -261,6 +261,8 @@
 | INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
 | INT-370 | Visits calendar view and Geçmiş (past) list on Vizitlerim | E08-mobile | INT-341 | area:mobile | done |
 | INT-377 | /admin/models and /admin/ops fail closed on a malformed probe-results file | E12-admin | INT-183, INT-351 | area:admin | done |
+| INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
+| INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | INT-124 | area:records, gpu | todo |
 
 ## P2
 
@@ -281,7 +283,7 @@
 | INT-073 | Deep pack: dentistry_general | E03-protocols | INT-050 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-098 | WITHDRAWN - Profile s2s_cloud. Replaced by a test that proves no S2S/cloud profile can be constructed | E05-voice | INT-094 | area:voice, risk:security | withdrawn |
 | INT-115 | acoustic lane (M3, investigational device module): our own ordinal head, in-memory window, zeroing, study assertion | E06-lanes | INT-110, INT-117 | area:lanes, risk:clinical, approval:human-clinical, blocked:study-site | todo |
-| INT-124 | Lab-report->JSON via the self-hosted extraction LLM (03 §4.9.1 row 9) + Turkish unit-resolution eval | E07-records | INT-121 | area:records, gpu | todo |
+| INT-124 | Lab-report->JSON via the self-hosted extraction LLM (03 §4.9.1 row 9) + Turkish unit-resolution eval | E07-records | INT-121 | area:records | done |
 | INT-162 | HBYS/SBYS adapter kit (HL7v2 ORU / file drop / FHIR) + USVS mapping + KTS registration pack | E10-connectors | INT-160 | area:connectors, risk:legal, approval:human-legal | done |
 | INT-163 | Check-in: signed QR payload + desk verification + checkin_to_seen metric | E10-connectors | INT-160, INT-143 | area:connectors | done |
 | INT-171 | De-identified analytics views + k-anonymity helper + rollups | E11-learning | INT-015, INT-030 | area:learning, risk:legal | done |

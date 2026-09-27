@@ -973,6 +973,11 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   than noted — the egress allow-list names no Ministry host so default-deny already refuses
   one, no file under `packages/`·`services/`·`apps/`·`infra/`·`scripts/` names one, and no
   module on the ingestion path imports an HTTP client or takes a locator (INT-122).
+  The one model on this path is files/03 §4.9.1 row 9, reached only through a gateway that
+  refuses a vendor host and a pin that is not licence-verified, pinned and served; while no
+  host serves it the PHI path refuses with no fallback (INT-124). Every lab value it returns
+  passes the unit-resolution guard, which flags and never converts, and with no authored
+  expectation table (HB-C24) flags every value.
 - **Signals:** upload scan results and parse failures (§9) land with INT-120;
   `sec_injection_suspected_total` is shared with the `llm-boundary` row — INT-121's document
   fence and INT-083's transcript fence are one control in
@@ -982,7 +987,9 @@ Incident handling for everything below: `docs/security/incident-runbook.md`.
   (`tests/records/test_extraction_eval.py`); the two patient-supplied sources — the
   six-column lab table, the MHRS SMS screenshot's candidate visit fields, the printed-date
   guard and the three no-scraping checks — with INT-122
-  (`tests/records/test_enabiz_pdf.py`); the patient-facing half of the confirm gate,
+  (`tests/records/test_enabiz_pdf.py`); the unit-resolution guard, the row-9 adapter and
+  its PHI gate with INT-124 (`tests/records/test_unit_resolution_guard.py`,
+  `tests/records/test_labjson_eval.py`); the patient-facing half of the confirm gate,
   the client-side level-shaped-key refusal and the camera path with INT-138
   (`apps/mobile/e2e/records.spec.ts`, `apps/mobile/src/lib/records/{extraction,jpeg}.test.ts`);
   RLS namespace tests with INT-123.

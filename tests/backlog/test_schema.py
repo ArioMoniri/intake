@@ -90,7 +90,10 @@ def test_ids_unique_and_well_formed() -> None:
     # kiosk idle warning).
     # + INT-377 (a malformed probe-results file 500'd /admin/models and
     # /admin/ops; found by INT-181, fixed and closed in the same PR).
-    assert len(ids) == 299
+    # + INT-380 (INT-121 clause 3, the LOINC+unit score on a named corpus,
+    # awaiting-human) + INT-381 (INT-124's on-hardware latency and live smoke,
+    # gpu), both split out by INT-124's PR so each delivered row can close.
+    assert len(ids) == 301
     import re
 
     for i in ids:
