@@ -240,7 +240,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing) ... + INT-376 (Frankfurt host move, split out of
     # INT-352; the full list is in tests/backlog/test_schema.py); grows only
     # with a stated reason.
-    assert len(ids) == 297, f"expected 175 blueprint + 122 added issues, got {len(ids)}"
+    # previsit routing) + INT-318 (Acıbadem read source and /v1/visits/sync,
+    # INT-354 slice S2); grows only with a stated reason.
+    assert len(ids) == 298, f"expected 175 blueprint + 123 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

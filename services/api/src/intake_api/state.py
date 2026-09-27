@@ -23,6 +23,8 @@ from intake_api.settings import ApiSettings
 from intake_api.taxonomy_feed import LoadedTaxonomy, load_taxonomy_feed
 
 if TYPE_CHECKING:
+    from intake_connectors.acibadem import AcibademAppointmentsClient
+
     from intake_api.doctor_link.service import DoctorLinkService
     from intake_api.documents import DocumentsGateway
     from intake_api.embed.service import EmbedService
@@ -65,6 +67,11 @@ class ApiState:
     # (no OpenBao signing key, or the registry ships dev-only and none is
     # seeded) → every /embed route answers 503 (fail closed).
     embed: EmbedService | None = None
+    # INT-318: the Acıbadem appointments read client, built from the registry
+    # row (infra/connectors/sources.yaml) and injected, so the unit lane drives
+    # it over an httpx.MockTransport and never dials the network; None = no
+    # registered row, so /v1/visits/sync answers "unavailable" (fail closed).
+    acibadem: AcibademAppointmentsClient | None = None
     # INT-223: where ensure_consent gets the subject's age context. The
     # default reports "no date of birth is recorded" truthfully; a source
     # that reads a verified DOB replaces it when onboarding has one, and

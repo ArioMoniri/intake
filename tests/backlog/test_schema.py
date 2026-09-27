@@ -85,7 +85,9 @@ def test_ids_unique_and_well_formed() -> None:
     # id is held by no other row on main or any remote branch).
     # + INT-376 (the production API's move to Frankfurt, split out of INT-352
     # because it waits on AWS approving the eu-central-1 GPU quota).
-    assert len(ids) == 297
+    # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
+    # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
+    assert len(ids) == 298
     import re
 
     for i in ids:
