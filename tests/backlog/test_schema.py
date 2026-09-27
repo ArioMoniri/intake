@@ -106,7 +106,10 @@ def test_ids_unique_and_well_formed() -> None:
     # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
     # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
     # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
-    assert len(ids) == 307
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, with a guard against rows that outlive their fix;
+    # found by INT-360's PR, filed as GitHub #640).
+    assert len(ids) == 308
     import re
 
     for i in ids:
