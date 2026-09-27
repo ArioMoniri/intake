@@ -11,6 +11,11 @@ background loop that turns GPU-host, CI and clip-build facts into catalogued
 series on this service's ``/metrics``. Unconfigured, no loop starts and the
 families are served empty (help and type lines only), which the admin console
 reads as *unknown*.
+
+INT-021 close-out: docs/slo/probes.yaml is written against
+``http_requests_total{service="probes"}``, and until the close-out nothing here
+emitted it — an objective nobody could breach. The shared request middleware
+is mounted like every other service's.
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from intake_platform.health import ReadinessCheck, mount_health
+from intake_platform.metrics import mount_http_metrics
 from prometheus_client import REGISTRY
 
 from intake_probes.ops_collector import interval_from_env, ops_collector_from_env, run_collector
@@ -53,6 +59,7 @@ async def _ops_collector(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="intake-probes", lifespan=_ops_collector)
+    mount_http_metrics(app, "probes")
 
     async def registry_parses() -> bool:
         load_registry(registry_path_from_env())

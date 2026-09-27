@@ -2,9 +2,10 @@
 #
 # Same conventions as docs/slo/api.yaml (schema: intake_platform.slo.SLOFile).
 # The rollup service exposes the shared http middleware, so its SLI rides the
-# catalogued http_requests_total family. Burn-rate rules for this file join
-# infra/observability/prometheus-rules.yaml when the live stack lands
-# (INT-023) — the generator is pinned to api.yaml today and grows there.
+# catalogued http_requests_total family. Its burn-rate rules and its
+# golden-signal dashboard are generated from this file (INT-021 close-out:
+# infra/observability/prometheus-rules.yaml and
+# infra/observability/grafana/dashboards/, both drift-gated).
 #
 # The objective is the probes-tier 99.5, not the api's 99.9: a rollup that
 # arrives late is a stale dashboard, not a patient waiting. Raising it later is
