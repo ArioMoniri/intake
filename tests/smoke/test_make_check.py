@@ -251,9 +251,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # found by INT-124's PR as GitHub #635); grows only with a stated reason.
     # previsit routing) + INT-373 (the Keycloak realm emits the admin
     # console's claims, found by INT-365); grows only with a stated reason.
+    # previsit routing) + INT-392 (a session with a previsit output can be
+    # deleted again, found on check-integration); grows only with a stated reason.
+    # deleted again, found on check-integration) + INT-393 (a patient who issued
+    # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
+    # + INT-391 (the console accepts every valid WebAuthn credential id, found
+    # by INT-378's PR as GitHub #646); grows only with a stated reason.
     # + INT-396 (backlog status reconciliation and drift guard, GitHub #655);
     # grows only with a stated reason.
-    assert len(ids) == 304, f"expected 175 blueprint + 129 added issues, got {len(ids)}"
+    assert len(ids) == 307, f"expected 175 blueprint + 132 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

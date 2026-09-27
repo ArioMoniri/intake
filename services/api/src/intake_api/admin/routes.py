@@ -47,6 +47,7 @@ from intake_platform.admin import (
     build_break_glass_justification,
     dangerous_action,
 )
+from intake_platform.admin.access.review import AuditRows
 from intake_platform.admin.four_eyes import SelfApproval
 from intake_platform.admin.metrics import (
     ADMIN_BREAK_GLASS_OPENED_TOTAL,
@@ -59,7 +60,7 @@ from intake_platform.compliance import AuditSearchQuery
 from intake_platform.compliance.audit_search import AuditSearchContentRefused
 from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
-from intake_api.admin import compliance_source, views
+from intake_api.admin import access_console, compliance_source, views
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.models_source import (
     load_models_module,
@@ -396,7 +397,33 @@ _HANDLERS: dict[str, Handler] = {
     "admin.compliance.evidence.export": _compliance_evidence,
     # INT-182 — the Voice module; its handlers live beside their composite.
     **VOICE_HANDLERS,
+    # INT-366 — Access & identity (files/08 §2.4, §2.7)
+    "admin.access.review.read": access_console.review_read,
+    "admin.access.review.sign": access_console.review_sign,
+    "admin.access.review.countersign": access_console.review_countersign,
+    "admin.access.offboard": access_console.offboard_run,
+    "admin.access.offboard.confirm": access_console.offboard_confirm,
 }
+
+#: HTTP methods that write. The §2.7 read-only downgrade applies to these.
+_MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+async def _effective_role(
+    route: AdminRoute, caller: AdminCaller, wiring: AdminWiring, audit: AuditRows
+) -> AdminRole | None:
+    """The role a write proceeds under once the §2.7 downgrade is applied.
+
+    files/08 §2.7: "a review older than 100 days downgrades every
+    platform_owner and tenant_admin session to read-only". The review state is
+    re-read from the chain on every write, so a countersignature on any
+    replica is seen by all of them. A caller who also holds a role the
+    downgrade does not touch keeps writing under that role; a caller who
+    reaches the route only through a downgraded role is refused.
+    """
+    await wiring.review_ledger.refresh(audit)
+    read_only = wiring.review_ledger.read_only_roles()
+    return caller.principal.first_permitted(route.permitted_roles - read_only)
 
 
 def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
@@ -446,6 +473,10 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
         ):
             if role is None:
                 raise admin_refused(RoleNotPermitted.code)
+            if route.method in _MUTATING:
+                role = await _effective_role(route, caller, wiring, sink)
+                if role is None:
+                    raise admin_refused("access_review_overdue")
             return JSONResponse(await handler(request, caller, wiring, role))
 
     return endpoint
