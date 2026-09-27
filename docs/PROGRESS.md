@@ -12,7 +12,7 @@
 - Invariants touched and still passing: 1 (no level-shaped key in the schema; triage key refused whole), 6 (verdict and refusals echo nothing), 13 (registry row + probe), 14 (fence, schema-only instructions, pinned weights), 17 (no fakes outside tests; the empty table is the fail-closed content), 19 (raw-blob licence, self-hostable, vendor host refused, no fallback), 20 (synthetic fixture, no figure), 22 (the guard).
 - Decisions / ADRs / `00_STATE.md` rows: `00_STATE §1` extraction row now records the row-9 pin and the served-by-no-host state (it said "needs replacing"). No ADR: the adapter follows ADR-006 and INT-083's seam.
 - Blocked on: HB-C24 (physician of record + clinical biochemist: which analytes, unit, magnitude band, committed source) — the guard fails closed until then; INT-381 on GPU capacity (HB-I4, HB-I5, HB-L11); INT-380 on HB-A13 (+ HB-A10, HB-A2).
-- Next: merge in order (this PR moves the three pins); INT-381 once a GPU host exists.
+- Next: merge promptly (this PR moves the three pins, now 299 after merging main twice: INT-370/317, then INT-352's INT-376); INT-381 once a GPU host exists.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T02:00:00Z · INT-181 · done
