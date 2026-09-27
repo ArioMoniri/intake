@@ -15,9 +15,9 @@
  *   is never persisted, never uploaded, and carries no inventory annotation
  *   because it is never stored anywhere.
  */
-import type { ConsentState, VisitFixture } from "./dev/accounts";
 import { branchById, type Branch, type VisitTypeId } from "./taxonomy/branches";
 import type { ParsedMhrsSms } from "./taxonomy/mhrsSms";
+import type { ConsentState, VisitFixture } from "./types/account";
 
 export interface NewVisitInput {
   hospital: string;
