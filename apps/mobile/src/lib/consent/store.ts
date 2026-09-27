@@ -28,22 +28,55 @@ interface SessionConsentSeed {
   health: boolean;
 }
 
+/**
+ * Where the patient's own consent changes stand with the server (INT-397).
+ *
+ * - `clear`: nothing waits.
+ * - `sending`: a change made on this device is on its way.
+ * - `held`: a push did not land, so the change waits in the queue. This is
+ *   what `consent.queue.note` says ("applied on this device; they will reach
+ *   the server once a connection is available").
+ *
+ * The note is shown while the queue holds anything, so it is also on screen
+ * while each change is in flight, and on every visit while one waits. Only a
+ * move into `held` is announced. A retry that fails again stays `held` and is
+ * not a new move; a new change goes through `sending` again, so it is one.
+ */
+export type ConsentOutbox = "clear" | "sending" | "held";
+
 let state: LedgerState = freshLedger();
+let outbox: ConsentOutbox = "clear";
 let seededAccount: string | null = null;
 const listeners = new Set<() => void>();
+
+function notify(): void {
+  for (const listener of listeners) {
+    listener();
+  }
+}
 
 function commit(next: LedgerState): void {
   if (next === state) {
     return;
   }
   state = next;
-  for (const listener of listeners) {
-    listener();
+  notify();
+}
+
+function moveOutbox(next: ConsentOutbox): void {
+  if (next === outbox) {
+    return;
   }
+  outbox = next;
+  notify();
 }
 
 export function ledgerSnapshot(): LedgerState {
   return state;
+}
+
+export function consentOutbox(): ConsentOutbox {
+  return outbox;
 }
 
 export function subscribeToLedger(listener: () => void): () => void {
@@ -58,6 +91,11 @@ export function useConsentLedger(): LedgerState {
   return useSyncExternalStore(subscribeToLedger, ledgerSnapshot, ledgerSnapshot);
 }
 
+/** React binding for the queue note (INT-397). */
+export function useConsentOutbox(): ConsentOutbox {
+  return useSyncExternalStore(subscribeToLedger, consentOutbox, consentOutbox);
+}
+
 /**
  * Seed once per signed-in account: dev fixtures arrive as unbound grants
  * (server dev-seed semantics), an otp account starts fresh. Then ask the
@@ -69,6 +107,7 @@ export function seedLedgerForAccount(accountId: string, consents: SessionConsent
   }
   seededAccount = accountId;
   commit(consents !== null ? seedFromSession(consents) : freshLedger());
+  moveOutbox("clear"); // another account's waiting changes are not this one's
   void refreshLedgerFromServer();
 }
 
@@ -76,6 +115,7 @@ export function seedLedgerForAccount(accountId: string, consents: SessionConsent
 export function resetLedger(): void {
   seededAccount = null;
   commit(freshLedger());
+  moveOutbox("clear");
 }
 
 /**
@@ -98,15 +138,20 @@ export async function refreshLedgerFromServer(): Promise<void> {
  * (next screen visit or next local change). The queue is in-memory — after
  * an app restart the server snapshot is the truth and unsynced local flips
  * are gone, which is stated in the İzinleriniz queue notice.
+ *
+ * A push that does not land leaves the outbox `held`; an emptied queue leaves
+ * it `clear` (INT-397).
  */
 export async function flushConsentQueue(): Promise<void> {
   while (state.queue.length > 0) {
     const next = state.queue[0];
     if (!(await pushConsentOp(next))) {
+      moveOutbox("held");
       return;
     }
     commit(shiftQueue(state, 1));
   }
+  moveOutbox("clear");
 }
 
 /** Grant locally (instant) and start a flush. Returns the flipped scopes so
@@ -115,6 +160,7 @@ export function grantLocal(id: PurposeId, atIso?: string): readonly PurposeId[] 
   const result = grant(state, id, atIso ?? new Date().toISOString());
   commit(result.state);
   if (result.flipped.length > 0) {
+    moveOutbox("sending");
     void flushConsentQueue();
   }
   return result.flipped;
@@ -125,6 +171,7 @@ export function withdrawLocal(id: PurposeId, atIso?: string): readonly PurposeId
   const result = withdraw(state, id, atIso ?? new Date().toISOString());
   commit(result.state);
   if (result.flipped.length > 0) {
+    moveOutbox("sending");
     void flushConsentQueue();
   }
   return result.flipped;

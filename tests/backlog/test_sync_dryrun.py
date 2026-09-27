@@ -85,9 +85,12 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-393, the Doctor Link erasure fix found by INT-392)
     # + INT-391 (every valid WebAuthn credential id admitted, GitHub #646)
     # + INT-386 (the typed rail, note, summary and FHIR narrative quantities, GitHub #638)
+    # + INT-387 (the a11y conformance report re-rated after INT-361..363, GitHub #640)
+    # + INT-397 (the last three SC 4.1.3 status lines are announced, GitHub #659)
+    # + INT-390, the Keycloak upgrade INT-378 found
     # + INT-396 (backlog status reconciliation and drift guard, GitHub #655)
     # + INT-405 (sync paging past 500 issues and issue state, GitHub #675)
-    assert len(actions) == 309
+    assert len(actions) == 315
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

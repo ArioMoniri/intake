@@ -19,6 +19,7 @@ from prometheus_client import Counter, Gauge
 __all__ = [
     "ADMIN_ACCESS_REVIEW_AGE_DAYS",
     "ADMIN_BREAK_GLASS_OPENED_TOTAL",
+    "ADMIN_DEPLOY_FREEZE_CHANGES_TOTAL",
     "ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL",
     "ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL",
     "ADMIN_OFFBOARDING_TOTAL",
@@ -77,6 +78,17 @@ ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL = Counter(
 ADMIN_VOICE_CONTROL_CHANGES_TOTAL = Counter(
     "admin_voice_control_changes_total",
     "Voice control changes (kill switch, default profile, canary), by control and outcome.",
+    ["control", "outcome"],
+)
+
+#: INT-187. The alert attached to the two deploy-freeze actions of the
+#: ``DangerousAction`` registry. ``control`` is a closed
+#: :class:`~intake_platform.release_freeze.DeployFreezeChange` member and
+#: ``outcome`` one of requested / applied / unchanged / refused — no actor and
+#: no text: who did it is on the audit chain and in the store (invariant 6).
+ADMIN_DEPLOY_FREEZE_CHANGES_TOTAL = Counter(
+    "admin_deploy_freeze_changes_total",
+    "Deploy freeze changes (engage, lift), by control and outcome.",
     ["control", "outcome"],
 )
 
