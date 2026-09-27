@@ -86,6 +86,10 @@ export interface Session {
   setConsent: (key: keyof ConsentState, on: boolean) => void;
   /** Fixture visits + locally created ones, additions last. */
   visits: VisitFixture[];
+  /** INT-318: replace the API-sourced upcoming visits (from the Acibadem feed). */
+  setApiVisits: (visits: VisitFixture[]) => void;
+  /** INT-318: the matched patient's display name from the hospital feed. */
+  setDisplayName: (name: string) => void;
   addVisit: (input: NewVisitInput) => VisitFixture;
   /** Per-visit pre-visit note state (in-memory only — INT-179). */
   notes: Record<string, NoteState>;
@@ -116,6 +120,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<SessionAccount | null>(null);
   const [consents, setConsents] = useState<ConsentState | null>(null);
   const [extraVisits, setExtraVisits] = useState<VisitFixture[]>([]);
+  const [apiVisits, setApiVisits] = useState<VisitFixture[]>([]);
+  const setDisplayName = useCallback((name: string) => {
+    setAccount((prev) => (prev ? { ...prev, name } : prev));
+  }, []);
   const [notes, setNotes] = useState<Record<string, NoteState>>({});
   const [locale, setLocaleState] = useState<Locale>("tr");
   const [visitSeq, setVisitSeq] = useState(1);
@@ -202,6 +210,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAccount({ ...next, kind: "dev" });
     setConsents({ ...next.consents });
     setExtraVisits([]);
+    setApiVisits([]);
     setNotes({});
     setLocale(next.locale);
     setLocaleState(next.locale);
@@ -221,6 +230,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
     setConsents({ ...OTP_ACCOUNT_CONSENTS });
     setExtraVisits([]);
+    setApiVisits([]);
     setNotes({});
     setLocale("tr");
     setLocaleState("tr");
@@ -230,6 +240,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAccount(null);
     setConsents(null);
     setExtraVisits([]);
+    setApiVisits([]);
     setNotes({});
     // INT-142: sign-out crypto-shreds every persisted draft and the DEK, so
     // nothing readable survives the session. Lazy so node import stays clean.
@@ -301,8 +312,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const visits = useMemo(
-    () => (account ? [...account.visits, ...extraVisits] : []),
-    [account, extraVisits],
+    () => (account ? [...apiVisits, ...account.visits, ...extraVisits] : []),
+    [account, apiVisits, extraVisits],
   );
 
   const value = useMemo(
@@ -315,6 +326,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       consents,
       setConsent,
       visits,
+      setApiVisits,
+      setDisplayName,
       addVisit,
       notes,
       updateNote,

@@ -27,7 +27,7 @@
 
 **Scope.** Every screen of `apps/mobile`. Kiosk mode is built but cannot activate in the current runtime (`readKioskProvisioning` returns null until the dev-build native layer exists), so it is out of scope except where a row names it. The RED emergency delivery route still has no user interface: on 2026-09-26, `grep -rn lib/livekit apps/mobile/src/app apps/mobile/src/components` returned nothing. Nothing on that route is assessed. `docs/compliance/accessibility-conformance.md` §4 lists the requirements the issue that builds it must carry. `apps/clinician-web` and `apps/admin-web` (EN 301 549 clause 9) are not assessed.
 
-**Relation to INT-144's report.** `docs/compliance/accessibility-conformance.md` (29 August 2026) remains the narrative assessment, and rows here cite its sections. Where the two differ, this report is the status of record. Re-assessment changed these rows: 1.3.4 (unverified, now Does Not Support, because the app config locks portrait); 3.3.1 (supported, now Partially Supports, because error lines added since are silent under VoiceOver); 3.3.8 and 4.1.3 (not assessed before); 3.1.2 (unverified, now Partially Supports); 1.3.5 (partial, now Supports, on a recorded field inventory); 1.4.12 and 2.4.5 (supported by inspection, now Not Applicable, with the reason in each row). Two of INT-144's supporting statements do not hold: the OTP autofill mitigation named under BK26 (MC-16), and "exactly one timer in the whole app" under BK13, which is true of screens and components only (MC-08).
+**Relation to INT-144's report.** `docs/compliance/accessibility-conformance.md` (29 August 2026) remains the narrative assessment, and rows here cite its sections. Where the two differ, this report is the status of record. Re-assessment changed these rows: 1.3.4 (unverified, then Does Not Support because the app config locked portrait, and Supports since INT-360 removed the lock); 3.3.1 (supported, now Partially Supports, because error lines added since are silent under VoiceOver); 3.3.8 and 4.1.3 (not assessed before); 3.1.2 (unverified, now Partially Supports); 1.3.5 (partial, now Supports, on a recorded field inventory); 1.4.12 and 2.4.5 (supported by inspection, now Not Applicable, with the reason in each row). Two of INT-144's supporting statements do not hold: the OTP autofill mitigation named under BK26 (MC-16), and "exactly one timer in the whole app" under BK13, which is true of screens and components only (MC-08).
 
 | Status | Meaning in this report |
 |---|---|
@@ -37,7 +37,7 @@
 | **Not Applicable** | The app contains nothing the criterion governs. The evidence shows the absence. |
 | **Not Evaluated** | The criterion turns on runtime behaviour that only a device run can decide. The row names the device audit item that decides it. It is neither a pass nor a failure. |
 
-**WCAG 2.2 Level A and AA (55 criteria):** Supports 24 · Partially Supports 6 · Does Not Support 2 · Not Applicable 13 · Not Evaluated 10.
+**WCAG 2.2 Level A and AA (55 criteria):** Supports 25 · Partially Supports 6 · Does Not Support 1 · Not Applicable 13 · Not Evaluated 10.
 
 **EN 301 549 clauses beyond clause 11.1-11.4 (27):** Supports 11 · Partially Supports 1 · Does Not Support 1 · Not Applicable 8 · Not Evaluated 6.
 
@@ -83,12 +83,12 @@
 |---|---|---|---|
 | 1.2.4 Captions (Live) | **Not Applicable** | manual MC-02 | No live synchronised media. The voice intake is audio with a live text transcript, not video. |
 | 1.2.5 Audio Description (Prerecorded) | **Not Applicable** | manual MC-02 | No prerecorded video. |
-| 1.3.4 Orientation | **Does Not Support** | manual MC-04 | **Finding:** `apps/mobile/app.json` sets `"orientation": "portrait"`, which locks every screen to portrait on both platforms. Portrait is not essential to an intake form. INT-144 recorded this row as unverified because no screen locks orientation in code. The lock is in the app config. Removing it needs a landscape layout pass, which DA-05 would then cover. |
+| 1.3.4 Orientation | **Supports** | `e2e/a11y.spec.ts` › SC 1.3.4 — app.json follows the device in every build profile<br>`e2e/a11y.spec.ts` › SC 1.3.4 — every orientation lock in the app is registered as essential, with its reason<br>`e2e/a11y.spec.ts` › a planted lock that is not registered is caught — the near-miss control<br>`e2e/a11y.spec.ts` › every Modal rotates with the device — iOS presents one portrait-only unless told otherwise<br>`src/lib/a11y/orientation.test.ts` › lists every orientation the app declares, both landscapes included<br>`e2e/a11y.spec.ts` › no layout decides a height the landscape window cannot hold<br>`e2e/a11y.spec.ts` › every scroller that holds a text field keeps it above the keyboard<br>`e2e/a11y.spec.ts` › the dialogue's bottom stack pins to the keyboard's edge and never outgrows its frame<br>manual MC-04 | Since INT-360, `apps/mobile/app.json` sets `"orientation": "default"` in every build profile. iOS declares all four orientations, and Android follows the device. The automated check reads every script under `src`, the config plugins, `app.json` and `app.config.ts`. It looks for every way the app could lock a screen: an orientation setting, the orientation API, a native orientation key, or a `<Modal>` that does not rotate. React Native shows a Modal portrait-only on an iPhone unless the Modal lists its orientations. The section sheet was such a Modal, and it now lists all four. A lock the check finds must be listed here as essential, with its reason. None is: the records camera is the system's own capture screen, and a photo's upright travels in its EXIF tag. MC-04 is the manual pass that found the app-config lock. The source is checked for landscape layouts at the largest text size: no fixed or percentage height the window cannot hold, no size read from the long side, side safe areas, and no field left under the keyboard. DA-05 confirms each screen on hardware. **Essential exception:** none. No screen keeps an orientation lock. |
 | 1.3.5 Identify Input Purpose | **Supports** | manual MC-05 | Only one field collects information about the patient from the WCAG input-purpose list: the phone number. It declares `autoComplete="tel"` and `textContentType="telephoneNumber"`. |
 | 1.4.3 Contrast (Minimum) | **Partially Supports** | `src/lib/theme.test.ts` › %s body text meets WCAG AA (4.5:1)<br>`src/lib/theme.test.ts` › %s: the known sub-AA pairs hold their measured floor<br>contrast measured in §4 | **Finding:** The quietest text tone, `inkFaint`, carries 13 pt caption text below 4.5 : 1 on every light ground and on the dark raised ground. The light "Dosyaya eklendi" chip (`success` on `successSoft`) also falls short. The measurements are in §4. Body text, soft ink, primary, status-pill and CTA pairs meet 4.5 : 1 in both schemes. Closing the gap needs a palette decision from the design owner (INT-144 report §5.1 and §5.2). |
 | 1.4.4 Resize Text | **Supports** | `src/lib/theme.test.ts` › follows the user's scale up to 2.0 and no further (02 §8.2)<br>`e2e/a11y.spec.ts` › a TextInput that applies scaledSize disables the OS multiplier<br>`e2e/appearance.spec.ts` › nothing in the app can truncate a string<br>`e2e/overflow.spec.ts` › no module renders a Screen it cannot move<br>`src/lib/prefs/appearance.test.ts` › a tie resolves to the LARGER step — accessibility never rounds down | Text follows the OS size, or the app's own text-size step, up to 200 % through one clamp. No string can be truncated and every screen scrolls. DA-05 confirms the layouts on hardware. |
 | 1.4.5 Images of Text | **Supports** | manual MC-01 | All type is live text. The app renders no image content. |
-| 1.4.10 Reflow | **Not Evaluated** | `e2e/overflow.spec.ts` › no module renders a Screen it cannot move<br>`e2e/appearance.spec.ts` › nothing in the app can truncate a string<br>device audit DA-05 (pending) | Layouts are flex-based, with no fixed-width content, and every screen scrolls vertically. Because of the portrait lock (1.3.4), reflow is only ever exercised in portrait. DA-05 decides. |
+| 1.4.10 Reflow | **Not Evaluated** | `e2e/overflow.spec.ts` › no module renders a Screen it cannot move<br>`e2e/appearance.spec.ts` › nothing in the app can truncate a string<br>`e2e/a11y.spec.ts` › no layout decides a height the landscape window cannot hold<br>device audit DA-05 (pending) | Layouts are flex-based, with no fixed-width content, and every screen scrolls vertically. No scroller runs sideways. Since INT-360 the app turns with the phone (1.3.4), so a patient also meets these layouts in a landscape window 320 to 390 pt tall. DA-05 decides, in both orientations. |
 | 1.4.11 Non-text Contrast | **Partially Supports** | manual MC-24<br>contrast measured in §4 | **Finding:** In light mode an unselected interactive chip's only boundary is the `border` hairline. The hairline measures below 3 : 1 against both the chip fill and the screen ground (§4), and the chip fill barely differs from the ground. Selected chips (a `primary` border) and every dark-mode chip (filled, tonal) are distinguishable. INT-144 report §5.3 gives the recommended fix. |
 | 1.4.12 Text Spacing | **Not Applicable** | manual MC-06 | The criterion is scoped to content implemented in markup languages that support the text-style properties. The app renders native views and no WebView or HTML. INT-144 recorded this row as supported by inspection. Reading roles keep a 1.4× line height regardless. |
 | 1.4.13 Content on Hover or Focus | **Not Applicable** | manual MC-07 | Nothing appears on hover or focus. |
@@ -123,7 +123,7 @@ EN 301 549 V3.2.1 clauses 11.1 to 11.4 apply WCAG 2.1 Level A and AA to non-web 
 | 11.1.3.1 | 1.3.1 Info and Relationships | Supports |
 | 11.1.3.2 | 1.3.2 Meaningful Sequence | Not Evaluated |
 | 11.1.3.3 | 1.3.3 Sensory Characteristics | Supports |
-| 11.1.3.4 | 1.3.4 Orientation | Does Not Support |
+| 11.1.3.4 | 1.3.4 Orientation | Supports |
 | 11.1.3.5 | 1.3.5 Identify Input Purpose | Supports |
 | 11.1.4.1 | 1.4.1 Use of Color | Supports |
 | 11.1.4.2 | 1.4.2 Audio Control | Supports |
@@ -221,7 +221,7 @@ Each Not Evaluated row turns on something only a device can show: what a screen 
 | DA-02 | Keyboard, Switch Control and a visible focus | iPhone with Full Keyboard Access and Switch Control, Android phone with a hardware keyboard and Switch Access | 2.1.1, 2.1.2, 2.4.7 | 4.1.2 |
 | DA-03 | Focus order and the section sheet | iPhone with VoiceOver, Android phone with TalkBack | 2.4.3 | — |
 | DA-04 | Changes of context on focus and on input | iPhone with VoiceOver, Android phone with TalkBack | 3.2.1, 3.2.2 | — |
-| DA-05 | Largest text and reflow | iPhone, Android phone | 1.4.10 | 1.4.4 |
+| DA-05 | Largest text, reflow and landscape | iPhone, Android phone | 1.4.10 | 1.3.4, 1.4.4 |
 | DA-06 | Focus under the glass bars | iPhone with Full Keyboard Access, Android phone with a hardware keyboard | 2.4.11 | — |
 | DA-07 | One-time code entry | iPhone, Android phone | — | 3.3.8 |
 | DA-08 | Announcements and the platform accessibility tree | iPhone with VoiceOver and Xcode Accessibility Inspector, Android phone with TalkBack and Accessibility Scanner | EN 11.5.2.9, EN 11.5.2.13, EN 11.5.2.14, EN 11.5.2.15, EN 11.5.2.16, EN 11.5.2.17 | 2.2.1, 3.1.1, 3.3.1, 4.1.2, 4.1.3 |
@@ -234,7 +234,7 @@ Each Not Evaluated row turns on something only a device can show: what a screen 
 
 **DA-04 · Changes of context on focus and on input.** Enter a code on the OTP screen and record what is announced when focus advances after each digit, and whether the patient can tell where they are. Move focus across every control on the new-visit and review screens without activating anything, and record any change of screen, sheet or content.
 
-**DA-05 · Largest text and reflow.** Set the OS text size to its largest accessibility size, then, separately, choose the app's largest text-size step. On every screen, record clipped or overlapping text, controls pushed off screen, and any need to scroll in two directions.
+**DA-05 · Largest text, reflow and landscape.** Set the OS text size to its largest accessibility size, then, separately, choose the app's largest text-size step. On every screen, record clipped or overlapping text, controls pushed off screen, and any need to scroll in two directions. Then hold the phone in landscape (INT-360) and walk every screen again with both text settings, on a 6.1-inch phone and on the smallest phone available. Take a screenshot of each screen. Include the sign-in screens, the tab screens, the intake's typed steps, the dialogue with the keyboard up in the composer and on a typed text answer, the section sheet, and the review screen. Include the kiosk warning and staff bar once kiosk mode can be armed. Record any screen that stays in portrait when the phone turns, any control the keyboard hides while its field has focus, and anything under the notch.
 
 **DA-06 · Focus under the glass bars.** With keyboard focus, move through the review screen and the dialogue. Record any focused control that is entirely hidden behind the glass bar.
 
@@ -287,12 +287,16 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/e2e/a11y.spec.ts` | BK20 / SC 2.5.1 — no path-based or multipoint gesture is required | 2.5.1, 2.5.7, EN 5.9 |
 | `apps/mobile/e2e/a11y.spec.ts` | BK23 / SC 2.5.4 — nothing is actuated by moving the device | 2.5.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | ListRow forwards a secondary action for its trailing control | 4.1.2, EN 11.5.2.11, EN 11.5.2.12 |
+| `apps/mobile/e2e/a11y.spec.ts` | SC 1.3.4 — app.json follows the device in every build profile | 1.3.4 |
+| `apps/mobile/e2e/a11y.spec.ts` | SC 1.3.4 — every orientation lock in the app is registered as essential, with its reason | 1.3.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | a TextInput that applies scaledSize disables the OS multiplier | 1.4.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | a bubble's name ends in the words the bubble actually shows | 2.5.3 |
+| `apps/mobile/e2e/a11y.spec.ts` | a planted lock that is not registered is caught — the near-miss control | 1.3.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | a single-choice turn offers radios, not checkboxes | 4.1.2 |
 | `apps/mobile/e2e/a11y.spec.ts` | a switch or checkbox declares its state, not just its role | 4.1.2, EN 11.5.2.5, EN 11.5.2.7 |
 | `apps/mobile/e2e/a11y.spec.ts` | a timer planted outside a screen, or a time limit that skips the warning, is caught — the near-miss control | 2.2.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | an error is never carried by colour alone | 1.4.1, 3.3.1 |
+| `apps/mobile/e2e/a11y.spec.ts` | every Modal rotates with the device — iOS presents one portrait-only unless told otherwise | 1.3.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | every Pressable declares accessibilityLabel | 1.1.1, 2.4.4, 4.1.2, EN 11.5.2.5 |
 | `apps/mobile/e2e/a11y.spec.ts` | every Pressable declares accessibilityRole | 2.1.1, 4.1.2, EN 11.5.1, EN 11.5.2.3, EN 11.5.2.5 |
 | `apps/mobile/e2e/a11y.spec.ts` | every TextInput declares accessibilityLabel | 1.3.1, 3.3.2, EN 11.5.2.8 |
@@ -301,12 +305,14 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/e2e/a11y.spec.ts` | every loop period comes from motion.loop, and every half-period exceeds 167 ms | 2.3.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | every looping animation, core or Reanimated, is gated on the app's reduce-motion hook | 2.2.2 |
 | `apps/mobile/e2e/a11y.spec.ts` | every screen that renders a hero line marks one as a heading | 1.3.1, 2.4.2, 2.4.6 |
+| `apps/mobile/e2e/a11y.spec.ts` | every scroller that holds a text field keeps it above the keyboard | 1.3.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | guidance blocks title their own section | 1.3.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | listening / speaking / transcribing are announced, not just animated | 4.1.3 |
 | `apps/mobile/e2e/a11y.spec.ts` | no Pressable relies on its content happening to be tall enough | 2.5.8 |
 | `apps/mobile/e2e/a11y.spec.ts` | no accessibilityHint is a bare source string | 3.3.2 |
 | `apps/mobile/e2e/a11y.spec.ts` | no accessibilityLabel is a bare source string | 2.4.4, 2.4.6, 3.2.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | no accessible name is assembled with an ad-hoc separator | 2.5.3 |
+| `apps/mobile/e2e/a11y.spec.ts` | no layout decides a height the landscape window cannot hold | 1.3.4, 1.4.10 |
 | `apps/mobile/e2e/a11y.spec.ts` | no screen renders a bare react-native Text, bypassing that declaration | 3.1.1, EN 11.5.2.10 |
 | `apps/mobile/e2e/a11y.spec.ts` | slop is vertical only — horizontal slop would swallow the next chip | 2.5.8 |
 | `apps/mobile/e2e/a11y.spec.ts` | slop sizes are computed from the laid-out height, not guessed | 2.5.8 |
@@ -314,6 +320,7 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/e2e/a11y.spec.ts` | the composer is reachable and described | 3.3.2, EN 11.5.2.8 |
 | `apps/mobile/e2e/a11y.spec.ts` | the composition helpers are what the screens actually use | 3.2.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | the consent switch — the withdrawal path — uses it | 4.1.2, EN 11.5.2.12 |
+| `apps/mobile/e2e/a11y.spec.ts` | the dialogue's bottom stack pins to the keyboard's edge and never outgrows its frame | 1.3.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | the flag sits on the sheet, not on &lt;Modal&gt;, where RN would drop it | 2.1.2, 2.4.3 |
 | `apps/mobile/e2e/a11y.spec.ts` | the intake progress dots are decoration and are hidden from the reader | 1.1.1, 1.4.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | the kiosk warning gives at least 20 seconds to extend, and the wipe still falls at 60 s | 2.2.1 |
@@ -355,6 +362,7 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/src/lib/a11y/announce.test.ts` | says the same message once, not on every re-render | 4.1.3 |
 | `apps/mobile/src/lib/a11y/labels.test.ts` | puts the VISIBLE label first so voice control can reach the control | 2.4.4, 2.5.3 |
 | `apps/mobile/src/lib/a11y/motion.test.ts` | stops looping decoration — SC 2.2.2, the listening pulse | 2.2.2 |
+| `apps/mobile/src/lib/a11y/orientation.test.ts` | lists every orientation the app declares, both landscapes included | 1.3.4 |
 | `apps/mobile/src/lib/a11y/target.test.ts` | is 44 — above SC 2.5.8's 24 and at the platform guideline | 2.5.8 |
 | `apps/mobile/src/lib/dsar/requests.test.ts` | is withdrawable while the grace is running | 3.3.4 |
 | `apps/mobile/src/lib/kiosk/kioskState.test.ts` | can be extended again and again — ten times and more, never wiping | 2.2.1 |

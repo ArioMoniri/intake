@@ -607,18 +607,33 @@ class TestHowAQuantityIsWritten:
     """Invariant 22's display half: ``useGrouping:false``, one atom."""
 
     def test_no_thousands_group_and_the_unit_cannot_be_split_off(self) -> None:
-        assert render_measure(Decimal("1500"), "mg") == f"1500{NBSP}mg"
-        assert "." not in render_measure(Decimal("1500"), None)
-        assert "," not in render_measure(Decimal("1500"), None)
+        assert render_measure(Decimal("1500"), "mg", locale="tr") == f"1500{NBSP}mg"
+        assert "." not in render_measure(Decimal("1500"), None, locale="tr")
+        assert "," not in render_measure(Decimal("1500"), None, locale="tr")
 
     def test_a_magnitude_never_renders_in_scientific_notation(self) -> None:
-        assert render_measure(Decimal("1E+3"), "mg") == f"1000{NBSP}mg"
+        assert render_measure(Decimal("1E+3"), "mg", locale="tr") == f"1000{NBSP}mg"
+
+    def test_the_decimal_point_is_the_sessions_locales(self) -> None:
+        """INT-386. The rail is written for the patient reading it: a comma in
+        Turkish, a full stop in English, and nothing else changes."""
+        assert render_measure(Decimal("2.5"), "mg", locale="tr") == f"2,5{NBSP}mg"
+        assert render_measure(Decimal("2.5"), "mg", locale="en") == f"2.5{NBSP}mg"
+        assert render_measure(7, "gün", locale="tr") == f"7{NBSP}gün"
+
+    def test_a_full_stop_on_a_turkish_rail_is_the_near_miss(self) -> None:
+        """What the rail wrote before INT-386. A Turkish reader takes ``2.500``
+        as two thousand five hundred; the rail never writes a full stop for
+        one."""
+        rendered = render_measure(Decimal("2.500"), "mg", locale="tr")
+        assert rendered == f"2,500{NBSP}mg"
+        assert "." not in rendered
 
     def test_the_rail_renders_every_bound_numeric_value(self) -> None:
         stack, clock, _ = typed_stack()
         drive(stack, clock, SCRIPT)
         values = {step_id: stack.engine.value_of(step_id) for step_id in STEP_IDS}
-        rail = numeric_rail(values, stack.slot_affordances)
+        rail = numeric_rail(values, stack.slot_affordances, locale="tr")
         assert rail == {step_id: str(index + 1) for index, step_id in enumerate(STEP_IDS)}
 
     def test_the_rail_skips_a_value_that_is_not_a_magnitude(self) -> None:
@@ -627,7 +642,7 @@ class TestHowAQuantityIsWritten:
                 step_id="oyku.notu", slot_type=SlotType.STRING, critical_path=False
             )
         }
-        assert numeric_rail({"oyku.notu": "sentetik"}, facts) == {}
+        assert numeric_rail({"oyku.notu": "sentetik"}, facts, locale="tr") == {}
 
 
 # =====================================================================================
@@ -844,13 +859,16 @@ class TestTheTypedWorkerCanBecomeReady:
 
     def test_the_report_still_names_all_three_checks(self) -> None:
         """A readiness report that silently shrinks is one nobody can compare
-        across deployments."""
+        across deployments. INT-182 added a fourth — ``voice_controls``, the
+        kill-switch read a speech worker needs at every session start — and a
+        typed worker names it too, passed, rather than dropping it."""
         from fastapi.testclient import TestClient  # noqa: PLC0415
         from intake_voice_runtime.app import VoiceRuntimeWiring, create_app  # noqa: PLC0415
 
         client = TestClient(create_app(VoiceRuntimeWiring(profile=VoiceProfile.TYPED)))
         checks = client.get("/readyz").json()["checks"]
-        assert set(checks) == {"clip_store", "speech_synthesizer", "room_token"}
+        assert set(checks) == {"clip_store", "speech_synthesizer", "room_token", "voice_controls"}
+        assert set(checks.values()) == {"ok"}
 
     def test_the_voice_worker_still_fails_closed_on_the_same_three(self) -> None:
         from fastapi.testclient import TestClient  # noqa: PLC0415

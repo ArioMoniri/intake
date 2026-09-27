@@ -93,10 +93,11 @@ classes:
     source: >-
       06 §3: "Transcript-derived structured data & notes: life of the record,
       patient-deletable (30-day grace, then crypto-shred)." Covers the
-      INT-030 session tree (sessions, slots, notes, shares rows, document
-      rows) and the INT-034 document objects; the 30-day grace window and the
-      key-shred itself are INT-037's DSAR flow, which drives this engine's
-      dsar path once the grace has run.
+      session tree as it now stands (sessions, slots, notes, the INT-317
+      previsit outputs, shares rows and the INT-150 Doctor Link rows that
+      hang off them, document rows) and the INT-034 document objects; the
+      30-day grace window and the key-shred itself are INT-037's DSAR flow,
+      which drives this engine's dsar path once the grace has run.
 
   - data_class: doctor_link_tokens
     basis: "KVKK m.6 — special-category health data under açık rıza per consent scope"

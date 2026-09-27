@@ -21,10 +21,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from intake_platform.admin import AdminWiring, IpAllowList
+from intake_platform.admin.access import ConsoleSystemsRefused, IdentityWiring
+from intake_platform.admin.access.config import (
+    ENV_KEYCLOAK_URL,
+    IdentityUnconfigured,
+    identity_from_env,
+)
 from intake_platform.admin.oidc import KeycloakClaimsVerifier, load_jwks
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
@@ -32,8 +39,9 @@ from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKek
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
-from intake_platform.secrets import SecretsProvider
+from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
+from intake_platform.voice_control import voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -56,6 +64,7 @@ from intake_api import (
     satisfaction,
     taxonomy_routes,
     visits,
+    visits_acibadem,
 )
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
@@ -76,6 +85,7 @@ from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
 
 if TYPE_CHECKING:
+    from intake_connectors.acibadem import AcibademAppointmentsClient
     from redis import Redis
 
     from intake_api.app_attest import AppAttestVerifier
@@ -126,6 +136,11 @@ class ApiWiring:
     # unconfigured (no dev flag / no key), so /dev/voice/george-clip answers
     # 503 and the mobile falls back to the self-hosted TTS (fail closed).
     george: GeorgeWiring | None = None
+    # INT-318: the Acıbadem appointments read client, built from the one row
+    # infra/connectors/sources.yaml registers for it and from nothing else.
+    # None = no row (the shipped state), so /v1/visits/sync answers
+    # "unavailable" (fail closed).
+    acibadem: AcibademAppointmentsClient | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -311,10 +326,36 @@ def _admin_from_env() -> AdminWiring | None:
         # ids only, and never the path's contents (invariant 6)
         logger.warning("admin console unconfigured: the JWKS mirror is absent or unusable")
         return None
+    try:
+        # INT-182: the store the voice runtime reads the kill switch from.
+        # Unset, the voice controls answer 503 rather than writing somewhere
+        # the runtime is not reading; a malformed URL is the same, loudly.
+        voice_controls = voice_control_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("voice controls unconfigured: the store URL is not a redis URL")
+        voice_controls = None
     return AdminWiring(
         claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
+        voice_controls=voice_controls,
+        identity=_identity_from_env(),
     )
+
+
+def _identity_from_env() -> IdentityWiring | None:
+    """INT-366: Keycloak and OpenBao admin access for the access review and
+    offboarding. Any fact absent — the Keycloak origin or realm, the OpenBao
+    auth mount, the admin client in OpenBao KV, or a loadable console-systems
+    file — leaves both answering 503 (fail closed). The §2.7 read-only
+    downgrade does not depend on this: it reads the audit chain."""
+    if not os.environ.get(ENV_KEYCLOAK_URL):
+        return None
+    try:
+        return identity_from_env(os.environ, SecretsProvider.from_env())
+    except (SecretsBootError, IdentityUnconfigured, ConsoleSystemsRefused, httpx.HTTPError) as err:
+        # the exception class names what is missing; no value is logged
+        logger.warning("access review unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
@@ -369,6 +410,7 @@ def wiring_from_env() -> ApiWiring:
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
         george=george_wiring_from_env(redis_url=settings.redis_url),
+        acibadem=visits_acibadem.acibadem_client_from_registry(settings.clinical_sources_path),
     )
 
 
@@ -385,6 +427,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
         doctor_link=_doctor_link_service(w.auth),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
+        acibadem=w.acibadem,
     )
 
     @asynccontextmanager
@@ -401,6 +444,13 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                     await ensure_consumer_tenant(w.bootstrap_engine or w.engine)
                 except Exception:  # noqa: BLE001 — readiness reports; ids-only log
                     logger.warning("consumer tenant bootstrap deferred: database not ready")
+        if w.admin is not None:
+            # INT-366: read the review state off the chain at start, so the
+            # review-age gauge is not +Inf until the first admin request.
+            try:
+                await w.admin.review_ledger.refresh(audit)
+            except Exception:  # noqa: BLE001 — the gauge stays +Inf and pages; ids-only log
+                logger.warning("access review ledger deferred: audit chain not readable")
         yield
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
@@ -481,6 +531,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
+    app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
     app.include_router(previsit_output.router)
     app.include_router(doctor_link.router)
