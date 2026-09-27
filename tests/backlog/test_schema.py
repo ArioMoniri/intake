@@ -104,7 +104,9 @@ def test_ids_unique_and_well_formed() -> None:
     # by INT-392, fixed and closed in the same PR).
     # + INT-391 (the console accepts every valid WebAuthn credential id; found
     # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
-    assert len(ids) == 306
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
+    assert len(ids) == 307
     import re
 
     for i in ids:
