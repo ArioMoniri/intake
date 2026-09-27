@@ -5971,7 +5971,7 @@
   legal: "5378,EN301549"
   sec_row: "mobile"
 - id: INT-408
-  epic: E11-observability
+  epic: E01-platform
   phase: P1
   title: "Workers tier SLOs: the owner decides the tier and its targets"
   depends_on: [INT-021]
