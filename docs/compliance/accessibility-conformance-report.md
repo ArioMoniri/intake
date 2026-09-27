@@ -57,7 +57,7 @@
 | BK10 | 2.1.1 Keyboard | **Not Evaluated** | `e2e/a11y.spec.ts` › every Pressable declares accessibilityRole<br>device audit DA-02 (pending) | Every control is a Pressable with a declared role, which is the precondition for keyboard and Switch Control operation. Whether each control is actually reached and activated is for DA-02 to decide. |
 | BK11 | 2.1.2 No Keyboard Trap | **Not Evaluated** | `e2e/a11y.spec.ts` › the flag sits on the sheet, not on &lt;Modal&gt;, where RN would drop it<br>device audit DA-02 (pending) | The section sheet declares itself modal on the sheet container, the only placement React Native honours. It neither moves focus in on open nor restores it on close. Whether that traps a keyboard or Switch Control user is for DA-02 to decide. |
 | BK12 | 2.1.4 Character Key Shortcuts | **Not Applicable** | `e2e/a11y.spec.ts` › BK12 / SC 2.1.4 — no character key shortcuts exist | The app defines no single-character shortcut. |
-| BK13 | 2.2.1 Timing Adjustable | **Supports** | `e2e/a11y.spec.ts` › BK13 / SC 2.2.1 — the only timer is the resend cooldown, and it takes nothing away<br>manual MC-08 | In the phone app the only time limit a patient meets is the OTP resend cooldown. It is a server rate limit and takes nothing away when it runs out. The automated check scans screens and components only. MC-08 covers `src/lib`, where the other timers bound network requests and the barge-in meter. Kiosk mode's 60-second idle wipe has no warning and no extension. Kiosk mode cannot activate today; this row must be re-assessed when it can. |
+| BK13 | 2.2.1 Timing Adjustable | **Supports** | `e2e/a11y.spec.ts` › BK13 / SC 2.2.1 — every timer under src, lib included, limits nothing or warns before it acts<br>`e2e/a11y.spec.ts` › a timer planted outside a screen, or a time limit that skips the warning, is caught — the near-miss control<br>`e2e/a11y.spec.ts` › the kiosk warning gives at least 20 seconds to extend, and the wipe still falls at 60 s<br>`src/lib/kiosk/kioskState.test.ts` › with no action the wipe falls at T — the old 60 s — and only after the warning<br>`src/lib/kiosk/kioskState.test.ts` › one action — extend — returns to active and restarts the full timeout<br>`src/lib/kiosk/kioskState.test.ts` › can be extended again and again — ten times and more, never wiping<br>`e2e/kiosk.spec.ts` › offers one action that extends, and moves the screen reader's focus onto it<br>manual MC-08 | In the phone app the only time limit a patient meets is the OTP resend cooldown. It is a server rate limit and takes nothing away when it runs out. Kiosk mode's 60-second idle wipe is a time limit, and since INT-363 it meets the criterion's Extend option. After 40 seconds without a touch it shows a warning, announces it assertively and moves screen-reader focus to its one action, "Devam edin". The patient then has 20 seconds. That action, or any touch, restarts the full minute, as often as needed. With no answer, the same wipe as before runs. The automated check now reads every script under `src`, `src/lib` included. Every timer must either be recorded as limiting nothing (request deadlines, retry delays, the barge-in meter) or run through a warning. MC-08 is the manual pass that found the kiosk gap. DA-08 confirms on a device that the warning is heard and focus lands on the button. Kiosk mode cannot activate today. |
 | BK14 | 2.2.2 Pause, Stop, Hide | **Supports** | `e2e/a11y.spec.ts` › every looping animation, core or Reanimated, is gated on the app's reduce-motion hook<br>`src/lib/a11y/motion.test.ts` › stops looping decoration — SC 2.2.2, the listening pulse<br>`e2e/motion.spec.ts` › the root mounts ReducedMotionConfig from the app policy<br>`e2e/appearance.spec.ts` › useReducedMotion folds the stored override in | The one looping animation, the listening pulse, stops when the OS asks or when the patient uses the app's own motion switch. Transitions and programmatic scrolling collapse to zero under the same policy. Nothing auto-updates, scrolls as a marquee or rotates as a carousel. |
 | BK15 | 2.3.1 Three Flashes or Below Threshold | **Supports** | `e2e/a11y.spec.ts` › every loop period comes from motion.loop, and every half-period exceeds 167 ms | The listening pulse is an opacity fade at about 0.7 Hz, and nothing else repeats. |
 | BK16 | 2.4.1 Bypass Blocks | **Not Applicable** | manual MC-09 | No screen repeats a block of content that another screen carries. The tab rail is the navigation itself and is rendered once, by the tabs layout. WCAG2ICT reads this criterion, for non-web software, as applying to a set of software programs. Vizite is one program. |
@@ -224,7 +224,7 @@ Each Not Evaluated row turns on something only a device can show: what a screen 
 | DA-05 | Largest text and reflow | iPhone, Android phone | 1.4.10 | 1.4.4 |
 | DA-06 | Focus under the glass bars | iPhone with Full Keyboard Access, Android phone with a hardware keyboard | 2.4.11 | — |
 | DA-07 | One-time code entry | iPhone, Android phone | — | 3.3.8 |
-| DA-08 | Announcements and the platform accessibility tree | iPhone with VoiceOver and Xcode Accessibility Inspector, Android phone with TalkBack and Accessibility Scanner | EN 11.5.2.9, EN 11.5.2.13, EN 11.5.2.14, EN 11.5.2.15, EN 11.5.2.16, EN 11.5.2.17 | 3.1.1, 3.3.1, 4.1.2, 4.1.3 |
+| DA-08 | Announcements and the platform accessibility tree | iPhone with VoiceOver and Xcode Accessibility Inspector, Android phone with TalkBack and Accessibility Scanner | EN 11.5.2.9, EN 11.5.2.13, EN 11.5.2.14, EN 11.5.2.15, EN 11.5.2.16, EN 11.5.2.17 | 2.2.1, 3.1.1, 3.3.1, 4.1.2, 4.1.3 |
 
 **DA-01 · Reading order and arrival on each screen.** On every screen in the route tree, swipe from the first element to the last. Record whether the order matches the visual and logical order, especially on the dialogue screen (transcript, section strip, CTA stack, composer). Navigate into every screen and record the first thing announced: the navigator title, or the in-body heading on the intake and review flows. Open the headings rotor on three screens and record what it lists. On the three screens whose copy says "aşağıdaki", confirm that the content referred to follows in reading order.
 
@@ -240,7 +240,7 @@ Each Not Evaluated row turns on something only a device can show: what a screen 
 
 **DA-07 · One-time code entry.** With a real SMS code on each platform: (a) with focus in the first box, take the keyboard's code suggestion (iOS "From Messages", or Android's SMS suggestion if one appears); (b) copy the code from the messages app and paste it into the first box. Record what each of the six boxes holds after each attempt.
 
-**DA-08 · Announcements and the platform accessibility tree.** Trigger every error and status line on both platforms, and record whether each is spoken once: the four screens' errors, the Doctor Link error, the record card's not-saved notice, the dialogue's listening, speaking and transcribing states, and the records upload, scan and reading lines. Set the app language differently from the device language and record whether each reader uses the right voice. Inspect the running app with the platform inspector for the section sheet, the consent list and the intake chips. Record the parent-child structure exposed, whether focus and selection changes are reported, whether state and value changes are notified, and whether assistive technology can set them.
+**DA-08 · Announcements and the platform accessibility tree.** Trigger every error and status line on both platforms, and record whether each is spoken once: the four screens' errors, the Doctor Link error, the record card's not-saved notice, the dialogue's listening, speaking and transcribing states, and the records upload, scan and reading lines. Once kiosk mode can be armed (the dev build, HB-A3), leave an armed session untouched for 40 seconds. Record whether the idle warning is spoken in full, whether focus lands on its "Devam edin" button, and whether one double-tap keeps the session. Set the app language differently from the device language and record whether each reader uses the right voice. Inspect the running app with the platform inspector for the section sheet, the consent list and the intake chips. Record the parent-child structure exposed, whether focus and selection changes are reported, whether state and value changes are notified, and whether assistive technology can set them.
 
 ## 6 · Recorded manual checks
 
@@ -283,7 +283,7 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/e2e/a11y.spec.ts` | AppText carries the heading semantic itself, so screens cannot spell it wrong | 1.3.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | AppText maps `live` onto the platform's own announcement props | 3.3.1, EN 11.5.2.3 |
 | `apps/mobile/e2e/a11y.spec.ts` | BK12 / SC 2.1.4 — no character key shortcuts exist | 2.1.4 |
-| `apps/mobile/e2e/a11y.spec.ts` | BK13 / SC 2.2.1 — the only timer is the resend cooldown, and it takes nothing away | 2.2.1 |
+| `apps/mobile/e2e/a11y.spec.ts` | BK13 / SC 2.2.1 — every timer under src, lib included, limits nothing or warns before it acts | 2.2.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | BK20 / SC 2.5.1 — no path-based or multipoint gesture is required | 2.5.1, 2.5.7, EN 5.9 |
 | `apps/mobile/e2e/a11y.spec.ts` | BK23 / SC 2.5.4 — nothing is actuated by moving the device | 2.5.4 |
 | `apps/mobile/e2e/a11y.spec.ts` | ListRow forwards a secondary action for its trailing control | 4.1.2, EN 11.5.2.11, EN 11.5.2.12 |
@@ -291,6 +291,7 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/e2e/a11y.spec.ts` | a bubble's name ends in the words the bubble actually shows | 2.5.3 |
 | `apps/mobile/e2e/a11y.spec.ts` | a single-choice turn offers radios, not checkboxes | 4.1.2 |
 | `apps/mobile/e2e/a11y.spec.ts` | a switch or checkbox declares its state, not just its role | 4.1.2, EN 11.5.2.5, EN 11.5.2.7 |
+| `apps/mobile/e2e/a11y.spec.ts` | a timer planted outside a screen, or a time limit that skips the warning, is caught — the near-miss control | 2.2.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | an error is never carried by colour alone | 1.4.1, 3.3.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | every Pressable declares accessibilityLabel | 1.1.1, 2.4.4, 4.1.2, EN 11.5.2.5 |
 | `apps/mobile/e2e/a11y.spec.ts` | every Pressable declares accessibilityRole | 2.1.1, 4.1.2, EN 11.5.1, EN 11.5.2.3, EN 11.5.2.5 |
@@ -315,6 +316,7 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/e2e/a11y.spec.ts` | the consent switch — the withdrawal path — uses it | 4.1.2, EN 11.5.2.12 |
 | `apps/mobile/e2e/a11y.spec.ts` | the flag sits on the sheet, not on &lt;Modal&gt;, where RN would drop it | 2.1.2, 2.4.3 |
 | `apps/mobile/e2e/a11y.spec.ts` | the intake progress dots are decoration and are hidden from the reader | 1.1.1, 1.4.1 |
+| `apps/mobile/e2e/a11y.spec.ts` | the kiosk warning gives at least 20 seconds to extend, and the wipe still falls at 60 s | 2.2.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | the prep gauge reports a value, not only a rendered arc | 1.1.1, EN 11.5.2.7 |
 | `apps/mobile/e2e/a11y.spec.ts` | the send button is icon-only, so its name and disabled state are explicit | 1.1.1 |
 | `apps/mobile/e2e/a11y.spec.ts` | the status ladder speaks which rungs are reached | 1.4.1 |
@@ -340,6 +342,7 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/e2e/auth.spec.ts` | the OTP entry is one masked field per register, six registers | 3.3.8 |
 | `apps/mobile/e2e/consent.spec.ts` | withdrawing voice drags lane:affect down in the same pass; linguistic survives | 3.3.4 |
 | `apps/mobile/e2e/intakeMode.spec.ts` | the mode chooser is wired before the questions and records the choice | 1.4.2 |
+| `apps/mobile/e2e/kiosk.spec.ts` | offers one action that extends, and moves the screen reader's focus onto it | 2.2.1 |
 | `apps/mobile/e2e/motion.spec.ts` | no Pressable narrows the platform's press-retention default | 2.5.2 |
 | `apps/mobile/e2e/motion.spec.ts` | the root mounts ReducedMotionConfig from the app policy | 2.2.2, EN 11.7 |
 | `apps/mobile/e2e/nav.spec.ts` | has no routes beyond the map (no stealth surfaces) | 3.2.3 |
@@ -354,6 +357,9 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/src/lib/a11y/motion.test.ts` | stops looping decoration — SC 2.2.2, the listening pulse | 2.2.2 |
 | `apps/mobile/src/lib/a11y/target.test.ts` | is 44 — above SC 2.5.8's 24 and at the platform guideline | 2.5.8 |
 | `apps/mobile/src/lib/dsar/requests.test.ts` | is withdrawable while the grace is running | 3.3.4 |
+| `apps/mobile/src/lib/kiosk/kioskState.test.ts` | can be extended again and again — ten times and more, never wiping | 2.2.1 |
+| `apps/mobile/src/lib/kiosk/kioskState.test.ts` | one action — extend — returns to active and restarts the full timeout | 2.2.1 |
+| `apps/mobile/src/lib/kiosk/kioskState.test.ts` | with no action the wipe falls at T — the old 60 s — and only after the warning | 2.2.1 |
 | `apps/mobile/src/lib/prefs/appearance.test.ts` | a tie resolves to the LARGER step — accessibility never rounds down | 1.4.4 |
 | `apps/mobile/src/lib/prefs/appearance.test.ts` | null follows the phone exactly | EN 11.6.2, EN 11.7 |
 | `apps/mobile/src/lib/theme.test.ts` | %s body text meets WCAG AA (4.5:1) | 1.4.3 |

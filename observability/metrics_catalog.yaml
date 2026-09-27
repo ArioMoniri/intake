@@ -1164,11 +1164,14 @@ metrics:
   - name: sec_secret_rotation_due_days
     id: sec.secret_rotation_due_days
     type: gauge
-    labels: []
+    labels: [key]
     owner: security
     unit: "days"
-    status: planned
-    description: Days until the next secret rotation is due.
+    description: >-
+      Days until each tenant KEK's next quarterly rotation is due (files/10
+      §3); negative means overdue, which SecretRotationOverdue alerts on.
+      `key` is the Transit key name (tenant-<tenant_id>), an id. Emitted by
+      intake_platform.key_rotation.job.run_rotation (INT-367).
   - name: sec_cert_expiry_days
     id: sec.cert_expiry_days
     type: gauge

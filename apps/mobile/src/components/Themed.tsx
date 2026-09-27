@@ -7,7 +7,7 @@
  * Oura/Tiimo signature); light-mode cards float on a soft wide shadow,
  * dark mode separates tonally.
  */
-import { type ComponentProps, type ReactNode } from "react";
+import { type ComponentProps, type ReactNode, type Ref } from "react";
 import {
   Platform,
   Pressable,
@@ -325,6 +325,11 @@ interface ButtonProps {
    * (SC 2.5.3 — the visible words stay the accessible name).
    */
   hint?: string;
+  /**
+   * The button's host view, for a screen that must move the screen reader's
+   * focus onto it (INT-363: the kiosk idle warning's extend action).
+   */
+  ref?: Ref<View>;
 }
 
 /**
@@ -334,10 +339,11 @@ interface ButtonProps {
  * slab; light mode carries the inverse ink pill). The teal accent (02 §5.2:
  * single accent) now lives in selection, progress and status moments.
  */
-export function PrimaryButton({ label, onPress, disabled = false, hint }: ButtonProps) {
+export function PrimaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
+      ref={ref}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
@@ -368,10 +374,11 @@ export function PrimaryButton({ label, onPress, disabled = false, hint }: Button
  * buttons and tag chips are filled, never outlined; the pass-5 hairline
  * outline was our invention).
  */
-export function SecondaryButton({ label, onPress, disabled = false, hint }: ButtonProps) {
+export function SecondaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
+      ref={ref}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}

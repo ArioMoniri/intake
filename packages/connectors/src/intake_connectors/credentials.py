@@ -15,6 +15,7 @@ names no path: an error message travels further than the code that raised it.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Protocol
@@ -24,6 +25,7 @@ from intake_platform.secrets import SecretsProvider
 __all__ = [
     "CredentialMissing",
     "CredentialResolver",
+    "EnvCredentialResolver",
     "InMemoryCredentialResolver",
     "OpenBaoCredentialResolver",
     "TlsMaterial",
@@ -81,6 +83,51 @@ class InMemoryCredentialResolver:
             return self._documents[ref]
         except KeyError:
             raise CredentialMissing("no credential material for this destination") from None
+
+
+class EnvCredentialResolver:
+    """The demo-tier resolver: named environment variables, no defaults.
+
+    OpenBao is the production path and the one invariant 14 names. This
+    resolver exists for a deployment where the upstream's key is delivered as
+    a file an operator sources into the process environment, and it is written
+    so that adopting it costs nothing in fail-closed behaviour:
+
+    * The mapping is **explicit**. A ref resolves only to variables this
+      object was constructed with, so a caller cannot ask it for
+      ``AWS_SECRET_ACCESS_KEY`` by naming a ref, and there is no pattern that
+      turns an arbitrary ref into an arbitrary variable name.
+    * There is **no default**. An unset variable and an empty one are the same
+      thing — a missing credential — because an empty API key is a request
+      that fails at the far end with a much worse error message.
+    * The **variable name** is in the message and the **ref** is not. That is
+      the opposite of :class:`OpenBaoCredentialResolver`, and deliberately so:
+      a KV path is a map of the secret store, while a variable name is
+      operator-facing configuration and naming it is the difference between an
+      actionable failure and a mystery.
+
+    Nothing here reads a value into an attribute, so no instance of this class
+    holds a secret between calls.
+    """
+
+    def __init__(self, variables: Mapping[str, Mapping[str, str]]) -> None:
+        self._variables = {ref: dict(fields) for ref, fields in variables.items()}
+
+    def read(self, ref: str) -> Mapping[str, str]:
+        fields = self._variables.get(ref)
+        if fields is None:
+            raise CredentialMissing("no credential material for this destination")
+        document: dict[str, str] = {}
+        for key, variable in fields.items():
+            value = os.environ.get(variable)
+            if not value:
+                raise CredentialMissing(
+                    f"the environment variable {variable} is unset or empty; this "
+                    "deployment reads that credential from the environment and has no "
+                    "in-code default"
+                )
+            document[key] = value
+        return document
 
 
 class OpenBaoCredentialResolver:
