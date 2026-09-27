@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**316 issues.** By phase: P0 160 · P1 102 · P2 47 · P3 7. By status: awaiting-human 30 · doing 5 · done 203 · todo 77 · withdrawn 1.
+**319 issues.** By phase: P0 160 · P1 105 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 204 · todo 77 · withdrawn 1.
 
 ## P0
 
@@ -184,7 +184,7 @@
 | INT-111 | affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set | E06-lanes | INT-110 | area:lanes, approval:human-clinical | awaiting-human |
 | INT-113 | asr_quality lane: shadow-STT disagreement + confirm-by-card trigger | E06-lanes | INT-110, INT-095 | area:lanes, approval:human-legal | awaiting-human |
 | INT-114 | engagement lane -> satisfaction proxies + pacing hints | E06-lanes | INT-110 | area:lanes, approval:human-legal | awaiting-human |
-| INT-122 | e-Nabız export/PDF import parser + MHRS SMS screenshot OCR | E07-records | INT-121 | area:records | todo |
+| INT-122 | e-Nabız export/PDF import parser + MHRS SMS screenshot OCR | E07-records | INT-121 | area:records | done |
 | INT-123 | pgvector record index (RLS, per-patient namespace) + retrieval Work | E07-records | INT-030, INT-121 | area:records | done |
 | INT-135 | Voice intake UI (Hizli): states, recording indicator, inline cards, barge-in, RED UI, typed fallback | E08-mobile | INT-103, INT-096, INT-117 | area:mobile, risk:clinical | todo |
 | INT-141 | Notifications: content-free reminders, quiet hours, opt-out; transactional-only | E08-mobile | INT-130 | area:mobile, risk:legal | done |
@@ -278,6 +278,9 @@
 | INT-403 | What withdrawing documents consent does to the patient's record vectors | E02-data | INT-123 | area:data, risk:legal | awaiting-human |
 | INT-405 | The backlog sync pages past 500 issues and keeps issue state in step with rows | E00-governance | INT-004, INT-396 | area:platform | done |
 | INT-408 | Workers tier SLOs: the owner decides the tier and its targets | E01-platform | INT-021 | area:observability | awaiting-human |
+| INT-398 | Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox | E07-records | INT-122 | area:records, risk:security | awaiting-human |
+| INT-399 | Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2) | E07-records | INT-122 | area:records | awaiting-human |
+| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | todo |
 
 ## P2
 

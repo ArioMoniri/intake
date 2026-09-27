@@ -1482,10 +1482,16 @@
   # not be committed (files/06 §5), so no figure is reported anywhere.
   #
   # Reopen against HB-A1; see docs/evidence/INT-122.md "Acceptance, line by line".
-  status: todo
+  # RESCOPED 27 Sep 2026 (PR #663): the parsers, the fail-closed document-engine
+  # gate (rows 20-21) and the no-scraping enforcement are delivered. The engine
+  # choice is INT-398 (owner, model table), the real e-Nabiz export and MHRS SMS
+  # samples are INT-399 (HB-A1, Ask 2), and the on-device date-order defect is
+  # INT-400.
+  status: done
+  evidence: docs/evidence/INT-122.md
   acceptance:
-    - "patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
-  tests: [tests/records/test_enabiz_pdf.py]
+    - "patient-exported e-Nabiz documents and MHRS SMS text are parsed into unconfirmed record items / visit candidates behind a fail-closed document-engine gate (files/03 rows 20-21) that refuses with a typed status while no engine is registered; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
+  tests: [tests/records/test_enabiz_pdf.py, tests/records/test_enabiz_mhrs_read_paths.py]
   # Corrected from "KSVY-9,KSVY-10". Both citations were wrong and one is
   # repealed: m.10 was `Saglik verilerine avukatlarin erisimi` (LAWYERS'
   # access) and RG 33096 (03.12.2025) MADDE 9 repealed it outright, and m.9 is
@@ -6208,3 +6214,37 @@
     - "the owner records whether the workers tier becomes services/workers and the targets for its SLIs (upload promotion, retention runs, event-bus dead letters, notification dispatch); docs/slo/workers.yaml declares them, the generator emits rules and a dashboard, every SLI series is emitted and catalogued live, and the coverage manifest drops the workers exception"
   tests: [tests/observability/test_slo_coverage.py]
   sec_row: "monitoring-contract"
+- id: INT-398
+  epic: E07-records
+  phase: P1
+  title: "Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox"
+  depends_on: [INT-122]
+  labels: [area:records, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner records the engine choice; licence verified from the raw LICENSE blob (licence_verified_at), pinned model_id@revision + sha256, declared self-hostable with a probe"
+    - "an ADR records the engine sandbox (no network, read-only input, resource limits); an adapter binds to the verified registry entry with a recorded-fixture contract test, and the gate admits it"
+  tests: [tests/records/test_enabiz_mhrs_read_paths.py]
+  sec_row: "records"
+- id: INT-399
+  epic: E07-records
+  phase: P1
+  title: "Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2)"
+  depends_on: [INT-122]
+  labels: [area:records]
+  status: awaiting-human
+  acceptance:
+    - "de-identified, owner-supplied samples committed as fixtures with provenance; the parsers pass on them; the MHRS date-order rule is fixed from the sample and the device and server parsers agree (INT-400)"
+  tests: [tests/records/test_enabiz_pdf.py, tests/records/test_mhrs.py]
+  sec_row: "records"
+- id: INT-400
+  epic: E08-mobile
+  phase: P1
+  title: "The on-device MHRS SMS parser refuses an ambiguous date, as the server does"
+  depends_on: [INT-122]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
+  tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
+  sec_row: "mobile"

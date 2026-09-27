@@ -272,7 +272,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
     # in step with rows, found by INT-396, GitHub #675); grows only with a
     # stated reason.
-    assert len(ids) == 316, f"expected 175 blueprint + 141 added issues, got {len(ids)}"
+    # + INT-398..400 (split out of INT-122 by its own PR, #663: the document
+    # engine, the real samples, the on-device date-order defect); grows only
+    # with a stated reason.
+    assert len(ids) == 319, f"expected 175 blueprint + 144 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
