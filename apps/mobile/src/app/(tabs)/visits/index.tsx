@@ -1,30 +1,65 @@
 /**
- * Vizitlerim (02 §4): upcoming then past, plus add. Design pass 3: kicker
- * pills over the groups, xl rhythm between them, air above the hero line.
+ * Vizitlerim (02 §4). Two views over the same visits, chosen by a segmented
+ * toggle: the Liste (default) is the upcoming group then a Geçmiş (past) group
+ * — most recent first, with an honest empty state rather than invented history
+ * — and the Takvim is a month grid that marks the days that carry a visit and
+ * lets the patient tap a day to read that day's visits below it. Design pass 3:
+ * kicker over the groups, xl rhythm between them, air above the hero line.
+ *
+ * "Today" is a fixture constant so the whole screen — the upcoming/past split,
+ * the calendar's today marker and its opening month — agrees on one date.
  */
+import { useState } from "react";
 import { Link, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
+import { Segmented, type SegmentedOption } from "@/components/Segmented";
 import { statusLabelKey } from "@/components/StatusChip";
 import { AppText, Card, RAIL_EDGES, Screen, SecondaryButton } from "@/components/Themed";
+import { VisitCalendar } from "@/components/VisitCalendar";
 import { VisitCard, formatVisitDate } from "@/components/VisitCard";
 import { joinParts } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
+import {
+  initialMonth,
+  initialSelectedDay,
+  longDate,
+  pastVisitsRecentFirst,
+  visitsOnDay,
+  type YearMonth,
+} from "@/lib/calendar";
 import { getLocale, t } from "@/lib/i18n";
-import { useSession } from "@/lib/session";
+import { useSession, type VisitFixture } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 import { splitVisits } from "@/lib/visits";
 
 const TODAY_FIXTURE = "2026-08-27";
 
+type ViewMode = "list" | "calendar";
+
 export default function Visits() {
   const router = useRouter();
   const { visits } = useSession();
 
+  const [view, setView] = useState<ViewMode>("list");
+  // Open the calendar on the soonest booked visit, and pre-select it, so a
+  // patient with an appointment lands on it rather than on an empty month.
+  const [viewMonth, setViewMonth] = useState<YearMonth>(() => initialMonth(visits, TODAY_FIXTURE));
+  const [selectedDay, setSelectedDay] = useState<string>(() =>
+    initialSelectedDay(visits, TODAY_FIXTURE),
+  );
+
   // a dateless visit is upcoming, not past (INT-134) — see splitVisits
-  const { upcoming, past } = splitVisits(visits, TODAY_FIXTURE);
+  const { upcoming } = splitVisits(visits, TODAY_FIXTURE);
+  const past = pastVisitsRecentFirst(visits, TODAY_FIXTURE);
+  const dayVisits = visitsOnDay(visits, selectedDay);
+
+  const viewOptions: SegmentedOption[] = [
+    { id: "list", label: t("visits.view.list") },
+    { id: "calendar", label: t("visits.view.calendar") },
+  ];
 
   /**
    * A card's accessible name (INT-144). Wrapping the card in a Pressable
@@ -32,13 +67,27 @@ export default function Visits() {
    * status chip; naming it explicitly keeps department, hospital, date AND
    * ladder state in the one sentence a screen-reader user hears.
    */
-  const cardLabel = (visit: (typeof visits)[number]): string =>
+  const cardLabel = (visit: VisitFixture): string =>
     joinParts(
       visit.department,
       visit.hospital,
       formatVisitDate(visit.date, getLocale()),
       visit.noteStatus === null ? null : t(statusLabelKey(visit.noteStatus)),
     );
+
+  const renderVisit = (visit: VisitFixture) => (
+    <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={cardLabel(visit)}
+        accessibilityHint={t("a11y.openHint")}
+        style={styles.cardTarget}
+      >
+        <VisitCard visit={visit} chevron />
+      </Pressable>
+    </Link>
+  );
+
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
@@ -51,43 +100,66 @@ export default function Visits() {
               {t("visits.empty")}
             </AppText>
           </Card>
-        ) : null}
-        {upcoming.length > 0 ? (
-          <View style={styles.section}>
-            {/* Neutral like Oura's quiet group headings (design pass 5) —
-                the accent budget belongs to the screen's one action. */}
-            <Kicker label={t("visits.upcoming")} />
-            {upcoming.map((visit) => (
-              <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={cardLabel(visit)}
-                  accessibilityHint={t("a11y.openHint")}
-                  style={styles.cardTarget}
-                >
-                  <VisitCard visit={visit} chevron />
-                </Pressable>
-              </Link>
-            ))}
-          </View>
-        ) : null}
-        {past.length > 0 ? (
-          <View style={styles.section}>
-            <Kicker label={t("visits.past")} />
-            {past.map((visit) => (
-              <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={cardLabel(visit)}
-                  accessibilityHint={t("a11y.openHint")}
-                  style={styles.cardTarget}
-                >
-                  <VisitCard visit={visit} chevron />
-                </Pressable>
-              </Link>
-            ))}
-          </View>
-        ) : null}
+        ) : (
+          <>
+            <Segmented
+              label={t("visits.view.label")}
+              options={viewOptions}
+              value={view}
+              onChange={(id) => setView(id as ViewMode)}
+            />
+            {view === "list" ? (
+              <>
+                {upcoming.length > 0 ? (
+                  <View style={styles.section}>
+                    {/* Neutral like Oura's quiet group headings (design pass 5)
+                        — the accent budget belongs to the screen's one action. */}
+                    <Kicker label={t("visits.upcoming")} />
+                    {upcoming.map(renderVisit)}
+                  </View>
+                ) : null}
+                {/* Always present, even with nothing in it: the patient asked
+                    for their past visits, so "none yet" is the honest answer,
+                    not a hidden section (02 §4). */}
+                <View style={styles.section}>
+                  <Kicker label={t("visits.past")} />
+                  {past.length > 0 ? (
+                    past.map(renderVisit)
+                  ) : (
+                    <Card>
+                      <AppText role="body" color="inkSoft">
+                        {t("visits.pastEmpty")}
+                      </AppText>
+                    </Card>
+                  )}
+                </View>
+              </>
+            ) : (
+              <>
+                <VisitCalendar
+                  visits={visits}
+                  todayIso={TODAY_FIXTURE}
+                  viewMonth={viewMonth}
+                  onChangeMonth={setViewMonth}
+                  selectedIso={selectedDay}
+                  onSelectDay={setSelectedDay}
+                />
+                <View style={styles.section}>
+                  <AppText role="label" heading color="inkSoft">
+                    {longDate(selectedDay, getLocale())}
+                  </AppText>
+                  {dayVisits.length > 0 ? (
+                    dayVisits.map(renderVisit)
+                  ) : (
+                    <AppText role="body" color="inkSoft">
+                      {t("visits.calendar.noVisitsOnDay")}
+                    </AppText>
+                  )}
+                </View>
+              </>
+            )}
+          </>
+        )}
         {/* Adding is available, not urgent — the Oura register keeps list
             screens free of saturated CTAs (design pass 5). */}
         <SecondaryButton

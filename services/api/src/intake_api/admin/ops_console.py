@@ -35,7 +35,6 @@ and no catalogue target is copied beside a figure.
 from __future__ import annotations
 
 import os
-import re
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Any, Final
@@ -45,7 +44,13 @@ from intake_probes.console import ModelsModule
 from intake_probes.gate import ProbeResultRecord
 
 from intake_api.admin.models_source import load_models_module, load_probe_results
-from intake_api.admin.ops_prom import PromClient, PromUnavailable, Sample, prom_client_from_env
+from intake_api.admin.ops_prom import (
+    PromClient,
+    PromSession,
+    Sample,
+    TileUnknown,
+    prom_client_from_env,
+)
 
 __all__ = ["K_FLOOR", "OPS_QUERIES", "OPS_SCHEMA", "build_ops_console", "load_ops_console"]
 
@@ -110,52 +115,10 @@ _LABELS: Final[Mapping[str, frozenset[str]]] = {
     "collector_up": frozenset({"source"}),
 }
 
-#: A label value the console will paint. Lowercase ids, digits, ``_ . -``.
-_ID: Final = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,63}$")
-_BRANCH: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
 
-
-class _Unknown(Exception):
-    def __init__(self, reason: str) -> None:
-        super().__init__(reason)
-        self.reason = reason
-
-
-class _Session:
-    """One console build's view of Prometheus: validated, and fail-fast.
-
-    Once Prometheus is unreachable every later query is refused at once — a
-    console build should not wait out nineteen timeouts to say the same thing.
-    """
-
-    def __init__(self, prom: PromClient) -> None:
-        self._prom = prom
-        self.unreachable = False
-
-    def fetch(self, query_id: str) -> tuple[Sample, ...]:
-        if self.unreachable:
-            raise _Unknown("prometheus_unreachable")
-        try:
-            samples = self._prom.vector(OPS_QUERIES[query_id])
-        except PromUnavailable as failure:
-            if failure.code == "prometheus_unreachable":
-                self.unreachable = True
-            raise _Unknown(failure.code) from None
-        expected = _LABELS[query_id]
-        for sample in samples:
-            if frozenset(sample.labels) != expected:
-                raise _Unknown("unexpected_label")
-            for name, value in sample.labels.items():
-                pattern = _BRANCH if name == "branch" else _ID
-                if not pattern.match(value):
-                    raise _Unknown("label_not_id_shaped")
-        return samples
-
-    def scalar(self, query_id: str) -> float | None:
-        samples = self.fetch(query_id)
-        if len(samples) > 1:
-            raise _Unknown("unexpected_label")
-        return samples[0].value if samples else None
+def _session(prom: PromClient) -> PromSession:
+    """One build's view of Prometheus over :data:`OPS_QUERIES` (shared with INT-181)."""
+    return PromSession(prom, OPS_QUERIES, _LABELS)
 
 
 def _count(value: float | None) -> int | None:
@@ -175,10 +138,10 @@ def _iso(ts: float | None) -> str | None:
 # --- tiles -------------------------------------------------------------------------
 
 
-def _gpu(session: _Session) -> dict[str, Any]:
+def _gpu(session: PromSession) -> dict[str, Any]:
     up = session.fetch("gpu_host_up")
     if not up:
-        raise _Unknown("no_series")
+        raise TileUnknown("no_series")
     util = _by(session.fetch("gpu_utilization"), "host_id", "gpu_index")
     used = _by(session.fetch("gpu_memory_used"), "host_id", "gpu_index")
     total = _by(session.fetch("gpu_memory_total"), "host_id", "gpu_index")
@@ -202,7 +165,7 @@ def _gpu(session: _Session) -> dict[str, Any]:
     return {"hosts": hosts}
 
 
-def _usage(session: _Session) -> dict[str, Any]:
+def _usage(session: PromSession) -> dict[str, Any]:
     served = _by(session.fetch("work_requests"), "type")
     p95 = _by(session.fetch("work_p95"), "type")
     failures = _by(session.fetch("work_failures"), "type")
@@ -240,17 +203,17 @@ def _usage(session: _Session) -> dict[str, Any]:
             }
         )
     if not lanes:
-        raise _Unknown("no_series")
+        raise TileUnknown("no_series")
     return {"lanes": lanes}
 
 
-def _clips(session: _Session) -> dict[str, Any]:
+def _clips(session: PromSession) -> dict[str, Any]:
     lookups = _by(session.fetch("clip_lookups"), "outcome")
     syntheses = session.fetch("clip_syntheses")
     rows = _by(session.fetch("clip_manifest_rows"), "pack", "locale", "voice")
     present = _by(session.fetch("clip_manifest_present"), "pack", "locale", "voice")
     if not lookups and not syntheses and not rows:
-        raise _Unknown("no_series")
+        raise TileUnknown("no_series")
     return {
         "manifests": [
             {
@@ -286,20 +249,20 @@ def _cohort(count: float | None, total: float | None) -> tuple[int | None, bool,
     return n, suppressed, mean
 
 
-def _wait(session: _Session) -> dict[str, Any]:
+def _wait(session: PromSession) -> dict[str, Any]:
     count = session.scalar("wait_count")
     if count is None:
-        raise _Unknown("no_series")
+        raise TileUnknown("no_series")
     n, suppressed, mean = _cohort(count, session.scalar("wait_sum"))
     return {"n": n, "suppressed": suppressed, "mean_min": mean}
 
 
-def _satisfaction(session: _Session) -> dict[str, Any]:
+def _satisfaction(session: PromSession) -> dict[str, Any]:
     count = session.scalar("csat_count")
     total = session.scalar("csat_sum")
     nps = session.scalar("nps")
     if count is None and nps is None:
-        raise _Unknown("no_series")
+        raise TileUnknown("no_series")
     n, suppressed, mean = _cohort(count, total)
     return {
         "csat_n": n,
@@ -309,17 +272,17 @@ def _satisfaction(session: _Session) -> dict[str, Any]:
     }
 
 
-def _cicd(session: _Session) -> dict[str, Any]:
+def _cicd(session: PromSession) -> dict[str, Any]:
     sources = _by(session.fetch("collector_up"), "source")
     if sources.get(("ci",)) == 0:
-        raise _Unknown("collector_source_failing")
+        raise TileUnknown("collector_source_failing")
     runs = session.fetch("ci_runs")
     if not runs:
-        raise _Unknown("no_series")
+        raise TileUnknown("no_series")
     updated = _by(session.fetch("ci_updated"), "workflow", "branch")
     branches = {s.labels["branch"] for s in runs}
     if len(branches) != 1:
-        raise _Unknown("unexpected_label")
+        raise TileUnknown("unexpected_label")
     workflows = [
         {
             "workflow": s.labels["workflow"],
@@ -366,7 +329,7 @@ _EMPTY: Final[Mapping[str, Mapping[str, Any]]] = {
     "cicd": {"branch": None, "workflows": []},
 }
 
-_BUILDERS: Final[Mapping[str, Callable[[_Session], dict[str, Any]]]] = {
+_BUILDERS: Final[Mapping[str, Callable[[PromSession], dict[str, Any]]]] = {
     "gpu": _gpu,
     "model_usage": _usage,
     "clip_cache": _clips,
@@ -417,7 +380,7 @@ def build_ops_console(
 ) -> dict[str, Any]:
     """The whole ``intake.admin.ops.v1`` document."""
     tiles: dict[str, Any] = {"models": _models_tile(models, results)}
-    session = _Session(prom) if prom is not None else None
+    session = _session(prom) if prom is not None else None
     for tile_id, builder in _BUILDERS.items():
         empty = dict(_EMPTY[tile_id])
         if session is None:
@@ -426,7 +389,7 @@ def build_ops_console(
             continue
         try:
             tiles[tile_id] = {"state": "ok", "reason": None, **empty, **builder(session)}
-        except _Unknown as unknown:
+        except TileUnknown as unknown:
             tiles[tile_id] = {"state": "unknown", "reason": unknown.reason, **empty}
     if session is None:
         prometheus = "misconfigured" if prom_misconfigured else "unconfigured"

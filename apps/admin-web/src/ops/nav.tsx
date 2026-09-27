@@ -1,0 +1,37 @@
+/**
+ * The link between the rendered console pages (INT-181): the overview and the
+ * ops console. Plain links, server-rendered, the language carried along; the
+ * current page is marked, not linked. `tr` is the source of truth (invariant 5).
+ */
+import type { ReactElement } from "react";
+
+import type { Lang } from "./copy";
+
+export type ConsolePage = "overview" | "ops";
+
+const LABELS: Record<Lang, { label: string; pages: Record<ConsolePage, string> }> = {
+  tr: { label: "Konsol sayfaları", pages: { overview: "Genel bakış", ops: "Operasyon" } },
+  en: { label: "Console pages", pages: { overview: "Overview", ops: "Operations" } },
+};
+
+const ORDER: readonly ConsolePage[] = ["overview", "ops"];
+
+export function ConsoleNav({ current, lang }: { current: ConsolePage; lang: Lang }): ReactElement {
+  const copy = LABELS[lang];
+  const suffix = lang === "en" ? "?lang=en" : "";
+  return (
+    <nav className="console-nav" aria-label={copy.label}>
+      {ORDER.map((page) =>
+        page === current ? (
+          <span key={page} aria-current="page">
+            {copy.pages[page]}
+          </span>
+        ) : (
+          <a key={page} href={`/${page}${suffix}`}>
+            {copy.pages[page]}
+          </a>
+        ),
+      )}
+    </nav>
+  );
+}
