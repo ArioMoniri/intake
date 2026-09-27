@@ -254,7 +254,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-387 (the accessibility conformance report re-rated after the
     # INT-361..363 fixes, found by INT-360's PR as GitHub #640); grows only
     # with a stated reason.
-    assert len(ids) == 304, f"expected 175 blueprint + 129 added issues, got {len(ids)}"
+    # + INT-397 (the three status lines INT-362 left silent are announced, found
+    # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
+    assert len(ids) == 305, f"expected 175 blueprint + 130 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

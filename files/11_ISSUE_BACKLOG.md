@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**304 issues.** By phase: P0 157 · P1 93 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 174 · todo 87 · withdrawn 1.
+**305 issues.** By phase: P0 157 · P1 94 · P2 47 · P3 7. By status: awaiting-human 26 · doing 16 · done 175 · todo 87 · withdrawn 1.
 
 ## P0
 
@@ -266,6 +266,7 @@
 | INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | INT-124 | area:records, gpu | todo |
 | INT-385 | Record quantities render with the Turkish decimal comma as one number+unit atom | E07-records | INT-121 | area:records, risk:clinical | done |
 | INT-387 | The accessibility conformance report reflects the INT-361, INT-362 and INT-363 fixes | E14-legal | INT-226, INT-361, INT-362, INT-363 | area:legal | done |
+| INT-397 | WCAG 4.1.3: the last three status lines are announced (notifications pending, review sent, consent queue) | E08-mobile | INT-362, INT-387 | area:mobile, risk:legal | done |
 
 ## P2
 

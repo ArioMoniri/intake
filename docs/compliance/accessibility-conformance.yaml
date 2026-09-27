@@ -38,12 +38,14 @@ report:
   tree: >-
     `origin/main` at `066fb8a5`, re-assessed on branch `int-226-a11y-conformance`.
     INT-387 re-assessed 3.3.1, 3.3.8 and 4.1.3, and the 3.2.2 remark, against
-    `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`
+    `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`.
+    INT-397 re-assessed 4.1.3 on branch `int-397-status-lines`, built on
+    `int-387-conformance-refresh` at `76d98388`
   assessed_by: >-
     INT-226 engineering pass: automated source assertions, code inspection and
     palette arithmetic. Rows re-assessed since, by the same method: 1.3.4 and
-    1.4.10 (INT-360), 2.2.1 (INT-363), and 3.3.1, 3.3.8, 4.1.3 and the 3.2.2
-    remark (INT-387)
+    1.4.10 (INT-360), 2.2.1 (INT-363), 3.3.1, 3.3.8, 4.1.3 and the 3.2.2
+    remark (INT-387), and 4.1.3 again (INT-397)
   standards: >-
     WCAG 2.2 (W3C Recommendation, 5 October 2023), Level A and AA. EN 301 549
     V3.2.1 (2021-03), clauses 5, 11 and 12 as they apply to a mobile application.
@@ -103,9 +105,10 @@ report:
       error lines added since were silent under VoiceOver, and Supports since
       INT-362 routed every error line through one announcer); 3.3.8 (not
       assessed before, then Does Not Support, and Supports since INT-361 let a
-      delivered code fill the boxes); 4.1.3 (not assessed before, and Partially
-      Supports: INT-362 closed the three lines INT-226 named, and three others
-      are still silent); 3.1.2 (unverified, now Partially Supports); 1.3.5
+      delivered code fill the boxes); 4.1.3 (not assessed before, then
+      Partially Supports because INT-362 closed the three lines INT-226 named
+      and three others stayed silent, and Supports since INT-397 announced
+      those three when they happen); 3.1.2 (unverified, now Partially Supports); 1.3.5
       (partial, now Supports, on a recorded field inventory); 1.4.12 and 2.4.5
       (supported by inspection, now Not Applicable, with the reason in each
       row). Two of INT-144's supporting statements did not hold on 26
@@ -870,7 +873,7 @@ wcag:
   - sc: "4.1.3"
     name: Status Messages
     level: AA
-    status: Partially Supports
+    status: Supports
     tests:
       - "apps/mobile/e2e/a11y.spec.ts::listening / speaking / transcribing are announced, not just animated"
       - "apps/mobile/e2e/a11y.spec.ts::the turn state is announced ONCE — not by a hook and a live region both"
@@ -881,34 +884,37 @@ wcag:
       - "apps/mobile/e2e/a11y.spec.ts::the announcer puts both halves on every line: Android's live region and iOS's announcement"
       - "apps/mobile/src/lib/a11y/announce.test.ts::iOS queues a status behind current speech"
       - "apps/mobile/src/lib/a11y/announce.test.ts::announces once per change — never for an unchanged or an empty message"
+      - "apps/mobile/e2e/a11y.spec.ts::the three outcome lines MC-26 named are found by the walk, and each is announced only as news"
+      - "apps/mobile/e2e/a11y.spec.ts::an outcome line announced on arrival, or not at all, is caught — the near-miss control (INT-397)"
+      - "apps/mobile/e2e/a11y.spec.ts::a line's news is always a transition from useNews — no line is muted with a literal"
+      - "apps/mobile/e2e/a11y.spec.ts::a line that is not news is shown without either half, and turning into news makes it anew (INT-397)"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::a line found standing on arrival is not news — a revisit is silent"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::the outcome arriving in front of the patient is news — just sent, just queued"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::an outcome that arrives behind another screen is not news, then or when the screen returns"
+      - "apps/mobile/src/lib/a11y/announce.test.ts::announces once per change: each new failure is news again, a standing one is not"
+      - "apps/mobile/src/lib/notifications/store.test.ts::while the server has not answered, the save is saving — never failed"
+      - "apps/mobile/src/lib/notifications/store.test.ts::each retry passes through saving, so every failure is its own change"
+      - "apps/mobile/src/lib/consent/store.test.ts::a change the server takes at once is sending, then clear — never held"
+      - "apps/mobile/src/lib/consent/store.test.ts::a retry that fails again is not a new transition"
     manual: [MC-17, MC-26]
-    finding: >-
-      Three status lines that appear after an action are announced on neither
-      platform. They are the notification settings' "not saved yet" line
-      (`me/notifications.tsx`, `notifications.pending`), the review screen's
-      "your note was sent" line (`visits/[visitId]/review.tsx`,
-      `review.sentInfo`) and the consent screens' queued-change note
-      (`me/consents/index.tsx` and `me/consents/[purpose].tsx`,
-      `consent.queue.note`). The automated check does not flag them, because
-      none uses failure copy, wait copy, the error colour or a live region
-      (MC-26).
-    still_open_because: >-
-      INT-362 routed every line its discovery finds through the announcer,
-      which closed the three lines this row named on 26 September: the Doctor
-      Link error, the record card's "not saved" notice and the record-reading
-      line. It left these three out on purpose. `notifications.pending` is also
-      shown while every save is in flight, so announcing it needs a store
-      change that tells in-flight from failed. The other two show saved state
-      on every arrival at the screen, so announcing them needs a way to tell
-      "just happened" from "already so". Neither change has been made (MC-26).
     remarks: >-
       The dialogue's turn state and every line the automated check discovers
       are announced on both platforms without moving focus: errors
       assertively, statuses politely and once per change. That includes the
       records screen's notices, the record-reading line, the voice check, the
-      health section's lines and the kiosk warning. MC-17 is the manual pass
-      that found the original gap. DA-08 confirms each line on a device.
-      INT-144 did not assess this criterion.
+      health section's lines and the kiosk warning. Since INT-397 it also
+      includes the three lines that state how the patient's own action stands
+      and stay on screen afterwards: the notification settings' "not saved
+      yet" line, the "your note was sent" line on the review screen and the
+      visit detail, and the consent screens' queued-change note. Each is
+      announced when its store moves into that state while the screen is in
+      front (a save fails, the note is sent, a consent change cannot reach the
+      server), and is shown without an announcement when the patient comes
+      back to it. The notification store now tells a save in flight from a
+      failed one, so only a failure is announced, as an error. MC-17 and MC-26
+      are the manual passes that found the gaps; the tests cited here
+      supersede them. DA-08 confirms each line on a device. INT-144 did not
+      assess this criterion.
 
 # ----------------------------------------------------------------- EN 301 549
 
@@ -1049,8 +1055,8 @@ en301549:
     name: Change notification
     status: Not Evaluated
     remarks: >-
-      Announcements are declared (see 4.1.3, including its finding). DA-08
-      inspects how state and value changes are notified.
+      Announcements are declared (see 4.1.3). DA-08 inspects how state and
+      value changes are notified.
 
   - clause: "11.5.2.16"
     name: Modifications of states and properties
@@ -1269,8 +1275,11 @@ device_audit:
         `docs/evidence/INT-362.md` (the four screens' errors, the Doctor Link
         error, the record card's notices, the kiosk PIN lines and the write
         failures among them), the dialogue's listening, speaking and transcribing
-        states, and the records upload, scan and reading lines. Record whether
-        the three lines SC 4.1.3's finding names are spoken at all. Once
+        states, and the records upload, scan and reading lines. Send a note,
+        and with the device offline change a consent and a notification
+        setting. Record that each outcome line is spoken once when it happens
+        (the notification line with "Hata" first) and is not spoken when its
+        screen is opened again or while the change is still on its way. Once
         kiosk mode can be armed (the dev build, HB-A3), leave an armed session
         untouched for 40 seconds. Record whether the idle warning is spoken in
         full, whether focus lands on its "Devam edin" button, and whether one

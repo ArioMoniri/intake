@@ -5854,3 +5854,22 @@
     - "the legal statement (`docs/legal/accessibility-statement.md`) is not edited here; its refresh is INT-359 with counsel"
   tests: [tests/legal/test_a11y_report.py]
   legal: "5378,EN301549"
+- id: INT-397
+  epic: E08-mobile
+  phase: P1
+  title: "WCAG 4.1.3: the last three status lines are announced (notifications pending, review sent, consent queue)"
+  # GitHub #659. Found by INT-387 (PR #658, manual check MC-26): INT-362 left
+  # these three lines unannounced on both platforms on purpose, because the
+  # notification store could not tell a save in flight from a failed one and
+  # the other two show saved state on every visit.
+  depends_on: [INT-362, INT-387]
+  labels: [area:mobile, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-397.md
+  acceptance:
+    - "the notifications store distinguishes saving from failed, and only a real failure is announced (assertive), once per change"
+    - "`review.sentInfo` and `consent.queue.note` are announced (polite) only when the state changes in this session (just sent, just queued), never on a revisit"
+    - "INT-362's source-tree discovery test drops these three from its exception list (the list only shrinks); the 4.1.3 row moves to Supports with the tests cited, and MC-26 is retired"
+  tests: [apps/mobile/e2e/a11y.spec.ts, apps/mobile/src/lib/a11y/announce.test.ts]
+  legal: "5378,EN301549"
+  sec_row: "mobile"

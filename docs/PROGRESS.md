@@ -1,5 +1,39 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T16:30:00+03:00 · INT-397 · done (PR open; depends on #658)
+- Goal: acceptance verbatim (GitHub #659):
+  - *"the notifications store distinguishes saving from failed, and only a real failure is announced (assertive), once per change"*
+  - *"`review.sentInfo` and `consent.queue.note` are announced (polite) only when the state changes in this session (just sent, just queued), never on a revisit"*
+  - *"INT-362's source-tree discovery test drops these three from its exception list (the list only shrinks); the 4.1.3 row moves to Supports with the tests cited, and MC-26 is retired"*
+- Plan:
+  - Give each store a typed state: notifications `save` is idle, saving or failed; consent `ConsentOutbox` is clear, sending or held.
+  - A pure `newsStep` makes an outcome news only when the store moves into it while the screen is in front. `useNews` stores it during render.
+  - `AnnouncedText` takes `news`, defaulting to true. While it is false the line keeps its label and has neither half.
+  - The discovery reaches the three keys by name. They were outside the discovered set, not in `ANNOUNCED_ELSEWHERE`.
+- Tests added (32 mobile, 0 net legal):
+  - `announce.test.ts` +6.
+  - `notifications/store.test.ts` 9 (new) and `consent/store.test.ts` 7 (new).
+  - `a11y.spec.ts` +5, plus 5 per-file cases. Its near-miss control catches a plain caption, an arrival announcement, `news={false}`, a non-hook value and a region.
+  - The legal "still open because" test now renders a copy that records a reason.
+  - RED: 31 failed | 131 passed. GREEN: 162 passed. Mutations: 8 of 8 caught.
+- Result:
+  - `make check-ts` exits 0 (mobile 2230 passed, typecheck and lint clean) and `make check-i18n` gives 30 passed.
+  - The report re-renders and `--check` is clean. `tests/legal` 504 and `tests/backlog tests/smoke` 28 pass.
+  - 4.1.3 moves to Supports. WCAG counts: Supports 28 · Partially 4 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing:
+  - 2: only shown words are spoken, with the error word on a real failure only.
+  - 5: no copy changed.
+  - 6: nothing is logged.
+  - 17: `ANNOUNCED_ELSEWHERE` stays at 7 and is pinned as a ceiling.
+  - 8: tests were only added.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - None.
+  - The note's transition is read from its status rather than stored in `NoteState`, which is persisted in the encrypted draft.
+- Blocked on: nothing. DA-08 (the owner, INT-359) hears the lines on devices.
+- Next: once #658 merges, merge main and recompute the three pinned counts.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T14:00:00+03:00 · INT-387 · done (PR open)
 - Goal: acceptance verbatim (GitHub #640):
   - *"each of those rows is re-rated from the tests CI now runs, and cites them; device-only aspects stay with their DA item; the report is re-rendered and `render_a11y_report.py --check` is clean"*
