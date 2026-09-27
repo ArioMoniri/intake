@@ -26,8 +26,8 @@
  * checkmark once stacked, so it never rests on colour alone.
  */
 import { Pressable, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
+import { Icon } from "@/components/Icon";
 import { AppText, useFontScale, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -83,11 +83,7 @@ export function Segmented({ label, options, value, onChange, hint }: SegmentedPr
               styles.option,
               stacked ? styles.optionStacked : styles.optionInline,
               {
-                backgroundColor: stacked
-                  ? theme.surface
-                  : selected
-                    ? theme.cta
-                    : "transparent",
+                backgroundColor: stacked ? theme.surface : selected ? theme.cta : "transparent",
                 borderColor: stacked && selected ? theme.ink : "transparent",
                 opacity: pressed ? motion.press.opacity : 1,
               },
@@ -100,9 +96,7 @@ export function Segmented({ label, options, value, onChange, hint }: SegmentedPr
             >
               {option.label}
             </AppText>
-            {stacked && selected ? (
-              <SymbolView name="checkmark" size={20} tintColor={theme.ink} />
-            ) : null}
+            {stacked && selected ? <Icon name="checkmark" size={20} tintColor={theme.ink} /> : null}
           </Pressable>
         );
       })}

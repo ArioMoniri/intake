@@ -195,3 +195,17 @@ export function deferredReduceMotionSource(
     onForeground: (cb) => later((source) => source.onForeground(cb)),
   };
 }
+
+/*
+ * Nothing above is specific to motion. The store holds any boolean OS
+ * accessibility setting that has a change event and must be re-read on
+ * return to the foreground, and it fails closed to `null` until the OS
+ * answers. Reduce Transparency is the second such setting
+ * (docs/design/apple-native/spec.md §4). It takes the same store under a name
+ * that says so, rather than a copy of the logic. The reduce-motion names stay
+ * as they are, so the one-store guard in e2e/motion.spec.ts still reads them.
+ */
+export type OsSettingSource = ReduceMotionSource;
+export type OsSettingStore = ReduceMotionStore;
+export const createOsSettingStore = createReduceMotionStore;
+export const deferredOsSettingSource = deferredReduceMotionSource;
