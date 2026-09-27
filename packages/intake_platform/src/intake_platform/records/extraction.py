@@ -67,6 +67,7 @@ from clinical_schemas.record_extraction import (
 )
 from clinical_schemas.records import CodeSystem, RecordCode, RecordItemKind
 
+from intake_platform.locale.registry import DEFAULT_LOCALE
 from intake_platform.records.analytes import fold_tr, resolve_analyte
 from intake_platform.records.document import TextRegion
 from intake_platform.records.numbers import parse_printed_magnitude, quantity_atom, resolve_unit
@@ -74,6 +75,7 @@ from intake_platform.records.numbers import parse_printed_magnitude, quantity_at
 __all__ = [
     "ITEM_KEYS",
     "LEVEL_SHAPED_KEYS",
+    "SUMMARY_LOCALE",
     "TOP_LEVEL_KEYS",
     "ConfirmedRecordStore",
     "DocumentExtraction",
@@ -129,6 +131,13 @@ LEVEL_SHAPED_KEYS: Final[frozenset[str]] = frozenset(
 _VALUED_KINDS: Final[frozenset[RecordItemKind]] = frozenset(
     {RecordItemKind.LAB, RecordItemKind.IMAGING, RecordItemKind.PROCEDURE}
 )
+
+#: The reader an item's ``summary`` is written for. The summary is written once
+#: per item, from a Turkish report, and it has two readers: the patient's
+#: confirm card, where the app shows it as it arrived, and the clinician note,
+#: which carries it verbatim as ``imported_objective``. Both read Turkish
+#: (invariant 5), so the number in it has a Turkish decimal comma (INT-385).
+SUMMARY_LOCALE: Final = DEFAULT_LOCALE
 
 
 class RecordSchemaViolation(ValueError):
@@ -188,17 +197,21 @@ class DocumentExtraction:
     units_unchecked: tuple[str, ...]
 
 
-def summarise_item(printed_name: str, magnitude: Decimal | None, unit: str | None) -> str:
+def summarise_item(
+    printed_name: str, magnitude: Decimal | None, unit: str | None, *, locale: str
+) -> str:
     """One line for a confirm card and for the note.
 
-    The number and the unit are one non-breaking atom (invariant 22), and the
-    printed name is carried verbatim: it is what the document said, and this is
-    the string the patient is asked to agree with.
+    The number and the unit are one non-breaking atom (invariant 22), with the
+    decimal point of the ``locale`` it is written for (INT-385;
+    :data:`SUMMARY_LOCALE` for the stored summary). The printed name is carried
+    verbatim: it is what the document said, and this is the string the
+    patient is asked to agree with.
     """
     name = printed_name.strip()
     if magnitude is None:
         return name
-    return f"{name} {quantity_atom(magnitude, unit)}"
+    return f"{name} {quantity_atom(magnitude, unit, locale=locale)}"
 
 
 def _refuse_level_shaped(document: Mapping[str, Any], where: str) -> None:
@@ -374,7 +387,9 @@ def extract_record_items(
         items.append(
             UnconfirmedRecordItem(
                 kind=kind,
-                summary=summarise_item(printed_name, magnitude, printed_unit),
+                summary=summarise_item(
+                    printed_name, magnitude, printed_unit, locale=SUMMARY_LOCALE
+                ),
                 box=box,
                 observed_at=observed_at,
                 code=code,

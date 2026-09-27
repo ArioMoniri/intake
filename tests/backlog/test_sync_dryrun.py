@@ -62,7 +62,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # tracks test_schema.py (175 blueprint + added issues incl. INT-321 + INT-322 + INT-323
     # + INT-317, carried from int-demo by INT-354)
     # tracks test_schema.py (175 blueprint + added issues, latest INT-376)
-    assert len(actions) == 297
+    # + INT-385 (record quantities in the locale's decimal separator, GitHub #635)
+    assert len(actions) == 298
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -85,7 +85,9 @@ def test_ids_unique_and_well_formed() -> None:
     # id is held by no other row on main or any remote branch).
     # + INT-376 (the production API's move to Frankfurt, split out of INT-352
     # because it waits on AWS approving the eu-central-1 GPU quota).
-    assert len(ids) == 297
+    # + INT-385 (record quantities render with the locale's decimal separator;
+    # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
+    assert len(ids) == 298
     import re
 
     for i in ids:
