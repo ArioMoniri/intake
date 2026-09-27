@@ -22,6 +22,13 @@ Three parts of the report are generated rather than written:
   ``apps/mobile/e2e/a11y.spec.ts`` fails on a lock in the app that the
   register does not list.
 
+A row below Supports cannot outlive its fix (INT-387). Its issues are every
+INT id its finding or remarks name, and every backlog issue filed against its
+criterion (a title that opens ``WCAG <sc>:``), read from
+``docs/backlog/issues.yaml``. When one of them is ``done``, the row is
+re-assessed, or it records ``still_open_because:`` with what the fix left
+open, and the report prints that reason in the row.
+
 ``--check`` exits 1 when the source is invalid or the committed report is
 stale; ``tests/legal/test_a11y_report.py`` runs the same checks under pytest.
 """
@@ -42,6 +49,7 @@ REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO / "docs" / "compliance" / "accessibility-conformance.yaml"
 TARGET = REPO / "docs" / "compliance" / "accessibility-conformance-report.md"
 THEME = REPO / "apps" / "mobile" / "src" / "lib" / "theme.ts"
+BACKLOG = REPO / "docs" / "backlog" / "issues.yaml"
 MOBILE = "apps/mobile/"
 
 # The one criterion whose row carries an exception register (INT-360).
@@ -69,6 +77,11 @@ _TITLE = re.compile(
     re.DOTALL,
 )
 _HEX = re.compile(r"(\w+):\s*\"(#[0-9A-Fa-f]{6})\"")
+# An issue id named in a row's prose, and a backlog title that files an issue
+# against one or more criteria ("WCAG 3.3.1 / 4.1.3: …").
+_ISSUE = re.compile(r"\bINT-\d{3,}\b")
+_FILED_AGAINST = re.compile(r"WCAG (\d+\.\d+\.\d+(?:\s*/\s*\d+\.\d+\.\d+)*):")
+REASON = "still_open_because"
 
 
 class ReportError(Exception):
@@ -85,8 +98,30 @@ def load_source(path: Path = SOURCE) -> dict[str, Any]:
     return loaded
 
 
+def load_backlog(path: Path = BACKLOG) -> dict[str, dict[str, Any]]:
+    """The backlog's issues by id, for the status of each issue a row leans on."""
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, list):
+        raise ReportError(f"{path}: not a list of issues")
+    return {str(issue["id"]): issue for issue in loaded}
+
+
 def row_id(row: dict[str, Any]) -> str:
     return str(row["sc"]) if "sc" in row else f"EN {row['clause']}"
+
+
+def issues_of(row: dict[str, Any], backlog: dict[str, dict[str, Any]]) -> list[str]:
+    """The issues a row leans on: every INT id its finding or remarks name, and
+    every backlog issue filed against its criterion (a title opening `WCAG <sc>:`)."""
+    prose = f"{row.get('finding', '')} {row.get('remarks', '')}"
+    linked = set(_ISSUE.findall(prose))
+    sc = row.get("sc")
+    if sc is not None:
+        for iid, issue in backlog.items():
+            filed = _FILED_AGAINST.match(str(issue.get("title", "")))
+            if filed and str(sc) in re.split(r"\s*/\s*", filed.group(1)):
+                linked.add(iid)
+    return sorted(linked)
 
 
 def parse_date(value: object) -> date:
@@ -174,9 +209,13 @@ def en_clause_11(source: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def validate(
-    source: dict[str, Any], *, palette: dict[str, dict[str, str]] | None = None
+    source: dict[str, Any],
+    *,
+    palette: dict[str, dict[str, str]] | None = None,
+    backlog: dict[str, dict[str, Any]] | None = None,
 ) -> list[str]:
     """Every reason the source cannot be rendered as a truthful report."""
+    issues = backlog if backlog is not None else load_backlog()
     problems: list[str] = []
     rows: list[dict[str, Any]] = list(source["wcag"]) + list(source["en301549"])
     checks: dict[str, Any] = source["manual_checks"]
@@ -232,8 +271,37 @@ def validate(
                 f"{rid}: decided by the device audit ({decided[rid]}) but says {status}"
             )
         problems.extend(_lock_problems(row))
+        problems.extend(_staleness_problems(row, issues))
 
     problems.extend(_contrast_problems(source, palette or theme_palette()))
+    return problems
+
+
+def _staleness_problems(row: dict[str, Any], backlog: dict[str, dict[str, Any]]) -> list[str]:
+    """A row below Supports is re-assessed once an issue it leans on is done,
+    or it records what that fix left open (INT-387)."""
+    rid = row_id(row)
+    status = row["status"]
+    has_reason = REASON in row
+    reason = str(row.get(REASON, "")).strip()
+    if status not in BELOW:
+        if has_reason:
+            return [f"{rid}: says {status} but carries {REASON}; only a row below Supports is open"]
+        return []
+    problems: list[str] = []
+    done: list[str] = []
+    for iid in issues_of(row, backlog):
+        if iid not in backlog:
+            problems.append(f"{rid}: cites {iid}, which the backlog does not carry")
+        elif backlog[iid].get("status") == "done":
+            done.append(iid)
+    if done and not reason:
+        problems.append(
+            f"{rid}: says {status} but {', '.join(done)} is done in the backlog — "
+            f"re-assess the row, or record {REASON}"
+        )
+    elif has_reason and not done:
+        problems.append(f"{rid}: {REASON} excuses no done issue this row leans on")
     return problems
 
 
@@ -318,7 +386,10 @@ def _essential_locks(row: dict[str, Any]) -> str:
 
 def _remarks(row: dict[str, Any]) -> str:
     finding = str(row.get("finding", "")).strip()
+    reason = str(row.get(REASON, "")).strip()
     remarks = _cell(row.get("remarks", "")) + _essential_locks(row)
+    if reason:
+        remarks = f"**Still open because:** {_cell(reason)} {remarks}"
     return f"**Finding:** {_cell(finding)} {remarks}" if finding else remarks
 
 
