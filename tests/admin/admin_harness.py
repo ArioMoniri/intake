@@ -32,6 +32,7 @@ from intake_platform.admin import (
     IpAllowList,
 )
 from intake_platform.admin.principal import ClaimsRejected
+from intake_platform.voice_control import VoiceControlStore
 
 #: The tenant deployment map the wiring ships EMPTY (files/08 §2.6): whether
 #: INTAKE is processor or controller for a tenant decides whether a lawful
@@ -86,12 +87,14 @@ def build_admin_wiring(
     *,
     allowlist: str = ALLOWED_CIDRS,
     deployments: Mapping[str, Deployment] | None = None,
+    voice_controls: VoiceControlStore | None = None,
 ) -> AdminWiring:
     return AdminWiring(
         claims=RecordedClaimsVerifier(recorded_claims()),
         ip_allowlist=IpAllowList.from_spec(allowlist),
         four_eyes=FourEyesService(),
         deployments=dict(TEST_DEPLOYMENTS if deployments is None else deployments),
+        voice_controls=voice_controls,
     )
 
 
@@ -138,6 +141,14 @@ BREAK_GLASS_BODY: dict[str, Any] = {
     "reason_class": "patient_support_request",
     "justification": "Patient opened a support ticket about a missing note.",
     "controller_instruction_ref": "ci:tenant-a:2026-09-03:01",
+}
+
+#: INT-182. The voice module's bodies: a closed reason class and a real
+#: explanation (the INT-188 change-reason rule), never patient material.
+VOICE_TENANT = "tenant-a"
+VOICE_REASON: dict[str, Any] = {
+    "reason_class": "incident_mitigation",
+    "justification": "Speech lane degraded on the bridge; typed until it recovers.",
 }
 
 ROUTE_DRIVES: tuple[RouteDrive, ...] = (
@@ -189,6 +200,67 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "GET",
         "/admin/compliance/evidence-export",
         "/admin/compliance/evidence-export",
+        "auditor",
+    ),
+    # INT-182 — the Voice module (files/08 §3 "Voice runtime", §8). The read is
+    # platform scope; the kill switch is tier 1 (sre_oncall alone); release,
+    # profile and canary are tier-2 ceremonies. The harness wires no voice
+    # store, so a permitted role reaches the handler and is answered 503 —
+    # past the guard, audited, and never 403.
+    RouteDrive("GET", "/admin/voice", "/admin/voice", "sre_oncall"),
+    RouteDrive(
+        "POST",
+        "/admin/voice/kill-switch",
+        "/admin/voice/kill-switch",
+        "sre_oncall",
+        {"tenant": VOICE_TENANT, **VOICE_REASON},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/voice/kill-switch/release",
+        "/admin/voice/kill-switch/release",
+        "clinical_lead",
+        {"tenant": VOICE_TENANT, **VOICE_REASON},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/voice/kill-switch/release/{action_id}/approve",
+        f"/admin/voice/kill-switch/release/{ABSENT_ACTION_ID}/approve",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-voice-1"},
+    ),
+    RouteDrive(
+        "PUT",
+        "/admin/voice/profile/{tenant}",
+        f"/admin/voice/profile/{VOICE_TENANT}",
+        "clinical_lead",
+        {"profile": "residency_tr", **VOICE_REASON},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/voice/profile/pending/{action_id}/approve",
+        f"/admin/voice/profile/pending/{ABSENT_ACTION_ID}/approve",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-voice-2"},
+    ),
+    RouteDrive(
+        "PUT",
+        "/admin/voice/canary/{tenant}",
+        f"/admin/voice/canary/{VOICE_TENANT}",
+        "clinical_lead",
+        {"profile": "residency_tr", "weight": 10, **VOICE_REASON},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/voice/canary/pending/{action_id}/approve",
+        f"/admin/voice/canary/pending/{ABSENT_ACTION_ID}/approve",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-voice-3"},
+    ),
+    RouteDrive(
+        "GET",
+        "/admin/voice/pending/{action_id}",
+        f"/admin/voice/pending/{ABSENT_ACTION_ID}",
         "auditor",
     ),
 )

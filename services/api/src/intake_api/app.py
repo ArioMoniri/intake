@@ -34,6 +34,7 @@ from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.secrets import SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
+from intake_platform.voice_control import voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -310,9 +311,18 @@ def _admin_from_env() -> AdminWiring | None:
         # ids only, and never the path's contents (invariant 6)
         logger.warning("admin console unconfigured: the JWKS mirror is absent or unusable")
         return None
+    try:
+        # INT-182: the store the voice runtime reads the kill switch from.
+        # Unset, the voice controls answer 503 rather than writing somewhere
+        # the runtime is not reading; a malformed URL is the same, loudly.
+        voice_controls = voice_control_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("voice controls unconfigured: the store URL is not a redis URL")
+        voice_controls = None
     return AdminWiring(
         claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
+        voice_controls=voice_controls,
     )
 
 

@@ -23,7 +23,11 @@ __all__ = [
     "VENDOR_BREAKER_STATE",
     "VENDOR_BREAKER_TRANSITIONS_TOTAL",
     "VENDOR_FAILOVERS_TOTAL",
+    "VOICE_CONTROL_READ_FAILURES_TOTAL",
+    "VOICE_KILL_SWITCH_FLIPS_TOTAL",
     "VOICE_SESSIONS_METERED",
+    "VOICE_SESSION_ROUTES_TOTAL",
+    "VOICE_SPEECH_CALLS_TOTAL",
     "VOICE_TTS_CHARS",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
@@ -229,4 +233,45 @@ VOICE_SESSIONS_METERED = Counter(
     "voice_sessions_metered_total",
     "Sessions composed with a cost meter, by tenant, profile and branch.",
     ["tenant", "profile", "branch"],
+)
+
+
+# --- the Voice module: routing, the kill switch, speech-call errors (INT-182) -----
+#
+# files/08 §3 "Voice runtime" asks for per-profile metrics and a kill switch
+# that works without a deploy; these four are what make both observable. None
+# is a files/08 §4 id — the INT-100 precedent: catalogued, no ``id``. Every
+# label is a tenant id, a closed enumeration or a registry component name; no
+# session id, no text (invariant 6).
+
+#: One increment per session start, by the profile the runtime routed it to and
+#: why: ``default``, ``canary``, ``kill_switch`` or ``control_unreadable``.
+VOICE_SESSION_ROUTES_TOTAL = Counter(
+    "voice_session_routes_total",
+    "Session starts by tenant, routed profile and route reason.",
+    ["tenant", "profile", "reason"],
+)
+
+#: A live voice session moved to typed by the kill switch's poll
+#: (``switched``), or left in voice because it has no screen (``not_armed``).
+VOICE_KILL_SWITCH_FLIPS_TOTAL = Counter(
+    "voice_kill_switch_flips_total",
+    "Live sessions the kill switch moved to typed, or could not, by tenant and outcome.",
+    ["tenant", "outcome"],
+)
+
+#: The control store could not answer — at a session start (the session went
+#: typed) or on the poll (live sessions kept their last-known state).
+VOICE_CONTROL_READ_FAILURES_TOTAL = Counter(
+    "voice_control_read_failures_total",
+    "Voice control reads that failed, by phase and machine code.",
+    ["phase", "code"],
+)
+
+#: Every ASR or TTS call that reached a wire, by registry component, kind and
+#: outcome — the numerator and denominator of the module's error rate.
+VOICE_SPEECH_CALLS_TOTAL = Counter(
+    "voice_speech_calls_total",
+    "Speech model calls that reached a wire, by component, kind (asr/tts) and outcome.",
+    ["component", "kind", "outcome"],
 )

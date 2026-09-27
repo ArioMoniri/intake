@@ -68,6 +68,7 @@ from intake_api.admin.models_source import (
 )
 from intake_api.admin.ops_console import load_ops_console
 from intake_api.admin.reliability_console import load_reliability_console
+from intake_api.admin.voice_routes import VOICE_HANDLERS
 from intake_api.consent_guard import administrative_action
 from intake_api.db import tenant_session
 from intake_api.errors import (
@@ -388,6 +389,8 @@ _HANDLERS: dict[str, Handler] = {
     "admin.compliance.audit_search.read": _compliance_audit_search,
     "admin.compliance.dsar.read": _compliance_dsar,
     "admin.compliance.evidence.export": _compliance_evidence,
+    # INT-182 — the Voice module; its handlers live beside their composite.
+    **VOICE_HANDLERS,
 }
 
 

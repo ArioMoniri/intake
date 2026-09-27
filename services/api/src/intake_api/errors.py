@@ -49,6 +49,7 @@ __all__ = [
     "unauthorized",
     "unknown_embed_tenant",
     "visit_invalid",
+    "voice_control_refused",
 ]
 
 
@@ -336,6 +337,16 @@ def benchmark_refused(code: str, reason: str) -> HTTPException:
     text: it names an invariant and a blocker id, never a value from the
     request and never anything patient-shaped (invariant 6)."""
     return HTTPException(status_code=409, detail={"error": code, "reason": reason})
+
+
+def voice_control_refused(status: int, code: str) -> HTTPException:
+    """INT-182: the Voice module refused a control change or could not reach
+    its store. 422 — a value it will not hold (a profile that does not exist,
+    a weight outside 0..100, a body field it does not take); 409 — the
+    control's state forbids it (nothing to release, the control moved since
+    the request); 503 — no store wired, or the store unreachable. ``code`` is
+    machine-shaped and echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
 
 
 def break_glass_refused(code: str) -> HTTPException:

@@ -1,5 +1,25 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T04:40:00Z · INT-182 · done (PR open)
+- Goal: acceptance verbatim (GitHub #133) — *"per-profile metrics; kill switch flips tenant to typed without deploy (test)"*; title adds profile switch and canary weights (4-eyes).
+- Plan:
+  - `intake_platform.voice_control`: per-tenant record (kill switch, default profile, canary profile + weight 0..100, revision, changed/approved by) in Redis, written only by `services/api/admin` — not Unleash (inv 34). Unconfigured tenant = typed.
+  - Four `DangerousAction`s: kill switch engage T1 (sre_oncall / clinical_lead / platform_owner); release, default-profile switch, canary T2 (platform_owner/clinical_lead request; a different platform_owner/clinical_lead/qms_owner approves). `VoiceControlGovernor` binds an approval to the revision its brief showed.
+  - API: `GET /admin/voice` composite (sessions by profile × reason, turn latency per profile, ASR/TTS error ratio, INT-100 failovers/breakers, kill-switch activity, controls, pending) + the write routes; one approve route per ceremony.
+  - Runtime: `VoiceSessionRouter` reads the control at every session start and calls the shipped composition roots; a 1 s poll moves live voice sessions to typed via `fall_back_to_typed(OPERATOR_KILL_SWITCH)`; readiness check `voice_controls`. Speech calls counted at the failover ladder (TTS) and `HttpTranscriber` (ASR).
+  - admin-web `/voice`: tiles + four script-free, same-origin-only forms; approval stays API-side (no WebAuthn step-up in the console yet).
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_kill_switch.py` (54): next session typed on the same router; live session typed ≤ 2 000 ms on a fake clock; other tenant untouched; self-approval / second tab / sre_oncall request refused for release, profile and canary (near miss: a distinct second human applies it); stale approval refused without spending the ceremony; profiles other than the two refused; weights -1/101/50.5/"50"/true refused, 0/1/100 accepted.
+  - `tests/admin/test_voice_console.py` (catalogued queries, per-tile unknown, fixture drift gate, route), `tests/voice/test_session_router.py`, `tests/voice/test_speech_call_metrics.py`, RBAC matrix and audit drive rows; `tests/admin/test_voice_governance.py` (45 edge tests, written after green for coverage).
+  - `apps/admin-web/e2e/voice.spec.ts` (36).
+  - RED: pytest collection rc=2 (4 import errors) + 10 failures (speech metrics, readiness); vitest rc=1 (module missing). GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); lanes individually — ruff/format clean (1185 files), `mypy --strict` clean (455 files), whole-tree pytest at the 85 % floor **7604 passed**, 0 failed, 96.05 %; `make safety` rc=0 (voice-runtime 98.60 %); runtime-sim RT-03 ok; admin-web vitest 269, lint, typecheck, `next build` clean. `no_placeholders` (staged), `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, evidence_check, sec-row linkage: OK.
+- Invariants touched and still passing: 4, 6, 9, 13, 15, 16 (Sec-Row admin-console; threat-model row), 17, 19, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none new. Disagreement recorded in the evidence: the brief asked for four-eyes on the kill switch itself; files/08 §0c F17 / §8.2 make it single-key (safe direction) and the spec wins — two keys on every move back toward voice. Reported, not fixed: `apps/admin-web/src/ops/load.ts` reads refusal codes from `detail.error` but the API answers a flat `{"error": …}`.
+- Blocked on: nothing new. Live use needs `INTAKE_VOICE_CONTROL_REDIS_URL` (same Redis in API and runtime), console admission (HB-A16, OIDC), and a WebAuthn step-up in the console for page-side approval.
+- Next: PR `INT-182: admin Voice module — …` (Closes #133, Sec-Row admin-console), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:
