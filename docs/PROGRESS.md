@@ -54,7 +54,78 @@
 - Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
 - Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
 - Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-26T23:20:00Z · INT-352 · done (PR open)
+- Goal: close INT-352 (GitHub #558) by stamping `/version`'s `sbom_digest` on the production API (audit F18), and split the Frankfurt move into INT-376 (#613). Acceptance verbatim:
+  - *"main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"*
+  - *"a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"*
+  - *"the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file; the move to Frankfurt is tracked here and is INT-376"* (rescoped from "and the host moves to Frankfurt when the eu-central-1 request is approved")
+  - *"real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"*
+- Plan:
+  - init.sh and deploy.sh build the api image, then have syft, pinned by digest, write its SPDX SBOM into `/etc/intake-staging/releases/<commit>/`, outside the build context.
+  - The file's sha256 becomes `INTAKE_SBOM_DIGEST`, a required compose interpolation.
+  - The final up is `--no-build`.
+  - smoke.sh reads the SBOM from disk and fails `dev` in any stamp, a digest mismatch, or a different running image.
+- Tests added: `TestSbomStamp` in `tests/infra/test_staging_compose.py` (57 tests), with near-miss negatives:
+  - a syft that exits 0 with empty or non-SPDX output;
+  - a well-formed digest one character off the file's;
+  - the required interpolation, which the no-`dev`-fallback scan must pass.
+  - A docker shim runs the stamp logic without a container runtime.
+  - RED: 43 failed, 201 passed. GREEN: 244 passed. Mutations M1 and M2 killed.
+- Result:
+  - tests/backlog, tests/smoke/test_make_check.py and tests/infra: 648 passed.
+  - tests/docs and the security-gate tests: green.
+  - bash -n and shellcheck: clean. `no_placeholders` OK after staging. `evidence_check` OK.
+  - `make check` was not run whole (check-integration is CI-only). `make safety` and `make security` were not run: no protocol, PolicyGuard or Python security surface changed.
+  - Nothing was deployed. The live stamp is shown by the coordinator's next `deploy.sh` and `smoke.sh` run.
+- Invariants touched and still passing:
+  - **14**: syft is pinned by digest, its licence was verified from the raw LICENSE blob, and it runs offline on a read-only archive without the docker socket.
+  - **15**: `/version` gets all three stamps.
+  - **17**: no placeholder. The build-time value is documented, bound to one call, never exported, and rejected by smoke.
+  - **19**: syft is Apache-2.0.
+- Decisions / ADRs / `00_STATE.md` rows: none. The acceptance's Frankfurt clause is rescoped to INT-376 as the coordinator directed.
+- Blocked on: nothing for this PR. INT-376 waits on AWS quota request `c6c0d271…`. Acceptance 2 names p50, and the Part 1 k6 table has p95 and max only, so the next deploy's k6 run must record the median (evidence Part 3, item 4).
+- Next: PR `INT-352: stamped /version (sbom_digest) on the production API; Frankfurt move split to INT-376` (Closes #558, Sec-Row platform), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-09-27T10:30:00Z · INT-363 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #589):
+  - *"before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"*
+  - *"the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"*
+  - Found by the INT-226 report: the SC 2.2.1 row (MC-08).
+- Plan:
+  - **Pure machine** in `lib/kiosk/kioskState.ts`. `KIOSK_IDLE_WARNING_MS = 20_000` (W, the criterion's floor) and `kioskIdleReducer` / `kioskIdleDue` run `active → warning → wiped`. The warning comes at T − W = 40 s. The grace is counted from when the warning is shown, and extend or any touch restarts the full minute. `startKioskIdleClock` drives the machine on injected timers.
+  - **Adapter.** `nativeKiosk.ts` hands `Date.now` and its timer to the clock and no longer arms its own wipe.
+  - **`KioskGate`.**
+    - It shows an `AnnouncedText tone="warning"` and a "Devam edin" `PrimaryButton` that calls `extend()`.
+    - Focus moves onto the button with `sendAccessibilityEvent(…, "focus")`.
+    - The session behind the warning is hidden from the reader.
+    - `wiped` runs the unchanged `wipeSession()`.
+  - **Announcer.** INT-362's announcer gains a `warning` tone: assertive, and spoken as shown, without "Hata".
+  - **BK13 scan.** It walks all of `src`, `.ts` included. Each timer is either recorded as no time limit, with its reason, or handed to a warning machine.
+- Tests added:
+  - `kioskState.test.ts`: 13, on a fake clock (warn at T − W, no-extend wipe at T, late-timer grace, extend restarts, 12 repeated extends, the clock's reports, stop).
+  - `announce.test.ts`: 4.
+  - `a11y.spec.ts` BK13: 6 replacing 1. Near-miss control: a planted `src/lib` timer, the pre-INT-363 adapter and a timer beside the machine are each caught, and a comment is ignored.
+  - `kiosk.spec.ts`: 5.
+  - RED: 23 failed / 147 passed. GREEN: 170 / 170. Whole mobile suite: 2110 passed (105 files). Mutations M1–M4 were all killed and restored with `cp`, checked by `cmp`.
+- Result:
+  - `make check-ts` green and `make check-i18n` 30 passed.
+  - `tests/legal/test_a11y_report.py` 26 passed; the report is re-rendered and `--check` passes.
+  - `tests/backlog` passed; expo lint and prettier are clean.
+  - `no_placeholders` and `evidence_check` OK after staging.
+  - `check-py` was not run whole, and neither were `make safety` / `make security`: no Python, protocol, triage or security surface changed.
+- Invariants touched and still passing:
+  - **2:** B1, `siz`, calm copy with no number; PolicyGuard records unchanged.
+  - **3:** the wipe path is unchanged and still shreds the drafts.
+  - **5:** the new keys are tr-first with en mirrored.
+  - **6:** nothing is logged.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - W = 20 s leaves T = 60 s (files/10 §4) intact.
+  - The `warning` tone extends INT-362's two-tone contract rather than calling a timeout an error.
+- New patient copy for clinical-reviewer: `kiosk.idle.warning`, `kiosk.idle.extend`, `kiosk.idle.extendHint`.
+- Blocked on: nothing. The device confirmation is a DA-08 step that waits for the kiosk dev build (HB-A3).
+- Next: PR `INT-363: kiosk idle wipe warns first and can be extended (WCAG 2.2.1)` (Closes #589, Sec-Row mobile), left unmerged for review.
 
 ### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
 - Goal: acceptance verbatim (GitHub #538):

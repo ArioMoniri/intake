@@ -1270,4 +1270,8 @@ export const en: Record<MessageKey, string> = {
   "kiosk.tamper.body":
     "This device's kiosk lock is no longer active. Before continuing, staff must re-lock the device, then enter the clinic PIN.",
   "kiosk.privacy.note": "This is a shared device. Your information is not stored here.",
+  "kiosk.idle.warning":
+    "Are you still there? To protect your information, the session will close shortly.",
+  "kiosk.idle.extend": "Continue",
+  "kiosk.idle.extendHint": "Keeps the session open.",
 };

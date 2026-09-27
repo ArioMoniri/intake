@@ -235,11 +235,14 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
     # previsit routing) + INT-317 (previsit output store + hospital read-back,
-    # filed on int-demo and carried to main by INT-354) + INT-382 (a
-    # suppress_slot in any layer that removes a slot a red-flag rule reads is
-    # refused; H-1 of the PR #628 verification); grows only with a stated
-    # reason.
-    assert len(ids) == 297, f"expected 175 blueprint + 122 added issues, got {len(ids)}"
+    # filed on int-demo and carried to main by INT-354); grows only with a
+    # stated reason.
+    # previsit routing) ... + INT-376 (Frankfurt host move, split out of
+    # INT-352; the full list is in tests/backlog/test_schema.py); grows only
+    # with a stated reason.
+    # ... + INT-382 (a suppress_slot in any layer that removes a slot a
+    # red-flag rule reads is refused; H-1 of the PR #628 verification).
+    assert len(ids) == 298, f"expected 175 blueprint + 123 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
