@@ -95,7 +95,9 @@ def test_ids_unique_and_well_formed() -> None:
     # gpu), both split out by INT-124's PR so each delivered row can close.
     # + INT-385 (record quantities render with the locale's decimal separator;
     # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
-    assert len(ids) == 302
+    # + INT-391 (the console accepts every valid WebAuthn credential id; found
+    # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
+    assert len(ids) == 303
     import re
 
     for i in ids:

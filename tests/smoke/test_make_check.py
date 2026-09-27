@@ -249,7 +249,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-124's PR; grows only with a stated reason.
     # + INT-385 (record quantities render with the locale's decimal separator,
     # found by INT-124's PR as GitHub #635); grows only with a stated reason.
-    assert len(ids) == 302, f"expected 175 blueprint + 127 added issues, got {len(ids)}"
+    # + INT-391 (the console accepts every valid WebAuthn credential id, found
+    # by INT-378's PR as GitHub #646); grows only with a stated reason.
+    assert len(ids) == 303, f"expected 175 blueprint + 128 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
