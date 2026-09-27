@@ -95,7 +95,9 @@ def test_ids_unique_and_well_formed() -> None:
     # gpu), both split out by INT-124's PR so each delivered row can close.
     # + INT-385 (record quantities render with the locale's decimal separator;
     # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
-    assert len(ids) == 302
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
+    assert len(ids) == 303
     import re
 
     for i in ids:

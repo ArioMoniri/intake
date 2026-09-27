@@ -14,29 +14,28 @@ permission nothing here can exercise is a field that will eventually be read
 as an instruction.
 
 **Numbers.** Invariant 22's display half: ``useGrouping:false`` for every
-clinical quantity, and number + unit as one non-breaking atom.
+clinical quantity, number + unit as one non-breaking atom, and the decimal
+point of the reader's locale. :func:`render_measure` writes through
+:func:`clinical_schemas.quantity.quantity_atom`, the one renderer the records
+confirm card, the clinician note, the patient summary and the FHIR narrative
+also write through (INT-386). Before INT-386 this was the fourth private copy
+of that rule (docs/evidence/INT-096.md, finding F2), and all four wrote a full
+stop for a Turkish reader, who takes a full stop as grouping.
 
-⚠ **A recorded defect, not a decision taken here.** This is the *fourth*
-private implementation of "how a clinical quantity is written" on this tree —
-``clinical_schemas.mappers.document``, ``note.composer`` and
-``summary.builder`` each keep their own ``_NBSP`` and their own format call,
-and no issue owns unifying them. :func:`render_measure` deliberately produces
-the **same bytes** as those three for the same input, so the fourth copy
-cannot be the one that starts printing ``1.500``; the finding is recorded in
-docs/evidence/INT-096.md rather than fixed here, because a single renderer
-would touch the note and the patient summary and belongs to whichever issue
-owns them. In particular the decimal separator is left exactly as the other
-three print it: files/00 §2 settles grouping and the atom, not the separator,
-and diverging here alone would create the drift this note exists to prevent.
+This module is for the screen only. The rail is the typed profile's channel
+for a number precisely because nothing is spoken on it; the spoken profile's
+numbers are the compiler's Turkish orthography, and ``talker.speech`` refuses a
+digit on the way to TTS. No module on that path loads this one
+(tests/records/test_quantity_render.py).
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from decimal import Decimal
-from typing import Final
 
 from clinical_schemas.common import FrozenModel, JsonValue
+from clinical_schemas.quantity import NBSP, quantity_atom
 from protocols.triage.context import canonical_scalar
 from pydantic import Field
 
@@ -44,14 +43,6 @@ from intake_voice_runtime.steps import NextStep, StepKind
 from intake_voice_runtime.typed.affordance import AffordanceKind, SlotFacts
 
 __all__ = ["NBSP", "TypedPrompt", "numeric_rail", "render_measure", "typed_prompt"]
-
-NBSP: Final[str] = " "
-"""The character that keeps a magnitude and its unit on one line.
-
-files/00 §2 rules that *"number + unit is one non-breaking atom"*. A normal
-space lets a renderer wrap ``2,5`` onto one line and ``mg`` onto the next, and
-a dose read without its unit is a dose read wrongly.
-"""
 
 
 class TypedPrompt(FrozenModel):
@@ -90,26 +81,33 @@ def typed_prompt(step: NextStep, facts: SlotFacts) -> TypedPrompt:
     )
 
 
-def render_measure(value: Decimal | int, unit: str | None) -> str:
-    """One clinical quantity, written the one way it may be written.
+def render_measure(value: Decimal | int, unit: str | None, *, locale: str) -> str:
+    """One clinical quantity, written the one way it may be written, for a
+    reader of ``locale``.
 
-    No digit grouping, no exponent, and the unit joined by a non-breaking
-    space so the pair cannot be split by a line break (invariant 22).
-    ``format(..., "f")`` is what removes the exponent: ``Decimal("1E+3")``
-    would otherwise render as ``1E+3``, and a dose in scientific notation on a
-    patient's screen is unreadable in the way that gets guessed at.
+    No digit grouping, no exponent, the locale's decimal point, and the unit
+    joined by a non-breaking space so the pair cannot be split by a line break
+    (invariant 22). ``Decimal("1E+3")`` is written ``1000``: a dose in
+    scientific notation on a patient's screen is unreadable in the way that
+    gets guessed at. ``locale`` has no default, and a locale with no recorded
+    decimal point raises
+    :class:`~clinical_schemas.quantity.QuantityLocaleUnknown` rather than being
+    written with a guess.
     """
-    rendered = format(value, "f") if isinstance(value, Decimal) else str(value)
-    return rendered if unit is None else f"{rendered}{NBSP}{unit}"
+    magnitude = value if isinstance(value, Decimal) else Decimal(value)
+    return quantity_atom(magnitude, unit, locale=locale)
 
 
-def numeric_rail(values: Mapping[str, JsonValue], facts: Mapping[str, SlotFacts]) -> dict[str, str]:
+def numeric_rail(
+    values: Mapping[str, JsonValue], facts: Mapping[str, SlotFacts], *, locale: str
+) -> dict[str, str]:
     """Every bound numeric value, rendered for the "Anlattıklarınız" rail.
 
     files/03 §4.6 invariant 30 pairs each spoken number with an ``inline``
     render on the same ``work_id``. In typed nothing is spoken, so the rail is
     not a counterpart — it is the only channel the number has, and it is
-    rendered by :func:`render_measure` for exactly the same reason.
+    rendered by :func:`render_measure` for exactly the same reason, in the
+    session's ``locale``.
 
     A value that does not canonicalise to a magnitude is skipped rather than
     coerced: ``protocols.triage.context.canonical_scalar`` is the repository's
@@ -124,5 +122,5 @@ def numeric_rail(values: Mapping[str, JsonValue], facts: Mapping[str, SlotFacts]
         scalar = canonical_scalar(value)
         if not isinstance(scalar, Decimal):
             continue
-        rail[step_id] = render_measure(scalar, slot.unit)
+        rail[step_id] = render_measure(scalar, slot.unit, locale=locale)
     return rail
