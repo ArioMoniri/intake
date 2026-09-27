@@ -5534,7 +5534,8 @@
   title: "Continuous dependency security updates (Renovate) for every lockfile"
   depends_on: [INT-215]
   labels: [area:infra, risk:security]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-368.md
   acceptance:
     - "a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"
   tests: [tests/ci/test_dependency_updates.py]
