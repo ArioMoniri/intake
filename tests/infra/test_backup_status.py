@@ -322,6 +322,24 @@ class TestDrillRecord:
             drill_record(_measurements(target="laptop"), finished_at=NOW)
 
 
+class TestRepositoryHeaders:
+    def test_every_file_with_the_cipher_header_is_encrypted(self) -> None:
+        lines = "Salted__ archive/intake/archive.info\nSalted__ backup/intake/backup.info\n"
+        assert status.repository_encrypted(lines)
+
+    @pytest.mark.parametrize(
+        "lines",
+        [
+            "Salted__ archive/intake/archive.info\n[backrest backup/intake/backup.info\n",
+            "Salted__ a\n backup/intake/empty-file\n",
+            "",
+        ],
+        ids=["one-plaintext-file", "one-empty-file", "no-file-at-all"],
+    )
+    def test_anything_else_is_not(self, lines: str) -> None:
+        assert not status.repository_encrypted(lines)
+
+
 class TestRowCounts:
     def test_counts_parse_and_anything_else_is_dropped(self) -> None:
         raw = 'sessions:3\nnotes:2\nERROR:  relation "x" does not exist\nbad line\n: 4\nx y:5\n'

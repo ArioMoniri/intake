@@ -85,6 +85,7 @@ if [[ -z ${OPENBAO_TOKEN:-} ]]; then
 fi
 export OPENBAO_TOKEN
 
+# shellcheck disable=SC2329  # invoked by the EXIT trap below
 ci_teardown() {
   # this run's scratch containers and volumes only, by their label
   docker ps -aq --filter "label=org.intake.restore-drill=${DRILL_LABEL}" | xargs -r docker rm -f >/dev/null 2>&1 || true
@@ -128,10 +129,14 @@ drill_primary_exec pgbackrest "--stanza=${DRILL_STANZA}" stanza-create
 drill_primary_exec pgbackrest "--stanza=${DRILL_STANZA}" check
 drill_primary_exec pgbackrest "--stanza=${DRILL_STANZA}" --type=full backup
 
-run_restore_drill
-drill_log "evidence: $(ls "$EVIDENCE_DIR"/restore-drill-*.json)"
-cat "$EVIDENCE_DIR"/restore-drill-*.json
+drill_rc=0
+run_restore_drill || drill_rc=$?
+# the evidence record, pass or fail: it is the drill's output of record
+for record in "$EVIDENCE_DIR"/restore-drill-*.json; do
+  [[ -f $record ]] && cat "$record"
+done
 
-if [[ $CHARACTERISE == yes ]]; then
+if [[ $CHARACTERISE == yes && -n ${DRILL_WORK:-} ]]; then
   drill_characterise_erasure_window
 fi
+exit "$drill_rc"

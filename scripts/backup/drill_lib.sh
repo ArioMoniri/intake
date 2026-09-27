@@ -90,13 +90,14 @@ drill_free_bytes() {
 }
 
 drill_repository_headers() {
-  # the first eight bytes of every repository file, one line each: an
-  # encrypted repository answers "Salted__" for all of them. File names are
-  # never printed.
+  # "<first eight bytes> <path in the repository>" for every repository file:
+  # an encrypted repository answers "Salted__" for all of them. The paths are
+  # pgBackRest's own names (stanza, archive id, WAL segment, backup label),
+  # never data.
   docker run --rm --network none -u postgres \
     -v "${DRILL_REPO_VOLUME}:/var/lib/pgbackrest:ro" \
     --entrypoint sh "$DRILL_IMAGE" -c \
-    'find /var/lib/pgbackrest -type f | head -n 200 | while IFS= read -r f; do head -c 8 "$f" | tr -c "[:alnum:]_" "?"; printf "\n"; done'
+    'cd /var/lib/pgbackrest && find . -type f | head -n 500 | while IFS= read -r f; do printf "%s %s\n" "$(head -c 8 "$f" | tr -c "[:alnum:]_" "?")" "${f#./}"; done'
 }
 
 drill_restore_to() {
@@ -222,6 +223,9 @@ run_restore_drill() {
 
     # 5. the repository is ciphertext
     drill_repository_headers >"$work/repo_check.txt" || rc=$?
+    if grep -v '^Salted__ ' "$work/repo_check.txt" >&2; then
+      drill_log "the repository files above do not begin with the cipher header"
+    fi
 
     # 6-8. restore, replay, promote: the observed RTO
     restore_start=$(date +%s)

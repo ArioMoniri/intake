@@ -215,9 +215,13 @@ def parse_row_counts(raw: str) -> dict[str, int]:
 
 
 def repository_encrypted(header_lines: str) -> bool:
-    """Every sampled repository file begins with the salted-cipher header."""
-    lines = [line for line in header_lines.splitlines() if line]
-    return bool(lines) and all(line == CIPHER_MAGIC for line in lines)
+    """Every repository file begins with the salted-cipher header.
+
+    Each line is ``<first eight bytes> <path in the repository>``; only the
+    first field is judged, and a repository with no file is not encrypted.
+    """
+    headers = [line.split(" ", 1)[0] for line in header_lines.splitlines() if line.strip()]
+    return bool(headers) and all(header == CIPHER_MAGIC for header in headers)
 
 
 def _number(raw: object) -> float | None:
