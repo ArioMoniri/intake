@@ -148,11 +148,15 @@ describe("admission (admin OIDC role; HB-A16 fails closed)", () => {
     expect(calls[0]!.url).toEqual(`${API}/admin/ops`);
   });
 
+  // INT-384: the bodies are the flat `{"error": <code>}` the API's exception
+  // handler serves for every refusal (`intake_api.app`, `_machine_readable_errors`;
+  // tests/admin/test_rbac_matrix.py asserts `response.json()["error"]`), with the
+  // codes the admin gate raises (`intake_api.admin.deps`, `intake_api.errors`).
   it.each([
-    [401, { detail: { error: "unauthorized" } }, "token_refused"],
-    [403, { detail: { error: "role_not_permitted" } }, "role_not_permitted"],
-    [403, { detail: { error: "source_ip_refused" } }, "source_ip_refused"],
-    [503, { detail: { error: "admin_console_unconfigured" } }, "console_unconfigured"],
+    [401, { error: "unauthorized" }, "token_refused"],
+    [403, { error: "forbidden" }, "role_not_permitted"],
+    [403, { error: "source_ip_refused" }, "source_ip_refused"],
+    [503, { error: "admin_console_unconfigured" }, "console_unconfigured"],
   ])("a %i from the admin gate is a refusal, not a page (%j)", async (status, body, reason) => {
     const { state, calls } = await load({ "/admin/ops": { status, body }, ...healthRoutes() });
     expect(state).toEqual({ kind: "not_admitted", reason });
@@ -161,6 +165,51 @@ describe("admission (admin OIDC role; HB-A16 fails closed)", () => {
     const page = html(state);
     expect(page).not.toContain("data-tile");
     expect(page).toContain(`data-refusal="${reason}"`);
+  });
+
+  it("a flat 403 source_ip_refused renders source_ip_refused, not role_not_permitted", async () => {
+    const { state } = await load({
+      "/admin/ops": { status: 403, body: { error: "source_ip_refused" } },
+      ...healthRoutes(),
+    });
+    expect(state).toEqual({ kind: "not_admitted", reason: "source_ip_refused" });
+    const page = html(state);
+    expect(page).toContain('data-refusal="source_ip_refused"');
+    expect(page).not.toContain('data-refusal="role_not_permitted"');
+  });
+
+  // Near-misses of the case above: each body is one step from the API's flat
+  // `{"error": "source_ip_refused"}`, and none of them may be read as it. A 403
+  // stays a refusal whatever its body says; only the reason falls back.
+  it.each([
+    [
+      "the FastAPI default wrapper the API never serves",
+      403,
+      { detail: { error: "source_ip_refused" } },
+    ],
+    ["the code under another key", 403, { code: "source_ip_refused" }],
+    ["a code that only starts like the gate's", 403, { error: "source_ip_refused_v2" }],
+    ["the code in a list, not a string", 403, { error: ["source_ip_refused"] }],
+  ])("near-miss (%s) is role_not_permitted", async (_case, status, body) => {
+    const { state, calls } = await load({ "/admin/ops": { status, body }, ...healthRoutes() });
+    expect(state).toEqual({ kind: "not_admitted", reason: "role_not_permitted" });
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual(["/admin/ops"]);
+  });
+
+  it.each([
+    ["the IP code at a 500", 500, { error: "source_ip_refused" }],
+    ["the IP code at a 503", 503, { error: "source_ip_refused" }],
+    ["the unconfigured code at a 500", 500, { error: "admin_console_unconfigured" }],
+    [
+      "a 503 in the wrapper the API never serves",
+      503,
+      { detail: { error: "admin_console_unconfigured" } },
+    ],
+  ])("near-miss (%s) is api_unreachable, not a refusal", async (_case, status, body) => {
+    const { state, calls } = await load({ "/admin/ops": { status, body }, ...healthRoutes() });
+    expect(state).toEqual({ kind: "unavailable", reason: "api_unreachable" });
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual(["/admin/ops"]);
+    expect(html(state)).not.toContain("data-tile");
   });
 
   it("an unconfigured API base admits nobody (no default origin is guessed)", async () => {

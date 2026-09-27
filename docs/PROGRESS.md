@@ -1,5 +1,19 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-09-27T01:40:00Z · INT-384 · done (PR open)
+- Goal: acceptance verbatim (GitHub #631):
+  - *"errorCode reads the top-level error key the API's exception handler serves ({"error": <code>}), not body.detail.error"*
+  - *"the refusal fixtures in apps/admin-web/e2e/ops.spec.ts and overview.spec.ts use the flat bodies and the codes the admin gate raises (unauthorized, forbidden, source_ip_refused, admin_console_unconfigured)"*
+  - *"a near-miss test proves a flat {"error":"source_ip_refused"} 403 renders source_ip_refused, and bodies one step away (nested wrapper, other key, near code, non-string, wrong status) do not"*
+- Plan: read the flat `error` key in `ops/load.ts` `errorCode()`, and drop the nested read, since the API never serves it. Move both specs' refusal tables to the bodies `_machine_readable_errors` serves. Pin the wrapper shape as a near-miss so it cannot come back.
+- Tests added: `e2e/ops.spec.ts` gets 1 positive and 8 near-misses: 4 bodies one step from the flat code, which stay `role_not_permitted`, and 4 wrong-status or wrapper cases, which are `api_unreachable`. Both refusal tables are now flat, and `/overview` asserts `data-refusal`. RED: 7 failed / 90 passed (source_ip_refused → role_not_permitted; admin_console_unconfigured → api_unreachable, on both pages). GREEN: 97/97. A mutation that re-adds the `detail.error` fallback is killed by 2 tests.
+- Result: admin-web lint, typecheck and test (242) green; backlog + smoke 28 passed; ruff clean; `no_placeholders`, `phi_scan`, `claims_scan` and sec-row linkage OK after staging. `make check` was not run whole (check-integration is CI-only, and only admin-web is installed here). `make safety` is unaffected.
+- Invariants touched and still passing: 6 (codes only), 8 (tests only added), 16 (Sec-Row admin-console), 17.
+- Decisions: none new. INT-182's `/voice` (unmerged, on `int-182-voice-module`) goes through the same `admit()`, so it gets the fix on rebase and needs no change of its own. Pins 297 → 298 (after merging main, which added INT-376).
+- Blocked on: nothing.
+- Next: merge promptly, because the three pinned counts move with every backlog merge.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T02:00:00Z · INT-181 · done
 - Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
 - Plan:

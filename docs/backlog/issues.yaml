@@ -5688,3 +5688,17 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-384
+  epic: E12-admin
+  phase: P1
+  title: "Admin console reads the API's flat refusal code, so an IP or unconfigured refusal is named as itself"
+  depends_on: [INT-351]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-384.md
+  acceptance:
+    - "errorCode reads the top-level error key the API's exception handler serves ({\"error\": <code>}), not body.detail.error"
+    - "the refusal fixtures in apps/admin-web/e2e/ops.spec.ts and overview.spec.ts use the flat bodies and the codes the admin gate raises (unauthorized, forbidden, source_ip_refused, admin_console_unconfigured)"
+    - "a near-miss test proves a flat {\"error\":\"source_ip_refused\"} 403 renders source_ip_refused, and bodies one step away (nested wrapper, other key, near code, non-string, wrong status) do not"
+  tests: [apps/admin-web/e2e/ops.spec.ts, apps/admin-web/e2e/overview.spec.ts]
+  sec_row: "admin-console"
