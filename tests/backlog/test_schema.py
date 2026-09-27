@@ -82,6 +82,8 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-408 (workers-tier SLO targets, split out of INT-021; the owner's).
     # + INT-398..400 (split out of INT-122: the document-engine choice, the
     # real e-Nabiz/MHRS samples, the on-device MHRS date-order defect).
+    # + INT-412 (Apple-native chrome: symbol registry, Liquid Glass, icon proposal).
+    # + INT-413 (counsel drafts for the open legal texts; never served).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -124,7 +126,13 @@ def test_ids_unique_and_well_formed() -> None:
     # consistency guard; GitHub #655, carried by its own PR).
     # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
     # step with rows; found by INT-396, GitHub #675).
-    assert len(ids) == 319
+    # + INT-409 (Vizitlerim reads "today" from an injected clock in the
+    # Europe/Istanbul day instead of a date pinned in every build; found by
+    # INT-179's close-out, GitHub #688).
+    # + INT-410 (the synthetic seed accounts leave the release bundle, proven
+    # over the production export; audit F30, found by INT-179's close-out,
+    # GitHub #689).
+    assert len(ids) == 323
     import re
 
     for i in ids:

@@ -52,6 +52,32 @@
 - Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-09-27T14:00:00+03:00 · INT-333 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #532):
+  - *"every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"*
+  - *"ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"*
+  - *"ON_SITE never mounts a 112 control even transiently (invariant 21); no RED register permits a haptic"*
+  - *"a guard pins the list of RED surface files and forbids any animation API, haptics, Modal or router call on their first-paint path"*
+- Plan: a pure `lib/motion/red.ts` (presentation mode, literal-typed zero motion, location affordances, yields keyed on the mode) and a MOTION-4 source guard that pins the six RED-path files. ADR-033 is Proposed, so Q1, Q2 and Q4 ship in their recorded fail-closed defaults; Q4's default is also files/02 §5.3's action table.
+- Tests added (with the near-miss negative for the safety rule): `red.test.ts` (13, including an ON_SITE presentation built round `resolveRed`'s clamp) and two `e2e/motion.spec.ts` guards. RED: the module missing and 2 guards failing. GREEN: 25/25, whole mobile suite 2275. Mutants: 8 of 8 killed.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass; `no_placeholders` after staging OK. `make check` not run whole (check-integration is CI-only; no Python change).
+- Invariants touched and still passing: 21 (no 112 under ON_SITE, none mounted then removed under UNKNOWN), 9 (the RED path waits on nothing), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 stays Proposed.
+- Blocked on: nothing. INT-135 consumes the contract and carries the device measurement.
+- Next: PR `INT-333: Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic` (Closes #532, Sec-Row triage).
+
+### 2026-09-27T14:30:00+03:00 · INT-334 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #533):
+  - *"one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"*
+  - *"rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"*
+- Plan: a pure reducer `lib/motion/arbiter.ts` (`arbitrate`, `release`, `windowOpen`, `invalidate`, `flush`) over the named order `red > yellowPill > workChip > railCommit > content > ambient`: snap, never queue; hold, never rest; the window shut while listening or while the composer has focus. No consumer is wired (INT-337 wires the dialogue).
+- Tests added: `arbiter.test.ts` (15, including a 5,000-step seeded property test and near-miss controls for equal priority and an unfocused draft). RED: the module missing. GREEN: 15/15. Mutants: 11 of 11 killed.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass; `no_placeholders` after staging OK. `make check` not run whole (check-integration is CI-only; no Python change).
+- Invariants touched and still passing: 9 ("preempt" is RED's alone), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 stays Proposed; none of its open questions touches the arbiter.
+- Blocked on: nothing.
+- Next: PR `INT-334: Motion: arbiter and commit windows (pure)` (Closes #533, Sec-Row mobile).
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
@@ -2827,3 +2853,50 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — where does continuous delivery run (a cluster with Argo CD and Rollouts), or is `deploy.sh` the release path, in which case rollback becomes a gated redeploy? Nearest row HB-I13; a CD-tier row is the coordinator's to allocate (blockers.md "INT-187").
 - Next: PR `INT-187: admin CI/CD & releases module — runs, gates, releases, deploy state and change freeze` (Closes #138, Sec-Row cicd), unmerged for review.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T12:40:00+03:00 · INT-179 · done (PR open, not merged)
+- Goal: close out the row. Acceptance verbatim: *"one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"*. PR #200 merged on 27 Aug and closed #201, the only copy of the issue, but the row stayed `doing`. INT-396 (PR #661, merged at `2f75900f` while this ran) flipped it to `done` on closure alone. This close-out supplies the behavioural audit.
+- Plan: audit each clause against main `0880cc88`, with a file and a test for each. Read "fixture data" per invariant 17: the shipped app must not run on fixtures.
+- Tests added: none, since the close-out adds no code. Five mutants (send, scope filter, resume, progress, a seed import into review) were each killed by the clause's own tests.
+- Result: 11 of 11 clauses met; nothing built, nothing held.
+  - `make check-ts` green (mobile 2260/2260). tests/backlog, tests/mobile and tests/release: 105 passed.
+  - no_placeholders passed after staging; evidence_check passed.
+  - `make check` was not run whole (no Python change; check-integration runs in CI only).
+- Invariants touched and still passing: 2, 5 and 17 were read only; nothing changed.
+- Decisions / ADRs / `00_STATE.md` rows: none. The row's `done` + `evidence:` came from INT-396. After rebasing onto `2f75900f`, this PR's copy of that flip was identical, so issues.yaml and files/11 carry no diff.
+- Blocked on: nothing blocks the issue. Recorded outside the acceptance in docs/evidence/INT-179.md:
+  - audit F11: the typed intake asks unsigned neutral packs until HB-C1;
+  - audit F30: the seed module is still bundled;
+  - `TODAY_FIXTURE` pins Vizitlerim's "today" to 2026-08-27 in release builds, and no row owns it.
+- Next: PR `INT-179: mobile flow shells — close-out` (Closes #201, Sec-Row intake-typed), left unmerged.
+
+### 2026-09-27T12:00:00Z · INT-257 · done (branch pushed; no GitHub issue exists, so no PR yet)
+- Goal: acceptance verbatim — *"every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"* and *"OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"*.
+- Plan: read the OPT 1.4 schema rather than recall it.
+  - openEHR ITS-XML tag `Release-1.0.2` (commit f7a93777), `components/ALL/*.xsd`, is vendored byte-for-byte with its Apache-2.0 LICENSE under `tests/fixtures/openehr/its-xml-Release-1.0.2/` and digest-pinned. `C_OBJECT` makes `rm_type_name, occurrences, node_id` all mandatory, which corrects INT-032's "optional" claim. `C_ATTRIBUTE` needs `existence`, and `C_MULTIPLE_ATTRIBUTE` needs `cardinality`.
+  - The OPT is re-authored to the schema's element order. Every value is read off a source: root 1..1; `content` existence 0..1 and cardinality {0..*; ordered; non-unique} from RM 1.0.2 `List<CONTENT_ITEM>`; content roots 0..*, because the parent composition archetype that would state it is local and unauthored (HB-C12), the four CKM entry archetypes that exist carry no root occurrences, and the RM leaves content unbounded.
+  - `node_id` is present and empty. EHRbase's `OPTParser` (SDK v2.35.0, `buildNode` line 1266) dereferences the terminology for any non-blank id, and the template carries none.
+  - `OPT_SHA256` goes c72247ab… → 5ad266b4…. The patched fixture is deleted, and the integration test uploads the committed bytes through the production client with a status-recording transport.
+- Tests added (with the near-miss negative for any safety rule): `tests/protocols/test_opt_schema.py` (12).
+  - Near-miss controls on the committed bytes: without one `occurrences` the schema rejects it; without `cardinality` it rejects it; with the root code as a node id the schema accepts it but the catalogue guard flags it, and with a `term_definitions` entry the guard accepts it.
+  - The integration test's "rejected today" case flips to `test_the_committed_template_uploads_with_201`. The fixture-identity test goes with the fixture (INT-032 prescribed both).
+  - RED: 8 failed / 4 passed on the INT-041 bytes (XSD line 83 `archetype_id` where `node_id` was expected), then the pin bit (OptError on 5ad266b4 vs c72247ab). GREEN: 26 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `ruff` and `ruff format` are clean, and `mypy --strict` is clean (485 files).
+  - check-py main line: 8514 passed, 96.28 % (≥ 85). The 4 `test_deid_ner` failures are "NER model missing" in a fresh worktree and pass against the pinned artefact.
+  - Protocols lane: 97.14 % (≥ 95), 1184 passed. Schemas lane: 91.76 % (≥ 90).
+  - `make safety`: exit 0 (18/18 mutations).
+  - Licence gate OK. `osv-scanner` on uv.lock clean. PHI scan OK. `no_placeholders` OK after staging.
+  - The live 201 is CI-only: `check-integration` needs EHRbase and there is no container runtime here. It is argued element-by-element from the EHRbase 2.35.1 / SDK 2.35.0 source in the evidence, and first observed on the PR's CI run.
+- Invariants touched and still passing:
+  - **6**: synthetic payloads only.
+  - **14**: vendored schema digest-pinned; new dev dependency licence-checked and OSV-clean.
+  - **17**: no skip or placeholder; the one removed test is accounted for.
+  - **19**: lxml BSD-3-Clause and ITS-XML Apache-2.0, both read from the raw blob.
+  - **20**: no claims.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `lxml>=6.1` is added to the dev group, test-only.
+  - Found, not fixed (HB-C12(a)): of the nine archetype ids, only four exist at the transcribed id and version in the CKM mirror (5cb099fa). symptom_sign is a CLUSTER.v2, adverse_reaction_risk is v2, PHQ-9 is `phq_9.v0`, GAD-7 is `gad_7_score.v0`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the coordinator must file the GitHub issue for INT-257 (none exists) before the PR can say `Closes #n`. No HB row.
+- Next: file the issue, then open the PR `INT-257: the openEHR OPT carries occurrences and validates against the OPT 1.4 schema` (Sec-Row clinical-core) and watch `check-integration` for the 201.
+- LOOP_STATUS: CONTINUE

@@ -384,11 +384,12 @@
   title: "openEHR OPT: the committed template has no occurrences and a live CDR rejects it"
   depends_on: [INT-032]
   labels: [area:data]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-257.md
   acceptance:
     - "every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"
     - "OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"
-  tests: [tests/integration/test_ehrbase_roundtrip.py]
+  tests: [tests/integration/test_ehrbase_roundtrip.py, tests/protocols/test_opt_schema.py]
   sec_row: "clinical-core"
 - id: INT-033
   epic: E02-data
@@ -4864,7 +4865,8 @@
   labels:
   - area:records
   - area:api
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-313.md
   acceptance:
   - 'a route publishes extracted items for a document the patient owns, scoped
     by consent and audited on every read like every other clinical read
@@ -5355,7 +5357,8 @@
   title: "Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic"
   depends_on: [INT-330, INT-332]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-333.md
   acceptance:
     - "every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"
     - "ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"
@@ -5369,7 +5372,8 @@
   title: "Motion: arbiter and commit windows (pure)"
   depends_on: [INT-333]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-334.md
   acceptance:
     - "one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"
     - "rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"
@@ -6248,3 +6252,67 @@
     - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
   tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
   sec_row: "mobile"
+- id: INT-409
+  epic: E08-mobile
+  phase: P1
+  title: "The visits list uses the real date, not a pinned TODAY_FIXTURE, in every build"
+  # GitHub #688. Found by INT-179's close-out (PR #687): Vizitlerim pinned
+  # "today" to one date in every build, release included, so the upcoming/past
+  # split and the INT-370 calendar were wrong for every real patient. The
+  # issue names src/app/(tabs)/visits/visits.test.ts; a .test.ts under src/app
+  # is an expo-router route and breaks the release export, so the tests sit in
+  # src/lib and e2e (docs/evidence/INT-409.md).
+  depends_on: [INT-370]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-409.md
+  acceptance:
+    - "\"today\" comes from an injectable clock (the device date in the app's time zone, Europe/Istanbul for date boundaries); tests inject a fixed clock; no build contains a pinned date"
+    - "a test fails if any source under `apps/mobile/src` (outside tests and fixtures) pins a calendar date constant used as \"now\", with a near-miss control"
+  tests: [apps/mobile/src/lib/clock.test.ts, apps/mobile/e2e/pinnedToday.spec.ts]
+- id: INT-410
+  epic: E08-mobile
+  phase: P1
+  title: "Release bundles carry no synthetic seed accounts (audit F30)"
+  # GitHub #689. Found by INT-179's close-out (PR #687); production audit F30.
+  # The seed rendered only under __DEV__ but was imported statically, and Metro
+  # keeps a statically imported module, so every synthetic account shipped in
+  # the release bundle. The production export is searched in check-ts
+  # (releaseBundle.spec.ts, which has Node); the named pytest walks the release
+  # import graph in check-py, which has none (docs/evidence/INT-410.md).
+  depends_on: [INT-130]
+  labels: [area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-410.md
+  acceptance:
+    - "the seed accounts and their fixtures live behind a dev-only module that the release bundle excludes (a lazy import in a `__DEV__` branch the bundler strips, or a dev-only entry); a bundle test over the production export proves no seed identifier, name or fixture string is present, with a near-miss control where a planted seed string in a release path fails"
+    - "invariant 17: no demo data outside tests or fixtures reaches a release build"
+  tests: [tests/release/test_release_bundle_has_no_fixtures.py, apps/mobile/e2e/releaseBundle.spec.ts]
+- id: INT-412
+  epic: E08-mobile
+  phase: P1
+  title: "Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal"
+  depends_on: [INT-360]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-412.md
+  acceptance:
+    - "every icon resolves through one symbol registry with an SF Symbol for iOS and a Material fallback for Android and web; no blank icons on Android"
+    - "rail, CTA bar and welcome card use system Liquid Glass on iOS 26, blur or solid otherwise, following the app theme; Reduce Transparency forces solid and fails closed while unknown"
+    - "a layered icon proposal ready for Icon Composer; shipped app.json and assets unchanged (rebrand is owner-held)"
+  tests: [apps/mobile/src/lib/symbols.test.ts, apps/mobile/src/lib/glass.test.ts, apps/mobile/e2e/nativeChrome.spec.ts]
+  sec_row: "mobile"
+- id: INT-413
+  epic: E14-legal
+  phase: P1
+  title: "Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices)"
+  depends_on: [INT-215]
+  labels: [area:legal, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-413.md
+  acceptance:
+    - "docs/legal/drafts/ carries every draft with the TASLAK/DRAFT banner, primary sources cited with retrieval dates, and a README listing the numbered decisions counsel must make and the sign-off procedure"
+    - "a test fails if any loader under packages/ or services/ reads a draft, or if a draft lacks the banner"
+  tests: [tests/legal/test_legal_drafts.py]
+  legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
+  sec_row: "compliance-evidence"

@@ -911,7 +911,11 @@ it or whose tests exercise it.
   wires the tier into a service, not before.
 - **Tests:** `tests/integration/test_ehrbase_roundtrip.py` (INT-032) — OPT upload → fetch →
   parse → archetype-root identity against the committed template; composition envelope write →
-  read → identity; the CONTRIBUTION audit. `tests/schemas/test_openehr_export.py` holds [T]
+  read → identity; the CONTRIBUTION audit. Since INT-257 the upload is the committed, sha-pinned
+  bytes with no fixture, and the wire status is asserted to be 201.
+  `tests/protocols/test_opt_schema.py` (INT-257) validates that file offline against the
+  digest-pinned openEHR OPT 1.4 schema (ITS-XML Release-1.0.2). It also refuses a node id the
+  template's terminology does not define, which is a 500 in EHRbase that the schema cannot see. `tests/schemas/test_openehr_export.py` holds [T]
   shut from the other side: an answered slot with no leaf binding is refused, never dropped and
   never bound to an invented `atNNNN` (files/HUMAN_BLOCKERS.md HB-C12).
   `tests/platform/test_ehrbase_client.py` pins [I]: no clinical text reaches a log line or an

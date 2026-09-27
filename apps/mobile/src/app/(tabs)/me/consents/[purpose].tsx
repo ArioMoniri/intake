@@ -17,10 +17,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
 import { AnnouncedText, useNews } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
+import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -99,7 +99,7 @@ export default function ConsentDetail() {
           onPress={() => router.back()}
           style={styles.backRow}
         >
-          <SymbolView name="chevron.left" size={15} tintColor={theme.inkSoft} />
+          <Icon name="chevron.left" size={15} tintColor={theme.inkSoft} />
           <AppText role="label" color="inkSoft">
             {t("me.consents")}
           </AppText>
