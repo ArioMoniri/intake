@@ -85,6 +85,22 @@ COMPLIANCE_READERS = frozenset(
     {AdminRole.COMPLIANCE_OFFICER, AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
 )
 
+#: INT-182 — the Voice module (files/08 §8.2). Tier 1, the safe direction:
+#: one `sre_oncall` or `clinical_lead` (and `platform_owner`, the platform
+#: authority above both — INT-188's precedent). Tier 2, toward voice: requested
+#: by an all-tenant role accountable for the clinical channel, approved by a
+#: second from the same pool or `qms_owner` (device change control).
+VOICE_KILL_SWITCH_ACTORS = frozenset(
+    {AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER}
+)
+VOICE_REQUESTERS = frozenset({AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD})
+VOICE_APPROVERS = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD, AdminRole.QMS_OWNER}
+)
+VOICE_BRIEF_READERS = (
+    VOICE_KILL_SWITCH_ACTORS | VOICE_REQUESTERS | VOICE_APPROVERS | {AdminRole.AUDITOR}
+)
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
@@ -101,6 +117,15 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/compliance/audit-search"): COMPLIANCE_READERS,
     ("GET", "/admin/compliance/dsar"): COMPLIANCE_READERS,
     ("GET", "/admin/compliance/evidence-export"): COMPLIANCE_READERS,
+    ("GET", "/admin/voice"): PLATFORM_SCOPE_ROLES,
+    ("POST", "/admin/voice/kill-switch"): VOICE_KILL_SWITCH_ACTORS,
+    ("POST", "/admin/voice/kill-switch/release"): VOICE_REQUESTERS,
+    ("POST", "/admin/voice/kill-switch/release/{action_id}/approve"): VOICE_APPROVERS,
+    ("PUT", "/admin/voice/profile/{tenant}"): VOICE_REQUESTERS,
+    ("POST", "/admin/voice/profile/pending/{action_id}/approve"): VOICE_APPROVERS,
+    ("PUT", "/admin/voice/canary/{tenant}"): VOICE_REQUESTERS,
+    ("POST", "/admin/voice/canary/pending/{action_id}/approve"): VOICE_APPROVERS,
+    ("GET", "/admin/voice/pending/{action_id}"): frozenset(VOICE_BRIEF_READERS),
 }
 
 

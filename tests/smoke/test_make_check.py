@@ -240,9 +240,16 @@ def test_backlog_parses_and_is_complete() -> None:
     # previsit routing) ... + INT-376 (Frankfurt host move, split out of
     # INT-352; the full list is in tests/backlog/test_schema.py); grows only
     # with a stated reason.
+    # previsit routing) + INT-318 (Acıbadem read source and /v1/visits/sync,
+    # INT-354 slice S2); grows only with a stated reason.
+    # previsit routing) + INT-377 (probe-results file fails closed on the
+    # admin console, found by INT-181); grows only with a stated reason.
+    # + INT-380 (INT-121 clause 3, the corpus score, awaiting-human) + INT-381
+    # (INT-124's on-hardware latency and live smoke, gpu), both split out by
+    # INT-124's PR; grows only with a stated reason.
     # + INT-385 (record quantities render with the locale's decimal separator,
     # found by INT-124's PR as GitHub #635); grows only with a stated reason.
-    assert len(ids) == 298, f"expected 175 blueprint + 123 added issues, got {len(ids)}"
+    assert len(ids) == 302, f"expected 175 blueprint + 127 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -63,6 +63,9 @@ def claims(**overrides: Any) -> dict[str, Any]:
         "aaguid": "00000000-0000-0000-0000-000000000000",
         "credential_id": "cred-clinical-lead-1",
         "realm_access": {"roles": ["clinical_lead"]},
+        # INT-365: the realm's password and WebAuthn references (a
+        # clinical_lead reaches patient content, so OTP would be refused)
+        "amr": ["pwd", "hwk"],
         "exp": NOW + 600,
         "nbf": NOW - 10,
     }

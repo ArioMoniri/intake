@@ -362,11 +362,25 @@ measures:
         signals:
           - metric: siem_alerts_ingested_total
             status: live
+      # INT-368 answered the engineering gap that stood here ("which tool
+      # follows security updates continuously"): Renovate, configured in the
+      # repository. What remains is the owner's installation, below.
+      - id: dependency-update-config
+        summary: "Renovate follows updates for every lockfile and pin in the repository (uv, pnpm, container digests, GitHub Actions): a security update opens a pull request at once, outside the weekly schedule, and nothing is merged automatically, so each update runs the CI, security and licence gates and waits for a human."
+        paths:
+          - .github/renovate.json
+          - docs/runbooks/dependency-updates.md
+        tests:
+          - tests/ci/test_dependency_updates.py::test_every_manifest_and_lockfile_in_the_tree_falls_to_an_enabled_manager
+          - tests/ci/test_dependency_updates.py::test_every_digest_pinned_image_in_the_tree_is_reachable
+          - tests/ci/test_dependency_updates.py::test_security_updates_open_without_a_schedule
+          - tests/ci/test_dependency_updates.py::test_nothing_auto_merges_anywhere
+        signals: []
     gaps:
       - id: dependency-update-tracking
-        kind: engineering
-        owner: security_owner
-        ask: "Which tool follows security updates for the dependencies continuously (Renovate, as files/10 §8 names, or another), given that no dependency-update configuration exists in the repository and the scanners report only on what is already pinned?"
+        kind: organisational
+        owner: owner
+        ask: "On what date did the owner install the Renovate GitHub App on ArioMoniri/intake with Dependabot alerts enabled, so that the committed configuration (docs/runbooks/dependency-updates.md) actually opens its update pull requests?"
       - id: external-pen-test
         kind: organisational
         owner: owner

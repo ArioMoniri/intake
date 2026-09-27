@@ -306,6 +306,18 @@ class FourEyesService:
         if pending.action.approver_must_differ_org and approver.org == actor.org:
             raise SharedOrganisation("tier 3 requires two organisations (files/08 §8.2)")
 
+    def pending(self) -> tuple[PendingAction, ...]:
+        """Every action still awaiting its second key and inside its window,
+        oldest first — what a console lists for an approver (INT-182). Read
+        only: the sweep that marks and counts expiry stays :meth:`expire_due`."""
+        now = self._clock()
+        waiting = (
+            pending
+            for pending in self._pending.values()
+            if pending.state is PendingActionState.PENDING and now <= pending.expires_at
+        )
+        return tuple(sorted(waiting, key=lambda pending: (pending.created_at, pending.id)))
+
     def expire_due(self) -> int:
         """Sweep the pending set. Returns how many actions expired, which is
         what ``admin.pending_action_expired_total`` counts."""

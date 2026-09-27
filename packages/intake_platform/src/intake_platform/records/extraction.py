@@ -71,6 +71,12 @@ from intake_platform.locale.registry import DEFAULT_LOCALE
 from intake_platform.records.analytes import fold_tr, resolve_analyte
 from intake_platform.records.document import TextRegion
 from intake_platform.records.numbers import parse_printed_magnitude, quantity_atom, resolve_unit
+from intake_platform.records.unit_guard import (
+    ExpectationTable,
+    GuardFlag,
+    LabValueVerdict,
+    guard_lab_value,
+)
 
 __all__ = [
     "ITEM_KEYS",
@@ -190,11 +196,25 @@ class DocumentExtraction:
     claimed code: the set of codes on one person's report is clinical data.
     ``units_unchecked`` names the folded analyte keys for which no expectation
     was authored, so an unchecked unit does not read as a checked one.
+
+    ``verdicts`` is empty unless the INT-124 guard ran; when it did, it is
+    aligned with ``items`` — one :class:`~intake_platform.records.unit_guard.
+    LabValueVerdict` per lab item, ``None`` for every other kind.
     """
 
     items: tuple[UnconfirmedRecordItem, ...]
     unbound_codes: tuple[str, ...]
     units_unchecked: tuple[str, ...]
+    verdicts: tuple[LabValueVerdict | None, ...] = ()
+
+    @property
+    def flagged(self) -> tuple[int, ...]:
+        """Positions of the items whose verdict carries any flag."""
+        return tuple(
+            index
+            for index, verdict in enumerate(self.verdicts)
+            if verdict is not None and verdict.flagged
+        )
 
 
 def summarise_item(
@@ -303,6 +323,7 @@ def extract_record_items(
     observed_at: datetime,
     expected_units: Mapping[str, str] | None = None,
     terminology: TerminologyBinder | None = None,
+    guard: ExpectationTable | None = None,
 ) -> DocumentExtraction:
     """Parse one schema-constrained extraction result into unconfirmed items.
 
@@ -313,10 +334,22 @@ def extract_record_items(
     run, and every analyte it did not run for is named in
     ``units_unchecked`` — visibly, rather than as a pass.
 
+    ``guard`` switches lab items to the INT-124 unit-resolution guard
+    (:func:`~intake_platform.records.unit_guard.guard_lab_value`): each lab
+    value gets a typed verdict instead of the document being refused on its
+    first unreadable cell, a stopped value keeps its box and loses its number,
+    and a near miss on ``üre`` is a flagged row rather than a lost document.
+    It is one source of expectation or the other, never both.
+
     Every item that comes back is unconfirmed and carries a box. Nothing here
     reaches a note, a slot or triage: that needs
     :func:`~clinical_schemas.record_extraction.confirm_record_item`.
     """
+    if guard is not None and expected_units is not None:
+        raise ValueError(
+            "pass one source of unit expectation: the guard's table or expected_units, "
+            "never both — two sources would decide one unit twice"
+        )
     binder = terminology if terminology is not None else NoTerminology()
     expected = {fold_tr(key): value for key, value in (expected_units or {}).items()}
     document = _document_of(raw)
@@ -324,6 +357,7 @@ def extract_record_items(
     items: list[UnconfirmedRecordItem] = []
     unbound: list[str] = []
     unchecked: list[str] = []
+    verdicts: list[LabValueVerdict | None] = []
     for index, entry in enumerate(document["items"]):
         where = f"item {index}"
         if not isinstance(entry, Mapping):
@@ -352,19 +386,37 @@ def extract_record_items(
                 "boundary refuses the same shape (clinical_schemas.mappers.to_r4)"
             )
 
-        if kind is RecordItemKind.LAB:
+        if printed_value is not None and not isinstance(printed_value, str):
+            raise RecordSchemaViolation(
+                f"{where} carries a magnitude that is not the string as printed; the "
+                "separator is resolved here, under invariant 22, and never upstream"
+            )
+
+        verdict: LabValueVerdict | None = None
+        magnitude: Decimal | None = None
+        unit_conflict = False
+        if kind is RecordItemKind.LAB and guard is not None:
+            verdict = guard_lab_value(
+                printed_name=printed_name,
+                printed_value=printed_value,
+                printed_unit=printed_unit,
+                table=guard,
+            )
+            magnitude = verdict.magnitude
+            unit_conflict = GuardFlag.UNIT_CONFLICT in verdict.flags
+            checked_key = verdict.analyte_key
+            if (
+                GuardFlag.NO_EXPECTATION in verdict.flags
+                and checked_key is not None
+                and checked_key not in unchecked
+            ):
+                unchecked.append(checked_key)
+        elif kind is RecordItemKind.LAB:
             # Refuses a near miss on the guarded token; returns None for a name
             # the closed table simply does not cover. Either way nothing is guessed.
             resolve_analyte(printed_name)
 
-        magnitude: Decimal | None = None
-        unit_conflict = False
-        if printed_value is not None:
-            if not isinstance(printed_value, str):
-                raise RecordSchemaViolation(
-                    f"{where} carries a magnitude that is not the string as printed; the "
-                    "separator is resolved here, under invariant 22, and never upstream"
-                )
+        if printed_value is not None and verdict is None:
             key = fold_tr(printed_name.strip())
             resolution = resolve_unit(
                 magnitude=parse_printed_magnitude(printed_value),
@@ -399,9 +451,13 @@ def extract_record_items(
                 date=_parse_date(entry.get("date"), where),
             )
         )
+        verdicts.append(verdict)
 
     return DocumentExtraction(
-        items=tuple(items), unbound_codes=tuple(unbound), units_unchecked=tuple(unchecked)
+        items=tuple(items),
+        unbound_codes=tuple(unbound),
+        units_unchecked=tuple(unchecked),
+        verdicts=tuple(verdicts) if guard is not None else (),
     )
 
 

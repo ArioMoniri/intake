@@ -844,13 +844,16 @@ class TestTheTypedWorkerCanBecomeReady:
 
     def test_the_report_still_names_all_three_checks(self) -> None:
         """A readiness report that silently shrinks is one nobody can compare
-        across deployments."""
+        across deployments. INT-182 added a fourth — ``voice_controls``, the
+        kill-switch read a speech worker needs at every session start — and a
+        typed worker names it too, passed, rather than dropping it."""
         from fastapi.testclient import TestClient  # noqa: PLC0415
         from intake_voice_runtime.app import VoiceRuntimeWiring, create_app  # noqa: PLC0415
 
         client = TestClient(create_app(VoiceRuntimeWiring(profile=VoiceProfile.TYPED)))
         checks = client.get("/readyz").json()["checks"]
-        assert set(checks) == {"clip_store", "speech_synthesizer", "room_token"}
+        assert set(checks) == {"clip_store", "speech_synthesizer", "room_token", "voice_controls"}
+        assert set(checks.values()) == {"ok"}
 
     def test_the_voice_worker_still_fails_closed_on_the_same_three(self) -> None:
         from fastapi.testclient import TestClient  # noqa: PLC0415
