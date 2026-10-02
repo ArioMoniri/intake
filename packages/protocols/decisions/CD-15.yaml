@@ -1,0 +1,201 @@
+# INT-432 clinical decision CD-15. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-15
+title: "Neurosurgery pre-visit scope: known cancer, an existing brain shunt and a first seizure"
+question: >-
+  V-BVSC-6: should the beyin ve sinir cerrahisi pre-visit ask about a known cancer, an
+  existing brain shunt and a first-ever seizure?
+decision: >-
+  Known cancer: yes. NICE NG234 makes a past or current diagnosis of cancer the first
+  factor in recognising spinal metastases or metastatic spinal cord compression. It
+  tells clinicians to contact the MSCC coordinator immediately, as an oncological
+  emergency, when such a person has cord-compression symptoms, and within 24 hours when
+  they have spinal pain with the listed features. Without the cancer fact, red-flag
+  row 6 has no input. The item reuses cerrahi onkoloji's id and wording
+  (onceki_kanser_tanisi, "Daha önce size kanser tanısı konuldu mu?"), ungated, which
+  also gives one audio clip. The rule it feeds is placed in base.life_threat (CD-13),
+  so that rule needs a base-level cancer slot; the neurosurgery item is its gate input
+  until then.
+  First seizure: yes. NICE NG217 1.1.1 refers adults urgently, for an appointment within
+  two weeks, after a first suspected seizure. The item is a clinician-only note item,
+  never a RED rule: an ongoing or prolonged seizure is a separate emergency pattern,
+  and a seizure after a head injury is NG232's own emergency-ambulance criterion
+  (CD-12). The item is ungated. Its lay follow-up describes a seizure without naming a
+  diagnosis and keeps "first" and "recently", so a person with known epilepsy or an old
+  faint does not answer yes to it.
+  Existing brain shunt: stays draft_needs_source. No retrieved current guideline says
+  what a pre-visit should ask a person with a cerebrospinal fluid shunt, or which shunt
+  symptoms need which action. One sourced part is recorded: NICE NG232 lists "any
+  previous brain surgery" as a head-injury referral risk factor, and Q14 already
+  records brain or spine surgery, which includes a shunt insertion. Q14 mixes brain and
+  spine surgery, so it cannot feed that head-injury factor as it stands. Splitting it
+  belongs to the HB-C2 author together with the base head-injury rule. No shunt item is
+  added.
+status: active
+scope: simulated_patient_stress_testing
+author_role: "neurosurgery physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG234
+    title: "Spinal metastases and metastatic spinal cord compression"
+    version_or_date: "NICE guideline NG234; published 06 September 2023; minor changes up to March 2026"
+    url: "https://www.nice.org.uk/guidance/ng234/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "Box 1 Factors suggesting spinal metastases or MSCC"
+    quote: "past or current diagnosis of cancer"
+    snapshot: packages/protocols/sources/NICE-NG234.txt
+    supports: known_cancer.item
+  - kind: guideline
+    guideline_id: NICE-NG234
+    title: "Spinal metastases and metastatic spinal cord compression"
+    version_or_date: "NICE guideline NG234; published 06 September 2023; minor changes up to March 2026"
+    url: "https://www.nice.org.uk/guidance/ng234/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.2"
+    quote: "Immediately contact the MSCC coordinator if a person with a past or current diagnosis of cancer presents with the symptoms or signs of cord compression listed in box 1. Treat this as an oncological emergency."
+    snapshot: packages/protocols/sources/NICE-NG234.txt
+    supports: known_cancer.feeds
+  - kind: guideline
+    guideline_id: NICE-NG234
+    title: "Spinal metastases and metastatic spinal cord compression"
+    version_or_date: "NICE guideline NG234; published 06 September 2023; minor changes up to March 2026"
+    url: "https://www.nice.org.uk/guidance/ng234/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.3"
+    quote: "Seek advice through the MSCC coordinator (within 24 hours) if a person with a past or current diagnosis of cancer presents with pain with the characteristics suggesting spinal metastases listed in box 1."
+    snapshot: packages/protocols/sources/NICE-NG234.txt
+    supports: known_cancer.feeds
+  - kind: guideline
+    guideline_id: NICE-NG217
+    title: "Epilepsies in children, young people and adults"
+    version_or_date: "NICE guideline NG217; published 27 April 2022; last updated 05 August 2026"
+    url: "https://www.nice.org.uk/guidance/ng217/chapter/1-Diagnosis-and-assessment-of-epilepsy"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "Refer children, young people and adults urgently (for an appointment within 2 weeks) for an assessment after a first suspected seizure:"
+    snapshot: packages/protocols/sources/NICE-NG217.txt
+    supports: first_seizure
+  - kind: guideline
+    guideline_id: NICE-NG217
+    title: "Epilepsies in children, young people and adults"
+    version_or_date: "NICE guideline NG217; published 27 April 2022; last updated 05 August 2026"
+    url: "https://www.nice.org.uk/guidance/ng217/chapter/1-Diagnosis-and-assessment-of-epilepsy"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "For adults, refer to a clinician with expertise in assessing first seizures and diagnosing epilepsy."
+    snapshot: packages/protocols/sources/NICE-NG217.txt
+    supports: first_seizure.flag_ceiling
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3 and 1.2.4 (risk-factor list item)"
+    quote: "any previous brain surgery"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: shunt.sourced_part
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.2 (risk-factor list item)"
+    quote: "any seizure ('convulsion' or 'fit') since the injury"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: first_seizure.not_this_item
+spec_basis:
+  - file: docs/evidence/proposals/cerrahi_onkoloji.md
+    section: "Q9 Known cancer diagnosis"
+    quote: "> \"Daha önce size kanser tanısı konuldu mu?\""
+    supports: known_cancer.item.ask_tr
+  - file: docs/evidence/proposals/cerrahi_onkoloji.md
+    section: "Q9 Known cancer diagnosis"
+    quote: "gen: slot=onceki_kanser_tanisi; type=boolean"
+    supports: known_cancer.item.slot
+  - file: docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md
+    section: "Q14 Prior brain or spine surgery"
+    quote: "> \"Daha önce beyninizden ya da omurganızdan ameliyat oldunuz mu?\""
+    supports: shunt.q14_mixes_brain_and_spine
+source_gap: >-
+  Shunt: no retrieved current guideline sets what a pre-visit should ask a person with
+  a cerebrospinal fluid shunt or which shunt symptoms carry which action. Only NHS lay
+  pages were found, and they are not guidelines. The first-seizure route is a UK
+  first-seizure clinic within two weeks, and no retrieved Turkish source maps it.
+value:
+  known_cancer:
+    ask: true
+    item:
+      label: "Q16 — Known cancer, past or current"
+      slot: onceki_kanser_tanisi
+      type: boolean
+      ask_tr: "Daha önce size kanser tanısı konuldu mu?"
+      gated: false
+      reuse: "same id and wording as cerrahi onkoloji Q9 (one audio clip)"
+    feeds: "red-flag row 6 (metastatic spinal cord compression), placed in base.life_threat (CD-13)"
+    base_slot_needed: true
+    policyguard_check: "the shipped Turkish PolicyGuard (policy_guard_for(locale=tr, profile=residency_tr), filter(scripted=True)) returned no violation for this ask, for Q17 and for Q17's revised follow-up on 2026-10-03; the ask concerns a known diagnosis and asserts none"
+  first_seizure:
+    ask: true
+    item:
+      label: "Q17 — First-ever seizure"
+      slot: ilk_nobet
+      type: boolean
+      ask_tr: "Daha önce hiç nöbetiniz yokken son zamanlarda bir nöbet geçirdiniz mi?"
+      follow_up_tr: "Son zamanlarda ilk kez bilincinizin kaybolduğu ya da vücudunuzun istemsizce kasıldığı bir an oldu mu?"
+      gated: false
+    flag_ceiling: "clinician-only note item; never a RED rule"
+    not_this_item: "a seizure since a head injury is NG232 1.2.2's emergency-ambulance criterion (CD-12); an ongoing or prolonged seizure is a base emergency pattern"
+    route: "TODO: Turkish route for an urgent first-seizure assessment requires clinical sign-off"
+  shunt:
+    ask: "TODO: whether and how the neurosurgery pre-visit asks about a cerebrospinal fluid shunt requires clinical sign-off"
+    status: draft_needs_source
+    sourced_part: "NG232 lists any previous brain surgery as a head-injury referral risk factor; Q14 already records brain or spine surgery, which includes a shunt insertion"
+    q14_mixes_brain_and_spine: "Q14 cannot feed the NG232 brain-surgery factor until it is split; the split belongs to the HB-C2 author with the base head-injury rule"
+    item_added: false
+  apply_after_737_merges:
+    - file: docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md
+      where: "§4, after the Q15 block (end of the candidate list)"
+      change: insert_items
+      text: |-
+        **Q16 — Known cancer, past or current** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S10 (NG234 Box 1, "past or current diagnosis of cancer")
+        > "Daha önce size kanser tanısı konuldu mu?"
+        gen: slot=onceki_kanser_tanisi; type=boolean
+        CANDIDATE — clinician to approve wording. Same id and wording as cerrahi onkoloji Q9. Gate input for red-flag row 6 (CD-15).
+
+        **Q17 — First-ever seizure** · archetype: `OBSERVATION.symptom_sign.v1` · source: S11 (NG217 rec 1.1.1, "after a first suspected seizure")
+        > "Daha önce hiç nöbetiniz yokken son zamanlarda bir nöbet geçirdiniz mi?"
+        gen: slot=ilk_nobet; type=boolean; follow_up=Son zamanlarda ilk kez bilincinizin kaybolduğu ya da vücudunuzun istemsizce kasıldığı bir an oldu mu?
+        CANDIDATE — clinician to approve wording. History item; clinician-only note item, never a RED rule (CD-15).
+    - file: docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md
+      where: "§1, after S9 (CD-12)"
+      change: add_sources
+      text: |-
+        ### S10 — NICE NG234 Spinal metastases and metastatic spinal cord compression **[retrieved 2026-10-03]**
+        - **guideline_id:** `NICE-NG234` · snapshot `packages/protocols/sources/NICE-NG234.txt` · published 06 September 2023
+        - **Verbatim (Box 1):** > "past or current diagnosis of cancer" · **(1.3.2):** > "Treat this as an oncological emergency."
+
+        ### S11 — NICE NG217 Epilepsies in children, young people and adults **[retrieved 2026-10-03]**
+        - **guideline_id:** `NICE-NG217` · snapshot `packages/protocols/sources/NICE-NG217.txt` · published 27 April 2022, last updated 05 August 2026
+        - **Verbatim (1.1.1):** > "Refer children, young people and adults urgently (for an appointment within 2 weeks) for an assessment after a first suspected seizure:"
+    - file: docs/evidence/verification/beyin_ve_sinir_cerrahisi.md
+      where: "§1 red-flag row 6 (rf.beyin_ve_sinir_cerrahisi_spinal_metastaz_basisi)"
+      change: trigger_and_source
+      trigger: "`onceki_kanser_tanisi == true` together with (`bacaga_yayilan_bel_agrisi == true` or `iki_bacakta_guc_kaybi == true` or `idrar_diski_kontrol_degisimi == true`)"
+      source: "NICE-NG234 Box 1, 1.3.2, 1.3.3 (primary, retrieved 2026-10-03; replaces 'not retrieved, HTTP 403')"
+      placement: "base.life_threat (CD-13)"
+value_status:
+  known_cancer: active
+  first_seizure.item: active
+  first_seizure.flag_ceiling: active
+  first_seizure.route: draft_needs_source
+  shunt: draft_needs_source
+  apply_after_737_merges: active
+verifier:
+  verdict: pending
+  notes: "Revised 2026-10-03 after independent verification (agree_with_changes): the Q17 follow-up keeps 'first' and 'recently', and the flag ceiling is now a clinician-only note item. Re-verification pending."

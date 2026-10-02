@@ -1,0 +1,236 @@
+# INT-432 clinical decision CD-18. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-18
+title: "Clinician parts of V-A-2 (respiratory-infection postponement window) and V-GC-4 (whole-body sweating)"
+question: >-
+  V-A-2: anesteziyoloji Q3d records a recent cold or febrile illness before surgery; does
+  the pre-visit ever rule on a postponement window? V-GC-4: göğüs cerrahisi Q11c asks
+  whether excessive sweating is also all over the body; is that item clinically right,
+  and how is it read?
+decision: >-
+  V-A-2 (anaesthesiology): no. The pre-visit never rules on postponing or proceeding.
+  Q3d stays a planning fact for the anaesthesiologist and the surgeon: it raises no
+  rule, no flag and no patient-facing advice. The current Turkish source is TARD's
+  February 2025 paediatric preoperative guideline. It lists a current or recent upper
+  respiratory infection as a risk factor, and it puts the decision to proceed or
+  postpone with the anaesthesiologist and the surgeon, through risk stratification and
+  family-centred decision-making. It suggests at least two weeks for a child with a
+  severe infection, graded on findings the clinician assesses, and it states that clear
+  evidence on how long to postpone is still lacking. TARD's February 2025 adult guideline
+  has no statement on postponing after a respiratory infection. The one-month figure in
+  the proposal came from TARD's 2015 preoperative document, which TARD Akademi's current
+  list replaces with the two February 2025 guidelines, so it is not used. Telling a
+  patient to postpone an operation is treatment language, which PolicyGuard forbids in
+  patient copy. Q3d's wording stays as it is (author-owned), and its source line moves
+  to the 2025 paediatric guideline. The adult window stays draft_needs_source, and
+  nothing reads it.
+  V-GC-4 (thoracic surgery): Q11c is confirmed. NICE HTG339 defines primary
+  hyperhidrosis of the upper limb as excessive sweating of the palms or axillae. It
+  limits endoscopic thoracic sympathectomy to severe, debilitating primary hyperhidrosis
+  that has not responded to other treatments. Sweating all over the body is the fact a
+  patient can report that separates generalised sweating from that focal pattern, which
+  is why it bears on surgical candidacy. It is read as context, never as an eligibility
+  rule. HTG339 also says that sweating elsewhere on the body is usual after the
+  procedure, a sympathectomy. Q8 records any previous chest surgery and does not
+  identify the procedure, so a Q11c "evet" is shown beside the Q8 answer. It is never
+  read as post-sympathectomy sweating unless the patient names a previous
+  sympathectomy. The same HTG339 recommendation makes earlier
+  treatment part of candidacy, and the pack does not ask about it. One gated item is
+  added: Q11d, whether antiperspirants, tablets or injections were tried.
+status: active
+scope: simulated_patient_stress_testing
+author_role: "anaesthesiology and thoracic surgery physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: TARD-COCUK-PREOP-2025
+    title: "Çocuk Hastada Preoperatif Değerlendirme Kılavuzu"
+    version_or_date: "TARD Hasta ve Çalışan Güvenliği Bilimsel Kurulu, Şubat 2025"
+    url: "https://akademi.tard.org.tr/pdf/kilavuz/cocuklarda-preoperatif-degerlendirme.pdf"
+    retrieved_on: 2026-10-03
+    section: "Solunum yolu enfeksiyonları, risk factors"
+    quote: "Şu anda veya son 2 hafta içinde üst solunum yolu enfeksiyonu, COVID-19 dahil"
+    snapshot: packages/protocols/sources/TARD-COCUK-PREOP-2025.txt
+    supports: v_a_2.q3d_source
+  - kind: guideline
+    guideline_id: TARD-COCUK-PREOP-2025
+    title: "Çocuk Hastada Preoperatif Değerlendirme Kılavuzu"
+    version_or_date: "TARD Hasta ve Çalışan Güvenliği Bilimsel Kurulu, Şubat 2025"
+    url: "https://akademi.tard.org.tr/pdf/kilavuz/cocuklarda-preoperatif-degerlendirme.pdf"
+    retrieved_on: 2026-10-03
+    section: "Perioperatif solunum komplikasyonlarına yönelik risk faktörlerinin yönetimi, Preoperatif"
+    quote: "Risk stratifikasyonu, aile ve hasta merkezli karar verme ile anestezi uzmanı ve cerrah arasında elektif cerrahinin devam edip etmeyeceği ya da ertelenip ertelenmeyeceği kararının verilmesi"
+    snapshot: packages/protocols/sources/TARD-COCUK-PREOP-2025.txt
+    supports: v_a_2.who_decides
+  - kind: guideline
+    guideline_id: TARD-COCUK-PREOP-2025
+    title: "Çocuk Hastada Preoperatif Değerlendirme Kılavuzu"
+    version_or_date: "TARD Hasta ve Çalışan Güvenliği Bilimsel Kurulu, Şubat 2025"
+    url: "https://akademi.tard.org.tr/pdf/kilavuz/cocuklarda-preoperatif-degerlendirme.pdf"
+    retrieved_on: 2026-10-03
+    section: "ÜSYE'li çocuk hastalar için genel yaklaşım"
+    quote: "Şiddetli bir ÜSYE (COVID-19 dahil) geçiren, ateş, halsizlik, hışırtı, sekretuar öksürük ve yeşil burun salgıları olan çocuklarda, elektif cerrahinin en az 2 hafta ertelenmesi önerilmektedir."
+    snapshot: packages/protocols/sources/TARD-COCUK-PREOP-2025.txt
+    supports: v_a_2.paediatric_window_is_clinician_input
+  - kind: guideline
+    guideline_id: TARD-COCUK-PREOP-2025
+    title: "Çocuk Hastada Preoperatif Değerlendirme Kılavuzu"
+    version_or_date: "TARD Hasta ve Çalışan Güvenliği Bilimsel Kurulu, Şubat 2025"
+    url: "https://akademi.tard.org.tr/pdf/kilavuz/cocuklarda-preoperatif-degerlendirme.pdf"
+    retrieved_on: 2026-10-03
+    section: "ÜSYE'li çocuk hastalar için genel yaklaşım"
+    quote: "Orta ve şiddetli ÜSYE’si olan çocuklarda elektif cerrahinin ertelenme süresi ile ilgili açık kanıta dayalı kılavuzlara ve anesteziye devam edilip edilmeye karar verme sürecini iyileştirecek daha iyi risk prediksiyon skorlarına ihtiyaç vardır."
+    snapshot: packages/protocols/sources/TARD-COCUK-PREOP-2025.txt
+    supports: v_a_2.window_never_ruled
+  - kind: guideline
+    guideline_id: TARD-ERISKIN-NKC-PREOP-2025
+    title: "Elektif Non-Kardiyak Cerrahi (NKC) Geçirecek Erişkinlerin Pre-Operatif Değerlendirme Kılavuzu"
+    version_or_date: "TARD Hasta ve Çalışan Güvenliği Bilimsel Kurulu, Şubat 2025"
+    url: "https://akademi.tard.org.tr/pdf/kilavuz/elektif-non-kardiyak-cerrahi-preoperatif-degerlendirme.pdf"
+    retrieved_on: 2026-10-03
+    section: "cover"
+    quote: "Elektif non-kardiyak cerrahi (NKC) geçirecek erişkinlerin preoperatif değerlendirme kılavuzu: TARD Hasta ve Çalışan Güvenliği"
+    snapshot: packages/protocols/sources/TARD-ERISKIN-NKC-PREOP-2025.txt
+    supports: v_a_2.adult_window
+    note: "Cited as the current adult TARD guideline. A text search of the whole PDF (pdftotext, 2026-10-03) for 'solunum yolu enfeksiyon', 'ÜSYE', 'nezle' and 'grip' found no statement on postponing after a respiratory infection. The only infection mentions are a COVID-19 paragraph and a urine-test item on urinary tract infection."
+  - kind: guideline
+    guideline_id: NICE-HTG339
+    title: "Endoscopic thoracic sympathectomy for primary hyperhidrosis of the upper limb"
+    version_or_date: "HealthTech guidance HTG339 (formerly IPG487); published 27 May 2014; migrated January 2026 with recommendations unchanged"
+    url: "https://www.nice.org.uk/guidance/htg339/chapter/2-Indications-and-current-treatments"
+    retrieved_on: 2026-10-03
+    section: "2.1"
+    quote: "Primary hyperhidrosis of the upper limb is characterised by excessive sweating of the palms and/or axillae."
+    snapshot: packages/protocols/sources/NICE-HTG339.txt
+    supports: v_gc_4.q11c
+  - kind: guideline
+    guideline_id: NICE-HTG339
+    title: "Endoscopic thoracic sympathectomy for primary hyperhidrosis of the upper limb"
+    version_or_date: "HealthTech guidance HTG339 (formerly IPG487); published 27 May 2014; migrated January 2026 with recommendations unchanged"
+    url: "https://www.nice.org.uk/guidance/htg339/chapter/1-Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3"
+    quote: "In view of the risk of side effects, this procedure should only be considered in patients suffering from severe and debilitating primary hyperhidrosis that has been refractory to other treatments."
+    snapshot: packages/protocols/sources/NICE-HTG339.txt
+    supports: "v_gc_4.q11c, v_gc_4.q11d"
+  - kind: guideline
+    guideline_id: NICE-HTG339
+    title: "Endoscopic thoracic sympathectomy for primary hyperhidrosis of the upper limb"
+    version_or_date: "HealthTech guidance HTG339 (formerly IPG487); published 27 May 2014; migrated January 2026 with recommendations unchanged"
+    url: "https://www.nice.org.uk/guidance/htg339/chapter/1-Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2"
+    quote: "hyperhidrosis elsewhere on the body is usual after the procedure: this can be severe and distressing, and some patients regret having had the procedure (especially because of subsequent and persistent hyperhidrosis elsewhere)"
+    snapshot: packages/protocols/sources/NICE-HTG339.txt
+    supports: v_gc_4.reading
+  - kind: guideline
+    guideline_id: NICE-HTG339
+    title: "Endoscopic thoracic sympathectomy for primary hyperhidrosis of the upper limb"
+    version_or_date: "HealthTech guidance HTG339 (formerly IPG487); published 27 May 2014; migrated January 2026 with recommendations unchanged"
+    url: "https://www.nice.org.uk/guidance/htg339/chapter/2-Indications-and-current-treatments"
+    retrieved_on: 2026-10-03
+    section: "2.2"
+    quote: "First-line management of primary hyperhidrosis includes lifestyle measures such as avoiding known triggers and tight clothing, and using antiperspirants (including aluminium chloride hexahydrate). Other treatments include iontophoresis and botulinum-toxin A injection, and oral medications such as anticholinergics, antimuscarinics, beta-blockers, antihypertensives and anxiolytics."
+    snapshot: packages/protocols/sources/NICE-HTG339.txt
+    supports: v_gc_4.q11d.ask_tr
+  - kind: guideline
+    guideline_id: NICE-HTG339
+    title: "Endoscopic thoracic sympathectomy for primary hyperhidrosis of the upper limb"
+    version_or_date: "HealthTech guidance HTG339; Update information"
+    url: "https://www.nice.org.uk/guidance/htg339/chapter/Update-information"
+    retrieved_on: 2026-10-03
+    section: "Minor changes after publication"
+    quote: "January 2026: Interventional procedures guidance 487 has been migrated to HealthTech guidance 339. The recommendations and accompanying content remain unchanged."
+    snapshot: packages/protocols/sources/NICE-HTG339.txt
+    supports: v_gc_4.currency
+spec_basis:
+  - file: CLAUDE.md
+    section: "Non-negotiable invariants, 2"
+    quote: "Patient-facing text passes `PolicyGuard` (no diagnosis/treatment/prognosis language; one question per turn; B1 Turkish)."
+    supports: v_a_2.window_never_ruled
+  - file: CLAUDE.md
+    section: "Non-negotiable invariants, 1"
+    quote: "Triage RED/YELLOW can only be produced by `packages/protocols/triage` rules."
+    supports: v_a_2.no_rule
+source_gap: >-
+  V-A-2: no current Turkish or retrieved guideline sets a postponement window for an
+  adult after a respiratory infection. TARD's February 2025 adult guideline has no such
+  statement, and the one-month figure came from TARD's 2015 document, which TARD's
+  current list replaces. The pre-visit does not rule on a window, so nothing reads this
+  value.
+value:
+  v_a_2:
+    window_never_ruled: true
+    no_rule: true
+    no_patient_advice: true
+    planning_fact: "Q3d yakin_solunum_yolu_enfeksiyonu goes to the anaesthesiologist and the surgeon in the note"
+    who_decides: "anaesthesiologist and surgeon, through risk stratification and family-centred decision-making (TARD 2025, children)"
+    paediatric_window_is_clinician_input: "at least two weeks for a severe infection, graded by the clinician; never applied by the pre-visit"
+    adult_window: "TODO: postponement window after a respiratory infection in adults requires clinical sign-off"
+    adult_window_status: draft_needs_source
+    retired_source: "TARD-PREOP-2015 (S4): not in TARD Akademi's current list, which carries the two February 2025 guidelines; its one-month figure is not used"
+    q3d_wording: unchanged
+  v_gc_4:
+    q11c:
+      confirmed: true
+      slot: tum_vucut_terlemesi
+      ask_tr: "Bu terleme bütün vücudunuzda da oluyor mu?"
+      role: "context for surgical candidacy; never an eligibility rule"
+    reading: "a Q11c evet is shown beside the Q8 answer and is never read as post-sympathectomy sweating unless the patient names a previous sympathectomy; Q8 does not identify the procedure"
+    q11d:
+      added: true
+      slot: terleme_onceki_tedavi
+      type: boolean
+      ask_tr: "Bu terleme için daha önce ter önleyici, ilaç ya da iğne tedavisi denediniz mi?"
+      ask_if: "asiri_terleme == true"
+      reason: "HTG339 1.3 limits surgery to hyperhidrosis that has not responded to other treatments; 2.2 names antiperspirants, oral medicines and botulinum-toxin injection"
+  apply_after_737_merges:
+    - file: docs/evidence/proposals/anesteziyoloji.md
+      where: "§1, after S5"
+      change: add_source
+      text: |-
+        ### S6 — TARD Çocuk Hastada Preoperatif Değerlendirme Kılavuzu (Türkiye; primary) **[retrieved 2026-10-03]**
+        - **guideline_id:** `TARD-COCUK-PREOP-2025` · snapshot `packages/protocols/sources/TARD-COCUK-PREOP-2025.txt` · Şubat 2025
+        - **Verbatim:** > "Şu anda veya son 2 hafta içinde üst solunum yolu enfeksiyonu, COVID-19 dahil"
+        - S4 (TARD 2015) is not in TARD Akademi's current list, which carries the February 2025 adult and paediatric guidelines; S4 is no longer cited for Q3d (CD-18).
+    - file: docs/evidence/proposals/anesteziyoloji.md
+      where: "§3 Q3d heading (the source reference wraps onto a second line in the file)"
+      change: source_line
+      to: "source: S6 (TARD 2025 çocuk, \"Şu anda veya son 2 hafta içinde üst solunum yolu enfeksiyonu\"); adult window not sourced (CD-18)"
+      note: "ask wording and gen line unchanged; no rule and no flag reads the answer"
+    - file: docs/evidence/proposals/gogus_cerrahisi.md
+      where: "§3, directly after Q11c"
+      change: insert_item
+      text: |-
+        **Q11d — Earlier treatment for the sweating** · archetype: `OBSERVATION.story.v1` (narrative only) · source: TOR-S13 (HTG339 rec 1.3, "refractory to other treatments"; 2.2)
+        > "Bu terleme için daha önce ter önleyici, ilaç ya da iğne tedavisi denediniz mi?"
+        gen: slot=terleme_onceki_tedavi; type=boolean; ask_if=asiri_terleme == true
+        CANDIDATE — clinician to approve wording. Context for surgical candidacy, never an eligibility rule (CD-18).
+    - file: docs/evidence/proposals/gogus_cerrahisi.md
+      where: "§1, after TOR-S12 (CD-16)"
+      change: add_source
+      text: |-
+        ### TOR-S13 — NICE HTG339 Endoscopic thoracic sympathectomy for primary hyperhidrosis of the upper limb **[retrieved 2026-10-03]**
+        - **guideline_id:** `NICE-HTG339` (formerly IPG487) · snapshot `packages/protocols/sources/NICE-HTG339.txt` · published 27 May 2014, migrated January 2026 unchanged
+        - **Verbatim (2.1):** > "Primary hyperhidrosis of the upper limb is characterised by excessive sweating of the palms and/or axillae."
+        - **Verbatim (1.3):** > "In view of the risk of side effects, this procedure should only be considered in patients suffering from severe and debilitating primary hyperhidrosis that has been refractory to other treatments."
+    - file: docs/evidence/proposals/gogus_cerrahisi.md
+      where: "§3 Q11c source line"
+      change: add_source_ref
+      note: "add TOR-S13 (HTG339 2.1) beside TOR-S5"
+value_status:
+  v_a_2.window_never_ruled: active
+  v_a_2.no_rule: active
+  v_a_2.no_patient_advice: active
+  v_a_2.who_decides: active
+  v_a_2.paediatric_window_is_clinician_input: active
+  v_a_2.adult_window: draft_needs_source
+  v_a_2.retired_source: active
+  v_gc_4: active
+  apply_after_737_merges: active
+verifier:
+  verdict: pending
+  notes: "Revised 2026-10-03 after independent verification (agree_with_changes): v_gc_4.reading reworded, because Q8 is any chest surgery and HTG339 1.2's compensatory sweating follows sympathectomy only. Re-verification pending."

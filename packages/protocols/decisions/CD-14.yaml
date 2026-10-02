@@ -1,0 +1,291 @@
+# INT-432 clinical decision CD-14. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-14
+title: "Source anchoring for V-HM-1 (B symptoms), V-NF-2 (swelling, weight gain and foamy urine) and V-FTVR-4 (NG59 decompression)"
+question: >-
+  HB-C1 source anchoring for three rows. V-HM-1: hematoloji red-flag row 4
+  (rf.hematoloji_b_belirtileri) is anchored on a lymphoma staging definition and a CLL
+  treatment-start criterion; what referral source should anchor it? V-NF-2: nefroloji
+  row 4 (rf.nefroloji_sislik_kilo_kopuk) rests on a lay symptom list with no action;
+  does any source state an action for the combination? V-FTVR-4: fiziksel tıp Q15a and
+  Q15b cite NICE NG59 through an NHS commissioning policy; what is the spinal
+  decompression recommendation's number and wording in the primary text?
+decision: >-
+  V-HM-1 (haematology): row 4 is split into two arms, and neither is anchored on H-S3.
+  The weight-loss arm is anchored on NICE NG12 1.13.2 (a 2026 recommendation): people
+  aged 60 and over with unexplained weight loss of more than 5% within six months get
+  urgent investigation, a suspected cancer pathway referral or a non-specific symptoms
+  pathway referral. That arm belongs to the universal base family
+  rf.weight_loss_unintentional (CD-13), not to the hematoloji stub. How the percentage
+  is captured stays draft_needs_source, because no item can capture it without free
+  numeric entry. The night-sweats arm is anchored on the Scottish Referral Guidelines
+  for Suspected Cancer 2025: an adult with unexplained drenching night sweats is
+  considered for urgent clinical assessment including a full blood count. The arm
+  stays in the hematoloji stub, triggered by gece_terlemesi asked in its drenching
+  form; no duration threshold is part of the trigger, because the source sets none.
+  NG12 lists night sweats only as an associated symptom of lymphadenopathy. That
+  combination is row 3, which gains 1.10.6 beside 1.10.8. H-S3 stays as provenance for
+  Q10a and Q11a only. The verifier's suggested H-S4 anchor is not used: it is the
+  January 2019 Scottish guide, which the 2025 guidelines replaced. "Unexplained" is a
+  clinician's finding in NG12's own definition, so the pre-visit records the report
+  and never asserts it.
+  V-NF-2 (nephrology): stays draft_needs_source. No retrieved current source states an
+  action for swelling with weight gain and foamy urine. NICE NG203 1.5.5 refers on
+  laboratory values (ACR), the NIDDK page is a lay description without an action, and
+  the NICE CKS nephrotic-syndrome page returned HTTP 403 and was not bypassed. Row 4
+  stays a candidate that is not compiled, and the three items stay symptom capture for
+  the note.
+  V-FTVR-4 (physical medicine and rehabilitation): confirmed. The recommendation is NICE
+  NG59 1.3.8, verbatim on nice.org.uk (NG59 published 30 November 2016, last updated 29
+  July 2026; 1.3.8 is marked [2016] and the July 2026 update did not touch it). Q15a
+  and Q15b now cite the primary text; the commissioning-policy reproduction (S5) is
+  retired as their source. NG59 is never cited for cauda equina (files/04 §8.2).
+status: active
+scope: simulated_patient_stress_testing
+author_role: "haematology, nephrology and physical medicine and rehabilitation physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.13.2"
+    quote: "For people aged 60 and over with unexplained weight loss (greater than 5% mean weight loss within a 6-month period), which is a symptom of several cancers including colorectal, gastro‑oesophageal, lung, prostate, pancreatic and urological cancer:"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: v_hm_1.weight_loss_arm
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.13.2"
+    quote: "offer urgent investigation, or a suspected cancer pathway referral, or a non-specific symptoms pathway referral. [2026]"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: v_hm_1.weight_loss_arm.action_in_source
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Terms-used-in-this-guideline"
+    retrieved_on: 2026-10-03
+    section: "Terms used in this guideline: Unexplained"
+    quote: "Symptoms or signs that have not led to a diagnosis being made by the healthcare professional in primary care after initial assessment (including history, examination and any primary care investigations)."
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: v_hm_1.unexplained
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.10.6"
+    quote: "Consider a suspected cancer pathway referral for non‑Hodgkin lymphoma in adults presenting with unexplained lymphadenopathy or splenomegaly. When considering referral, take into account any associated symptoms, particularly fever, night sweats, shortness of breath, pruritus or weight loss. [2015]"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: v_hm_1.row_3_anchor
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.10.8"
+    quote: "Consider a suspected cancer pathway referral for Hodgkin lymphoma in adults presenting with unexplained lymphadenopathy. When considering referral, take into account any associated symptoms, particularly fever, night sweats, shortness of breath, pruritus, weight loss or alcohol‑induced lymph node pain. [2015]"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: v_hm_1.row_3_anchor
+  - kind: guideline
+    guideline_id: SCOT-SRG-2025
+    title: "Scottish Referral Guidelines for Suspected Cancer 2025"
+    version_or_date: "Published 6 August 2025; ISBN 9781836915263; errata 13/04/2026"
+    url: "https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/pages/5/"
+    retrieved_on: 2026-10-03
+    section: "Haematological Cancers, Assessment for Suspected Haematological Cancers"
+    quote: "Consider urgent clinical assessment, including full blood count (FBC), of an adult patient with any of the following unexplained features:"
+    snapshot: packages/protocols/sources/SCOT-SRG-2025.txt
+    supports: v_hm_1.night_sweats_arm
+  - kind: guideline
+    guideline_id: SCOT-SRG-2025
+    title: "Scottish Referral Guidelines for Suspected Cancer 2025"
+    version_or_date: "Published 6 August 2025; ISBN 9781836915263; errata 13/04/2026"
+    url: "https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/pages/5/"
+    retrieved_on: 2026-10-03
+    section: "Haematological Cancers, Assessment for Suspected Haematological Cancers (list item)"
+    quote: "Drenching night sweats"
+    snapshot: packages/protocols/sources/SCOT-SRG-2025.txt
+    supports: v_hm_1.night_sweats_arm.trigger
+  - kind: guideline
+    guideline_id: SCOT-SRG-2025
+    title: "Scottish Referral Guidelines for Suspected Cancer 2025"
+    version_or_date: "Published 6 August 2025; ISBN 9781836915263; errata 13/04/2026"
+    url: "https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/pages/3/"
+    retrieved_on: 2026-10-03
+    section: "Purpose and development of the Guidelines"
+    quote: "The Scottish Referral Guidelines (SRGs) for Suspected Cancer were first published in 2002 and subsequently revised in 2007, 2014, and 2019."
+    snapshot: packages/protocols/sources/SCOT-SRG-2025.txt
+    supports: v_hm_1.h_s4
+  - kind: guideline
+    guideline_id: NICE-NG203
+    title: "Chronic kidney disease: assessment and management"
+    version_or_date: "NICE guideline NG203; published 25 August 2021; last updated 24 November 2021; link-only minor changes November 2023, September 2024 and August 2025"
+    url: "https://www.nice.org.uk/guidance/ng203/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.5.5"
+    quote: "Refer adults with CKD for specialist assessment (taking into account their wishes and comorbidities) if they have any of the following:"
+    snapshot: packages/protocols/sources/NICE-NG203.txt
+    supports: v_nf_2.source_gap
+  - kind: guideline
+    guideline_id: NICE-NG203
+    title: "Chronic kidney disease: assessment and management"
+    version_or_date: "NICE guideline NG203; published 25 August 2021; last updated 24 November 2021; link-only minor changes November 2023, September 2024 and August 2025"
+    url: "https://www.nice.org.uk/guidance/ng203/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.5.5 (list item)"
+    quote: "an ACR of 70 mg/mmol or more, unless known to be caused by diabetes and already appropriately treated (see recommendations 1.6.6 to 1.6.9)"
+    snapshot: packages/protocols/sources/NICE-NG203.txt
+    supports: v_nf_2.source_gap
+  - kind: guideline
+    guideline_id: NICE-NG59
+    title: "Low back pain and sciatica in over 16s: assessment and management"
+    version_or_date: "NICE guideline NG59; published 30 November 2016; last updated 29 July 2026"
+    url: "https://www.nice.org.uk/guidance/ng59/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.8"
+    quote: "Consider spinal decompression for people with sciatica when non-surgical treatment has not improved pain or function and their radiological findings are consistent with sciatic symptoms. [2016]"
+    snapshot: packages/protocols/sources/NICE-NG59.txt
+    supports: v_ftvr_4
+    caveat: "Cited for the response to earlier treatment in sciatica only; never for cauda equina, which NG59 excludes (files/04 §8.2)."
+  - kind: guideline
+    guideline_id: NICE-NG59
+    title: "Low back pain and sciatica in over 16s: assessment and management"
+    version_or_date: "NICE guideline NG59; Update information"
+    url: "https://www.nice.org.uk/guidance/ng59/chapter/Update-information"
+    retrieved_on: 2026-10-03
+    section: "July 2026"
+    quote: "July 2026: We withdrew the recommendations on psychological therapy for low back pain with or without sciatica, and combined physical and psychological programmes for low back pain or sciatica."
+    snapshot: packages/protocols/sources/NICE-NG59.txt
+    supports: v_ftvr_4.currency
+spec_basis:
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.2 retired or superseded guidelines table"
+    quote: "NG59 **explicitly excludes** cauda equina from scope"
+    supports: v_ftvr_4.caveat
+  - file: CLAUDE.md
+    section: "Non-negotiable invariants, 22"
+    quote: "No free numeric text entry on the clinical critical path."
+    supports: v_hm_1.weight_loss_arm.capture
+source_gap: >-
+  V-NF-2: no retrieved current guideline states an action for the combination of
+  swelling, fluid weight gain and foamy urine. NICE NG203's referral criteria are
+  laboratory values (ACR, eGFR), the NIDDK nephrotic-syndrome page (N-S4) is a lay
+  description without an action, and NICE CKS (nephrotic syndrome) returned HTTP 403 on
+  2026-10-03 and was not bypassed. V-HM-1: the method for capturing a percentage of body
+  weight lost over a period without free numeric entry, and the Turkish routes for both
+  arms, are not set by any retrieved source.
+value:
+  v_hm_1:
+    row: rf.hematoloji_b_belirtileri
+    weight_loss_arm:
+      placement: "base universal family rf.weight_loss_unintentional (CD-13); removed from the hematoloji stub"
+      anchor: "NICE NG12 1.13.2"
+      source_values:
+        age: "aged 60 and over"
+        amount_and_period: "greater than 5% mean weight loss within a 6-month period"
+      action_in_source: "urgent investigation, or a suspected cancer pathway referral, or a non-specific symptoms pathway referral"
+      capture: "TODO: how a pre-visit captures percentage weight loss over six months without free numeric entry requires clinical sign-off"
+      route: "TODO: Turkish route for unexplained weight loss at age sixty or over requires clinical sign-off"
+    night_sweats_arm:
+      placement: "hematoloji draft_needs_source stub (CD-13)"
+      anchor: "Scottish Referral Guidelines for Suspected Cancer 2025, haematological assessment list"
+      trigger: "gece_terlemesi == true, asked in its drenching form"
+      duration_threshold: none
+      duration_reason: "the source sets no duration; Q10a's answer stays clinician context and is not part of the trigger"
+      route: "TODO: EK-4 level and Turkish route for drenching night sweats requires clinical sign-off"
+    row_3_anchor: "NICE NG12 1.10.6 and 1.10.8 (night sweats as an associated symptom of lymphadenopathy)"
+    h_s3: "THD Lenfoma Kılavuzu (staging and CLL treatment criteria): provenance for Q10a and Q11a only, never a trigger anchor"
+    h_s4: "SCOT-USC-QRG-2019-01 (January 2019): replaced by SCOT-SRG-2025; not used"
+    unexplained: "NG12 defines unexplained as a clinician's finding after assessment; the pre-visit records the patient's report and never asserts unexplained"
+  v_nf_2:
+    row: rf.nefroloji_sislik_kilo_kopuk
+    status: draft_needs_source
+    anchor: "TODO: a source that states an action for swelling with weight gain and foamy urine requires clinical sign-off"
+    items_unchanged: "ayak_goz_kapagi_sisligi, sislikle_kilo_artisi and kopuklu_idrar stay symptom capture for the clinician note"
+    compiled: false
+  v_ftvr_4:
+    recommendation: "NICE NG59 1.3.8"
+    number_confirmed: true
+    wording_confirmed: true
+    unchanged_by_july_2026_update: true
+    cited_by: [tedavi_sonrasi_agri_azalmasi, tedavi_sonrasi_islev_artisi]
+    retired_reproduction: "S5 CMICB-CLIN088-NG59 (NHS Cheshire and Merseyside policy): no longer the source of Q15a or Q15b"
+    never_for: cauda_equina
+  apply_after_737_merges:
+    - file: docs/evidence/proposals/hematoloji.md
+      where: "§1, after H-S5"
+      change: add_source
+      text: |-
+        ### H-S6 — Scottish Referral Guidelines for Suspected Cancer 2025 (international)
+        - **guideline_id:** `SCOT-SRG-2025` · snapshot `packages/protocols/sources/SCOT-SRG-2025.txt`
+        - **Version / date:** published 6 August 2025; ISBN 9781836915263; errata 13/04/2026
+        - **URL:** https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/pages/5/
+        - **Verbatim:** > "Consider urgent clinical assessment, including full blood count (FBC), of an adult patient with any of the following unexplained features:" · "Drenching night sweats"
+        - Replaces H-S4 (January 2019 guide), which the 2025 guidelines superseded (CD-14).
+    - file: docs/evidence/proposals/hematoloji.md
+      where: "§1 H-S4 heading"
+      change: mark_superseded
+      note: "append '(superseded by SCOT-SRG-2025, published 6 August 2025; not an anchor)'"
+    - file: docs/evidence/proposals/hematoloji.md
+      where: "§3 Q10 (slot gece_terlemesi)"
+      change: reword_to_cluster_ask
+      ask_tr: "Son zamanlarda geceleri çarşafınızı ıslatacak kadar terlediniz mi?"
+      gen: "gen: slot=gece_terlemesi; type=boolean"
+      source_line: "source: H-S6 (\"Drenching night sweats\"), H-S5 (NG12 rec 1.10.6, 1.10.8, \"night sweats\")"
+      note: "cluster.medical's own ask for gece_terlemesi, verbatim; the override then changes nothing but its position"
+    - file: docs/evidence/verification/hematoloji.md
+      where: "§1 red-flag row 4 (rf.hematoloji_b_belirtileri)"
+      change: split_row
+      weight_loss_arm: "moves to the base family rf.weight_loss_unintentional, anchored on NICE NG12 1.13.2; removed from this stub"
+      night_sweats_arm_trigger: "`gece_terlemesi == true`"
+      night_sweats_arm_source: "SCOT-SRG-2025: \"Consider urgent clinical assessment, including full blood count (FBC), of an adult patient with any of the following unexplained features:\" · \"Drenching night sweats\""
+      when: "TODO: EK-4 level and Turkish route for drenching night sweats requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "This instruction writes a proposal row whose `when` stays the invariant-17 literal because v_hm_1.night_sweats_arm.route is draft_needs_source in this decision."
+    - file: docs/evidence/verification/hematoloji.md
+      where: "§1 red-flag row 3 (rf.hematoloji_sislik_eslik_belirtileri)"
+      change: add_anchor
+      anchor: "NICE NG12 1.10.6 beside 1.10.8"
+    - file: docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md
+      where: "§1 S2 version line"
+      change: version_line
+      to: "NG59 · published 30 November 2016 · last updated 29 July 2026 (nice.org.uk, retrieved 2026-10-03; snapshot NICE-NG59.txt)"
+    - file: docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md
+      where: "§1 S5"
+      change: retire_source
+      note: "S5 (CMICB-CLIN088-NG59) is no longer the source of Q15a or Q15b; NICE NG59 1.3.8 (primary) is"
+    - file: docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md
+      where: "§4 Q15a and Q15b heading lines"
+      change: source_line
+      to: "source: S2 (NG59 rec 1.3.8, \"when non-surgical treatment has not improved pain or function\")"
+      note: "ask wording and gen lines unchanged"
+value_status:
+  v_hm_1.weight_loss_arm.placement: active
+  v_hm_1.weight_loss_arm.anchor: active
+  v_hm_1.weight_loss_arm.source_values: active
+  v_hm_1.weight_loss_arm.capture: draft_needs_source
+  v_hm_1.weight_loss_arm.route: draft_needs_source
+  v_hm_1.night_sweats_arm.anchor: active
+  v_hm_1.night_sweats_arm.trigger: active
+  v_hm_1.night_sweats_arm.route: draft_needs_source
+  v_hm_1.row_3_anchor: active
+  v_hm_1.h_s3: active
+  v_hm_1.h_s4: active
+  v_nf_2: draft_needs_source
+  v_ftvr_4: active
+  apply_after_737_merges: active
+verifier:
+  verdict: pending
+  notes: "First verification: agree (2026-10-03). Since then: apply entry [3] carries its draft status, and the NG203 version strings name the 2023-2025 link-only changes. Re-verification pending."

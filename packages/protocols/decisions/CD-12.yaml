@@ -1,0 +1,338 @@
+# INT-432 clinical decision CD-12. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-12
+title: "Head injury on anticoagulant or antiplatelet treatment: NICE NG232 basis, route and recency"
+question: >-
+  V-BVSC-4: should the beyin_ve_sinir_cerrahisi proposal for a recent head injury in a
+  patient on an anticoagulant or a non-aspirin antiplatelet be re-based on NICE NG232
+  (the referral recommendation the INT-427 verifier names as 1.2.4), which
+  recommendation number and wording apply, where does it route, and within what
+  recency of the injury?
+decision: >-
+  Yes. It is re-based on the primary NICE NG232 text (published 18 May 2023; minor
+  changes up to March 2025), retrieved from nice.org.uk on 2026-10-03. The secondary
+  RCEM reproduction (S8) stays as provenance only. The verifier's number is right:
+  1.2.4 is the recommendation for community health services, and its wording matches
+  the reproduction. The neighbouring recommendation 1.2.3 is the one for remote advice
+  services, the setting nearest to a remote pre-visit intake. Both list "current
+  anticoagulant or antiplatelet (except aspirin monotherapy) treatment" as a risk
+  factor, and both send the person to a hospital emergency department. The July 2023
+  update confirms that either treatment counts. NG232 does not put this risk factor
+  in 1.2.2, the list that sends the person by emergency ambulance. The route is
+  therefore SAME_DAY_ACIL, not EMERGENCY_NOW. Seizure, focal deficit or reduced
+  consciousness since the injury belong to the 1.2.2 list and to their own rules. The
+  drug classes come from 1.5.13: vitamin K antagonists, DOACs, heparin and low
+  molecular weight heparins, and any antiplatelet regimen except aspirin alone.
+  Aspirin with a second antiplatelet is not monotherapy. NG232 sets no recency. Its
+  definition of a head injury has no time limit, and its risk factors run "since the
+  injury". Its only time window, the eight hours in 1.5.13, is a CT-timing rule inside
+  the emergency department that extends beyond eight hours ("within the hour if they
+  present more than 8 hours after the injury"). The recency window therefore stays
+  draft_needs_source, with one sourced constraint: whatever window is signed must not
+  be the 1.5.13 eight hours. Against today's base slot the class cannot be applied.
+  meds_allergies.anticoagulant_use asks "Kan sulandırıcı bir ilaç kullanıyor musunuz?"
+  with evet, hayır or bilmiyorum, records no drug class, and CD-02 forbids filling it
+  from a drug name. Until a class-level answer exists, any "evet" fires the rule: the
+  aspirin-monotherapy exclusion is not applied, which over-triages and fails closed. A
+  "bilmiyorum" is UNCLEAR and resolves to the more acute reading, so it fires too. How
+  the class is captured stays draft_needs_source. So does whether patients understand
+  "kan sulandırıcı" to include clopidogrel, prasugrel or ticagrelor; that question is
+  left to the HB-C6 base-slot author. The action scripts are still unwritten, but one
+  constraint on them is active and carries no time value: NG232 refers straight to the
+  emergency department and 1.5.13 times the scan from the injury. The REMOTE action
+  must therefore send the patient to the acil servis without waiting for a later time
+  of day. They travel accompanied by a competent adult, and they are driven or use
+  public transport rather than driving themselves (1.2.6, 1.2.7). The action must not
+  reuse the SARI chest-pain action's "Bugün içinde" wording. The rule is placed in
+  base.life_threat (CD-13), not in the neurosurgery stub. The EK-4 level, the register
+  and the three location scripts stay draft_needs_source.
+status: active
+scope: simulated_patient_stress_testing
+author_role: "neurosurgery and emergency medicine physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.4"
+    quote: "Community health services (GPs, ambulance crews, NHS walk-in or minor injury centres, dental practitioners) and inpatient units without an emergency department should refer people who have sustained a head injury to a hospital emergency department, using the ambulance service if necessary, if there are any of these risk factors (see NICE's guidelines on shared decision making and decision making and mental capacity):"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: basis.primary
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3"
+    quote: "Remote advice services (for example, NHS 111) should refer people who have sustained a head injury to a hospital emergency department if there are any of these risk factors"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: basis.remote_setting
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3 and 1.2.4 (risk-factor list item)"
+    quote: "current anticoagulant or antiplatelet (except aspirin monotherapy) treatment"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: trigger.anticoagulant_use
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; Update information"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Update-information"
+    retrieved_on: 2026-10-03
+    section: "Minor changes since publication, July 2023"
+    quote: "July 2023: In recommendations 1.2.3 and 1.2.4, we clarified that risk factors can include either current anticoagulant or antiplatelet treatment."
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: trigger.anticoagulant_use
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.2"
+    quote: "Remote advice services (for example, NHS 111) should refer people who have sustained a head injury to the emergency ambulance services (that is, 999) for emergency transport to the emergency department if there are any of these risk factors"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: route_is_not
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.5.13"
+    quote: "For people who have sustained a head injury and have no other indications for a CT head scan, but are on anticoagulant treatment (including vitamin K antagonists, direct-acting oral anticoagulants (DOACs), heparin and low molecular weight heparins) or antiplatelet treatment (excluding aspirin monotherapy), consider doing a CT head scan:"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: trigger.anticoagulant_use.fires_on
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.5.13"
+    quote: "within the hour if they present more than 8 hours after the injury."
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: recency_window.constraint
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "Recommendations, preamble"
+    quote: "For the purposes of this guideline, a head injury is defined as any trauma to the head other than superficial injuries to the face."
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: trigger.head_injury
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3 and 1.2.4 (risk-factor list item)"
+    quote: "a persistent headache since the injury"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: recency_window.source_gap
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.6"
+    quote: "Ensure people referred from community health services are accompanied by a competent adult during transport to the emergency department."
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: "travel_elements, actions_by_location.constraint"
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.7"
+    quote: "If an ambulance is not needed, provided the person is accompanied, public transport or being driven in a car are appropriate means of transport."
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: "travel_elements, actions_by_location.constraint"
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.5.13"
+    quote: "within 8 hours of the injury (for example, if it is difficult to do a risk assessment or if the person might not return to the emergency department if they have signs of deterioration) or"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: actions_by_location.constraint
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952 (EK-4 unchanged by RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689)"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    section: "EK-4, Sarı, Kategori 2"
+    quote: "Bilinç kaybı olmayan minör kafa travmaları"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: ek4_level.source_gap
+    caveat: "EK-4 is the arrival triage table of an acil servis. It names no anticoagulant or antiplatelet modifier, so it gives the level of a minor head injury, not of this rule."
+spec_basis:
+  - file: files/protocols/base.life_threat.yaml
+    section: "base_intake_additions, slot anticoagulant_use"
+    quote: "gates bleeding and head-injury rules. `overlay.anticoagulated` exists but overlays may only tighten, so the base slot must exist."
+    supports: placement
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.1 rule 4"
+    quote: "**Every rule carries `tense:`**"
+    supports: recency_window
+  - file: packages/protocols/base/intake.yaml
+    section: "meds_allergies.anticoagulant_use"
+    quote: "tr: \"Kan sulandırıcı bir ilaç kullanıyor musunuz?\""
+    supports: trigger.anticoagulant_use.evaluation_against_current_slot
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.2 Three-state answers"
+    quote: "`answer_state_is_three_valued` · `did_not_understand_is_not_a_no`"
+    supports: trigger.anticoagulant_use.evaluation_against_current_slot.bilmiyorum
+  - file: files/protocols/base.life_threat.yaml
+    section: "exemplar 2, rf.chest_pain_no_cardiac_history, action.REMOTE"
+    quote: "Bugün içinde bir acil servise başvurun."
+    supports: actions_by_location.constraint
+source_gap: >-
+  NICE NG232 sets no recency window for referring a person with a head injury on
+  anticoagulant or antiplatelet treatment. Its risk factors run "since the injury" and its
+  head-injury definition has no time limit; its one time window (1.5.13) is a CT-timing rule
+  in the emergency department that does not end at eight hours. EK-4 names no
+  anticoagulant modifier. No retrieved Turkish regulation or guideline sets either value.
+  The register and the REMOTE, ON_SITE and UNKNOWN action scripts are authored with the
+  base.life_threat rule (HB-C2) and are not written here. The base anticoagulant_use slot
+  records no drug class, and no retrieved source says whether patients understand "kan
+  sulandırıcı" to include antiplatelet drugs.
+value:
+  basis:
+    primary: "NICE NG232 1.2.4 (community health services): number and wording verified against nice.org.uk on 2026-10-03"
+    remote_setting: "NICE NG232 1.2.3 (remote advice services): same risk factor, same destination"
+    secondary_reproduction: "RCEM position statement (S8): provenance only, no longer the anchor"
+  trigger:
+    head_injury:
+      definition: "any trauma to the head other than superficial injuries to the face"
+      department_slot: yakin_bas_darbesi
+      base_slot: "TODO: base.intake head-injury slot and its wording, which carries the recency, requires clinical sign-off"
+      base_slot_status: draft_needs_source
+    anticoagulant_use:
+      base_slot: meds_allergies.anticoagulant_use
+      target_classes:
+        fires_on:
+          - vitamin_k_antagonist
+          - direct_acting_oral_anticoagulant
+          - heparin
+          - low_molecular_weight_heparin
+          - antiplatelet_regimen_other_than_aspirin_monotherapy
+        does_not_fire_on:
+          - aspirin_monotherapy
+        note: "aspirin taken with a second antiplatelet is not monotherapy and fires"
+      class_capture: "TODO: how the base anticoagulant_use slot captures class values (aspirin monotherapy excluded) requires clinical sign-off"
+      evaluation_against_current_slot:
+        current_ask_tr: "Kan sulandırıcı bir ilaç kullanıyor musunuz?"
+        current_choices: [evet, hayır, bilmiyorum]
+        evet: "fires; the aspirin-monotherapy exclusion is not applied until a class-level answer exists (over-triage, fail-closed)"
+        bilmiyorum: "UNCLEAR, resolved to the more acute reading: fires"
+        hayir: "does not fire"
+        drug_name: "never fills the slot (CD-02); a matched name may be shown back for the patient to confirm"
+      lay_term_coverage:
+        value: "TODO: whether patients understand kan sulandırıcı to include clopidogrel, prasugrel or ticagrelor requires clinical sign-off"
+        owner: "HB-C6 base-slot author"
+  route: SAME_DAY_ACIL
+  route_is_not: EMERGENCY_NOW
+  route_reason: "NG232 sends this risk factor to a hospital emergency department (1.2.3, 1.2.4) and keeps the emergency-ambulance list (1.2.2) for other features, which have their own rules"
+  travel_elements:
+    - "travel accompanied by a competent adult (NG232 1.2.6)"
+    - "when no ambulance is needed, be driven or use public transport (NG232 1.2.7)"
+  travel_elements_tr: "TODO: Turkish action wording for travelling to the acil servis after a head injury on anticoagulant or antiplatelet treatment requires clinical sign-off"
+  recency_window:
+    value: "TODO: head-injury recency window for the anticoagulant or antiplatelet rule requires clinical sign-off"
+    status: draft_needs_source
+    source_gap: "NG232 states none; its risk factors run 'since the injury'."
+    constraint: "the signed window must not be the NG232 1.5.13 eight hours, which is an emergency-department CT-timing rule that continues past eight hours"
+    constraint_status: active
+  ek4_level:
+    value: "TODO: EK-4 level for a head injury on anticoagulant or antiplatelet treatment requires clinical sign-off"
+    status: draft_needs_source
+    source_gap: "EK-4 places 'Bilinç kaybı olmayan minör kafa travmaları' in Sarı Kategori 2 and names no anticoagulant modifier; whether the treatment changes the level is a clinical judgement."
+  register: "TODO: register for the head-injury anticoagulant rule requires clinical sign-off"
+  actions_by_location:
+    REMOTE: "TODO: REMOTE action script for the head-injury anticoagulant rule requires clinical sign-off"
+    ON_SITE: "TODO: ON_SITE action script for the head-injury anticoagulant rule requires clinical sign-off"
+    UNKNOWN: "TODO: UNKNOWN action script for the head-injury anticoagulant rule requires clinical sign-off"
+    constraint:
+      time_value: none
+      remote: "send the patient to the acil servis without waiting for a later time of day; accompanied by a competent adult; by ambulance when needed, otherwise driven by someone else or by public transport, not driving themselves"
+      must_not_reuse: "the SARI chest-pain action's 'Bugün içinde' wording (base.life_threat exemplar 2)"
+      basis: "NG232 1.2.3 and 1.2.4 refer straight to the emergency department; 1.5.13 times the CT from the injury; 1.2.6 and 1.2.7 set accompanied travel and name being driven, not driving"
+  placement: "base.life_threat, authored in that file by the HB-C2 author (CD-13); not the beyin_ve_sinir_cerrahisi stub"
+  related_risk_factors_not_authored_here:
+    - "any previous brain surgery (NG232 1.2.3, 1.2.4)"
+    - "any history of bleeding or clotting disorders (NG232 1.2.3, 1.2.4)"
+  apply_after_737_merges:
+    - file: docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md
+      where: "§1, after S8"
+      change: add_source
+      text: |-
+        ### S9 — NICE NG232 Head injury: assessment and early management (primary text) **[retrieved 2026-10-03]**
+        - **guideline_id:** `NICE-NG232` · snapshot `packages/protocols/sources/NICE-NG232.txt`
+        - **Version / date:** published 18 May 2023; minor changes since publication up to March 2025
+        - **URL:** https://www.nice.org.uk/guidance/ng232/chapter/Recommendations
+        - **Verbatim (1.2.3 and 1.2.4 risk-factor item):** > "current anticoagulant or antiplatelet (except aspirin monotherapy) treatment"
+        - Replaces S8 as the anchor for Q12, Q12a and red-flag row 2; S8 stays as provenance (CD-12).
+    - file: docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md
+      where: "§4 Q12 heading line"
+      change: source_line
+      from: "source: S2 (NG232), S8 (NG232 1.2.4)"
+      to: "source: S2 (NG232), S9 (NG232 1.2.3, 1.2.4)"
+    - file: docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md
+      where: "§4 Q12a heading (the source reference wraps onto a second line in the file)"
+      change: source_line
+      from: "source: S8 (NG232 1.5.13, \"within 8 hours of the injury … more than 8 hours after the injury\")"
+      to: "source: S9 (NG232 1.2.3, 1.2.4; risk factors run \"since the injury\"; no recency window stated, CD-12)"
+      note: "ask wording and gen line unchanged (type=date)"
+    - file: docs/evidence/verification/beyin_ve_sinir_cerrahisi.md
+      where: "§1 red-flag row 2 (rf.beyin_ve_sinir_cerrahisi_bas_darbesi_antikoagulan)"
+      change: source_placement_when
+      source: "NICE-NG232 1.2.3 and 1.2.4 (primary, CD-12)"
+      placement: "base.life_threat (CD-13)"
+      when: "TODO: head-injury recency window and anticoagulant_use class values (aspirin monotherapy excluded) for the anticoagulant or antiplatelet rule requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "This instruction writes a proposal row whose `when` stays the invariant-17 literal because recency_window.value and trigger.anticoagulant_use.class_capture are draft_needs_source in this decision."
+value_status:
+  basis: active
+  trigger.head_injury.definition: active
+  trigger.head_injury.base_slot: draft_needs_source
+  trigger.anticoagulant_use.target_classes: active
+  trigger.anticoagulant_use.class_capture: draft_needs_source
+  trigger.anticoagulant_use.evaluation_against_current_slot: active
+  trigger.anticoagulant_use.lay_term_coverage: draft_needs_source
+  route: active
+  route_is_not: active
+  travel_elements: active
+  travel_elements_tr: draft_needs_source
+  recency_window.value: draft_needs_source
+  recency_window.constraint: active
+  ek4_level: draft_needs_source
+  register: draft_needs_source
+  actions_by_location.REMOTE: draft_needs_source
+  actions_by_location.ON_SITE: draft_needs_source
+  actions_by_location.UNKNOWN: draft_needs_source
+  actions_by_location.constraint: active
+  placement: active
+  apply_after_737_merges: active
+verifier:
+  verdict: pending
+  notes: "Revised 2026-10-03 after independent verification (agree_with_changes): added evaluation against the current anticoagulant_use slot, the lay-term question, the active action constraint and the new apply-entry when. Re-verification pending."

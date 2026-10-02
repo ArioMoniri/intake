@@ -1,0 +1,266 @@
+# INT-432 clinical decision CD-11. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-11
+title: "Göğüs hastalıkları occupational items: D3 coverage and the current-exposure gate"
+question: >-
+  Does owner decision D3's occupational-exposure approval, delivered text_first,
+  cover göğüs hastalıkları Q10 mesleki_toz_duman_gaz and Q10a is_disinda_azalma
+  (V-GH-2)? And is a current-exposure gate in front of Q10a clinically supported,
+  given that Q10 asks about any job ever held while Q10a assumes the patient still
+  works there (V-GH-1)?
+decision: >-
+  Two parts, with different deciders.
+  The D3 reading is the owner's to confirm (V-GH-2 names the owner as decider). D18
+  delegates clinical decisions only, and CLAUDE.md sends any decision to persist new
+  categories of personal data to the human. This decision therefore records a
+  recommended reading, not a ruling, and V-GH-2 stays open with the owner. The
+  recommended reading is that D3 approves by data category: its object is
+  "specialty questions that would collect new sensitive-data categories", its
+  approved list is a list of categories, and its delivery rule binds "each such
+  item". On that reading, the departments in parentheses record where a category was
+  found on 26 September and do not limit the approval. Q10 (dust, fume or gas inhaled
+  in any job held) and Q10a (symptoms easing away from work) both collect "employer /
+  occupational exposure", so both would be covered as review-queue candidates. Until
+  the owner confirms, the items stay text_first and not servable. In any case the four
+  items D3 lists as not decided (storage register, envelope encryption, counsel's
+  basis per category, slot data-category tag) close before L1.
+  Clinically (pulmonology and occupational medicine), Q10a must not be asked of a
+  patient who no longer does that work. NICE NG245 1.4.1 looks for an occupational
+  component by asking whether symptoms are the same, better or worse on days away
+  from work and on holiday. Both questions presuppose current work, and NG245 asks
+  that all answers be recorded for later review. The fix-round wording puts a
+  condition inside a yes/no question ("Hâlâ böyle bir işte çalışıyorsanız, …"), so a
+  retired patient's answer cannot be read: their "hayır" looks like "no occupational
+  component" to red-flag row 4. The fix is a separate current-exposure gate item.
+  Q10a is reworded without the condition and asked only after a yes to the gate. A
+  patient who answers no to the gate is never asked Q10a, and is_disinda_azalma stays
+  unanswered rather than "no".
+  Row 4's exposure arm (current exposure and symptoms easing away from work) follows
+  1.4.1, and its action anchor is NG245 1.4.2 (refer to an occupational asthma
+  specialist). Both recommendations concern people with asthma, though, and the
+  population arm stays draft_needs_source. The candidates are cluster.medical
+  astim_koah_tanisi, which also covers COPD, and the pack's own hisiltili_solunum, a
+  reported wheeze, which NG245 1.1.1 checks in suspected asthma and which 1.1.2 does
+  not let confirm asthma. The Turkish referral route also stays draft_needs_source.
+status: active
+scope: simulated_patient_stress_testing
+author_role: "pulmonology and occupational medicine physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.4.1"
+    quote: "In people with adult-onset asthma, poorly controlled established asthma, or reappearance of childhood asthma, check for a possible occupational component by asking:"
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: current_exposure_gate
+    caveat: "NG245 addresses people with asthma. The göğüs hastalıkları pack asks every patient who reports an exposure, which is wider than NG245's population. The item is history capture for the clinician, not a diagnostic step; the red-flag row needs a population arm (red_flag_row_4.population_arm)."
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.4.1"
+    quote: "Are symptoms the same, better or worse on days away from work?"
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: current_exposure_gate
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.4.1"
+    quote: "Are symptoms the same, better or worse when on holiday (time away from work, longer than usual breaks, at weekends or between shifts)?"
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: reworded_item
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.4.1"
+    quote: "Make sure all answers are recorded for later review."
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: answer_semantics
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.4.2"
+    quote: "Refer people with suspected occupational asthma to an occupational asthma specialist."
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: red_flag_row_4.action_anchor
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "reported wheeze, noisy breathing, cough, breathlessness or chest tightness, and any variation (for example, worse during the night or early morning, or seasonal) in these symptoms"
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: red_flag_row_4.population_candidates
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.2"
+    quote: "Do not confirm a diagnosis of asthma without a suggestive clinical history and a supporting objective test."
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: red_flag_row_4.population_arm
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Update-information"
+    retrieved_on: 2026-10-03
+    section: "Update information, minor changes since publication"
+    quote: "November 2025: We updated recommendation 1.8.2 after a budesonide/formoterol dry powder inhaler (100 micrograms/6 micrograms per inhalation) was licensed for MART in children aged 6 to 11."
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: "currency (sections 1.1 and 1.4 unchanged)"
+spec_basis:
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "table row D3"
+    quote: "Specialty questions that would collect new sensitive-data categories"
+    supports: owner_question.recommended_reading.approval_unit
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: what the approval covers, and what it does not"
+    quote: "Approved for inclusion in the review-queue candidates:"
+    supports: owner_question.in_force_meanwhile
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: what the approval covers, and what it does not"
+    quote: "employer / occupational exposure and report purpose (iş ve meslek hastalıkları, sağlık kurulu);"
+    supports: owner_question.recommended_reading.covered_items
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: Delivery"
+    quote: "Each such item is `delivery: text_first` (files/13 §13)."
+    supports: owner_question.in_force_meanwhile
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: Not decided by D3"
+    quote: "These stay open under INT-349 and must close before any candidate is promoted to L1:"
+    supports: owner_question.still_open_before_l1
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: Not decided by D3, item 2"
+    quote: "Sensitive categories must be stored encrypted before any of these questions is served."
+    supports: owner_question.still_open_before_l1
+  - file: CLAUDE.md
+    section: "When to stop and ask the human"
+    quote: "Any decision to persist new categories of personal data."
+    supports: owner_question.decider
+value:
+  owner_question:
+    finding: V-GH-2
+    decider: owner
+    question: "Does D3's occupational-exposure approval, delivered text_first, cover göğüs hastalıkları Q10 and Q10a?"
+    open: true
+    recommended_reading:
+      answer: "yes, as review-queue candidates only"
+      approval_unit: data_category
+      department_lists: "descriptive (where the category was found on 26 September), not restrictive"
+      covered_items:
+        - item: Q10
+          slot: mesleki_toz_duman_gaz
+          category: "employer / occupational exposure"
+        - item: "Q10a (new current-exposure gate, below)"
+          slot: mesleki_maruziyet_suruyor
+          category: "employer / occupational exposure"
+        - item: "Q10b (the current Q10a, reworded below)"
+          slot: is_disinda_azalma
+          category: "employer / occupational exposure"
+    in_force_meanwhile:
+      delivery: text_first
+      servable: false
+    still_open_before_l1:
+      - storage_register_per_category
+      - envelope_encryption_of_sensitive_slots
+      - counsel_basis_retention_recipients_verbis_and_consent_scope_per_category
+      - slot_data_category_tag
+  current_exposure_gate:
+    required: true
+    reason: "NG245 1.4.1's questions about days away from work and holidays presuppose current work; a yes/no answer to a question with an embedded condition cannot be read for a patient who no longer does that work"
+    gate_item:
+      slot: mesleki_maruziyet_suruyor
+      type: boolean
+      ask_tr: "Şu anda da toz, duman ya da gaz soluduğunuz bir işte çalışıyor musunuz?"
+      ask_if: "mesleki_toz_duman_gaz == true"
+      delivery: text_first
+    reworded_item:
+      slot: is_disinda_azalma
+      type: boolean
+      ask_tr: "Şikâyetleriniz işe gitmediğiniz günlerde ya da tatilde azalıyor mu?"
+      ask_if: "mesleki_maruziyet_suruyor == true"
+      delivery: text_first
+  answer_semantics:
+    gate_answer_no: "is_disinda_azalma is never asked and stays unanswered; it is never stored as hayır and row 4 reads Unknown, not False"
+    reworded_item_hayir: "symptoms not better away from work (the same or worse). NG245 asks a three-way question; the boolean keeps the 'better' arm, which is the only arm row 4 reads. The patient's own words, when given, are kept with the answer for the clinician, as NG245 asks that all answers be recorded."
+    past_exposure_only: "a patient with past exposure and no current exposure keeps Q10 = evet in the note as occupational history; no occupational-component inference is made"
+  red_flag_row_4:
+    proposed_id: rf.gogus_hastaliklari_mesleki_bilesen
+    exposure_arm: "mesleki_toz_duman_gaz == true && mesleki_maruziyet_suruyor == true && is_disinda_azalma == true"
+    population_arm: "TODO: asthma population condition for the occupational-component rule requires clinical sign-off"
+    population_candidates:
+      - slot: astim_koah_tanisi
+        source_pack: cluster.medical
+        limit: "asks about asthma or COPD together, which is wider than NG245's population"
+      - slot: hisiltili_solunum
+        source_pack: specialty.gogus_hastaliklari
+        limit: "a reported wheeze, which NG245 1.1.1 checks in suspected asthma; under 1.1.2 it does not confirm asthma"
+    trigger: "exposure_arm && population_arm"
+    action_anchor: "NICE NG245 1.4.2: refer to an occupational asthma specialist (non-emergency)"
+    placement: "göğüs hastalıkları draft_needs_source stub (CD-13)"
+    route: "TODO: Turkish referral route for a suspected occupational component requires clinical sign-off"
+    status: draft_needs_source
+    source_gap: "NG245 1.4.1 and 1.4.2 apply to people with asthma, and no pack slot captures asthma alone: astim_koah_tanisi includes COPD, and a reported wheeze is a symptom, not a diagnosis. NG245 1.4.2 also names a UK occupational asthma specialist, and no retrieved Turkish regulation or guideline maps that referral to a Turkish service (for example an iş ve meslek hastalıkları clinic) or sets its urgency."
+  apply_after_737_merges:
+    - file: docs/evidence/proposals/gogus_hastaliklari.md
+      where: "§3, directly after the Q10 block"
+      change: insert_item
+      text: |-
+        **Q10a — Still working with that exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S9 (NG245 rec 1.4.1, "Are symptoms the same, better or worse on days away from work?")
+        > "Şu anda da toz, duman ya da gaz soluduğunuz bir işte çalışıyor musunuz?"
+        gen: slot=mesleki_maruziyet_suruyor; type=boolean; ask_if=mesleki_toz_duman_gaz == true; delivery=text_first
+        CANDIDATE — clinician to approve wording. Current-exposure gate for Q10b (CD-11).
+    - file: docs/evidence/proposals/gogus_hastaliklari.md
+      where: "§3, the current Q10a block (slot is_disinda_azalma)"
+      change: relabel_reword_regate
+      heading: "**Q10b — Symptoms ease away from work**"
+      ask_tr: "Şikâyetleriniz işe gitmediğiniz günlerde ya da tatilde azalıyor mu?"
+      gen: "gen: slot=is_disinda_azalma; type=boolean; ask_if=mesleki_maruziyet_suruyor == true; delivery=text_first"
+    - file: docs/evidence/verification/gogus_hastaliklari.md
+      where: "§1 red-flag row 4 (rf.gogus_hastaliklari_mesleki_bilesen)"
+      change: trigger_and_when
+      trigger: "`mesleki_toz_duman_gaz == true` and `mesleki_maruziyet_suruyor == true` and `is_disinda_azalma == true`, and an asthma population condition pending sign-off (candidates `astim_koah_tanisi`, `hisiltili_solunum`)"
+      when: "TODO: asthma population condition and Turkish referral route for a suspected occupational component requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "This instruction writes a proposal row whose `when` stays the invariant-17 literal because red_flag_row_4.population_arm and red_flag_row_4.route are draft_needs_source in this decision."
+    - file: docs/evidence/proposals/gogus_hastaliklari.md
+      where: "§6 change log"
+      change: add_rows
+      rows:
+        - "Q10a `mesleki_maruziyet_suruyor` | added (CD-11): current-exposure gate | `mesleki_toz_duman_gaz == true` | GH-S9"
+        - "Q10b `is_disinda_azalma` | relabelled from Q10a, reworded, regated (CD-11) | `mesleki_maruziyet_suruyor == true` | GH-S9"
+value_status:
+  current_exposure_gate: active
+  answer_semantics: active
+  red_flag_row_4.exposure_arm: active
+  red_flag_row_4.population_arm: draft_needs_source
+  red_flag_row_4.trigger: draft_needs_source
+  red_flag_row_4.action_anchor: active
+  red_flag_row_4.route: draft_needs_source
+  apply_after_737_merges: active
+verifier:
+  verdict: pending
+  notes: "Revised 2026-10-03 after independent verification (agree_with_changes). The D3 reading moved to owner_question, and the row-4 population arm is draft_needs_source. Re-verification pending."
