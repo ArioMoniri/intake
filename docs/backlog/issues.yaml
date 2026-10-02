@@ -6378,7 +6378,7 @@
   # node-forge row is the owner's decision of 2 Oct 2026, time-boxed to 30 days.
   depends_on: []
   labels: [area:ci]
-  status: doing
+  status: done
   evidence: docs/evidence/INT-429.md
   acceptance:
     - "brace-expansion and urllib3 are upgraded to their fixed versions, with lockfiles regenerated and licences verified"
