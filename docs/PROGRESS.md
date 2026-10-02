@@ -2999,3 +2999,36 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: PR `INT-422: design system refresh — native Apple feel, restrained palette, SF Symbols, no AI-generic styling` (Closes #714, Sec-Row mobile), left unmerged.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-02T23:30:00+03:00 · INT-423 · done (PR open, not merged; stacked on INT-422)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-423):
+  - materials only on chrome and floating controls, content on solid fills, Reduce Transparency solid;
+  - grouped turns, a readable measure and Dynamic Type to AX with no word broken, motion per ADR-033, RED unchanged;
+  - chat contrast in light, dark and increased contrast;
+  - before/after captures and the rationale in docs/design/.
+- Plan:
+  - A pure `lib/dialogue/rhythm.ts` for grouping and measure.
+  - `ChatLines.tsx` for the lead-in hierarchy.
+  - `DialogueIntake` takes each bubble's shape from them, with styles and placement only.
+  - The branch is stacked on INT-422 for its Increase Contrast palette and tokens.
+- Tests added (with the near-miss negative for any safety rule):
+  - `rhythm.test.ts` (near miss: alternating speakers never group);
+  - `chatContrast.test.ts` (near miss: the old faint ink on the wash fails);
+  - `e2e/chatRhythm.spec.ts` (no material in the transcript; tails only on a run's end; XS to AX5 fit at 320 pt; near miss: the old 84 % bubble breaks a word);
+  - RED run: 2 suites failed (module absent).
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 2527 passed;
+  - `make check-ts` exit 0;
+  - `make check-i18n` 43 passed;
+  - expo lint 0 errors;
+  - iOS export exit 0;
+  - `no_placeholders` OK;
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 2, 5, 10: no copy, and the question is verbatim;
+  - 17: no placeholders;
+  - 21: RED is untouched.
+- Decisions / ADRs / `00_STATE.md` rows: none. HIG materials are applied within INT-412's `glassMode`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner step: conversation captures need the voice lane up.
+- Next: PR `INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid` (Closes #718, Sec-Row mobile), base `int-422-design-system-refresh`, left unmerged.
+- LOOP_STATUS: CONTINUE

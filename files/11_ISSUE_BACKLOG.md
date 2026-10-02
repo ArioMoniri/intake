@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**327 issues.** By phase: P0 161 · P1 112 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 215 · todo 74 · withdrawn 1.
+**328 issues.** By phase: P0 161 · P1 113 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 216 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -289,6 +289,7 @@
 | INT-404 | Triage rule evidence strings render quantities with the locale decimal separator | E03-protocols | INT-386 | area:protocols, risk:clinical | done |
 | INT-415 | ElevenLabs delivery profiles per question context + on-prem TTS wiring guide | E05-voice | INT-326 | area:voice | done |
 | INT-422 | Design system refresh: native Apple feel, restrained palette, SF Symbols, no AI-generic styling | E08-mobile | INT-412 | area:mobile | done |
+| INT-423 | Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid | E08-mobile | INT-422 | area:mobile | done |
 
 ## P2
 
