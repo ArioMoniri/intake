@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T23:59:00+03:00 · INT-425 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-425):
+  - a story-led sequence (one benefit per frame, in journey order) from real captures of the refreshed app, simulated-patient data only;
+  - every required size for iOS and Android, Turkish first, no accuracy or medical claims (invariant 20), the Önvizit brand;
+  - the source project in the repo, the rationale in docs/design/store-screenshots.md.
+- Plan: capture the refreshed UI (INT-422 and INT-423, merged in because they are not on main yet) on the iPhone simulator; build the app-store-screenshots skill's editor with a flat, token-only theme patch; export every size; guard the set with a test.
+- Tests added: `tests/store/test_store_screenshots.py` (sizes, RGB, journey order, brand, Turkish-first copy, claims gate). RED: 0 frames before the exports existed. GREEN: 78 passed together with the backlog and smoke tests.
+- Result: 8 frames × 4 iPhone sizes, 8 Play phone frames and the feature graphic (about 10 MB). `no_placeholders`, claims (strict), PHI scan and gitleaks are clean on the staged tree.
+- Owner: legal sign-off of the store copy (INT-146); Android captures before submitting to Play (no emulator here).
+- Next: the coordinator allocates merge order after #725 and #728.
+
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
 - Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
   - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*

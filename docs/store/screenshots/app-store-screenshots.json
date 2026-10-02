@@ -1,0 +1,576 @@
+{
+  "schemaVersion": 2,
+  "appName": "Önvizit",
+  "themeId": "onvizit-clinical",
+  "fontId": "platform-native",
+  "connectedCanvas": false,
+  "locales": [
+    "tr"
+  ],
+  "locale": "tr",
+  "device": "iphone",
+  "orientation": "portrait",
+  "appIcon": "/onvizit-icon.png",
+  "slidesByDevice": {
+    "iphone": [
+      {
+        "id": "iphone-01",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Önvizit",
+          "en": "Önvizit"
+        },
+        "headline": {
+          "tr": "Muayeneye\nhazır gidin.",
+          "en": "Arrive at your\nvisit ready."
+        },
+        "screenshot": "/screenshots/captures/01-bugun.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        },
+        "imageElements": [
+          {
+            "id": "app-icon",
+            "src": "/onvizit-icon-rounded.png",
+            "fit": "contain",
+            "transform": {
+              "x": 104,
+              "y": 96,
+              "width": 128,
+              "height": 128,
+              "rotation": 0,
+              "zIndex": 6
+            }
+          }
+        ]
+      },
+      {
+        "id": "iphone-02",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Sesle ya da yazarak",
+          "en": "By voice or by text"
+        },
+        "headline": {
+          "tr": "Anlatın,\nbiz not alalım.",
+          "en": "You talk,\nwe take notes."
+        },
+        "screenshot": "/screenshots/captures/02-konusma.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "iphone-03",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Adım adım",
+          "en": "Step by step"
+        },
+        "headline": {
+          "tr": "Her seferde\ntek soru.",
+          "en": "One question\nat a time."
+        },
+        "screenshot": "/screenshots/captures/03-tek-soru.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "iphone-04",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Hekiminize gidecek not",
+          "en": "Your note for the doctor"
+        },
+        "headline": {
+          "tr": "Paylaşılanı\nsiz seçin.",
+          "en": "You choose\nwhat is shared."
+        },
+        "screenshot": "/screenshots/captures/04-not.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "iphone-05",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Önceki kayıtlar",
+          "en": "Earlier records"
+        },
+        "headline": {
+          "tr": "Eski bilgiler\nsize sorulur.",
+          "en": "Old details\nare checked with you."
+        },
+        "screenshot": "/screenshots/captures/05-onceki-bilgiler.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "iphone-06",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Not durumu",
+          "en": "Note status"
+        },
+        "headline": {
+          "tr": "Notunuzun\ndurumunu görün.",
+          "en": "See where\nyour note is."
+        },
+        "screenshot": "/screenshots/captures/06-not-durumu.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "iphone-07",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Paylaşım bağlantısı",
+          "en": "Share link"
+        },
+        "headline": {
+          "tr": "Hekiminize\ngösterin.",
+          "en": "Show it to\nyour doctor."
+        },
+        "screenshot": "/screenshots/captures/07-paylasim.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "iphone-08",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Görünüm",
+          "en": "Appearance"
+        },
+        "headline": {
+          "tr": "Yazı boyu\nsize göre.",
+          "en": "Text sized\nfor you."
+        },
+        "screenshot": "/screenshots/captures/08-gorunum.png",
+        "transforms": {
+          "caption": {
+            "x": 104,
+            "y": 250,
+            "width": 1112,
+            "height": 440,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 170,
+            "y": 720,
+            "width": 980,
+            "height": 1996.44,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        },
+        "inverted": true
+      }
+    ],
+    "android": [
+      {
+        "id": "android-01",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Önvizit",
+          "en": "Önvizit"
+        },
+        "headline": {
+          "tr": "Muayeneye\nhazır gidin.",
+          "en": "Arrive at your\nvisit ready."
+        },
+        "screenshot": "/screenshots/captures/01-bugun.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        },
+        "imageElements": [
+          {
+            "id": "app-icon",
+            "src": "/onvizit-icon-rounded.png",
+            "fit": "contain",
+            "transform": {
+              "x": 85,
+              "y": 52,
+              "width": 96,
+              "height": 96,
+              "rotation": 0,
+              "zIndex": 6
+            }
+          }
+        ]
+      },
+      {
+        "id": "android-02",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Sesle ya da yazarak",
+          "en": "By voice or by text"
+        },
+        "headline": {
+          "tr": "Anlatın,\nbiz not alalım.",
+          "en": "You talk,\nwe take notes."
+        },
+        "screenshot": "/screenshots/captures/02-konusma.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "android-03",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Adım adım",
+          "en": "Step by step"
+        },
+        "headline": {
+          "tr": "Her seferde\ntek soru.",
+          "en": "One question\nat a time."
+        },
+        "screenshot": "/screenshots/captures/03-tek-soru.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "android-04",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Hekiminize gidecek not",
+          "en": "Your note for the doctor"
+        },
+        "headline": {
+          "tr": "Paylaşılanı\nsiz seçin.",
+          "en": "You choose\nwhat is shared."
+        },
+        "screenshot": "/screenshots/captures/04-not.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "android-05",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Önceki kayıtlar",
+          "en": "Earlier records"
+        },
+        "headline": {
+          "tr": "Eski bilgiler\nsize sorulur.",
+          "en": "Old details\nare checked with you."
+        },
+        "screenshot": "/screenshots/captures/05-onceki-bilgiler.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "android-06",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Not durumu",
+          "en": "Note status"
+        },
+        "headline": {
+          "tr": "Notunuzun\ndurumunu görün.",
+          "en": "See where\nyour note is."
+        },
+        "screenshot": "/screenshots/captures/06-not-durumu.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "android-07",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Paylaşım bağlantısı",
+          "en": "Share link"
+        },
+        "headline": {
+          "tr": "Hekiminize\ngösterin.",
+          "en": "Show it to\nyour doctor."
+        },
+        "screenshot": "/screenshots/captures/07-paylasim.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        }
+      },
+      {
+        "id": "android-08",
+        "layout": "device-bottom",
+        "captionAlign": "left",
+        "label": {
+          "tr": "Görünüm",
+          "en": "Appearance"
+        },
+        "headline": {
+          "tr": "Yazı boyu\nsize göre.",
+          "en": "Text sized\nfor you."
+        },
+        "screenshot": "/screenshots/captures/08-gorunum.png",
+        "transforms": {
+          "caption": {
+            "x": 85,
+            "y": 160,
+            "width": 910,
+            "height": 360,
+            "rotation": 0,
+            "zIndex": 4
+          },
+          "device": {
+            "x": 230,
+            "y": 520,
+            "width": 620,
+            "height": 1343.33,
+            "rotation": 0,
+            "zIndex": 3
+          }
+        },
+        "inverted": true
+      }
+    ],
+    "feature-graphic": [
+      {
+        "id": "feature-graphic-01",
+        "layout": "feature-graphic",
+        "label": {},
+        "headline": {
+          "tr": "Muayeneden önce anlatın,\nhekiminize hazır gidin.",
+          "en": "Tell it before the visit.\nArrive ready."
+        },
+        "screenshot": ""
+      }
+    ]
+  }
+}

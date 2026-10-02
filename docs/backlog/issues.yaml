@@ -6402,3 +6402,19 @@
     - "contrast tests cover the chat pairs in light, dark and increased contrast; before/after captures and the rationale in docs/design/"
   tests: [apps/mobile/src/lib/dialogue/rhythm.test.ts, apps/mobile/src/lib/dialogue/chatContrast.test.ts, apps/mobile/e2e/chatRhythm.spec.ts]
   sec_row: "mobile"
+- id: INT-425
+  epic: E08-mobile
+  phase: P1
+  title: "App Store / Play screenshots: story-led, real captures, app-store-screenshots skill"
+  # GitHub #720. Owner request, 2 Oct 2026. Captures are of the refreshed UI
+  # (INT-422/INT-423); store copy is a draft for owner/legal (INT-146).
+  depends_on: [INT-422, INT-423]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-425.md
+  acceptance:
+    - "a story-led sequence (one benefit per frame, in the order of the patient journey) from real captures of the refreshed app, using simulated-patient data only"
+    - "every required size for iOS and Android, Turkish first, no accuracy or medical claims (invariant 20), and the Önvizit brand"
+    - "the source project is in the repo, and the rationale is in docs/design/store-screenshots.md"
+  tests: [tests/store/test_store_screenshots.py]
+  sec_row: "mobile"
