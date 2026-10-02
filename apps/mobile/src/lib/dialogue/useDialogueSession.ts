@@ -107,6 +107,12 @@ export interface DialogueSession {
   confirmPending: (questionId: string) => void;
   /** From the confirm card: the patient speaks the correction instead. */
   speakCorrection: () => void;
+  /**
+   * INT-336: the recorder's current metering in dBFS, or undefined when it has
+   * none. One loudness scalar for the presence orb's halo, read by its
+   * sampler while listening; never a buffer, and never stored or sent.
+   */
+  readLevel: () => number | undefined;
 }
 
 function toCandidates(
@@ -639,5 +645,13 @@ export function useDialogueSession({
     confirm: (values) => dispatch({ type: "confirm", values }),
     confirmPending: (questionId) => dispatch({ type: "confirm_pending", questionId }),
     speakCorrection: () => dispatch({ type: "speak" }),
+    readLevel: () => {
+      try {
+        return recorder.getStatus().metering;
+      } catch {
+        // The recorder is not running: no reading, which the orb treats as silence.
+        return undefined;
+      }
+    },
   };
 }

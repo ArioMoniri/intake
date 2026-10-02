@@ -33,6 +33,49 @@
 - Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-02T12:00:00+03:00 · INT-337 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #536):
+  - *"content enters with a 120 ms opacity-only fade at delay 0 and is never deferred; the patient's own typed message renders instantly; no frame shows two questions"*
+  - *"transcript reveal and work chips are commit-window classes, deferred while listening or composing and flushed at the next window; chip selection and confirm commits add no motion"*
+- Plan:
+  - A pure scene reducer in `lib/motion/transients.ts` asks the INT-334 arbiter about every new dialogue element.
+  - `native/useDialogueMotion.ts` steps it in the render that changes the scene, and reports each fade's end with a timer.
+  - The dialogue wraps every entry in the arbiter's fade under `LayoutAnimationConfig skipEntering`.
+  - Transcripts wait for the window; the orb's ring is the dialogue's work chip.
+  - Stacked on INT-336 (#716).
+- Tests added:
+  - `transients.test.ts`: 13 MOTION-8 tests over one whole conversation, including a fake-clock test (a fade stalled 30 s defers no content and moves no turn).
+  - `motion.spec.ts`: one self-contained MOTION-8 block with 4 guards.
+  - `a11y.spec.ts`: a BK13 classification for the hook's timer.
+  - RED: the module is missing, and 5 guards fail. GREEN: the whole mobile suite, 121 files and 2457 tests.
+  - Mutants: 15 of 15 killed.
+- Result:
+  - `make check-ts` and `make check-i18n` exit 0.
+  - `tests/backlog` and `tests/smoke` pass (74).
+  - `no_placeholders` is OK after staging.
+  - `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing: 11 (shape), 9, 1 (posture), 8, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The orb's loop hold (ARB-2) is not wired; it is outside this row's acceptance and is recorded in the evidence.
+- Blocked on: nothing.
+- Next: PR `INT-337: Motion: dialogue transients wired to the arbiter` (Closes #536, Sec-Row intake-voice). It merges after #716.
+
+### 2026-09-27T20:30:00+03:00 · INT-336 · partial — device step pending (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #535):
+  - *"orb state is event-driven from orbStateFor with no clock; typed lane, RED ALERT/CALM, failed and handoff hide it; RED SILENT maps to idle; only listening is level-reactive"*
+  - *"the level updates at ≤ 10 Hz with zero React renders per sample; the orb is hidden from accessibility and not pressable; it is opacity-only until the owner answers the scale question"*
+  - *"release-build device evidence: a JS-thread stall does not stop the orb and DialogueIntake's render count stays flat across a ten-second listen"*
+- Plan: re-land the orb from `main`. The first PR (#702) merged into INT-333's branch after that branch had already merged, so nothing reached `main`. The change is the same: the pure `lib/motion/orb.ts` and the orb tokens; `PresenceOrb.tsx` on the UI thread; `native/useLevelSampler.ts` writing one shared value; the dialogue drops `PulseDot` and its three spinners. ADR-033 Q5 is open, so the orb is opacity-only.
+- Tests added:
+  - `orb.test.ts`, 20 tests, including a new fake-clock test: the orb stalled 30 s changes no turn, and every turn is decided at its event.
+  - Six MOTION-7 guards, scoped inside their `describe`. Two are new: nothing waits on the orb; the orb writes no number of its own.
+  - RED: the module is missing and 9 guards fail. GREEN: the whole mobile suite, 121 files and 2435 tests.
+  - Mutants: 20 of 20 killed. M13 survived at first and exposed a gap, which the number guard closes.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass (74); `no_placeholders` is OK after staging. `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing: 3, 6, 11 (the level is one scalar, and the orb adds no wait to a turn), 9, 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. `docs/design/motion/enhancements.md` is carried over from #702 and decides nothing.
+- Blocked on: the owner's reference devices for acceptance line 3, so the row stays `todo` with no `evidence:` key (the INT-330, INT-341 and INT-338 precedent).
+- Next: PR `INT-336: Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners` (Closes #535, Sec-Row intake-voice), then INT-337.
+
 ### 2026-09-27T14:00:00+03:00 · INT-333 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #532):
   - *"every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"*
