@@ -5345,7 +5345,8 @@
   title: "ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer)"
   depends_on: []
   labels: [area:mobile, approval:owner]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-332.md
   acceptance:
     - "an ADR in docs/adr ratifies the motion system as revised in docs/design/motion/motion-verification.md, with the matching 00_STATE row and a mobile-ui.md §Motion pointer in the same commit"
     - "the five open questions are recorded awaiting-human with their named owners, each failing closed meanwhile"
