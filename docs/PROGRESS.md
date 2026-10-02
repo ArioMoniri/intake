@@ -3077,3 +3077,20 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. Observed: the dark-mode back chevron is invisible on pushed screens (pre-existing, not in this scope).
 - Next: PR `INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)` (Closes #739, Sec-Row mobile), left unmerged; merge after #725 and #728.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T00:50:00+03:00 · INT-425 · update (PR #738, not merged)
+- Goal: re-capture the store set with the INT-433 question screen (owner, 2 Oct 2026) and record the owner's approval of the Turkish store copy.
+- Plan:
+  - INT-433 (#740) is merged into this branch.
+  - Frames 3 (question) and 8 (Görünüm, rail clear) are recaptured on the iPhone 16e simulator.
+  - The export is re-run with the pinned editor build.
+- Tests added (with the near-miss negative for any safety rule): none new. The `tests/store` guard reran green; the six unchanged frames re-export byte-identical.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `tests/store`, `tests/backlog` and smoke: 78 passed;
+  - `claims_scan --strict` OK;
+  - `no_placeholders` OK.
+- Invariants touched and still passing: 20, no claims. The copy is unchanged.
+- Decisions / ADRs / `00_STATE.md` rows: the owner's approval of the Turkish store copy is recorded verbatim in docs/evidence/INT-425.md.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): INT-146 legal sign-off is unchanged.
+- Next: PR #738 left unmerged; merge after #725, #728 and #740.
+- LOOP_STATUS: CONTINUE

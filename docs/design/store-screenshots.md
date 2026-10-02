@@ -15,12 +15,12 @@ One benefit per frame, in the order a patient meets them. Each headline is two s
 |---|---|---|---|---|
 | 1 | Bugün: the next visit and its preparation | Önvizit | Muayeneye hazır gidin. | Arrive at your visit ready. |
 | 2 | Karşılıklı konuşma: a spoken turn and its transcript | Sesle ya da yazarak | Anlatın, biz not alalım. | You talk, we take notes. |
-| 3 | Typed step: one question, chips, a progress row | Adım adım | Her seferde tek soru. | One question at a time. |
+| 3 | Typed step after the INT-433 redesign: the thin progress bar and "Soru 1 / 10", the patient's own words in the filled field, a checked capsule chip, glass bars | Adım adım | Her seferde tek soru. | One question at a time. |
 | 4 | Review: sections with "Paylaşılıyor" and "Düzenleyin" | Hekiminize gidecek not | Paylaşılanı siz seçin. | You choose what is shared. |
 | 5 | Review: earlier facts waiting for the patient's answer | Önceki kayıtlar | Eski bilgiler size sorulur. | Old details are checked with you. |
 | 6 | Visit: the note status ladder after sending | Not durumu | Notunuzun durumunu görün. | See where your note is. |
 | 7 | Share link: "Yalnızca bu ekranda" | Paylaşım bağlantısı | Hekiminize gösterin. | Show it to your doctor. |
-| 8 | Görünüm in dark mode, larger text | Görünüm | Yazı boyu size göre. | Text sized for you. |
+| 8 | Görünüm in dark mode, larger text: the full size ladder with the chosen step, clear of the tab rail | Görünüm | Yazı boyu size göre. | Text sized for you. |
 
 ## Why it looks like this
 
@@ -37,10 +37,19 @@ Only the synthetic dev account (`apps/mobile/src/lib/dev/accounts.ts`) and typed
 
 ## What the owner still has to do
 
-1. Approve or rewrite the headlines with legal (INT-146). Turkish is the store copy. To publish the English set too, add `"en"` to `locales` and export again.
+1. ~~Approve the Turkish headlines.~~ Done: the owner approved the Turkish store copy on 2 Oct 2026, recorded verbatim in docs/evidence/INT-425.md. INT-146's `approval:human-legal` label is not changed by that record. Turkish is the store copy. To publish the English set too, add `"en"` to `locales` and export again.
 2. **Android:** no emulator was available, so the Play set frames the iOS captures in an Android device. Before submitting to Play, replace `captures/` with Android emulator or device captures of the same eight screens and export again.
 3. Upload the PNGs to App Store Connect (the 6.9" set is enough, and Apple scales it down) and to the Play Console with the feature graphic.
 4. Voice frame: a text caret is visible in the composer. Replace the capture if you want it gone.
+
+## Recapture after INT-433 (3 Oct 2026)
+
+The owner found the question screen in frame 3 not native enough (the dot row, the outlined box and chips). INT-433 (#740) redesigned it, and that branch is merged here so the frame shows the shipped screen. Two captures were replaced:
+
+- **Frame 3:** the redesigned question screen, from the same flow and dev account, with a simulated-patient answer.
+- **Frame 8:** the INT-425 capture had the floating tab rail over the selected text-size row. The new capture is scrolled so the whole ladder and the chosen step sit clear of the rail.
+
+The headlines, eyebrows, grid, theme and the other six captures are unchanged. The export was re-run with the same editor build, pressing **Export bundle** headlessly. The six unchanged frames came out byte-identical at every size, and only frames 3 and 8 changed, in every iPhone size and the Play phone size.
 
 ## How to regenerate
 
