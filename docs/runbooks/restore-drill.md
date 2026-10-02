@@ -1,122 +1,232 @@
-# Runbook — quarterly restore drill (INT-202)
+# Runbook — backups and the quarterly restore drill (INT-202)
 
-> files/10 §3: *"quarterly restore drills with evidence in the console"*.
-> files/10 §9 row `backups` names the threat this drill exists to close:
-> **[Nc] restores never exercised, discovered during the incident.**
-> Budgets, both stated in files/10 §3 and in the INT-202 acceptance:
-> **RPO 15 min, RTO 4 h.** No third figure appears in this runbook, because
-> no third figure appears in the blueprint.
+> files/10 §3: *"Postgres PITR (pgBackRest/WAL-G) encrypted with separate keys
+> to a second location in Türkiye … RPO 15 min, RTO 4 h; quarterly restore
+> drills with evidence in the console"*. files/10 §9 row `backups` names the
+> threat the drill closes: **[Nc] restores never exercised, discovered during
+> the incident.**
+
+The two budgets, RPO 15 min and RTO 4 h, are the only figures the blueprint
+states. Everything else in this runbook is either derived from them, derived
+from files/06 §1, or waiting on **HB-I8** (the retention window and the second
+location) and says so.
 
 ## What runs where
 
-| entry point | what it does | where it runs |
+| piece | what it is | where |
 |---|---|---|
-| `make backup-config-check` | the config-level gate: the repository is encrypted, no secret is in a committed file, the replication plan targets the right buckets and keeps object-lock, the drill plan never restores into the workspace | every PR, inside `make check` (`tests/infra/`) |
-| `make backup-drill-dry` | renders the ordered plan and the host verdict from `infra/backup/`; touches no container runtime | anywhere, including a host that cannot run the real drill |
-| `make backup-drill` | the drill: full backup → expire → point-in-time restore → per-table row counts → replica check → teardown → evidence | a host that clears the preflight |
-| `make backup-drill-ci` | the config gate then the drill; this is the target the **quarterly** scheduled job calls | the scheduled CI job |
+| WAL archiving | the primary runs `archive_command=pgbackrest … archive-push`, `archive_timeout=60` — every segment reaches the repository within about a minute even on a quiet database | the `postgres` service in `infra/staging/compose.yaml`, built from `infra/staging/Dockerfile.postgres` |
+| the repository | local POSIX storage on the `pgbackrest-repo` volume, **aes-256-cbc** on every file (manifests, backups, WAL); passphrase `PGBACKREST_REPO1_CIPHER_PASS` from the root-only env file | `infra/backup/pgbackrest.conf` |
+| backups | `backup.sh backup diff` Monday–Saturday and `backup.sh backup full` on Sunday, 01:30 UTC; each writes a PHI-free record | systemd timers from `backup.sh install-schedule` |
+| the drill | `backup.sh drill`, **quarterly** on the first day of January, April, July and October, 03:00 UTC | the same timers |
+| the drill in CI | `scripts/backup/ci_drill.sh` runs the same engine against a primary it boots from the same image | the compose CI job (`tests/infra/test_backup_restore_integration.py`); `make backup-drill-ci` |
+| the plan | `make backup-drill-dry` prints the ordered steps and the tier's state | anywhere |
+| the signals | `sec_backup_age_min`, `sec_restore_drill_age_days` on the probes service; alerts `BackupStale`, `RestoreDrillOverdue` | `intake_platform.backup.metrics`, `infra/observability/security-rules.yaml` |
 
-The scheduled workflow that calls `make backup-drill-ci` is **not in this
-change** — INT-202's PR does not touch `.github/**`. Whoever adds it wants:
+## First run on the host
 
-```yaml
-on:
-  schedule:
-    - cron: "0 3 1 1,4,7,10 *"   # 03:00 on the first of each quarter
-jobs:
-  restore-drill:
-    runs-on: [self-hosted, tr-dc]   # HB-I7; PHI-adjacent, never a cloud runner
-    steps:
-      - uses: actions/checkout@v4
-      - run: make backup-drill-ci
-```
+Run as root from `infra/staging` on the host, in this order. Each step is
+idempotent.
 
-## Before you run it
+1. **`./init.sh`** — on a host that ran it before INT-202 this generates only
+   the missing `PGBACKREST_REPO1_CIPHER_PASS` (256-bit, once; a re-run never
+   rotates it, because a new passphrase cannot open the existing repository).
+2. **Escrow the passphrase** — see [Escrow](#escrow). Do this before the first
+   backup exists.
+3. **`./deploy.sh`** — builds the primary with pgBackRest, recreates the
+   `postgres` container with archiving on (a restart of a few seconds), then
+   creates the stanza and runs `pgbackrest check`, which forces a WAL switch
+   and waits for it in the repository. A deploy that cannot archive stops here
+   rather than letting WAL pile up.
+4. **`./backup.sh backup full`** — the first base backup.
+5. **`./backup.sh drill`** — the first drill. Read the verdict it prints and
+   the record in `/etc/intake-staging/backup-status/`.
+6. **`./backup.sh install-schedule`** — the three timers.
+   `systemctl list-timers 'intake-*'` shows them.
+7. Record the first drill's evidence file (it holds no patient data) in
+   `docs/evidence/INT-202.md`.
 
-1. **Export the five secrets from OpenBao.** The drill reads them from the
-   environment and nothing else — there is no file they can come from
-   (CLAUDE.md invariant 14):
-   `PGBACKREST_REPO1_CIPHER_PASS`, `PGBACKREST_REPO1_S3_KEY`,
-   `PGBACKREST_REPO1_S3_KEY_SECRET`, `INTAKE_DR_S3_ACCESS_KEY`,
-   `INTAKE_DR_S3_SECRET_KEY`.
-2. **Export the second location.** `INTAKE_DR_S3_ENDPOINT` has no default:
-   files/10 §3 asks for "a second location in Türkiye" and no file names one
-   (HB-I8(b), HB-I5).
-3. **Export the retention window.** `PGBACKREST_REPO1_RETENTION_FULL` has no
-   default either, and the drill refuses without it — see below.
+## Escrow
 
-## The two refusals, and why neither is a bug
+The passphrase lives in `/etc/intake-staging/.env` on the same host as the
+repository. A backup that dies with its host needs the passphrase from
+somewhere else, so the operator copies `PGBACKREST_REPO1_CIPHER_PASS` into the
+organisation's own secret store, off this host, and records where. The same
+is true of two things this issue does not own, and a restore on a new host
+needs all three:
 
-**Retention (HB-I8).** `infra/backup/pgbackrest.conf` sets no
-`repo1-retention-full`, so the repository expires nothing and loses nothing.
-The drill refuses to plan or run until an operator supplies a window, naming
-HB-I8 in the refusal. A guessed number would quietly become the answer to a
-KVKK-7 / DEST-2017 question that counsel has not been asked — a backup
-outlives the crypto-shredding it is supposed to be subject to.
+- **OpenBao's storage and unseal shares** (`openbao-data` volume,
+  `/etc/intake-staging/openbao-init.json`). They hold the tenant KEKs; a
+  restored database without them is ciphertext wherever a field is
+  envelope-encrypted. Their custody is the open `unseal-key-custody` gap in
+  `docs/legal/special-category-measures.yaml` — a key-management decision for
+  the owner, not something this runbook decides.
+- **The env file itself**, for the database and object-store credentials.
 
-**Host capacity (HB-I1, HB-I2).** The drill stands up a WAL-archiving
-Postgres, a second object store and a restore target. The preflight gates on
-the figures the blockers themselves record — 80 GiB free disk (HB-I1's own
-lower bound) and 22 GiB of container memory (HB-I2's own figure). Below
-either, `--run` exits 3 and says which row unblocks it. It is not skipped and
-it is **not shrunk to fit**: a drill small enough to pass on a laptop proves
-nothing about a 4-hour RTO.
+## The drill, step by step
 
-## Running it
+`scripts/backup/drill_lib.sh` runs these in order; `make backup-drill-dry`
+prints the same list from `intake_platform.backup.drill.plan_restore_drill`.
 
-```bash
-docker compose -f infra/docker-compose.dev.yml \
-               -f infra/docker-compose.backup.yml --profile backup up -d
-make backup-drill
-```
-
-Everything the backup tier adds lives in `infra/docker-compose.backup.yml`
-behind the `backup` profile, so `make dev` is unaffected by its presence.
-
-## What the drill must not do, and how that is enforced
-
-- **No decrypted dump in the workspace.** The restore target is the container
-  volume `restoredata` mounted at `/restore`.
-  `assert_restore_target_outside_workspace` refuses a path inside the
-  repository under **either** reading of it — `os.path.abspath`, which is what
-  `git status` sees, and `Path.resolve()`, which is where the bytes land — and
-  reads the workspace root both ways too, since either side can be the
-  symbolic half. So `infra/../.cache/restore` is caught however it is spelled,
-  and so is a target reached through a symlink that leaves the checkout, which
-  is the shape the fresh-worktree de-identification-model cache creates and
-  which the resolved-target-only check accepted (INT-315). Accepting requires
-  every reading to agree the target is outside, so an ambiguous spelling fails
-  closed (invariant 3).
-- **No record content anywhere.** Verification is
-  `intake_platform.backup.ROW_COUNT_SQL`: `count(*)` per public table, run
-  server-side through `query_to_xml`, returning integers. No column is ever
-  projected. `parse_row_counts` drops any line that is not a bare identifier
-  and an integer, so a psql error string carrying a fragment of a row cannot
-  reach the evidence file (invariant 6).
-- **No identifiers in the evidence.** The record has exactly the fields in
-  `drill_evidence_skeleton` — clocks, budgets, a verdict, per-table counts.
-  There is no field an identifier could occupy.
-- **No secret in a committed file.** `tests/infra/test_restore_drill.py`
-  scans the conf, the plan, the compose tier and the script for anything
-  credential-shaped.
+1. **Newest backup** from `pgbackrest info`. None is a refusal.
+2. **Headroom**: the host must have twice the database's size free, so the
+   restored copy never leaves production with less headroom than its own
+   database. Too little is a refusal (exit 3), never a smaller drill.
+3. **Canary**: in its own database `intake_restore_drill` (never the
+   application's), after the backup so only WAL replay can bring it back —
+   1 000 synthetic rows, two synthetic subjects sealed with the platform's
+   envelope code under the drill's own Transit key `tenant-restore-drill`, one
+   of them crypto-shredded the way a DSAR erasure does it, then a sentinel row
+   written *after* the recovery target.
+4. **Observed RPO**: wait for the sentinel's WAL segment to reach the
+   repository on the primary's own `archive_timeout`, up to 900 s. The lag is
+   one sample; the bound is `archive_timeout` (60 s).
+5. **The repository is ciphertext**: every file begins with the salted-cipher
+   header. File names are never printed.
+6. **Restore**: `pgbackrest restore --type=time --target=<recovery target>
+   --target-action=promote` into a fresh scratch volume, from the repository
+   mounted **read-only**, in a container with **no network**.
+7. **Replay and promote** in a scratch cluster with `archive_mode=off` (a
+   restored cluster that archived would push a second timeline into the
+   production stanza) and no TCP listener. Restore plus replay is the
+   **observed RTO**, against 4 h.
+8. **Row counts** of every public table in the restored application database,
+   counted server-side; no column is ever selected.
+9. **Canary check**, outside the restored cluster: row count and md5 match,
+   the kept subject decrypts to the manifest's hash, **the erased subject is
+   the same row and still cannot be opened**, the sentinel is absent (the
+   restore stopped at the requested moment).
+10. **Teardown**: the scratch container and volume are removed.
+11. **Evidence**: a record in `backup-status/`, written even when a step
+    failed — a failed drill is a finding, not a retry.
 
 ## Reading the result
 
-Evidence lands in `INTAKE_BACKUP_DIR` (default `.cache/backups`) as
-`restore-drill-<timestamp>.json`. That directory is what
-`services/probes`' `backup_freshness` probe watches, so a drill that ran is
-visible to the console and one that did not shows as stale. Set
-`INTAKE_BACKUP_MAX_AGE_S=900` to make the freshness bound the 15-minute RPO.
+`restore-drill-<timestamp>-<run>.json` holds clocks, the two budgets, the
+observed RPO and restore seconds, seven checks, per-table counts, the
+retention and second-location state, a `verdict` and a `failures` list. There
+is no field a patient value could occupy.
 
-`verdict` is `pass` when `restore_seconds` is within the 4-hour RTO and
-`rto_exceeded` otherwise. An `rto_exceeded` drill is a finding, not a retry:
-record it, and raise the capacity or the archive layout that caused it.
+| failure | meaning |
+|---|---|
+| `rows_count`, `rows_checksum` | the restore lost or altered committed rows — stop, investigate the repository |
+| `retained_readable` | the kept subject will not open: the restore or the KEK is wrong |
+| `erased_unreadable`, `erased_same_row` | an erased subject came back, or a different row stands in its place |
+| `sentinel_absent` | the restore ignored the target and replayed past it |
+| `repository_encrypted` | a repository file is not ciphertext |
+| `rpo_exceeded`, `rpo_not_measured` | WAL is not reaching the repository in time, or at all |
+| `rto_exceeded`, `restore_not_run` | the restore is too slow, or never happened |
+
+A `second_location` of `unconfigured` does not fail the drill; it is the
+HB-I8(b) gap, visible in every record until it closes.
+
+## Backup stale
+
+`BackupStale`: `sec_backup_age_min > 1500` (a day plus an hour — the schedule
+takes one backup a day). No record at all reads +Inf and fires too.
+
+1. `systemctl status intake-backup-diff.service intake-backup-full.service` and
+   `journalctl -u 'intake-backup-*'` for the last run.
+2. `./backup.sh status` — pgBackRest's own view, and the two ages.
+3. The usual causes: the timers were never installed; the `postgres`
+   container is down; the repository volume is full (a retention window is
+   not set until HB-I8(a) closes, so nothing expires — watch the disk).
+4. Run `./backup.sh backup diff` by hand once the cause is fixed.
+
+WAL archiving continues between base backups, so a stale backup lengthens a
+restore rather than widening the RPO. If `pgbackrest check` fails too, WAL is
+not archiving: treat that as the RPO being lost.
+
+## Restore drill overdue
+
+`RestoreDrillOverdue`: `sec_restore_drill_age_days > 92` (the longest quarter).
+Only a **passing** drill resets it.
+
+1. `ls -t /etc/intake-staging/backup-status/restore-drill-*` — did a drill run
+   and fail, or not run at all?
+2. A failed drill: read its `failures` (table above) and fix the cause.
+3. Then `./backup.sh drill` by hand.
 
 ## Restoring for real
 
-The same steps, with two changes: `--target` is the incident's chosen moment
-rather than "now minus the RPO budget", and the restore target is the real
-`pg1-path` rather than `/restore`. Follow the incident runbook
-(`docs/security/incident-runbook.md`) for the notification clocks — a restore
-is often also a breach, and KVKK's 72-hour window starts before the restore
-finishes.
+The drill's steps with three changes: the target is the incident's chosen
+moment, the restore goes into the real `pgdata` volume, and **nothing serves
+traffic until erasures are re-applied**.
+
+1. Follow `docs/security/incident-runbook.md` for the notification clocks — a
+   restore is often also a breach, and KVKK's 72-hour window starts before the
+   restore finishes.
+2. Stop the API: `compose stop api`. Stop Postgres: `compose stop postgres`.
+3. Restore in place, from a one-off container on the primary's volumes:
+   `pgbackrest --stanza=intake --delta --type=time --target='<UTC time>'
+   --target-action=promote restore`, with the passphrase in its environment.
+4. Start Postgres; wait for promotion.
+5. **Re-apply erasures before the API starts.** See the next section.
+6. Start the API, run `./smoke.sh`, and take a full backup: the restore began
+   a new timeline.
+
+## Erasure and backups
+
+A DSAR erasure crypto-shreds the subject's fields by destroying each field's
+wrapped DEK in the database (`intake_api.dsar.shred`); the tenant's KEK in
+OpenBao stays. What that means for backups, measured by the CI drill:
+
+- **Restored to a moment after the erasure, the subject stays erased.** WAL
+  replay carries the shred; the drill's `erased_unreadable` check proves it
+  on every run.
+- **Restored to a moment before the erasure, the subject is readable again.**
+  The backup holds the wrapped DEK and the tenant KEK still opens it. The CI
+  drill's second restore measures exactly this and reports it rather than
+  hiding it (`erasure window: … readable`).
+
+Documents behave differently, and on purpose: the erasure deletes their bytes
+from the object store, which is not versioned (`intake-docs` is withheld from
+replication, below), so a restored document row points at nothing.
+
+So after a real restore to a moment before any erasure, before the API serves
+traffic: run the DSAR executor (`execute_due_shreds`) — it re-shreds every
+request whose grace period has ended and whose rows the restore brought back —
+and re-file any erasure the chain's WORM export records as completed after the
+recovery target but whose request row the restore predates. There is no tool
+for that second half yet; the audit chain holds the ids to do it by hand.
+
+How long this exposure lasts is how long backups live, which is **HB-I8(a)**.
+Closing it for good is a per-subject key in the KEK hierarchy (INT-037's second
+ask, `docs/evidence/INT-037.md`) — a key-management decision.
+
+## Retention (HB-I8(a))
+
+`infra/backup/pgbackrest.conf` sets `repo1-retention-full-type=time` and **no
+window**, so pgBackRest expires nothing and loses nothing. When the owner and
+counsel answer, on the host:
+
+```bash
+./backup.sh set-retention <days>
+```
+
+It refuses a window over **174 days**: files/06 §1 (KVKK-7 + DEST-2017)
+destroys at least every six months, the shortest six-month span is 181 days,
+and time retention keeps the full backup that straddles the window, so the
+oldest copy is the window plus the 7-day full-backup interval. A backup older
+than that still opens every subject erased since it was taken.
+
+## Second location (HB-I8(b))
+
+files/10 §3 asks for a second location in Türkiye; no file names one and no
+in-country provider is contracted (HB-I5). Until it is named:
+
+- **The PITR archive**: the second copy is pgBackRest **repository 2** with
+  its own passphrase, written into `/etc/intake-staging/pgbackrest.d/` on the
+  host (TLS verified — `intake_platform.backup.config` refuses
+  `*-storage-verify-tls=n`), after which every record shows
+  `second_location: configured`.
+- **Objects**: `./backup.sh replicate` applies
+  `infra/backup/minio-replication.yaml` and refuses while
+  `INTAKE_DR_S3_ENDPOINT`, `INTAKE_DR_S3_ACCESS_KEY` or
+  `INTAKE_DR_S3_SECRET_KEY` is unset. There is no default and no stand-in.
+  Deletes are never replicated (the ransomware defence), and the audit
+  bucket's replica is created with object lock.
+- **`intake-docs` is withheld**: document bytes are stored in the clear and a
+  DSAR erasure deletes them. Replication versions the source and never
+  forwards the delete, so either copy would keep an erased document. It stays
+  withheld until documents are envelope-encrypted or HB-I8 decides otherwise.

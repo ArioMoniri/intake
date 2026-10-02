@@ -84,6 +84,7 @@ def test_ids_unique_and_well_formed() -> None:
     # real e-Nabiz/MHRS samples, the on-device MHRS date-order defect).
     # + INT-412 (Apple-native chrome: symbol registry, Liquid Glass, icon proposal).
     # + INT-413 (counsel drafts for the open legal texts; never served).
+    # + INT-411 (first host run of the backups and HB-I8, split out of INT-202).
     # Grow this count only with a stated reason.
     # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
     # ported to main as its own one-issue PR).
@@ -138,7 +139,7 @@ def test_ids_unique_and_well_formed() -> None:
     # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide; owner request, GitHub #706).
-    assert len(ids) == 326
+    assert len(ids) == 327
     import re
 
     for i in ids:

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**326 issues.** By phase: P0 161 · P1 111 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 214 · todo 74 · withdrawn 1.
+**327 issues.** By phase: P0 161 · P1 112 · P2 47 · P3 7. By status: awaiting-human 33 · doing 4 · done 215 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -208,7 +208,7 @@
 | INT-189 | Compliance module: consents, vendor register, audit search, DSAR queue, retention, DPIA, residency, evidence exports | E12-admin | INT-036, INT-037, INT-038, INT-180 | area:admin, risk:legal | done |
 | INT-190 | Cost module | E12-admin | INT-101, INT-180 | area:admin | awaiting-human |
 | INT-192 | Security module: SIEM feeds, vulns vs SLA, rotations, drills, integrity | E12-admin | INT-205, INT-180 | area:admin, risk:security | done |
-| INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | doing |
+| INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | INT-030, INT-034 | area:infra, risk:security | done |
 | INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | INT-018 | area:infra, risk:security, blocked:runtime | awaiting-human |
 | INT-205 | Wazuh + Falco deployment + rules + console feed | E13-infra | INT-023 | area:infra, risk:security | done |
 | INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | INT-002 | area:infra, approval:human-infra, blocked:contract | awaiting-human |
@@ -288,6 +288,7 @@
 | INT-413 | Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices) | E14-legal | INT-215 | area:legal, risk:legal | done |
 | INT-404 | Triage rule evidence strings render quantities with the locale decimal separator | E03-protocols | INT-386 | area:protocols, risk:clinical | done |
 | INT-415 | ElevenLabs delivery profiles per question context + on-prem TTS wiring guide | E05-voice | INT-326 | area:voice | done |
+| INT-411 | Backups on the production host: first run, and the second location and retention (HB-I8) | E13-infra | INT-202 | area:infra, risk:security | awaiting-human |
 
 ## P2
 

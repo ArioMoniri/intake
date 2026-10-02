@@ -78,8 +78,8 @@ components:
       sha256) to upstream MinIO's LICENSE at master and at the previously
       pinned RELEASE.2024-01-16T16-07-38Z tag, and to /licenses/LICENSE
       inside the pinned image's amd64 layer. The image also ships the mc
-      client (Pigsty's AGPL fork of upstream mc), which the backup toolbox
-      uses, so one pin covers both. The licence class is unchanged:
+      client (Pigsty's AGPL fork of upstream mc), which backup replication
+      runs inside the store's own container (INT-202), so one pin covers both. The licence class is unchanged:
       AGPL-3.0-only is what this row carried before INT-347.
 
   - component: hapi
@@ -202,12 +202,22 @@ components:
   - component: backups
     self_hostable: true
     self_hosted_now: false
-    host: "INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design"
-    license: "n/a — our own artefacts"
+    host: "INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design"
+    license: "MIT"
     probe: backup_freshness
     budget_ms: 200
     fallback: "none"
     phi_path: true
+    licence_verified_at: "2026-09-27"
+    licence_blob_url: "https://raw.githubusercontent.com/pgbackrest/pgbackrest/8c8f3ee63e310f0b3ea10b55ed3b96b4cc9296da/LICENSE"
+    licence_blob_sha256: "897e8e8103e360b556d977a95d06f75e97c55ceb22cf44ed257ea34127c1d8ab"
+    licence_note: >-
+      pgBackRest 2.59.1 (infra/staging/Dockerfile.postgres pins the PostgreSQL
+      apt archive's 2.59.1-1.pgdg13+1). The blob is the LICENSE at the commit
+      tag release/2.59.1 points at (git ls-remote, 2026-09-27): 1 168 bytes of
+      the MIT licence, copyright the PostgreSQL Global Development Group and
+      David Steele. The status records, drill engine and scripts around it
+      are this repository's own.
 
   # --- INT-206: continuous integration ---------------------------------------
 

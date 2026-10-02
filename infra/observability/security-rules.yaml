@@ -40,6 +40,39 @@ groups:
         head was supplied to check it against (exit 3). Neither is copied to
         the WORM bucket.
       runbook: docs/runbooks/audit-chain.md#verification-failed
+- name: backups
+  rules:
+  # tests/observability/test_backup_metrics.py. INT-202: the host takes a
+  # differential backup every day and a full one every Sunday
+  # (infra/staging/backup.sh install-schedule), so the newest backup is at
+  # most a day old plus the run itself. 1500 min is that day and one hour.
+  # No record at all reads +Inf, so a host where backups never started pages
+  # here too. WAL archiving (the 15-minute RPO) runs continuously between
+  # backups; this alert is about the base backups a restore starts from.
+  - alert: BackupStale
+    expr: sec_backup_age_min > 1500
+    labels:
+      severity: ticket
+    annotations:
+      summary: 'the newest pgBackRest backup is more than a day old'
+      description: >-
+        A scheduled backup failed or did not run. WAL is still archived, but a
+        restore replays from an older base backup, which lengthens the restore
+        (RTO 4 h, files/10 §3).
+      runbook: docs/runbooks/restore-drill.md#backup-stale
+  # Quarterly restore drills (files/10 §3). The longest calendar quarter is
+  # 92 days; a passing drill older than that is overdue. A failing drill does
+  # not reset the clock — only a pass does.
+  - alert: RestoreDrillOverdue
+    expr: sec_restore_drill_age_days > 92
+    labels:
+      severity: ticket
+    annotations:
+      summary: 'no restore drill has passed this quarter'
+      description: >-
+        files/10 §9 row backups: restores never exercised are discovered during
+        the incident. Run infra/staging/backup.sh drill and read its evidence.
+      runbook: docs/runbooks/restore-drill.md#restore-drill-overdue
 - name: admin-access
   rules:
   # tests/admin/test_access_review.py. files/08 §2.7: "a review older than

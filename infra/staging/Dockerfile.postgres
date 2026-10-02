@@ -1,0 +1,40 @@
+# INT-202: the production host's Postgres, with pgBackRest for PITR.
+#
+# The base is the server the host already ran (compose.yaml, before INT-202),
+# pinned by the same digest, resolved from Docker Hub's v2 API on 26 Sep 2026.
+# Its licence is the PostgreSQL Licence. The only addition is pgBackRest, which
+# must live in the server's own container because the server runs
+# archive_command itself.
+#
+# pgBackRest comes from the PostgreSQL apt archive (apt.postgresql.org) that
+# the base image already trusts, at a pinned package version: 2.59.1 is the
+# newest in trixie-pgdg on 27 Sep 2026 (Debian trixie's own is 2.55.1). Its
+# licence is MIT. A withdrawn version fails the build loudly rather than
+# silently installing another.
+#
+# Nothing of ours is copied in: pgbackrest.conf and the conf.d include
+# directory are mounted read-only at run time, and the build context is
+# filtered to nothing (Dockerfile.postgres.dockerignore). The repository,
+# spool and log directories belong to the postgres user; the named volumes
+# mounted over the first two inherit that ownership on first use.
+#
+# USER postgres: the base's entrypoint supports a non-root start when the data
+# directory already belongs to that user, which a volume the base initialised
+# does. The server never ran as root; now nothing in the container starts as
+# root either.
+
+FROM postgres:16.15-trixie@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+
+ARG PGBACKREST_VERSION=2.59.1-1.pgdg13+1
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends "pgbackrest=${PGBACKREST_VERSION}" \
+ && rm -rf /var/lib/apt/lists/* \
+ && install -d -o postgres -g postgres -m 0750 /var/lib/pgbackrest \
+ && install -d -o postgres -g postgres -m 0750 /var/spool/pgbackrest \
+ && install -d -o postgres -g postgres -m 0750 /var/log/pgbackrest \
+ && install -d -o root -g root -m 0755 /etc/pgbackrest/conf.d
+
+USER postgres
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=12 CMD ["pg_isready", "--quiet"]

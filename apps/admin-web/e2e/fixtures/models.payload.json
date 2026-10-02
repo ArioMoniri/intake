@@ -8,19 +8,19 @@
     "reasons": [
       {
         "component": "postgres",
-        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
       },
       {
         "component": "minio",
-        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
       },
       {
         "component": "hapi",
-        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
       },
       {
         "component": "openbao",
-        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+        "reason": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
       },
       {
         "component": "qwen3.5-9b",
@@ -61,7 +61,7 @@
         },
         {
           "code": "release_blocked",
-          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
         }
       ],
       "benchmark": {
@@ -129,7 +129,7 @@
         },
         {
           "code": "release_blocked",
-          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
         }
       ],
       "benchmark": {
@@ -165,7 +165,7 @@
         },
         {
           "code": "release_blocked",
-          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
         }
       ],
       "benchmark": {
@@ -233,7 +233,7 @@
         },
         {
           "code": "release_blocked",
-          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)"
+          "detail": "fallback 'backups' is not self-hosted now (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)"
         }
       ],
       "benchmark": {
@@ -430,19 +430,19 @@
       "component": "backups",
       "self_hostable": true,
       "self_hosted_now": false,
-      "host": "INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design",
-      "license": "n/a — our own artefacts",
+      "host": "INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design",
+      "license": "MIT",
       "probe": "backup_freshness",
       "budget_ms": 200,
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-09-27",
       "severity": "attention",
       "findings": [
         {
           "code": "planned_not_running",
-          "detail": "backups: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design)."
+          "detail": "backups: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (INTAKE_BACKUP_DIR (default .cache/backups; /etc/intake-staging/backup-status on the production host) — INT-202: pgBackRest archives WAL continuously into an encrypted repository on the host, infra/staging/backup.sh takes the scheduled backups and runs the quarterly restore drill, and CI drills the same engine against a primary it boots (scripts/backup/ci_drill.sh). Nothing has run on the host yet — the operator's first run is in docs/runbooks/restore-drill.md; HB-I8 owes the retention window and the second location. Until a backup record lands, every fallback pointing here fails the release gate, by design)."
         }
       ],
       "benchmark": {

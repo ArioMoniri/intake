@@ -2868,9 +2868,14 @@
   title: "Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence"
   depends_on: [INT-030, INT-034]
   labels: [area:infra, risk:security]
-  status: doing
+  # RESCOPED 27 Sep 2026 (PR #682): the mechanism and its CI demonstration close
+  # INT-202 (RPO observed 59 s in CI; the drill checks a crypto-shredded subject
+  # stays erased); the first host run, the measured RTO, the second location and
+  # retention move to INT-411 (operator + HB-I8).
+  status: done
+  evidence: docs/evidence/INT-202.md
   acceptance:
-    - "RPO 15min/RTO 4h demonstrated in a drill script whose output is stored as evidence; quarterly schedule"
+    - "RPO 15min demonstrated by a drill script whose output is stored as evidence (CI run); the drill, a quarterly schedule and the host commands ship; the 4 h RTO measured on the production host is INT-411"
   tests: [tests/infra/test_restore_drill.py]
   legal: "KVKK-12"
   sec_row: "backups"
@@ -6369,3 +6374,15 @@
     - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
   tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
   sec_row: "cloud-clipgen"
+- id: INT-411
+  epic: E13-infra
+  phase: P1
+  title: "Backups on the production host: first run, and the second location and retention (HB-I8)"
+  depends_on: [INT-202]
+  labels: [area:infra, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the operator runs the documented first run on the host (init, passphrase escrow, deploy, full backup, drill, install-schedule) and records the drill and the measured RTO in docs/evidence/INT-411.md"
+    - "HB-I8: retention set (<= 174 days) via backup.sh set-retention; the second location configured with replication, or intake-docs explicitly excluded per the decision; sec_backup_age_min and sec_restore_drill_age_days read live on the host"
+  tests: [tests/infra/test_backup.py]
+  sec_row: "backups"

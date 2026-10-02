@@ -33,6 +33,14 @@
 #   6. Brings the project up on exactly the image the SBOM describes, and
 #      waits for health.
 #   7. Probes /healthz and /readyz over public HTTPS.
+#
+# INT-202: once the release gate passes, the deploy also builds the primary
+# with pgBackRest (Dockerfile.postgres), and after the migrations the pgBackRest stanza is
+# created or verified and WAL archiving is checked end to end. The first
+# deploy after INT-202 recreates the postgres container with archiving on (a
+# restart of a few seconds); init.sh must have been re-run once first, to
+# generate the repository passphrase. Backups themselves run on the timers
+# `backup.sh install-schedule` installs (docs/runbooks/restore-drill.md).
 set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -48,6 +56,8 @@ stamp_revision
 build_api_image
 stamp_sbom
 require_release_not_frozen
+prepare_backup_dirs
+build_postgres_image
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}, SBOM ${INTAKE_SBOM_DIGEST}) to https://${STAGING_HOSTNAME}"
 
 compose up -d postgres redis openbao
@@ -58,6 +68,7 @@ renew_api_token
 wait_healthy postgres
 run_migrations
 rotate_role_passwords
+ensure_backup_stanza
 
 # --no-build: the api runs the image build_api_image made and syft described
 compose up -d --no-build --wait --remove-orphans

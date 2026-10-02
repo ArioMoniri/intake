@@ -1,21 +1,26 @@
-# INT-202 — MinIO bucket replication to the second location (files/10 §3:
+# INT-202 — object-store replication to the second location (files/10 §3:
 # "encrypted with separate keys to a second location in Türkiye"; §9 row
 # `backups`: immutable copies defend against ransomware).
 #
 # This file is the single source of truth for what replicates where.
 # intake_platform.backup.load_replication_plan validates it and
 # intake_platform.backup.replication_commands renders the `mc replicate add`
-# invocations, so the plan is never restated in a shell script that can drift
-# away from it.
+# invocations that infra/staging/backup.sh replicate runs.
 #
 # The second location is NOT named here. files/10 §3 says "a second location
 # in Türkiye" and no file in files/ names a site, a provider or a region —
-# HB-I5 records that no in-country provider is contracted at all. So the
-# target endpoint is taken from INTAKE_DR_S3_ENDPOINT with no default: an
-# unset variable is a refusal, not a fallback to somewhere convenient.
+# HB-I5 records that no in-country provider is contracted at all, and HB-I8(b)
+# asks for it. The endpoint is INTAKE_DR_S3_ENDPOINT with no default:
+# backup.sh replicate refuses while it is unset. (Bucket replication needs a
+# MinIO-compatible target; a site that is not one changes the mechanism, and
+# HB-I8(b) records that.)
 #
-# Credentials for both ends come from OpenBao (invariant 14). Only the
-# variable names appear here.
+# The PITR archive is NOT an object-store bucket: pgBackRest's repository is a
+# POSIX volume on the host (infra/backup/pgbackrest.conf), and its second copy
+# is pgBackRest's own repository 2, encrypted under its own passphrase.
+#
+# Credentials for both ends come from the host's secrets (invariant 14). Only
+# the variable names appear here.
 
 version: 1
 
@@ -28,47 +33,42 @@ target_alias: intake-dr
 target_endpoint_env: INTAKE_DR_S3_ENDPOINT
 target_access_key_env: INTAKE_DR_S3_ACCESS_KEY
 # Every value on these lines is the NAME of an environment variable, never a
-# credential: OpenBao populates the variables at run time (invariant 14) and no
-# secret is ever written to this file. checkov's Base64HighEntropyString plugin
-# reads the name below as an opaque token and flags it; renaming does not help
-# (INTAKE_DR_OBJECT_STORE_SECRET_KEY and INTAKE_DR_S3_SECRET_ACCESS_KEY were
-# both measured and both still fire), so the exemption is anchored to this one
+# credential. checkov's Base64HighEntropyString plugin reads the name below as
+# an opaque token and flags it; renaming does not help (two spellings were
+# measured and both still fire), so the exemption is anchored to this one
 # line. It is not a file exemption: scripts/ci/gate_selftest.sh plants a real
 # base64 secret elsewhere in this same file and requires checkov to still fail.
 target_secret_key_env: INTAKE_DR_S3_SECRET_KEY  # checkov:skip=CKV_SECRET_6: env-var name, not a value; see the comment above
 
-# The pgBackRest repository lives in object storage too (repo1-type=s3), so
-# the PITR archive replicates alongside the document and audit buckets.
-repository_bucket: intake-pgbackrest
-
 rules:
   - bucket: intake-docs
-    # Documents are encrypted at the field level before they are stored
-    # (files/10 §3 envelope encryption); replication moves ciphertext.
+    # WITHHELD. Document bytes are stored in the clear — the SSE slot in
+    # intake_platform.documents is plumbed, not wired — and a DSAR erasure
+    # deletes them (services/api/src/intake_api/dsar/shred.py, files/06 §3).
+    # Replication needs versioning on the source, which keeps the deleted
+    # bytes as a noncurrent version, and the copy never receives the delete.
+    # Either would keep an erased document. replication_commands renders no
+    # command for this rule until its objects are envelope-encrypted (so an
+    # erasure destroys a key a copy cannot undo) or the owner and counsel
+    # decide a copy may outlive an erasure (HB-I8).
     object_lock: false
+    holds_erasable_plaintext: true
     replicate_existing: true
-    # A delete on the primary must not reach the copy. That is the whole
-    # ransomware defence: the attacker who can delete cannot un-copy.
     replicate_delete: false
     replicate_delete_marker: false
     expiry_days: null
 
   - bucket: intake-audit-worm
+    # Hash-chain exports: ids and scopes, never content (invariant 6).
     # Created with S3 object-lock in COMPLIANCE mode by
     # DocumentStore.ensure_buckets. MinIO enables the lock only at bucket
-    # creation, so the replica must be created locked or the WORM guarantee
-    # is void on the copy — files/10 §3 records exactly this trap for Garage.
+    # creation, so the replica is created locked or the WORM guarantee is
+    # void on the copy — files/10 §3 records exactly this trap for Garage.
     object_lock: true
+    holds_erasable_plaintext: false
     replicate_existing: true
-    replicate_delete: false
-    replicate_delete_marker: false
-    expiry_days: null
-
-  - bucket: intake-pgbackrest
-    # Already encrypted by pgBackRest itself (repo1-cipher-type), so the
-    # replica is ciphertext under a key the DR site does not hold.
-    object_lock: true
-    replicate_existing: true
+    # A delete on the primary must not reach the copy. That is the whole
+    # ransomware defence: the attacker who can delete cannot un-copy.
     replicate_delete: false
     replicate_delete_marker: false
     expiry_days: null

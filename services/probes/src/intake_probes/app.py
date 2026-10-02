@@ -12,6 +12,11 @@ series on this service's ``/metrics``. Unconfigured, no loop starts and the
 families are served empty (help and type lines only), which the admin console
 reads as *unknown*.
 
+INT-202: it also serves ``sec_backup_age_min`` and
+``sec_restore_drill_age_days``, computed at scrape time from the PHI-free
+records in ``INTAKE_BACKUP_DIR`` — the directory its ``backup_freshness``
+probe already watches (:mod:`intake_platform.backup.metrics`).
+
 INT-021 close-out: docs/slo/probes.yaml is written against
 ``http_requests_total{service="probes"}``, and until the close-out nothing here
 emitted it — an objective nobody could breach. The shared request middleware
@@ -27,6 +32,7 @@ from os import environ
 from pathlib import Path
 
 from fastapi import FastAPI
+from intake_platform.backup.metrics import bind_from_env as bind_backup_gauges
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from prometheus_client import REGISTRY
@@ -66,4 +72,5 @@ def create_app() -> FastAPI:
         return True
 
     mount_health(app, readiness=[ReadinessCheck("registry", registry_parses)])
+    bind_backup_gauges(environ)
     return app

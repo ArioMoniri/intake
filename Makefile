@@ -375,27 +375,26 @@ load:
 	@command -v k6 >/dev/null || { echo "k6 is not installed (brew install k6)"; exit 2; }
 	k6 run -e BASE_URL=$${BASE_URL:-http://127.0.0.1:8000} scripts/load/k6-smoke.js
 
-# INT-202: backups — pgBackRest PITR (encrypted repository), MinIO replication
-# to the second location, and the restore drill. files/10 §8 schedules the
-# drill quarterly; `backup-drill-ci` is what that scheduled job calls.
+# INT-202: backups — pgBackRest PITR into an encrypted POSIX repository on the
+# production host, replication to the second location (refused until HB-I8(b)
+# names it), and the restore drill. On the host the drill is
+# `infra/staging/backup.sh drill` on a quarterly systemd timer
+# (`backup.sh install-schedule`); docs/runbooks/restore-drill.md.
 #
-# Only `backup-drill-dry` runs on this host. The real drill stands up a second
-# Postgres, a second object store and a restore target, which needs more disk
-# and more container memory than HB-I1/HB-I2 record as available — the script
-# refuses rather than shrinking the drill to fit.
-.PHONY: backup-config-check backup-drill-dry backup-drill backup-drill-ci
+# `backup-drill-dry` renders the plan anywhere. `backup-drill-ci` runs the
+# real drill against a primary it boots itself — it needs Docker and the dev
+# tier's OpenBao, so it runs in the compose CI job (the integration test calls
+# the same script) and never on a machine without a container runtime.
+.PHONY: backup-config-check backup-drill-dry backup-drill-ci
 
 backup-config-check:
-	uv run pytest tests/infra -q -o addopts=""
+	uv run pytest tests/infra/test_restore_drill.py tests/infra/test_backup_status.py tests/infra/test_backup_canary.py tests/infra/test_backup_staging.py tests/observability/test_backup_metrics.py -q -o addopts=""
 
 backup-drill-dry:
 	scripts/backup/restore_drill.sh --dry-run
 
-backup-drill:
-	scripts/backup/restore_drill.sh --run
-
 backup-drill-ci: backup-config-check
-	scripts/backup/restore_drill.sh --run
+	scripts/backup/ci_drill.sh --evidence-dir .cache/backups --characterise-erasure-window
 
 # INT-205: the detection tier — Wazuh (SIEM/XDR) + Falco (runtime), files/10 §7.
 # `siem-config-check` is the half that runs anywhere: the rulesets, ossec.conf,
