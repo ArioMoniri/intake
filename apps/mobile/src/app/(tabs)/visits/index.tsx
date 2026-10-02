@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Link, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { EmptyState } from "@/components/EmptyState";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { Segmented, type SegmentedOption } from "@/components/Segmented";
@@ -100,11 +101,7 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
           {t("visits.title")}
         </AppText>
         {visits.length === 0 ? (
-          <Card>
-            <AppText role="body" color="inkSoft">
-              {t("visits.empty")}
-            </AppText>
-          </Card>
+          <EmptyState icon="calendar" message={t("visits.empty")} />
         ) : (
           <>
             <Segmented

@@ -422,7 +422,8 @@ const styles = StyleSheet.create({
   // (INT-284; the large-text step makes this screen tall).
   body: { flexGrow: 1, justifyContent: "center", gap: spacing.md },
   field: {
-    borderRadius: 16,
+    borderRadius: 12,
+    borderCurve: "continuous",
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,

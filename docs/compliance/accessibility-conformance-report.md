@@ -11,8 +11,8 @@
 | Product | Vizite — patient pre-visit intake, mobile application (`apps/mobile`) |
 | Platforms | iOS and Android from one Expo / React Native code base, phone form factor (`supportsTablet: false`) |
 | Assessed on | 2026-09-27 |
-| Assessed tree | `origin/main` at `066fb8a5`, re-assessed on branch `int-226-a11y-conformance`. INT-387 re-assessed 3.3.1, 3.3.8 and 4.1.3, and the 3.2.2 remark, against `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`. INT-397 re-assessed 4.1.3 on branch `int-397-status-lines`, built on `int-387-conformance-refresh` at `76d98388` |
-| Assessed by | INT-226 engineering pass: automated source assertions, code inspection and palette arithmetic. Rows re-assessed since, by the same method: 1.3.4 and 1.4.10 (INT-360), 2.2.1 (INT-363), 3.3.1, 3.3.8, 4.1.3 and the 3.2.2 remark (INT-387), and 4.1.3 again (INT-397) |
+| Assessed tree | `origin/main` at `066fb8a5`, re-assessed on branch `int-226-a11y-conformance`. INT-387 re-assessed 3.3.1, 3.3.8 and 4.1.3, and the 3.2.2 remark, against `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`. INT-397 re-assessed 4.1.3 on branch `int-397-status-lines`, built on `int-387-conformance-refresh` at `76d98388`. INT-422 re-assessed 1.4.3 and 1.4.11 on branch `int-422-design-system-refresh`, against the palette it introduced |
+| Assessed by | INT-226 engineering pass: automated source assertions, code inspection and palette arithmetic. Rows re-assessed since, by the same method: 1.3.4 and 1.4.10 (INT-360), 2.2.1 (INT-363), 3.3.1, 3.3.8, 4.1.3 and the 3.2.2 remark (INT-387), 4.1.3 again (INT-397), and 1.4.3 and 1.4.11 (INT-422) |
 | Standards | WCAG 2.2 (W3C Recommendation, 5 October 2023), Level A and AA. EN 301 549 V3.2.1 (2021-03), clauses 5, 11 and 12 as they apply to a mobile application. The Ministry's "Erişilebilirlik Kontrol Listesi — A Seviyesi" through the BK numbers on the Level A rows (Cumhurbaşkanlığı Genelgesi 2025/10, RG 32933; HUMAN_BLOCKERS.md HB-L9). |
 | Method | Automated: vitest suites under `apps/mobile` that read the source and assert the accessibility properties each screen declares. Each citation names one test, and CI runs every one of them in `make check-ts`. Manual: code reading and repository searches, each recorded in §6 with its date, the command or file read, and what it found. Contrast: computed from the palette in `apps/mobile/src/lib/theme.ts` with the WCAG 2.x relative-luminance formula each time this report is rendered. |
 | Not done | No VoiceOver, TalkBack, Switch Control, Voice Control, external-keyboard or braille session. No run on hardware at the largest text size. No testing with disabled users. The device audit in §5 covers the first two, and the owner performs it. |
@@ -37,7 +37,7 @@
 | **Not Applicable** | The app contains nothing the criterion governs. The evidence shows the absence. |
 | **Not Evaluated** | The criterion turns on runtime behaviour that only a device run can decide. The row names the device audit item that decides it. It is neither a pass nor a failure. |
 
-**WCAG 2.2 Level A and AA (55 criteria):** Supports 28 · Partially Supports 4 · Does Not Support 0 · Not Applicable 13 · Not Evaluated 10.
+**WCAG 2.2 Level A and AA (55 criteria):** Supports 30 · Partially Supports 2 · Does Not Support 0 · Not Applicable 13 · Not Evaluated 10.
 
 **EN 301 549 clauses beyond clause 11.1-11.4 (27):** Supports 11 · Partially Supports 1 · Does Not Support 1 · Not Applicable 8 · Not Evaluated 6.
 
@@ -85,11 +85,11 @@
 | 1.2.5 Audio Description (Prerecorded) | **Not Applicable** | manual MC-02 | No prerecorded video. |
 | 1.3.4 Orientation | **Supports** | `e2e/a11y.spec.ts` › SC 1.3.4 — app.json follows the device in every build profile<br>`e2e/a11y.spec.ts` › SC 1.3.4 — every orientation lock in the app is registered as essential, with its reason<br>`e2e/a11y.spec.ts` › a planted lock that is not registered is caught — the near-miss control<br>`e2e/a11y.spec.ts` › every Modal rotates with the device — iOS presents one portrait-only unless told otherwise<br>`src/lib/a11y/orientation.test.ts` › lists every orientation the app declares, both landscapes included<br>`e2e/a11y.spec.ts` › no layout decides a height the landscape window cannot hold<br>`e2e/a11y.spec.ts` › every scroller that holds a text field keeps it above the keyboard<br>`e2e/a11y.spec.ts` › the dialogue's bottom stack pins to the keyboard's edge and never outgrows its frame<br>manual MC-04 | Since INT-360, `apps/mobile/app.json` sets `"orientation": "default"` in every build profile. iOS declares all four orientations, and Android follows the device. The automated check reads every script under `src`, the config plugins, `app.json` and `app.config.ts`. It looks for every way the app could lock a screen: an orientation setting, the orientation API, a native orientation key, or a `<Modal>` that does not rotate. React Native shows a Modal portrait-only on an iPhone unless the Modal lists its orientations. The section sheet was such a Modal, and it now lists all four. A lock the check finds must be listed here as essential, with its reason. None is: the records camera is the system's own capture screen, and a photo's upright travels in its EXIF tag. MC-04 is the manual pass that found the app-config lock. The source is checked for landscape layouts at the largest text size: no fixed or percentage height the window cannot hold, no size read from the long side, side safe areas, and no field left under the keyboard. DA-05 confirms each screen on hardware. **Essential exception:** none. No screen keeps an orientation lock. |
 | 1.3.5 Identify Input Purpose | **Supports** | manual MC-05 | Only one field collects information about the patient from the WCAG input-purpose list: the phone number. It declares `autoComplete="tel"` and `textContentType="telephoneNumber"`. |
-| 1.4.3 Contrast (Minimum) | **Partially Supports** | `src/lib/theme.test.ts` › %s body text meets WCAG AA (4.5:1)<br>`src/lib/theme.test.ts` › %s: the known sub-AA pairs hold their measured floor<br>contrast measured in §4 | **Finding:** The quietest text tone, `inkFaint`, carries 13 pt caption text below 4.5 : 1 on every light ground and on the dark raised ground. The light "Dosyaya eklendi" chip (`success` on `successSoft`) also falls short. The measurements are in §4. Body text, soft ink, primary, status-pill and CTA pairs meet 4.5 : 1 in both schemes. Closing the gap needs a palette decision from the design owner (INT-144 report §5.1 and §5.2). |
+| 1.4.3 Contrast (Minimum) | **Supports** | `src/lib/theme.test.ts` › $name: every text pair meets WCAG AA (4.5:1)<br>`src/lib/theme.test.ts` › the known sub-AA pairs of the old palette are closed<br>contrast measured in §4 | Since INT-422 every text colour the app sets meets 4.5 : 1 on every ground it is set on, in light, dark and the OS Increase Contrast mode, and clinical text meets 7 : 1. The two pairs INT-144 found below the floor (`inkFaint` on the light grounds, the light "Dosyaya eklendi" chip) are closed; §4 measures them from the palette. DA-05 confirms on hardware. |
 | 1.4.4 Resize Text | **Supports** | `src/lib/theme.test.ts` › follows the user's scale up to 2.0 and no further (02 §8.2)<br>`e2e/a11y.spec.ts` › a TextInput that applies scaledSize disables the OS multiplier<br>`e2e/appearance.spec.ts` › nothing in the app can truncate a string<br>`e2e/overflow.spec.ts` › no module renders a Screen it cannot move<br>`src/lib/prefs/appearance.test.ts` › a tie resolves to the LARGER step — accessibility never rounds down | Text follows the OS size, or the app's own text-size step, up to 200 % through one clamp. No string can be truncated and every screen scrolls. DA-05 confirms the layouts on hardware. |
 | 1.4.5 Images of Text | **Supports** | manual MC-01 | All type is live text. The app renders no image content. |
 | 1.4.10 Reflow | **Not Evaluated** | `e2e/overflow.spec.ts` › no module renders a Screen it cannot move<br>`e2e/appearance.spec.ts` › nothing in the app can truncate a string<br>`e2e/a11y.spec.ts` › no layout decides a height the landscape window cannot hold<br>device audit DA-05 (pending) | Layouts are flex-based, with no fixed-width content, and every screen scrolls vertically. No scroller runs sideways. Since INT-360 the app turns with the phone (1.3.4), so a patient also meets these layouts in a landscape window 320 to 390 pt tall. DA-05 decides, in both orientations. |
-| 1.4.11 Non-text Contrast | **Partially Supports** | manual MC-24<br>contrast measured in §4 | **Finding:** In light mode an unselected interactive chip's only boundary is the `border` hairline. The hairline measures below 3 : 1 against both the chip fill and the screen ground (§4), and the chip fill barely differs from the ground. Selected chips (a `primary` border) and every dark-mode chip (filled, tonal) are distinguishable. INT-144 report §5.3 gives the recommended fix. |
+| 1.4.11 Non-text Contrast | **Supports** | `src/lib/theme.test.ts` › $name: control boundaries and fills meet SC 1.4.11 (3:1)<br>manual MC-24<br>contrast measured in §4 | MC-24 recorded the gap before INT-422: an unselected chip's only boundary was a hairline below 3 : 1. INT-422 split that token in two. The `border` that outlines inputs and unselected chips now measures 3 : 1 or more on both grounds in every scheme and contrast mode (§4), and decorative row hairlines take a separate `separator` token. |
 | 1.4.12 Text Spacing | **Not Applicable** | manual MC-06 | The criterion is scoped to content implemented in markup languages that support the text-style properties. The app renders native views and no WebView or HTML. INT-144 recorded this row as supported by inspection. Reading roles keep a 1.4× line height regardless. |
 | 1.4.13 Content on Hover or Focus | **Not Applicable** | manual MC-07 | Nothing appears on hover or focus. |
 | 2.4.5 Multiple Ways | **Not Applicable** | manual MC-10 | WCAG2ICT reads this criterion, for non-web software, as applying to a set of software programs. Vizite is one program. Read instead as a set of web pages, a visit is reachable two ways (Bugün and Vizitlerim), but each Profilim sub-screen only one way. INT-144's third route, through Kayıtlarım, does not navigate to a visit. |
@@ -127,11 +127,11 @@ EN 301 549 V3.2.1 clauses 11.1 to 11.4 apply WCAG 2.1 Level A and AA to non-web 
 | 11.1.3.5 | 1.3.5 Identify Input Purpose | Supports |
 | 11.1.4.1 | 1.4.1 Use of Color | Supports |
 | 11.1.4.2 | 1.4.2 Audio Control | Supports |
-| 11.1.4.3 | 1.4.3 Contrast (Minimum) | Partially Supports |
+| 11.1.4.3 | 1.4.3 Contrast (Minimum) | Supports |
 | 11.1.4.4 | 1.4.4 Resize Text | Supports |
 | 11.1.4.5 | 1.4.5 Images of Text | Supports |
 | 11.1.4.10 | 1.4.10 Reflow | Not Evaluated |
-| 11.1.4.11 | 1.4.11 Non-text Contrast | Partially Supports |
+| 11.1.4.11 | 1.4.11 Non-text Contrast | Supports |
 | 11.1.4.12 | 1.4.12 Text Spacing | Not Applicable |
 | 11.1.4.13 | 1.4.13 Content on Hover or Focus | Not Applicable |
 | 11.2.1.1 | 2.1.1 Keyboard | Not Evaluated |
@@ -200,16 +200,16 @@ EN 301 549 V3.2.1 clauses 11.1 to 11.4 apply WCAG 2.1 Level A and AA to non-web 
 
 | SC | Scheme | Foreground on background | Measured | Required | Result |
 |---|---|---|---|---|---|
-| 1.4.3 | light | `inkFaint` #8A867A on `background` #FAF8F4 — 13 pt caption on the screen ground | 3.43 : 1 | 4.5 : 1 | **below** |
-| 1.4.3 | light | `inkFaint` #8A867A on `surface` #FFFFFF — 13 pt caption on a card | 3.64 : 1 | 4.5 : 1 | **below** |
-| 1.4.3 | light | `inkFaint` #8A867A on `surfaceRaised` #F1EDE4 — 13 pt caption on a raised chip or well | 3.11 : 1 | 4.5 : 1 | **below** |
-| 1.4.3 | dark | `inkFaint` #8A867A on `background` #0F0E0C — 13 pt caption on the screen ground | 5.30 : 1 | 4.5 : 1 | meets |
-| 1.4.3 | dark | `inkFaint` #8A867A on `surface` #211F1B — 13 pt caption on a card | 4.52 : 1 | 4.5 : 1 | meets |
-| 1.4.3 | dark | `inkFaint` #8A867A on `surfaceRaised` #2B2823 — 13 pt caption on a raised chip or well | 4.03 : 1 | 4.5 : 1 | **below** |
-| 1.4.3 | light | `success` #1B7F4B on `successSoft` #E4F2EA — the filed-status chip | 4.35 : 1 | 4.5 : 1 | **below** |
+| 1.4.3 | light | `inkFaint` #636366 on `background` #F2F2F7 — 13 pt caption on the screen ground | 5.37 : 1 | 4.5 : 1 | meets |
+| 1.4.3 | light | `inkFaint` #636366 on `surface` #FFFFFF — 13 pt caption on a card | 5.99 : 1 | 4.5 : 1 | meets |
+| 1.4.3 | light | `inkFaint` #636366 on `surfaceRaised` #E5E5EA — 13 pt caption on a raised chip or well | 4.77 : 1 | 4.5 : 1 | meets |
+| 1.4.3 | dark | `inkFaint` #98989D on `background` #000000 — 13 pt caption on the screen ground | 7.31 : 1 | 4.5 : 1 | meets |
+| 1.4.3 | dark | `inkFaint` #98989D on `surface` #1C1C1E — 13 pt caption on a card | 5.93 : 1 | 4.5 : 1 | meets |
+| 1.4.3 | dark | `inkFaint` #98989D on `surfaceRaised` #2C2C2E — 13 pt caption on a raised chip or well | 4.85 : 1 | 4.5 : 1 | meets |
+| 1.4.3 | light | `success` #146C3E on `successSoft` #E3F3E8 — the filed-status chip | 5.63 : 1 | 4.5 : 1 | meets |
 | 1.4.3 | dark | `success` #5CB884 on `successSoft` #1E2E25 — the filed-status chip | 5.87 : 1 | 4.5 : 1 | meets |
-| 1.4.11 | light | `border` #EAE6DD on `surface` #FFFFFF — unselected chip hairline against the chip fill | 1.25 : 1 | 3.0 : 1 | **below** |
-| 1.4.11 | light | `border` #EAE6DD on `background` #FAF8F4 — unselected chip hairline against the screen ground | 1.17 : 1 | 3.0 : 1 | **below** |
+| 1.4.11 | light | `border` #86868B on `surface` #FFFFFF — unselected chip hairline against the chip fill | 3.62 : 1 | 3.0 : 1 | meets |
+| 1.4.11 | light | `border` #86868B on `background` #F2F2F7 — unselected chip hairline against the screen ground | 3.25 : 1 | 3.0 : 1 | meets |
 
 ## 5 · Device audit — **pending**, to be performed by the owner
 
@@ -401,6 +401,7 @@ Each test below is collected by `apps/mobile/vitest.config.ts` and runs in
 | `apps/mobile/src/lib/notifications/store.test.ts` | while the server has not answered, the save is saving — never failed | 4.1.3 |
 | `apps/mobile/src/lib/prefs/appearance.test.ts` | a tie resolves to the LARGER step — accessibility never rounds down | 1.4.4 |
 | `apps/mobile/src/lib/prefs/appearance.test.ts` | null follows the phone exactly | EN 11.6.2, EN 11.7 |
-| `apps/mobile/src/lib/theme.test.ts` | %s body text meets WCAG AA (4.5:1) | 1.4.3 |
-| `apps/mobile/src/lib/theme.test.ts` | %s: the known sub-AA pairs hold their measured floor | 1.4.3 |
+| `apps/mobile/src/lib/theme.test.ts` | $name: control boundaries and fills meet SC 1.4.11 (3:1) | 1.4.11 |
+| `apps/mobile/src/lib/theme.test.ts` | $name: every text pair meets WCAG AA (4.5:1) | 1.4.3 |
 | `apps/mobile/src/lib/theme.test.ts` | follows the user's scale up to 2.0 and no further (02 §8.2) | 1.4.4 |
+| `apps/mobile/src/lib/theme.test.ts` | the known sub-AA pairs of the old palette are closed | 1.4.3 |

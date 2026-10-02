@@ -80,7 +80,7 @@ export function InstrumentStep({ instrument, options, onSelect }: InstrumentStep
       {/* The item, verbatim. It is this step's title, so it is the heading —
           the screen's own question line is not rendered for an instrument
           step, because there would then be two askings of one question. */}
-      <AppText role="hero" heading>
+      <AppText role="question" heading>
         {item.textTr}
       </AppText>
       <View style={styles.choices}>

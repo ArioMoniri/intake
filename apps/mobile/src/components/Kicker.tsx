@@ -1,16 +1,13 @@
 /**
- * Kicker / eyebrow (design pass 3; unboxed in pass 4): a tiny dot glyph +
- * wide-tracked semibold caption ABOVE a section or inside a card header.
- * Pass 4 measurement against the Mobbin Oura captures: Oura's eyebrows and
- * group headers are UNBOXED quiet labels — the pass-3 pill box read as noise
- * Oura does not have, so the dot + tracking now carry the register alone.
- * Tracking replaces the case transform Oura uses — ALL-CAPS is banned
- * (İ/ı, 00 §2).
+ * Section header (INT-422, docs/design/system-refresh.md): the iOS grouped
+ * list header, a quiet Footnote line ABOVE a section or inside a card's top.
+ * No dot, no tracking and no case transform: the tracked, dotted eyebrow was
+ * the most generic of the old styling, and ALL-CAPS is banned outright (İ/ı,
+ * 00 §2). Sentence case at Footnote size is what Apple's own lists use.
  */
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 
-import { AppText, useTheme } from "@/components/Themed";
-import { radius, spacing, tracking } from "@/lib/theme";
+import { AppText } from "@/components/Themed";
 
 interface KickerProps {
   label: string;
@@ -19,25 +16,14 @@ interface KickerProps {
 }
 
 export function Kicker({ label, tone = "neutral" }: KickerProps) {
-  const theme = useTheme();
   const accent = tone === "accent";
   return (
-    <View style={styles.row}>
-      <View style={[styles.dot, { backgroundColor: accent ? theme.primary : theme.inkFaint }]} />
-      <AppText role="caption" color={accent ? "primary" : "inkSoft"} style={styles.label}>
-        {label}
-      </AppText>
-    </View>
+    <AppText role="caption" color={accent ? "primary" : "inkSoft"} style={styles.label}>
+      {label}
+    </AppText>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: spacing.xs + 2,
-  },
-  dot: { width: 5, height: 5, borderRadius: radius.chip },
-  label: { fontWeight: "600", letterSpacing: tracking.kicker },
+  label: { alignSelf: "flex-start", fontWeight: "600" },
 });
