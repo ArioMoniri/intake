@@ -20,10 +20,9 @@ import {
   KEEP_HEAD_MS,
   KEEP_TAIL_MS,
   parseWav,
-  MIN_CHUNK_CHARS,
   SENTENCE_GAP_MS,
-  shapeForDelivery,
   shapeForSpeech,
+  shapeForUtterance,
   trimAndFade,
   TURN_YIELD_TAIL_MS,
   type PcmClip,
@@ -223,17 +222,16 @@ describe("assembleClip", () => {
 });
 
 // ---------------------------------------------------------------------------
-// INT-291 — the delivery stage: a measured chunk floor and a turn contour.
+// INT-440 — the clip is ONE utterance: no mid-question cut, no inserted gap.
 // ---------------------------------------------------------------------------
 
-describe("shapeForDelivery — invariant 10 survives the merge", () => {
-  it("chunks still concatenate back to the whitespace-collapsed original", () => {
-    const text = "Nasıl başladı? Seçenekler: Aniden başladı veya Yavaş yavaş gelişti.";
-    expect(
-      shapeForDelivery(text)
-        .map((c) => c.text)
-        .join(" "),
-    ).toBe(collapseWhitespace(text));
+describe("shapeForUtterance — invariant 10: the whole scripted text, verbatim", () => {
+  it("is one chunk whose text is the whitespace-collapsed original", () => {
+    const text = "Nasıl başladı?  Seçenekler: Aniden başladı veya Yavaş yavaş gelişti.";
+    const chunks = shapeForUtterance(text);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].text).toBe(collapseWhitespace(text));
+    expect(chunks[0].spoken).toBe(collapseWhitespace(text));
   });
 
   it("holds for every string in the Turkish catalog", () => {
@@ -242,12 +240,9 @@ describe("shapeForDelivery — invariant 10 survives the merge", () => {
       if (collapsed.length === 0) {
         continue;
       }
-      const chunks = shapeForDelivery(value);
-      expect(chunks.length, key).toBeGreaterThan(0);
-      expect(chunks.map((c) => c.text).join(" "), key).toBe(collapsed);
-      for (const chunk of chunks) {
-        expect(collapsed.includes(chunk.text), `${key}: ${chunk.text}`).toBe(true);
-      }
+      const chunks = shapeForUtterance(value);
+      expect(chunks, key).toHaveLength(1);
+      expect(chunks[0].text, key).toBe(collapsed);
     }
   });
 
@@ -256,115 +251,57 @@ describe("shapeForDelivery — invariant 10 survives the merge", () => {
       if (/\p{Nd}/u.test(value)) {
         continue;
       }
-      for (const chunk of shapeForDelivery(value)) {
+      for (const chunk of shapeForUtterance(value)) {
         expect(/\p{Nd}/u.test(chunk.spoken)).toBe(false);
       }
     }
   });
 
-  it("adds no word the input did not carry", () => {
+  it("adds no word the input did not carry — only a terminal mark where none was", () => {
     // The reassurance line (CLAUDE.md invariant 2, PolicyGuard _PROGNOSIS) is
-    // held by never letting this stage originate a word at all: every token of
-    // every spoken form is a token of the input, or a terminal mark.
+    // held by never letting this stage originate a word at all.
     for (const value of Object.values(tr)) {
-      const source = new Set(collapseWhitespace(value).split(" "));
-      for (const chunk of shapeForDelivery(value)) {
-        for (const word of chunk.spoken.split(" ")) {
-          const bare = word.replace(/[.?!…]+$/u, "");
-          expect(source.has(word) || source.has(bare) || bare === "").toBe(true);
-        }
+      const collapsed = collapseWhitespace(value);
+      for (const chunk of shapeForUtterance(value)) {
+        expect([collapsed, `${collapsed}.`]).toContain(chunk.spoken);
       }
     }
+    expect(shapeForUtterance("Ağrınız ne zaman başladı")[0].spoken).toBe(
+      "Ağrınız ne zaman başladı.",
+    );
+  });
+
+  it("returns nothing for empty or whitespace-only text", () => {
+    expect(shapeForUtterance("")).toEqual([]);
+    expect(shapeForUtterance(" \n\t ")).toEqual([]);
   });
 });
 
-describe("shapeForDelivery — the measured chunk floor", () => {
-  it("states the floor the measurement found", () => {
-    // docs/evidence/INT-291.md, 2 Sep 2026, Freya lane: every request under
-    // 13 non-space characters came back with a token nobody authored —
-    // "Tutun." -> "Tutun, atun.", "Bakmayın." -> "Bakmayın, ha!". The
-    // shortest fragment that round-tripped clean was 13.
-    expect(MIN_CHUNK_CHARS).toBe(13);
+describe("shapeForUtterance — what the owner heard as 'stoppy' is gone", () => {
+  it("never splits a two-sentence question into two requests", () => {
+    // INT-237/291 sent title and aside as separate requests, rejoined with a
+    // 200 ms gap after trimming each edge to 15 ms: the prosody restarted
+    // mid-question. One request keeps one contour across the whole turn.
+    const chunks = shapeForUtterance("Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.");
+    expect(chunks.map((c) => c.spoken)).toEqual([
+      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.",
+    ]);
   });
 
-  it("keeps the RED imperative triplet in ONE request", () => {
-    // The reason the floor exists. Split, these three are the shortest and
-    // most safety-critical strings in the product, and the lane invents a
-    // word in each. CLAUDE.md invariant 21 — ambiguity is the harm.
-    const chunks = shapeForDelivery("Tutun. Arayın. Bakmayın.");
+  it("keeps the RED imperative triplet in ONE request, so no fragment is sub-floor", () => {
+    // docs/evidence/INT-291.md: every request under 13 non-space characters
+    // came back with a token nobody authored. A whole-script request can only
+    // be short when the whole script IS short — the honest limit.
+    const chunks = shapeForUtterance("Tutun. Arayın. Bakmayın.");
     expect(chunks).toHaveLength(1);
     expect(chunks[0].spoken).toBe("Tutun. Arayın. Bakmayın.");
   });
 
-  it("still splits where both halves clear the floor", () => {
-    // INT-237's win is kept: a real two-sentence question is still two
-    // requests, so the sentence break is expressible at all.
-    const chunks = shapeForDelivery(
-      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.",
-    );
-    expect(chunks.map((c) => c.text)).toEqual([
-      "Söyledikleriniz ekrana yazıldı.",
-      "Kontrol edip onaylayın.",
-    ]);
-  });
-
-  it("merges a short tail sentence backwards rather than sending it alone", () => {
-    const chunks = shapeForDelivery("Söyledikleriniz ekrana yazıldı. Peki?");
-    expect(chunks).toHaveLength(1);
-  });
-
-  it("stops accumulating the moment the floor is cleared, not at the end", () => {
-    // A greedy merge that swallowed everything would be safe against the lane
-    // and would also throw away INT-237's whole result — the sentence break
-    // would stop existing. Three sentences, two of which clear the floor on
-    // their own, must stay two requests.
-    const chunks = shapeForDelivery(
-      "Bir haftadan uzun süredir. Kontrol edip onaylayın. Peki?",
-    );
-    expect(chunks.map((c) => c.text)).toEqual([
-      "Bir haftadan uzun süredir.",
-      "Kontrol edip onaylayın. Peki?",
-    ]);
-  });
-
-  it("carries a sub-floor run forward into the sentence that clears it", () => {
-    // "Bir." and "İki." are 3 and 4 characters; neither may be sent, and
-    // neither may be sent as the pair either (8 < 13).
-    const chunks = shapeForDelivery("Bir. İki. Söyledikleriniz ekrana yazıldı.");
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0].text).toBe("Bir. İki. Söyledikleriniz ekrana yazıldı.");
-  });
-
-  it("leaves a single short turn alone — there is nothing to merge it with", () => {
-    // Honest limit: the floor is about not SPLITTING below it. A turn whose
-    // whole text is short cannot be padded with words that were not authored.
-    expect(shapeForDelivery("Tutun.")).toHaveLength(1);
-  });
-});
-
-describe("shapeForDelivery — the turn contour", () => {
-  it("pauses less between its own sentences than the silence that ends a turn", () => {
-    // files/03 §4.2 mandates min_silence_duration >= 250 ms for end-of-turn
-    // detection. A pause INSIDE the agent's turn that exceeds that floor is
-    // indistinguishable from the agent having finished — which, with barge-in
-    // armed, invites the patient into the middle of the question. INT-237 set
-    // one 280 ms gap everywhere and did not reach this.
-    expect(SENTENCE_GAP_MS).toBeLessThan(250);
+  it("ends the turn with the yield tail, above the end-of-turn floor", () => {
+    // files/03 §4.2: min_silence_duration >= 250 ms is end of turn; the tail
+    // is where the agent means "your turn" (INT-291's contour, kept).
     expect(TURN_YIELD_TAIL_MS).toBeGreaterThan(250);
-    expect(SENTENCE_GAP_MS).toBeGreaterThan(120); // the daemon's clause gap
-  });
-
-  it("gives the last chunk the yield tail and the others the sentence gap", () => {
-    const chunks = shapeForDelivery(
-      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.",
-    );
-    expect(chunks.map((c) => c.gapMs)).toEqual([SENTENCE_GAP_MS, TURN_YIELD_TAIL_MS]);
-  });
-
-  it("gives a one-chunk turn the yield tail too", () => {
-    expect(shapeForDelivery("Sizi bugün hekime getiren nedir?")[0].gapMs).toBe(
-      TURN_YIELD_TAIL_MS,
-    );
+    expect(shapeForUtterance("Sizi bugün hekime getiren nedir?")[0].gapMs).toBe(TURN_YIELD_TAIL_MS);
   });
 });
 

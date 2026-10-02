@@ -18,8 +18,10 @@ import { setLocale } from "@/lib/i18n";
 import { en } from "@/lib/i18n/en";
 import { tr } from "@/lib/i18n/tr";
 
+import type { ClipLaneRecord } from "@/lib/dialogue/georgeClip";
+
 import type { ReachabilityReport } from "./hosts";
-import { voiceDiagnostic } from "./voiceDiagnostic";
+import { ttsLaneDiagnostic, voiceDiagnostic } from "./voiceDiagnostic";
 
 afterEach(() => setLocale("tr"));
 
@@ -111,6 +113,54 @@ describe("invariant 5 — the strings come from the catalogue, tr first", () => 
       "devVoice.reason.timeout",
       "devVoice.reason.refused",
       "devVoice.reason.status",
+    ] as const) {
+      expect(tr[key].length, key).toBeGreaterThan(0);
+      expect(en[key].length, key).toBeGreaterThan(0);
+    }
+  });
+});
+
+// INT-440: the owner heard the self-hosted lane and could not tell it was not
+// George — the fallback was silent by design. The same dev-only posture as the
+// ASR banner: production renders nothing, a George clip renders nothing, and a
+// fallback clip says which lane spoke and why George did not.
+describe("ttsLaneDiagnostic — the voice that spoke, when it is not George", () => {
+  const FALLBACK: ClipLaneRecord = {
+    lane: "self_hosted",
+    georgeMiss: "unauthorized",
+    tiers: ["freya"],
+  };
+
+  it("is null in production, whatever lane spoke", () => {
+    expect(ttsLaneDiagnostic(FALLBACK, false)).toBeNull();
+  });
+
+  it("is null before any clip and for a George clip", () => {
+    expect(ttsLaneDiagnostic(null, true)).toBeNull();
+    expect(ttsLaneDiagnostic({ lane: "george" }, true)).toBeNull();
+  });
+
+  it("names the self-hosted tier that spoke and the George miss", () => {
+    const diagnostic = ttsLaneDiagnostic(FALLBACK, true)!;
+    expect(diagnostic.title).toBe(tr["devVoice.lane.title"]);
+    expect(diagnostic.lines).toEqual([
+      `${tr["devVoice.lane.served"]} — freya`,
+      `${tr["devVoice.lane.georgeMiss"]} — unauthorized`,
+    ]);
+    expect(diagnostic.hint).toBe(tr["devVoice.lane.hint"]);
+  });
+
+  it("joins a clip spoken across tiers", () => {
+    const diagnostic = ttsLaneDiagnostic({ ...FALLBACK, tiers: ["voxcpm2", "freya"] }, true)!;
+    expect(diagnostic.lines[0]).toBe(`${tr["devVoice.lane.served"]} — voxcpm2 + freya`);
+  });
+
+  it("every lane-banner key exists in both catalogues", () => {
+    for (const key of [
+      "devVoice.lane.title",
+      "devVoice.lane.served",
+      "devVoice.lane.georgeMiss",
+      "devVoice.lane.hint",
     ] as const) {
       expect(tr[key].length, key).toBeGreaterThan(0);
       expect(en[key].length, key).toBeGreaterThan(0);

@@ -76,6 +76,91 @@ export function requireScriptedTr(candidate: string, question: IntakeQuestion): 
   return candidate as ScriptedTr;
 }
 
+/**
+ * Why a George request did not serve (INT-440) — a closed set, so it can be a
+ * dev-banner token and a metric label without ever carrying the host, the
+ * text or a server narrative (invariant 6).
+ */
+export const GEORGE_MISSES = [
+  /** No George source in this build (production, or the dev source is off). */
+  "off",
+  /** No API base answered. */
+  "no_host",
+  /** No authenticated patient session on the device to sign the request. */
+  "no_session",
+  /** 401/403 — the route refused the credentials (INT-326 requires a patient). */
+  "unauthorized",
+  /** 404 — the host does not mount the dev route (any `prod*` INTAKE_ENV). */
+  "not_mounted",
+  /** 422 — off-catalogue text, a numeral, or a pinned delivery context. */
+  "refused",
+  /** 429 — the per-patient budget. */
+  "rate_limited",
+  /** 502 — the vendor refused or could not be reached. */
+  "vendor",
+  /** 503 — no key, flag, catalogue or budget store on the server. */
+  "unconfigured",
+  /** Any other non-2xx. */
+  "status",
+  /** A 2xx with no audio in it. */
+  "empty",
+  /** The client gave up waiting. */
+  "timeout",
+  /** The request never completed. */
+  "transport",
+] as const;
+
+export type GeorgeMiss = (typeof GEORGE_MISSES)[number];
+
+/**
+ * The one error the George path throws. Its message stays `george_unavailable`
+ * — "fall back" is still the only thing a caller does with it — and `reason`
+ * says why, for the dev banner and the lane metric.
+ */
+export class GeorgeUnavailable extends Error {
+  readonly reason: GeorgeMiss;
+
+  constructor(reason: GeorgeMiss) {
+    super("george_unavailable");
+    this.reason = reason;
+  }
+}
+
+/** The closed-set reason for a non-2xx answer from the George route. */
+export function georgeMissForStatus(status: number): GeorgeMiss {
+  switch (status) {
+    case 401:
+    case 403:
+      return "unauthorized";
+    case 404:
+      return "not_mounted";
+    case 422:
+      return "refused";
+    case 429:
+      return "rate_limited";
+    case 502:
+      return "vendor";
+    case 503:
+      return "unconfigured";
+    default:
+      return "status";
+  }
+}
+
+/** The reason behind any George failure; a stray error is a transport one. */
+export function georgeMissOf(error: unknown): GeorgeMiss {
+  return error instanceof GeorgeUnavailable ? error.reason : "transport";
+}
+
+/**
+ * How a George request reaches the API: a route PATH and a request, answered
+ * with a Response. The device's transport is the DPoP-bound `authedFetch`
+ * (clips.ts), which resolves the base and signs the request — the route has
+ * required an authenticated patient since INT-326, and an anonymous POST is
+ * what made every George request a silent 401 (INT-440).
+ */
+export type GeorgeTransport = (path: string, init: RequestInit) => Promise<Response>;
+
 export interface GeorgeFetchOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
@@ -87,59 +172,73 @@ export interface GeorgeFetchOptions {
 }
 
 /**
- * POST one scripted question text to the dev George route and return the audio
- * bytes (a WAV the server wrapped around the vendor's PCM).
- *
- * Throws `george_unavailable` on any non-2xx (the server answers 503 when the
- * key is absent, 502 when the vendor is unreachable), an empty body, or a
- * transport error — every one of which means "fall back to the self-hosted
- * lane". Only a {@link ScriptedTr} may be sent, so no patient text can leave
- * the app through this call.
- *
- * The body is `{ text_tr, delivery_context }` (INT-415). A `"red"` context is
- * never sent: RED audio is pre-positioned on the device and never fetched on
- * demand (invariant 21), and the server refuses it too.
+ * POST one scripted question text to the dev George route at a known base and
+ * return the audio bytes — {@link fetchGeorgeClipVia} over a plain fetch. It
+ * sends no credentials, so a mounted route answers it 401; the device uses
+ * the authenticated transport instead.
  */
 export async function fetchGeorgeClip(
   base: string,
   text: ScriptedTr,
   options: GeorgeFetchOptions = {},
 ): Promise<Uint8Array> {
+  const { fetchImpl = fetch, ...rest } = options;
+  return fetchGeorgeClipVia((path, init) => fetchImpl(`${base}${path}`, init), text, rest);
+}
+
+/**
+ * POST one scripted question text to the dev George route through `transport`
+ * and return the audio bytes (a WAV the server wrapped around the vendor's PCM).
+ *
+ * Throws {@link GeorgeUnavailable} on any non-2xx, an empty body, a timeout or
+ * a transport error — every one of which means "fall back to the self-hosted
+ * lane" — with the closed-set reason attached. Only a {@link ScriptedTr} may
+ * be sent, so no patient text can leave the app through this call.
+ *
+ * The body is `{ text_tr, delivery_context }` (INT-415). A `"red"` context is
+ * never sent: RED audio is pre-positioned on the device and never fetched on
+ * demand (invariant 21), and the server refuses it too.
+ */
+export async function fetchGeorgeClipVia(
+  transport: GeorgeTransport,
+  text: ScriptedTr,
+  options: Omit<GeorgeFetchOptions, "fetchImpl"> = {},
+): Promise<Uint8Array> {
   assertSpeakableTr(text); // defence in depth — no numeral crosses, ever
-  const {
-    fetchImpl = fetch,
-    timeoutMs = GEORGE_TIMEOUT_MS,
-    signal,
-    context = DEFAULT_DELIVERY_CONTEXT,
-  } = options;
+  const { timeoutMs = GEORGE_TIMEOUT_MS, signal, context = DEFAULT_DELIVERY_CONTEXT } = options;
   if (context === "red") {
-    throw new Error("george_unavailable");
+    throw new GeorgeUnavailable("refused");
   }
   const controller = new AbortController();
+  let timedOut = false;
   const stop = () => controller.abort();
   signal?.addEventListener("abort", stop);
-  const timer = setTimeout(stop, timeoutMs);
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
   try {
-    const res = await fetchImpl(`${base}${GEORGE_CLIP_PATH}`, {
+    const res = await transport(GEORGE_CLIP_PATH, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text_tr: text, delivery_context: context }),
       signal: controller.signal,
     });
     if (!res.ok) {
-      throw new Error("george_unavailable");
+      throw new GeorgeUnavailable(georgeMissForStatus(res.status));
     }
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (bytes.length === 0) {
-      throw new Error("george_unavailable");
+      throw new GeorgeUnavailable("empty");
     }
     return bytes;
   } catch (error) {
-    // transport, abort, or the explicit throw above — all mean "unavailable,
-    // fall back". Never surface the underlying error (it could name the host).
-    throw error instanceof Error && error.message === "george_unavailable"
-      ? error
-      : new Error("george_unavailable");
+    // Never surface the underlying error (it could name the host): only the
+    // closed-set reason leaves this function.
+    if (timedOut) {
+      throw new GeorgeUnavailable("timeout");
+    }
+    throw error instanceof GeorgeUnavailable ? error : new GeorgeUnavailable("transport");
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener("abort", stop);
@@ -155,6 +254,14 @@ export type GeorgeGenerator = (text: ScriptedTr, context?: DeliveryContext) => P
 /** The self-hosted per-clip synthesizer George degrades to (ttsLane). */
 export type SelfHostedSynth = (text: string) => Promise<Uint8Array>;
 
+/** Which lane produced one clip, and — when it was not George — why (INT-440). */
+export type ClipLaneOutcome = { lane: "george" } | { lane: "self_hosted"; georgeMiss: GeorgeMiss };
+
+/** A clip's outcome as the session keeps it: a fallback also names the
+ * self-hosted tier(s) that spoke (ttsLane ids — `voxcpm2`, `freya`). */
+export type ClipLaneRecord =
+  { lane: "george" } | { lane: "self_hosted"; georgeMiss: GeorgeMiss; tiers: readonly string[] };
+
 /**
  * A clip synthesizer that PREFERS George for scripted text and falls back to
  * the self-hosted lane on any George failure (unconfigured, unavailable,
@@ -166,20 +273,30 @@ export type SelfHostedSynth = (text: string) => Promise<Uint8Array>;
  * takes it next to the text, defaults it to `"routine"`, and forwards it to
  * George. The self-hosted fallback has no delivery controls today, so it takes
  * the text alone (docs/voice/on-prem-tts-wiring.md).
+ *
+ * INT-440: the fallback is no longer silent. `onOutcome` hears, once per clip
+ * that was actually produced, which lane produced it and why George did not.
  */
 export function georgePreferringSynth(
   george: GeorgeGenerator | null,
   fallback: SelfHostedSynth,
+  onOutcome?: (outcome: ClipLaneOutcome) => void,
 ): (text: ScriptedTr, context?: DeliveryContext) => Promise<Uint8Array> {
   return async (text, context = DEFAULT_DELIVERY_CONTEXT) => {
+    let georgeMiss: GeorgeMiss = "off";
     if (george !== null) {
       try {
-        return await george(text, context);
-      } catch {
+        const bytes = await george(text, context);
+        onOutcome?.({ lane: "george" });
+        return bytes;
+      } catch (error) {
         // any George failure degrades to a worse voice, never to a dead turn —
         // the same trade the self-hosted ladder makes one level down (ttsLane).
+        georgeMiss = georgeMissOf(error);
       }
     }
-    return fallback(text);
+    const bytes = await fallback(text);
+    onOutcome?.({ lane: "self_hosted", georgeMiss });
+    return bytes;
   };
 }

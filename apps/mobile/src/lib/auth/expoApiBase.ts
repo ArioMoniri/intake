@@ -41,7 +41,8 @@ async function firstReachableDevApiBase(): Promise<string | null> {
 
 /**
  * This build's API base. Release: the configured https base, or a thrown
- * `ApiBaseUnconfigured`. Dev: the LAN walk's answer, null when nothing answers.
+ * `ApiBaseUnconfigured`. Dev: the LAN walk's answer, else the configured https
+ * base (INT-440), null when neither serves.
  * Not cached here — each caller keeps its own cache and re-probe policy.
  */
 export function buildApiBase(): Promise<string | null> {

@@ -16,6 +16,7 @@
  * for a platform hook to call when one is available and nothing fabricates the
  * answer in the meantime.
  */
+import type { ClipLaneOutcome } from "../dialogue/georgeClip";
 import { createCrashClient, type CrashClient, type CrashClientOptions } from "./client";
 import {
   emitPerf,
@@ -25,6 +26,7 @@ import {
   recordCrash,
   recordSession,
   recordStall,
+  ttsLaneSample,
   type ClientMetricSink,
   type PerfState,
 } from "./metrics";
@@ -43,6 +45,8 @@ export interface TelemetryRuntime {
   recordPreviousLaunchCrashed(): void;
   /** Push the current readings to the sink. */
   flush(): void;
+  /** One synthesized dialogue clip, by the lane that spoke it (INT-440). */
+  noteTtsLane(outcome: ClipLaneOutcome): void;
 }
 
 export interface TelemetryRuntimeOptions extends CrashClientOptions {
@@ -77,5 +81,8 @@ export function createTelemetryRuntime(options: TelemetryRuntimeOptions): Teleme
       state = recordCrash(recordSession(state));
     },
     flush,
+    noteTtsLane: (outcome) => {
+      sink.emit(ttsLaneSample(outcome));
+    },
   };
 }

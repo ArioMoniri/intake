@@ -2,13 +2,20 @@
  * Client performance series (INT-145; CLAUDE.md invariants 6 and 13).
  * Every id asserted here already exists in observability/metrics_catalog.yaml.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
   CLIENT_ANR_RATE,
   CLIENT_COLD_START_P95_MS,
   CLIENT_CRASH_FREE_SESSIONS,
+  CLIENT_DIALOGUE_TTS_LANE,
   EMITTED_CLIENT_METRIC_IDS,
+  TTS_LANES,
+  ttsLaneSample,
   WEB_CORE_WEB_VITALS,
   WEB_VITALS,
   anrRate,
@@ -26,17 +33,62 @@ import {
 } from "./metrics";
 
 describe("the catalogued id set", () => {
-  it("names exactly the four series this client is allowed to emit", () => {
+  it("names exactly the five series this client is allowed to emit", () => {
     expect([...EMITTED_CLIENT_METRIC_IDS]).toEqual([
       "client.crash_free_sessions",
       "client.cold_start_p95_ms",
       "client.anr_rate",
       "web.core_web_vitals",
+      "client.dialogue_tts_lane",
     ]);
     expect(CLIENT_CRASH_FREE_SESSIONS).toBe("client.crash_free_sessions");
     expect(CLIENT_COLD_START_P95_MS).toBe("client.cold_start_p95_ms");
     expect(CLIENT_ANR_RATE).toBe("client.anr_rate");
     expect(WEB_CORE_WEB_VITALS).toBe("web.core_web_vitals");
+    expect(CLIENT_DIALOGUE_TTS_LANE).toBe("client.dialogue_tts_lane");
+  });
+
+  it("every emitted id is a catalogue row (invariant 13)", () => {
+    const catalogue = readFileSync(
+      join(
+        fileURLToPath(new URL(".", import.meta.url)),
+        ...Array(5).fill(".."),
+        "observability",
+        "metrics_catalog.yaml",
+      ),
+      "utf8",
+    );
+    for (const id of EMITTED_CLIENT_METRIC_IDS) {
+      expect(catalogue, `${id} is not catalogued`).toContain(`id: ${id}`);
+      expect(catalogue).toContain(`name: ${id.replace(/\./g, "_")}`);
+    }
+  });
+});
+
+// INT-440: a non-George clip used to be silent everywhere. It is now one
+// counter sample per synthesized clip, labelled by a closed set only.
+describe("client.dialogue_tts_lane — which lane spoke each clip", () => {
+  it("counts a George clip under lane=george", () => {
+    expect(ttsLaneSample({ lane: "george" })).toEqual({
+      metricId: "client.dialogue_tts_lane",
+      value: 1,
+      lane: "george",
+    });
+  });
+
+  it("counts a fallback clip under lane=self_hosted with the George miss", () => {
+    expect(ttsLaneSample({ lane: "self_hosted", georgeMiss: "unauthorized" })).toEqual({
+      metricId: "client.dialogue_tts_lane",
+      value: 1,
+      lane: "self_hosted",
+      georgeMiss: "unauthorized",
+    });
+  });
+
+  it("has a label for every lane and no free-text field", () => {
+    expect([...TTS_LANES]).toEqual(["george", "self_hosted"]);
+    const sample = ttsLaneSample({ lane: "self_hosted", georgeMiss: "off" });
+    expect(Object.keys(sample).sort()).toEqual(["georgeMiss", "lane", "metricId", "value"]);
   });
 });
 

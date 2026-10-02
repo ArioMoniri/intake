@@ -449,6 +449,24 @@ describe("synthesizeWithFallback (one slow lane degrades to a slower voice)", ()
     expect(calls.some((c) => c === `${FREYA.base}/synthesize`)).toBe(true);
   });
 
+  it("names the tier that actually spoke (INT-440 — no silent lane change)", async () => {
+    const behaviour: Record<string, LaneBehaviour> = {
+      [VOX.base]: { healthy: true, synthesizeMs: VOX_ON_GPU_MS },
+      [FREYA.base]: { healthy: true, synthesizeMs: FREYA_MS },
+    };
+    const { fetchImpl } = laneServer(behaviour);
+    const selector = createTtsLaneSelector(() => LADDER, { fetchImpl });
+    await settle(selector.current());
+    behaviour[VOX.base] = { healthy: true, synthesizeMs: 60_000 };
+    const served: string[] = [];
+    await settle(
+      synthesizeWithFallback(selector, "Hangi tarafta?", { fetchImpl }, (lane) =>
+        served.push(lane.id),
+      ),
+    );
+    expect(served).toEqual([FREYA.id]);
+  });
+
   it("hands the turn back inside the request cap rather than sitting on it", async () => {
     const behaviour: Record<string, LaneBehaviour> = {
       [VOX.base]: { healthy: true, synthesizeMs: VOX_ON_GPU_MS },

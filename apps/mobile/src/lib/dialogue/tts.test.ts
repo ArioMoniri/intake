@@ -127,7 +127,7 @@ describe("synthesizeWav", () => {
   });
 });
 
-describe("synthesizeClip (INT-237: one request per sentence, then assembled)", () => {
+describe("synthesizeClip (INT-440: one request per clip, one continuous utterance)", () => {
   const SR = 48_000;
 
   function wavOf(ms: number): Uint8Array {
@@ -154,17 +154,17 @@ describe("synthesizeClip (INT-237: one request per sentence, then assembled)", (
     return { impl, texts };
   }
 
-  it("sends one request per sentence, each verbatim plus its terminal mark", async () => {
+  it("sends the WHOLE question as one request — title and aside together", async () => {
+    // The owner's report (3 Oct 2026): "robotic … so stoppy". Per-sentence
+    // requests restarted the prosody between the question and its aside and
+    // rejoined them with a 200 ms hole. One request is one contour.
     const { impl, texts } = recordingFetch();
     await synthesizeClip(
       "http://x",
       "Nasıl başladı? Seçenekler: Aniden başladı veya Yavaş yavaş gelişti.",
       { fetchImpl: impl },
     );
-    expect(texts).toEqual([
-      "Nasıl başladı?",
-      "Seçenekler: Aniden başladı veya Yavaş yavaş gelişti.",
-    ]);
+    expect(texts).toEqual(["Nasıl başladı? Seçenekler: Aniden başladı veya Yavaş yavaş gelişti."]);
   });
 
   it("the concatenated spoken text is the original, verbatim (invariant 10)", async () => {
@@ -177,11 +177,10 @@ describe("synthesizeClip (INT-237: one request per sentence, then assembled)", (
     expect(texts.join(" ")).toBe(original);
   });
 
-  it("joins the parts with a real inter-sentence gap", async () => {
-    // INT-291: both halves must clear MIN_CHUNK_CHARS or delivery merges them
-    // into one request, and there is no gap to find. "Bir cümle. İki cümle."
-    // — the old fixture — is two nine-character sentences, which is exactly
-    // the shape the measured floor now refuses to send.
+  it("inserts no silence inside the clip — a two-sentence clip is one part plus the tail", async () => {
+    // The lane answers every request with the same 200 ms clip, so a clip that
+    // was cut and rejoined would be two parts plus a SENTENCE_GAP_MS hole. One
+    // utterance is exactly one part and the turn-yield tail, whatever the text.
     const { impl } = recordingFetch();
     const two = await synthesizeClip(
       "http://x",
@@ -191,12 +190,11 @@ describe("synthesizeClip (INT-237: one request per sentence, then assembled)", (
     const one = await synthesizeClip("http://x", "Söyledikleriniz ekrana yazıldı.", {
       fetchImpl: impl,
     });
+    expect(parseWav(two).samples.length).toBe(parseWav(one).samples.length);
     const gap = Math.round((SR * SENTENCE_GAP_MS) / 1000);
     const yieldTail = Math.round((SR * TURN_YIELD_TAIL_MS) / 1000);
-    // every turn now ends with the yield tail, so one part is the single
-    // clip minus that tail
     const part = parseWav(one).samples.length - yieldTail;
-    expect(parseWav(two).samples.length).toBe(part * 2 + gap + yieldTail);
+    expect(parseWav(two).samples.length).not.toBe(part * 2 + gap + yieldTail);
   });
 
   it("still refuses a digit before any network call", async () => {
@@ -337,18 +335,15 @@ describe("clipDeadlineMs / withDeadline — a turn cannot wait forever (INT-261)
   it("allows one lane admission plus one synthesis per REQUEST", () => {
     const one = "Sizi bugün hekime getiren nedir?";
     expect(clipDeadlineMs(one)).toBe(TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS);
-    const three =
-      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın. Bir haftadan uzun süredir.";
-    expect(clipDeadlineMs(three)).toBe(TURN_ROUND_TRIP_BUDGET_MS + 3 * SYNTHESIZE_TIMEOUT_MS);
   });
 
-  it("counts the requests delivery will MAKE, not the sentences the text has", () => {
-    // INT-291: "Şimdi nasıl?" is 11 non-space characters, under the measured
-    // floor, so it is merged rather than sent — two requests, not three. A
-    // budget that counted sentences would buy the patient a third of a minute
-    // of spinner for a request nobody is going to make.
-    const merged = "Ağrınız ne kadar sürdü? Nerede başladı? Şimdi nasıl?";
-    expect(clipDeadlineMs(merged)).toBe(TURN_ROUND_TRIP_BUDGET_MS + 2 * SYNTHESIZE_TIMEOUT_MS);
+  it("counts the ONE request a clip makes, not the sentences the text has (INT-440)", () => {
+    // A clip is one utterance now, so a three-sentence clip is still one
+    // request. A budget that counted sentences would buy the patient two
+    // extra synthesis caps of spinner for requests nobody is going to make.
+    const three =
+      "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın. Bir haftadan uzun süredir.";
+    expect(clipDeadlineMs(three)).toBe(TURN_ROUND_TRIP_BUDGET_MS + SYNTHESIZE_TIMEOUT_MS);
   });
 
   it("never returns less than a single-sentence budget", () => {

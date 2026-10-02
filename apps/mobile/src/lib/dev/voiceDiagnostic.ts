@@ -19,6 +19,7 @@
  * flight (`report === null`) and when a lane actually answered. A dev banner
  * that appears on a healthy run is a banner people learn to ignore.
  */
+import type { ClipLaneRecord } from "@/lib/dialogue/georgeClip";
 import { t } from "@/lib/i18n";
 
 import type { ProbeFailure, ReachabilityReport } from "./hosts";
@@ -75,5 +76,41 @@ export function voiceDiagnostic(
     body: t("devVoice.body"),
     lines,
     hint: t("devVoice.hint"),
+  };
+}
+
+export interface TtsLaneDiagnostic {
+  readonly title: string;
+  /** The tier(s) that spoke, then why George did not — both as tokens. */
+  readonly lines: readonly string[];
+  readonly hint: string;
+}
+
+/**
+ * INT-440 — the same dev-only posture for the agent's VOICE. The owner heard
+ * the self-hosted lane and could not tell it was not George, because the
+ * George fallback was silent by design. In dev, a clip that was not George's
+ * says which tier spoke and the closed-set reason George did not (a code token
+ * like an HTTP status, never a host or a narrative). Production, a George
+ * clip and "no clip yet" all render nothing.
+ *
+ * @param record the lane record of the clip now playing, or null
+ * @param isDev  pass `__DEV__`, never a literal
+ */
+export function ttsLaneDiagnostic(
+  record: ClipLaneRecord | null,
+  isDev: boolean,
+): TtsLaneDiagnostic | null {
+  if (!isDev || record === null || record.lane === "george") {
+    return null;
+  }
+  const served =
+    record.tiers.length === 0
+      ? t("devVoice.lane.served")
+      : `${t("devVoice.lane.served")}${SEPARATOR}${record.tiers.join(" + ")}`;
+  return {
+    title: t("devVoice.lane.title"),
+    lines: [served, `${t("devVoice.lane.georgeMiss")}${SEPARATOR}${record.georgeMiss}`],
+    hint: t("devVoice.lane.hint"),
   };
 }

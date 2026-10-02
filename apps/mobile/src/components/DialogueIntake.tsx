@@ -57,6 +57,7 @@ import {
   useColorScheme,
 } from "react-native";
 
+import { DevTtsLaneBanner } from "@/components/DevVoiceBanner";
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
@@ -548,6 +549,9 @@ export function DialogueIntake({
           keyboardDismissMode="on-drag"
         >
           <Kicker label={t("dialogue.kicker")} tone="accent" />
+          {/* INT-440: dev only — a clip not spoken by George says which lane
+              spoke and why; renders nothing in production or for George. */}
+          <DevTtsLaneBanner record={session.voiceLane} />
 
           {state.voiceMuted ? (
             // INT-261: the agent lost its voice and the conversation carried

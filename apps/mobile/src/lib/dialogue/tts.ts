@@ -16,14 +16,14 @@
  * filesystem and host probing live in clips.ts; everything here is pure and
  * node-testable.
  *
- * INT-237: a clip is synthesized one SENTENCE per request and assembled
- * here, because the daemon gives every clause boundary the same fixed gap
- * and cannot express a sentence break. `synthesizeClip` is the entry point
- * the clip store uses; `synthesizeWav` remains the single-request
+ * INT-237 synthesized a clip one SENTENCE per request and assembled it here;
+ * INT-440 sends the whole clip as ONE utterance instead (the per-sentence
+ * seams were the "stoppy" the owner heard). `synthesizeClip` is the entry
+ * point the clip store uses; `synthesizeWav` remains the single-request
  * primitive. See speechShaping.ts for the shaping contract and
- * docs/evidence/INT-237.md for the measurements.
+ * docs/evidence/INT-237.md / INT-440.md for the measurements.
  */
-import { assembleClip, shapeForDelivery } from "./speechShaping";
+import { assembleClip, shapeForUtterance } from "./speechShaping";
 
 export const TTS_PORT = 8803;
 
@@ -96,11 +96,10 @@ export const SYNTHESIZE_TIMEOUT_MS = 2364;
  * which is the same trade INT-249 already made one level down.
  */
 export function clipDeadlineMs(text: string): number {
-  // INT-291: count the requests DELIVERY will make, not the sentences the
-  // text has — merging below the floor means fewer requests, and a budget
-  // that overcounts them buys the patient a longer spinner for nothing.
-  const sentences = Math.max(1, shapeForDelivery(text).length);
-  return TURN_ROUND_TRIP_BUDGET_MS + sentences * SYNTHESIZE_TIMEOUT_MS;
+  // Count the requests the clip path will MAKE, not the sentences the text
+  // has (INT-291). Since INT-440 a clip is one utterance, so that is one.
+  const requests = Math.max(1, shapeForUtterance(text).length);
+  return TURN_ROUND_TRIP_BUDGET_MS + requests * SYNTHESIZE_TIMEOUT_MS;
 }
 
 /**
@@ -221,14 +220,13 @@ export async function synthesizeWav(
 }
 
 /**
- * Synthesizes one clip: the text is shaped into sentences, each sentence is
- * synthesized on its own, and the pieces are trimmed, faded and joined with
- * the shaped inter-sentence gaps (INT-237).
+ * Synthesizes one clip: the whole text in one request, its outer edges
+ * trimmed and faded, and the turn-yield tail appended (INT-440).
  *
  * Invariant 10 holds because shaping is punctuation-neutral on words — the
- * chunks are exact substrings of the input in order — and invariant 22
- * holds because the whole text is guarded here and each chunk is guarded
- * again inside `synthesizeWav`.
+ * request is the whitespace-collapsed input plus at most a terminal mark —
+ * and invariant 22 holds because the whole text is guarded here and again
+ * inside `synthesizeWav`.
  */
 export async function synthesizeClip(
   base: string,
@@ -244,27 +242,22 @@ export async function synthesizeClip(
  *
  * A base is a decision taken once; a synthesizer is a decision taken per
  * request, which is what makes lane fallback possible at all — the clip
- * store hands in `synthesizeWithFallback` and each sentence independently
- * lands on whichever tier can actually speak it. Sentence chunking, gaps,
- * trimming and fades are INT-237's and are untouched.
+ * store hands in `synthesizeWithFallback` and the utterance lands on
+ * whichever tier can actually speak it. Edge trimming and fades are
+ * INT-237's; the single request is INT-440's.
  */
 export async function synthesizeClipWith(
   synthesizeSentence: (sentence: string) => Promise<Uint8Array>,
   text: string,
 ): Promise<Uint8Array> {
   assertSpeakableTr(text);
-  // INT-291: shapeForDelivery, not shapeForSpeech. The extra stage merges any
-  // sentence below the lane's measured floor back into its neighbour — the
-  // RED imperatives are the shortest strings in the product and the lane
-  // invents a word in each when they are sent alone — and puts the turn-yield
-  // tail on the last chunk. The single-chunk case is no longer special: it
-  // carries that tail like any other last chunk.
-  const chunks = shapeForDelivery(text);
+  // INT-440: shapeForUtterance — the whole clip in ONE request, so the model
+  // keeps one prosodic contour from the question through its aside and no
+  // seam is cut into the middle of the turn. The turn-yield tail rides on it.
+  const chunks = shapeForUtterance(text);
   if (chunks.length === 0) {
     throw new Error("tts_empty_text");
   }
-  // sequential, not parallel: the daemon synthesizes under a single lock,
-  // so concurrent requests would queue anyway and only cost us timeouts.
   const parts: Uint8Array[] = [];
   for (const chunk of chunks) {
     parts.push(await synthesizeSentence(chunk.spoken));

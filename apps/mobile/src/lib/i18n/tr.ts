@@ -978,6 +978,11 @@ export const tr = {
   "devVoice.reason.timeout": "zaman aşımı",
   "devVoice.reason.refused": "bağlantı reddedildi",
   "devVoice.reason.status": "yanıt kodu",
+  "devVoice.lane.title": "Geliştirici notu: bu soru George sesiyle çalınmadı",
+  "devVoice.lane.served": "Konuşan ses",
+  "devVoice.lane.georgeMiss": "George sesinin gelmeme nedeni",
+  "devVoice.lane.hint":
+    "George sesi için telefonla doğrulanmış bir hasta oturumu ve API'de George yolu gerekir",
   // ---- INT-247: önceki ziyaretlerden taşınan bilgiler ---------------------
   // Patient copy for the confirm / changed / stopped step and the
   // transparency ledger, plus the markers the note carries. The note markers

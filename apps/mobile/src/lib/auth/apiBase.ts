@@ -12,7 +12,8 @@
  * rather than the "server unreachable" line that blames the patient's signal.
  *
  * A dev build walks the Metro hostUri and `extra.asrHosts` exactly as it
- * always has; the configured base is not consulted there.
+ * always has; the configured base is consulted there only when that walk
+ * finds nothing (INT-440), and only under the release validation above.
  */
 import { AuthApiError } from "./errors";
 
@@ -97,12 +98,30 @@ export interface ApiBaseSources {
 
 /**
  * Release: the configured https base, or `ApiBaseUnconfigured`.
- * Dev: whatever the LAN walk finds, null included, so each caller keeps its
- * own miss (the auth client throws `network`, the dev clip source goes quiet).
+ * Dev: whatever the LAN walk finds; when it finds nothing, the configured base
+ * if a release build would accept it (INT-440); otherwise null, so each caller
+ * keeps its own miss (the auth client throws `network`, the dev clip source
+ * goes quiet).
+ *
+ * The fallback exists because the owner's laptop runs no API (no Docker, no
+ * Postgres): the walk always came back empty and a dev build had no API at
+ * all, even with the hosted base configured at Metro start. The walk still
+ * wins whenever it answers.
  */
 export async function resolveApiBase(sources: ApiBaseSources): Promise<string | null> {
   if (!sources.isDev) {
     return parseReleaseApiBase(sources.configured);
   }
-  return sources.devBase();
+  const walked = await sources.devBase();
+  if (walked !== null) {
+    return walked;
+  }
+  try {
+    return parseReleaseApiBase(sources.configured);
+  } catch (error) {
+    if (error instanceof ApiBaseUnconfigured) {
+      return null;
+    }
+    throw error;
+  }
 }

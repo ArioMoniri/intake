@@ -539,11 +539,15 @@ const TEXT_SIDE_FAILURES = new Set(["tts_numeral_blocked", "tts_empty_text"]);
  * failure — the request cap tripping, a non-2xx, an empty body — the
  * selection is invalidated and the next `current()` re-probes, which is what
  * moves the session onto Freya. Text-side failures are rethrown at once.
+ *
+ * INT-440: `onServed` hears the lane that actually answered, so a tier change
+ * is something the dev banner and the lane metric can see rather than infer.
  */
 export async function synthesizeWithFallback(
   selector: TtsLaneSelector,
   text: string,
   options: SynthesizeOptions = {},
+  onServed?: (lane: TtsLaneBase) => void,
 ): Promise<Uint8Array> {
   assertSpeakableTr(text); // before any lane is even asked for
   const tried = new Set<string>();
@@ -556,7 +560,9 @@ export async function synthesizeWithFallback(
     }
     tried.add(lane.base);
     try {
-      return await synthesizeOnLane(lane, text, options);
+      const bytes = await synthesizeOnLane(lane, text, options);
+      onServed?.(lane);
+      return bytes;
     } catch (error) {
       if (error instanceof Error && TEXT_SIDE_FAILURES.has(error.message)) {
         throw error;
