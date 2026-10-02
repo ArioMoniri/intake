@@ -8,18 +8,9 @@
  * that consume no session state keep their old-language strings (found by
  * the INT-193 smoke run).
  *
- * Faces: Newsreader (OFL) — the Oura-register soft serif for hero and title
- * lines; Inter (OFL) carries body/label/caption since design pass 4 (Oura's
- * UI sans is Inter-class). The splash stays up until both are loaded so no
- * line ever flashes a fallback.
+ * Face: the platform's own (SF Pro on iOS, the system sans on Android) since
+ * INT-422, so there is nothing to load and the first frame is the real one.
  */
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from "@expo-google-fonts/inter";
-import {
-  Newsreader_400Regular,
-  Newsreader_500Medium,
-  Newsreader_500Medium_Italic,
-  useFonts,
-} from "@expo-google-fonts/newsreader";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -67,28 +58,14 @@ function LocalizedStack() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    Newsreader_400Regular,
-    Newsreader_500Medium,
-    Newsreader_500Medium_Italic,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-  });
   // INT-145: one launch is one session, and cold start ends at the first
-  // frame the patient could actually read — after the faces resolve, since
-  // until then this component returns null. Inert unless a GlitchTip DSN is
-  // configured (app.json `extra.glitchtipDsn`, empty by default).
+  // frame the patient could actually read, which with the platform face is
+  // the first one committed. Inert unless a GlitchTip DSN is configured
+  // (app.json `extra.glitchtipDsn`, empty by default).
   useEffect(() => {
-    if (!fontsLoaded) {
-      return;
-    }
     installCrashHandler();
     clientTelemetry().noteColdStart(Date.now() - APP_START_MS);
-  }, [fontsLoaded]);
-  if (!fontsLoaded) {
-    return null;
-  }
+  }, []);
   return (
     // INT-260: outermost, because the scheme, the text scale and the motion
     // policy are read by the navigators themselves — a provider inside the

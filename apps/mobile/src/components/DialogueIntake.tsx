@@ -798,6 +798,7 @@ const styles = StyleSheet.create({
   bubble: {
     maxWidth: "84%",
     borderRadius: radius.group,
+    borderCurve: "continuous",
     padding: spacing.md,
     gap: spacing.xs,
     // The speaking bubble IS the barge-in target (INT-235), and the
@@ -842,6 +843,7 @@ const styles = StyleSheet.create({
   composerFieldWrap: { flex: 1, justifyContent: "center" },
   composerField: {
     borderRadius: radius.control,
+    borderCurve: "continuous",
     borderWidth: 1,
     minHeight: 44,
     paddingHorizontal: spacing.md,
@@ -856,7 +858,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 44,
     height: 44,
-    borderRadius: radius.control,
+    borderRadius: radius.chip,
     alignItems: "center",
     justifyContent: "center",
   },
