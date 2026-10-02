@@ -153,10 +153,16 @@ bundles = [p for p in root.rglob("*") if p.is_file() and p.suffix in {".js", ".h
 sources = [s for m in maps for s in json.loads(m.read_text(encoding="utf-8")).get("sources", [])]
 forge_sources = [s for s in sources if "node-forge" in s or "code-signing-certificates" in s]
 text = "".join(b.read_text(encoding="utf-8", errors="replace") for b in bundles)
+# the other no-fix advisories of 2 Oct: braces (via micromatch) and
+# http-cache-semantics (via cacheable-request); a module path names its package
+def count(pkg):
+    return sum(1 for s in sources if f"/node_modules/{pkg}/" in s or f"/{pkg}@" in s)
 print(
     f"probe=expo-export platform={platform} bundles={len(bundles)} bytes={len(text)} "
     f"modules={len(sources)} forge_modules={len(forge_sources)} "
     f"forge_strings={text.count('node-forge') + text.count('forge.pki')} "
+    f"braces_modules={count('braces')} micromatch_modules={count('micromatch')} "
+    f"http_cache_semantics_modules={count('http-cache-semantics')} "
     f"real_app={int('welcome.phoneCta' in text)}"
 )
 PY
