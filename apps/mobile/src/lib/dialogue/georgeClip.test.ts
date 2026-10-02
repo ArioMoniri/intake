@@ -23,6 +23,7 @@ import { packForDepartment } from "../intake/questions";
 import { DEFAULT_DELIVERY_CONTEXT, DELIVERY_CONTEXTS } from "./deliveryContext";
 import {
   fetchGeorgeClip,
+  fetchGeorgeClipLaneVia,
   fetchGeorgeClipVia,
   GEORGE_CLIP_PATH,
   GEORGE_MISSES,
@@ -360,6 +361,38 @@ describe("georgePreferringSynth reports which lane served the clip (INT-440)", (
   });
 });
 
+describe("the server's own fallback is named, never passed off as George (INT-440/443)", () => {
+  const scripted = scriptedQuestionTr(question) as ScriptedTr;
+
+  it("reads X-Clip-Lane from the George route", async () => {
+    const answer = (lane: string | null) => async () =>
+      new Response(new Uint8Array([3]).buffer, {
+        status: 200,
+        headers: lane === null ? {} : { "X-Clip-Lane": lane },
+      });
+    expect(await fetchGeorgeClipLaneVia(answer("elevenlabs"), scripted)).toEqual({
+      bytes: new Uint8Array([3]),
+      serverLane: "elevenlabs",
+    });
+    expect((await fetchGeorgeClipLaneVia(answer("self_hosted"), scripted)).serverLane).toBe(
+      "self_hosted",
+    );
+    // a route that predates the header is George's, as before
+    expect((await fetchGeorgeClipLaneVia(answer(null), scripted)).serverLane).toBe("elevenlabs");
+  });
+
+  it("a clip the server made on its self-hosted lane is reported as such", async () => {
+    const outcomes: ClipLaneOutcome[] = [];
+    const bytes = await georgePreferringSynth(
+      async () => ({ bytes: new Uint8Array([4]), serverLane: "self_hosted" as const }),
+      async () => new Uint8Array([0]),
+      (outcome) => outcomes.push(outcome),
+    )(scripted);
+    expect(bytes).toEqual(new Uint8Array([4])); // the audio is still played
+    expect(outcomes).toEqual([{ lane: "self_hosted", georgeMiss: "server_fallback" }]);
+  });
+});
+
 describe("the device's George source authenticates (INT-440)", () => {
   const clipsSource = readFileSync(
     join(fileURLToPath(new URL(".", import.meta.url)), "clips.ts"),
@@ -368,7 +401,7 @@ describe("the device's George source authenticates (INT-440)", () => {
 
   it("posts through the DPoP-bound authedFetch, never an anonymous fetch", () => {
     expect(clipsSource).toMatch(/import \{[^}]*\bauthedFetch\b[^}]*\} from "\.\.\/auth\/api"/);
-    expect(clipsSource).toContain("fetchGeorgeClipVia(");
+    expect(clipsSource).toContain("fetchGeorgeClipLaneVia(authedGeorgeTransport");
     // the anonymous base+fetch entry point is what returned 401 since INT-326
     expect(clipsSource).not.toMatch(/\bfetchGeorgeClip\(/);
   });

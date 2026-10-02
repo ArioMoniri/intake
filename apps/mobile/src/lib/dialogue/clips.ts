@@ -26,10 +26,11 @@ import { BUNDLED_CLIP_ASSETS } from "./bundledClipAssets";
 import { bundledClipFor } from "./bundledClips";
 import { DEFAULT_DELIVERY_CONTEXT, type DeliveryContext } from "./deliveryContext";
 import {
-  fetchGeorgeClipVia,
+  fetchGeorgeClipLaneVia,
   georgePreferringSynth,
   GeorgeUnavailable,
   type ClipLaneRecord,
+  type GeorgeClip,
   type GeorgeGenerator,
   type GeorgeTransport,
   type ScriptedTr,
@@ -98,8 +99,8 @@ function createGeorgeSource(): GeorgeGenerator | null {
   }
   // INT-415: the utterance's delivery context rides along; the server maps it
   // to its own profile (the device holds no voice setting)
-  return (text: ScriptedTr, context?: DeliveryContext): Promise<Uint8Array> =>
-    fetchGeorgeClipVia(authedGeorgeTransport, text, { context });
+  return (text: ScriptedTr, context?: DeliveryContext): Promise<GeorgeClip> =>
+    fetchGeorgeClipLaneVia(authedGeorgeTransport, text, { context });
 }
 
 /**

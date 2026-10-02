@@ -137,6 +137,9 @@ export const GEORGE_MISSES = [
   "timeout",
   /** The request never completed. */
   "transport",
+  /** The route answered, but from the SERVER's self-hosted lane, not the
+   * vendor (`X-Clip-Lane: self_hosted`, INT-443) — the audio still plays. */
+  "server_fallback",
 ] as const;
 
 export type GeorgeMiss = (typeof GEORGE_MISSES)[number];
@@ -233,6 +236,25 @@ export async function fetchGeorgeClipVia(
   text: ScriptedTr,
   options: Omit<GeorgeFetchOptions, "fetchImpl"> = {},
 ): Promise<Uint8Array> {
+  return (await fetchGeorgeClipLaneVia(transport, text, options)).bytes;
+}
+
+/** Which lane the George route says made the clip (`X-Clip-Lane`, INT-443). A
+ * route that predates the header only ever answered from the vendor. */
+export type GeorgeServerLane = "elevenlabs" | "self_hosted";
+
+/** One George answer: the audio, and the lane the server says made it. */
+export interface GeorgeClip {
+  readonly bytes: Uint8Array;
+  readonly serverLane: GeorgeServerLane;
+}
+
+/** {@link fetchGeorgeClipVia}, keeping the server's `X-Clip-Lane` (INT-440). */
+export async function fetchGeorgeClipLaneVia(
+  transport: GeorgeTransport,
+  text: ScriptedTr,
+  options: Omit<GeorgeFetchOptions, "fetchImpl"> = {},
+): Promise<GeorgeClip> {
   assertSpeakableTr(text); // defence in depth — no numeral crosses, ever
   const { timeoutMs = GEORGE_TIMEOUT_MS, signal, context = DEFAULT_DELIVERY_CONTEXT } = options;
   if (context === "red") {
@@ -260,7 +282,9 @@ export async function fetchGeorgeClipVia(
     if (bytes.length === 0) {
       throw new GeorgeUnavailable("empty");
     }
-    return bytes;
+    const serverLane: GeorgeServerLane =
+      res.headers.get("X-Clip-Lane") === "self_hosted" ? "self_hosted" : "elevenlabs";
+    return { bytes, serverLane };
   } catch (error) {
     // Never surface the underlying error (it could name the host): only the
     // closed-set reason leaves this function.
@@ -278,7 +302,10 @@ export async function fetchGeorgeClipVia(
  * (INT-415). `null` means "no George source" (prod, or the dev route
  * unconfigured) — the caller uses only the fallback. Accepts a
  * {@link ScriptedTr}, never a bare string. */
-export type GeorgeGenerator = (text: ScriptedTr, context?: DeliveryContext) => Promise<Uint8Array>;
+export type GeorgeGenerator = (
+  text: ScriptedTr,
+  context?: DeliveryContext,
+) => Promise<Uint8Array | GeorgeClip>;
 
 /** The self-hosted per-clip synthesizer George degrades to (ttsLane). */
 export type SelfHostedSynth = (text: string) => Promise<Uint8Array>;
@@ -322,9 +349,19 @@ export function georgePreferringSynth(
     let georgeMiss: GeorgeMiss = "off";
     if (george !== null) {
       try {
-        const bytes = await george(text, context);
-        onOutcome?.({ lane: "george" });
-        return bytes;
+        const clip = await george(text, context);
+        if (clip instanceof Uint8Array) {
+          onOutcome?.({ lane: "george" });
+          return clip;
+        }
+        // INT-443: the route can answer from the server's own self-hosted
+        // lane; that audio plays, but it is never counted as George.
+        onOutcome?.(
+          clip.serverLane === "self_hosted"
+            ? { lane: "self_hosted", georgeMiss: "server_fallback" }
+            : { lane: "george" },
+        );
+        return clip.bytes;
       } catch (error) {
         // any George failure degrades to a worse voice, never to a dead turn —
         // the same trade the self-hosted ladder makes one level down (ttsLane).
