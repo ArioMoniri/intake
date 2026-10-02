@@ -284,12 +284,14 @@ def test_backlog_parses_and_is_complete() -> None:
     # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638)
     # + INT-404 (triage rule evidence lines in the reader's locale, INT-386's
     # finding, GitHub #673); grows only with a stated reason.
+    # ... + INT-382 (a suppress_slot in any layer that removes a slot a
+    # red-flag rule reads is refused; H-1 of the PR #628 verification).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
     # stated reason.
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415, owner request, GitHub #705); grows only with a stated reason.
-    assert len(ids) == 326, f"expected 175 blueprint + 151 added issues, got {len(ids)}"
+    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
