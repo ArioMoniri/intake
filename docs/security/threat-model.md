@@ -57,6 +57,7 @@ acknowledgement) turned out to have no section carrying them.
 | Visit creation / SMS screenshot OCR | `visits` | `OCR` |
 | Voice intake (runtime) | `intake-voice`, `voice-runtime` | `DTLS-SRTP` |
 | Typed intake | `intake-typed` | `input limits` |
+| Council verifier (`llm-boundary`; INT-430, ADR-036) | `llm-boundary` | `INT-430 (ADR-036): the council verifier` |
 | Triage RED / YELLOW | `triage` | `set me green` |
 | Wellbeing screening & observer lanes | `wellbeing`, `observer-lanes` | `biometric drift` |
 | Records upload & ingestion | `records` | `ClamAV` |
@@ -980,6 +981,37 @@ it or whose tests exercise it.
   taking exactly the same virtual time as an unmetered one on the fake clock (invariant
   9), and the price book refusing rather than returning a zero. The adversarial suite
   RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
+- **INT-430 (ADR-036): the council verifier.** The owner asked for an agent council of
+  self-hosted or API models. Two binding challenger reviews reduced it to a verifier, and
+  this row now covers it. The verifier runs only after the primary single-pass extraction
+  has bound the answer, so RED never waits on it.
+  - **Scope.** It reads red-flag and numeric slots only. Tense anchors, `text_only`
+    safeguarding slots, identity slots and instrument items are unreachable by type.
+  - **What a member returns.** A closed schema: a verbatim evidence span for every reading,
+    a Turkish hedge enum, and no confidence field.
+  - **What it can do.** Adjudication is asymmetric. It may only *append* the slot's own
+    scripted re-ask or confirm-back, compare-and-swapped on the slot revision. It never
+    clears, skips, reorders or overwrites, and its candidate flags are add-only at
+    YELLOW_REVIEW and go to the clinician alone.
+  - **Excessive agency (LLM06)** is closed by that action set.
+  - **Prompt injection (LLM01).** Every transcript crosses the INT-083 fence, and readings
+    for any slot outside scope are dropped before adjudication.
+  - **Unbounded consumption (LLM10).** Each verification is an *elective* charge, refused
+    while HB-O8 is open. A process-wide admission gate sheds a verification when saturated,
+    and stragglers abstain at a deadline set on the injected clock.
+  - **Disclosure (LLM02).**
+    - Every proposal is logged as an event of ids and closed codes.
+    - Spans use the closed `LlmSpan` field set (`kind=verification`).
+    - Each session carries its own `cache_salt` for the shared prefix cache.
+    - A hosted member is unrepresentable on a real-PHI deployment, and an unset data class
+      reads as real PHI.
+  - **Signals:** `council_member_latency_ms`, `council_member_agreement_total`,
+    `council_verifications_total`, `council_actions_total` and
+    `council_readings_dropped_total`, all catalogued `live`.
+  - **Tests:** the `tests/voice/test_council_*.py` suites, each must-have with a near-miss
+    control. They cover a 30 s stall measured on the fake clock, the injection corpus, the
+    Turkish negation set, permutation determinism, CAS on a mid-flight correction, replay
+    with refusal of a wrong-lane recording, and the span PHI scan.
 
 ## `cloud-boundary` — what may leave, and in what form
 

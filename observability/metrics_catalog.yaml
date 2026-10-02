@@ -621,6 +621,72 @@ metrics:
       intake_voice_runtime.clinical_agent.work_queue (INT-092); a handler
       fault, a refused preempt provenance and an invariant-22 numeric pair all
       land here as receipts rather than as a crashed pump.
+  # INT-430 / ADR-036: the council verifier. `member` is a configured member id
+  # (the admin console's role segment), never a model name or free text. There
+  # is no cost series: cost is tokens times a price and the price book is empty
+  # until HB-O8 (b) is answered.
+  - name: council_member_latency_ms
+    type: histogram
+    labels: [member, outcome]
+    owner: voice-runtime
+    unit: "ms"
+    status: live
+    description: >-
+      Latency of one council verifier draw, by member and outcome (ok,
+      abstained, timed_out, failed). Emitted by
+      intake_voice_runtime.clinical_agent.council.orchestrator; the per-member
+      latency column of the admin Council section.
+  - name: council_member_tokens_total
+    type: counter
+    labels: [member, direction]
+    owner: voice-runtime
+    unit: "tokens"
+    status: live
+    description: >-
+      Tokens the serving endpoint reported for council verifier draws, by
+      member and direction (input, output). Emitted by
+      intake_voice_runtime.clinical_agent.council.orchestrator.
+  - name: council_member_agreement_total
+    type: counter
+    labels: [member, agreement]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Council verdicts per member: agree, disagree or abstain with the primary
+      extraction. The agreement rate the admin Council section shows is
+      agree / (agree + disagree). Emitted by
+      intake_voice_runtime.clinical_agent.council.desk.
+  - name: council_verifications_total
+    type: counter
+    labels: [outcome]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Council verifications by how they ended: submitted, late (session ended
+      or queue sealed by RED), shed_saturated or refused_budget. Emitted by
+      intake_voice_runtime.clinical_agent.council.desk.
+  - name: council_actions_total
+    type: counter
+    labels: [action, result]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Council verifier actions (reask_positive, confirm_back, candidate_flag) by
+      what the engine's compare-and-swap did with them. Emitted by
+      intake_voice_runtime.clinical_agent.council.desk.
+  - name: council_readings_dropped_total
+    type: counter
+    labels: [reason]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Member readings dropped before adjudication: out_of_scope,
+      no_verbatim_evidence or number_on_non_numeric. Emitted by
+      intake_voice_runtime.clinical_agent.council.orchestrator.
   # files/10 §9 observer-lane row: `lane.dropped_frames` is one of the signals
   # that row says lands with INT-110. files/03 §4.7.6 makes it a metric AND a
   # recorded field on every lane signal, so the same number appears here and on

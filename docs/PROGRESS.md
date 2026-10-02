@@ -1,5 +1,29 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T23:30:00+03:00 · INT-430 · doing (PR open, not merged; the verifier ships, five split rows remain)
+- Goal: the acceptance verbatim (GitHub #732):
+  - *"A council orchestrator (provider-agnostic, through the INT-428 lanes) runs N configurable member models, each in a named role … Disagreement is resolved by a deterministic rule, and an unresolved disagreement falls back to asking the patient."*
+  - *"The deterministic IntakeEngine stays the only authority on the next question … LLM output may carry only candidate_flags, capped at YELLOW_REVIEW … the council never blocks a turn (fake-clock test)."*
+  - *"Facts carried from documents need patient confirmation before they fill a slot."*
+  - *"The admin panel picks the council members … with 4-eyes and audit, and shows per-member latency, cost and agreement rates."*
+  - *"Tests: recorded fixtures only, an injection corpus over documents, the fail-closed real-PHI egress guard, and determinism of the adjudication."*
+  - The binding medical and AI/ML challenger reviews (2 Oct 2026) narrowed this to a post-bind **verifier**. ADR-036 records the reshaping.
+- Plan:
+  - Primary extraction stays single-pass and feeds triage.
+  - The verifier reads red-flag and numeric slots only, adjudicates asymmetrically and deterministically, and can only append the slot's own scripted re-ask or confirm-back, compare-and-swapped on the slot revision.
+  - It runs as Backend Work behind the budget and an admission gate. Late verdicts become addenda and re-run triage.
+  - Members are pinned per session through the INT-428 role port. Hosted and mock members are unrepresentable on a PHI deployment.
+- Tests added (with the near-miss negative for any safety rule):
+  - Five suites, 123 tests: `tests/voice/test_council_{contract,adjudication,lanes,timing,ledger}.py`.
+  - Every review must-have that is in scope has its near-miss. The mapping table is in `docs/evidence/INT-430.md`.
+  - RED: 5 collection errors with the package absent, plus the `StateEffect` lane-invariant failure, which was fixed by reverting my change rather than the test.
+- Result: see the gates in `docs/evidence/INT-430.md`.
+- Invariants touched and still passing: 1, 2, 6, 9, 10, 12, 13, 14, 17, 19, 20, 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-036 (Proposed; the owner must ratify it). No 00_STATE row until ratification.
+- Blocked on: owner. One sentence: *"Do you accept the council as a post-bind verifier (no runtime reordering, no slot filling by vote, ranking moved to an offline Loop-2 proposal), as both challenger reviews require?"* The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8.
+- Next: five split rows, with ids to be allocated by the coordinator: the admin Council section; production composition; the Loop-2 `yield_table` proposal; the document rules on `parse_document`; the red-flag lexicon, speaker attribution and the backchannel lexicon. Evidence-gated studies are listed in the evidence file.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
 - Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
   - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
