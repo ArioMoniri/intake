@@ -147,7 +147,8 @@ def test_ids_unique_and_well_formed() -> None:
     # same PR).
     # + INT-432 (the clinical decisions register under owner decision D18,
     # agent-authored and independently agent-verified; GitHub #735).
-    assert len(ids) == 330
+    # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
+    assert len(ids) == 331
     import re
 
     for i in ids:

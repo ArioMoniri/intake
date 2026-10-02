@@ -6448,3 +6448,20 @@
     - "the decision is recorded in files/00_STATE.md §3, scoped to simulated-patient stress testing, with the note that a licensed physician's review is required before any real patient"
   tests: [tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py]
   sec_row: "clinical-content"
+- id: INT-448
+  epic: E03-protocols
+  phase: P0
+  title: "Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines"
+  # GitHub #759, split from INT-432 (#735). Owner decision D18 scope:
+  # simulated-patient stress testing; a licensed physician's review is
+  # required before any real patient. Owner-decider parts are recorded as
+  # owner questions, never decided by an agent.
+  depends_on: [INT-432]
+  labels: [area:protocols, risk:clinical]
+  status: doing
+  evidence: docs/evidence/INT-448.md
+  acceptance:
+    - "every #642 packet item gets a sourced decision record (guideline or openEHR, with a verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source"
+    - "red-flag changes keep invariant 7, with golden tests and near-miss controls"
+  tests: [tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"
