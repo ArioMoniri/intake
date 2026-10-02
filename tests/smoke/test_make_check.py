@@ -289,7 +289,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
     # stated reason.
-    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
+    # + INT-429 (the vulnerabilities gate: dependency upgrades and a time-boxed
+    # node-forge exception, owner decision, GitHub #727); grows only with a
+    # stated reason.
+    # + INT-431 (the embed sample's JWT fixture is built at runtime, found
+    # merging main into #481, GitHub #733); grows only with a stated reason.
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews, owner request, GitHub #732); grows
+    # only with a stated reason.
+    assert len(ids) == 329, f"expected 175 blueprint + 154 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

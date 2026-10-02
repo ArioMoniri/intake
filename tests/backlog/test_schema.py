@@ -138,9 +138,13 @@ def test_ids_unique_and_well_formed() -> None:
     # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide; owner request, GitHub #706).
+    # + INT-429 (the vulnerabilities gate: brace-expansion and urllib3 upgrades,
+    # time-boxed node-forge exception; owner decision, GitHub #727).
+    # + INT-431 (the embed sample's JWT fixture is built at runtime so no
+    # token-shaped literal sits at rest; found merging main into #481, #733).
     # + INT-430 (the agent council, reshaped into a post-bind verifier by the
     # medical and AI/ML challenger reviews; owner request, GitHub #732).
-    assert len(ids) == 327
+    assert len(ids) == 329
     import re
 
     for i in ids:

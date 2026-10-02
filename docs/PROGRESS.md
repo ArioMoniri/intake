@@ -23,6 +23,18 @@
 - Blocked on: owner. One sentence: *"Do you accept the council as a post-bind verifier (no runtime reordering, no slot filling by vote, ranking moved to an offline Loop-2 proposal), as both challenger reviews require?"* The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8.
 - Next: five split rows, with ids to be allocated by the coordinator: the admin Council section; production composition; the Loop-2 `yield_table` proposal; the document rules on `parse_document`; the red-flag lexicon, speaker attribution and the backchannel lexicon. Evidence-gated studies are listed in the evidence file.
 - LOOP_STATUS: WAITING_HUMAN
+### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
+- Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
+- Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
+- Tests added: `the synthetic ticket fixture (INT-431)` pins three base64url parts that decode to the fixture.
+  - RED: gitleaks 8.18.4 and 8.30.1 each report `jwt` at lines 39 and 41.
+  - GREEN: both versions report no leaks; vitest 9 passed; typecheck, lint and prettier are clean.
+- Result: docs/evidence/INT-431.md. Pins 326 → 327; files/11 regenerated.
+- Invariants touched and still passing: 14 (the scanner gate is unchanged; nothing is allowlisted), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing. CI's pinned gitleaks (8.24.3) runs as the PR's own check.
+- Next: PR `INT-431: …` (Closes #733, Sec-Row connectors); then #481 can be recommitted.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
 - Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
