@@ -1,5 +1,17 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
+- Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
+- Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
+- Tests added: `the synthetic ticket fixture (INT-431)` pins three base64url parts that decode to the fixture.
+  - RED: gitleaks 8.18.4 and 8.30.1 each report `jwt` at lines 39 and 41.
+  - GREEN: both versions report no leaks; vitest 9 passed; typecheck, lint and prettier are clean.
+- Result: docs/evidence/INT-431.md. Pins 326 → 327; files/11 regenerated.
+- Invariants touched and still passing: 14 (the scanner gate is unchanged; nothing is allowlisted), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing. CI's pinned gitleaks (8.24.3) runs as the PR's own check.
+- Next: PR `INT-431: …` (Closes #733, Sec-Row connectors); then #481 can be recommitted.
+
 ### 2026-09-27T16:00:00Z · INT-400 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #666): *"the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"*. Found by INT-122 §10.4: the device read `03.09.2026` day-first, and the server refuses it.
 - Plan:
