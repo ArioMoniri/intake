@@ -158,7 +158,7 @@ wcag:
     tests:
       - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityLabel"
       - "apps/mobile/e2e/a11y.spec.ts::the send button is icon-only, so its name and disabled state are explicit"
-      - "apps/mobile/e2e/a11y.spec.ts::the intake progress dots are decoration and are hidden from the reader"
+      - "apps/mobile/e2e/a11y.spec.ts::the intake progress is one progressbar whose value is spoken, not a hue"
       - "apps/mobile/e2e/a11y.spec.ts::the prep gauge reports a value, not only a rendered arc"
     manual: [MC-01]
     remarks: >-
@@ -241,7 +241,7 @@ wcag:
     bk: BK8
     status: Supports
     tests:
-      - "apps/mobile/e2e/a11y.spec.ts::the intake progress dots are decoration and are hidden from the reader"
+      - "apps/mobile/e2e/a11y.spec.ts::the intake progress is one progressbar whose value is spoken, not a hue"
       - "apps/mobile/e2e/a11y.spec.ts::the status ladder speaks which rungs are reached"
       - "apps/mobile/e2e/a11y.spec.ts::an error is never carried by colour alone"
       - "apps/mobile/e2e/appearance.spec.ts::the active item is still not carried by colour alone once the label is gone"

@@ -142,7 +142,9 @@ def test_ids_unique_and_well_formed() -> None:
     # SF Symbols, contrast in three modes; owner request, GitHub #714).
     # + INT-423 (chat rhythm, Liquid Glass on chrome only, content solid;
     # owner request, GitHub #718).
-    assert len(ids) == 328
+    # + INT-433 (question screen: native progress, filled inputs, capsule
+    # chips, Liquid Glass bars; owner request, GitHub #739).
+    assert len(ids) == 329
     import re
 
     for i in ids:

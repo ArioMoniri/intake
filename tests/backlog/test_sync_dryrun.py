@@ -99,7 +99,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-415 (ElevenLabs delivery profiles + on-prem TTS wiring guide, GitHub #706)
     # + INT-422 (design system refresh, native Apple feel, GitHub #714)
     # + INT-423 (chat rhythm and materials, GitHub #718)
-    assert len(actions) == 328
+    # + INT-433 (question screen redesign, Mobbin-referenced, GitHub #739)
+    assert len(actions) == 329
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

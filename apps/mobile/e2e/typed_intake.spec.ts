@@ -273,8 +273,13 @@ const OPTION_CHIP_HOSTS = [INTAKE_SCREEN, "src/components/DialogueIntake.tsx"];
 /** The narrowest iPhone still in service, and the phone INT-295 captured on. */
 const PHONE_WIDTHS = [375, 402] as const;
 
-/** The chip's own horizontal chrome: `paddingHorizontal` and the hairline. */
-const CHIP_CHROME = 2 * spacing.md + 2;
+/**
+ * The chip's own horizontal chrome: `paddingHorizontal`, plus the widest thing
+ * a chip adds beside its label. INT-433 made the typed chips borderless and
+ * gave the selected one a check sized to the label and a gap, so that is
+ * taken at the largest step; it also covers the dialogue chips' hairline.
+ */
+const CHIP_CHROME = 2 * spacing.md + scaledSize("label", 2.0) + spacing.xs;
 
 /** Every chip label the packs can put on screen, in both catalogues. */
 const OPTION_LABELS = [
@@ -357,12 +362,18 @@ describe("progress and resume", () => {
     expect(screen).toContain("intakeProgress(");
   });
 
-  it("prints no fixed denominator", () => {
-    // files/02: a flow whose length the next answer can change must not show
-    // "3 / 9". The counter is what has been answered, plus one honest line
-    // when a gate could still open.
-    expect(tr["intake.progress.answered"]).toBe("soru yanıtlandı");
+  it("denominates on the applicable flow, and says when it may grow", () => {
+    // INT-136 printed no total, because "3 / 9" over the whole pack is a
+    // promise the next answer can break. INT-433 (owner, 2 Oct 2026) asks for
+    // "Soru N / M": M is the APPLICABLE count the pack layer derives on every
+    // render, never the pack's length, and while a gate could still open the
+    // growth line is shown with it, so the total is never a silent promise.
+    const progress = code(read("src/components/QuestionProgress.tsx"));
+    expect(tr["intake.progress.question"]).toBe("Soru");
+    expect(screen).toMatch(/questionPosition\(applicable, question\.id, flowCanGrow\)/);
+    expect(screen).not.toMatch(/intakeQuestions\.length/);
     expect(screen).not.toMatch(/\{\s*stepIndex\s*\+\s*1\s*\}\s*\/\s*/);
-    expect(screen).toContain("intake.progress.grows");
+    expect(progress).toMatch(/position\.mayGrow \? \(/);
+    expect(progress).toContain('t("intake.progress.grows")');
   });
 });

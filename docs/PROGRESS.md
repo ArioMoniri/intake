@@ -3032,3 +3032,37 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner step: conversation captures need the voice lane up.
 - Next: PR `INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid` (Closes #718, Sec-Row mobile), base `int-422-design-system-refresh`, left unmerged.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T00:40:00+03:00 · INT-433 · done (PR open, not merged; carries INT-422 and INT-423 until they land)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-433):
+  - native progress (a thin bar and "Soru N / M"), with display-only numerals announced as one value;
+  - filled fields, capsule chips with a selected state, and Liquid Glass bars with content solid and Reduce Transparency solid;
+  - Mobbin references and before/after captures in docs/design/question-screen.md;
+  - question text, RED, contrast and Dynamic Type unchanged.
+- Plan:
+  - A pure `lib/intake/questionScreen.ts` for position, field and chip chrome.
+  - `QuestionProgress.tsx` for the bar.
+  - `GlassNavBackground` in `GlassBar.tsx` for the nav bar.
+  - `intake.tsx` takes styles from them; the branch merges `int-423-chat-rhythm` for INT-422/423 tokens.
+- Tests added (with the near-miss negative for any safety rule):
+  - `questionScreen.test.ts` (near miss: an id outside the flow never yields a zero bar; a 1200-question flow prints ungrouped digits);
+  - `e2e/questionScreen.spec.ts` (no dot rail anywhere; the spoken lane never imports the progress; a warning banner keeps the solid bar);
+  - RED run: 6 files, 19 tests failed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 2565 passed;
+  - `make check-ts` exit 0;
+  - `pnpm -r typecheck` done;
+  - `make check-i18n` 43 passed;
+  - tests/backlog and smoke passed;
+  - `no_placeholders` OK;
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 5: tr-first progress words;
+  - 10: verbatim question;
+  - 17: no filler tokens;
+  - 21: RED untouched;
+  - 22: numerals display-only, typed lane only.
+- Decisions / ADRs / `00_STATE.md` rows: none. INT-136's "no printed total" becomes "the total is the applicable flow, with the growth line while it can grow", at the owner's request.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. Observed: the dark-mode back chevron is invisible on pushed screens (pre-existing, not in this scope).
+- Next: PR `INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)` (Closes #739, Sec-Row mobile), left unmerged; merge after #725 and #728.
+- LOOP_STATUS: CONTINUE
