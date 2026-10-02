@@ -56,9 +56,9 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import { SymbolView } from "expo-symbols";
 
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
+import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import {
@@ -775,7 +775,7 @@ export function DialogueIntake({
                   },
                 ]}
               >
-                <SymbolView name="arrow.up" size={17} tintColor={theme.onCta} />
+                <Icon name="arrow.up" size={17} tintColor={theme.onCta} />
               </Pressable>
             </View>
           </GlassBar>

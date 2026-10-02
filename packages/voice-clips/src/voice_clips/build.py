@@ -21,6 +21,12 @@ stable voice id, which is an operator decision rather than an inference.
 "on failure at compile time the build fails, which is the correct place for a
 TTS failure to happen."
 
+**Every row is spoken in its delivery profile** (INT-415): a rule's action
+script under ``red``, an instrument item under ``instrument``, a slot question
+under ``routine`` — read from the row's subject, never from a caller. The
+profile's id and version are in the object key, so a retuned profile is a miss
+and re-synthesises instead of replaying the old tuning.
+
 **Every lookup and every synthesis is counted** (INT-351): a stored clip is a
 cache hit, a synthesis is a miss that paid a gateway — the two
 :mod:`voice_clips.metrics` families the admin console's clip-cache tile reads.
@@ -43,6 +49,7 @@ from voice_clips.cache import (
     discover_packs,
     load_clip_manifest,
 )
+from voice_clips.delivery import delivery_profile
 from voice_clips.errors import ClipCacheError
 from voice_clips.gateway import TtsGateway, assert_speakable_tr
 from voice_clips.metrics import (
@@ -113,7 +120,8 @@ def build_clip_cache(
     kind = gateway_kind(gateway)
     results: list[ClipBuildResult] = []
     for row in manifest.entries:
-        key = clip_object_key(row.entry)
+        profile = delivery_profile(row.delivery_context)
+        key = clip_object_key(row.entry, profile=profile)
         hit = False if force else cache.has(key)
         if not force:
             record_lookup(hit=hit)
@@ -130,7 +138,9 @@ def build_clip_cache(
             )
             continue
         try:
-            speech = gateway.synthesise(text_tr=row.text_tr, voice_id=manifest.voice)
+            speech = gateway.synthesise(
+                text_tr=row.text_tr, voice_id=manifest.voice, profile=profile
+            )
         except Exception:
             record_synthesis(gateway=kind, ok=False)
             raise
@@ -153,7 +163,9 @@ def build_clip_cache(
 def clip_coverage(manifest: CompiledClipManifest, cache: ClipCache) -> ClipCoverage:
     """Ask the store, row by row, whether the clip is there — and publish it."""
     missing = tuple(
-        row.entry.clip_id for row in manifest.entries if not cache.has(clip_object_key(row.entry))
+        row.entry.clip_id
+        for row in manifest.entries
+        if not cache.has(clip_object_key(row.entry, profile=delivery_profile(row.delivery_context)))
     )
     record_coverage(
         pack=manifest.pack_id,

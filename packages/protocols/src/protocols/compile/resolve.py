@@ -17,7 +17,9 @@ What this module owes the rest of the compiler:
   (HB-C1), the maturity ladder (files/09 §2), rule provenance (files/04 §8.1
   rule 3), RED's three axes (invariant 21), monotonicity (invariant 7) and
   the openEHR annotation (ADR-002), and the data-category register row
-  (INT-349).
+  (INT-349). Monotonicity includes the merged pack itself: no op in any layer
+  may remove a slot a pack rule or a ``base.life_threat`` rule reads
+  (INT-382).
 """
 
 from __future__ import annotations
@@ -38,6 +40,7 @@ from protocols.compile.data_categories import (
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
+from protocols.compile.rule_reads import rule_read_refusals
 from protocols.data_register import NO_REGISTER, DataCategoryRegister
 from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
 from protocols.gates import (
@@ -917,9 +920,11 @@ def resolve_protocol(
     live_entries = [e for e in entries if e[0].id not in superseded]
     op_refusals = [] if conflicts else _apply_ops(sections_state, live_entries, locale)
     refusals.extend(op_refusals)
-    # The ask order exists only once every op applied: an order the ops did not
-    # produce is not the one the author wrote, so it is not judged (INT-375).
-    ordered = not conflicts and not op_refusals
+    # The merged pack exists only once every op of every layer applied. A
+    # document the ops did not finish is not the one the author wrote, so
+    # neither the rules (INT-382) nor the ask order (INT-375) are judged
+    # against it; the compile already refuses for the op.
+    merged = not conflicts and not op_refusals
 
     pack_paraphrase = _first_paraphrase(applied, locale)
     sections: list[ResolvedSection] = []
@@ -974,7 +979,20 @@ def resolve_protocol(
             )
         )
     refusals.extend(_gate_ref_refusals(sections))
-    if ordered:
+    if merged:
+        refusals.extend(
+            rule_read_refusals(
+                pack_rules=composition.rules,
+                life_threat_rules=[entry.rule for entry in life_threat.rules],
+                declared=((section.id, slot.key) for section in sections for slot in section.slots),
+                suppressions=(
+                    (pack.id, op.pointer)
+                    for pack, _, op in live_entries
+                    if isinstance(op, SuppressSlotOp)
+                ),
+                overlay_checked=composition.overlays,
+            )
+        )
         refusals.extend(_gate_order_refusals(sections, _slot_owners(applied, live_entries)))
 
     if refusals:

@@ -55,6 +55,8 @@ class RefusalCode(enum.StrEnum):
     MONOTONICITY_VIOLATION = "MONOTONICITY_VIOLATION"
     LIFE_THREAT_SET_EXTENDED = "LIFE_THREAT_SET_EXTENDED"
     OVERLAY_CONFLICT = "OVERLAY_CONFLICT"
+    # a suppress_slot in any layer removed a slot a red flag reads (INT-382)
+    RULE_READS_REMOVED_SLOT = "RULE_READS_REMOVED_SLOT"
 
     # --- patient overlays (INT-258; files/04 §2.3; CLAUDE.md invariant 7)
     OVERLAY_WRONG_LAYER = "OVERLAY_WRONG_LAYER"

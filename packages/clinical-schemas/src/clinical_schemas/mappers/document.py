@@ -15,6 +15,9 @@ the self-reported measurements and the konuşma özellikleri speech measures —
 is written by :mod:`clinical_schemas.quantity` for the document's reader
 (``meta.language``): that language's decimal point, no grouping, and a
 non-breaking space binding number to unit (CLAUDE.md invariant 22; INT-386).
+A fired rule's evidence line, in the narrative and in the RiskAssessment's
+``reasonCode.text``, is written the same way from the fire's parts
+(:mod:`clinical_schemas.rule_evidence`; INT-404).
 The narrative is text for a person. The structured values (an Observation's
 ``valueQuantity``, a screening score) are numbers and never pass through it.
 """
@@ -60,6 +63,7 @@ from clinical_schemas.note import (
     SelfReportedMeasure,
 )
 from clinical_schemas.quantity import float_magnitude, quantity_atom
+from clinical_schemas.rule_evidence import render_rule_evidence
 from clinical_schemas.triage import TriageLevel
 
 _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "urn:intake:fhir:document")
@@ -78,11 +82,13 @@ def _concept(system: str, code: str) -> CodeableConcept:
 
 
 def _note_triage_resources(
-    triage: NoteTriage, *, subject_ref: str
+    triage: NoteTriage, *, subject_ref: str, locale: str
 ) -> tuple[RiskAssessment, Flag | None]:
     """The note's triage block (files/04 §5) → RiskAssessment (+Flag when
     RED/YELLOW). Only ``level`` and ``rules`` exist on the note shape;
-    ``llm_candidates`` are deliberately not consumed here (invariant 1)."""
+    ``llm_candidates`` are deliberately not consumed here (invariant 1).
+    Each rule's ``reasonCode.text`` is display text inside a document written
+    for ``locale``, so it is that reader's evidence line (INT-404)."""
     assessment = RiskAssessment(
         status="final",
         method=_concept(codes.TRIAGE_METHOD_SYSTEM, codes.TRIAGE_METHOD_RULES),
@@ -90,7 +96,7 @@ def _note_triage_resources(
         reason_code=tuple(
             CodeableConcept(
                 coding=(Coding(system=codes.TRIAGE_RULE_SYSTEM, code=rule.id),),
-                text=rule.evidence,
+                text=render_rule_evidence(rule, locale=locale),
             )
             for rule in triage.rules
         )
@@ -152,7 +158,10 @@ def _section_lines(note: PreVisitNote, section_id: str) -> list[str]:
     locale = note.meta.language
     if section_id == "triage":
         lines = [f"level: {note.triage.level.value}"]
-        lines.extend(f"rule {rule.id}: {rule.evidence}" for rule in note.triage.rules)
+        lines.extend(
+            f"rule {rule.id}: {render_rule_evidence(rule, locale=locale)}"
+            for rule in note.triage.rules
+        )
         return lines
     if section_id == "chief_complaint":
         lines = [note.chief_complaint.text] if note.chief_complaint.text else []
@@ -260,7 +269,9 @@ def previsit_note_to_document_bundle(
         entries.append(BundleEntry(full_url=url, resource=resource))
         section_entries.setdefault(section_id, []).append(Reference(reference=url))
 
-    assessment, flag = _note_triage_resources(note.triage, subject_ref=patient_url)
+    assessment, flag = _note_triage_resources(
+        note.triage, subject_ref=patient_url, locale=note.meta.language
+    )
     add("triage", "triage:risk-assessment", assessment)
     if flag is not None:
         add("triage", "triage:flag", flag)

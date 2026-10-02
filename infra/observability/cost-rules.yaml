@@ -23,6 +23,7 @@ groups:
     annotations:
       summary: cost budget all-vendors-day has no limit configured
       description: all_vendors spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
   - alert: CostBudgetNotConfigured
     expr: vector(1)
     labels:
@@ -33,6 +34,7 @@ groups:
     annotations:
       summary: cost budget all-vendors-month has no limit configured
       description: all_vendors spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
   - alert: CostBudgetNotConfigured
     expr: vector(1)
     labels:
@@ -43,6 +45,7 @@ groups:
     annotations:
       summary: cost budget self-hosted-day has no limit configured
       description: self-hosted spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
   - alert: CostBudgetNotConfigured
     expr: vector(1)
     labels:
@@ -53,6 +56,7 @@ groups:
     annotations:
       summary: cost budget self-hosted-month has no limit configured
       description: self-hosted spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
   - alert: CostBudgetNotConfigured
     expr: vector(1)
     labels:
@@ -63,6 +67,7 @@ groups:
     annotations:
       summary: cost budget elevenlabs-day has no limit configured
       description: elevenlabs spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
   - alert: CostBudgetNotConfigured
     expr: vector(1)
     labels:
@@ -73,6 +78,7 @@ groups:
     annotations:
       summary: cost budget elevenlabs-month has no limit configured
       description: elevenlabs spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
   - alert: CostBudgetNotConfigured
     expr: vector(1)
     labels:
@@ -83,6 +89,7 @@ groups:
     annotations:
       summary: cost budget aws-day has no limit configured
       description: aws spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
   - alert: CostBudgetNotConfigured
     expr: vector(1)
     labels:
@@ -93,3 +100,4 @@ groups:
     annotations:
       summary: cost budget aws-month has no limit configured
       description: aws spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured

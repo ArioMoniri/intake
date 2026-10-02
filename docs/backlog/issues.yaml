@@ -238,9 +238,20 @@
   labels: [area:security, risk:legal]
   # doing, not done: the acceptance's notice templates are legal texts (docs/legal/,
   # invariant 18) and land with INT-214; runbook carries the flow + pointers meanwhile.
-  status: doing
+  # CLOSE-OUT AUDIT 27 Sep 2026 (docs/evidence/INT-020.md): every other clause is met
+  # on main, and the close-out built the three engineering gaps it found (evidence_check
+  # now fails a missing Sec-Row itself; five files/10 §9 features seeded, with a map test;
+  # every services/apps/packages module owned by a row, with a map test). The one held
+  # clause is "data-subject notice templates": counsel-authored legal text, and files/06
+  # §5 lists the breach packet templates with the INT-210..227 legal set, INT-214 (which
+  # depends on this row). Moving that clause to INT-214 is the coordinator's/owner's call.
+  # RESCOPED 27 Sep 2026 (PR #680): the data-subject notice templates (legal text,
+  # counsel) move to INT-214, which already owns data-subject notices and
+  # depends on this issue; holding INT-020 open for them was circular.
+  status: done
+  evidence: docs/evidence/INT-020.md
   acceptance:
-    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), data-subject notice templates, USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
+    - "docs/security/threat-model.md STRIDE+LINDDUN seeded from 10 §9; docs/security/incident-runbook.md includes KVKK Board 72h form flow (2019/10), USOM/Siber Guvenlik Baskanligi report per 7545, hospital DPA notice"
     - "PR template requires the 10 §9 row link; missing link fails evidence_check"
   tests: [tests/docs/test_threat_model_rows.py]
   legal: "KVKK-12-breach,7545"
@@ -251,9 +262,23 @@
   title: "SLO files + Prometheus rules + Grafana dashboards as code + runbooks"
   depends_on: [INT-011]
   labels: [area:observability]
-  status: doing
+  # RESCOPED 27 Sep 2026 (PR #685): the workers tier and its SLI targets move to
+  # INT-408 (owner); every other service, app and job is covered.
+  status: done
+  evidence: docs/evidence/INT-021.md
+  # NOTE 27 Sep 2026 (close-out): every SLO file now generates its burn-rate
+  # rules (7 files, 8 SLOs, 24 alerts; api.yaml alone until now) and its own
+  # golden-signal dashboard, and every alert Prometheus loads links a runbook
+  # heading that resolves (the 8 cost alerts had none). observability/
+  # slo_coverage.yaml covers every discovered service, app and job; the gates
+  # are tests/observability/test_{slo_generator,alert_rules,slo_coverage}.py.
+  # Found and fixed: services/probes never emitted the series its SLO reads;
+  # nothing read sec_audit_chain_ok (files/08 §5 pages on it). What remains is
+  # docs/slo/workers.yaml: services/workers does not exist and no row creates
+  # it, and its one spec objective (note ready <= 60 s, 99 %) has no emitter —
+  # the owner's decision, docs/backlog/blockers.md INT-021.
   acceptance:
-    - "docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
+    - "docs/slo/{api,voice-runtime}.yaml (and every other service's SLO file; workers is INT-408) with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"
   tests: [tests/observability/test_slo_generator.py]
   sec_row: "monitoring-contract"
 - id: INT-022
@@ -359,11 +384,12 @@
   title: "openEHR OPT: the committed template has no occurrences and a live CDR rejects it"
   depends_on: [INT-032]
   labels: [area:data]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-257.md
   acceptance:
     - "every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"
     - "OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"
-  tests: [tests/integration/test_ehrbase_roundtrip.py]
+  tests: [tests/integration/test_ehrbase_roundtrip.py, tests/protocols/test_opt_schema.py]
   sec_row: "clinical-core"
 - id: INT-033
   epic: E02-data
@@ -1457,10 +1483,16 @@
   # not be committed (files/06 §5), so no figure is reported anywhere.
   #
   # Reopen against HB-A1; see docs/evidence/INT-122.md "Acceptance, line by line".
-  status: todo
+  # RESCOPED 27 Sep 2026 (PR #663): the parsers, the fail-closed document-engine
+  # gate (rows 20-21) and the no-scraping enforcement are delivered. The engine
+  # choice is INT-398 (owner, model table), the real e-Nabiz export and MHRS SMS
+  # samples are INT-399 (HB-A1, Ask 2), and the on-device date-order defect is
+  # INT-400.
+  status: done
+  evidence: docs/evidence/INT-122.md
   acceptance:
-    - "patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
-  tests: [tests/records/test_enabiz_pdf.py]
+    - "patient-exported e-Nabiz documents and MHRS SMS text are parsed into unconfirmed record items / visit candidates behind a fail-closed document-engine gate (files/03 rows 20-21) that refuses with a typed status while no engine is registered; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"
+  tests: [tests/records/test_enabiz_pdf.py, tests/records/test_enabiz_mhrs_read_paths.py]
   # Corrected from "KSVY-9,KSVY-10". Both citations were wrong and one is
   # repealed: m.10 was `Saglik verilerine avukatlarin erisimi` (LAWYERS'
   # access) and RG 33096 (03.12.2025) MADDE 9 repealed it outright, and m.9 is
@@ -1477,9 +1509,25 @@
   title: "pgvector record index (RLS, per-patient namespace) + retrieval Work"
   depends_on: [INT-030, INT-121]
   labels: [area:records]
-  status: todo
+  # `status: todo` on the INT-121 / INT-122 precedent (27 Sep 2026). The
+  # mechanism ships whole: migration 0014 (record_embeddings, a PERMISSIVE
+  # tenant and a RESTRICTIVE patient RLS policy, FORCE, no clinician grant),
+  # confirmed-only indexing hooked on ConfirmedRecordStore.admit, the
+  # `documents` consent refusal, erasure of vectors on both deletion paths,
+  # the `retrieve_records` background Work and its citations in the note with
+  # document, page, bbox and item id. What does not exist is an embedding
+  # model: files/03 §4.9.1 names none (row 18 is a SPEAKER embedding and may
+  # never be persisted, invariant 15), and choosing one is the owner's call
+  # under invariant 19. So every index Work fails `EmbeddingModelUnregistered`
+  # and no embedding exists anywhere, and "embeddings scoped by patient" is
+  # not met as written. The ask is in docs/backlog/blockers.md; the HB id is
+  # the coordinator's to allocate. See docs/evidence/INT-123.md.
+  # RESCOPED 27 Sep 2026 (PR #670): the mechanism closes INT-123; the model
+  # choice is INT-402 (owner) and consent-withdrawal handling is INT-403.
+  status: done
+  evidence: docs/evidence/INT-123.md
   acceptance:
-    - "embeddings scoped by patient+consent; retrieval cited into notes with provenance"
+    - "the record index is scoped by patient and consent (a RESTRICTIVE patient RLS policy, FORCE, confirmed-only indexing, the documents consent refusal, erasure on every deletion path) and retrieval cites into notes with provenance; with no embedding model registered it fails closed (EmbeddingModelUnregistered) — the model is INT-402"
   tests: [tests/records/test_vector_rls.py]
   sec_row: "records"
 - id: INT-124
@@ -2982,6 +3030,7 @@
   status: todo
   acceptance:
     - "runbook executable: incident record -> prefilled Board form -> notices; drill test produces the full packet within 72h simulated clock"
+    - "the data-subject notice templates (moved from INT-020, 27 Sep 2026): counsel-authored text under docs/legal/ with hash binding, rendered by the breach drill; no template text is drafted by an agent"
   tests: [tests/legal/test_breach_drill.py]
   legal: "KVKK-12-breach,7545"
   sec_row: "incident-response"
@@ -4816,7 +4865,8 @@
   labels:
   - area:records
   - area:api
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-313.md
   acceptance:
   - 'a route publishes extracted items for a document the patient owns, scoped
     by consent and audited on every read like every other clinical read
@@ -5307,7 +5357,8 @@
   title: "Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic"
   depends_on: [INT-330, INT-332]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-333.md
   acceptance:
     - "every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"
     - "ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"
@@ -5321,7 +5372,8 @@
   title: "Motion: arbiter and commit windows (pure)"
   depends_on: [INT-333]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-334.md
   acceptance:
     - "one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"
     - "rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"
@@ -6116,6 +6168,207 @@
     - "the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"
   tests: [tests/infra/test_keycloak_realm_import.py, tests/admin/test_staff_second_factor.py]
   sec_row: "admin-console"
+- id: INT-402
+  epic: E07-records
+  phase: P1
+  title: "Record-embedding model for the patient record index (files/03 §4.9.1)"
+  depends_on: [INT-123]
+  labels: [area:records, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner adds an open-weights, commercially usable, in-country self-hostable record-embedding model row to files/03 §4.9.1; it is pinned model_id@revision + sha256 with licence_verified_at and a probe; an adapter binds records/embedding.py with a recorded-vector contract test; indexing starts, and an audited backfill covers already-confirmed items"
+  tests: [tests/records/test_record_index.py]
+  sec_row: "records"
+- id: INT-403
+  epic: E02-data
+  phase: P1
+  title: "What withdrawing documents consent does to the patient's record vectors"
+  depends_on: [INT-123]
+  labels: [area:data, risk:legal]
+  status: awaiting-human
+  acceptance:
+    - "the owner (with counsel if needed) records whether withdrawal deletes the vectors or keeps them under the record's retention class (files/06); deletion is then done in the withdrawal transaction, audited by id and tested, or the inventory annotation and consent text state the retention"
+  tests: [tests/records/test_record_index.py]
+  sec_row: "consent"
+- id: INT-405
+  epic: E00-governance
+  phase: P1
+  title: "The backlog sync pages past 500 issues and keeps issue state in step with rows"
+  # GitHub #675. Found by INT-396 (docs/evidence/INT-396.md, "For the
+  # coordinator" 4 and the 66 done rows whose owned issue was open):
+  # fetch_existing listed at most 500 issues, and apply_plan never set state.
+  depends_on: [INT-004, INT-396]
+  labels: [area:platform]
+  status: done
+  evidence: docs/evidence/INT-405.md
+  acceptance:
+    - "fetch_existing pages until exhausted (a test with a fake paginated client over 1,200 issues, and a near-miss where page 3 is dropped)"
+    - "the sync closes the owned issue of a done row (state_reason completed) and reopens it for a row moved back from done; dry-run lists these actions; the live run is the operator's (make backlog-sync or the documented command)"
+    - "duplicates are never touched, only the owned issue per id (owned_issue_numbers())"
+  tests: [tests/backlog/test_sync_dryrun.py]
+- id: INT-408
+  epic: E01-platform
+  phase: P1
+  title: "Workers tier SLOs: the owner decides the tier and its targets"
+  depends_on: [INT-021]
+  labels: [area:observability]
+  status: awaiting-human
+  acceptance:
+    - "the owner records whether the workers tier becomes services/workers and the targets for its SLIs (upload promotion, retention runs, event-bus dead letters, notification dispatch); docs/slo/workers.yaml declares them, the generator emits rules and a dashboard, every SLI series is emitted and catalogued live, and the coverage manifest drops the workers exception"
+  tests: [tests/observability/test_slo_coverage.py]
+  sec_row: "monitoring-contract"
+- id: INT-398
+  epic: E07-records
+  phase: P1
+  title: "Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox"
+  depends_on: [INT-122]
+  labels: [area:records, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the owner records the engine choice; licence verified from the raw LICENSE blob (licence_verified_at), pinned model_id@revision + sha256, declared self-hostable with a probe"
+    - "an ADR records the engine sandbox (no network, read-only input, resource limits); an adapter binds to the verified registry entry with a recorded-fixture contract test, and the gate admits it"
+  tests: [tests/records/test_enabiz_mhrs_read_paths.py]
+  sec_row: "records"
+- id: INT-399
+  epic: E07-records
+  phase: P1
+  title: "Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2)"
+  depends_on: [INT-122]
+  labels: [area:records]
+  status: awaiting-human
+  acceptance:
+    - "de-identified, owner-supplied samples committed as fixtures with provenance; the parsers pass on them; the MHRS date-order rule is fixed from the sample and the device and server parsers agree (INT-400)"
+  tests: [tests/records/test_enabiz_pdf.py, tests/records/test_mhrs.py]
+  sec_row: "records"
+- id: INT-400
+  epic: E08-mobile
+  phase: P1
+  title: "The on-device MHRS SMS parser refuses an ambiguous date, as the server does"
+  depends_on: [INT-122]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
+  tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
+- id: INT-409
+  epic: E08-mobile
+  phase: P1
+  title: "The visits list uses the real date, not a pinned TODAY_FIXTURE, in every build"
+  # GitHub #688. Found by INT-179's close-out (PR #687): Vizitlerim pinned
+  # "today" to one date in every build, release included, so the upcoming/past
+  # split and the INT-370 calendar were wrong for every real patient. The
+  # issue names src/app/(tabs)/visits/visits.test.ts; a .test.ts under src/app
+  # is an expo-router route and breaks the release export, so the tests sit in
+  # src/lib and e2e (docs/evidence/INT-409.md).
+  depends_on: [INT-370]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-409.md
+  acceptance:
+    - "\"today\" comes from an injectable clock (the device date in the app's time zone, Europe/Istanbul for date boundaries); tests inject a fixed clock; no build contains a pinned date"
+    - "a test fails if any source under `apps/mobile/src` (outside tests and fixtures) pins a calendar date constant used as \"now\", with a near-miss control"
+  tests: [apps/mobile/src/lib/clock.test.ts, apps/mobile/e2e/pinnedToday.spec.ts]
+- id: INT-410
+  epic: E08-mobile
+  phase: P1
+  title: "Release bundles carry no synthetic seed accounts (audit F30)"
+  # GitHub #689. Found by INT-179's close-out (PR #687); production audit F30.
+  # The seed rendered only under __DEV__ but was imported statically, and Metro
+  # keeps a statically imported module, so every synthetic account shipped in
+  # the release bundle. The production export is searched in check-ts
+  # (releaseBundle.spec.ts, which has Node); the named pytest walks the release
+  # import graph in check-py, which has none (docs/evidence/INT-410.md).
+  depends_on: [INT-130]
+  labels: [area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-410.md
+  acceptance:
+    - "the seed accounts and their fixtures live behind a dev-only module that the release bundle excludes (a lazy import in a `__DEV__` branch the bundler strips, or a dev-only entry); a bundle test over the production export proves no seed identifier, name or fixture string is present, with a near-miss control where a planted seed string in a release path fails"
+    - "invariant 17: no demo data outside tests or fixtures reaches a release build"
+  tests: [tests/release/test_release_bundle_has_no_fixtures.py, apps/mobile/e2e/releaseBundle.spec.ts]
+- id: INT-412
+  epic: E08-mobile
+  phase: P1
+  title: "Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal"
+  depends_on: [INT-360]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-412.md
+  acceptance:
+    - "every icon resolves through one symbol registry with an SF Symbol for iOS and a Material fallback for Android and web; no blank icons on Android"
+    - "rail, CTA bar and welcome card use system Liquid Glass on iOS 26, blur or solid otherwise, following the app theme; Reduce Transparency forces solid and fails closed while unknown"
+    - "a layered icon proposal ready for Icon Composer; shipped app.json and assets unchanged (rebrand is owner-held)"
+  tests: [apps/mobile/src/lib/symbols.test.ts, apps/mobile/src/lib/glass.test.ts, apps/mobile/e2e/nativeChrome.spec.ts]
+  sec_row: "mobile"
+- id: INT-413
+  epic: E14-legal
+  phase: P1
+  title: "Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices)"
+  depends_on: [INT-215]
+  labels: [area:legal, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-413.md
+  acceptance:
+    - "docs/legal/drafts/ carries every draft with the TASLAK/DRAFT banner, primary sources cited with retrieval dates, and a README listing the numbered decisions counsel must make and the sign-off procedure"
+    - "a test fails if any loader under packages/ or services/ reads a draft, or if a draft lacks the banner"
+  tests: [tests/legal/test_legal_drafts.py]
+  legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
+  sec_row: "compliance-evidence"
+
+- id: INT-404
+  epic: E03-protocols
+  phase: P1
+  title: "Triage rule evidence strings render quantities with the locale decimal separator"
+  # GitHub #673. Found by INT-386 (PR #657, evidence §8 finding 1): the rules
+  # engine wrote triage.rules[].evidence once, as text, with Decimal's full
+  # stop, and the clinician note and the FHIR document printed it to a Turkish
+  # reader. Delivered by recording the reading in parts on the rule fire
+  # (RuleFire.evidence_slots: slot, carried values as numbers, declared unit)
+  # and writing each reader's line from them through clinical_schemas.quantity
+  # (clinical_schemas.rule_evidence). No rule's threshold, level, condition or
+  # text_tr changed, and the engine's own evidence text is byte-identical.
+  depends_on: [INT-386]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-404.md
+  acceptance:
+    - "a rule's evidence line renders every quantity through the shared locale renderer (`clinical_schemas.quantity`): tr comma, `useGrouping:false`, number + unit as one non-breaking atom. The rule's thresholds and semantics are untouched (the stored comparison value stays numeric)"
+    - "golden tests with a near-miss (a full stop in tr fails); `make safety` green; CODEOWNER review"
+  tests: [tests/protocols/test_triage_evidence_render.py, tests/safety/test_numeric_carrier.py, tests/schemas/test_fhir_mappers.py, tests/engine/test_note_golden.py, tests/records/test_quantity_render.py]
+  sec_row: "triage"
+- id: INT-382
+  epic: E03-protocols
+  phase: P0
+  title: "The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads"
+  depends_on: [INT-258]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-382.md
+  acceptance:
+    - "resolve_protocol / protocols compile refuses any op in any layer (overlay or chain pack) that leaves a red-flag rule, draft or signed, reading a slot that is not declared in the merged pack, with a typed refusal naming the rule id and slot id (ids only)"
+    - "base.life_threat is covered in the same way"
+    - "golden tests: chain-pack suppress refused; overlay refusal unchanged; a near-miss where suppressing a slot no rule reads is admitted; the same check over every served and review pack on main passes, or lists what fails"
+    - "make safety green; CODEOWNER review"
+  tests: [tests/protocols/test_rule_slot_removal.py]
+  sec_row: "protocol-registry"
+- id: INT-415
+  epic: E05-voice
+  phase: P1
+  title: "ElevenLabs delivery profiles per question context + on-prem TTS wiring guide"
+  # GitHub #706. Owner request, 27 Sep 2026: warm at the opening, professional
+  # afterwards. The profile values are voice tuning, not clinical values; the
+  # owner's listening review is still owed (docs/evidence/INT-415.md).
+  depends_on: [INT-326]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-415.md
+  acceptance:
+    - "a typed, versioned delivery-profile table maps each delivery context (welcome, routine question, sensitive question, instrument item, acknowledgement, RED script, closing) to ElevenLabs voice_settings (stability, similarity_boost, style, use_speaker_boost, speed) plus the pinned model id; server-side only, the key never reaches the device; the profile id is part of the clip cache key; RED and instrument profiles are the most stable and use no style exaggeration"
+    - "only scripted catalogue text is ever sent, never patient words (the INT-326 guards unchanged); the numeral-normaliser-off request and invariant 22 stay enforced"
+    - "docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr TTS controls, covering the adapter interface, the model registry fields (model_id@revision + sha256, licence_verified_at, self_hostable, probe), the clip manifest, the latency budget and a cut-over checklist; no model is named as pinned unless it is in files/03 §4.9.1"
+    - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
+  tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
+  sec_row: "cloud-clipgen"
 - id: INT-375
   epic: E03-protocols
   phase: P1
