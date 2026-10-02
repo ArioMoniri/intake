@@ -51,8 +51,21 @@ describe("visit creation runs on the production taxonomy", () => {
 
 describe("MHRS SMS paste-parse stays on the device", () => {
   it("the parser is pure text-in/structure-out — no network, no storage", () => {
+    for (const file of ["mhrsSms.ts", "turkishDates.ts"]) {
+      const parser = read(SRC, "lib", "taxonomy", file);
+      expect(parser).not.toMatch(/fetch|AsyncStorage|SecureStore|expo-file-system|XMLHttpRequest/);
+    }
+  });
+
+  it("a date that reads two ways is asked for, never guessed (INT-400)", () => {
+    // the device reads dates by the server's rule, ported, not by its own
     const parser = read(SRC, "lib", "taxonomy", "mhrsSms.ts");
-    expect(parser).not.toMatch(/fetch|AsyncStorage|SecureStore|expo-file-system|XMLHttpRequest/);
+    expect(parser).toContain('from "./turkishDates"');
+    // the screen turns the refusal into a notice the patient acts on
+    const screen = read(APP, "(tabs)/visits/new.tsx");
+    expect(screen).toContain('ambiguous_date: "visits.new.smsAmbiguousDate"');
+    expect(read(SRC, "lib", "i18n", "tr.ts")).toContain('"visits.new.smsAmbiguousDate"');
+    expect(read(SRC, "lib", "i18n", "en.ts")).toContain('"visits.new.smsAmbiguousDate"');
   });
 
   it("the screen parses the paste and never hands the raw text onward", () => {

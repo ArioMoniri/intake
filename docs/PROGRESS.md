@@ -11,6 +11,24 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on: nothing. CI's pinned gitleaks (8.24.3) runs as the PR's own check.
 - Next: PR `INT-431: …` (Closes #733, Sec-Row connectors); then #481 can be recommitted.
+
+### 2026-09-27T16:00:00Z · INT-400 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #666): *"the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"*. Found by INT-122 §10.4: the device read `03.09.2026` day-first, and the server refuses it.
+- Plan:
+  - Port `turkish_dates.parse_printed_date` / `find_printed_date` line for line to `apps/mobile/src/lib/taxonomy/turkishDates.ts`: no default order, the server's refusal names, and the server's scan order.
+  - Match Python's Unicode `\d`, `\w`, `[^\W\d_]`, `\s`, `int()` and `fold_tr` to explicit device classes, code point by code point.
+  - `parseMhrsSms` gains `dateRefusal`. The form's new `ambiguous_date` notice leaves the date field empty; the patient writes the date.
+  - One fixture, `tests/fixtures/records/mhrs_dates.json`, holds both sides.
+- Tests added: `tests/records/test_mhrs.py`, `turkishDates.test.ts`, the fixture rows in `mhrsSms.test.ts`, reducer cases in `visits.test.ts`, and pins in `e2e/visits.spec.ts`.
+  - Near-miss controls `13.09.2026` and `05.05.2026` are read. `03.09.2026` is refused.
+  - RED: 46 of 85 failed. The old device guessed a date on 8 shared messages where the server refuses.
+  - GREEN: 117 targeted, 2278 mobile, 58 server.
+  - Mutants: 10 of 10 caught.
+- Result: docs/evidence/INT-400.md. check-i18n, ruff, format, typecheck, lint, the records/release/mobile/infra/backlog/ci/experience lanes, `no_placeholders` after staging, `phi_scan`, sec-row linkage and `evidence_check` all pass. `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 5 (tr first; en mirrored), 6 (nothing echoes the message), 17, 22 (a date that reads two ways never becomes a date).
+- Decisions / ADRs / `00_STATE.md` rows: none new. `HARDCODED_EXEMPT` gains `lib/taxonomy/turkishDates.ts`, with its reason. New patient copy `visits.new.smsAmbiguousDate` is flagged for clinical-reviewer sign-off.
+- Blocked on: nothing. The order itself stays with INT-399 (Ask 2); nothing here chooses it.
+- Next: PR `INT-400: the on-device MHRS SMS parser refuses an ambiguous date, as the server does` (Closes #666, Sec-Row mobile, depends on #663), unmerged for review.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
