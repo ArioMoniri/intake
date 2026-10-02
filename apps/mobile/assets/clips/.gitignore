@@ -1,0 +1,4 @@
+# INT-440: rendered ElevenLabs clips are dev-only build inputs (ADR-028; the
+# vendor-terms question is a human blocker), never committed.
+*
+!.gitignore

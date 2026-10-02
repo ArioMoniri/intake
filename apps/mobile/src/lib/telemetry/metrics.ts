@@ -51,7 +51,7 @@ export const EMITTED_CLIENT_METRIC_IDS: readonly string[] = [
 ];
 
 /** The `lane` label's closed value set for `client.dialogue_tts_lane`. */
-export const TTS_LANES = ["george", "self_hosted"] as const;
+export const TTS_LANES = ["george", "elevenlabs_bundled", "self_hosted"] as const;
 export type TtsLaneLabel = (typeof TTS_LANES)[number];
 
 /** The catalogue gives `web.core_web_vitals` one label, `vital`. This is its
@@ -77,14 +77,14 @@ export interface ClientMetricSample {
 
 /** One `client.dialogue_tts_lane` count for one synthesized clip (INT-440). */
 export function ttsLaneSample(outcome: ClipLaneOutcome): ClientMetricSample {
-  return outcome.lane === "george"
-    ? { metricId: CLIENT_DIALOGUE_TTS_LANE, value: 1, lane: "george" }
-    : {
+  return outcome.lane === "self_hosted"
+    ? {
         metricId: CLIENT_DIALOGUE_TTS_LANE,
         value: 1,
         lane: "self_hosted",
         georgeMiss: outcome.georgeMiss,
-      };
+      }
+    : { metricId: CLIENT_DIALOGUE_TTS_LANE, value: 1, lane: outcome.lane };
 }
 
 export interface ClientMetricSink {

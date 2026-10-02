@@ -135,9 +135,17 @@ describe("ttsLaneDiagnostic — the voice that spoke, when it is not George", ()
     expect(ttsLaneDiagnostic(FALLBACK, false)).toBeNull();
   });
 
-  it("is null before any clip and for a George clip", () => {
+  it("is null before any clip", () => {
     expect(ttsLaneDiagnostic(null, true)).toBeNull();
-    expect(ttsLaneDiagnostic({ lane: "george" }, true)).toBeNull();
+  });
+
+  it("labels an ElevenLabs clip compactly — live or bundled — with no failure copy", () => {
+    const live = ttsLaneDiagnostic({ lane: "george" }, true)!;
+    expect(live.title).toBe(tr["devVoice.lane.titleOk"]);
+    expect(live.lines).toEqual([`${tr["devVoice.lane.served"]} — elevenlabs-live`]);
+    expect(live.hint).toBeNull();
+    const bundled = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true)!;
+    expect(bundled.lines).toEqual([`${tr["devVoice.lane.served"]} — elevenlabs-bundled`]);
   });
 
   it("names the self-hosted tier that spoke and the George miss", () => {
@@ -155,12 +163,32 @@ describe("ttsLaneDiagnostic — the voice that spoke, when it is not George", ()
     expect(diagnostic.lines[0]).toBe(`${tr["devVoice.lane.served"]} — voxcpm2 + freya`);
   });
 
+  it("adds the measured audio start and microphone peak when known (INT-440)", () => {
+    const diagnostic = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true, {
+      audioStartMs: 84,
+      micPeakDb: -23.4,
+    })!;
+    expect(diagnostic.lines).toEqual([
+      `${tr["devVoice.lane.served"]} — elevenlabs-bundled`,
+      `${tr["devVoice.lane.audioStart"]} — 84 ms`,
+      `${tr["devVoice.lane.micPeak"]} — -23.4 dB`,
+    ]);
+    const unknown = ttsLaneDiagnostic({ lane: "george" }, true, {
+      audioStartMs: null,
+      micPeakDb: null,
+    })!;
+    expect(unknown.lines).toHaveLength(1);
+  });
+
   it("every lane-banner key exists in both catalogues", () => {
     for (const key of [
       "devVoice.lane.title",
+      "devVoice.lane.titleOk",
       "devVoice.lane.served",
       "devVoice.lane.georgeMiss",
       "devVoice.lane.hint",
+      "devVoice.lane.audioStart",
+      "devVoice.lane.micPeak",
     ] as const) {
       expect(tr[key].length, key).toBeGreaterThan(0);
       expect(en[key].length, key).toBeGreaterThan(0);

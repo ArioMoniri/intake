@@ -551,7 +551,10 @@ export function DialogueIntake({
           <Kicker label={t("dialogue.kicker")} tone="accent" />
           {/* INT-440: dev only — a clip not spoken by George says which lane
               spoke and why; renders nothing in production or for George. */}
-          <DevTtsLaneBanner record={session.voiceLane} />
+          <DevTtsLaneBanner
+            record={session.voiceLane}
+            timing={{ audioStartMs: session.audioStartMs, micPeakDb: session.micPeakDb }}
+          />
 
           {state.voiceMuted ? (
             // INT-261: the agent lost its voice and the conversation carried

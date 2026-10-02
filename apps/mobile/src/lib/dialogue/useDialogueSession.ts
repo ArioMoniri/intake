@@ -62,9 +62,11 @@ import type { IntakeQuestion } from "../intake/questions";
 import { clientTelemetry } from "../telemetry/expoTelemetry";
 import { discardRecording, transcribeRecording } from "../voice";
 import { createAudioModeLatch, DIALOGUE_PLAYER_OPTIONS, type AudioModeLatch } from "./audioSession";
+import { BUNDLED_CLIP_ASSETS } from "./bundledClipAssets";
+import { bundledClipFor } from "./bundledClips";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import type { ClipLaneRecord } from "./georgeClip";
-import { PREWARM_CONCURRENCY, warmInOrder } from "./prewarm";
+import { nextQuestionAfter, PREWARM_CONCURRENCY, warmInOrder } from "./prewarm";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import {
   dialogueStreamReducer,
@@ -100,6 +102,11 @@ export interface DialogueSession {
   /** The lane that synthesized the clip now playing (INT-440) — what the
    * `__DEV__` lane banner reads. Null until a clip has played. */
   voiceLane: ClipLaneRecord | null;
+  /** Dev measurement (INT-440): this turn's question on screen → its audio
+   * playing, in ms; null until it plays. */
+  audioStartMs: number | null;
+  /** Dev measurement (INT-440): the loudest metered mic level this turn, dB. */
+  micPeakDb: number | null;
   /** Tap on the speaking bubble: stop playback NOW, open the mic. */
   bargeIn: () => void;
   /** "Bitirdim" / tap-to-stop: take the utterance, advance NOW; the
@@ -146,6 +153,12 @@ export function useDialogueSession({
   stateRef.current = state;
   const [playing, setPlaying] = useState(false);
   const [voiceLane, setVoiceLane] = useState<ClipLaneRecord | null>(null);
+  /** INT-440 dev measurements: turn start → audible clip, and the turn's
+   * loudest metered microphone level (the app's own recorder, not a probe). */
+  const [audioStartMs, setAudioStartMs] = useState<number | null>(null);
+  const [micPeakDb, setMicPeakDb] = useState<number | null>(null);
+  /** INT-440: the next question's bundled clip, loaded while this one plays. */
+  const preloadRef = useRef<{ text: string; player: AudioPlayer } | null>(null);
 
   const storeRef = useRef<Promise<ClipStore> | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
@@ -202,6 +215,48 @@ export function useDialogueSession({
       });
     })();
     return storeRef.current;
+  };
+
+  /** Releases the preloaded player, if any. */
+  const dropPreload = () => {
+    const preloaded = preloadRef.current;
+    preloadRef.current = null;
+    if (preloaded !== null) {
+      try {
+        preloaded.player.remove();
+      } catch {
+        // already released
+      }
+    }
+  };
+
+  /** The player preloaded for exactly this line, handed over once. */
+  const takePreloaded = (text: string): AudioPlayer | null => {
+    const preloaded = preloadRef.current;
+    if (preloaded === null || preloaded.text !== text) {
+      return null;
+    }
+    preloadRef.current = null;
+    return preloaded.player;
+  };
+
+  /**
+   * Load the likely next question's bundled clip into a paused player while
+   * this one plays (INT-440), so its turn starts on `play()` with no load in
+   * between. Only bundled clips: a live clip is still being warmed by the
+   * pre-warm, and a guess that misses only costs the load it would have saved.
+   */
+  const preloadNextQuestion = (step: number) => {
+    const next = nextQuestionAfter(questions, step, stateRef.current.asked);
+    const text = next === null ? null : questionSpeechTr(next);
+    if (text !== null && preloadRef.current?.text === text) {
+      return;
+    }
+    dropPreload();
+    const asset = text === null ? null : bundledClipFor(text, "routine", BUNDLED_CLIP_ASSETS);
+    if (text !== null && asset !== null) {
+      preloadRef.current = { text, player: createAudioPlayer(asset, DIALOGUE_PLAYER_OPTIONS) };
+    }
   };
 
   /** Immediate, synchronous stop — the barge-in guarantee. One player ref,
@@ -311,17 +366,22 @@ export function useDialogueSession({
     let stale = false;
     (async () => {
       const jobs = (store: ClipStore, question: IntakeQuestion): (() => Promise<unknown>)[] => {
-        const clips = [
-          () => store.ensure(clipName("question", question.id), questionSpeechTr(question)),
+        const lines: [string, string][] = [
+          [clipName("question", question.id), questionSpeechTr(question)],
         ];
         if (question.kind === "text") {
           // The generic confirm line is scripted too — free text never
           // names a clip and patient words are never synthesized.
-          clips.push(() =>
-            store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, [])),
-          );
+          lines.push([clipName("confirm", question.id), confirmSpeechTr(question, [])]);
         }
-        return clips;
+        // INT-440: a bundled line needs no synthesis at all.
+        return lines
+          .filter(([, text]) => bundledClipFor(text, "routine", BUNDLED_CLIP_ASSETS) === null)
+          .map(
+            ([name, text]) =>
+              () =>
+                store.ensure(name, text),
+          );
       };
       try {
         const store = await clipStore();
@@ -373,6 +433,10 @@ export function useDialogueSession({
     }
     const question = questions[speaking.step];
     let stale = false;
+    // INT-440: the question is on screen from this render; the dev banner
+    // reports how long until its audio is actually playing.
+    const turnStartedAt = Date.now();
+    setAudioStartMs(null);
     (async () => {
       let store: ClipStore;
       try {
@@ -387,7 +451,14 @@ export function useDialogueSession({
       if (stale) {
         return;
       }
-      if (!shouldAttemptSpeech({ voiceMuted, voiceRetryIn })) {
+      const speech =
+        speaking.intent === "question"
+          ? questionSpeechTr(question)
+          : confirmSpeechTr(question, speaking.candidate.values);
+      // INT-440 fast path: a line rendered offline in George's voice plays
+      // from the bundle — no lane, no synthesis, so no mute applies to it.
+      const bundled = bundledClipFor(speech, "routine", BUNDLED_CLIP_ASSETS);
+      if (bundled === null && !shouldAttemptSpeech({ voiceMuted, voiceRetryIn })) {
         // Silent, and a cooldown is still owed: do not spend an admission on
         // this turn to rediscover it. The question text is on screen; move
         // the turn on, one turn closer to the next attempt.
@@ -402,10 +473,6 @@ export function useDialogueSession({
         return;
       }
       try {
-        const speech =
-          speaking.intent === "question"
-            ? questionSpeechTr(question)
-            : confirmSpeechTr(question, speaking.candidate.values);
         const name =
           speaking.intent === "question"
             ? clipName("question", question.id)
@@ -414,7 +481,11 @@ export function useDialogueSession({
               : clipName("confirm", question.id, speaking.candidate.values);
         // INT-261: the ladder may take as long as it likes; the patient may
         // not be made to wait more than this clip's own worth of work.
-        const uri = await withDeadline(store.ensure(name, speech), clipDeadlineMs(speech));
+        const source =
+          bundled ??
+          ({
+            uri: await withDeadline(store.ensure(name, speech), clipDeadlineMs(speech)),
+          } as const);
         if (stale) {
           return;
         }
@@ -427,11 +498,23 @@ export function useDialogueSession({
         }
         stopPlayback();
         // INT-440: the session stays active between clips — no deactivate /
-        // re-activate toggle under the open microphone on every turn.
-        const player = createAudioPlayer({ uri }, DIALOGUE_PLAYER_OPTIONS);
+        // re-activate toggle under the open microphone on every turn — and a
+        // player already loaded for this line while the last one played is
+        // used as is.
+        const player = takePreloaded(speech) ?? createAudioPlayer(source, DIALOGUE_PLAYER_OPTIONS);
         playerRef.current = player;
-        setVoiceLane(laneByTextRef.current.get(speech) ?? null);
+        if (bundled !== null) {
+          setVoiceLane({ lane: "elevenlabs_bundled" });
+          clientTelemetry().noteTtsLane({ lane: "elevenlabs_bundled" });
+        } else {
+          setVoiceLane(laneByTextRef.current.get(speech) ?? null);
+        }
+        let audible = false;
         player.addListener("playbackStatusUpdate", (status) => {
+          if (!audible && status.playing && !stale) {
+            audible = true;
+            setAudioStartMs(Date.now() - turnStartedAt);
+          }
           if (status.didJustFinish && !stale && playerRef.current === player) {
             stopPlayback();
             dispatch({ type: "speech_done" });
@@ -439,6 +522,7 @@ export function useDialogueSession({
         });
         player.play();
         setPlaying(true);
+        preloadNextQuestion(speaking.step);
         await armBargeInWatch(() => stale);
       } catch {
         // Audio output only — the conversation is unaffected and goes on.
@@ -510,11 +594,42 @@ export function useDialogueSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- terminal transitions only
   }, [state.turn.phase]);
 
+  // INT-440, dev only: the loudest level the app's OWN recorder meters in this
+  // turn, for the lane banner — the one honest answer to "does the simulator
+  // microphone hear anything". A platform meter reading, never a buffer
+  // (invariant 3), keyed by step so a speaking → listening hand-over keeps it.
+  const meterStep =
+    state.turn.phase === "speaking" ||
+    state.turn.phase === "listening" ||
+    state.turn.phase === "confirming"
+      ? state.turn.step
+      : null;
+  useEffect(() => {
+    if (!__DEV__ || meterStep === null) {
+      return;
+    }
+    let peak: number | null = null;
+    setMicPeakDb(null);
+    const timer = setInterval(() => {
+      if (!recorder.isRecording) {
+        return;
+      }
+      const level = recorder.getStatus().metering;
+      if (typeof level === "number" && Number.isFinite(level) && (peak === null || level > peak)) {
+        peak = level;
+        setMicPeakDb(Math.round(level * 10) / 10);
+      }
+    }, BARGE_IN_SAMPLE_MS);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one meter per question step
+  }, [meterStep]);
+
   // Unmount: stop audio both ways and delete the whole agent-clip cache.
   useEffect(() => {
     return () => {
       clearBargeInWatch();
       stopPlayback();
+      dropPreload();
       abortRef.current?.abort();
       if (!closedRef.current && stateRef.current.turn.phase === "listening") {
         void stopAndDiscardRecording();
@@ -653,6 +768,8 @@ export function useDialogueSession({
     state,
     playing,
     voiceLane,
+    audioStartMs,
+    micPeakDb,
     bargeIn,
     finishListening,
     sendTyped,

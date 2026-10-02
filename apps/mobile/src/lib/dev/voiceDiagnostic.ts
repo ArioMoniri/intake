@@ -81,36 +81,70 @@ export function voiceDiagnostic(
 
 export interface TtsLaneDiagnostic {
   readonly title: string;
-  /** The tier(s) that spoke, then why George did not — both as tokens. */
+  /** The lane that spoke, why George did not (fallback only), then the
+   * measured timings — all as tokens. */
   readonly lines: readonly string[];
-  readonly hint: string;
+  /** What would bring George back; only on a fallback clip. */
+  readonly hint: string | null;
+}
+
+/** The turn's measurements, when the hook has them (INT-440). */
+export interface VoiceTiming {
+  /** Turn start (question on screen) → the clip audibly playing. */
+  readonly audioStartMs: number | null;
+  /** The loudest microphone level metered in this turn, in dB. */
+  readonly micPeakDb: number | null;
+}
+
+function laneToken(record: ClipLaneRecord): string {
+  switch (record.lane) {
+    case "george":
+      return "elevenlabs-live";
+    case "elevenlabs_bundled":
+      return "elevenlabs-bundled";
+    case "self_hosted":
+      return record.tiers.length === 0 ? "self-hosted" : record.tiers.join(" + ");
+  }
 }
 
 /**
  * INT-440 — the same dev-only posture for the agent's VOICE. The owner heard
  * the self-hosted lane and could not tell it was not George, because the
- * George fallback was silent by design. In dev, a clip that was not George's
- * says which tier spoke and the closed-set reason George did not (a code token
- * like an HTTP status, never a host or a narrative). Production, a George
- * clip and "no clip yet" all render nothing.
+ * George fallback was silent by design. In dev, every clip names the lane that
+ * spoke it (`elevenlabs-bundled`, `elevenlabs-live`, or the self-hosted tier),
+ * a fallback adds the closed-set reason George did not (a code token like an
+ * HTTP status, never a host or a narrative), and the turn's measured audio
+ * start and microphone peak ride along. Production and "no clip yet" render
+ * nothing.
  *
  * @param record the lane record of the clip now playing, or null
  * @param isDev  pass `__DEV__`, never a literal
+ * @param timing the turn's measurements, when known
  */
 export function ttsLaneDiagnostic(
   record: ClipLaneRecord | null,
   isDev: boolean,
+  timing?: VoiceTiming,
 ): TtsLaneDiagnostic | null {
-  if (!isDev || record === null || record.lane === "george") {
+  if (!isDev || record === null) {
     return null;
   }
-  const served =
-    record.tiers.length === 0
-      ? t("devVoice.lane.served")
-      : `${t("devVoice.lane.served")}${SEPARATOR}${record.tiers.join(" + ")}`;
+  const lines = [`${t("devVoice.lane.served")}${SEPARATOR}${laneToken(record)}`];
+  if (record.lane === "self_hosted") {
+    lines.push(`${t("devVoice.lane.georgeMiss")}${SEPARATOR}${record.georgeMiss}`);
+  }
+  // Concatenated tokens, as the HTTP status above: the catalogue stays
+  // interpolation-free and a measurement is not a localised quantity.
+  if (timing?.audioStartMs != null) {
+    lines.push(`${t("devVoice.lane.audioStart")}${SEPARATOR}${String(timing.audioStartMs)} ms`);
+  }
+  if (timing?.micPeakDb != null) {
+    lines.push(`${t("devVoice.lane.micPeak")}${SEPARATOR}${String(timing.micPeakDb)} dB`);
+  }
+  const fallback = record.lane === "self_hosted";
   return {
-    title: t("devVoice.lane.title"),
-    lines: [served, `${t("devVoice.lane.georgeMiss")}${SEPARATOR}${record.georgeMiss}`],
-    hint: t("devVoice.lane.hint"),
+    title: t(fallback ? "devVoice.lane.title" : "devVoice.lane.titleOk"),
+    lines,
+    hint: fallback ? t("devVoice.lane.hint") : null,
   };
 }

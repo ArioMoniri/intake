@@ -11,7 +11,24 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { PREWARM_CONCURRENCY, warmInOrder } from "./prewarm";
+import { nextQuestionAfter, PREWARM_CONCURRENCY, warmInOrder } from "./prewarm";
+
+describe("nextQuestionAfter — the clip worth preloading while this one plays", () => {
+  const qs = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+
+  it("is the next question in pack order", () => {
+    expect(nextQuestionAfter(qs, 0, [])).toEqual({ id: "b" });
+  });
+
+  it("skips questions already asked", () => {
+    expect(nextQuestionAfter(qs, 0, ["b", "c"])).toEqual({ id: "d" });
+  });
+
+  it("is null at the end of the pack", () => {
+    expect(nextQuestionAfter(qs, 3, [])).toBeNull();
+    expect(nextQuestionAfter(qs, 1, ["c", "d"])).toBeNull();
+  });
+});
 
 function deferred() {
   let resolve: () => void = () => undefined;

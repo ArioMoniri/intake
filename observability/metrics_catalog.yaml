@@ -1438,8 +1438,8 @@ metrics:
     unit: "count"
     status: planned
     description: >-
-      Synthesized dialogue clips in the mobile client, by the lane that spoke
-      them (george / self_hosted) and, on the self-hosted lane, the closed-set
+      Dialogue clips played in the mobile client, by the lane that spoke them
+      (george / elevenlabs_bundled / self_hosted) and, on the self-hosted lane, the closed-set
       reason George did not (georgeClip GEORGE_MISSES). Handed to the client
       metric sink by lib/telemetry runtime.noteTtsLane (INT-440); planned until
       an ingest endpoint registers it, as for the other client.* series.

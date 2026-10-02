@@ -157,7 +157,7 @@ export function dialogueClipStore(
         scripted,
       );
     const prefer = georgePreferringSynth(george, selfHosted, (outcome) => {
-      onClipLane?.(text, outcome.lane === "george" ? outcome : { ...outcome, tiers });
+      onClipLane?.(text, outcome.lane === "self_hosted" ? { ...outcome, tiers } : outcome);
     });
     return prefer(text as ScriptedTr);
   });

@@ -85,8 +85,16 @@ describe("client.dialogue_tts_lane — which lane spoke each clip", () => {
     });
   });
 
+  it("counts a bundled clip under lane=elevenlabs_bundled", () => {
+    expect(ttsLaneSample({ lane: "elevenlabs_bundled" })).toEqual({
+      metricId: "client.dialogue_tts_lane",
+      value: 1,
+      lane: "elevenlabs_bundled",
+    });
+  });
+
   it("has a label for every lane and no free-text field", () => {
-    expect([...TTS_LANES]).toEqual(["george", "self_hosted"]);
+    expect([...TTS_LANES]).toEqual(["george", "elevenlabs_bundled", "self_hosted"]);
     const sample = ttsLaneSample({ lane: "self_hosted", georgeMiss: "off" });
     expect(Object.keys(sample).sort()).toEqual(["georgeMiss", "lane", "metricId", "value"]);
   });

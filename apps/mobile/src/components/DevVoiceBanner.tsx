@@ -22,7 +22,7 @@ import { StyleSheet, View } from "react-native";
 
 import { AppText, useTheme } from "@/components/Themed";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
-import { ttsLaneDiagnostic, voiceDiagnostic } from "@/lib/dev/voiceDiagnostic";
+import { ttsLaneDiagnostic, voiceDiagnostic, type VoiceTiming } from "@/lib/dev/voiceDiagnostic";
 import type { ClipLaneRecord } from "@/lib/dialogue/georgeClip";
 import { radius, spacing } from "@/lib/theme";
 
@@ -59,14 +59,21 @@ export function DevVoiceBanner({ report }: DevVoiceBannerProps) {
 }
 
 /**
- * INT-440 — the `__DEV__` strip for the agent's VOICE: shown while a clip
- * that George did not speak is the current one, naming the self-hosted tier
- * and the closed-set reason. The decision is lib/dev/voiceDiagnostic's
- * `ttsLaneDiagnostic`; in production, or for a George clip, nothing renders.
+ * INT-440 — the `__DEV__` strip for the agent's VOICE: names the lane that
+ * spoke the current clip (`elevenlabs-bundled`, `elevenlabs-live`, or the
+ * self-hosted tier with the closed-set reason George did not), plus the turn's
+ * measured audio start and microphone peak. The decision is
+ * lib/dev/voiceDiagnostic's `ttsLaneDiagnostic`; in production nothing renders.
  */
-export function DevTtsLaneBanner({ record }: { record: ClipLaneRecord | null }) {
+export function DevTtsLaneBanner({
+  record,
+  timing,
+}: {
+  record: ClipLaneRecord | null;
+  timing?: VoiceTiming;
+}) {
   const theme = useTheme();
-  const diagnostic = ttsLaneDiagnostic(record, __DEV__);
+  const diagnostic = ttsLaneDiagnostic(record, __DEV__, timing);
   if (diagnostic === null) {
     return null;
   }
@@ -81,9 +88,11 @@ export function DevTtsLaneBanner({ record }: { record: ClipLaneRecord | null }) 
           {line}
         </AppText>
       ))}
-      <AppText role="caption" color="inkFaint">
-        {diagnostic.hint}
-      </AppText>
+      {diagnostic.hint === null ? null : (
+        <AppText role="caption" color="inkFaint">
+          {diagnostic.hint}
+        </AppText>
+      )}
     </View>
   );
 }

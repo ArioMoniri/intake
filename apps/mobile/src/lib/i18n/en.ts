@@ -937,7 +937,10 @@ export const en: Record<MessageKey, string> = {
   "devVoice.reason.refused": "connection refused",
   "devVoice.reason.status": "response code",
   "devVoice.lane.title": "Dev note: this question did not play in George's voice",
+  "devVoice.lane.titleOk": "Dev note: voice lane",
   "devVoice.lane.served": "Voice that spoke",
+  "devVoice.lane.audioStart": "Question shown to audio start",
+  "devVoice.lane.micPeak": "Loudest microphone level this turn",
   "devVoice.lane.georgeMiss": "Why George did not speak",
   "devVoice.lane.hint":
     "George needs a phone-verified patient session and the George route on the API host",

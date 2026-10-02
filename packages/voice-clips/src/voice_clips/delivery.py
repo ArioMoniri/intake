@@ -89,9 +89,13 @@ PINNED_CONTEXTS: Final[frozenset[DeliveryContext]] = frozenset({"red", "instrume
 SPEED_MIN: Final = 0.7
 SPEED_MAX: Final = 1.2
 #: Stability, similarity and style are unit intervals in the vendor API; style
-#: is held to a modest ceiling here (the vendor advises 0).
+#: is held to a modest ceiling here (the vendor advises 0). INT-440 lifted it
+#: from 0.3 to 0.4 at the owner's request (3 Oct 2026: "more emotion"), so the
+#: owner's "v3 expressive" proposal can be rendered for listening
+#: (scripts/voice/render_bundled_clips.py). The served table below is unchanged
+#: by that, and RED and instrument rows stay at style 0 by test.
 _UNIT_MAX: Final = 1.0
-MAX_STYLE: Final = 0.3
+MAX_STYLE: Final = 0.4
 
 #: A compiled rule id (``protocols.dsl.RuleId``) and an instrument item subject
 #: (``<InstrumentId>.<item SlotKey>``, protocols.compile.emit_clips). Slot link

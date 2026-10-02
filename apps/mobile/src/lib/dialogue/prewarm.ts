@@ -10,6 +10,25 @@
  * with at most PREWARM_CONCURRENCY in flight.
  */
 
+/**
+ * The question most likely asked after `step` — the next one in pack order not
+ * yet asked — so its clip can be loaded into a player while this one plays
+ * (INT-440: no load on the turn). A guess, never a decision: gates may skip
+ * it, and a missed guess only costs the load it would have saved.
+ */
+export function nextQuestionAfter<Q extends { readonly id: string }>(
+  questions: readonly Q[],
+  step: number,
+  asked: readonly string[],
+): Q | null {
+  for (let index = step + 1; index < questions.length; index += 1) {
+    if (!asked.includes(questions[index].id)) {
+      return questions[index];
+    }
+  }
+  return null;
+}
+
 /** In-flight clip syntheses during the pre-warm: the smallest concurrency a
  * vendor plan grants, so the warm-up never queues behind its own requests. */
 export const PREWARM_CONCURRENCY = 2;

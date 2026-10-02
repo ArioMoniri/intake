@@ -979,7 +979,10 @@ export const tr = {
   "devVoice.reason.refused": "bağlantı reddedildi",
   "devVoice.reason.status": "yanıt kodu",
   "devVoice.lane.title": "Geliştirici notu: bu soru George sesiyle çalınmadı",
+  "devVoice.lane.titleOk": "Geliştirici notu: ses hattı",
   "devVoice.lane.served": "Konuşan ses",
+  "devVoice.lane.audioStart": "Soru ekrana gelince sesin başlaması",
+  "devVoice.lane.micPeak": "Bu turdaki en yüksek mikrofon düzeyi",
   "devVoice.lane.georgeMiss": "George sesinin gelmeme nedeni",
   "devVoice.lane.hint":
     "George sesi için telefonla doğrulanmış bir hasta oturumu ve API'de George yolu gerekir",

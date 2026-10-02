@@ -254,13 +254,20 @@ export type GeorgeGenerator = (text: ScriptedTr, context?: DeliveryContext) => P
 /** The self-hosted per-clip synthesizer George degrades to (ttsLane). */
 export type SelfHostedSynth = (text: string) => Promise<Uint8Array>;
 
-/** Which lane produced one clip, and — when it was not George — why (INT-440). */
-export type ClipLaneOutcome = { lane: "george" } | { lane: "self_hosted"; georgeMiss: GeorgeMiss };
+/** Which lane produced one clip, and — when it was not George — why (INT-440).
+ * `elevenlabs_bundled` is a clip rendered offline in George's voice and played
+ * from the app bundle (bundledClips.ts); no synthesizer ever reports it. */
+export type ClipLaneOutcome =
+  | { lane: "george" }
+  | { lane: "elevenlabs_bundled" }
+  | { lane: "self_hosted"; georgeMiss: GeorgeMiss };
 
 /** A clip's outcome as the session keeps it: a fallback also names the
  * self-hosted tier(s) that spoke (ttsLane ids — `voxcpm2`, `freya`). */
 export type ClipLaneRecord =
-  { lane: "george" } | { lane: "self_hosted"; georgeMiss: GeorgeMiss; tiers: readonly string[] };
+  | { lane: "george" }
+  | { lane: "elevenlabs_bundled" }
+  | { lane: "self_hosted"; georgeMiss: GeorgeMiss; tiers: readonly string[] };
 
 /**
  * A clip synthesizer that PREFERS George for scripted text and falls back to

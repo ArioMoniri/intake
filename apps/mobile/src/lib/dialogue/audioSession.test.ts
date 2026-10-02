@@ -86,6 +86,17 @@ describe("the session hook uses the contract (INT-440)", () => {
     );
   });
 
+  it("plays a bundled clip before it asks any lane to synthesize (INT-440 fast path)", () => {
+    const speaking = hook.slice(
+      hook.indexOf("const speaking ="),
+      hook.indexOf("// Listening driver"),
+    );
+    const bundled = speaking.indexOf("bundledClipFor(");
+    const ensure = speaking.indexOf("store.ensure(");
+    expect(bundled).toBeGreaterThan(-1);
+    expect(ensure).toBeGreaterThan(bundled);
+  });
+
   it("creates every clip player with the keep-active options", () => {
     const players = hook.match(/createAudioPlayer\([^)]*\)/g) ?? [];
     expect(players.length).toBeGreaterThan(0);
