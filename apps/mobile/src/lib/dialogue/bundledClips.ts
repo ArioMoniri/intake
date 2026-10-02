@@ -32,13 +32,6 @@ import { questionDeliveryContextOf } from "./deliveryPlan";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import { assertSpeakableTr } from "./tts";
 
-/** The departments of the dev test visits (lib/dev/accounts.ts) — what a
- * simulator run actually asks. */
-export const BUNDLED_CLIP_DEPARTMENTS: readonly string[] = [
-  "İç Hastalıkları",
-  "Kulak Burun Boğaz Hastalıkları",
-];
-
 const MODES: readonly IntakeMode[] = ["hizli", "detayli"];
 
 /** One line to render: the words and the context they are delivered in. */
@@ -66,12 +59,11 @@ function byContextThenText(a: BundledClipLine, b: BundledClipLine): number {
 
 /**
  * Every scripted line the dev dialogue can speak for the given departments,
- * once per (context, text), in a stable order. Questions and confirms are
- * requested under `routine` (useDialogueSession → clips.ts).
+ * once per (context, text), in a stable order. The test that pins
+ * bundledClipSet.json passes the departments of the dev test visits — what a
+ * simulator run actually asks — so no department name is a literal here.
  */
-export function bundledClipSet(
-  departments: readonly string[] = BUNDLED_CLIP_DEPARTMENTS,
-): BundledClipLine[] {
+export function bundledClipSet(departments: readonly string[]): BundledClipLine[] {
   const lines = new Map<string, BundledClipLine>();
   const add = (context: DeliveryContext, text_tr: string) => {
     assertSpeakableTr(text_tr); // invariant 22 — a numeral is never listed

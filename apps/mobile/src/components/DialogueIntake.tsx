@@ -588,7 +588,11 @@ export function DialogueIntake({
               spoke and why; renders nothing in production or for George. */}
           <DevTtsLaneBanner
             record={session.voiceLane}
-            timing={{ audioStartMs: session.audioStartMs, micPeakDb: session.micPeakDb }}
+            timing={{
+              audioStartMs: session.audioStartMs,
+              micPeakDb: session.micPeakDb,
+              clipGapsMs: session.clipGapsMs,
+            }}
           />
 
           {state.voiceMuted ? (

@@ -147,7 +147,9 @@ def test_ids_unique_and_well_formed() -> None:
     # same PR).
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415; owner request, GitHub #705).
-    assert len(ids) == 330
+    # + INT-440 (voice-first end-to-end test on the iOS simulator and the
+    # robotic-voice fixes; owner request, GitHub #748).
+    assert len(ids) == 331
     import re
 
     for i in ids:

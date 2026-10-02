@@ -29,11 +29,11 @@
   },
   {
     "context": "routine",
-    "text_tr": "Alerjiniz neye karşı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Alerjiniz neye karşı?"
   },
   {
     "context": "routine",
-    "text_tr": "Alerjiniz olduğunda neler oluyor? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Alerjiniz olduğunda neler oluyor?"
   },
   {
     "context": "routine",
@@ -41,15 +41,15 @@
   },
   {
     "context": "routine",
-    "text_tr": "Alkol kullanıyor musunuz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Alkol kullanıyor musunuz?"
   },
   {
     "context": "routine",
-    "text_tr": "Ağrı ya da baskı hissi başka bir yere yayılıyor mu? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Ağrı ya da baskı hissi başka bir yere yayılıyor mu?"
   },
   {
     "context": "routine",
-    "text_tr": "Ağrınız en çok nerede? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Ağrınız en çok nerede?"
   },
   {
     "context": "routine",
@@ -61,15 +61,15 @@
   },
   {
     "context": "routine",
-    "text_tr": "Ağrınızı nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Ağrınızı nasıl tarif edersiniz?"
   },
   {
     "context": "routine",
-    "text_tr": "Başladığından bu yana nasıl gidiyor? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Başladığından bu yana nasıl gidiyor?"
   },
   {
     "context": "routine",
-    "text_tr": "Bilinen bir ilaç ya da madde alerjiniz var mı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Bilinen bir ilaç ya da madde alerjiniz var mı?"
   },
   {
     "context": "routine",
@@ -89,11 +89,11 @@
   },
   {
     "context": "routine",
-    "text_tr": "Bu şikâyetiniz ne zamandır var? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Bu şikâyetiniz ne zamandır var?"
   },
   {
     "context": "routine",
-    "text_tr": "Bugün ne zaman başladı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Bugün ne zaman başladı?"
   },
   {
     "context": "routine",
@@ -101,19 +101,19 @@
   },
   {
     "context": "routine",
-    "text_tr": "Burada görünmeyen bir ilaç kullanıyor musunuz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Burada görünmeyen bir ilaç kullanıyor musunuz?"
   },
   {
     "context": "routine",
-    "text_tr": "Daha önce ameliyat oldunuz mu? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Daha önce ameliyat oldunuz mu?"
   },
   {
     "context": "routine",
-    "text_tr": "Daha önce bir yaralanma geçirdiniz mi? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Daha önce bir yaralanma geçirdiniz mi?"
   },
   {
     "context": "routine",
-    "text_tr": "Daha önce kan ya da kan ürünü aldınız mı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Daha önce kan ya da kan ürünü aldınız mı?"
   },
   {
     "context": "routine",
@@ -121,7 +121,7 @@
   },
   {
     "context": "routine",
-    "text_tr": "Doktorunuzun size söylediği bir hastalık var mı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Doktorunuzun size söylediği bir hastalık var mı?"
   },
   {
     "context": "routine",
@@ -141,7 +141,7 @@
   },
   {
     "context": "routine",
-    "text_tr": "Hangi tarafta? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Hangi tarafta?"
   },
   {
     "context": "routine",
@@ -153,11 +153,11 @@
   },
   {
     "context": "routine",
-    "text_tr": "Kan grubunuz nedir? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Kan grubunuz nedir?"
   },
   {
     "context": "routine",
-    "text_tr": "Nasıl başladı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Nasıl başladı?"
   },
   {
     "context": "routine",
@@ -169,11 +169,11 @@
   },
   {
     "context": "routine",
-    "text_tr": "Nefes darlığınız ne zaman oluyor? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Nefes darlığınız ne zaman oluyor?"
   },
   {
     "context": "routine",
-    "text_tr": "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?"
   },
   {
     "context": "routine",
@@ -181,11 +181,11 @@
   },
   {
     "context": "routine",
-    "text_tr": "Sigarayı ne zaman bıraktınız? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Sigarayı ne zaman bıraktınız?"
   },
   {
     "context": "routine",
-    "text_tr": "Sizi bugün hekime getiren nedir? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Sizi bugün hekime getiren nedir?"
   },
   {
     "context": "routine",
@@ -625,7 +625,7 @@
   },
   {
     "context": "routine",
-    "text_tr": "Son görüşmenizden bu yana yeni bir gelişme oldu mu? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Son görüşmenizden bu yana yeni bir gelişme oldu mu?"
   },
   {
     "context": "routine",
@@ -661,7 +661,7 @@
   },
   {
     "context": "routine",
-    "text_tr": "Uzanınca rahatlamak için ne yapıyorsunuz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Uzanınca rahatlamak için ne yapıyorsunuz?"
   },
   {
     "context": "routine",
@@ -673,15 +673,15 @@
   },
   {
     "context": "routine",
-    "text_tr": "Yayılma hangi tarafta? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Yayılma hangi tarafta?"
   },
   {
     "context": "routine",
-    "text_tr": "Yutkunurken ne oluyor? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Yutkunurken ne oluyor?"
   },
   {
     "context": "routine",
-    "text_tr": "Çarpıntınızı nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Çarpıntınızı nasıl tarif edersiniz?"
   },
   {
     "context": "routine",
@@ -697,19 +697,19 @@
   },
   {
     "context": "routine",
-    "text_tr": "İşitmedeki azalma hangi kulakta? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "İşitmedeki azalma hangi kulakta?"
   },
   {
     "context": "routine",
-    "text_tr": "Şiddetini nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Şiddetini nasıl tarif edersiniz?"
   },
   {
     "context": "routine",
-    "text_tr": "Şikâyetiniz ne zaman artıyor? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Şikâyetiniz ne zaman artıyor?"
   },
   {
     "context": "routine",
-    "text_tr": "Şikâyetinize eşlik eden başka bir şey var mı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Şikâyetinize eşlik eden başka bir şey var mı?"
   },
   {
     "context": "routine",
@@ -733,15 +733,15 @@
   },
   {
     "context": "routine",
-    "text_tr": "Şu anda ağrınız var mı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Şu anda ağrınız var mı?"
   },
   {
     "context": "sensitive",
-    "text_tr": "Ailenizde bilinen bir hastalık var mı? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Ailenizde bilinen bir hastalık var mı?"
   },
   {
     "context": "sensitive",
-    "text_tr": "Ailenizde kimlerde var? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Ailenizde kimlerde var?"
   },
   {
     "context": "sensitive",

@@ -150,6 +150,8 @@ export interface DialogueSession {
   audioStartMs: number | null;
   /** Dev measurement (INT-440): the loudest metered mic level this turn, dB. */
   micPeakDb: number | null;
+  /** Dev measurement (INT-440): end of one clip → the next audible, this turn. */
+  clipGapsMs: readonly number[];
   /** Tap on the speaking bubble: stop playback NOW, open the mic. */
   bargeIn: () => void;
   /** "Bitirdim" / tap-to-stop: take the utterance, advance NOW; the
@@ -212,6 +214,7 @@ export function useDialogueSession({
    * loudest metered microphone level (the app's own recorder, not a probe). */
   const [audioStartMs, setAudioStartMs] = useState<number | null>(null);
   const [micPeakDb, setMicPeakDb] = useState<number | null>(null);
+  const [clipGapsMs, setClipGapsMs] = useState<readonly number[]>([]);
 
   const storeRef = useRef<Promise<ClipStore> | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
@@ -620,6 +623,7 @@ export function useDialogueSession({
     // reports how long until the turn's first clip is actually playing.
     const turnStartedAt = Date.now();
     setAudioStartMs(null);
+    setClipGapsMs([]);
     (async () => {
       let store: ClipStore;
       try {
@@ -706,6 +710,9 @@ export function useDialogueSession({
         preload(queue);
         setVoiceLane(laneByTextRef.current.get(speech) ?? null);
         let audible = false;
+        // INT-440 dev measurement: end of one clip → the next one audible.
+        const gaps: number[] = [];
+        let finishedAt: number | null = null;
         // One player at a time, always cleared before the next clip, so the
         // utterances of a turn play strictly in order and never overlap. A
         // barge-in clears `playerRef`, which is what stops the chain: the
@@ -719,16 +726,26 @@ export function useDialogueSession({
           stopPlayback();
           const player = playerFor(uri);
           playerRef.current = player;
+          let started = false;
           player.addListener("playbackStatusUpdate", (status) => {
-            if (!audible && status.playing && !stale) {
-              audible = true;
-              setAudioStartMs(Date.now() - turnStartedAt);
+            if (!started && status.playing && !stale) {
+              started = true;
+              const now = Date.now();
+              if (!audible) {
+                audible = true;
+                setAudioStartMs(now - turnStartedAt);
+              }
+              if (finishedAt !== null) {
+                gaps.push(now - finishedAt);
+                setClipGapsMs([...gaps]);
+              }
             }
             if (status.didJustFinish && !stale && playerRef.current === player) {
               if (last) {
                 stopPlayback();
                 dispatch({ type: "speech_done" });
               } else {
+                finishedAt = Date.now();
                 playNext();
               }
             }
@@ -1008,6 +1025,7 @@ export function useDialogueSession({
     voiceLane,
     audioStartMs,
     micPeakDb,
+    clipGapsMs,
     bargeIn,
     finishListening,
     sendTyped,

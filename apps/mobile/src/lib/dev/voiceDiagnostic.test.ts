@@ -180,6 +180,21 @@ describe("ttsLaneDiagnostic — the voice that spoke, when it is not George", ()
     expect(unknown.lines).toHaveLength(1);
   });
 
+  it("lists the measured gaps between a turn's clips (welcome → question, lead-in → question)", () => {
+    const diagnostic = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true, {
+      audioStartMs: 120,
+      micPeakDb: null,
+      clipGapsMs: [14, 9],
+    })!;
+    expect(diagnostic.lines).toContain(`${tr["devVoice.lane.clipGaps"]} — 14, 9 ms`);
+    const single = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true, {
+      audioStartMs: 120,
+      micPeakDb: null,
+      clipGapsMs: [],
+    })!;
+    expect(single.lines.some((line) => line.startsWith(tr["devVoice.lane.clipGaps"]))).toBe(false);
+  });
+
   it("every lane-banner key exists in both catalogues", () => {
     for (const key of [
       "devVoice.lane.title",
@@ -189,6 +204,7 @@ describe("ttsLaneDiagnostic — the voice that spoke, when it is not George", ()
       "devVoice.lane.hint",
       "devVoice.lane.audioStart",
       "devVoice.lane.micPeak",
+      "devVoice.lane.clipGaps",
     ] as const) {
       expect(tr[key].length, key).toBeGreaterThan(0);
       expect(en[key].length, key).toBeGreaterThan(0);

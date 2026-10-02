@@ -987,6 +987,7 @@ export const tr = {
   "devVoice.lane.served": "Konuşan ses",
   "devVoice.lane.audioStart": "Soru ekrana gelince sesin başlaması",
   "devVoice.lane.micPeak": "Bu turdaki en yüksek mikrofon düzeyi",
+  "devVoice.lane.clipGaps": "Ses parçaları arasındaki boşluk",
   "devVoice.lane.georgeMiss": "George sesinin gelmeme nedeni",
   "devVoice.lane.hint":
     "George sesi için telefonla doğrulanmış bir hasta oturumu ve API'de George yolu gerekir",
@@ -1220,7 +1221,6 @@ export const tr = {
   // speaks the scripted question verbatim and adds this; the typed screen
   // puts the same invitation over the answer field and keeps the options
   // under it as the fallback.
-  "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
 

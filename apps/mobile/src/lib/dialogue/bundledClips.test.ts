@@ -14,13 +14,13 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { testAccounts } from "../dev/accounts";
 import { packForVisit, spokenPack } from "../intake/questions";
 import {
   bundledClipAddress,
   bundledClipAddressFromFile,
   bundledClipFor,
   bundledClipSet,
-  BUNDLED_CLIP_DEPARTMENTS,
   clipTextHash,
 } from "./bundledClips";
 import { DELIVERY_CONTEXTS } from "./deliveryContext";
@@ -30,6 +30,11 @@ import { confirmSpeechTr, questionSpeechTr } from "./speech";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const JSON_PATH = join(HERE, "bundledClipSet.json");
+
+/** The departments of the dev test visits — what a simulator run asks. */
+const DEPARTMENTS = [
+  ...new Set(testAccounts.flatMap((account) => account.visits.map((visit) => visit.department))),
+].sort();
 
 describe("clipTextHash is protocols.dsl clip_text_hash", () => {
   it("is sha256 over the NFC text, lower-case hex", () => {
@@ -54,12 +59,12 @@ describe("clipTextHash is protocols.dsl clip_text_hash", () => {
 });
 
 describe("bundledClipSet — exactly the lines the dev dialogue speaks", () => {
-  const set = bundledClipSet();
+  const set = bundledClipSet(DEPARTMENTS);
   const pair = (context: string, text: string) => `${context}\u0000${text}`;
   const listed = new Set(set.map((line) => pair(line.context, line.text_tr)));
   // What the app composes, each in the context the driver asks the store for.
   const composed = new Set<string>();
-  for (const department of BUNDLED_CLIP_DEPARTMENTS) {
+  for (const department of DEPARTMENTS) {
     for (const mode of ["hizli", "detayli"] as const) {
       for (const question of spokenPack(packForVisit(department, { mode }))) {
         const context = questionDeliveryContextOf(question);

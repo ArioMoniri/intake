@@ -18,7 +18,7 @@ import httpx
 import numpy as np
 import pytest
 from protocols.dsl import clip_text_hash
-from voice_clips.delivery import DELIVERY_PROFILES
+from voice_clips.delivery import DELIVERY_PROFILES, MAX_STYLE
 from voice_clips.gateway import ElevenLabsClipGenGateway, HttpTtsGateway, NumeralInScriptError
 
 REPO = Path(__file__).resolve().parents[2]
@@ -75,6 +75,10 @@ def test_the_v3_expressive_table_is_the_owner_request_and_leaves_red_and_instrum
         "closing": (0.35, 0.40, 0.96),
     }
     assert "red" not in rbc.V3_EXPRESSIVE and "instrument" not in rbc.V3_EXPRESSIVE
+    # The style ceiling was lifted from 0.3 to 0.4 for exactly this table (owner
+    # request, 3 Oct 2026); pinned so a further lift is a reviewed change.
+    assert MAX_STYLE == 0.4
+    assert max(style for _, style, _ in rbc.V3_EXPRESSIVE.values()) == MAX_STYLE
     for context in ("red", "instrument"):
         assert DELIVERY_PROFILES[context].voice_settings.style == 0.0  # untouched
     welcome = rbc.v3_profile("welcome")

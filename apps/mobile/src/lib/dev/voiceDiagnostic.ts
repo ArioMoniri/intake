@@ -94,6 +94,8 @@ export interface VoiceTiming {
   readonly audioStartMs: number | null;
   /** The loudest microphone level metered in this turn, in dB. */
   readonly micPeakDb: number | null;
+  /** End of one clip → start of the next within this turn, in ms. */
+  readonly clipGapsMs?: readonly number[];
 }
 
 function laneToken(record: ClipLaneRecord): string {
@@ -137,6 +139,9 @@ export function ttsLaneDiagnostic(
   // interpolation-free and a measurement is not a localised quantity.
   if (timing?.audioStartMs != null) {
     lines.push(`${t("devVoice.lane.audioStart")}${SEPARATOR}${String(timing.audioStartMs)} ms`);
+  }
+  if (timing?.clipGapsMs !== undefined && timing.clipGapsMs.length > 0) {
+    lines.push(`${t("devVoice.lane.clipGaps")}${SEPARATOR}${timing.clipGapsMs.join(", ")} ms`);
   }
   if (timing?.micPeakDb != null) {
     lines.push(`${t("devVoice.lane.micPeak")}${SEPARATOR}${String(timing.micPeakDb)} dB`);

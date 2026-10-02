@@ -101,7 +101,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
     # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
     # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
-    assert len(actions) == 330
+    # + INT-440 (voice-first end-to-end test on the iOS simulator, GitHub #748)
+    assert len(actions) == 331
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
