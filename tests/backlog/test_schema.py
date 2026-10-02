@@ -142,7 +142,9 @@ def test_ids_unique_and_well_formed() -> None:
     # time-boxed node-forge exception; owner decision, GitHub #727).
     # + INT-431 (the embed sample's JWT fixture is built at runtime so no
     # token-shaped literal sits at rest; found merging main into #481, #733).
-    assert len(ids) == 328
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status; owner request, GitHub #721).
+    assert len(ids) == 329
     import re
 
     for i in ids:

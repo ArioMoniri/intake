@@ -1,5 +1,34 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
+- **Goal.** The acceptance, verbatim (GitHub #721):
+  - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*
+  - *"the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"*
+  - *"workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"*
+- **Plan.**
+  - The laptop does the git bundle and the harness `git archive`, uploads both to S3 with presigned URLs, then runs SSM AWS-RunShellScript.
+  - The host runs the compose project `intake-ci-<run id>` with three services: `prep`, `dind` (privileged, loopback API) and `runner` (uid 10001). Each service is capped on CPU, memory and pids, weighted at a quarter of the default `cpu_shares`, and has `oom_score_adj` 500. Two flock slots.
+  - The runner redacts the log (secret shapes plus `intake_platform.ci.find_identifiers`), scans it with gitleaks and `phi_scan.sh`, and uploads it only if both pass.
+  - The result is posted as the commit status `aws-ci` through `gh api`.
+- **Tests added.**
+  - `tests/ci/test_aws_ci.py`, 57 tests. They cover: arguments; the fork guard; the run id; the SSM bootstrap and upload commands; the SigV4 presigner against AWS's documented example; the status payload, including a harness error and a withheld log; redaction, with a checksum-valid TCKN computed at run time; and the static isolation and pin checks.
+  - `tests/ci/test_gitleaks_pin_compat.py`, 3 tests.
+  - RED: a collection error with the module absent, then `1 failed` for the harness-error status, `4 failed, 53 passed` for the probe mode, and `1 failed, 2 passed` for the gitleaks table.
+- **Result.**
+  - **Locally:** `tests/ci tests/backlog tests/smoke` pass; ruff, format and shellcheck are clean; `no_placeholders` is OK.
+  - **aws-ci on main (2ff595ef):** check-py, check-ts, check-integration, safety and edge-plugin are green. check-integration's 17 GitHub errors are gone, because `make edge-plugin` runs first. Security is red at gitleaks over the full history: 6 findings under the pinned 8.24.3. The cause: `.gitleaks.toml` used `[[allowlists]]`, which 8.24.3 ignores (fixed). The other 2 findings are an old fake JWT fixture, cleared by two fingerprints on the owner's approval of 3 Oct 2026.
+  - **aws-ci on PR #730:** the same picture. Its expo-export probe found 0 node-forge modules in either production bundle.
+  - **Each run took 47 minutes on the host.** The cost per run is in docs/ci/aws-ci.md.
+- **Invariants touched and still passing:** 6 (the log is redacted and scanned before upload), 14 (every gate runs, at the pinned scanner versions) and 15 (the live stack's capacity is protected by caps, weights and OOM order).
+- **Decisions.**
+  - The owner approved the two gitleaks fingerprints ("ignore the two old token fingerprints", relayed 3 Oct 2026). No ADR.
+  - The permission system refused to stage the gate files (`.gitleaks.toml`, `.gitleaksignore`, `tests/ci/test_gitleaks_pin_compat.py`, and the pin rows in `tests/ci/test_security_gates.py`), so the owner commits them.
+- **Blocked on:** none for the runner. Each PR's own verdict is its `aws-ci` commit status.
+- **Next:**
+  - Owner: make `aws-ci` required, and disable or keep Actions (docs/ci/aws-ci.md, "Owner steps").
+  - At the next workflow edit, raise CI's gitleaks pin to ≥ 8.25; this is the owner's change.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.

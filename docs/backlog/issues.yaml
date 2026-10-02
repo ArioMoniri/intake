@@ -6404,3 +6404,20 @@
     - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
   tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
   sec_row: "connectors"
+- id: INT-426
+  epic: E13-infra
+  phase: P1
+  title: "CI on AWS: gate runner via S3+SSM with commit status, no workflow edits"
+  # GitHub #721. Owner request, 2 Oct 2026: run the CI gates on the AWS host to
+  # avoid GitHub Actions billing and flakiness. Switching Actions off is an
+  # owner step (docs/ci/aws-ci.md); no workflow file is edited here.
+  depends_on: [INT-352]
+  labels: [area:ci]
+  status: done
+  evidence: docs/evidence/INT-426.md
+  acceptance:
+    - "make ci-aws PR=<n> (or a script under scripts/ci/) ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set (make edge-plugin, check-py, check-ts, check-integration, safety, security) in an isolated compose project with resource limits, so the live stack is not starved"
+    - "the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"
+    - "workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"
+  tests: [tests/ci/test_aws_ci.py]
+  sec_row: "cicd"
