@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**326 issues.** By phase: P0 161 · P1 111 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 214 · todo 74 · withdrawn 1.
+**327 issues.** By phase: P0 162 · P1 111 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 215 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -172,6 +172,7 @@
 | INT-393 | Patient erasure removes Doctor Links, and the retention source text matches the post-INT-317 tree | E02-data | INT-036, INT-037, INT-150, INT-392 | area:data, risk:legal | done |
 | INT-390 | Keycloak upgraded to a patched release, and the committed realm imports on it | E12-admin | INT-023, INT-365 | area:admin, risk:security | done |
 | INT-382 | The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads | E03-protocols | INT-258 | area:protocols, risk:clinical | done |
+| INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
 
 ## P1
 

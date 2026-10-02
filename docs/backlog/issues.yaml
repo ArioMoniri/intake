@@ -6369,3 +6369,20 @@
     - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
   tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
   sec_row: "cloud-clipgen"
+- id: INT-429
+  epic: E13-infra
+  phase: P0
+  title: "Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception"
+  # GitHub #727. Trivy's vulnerability DB gained four HIGH advisories after
+  # 27 Sep 2026 and the required vulnerabilities job went red on main. The
+  # node-forge row is the owner's decision of 2 Oct 2026, time-boxed to 30 days.
+  depends_on: []
+  labels: [area:ci]
+  status: done
+  evidence: docs/evidence/INT-429.md
+  acceptance:
+    - "brace-expansion and urllib3 are upgraded to their fixed versions, with lockfiles regenerated and licences verified"
+    - "node-forge gets a PURL-scoped .trivyignore.yaml row with a reachability statement and a 30-day expired_at, owner-approved in chat on 2 Oct 2026, and a test pins the statement and the expiry"
+    - "the vulnerabilities job is green on the PR"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
