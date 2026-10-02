@@ -421,8 +421,8 @@ const TOKENS = "src/lib/theme.ts";
  * line. This list may only shrink.
  */
 const STATIC_OPACITY: readonly { readonly name: string; readonly value: string }[] = [
-  // The hairline divider's resting tone (`styles.hairline`).
-  { name: "src/components/Themed.tsx", value: "0.9" },
+  // Empty since INT-422: the hairline's resting 0.9 went when it took the
+  // separator token.
 ];
 
 /** A fractional opacity (`0.6`, `.4`). The rest states 0 and 1 are not feedback. */
