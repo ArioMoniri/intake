@@ -6313,3 +6313,31 @@
   tests: [tests/legal/test_legal_drafts.py]
   legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
   sec_row: "compliance-evidence"
+- id: INT-421
+  epic: E13-infra
+  phase: P0
+  title: "Production release: full stack from main on the AWS host + EAS store builds"
+  depends_on: [INT-352]
+  labels: [area:infra]
+  status: doing
+  evidence: docs/evidence/INT-421.md
+  # 2 Oct 2026 (PR, not merged). These are done:
+  #   - main 7ca881c8 + the pgvector fix runs on the host as c155a0d3, smoke green;
+  #   - the admin tier (Keycloak, oauth2-proxy, admin-web) is built and tested;
+  #   - no dev fixture is seeded outside dev, and dev_fixture_retire removes the old one, audited;
+  #   - the George route is gone outside dev;
+  #   - the EAS production profile is in place, and both production exports build.
+  # Gaps:
+  #   - the admin-tier deploy and the host retirement wait on the owner's AWS re-login
+  #     (the CLI session expired);
+  #   - there is no workers process (INT-408);
+  #   - there is no hosted/backup model lane, and voice is __DEV__-only;
+  #   - release sign-in needs SMS + App Attest (HB-A3);
+  #   - the console shows live data only after HB-A16;
+  #   - eas build needs the owner's EXPO_TOKEN and Apple/Google accounts (HB-A3).
+  acceptance:
+    - "the AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis); the SBOM stamp and smoke/probe results are recorded in the evidence; nothing but simulated patients reaches us-east-1"
+    - "the EAS production profiles build from main with the Önvizit identity and the production API URL; anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask"
+    - "a release checklist in docs/ runs end to end"
+  tests: [tests/infra/test_staging_admin_tier.py, tests/api/test_dev_fixture_production.py, apps/mobile/e2e/releaseConfig.spec.ts]
+  sec_row: "platform"

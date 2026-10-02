@@ -8,7 +8,7 @@ near-miss control:
 - Keycloak runs `start` with the pinned 26.7.4 image. The staff realm carries
   no user and no dev password, keeps the INT-365 two-factor browser flow,
   and has a confidential console client whose secret and redirect are
-  host-generated placeholders.
+  host-generated values substituted at import.
 - oauth2-proxy injects the session's access token, never the ID token, as
   the console's bearer. Only GET /healthz skips the login.
 - Caddy never routes Keycloak's admin console, the master realm or its
@@ -137,7 +137,7 @@ class TestKeycloak:
         assert realm["authenticationFlows"] == dev["authenticationFlows"]
         assert realm["registrationAllowed"] is False
 
-    def test_the_console_client_is_confidential_with_host_placeholders(self) -> None:
+    def test_the_console_client_is_confidential_with_host_substitutions(self) -> None:
         client = _client(_realm(), "admin-web")
         assert client["publicClient"] is False
         assert client["secret"] == "${INTAKE_ADMIN_WEB_CLIENT_SECRET}"

@@ -265,7 +265,7 @@ services:
       KC_METRICS_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: intake-bootstrap
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run init.sh}
-      # read by the realm import's placeholders, and only there
+      # read by the realm import's ${...} substitution, and only there
       INTAKE_ADMIN_WEB_CLIENT_SECRET: ${INTAKE_ADMIN_WEB_CLIENT_SECRET:?run init.sh}
       STAGING_HOSTNAME: ${STAGING_HOSTNAME:?run init.sh}
     volumes:

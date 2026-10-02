@@ -1,5 +1,36 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T12:00:00Z · INT-421 · doing (PR open, not merged; AWS session expired mid-iteration)
+- Goal: acceptance verbatim (GitHub #713):
+  - *"The AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis). The SBOM stamp and smoke/probe results are recorded in the evidence. Nothing but simulated patients reaches us-east-1."*
+  - *"The EAS production profiles build from main with the Önvizit identity and the production API URL. Anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask."*
+  - *"A release checklist in docs/ runs end to end."*
+- Plan: deploy main and fix what stops it; add the admin tier (Keycloak, oauth2-proxy, admin-web) to the host compose; owner directive "no deneme hastası in production"; EAS production profile; the checklist.
+- Tests added (with near-miss controls):
+  - `tests/api/test_dev_fixture_production.py`: no seed outside dev; retirement removes exactly the fixture, audited by id; it refuses in dev and when the tenant holds a session, a second patient or a foreign consent. RED: 3 failed, 11 passed.
+  - `tests/api/test_dev_voice_hardening.py`: the George route is absent on staging, STAGING and test. RED: 3 failed.
+  - `tests/infra/test_staging_admin_tier.py` (35): pins, the realm, the access-token bearer, the unrouted paths, the allow-list key, the cookie-secret form, and the key-set validity near-misses.
+  - `apps/mobile/e2e/releaseConfig.spec.ts` and `src/lib/profile/badge.test.ts`.
+- Result:
+  - Main `7ca881c8` failed closed on the host at migration 0014: there was no pgvector, and the host kept `7d926d73`.
+  - Integration `c155a0d3` (main + the pgvector image) is live. Smoke is green, sbom_digest `sha256:eddaaeb1…`.
+  - The admin-tier deploy (`21097828`) stopped at upload, because the AWS CLI session had expired.
+  - `tests/api` passed 530. `tests/infra` and `tests/backlog` are green, and shellcheck is clean.
+  - Mobile: 2447 vitest tests green, and both production exports built.
+- Invariants touched and still passing: 4, 6, 14, 15, 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: main could not migrate on the host (pgvector); the API seeded the synthetic dev patient on every non-dev boot; the George route was mounted on staging; release builds labelled real accounts "Sentetik deneme hesabı".
+- Blocked on owner:
+  - the AWS re-login;
+  - HB-A3 (Apple, Google), an Expo token;
+  - HB-A16 (console ranges);
+  - an SMS vendor with a DPA;
+  - a decision and an ADR for hosted model lanes (invariant 19);
+  - INT-408 (workers).
+  - The asks are in docs/release/production-checklist.md §6. No HB id is minted here.
+- Next: the owner runs `aws login`; then deploy `21097828` or later, run `dev_fixture_retire` on the host, and record both in docs/evidence/INT-421.md.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
 - Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
   - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
