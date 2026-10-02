@@ -1199,7 +1199,7 @@ export const en: Record<MessageKey, string> = {
     "The next topic is a little more private. You can answer without hurrying.",
   "dialogue.delivery.sensitive.b": "Now let us move to a more personal topic.",
   "dialogue.delivery.sensitiveLead.a": "Let us continue, little by little.",
-  "dialogue.delivery.sensitiveLead.b": "You can answer in whichever way is comfortable for you.",
+  "dialogue.delivery.sensitiveLead.b": "You can answer in the way that feels comfortable to you.",
   "dialogue.delivery.topic.allergies.a": "Now let us move to questions about allergies.",
   "dialogue.delivery.topic.allergies.b": "Next come questions about allergies.",
   "dialogue.delivery.topic.medications.a": "Now let us move to questions about medicines.",

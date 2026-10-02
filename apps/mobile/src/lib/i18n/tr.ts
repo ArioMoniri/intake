@@ -1262,7 +1262,7 @@ export const tr = {
     "Sıradaki konu biraz daha özel. Acele etmeden yanıtlayabilirsiniz.",
   "dialogue.delivery.sensitive.b": "Şimdi biraz daha kişisel bir konuya geçelim.",
   "dialogue.delivery.sensitiveLead.a": "Yavaş yavaş devam edelim.",
-  "dialogue.delivery.sensitiveLead.b": "Nasıl rahat ediyorsanız öyle yanıtlayabilirsiniz.",
+  "dialogue.delivery.sensitiveLead.b": "Size rahat gelen şekilde yanıtlayabilirsiniz.",
   "dialogue.delivery.topic.allergies.a": "Şimdi alerjilerle ilgili sorulara geçelim.",
   "dialogue.delivery.topic.allergies.b": "Sırada alerjilerle ilgili sorular var.",
   "dialogue.delivery.topic.medications.a": "Şimdi ilaçlarla ilgili sorulara geçelim.",
