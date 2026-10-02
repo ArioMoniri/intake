@@ -138,9 +138,16 @@ def test_ids_unique_and_well_formed() -> None:
     # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide; owner request, GitHub #706).
+    # + INT-429 (the vulnerabilities gate: brace-expansion and urllib3 upgrades,
+    # time-boxed node-forge exception; owner decision, GitHub #727).
+    # + INT-431 (the embed sample's JWT fixture is built at runtime so no
+    # token-shaped literal sits at rest; found merging main into #481, #733).
+    # + INT-395 (no path erased notification_preferences and the DSAR export
+    # did not list Doctor Links; found by INT-393, fixed and closed in the
+    # same PR).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
-    assert len(ids) == 327
+    assert len(ids) == 330
     import re
 
     for i in ids:
