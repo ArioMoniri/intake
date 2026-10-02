@@ -104,20 +104,21 @@ install -d -m 0700 -o 10001 -g 10001 "$RUN_DIR/out"
 chmod -R go+rX "$HARNESS"
 
 SLOT=""
-for ((s = 0; s < SLOTS; s++)); do
-  exec {lock_fd}>"$STATE/locks/slot$s"
-  if flock -n "$lock_fd"; then
-    SLOT=$s
-    break
-  fi
-  exec {lock_fd}>&-
+waited=0
+while :; do
+  for ((s = 0; s < SLOTS; s++)); do
+    exec {lock_fd}>"$STATE/locks/slot$s"
+    if flock -n "$lock_fd"; then
+      SLOT=$s
+      break 2
+    fi
+    exec {lock_fd}>&-
+  done
+  ((waited == 0)) && say "every slot is busy; polling until a slot frees"
+  ((waited < SLOT_WAIT_S)) || die "no slot within ${SLOT_WAIT_S} s"
+  sleep 15
+  waited=$((waited + 15))
 done
-if [[ -z $SLOT ]]; then
-  say "every slot is busy; waiting for slot 0"
-  exec {lock_fd}>"$STATE/locks/slot0"
-  flock -w "$SLOT_WAIT_S" "$lock_fd" || die "no slot within ${SLOT_WAIT_S} s"
-  SLOT=0
-fi
 started=$(date +%s)
 say "run $RUN_ID on slot $SLOT"
 

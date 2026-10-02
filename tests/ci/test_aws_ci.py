@@ -494,6 +494,15 @@ def test_make_ci_aws_requires_a_target() -> None:
     assert "usage: make ci-aws PR=<n> | REF=<40-hex sha>" in proc.stdout
 
 
+def test_a_waiting_run_takes_whichever_slot_frees_first() -> None:
+    # Measured 2 Oct: a run that found both slots busy waited on slot 0 only,
+    # and slot 1 sat idle for 27 minutes after it freed.
+    host = (REPO / "scripts/ci/aws_ci_host.sh").read_text(encoding="utf-8")
+    assert "waiting for slot 0" not in host
+    assert 'flock -w "$SLOT_WAIT_S"' not in host
+    assert "until a slot frees" in host
+
+
 def test_scripts_parse() -> None:
     for name in ("aws_ci.sh", "aws_ci_host.sh", "aws_ci_gates.sh"):
         subprocess.run(["bash", "-n", str(REPO / "scripts/ci" / name)], check=True)
