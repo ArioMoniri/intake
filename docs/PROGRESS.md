@@ -90,6 +90,49 @@
 - Blocked on: nothing.
 - Next: PR `INT-334: Motion: arbiter and commit windows (pure)` (Closes #533, Sec-Row mobile).
 
+### 2026-09-27T11:00:00Z · INT-404 · done (PR open; CODEOWNER review pending)
+- Goal: acceptance verbatim (GitHub #673):
+  - *"a rule's evidence line renders every quantity through the shared locale renderer (`clinical_schemas.quantity`): tr comma, `useGrouping:false`, number + unit as one non-breaking atom. The rule's thresholds and semantics are untouched (the stored comparison value stays numeric)"*
+  - *"golden tests with a near-miss (a full stop in tr fails); `make safety` green; CODEOWNER review"*
+- Plan:
+  - The evidence line is generated, not authored (`protocols.triage.engine._evidence`). The engine now records the reading in parts too: `RuleFire.evidence_slots` holds the slot, the carried values as numbers, and the declared unit. The unit comes from the new `TriageContext.units`, which is evidence only.
+  - The engine's `evidence` text stays byte-identical.
+  - A new `clinical_schemas.rule_evidence.render_rule_evidence(rule, *, locale)` writes the parts through `quantity_atom`.
+  - The SOAP/PDF note, the FHIR triage narrative and the document RiskAssessment's `reasonCode.text` write for `meta.language`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_triage_evidence_render.py` (91):
+    - nine synthetic engine-fired goldens in tr and en, each checked for the full-stop near miss and for a byte-identical engine text;
+    - the threshold near miss (37.99 vs `>= 38`);
+    - units change no level;
+    - `Decimal` scale and wire round trip;
+    - three faces × nine readings;
+    - renderer edge cases, and no text renderer imported by `packages/protocols`.
+  - `test_fhir_mappers.py` (+5), `test_note_golden.py` (+1, SOAP/PDF/FHIR), `test_numeric_carrier.py` (one expectation), and `test_quantity_render.py` (the new module joins the TTS boundary list).
+  - RED: 4 collection errors. Then, with only the schema and the renderer in place, the faces printed `38.50` for tr: 4 failed, and 79 failed on `TriageContext.units`.
+  - Mutants: 47, 8, 18, 7 and 8 tests fail respectively.
+- Result:
+  - No golden file changed. The one `make safety` expectation that changed is the clinician line in `test_numeric_carrier`, now `38,50` with `38.50` asserted absent.
+  - `make safety` exit 0: triage 100 % branch, 18/18 mutations both on the base and on this branch.
+  - `make check-py` exit 0: ruff/format clean, `mypy --strict` clean (474 files), whole tree 8563 passed at 96.11 %, every scoped lane at its floor (clinical-schemas 92.22 %).
+  - `make check` was not run whole: check-integration is CI-only, and the only TS change is generated `models.ts`, whose package was checked directly.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check`, sec-row linkage, gitleaks (staged) and bandit: OK.
+  - Codegen regenerated. The clinical-schemas TS package typechecks, lints and tests clean.
+- Invariants touched and still passing:
+  - 1: levels come only from the rules, and units cannot change one.
+  - 6: refusals echo nothing.
+  - 7 and 10: no rule, threshold or `text_tr` changed.
+  - 8: tests only added; `rule_evidence.py` 100 %, triage 100 %.
+  - 22: display half on the evidence line; the TTS boundary is extended to the new module.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `RuleFire` gains an optional field, and the files/04 §5 `evidence` string is unchanged.
+  - Found, not fixed: the standalone `to_r4.triage_to_risk_assessment` still writes the engine's text. It has no locale and no production caller.
+  - Found, not fixed: nothing in production builds a `TriageContext` yet, so nothing fills `units`.
+  - Built on #657's branch, and rebased onto `main` once #657 merged (`f0564e93`). Pins 307 → 308 against `main`, and files/11 is regenerated.
+  - Re-run on the rebased tree: `make safety` exit 0 (18/18); `make check-py` exit 0 (8811 passed, 95.78 %, mypy clean over 487 files).
+- Blocked on: nothing technical. CODEOWNER review for `packages/protocols/**` must be requested by hand, because there is no `.github/CODEOWNERS`.
+- Next: PR (Sec-Row `triage`, Closes #673).
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #646):
   - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
@@ -2881,4 +2924,67 @@
   - audit F30: the seed module is still bundled;
   - `TODAY_FIXTURE` pins Vizitlerim's "today" to 2026-08-27 in release builds, and no row owns it.
 - Next: PR `INT-179: mobile flow shells — close-out` (Closes #201, Sec-Row intake-typed), left unmerged.
+
+### 2026-09-27T12:00:00Z · INT-257 · done (branch pushed; no GitHub issue exists, so no PR yet)
+- Goal: acceptance verbatim — *"every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"* and *"OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"*.
+- Plan: read the OPT 1.4 schema rather than recall it.
+  - openEHR ITS-XML tag `Release-1.0.2` (commit f7a93777), `components/ALL/*.xsd`, is vendored byte-for-byte with its Apache-2.0 LICENSE under `tests/fixtures/openehr/its-xml-Release-1.0.2/` and digest-pinned. `C_OBJECT` makes `rm_type_name, occurrences, node_id` all mandatory, which corrects INT-032's "optional" claim. `C_ATTRIBUTE` needs `existence`, and `C_MULTIPLE_ATTRIBUTE` needs `cardinality`.
+  - The OPT is re-authored to the schema's element order. Every value is read off a source: root 1..1; `content` existence 0..1 and cardinality {0..*; ordered; non-unique} from RM 1.0.2 `List<CONTENT_ITEM>`; content roots 0..*, because the parent composition archetype that would state it is local and unauthored (HB-C12), the four CKM entry archetypes that exist carry no root occurrences, and the RM leaves content unbounded.
+  - `node_id` is present and empty. EHRbase's `OPTParser` (SDK v2.35.0, `buildNode` line 1266) dereferences the terminology for any non-blank id, and the template carries none.
+  - `OPT_SHA256` goes c72247ab… → 5ad266b4…. The patched fixture is deleted, and the integration test uploads the committed bytes through the production client with a status-recording transport.
+- Tests added (with the near-miss negative for any safety rule): `tests/protocols/test_opt_schema.py` (12).
+  - Near-miss controls on the committed bytes: without one `occurrences` the schema rejects it; without `cardinality` it rejects it; with the root code as a node id the schema accepts it but the catalogue guard flags it, and with a `term_definitions` entry the guard accepts it.
+  - The integration test's "rejected today" case flips to `test_the_committed_template_uploads_with_201`. The fixture-identity test goes with the fixture (INT-032 prescribed both).
+  - RED: 8 failed / 4 passed on the INT-041 bytes (XSD line 83 `archetype_id` where `node_id` was expected), then the pin bit (OptError on 5ad266b4 vs c72247ab). GREEN: 26 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `ruff` and `ruff format` are clean, and `mypy --strict` is clean (485 files).
+  - check-py main line: 8514 passed, 96.28 % (≥ 85). The 4 `test_deid_ner` failures are "NER model missing" in a fresh worktree and pass against the pinned artefact.
+  - Protocols lane: 97.14 % (≥ 95), 1184 passed. Schemas lane: 91.76 % (≥ 90).
+  - `make safety`: exit 0 (18/18 mutations).
+  - Licence gate OK. `osv-scanner` on uv.lock clean. PHI scan OK. `no_placeholders` OK after staging.
+  - The live 201 is CI-only: `check-integration` needs EHRbase and there is no container runtime here. It is argued element-by-element from the EHRbase 2.35.1 / SDK 2.35.0 source in the evidence, and first observed on the PR's CI run.
+- Invariants touched and still passing:
+  - **6**: synthetic payloads only.
+  - **14**: vendored schema digest-pinned; new dev dependency licence-checked and OSV-clean.
+  - **17**: no skip or placeholder; the one removed test is accounted for.
+  - **19**: lxml BSD-3-Clause and ITS-XML Apache-2.0, both read from the raw blob.
+  - **20**: no claims.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `lxml>=6.1` is added to the dev group, test-only.
+  - Found, not fixed (HB-C12(a)): of the nine archetype ids, only four exist at the transcribed id and version in the CKM mirror (5cb099fa). symptom_sign is a CLUSTER.v2, adverse_reaction_risk is v2, PHQ-9 is `phq_9.v0`, GAD-7 is `gad_7_score.v0`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the coordinator must file the GitHub issue for INT-257 (none exists) before the PR can say `Closes #n`. No HB row.
+- Next: file the issue, then open the PR `INT-257: the openEHR OPT carries occurrences and validates against the OPT 1.4 schema` (Sec-Row clinical-core) and watch `check-integration` for the 201.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T16:30:00Z · INT-415 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-415): a typed, versioned delivery-profile table maps each delivery context to ElevenLabs voice_settings plus the pinned model id, server-side only, with the profile id in the clip cache key and RED/instrument the most stable with no style; only scripted catalogue text is sent (INT-326 guards unchanged), the normaliser-off request and invariant 22 stay enforced; docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr controls; unit tests cover the table and prove the request body carries voice_settings.
+- Plan:
+  - `voice_clips.delivery` holds the table beside the gateway.
+  - `TtsGateway.synthesise` takes a required profile, and the ElevenLabs body carries `voice_settings`.
+  - The offline build reads each row's context from its subject, with the profile key in the object key.
+  - The dev route gains `delivery_context`, refuses red, pins RED and instrument rows, and keys its cache by profile.
+  - The mobile client sends `delivery_context`, sharing `deliveryContext.ts` with INT-414.
+  - The guide is written.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_delivery_profiles.py`.
+  - Extended: `test_elevenlabs_clipgen.py`, `test_clip_cache_builder.py`, `test_clip_manifest.py`, `tests/api/test_dev_voice_george.py`, `georgeClip.test.ts`.
+  - Near misses:
+    - labels close to a context (`Red`, `routine `) are refused;
+    - the vendor-range edges are admitted;
+    - `rfx.foo` and `rf` stay routine;
+    - an unpinned text is served in any context but red.
+  - RED run: collection errors (module absent) and 4 mobile failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9153 passed; every coverage floor met; voice-clips 99.73 %).
+  - `make check-ts` exit 0 (mobile 2264 passed).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, prettier.
+  - `check-integration` is CI-only.
+  - `make safety` and `make security` are in the evidence file.
+- Invariants touched and still passing: 3, 6 (the text is never echoed), 10, 13, 14 (the key stays env-only), 17, 19, 20 (no claims), 21 (RED never on demand), 22.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-028 amendment note (no decision changed).
+  - The `cloud-clipgen` threat row is updated.
+  - No new metric.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
+- Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
