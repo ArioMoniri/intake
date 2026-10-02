@@ -28,6 +28,7 @@ from voice_clips.gateway import (
     CloudClipGenNotBudgetedError,
     DeliveryProfileMismatchError,
     ElevenLabsClipGenGateway,
+    MarkupInScriptError,
     NumeralInScriptError,
     TtsNotConfiguredError,
     TtsRefusedError,
@@ -126,6 +127,42 @@ def test_a_numeral_is_refused_before_the_wire() -> None:
 
     with pytest.raises(NumeralInScriptError):
         _gateway(handler).synthesise(text_tr="2 mg.", voice_id="el-tr-voice", profile=ROUTINE)
+
+
+@pytest.mark.parametrize(
+    "text_tr",
+    [
+        "Merhaba. <break/> Nasılsınız?",  # SSML: the v2 break tag
+        "<speak>Merhaba.</speak>",
+        "[whispers] Merhaba.",  # an audio tag (eleven_v3 / eleven_v4)
+        "Merhaba [pause] nasılsınız?",
+        "Merhaba.]",
+    ],
+)
+def test_markup_is_refused_before_the_wire(text_tr: str) -> None:
+    """INT-424: no SSML and no audio tag ever rides inside scripted text. A tag
+    is words the model was not given by the protocol (invariant 10), and the
+    SSML break carries a duration numeral (invariant 22). Refused, not stripped."""
+
+    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover - never reached
+        return httpx.Response(200, content=b"\x00\x00")
+
+    with pytest.raises(MarkupInScriptError):
+        _gateway(handler).synthesise(text_tr=text_tr, voice_id="el-tr-voice", profile=ROUTINE)
+
+
+def test_punctuation_pacing_is_not_markup() -> None:
+    """Near-miss control: the ellipsis, the dash, the semicolon and the comma are
+    how text paces itself on this model, and they reach the wire unchanged."""
+    text = "Peki… Şikâyetiniz — kısaca — ne zaman başladı; dün mü, bugün mü?"
+    seen: dict[str, Any] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, content=b"\x01\x00")
+
+    _gateway(handler).synthesise(text_tr=text, voice_id="el-tr-voice", profile=ROUTINE)
+    assert seen["body"]["text"] == text
 
 
 def test_a_non_2xx_answer_is_a_refusal_that_does_not_echo_the_key() -> None:

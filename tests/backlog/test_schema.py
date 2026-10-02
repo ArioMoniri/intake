@@ -147,7 +147,9 @@ def test_ids_unique_and_well_formed() -> None:
     # GitHub #724).
     # + INT-442 (the synthetic AWS host's egress forward proxy, split from
     # INT-428, GitHub #752).
-    assert len(ids) == 330
+    # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
+    # the expressive-model ADR proposal; owner request, GitHub #719).
+    assert len(ids) == 331
     import re
 
     for i in ids:

@@ -81,6 +81,7 @@ __all__ = [
     "DeliveryProfileMismatchError",
     "ElevenLabsClipGenGateway",
     "HttpTtsGateway",
+    "MarkupInScriptError",
     "NumeralInScriptError",
     "RecordedSpeechMismatchError",
     "RecordedSpeechMissingError",
@@ -90,6 +91,7 @@ __all__ = [
     "TtsNotConfiguredError",
     "TtsRefusedError",
     "TtsUnavailableError",
+    "UnspeakableScriptError",
     "assert_speakable_tr",
     "tts_gateway_from_env",
 ]
@@ -151,8 +153,16 @@ class RecordedSpeechMismatchError(TtsError):
     """A recording exists but was made for other text, or another voice."""
 
 
-class NumeralInScriptError(TtsError):
+class UnspeakableScriptError(TtsError):
+    """Scripted text that no TTS may be handed as it stands. Refused, never fixed."""
+
+
+class NumeralInScriptError(UnspeakableScriptError):
     """A manifest string still carries a numeral (CLAUDE.md invariant 22)."""
+
+
+class MarkupInScriptError(UnspeakableScriptError):
+    """Scripted text carries SSML or an audio tag (INT-424, invariant 10)."""
 
 
 class CloudClipGenNotBudgetedError(TtsNotConfiguredError):
@@ -175,12 +185,26 @@ class TtsGateway(Protocol):
     ) -> SynthesisedSpeech: ...
 
 
+#: The two markup syntaxes the vendor reads inside ``text``: SSML (``<break
+#: time=... />`` on eleven_multilingual_v2) and audio tags (``[whispers]`` on
+#: eleven_v3 and eleven_v4). Punctuation is not markup: the comma, full stop,
+#: semicolon, ellipsis and dash are how text paces itself and stay admitted.
+_MARKUP_CHARS: Final = frozenset("<>[]")
+
+
 def assert_speakable_tr(text_tr: str) -> None:
-    """Refuse any Unicode number character. Never rewrite one.
+    """Refuse any Unicode number character, and any markup. Never rewrite either.
 
     The whole ``N`` category, not just ASCII digits: Arabic-Indic digits and
     vulgar fractions reach a TTS normaliser exactly as a ``5`` does, and the
     compiler's expansion is supposed to have removed all of them.
+
+    Markup is refused for the same reason in the other direction (INT-424). An
+    audio tag is words the protocol did not author, and the model may voice it
+    or turn it into a sound, so it breaks verbatim delivery (invariant 10). An
+    SSML break carries a duration numeral (invariant 22). Pacing lives in the
+    profile and in punctuation; an expressive-markup model is an ADR question
+    (docs/adr/ADR-034), not a string edit.
     """
     offenders = sorted({char for char in text_tr if unicodedata.category(char).startswith("N")})
     if offenders:
@@ -190,6 +214,13 @@ def assert_speakable_tr(text_tr: str) -> None:
             "one (CLAUDE.md invariant 22; files/03 §4.9.6). The builder refuses; it "
             "does not normalise, because a second normaliser is a second opinion "
             "about a dose"
+        )
+    markup = sorted(_MARKUP_CHARS.intersection(text_tr))
+    if markup:
+        raise MarkupInScriptError(
+            f"scripted text carries markup {''.join(markup)!r} — no SSML and no audio tag "
+            "rides inside verbatim text_tr (CLAUDE.md invariants 10 and 22); the gate "
+            "refuses and never strips"
         )
 
 
