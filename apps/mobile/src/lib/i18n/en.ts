@@ -102,6 +102,8 @@ export const en: Record<MessageKey, string> = {
   "visits.new.smsFilled": "Your appointment details are filled in. Please check them.",
   "visits.new.smsUnknownBranch": "We could not recognise the clinic name. Please pick it yourself.",
   "visits.new.smsNoDate": "We found no date in the message. Please add the date yourself.",
+  "visits.new.smsAmbiguousDate":
+    "We could not tell for sure which day the message's date means. Please write the date below yourself.",
   "visits.new.smsUnreadable": "We could not read this message. You can enter the details yourself.",
   "visits.new.ocrUnavailable":
     "Reading from an image is not available yet. Please paste the message as text.",
