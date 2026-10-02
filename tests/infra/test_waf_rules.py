@@ -555,3 +555,51 @@ def test_only_the_traefik_service_publishes_a_port_and_only_on_loopback() -> Non
         for published in service.get("ports", []):
             assert name == "traefik", name
             assert str(published).startswith("127.0.0.1:"), published
+
+
+# --- group 9: CI boots the tier it claims to test (INT-350) ---------------------------
+
+CI_WORKFLOW = REPO / ".github" / "workflows" / "ci.yml"
+
+
+def _fetch_precedes_suite(steps: list[dict[str, Any]]) -> bool:
+    """True when a step runs exactly `make edge-plugin` before the step that runs
+    the integration suite. The suite fails rather than skips without the plugin,
+    so order is the whole contract, and the step must be that command and no
+    other: a stray word after it names a different make target."""
+    runs = [str(step.get("run", "")).strip() for step in steps]
+    if "make edge-plugin" not in runs or "make check-integration" not in runs:
+        return False
+    return runs.index("make edge-plugin") < runs.index("make check-integration")
+
+
+def test_the_ci_integration_job_fetches_the_pinned_plugin_before_the_suite() -> None:
+    """``test_edge_stack_integration.py`` errors with "the pinned Coraza plugin is
+    not on disk" when the job that runs it never fetched it. The fetch goes
+    through ``make edge-plugin`` so the URL and both hashes are read from the
+    policy, never written into the workflow where they could drift from it."""
+    workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
+    assert _fetch_precedes_suite(workflow["jobs"]["check-integration"]["steps"])
+    text = CI_WORKFLOW.read_text(encoding="utf-8")
+    waf = _raw_policy()["waf"]
+    for pinned in (waf["plugin_url"], waf["plugin_sha256"], waf["wasm_sha256"]):
+        assert pinned not in text, pinned
+
+
+def test_a_fetch_that_runs_after_the_suite_does_not_count() -> None:
+    """Near miss: the right step, in the wrong place, is the red run again."""
+    assert not _fetch_precedes_suite(
+        [{"run": "make check-integration"}, {"run": "make edge-plugin"}]
+    )
+    assert not _fetch_precedes_suite([{"run": "make check-integration"}])
+
+
+def test_a_fetch_step_with_a_stray_argument_does_not_count() -> None:
+    """Near miss, and the one that actually happened: ``make edge-plugin a``
+    reads like the right step and is a different one. The step must be exactly
+    ``make edge-plugin``; a trailing word makes make look for a target named
+    ``a`` and the suite then runs with no plugin on disk."""
+    assert not _fetch_precedes_suite(
+        [{"run": "make edge-plugin a"}, {"run": "make check-integration"}]
+    )
+    assert _fetch_precedes_suite([{"run": "make edge-plugin"}, {"run": "make check-integration"}])
