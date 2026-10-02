@@ -6338,3 +6338,36 @@
     - "golden tests with a near-miss (a full stop in tr fails); `make safety` green; CODEOWNER review"
   tests: [tests/protocols/test_triage_evidence_render.py, tests/safety/test_numeric_carrier.py, tests/schemas/test_fhir_mappers.py, tests/engine/test_note_golden.py, tests/records/test_quantity_render.py]
   sec_row: "triage"
+- id: INT-382
+  epic: E03-protocols
+  phase: P0
+  title: "The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads"
+  depends_on: [INT-258]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-382.md
+  acceptance:
+    - "resolve_protocol / protocols compile refuses any op in any layer (overlay or chain pack) that leaves a red-flag rule, draft or signed, reading a slot that is not declared in the merged pack, with a typed refusal naming the rule id and slot id (ids only)"
+    - "base.life_threat is covered in the same way"
+    - "golden tests: chain-pack suppress refused; overlay refusal unchanged; a near-miss where suppressing a slot no rule reads is admitted; the same check over every served and review pack on main passes, or lists what fails"
+    - "make safety green; CODEOWNER review"
+  tests: [tests/protocols/test_rule_slot_removal.py]
+  sec_row: "protocol-registry"
+- id: INT-415
+  epic: E05-voice
+  phase: P1
+  title: "ElevenLabs delivery profiles per question context + on-prem TTS wiring guide"
+  # GitHub #706. Owner request, 27 Sep 2026: warm at the opening, professional
+  # afterwards. The profile values are voice tuning, not clinical values; the
+  # owner's listening review is still owed (docs/evidence/INT-415.md).
+  depends_on: [INT-326]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-415.md
+  acceptance:
+    - "a typed, versioned delivery-profile table maps each delivery context (welcome, routine question, sensitive question, instrument item, acknowledgement, RED script, closing) to ElevenLabs voice_settings (stability, similarity_boost, style, use_speaker_boost, speed) plus the pinned model id; server-side only, the key never reaches the device; the profile id is part of the clip cache key; RED and instrument profiles are the most stable and use no style exaggeration"
+    - "only scripted catalogue text is ever sent, never patient words (the INT-326 guards unchanged); the numeral-normaliser-off request and invariant 22 stay enforced"
+    - "docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr TTS controls, covering the adapter interface, the model registry fields (model_id@revision + sha256, licence_verified_at, self_hostable, probe), the clip manifest, the latency budget and a cut-over checklist; no model is named as pinned unless it is in files/03 §4.9.1"
+    - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
+  tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
+  sec_row: "cloud-clipgen"

@@ -9,10 +9,16 @@ paid call is ever made (CLAUDE.md §How we work; ADR-028).
 
 from __future__ import annotations
 
+import dataclasses
+import json
+from typing import Any
+
 import httpx
 import pytest
 from voice_clips.audio import SynthesisedSpeech
+from voice_clips.delivery import DELIVERY_CONTEXTS, DELIVERY_PROFILES, delivery_profile
 from voice_clips.gateway import (
+    ELEVENLABS_MODEL_ID,
     ELEVENLABS_PCM_RATE_HZ,
     ENV_ELEVENLABS_BASE,
     ENV_ELEVENLABS_KEY,
@@ -20,6 +26,7 @@ from voice_clips.gateway import (
     ENV_TTS_ENDPOINT,
     ENV_TTS_RECORDED_DIR,
     CloudClipGenNotBudgetedError,
+    DeliveryProfileMismatchError,
     ElevenLabsClipGenGateway,
     NumeralInScriptError,
     TtsNotConfiguredError,
@@ -29,6 +36,7 @@ from voice_clips.gateway import (
 )
 
 _SECRET = "sk-do-not-log-me"  # noqa: S105 - a fake key for the fixture, never a real one
+ROUTINE = delivery_profile("routine")
 
 
 def _gateway(handler) -> ElevenLabsClipGenGateway:
@@ -100,7 +108,9 @@ def test_it_synthesises_raw_pcm_into_speech() -> None:
         captured["body"] = _json.loads(request.content)
         return httpx.Response(200, content=b"\x01\x00\x02\x00\x03\x00")
 
-    speech = _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice")
+    speech = _gateway(handler).synthesise(
+        text_tr="Merhaba.", voice_id="el-tr-voice", profile=ROUTINE
+    )
     assert isinstance(speech, SynthesisedSpeech)
     assert speech.sample_rate_hz == ELEVENLABS_PCM_RATE_HZ
     assert speech.channels == 1
@@ -115,7 +125,7 @@ def test_a_numeral_is_refused_before_the_wire() -> None:
         return httpx.Response(200, content=b"\x00\x00")
 
     with pytest.raises(NumeralInScriptError):
-        _gateway(handler).synthesise(text_tr="2 mg.", voice_id="el-tr-voice")
+        _gateway(handler).synthesise(text_tr="2 mg.", voice_id="el-tr-voice", profile=ROUTINE)
 
 
 def test_a_non_2xx_answer_is_a_refusal_that_does_not_echo_the_key() -> None:
@@ -123,7 +133,7 @@ def test_a_non_2xx_answer_is_a_refusal_that_does_not_echo_the_key() -> None:
         return httpx.Response(401, json={"detail": "unauthorized"})
 
     with pytest.raises(TtsRefusedError) as raised:
-        _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice")
+        _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice", profile=ROUTINE)
     assert _SECRET not in str(raised.value)
 
 
@@ -132,7 +142,7 @@ def test_an_empty_body_is_a_refusal() -> None:
         return httpx.Response(200, content=b"")
 
     with pytest.raises(TtsRefusedError):
-        _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice")
+        _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice", profile=ROUTINE)
 
 
 def test_a_transport_error_is_unavailable_and_does_not_echo_the_key() -> None:
@@ -140,5 +150,67 @@ def test_a_transport_error_is_unavailable_and_does_not_echo_the_key() -> None:
         raise httpx.ConnectError("boom")
 
     with pytest.raises(TtsUnavailableError) as raised:
-        _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice")
+        _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice", profile=ROUTINE)
+    assert _SECRET not in str(raised.value)
+
+
+# --- INT-415: the request body carries the delivery profile's voice_settings ---
+
+
+def _capture_bodies() -> tuple[list[dict[str, Any]], ElevenLabsClipGenGateway]:
+    """A fake transport that keeps every request body it is handed."""
+    bodies: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, content=b"\x01\x00\x02\x00")
+
+    return bodies, _gateway(handler)
+
+
+@pytest.mark.parametrize("context", DELIVERY_CONTEXTS)
+def test_the_body_carries_the_profiles_voice_settings_and_the_pinned_model(context: str) -> None:
+    bodies, gateway = _capture_bodies()
+    profile = delivery_profile(context)
+    gateway.synthesise(text_tr="Merhaba.", voice_id="el-tr-voice", profile=profile)
+    [body] = bodies
+    assert body["voice_settings"] == profile.voice_settings.as_request()
+    assert body["model_id"] == ELEVENLABS_MODEL_ID == "eleven_multilingual_v2"
+    # invariant 22: the vendor normaliser stays OFF under every profile
+    assert body["apply_text_normalization"] == "off"
+    # the words are the scripted text verbatim, whatever the delivery (inv. 10)
+    assert body["text"] == "Merhaba."
+    # nothing else rides along: no seed, no previous/next text, no language hint
+    assert set(body) == {"text", "model_id", "apply_text_normalization", "voice_settings"}
+
+
+def test_red_and_instrument_requests_ask_for_no_style_exaggeration() -> None:
+    bodies, gateway = _capture_bodies()
+    for context in ("red", "instrument"):
+        gateway.synthesise(
+            text_tr="Merhaba.", voice_id="el-tr-voice", profile=delivery_profile(context)
+        )
+    assert [body["voice_settings"]["style"] for body in bodies] == [0.0, 0.0]
+
+
+def test_two_contexts_send_two_different_deliveries_of_the_same_words() -> None:
+    bodies, gateway = _capture_bodies()
+    for context in ("welcome", "instrument"):
+        gateway.synthesise(
+            text_tr="Merhaba.", voice_id="el-tr-voice", profile=delivery_profile(context)
+        )
+    welcome, instrument = bodies
+    assert welcome["text"] == instrument["text"]
+    assert welcome["voice_settings"] != instrument["voice_settings"]
+    assert len({p.voice_settings for p in DELIVERY_PROFILES.values()}) == len(DELIVERY_PROFILES)
+
+
+def test_a_profile_tuned_for_another_model_is_refused_before_the_wire() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover - never reached
+        raise AssertionError("the vendor was dialled with a mismatched profile")
+
+    foreign = dataclasses.replace(ROUTINE, model_id="eleven_v3")
+    with pytest.raises(DeliveryProfileMismatchError) as raised:
+        _gateway(handler).synthesise(text_tr="Merhaba.", voice_id="el-tr-voice", profile=foreign)
+    assert "eleven_v3" in str(raised.value)
     assert _SECRET not in str(raised.value)
