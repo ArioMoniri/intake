@@ -68,9 +68,7 @@ When it stops, the previous release keeps serving. Section 1 of docs/evidence/IN
    2. Create each user with a verified email.
    3. Grant the role from the realm's role list.
    4. Set the required action `CONFIGURE_TOTP` or `webauthn-register`. The staff browser flow refuses a login without a second factor.
-3. **Let the console show data** (owner, HB-A16). Set `INTAKE_ADMIN_IP_ALLOWLIST` in `/etc/intake-staging/.env`, then re-run `./deploy.sh`.
-   - The console calls the API from its own container on the internal `edge` network. The value is therefore that network's range, which the owner accepts, and the human source ranges are enforced at the edge.
-   - Empty admits nobody, and that is the shipped state.
+3. **Network access to the console is open by decision.** The owner decided D18 on 2 Oct 2026: *"dont make admin access ip restricted"*. The API's `/admin` allow-list is the committed `0.0.0.0/0,::/0`. What gates the console is the Keycloak login (password plus a second factor) and the role matrix. Do not narrow the list without a new owner decision.
 
 ## 4. Roll back
 
@@ -102,11 +100,10 @@ These run from `apps/mobile`, using `eas.json`'s `production` profile.
 
 These are named once here. Each is a single action.
 
-1. Run `aws login` on the operator's machine. The CLI session expired on 2 Oct 2026.
+1. Keep the AWS CLI signed in on the operator's machine (`aws login`). Each deploy needs it.
 2. Provide Apple Developer and App Store Connect access, and a Google Play Console account (HB-A3).
 3. Provide an Expo token (`EXPO_TOKEN`), or log in to Expo on the build machine.
-4. Decide the admin console's source ranges (HB-A16).
-5. Name the production domain and the ACME mailbox (HB-I14). Until then the host uses `sslip.io`.
-6. Choose an SMS vendor with a signed DPA, and set the App Attest team id. Phone sign-in needs both.
-7. Decide whether hosted model lanes may serve simulated patients on us-east-1. This needs an ADR that overrides invariant 19. Voice has no backup lane until then.
-8. Decide whether a workers tier exists (INT-408).
+4. Name the production domain and the ACME mailbox (HB-I14). Until then the host uses `sslip.io`.
+5. Choose an SMS vendor with a signed DPA, and set the App Attest team id. Phone sign-in needs both.
+6. Hosted model lanes for simulated patients are being built separately (INT-428). Voice has no backup lane on this host until INT-428 lands.
+7. Decide whether a workers tier exists (INT-408).

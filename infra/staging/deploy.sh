@@ -76,6 +76,13 @@ if ((JWKS_CHANGED == 1)); then
   compose restart api
   wait_healthy api
 fi
+# INT-421: each release is extracted to its own directory, and a bind mount
+# resolves its source when the container is created. A caddy container left
+# running therefore keeps the previous release's Caddyfile, and the 2 Oct 2026
+# deploy served no admin or auth host for that reason. Recreate the edge, so
+# it serves this release's sites.
+compose up -d --no-build --no-deps --force-recreate caddy
+wait_healthy caddy
 
 for path in /healthz /readyz; do
   if ! wait_https "$path"; then

@@ -341,6 +341,17 @@ class TestHostHelpers:
         assert positions == sorted(positions)
         assert code.index("ensure_jwks_file") < code.index("compose ")
 
+    def test_deploy_recreates_the_edge_so_it_reads_this_releases_caddyfile(self) -> None:
+        code = "\n".join(
+            line
+            for line in DEPLOY.read_text(encoding="utf-8").splitlines()
+            if not line.lstrip().startswith("#")
+        )
+        recreate = "compose up -d --no-build --no-deps --force-recreate caddy"
+        assert recreate in code
+        assert code.index("compose up -d --no-build --wait --remove-orphans") < code.index(recreate)
+        assert code.index(recreate) < code.index("wait_https")
+
     def test_the_keycloak_password_travels_on_stdin(self) -> None:
         body = LIB.read_text(encoding="utf-8").split("ensure_keycloak_database() {", 1)[1]
         body = body.split("\n}\n", 1)[0]
