@@ -1,0 +1,111 @@
+# INT-426 — one aws-ci run, as its own compose project (docs/ci/aws-ci.md).
+#
+# scripts/ci/aws_ci_host.sh is the only caller. It sets the project name
+# (intake-ci-<run id>), so the run gets its own network and its own work
+# volume, and `down -v` at the end removes both. The caches are external,
+# per-slot volumes that `down -v` never touches.
+#
+# Isolation from the live stack on the same host:
+#   - every service has a CPU, memory and pid ceiling, a cpu_shares weight a
+#     quarter of the default (the live stack wins any contention four to
+#     one) and a positive oom_score_adj (the OOM killer takes CI first);
+#   - nothing publishes a host port;
+#   - check-integration's containers run inside `dind`, a separate docker
+#     daemon whose containers, networks and volumes the host daemon never
+#     sees. Its cgroup holds them, so its ceiling is theirs too;
+#   - the runner reaches that daemon on loopback inside dind's network
+#     namespace. It never mounts the host's docker socket.
+#
+# `dind` is the one privileged container: a docker daemon cannot run without
+# it. The runner executes pull-request code, which is why aws_ci.sh refuses a
+# pull request from a fork (scripts/ci/aws_ci_lib.py, pr_head).
+name: ${AWS_CI_PROJECT:?set by aws_ci_host.sh}
+
+services:
+  # Root, offline, short-lived: unpack the bundle and the de-id model into the
+  # work volume and hand every volume to the runner's uid.
+  prep:
+    image: ${AWS_CI_RUNNER_IMAGE:?set by aws_ci_host.sh}
+    user: "0:0"
+    network_mode: none
+    cpus: 1.0
+    mem_limit: 2g
+    pids_limit: 256
+    cpu_shares: 256
+    oom_score_adj: 500
+    environment:
+      AWS_CI_SHA: ${AWS_CI_SHA:?set by aws_ci_host.sh}
+    volumes:
+      - work:/work
+      - ${AWS_CI_RUN_DIR:?set by aws_ci_host.sh}/in:/in:ro
+      - ${AWS_CI_RUN_DIR}/harness:/harness:ro
+      - ${AWS_CI_DEID_DIR:?set by aws_ci_host.sh}:/deid:ro
+      - uv:/caches/uv
+      - pnpm:/caches/pnpm
+      - trivy:/caches/trivy
+      - xdg:/caches/xdg
+    command: ["bash", "/harness/scripts/ci/aws_ci_gates.sh", "prep"]
+
+  dind:
+    image: docker:28.5.2-dind@sha256:2a232a42256f70d78e3cc5d2b5d6b3276710a0de0596c145f627ecfae90282ac
+    privileged: true
+    cpus: ${AWS_CI_DIND_CPUS:-2.0}
+    mem_limit: ${AWS_CI_DIND_MEM:-6g}
+    pids_limit: 8192
+    cpu_shares: 256
+    oom_score_adj: 500
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    # `dockerd` first: given bare flags, the image's entrypoint prepends its
+    # own defaults, including a listener on tcp://0.0.0.0:2375.
+    command: ["dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://127.0.0.1:2375", "--tls=false"]
+    volumes:
+      - dind:/var/lib/docker
+      # same path as in the runner: compose bind mounts resolve inside dind
+      - work:/work
+    healthcheck:
+      test: ["CMD", "docker", "-H", "unix:///var/run/docker.sock", "info"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  runner:
+    image: ${AWS_CI_RUNNER_IMAGE}
+    network_mode: "service:dind"
+    depends_on:
+      dind:
+        condition: service_healthy
+    cpus: ${AWS_CI_RUNNER_CPUS:-2.5}
+    mem_limit: ${AWS_CI_RUNNER_MEM:-6g}
+    pids_limit: 4096
+    cpu_shares: 256
+    oom_score_adj: 500
+    environment:
+      AWS_CI_SHA: ${AWS_CI_SHA}
+    volumes:
+      - work:/work
+      - ${AWS_CI_RUN_DIR}/out:/out
+      - ${AWS_CI_RUN_DIR}/harness:/harness:ro
+      - uv:/caches/uv
+      - pnpm:/caches/pnpm
+      - trivy:/caches/trivy
+      - xdg:/caches/xdg
+    command: ["bash", "/harness/scripts/ci/aws_ci_gates.sh", "gates"]
+
+volumes:
+  work: {}
+  dind:
+    external: true
+    name: intake-ci-s${AWS_CI_SLOT:?set by aws_ci_host.sh}-dind
+  uv:
+    external: true
+    name: intake-ci-s${AWS_CI_SLOT}-uv
+  pnpm:
+    external: true
+    name: intake-ci-s${AWS_CI_SLOT}-pnpm
+  trivy:
+    external: true
+    name: intake-ci-s${AWS_CI_SLOT}-trivy
+  xdg:
+    external: true
+    name: intake-ci-s${AWS_CI_SLOT}-xdg
