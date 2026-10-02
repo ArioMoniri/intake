@@ -220,9 +220,7 @@ SMS_KEYS = ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM")
 #: Template keys the operator sets by hand in the root-only env file. None is
 #: generated, and each may stay empty: the API reads empty as unset and fails
 #: closed on it.
-#: INT-421: the admin console's source ranges (HB-A16). Empty admits nobody.
-ADMIN_ALLOWLIST_KEY = "INTAKE_ADMIN_IP_ALLOWLIST"
-OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS, *SMS_KEYS, ADMIN_ALLOWLIST_KEY}
+OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS, *SMS_KEYS}
 
 #: INT-421: generated as base64url of 32 bytes (oauth2-proxy's key form),
 #: not gen_secret's 64 hex.

@@ -72,10 +72,7 @@ ROLE_PASSWORD_KEYS=(
 # refused). require_sms_with_app_attest refuses the one unsafe mix.
 APP_ATTEST_KEYS=(INTAKE_APP_ATTEST_TEAM_ID INTAKE_APP_ATTEST_BUNDLE_ID INTAKE_APP_ATTEST_ENVIRONMENT)
 SMS_KEYS=(TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM)
-# INT-421: the admin console's source ranges (HB-A16). The value is the
-# owner's. An empty list admits nobody to the API's /admin routes.
-ADMIN_CONSOLE_KEYS=(INTAKE_ADMIN_IP_ALLOWLIST)
-OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}" "${SMS_KEYS[@]}" "${ADMIN_CONSOLE_KEYS[@]}")
+OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}" "${SMS_KEYS[@]}")
 
 # INT-421: keys generated as 32 random bytes in base64url (43 characters, no
 # padding), rather than gen_secret's 64 hex. oauth2-proxy accepts a cookie

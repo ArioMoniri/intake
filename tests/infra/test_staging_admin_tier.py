@@ -14,8 +14,8 @@ near-miss control:
 - Caddy never routes Keycloak's admin console, the master realm or its
   management endpoints.
 - The API's admin gate reads the realm's issuer, the `api` audience and a
-  key-set file. Its IP allow-list is the operator's key (HB-A16), never a
-  committed literal.
+  key-set file. Its IP allow-list is the owner's explicit allow-all (D18,
+  2 Oct 2026), so the Keycloak login, with its second factor, is the gate.
 - The console image is pinned, non-root, and reaches only the API.
 - lib.sh's cookie secret is 32 bytes in the form oauth2-proxy accepts. The
   key-set mirror refuses a document with no RS256 signing key.
@@ -32,6 +32,7 @@ from typing import Any
 
 import pytest
 import yaml
+from intake_platform.admin.ip_allowlist import IpAllowList
 
 REPO = Path(__file__).resolve().parents[2]
 STAGING = REPO / "infra" / "staging"
@@ -226,9 +227,25 @@ class TestEdge:
 
 
 class TestApiGateAndConsole:
-    def test_the_allow_list_is_the_operators_and_never_a_literal(self) -> None:
-        assert _env("api")["INTAKE_ADMIN_IP_ALLOWLIST"] == "${INTAKE_ADMIN_IP_ALLOWLIST}"
-        assert "INTAKE_ADMIN_IP_ALLOWLIST" in LIB.read_text(encoding="utf-8")
+    def test_the_allow_list_is_the_owners_explicit_allow_all(self) -> None:
+        # owner decision D18 (2 Oct 2026): "dont make admin access ip restricted"
+        spec = _env("api")["INTAKE_ADMIN_IP_ALLOWLIST"]
+        assert spec == "0.0.0.0/0,::/0"
+        allow = IpAllowList.from_spec(spec)
+        for peer in ("172.18.0.5", "3.211.2.143", "2001:db8::1"):
+            assert allow.permits(peer), peer
+        assert "D18" in COMPOSE.read_text(encoding="utf-8")
+
+    def test_near_miss_an_empty_list_would_admit_nobody(self) -> None:
+        assert not IpAllowList.from_spec("").permits("172.18.0.5")
+
+    def test_the_login_gate_still_demands_a_second_factor(self) -> None:
+        # D18 lifts the network restriction only; the staff flow is unchanged
+        flows = {f["alias"]: f for f in _realm()["authenticationFlows"]}
+        forms = flows["staff browser forms"]["authenticationExecutions"]
+        assert [e["requirement"] for e in forms] == ["REQUIRED", "REQUIRED"]
+        second = flows["staff second factor"]["authenticationExecutions"]
+        assert {e["authenticator"] for e in second} == {"webauthn-authenticator", "auth-otp-form"}
 
     def test_the_key_set_is_a_read_only_mirror(self) -> None:
         assert _env("api")["INTAKE_ADMIN_OIDC_JWKS_PATH"] == "/run/intake/keycloak-jwks.json"

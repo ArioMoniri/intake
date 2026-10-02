@@ -101,12 +101,16 @@ services:
       # INT-421: the admin console (INT-180). The API verifies every console
       # bearer against the realm's issuer, the `api` audience and a key set
       # mirrored onto the host by deploy.sh, so no request depends on Keycloak
-      # answering. The IP allow-list is the operator's (HB-A16): written empty
-      # by init.sh, and empty admits nobody.
+      # answering.
       INTAKE_ADMIN_OIDC_ISSUER: https://auth.${STAGING_HOSTNAME:?run init.sh}/realms/intake
       INTAKE_ADMIN_OIDC_AUDIENCE: api
       INTAKE_ADMIN_OIDC_JWKS_PATH: /run/intake/keycloak-jwks.json
-      INTAKE_ADMIN_IP_ALLOWLIST: ${INTAKE_ADMIN_IP_ALLOWLIST}
+      # Owner decision D18 (files/00_STATE.md §3, 2 Oct 2026): "dont make admin
+      # access ip restricted". This is an explicit allow-all, because an empty
+      # list would admit nobody. The gate is the Keycloak login: a password
+      # plus a second factor (the INT-365 staff browser flow), checked again
+      # by the API (amr).
+      INTAKE_ADMIN_IP_ALLOWLIST: "0.0.0.0/0,::/0"
       # the console's voice kill switch (INT-182), in the deployment's Redis
       INTAKE_VOICE_CONTROL_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
     volumes:

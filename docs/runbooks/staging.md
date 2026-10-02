@@ -225,7 +225,6 @@ sets the other keys by hand, as root, in `/etc/intake-staging/.env`:
 | `INTAKE_APP_ATTEST_BUNDLE_ID` | operator, optional | leave empty for the app's committed bundle id |
 | `INTAKE_APP_ATTEST_ENVIRONMENT` | operator, optional | leave empty for production. `development` is for dev-signed builds only, never on a public host like this one |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` | operator | the SMS vendor. `TWILIO_FROM` is a Twilio number in E.164 or a Messaging Service SID |
-| `INTAKE_ADMIN_IP_ALLOWLIST` | operator, the owner's decision (HB-A16) | the admin console's source ranges, as the API's `/admin` routes see them (INT-421). Empty admits nobody. The console calls the API from its own container on the internal `edge` network, so the list names that network, and the owner's ranges are enforced at the edge. See docs/release/production-checklist.md |
 
 ```bash
 sudo -i
