@@ -11,10 +11,11 @@
  */
 import { type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
+import { Icon } from "@/components/Icon";
 import { AppText, Hairline, useScheme, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
+import type { SymbolKey } from "@/lib/symbols";
 import { motion, palette, radius, shadow, spacing } from "@/lib/theme";
 
 /** Action name for the row's nested trailing control. */
@@ -64,8 +65,8 @@ interface ListRowProps {
   label: string;
   /** Quiet caption under the label (dates, notes). */
   sublabel?: string;
-  /** Leading 36 pt tonal icon well (SF Symbol name) — Oura's row anchor. */
-  icon?: string;
+  /** Leading 36 pt tonal icon well (a symbol registry row) — Oura's row anchor. */
+  icon?: SymbolKey;
   /** Trailing element: a value chip, pill group — rendered as-is. */
   trailing?: ReactNode;
   /** "›" affordance; set it ONLY on rows that navigate. */
@@ -121,7 +122,7 @@ export function ListRow({
     <>
       {icon ? (
         <View style={[styles.iconWell, { backgroundColor: theme.surfaceRaised }]}>
-          <SymbolView name={icon as never} size={17} tintColor={theme.inkSoft} />
+          <Icon name={icon} size={17} tintColor={theme.inkSoft} />
         </View>
       ) : null}
       <View style={styles.labels}>
@@ -135,7 +136,7 @@ export function ListRow({
         ) : null}
       </View>
       {trailing ?? null}
-      {chevron ? <SymbolView name="chevron.right" size={13} tintColor={theme.inkFaint} /> : null}
+      {chevron ? <Icon name="chevron.right" size={13} tintColor={theme.inkFaint} /> : null}
     </>
   );
   if (onPress) {
@@ -145,9 +146,7 @@ export function ListRow({
         accessibilityLabel={withContext(label, labelContext, sublabel)}
         accessibilityHint={hint}
         accessibilityActions={
-          secondaryAction
-            ? [{ name: SECONDARY_ACTION, label: secondaryAction.label }]
-            : undefined
+          secondaryAction ? [{ name: SECONDARY_ACTION, label: secondaryAction.label }] : undefined
         }
         onAccessibilityAction={
           secondaryAction

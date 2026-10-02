@@ -1540,6 +1540,18 @@ metrics:
       kill_switch_release, default_profile, canary) and outcome (requested,
       applied, unchanged, refused). The alert of the four voice
       DangerousActions; who acted is on the audit chain, never on a label.
+  - name: admin_deploy_freeze_changes_total
+    id: admin.deploy_freeze_changes_total
+    type: counter
+    labels: [control, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Deploy freeze changes from the CI/CD module (INT-187), by control
+      (freeze_engage, freeze_lift) and outcome (requested, applied, unchanged,
+      refused). The alert of the two deploy-freeze DangerousActions; who acted
+      is on the audit chain and in the freeze record, never on a label.
   - name: admin_break_glass_patient_log_lag_h
     id: admin.break_glass_patient_log_lag_h
     type: gauge
@@ -2056,9 +2068,113 @@ metrics:
     owner: platform
     unit: "bool (0/1)"
     description: >-
-      1 when the ops collector's last read of a source (gpu_host, ci) succeeded,
-      0 when it failed — what lets the console tell "failing" from "not
-      configured".
+      1 when the ops collector's last read of a source (gpu_host, ci, cicd)
+      succeeded, 0 when it failed — what lets the console tell "failing" from
+      "not configured".
+  # --- INT-187: the CI/CD console's collector-fed series -----------------------
+  # Emitted by intake_probes.ops_collector from intake_probes.ops_cicd, read
+  # server-side with the same read-only token (OpenBao) and egress guard as the
+  # ops_ci_* series. Any failing GitHub sub-call fails the whole read and clears
+  # every ops_cicd_* child (invariant 17). Labels are ids and closed
+  # vocabularies only: no actor, triggering actor, author, committer, commit
+  # message, display title, PR title or body, release name or user ever becomes
+  # a label (invariant 6).
+  - name: ops_cicd_run
+    type: gauge
+    labels: [workflow, branch, run_number, status, conclusion, head_sha]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 for each of the newest runs (five by default) of every workflow on the
+      watched branch: the workflow file stem, the branch, the run number,
+      GitHub's closed status and conclusion vocabularies ("none" while
+      running) and the head commit sha. No actor, author, commit message or
+      display title becomes a label.
+  - name: ops_cicd_run_duration_seconds
+    type: gauge
+    labels: [workflow, branch, run_number]
+    owner: platform
+    unit: "s"
+    description: >-
+      Whole seconds from a run's start to its last update, for completed runs
+      only — absent, never zero, while a run is still going.
+  - name: ops_cicd_run_updated_seconds
+    type: gauge
+    labels: [workflow, branch, run_number]
+    owner: platform
+    unit: "s (unix time)"
+    description: Unix time each recent run was last updated.
+  - name: ops_cicd_failed_job
+    type: gauge
+    labels: [workflow, branch, run_number, job]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per failing job (failure, timed_out, startup_failure) of a failed run,
+      only when the job name is id-shaped; any other name is counted in
+      ops_cicd_failed_jobs and never exported. No actor or author becomes a
+      label.
+  - name: ops_cicd_failed_jobs
+    type: gauge
+    labels: [workflow, branch, run_number]
+    owner: platform
+    unit: "count"
+    description: >-
+      Every failing job of a failed run, named or not — what lets the console
+      say "+N unnamed". Absent for runs that did not fail.
+  - name: ops_cicd_branch_gate
+    type: gauge
+    labels: [branch, workflow, gate, conclusion]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per required gate (a job ci.yml or security.yml runs on every pull
+      request) on the watched branch's head commit, with the newest check
+      run's conclusion, "pending" while it runs or "missing" when it has no
+      check run. No actor, author or commit message becomes a label.
+  - name: ops_cicd_pr_gate
+    type: gauge
+    labels: [pr, workflow, gate, conclusion]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per required gate on the head commit of each recently updated open pull
+      request (five by default), keyed by the PR number only — the PR title,
+      body, author and labels are never read into a value.
+  - name: ops_cicd_branch_checks_enforced
+    type: gauge
+    labels: [branch]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 when GitHub enforces required status checks on the watched branch
+      (branch protection or a ruleset required_status_checks rule), 0 when it
+      does not — a green gate list GitHub does not enforce is advice, not a
+      gate.
+  - name: ops_cicd_release
+    type: gauge
+    labels: [tag, head_sha]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per published (non-draft) release among the ten newest, with the commit
+      its tag names. The release name, body and author never become labels.
+  - name: ops_cicd_release_published_seconds
+    type: gauge
+    labels: [tag]
+    owner: platform
+    unit: "s (unix time)"
+    description: Unix time each release was published.
+  - name: ops_cicd_release_signing
+    type: gauge
+    labels: [tag, state]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per release with its signing state: signed, sign_failed, sign_pending
+      or not_signed from security.yml's sign-and-attest job on that tag's
+      commit, or not_applicable for a tag outside the v* pattern that job runs
+      on. No actor or author becomes a label.
   # The offline scripted-clip build (ADR-028; make clips) counts its cache
   # hits and its syntheses on its own registry (voice_clips.metrics) and
   # writes them as a Prometheus textfile; the ops collector re-exports exactly

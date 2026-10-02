@@ -42,7 +42,9 @@ as of pointers — asserted over random permutations in
   sibling set that never writes a JSON pointer and so slips past the files/12
   §3.2 deny-list;
 - an overlay suppressing a slot a surviving red flag reads, which removes the
-  flag without ever naming it.
+  flag without ever naming it. The same removal by a chain pack, and by any
+  layer against a ``base.life_threat`` rule, is refused once the whole chain
+  is merged, in :mod:`protocols.compile.rule_reads` (INT-382).
 """
 
 from __future__ import annotations
@@ -56,6 +58,7 @@ from clinical_schemas.overlay import PatientOverlay, fact_needs_reconfirmation
 from pydantic import Field
 
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
+from protocols.compile.rule_reads import pointer_slot_names
 from protocols.dsl import OverlayActivation, RedFlagRule
 from protocols.loader import PackRegistry
 from protocols.ops import SuppressSlotOp
@@ -304,17 +307,6 @@ def activate_overlays(
 # --- the compose step: base rules + overlays → one rule set -------------------
 
 
-def _slot_names(pointer: str) -> frozenset[str]:
-    """Both spellings a ``/sections/<s>/slots/<k>`` pointer can be read under:
-    the dotted reference a ``when`` predicate uses and the bare key a
-    ``tense_anchor`` uses."""
-    parts = pointer.lstrip("/").split("/")
-    if len(parts) != 4 or parts[0] != "sections" or parts[2] != "slots":
-        # malformed pointers are the validator's UNKNOWN_TARGET, not ours
-        return frozenset()
-    return frozenset({f"{parts[1]}.{parts[3]}", parts[3]})
-
-
 def _suppression_refusals(
     overlays: Sequence[ProtocolPack], rules: Collection[RedFlagRule]
 ) -> list[Refusal]:
@@ -327,7 +319,7 @@ def _suppression_refusals(
     and invariant 7 reaches it.
     """
     suppressions = [
-        (overlay.id, op.pointer, _slot_names(op.pointer))
+        (overlay.id, op.pointer, pointer_slot_names(op.pointer))
         for overlay in overlays
         for op in overlay.ops
         if isinstance(op, SuppressSlotOp)

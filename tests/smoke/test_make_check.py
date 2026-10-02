@@ -265,7 +265,31 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-397 (the three status lines INT-362 left silent are announced, found
     # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
-    assert len(ids) == 311, f"expected 175 blueprint + 136 added issues, got {len(ids)}"
+    # + INT-390 (Keycloak upgrade and realm import, found by INT-378); grows
+    # only with a stated reason.
+    # + INT-396 (backlog status reconciliation and drift guard, GitHub #655);
+    # grows only with a stated reason.
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
+    # in step with rows, found by INT-396, GitHub #675); grows only with a
+    # stated reason.
+    # + INT-398..400 (split out of INT-122 by its own PR, #663: the document
+    # engine, the real samples, the on-device date-order defect); grows only
+    # with a stated reason.
+    # + INT-401 (console rollback, split out of INT-187) + INT-409 (Vizitlerim
+    # reads today from the device clock instead of a date pinned in every
+    # build, found by INT-179's close-out as GitHub #688); grows only with a
+    # + INT-401 (console rollback, split out of INT-187) + INT-410 (release
+    # bundles carry no synthetic seed accounts, audit F30, found by INT-179's
+    # close-out as GitHub #689); grows only with a stated reason.
+    # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638)
+    # + INT-404 (triage rule evidence lines in the reader's locale, INT-386's
+    # finding, GitHub #673); grows only with a stated reason.
+    # ... + INT-382 (a suppress_slot in any layer that removes a slot a
+    # red-flag rule reads is refused; H-1 of the PR #628 verification).
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
+    # stated reason.
+    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
