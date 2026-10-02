@@ -140,7 +140,9 @@ def test_ids_unique_and_well_formed() -> None:
     # on-prem TTS wiring guide; owner request, GitHub #706).
     # + INT-429 (the vulnerabilities gate: brace-expansion and urllib3 upgrades,
     # time-boxed node-forge exception; owner decision, GitHub #727).
-    assert len(ids) == 327
+    # + INT-431 (the embed sample's JWT fixture is built at runtime so no
+    # token-shaped literal sits at rest; found merging main into #481, #733).
+    assert len(ids) == 328
     import re
 
     for i in ids:

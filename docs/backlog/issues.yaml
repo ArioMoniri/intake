@@ -6386,3 +6386,21 @@
     - "the vulnerabilities job is green on the PR"
   tests: [tests/ci/test_security_gates.py]
   sec_row: "cicd"
+- id: INT-431
+  epic: E10-connectors
+  phase: P1
+  title: "The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest"
+  # GitHub #733. Found while merging main into #481: INT-320's synthetic
+  # ticket fixture (payload {"tenant":"dev"}, signature "signature-sample")
+  # sat in the test source as a JWT-shaped literal, and the gitleaks
+  # pre-commit hook refuses any commit that stages the file. No allowlist:
+  # the root cause is the literal, so the literal goes.
+  depends_on: [INT-320]
+  labels: [area:release, risk:security]
+  status: done
+  evidence: docs/evidence/INT-431.md
+  acceptance:
+    - "the fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest; no allowlist, gitleaks:allow or .gitleaksignore entry is added"
+    - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
+  tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
+  sec_row: "connectors"
