@@ -41,6 +41,7 @@ import protocols.triage as triage_pkg
 import pytest
 from clinical_schemas import common
 from clinical_schemas.common import TAGGED_DECIMAL_PREFIX, JsonValue
+from clinical_schemas.rule_evidence import render_rule_evidence
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, TriageLevel
 from intake_voice_runtime.extraction import parse_extraction
@@ -297,15 +298,24 @@ class TestTheWireTagNeverReachesAHuman:
         assert numeric_rail({FEVER: crossed}, facts, locale="tr") == rail
 
     def test_the_clinician_evidence_line_shows_the_digits_and_not_the_tag(self) -> None:
-        """``triage.rules[].evidence`` is read by a clinician (files/04 §5)."""
+        """``triage.rules[].evidence`` is read by a clinician (files/04 §5).
+
+        INT-404: the line a clinician reads is written from the rule fire's
+        parts for the note's reader, a Turkish reader, who takes a full stop
+        as grouping. The engine's own text keeps the digits with JSON's
+        point. Neither carries the wire tag."""
         crossed = _through_the_wire(Decimal("38.50"))
         evaluation = evaluate_triage(
             (FEVER_RULE,), ctx(**{FEVER: present(crossed)}), RedLocation.REMOTE
         )
         assert evaluation.result.level is TriageLevel.RED
-        evidence = evaluation.result.rules[0].evidence
-        assert TAGGED_DECIMAL_PREFIX not in evidence
-        assert "38.50" in evidence
+        fire = evaluation.result.rules[0]
+        assert TAGGED_DECIMAL_PREFIX not in fire.evidence
+        assert "38.50" in fire.evidence
+        line = render_rule_evidence(fire, locale="tr")
+        assert TAGGED_DECIMAL_PREFIX not in line
+        assert "38,50" in line
+        assert "38.50" not in line
 
     def test_a_patient_answer_beginning_with_the_prefix_is_carried_not_refused(
         self,
