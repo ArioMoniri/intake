@@ -2957,3 +2957,28 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:30:00Z · INT-350 · done (PR open, not merged; red on main until the owner's workflow fix lands)
+- Goal: acceptance verbatim (GitHub #556):
+  - *"the check-integration job runs make edge-plugin (sha256-verified against the pinned digest) before the edge suite, so tests/infra/test_edge_stack_integration.py runs and passes rather than erroring on a missing plugin"*
+  - *"the osv scanner reports zero fixable vulnerabilities on main HEAD, reached by upgrading the affected dependencies, never by adding a suppression or ignore entry"*
+  - *"red and green CI runs recorded in docs/evidence/INT-350.md"*
+- Plan:
+  - The workflow step is the owner's edit on GitHub (`2ff595ef`), committed as `make edge-plugin a`. No agent edits workflows, so this PR pins the step with a test instead.
+  - Re-run osv on today's `main`: advisories published after the 2026-09-26 clean run reopened the second clause, so upgrade what is fixable.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_waf_rules.py` group 9: the `check-integration` job runs exactly `make edge-plugin` before `make check-integration`, and no policy URL or hash appears in the workflow.
+  - Near misses: the right step after the suite, no step at all, and the step with a stray argument (`make edge-plugin a`, which is what reached `main`).
+  - RED: 1 failed, 2 passed on `2ff595ef`; the typo is what fails. GREEN for the controls now; the main test goes green when the owner's fix is on `main`.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `tests/ci tests/infra tests/backlog tests/smoke`: 840 passed, 1 failed (the red test).
+  - osv-scanner 2.5.1: 17 findings (16 fixable) before, `0 vulnerabilities can be fixed` after. urllib3 2.8.0, virtualenv 21.14.5, brace-expansion 1.1.21 and 5.0.12, fast-uri 3.1.8, with no suppression.
+  - `pnpm install --frozen-lockfile` and `uv lock --check` pass; `no_placeholders` (staged) OK.
+  - `make check` not run whole (`check-integration` is CI-only; no source change).
+- Invariants touched and still passing: 14 (no gate skipped or weakened, no ignore entry), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: the owner (no HB id minted).
+  - Two asks. First, fix the typo to `- run: make edge-plugin` in `.github/workflows/ci.yml`.
+  - Second, "node-forge 1.4.0 (GHSA-86w9-cpqp-85rv, dependents `@expo/cli` and `@expo/code-signing-certificates`) has no fixed version, so do you add a PURL-scoped `.trivyignore.yaml` row or replace the dependency?" Until then the `vulnerabilities` job stays red on that one row.
+- Next: PR `INT-350: CI part 2: check-integration builds the pinned edge plugin; osv findings fixed` (Closes #556, Sec-Row cicd), left unmerged.
+- LOOP_STATUS: CONTINUE

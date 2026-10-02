@@ -5583,12 +5583,21 @@
   title: "CI part 2: check-integration builds the pinned edge plugin; osv findings fixed"
   depends_on: [INT-346]
   labels: [area:ci]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-350.md
+  # GitHub #556. The check-integration step is the owner's edit on GitHub
+  # (2ff595ef); no agent edits workflows. This row delivers the test that pins
+  # it (exactly `make edge-plugin`, before the suite) and the osv upgrades:
+  # advisories published after the 2026-09-26 clean run left 16 fixable
+  # findings on main, now upgraded (urllib3, virtualenv, brace-expansion,
+  # fast-uri) with no suppression. node-forge 1.4.0 (GHSA-86w9-cpqp-85rv) has
+  # no fixed version, so it stays and keeps the vulnerabilities job red until
+  # the owner decides (evidence §2.4).
   acceptance:
     - "the check-integration job runs make edge-plugin (sha256-verified against the pinned digest) before the edge suite, so tests/infra/test_edge_stack_integration.py runs and passes rather than erroring on a missing plugin"
     - "the osv scanner reports zero fixable vulnerabilities on main HEAD, reached by upgrading the affected dependencies, never by adding a suppression or ignore entry"
     - "red and green CI runs recorded in docs/evidence/INT-350.md"
-  tests: [tests/infra/test_edge_stack_integration.py]
+  tests: [tests/infra/test_edge_stack_integration.py, tests/infra/test_waf_rules.py]
   sec_row: "cicd"
 - id: INT-351
   epic: E12-admin
