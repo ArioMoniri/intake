@@ -97,8 +97,11 @@ would not run on the host yourself.
 
 ## Pinned tools
 
-These are the versions GitHub Actions ran on 27 Sep 2026: the run logs of
-`ci.yml` 36342069924 and `security.yml` 36342069843, and the action pins.
+These are the versions GitHub Actions ran on 27 Sep 2026. The sources are
+the action pins and the run logs of that day's `ci.yml` and `security.yml`
+runs on main, at commit 79ba5659. The run ids are left out on purpose: one
+of them is an 11-digit number that happens to pass the TCKN checksum, and
+`phi_scan.sh` rightly rejects it in docs/.
 
 | tool | version | source of the pin |
 |---|---|---|
@@ -166,8 +169,8 @@ API on 2 Oct 2026, is $0.9776 per hour.
 | allocated by the CPU it actually used: about 1 of 8 vCPU × 0.79 h × $0.9776/h | about $0.10 |
 
 **What it replaces.** One GitHub Actions pass of `ci.yml` and `security.yml`
-billed 44 runner-minutes on main on 27 Sep 2026: runs 36342069924 and
-36342069843, rounded up per job as GitHub bills. check-py alone was 28 of
+billed 44 runner-minutes on main at 79ba5659 on 27 Sep 2026, rounded up per
+job as GitHub bills: 36 for `ci.yml` and 8 for `security.yml`. check-py alone was 28 of
 them. The cost is those minutes at GitHub's per-minute rate for a hosted
 Linux runner on a private repository. aws-ci needs no new instance; it uses
 the host that INT-352 already pays for.
