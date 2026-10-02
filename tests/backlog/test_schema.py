@@ -134,9 +134,13 @@ def test_ids_unique_and_well_formed() -> None:
     # GitHub #689).
     # + INT-404 (triage rule evidence lines write quantities for the reader's
     # locale; INT-386's finding, GitHub #673).
+    # + INT-382 (the compiler refuses a suppress_slot in any layer that removes
+    # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide; owner request, GitHub #706).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
-    assert len(ids) == 325
+    assert len(ids) == 327
     import re
 
     for i in ids:

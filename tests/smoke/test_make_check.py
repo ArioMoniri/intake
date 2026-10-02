@@ -284,10 +284,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638)
     # + INT-404 (triage rule evidence lines in the reader's locale, INT-386's
     # finding, GitHub #673); grows only with a stated reason.
+    # ... + INT-382 (a suppress_slot in any layer that removes a slot a
+    # red-flag rule reads is refused; H-1 of the PR #628 verification).
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
+    # stated reason.
     # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
     # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
     # with a stated reason.
-    assert len(ids) == 325, f"expected 175 blueprint + 150 added issues, got {len(ids)}"
+    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

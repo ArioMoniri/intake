@@ -86,7 +86,7 @@ def _value(name: str, **labels: str) -> float:
 
 
 class _Refusing:
-    def synthesise(self, *, text_tr: str, voice_id: str) -> Any:
+    def synthesise(self, *, text_tr: str, voice_id: str, profile: Any) -> Any:
         raise TtsRefusedError("refused")
 
 
