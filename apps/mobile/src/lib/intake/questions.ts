@@ -276,6 +276,17 @@ export interface QuestionCommon {
   ordinal?: true;
   /** Deferral unit this question belongs to (02 §33); absent = never deferred. */
   deferrableAs?: DeferralId;
+  /**
+   * The pack declares this step RED-adjacent — it sits where a red-flag script
+   * can speak (INT-414, the clinical review). It changes nothing about the
+   * question or any rule: the conversational delivery layer adds NOTHING
+   * around it and nothing warm after it (invariant 21 — a lead-in in front of
+   * a RED is ambiguity, and ambiguity is the harm). It only ever REMOVES
+   * delivery, and it is declared, never inferred from wording. No authored
+   * step sets it today; a RED itself is still produced only by the triage
+   * rules (invariant 1).
+   */
+  redAdjacent?: true;
 }
 
 /**

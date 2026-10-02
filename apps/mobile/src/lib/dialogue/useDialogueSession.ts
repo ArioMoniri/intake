@@ -69,10 +69,9 @@ import type { IntakeQuestion } from "../intake/questions";
 import { discardRecording, transcribeRecording } from "../voice";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { readCue, type DeliveryCue, type Utterance } from "./delivery";
-import { deliveryClipName, settleTurnClips } from "./deliveryClips";
+import { deliveryClipName, leadSources, settleTurnClips, shownDelivery } from "./deliveryClips";
 import type { DeliveryContext } from "./deliveryContext";
 import {
-  asDeliveryKey,
   DELIVERY_DECK,
   prewarmContextOf,
   VOICE_DELIVERY_KEYS,
@@ -91,9 +90,20 @@ import {
   shouldAttemptSpeech,
   type DialogueStreamAction,
   type DialogueStreamState,
+  type StreamEntry,
 } from "./stream";
 import { clipDeadlineMs, clipName, withDeadline, type ClipStore } from "./tts";
 import type { DialogueCandidate } from "./turn";
+
+/** The stream index of the latest `agent_question` entry, or -1. */
+function lastQuestionIndex(stream: readonly StreamEntry[]): number {
+  for (let index = stream.length - 1; index >= 0; index -= 1) {
+    if (stream[index].kind === "agent_question") {
+      return index;
+    }
+  }
+  return -1;
+}
 
 export interface DialogueSessionOptions {
   questions: readonly IntakeQuestion[];
@@ -118,8 +128,11 @@ export interface DialogueSession {
   state: DialogueStreamState;
   /**
    * INT-414: what is said around each asked question, keyed by the stream
-   * index of its `agent_question` entry — the same plan the clips are spoken
-   * from, so the transcript and the voice cannot say different things.
+   * index of its `agent_question` entry. It is the plan the clips are spoken
+   * from, narrowed to what the voice actually said: a lead-in dropped for want
+   * of a clip is absent here too, and a turn whose clips are still settling
+   * shows none yet (deliveryClips.ts `shownDelivery`). The transcript and the
+   * voice therefore cannot say different things.
    */
   delivery: ReadonlyMap<number, readonly Utterance[]>;
   /** True only while a clip is audibly playing — the bubble says
@@ -216,6 +229,26 @@ export function useDialogueSession({
   const delivery = planDialogueDelivery(questions, state.stream, cuesRef.current, sessionSeed);
   const deliveryRef = useRef(delivery);
   deliveryRef.current = delivery;
+  // What each turn's voice actually said, per delivery line, once its clips
+  // have settled (deliveryClips.ts). State, not a ref: the transcript has to
+  // re-render the moment a lead-in turns out to have been dropped.
+  const [spokenLines, setSpokenLines] = useState<ReadonlyMap<number, readonly boolean[]>>(
+    () => new Map(),
+  );
+  // The turn being spoken right now has not settled its clips yet, so the
+  // transcript claims no delivery line for it until it has.
+  const settlingIndex =
+    state.turn.phase === "speaking" &&
+    state.turn.intent === "question" &&
+    shouldAttemptSpeech({ voiceMuted: state.voiceMuted, voiceRetryIn: state.voiceRetryIn })
+      ? lastQuestionIndex(state.stream)
+      : -1;
+  const shownLines = new Map(
+    [...delivery].map(([index, utterances]) => [
+      index,
+      shownDelivery(utterances, spokenLines.get(index), index === settlingIndex),
+    ]),
+  );
   /** Delivery clips this session already holds: name → file. A lead-in whose
    * clip is here plays without a race; one that is not yet made is dropped
    * for this turn rather than waited for (deliveryClips.ts). */
@@ -351,16 +384,19 @@ export function useDialogueSession({
     }
   };
 
-  /** The planned utterances of the latest ask of `questionId` (INT-414). */
-  const plannedTurn = (questionId: string): readonly Utterance[] => {
+  /** The planned utterances of the latest ask of `questionId`, and the stream
+   * index they belong to (INT-414). */
+  const plannedTurn = (
+    questionId: string,
+  ): { readonly index: number; readonly utterances: readonly Utterance[] } => {
     const stream = stateRef.current.stream;
     for (let index = stream.length - 1; index >= 0; index -= 1) {
       const entry = stream[index];
       if (entry.kind === "agent_question" && entry.questionId === questionId) {
-        return deliveryRef.current.get(index) ?? [];
+        return { index, utterances: deliveryRef.current.get(index) ?? [] };
       }
     }
-    return [];
+    return { index: -1, utterances: [] };
   };
 
   /** Make one delivery line's clip, in the context it will be said in
@@ -378,23 +414,15 @@ export function useDialogueSession({
     });
   };
 
-  /** A turn's lead-in clips: the file when this session holds it, else the
-   * making of it (which `settleTurnClips` never lets hold the question). */
+  /** A turn's lead-in clips, one per delivery line: the file when this session
+   * holds it, else the making of it (which `settleTurnClips` never lets hold
+   * the question). The one-to-one order is what `turnClips.spoken` is read
+   * against. */
   const leadClipsFor = (
     store: ClipStore,
     turnPlan: readonly Utterance[],
   ): (string | Promise<string>)[] =>
-    turnPlan.flatMap((utterance) => {
-      const key = utterance.kind === "question" ? null : asDeliveryKey(utterance.key);
-      if (key === null) {
-        return [];
-      }
-      const context = utterance.deliveryContext;
-      return [
-        readyLeadsRef.current.get(deliveryClipName(key, context)) ??
-          ensureLead(store, key, context),
-      ];
-    });
+    leadSources(turnPlan, readyLeadsRef.current, (key, context) => ensureLead(store, key, context));
 
   // Pre-warm the session's scripted clips at mount, FIRST QUESTION FIRST
   // (INT-239): the opening turn is the one the patient waits on, so its
@@ -533,7 +561,11 @@ export function useDialogueSession({
         // INT-414: a question turn is said as its planned utterances — the
         // lead-in or acknowledgement first, the question verbatim last. A
         // confirm turn is a read-back and carries none.
-        const turnPlan = speaking.intent === "question" ? plannedTurn(question.id) : [];
+        const planned =
+          speaking.intent === "question"
+            ? plannedTurn(question.id)
+            : { index: -1, utterances: [] as readonly Utterance[] };
+        const turnPlan = planned.utterances;
         // INT-415: the question (and its read-back) is spoken in the
         // question's own context — the same one the pre-warm made it in.
         const questionContext = questionDeliveryContextOf(question);
@@ -553,6 +585,12 @@ export function useDialogueSession({
         const queue = [...turnClips.leads, turnClips.question];
         if (stale) {
           return;
+        }
+        // The transcript shows what is about to be said and nothing else: a
+        // lead-in dropped above is dropped from the screen too.
+        if (planned.index >= 0) {
+          const said = turnClips.spoken;
+          setSpokenLines((before) => new Map(before).set(planned.index, said));
         }
         // `allowsRecording: true` while the agent speaks is the whole change.
         // On iOS this is the `.playAndRecord` category, which is the only one
@@ -827,7 +865,7 @@ export function useDialogueSession({
 
   return {
     state,
-    delivery,
+    delivery: shownLines,
     playing,
     bargeIn,
     finishListening,

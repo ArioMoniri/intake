@@ -1229,7 +1229,7 @@ export const tr = {
   "dialogue.delivery.welcome.c":
     "Hoş geldiniz. Muayenenize hazırlık için size bazı sorular sormak istiyorum.",
   "dialogue.delivery.orientVoice.a":
-    "Soruları ekranda da görebilirsiniz; dilediğiniz an yazarak da yanıt verebilirsiniz.",
+    "Soruları ekranda da görebilirsiniz. Dilerseniz yazarak da yanıt verebilirsiniz.",
   "dialogue.delivery.orientVoice.b":
     "Ben konuşurken araya girebilirsiniz. Sorular ekranda yazılı olarak da durur.",
   "dialogue.delivery.orientTyped.a": "Soruları kendi hızınızda yanıtlayabilirsiniz.",
@@ -1244,22 +1244,25 @@ export const tr = {
   "dialogue.delivery.thanks.b": "Teşekkür ederim.",
   "dialogue.delivery.thanks.c": "Not aldım, teşekkürler.",
   "dialogue.delivery.hesitant.a": "Anlıyorum, devam edelim.",
-  "dialogue.delivery.hesitant.b": "Bunu da not aldım.",
+  "dialogue.delivery.hesitant.b": "Peki, bu şekilde not aldım.",
   "dialogue.delivery.revised.a": "Düzeltmeniz için teşekkürler.",
   "dialogue.delivery.revised.b": "Düzelttiğinizi not aldım.",
-  "dialogue.delivery.silence.a": "Acele etmenize gerek yok.",
-  "dialogue.delivery.silence.b": "Dilediğiniz kadar düşünebilirsiniz.",
+  // The silence lines are said after a turn with no words, in front of the
+  // NEXT question. The skipped one always returns in the manual steps
+  // (stream.ts: asked, unanswered, hand-over), so they may say so.
+  "dialogue.delivery.silence.a": "Önceki soruya sonra ekrandan dönebilirsiniz.",
+  "dialogue.delivery.silence.b": "Önceki soruyu daha sonra ekranda yanıtlayabilirsiniz.",
   "dialogue.delivery.repair.b": "Yanıtınızı tam anlayamadım. Soruyu bir kez daha soralım.",
   "dialogue.delivery.pain.a": "Ağrınızı biraz daha iyi anlamak istiyorum.",
-  "dialogue.delivery.pain.b": "Ağrıyla ilgili biraz ayrıntı soralım.",
+  "dialogue.delivery.pain.b": "Ağrınızla ilgili birkaç ayrıntı soralım.",
   "dialogue.delivery.instrument.a":
-    "Sıradaki sorular standart bir ankete ait, bu yüzden hep aynı biçimde sorulur.",
+    "Sıradaki sorular standart bir ankete ait. Bu yüzden her zaman aynı şekilde sorulur.",
   "dialogue.delivery.instrument.b": "Şimdi herkese aynı biçimde sorulan bir ankete geçelim.",
   "dialogue.delivery.sensitive.a":
-    "Sıradaki konu biraz daha kişisel. Acele etmeden yanıtlayabilirsiniz.",
+    "Sıradaki konu biraz daha özel. Acele etmeden yanıtlayabilirsiniz.",
   "dialogue.delivery.sensitive.b": "Şimdi biraz daha kişisel bir konuya geçelim.",
-  "dialogue.delivery.sensitiveLead.a": "Hazır olduğunuzda devam edelim.",
-  "dialogue.delivery.sensitiveLead.b": "Rahat olduğunuz gibi yanıtlayabilirsiniz.",
+  "dialogue.delivery.sensitiveLead.a": "Yavaş yavaş devam edelim.",
+  "dialogue.delivery.sensitiveLead.b": "Nasıl rahat ediyorsanız öyle yanıtlayabilirsiniz.",
   "dialogue.delivery.topic.allergies.a": "Şimdi alerjilerle ilgili sorulara geçelim.",
   "dialogue.delivery.topic.allergies.b": "Sırada alerjilerle ilgili sorular var.",
   "dialogue.delivery.topic.medications.a": "Şimdi ilaçlarla ilgili sorulara geçelim.",
@@ -1271,11 +1274,11 @@ export const tr = {
   "dialogue.delivery.topic.family.b": "Sıradaki sorular ailenizin sağlık geçmişiyle ilgili.",
   "dialogue.delivery.topic.social.a": "Şimdi günlük yaşamınızla ilgili sorulara geçelim.",
   "dialogue.delivery.topic.social.b": "Sırada günlük yaşamınızla ilgili sorular var.",
-  "dialogue.delivery.topic.measurements.a": "Şimdi birkaç ölçüm bilgisine geçelim.",
+  "dialogue.delivery.topic.measurements.a": "Şimdi birkaç ölçümle ilgili bilgi alalım.",
   "dialogue.delivery.topic.measurements.b": "Sırada ölçümlerle ilgili sorular var.",
   "dialogue.delivery.topic.wrapup.a": "Bitirmeden önce şunu da soralım.",
-  "dialogue.delivery.topic.wrapup.b": "Bitirmeye yaklaştık.",
-  "dialogue.delivery.closing.a": "Sorularımız bu kadar. Zaman ayırdığınız için teşekkür ederiz.",
+  "dialogue.delivery.topic.wrapup.b": "Sona yaklaştık.",
+  "dialogue.delivery.closing.a": "Sorularım bu kadar. Zaman ayırdığınız için teşekkür ederim.",
   "dialogue.delivery.closing.b": "Soruların sonuna geldik. Zaman ayırdığınız için teşekkürler.",
 
   // --- INT-137 · Gönder'den önceki paylaşım özeti (02 §5.4: ne, kiminle, ne

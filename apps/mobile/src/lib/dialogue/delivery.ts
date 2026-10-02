@@ -219,6 +219,18 @@ const TOPIC_SLOT: Record<DeliveryTopic, DeliverySlot | null> = {
 function midLine(input: DeliveryInput): Utterance | null {
   const { cue, questionContext: context, previousContext } = input;
   const own = questionDeliveryContext(context);
+  if (context === "instrument") {
+    // Standardised administration: the instrument is introduced once, and
+    // nothing — no thanks, no reassurance, no repair line for a re-asked item
+    // — is said between its items. This comes before every other rule for
+    // that reason: an instrument item is asked the same way every time.
+    return previousContext === "instrument" ? null : line(input, "instrument", "lead_in");
+  }
+  // The turn after a RED-adjacent one is never thanked and never nudged: a
+  // warm "continue" straight after a red-flag script is the tone-deaf line
+  // the clinical review ruled out. It still announces a new topic and still
+  // explains a repeat — those say where the sitting is, not how it went.
+  const afterRed = previousContext === "red";
   if (cue === "repeat_request") {
     // Being asked twice is explained, not merely repeated (INT-293).
     return line(input, "repair", "lead_in", own);
@@ -232,25 +244,20 @@ function midLine(input: DeliveryInput): Utterance | null {
   if (slot !== null && input.previousTopic !== null && input.topic !== input.previousTopic) {
     return line(input, slot, "transition");
   }
-  if (context === "instrument") {
-    // Standardised administration: the instrument is introduced once, and
-    // nothing — no thanks, no reassurance — is said between its items.
-    return previousContext === "instrument" ? null : line(input, "instrument", "lead_in");
-  }
   if (cue === "barge_in") {
     return null; // they cut in: say less, not more
   }
   if (context === "pain" && previousContext !== "pain") {
     return line(input, "pain", "lead_in");
   }
-  if (cue === "hesitant" || cue === "revised") {
+  if (!afterRed && (cue === "hesitant" || cue === "revised")) {
     return line(input, cue, "acknowledgement");
   }
   if (cue === "long_silence") {
     return line(input, "silence", "lead_in", own);
   }
   // Cadence: only after a quiet turn, and only on about half of those.
-  if (input.previousKey !== null || roll(input, "cadence") % 2 !== 0) {
+  if (afterRed || input.previousKey !== null || roll(input, "cadence") % 2 !== 0) {
     return null;
   }
   if (context === "sensitive") {

@@ -38,8 +38,9 @@ import {
   prewarmContextOf,
   slotOf,
   VOICE_DELIVERY_KEYS,
+  type DeliveryKey,
 } from "./deliveryDeck";
-import { deliveryClipName, settleTurnClips } from "./deliveryClips";
+import { deliveryClipName, leadSources, settleTurnClips, shownDelivery } from "./deliveryClips";
 import {
   closingDelivery,
   deliveryTopicOf,
@@ -135,6 +136,26 @@ describe("question context is read from what the pack declares", () => {
       deferrableAs: "wellbeing",
     };
     expect(questionContextOf(item)).toBe("instrument");
+  });
+
+  it("a step the pack declares RED-adjacent is the red context, outranking every other declaration", () => {
+    // Test-only: no shipped step is declared RED-adjacent (the authored packs
+    // carry no red-flag logic). The declaration is the pack's own, never a
+    // guess from wording, and it removes delivery — it can never add any.
+    const declared: IntakeQuestion = {
+      id: "test_red_adjacent_step",
+      titleKey: "intake.q.severity",
+      kind: "single",
+      ask: "closed",
+      options: [{ id: "a", labelKey: "intake.opt.yes" }],
+      instrument: { instrumentId: "PHQ-9", itemId: "item_1" },
+      deferrableAs: "wellbeing",
+      redAdjacent: true,
+    };
+    expect(questionContextOf(declared)).toBe("red");
+    expect(questionDeliveryContextOf(declared)).toBe("red");
+    expect(questionContextOf({ ...declared, redAdjacent: undefined })).toBe("instrument");
+    expect(allQuestions.filter((q) => questionContextOf(q) === "red")).toEqual([]);
   });
 
   it("everything else is routine", () => {
@@ -250,6 +271,123 @@ describe("a whole voice session, folded turn by turn", () => {
         expect(deliveryKeys(turn)).toEqual([]);
       }
     }
+  });
+});
+
+describe("a step the pack declares RED-adjacent, and the turn after it", () => {
+  // Test-only: no shipped step is declared RED-adjacent.
+  const redStep: IntakeQuestion = {
+    id: "test_red_adjacent_step",
+    titleKey: "intake.q.severity",
+    kind: "single",
+    ask: "closed",
+    options: [{ id: "a", labelKey: "intake.opt.yes" }],
+    redAdjacent: true,
+  };
+  /** The same step with the declaration removed: a routine step. */
+  const routineStep: IntakeQuestion = {
+    ...redStep,
+    id: "test_routine_step",
+    redAdjacent: undefined,
+  };
+  const next = byId("duration");
+  const SEEDS = Array.from({ length: 120 }, (_, s) => `after-red-${s}`);
+  const WARM_SLOTS = [
+    ...DELIVERY_DECK.hesitant,
+    ...DELIVERY_DECK.revised,
+    ...DELIVERY_DECK.thanks,
+    ...DELIVERY_DECK.routine,
+    ...DELIVERY_DECK.sensitiveLead,
+  ] as readonly string[];
+  const warmKeys = (turn: readonly Utterance[]) =>
+    deliveryKeys(turn).filter((key) => WARM_SLOTS.includes(key));
+
+  it("is itself the question alone, in the red context, wherever it falls in the sitting", () => {
+    for (const start of ["opening", "first"] as const) {
+      for (const lane of ["voice", "typed"] as const) {
+        const [turn] = planDelivery([stepFor(redStep, "none")], {
+          sessionSeed: "red-0",
+          lane,
+          start,
+        });
+        expect(turn).toEqual([
+          {
+            kind: "question",
+            key: redStep.titleKey,
+            text: questionSpeechTr(redStep),
+            deliveryContext: "red",
+          },
+        ]);
+      }
+    }
+  });
+
+  it("gets no acknowledgement and no cadence line afterwards, whatever the patient did", () => {
+    for (const cue of ["none", "hesitant", "revised"] as const) {
+      for (const seed of SEEDS) {
+        const plan = planDelivery(
+          [stepFor(routineStep, "none"), stepFor(redStep, "none"), stepFor(next, cue)],
+          { sessionSeed: seed, lane: "voice", start: "first" },
+        );
+        expect(warmKeys(plan[2]), `${cue}/${seed}`).toEqual([]);
+      }
+    }
+  });
+
+  it("is a real constraint: the same turn after a routine step is warmed on some seeds", () => {
+    // The control — identical to the case above except that the middle step
+    // carries no declaration — so the assertion above is not satisfied by a
+    // composer that never warms a turn at all.
+    for (const [cue, slot] of [
+      ["hesitant", DELIVERY_DECK.hesitant],
+      ["revised", DELIVERY_DECK.revised],
+    ] as const) {
+      const warmed = SEEDS.filter((seed) => {
+        const plan = planDelivery(
+          [stepFor(routineStep, "none"), stepFor(routineStep, "none"), stepFor(next, cue)],
+          { sessionSeed: seed, lane: "voice", start: "first" },
+        );
+        return deliveryKeys(plan[2]).some((key) => (slot as readonly string[]).includes(key));
+      });
+      expect(warmed.length, cue).toBeGreaterThan(0);
+    }
+    const cadence = SEEDS.filter((seed) => {
+      const plan = planDelivery(
+        [stepFor(routineStep, "none"), stepFor(routineStep, "none"), stepFor(next, "none")],
+        { sessionSeed: seed, lane: "voice", start: "first" },
+      );
+      return warmKeys(plan[2]).length > 0;
+    });
+    expect(cadence.length).toBeGreaterThan(0);
+  });
+
+  it("carries the same rule into the typed lane: a don't-know after a RED is not acknowledged", () => {
+    const typed = (middle: IntakeQuestion) =>
+      typedStepDelivery({
+        applicable: [middle, next],
+        answers: [{ questionId: middle.id, values: ["unknown"] }],
+        currentId: next.id,
+        startId: middle.id,
+        fresh: false,
+        sessionSeed: "visit-red",
+      });
+    expect(typed(redStep).map((u) => u.key)).toEqual([]);
+    expect(typed(routineStep).map((u) => u.key)).toEqual([
+      expect.stringMatching(/^dialogue\.delivery\.hesitant\./),
+    ]);
+  });
+
+  it("puts nothing above a RED-adjacent typed step, not even the opening", () => {
+    expect(
+      typedStepDelivery({
+        applicable: [redStep, next],
+        answers: [],
+        currentId: redStep.id,
+        startId: redStep.id,
+        fresh: true,
+        sessionSeed: "visit-red",
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -391,7 +529,7 @@ describe("delivery clips", () => {
       awaitLeads: false,
       deadlineMs: 60_000,
     });
-    expect(turn).toEqual({ leads: [], question: "q.wav" });
+    expect(turn).toEqual({ leads: [], question: "q.wav", spoken: [false] });
   });
 
   it("always keeps a lead-in already synthesised this session — no race with a cache hit", async () => {
@@ -399,7 +537,7 @@ describe("delivery clips", () => {
       awaitLeads: false,
       deadlineMs: 60_000,
     });
-    expect(turn).toEqual({ leads: ["ready.wav"], question: "q.wav" });
+    expect(turn).toEqual({ leads: ["ready.wav"], question: "q.wav", spoken: [true] });
   });
 
   it("keeps a ready lead-in, in order, and skips one that failed", async () => {
@@ -412,7 +550,11 @@ describe("delivery clips", () => {
       ],
       { awaitLeads: false, deadlineMs: 60_000 },
     );
-    expect(turn).toEqual({ leads: ["a.wav", "c.wav"], question: "q.wav" });
+    expect(turn).toEqual({
+      leads: ["a.wav", "c.wav"],
+      question: "q.wav",
+      spoken: [true, false, true],
+    });
   });
 
   it("waits for the opening's own clips, but never past the clip deadline", async () => {
@@ -426,7 +568,11 @@ describe("delivery clips", () => {
       { awaitLeads: true, deadlineMs: 1_000 },
     );
     await vi.advanceTimersByTimeAsync(1_000);
-    await expect(pending).resolves.toEqual({ leads: ["b.wav"], question: "q.wav" });
+    await expect(pending).resolves.toEqual({
+      leads: ["b.wav"],
+      question: "q.wav",
+      spoken: [false, true],
+    });
   });
 
   it("fails the turn's speech only when the QUESTION clip fails", async () => {
@@ -436,6 +582,98 @@ describe("delivery clips", () => {
         deadlineMs: 1_000,
       }),
     ).rejects.toThrow("tts_deadline");
+  });
+});
+
+// --- the transcript says what the voice said (clinical review, INT-414) ---------------
+
+describe("a lead-in that is dropped is dropped from the voice and the transcript alike", () => {
+  const line = (key: string, kind: Utterance["kind"] = "lead_in"): Utterance => ({
+    kind,
+    key,
+    text: key,
+    deliveryContext: "routine",
+  });
+  const welcome = line(DELIVERY_DECK.welcome[0]);
+  const orient = line(DELIVERY_DECK.orientVoice[0], "transition");
+  const asked: Utterance = {
+    kind: "question",
+    key: "intake.q.complaint.title",
+    text: "Bugün sizi hangi yakınma getirdi",
+    deliveryContext: "routine",
+  };
+  const turn = [welcome, orient, asked];
+
+  it("offers one clip source per delivery line, in order, and none for the question", async () => {
+    const made: string[] = [];
+    const sources = leadSources(
+      turn,
+      new Map([[deliveryClipName(welcome.key as DeliveryKey, "routine"), "held.wav"]]),
+      (key) => {
+        made.push(key);
+        return Promise.resolve(`${key}.wav`);
+      },
+    );
+    expect(sources).toHaveLength(2);
+    expect(sources[0]).toBe("held.wav"); // a clip this session holds is never made twice
+    await expect(sources[1]).resolves.toBe(`${orient.key}.wav`);
+    expect(made).toEqual([orient.key]);
+  });
+
+  it("refuses a line that is not a deck key: it cannot be made, so it is not said", async () => {
+    const stray = line("not.a.delivery.key");
+    const sources = leadSources([stray, asked], new Map(), () => Promise.resolve("never.wav"));
+    expect(sources).toHaveLength(1);
+    await expect(sources[0]).rejects.toThrow();
+  });
+
+  it("shows exactly the lines that were said, and always the question", () => {
+    expect(shownDelivery(turn, [true, false], false)).toEqual([welcome, asked]);
+    expect(shownDelivery(turn, [false, true], false)).toEqual([orient, asked]);
+    expect(shownDelivery(turn, [false, false], false)).toEqual([asked]);
+    expect(shownDelivery(turn, [true, true], false)).toEqual(turn);
+  });
+
+  it("claims nothing while the turn's clips are still being settled", () => {
+    expect(shownDelivery(turn, undefined, true)).toEqual([asked]);
+  });
+
+  it("shows the plan as written when no speech was attempted — typed, muted or failed", () => {
+    expect(shownDelivery(turn, undefined, false)).toEqual(turn);
+  });
+
+  it("lets what was settled outrank the wait", () => {
+    expect(shownDelivery(turn, [true, false], true)).toEqual([welcome, asked]);
+  });
+
+  it("voice and transcript agree for every pattern of ready and stalled clips", async () => {
+    const lines = [
+      line(DELIVERY_DECK.welcome[0]),
+      line(DELIVERY_DECK.orientVoice[0], "transition"),
+      line(DELIVERY_DECK.thanks[0], "acknowledgement"),
+    ];
+    for (let mask = 0; mask < 2 ** lines.length; mask += 1) {
+      const ready = lines.map((_, i) => (mask >> i) % 2 === 1);
+      const held = new Map(
+        lines.flatMap((l, i) =>
+          ready[i] ? [[deliveryClipName(l.key as DeliveryKey, "routine"), `${l.key}.wav`]] : [],
+        ),
+      );
+      const sources = leadSources(
+        [...lines, asked],
+        held,
+        () => new Promise<string>(() => undefined), // a clip that is never made in time
+      );
+      const settled = await settleTurnClips(Promise.resolve("q.wav"), sources, {
+        awaitLeads: false,
+        deadlineMs: 60_000,
+      });
+      const shown = shownDelivery([...lines, asked], settled.spoken, false)
+        .filter((u) => u.kind !== "question")
+        .map((u) => `${u.key}.wav`);
+      // The clips that play are exactly the lines on screen, in the same order.
+      expect(settled.leads, `mask ${mask}`).toEqual(shown);
+    }
   });
 });
 
@@ -635,6 +873,18 @@ describe("wiring", () => {
     expect(hook).toContain("planDialogueDelivery(");
     expect(hook).toContain("settleTurnClips(");
     expect(hook).toContain("scriptedDeliveryTr(");
+  });
+
+  it("the dialogue hands the transcript only the lines it said, not the whole plan", () => {
+    const hook = read("lib", "dialogue", "useDialogueSession.ts");
+    // The clip sources are built one per delivery line, settled together, and
+    // the settled flags decide what the session reports as its delivery.
+    expect(hook).toContain("leadSources(");
+    expect(hook).toContain("turnClips.spoken");
+    expect(hook).toContain("shownDelivery(");
+    const returned = hook.slice(hook.lastIndexOf("return {\n    state,"));
+    expect(returned).toContain("delivery: shownLines");
+    expect(returned).not.toMatch(/\n\s+delivery,\n/);
   });
 
   it("the transcript shows the planned lines as their own bubbles, ahead of the question", () => {

@@ -1166,7 +1166,7 @@ export const en: Record<MessageKey, string> = {
   "dialogue.delivery.welcome.c":
     "Welcome. To prepare for your examination, I would like to ask you some questions.",
   "dialogue.delivery.orientVoice.a":
-    "You can also see the questions on the screen, and you can answer by typing at any time.",
+    "You can also see the questions on the screen. If you wish, you can answer by typing too.",
   "dialogue.delivery.orientVoice.b":
     "You can interrupt me while I am speaking. The questions also stay written on the screen.",
   "dialogue.delivery.orientTyped.a": "You can answer the questions at your own pace.",
@@ -1182,24 +1182,24 @@ export const en: Record<MessageKey, string> = {
   "dialogue.delivery.thanks.b": "Thank you.",
   "dialogue.delivery.thanks.c": "Noted, thank you.",
   "dialogue.delivery.hesitant.a": "I understand; let us go on.",
-  "dialogue.delivery.hesitant.b": "I have noted that too.",
+  "dialogue.delivery.hesitant.b": "Alright, I have noted it that way.",
   "dialogue.delivery.revised.a": "Thank you for the correction.",
   "dialogue.delivery.revised.b": "I have noted your correction.",
-  "dialogue.delivery.silence.a": "There is no need to hurry.",
-  "dialogue.delivery.silence.b": "You can take as long as you need to think.",
+  "dialogue.delivery.silence.a": "You can come back to the previous question later, on the screen.",
+  "dialogue.delivery.silence.b": "You can answer the previous question later, on the screen.",
   "dialogue.delivery.repair.b":
     "I did not quite understand your answer. Let us ask the question once more.",
   "dialogue.delivery.pain.a": "I would like to understand your pain a little better.",
-  "dialogue.delivery.pain.b": "Let us ask a little more about the pain.",
+  "dialogue.delivery.pain.b": "Let us ask a few details about your pain.",
   "dialogue.delivery.instrument.a":
-    "The next questions come from a standard questionnaire, so they are always asked the same way.",
+    "The next questions belong to a standard questionnaire. That is why they are always asked the same way.",
   "dialogue.delivery.instrument.b":
     "Now let us move to a questionnaire that is asked the same way of everyone.",
   "dialogue.delivery.sensitive.a":
-    "The next topic is a little more personal. You can answer without hurrying.",
+    "The next topic is a little more private. You can answer without hurrying.",
   "dialogue.delivery.sensitive.b": "Now let us move to a more personal topic.",
-  "dialogue.delivery.sensitiveLead.a": "Let us continue when you are ready.",
-  "dialogue.delivery.sensitiveLead.b": "You can answer in whatever way is comfortable for you.",
+  "dialogue.delivery.sensitiveLead.a": "Let us continue, little by little.",
+  "dialogue.delivery.sensitiveLead.b": "You can answer in whichever way is comfortable for you.",
   "dialogue.delivery.topic.allergies.a": "Now let us move to questions about allergies.",
   "dialogue.delivery.topic.allergies.b": "Next come questions about allergies.",
   "dialogue.delivery.topic.medications.a": "Now let us move to questions about medicines.",
@@ -1211,11 +1211,12 @@ export const en: Record<MessageKey, string> = {
   "dialogue.delivery.topic.family.b": "The next questions are about your family's health history.",
   "dialogue.delivery.topic.social.a": "Now let us move to questions about your daily life.",
   "dialogue.delivery.topic.social.b": "Next come questions about your daily life.",
-  "dialogue.delivery.topic.measurements.a": "Now let us move to a few measurements.",
+  "dialogue.delivery.topic.measurements.a":
+    "Now let us gather some information about a few measurements.",
   "dialogue.delivery.topic.measurements.b": "Next come questions about measurements.",
   "dialogue.delivery.topic.wrapup.a": "Before we finish, let us also ask this.",
-  "dialogue.delivery.topic.wrapup.b": "We are nearly done.",
-  "dialogue.delivery.closing.a": "That is all our questions. Thank you for your time.",
+  "dialogue.delivery.topic.wrapup.b": "We are nearing the end.",
+  "dialogue.delivery.closing.a": "That is all my questions. Thank you for your time.",
   "dialogue.delivery.closing.b":
     "We have reached the end of the questions. Thank you for your time.",
 

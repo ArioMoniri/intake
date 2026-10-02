@@ -246,10 +246,10 @@ describe("a validated instrument item is byte-equal, and its options are untouch
 
   it("gets no acknowledgement or cadence line between items — standardised administration", () => {
     const verbatim = instrumentItem("TEST-INSTRUMENT", SYNTHETIC);
+    // Every cue, the repeat request included: a re-asked item is asked again
+    // exactly as it was, with nothing said in front of it (the clinical
+    // review's point — "between items" has no exception).
     for (const cue of DELIVERY_CUES) {
-      if (cue === "repeat_request") {
-        continue; // the repair line explains a repeat; it never rewords the item
-      }
       for (let turnIndex = 1; turnIndex < 40; turnIndex += 1) {
         const out = composeDelivery(
           base(verbatim, {
@@ -262,6 +262,34 @@ describe("a validated instrument item is byte-equal, and its options are untouch
         expect(out).toHaveLength(1);
       }
     }
+  });
+
+  it("says nothing in front of a re-asked item, in any phase, lane or seed", () => {
+    const verbatim = instrumentItem("TEST-INSTRUMENT", SYNTHETIC);
+    for (const input of everyInput(verbatim, false)) {
+      const out = composeDelivery({
+        ...input,
+        phase: "mid",
+        questionContext: "instrument",
+        previousContext: "instrument",
+        cue: "repeat_request",
+      });
+      expect(out, `${input.sessionSeed}@${input.turnIndex}`).toHaveLength(1);
+      expect(Object.is(out[0].text, SYNTHETIC.textTr)).toBe(true);
+    }
+  });
+
+  it("introduces the instrument, not a repair line, when its first item is re-asked", () => {
+    const out = composeDelivery(
+      base(instrumentItem("TEST-INSTRUMENT", SYNTHETIC), {
+        questionContext: "instrument",
+        previousContext: "routine",
+        cue: "repeat_request",
+      }),
+    );
+    expect(out).toHaveLength(2);
+    expect(DELIVERY_DECK.instrument).toContain(out[0].key);
+    expect(DELIVERY_DECK.repair as readonly string[]).not.toContain(out[0].key);
   });
 
   it("is introduced once, in the instrument's own delivery context", () => {

@@ -12,10 +12,11 @@
  *     a re-render shows the same line and a revisit replays it.
  *
  * Classification reads what the pack DECLARES and never the wording of a
- * question: a pain question is one gated on the patient having named pain
- * (the INT-236 gate shape), a sensitive one is a 02 §33 deferral unit or a
- * files/13 §13 `text_first` step, and an instrument step carries its
- * instrument reference. Nothing here grades an answer — the only answer this
+ * question: a RED-adjacent step is one the pack declares `redAdjacent` (asked
+ * alone, and nothing warm follows it), a pain question is one gated on the
+ * patient having named pain (the INT-236 gate shape), a sensitive one is a
+ * 02 §33 deferral unit or a files/13 §13 `text_first` step, and an instrument
+ * step carries its instrument reference. Nothing here grades an answer — the only answer this
  * module reads is whether the patient said they do not know, and that selects
  * an acknowledgement, never a value.
  */
@@ -49,6 +50,11 @@ export const HESITANT_OPTION_IDS: ReadonlySet<string> = new Set([
 
 /** The question's kind of moment, from its declarations only. */
 export function questionContextOf(question: IntakeQuestion): QuestionContext {
+  if (question.redAdjacent === true) {
+    // The pack's own declaration, and it outranks the rest: a RED-adjacent
+    // step is asked alone, with nothing said around it (delivery.ts).
+    return "red";
+  }
   if (question.instrument !== undefined) {
     return "instrument";
   }
