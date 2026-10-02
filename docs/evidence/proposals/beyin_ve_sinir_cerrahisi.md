@@ -61,6 +61,9 @@ value.
   > "Severe or progressive bilateral neurological deficit of the legs, such as major motor weakness with
   > knee extension, ankle eversion, or foot dorsiflexion"
   > "Laxity of the anal sphincter"
+- **Added verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same MPS URL; page dated 02/05/2018,
+  last updated 14/11/2018; first of the six bullets):**
+  > "Bilateral sciatica"
 - **Confidence: MEDIUM.** Verbatim obtained via an authoritative secondary reproduction (MPS, who
   co-developed the revision with NICE), not a direct fetch of cks.nice.org.uk. Must be re-verified
   against the live CKS page before it grounds any question wording or gate.
@@ -124,6 +127,49 @@ value.
   presentations"; "Papilledema"; "Precipitated by sneezing, coughing or exercise". Carried from
   noroloji.md §1 S5. Grounds the *progressive headache ± vomiting* feeding question.
 
+### S7 — NHS "Sciatica" (patient page; international) **[retrieved 2026-10-02]**
+- **guideline_id (proposed):** `NHS-SCIATICA` (patient information page, NOT a clinical guideline)
+- **Publishing body:** NHS (England) · **Version / date:** page last reviewed 03 December 2024; next
+  review due 03 December 2027
+- **URL:** https://www.nhs.uk/conditions/sciatica/
+- **retrieved_on:** 2026-10-02
+- **Verbatim:**
+  > "your bottom and the back of one leg, often including your foot and toes"
+  > "tingling – like pins and needles"
+  > "numbness"
+  > "the pain may be worse when moving, sneezing or coughing"
+- **Added verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same URL; section "Go to A&E or call
+  999 if you:"):**
+  > "have sciatica on both sides"
+- **Confidence: LOW–MEDIUM** (patient page). Grounds the sciatica items Q10a–Q10d only.
+
+### S8 — NICE NG232 rec 1.5.13 and 1.2.4, as reproduced in a multi-society position statement **[retrieved 2026-10-02]**
+- **guideline_id (proposed):** `RCEM-NG232-ANTICOAG-2023` (secondary reproduction of `NICE-NG232`)
+- **Publishing body:** position statement endorsed by AACE, RCEM, British Geriatrics Society,
+  Society of British Neurological Surgeons and UK Hospital at Home Society
+- **Version / date:** "Position statement on the 2023 NICE head injury guidelines regarding
+  asymptomatic patients on anticoagulation or antiplatelet treatment", 23 October 2023 (printed on
+  p. 3)
+- **URL:** https://rcem.ac.uk/wp-content/uploads/2024/03/Nice_Head_Injury_Position_Statement_October_2023.pdf
+- **retrieved_on:** 2026-10-02
+- **Verbatim (reproducing NG232):**
+  > "1.5.13 For people who have sustained a head injury and have no other indications for a CT head
+  > scan, but are on anticoagulant treatment (including vitamin K antagonists, direct-acting oral
+  > anticoagulants, heparin and low molecular weight heparins) or antiplatelet treatment (excluding
+  > aspirin monotherapy), consider doing a CT head scan: within 8 hours of the injury (for example, if
+  > it is difficult to do a risk assessment or the patient may not return to the emergency department
+  > if they have signs of deterioration) or within the hour if they present more than 8 hours after the
+  > injury."
+  > "“Current anticoagulant and antiplatelet treatment” are listed as a risk factor."
+- **Added verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same URL, p. 1):**
+  > "1.2.4 Community health services (GPs, ambulance crews, NHS walk-in or minor injury centres,
+  > dental practitioners) and inpatient units without an emergency department should refer people who
+  > have sustained a head injury to a hospital emergency department, using the ambulance service if
+  > necessary, if there are any of these risk factors."
+  > "It should be noted that aspirin monotherapy alone is not an indication for referral."
+- **Confidence: MEDIUM.** Re-verify against the primary NG232 text (nice.org.uk 403; NCBI Bookshelf
+  reCAPTCHA, not bypassed).
+
 ---
 
 ## 2. Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -169,7 +215,7 @@ set, so **no "no archetype fits — export blocked" row is needed.**
 
 ---
 
-## 4. Candidate B1 Turkish pre-visit questions (15)
+## 4. Candidate B1 Turkish pre-visit questions (21)
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2); empathetic; no
 diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to approve wording".** No
@@ -212,7 +258,7 @@ CANDIDATE — clinician to approve wording. **Overlap: `rf.stroke_fast`.** Candi
 
 **Q5 — Sudden very severe (thunderclap) headache (FEEDS SAH gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (NG228 Rec 1.1.1, "peaking in intensity within 1 to 5 minutes … red-flag")
-> "Saniyeler ya da birkaç dakika içinde en şiddetli hâline ulaşan, ani ve çok şiddetli bir baş ağrınız oldu mu?"
+> "Saniyeler ya da birkaç dakika içinde çok şiddetlenen ani bir baş ağrınız oldu mu?"
 gen: slot=ani_cok_siddetli_bas_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `rf.thunderclap_headache` / `rf.sah_ottawa`.**
 Candidate flag only; acute decision deferred to base.life_threat.
@@ -234,7 +280,7 @@ clinician decides placement, §2.
 **Q8 — New bladder/bowel control change (FEEDS cauda equina gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S1 (NICE CKS: "Difficulty initiating micturition or impaired
 sensation of urinary flow"; "Loss of sensation of rectal fullness")
-> "Son zamanlarda idrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?"
+> "İdrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?"
 gen: slot=idrar_diski_kontrol_degisimi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina (base.life_threat territory, §2).**
 Candidate flag only; **NO RED assigned** (task constraint).
@@ -255,6 +301,31 @@ gen: slot=bacaga_yayilan_bel_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. Split from the former Q9 (one question per turn); symptom
 capture only, no candidate flag.
 
+**Q10a — Numbness or tingling in that leg** · archetype: `OBSERVATION.symptom_sign.v1` · source: S7
+("tingling – like pins and needles"; "numbness")
+> "Bu bacağınızda uyuşma ya da karıncalanma oluyor mu?"
+gen: slot=bacakta_uyusma_karincalanma; type=boolean; ask_if=bacaga_yayilan_bel_agrisi == true
+CANDIDATE — clinician to approve wording.
+
+**Q10b — Pain reaching the foot** · archetype: `OBSERVATION.symptom_sign.v1` · source: S7 ("often
+including your foot and toes")
+> "Bu ağrı ayağınıza ya da ayak parmaklarınıza kadar iniyor mu?"
+gen: slot=ayaga_inen_agri; type=boolean; ask_if=bacaga_yayilan_bel_agrisi == true
+CANDIDATE — clinician to approve wording.
+
+**Q10c — Worse on coughing or sneezing** · archetype: `OBSERVATION.symptom_sign.v1` · source: S7 ("the
+pain may be worse when moving, sneezing or coughing")
+> "Bu ağrı öksürünce ya da hapşırınca artıyor mu?"
+gen: slot=oksurunce_artan_bacak_agrisi; type=boolean; ask_if=bacaga_yayilan_bel_agrisi == true
+CANDIDATE — clinician to approve wording.
+
+**Q10d — Pain spreading to both legs (FEEDS cauda equina gate)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S1 ("Bilateral sciatica"), S7 ("have sciatica on both sides")
+> "Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?"
+gen: slot=iki_bacaga_yayilan_agri; type=boolean
+CANDIDATE — clinician to approve wording. Ungated. Same id and wording as ortopedi_ve_travmatoloji Q12.
+**Overlap: cauda equina.** Candidate flag only; **NO RED assigned.**
+
 **Q11 — Both-leg weakness (FEEDS cauda equina gate)** · archetype: `OBSERVATION.symptom_sign.v1` ·
 source: S1 (NICE CKS: "Severe or progressive bilateral neurological deficit of the legs … major motor
 weakness")
@@ -264,12 +335,18 @@ CANDIDATE — clinician to approve wording. **Overlap: cauda equina bilateral le
 flag only; **NO RED assigned.**
 
 **Q12 — Recent head injury (FEEDS head-injury gate)** · archetype: `OBSERVATION.symptom_sign.v1` ·
-source: S2 (NG232)
-> "Son zamanlarda başınıza ciddi bir darbe aldınız mı?"
+source: S2 (NG232), S8 (NG232 1.2.4)
+> "Son zamanlarda başınıza hafif de olsa bir darbe aldınız mı?"
 gen: slot=yakin_bas_darbesi; type=boolean
 CANDIDATE — clinician to approve wording. Clinician follow-up (NG232 warning symptoms: bayılma, giderek
 artan baş ağrısı, tekrarlayan kusma) kept as sub-turns to preserve one concern per turn. Supports the
 `anticoagulant_use` slot that head-injury/bleeding gates require.
+
+**Q12a — When the head injury happened** · archetype: `OBSERVATION.story.v1` · source: S8 (NG232
+1.5.13, "within 8 hours of the injury … more than 8 hours after the injury")
+> "Başınıza bu darbeyi ne zaman aldınız?"
+gen: slot=bas_darbesi_tarihi; type=date; ask_if=yakin_bas_darbesi == true
+CANDIDATE — clinician to approve wording.
 
 **Q13 — Known neurosurgical diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 general intake (S6 "Neoplasm in history" gives relevance)
@@ -277,6 +354,12 @@ general intake (S6 "Neoplasm in history" gives relevance)
 gen: slot=beyin_omurga_tanisi; type=boolean
 CANDIDATE — clinician to approve wording. Clinician may add an imaging follow-up (MR/tomografi) as a
 sub-turn. Candidate level: none (history question).
+
+**Q13a — Name of that diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S6
+("Neoplasm in history")
+> "Size söylenen tanının adını söyleyebilir misiniz?"
+gen: slot=beyin_omurga_tanisi_adi; type=string; ask_if=beyin_omurga_tanisi == true
+CANDIDATE — clinician to approve wording.
 
 **Q14 — Prior brain or spine surgery** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 general intake
@@ -292,7 +375,7 @@ gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording. Clinician follow-up: "kan sulandırıcı bir ilaç kullanıyor
 musunuz?" — supports the `anticoagulant_use` slot that head-injury/bleeding gates require.
 
-*(15 candidate questions.)*
+*(21 candidate questions after the INT-427 wave.)*
 
 ---
 
@@ -352,3 +435,22 @@ musunuz?" — supports the `anticoagulant_use` slot that head-injury/bleeding ga
   `status: draft_needs_source` and do not compile. This proposal supplies candidate sources S1–S6 but
   does not itself commit a snapshot.
 - **HB-C1** — this pack awaits clinician (physician of record; neurosurgeon) sign-off; NOT served.
+
+---
+
+## 8. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q5 `ani_cok_siddetli_bas_agrisi` | reworded (19 → 15 words); still ungated | — | S3 |
+| Q8 `idrar_diski_kontrol_degisimi` | reworded (16 → 14 words); still ungated | — | S1 |
+| Q10a `bacakta_uyusma_karincalanma` | added | `bacaga_yayilan_bel_agrisi == true` | S7 |
+| Q10b `ayaga_inen_agri` | added | `bacaga_yayilan_bel_agrisi == true` | S7 |
+| Q10c `oksurunce_artan_bacak_agrisi` | added | `bacaga_yayilan_bel_agrisi == true` | S7 |
+| Q12a `bas_darbesi_tarihi` | added (`type=date`) | `yakin_bas_darbesi == true` | S8 |
+| Q13a `beyin_omurga_tanisi_adi` | added | `beyin_omurga_tanisi == true` | S6 |
+| §1 S7, S8 | sources added | — | S7, S8 |
+| Q5 `ani_cok_siddetli_bas_agrisi` | reworded (fix round, V-BVSC-2); still ungated | — | S3 |
+| Q10d `iki_bacaga_yayilan_agri` | added (fix round, V-BVSC-1); ungated | — | S1, S7 |
+| Q12 `yakin_bas_darbesi` | reworded (fix round, V-BVSC-3); still ungated; S8 added to its sources | — | S2, S8 |
+| §1 S1, S7, S8 | verbatim quotes added; S8 date corrected (fix round) | — | S1, S7, S8 |

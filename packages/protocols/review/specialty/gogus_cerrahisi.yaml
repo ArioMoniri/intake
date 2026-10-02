@@ -53,8 +53,8 @@ sections:
         ask_tr:
           tr: Geçmeyen yeni bir öksürüğünüz var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
-      soru_2:
-        type: string
+      balgamda_kan:
+        type: boolean
         required: false
         ask_tr:
           tr: Öksürürken balgamınızla birlikte az da olsa kan geldi mi?
@@ -77,12 +77,26 @@ sections:
         ask_tr:
           tr: Sesinizde geçmeyen bir kısıklık var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
-      soru_6:
-        type: string
+      akciger_sonmesi_oykusu:
+        type: boolean
         required: false
         ask_tr:
           tr: Daha önce size akciğer sönmesi olduğu söylendi mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
+      akciger_sonmesi_tekrari:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Akciğer sönmesi sizde tekrarladı mı?
+        ask_if: akciger_sonmesi_oykusu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
+      akciger_sonmesi_gogus_tupu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Akciğer sönmesi için göğsünüze bir tüp takıldı mı?
+        ask_if: akciger_sonmesi_oykusu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
       soru_7:
         type: string
         required: false
@@ -101,17 +115,53 @@ sections:
         ask_tr:
           tr: Kapalı ortamlarda uzun süre başkalarının sigara dumanını soludunuz mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
-      soru_10:
-        type: string
+      asiri_terleme:
+        type: boolean
         required: false
         ask_tr:
           tr: Ellerinizde ya da koltuk altlarınızda günlük hayatınızı zorlaştıran aşırı terleme var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
-      soru_11:
-        type: string
+      ayak_terlemesi:
+        type: boolean
         required: false
         ask_tr:
-          tr: Yemek yutarken boğazınızda ya da göğsünüzde takılma hissi oluyor mu?
+          tr: Ayaklarınızda da aşırı terleme oluyor mu?
+        ask_if: asiri_terleme == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
+      ailede_asiri_terleme:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde de sizin gibi aşırı terleyen biri var mı?
+        ask_if: asiri_terleme == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/gogus_cerrahisi.md'
+      tum_vucut_terlemesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu terleme bütün vücudunuzda da oluyor mu?
+        ask_if: asiri_terleme == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
+      yutma_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yemek ya da su yutarken boğazınızda veya göğsünüzde takılma oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
+      sivi_yutma_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu takılma su gibi sıvıları yutarken de oluyor mu?
+        ask_if: yutma_guclugu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
+      yiyecek_geri_gelmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yediklerinizin ya da tükürüğünüzün ağzınıza geri geldiği oluyor mu?
+        ask_if: yutma_guclugu == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_cerrahisi.md'
 red_flags:
 - id: rf.gogus_cerrahisi_l0_taslak

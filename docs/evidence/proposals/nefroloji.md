@@ -106,6 +106,25 @@ value.
   > "Gross hematuria makes your urine look pink, red, or brown."
   > "In most cases, gross hematuria does not cause pain or other symptoms."
 
+### N-S6 — NIDDK, "Hematuria (Blood in the Urine)" — pain sentence (international, patient page)
+- **guideline_id (proposed):** `NIDDK-HEMATURIA` (same page as N-S5) · **Last reviewed:** October 2022
+- **URL:** https://www.niddk.nih.gov/health-information/urologic-diseases/hematuria-blood-urine
+- **retrieved_on:** 2026-10-02
+- **Verbatim:**
+  > "In most cases, gross hematuria does not cause pain or other symptoms. However, you may have
+  > bladder or back pain if there are blood clots in your urine."
+
+### N-S7 — NICE NG12, *Suspected cancer: recognition and referral* (international)
+- **guideline_id (proposed):** `NICE-NG12`
+- **Publishing body:** National Institute for Health and Care Excellence (NICE), United Kingdom
+- **Version / date:** NG12 · "Published: 23 June 2015" · "Last updated: 15 April 2026" (page header)
+- **URL:** https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+- **retrieved_on:** 2026-10-02
+- **Verbatim (rec 1.6.4):**
+  > "Refer people using a suspected cancer pathway referral for bladder cancer if they are: aged 45 and
+  > over and have: unexplained visible haematuria without urinary tract infection, or visible
+  > haematuria that persists or recurs after successful treatment of urinary tract infection"
+
 ---
 
 ## 2. openEHR mapping and `base.life_threat` overlap
@@ -129,6 +148,12 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q10 | Past kidney stones | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 | Q11 | Family history of kidney disease | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032); **no family-history archetype in the OPT** — see §4 |
 | Q12 | Regular painkiller use | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
+| Q2a | Weight gain since the swelling began | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q4a | Urine colour change more than once | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q4b | Back or lower-abdominal pain with the colour change | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q5a | Duration of reduced urine volume | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q10a | Kidney stones more than once | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
+| Q11a | Name of the relatives' kidney disease | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032); no family-history archetype (§4 gap 8) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -159,7 +184,7 @@ reproduced as patient questions.
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (18)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE — clinician to
@@ -176,6 +201,11 @@ CANDIDATE — clinician to approve wording.
 gen: slot=ayak_goz_kapagi_sisligi; type=boolean
 CANDIDATE — clinician to approve wording.
 
+**Q2a — Weight gain since the swelling began** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S4 ("weight gain due to retaining too much fluid")
+> "Şişlik başladığından beri kilonuzda artış oldu mu?"
+gen: slot=sislikle_kilo_artisi; type=boolean; ask_if=ayak_goz_kapagi_sisligi == true
+CANDIDATE — clinician to approve wording. No weight amount asked (invariant 22).
+
 **Q3 — Foamy urine** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S4 ("foamy urine"), N-S2 (proteinüri context)
 > "İdrarınızın normalden fazla köpürdüğünü fark ettiniz mi?"
 gen: slot=kopuklu_idrar; type=boolean
@@ -186,11 +216,26 @@ CANDIDATE — clinician to approve wording.
 gen: slot=idrar_renk_degisikligi; type=boolean
 CANDIDATE — clinician to approve wording. Persistence is a clinician item (RF-3).
 
+**Q4a — Urine colour change more than once** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S1 (Tablo 3, "İdrarda nedeni açıklanamayan kalıcı hematüri")
+> "İdrarınızdaki bu renk değişikliği birden fazla kez oldu mu?"
+gen: slot=renk_degisikligi_tekrari; type=boolean; ask_if=idrar_renk_degisikligi == true
+CANDIDATE — clinician to approve wording. Captures repetition only; persistence stays a clinician item.
+
+**Q4b — Back or lower-abdominal pain with the colour change** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S6 ("In most cases, gross hematuria does not cause pain or other symptoms. However, you may have bladder or back pain if there are blood clots in your urine.")
+> "Bu renk değişikliği sırasında belinizde ya da karnınızın alt kısmında ağrı oldu mu?"
+gen: slot=renk_degisikliginde_agri; type=boolean; ask_if=idrar_renk_degisikligi == true
+CANDIDATE — clinician to approve wording.
+
 **Q5 — Reduced urine volume (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S3 ("make little or no urine"), N-S2 ("oligüri")
 > "Son zamanlarda idrar miktarınızda belirgin bir azalma oldu mu?"
 gen: slot=idrar_miktari_azalmasi; type=boolean
 CANDIDATE — clinician to approve wording. **Acute kidney injury has no base.life_threat rule (§2.2)**;
 source wording quoted only; no level asserted.
+
+**Q5a — Duration of reduced urine volume** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S2 ("Hızlı ilerleyen GN: Çok kısa sürede (günler haftalar) içerisinde böbrek fonksiyonlarında bozulma, proteinüri, HT, oligüri …"), N-S3 ("make little or no urine")
+> "İdrar miktarınızdaki azalma ne zamandır sürüyor?"
+gen: slot=idrar_azalmasi_suresi; type=duration; ask_if=idrar_miktari_azalmasi == true; follow_up=Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+CANDIDATE — clinician to approve wording. No duration threshold in patient copy; Q5 stays ungated.
 
 **Q6 — Persistent itch** · archetype: `OBSERVATION.symptom_sign.v1` · source: N-S3 ("feel itchy")
 > "Derinizde geçmeyen bir kaşıntı var mı?"
@@ -217,19 +262,29 @@ CANDIDATE — clinician to approve wording. Same wording as the göz proposal Q1
 gen: slot=bobrek_tasi_oykusu; type=boolean
 CANDIDATE — clinician to approve wording.
 
+**Q10a — Kidney stones more than once** · archetype: `EVALUATION.problem_diagnosis.v1` · source: N-S1 (Tablo 3, "Tekrarlayan veya yaygın böbrek taşı")
+> "Böbreklerinizde birden fazla kez taş oluştu mu?"
+gen: slot=tekrarlayan_bobrek_tasi; type=boolean; ask_if=bobrek_tasi_oykusu == true
+CANDIDATE — clinician to approve wording.
+
 **Q11 — Family history of kidney disease** · archetype: `OBSERVATION.story.v1` (narrative only) · source: N-S1 ("ailede kronik böbrek yetmezliği hikayesi"; "soy geçmişi (Polikistik Böbrek Hastalığı, Alport, vb.)"; Tablo 3 "Ailevi böbrek hastalığı")
 > "Ailenizde böbrek hastalığı olan biri var mı?"
-gen: slot=ailede_bobrek_hastaligi; type=boolean
+gen: slot=ailede_bobrek_hastaligi; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Family history is health data about third parties; it
 exports as narrative only (gap 8), the same posture as the family-history items already in the review
-queue.
+queue. `text_first` per owner decision D3 (verification/owner-decisions-2026-09-26.md).
+
+**Q11a — Name of the relatives' kidney disease** · archetype: `OBSERVATION.story.v1` (narrative only) · source: N-S1 ("soy geçmişi (Polikistik Böbrek Hastalığı, Alport, vb.)"; Tablo 3 "Ailevi böbrek hastalığı")
+> "Ailenizdeki bu böbrek hastalığının adını söyleyebilir misiniz?"
+gen: slot=ailedeki_bobrek_hastaligi_adi; type=string; ask_if=ailede_bobrek_hastaligi == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' health history: D3 category, `text_first`.
 
 **Q12 — Regular painkiller use** · archetype: `ACTION.medication.v1` · source: N-S1 ("NSAII kullanımı … durumlardan sakınması"), N-S2 ("non-steroid anti-inflamatuar ilaç")
 > "Ağrı kesici ilaçları sık ya da uzun süre kullanıyor musunuz?"
 gen: slot=duzenli_agri_kesici; type=boolean
 CANDIDATE — clinician to approve wording. Complements base intake's medication list; not a flag.
 
-*(12 candidate questions.)*
+*(18 candidate questions: 12 ungated, 6 gated detail items (Q2a, Q4a, Q4b, Q5a, Q10a, Q11a; §6).)*
 
 ---
 
@@ -272,3 +327,18 @@ CANDIDATE — clinician to approve wording. Complements base intake's medication
 - **Clinical content rule** — every red-flag needs a committed verbatim snapshot; until then rules stay
   `status: draft_needs_source`. This proposal supplies candidate sources N-S1…N-S5 only.
 - **HB-C1** — awaits clinician sign-off; NOT served.
+
+---
+
+## 6. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q2a `sislikle_kilo_artisi` | added | `ayak_goz_kapagi_sisligi == true` | N-S4 |
+| Q4a `renk_degisikligi_tekrari` | added | `idrar_renk_degisikligi == true` | N-S1 |
+| Q4b `renk_degisikliginde_agri` | added | `idrar_renk_degisikligi == true` | N-S6 |
+| Q5a `idrar_azalmasi_suresi` | added (duration; follow-up) | `idrar_miktari_azalmasi == true` | N-S2, N-S3 |
+| Q10a `tekrarlayan_bobrek_tasi` | added | `bobrek_tasi_oykusu == true` | N-S1 |
+| Q11 `ailede_bobrek_hastaligi` | delivery set to `text_first` (D3); text unchanged | — (ungated) | N-S1 |
+| Q11a `ailedeki_bobrek_hastaligi_adi` | added (string; `text_first`) | `ailede_bobrek_hastaligi == true` | N-S1 |
+| §1 N-S7 | added (NG12 rec 1.6.4; fix round, V-NF-1, red-flag row A1) | — | N-S7 |

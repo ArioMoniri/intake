@@ -105,6 +105,23 @@ value.
   > (hypercalcaemia)"
 - **Confidence: HIGH** for the text (primary PDF); a UK referral guide, not a Turkish source.
 
+### H-S5 — NICE NG12, *Suspected cancer: recognition and referral* (international)
+- **guideline_id (proposed):** `NICE-NG12`
+- **Publishing body:** National Institute for Health and Care Excellence (NICE), United Kingdom
+- **Version / date:** NG12 · "Published: 23 June 2015" · "Last updated: 15 April 2026" (page header)
+- **URL:** https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+- **retrieved_on:** 2026-10-02
+- **Verbatim:**
+  > Rec 1.10.1: "Consider a very urgent full blood count to assess for leukaemia in adults with any of
+  > the following:" · (list items) "generalised lymphadenopathy" · "unexplained bruising" ·
+  > "unexplained bleeding"
+  > Rec 1.10.8: "Consider a suspected cancer pathway referral for Hodgkin lymphoma in adults presenting
+  > with unexplained lymphadenopathy. When considering referral, take into account any associated
+  > symptoms, particularly fever, night sweats, shortness of breath, pruritus, weight loss or
+  > alcohol‑induced lymph node pain."
+  > Rec 1.13.2: "For people aged 60 and over with unexplained weight loss (greater than 5% mean weight
+  > loss within a 6-month period)" … "[2026]"
+
 ---
 
 ## 2. openEHR mapping and `base.life_threat` overlap
@@ -128,6 +145,12 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q10 | Heavy night sweats | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q11 | Unintended weight loss | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Family history of anaemia or blood disease | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032); **no family-history archetype in the OPT** — see §4 |
+| Q9a | Duration of the swelling | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q9b | Swelling increasing in size | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q9c | Swelling in more than one body area | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q10a | Duration of night sweats | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q11a | Duration of weight loss | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q12a | Name of the relatives' blood disease | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032); no family-history archetype (§4 gap 7) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -156,7 +179,7 @@ None of these is a rule, a level or a route.
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (18)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE — clinician to
@@ -219,10 +242,31 @@ caveat).
 gen: slot=boyun_koltuk_kasik_sisligi; type=boolean
 CANDIDATE — clinician to approve wording. No size or duration threshold in patient copy (§4 gap 4).
 
+**Q9a — Duration of the swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S4 ("• Lymphadenopathy (>2cm) persisting for six weeks or increasing in size or generalised")
+> "Bu şişlik ne zamandır var?"
+gen: slot=sislik_suresi; type=duration; ask_if=boyun_koltuk_kasik_sisligi == true; follow_up=Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+CANDIDATE — clinician to approve wording. No duration threshold in patient copy (§4 gap 4).
+
+**Q9b — Swelling increasing in size** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S4 ("increasing in size")
+> "Fark ettiğinizden bu yana bu şişlik büyüdü mü?"
+gen: slot=sislik_buyumesi; type=boolean; ask_if=boyun_koltuk_kasik_sisligi == true
+CANDIDATE — clinician to approve wording. Same text and slot as aile_hekimligi Q7b (one audio clip).
+No size threshold in patient copy.
+
+**Q9c — Swelling in more than one body area** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S4 ("or generalised"), H-S5 (NG12 rec 1.10.1, "generalised lymphadenopathy")
+> "Bu şişlikten vücudunuzun başka bir yerinde de var mı?"
+gen: slot=birden_fazla_bolgede_sislik; type=boolean; ask_if=boyun_koltuk_kasik_sisligi == true
+CANDIDATE — clinician to approve wording.
+
 **Q10 — Heavy night sweats** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S3 ("yineleyen gece terlemeleri"; "aşırı gece terlemesi"), H-S4 ("night sweats")
 > "Geceleri uykunuzda aşırı terleme oluyor mu?"
 gen: slot=gece_terlemesi; type=boolean
 CANDIDATE — clinician to approve wording.
+
+**Q10a — Duration of night sweats** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S3 (CLL, "1 aydan uzun süren enfeksiyon olmadan gelişen aşırı gece terlemesi"), H-S5 (NG12 rec 1.10.8, "night sweats")
+> "Gece terlemeleriniz ne zamandır sürüyor?"
+gen: slot=gece_terlemesi_suresi; type=duration; ask_if=gece_terlemesi == true; follow_up=Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+CANDIDATE — clinician to approve wording. No duration threshold in patient copy.
 
 **Q11 — Unintended weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S3 (B symptoms), H-S4 ("weight loss")
 > "Son aylarda istemeden kilo kaybettiniz mi?"
@@ -231,13 +275,25 @@ CANDIDATE — clinician to approve wording. Same wording and slot as göğüs Q1
 Captures the same fact as the base probe `rf_weight_loss_unintentional`; remove this duplicate once
 HB-C1 writes that probe.
 
+**Q11a — Duration of weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: H-S3 ("Son 6 ay içinde bazal vücut ağırlığının %10'undan daha fazlasının kaybı"), H-S5 (NG12 rec 1.13.2, "unexplained weight loss (greater than 5% mean weight loss within a 6-month period)")
+> "Kilo kaybınız ne zamandır sürüyor?"
+gen: slot=kilo_kaybi_suresi; type=duration; ask_if=istemsiz_kilo_kaybi == true; follow_up=Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+CANDIDATE — clinician to approve wording. No amount or period threshold in patient copy. Same text
+and slot as aile_hekimligi Q3a (one audio clip).
+
 **Q12 — Family history of anaemia or blood disease** · archetype: `OBSERVATION.story.v1` (narrative only) · source: H-S1 p. 26 ("Ailede DEA öyküsü … talasemi"), H-S2 ("kişisel ve aile öyküsü çok önemlidir")
 > "Ailenizde kansızlık ya da kan hastalığı olan biri var mı?"
-gen: slot=ailede_kan_hastaligi; type=boolean
+gen: slot=ailede_kan_hastaligi; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Family history; exports as narrative only (§4 gap 7), same
-posture as nefroloji Q11.
+posture as nefroloji Q11. `text_first` per owner decision D3
+(verification/owner-decisions-2026-09-26.md).
 
-*(12 candidate questions.)*
+**Q12a — Name of the relatives' blood disease** · archetype: `OBSERVATION.story.v1` (narrative only) · source: H-S1 p. 26 ("Ailede DEA öyküsü: Kalıtsal demir emilim bozukluğu, telanjiektazi, hemostaz bozukluğu ve talasemi ayırıcı tanıda düşünülmelidir."), H-S2 ("kişisel ve aile öyküsü çok önemlidir")
+> "Ailenizdeki bu kan hastalığının adını söyleyebilir misiniz?"
+gen: slot=ailedeki_kan_hastaligi_adi; type=string; ask_if=ailede_kan_hastaligi == true; delivery=text_first
+CANDIDATE — clinician to approve wording. Relatives' health history: D3 category, `text_first`.
+
+*(18 candidate questions: 12 ungated, 6 gated detail items (Q9a, Q9b, Q9c, Q10a, Q11a, Q12a; §6).)*
 
 ---
 
@@ -280,3 +336,18 @@ posture as nefroloji Q11.
 - **Clinical content rule** — every red-flag needs a committed verbatim snapshot; until then rules stay
   `status: draft_needs_source`. This proposal supplies candidate sources H-S1…H-S4 only.
 - **HB-C1** — awaits clinician sign-off; NOT served.
+
+---
+
+## 6. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q9a `sislik_suresi` | added (duration; follow-up) | `boyun_koltuk_kasik_sisligi == true` | H-S4 |
+| Q9b `sislik_buyumesi` | added | `boyun_koltuk_kasik_sisligi == true` | H-S4 |
+| Q9c `birden_fazla_bolgede_sislik` | added; reworded in fix round (V-HM-3): "Bu şişlikten vücudunuzun başka bir yerinde de var mı?" | `boyun_koltuk_kasik_sisligi == true` | H-S4, H-S5 |
+| Q10a `gece_terlemesi_suresi` | added (duration; follow-up) | `gece_terlemesi == true` | H-S3, H-S5 |
+| Q11a `kilo_kaybi_suresi` | added (duration; follow-up) | `istemsiz_kilo_kaybi == true` | H-S3, H-S5 |
+| Q12 `ailede_kan_hastaligi` | delivery set to `text_first` (D3); text unchanged | — (ungated) | H-S1, H-S2 |
+| Q12a `ailedeki_kan_hastaligi_adi` | added (string; `text_first`) | `ailede_kan_hastaligi == true` | H-S1, H-S2 |
+| §1 H-S5 | rec 1.10.1 list items "unexplained bruising" · "unexplained bleeding" added (fix round, V-HM-2, red-flag row A1) | — | H-S5 |

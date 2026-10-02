@@ -127,6 +127,47 @@ value.
   > "• Persistent haemoptysis in smokers/ex-smokers over 40 years of age"
 - **Confidence: HIGH** for the text (primary PDF); a UK referral guide, not a Turkish source.
 
+### GH-S8 — NICE NG114, *Chronic obstructive pulmonary disease (acute exacerbation): antimicrobial prescribing* (international)
+- **guideline_id (proposed):** `NICE-NG114`
+- **Publishing body:** National Institute for Health and Care Excellence (NICE), United Kingdom
+- **Version / date:** NG114 · "Published: 05 December 2018" (page header)
+- **URL:** https://www.nice.org.uk/guidance/ng114/chapter/Recommendations
+- **retrieved_on:** 2026-10-02
+- **Verbatim (rec 1.1.2):**
+  > "Consider an antibiotic (see the recommendations on choice of antibiotic) for people with an acute
+  > exacerbation of COPD, but only after taking into account: the severity of symptoms, particularly
+  > sputum colour changes and increases in volume or thickness beyond the person's normal day-to-day
+  > variation"
+
+### GH-S9 — NICE NG245, *Asthma: diagnosis, monitoring and chronic asthma management* (BTS, NICE, SIGN; international)
+- **guideline_id (proposed):** `NICE-NG245`
+- **Publishing body:** NICE with the British Thoracic Society and SIGN, United Kingdom
+- **Version / date:** NG245 · "Published: 27 November 2024" (page header)
+- **URL:** https://www.nice.org.uk/guidance/ng245/chapter/Recommendations
+- **retrieved_on:** 2026-10-02
+- **Verbatim (rec 1.1.1, list items):**
+  > "Obtain a structured clinical history in people with suspected asthma. Specifically, check for:" ·
+  > "reported wheeze, noisy breathing, cough, breathlessness or chest tightness, and any variation (for
+  > example, worse during the night or early morning, or seasonal) in these symptoms" · "any triggers
+  > that make symptoms worse"
+- **Verbatim (rec 1.4.1):**
+  > "In people with adult-onset asthma, poorly controlled established asthma, or reappearance of
+  > childhood asthma, check for a possible occupational component by asking: Are symptoms the same,
+  > better or worse on days away from work? Are symptoms the same, better or worse when on holiday
+  > (time away from work, longer than usual breaks, at weekends or between shifts)?"
+- **Verbatim (rec 1.4.2):**
+  > "Refer people with suspected occupational asthma to an occupational asthma specialist."
+
+### GH-S10 — NICE NG12, *Suspected cancer: recognition and referral* (international)
+- **guideline_id (proposed):** `NICE-NG12`
+- **Publishing body:** National Institute for Health and Care Excellence (NICE), United Kingdom
+- **Version / date:** NG12 · "Published: 23 June 2015" · "Last updated: 15 April 2026" (page header)
+- **URL:** https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+- **retrieved_on:** 2026-10-02
+- **Verbatim (rec 1.1.1):**
+  > "Refer people using a suspected cancer pathway referral for lung cancer if they: have chest X‑ray
+  > findings that suggest lung cancer, or are aged 40 and over with unexplained haemoptysis."
+
 ---
 
 ## 2. openEHR mapping and `base.life_threat` overlap
@@ -150,6 +191,12 @@ The committed OPT pins archetype **roots** only (no at-codes); leaf paths are **
 | Q10 | Workplace dust / fume / gas exposure | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032); **no exposure archetype in the OPT** — see §4 |
 | Q11 | Unintended weight loss | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
 | Q12 | Witnessed breathing pauses in sleep | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q2a | Duration of cough | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q3a | Change in sputum colour, amount or thickness | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q5a | Blood in sputum more than once | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q6a | Cough or wheeze worse after exercise | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q6b | Cough or wheeze worse in certain seasons | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| Q10a | Symptoms ease away from work | `openEHR-EHR-OBSERVATION.story.v1` (narrative only) | OBSERVATION | deferred (INT-032) |
 | — | Candidate flag output (never an intake question) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | output only |
 
 ### 2.2 Overlap with `base.life_threat` (flagged; NOT proposed for extension — invariant 7)
@@ -181,7 +228,7 @@ the reviewing clinician can decide whether any becomes a `draft_needs_source` ru
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (18)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE — clinician to
@@ -200,10 +247,20 @@ CANDIDATE — clinician to approve wording.
 gen: slot=cogu_gun_oksuruk; type=boolean
 CANDIDATE — clinician to approve wording. Own wording; the TTD self-check sentence is not reused (§4 gap 4).
 
+**Q2a — Duration of cough** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S4 ("2-3 haftadan uzun süre öksürüğü olan kişilerin en kısa sürede … başvurmaları gerekir"), GH-S7 ("Unexplained and persistent (more than three weeks): • change in cough or new cough")
+> "Öksürüğünüz ne zamandır sürüyor?"
+gen: slot=oksuruk_suresi; type=duration; ask_if=cogu_gun_oksuruk == true; follow_up=Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+CANDIDATE — clinician to approve wording. No duration threshold in patient copy.
+
 **Q3 — Sputum most days** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (complaint only; own wording)
 > "Günlerin çoğunda balgamınız oluyor mu?"
 gen: slot=cogu_gun_balgam; type=boolean
 CANDIDATE — clinician to approve wording. Own wording.
+
+**Q3a — Change in sputum colour, amount or thickness** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S8 (NG114 rec 1.1.2, "sputum colour changes and increases in volume or thickness beyond the person's normal day-to-day variation")
+> "Son zamanlarda balgamınızın rengi, miktarı ya da koyuluğu değişti mi?"
+gen: slot=balgam_degisikligi; type=boolean; ask_if=cogu_gun_balgam == true
+CANDIDATE — clinician to approve wording.
 
 **Q4 — Breathlessness compared with peers (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S1 (complaint only; own wording), GH-S6 ("shortness of breath")
 > "Aynı yaştaki kişilerden daha çabuk nefes nefese kalıyor musunuz?"
@@ -211,17 +268,32 @@ gen: slot=akranlardan_cabuk_nefes_darligi; type=boolean
 CANDIDATE — clinician to approve wording. Own wording. **Overlap: `rf.dyspnoea_rest` (§2.2)** —
 breathlessness at rest is base.life_threat's determination, not this pack's.
 
-**Q5 — Blood in sputum (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S3 ("Kanlı balgam ve kan tükürme"), GH-S4 ("Balgamında kan görülmesi"), GH-S7
+**Q5 — Blood in sputum (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S3 ("Kanlı balgam ve kan tükürme"), GH-S4 ("Balgamında kan görülmesi"), GH-S7, GH-S10 (NG12 rec 1.1.1, "are aged 40 and over with unexplained haemoptysis")
 > "Son zamanlarda balgamınızda kan gördüğünüz ya da kan tükürdüğünüz oldu mu?"
 gen: slot=balgamda_kan; type=boolean
 CANDIDATE — clinician to approve wording. Same text and slot as `sigara_birakma_poliklinigi.md` Q3
 (one audio clip). **Overlap: `rf.severe_bleeding` (§2.2).** Source urgency quoted only (RF-1, RF-2);
 no level asserted.
 
+**Q5a — Blood in sputum more than once** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S7 ("• Persistent haemoptysis in smokers/ex-smokers over 40 years of age")
+> "Balgamınızda ya da tükürüğünüzde birden fazla kez kan gördünüz mü?"
+gen: slot=balgamda_kan_tekrari; type=boolean; ask_if=balgamda_kan == true
+CANDIDATE — clinician to approve wording. No age threshold in patient copy.
+
 **Q6 — Wheeze (gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S2 ("hışıltılı solunum"), GH-S3 ("Hışıltılı solunum"), GH-S6 ("wheeze")
 > "Nefes alıp verirken göğsünüzden hışıltı ya da hırıltı sesi geliyor mu?"
 gen: slot=hisiltili_solunum; type=boolean
 CANDIDATE — clinician to approve wording. Distinct from the KBB stridor item (throat, on breathing in).
+
+**Q6a — Cough or wheeze worse after exercise** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S2 ("Egzersiz sonrası öksürük ya da hışıltılı solunum olması"), GH-S6 ("Symptoms are often triggered by exercise, laughter, allergens, or cold air.")
+> "Egzersiz yaptıktan sonra öksürüğünüz ya da hışıltınız artıyor mu?"
+gen: slot=egzersizle_artis; type=boolean; ask_if=cogu_gun_oksuruk == true || hisiltili_solunum == true
+CANDIDATE — clinician to approve wording.
+
+**Q6b — Cough or wheeze worse in certain seasons** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S9 (NG245 rec 1.1.1, "any variation (for example, worse during the night or early morning, or seasonal) in these symptoms")
+> "Öksürüğünüz ya da hışıltınız belli mevsimlerde artıyor mu?"
+gen: slot=mevsimsel_solunum_artisi; type=boolean; ask_if=cogu_gun_oksuruk == true || hisiltili_solunum == true
+CANDIDATE — clinician to approve wording.
 
 **Q7 — Night or early-morning symptoms** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S2 ("gece veya sabaha karşı"), GH-S6 ("at night or when the person wakes up")
 > "Gece veya sabaha karşı öksürük ya da nefes darlığı yaşıyor musunuz?"
@@ -242,9 +314,14 @@ false positive, routed to the HB-C23 lexicon owner). Risk-factor context only; n
 
 **Q10 — Work-related dust, fume or gas exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S1 ("toz, duman ve gazlara maruz kalma"), GH-S6 p. 9 (occupational asthma)
 > "Çalıştığınız işlerde uzun süre toz, duman ya da gaz soludunuz mu?"
-gen: slot=mesleki_toz_duman_gaz; type=boolean
+gen: slot=mesleki_toz_duman_gaz; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. Asks about every job held, not only the current one (base
 intake's `occupation` already asks the current job); not a flag.
+
+**Q10a — Symptoms ease away from work** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S9 (NG245 rec 1.4.1, "Are symptoms the same, better or worse on days away from work? Are symptoms the same, better or worse when on holiday")
+> "Hâlâ böyle bir işte çalışıyorsanız, şikâyetleriniz işe gitmediğiniz günlerde ya da tatilde azalıyor mu?"
+gen: slot=is_disinda_azalma; type=boolean; ask_if=mesleki_toz_duman_gaz == true; delivery=text_first
+CANDIDATE — clinician to approve wording.
 
 **Q11 — Unintended weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: GH-S3 ("açıklanamayan kilo kaybı"), GH-S4 ("Kilo kaybı"), GH-S7 ("weight loss")
 > "Son aylarda istemeden kilo kaybettiniz mi?"
@@ -260,7 +337,7 @@ CANDIDATE — clinician to approve wording. Same text and slot as `obezite_polik
 longer assumes a bed partner. Daytime sleepiness while driving (RF-8) is a clinician counselling item,
 not drafted.
 
-*(12 candidate questions.)*
+*(18 candidate questions: 12 ungated, 6 gated detail items (Q2a, Q3a, Q5a, Q6a, Q6b, Q10a; §6).)*
 
 ---
 
@@ -278,8 +355,8 @@ not drafted.
    (verification wave 6), so no TTD sentence is spoken to the patient. Permission is still needed
    before any verbatim TTD snapshot is committed; it was not sought, and no HB row exists for it yet.
    The owner must register one.
-5. **NICE NG12 lung recommendations** — nice.org.uk HTTP 403; NCBI Bookshelf served a reCAPTCHA, which
-   was **not** bypassed. GH-S7 is used instead.
+5. **NICE NG12 lung recommendations** — closed 2026-10-02: nice.org.uk reachable; rec 1.1.1 recorded
+   as GH-S10.
 6. **Sourced but not drafted** (to stay at twelve): chest tightness (GH-S2, GH-S6; also chest-pain
    overlap), night sweats and fever (GH-S4), hoarseness (GH-S3), recurrent chest infections (GH-S3,
    GH-S7), snoring and daytime sleepiness (GH-S5). Clinician may swap them in.
@@ -308,3 +385,21 @@ not drafted.
 - **Clinical content rule** — every red-flag needs a committed verbatim snapshot; until then rules stay
   `status: draft_needs_source`. This proposal supplies candidate sources GH-S1…GH-S7 only.
 - **HB-C1** — awaits clinician sign-off; NOT served.
+
+---
+
+## 6. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q2a `oksuruk_suresi` | added (duration; follow-up) | `cogu_gun_oksuruk == true` | GH-S4, GH-S7 |
+| Q3a `balgam_degisikligi` | added | `cogu_gun_balgam == true` | GH-S8 |
+| Q5a `balgamda_kan_tekrari` | added; reworded in fix round (V-GH-3): "Balgamınızda ya da tükürüğünüzde birden fazla kez kan gördünüz mü?" | `balgamda_kan == true` | GH-S7 |
+| Q6a `egzersizle_artis` | added | `cogu_gun_oksuruk == true \|\| hisiltili_solunum == true` | GH-S2, GH-S6 |
+| Q6b `mevsimsel_solunum_artisi` | added | `cogu_gun_oksuruk == true \|\| hisiltili_solunum == true` | GH-S9 |
+| Q10a `is_disinda_azalma` | added; reworded in fix round (V-GH-1): "Hâlâ böyle bir işte çalışıyorsanız, şikâyetleriniz işe gitmediğiniz günlerde ya da tatilde azalıyor mu?"; delivery set to `text_first` (V-GH-2) | `mesleki_toz_duman_gaz == true` | GH-S9 |
+| Q10 `mesleki_toz_duman_gaz` | delivery set to `text_first` (fix round, V-GH-2); text unchanged | — (ungated) | GH-S1, GH-S6 |
+| Q5 `balgamda_kan` | source line adds GH-S10 (fix round, V-GH-4); text unchanged | — (ungated) | GH-S10 |
+| §1 GH-S9 | rec 1.4.2 quote added (red-flag row 4) | — | GH-S9 |
+| §1 GH-S10 | added (NG12 rec 1.1.1; V-GH-4) | — | GH-S10 |
+| §4 gap 5 | closed (V-GH-4) | — | GH-S10 |

@@ -60,6 +60,11 @@ value.
   > "Baygınlık hissi veya bilinç bulanıklığı"
   > "Göğüs ağrısı şiddetliyse veya nefes almak giderek zorlaşıyorsa, hemen acil servise başvurulmalıdır."
   > "Bir defa pnömotoraks geçiren kişilerde, tekrar pnömotoraks geçirme riski daha yüksektir."
+- **Added verbatim (INT-427, retrieved_on: 2026-10-02, same URL):**
+  > "Bir defa pnömotoraks geçirip iyileşmiş bir kişinin ikinci defa pnömotoraks geçirme riski daha da
+  > yüksektir."
+  > "Tedavi seçenekleri arasında gözlem, iğne aspirasyonu, göğüs tüpü yerleştirilmesi, cerrahi olmayan
+  > onarım veya cerrahi yer alabilir."
 
 ### TOR-S3 — TGCD, "Hemoptizi (Öksürükle Ağızdan Kan Gelmesi)" (Türkiye)
 - **guideline_id (proposed):** `TGCD-HEMOPTIZI` · **Date:** not shown
@@ -86,6 +91,14 @@ value.
   > tiroid hastalığı olanlar cerrahi tedavi için uygun değildir."
 - **Note:** the last sentence is quoted only because it grounds Q8 (previous chest surgery) as
   clinically relevant history; it is **not** turned into eligibility logic or patient copy.
+- **Added verbatim (INT-427, retrieved_on: 2026-10-02, same URL):**
+  > "Bazı kişilerde ise bu özellik, (özellikle el ve ayakların aşırı terlemesi) kalıtsal olarak bir
+  > sonraki nesile aktarılır."
+  > "Birçoğu aynı zamanda aşırı miktarda el, ayak, koltukaltı terlemesinden veya nadiren de yüz
+  > kızarmasından şikâyetçidirler."
+- **Added verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same URL):**
+  > "Bu hastalıklarda terleme sadece el, ayak ve koltuk altlarında sınırlı kalmaz ve çoğunlukla genel
+  > vücut terlemesi şeklindedir."
 
 ### TOR-S6 — Türk Toraks Derneği, "Akciğer Kanseri" (bilgilendirici kaynaklar)
 - **guideline_id (proposed):** `TTD-HASTA-AKCIGER-KANSERI` · **Date:** not shown
@@ -114,6 +127,28 @@ value.
 - **guideline_id (proposed):** `NHS-HYPERHIDROSIS` · **Last reviewed:** 07 November 2023
 - **URL:** https://www.nhs.uk/conditions/hyperhidrosis/
 - **Verbatim:** > "it stops you from getting on with your daily activities"
+
+### TOR-S10 — TGCD, "Akalazya Nedir?" (Türkiye)
+- **guideline_id (proposed):** `TGCD-AKALAZYA` (public disease page, NOT a guideline)
+- **Publishing body:** Türk Göğüs Cerrahisi Derneği · **Version / date:** not shown (page footer
+  "© 2025 Türk Göğüs Cerrahisi Derneği")
+- **URL:** https://tgcd.org.tr/akalazya-nedir/
+- **retrieved_on:** 2026-10-02
+- **Verbatim (symptom list):**
+  > "Katı ve sıvı gıdaların yutulmasında güçlük"
+  > "Yiyecek veya tükürüğün ağzınıza geri gelmesi (regurjitasyon)"
+- **Confidence: MEDIUM** — Turkish society, undated lay page.
+
+### TOR-S11 — TGCD, "Özofagus (Yemek Borusu) Kanseri" (Türkiye)
+- **guideline_id (proposed):** `TGCD-OZOFAGUS-KANSERI` (public disease page, NOT a guideline)
+- **Publishing body:** Türk Göğüs Cerrahisi Derneği · **Version / date:** not shown (page footer
+  "© 2025 Türk Göğüs Cerrahisi Derneği")
+- **URL:** https://tgcd.org.tr/ozofagus-yemek-borusu-kanseri/
+- **retrieved_on:** 2026-10-02
+- **Verbatim:**
+  > "Öncelikle sadece katı gıdaların tüketilmesinde yaşanılan zorluk, hastalık ilerledikçe sıvıların
+  > bile kolayca yutulamayacağı bir hale gelir."
+- **Confidence: MEDIUM** — Turkish society, undated lay page.
 
 ---
 
@@ -167,7 +202,7 @@ No level, route, register or location is proposed for any row (invariants 1, 21)
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions (12)
+## 3. Candidate B1 Turkish pre-visit questions (19)
 
 Register: formal **siz**; one concern and one question mark per turn; at most fifteen words per sentence;
 no diagnosis/treatment/prognosis language; no numerals (invariant 22). **All CANDIDATE — clinician to
@@ -186,6 +221,7 @@ CANDIDATE — clinician to approve wording.
 
 **Q3 — Coughing up blood (ALARM; gate input)** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S1 ("Az miktarda da olsa öksürük ve balgamla kan tükürme"), TOR-S3, TOR-S6, TOR-S8
 > "Öksürürken balgamınızla birlikte az da olsa kan geldi mi?"
+gen: slot=balgamda_kan; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: `rf.severe_bleeding` when large (§2.2).** Amount
 follow-up is a clinician item (§4 gap 4).
 
@@ -203,29 +239,70 @@ CANDIDATE — clinician to approve wording.
 
 **Q7 — Previous collapsed lung** · archetype: `EVALUATION.problem_diagnosis.v1` · source: TOR-S2 ("Bir defa pnömotoraks geçiren kişilerde, tekrar pnömotoraks geçirme riski daha yüksektir.")
 > "Daha önce size akciğer sönmesi olduğu söylendi mi?"
+gen: slot=akciger_sonmesi_oykusu; type=boolean
+CANDIDATE — clinician to approve wording. History item; no flag.
+
+**Q7a — Collapsed lung happened again** · archetype: `EVALUATION.problem_diagnosis.v1` · source: TOR-S2 ("Bir defa pnömotoraks geçirip iyileşmiş bir kişinin ikinci defa pnömotoraks geçirme riski daha da yüksektir.")
+> "Akciğer sönmesi sizde tekrarladı mı?"
+gen: slot=akciger_sonmesi_tekrari; type=boolean; ask_if=akciger_sonmesi_oykusu == true
+CANDIDATE — clinician to approve wording. History item; no flag.
+
+**Q7b — Chest tube for the collapsed lung** · archetype: `OBSERVATION.story.v1` (narrative only) · source: TOR-S2 ("göğüs tüpü yerleştirilmesi")
+> "Akciğer sönmesi için göğsünüze bir tüp takıldı mı?"
+gen: slot=akciger_sonmesi_gogus_tupu; type=boolean; ask_if=akciger_sonmesi_oykusu == true
 CANDIDATE — clinician to approve wording. History item; no flag.
 
 **Q8 — Previous chest surgery** · archetype: `OBSERVATION.story.v1` (narrative only) · source: TOR-S5 ("plevral hastalık veya akciğer ameliyatı geçiren")
 > "Daha önce göğsünüzden ameliyat oldunuz mu?"
+gen: slot=soru_7
 CANDIDATE — clinician to approve wording. History item; no flag.
 
 **Q9 — Asbestos exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: TOR-S1 ("Asbest ve diğer kanserojenlere maruz kalma"), TOR-S6 ("saç gibi ince liflerdir")
 > "Evinizde ya da işinizde asbest denilen lifli bir toza maruz kaldınız mı?"
+gen: slot=soru_8
 CANDIDATE — clinician to approve wording. Plain-language gloss "lifli bir toz" is from TOR-S6.
 
 **Q10 — Second-hand smoke exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: TOR-S1 ("kapalı ortamlarda pasif içiciliğe maruz kalırsanız")
 > "Kapalı ortamlarda uzun süre başkalarının sigara dumanını soludunuz mu?"
+gen: slot=soru_9
 CANDIDATE — clinician to approve wording. Active smoking is asked by base; not repeated.
 
 **Q11 — Excessive hand or armpit sweating** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S5 ("bölgesel olarak aşırı terlemesine hiperhidrozis denir"), TOR-S9 ("stops you from getting on with your daily activities"), TOR-S7
 > "Ellerinizde ya da koltuk altlarınızda günlük hayatınızı zorlaştıran aşırı terleme var mı?"
+gen: slot=asiri_terleme; type=boolean
 CANDIDATE — clinician to approve wording.
 
-**Q12 — Swallowing difficulty** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S8 ("if they have dysphagia", secondary), TOR-S7 (oesophageal surgery in TGCD scope)
-> "Yemek yutarken boğazınızda ya da göğsünüzde takılma hissi oluyor mu?"
-CANDIDATE — clinician to approve wording. Turkish verbatim source: **NO SOURCE FOUND** (§4 gap 3).
+**Q11a — Sweating of the feet** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S5 ("aşırı miktarda el, ayak, koltukaltı terlemesinden")
+> "Ayaklarınızda da aşırı terleme oluyor mu?"
+gen: slot=ayak_terlemesi; type=boolean; ask_if=asiri_terleme == true
+CANDIDATE — clinician to approve wording.
 
-*(12 candidate questions.)*
+**Q11b — Similar sweating in the family** · archetype: no family-history archetype root — export blocked (INT-041 posture) · source: TOR-S5 ("kalıtsal olarak bir sonraki nesile aktarılır")
+> "Ailenizde de sizin gibi aşırı terleyen biri var mı?"
+gen: slot=ailede_asiri_terleme; type=boolean; ask_if=asiri_terleme == true; delivery=text_first
+CANDIDATE — clinician to approve wording.
+
+**Q11c — Whole-body sweating** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S5 ("çoğunlukla genel vücut terlemesi şeklindedir")
+> "Bu terleme bütün vücudunuzda da oluyor mu?"
+gen: slot=tum_vucut_terlemesi; type=boolean; ask_if=asiri_terleme == true
+CANDIDATE — clinician to approve wording.
+
+**Q12 — Swallowing difficulty** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S8 ("if they have dysphagia", secondary), TOR-S7 (oesophageal surgery in TGCD scope), TOR-S10 ("Katı ve sıvı gıdaların yutulmasında güçlük"), TOR-S11
+> "Yemek ya da su yutarken boğazınızda veya göğsünüzde takılma oluyor mu?"
+gen: slot=yutma_guclugu; type=boolean
+CANDIDATE — clinician to approve wording. Turkish verbatim source: TOR-S10, TOR-S11 (§4 gap 3).
+
+**Q12a — Liquids also stick** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S10 ("Katı ve sıvı gıdaların yutulmasında güçlük"), TOR-S11 ("sıvıların bile kolayca yutulamayacağı")
+> "Bu takılma su gibi sıvıları yutarken de oluyor mu?"
+gen: slot=sivi_yutma_guclugu; type=boolean; ask_if=yutma_guclugu == true
+CANDIDATE — clinician to approve wording.
+
+**Q12b — Food or saliva coming back** · archetype: `OBSERVATION.symptom_sign.v1` · source: TOR-S10 ("Yiyecek veya tükürüğün ağzınıza geri gelmesi (regurjitasyon)")
+> "Yediklerinizin ya da tükürüğünüzün ağzınıza geri geldiği oluyor mu?"
+gen: slot=yiyecek_geri_gelmesi; type=boolean; ask_if=yutma_guclugu == true
+CANDIDATE — clinician to approve wording.
+
+*(19 candidate questions after the INT-427 wave.)*
 
 ---
 
@@ -237,7 +314,8 @@ CANDIDATE — clinician to approve wording. Turkish verbatim source: **NO SOURCE
 2. **BTS pleural disease guideline (2023)** and **NICE NG12 primary text** — not retrieved (NG12 403 /
    reCAPTCHA not bypassed). NG12 quotes are SECONDARY via `cerrahi_onkoloji.md`.
 3. **Dysphagia / oesophageal symptoms in Turkish** — TGCD consent-form titles only; no verbatim symptom
-   text. **NO SOURCE FOUND (Turkish verbatim).**
+   text. **NO SOURCE FOUND (Turkish verbatim).** INT-427 (2026-10-02): TGCD lay pages TOR-S10 and
+   TOR-S11 retrieved (undated; not a versioned guideline).
 4. **Haemoptysis amount** — TOR-S3 gives "bir çay bardağı kadar" as an example, not a threshold; no
    quantity is pinned into patient copy. **Clinician must author** any amount follow-up.
 5. **Chest-wall deformity (pectus)** and **chest-wall lump** — consent-form titles only (TOR-S7); not
@@ -264,3 +342,29 @@ CANDIDATE — clinician to approve wording. Turkish verbatim source: **NO SOURCE
 - **Clinical content rule** — every red-flag needs a committed verbatim snapshot; until then rules stay
   `status: draft_needs_source`. This proposal supplies candidate sources TOR-S1…TOR-S9 only.
 - **HB-C1** — awaits clinician sign-off; NOT served.
+
+---
+
+## 6. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q7 | slot `soru_6` (string) → `akciger_sonmesi_oykusu` (boolean); wording unchanged | — | TOR-S2 |
+| Q7a `akciger_sonmesi_tekrari` | added | `akciger_sonmesi_oykusu == true` | TOR-S2 |
+| Q7b `akciger_sonmesi_gogus_tupu` | added | `akciger_sonmesi_oykusu == true` | TOR-S2 |
+| Q8, Q9, Q10 | slot ids pinned as `soru_7`, `soru_8`, `soru_9` (unchanged ids); wording unchanged | — | TOR-S5, TOR-S1, TOR-S6 |
+| Q11 | slot `soru_10` (string) → `asiri_terleme` (boolean); wording unchanged | — | TOR-S5 |
+| Q11a `ayak_terlemesi` | added | `asiri_terleme == true` | TOR-S5 |
+| Q11b `ailede_asiri_terleme` | added, `text_first` | `asiri_terleme == true` | TOR-S5 |
+| Q12 | slot `soru_11` (string) → `yutma_guclugu` (boolean, shared id); wording unchanged; sources TOR-S10, TOR-S11 added | — | TOR-S10, TOR-S11 |
+| Q12a `sivi_yutma_guclugu` | added | `yutma_guclugu == true` | TOR-S10, TOR-S11 |
+| Q12b `yiyecek_geri_gelmesi` | added | `yutma_guclugu == true` | TOR-S10 |
+| §1 TOR-S2, TOR-S5 | verbatim quotes added | — | TOR-S2, TOR-S5 |
+| §1 TOR-S10, TOR-S11 | sources added | — | TOR-S10, TOR-S11 |
+| §4 gap 3 | updated | — | TOR-S10, TOR-S11 |
+| Q3 | slot `soru_2` (string) → `balgamda_kan` (boolean, shared id); wording unchanged; still ungated (fix round, V-GC-1) | — | TOR-S1, TOR-S3, TOR-S6, TOR-S8 |
+| Q11b `ailede_asiri_terleme` | reworded (fix round, V-GC-3) | `asiri_terleme == true` | TOR-S5 |
+| Q11c `tum_vucut_terlemesi` | added (fix round, V-GC-4) | `asiri_terleme == true` | TOR-S5 |
+| Q12 `yutma_guclugu` | reworded to food or drink (fix round, V-GC-2) | — | TOR-S10, TOR-S11 |
+| Q12a `sivi_yutma_guclugu` | reworded (fix round, V-GC-2) | `yutma_guclugu == true` | TOR-S10, TOR-S11 |
+| §1 TOR-S5 | verbatim quote added (fix round) | — | TOR-S5 |
