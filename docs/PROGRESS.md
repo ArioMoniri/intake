@@ -3017,3 +3017,24 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00+03:00 · INT-432 · doing (first batch; PR open, not merged)
+- Goal: the clinical decisions register under owner decision D18 ("agent-only sign-off anyway"), scoped to simulated-patient stress testing; a licensed physician's review is required before any real patient. Acceptance quoted in docs/evidence/INT-432.md.
+- Plan:
+  - Three medical-author agents (EM/IM; EM operations / informatics + paediatrics; the INT-427 specialties) write CD-01..CD-18 from current guidelines and openEHR CKM against verbatim snapshots in packages/protocols/sources/.
+  - An independent verifier agent, seeing only output and sources, re-fetches every source and returns verdicts; authors revise until all agree.
+  - The lead builds the typed loader, applies the decisions (HB-C6 slots, HB-C3 polarity), and wires the tests.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py.
+  - Extended: test_base_intake_pack.py (three life-threat read sections), test_gate_refs.py (six new gates).
+  - Near misses: LT-01-N fires nothing; LT-02-N lands KIRMIZI_K2; neck-only radiation fires neither arm while neck-and-arm (CONTESTED) fires K2; a reworded quote is refused; the inverted hydration wording is gone from the whole review queue.
+  - Red run: 2 failed (empty register) and 15 failed (KeyError 'chest_pain.present').
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations).
+  - Protocols lane 98.10 % (1560 passed); tests/protocols + tests/engine 1280 passed; ruff, format and mypy clean; no_placeholders OK after staging.
+  - `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 2, 5 (tr first, en mirror), 7 (the life-threat set is untouched; slots declared under the names its rules read), 10, 17 (every unsourced value is the sanctioned literal under a draft entry), 20 (no performance figure anywhere), 21, 22 (no digits in patient copy).
+- Decisions / ADRs / `00_STATE.md` rows: D18 in files/00_STATE.md §3 and the changelog; files/04 §1 records the three read sections. D17 stands; no clinical_signoff field is filled; HB-C1 is not closed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): one owner question, not a clinical one — does D3's occupational-exposure approval cover göğüs hastalıkları Q10/Q10a (CD-11 owner_question; V-GH-2)? text_first and not-servable stay meanwhile.
+- Next: apply the CD-11..CD-18 `apply_after_737_merges` changes once PR #737 merges; batch 2 verifies INT-414's 48 delivery lines; then the #642 sign-off packets in batches.
+- LOOP_STATUS: CONTINUE

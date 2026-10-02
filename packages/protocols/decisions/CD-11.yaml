@@ -262,5 +262,7 @@ value_status:
   red_flag_row_4.route: draft_needs_source
   apply_after_737_merges: active
 verifier:
-  verdict: pending
-  notes: "Revised 2026-10-03 after independent verification (agree_with_changes). The D3 reading moved to owner_question, and the row-4 population arm is draft_needs_source. Re-verification pending."
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (D3 reading is the owner's; asthma population); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

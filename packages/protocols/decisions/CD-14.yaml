@@ -287,5 +287,7 @@ value_status:
   v_ftvr_4: active
   apply_after_737_merges: active
 verifier:
-  verdict: pending
-  notes: "First verification: agree (2026-10-03). Since then: apply entry [3] carries its draft status, and the NG203 version strings name the 2023-2025 link-only changes. Re-verification pending."
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
