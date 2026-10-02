@@ -84,6 +84,9 @@ class RefusalCode(enum.StrEnum):
     GATE_REF_AMBIGUOUS = "GATE_REF_AMBIGUOUS"
     GATE_REF_UNKNOWN = "GATE_REF_UNKNOWN"
 
+    # --- ask order (INT-375; files/13 §9.5 stratified acyclicity)
+    GATE_READS_LATER_SLOT = "GATE_READS_LATER_SLOT"
+
 
 class Refusal(FrozenModel):
     """One reason the compiler will not emit."""

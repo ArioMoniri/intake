@@ -27,6 +27,15 @@ document that never went through the compiler cannot reintroduce the defect.
 Only gates are resolved here. A red-flag ``when`` and its ``tense_anchor`` are
 read by the rules engine through its own reference set and are untouched
 (CLAUDE.md invariant 1).
+
+**Ask order (INT-375).** files/13 §9.5 stratified acyclicity: "a gate on step
+*S* may reference only slots owned by steps of strictly lower ``(priority,
+order)``". The engine re-reads every gate on every turn and an unasked slot
+reads Unknown, so a gate on a later slot does not drop its question — it passes
+it over at its own place and asks it once the later slot is answered, out of
+the frozen plan order. :func:`gates_reading_later_slots` finds every such read
+over the merged, op-applied slot sequence; the compiler refuses each one
+(``RefusalCode.GATE_READS_LATER_SLOT``). It never reorders anything.
 """
 
 from __future__ import annotations
@@ -34,8 +43,10 @@ from __future__ import annotations
 import enum
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from typing import Literal
 
 from protocols.bindings import fhir_link_id
+from protocols.dsl import Slot
 from protocols.triage.expr import (
     And,
     BoolRef,
@@ -45,11 +56,37 @@ from protocols.triage.expr import (
     Operand,
     Or,
     Ref,
+    WhenGrammarError,
     WhenNode,
+    parse_when,
     referenced_slots,
 )
 
-__all__ = ["GateRefIssue", "GateRefProblem", "SlotNamespace", "qualify_gate"]
+__all__ = [
+    "DETAIL_CLASS",
+    "MUST_ASK_CLASS",
+    "AskRank",
+    "GateRefIssue",
+    "GateRefProblem",
+    "LaterSlotRead",
+    "SlotNamespace",
+    "ask_ranks",
+    "gates_reading_later_slots",
+    "qualify_gate",
+]
+
+type AskRank = tuple[int, int]
+"""``(priority_class, order)`` — the engine's sort key less its id tiebreak,
+which never decides between two slots because ``order`` is unique."""
+
+# files/13 §9.1: the two priority classes a resolved slot takes today. The
+# engine mints the same two from the same field (a clinician-marked must-ask is
+# MUST_ASK, every other slot DETAIL — ``clinical_agent.plan.StepPriority``), and
+# tests/engine/test_gate_ask_order_engine.py pins the two against each other.
+MUST_ASK_CLASS = 5
+DETAIL_CLASS = 7
+
+type GateField = Literal["ask_if", "skip_if"]
 
 
 class GateRefProblem(enum.StrEnum):
@@ -128,6 +165,85 @@ def qualify_gate(
     if issues:
         return node, tuple(issues)
     return _rewrite(node, resolved.__getitem__), ()
+
+
+@dataclass(frozen=True, slots=True)
+class LaterSlotRead:
+    """One gate that reads a slot not strictly before the slot it gates."""
+
+    reader: str
+    field: GateField
+    read: str
+    reader_rank: AskRank
+    read_rank: AskRank
+
+    def describe(self) -> str:
+        """Ids and ranks only — never the gate text or a question."""
+        if self.read == self.reader:
+            return f"{self.field} on {self.reader} (ask rank {self.reader_rank}) reads itself"
+        return (
+            f"{self.field} on {self.reader} (ask rank {self.reader_rank}) reads "
+            f"{self.read} (ask rank {self.read_rank}), which is not strictly before it"
+        )
+
+
+def ask_ranks(slots: Iterable[tuple[str, str, Slot]]) -> dict[str, AskRank]:
+    """The files/13 §9.1 rank of every ``(section_id, key, slot)``, in merged order.
+
+    ``order`` counts across sections, as the engine's plan does, so a slot in a
+    later section is later whatever its index within that section.
+    """
+    ranks: dict[str, AskRank] = {}
+    for section_id, key, slot in slots:
+        ranks[fhir_link_id(section_id, key)] = (
+            MUST_ASK_CLASS if slot.must_ask else DETAIL_CLASS,
+            len(ranks),
+        )
+    return ranks
+
+
+def gates_reading_later_slots(
+    slots: Iterable[tuple[str, str, Slot]],
+) -> tuple[LaterSlotRead, ...]:
+    """Every ``ask_if``/``skip_if`` read of a slot whose rank is not strictly lower.
+
+    ``slots`` is the resolved sequence — chain merged and every op applied —
+    because that is the order the engine asks in. A reference that does not
+    resolve to exactly one slot is INT-355's refusal and a gate outside the
+    ``when`` grammar the emitter's; neither is judged here. Two spellings of one
+    slot in one gate are one read. Reads come back in merged order of the gated
+    slot, then field, then the slot read.
+    """
+    ordered = tuple(slots)
+    ranks = ask_ranks(ordered)
+    namespace = SlotNamespace((section_id, key) for section_id, key, _ in ordered)
+    late: list[LaterSlotRead] = []
+    for section_id, key, slot in ordered:
+        reader = fhir_link_id(section_id, key)
+        gates: tuple[tuple[GateField, str | None], ...] = (
+            ("ask_if", slot.ask_if),
+            ("skip_if", slot.skip_if),
+        )
+        for field_name, text in gates:
+            if text is None:
+                continue
+            try:
+                node = parse_when(text)
+            except WhenGrammarError:
+                continue
+            reads = {namespace.resolve(name) for name in referenced_slots(node)}
+            late.extend(
+                LaterSlotRead(
+                    reader=reader,
+                    field=field_name,
+                    read=read,
+                    reader_rank=ranks[reader],
+                    read_rank=ranks[read],
+                )
+                for read in sorted(r for r in reads if isinstance(r, str))
+                if ranks[read] >= ranks[reader]
+            )
+    return tuple(late)
 
 
 def _operand(operand: Operand, rename: Callable[[str], str]) -> Operand:

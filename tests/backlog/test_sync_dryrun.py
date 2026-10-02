@@ -97,7 +97,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-404 (triage rule evidence lines in the reader's locale, GitHub #673)
     # + INT-382 (rule-read slot removal refused in every layer; GitHub #629)
     # + INT-415 (ElevenLabs delivery profiles + on-prem TTS wiring guide, GitHub #706)
-    assert len(actions) == 326
+    # tracks test_schema.py (175 blueprint + added issues incl. INT-321 + INT-322 + INT-323;
+    # + INT-375, the compiler's files/13 §9.5 ask-order refusal)
+    assert len(actions) == 327
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
