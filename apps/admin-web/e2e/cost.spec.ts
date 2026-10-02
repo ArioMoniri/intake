@@ -10,7 +10,7 @@
  * the Python lane the moment either file and the module disagree.
  *
  * - `cost.payload.json` is the committed state: `infra/costs/unit-prices.yaml`
- *   with two sourced list prices and the owner's 80 USD monthly elective cap
+ *   with six sourced list prices and the owner's 80 USD monthly elective cap
  *   (INT-439, 00_STATE D19), every vendor budget still empty, and no Prometheus
  *   source configured for the console. No spend figure may appear on it.
  * - `cost.priced.payload.json` is the same module over a TEST-ONLY price file
@@ -97,7 +97,14 @@ describe("the committed state — only sourced prices, nothing invented", () => 
   it("shows the two sourced list prices with their pages, and nothing else priced", () => {
     const view = renderCostModule(committed());
     const priced = view.components.filter((c) => c.priceConfigured).map((c) => c.component);
-    expect(priced.sort()).toEqual(["clip_synthesis", "gpu_host_onvizit_api"]);
+    expect(priced.sort()).toEqual([
+      "clip_synthesis",
+      "gpu_host_onvizit_api",
+      "hosted_asr_input",
+      "hosted_asr_output",
+      "hosted_llm_input",
+      "hosted_llm_output",
+    ]);
     for (const component of view.components) {
       if (component.priceConfigured) {
         expect(component.price).toMatch(/as of 2026-10-03 \(https:\/\/\S+\)$/);
@@ -376,6 +383,14 @@ describe("the monthly elective spend cap (INT-439, 00_STATE D19)", () => {
     const payload = tamper(committed());
     payload.spend_caps![0]!.warn_at_usd = 70;
     expect(() => renderCostModule(payload as CostPayload)).toThrow(UnsoundBudgetVerdict);
+  });
+
+  it("paints a per-token list price in full, never as a rounded zero", () => {
+    const view = renderCostModule(committed());
+    const llm = view.components.find((c) => c.component === "hosted_llm_input");
+    expect(llm!.price.startsWith(`0.00000015${NBSP}USD per token`)).toBe(true);
+    const clip = view.components.find((c) => c.component === "clip_synthesis");
+    expect(clip!.price.startsWith(`0.00008${NBSP}USD per character`)).toBe(true);
   });
 
   it("refuses a price page that is not https", () => {

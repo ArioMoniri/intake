@@ -38,14 +38,17 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Final
 
+from intake_platform.cost.spend import (
+    MODEL_SPEND_CAP_EVENTS_TOTAL,
+    CallUsage,
+    LaneRate,
+    UnpricedCall,
+    price_call,
+)
+
 from intake_voice_runtime.metering.components import ChargeClass, MeteredComponent
 from intake_voice_runtime.metering.ledger import Admission, SessionLedger
-from intake_voice_runtime.metering.spend import CallUsage, LaneRate, UnpricedCall, price_call
-from intake_voice_runtime.metrics import (
-    MODEL_SPEND_CAP_EVENTS_TOTAL,
-    VOICE_SESSIONS_METERED,
-    VOICE_TTS_CHARS,
-)
+from intake_voice_runtime.metrics import VOICE_SESSIONS_METERED, VOICE_TTS_CHARS
 from intake_voice_runtime.profiles import VoiceProfile
 
 __all__ = ["UNKNOWN_LABEL", "SELF_HOSTED", "SessionMeter", "TurnLabels"]

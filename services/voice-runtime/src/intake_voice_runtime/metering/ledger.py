@@ -48,6 +48,7 @@ import hashlib
 from collections.abc import Mapping
 
 from clinical_schemas.common import FrozenModel
+from intake_platform.cost.spend import MonthlySpendLedger, SpendReason
 
 from intake_voice_runtime.metering.budgets import (
     PUBLISHED_BUDGETS,
@@ -55,7 +56,6 @@ from intake_voice_runtime.metering.budgets import (
     SessionBudget,
 )
 from intake_voice_runtime.metering.components import ChargeClass, MeteredComponent
-from intake_voice_runtime.metering.spend import MonthlySpendLedger, SpendReason
 
 __all__ = ["Admission", "AdmissionReason", "SessionLedger"]
 

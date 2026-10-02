@@ -37,12 +37,14 @@ def _component(raw: dict[str, Any], name: str) -> dict[str, Any]:
 
 
 class TestTheCommittedFile:
-    def test_it_validates_with_the_cap_and_two_rates(self) -> None:
+    def test_it_validates_with_the_cap_and_four_rates(self) -> None:
         config = load_cost_config(CONFIG_PATH)
         assert [cap.cap_id for cap in config.spend_caps] == ["elective-models-month"]
-        assert {r.priced_by for r in config.model_rates} == {
-            "gpu_host_onvizit_api",
-            "clip_synthesis",
+        assert {r.rate_id for r in config.model_rates} == {
+            "self-hosted-g6-2xlarge",
+            "hosted-elevenlabs-multilingual-v2",
+            "hosted-openai-gpt-4o-mini",
+            "hosted-openai-gpt-4o-mini-transcribe",
         }
 
 
@@ -84,13 +86,13 @@ class TestSpendCapSchema:
 class TestModelRateSchema:
     def test_a_rate_on_an_unknown_component_is_refused(self) -> None:
         raw = _raw()
-        raw["model_rates"][0]["priced_by"] = "no_such_component"
+        raw["model_rates"][0]["charges"] = {"busy_seconds": "no_such_component"}
         with pytest.raises(ValidationError, match="unknown"):
             _validate(raw)
 
     def test_a_rate_on_an_unpriced_component_is_refused(self) -> None:
         raw = _raw()
-        raw["model_rates"][0]["priced_by"] = "gpu_host_team"
+        raw["model_rates"][0]["charges"] = {"busy_seconds": "gpu_host_team"}
         with pytest.raises(ValidationError):
             _validate(raw)
 
@@ -100,6 +102,17 @@ class TestModelRateSchema:
         rate["route"] = "self_hosted"
         with pytest.raises(ValidationError, match="cannot be charged"):
             _validate(raw)
+
+    def test_a_measure_charged_at_a_component_in_another_unit_is_refused(self) -> None:
+        raw = _raw()
+        raw["model_rates"][2]["charges"] = {"input_tokens": "clip_synthesis"}
+        with pytest.raises(ValidationError, match="per character"):
+            _validate(raw)
+
+    def test_near_miss_tokens_charged_at_a_token_component_validate(self) -> None:
+        raw = _raw()
+        raw["model_rates"][2]["charges"] = {"input_tokens": "hosted_llm_input"}
+        assert _validate(raw)
 
     def test_a_provider_that_does_not_bill_the_component_is_refused(self) -> None:
         raw = _raw()
@@ -121,7 +134,7 @@ class TestModelRateSchema:
         twin["rate_id"] = "self-hosted-other"
         twin["model"] = "g6.4xlarge"
         raw["model_rates"].append(twin)
-        assert len(_validate(raw).model_rates) == 3
+        assert len(_validate(raw).model_rates) == 5
 
 
 class TestPriceUrl:

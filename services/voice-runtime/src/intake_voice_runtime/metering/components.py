@@ -26,6 +26,8 @@ import enum
 from collections.abc import Mapping
 from typing import Final
 
+from intake_platform.cost.spend import ChargeClass as _ChargeClass
+
 __all__ = [
     "UNIT_OF",
     "ChargeClass",
@@ -63,20 +65,6 @@ UNIT_OF: Final[Mapping[MeteredComponent, MeterUnit]] = {
 }
 
 
-class ChargeClass(enum.StrEnum):
-    """Whether the patient is owed this work, or whether it is a nicety.
-
-    This distinction is what makes a cap safe to have at all. A cap that
-    refuses obligatory work abandons a patient mid-intake; a cap that refuses
-    only elective work costs quality and never safety, which is the direction
-    a budget is allowed to fail in.
-    """
-
-    #: Owed. A scripted question, the RED script, the first extraction of an
-    #: answer the patient has just given. Never refused by any budget.
-    OBLIGATORY = "obligatory"
-    #: Discretionary. A speculative or repeated extraction, a shadow lane, a
-    #: re-synthesis. Refused when the cap cannot afford it — **and refused when
-    #: no cap has been declared**, because an unknown budget is not a licence
-    #: to spend.
-    ELECTIVE = "elective"
+#: INT-439 moved the definition to :mod:`intake_platform.cost.spend` so the model
+#: lanes and the voice runtime share one vocabulary; re-exported here unchanged.
+ChargeClass = _ChargeClass

@@ -6,8 +6,18 @@
       "data": {
         "resultType": "vector",
         "result": [
-          { "metric": { "profile": "residency_tr" }, "value": [1790424000, "40"] },
-          { "metric": { "profile": "typed" }, "value": [1790424000, "10"] }
+          {
+            "metric": {
+              "profile": "residency_tr"
+            },
+            "value": [1790424000, "40"]
+          },
+          {
+            "metric": {
+              "profile": "typed"
+            },
+            "value": [1790424000, "10"]
+          }
         ]
       }
     },
@@ -16,8 +26,18 @@
       "data": {
         "resultType": "vector",
         "result": [
-          { "metric": { "profile": "residency_tr" }, "value": [1790424000, "900"] },
-          { "metric": { "profile": "typed" }, "value": [1790424000, "300"] }
+          {
+            "metric": {
+              "profile": "residency_tr"
+            },
+            "value": [1790424000, "900"]
+          },
+          {
+            "metric": {
+              "profile": "typed"
+            },
+            "value": [1790424000, "300"]
+          }
         ]
       }
     },
@@ -25,28 +45,172 @@
       "status": "success",
       "data": {
         "resultType": "vector",
-        "result": [{ "metric": { "profile": "residency_tr" }, "value": [1790424000, "48000"] }]
+        "result": [
+          {
+            "metric": {
+              "profile": "residency_tr"
+            },
+            "value": [1790424000, "48000"]
+          }
+        ]
       }
     },
     "sum by (profile) (increase(voice_tts_chars_sum{vendor=\"self-hosted\"}[30d]))": {
       "status": "success",
       "data": {
         "resultType": "vector",
-        "result": [{ "metric": { "profile": "residency_tr" }, "value": [1790424000, "1080000"] }]
+        "result": [
+          {
+            "metric": {
+              "profile": "residency_tr"
+            },
+            "value": [1790424000, "1080000"]
+          }
+        ]
       }
     },
     "sum(increase(notification_dispatch_total{channel=\"sms\",status=\"delivered\"}[1d]))": {
       "status": "success",
       "data": {
         "resultType": "vector",
-        "result": [{ "metric": {}, "value": [1790424000, "25"] }]
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "25"]
+          }
+        ]
       }
     },
     "sum(increase(notification_dispatch_total{channel=\"sms\",status=\"delivered\"}[30d]))": {
       "status": "success",
       "data": {
         "resultType": "vector",
-        "result": [{ "metric": {}, "value": [1790424000, "700"] }]
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "700"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"input\",lane=\"llm\",provider=\"openai\"}[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "2"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"input\",lane=\"llm\",provider=\"openai\"}[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "60"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"output\",lane=\"llm\",provider=\"openai\"}[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "1"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"output\",lane=\"llm\",provider=\"openai\"}[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "30"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"input\",lane=\"asr\",provider=\"openai\"}[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "2"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"input\",lane=\"asr\",provider=\"openai\"}[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "60"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"output\",lane=\"asr\",provider=\"openai\"}[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "1"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_tokens_total{direction=\"output\",lane=\"asr\",provider=\"openai\"}[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "30"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_characters_total{lane=\"tts\",provider=\"openai\"}[1d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "3"]
+          }
+        ]
+      }
+    },
+    "sum(increase(model_lane_characters_total{lane=\"tts\",provider=\"openai\"}[30d]))": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {
+            "metric": {},
+            "value": [1790424000, "90"]
+          }
+        ]
       }
     },
     "max(model_spend_month_usd)": {

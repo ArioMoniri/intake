@@ -100,6 +100,7 @@ it or whose tests exercise it.
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
 | `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/hosted-lanes` | `llm-boundary`, `cloud-boundary` | the hosted model-lane adapters, shipped in the synthetic deployment's image only (ADR-035) |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
 | `packages/voice-clips` | `protocol-registry`, `cloud-clipgen`, `voice-runtime` | the clip cache, its build and the agent-audio framing |
@@ -990,6 +991,44 @@ it or whose tests exercise it.
   taking exactly the same virtual time as an unmetered one on the fake clock (invariant
   9), and the price book refusing rather than returning a zero. The adversarial suite
   RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
+
+- **INT-428 — hosted model lanes (ADR-035).** The owner's decision of 2 Oct 2026 puts a hosted
+  provider behind the `llm`, `asr` and `tts` lanes until the GPU lanes are healthy, narrowed by the
+  binding medical and AI/ML reviews:
+  - **Threats.** [I/Nc] patient speech or text egressing to a vendor; [S] an address that answers
+    passing for a self-hosted model (a loopback tunnel); [T] a silent model or snapshot swap; [E] a
+    console switch widening egress on one key; [Dd] a key echoed.
+  - **Controls.**
+    - The hosted adapters are a separate package that only the synthetic deployment's image
+      carries. No PHI-closure package imports or depends on it, and a real-PHI hosted lane cannot
+      be constructed (`HostedPermit`, `ModelAssignment`). There is no DPA branch and no mock route.
+    - The data class is declared by the image, bound by the first write and immutable.
+    - Only attested registry models are served (pinned, plus `jurisdiction: TR` and `phi_path` for
+      PHI), proven by an identity probe. A per-call model check quarantines on mismatch.
+    - Hosted models are dated snapshots only.
+    - A swap on `llm`/`asr` is gated on green red-flag extraction goldens and the negation set for
+      that exact version.
+    - Assignments are frozen per session.
+    - Widening is four eyes, approvals are bound to a `config_hash`, and narrowing is one key.
+    - Keys live in OpenBao only and are never echoed.
+    - Egress uses purpose `hosted_model_inference` on a `phi_allowed: false` row that a human
+      applies.
+    - Refusals, truncations and empty outputs collapse to one outcome (`hosted_lane_no_answer`).
+    - Instructions and data stay in separate roles under a strict schema, every numeral is refused
+      before any TTS, and RED/YELLOW stay with the rules engine.
+  - **Signals.** `model_lane_calls_total`, `model_lane_latency_seconds`,
+    `model_lane_refused_total{reason}`, `model_lane_fallback_total`, the token, audio-second and
+    character usage series, and `admin_model_lane_changes_total`.
+  - **Tests.** `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment,shims}.py`
+    and `tests/admin/test_model_lanes_routes.py`:
+    - `mock_hosted_unrepresentable_for_phi_tenant`, `synthetic_flag_immutable`,
+      `model_pin_frozen_in_session` and `lane_swap_requires_green_rf_extraction_goldens`, each
+      with a near miss;
+    - the adapters against recorded fixtures behind the real egress guard;
+    - the key never echoed.
+  - **Open and split out.** Guarded transport for the self-hosted extraction clients, the
+    `/identity` endpoint on the GPU servers, a drift canary, recording keys carrying
+    model@revision, and a schema-keyword lint.
 
 ## `cloud-boundary` — what may leave, and in what form
 

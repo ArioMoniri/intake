@@ -6406,6 +6406,34 @@
     - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
   tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
   sec_row: "connectors"
+- id: INT-428
+  epic: E05-voice
+  phase: P0
+  title: "Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over"
+  # GitHub #724. Owner decision, 2 Oct 2026 (chat): "use openai or similar
+  # provider let api to be set from admin panel and let to switch for gpu
+  # models", extended the same day to per-lane model selection and narrowed by
+  # the binding medical (finding 12) and AI/ML reviews (ADR-035). The mechanism
+  # ships; serving a hosted lane awaits humans: the hook-protected egress
+  # allow-list row and its INT-001 gate exception, the provider key, a second
+  # console approver, unit prices, and the clinically signed golden set whose
+  # green runs qualify a model version. The AI/ML items not in this change
+  # (guarded transport for the self-hosted extraction clients, /identity on the
+  # GPU servers, a drift canary, model@revision recording keys, a
+  # schema-keyword lint, an egress route for the synthetic host) are split rows
+  # for the coordinator to allocate.
+  depends_on: [INT-182, INT-187, INT-018]
+  labels: [area:api, area:voice, risk:security]
+  status: awaiting-human
+  evidence: docs/evidence/INT-428.md
+  acceptance:
+    - "ADR-035 records the owner decision and its scope against invariant 19: hosted lanes exist only in the synthetic deployment image; for real PHI they are unrepresentable (no DPA branch, no mock route); the relaxation reverts when the GPU lanes are healthy"
+    - "per-lane and per-role routing (self_hosted | hosted:<provider>) with provider AND model selection: dated-snapshot hosted allow-lists, attested registry models only (TR + phi_path for PHI), identity probe and per-call model check; a typed ModelResolver role -> (provider, model)"
+    - "admin Model lanes module: lane provider/model, identity and probes, p50/p95 latency and cost from catalogued series and owner-filled unit prices; four-eyes switch bound to a config hash with a hash-chained audit row; key entry to OpenBao only, never echoed (last four at most); one-click switch to GPU refused unless the identity is healthy; hosted fallback for synthetic only; kill switches stop hosted instantly"
+    - "a swap on llm/asr needs green red-flag extraction goldens and negation-set runs for that exact model version; the model is frozen per session; the synthetic flag is immutable; synthetic or hosted runs never count as clinical evidence"
+    - "tests: the routing table, mock_hosted_unrepresentable_for_phi_tenant, lane_swap_requires_green_rf_extraction_goldens, model_pin_frozen_in_session, synthetic_flag_immutable (each with a near miss), the deployment split, the key never echoed, the four-eyes switch and its audit chain, fallback, and the adapters against recorded fixtures; no live provider call"
+  tests: [tests/platform/test_model_lane_routing.py, tests/platform/test_model_lane_resolver.py, tests/platform/test_model_lane_hosted_adapter.py, tests/platform/test_model_lane_deployment.py, tests/voice/test_model_lane_shims.py, tests/admin/test_model_lanes_routes.py, tests/infra/test_put_provider_key.py]
+  sec_row: "llm-boundary"
 - id: INT-439
   epic: E12-admin
   phase: P0
@@ -6413,7 +6441,7 @@
   # GitHub #747. Owner decision, 3 Oct 2026, in chat: "make limit 80 dollars"
   # (00_STATE §3 D19). The prices are vendor list prices and the AWS price list,
   # each with its page and retrieval day; no number here is an engineer's.
-  depends_on: [INT-101, INT-190]
+  depends_on: [INT-101, INT-190, INT-428]
   labels: [area:admin, area:voice]
   status: doing
   evidence: docs/evidence/INT-439.md
@@ -6422,5 +6450,6 @@
     - "the price book is filled from published pages with url and retrieved_on: the AWS g6.2xlarge us-east-1 on-demand host-hour from the AWS Price List and the ElevenLabs v2 Multilingual character from the ElevenLabs API pricing page; self-hosted lanes are charged per GPU host-hour of the seconds they occupy; a lane with no rate is unpriced, never zero"
     - "the admin cost module shows the month's spend against the cap with a sound verdict (within, warning, reached, not_evaluable), ModelSpendCapWarning and ModelSpendCapReached are generated into the cost rules with runbook headings, and both series are catalogued live"
     - "the decision is recorded as 00_STATE §3 D19 and HB-O8 is closed with the reason; tests cover every threshold with a near-miss, the shared Redis store across workers, a store outage failing elective work closed, and the schema refusals"
-  tests: [tests/voice/test_spend_cap.py, tests/admin/test_cost_spend_cap.py, tests/admin/test_cost_module.py, tests/observability/test_cost_rules.py, apps/admin-web/e2e/cost.spec.ts]
+    - "every INT-428 hosted model-lane call (dispatch, first attempt and fallback retry) is admitted by the monthly cap before the provider is asked and charged after at its sourced per-measure rates (OpenAI gpt-4o-mini and gpt-4o-mini-transcribe list prices); a router with no gate, or a hosted lane with no rate, refuses every hosted call"
+  tests: [tests/voice/test_spend_cap.py, tests/admin/test_cost_spend_cap.py, tests/admin/test_cost_module.py, tests/observability/test_cost_rules.py, tests/platform/test_model_lane_spend.py, apps/admin-web/e2e/cost.spec.ts]
   sec_row: "observability-pipeline"

@@ -38,11 +38,12 @@ from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
+from intake_platform.model_lanes.wiring import ModelLanesWiring, model_lanes_from_env
 from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.release_freeze import release_freeze_store_from_env
 from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
-from intake_platform.voice_control import voice_control_store_from_env
+from intake_platform.voice_control import VoiceControlStore, voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -350,7 +351,33 @@ def _admin_from_env() -> AdminWiring | None:
         voice_controls=voice_controls,
         release_freeze=release_freeze,
         identity=_identity_from_env(),
+        model_lanes=_model_lanes_from_env(voice_controls),
     )
+
+
+def _model_lanes_from_env(voice_controls: VoiceControlStore | None) -> ModelLanesWiring | None:
+    """INT-428 (ADR-035): the model-lane control store, the router and the
+    hosted adapters. No ``INTAKE_MODEL_LANES_REDIS_URL`` leaves the module
+    unconfigured — its mutations answer 503 and its tiles read unknown. The
+    INT-182 voice kill switch, when wired, disables hosted lanes for its
+    tenant; an unreadable one reads as engaged (fail closed). A policy file
+    that does not load (the allow-list, the provider catalogue, the transfer
+    bases) leaves the module unconfigured rather than half-built."""
+    kill_switch = None
+    if voice_controls is not None:
+        store = voice_controls
+
+        def kill_switch(tenant_id: str) -> bool:
+            return store.read(tenant_id).kill_switch
+
+    try:
+        return model_lanes_from_env(
+            os.environ, kv=SecretsProvider.from_env, kill_switch=kill_switch
+        )
+    except (OSError, ValueError) as err:
+        # the class name says what failed; no path or value is logged
+        logger.warning("model lanes unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _identity_from_env() -> IdentityWiring | None:

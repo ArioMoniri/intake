@@ -147,6 +147,19 @@ function usd(value: number): string {
   return atom(value, CURRENCY, 6);
 }
 
+/**
+ * A unit price (INT-439). A list price per token is 1.5e-7 USD, which six
+ * fraction digits would paint as "0" — the invented zero this module refuses
+ * everywhere else. Significant digits keep every published figure visible.
+ */
+function usdRate(value: number): string {
+  const text = value.toLocaleString("en-GB", {
+    useGrouping: false,
+    maximumSignificantDigits: 6,
+  });
+  return `${text}${NBSP}${CURRENCY}`;
+}
+
 /* ------------------------------------------------------------------ */
 /* Renderers                                                           */
 /* ------------------------------------------------------------------ */
@@ -189,7 +202,7 @@ function renderComponent(wire: ComponentWire): ComponentPresentation {
   const price =
     wire.price.usd_per_unit === null
       ? PRICE_NOT_CONFIGURED
-      : `${usd(wire.price.usd_per_unit)} per ${unit.replace(/s$/, "")} ${provenance}${page}`;
+      : `${usdRate(wire.price.usd_per_unit)} per ${unit.replace(/s$/, "")} ${provenance}${page}`;
   const usage =
     wire.usage_metric === null
       ? `not metered — ${wire.usage_note ?? ""}`.trim()

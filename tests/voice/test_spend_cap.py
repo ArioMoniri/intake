@@ -20,16 +20,10 @@ from pathlib import Path
 import fakeredis
 import pytest
 import redis
-from intake_platform.cost.caps import RateRoute
+from intake_platform.cost.caps import Measure, RateRoute
 from intake_platform.cost.config import load_cost_config
-from intake_voice_runtime.metering import (
-    ChargeClass,
-    MeteredComponent,
-    SessionLedger,
-    SessionMeter,
-)
-from intake_voice_runtime.metering.ledger import AdmissionReason
-from intake_voice_runtime.metering.spend import (
+from intake_platform.cost.spend import (
+    MODEL_SPEND_CAP_EVENTS_TOTAL,
     CallUsage,
     InMemorySpendStore,
     MonthlySpendLedger,
@@ -40,13 +34,21 @@ from intake_voice_runtime.metering.spend import (
     month_of,
     price_call,
 )
-from intake_voice_runtime.metrics import MODEL_SPEND_CAP_EVENTS_TOTAL
+from intake_voice_runtime.metering import (
+    ChargeClass,
+    MeteredComponent,
+    SessionLedger,
+    SessionMeter,
+)
+from intake_voice_runtime.metering.ledger import AdmissionReason
 
 REPO = Path(__file__).resolve().parents[2]
 CONFIG = load_cost_config(REPO / "infra" / "costs" / "unit-prices.yaml")
 RATES = lane_rates(CONFIG)
 GPU = RATES[(RateRoute.SELF_HOSTED, "aws", "g6.2xlarge")]
 ELEVEN = RATES[(RateRoute.HOSTED, "elevenlabs", "eleven_multilingual_v2")]
+MINI = RATES[(RateRoute.HOSTED, "openai", "gpt-4o-mini")]
+TRANSCRIBE = RATES[(RateRoute.HOSTED, "openai", "gpt-4o-mini-transcribe")]
 MID_OCTOBER = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
 SESSION = "55555555-6666-4777-8888-999999999999"
 
@@ -76,13 +78,28 @@ class TestTheOwnersDecision:
     def test_every_rate_points_at_a_sourced_list_price(self) -> None:
         by_id = {c.component: c for c in CONFIG.components}
         for rate in CONFIG.model_rates:
-            price = by_id[rate.priced_by].price
-            assert price.url is not None and price.url.startswith("https://")
-            assert price.source and price.as_of is not None
+            for priced_by in rate.charges.values():
+                price = by_id[priced_by].price
+                assert price.url is not None and price.url.startswith("https://")
+                assert price.source and price.as_of is not None
 
     def test_the_rates_are_the_published_figures(self) -> None:
-        assert GPU.usd_per_unit == Decimal("0.9776")  # AWS g6.2xlarge us-east-1 on-demand
-        assert ELEVEN.usd_per_unit == Decimal("0.00008")  # $0.08 per 1K characters
+        # AWS g6.2xlarge us-east-1 on-demand, per host-hour
+        assert GPU.prices == {Measure.BUSY_SECONDS: Decimal("0.9776")}
+        # ElevenLabs v2 Multilingual, $0.08 per 1K characters
+        assert ELEVEN.prices == {Measure.CHARACTERS: Decimal("0.00008")}
+        # OpenAI standard tier, per token ($0.15 / $0.60 and $1.25 / $5.00 per 1M)
+        assert MINI.prices == {
+            Measure.INPUT_TOKENS: Decimal("1.5E-7"),
+            Measure.OUTPUT_TOKENS: Decimal("6E-7"),
+        }
+        assert TRANSCRIBE.prices == {
+            Measure.INPUT_TOKENS: Decimal("0.00000125"),
+            Measure.OUTPUT_TOKENS: Decimal("0.000005"),
+        }
+
+    def test_hosted_tts_has_no_rate_until_it_has_a_list_price(self) -> None:
+        assert not any(key[1:] == ("openai", "gpt-4o-mini-tts") for key in RATES)
 
 
 # --- pricing ---------------------------------------------------------------------------
@@ -93,8 +110,16 @@ class TestPricing:
         assert price_call(GPU, CallUsage(busy_seconds=Decimal(3600))) == Decimal("0.9776")
         assert price_call(GPU, CallUsage(busy_seconds=Decimal(36))) == Decimal("0.009776")
 
-    def test_near_miss_tokens_do_not_price_a_host_hour(self) -> None:
-        assert price_call(GPU, CallUsage(input_tokens=10_000, output_tokens=500)) == 0
+    def test_tokens_on_a_host_hour_lane_are_unpriced_not_free(self) -> None:
+        with pytest.raises(UnpricedCall):
+            price_call(GPU, CallUsage(input_tokens=10_000, output_tokens=500))
+
+    def test_input_and_output_tokens_carry_their_own_prices(self) -> None:
+        usd = price_call(MINI, CallUsage(input_tokens=1_000_000, output_tokens=1_000_000))
+        assert usd == Decimal("0.75")
+
+    def test_near_miss_an_unused_measure_needs_no_price(self) -> None:
+        assert price_call(MINI, CallUsage(input_tokens=2_000_000)) == Decimal("0.3")
 
     def test_hosted_tts_is_charged_per_character(self) -> None:
         assert price_call(ELEVEN, CallUsage(characters=1000)) == Decimal("0.08000")

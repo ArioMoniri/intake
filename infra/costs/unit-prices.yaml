@@ -149,6 +149,92 @@ components:
     usage_note: no catalogued host-uptime series exists on main
     price: {usd_per_unit: null, source: null, as_of: null}
 
+  # INT-428 / ADR-035: the hosted model lanes (synthetic tenants only, until
+  # the GPU lanes are healthy). Metered by the catalogued model_lane_* series
+  # the routed gateways emit; priced by the owner from the provider's invoice
+  # or price list, with its source and date — empty until then.
+  - component: hosted_llm_input
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: llm, provider: openai, direction: input}
+    usage_note: null
+    price:
+      usd_per_unit: 0.00000015
+      source: "OpenAI API pricing page, gpt-4o-mini input, $0.15 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
+
+  - component: hosted_llm_output
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: llm, provider: openai, direction: output}
+    usage_note: null
+    price:
+      usd_per_unit: 0.0000006
+      source: "OpenAI API pricing page, gpt-4o-mini output, $0.60 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
+
+  - component: hosted_asr_input
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: asr, provider: openai, direction: input}
+    usage_note: null
+    price:
+      usd_per_unit: 0.00000125
+      source: "OpenAI API pricing page, gpt-4o-mini-transcribe input, $1.25 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
+
+  - component: hosted_asr_output
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: asr, provider: openai, direction: output}
+    usage_note: null
+    price:
+      usd_per_unit: 0.000005
+      source: "OpenAI API pricing page, gpt-4o-mini-transcribe output, $5.00 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
+
+  - component: hosted_tts
+    vendor: openai
+    vendor_note: null
+    unit: character
+    profiles: []
+    usage:
+      metric: model_lane_characters_total
+      aggregation: counter_increase
+      selector: {lane: tts, provider: openai}
+    usage_note: >-
+      the speech route reports no usage; characters sent are what is metered,
+      so the owner's per-character price is derived from the provider's
+      invoice for the same period. gpt-4o-mini-tts has no per-character list
+      price (only text-input and audio-output tokens, which the route does not
+      report), so this row stays empty and the hosted TTS lane is refused under
+      the monthly cap until it is priced (INT-439)
+    price: {usd_per_unit: null, source: null, as_of: null}
+
 budgets:
   - budget_id: all-vendors-day
     scope: all_vendors
@@ -190,6 +276,16 @@ budgets:
     vendor: aws
     period: month
     limit: {usd: null, source: null, as_of: null}
+  - budget_id: openai-day
+    scope: vendor
+    vendor: openai
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: openai-month
+    scope: vendor
+    vendor: openai
+    period: month
+    limit: {usd: null, source: null, as_of: null}
 
 # INT-439 / D19 — the owner's "make limit 80 dollars" (3 Oct 2026). A calendar
 # month (UTC) of ELECTIVE model spend: council verifier members and hosted model
@@ -206,14 +302,15 @@ spend_caps:
       as_of: 2026-10-03
     warn_ratio: 0.8
 
-# Which priced component each model lane is charged at. A rate holds no number:
-# it points at a component above, so one figure lives in one place.
+# Which priced component each measure of a model lane's use is charged at. A
+# rate holds no number: it points at components above, so one figure lives in
+# one place.
 model_rates:
   - rate_id: self-hosted-g6-2xlarge
     route: self_hosted
     provider: aws
     model: g6.2xlarge
-    priced_by: gpu_host_onvizit_api
+    charges: {busy_seconds: gpu_host_onvizit_api}
     note: >-
       every self-hosted lane on an AWS g6.2xlarge host is charged for the host
       seconds the call occupied, at the on-demand host-hour price
@@ -221,5 +318,17 @@ model_rates:
     route: hosted
     provider: elevenlabs
     model: eleven_multilingual_v2
-    priced_by: clip_synthesis
+    charges: {characters: clip_synthesis}
     note: charged per character synthesised, at the published v2 Multilingual rate
+  - rate_id: hosted-openai-gpt-4o-mini
+    route: hosted
+    provider: openai
+    model: gpt-4o-mini
+    charges: {input_tokens: hosted_llm_input, output_tokens: hosted_llm_output}
+    note: the INT-428 hosted llm lane, charged per input and output token
+  - rate_id: hosted-openai-gpt-4o-mini-transcribe
+    route: hosted
+    provider: openai
+    model: gpt-4o-mini-transcribe
+    charges: {input_tokens: hosted_asr_input, output_tokens: hosted_asr_output}
+    note: the INT-428 hosted asr lane, charged per input and output token

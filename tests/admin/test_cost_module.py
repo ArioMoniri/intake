@@ -390,7 +390,14 @@ class TestNoPhiAndNoInventedZero:
             for c in payload["components"]
             if c["price"]["state"] == "configured"
         }
-        assert set(priced) == {"clip_synthesis", "gpu_host_onvizit_api"}
+        assert set(priced) == {
+            "clip_synthesis",
+            "gpu_host_onvizit_api",
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+        }
         for price in priced.values():
             assert price["url"].startswith("https://")
             assert price["source"] and price["as_of"] == "2026-10-03"

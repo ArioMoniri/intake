@@ -2,7 +2,7 @@
   "currency": "USD",
   "config": {
     "path": "tests/fixtures/cost/unit-prices.priced.yaml",
-    "sha256": "7d9e20d487942f0fb8920de72455d1731cd598b387ef3cd25b75e532c1b043bf",
+    "sha256": "454a94c324a01edebf4da234cf1acb140c6fc8009c0ca2ae1029515133364736",
     "blocker": "HB-O8"
   },
   "source": {
@@ -155,6 +155,96 @@
         "as_of": null,
         "url": null
       }
+    },
+    {
+      "component": "hosted_llm_input",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02",
+        "url": null
+      }
+    },
+    {
+      "component": "hosted_llm_output",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02",
+        "url": null
+      }
+    },
+    {
+      "component": "hosted_asr_input",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02",
+        "url": null
+      }
+    },
+    {
+      "component": "hosted_asr_output",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02",
+        "url": null
+      }
+    },
+    {
+      "component": "hosted_tts",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "character",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_characters_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02",
+        "url": null
+      }
     }
   ],
   "windows": [
@@ -269,6 +359,66 @@
           "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         },
         {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.06,
+          "usd_per_session": 0.36,
+          "reasons": []
+        },
+        {
           "component": "llm_talker",
           "vendor": "self-hosted",
           "profile": "typed",
@@ -341,6 +491,66 @@
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.06,
+          "usd_per_session": 0.36,
+          "reasons": []
         }
       ],
       "by_vendor": [
@@ -373,6 +583,13 @@
           "missing": ["gpu_host_onvizit_api"]
         },
         {
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "state": "complete",
+          "usd_per_session": 1.08,
+          "missing": []
+        },
+        {
           "vendor": "self-hosted",
           "profile": "typed",
           "state": "incomplete",
@@ -399,6 +616,13 @@
           "state": "incomplete",
           "usd_per_session": null,
           "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "typed",
+          "state": "complete",
+          "usd_per_session": 1.08,
+          "missing": []
         }
       ],
       "by_profile": [
@@ -512,6 +736,56 @@
           "quantity": null,
           "usd": null,
           "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 2.0,
+          "usd": 12.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 1.0,
+          "usd": 6.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 2.0,
+          "usd": 12.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 1.0,
+          "usd": 6.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 3.0,
+          "usd": 18.0,
+          "reasons": []
         }
       ]
     },
@@ -626,6 +900,66 @@
           "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         },
         {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.075,
+          "usd_per_session": 0.44999999999999996,
+          "reasons": []
+        },
+        {
           "component": "llm_talker",
           "vendor": "self-hosted",
           "profile": "typed",
@@ -698,6 +1032,66 @@
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.075,
+          "usd_per_session": 0.44999999999999996,
+          "reasons": []
         }
       ],
       "by_vendor": [
@@ -730,6 +1124,13 @@
           "missing": ["gpu_host_onvizit_api"]
         },
         {
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "state": "complete",
+          "usd_per_session": 1.35,
+          "missing": []
+        },
+        {
           "vendor": "self-hosted",
           "profile": "typed",
           "state": "incomplete",
@@ -756,6 +1157,13 @@
           "state": "incomplete",
           "usd_per_session": null,
           "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "typed",
+          "state": "complete",
+          "usd_per_session": 1.35,
+          "missing": []
         }
       ],
       "by_profile": [
@@ -869,6 +1277,56 @@
           "quantity": null,
           "usd": null,
           "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 60.0,
+          "usd": 360.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 30.0,
+          "usd": 180.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 60.0,
+          "usd": 360.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 30.0,
+          "usd": 180.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 90.0,
+          "usd": 540.0,
+          "reasons": []
         }
       ]
     }
@@ -887,7 +1345,7 @@
         "as_of": "2026-09-26"
       },
       "spend_state": "lower_bound",
-      "spend_usd": 96000.0,
+      "spend_usd": 96054.0,
       "status": "exceeded",
       "missing": [
         "asr",
@@ -914,7 +1372,7 @@
         "as_of": null
       },
       "spend_state": "lower_bound",
-      "spend_usd": 2160000.0,
+      "spend_usd": 2161620.0,
       "status": "not_configured",
       "missing": [
         "asr",
@@ -1041,6 +1499,44 @@
       "missing": ["gpu_host_onvizit_api"],
       "reason": "budget not configured",
       "alerts": ["CostBudgetNotConfigured"]
+    },
+    {
+      "budget_id": "openai-day",
+      "scope": "vendor",
+      "vendor": "openai",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "configured",
+        "usd": 900.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-10-02"
+      },
+      "spend_state": "complete",
+      "spend_usd": 54.0,
+      "status": "within",
+      "missing": [],
+      "reason": "the complete spend is within the limit",
+      "alerts": ["CostBudgetExceeded"]
+    },
+    {
+      "budget_id": "openai-month",
+      "scope": "vendor",
+      "vendor": "openai",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "configured",
+        "usd": 9000.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-10-02"
+      },
+      "spend_state": "complete",
+      "spend_usd": 1620.0,
+      "status": "within",
+      "missing": [],
+      "reason": "the complete spend is within the limit",
+      "alerts": ["CostBudgetExceeded"]
     }
   ],
   "spend_caps": [
@@ -1118,6 +1614,16 @@
       {
         "alert": "CostBudgetNotConfigured",
         "budget_id": "aws-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetExceeded",
+        "budget_id": "openai-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetExceeded",
+        "budget_id": "openai-month",
         "severity": "ticket"
       },
       {

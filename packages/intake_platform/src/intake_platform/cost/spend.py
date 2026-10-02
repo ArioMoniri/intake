@@ -1,5 +1,10 @@
 """INT-439 — the monthly elective model-spend cap, enforced (00_STATE §3 D19).
 
+It lives in ``intake_platform`` because two layers enforce it: the voice
+runtime's ``SessionLedger`` (council members, elective extraction) and the
+INT-428 model-lane ``dispatch`` (every hosted call), which cannot import the
+voice runtime.
+
 Owner decision, 3 Oct 2026: *"make limit 80 dollars"*. ``infra/costs/
 unit-prices.yaml`` carries it as a :class:`~intake_platform.cost.caps.SpendCap`.
 This module is the runtime half, and it answers three questions.
@@ -37,23 +42,26 @@ from __future__ import annotations
 
 import enum
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import ROUND_CEILING, Decimal
 from threading import Lock
+from types import MappingProxyType
 from typing import Final, Protocol
 
 import redis
-from intake_platform.cost.caps import RateRoute, SpendCap
-from intake_platform.cost.config import CostConfig, Unit
+from prometheus_client import Counter, Gauge
 
-from intake_voice_runtime.metering.components import ChargeClass
-from intake_voice_runtime.metrics import MODEL_SPEND_CAP_EVENTS_TOTAL, MODEL_SPEND_MONTH_USD
+from intake_platform.cost.caps import Measure, RateRoute, SpendCap
+from intake_platform.cost.config import CostConfig
 
 __all__ = [
     "MICRO",
+    "MODEL_SPEND_CAP_EVENTS_TOTAL",
+    "MODEL_SPEND_MONTH_USD",
     "CallUsage",
+    "ChargeClass",
     "InMemorySpendStore",
     "LaneRate",
     "MonthlySpendLedger",
@@ -68,7 +76,44 @@ __all__ = [
     "price_call",
 ]
 
-logger = logging.getLogger("intake_voice_runtime.metering.spend")
+logger = logging.getLogger("intake_platform.cost.spend")
+
+
+class ChargeClass(enum.StrEnum):
+    """Whether the patient is owed this work, or whether it is a nicety.
+
+    This distinction is what makes a cap safe to have at all. A cap that
+    refuses obligatory work abandons a patient mid-intake; a cap that refuses
+    only elective work costs quality and never safety, which is the direction
+    a budget is allowed to fail in. (INT-101 defined it in the voice runtime;
+    INT-439 moved it here so the model lanes share one vocabulary.)
+    """
+
+    #: Owed. A scripted question, the RED script, the first extraction of an
+    #: answer the patient has just given. Never refused by any budget.
+    OBLIGATORY = "obligatory"
+    #: Discretionary. A speculative or repeated extraction, a shadow lane, a
+    #: re-synthesis, a council member, a hosted lane on the synthetic
+    #: deployment. Refused when the cap cannot afford it — **and refused when
+    #: no cap has been declared**, because an unknown budget is not a licence
+    #: to spend.
+    ELECTIVE = "elective"
+
+
+# The month-to-date total of model spend this deployment has counted, in USD,
+# over every charge class — the figure the admin cost module shows against the
+# cap. With the shared Redis store every process reports the same total, so a
+# reader takes max(), never sum().
+MODEL_SPEND_MONTH_USD: Final = Gauge(
+    "model_spend_month_usd",
+    "Month-to-date model spend counted against the monthly elective cap, in USD.",
+)
+
+MODEL_SPEND_CAP_EVENTS_TOTAL: Final = Counter(
+    "model_spend_cap_events_total",
+    "Monthly spend-cap events: warn at the ratio, refusals by reason, store misses.",
+    ["event"],
+)
 
 #: Spend is stored as integer micro-USD: exact, additive, and INCRBY-able.
 MICRO: Final = Decimal(1_000_000)
@@ -107,12 +152,17 @@ class CallUsage:
 
 @dataclass(frozen=True, slots=True)
 class LaneRate:
-    """One lane's resolved rate: the unit it is charged in and the sourced price."""
+    """One lane's resolved prices: USD per unit of each measure it is charged by.
+
+    Each price is the component's own, per its own unit. Busy seconds are the
+    one measure whose unit differs from its price's (host-*hour*), so the
+    *quantity* is converted to hours at Decimal precision; the recorded spend
+    is then rounded up to a whole micro-USD, so a conversion never under-counts.
+    """
 
     rate_id: str
     route: RateRoute
-    unit: Unit
-    usd_per_unit: Decimal
+    prices: Mapping[Measure, Decimal]
 
 
 def lane_rates(config: CostConfig) -> dict[tuple[RateRoute, str, str], LaneRate]:
@@ -120,36 +170,46 @@ def lane_rates(config: CostConfig) -> dict[tuple[RateRoute, str, str], LaneRate]
     components = {component.component: component for component in config.components}
     rates: dict[tuple[RateRoute, str, str], LaneRate] = {}
     for rate in config.model_rates:
-        component = components[rate.priced_by]
-        price = component.price.usd_per_unit
-        if price is None:  # CostConfig refuses this; re-checked so a type never lies
-            raise UnpricedCall(rate.rate_id)
+        prices: dict[Measure, Decimal] = {}
+        for measure, priced_by in rate.charges.items():
+            price = components[priced_by].price.usd_per_unit
+            if price is None:  # CostConfig refuses this; re-checked so a type never lies
+                raise UnpricedCall(rate.rate_id)
+            prices[measure] = Decimal(str(price))
         rates[(rate.route, rate.provider, rate.model)] = LaneRate(
-            rate_id=rate.rate_id,
-            route=rate.route,
-            unit=component.unit,
-            usd_per_unit=Decimal(str(price)),
+            rate_id=rate.rate_id, route=rate.route, prices=MappingProxyType(prices)
         )
     return rates
 
 
-def _quantity(unit: Unit, usage: CallUsage) -> Decimal:
-    if unit is Unit.HOST_HOUR:
-        return usage.busy_seconds / _SECONDS_PER_HOUR
-    if unit is Unit.TOKEN:
-        return Decimal(usage.input_tokens + usage.output_tokens)
-    if unit is Unit.CHARACTER:
-        return Decimal(usage.characters)
-    if unit is Unit.AUDIO_SECOND:
-        return usage.audio_seconds
-    raise UnpricedCall(f"a model lane is never charged per {unit.value}")
+def _used(usage: CallUsage) -> dict[Measure, Decimal]:
+    return {
+        Measure.INPUT_TOKENS: Decimal(usage.input_tokens),
+        Measure.OUTPUT_TOKENS: Decimal(usage.output_tokens),
+        Measure.CHARACTERS: Decimal(usage.characters),
+        Measure.AUDIO_SECONDS: usage.audio_seconds,
+        Measure.BUSY_SECONDS: usage.busy_seconds / _SECONDS_PER_HOUR,
+    }
 
 
 def price_call(rate: LaneRate | None, usage: CallUsage) -> Decimal:
-    """The call's cost in USD, or :class:`UnpricedCall`. Never a guessed zero."""
+    """The call's cost in USD, or :class:`UnpricedCall`. Never a guessed zero.
+
+    Every measure the call used must have a price on the lane: a measure used
+    and not priced is spend nobody can count, so it is refused rather than
+    left out of the sum.
+    """
     if rate is None:
         raise UnpricedCall("this lane has no model rate in infra/costs/unit-prices.yaml")
-    return _quantity(rate.unit, usage) * rate.usd_per_unit
+    total = Decimal(0)
+    for measure, quantity in _used(usage).items():
+        if not quantity:
+            continue
+        price = rate.prices.get(measure)
+        if price is None:
+            raise UnpricedCall(f"{rate.rate_id} has no price for {measure.value}")
+        total += quantity * price
+    return total
 
 
 def month_of(moment: datetime) -> str:

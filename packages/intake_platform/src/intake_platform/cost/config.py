@@ -27,7 +27,7 @@ from typing import Final, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from intake_platform.cost.caps import ModelRate, RateRoute, SpendCap
+from intake_platform.cost.caps import Measure, ModelRate, RateRoute, SpendCap
 
 __all__ = [
     "PERIOD_HOURS",
@@ -319,33 +319,48 @@ class CostConfig(BaseModel):
             raise ValueError("two model rates price the same lane")
         by_id = {component.component: component for component in self.components}
         for rate in self.model_rates:
-            component = by_id.get(rate.priced_by)
-            if component is None:
-                raise ValueError(
-                    f"model rate {rate.rate_id} is priced by unknown {rate.priced_by!r}"
-                )
-            if component.price.usd_per_unit is None:
-                raise ValueError(
-                    f"model rate {rate.rate_id} points at {rate.priced_by}, which has no "
-                    "price: a lane charged at an unknown rate cannot be counted against a cap"
-                )
-            if component.unit not in _RATE_UNITS[rate.route]:
-                raise ValueError(
-                    f"model rate {rate.rate_id}: a {rate.route.value} lane cannot be charged "
-                    f"per {component.unit.value}"
-                )
-            if component.vendor != rate.provider:
-                raise ValueError(
-                    f"model rate {rate.rate_id} names provider {rate.provider!r} but its "
-                    f"component is billed by {component.vendor!r}"
-                )
+            for measure, priced_by in rate.charges.items():
+                self._check_charge(rate, measure, by_id.get(priced_by), priced_by)
+
+    @staticmethod
+    def _check_charge(
+        rate: ModelRate, measure: Measure, component: CostComponent | None, priced_by: str
+    ) -> None:
+        where = f"model rate {rate.rate_id} ({measure.value})"
+        if component is None:
+            raise ValueError(f"{where} is priced by unknown {priced_by!r}")
+        if component.price.usd_per_unit is None:
+            raise ValueError(
+                f"{where} points at {priced_by}, which has no price: a lane charged at "
+                "an unknown rate cannot be counted against a cap"
+            )
+        if measure not in _ROUTE_MEASURES[rate.route]:
+            raise ValueError(f"{where}: a {rate.route.value} lane cannot be charged by it")
+        if component.unit is not _MEASURE_UNIT[measure]:
+            raise ValueError(
+                f"{where}: {priced_by} is priced per {component.unit.value}, which "
+                f"cannot be charged by {measure.value}"
+            )
+        if component.vendor != rate.provider:
+            raise ValueError(
+                f"{where} names provider {rate.provider!r} but its component is billed "
+                f"by {component.vendor!r}"
+            )
 
 
 #: A self-hosted lane is charged for the host it occupies; a hosted lane for
 #: what the vendor meters.
-_RATE_UNITS: Final[dict[RateRoute, frozenset[Unit]]] = {
-    RateRoute.SELF_HOSTED: frozenset({Unit.HOST_HOUR}),
-    RateRoute.HOSTED: frozenset({Unit.TOKEN, Unit.CHARACTER, Unit.AUDIO_SECOND}),
+_ROUTE_MEASURES: Final[dict[RateRoute, frozenset[Measure]]] = {
+    RateRoute.SELF_HOSTED: frozenset({Measure.BUSY_SECONDS}),
+    RateRoute.HOSTED: frozenset(set(Measure) - {Measure.BUSY_SECONDS}),
+}
+#: The unit a measure's price must be quoted in.
+_MEASURE_UNIT: Final[dict[Measure, Unit]] = {
+    Measure.INPUT_TOKENS: Unit.TOKEN,
+    Measure.OUTPUT_TOKENS: Unit.TOKEN,
+    Measure.CHARACTERS: Unit.CHARACTER,
+    Measure.AUDIO_SECONDS: Unit.AUDIO_SECOND,
+    Measure.BUSY_SECONDS: Unit.HOST_HOUR,
 }
 
 

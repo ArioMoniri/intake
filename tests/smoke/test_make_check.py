@@ -294,9 +294,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # stated reason.
     # + INT-431 (the embed sample's JWT fixture is built at runtime, found
     # merging main into #481, GitHub #733); grows only with a stated reason.
+    # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
+    # GitHub #724); grows only with a stated reason.
     # + INT-439 (HB-O8 closed by the owner's 80 USD monthly elective spend cap,
     # 00_STATE D19, GitHub #747); grows only with a stated reason.
-    assert len(ids) == 329, f"expected 175 blueprint + 154 added issues, got {len(ids)}"
+    assert len(ids) == 330, f"expected 175 blueprint + 155 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

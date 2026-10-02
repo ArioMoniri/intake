@@ -17,8 +17,6 @@ from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 __all__ = [
     "DELIVERY_INSERTION_WAIT_MS",
     "LANE_DROPPED_FRAMES",
-    "MODEL_SPEND_CAP_EVENTS_TOTAL",
-    "MODEL_SPEND_MONTH_USD",
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
     "TALKER_TOOL_CALLS_TOTAL",
@@ -89,24 +87,6 @@ WORK_FAILED_TOTAL = Counter(
     ["type"],
 )
 
-
-# --- monthly elective model-spend cap (INT-439; 00_STATE §3 D19) --------------------
-#
-# The month-to-date total of model spend this deployment has counted, in USD,
-# over every charge class — the figure the admin cost module shows against the
-# 80 USD cap. With the shared Redis store every worker reports the same total,
-# so a reader takes max(), never sum().
-
-MODEL_SPEND_MONTH_USD = Gauge(
-    "model_spend_month_usd",
-    "Month-to-date model spend counted against the monthly elective cap, in USD.",
-)
-
-MODEL_SPEND_CAP_EVENTS_TOTAL = Counter(
-    "model_spend_cap_events_total",
-    "Monthly spend-cap events: warn at the ratio, refusals by reason, store misses.",
-    ["event"],
-)
 
 # --- observer lanes (INT-110) ---------------------------------------------------
 #

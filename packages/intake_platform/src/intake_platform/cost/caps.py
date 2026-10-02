@@ -9,24 +9,26 @@ files/HUMAN_BLOCKERS.md HB-O8, recorded as 00_STATE §3 D19. Two pieces of
   warns. Elective work is refused once the month-to-date spend reaches the
   limit; obligatory work — the first extraction of an answer the patient has
   just given — is counted toward the month and never refused (INT-101's rule).
-- :class:`ModelRate` — which priced component a model lane is charged at. A
-  rate holds no number of its own: it points at a component whose ``price`` is
-  already sourced (url, source, as_of), so one figure lives in one place and
-  the console, the alert rules and the runtime ledger cannot disagree about it.
-  A self-hosted lane is charged per GPU host-hour of the instance it runs on; a
-  hosted lane is charged at the vendor's published unit price.
+- :class:`ModelRate` — which priced component each *measure* of a model lane's
+  use is charged at. A rate holds no number of its own: every measure points at
+  a component whose ``price`` is already sourced (url, source, as_of), so one
+  figure lives in one place and the console, the alert rules and the runtime
+  ledger cannot disagree about it. A self-hosted lane is charged per GPU
+  host-hour for the seconds it occupied; a hosted lane per what the vendor
+  meters — input and output tokens at their own prices, characters, audio.
 """
 
 from __future__ import annotations
 
 import enum
+from collections.abc import Mapping
 from datetime import date
 from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-__all__ = ["CapPeriod", "ModelRate", "RateRoute", "SpendCap", "SpendCapLimit"]
+__all__ = ["CapPeriod", "Measure", "ModelRate", "RateRoute", "SpendCap", "SpendCapLimit"]
 
 
 class CapPeriod(enum.StrEnum):
@@ -38,6 +40,17 @@ class CapPeriod(enum.StrEnum):
 class RateRoute(enum.StrEnum):
     SELF_HOSTED = "self_hosted"
     HOSTED = "hosted"
+
+
+class Measure(enum.StrEnum):
+    """One thing a model call uses that a price can be a price of."""
+
+    INPUT_TOKENS = "input_tokens"
+    OUTPUT_TOKENS = "output_tokens"
+    CHARACTERS = "characters"
+    AUDIO_SECONDS = "audio_seconds"
+    #: Wall seconds a self-hosted call occupied its GPU host — priced per host-hour.
+    BUSY_SECONDS = "busy_seconds"
 
 
 class SpendCapLimit(BaseModel):
@@ -68,17 +81,17 @@ class SpendCap(BaseModel):
 
 
 class ModelRate(BaseModel):
-    """A model lane, and the priced component its use is charged at."""
+    """A model lane, and the priced component each measure of its use is charged at."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     rate_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_.-]{0,63}$")
     route: RateRoute
     provider: str = Field(pattern=r"^[a-z0-9][a-z0-9_.-]{0,63}$")
-    #: The model id for a hosted lane; for a self-hosted lane, the instance type
-    #: the models run on — the thing the GPU-hour price is a price of.
+    #: The model id for a hosted lane (the family the list price is a price of);
+    #: for a self-hosted lane, the instance type the models run on.
     model: str = Field(min_length=1, max_length=128)
-    priced_by: str = Field(description="The component whose sourced price applies.")
+    charges: Mapping[Measure, str] = Field(min_length=1)
     note: str = Field(min_length=1)
 
     @field_validator("model")

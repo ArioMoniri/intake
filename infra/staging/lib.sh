@@ -572,8 +572,8 @@ unseal_openbao() {
 }
 
 configure_openbao() {
-  # transit engine, the intake-api policy, the restart-probe KEK and the API's
-  # periodic token. The token id is the host-generated OPENBAO_TOKEN, so the
+  # transit engine, the model-lane KV engine, the intake-api policy, the
+  # restart-probe KEK and the API's periodic token. The token id is the host-generated OPENBAO_TOKEN, so the
   # env file is complete before OpenBao exists. Each step is create-if-absent.
   local root api_token
   root=$(init_field root_token)
@@ -581,6 +581,13 @@ configure_openbao() {
     python3 -c 'import json, sys; sys.exit(0 if "transit/" in json.load(sys.stdin) else 1)'; then
     bao_as "$root" secrets enable transit >/dev/null
     log "transit engine enabled"
+  fi
+  # INT-428 (ADR-035): KV v2 at secret/ holds the hosted-lane provider keys the
+  # console's key-set ceremony and load_provider_key.sh write (model-lanes/*).
+  if ! bao_as "$root" secrets list -format=json |
+    python3 -c 'import json, sys; sys.exit(0 if "secret/" in json.load(sys.stdin) else 1)'; then
+    bao_as "$root" secrets enable -path=secret kv-v2 >/dev/null
+    log "kv-v2 engine enabled at secret/"
   fi
   bao_as "$root" policy write intake-api - <"$STAGING_DIR/openbao/intake-api-policy.hcl" >/dev/null
   if ! bao_as "$root" read -format=json "transit/keys/${PROBE_KEK}" >/dev/null 2>&1; then
