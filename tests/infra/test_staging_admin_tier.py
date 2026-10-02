@@ -347,10 +347,12 @@ class TestHostHelpers:
             for line in DEPLOY.read_text(encoding="utf-8").splitlines()
             if not line.lstrip().startswith("#")
         )
-        recreate = "compose up -d --no-build --no-deps --force-recreate caddy"
+        recreate = "compose up -d --no-build --no-deps --force-recreate --wait caddy"
         assert recreate in code
         assert code.index("compose up -d --no-build --wait --remove-orphans") < code.index(recreate)
         assert code.index(recreate) < code.index("wait_https")
+        # near miss: caddy has no healthcheck, so wait_healthy would spin out its 180 s
+        assert "wait_healthy caddy" not in code
 
     def test_the_keycloak_password_travels_on_stdin(self) -> None:
         body = LIB.read_text(encoding="utf-8").split("ensure_keycloak_database() {", 1)[1]

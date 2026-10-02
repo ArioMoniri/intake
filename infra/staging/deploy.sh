@@ -81,8 +81,8 @@ fi
 # running therefore keeps the previous release's Caddyfile, and the 2 Oct 2026
 # deploy served no admin or auth host for that reason. Recreate the edge, so
 # it serves this release's sites.
-compose up -d --no-build --no-deps --force-recreate caddy
-wait_healthy caddy
+# caddy declares no healthcheck, so --wait waits for it to be running
+compose up -d --no-build --no-deps --force-recreate --wait caddy
 
 for path in /healthz /readyz; do
   if ! wait_https "$path"; then
