@@ -67,11 +67,8 @@ function importersOf(tree: readonly SourceFile[], module: string): string[] {
   return tree.filter((f) => pattern.test(f.source.replace(typeOnly, ""))).map((f) => f.name);
 }
 
-const GLASS_HOSTS = [
-  "src/components/FloatingTabBar.tsx",
-  "src/components/GlassBar.tsx",
-  "src/components/GlassCard.tsx",
-];
+// INT-422 removed GlassCard: glass is for the functional chrome alone.
+const GLASS_HOSTS = ["src/components/FloatingTabBar.tsx", "src/components/GlassBar.tsx"];
 
 describe("every glyph goes through the symbol registry", () => {
   it("only Icon.tsx imports expo-symbols", () => {

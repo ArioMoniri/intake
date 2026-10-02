@@ -287,9 +287,14 @@ def test_backlog_parses_and_is_complete() -> None:
     # ... + INT-382 (a suppress_slot in any layer that removes a slot a
     # red-flag rule reads is refused; H-1 of the PR #628 verification).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
-    # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
-    # stated reason.
-    assert len(ids) == 326, f"expected 175 blueprint + 151 added issues, got {len(ids)}"
+    # on-prem TTS wiring guide, owner request, GitHub #706)
+    # + INT-422 (design system refresh: native Apple feel, restrained palette,
+    # SF Symbols; owner request, GitHub #714)
+    # + INT-423 (chat rhythm, glass on chrome only, content solid; owner
+    # request, GitHub #718)
+    # + INT-425 (App Store / Play screenshots from real captures; owner
+    # request, GitHub #720); grows only with a stated reason.
+    assert len(ids) == 329, f"expected 175 blueprint + 154 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

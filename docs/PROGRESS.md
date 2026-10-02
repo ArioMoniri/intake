@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T23:59:00+03:00 · INT-425 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-425):
+  - a story-led sequence (one benefit per frame, in journey order) from real captures of the refreshed app, simulated-patient data only;
+  - every required size for iOS and Android, Turkish first, no accuracy or medical claims (invariant 20), the Önvizit brand;
+  - the source project in the repo, the rationale in docs/design/store-screenshots.md.
+- Plan: capture the refreshed UI (INT-422 and INT-423, merged in because they are not on main yet) on the iPhone simulator; build the app-store-screenshots skill's editor with a flat, token-only theme patch; export every size; guard the set with a test.
+- Tests added: `tests/store/test_store_screenshots.py` (sizes, RGB, journey order, brand, Turkish-first copy, claims gate). RED: 0 frames before the exports existed. GREEN: 78 passed together with the backlog and smoke tests.
+- Result: 8 frames × 4 iPhone sizes, 8 Play phone frames and the feature graphic (about 10 MB). `no_placeholders`, claims (strict), PHI scan and gitleaks are clean on the staged tree.
+- Owner: legal sign-off of the store copy (INT-146); Android captures before submitting to Play (no emulator here).
+- Next: the coordinator allocates merge order after #725 and #728.
+
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
 - Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
   - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
@@ -2956,4 +2967,79 @@
   - No new metric.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T22:30:00+03:00 · INT-422 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-422):
+  - theme tokens revised to one restrained accent with Apple system semantics, Dynamic Type, an 8-pt grid, 12-pt continuous corners and materials on chrome only, with no gradient, glow, shadow or illustration;
+  - SF Symbols on iOS and Material Symbols on Android through one icon layer, pinned by a guard;
+  - WCAG AA everywhere, AAA for clinical text and 3:1 for boundaries in light, dark and Increase Contrast, with RED unchanged;
+  - before/after captures and the rationale in docs/design/system-refresh.md.
+- Plan:
+  - Tokens in `theme.ts`, with an Increase Contrast store applied in `useTheme()`.
+  - Restyle through the shared components only.
+  - Questions move to a Title 2 `question` role so AX sizes never break a word.
+  - `GlassCard` goes.
+  - Friendly `EmptyState` and rounded Large Titles, for the owner's warmth direction.
+  - Captures from the iPhone 16e simulator.
+- Tests added (with the near-miss negative for any safety rule):
+  - `theme.test.ts` rewritten: contrast in four modes, RED pins, Apple values, grid, ladder.
+  - New: `a11y/contrast.test.ts` and `e2e/designSystem.spec.ts` (no gradient, shadow, tracking or glass on content; Dynamic Type AX1-AX5 on 375 pt).
+  - Near misses: a Large Title breaks the words; a regressed palette reopens 1.4.3.
+  - RED run: 73 failed / 20 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 2493 passed;
+  - `make check-ts` exit 0;
+  - `pnpm -r typecheck` clean;
+  - `make check-i18n` 43 passed;
+  - tests/legal 520 passed;
+  - expo lint 0 errors;
+  - `expo export --platform ios --dev` exit 0;
+  - `no_placeholders` clean (staged);
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 2: no copy changed.
+  - 5: no i18n edits.
+  - 17: no placeholders.
+  - 20: font widths are recorded as measurements.
+  - 21: RED colours and RED-path files unchanged.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. It is a visual register within ADR-033 and INT-412.
+  - `mobile-ui.md`'s visual register is marked superseded.
+  - The conformance report re-assesses 1.4.3 and 1.4.11 to Supports, code-verified, with DA-05 still to confirm on device.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: PR `INT-422: design system refresh — native Apple feel, restrained palette, SF Symbols, no AI-generic styling` (Closes #714, Sec-Row mobile), left unmerged.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T23:30:00+03:00 · INT-423 · done (PR open, not merged; stacked on INT-422)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-423):
+  - materials only on chrome and floating controls, content on solid fills, Reduce Transparency solid;
+  - grouped turns, a readable measure and Dynamic Type to AX with no word broken, motion per ADR-033, RED unchanged;
+  - chat contrast in light, dark and increased contrast;
+  - before/after captures and the rationale in docs/design/.
+- Plan:
+  - A pure `lib/dialogue/rhythm.ts` for grouping and measure.
+  - `ChatLines.tsx` for the lead-in hierarchy.
+  - `DialogueIntake` takes each bubble's shape from them, with styles and placement only.
+  - The branch is stacked on INT-422 for its Increase Contrast palette and tokens.
+- Tests added (with the near-miss negative for any safety rule):
+  - `rhythm.test.ts` (near miss: alternating speakers never group);
+  - `chatContrast.test.ts` (near miss: the old faint ink on the wash fails);
+  - `e2e/chatRhythm.spec.ts` (no material in the transcript; tails only on a run's end; XS to AX5 fit at 320 pt; near miss: the old 84 % bubble breaks a word);
+  - RED run: 2 suites failed (module absent).
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 2527 passed;
+  - `make check-ts` exit 0;
+  - `make check-i18n` 43 passed;
+  - expo lint 0 errors;
+  - iOS export exit 0;
+  - `no_placeholders` OK;
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 2, 5, 10: no copy, and the question is verbatim;
+  - 17: no placeholders;
+  - 21: RED is untouched.
+- Decisions / ADRs / `00_STATE.md` rows: none. HIG materials are applied within INT-412's `glassMode`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner step: conversation captures need the voice lane up.
+- Next: PR `INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid` (Closes #718, Sec-Row mobile), base `int-422-design-system-refresh`, left unmerged.
 - LOOP_STATUS: CONTINUE

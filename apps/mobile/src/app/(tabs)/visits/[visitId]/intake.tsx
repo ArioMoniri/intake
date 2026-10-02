@@ -227,7 +227,7 @@ function ModeChoice({ visitId }: { visitId: string | undefined }) {
   };
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <AppText role="hero" heading>
+      <AppText role="question" heading>
         {t("intake.mode.q")}
       </AppText>
       <View style={styles.optionColumn}>
@@ -457,7 +457,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <AppText role="hero" heading>
+        <AppText role="question" heading>
           {t("intake.privacy.q")}
         </AppText>
         <AppText role="body" color="inkSoft">
@@ -599,7 +599,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                 onSelect={(optionId) => commit([optionId])}
               />
             ) : (
-              <AppText role="hero" heading>
+              <AppText role="question" heading>
                 {t(question.titleKey)}
               </AppText>
             )}
