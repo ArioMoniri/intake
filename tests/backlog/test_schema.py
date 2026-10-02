@@ -138,7 +138,9 @@ def test_ids_unique_and_well_formed() -> None:
     # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide; owner request, GitHub #706).
-    assert len(ids) == 326
+    # + INT-429 (the vulnerabilities gate: brace-expansion and urllib3 upgrades,
+    # time-boxed node-forge exception; owner decision, GitHub #727).
+    assert len(ids) == 327
     import re
 
     for i in ids:
