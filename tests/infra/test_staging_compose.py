@@ -110,7 +110,8 @@ ARTEFACT = (
 )
 
 PROJECT = "intake-staging"
-SERVICES = {"api", "postgres", "redis", "openbao", "minio", "caddy"}
+# INT-442 adds the synthetic host's forward proxy (tests/infra/test_staging_egress.py)
+SERVICES = {"api", "postgres", "redis", "openbao", "minio", "caddy", "egress-proxy"}
 STAGING_ENV = "staging"
 
 #: The dev-gate prefix, derived from the API's own gate names instead of being

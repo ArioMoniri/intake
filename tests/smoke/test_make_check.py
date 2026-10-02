@@ -296,7 +296,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # merging main into #481, GitHub #733); grows only with a stated reason.
     # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
     # GitHub #724); grows only with a stated reason.
-    assert len(ids) == 329, f"expected 175 blueprint + 154 added issues, got {len(ids)}"
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
+    # GitHub #752); grows only with a stated reason.
+    assert len(ids) == 330, f"expected 175 blueprint + 155 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from intake_platform.model_lanes.guard import egress_proxy_url
+
 __all__ = [
     "ApiSettings",
     "DevConfigRefusedError",
@@ -228,6 +230,9 @@ class ApiSettings:
     def from_env(cls) -> ApiSettings:
         # INT-325: outside dev, refuse before any dev default below can apply
         refuse_dev_config_outside_dev(os.environ)
+        # INT-442: a forward proxy is the synthetic deployment's alone; one named
+        # anywhere else refuses the boot (never in the PHI deployment)
+        egress_proxy_url(os.environ)
         kek_mode: KekMode = "file-dev" if os.environ.get(ENV_KEK_MODE) == "file-dev" else "transit"
         return cls(
             token_patient=os.environ.get(ENV_TOKEN_PATIENT) or None,
