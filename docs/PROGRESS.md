@@ -19,8 +19,8 @@
   - RED: 5 collection errors with the package absent, plus the `StateEffect` lane-invariant failure, which was fixed by reverting my change rather than the test.
 - Result: see the gates in `docs/evidence/INT-430.md`.
 - Invariants touched and still passing: 1, 2, 6, 9, 10, 12, 13, 14, 17, 19, 20, 22.
-- Decisions / ADRs / `00_STATE.md` rows: ADR-036 (Proposed; the owner must ratify it). No 00_STATE row until ratification.
-- Blocked on: owner. One sentence: *"Do you accept the council as a post-bind verifier (no runtime reordering, no slot filling by vote, ranking moved to an offline Loop-2 proposal), as both challenger reviews require?"* The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-036, accepted by the owner on 3 Oct 2026 ("im giving u approval").
+- Blocked on: nothing for the ADR, which the owner accepted on 3 Oct 2026. The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8 (INT-439).
 - Next: five split rows, with ids to be allocated by the coordinator: the admin Council section; production composition; the Loop-2 `yield_table` proposal; the document rules on `parse_document`; the red-flag lexicon, speaker attribution and the backchannel lexicon. Evidence-gated studies are listed in the evidence file.
 - LOOP_STATUS: WAITING_HUMAN
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)

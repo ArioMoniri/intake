@@ -1,6 +1,6 @@
 # ADR-036 · The council is a verifier, and the deterministic engine decides
 
-Status: Proposed. The owner must ratify it, because it narrows the owner's request on the advice of two binding challenger reviews (INT-430, GitHub #732).
+Status: Accepted (owner decision, 3 Oct 2026, in chat: "im giving u approval"). It narrows the owner's request of 2 Oct 2026 on the advice of two binding challenger reviews (INT-430, GitHub #732).
 
 ## Context
 
@@ -95,7 +95,7 @@ The verifier as built needs none of these decisions: its asymmetric default is t
 ## Consequences
 
 - **The owner's request is met in its safe part.** Earlier answers already drive which questions are asked, through the gates. Narrative and documents now drive *re-asks*, *confirm-backs* and *clinician flags*. The order of the questions is still the pack's.
-- **The literal reading is moved, not dropped.** A council that ranks the next question and fills slots by vote becomes a Loop-2 proposal and is gated on studies. This ADR needs the owner's ratification for that reason.
+- **The literal reading is moved, not dropped.** A council that ranks the next question and fills slots by vote becomes a Loop-2 proposal and is gated on studies. The owner accepted that narrowing on 3 Oct 2026.
 - **The engine gained** a per-slot revision counter, a compare-and-swap `append_verification` and rebinding verification re-entries. `delta` gained a list of slots it will not pre-fill (`safety_full_ask_fact_keys`). The `ExtractSlotsHandler` gained an optional `verifier` sink. With the default `None`, every session composed today runs exactly as it did.
 - **`StateEffect` still has no `candidate_flags`.** The state lane carries no LLM material (files/12 §7.4), so verifier flags go to the clinician ledger.
 - **Production wiring is a split row.** The verifier is not yet composed into a production session. Composing it needs the INT-428 router adapter, a triage re-run binding, a clinician-inbox sink, the INT-432 CD-07 binding and an answer to HB-O8. Until then it fails closed, which here means it is absent.
