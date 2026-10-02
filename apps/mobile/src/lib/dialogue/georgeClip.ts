@@ -30,6 +30,7 @@
  * request leaves the app, and the server refuses a numeral again.
  */
 import type { IntakeQuestion } from "../intake/questions";
+import { DEFAULT_DELIVERY_CONTEXT, type DeliveryContext } from "./deliveryContext";
 import { questionSpeechTr } from "./speech";
 import { assertSpeakableTr } from "./tts";
 
@@ -79,6 +80,10 @@ export interface GeorgeFetchOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** How the utterance is delivered (INT-415); default `"routine"`. The server
+   * maps it to its own delivery profile — the device never holds a voice
+   * setting, only this label. It never changes the words. */
+  context?: DeliveryContext;
 }
 
 /**
@@ -90,6 +95,10 @@ export interface GeorgeFetchOptions {
  * transport error — every one of which means "fall back to the self-hosted
  * lane". Only a {@link ScriptedTr} may be sent, so no patient text can leave
  * the app through this call.
+ *
+ * The body is `{ text_tr, delivery_context }` (INT-415). A `"red"` context is
+ * never sent: RED audio is pre-positioned on the device and never fetched on
+ * demand (invariant 21), and the server refuses it too.
  */
 export async function fetchGeorgeClip(
   base: string,
@@ -97,7 +106,15 @@ export async function fetchGeorgeClip(
   options: GeorgeFetchOptions = {},
 ): Promise<Uint8Array> {
   assertSpeakableTr(text); // defence in depth — no numeral crosses, ever
-  const { fetchImpl = fetch, timeoutMs = GEORGE_TIMEOUT_MS, signal } = options;
+  const {
+    fetchImpl = fetch,
+    timeoutMs = GEORGE_TIMEOUT_MS,
+    signal,
+    context = DEFAULT_DELIVERY_CONTEXT,
+  } = options;
+  if (context === "red") {
+    throw new Error("george_unavailable");
+  }
   const controller = new AbortController();
   const stop = () => controller.abort();
   signal?.addEventListener("abort", stop);
@@ -106,7 +123,7 @@ export async function fetchGeorgeClip(
     const res = await fetchImpl(`${base}${GEORGE_CLIP_PATH}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text_tr: text }),
+      body: JSON.stringify({ text_tr: text, delivery_context: context }),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -129,10 +146,11 @@ export async function fetchGeorgeClip(
   }
 }
 
-/** Generates one scripted clip in George's voice. `null` means "no George
- * source" (prod, or the dev route unconfigured) — the caller uses only the
- * fallback. Accepts a {@link ScriptedTr}, never a bare string. */
-export type GeorgeGenerator = (text: ScriptedTr) => Promise<Uint8Array>;
+/** Generates one scripted clip in George's voice, delivered per `context`
+ * (INT-415). `null` means "no George source" (prod, or the dev route
+ * unconfigured) — the caller uses only the fallback. Accepts a
+ * {@link ScriptedTr}, never a bare string. */
+export type GeorgeGenerator = (text: ScriptedTr, context?: DeliveryContext) => Promise<Uint8Array>;
 
 /** The self-hosted per-clip synthesizer George degrades to (ttsLane). */
 export type SelfHostedSynth = (text: string) => Promise<Uint8Array>;
@@ -143,15 +161,20 @@ export type SelfHostedSynth = (text: string) => Promise<Uint8Array>;
  * timeout). The scripted brand travels with the value, so only catalog-composed
  * text can reach the vendor generator; the fallback takes a plain string
  * because a `ScriptedTr` is one.
+ *
+ * The delivery context is per utterance (INT-415): the returned synthesizer
+ * takes it next to the text, defaults it to `"routine"`, and forwards it to
+ * George. The self-hosted fallback has no delivery controls today, so it takes
+ * the text alone (docs/voice/on-prem-tts-wiring.md).
  */
 export function georgePreferringSynth(
   george: GeorgeGenerator | null,
   fallback: SelfHostedSynth,
-): (text: ScriptedTr) => Promise<Uint8Array> {
-  return async (text) => {
+): (text: ScriptedTr, context?: DeliveryContext) => Promise<Uint8Array> {
+  return async (text, context = DEFAULT_DELIVERY_CONTEXT) => {
     if (george !== null) {
       try {
-        return await george(text);
+        return await george(text, context);
       } catch {
         // any George failure degrades to a worse voice, never to a dead turn —
         // the same trade the self-hosted ladder makes one level down (ttsLane).
