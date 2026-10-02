@@ -149,7 +149,9 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-428, GitHub #752).
     # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
     # the expressive-model ADR proposal; owner request, GitHub #719).
-    assert len(ids) == 331
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
+    # INT-428, GitHub #753).
+    assert len(ids) == 332
     import re
 
     for i in ids:

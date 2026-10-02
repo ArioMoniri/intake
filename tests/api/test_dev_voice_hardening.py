@@ -51,6 +51,7 @@ from intake_api.dev_voice import (
     george_wiring_from_env,
 )
 from intake_api.dev_voice_guard import (
+    ENV_APP_CATALOGUE,
     ENV_GEORGE_CLIP_DIST,
     intake_env_is_prod,
     load_scripted_catalogue,
@@ -277,10 +278,14 @@ def test_refused_requests_spend_the_budget_too(tmp_path: Path) -> None:
 
 
 def test_principals_do_not_share_a_budget(tmp_path: Path) -> None:
+    # INT-443: a cache hit is free, so each request names a text not yet cached
     shared = budget(capacity=1, refill_per_s=0.001)
     gateway = CountingGateway()
     wiring = george_wiring_for(
-        gateway, tmp_path / "c", catalogue=catalogue_of(_SCRIPTED), limiter=shared
+        gateway,
+        tmp_path / "c",
+        catalogue=catalogue_of(_SCRIPTED, _SCRIPTED_TWO, _SCRIPTED_THREE),
+        limiter=shared,
     )
     other = DevAccount(
         account_id="another-patient",
@@ -291,8 +296,8 @@ def test_principals_do_not_share_a_budget(tmp_path: Path) -> None:
     first = router_client(wiring, PATIENT_ACCOUNT)
     second = router_client(wiring, other)
     assert first.post(GEORGE_CLIP_PATH, json={"text_tr": _SCRIPTED}).status_code == 200
-    assert first.post(GEORGE_CLIP_PATH, json={"text_tr": _SCRIPTED}).status_code == 429
-    assert second.post(GEORGE_CLIP_PATH, json={"text_tr": _SCRIPTED}).status_code == 200
+    assert first.post(GEORGE_CLIP_PATH, json={"text_tr": _SCRIPTED_TWO}).status_code == 429
+    assert second.post(GEORGE_CLIP_PATH, json={"text_tr": _SCRIPTED_THREE}).status_code == 200
 
 
 def test_an_unreachable_budget_store_fails_closed_503(tmp_path: Path) -> None:
@@ -367,6 +372,9 @@ def _arm_every_flag(monkeypatch: pytest.MonkeyPatch, dist_root: Path, cache_dir:
     monkeypatch.setenv(ENV_ELEVENLABS_KEY, _SECRET)
     monkeypatch.setenv(ENV_GEORGE_CLIP_DIST, str(dist_root))
     monkeypatch.setenv(ENV_GEORGE_CACHE_DIR, str(cache_dir))
+    # these suites are about the compiled manifests: no app catalogue (INT-443's
+    # own suite, tests/api/test_hosted_clip_lane.py, covers that source)
+    monkeypatch.setenv(ENV_APP_CATALOGUE, str(cache_dir.parent / "no-app-catalogue.json"))
 
 
 def test_prod_builds_no_wiring_whatever_the_flags_say(

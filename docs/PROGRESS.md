@@ -1,5 +1,30 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T23:13:00Z · INT-443 · awaiting-human (PR open, stacked on INT-442 and #734)
+- Goal: acceptance verbatim (GitHub #753): *"An ElevenLabs adapter in the hosted TTS lane that speaks catalogue or scripted text only, using the v2 profiles and eleven_multilingual_v2. The cache is keyed by profile@version."* and *"It is the default TTS on the synthetic host once its key and egress row exist. The mobile client plays it gaplessly, and voice-e2e confirms the lane."* The coordinator's George-on-AWS checklist was added to it.
+- Plan: make the George route the synthetic host's hosted clip lane.
+  - ElevenLabs through the allow-list row, the INT-442 proxy and the OpenBao key.
+  - Admit the app's own scripted texts from a generated, staleness-tested catalogue.
+  - Key the cache by profile@version on a persistent volume, and pre-bake it.
+  - Fall back to self-hosted on a vendor failure, recorded per clip.
+  - Charge misses and refusals, never hits.
+  - Mount on the synthetic host only.
+- Tests added: 22 for the adapter, 35 for the route and its wiring, 6 for the pre-bake, 5 for infra and 6 for the mobile catalogue; two hardening tests adapted.
+  - RED: collection errors (no modules) and no mobile tests.
+  - GREEN: 101 on the George route, 629 on platform, infra and admin, 1151 on voice, 250 on mobile dialogue.
+- Result: docs/evidence/INT-443.md. ADR-035 amended: the clip vendor is not a model lane, and the dated-snapshot rule is stated, not waived, for the AI/ML reviewer. Pins 331 → 332; files/11 regenerated.
+- Invariants touched and still passing:
+  - 3 (agent speech only, encoded in voice_clips);
+  - 6 (codes only);
+  - 10 (verbatim catalogue text);
+  - 14 (OpenBao key, egress allow-list);
+  - 19 (synthetic deployment only; PHI never mounts it);
+  - 21 (RED never fetched);
+  - 22 (numerals and markup refused before the wire).
+- Decisions / ADRs / `00_STATE.md` rows: the ADR-035 amendment. Owner self-approval of lane switches (coordinator, D19) was refused by the permission classifier and is not in this change.
+- Blocked on: the owner's egress commit (INT-442). The mobile half is INT-440's branch.
+- Next: deploy to the synthetic host, pre-bake, smoke one clip.
+
 ### 2026-10-02T22:48:00Z · INT-442 · done (PR open, stacked on #751)
 - Goal: acceptance verbatim (GitHub #752): *"A forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts. INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment."* and *"Tests prove an unlisted host is refused. Deployed and smoked."*
 - Plan: render a second squid config from the one allow-list (hosted_model_inference rows only) and run it as `egress-proxy` on the staging compose, the API's one route out. Read the variable through a guard that refuses it outside the synthetic deployment, and probe it live from the API container on every deploy.

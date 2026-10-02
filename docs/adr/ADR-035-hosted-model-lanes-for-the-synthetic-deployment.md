@@ -122,3 +122,18 @@ and that condition, not a date, is the trigger:
 - a drift canary;
 - recording keys carrying model@revision and decoding parameters;
 - a schema-keyword lint.
+
+## Amendment, 3 Oct 2026 — INT-442 and INT-443
+
+**The forward proxy (INT-442).** The synthetic host's API has one route out: a default-deny squid (`egress-proxy` in `infra/staging/compose.yaml`). Its config is rendered from the allow-list's `hosted_model_inference` rows and nothing else. `INTAKE_EGRESS_PROXY_URL` is honoured only in the synthetic deployment; anywhere else the API refuses to boot.
+
+**ElevenLabs as the synthetic host's TTS for scripted clips (INT-443).**
+- **It is a clip vendor, not a model lane.** `ClipVendor.ELEVENLABS` sits beside `ProviderId` in the key vault, under the same OpenBao path. It has no catalogue row, no lane default and no console switch. It speaks only the server's scripted catalogue, through the George route and its pre-bake, in the v2 delivery profiles (INT-424). RED is never fetched (invariant 21), and numerals and markup are refused (invariant 22).
+- **Where it is reached.** Only through the allow-list row `elevenlabs-api` (the owner's protected change), the in-process guard and the forward proxy, on `NON_PERSONAL` data. A vendor failure falls back to the self-hosted TTS when one is configured, and the lane is recorded per clip.
+- **The dated-snapshot rule, stated rather than waived.** The AI/ML review's "dated snapshots only" binds the model-lane allow-list. ElevenLabs publishes no dated snapshots, so `eleven_multilingual_v2` cannot be a row of it, and the clip lane stays outside the console's model catalogue for that reason. What stands in for the snapshot pin:
+  - every clip is content-addressed (`clip_text_hash`) under `delivery.<context>@v<version>`;
+  - it is pre-baked once and kept on a persistent volume;
+  - a vendor-side change to the model behind the name can only reach a cache miss.
+  The AI/ML reviewer should confirm or refuse this before the lane serves anything beyond the synthetic stress tests. A change of model is ADR-034's question, not a profile edit.
+
+**When it reverts.** With the rest of this ADR. The steps: remove `INTAKE_HOSTED_TTS` from the staging compose, the `elevenlabs-api` row and its gate exception, and the key.

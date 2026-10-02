@@ -123,6 +123,19 @@ else
   fail "$(printf '%s' "$out" | tr '\n' ';')"
 fi
 
+# 7. INT-443: one scripted question clip through the George route's own
+#    wiring, inside the api container; it names the lane that spoke it
+#    (elevenlabs, or self_hosted after a vendor failure) and never the text.
+#    An unconfigured lane (no allow-list row yet) is reported, not failed:
+#    the row is the owner's protected change.
+if out=$(compose exec -T api python -m intake_api.george_prebake probe 2>&1); then
+  pass "$out"
+elif [[ $out == *unconfigured* ]]; then
+  pass "clip lane not serving yet: $out"
+else
+  fail "$out"
+fi
+
 if ((failures > 0)); then
   die "smoke: ${failures} check(s) failed"
 fi
