@@ -503,22 +503,3 @@ foreseeable future, in which case "rollback" becomes "redeploy a previous releas
 **The id is the coordinator's to allocate.** HB-I13 is the nearest existing row (a place to
 run a cluster), but it is about the edge tier; a CD-tier row, or a widening of HB-I13, is a
 coordinator decision, not one an agent mints.
-
-## INT-424 — delivery profiles v2 wait on one key run and one listening pass
-
-**Named human:** the owner.
-
-**What shipped.** The v2 delivery-profile table (`PROFILE_VERSION = 2`, every row one of the
-rendered candidates), the sample-render tool `scripts/voice/render_delivery_samples.py`, the
-markup gate on scripted text, and ADR-034 (Proposed). The agent could not render the samples:
-the ElevenLabs key is not in its environment, and reading the owner's secrets file was denied by
-the session's permission classifier. Spend so far is 0 USD.
-
-**One sentence closes it:** run
-`set -a; . ~/.intake-secrets.env; set +a; EVAL_BUDGET_USD=5 uv run python scripts/voice/render_delivery_samples.py --live`
-from the repository root, open `.cache/voice-samples/int-424/blind.html`, and say per context
-whether the v2 pick stands or which candidate replaces it (estimate 1.03 USD at the tool's high
-planning rate; docs/voice/on-prem-tts-wiring.md §8).
-
-**No HB id is minted.** This is an owner listening pass, not a register-of-record blocker; the
-coordinator allocates one if it should become one.

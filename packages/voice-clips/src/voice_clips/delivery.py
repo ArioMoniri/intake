@@ -212,28 +212,29 @@ def _profile(
 
 
 #: The table, v2 of every row (INT-424). v1 (INT-415) was a reasoned start; each
-#: v2 row is one of the candidates rendered by
-#: scripts/voice/render_delivery_samples.py (a test holds that). The v1 values,
-#: the candidates and the per-clip signal statistics are in
-#: docs/evidence/INT-424.md. Retune a row by editing it AND bumping
+#: v2 row is the candidate picked from the 80 clips rendered on 3 Oct 2026 by
+#: scripts/voice/render_delivery_samples.py (a test holds that every row was
+#: rendered). The per-clip measurements, the pick rule and the notes are in
+#: docs/evidence/INT-424.md. Three rows kept their v1 values; the version still
+#: moves for the whole table. Retune a row by editing it AND bumping
 #: :data:`PROFILE_VERSION`: the version is in the clip key, so the retune
 #: re-synthesises instead of replaying clips made under the old settings.
 DELIVERY_PROFILES: Final[Mapping[DeliveryContext, DeliveryProfile]] = MappingProxyType(
     {
-        # warmest: lowest stability (more natural variation), modest style
-        "welcome": _profile("welcome", stability=0.35, style=0.25, speed=0.97),
-        # calm and professional, a little less flat than v1
-        "routine": _profile("routine", stability=0.50, style=0.10, speed=0.98),
-        # gentler and slower than routine, steadier, no exaggeration
-        "sensitive": _profile("sensitive", stability=0.60, style=0.00, speed=0.90),
-        # validated items: very stable, no exaggeration, slightly slower
-        "instrument": _profile("instrument", stability=0.80, style=0.00, speed=0.95),
-        # brief and warm: livelier than routine, never slower
-        "acknowledgement": _profile("acknowledgement", stability=0.42, style=0.20, speed=1.02),
+        # warmest: lowest stability, style at the modest ceiling, unhurried
+        "welcome": _profile("welcome", stability=0.38, style=0.30, speed=0.98),
+        # calm and professional; v1 kept (even level, natural pitch movement)
+        "routine": _profile("routine", stability=0.55, style=0.05, speed=1.00),
+        # steadier and slower than routine, no exaggeration; v1 kept
+        "sensitive": _profile("sensitive", stability=0.65, style=0.00, speed=0.92),
+        # validated items: steadier and slightly slower than v1, no exaggeration
+        "instrument": _profile("instrument", stability=0.85, style=0.00, speed=0.93),
+        # brief and warm at an even level, never slower than routine
+        "acknowledgement": _profile("acknowledgement", stability=0.45, style=0.15, speed=1.00),
         # the most stable of all, no exaggeration, clear rather than rushed
-        "red": _profile("red", stability=0.90, style=0.00, speed=0.95),
-        # warm like the welcome, a touch slower to close
-        "closing": _profile("closing", stability=0.38, style=0.25, speed=0.96),
+        "red": _profile("red", stability=0.90, style=0.00, speed=0.92),
+        # warm like the welcome, a touch steadier; v1 kept
+        "closing": _profile("closing", stability=0.42, style=0.20, speed=0.97),
     }
 )
 

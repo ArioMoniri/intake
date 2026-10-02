@@ -96,13 +96,13 @@ question.
 
 | context           | ElevenLabs v2 (live today) stability / style / speed | VoxCPM2 style instruction (candidate)       | VoxCPM2 `cfg_value` | Freya   |
 | ----------------- | ---------------------------------------------------- | ------------------------------------------- | ------------------- | ------- |
-| `welcome`         | 0.35 / 0.25 / 0.97                                   | `(warm, friendly, unhurried)`               | 2.0                 | neutral |
-| `routine`         | 0.50 / 0.10 / 0.98                                   | `(calm, neutral, clear)`                    | 2.0                 | neutral |
-| `sensitive`       | 0.60 / 0.00 / 0.90                                   | `(calm, gentle, slightly slower)`           | 2.0                 | neutral |
-| `instrument`      | 0.80 / 0.00 / 0.95                                   | `(steady, neutral, clear, slightly slower)` | 2.0                 | neutral |
-| `acknowledgement` | 0.42 / 0.20 / 1.02                                   | `(warm, brief)`                             | 2.0                 | neutral |
-| `red`             | 0.90 / 0.00 / 0.95                                   | `(steady, clear, calm)`                     | 2.0                 | neutral |
-| `closing`         | 0.38 / 0.25 / 0.96                                   | `(warm, friendly)`                          | 2.0                 | neutral |
+| `welcome`         | 0.38 / 0.30 / 0.98                                   | `(warm, friendly, unhurried)`               | 2.0                 | neutral |
+| `routine`         | 0.55 / 0.05 / 1.00                                   | `(calm, neutral, clear)`                    | 2.0                 | neutral |
+| `sensitive`       | 0.65 / 0.00 / 0.92                                   | `(calm, gentle, slightly slower)`           | 2.0                 | neutral |
+| `instrument`      | 0.85 / 0.00 / 0.93                                   | `(steady, neutral, clear, slightly slower)` | 2.0                 | neutral |
+| `acknowledgement` | 0.45 / 0.15 / 1.00                                   | `(warm, brief)`                             | 2.0                 | neutral |
+| `red`             | 0.90 / 0.00 / 0.92                                   | `(steady, clear, calm)`                     | 2.0                 | neutral |
+| `closing`         | 0.42 / 0.20 / 0.97                                   | `(warm, friendly)`                          | 2.0                 | neutral |
 
 Every ElevenLabs row also carries `similarity_boost` 0.75 and `use_speaker_boost` true, on
 `eleven_multilingual_v2`. The rows are profile version 2 (INT-424), so every key is
@@ -125,7 +125,8 @@ control we use, and only where invariant 10 allows it:
 - **No SSML and no audio tags, anywhere.** The `<break time="…"/>` tag would carry a duration
   numeral (invariant 22), and an audio tag is a word the protocol did not author (invariant 10).
   `assert_speakable_tr` refuses `<`, `>`, `[` and `]` (`MarkupInScriptError`), and the dev route
-  answers 422 `not_speakable`. Expressive models and tags are ADR-034, a proposal.
+  answers 422 `not_speakable`. Expressive models and tags are ADR-034 (Accepted 3 Oct 2026: stay on
+  `eleven_multilingual_v2`).
 - **No numerals.** A lead-in passes the same `assert_speakable_tr` gate as an item.
 
 Rules for the instruction strings:
@@ -354,7 +355,7 @@ row and three candidates per context, through the existing ADR-028 gateway.
 ## 10. Options that need an ADR, not a profile edit
 
 - **`eleven_v3` / `eleven_v4` audio tags** (`[whispers]` and similar) could express warmth per
-  phrase on the cloud lane. ADR-034 (Proposed, INT-424) evaluates them against invariants 10, 21
+  phrase on the cloud lane. ADR-034 (Accepted by the owner on 3 Oct 2026, INT-424) evaluates them against invariants 10, 21
   and 22, ADR-028 and the latency budget. It recommends staying on `eleven_multilingual_v2` and
   lists the gates that would come first.
   - Per the vendor's product guide, retrieved 2 Oct 2026, v3 keeps style only, and v4 keeps

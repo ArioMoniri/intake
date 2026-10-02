@@ -2958,16 +2958,16 @@
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
-### 2026-10-02T18:00:00+03:00 · INT-424 · awaiting-human (PR open, not merged; the live render waits on the owner's key run)
+### 2026-10-03T01:30:00+03:00 · INT-424 · done (PR #734 open, not merged)
 - Goal: acceptance verbatim (GitHub #719):
   - *"delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"*
   - *"an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"*
   - *"RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"*
 - Plan:
-  - Bump the table to `PROFILE_VERSION = 2`, with each row picked from a rendered candidate grid.
+  - Bump the table to `PROFILE_VERSION = 2`, with each row picked from the rendered candidate grid by a stated rule (hard checks, then level evenness, then the context's intent).
   - Add a sample-render tool through the existing gateway: verbatim catalogue lines, a spend cap, and labelled and blind pages in `.cache/voice-samples/`.
   - Refuse SSML and audio tags inside scripted text.
-  - Write ADR-034 (Proposed).
+  - Write ADR-034. It was proposed, then accepted by the owner on 3 Oct 2026.
   - Add the v2 table, the pacing rules and the owner's render steps to the wiring guide.
 - Tests added (with the near-miss negative for any safety rule):
   - New: `tests/voice/test_render_delivery_samples.py`.
@@ -2983,10 +2983,13 @@
   - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, and backlog/smoke/docs/evidence 122 passed.
   - `make security` is in the evidence file.
   - No TS changed.
+  - The samples were rendered by the coordinator with the owner's permission on 3 Oct: 80 clips, 3,424 characters, 0.27 USD at the published rate. Offline transcripts show the words intact in 80/80, and the peak is 26,781 of 32,767.
+  - v2: welcome c, routine v1, sensitive v1, instrument c, acknowledgement b, red c, closing v1.
 - Invariants touched and still passing: 6 (the key is never printed), 10 (markup refused), 17, 19, 20 (no claims), 21 (RED most stable, style 0), 22 (SSML breaks refused).
-- Decisions / ADRs / `00_STATE.md` rows: ADR-034 Proposed (no `00_STATE.md` row until ratified). No metric, no threat-row change.
-- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
-  - Who and what: the owner runs the one-line render in `docs/voice/on-prem-tts-wiring.md` §8 and confirms or swaps the v2 pick per context (`docs/backlog/blockers.md` INT-424; no HB id minted).
-  - Why: the agent could not reach the ElevenLabs key, because the permission classifier denied reading the secrets file. Spend so far is 0 USD.
-- Next: PR `INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal` (Closes #719, Sec-Row cloud-clipgen), left unmerged until the owner's listening pass.
-- LOOP_STATUS: WAITING_HUMAN
+- Decisions / ADRs / `00_STATE.md` rows: ADR-034 Accepted. The owner, 3 Oct 2026, relayed by the coordinator: "eleven labs is yes", so the model stays `eleven_multilingual_v2`. The `00_STATE.md` §3 row is left to the coordinator. No metric, no threat-row change.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+  - The owner delegated the listening review on 3 Oct ("do this by yourself, I'm giving permission").
+  - The review is by measurement and transcript; no human ear was involved.
+  - The blockers.md entry is removed.
+- Next: PR #734, `INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal` (Closes #719, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE

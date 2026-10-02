@@ -1,8 +1,9 @@
 # ADR-034 · Expressive TTS models and emotion audio tags on the offline clip lane
 
-Status: Proposed (INT-424, GitHub #719, 2 Oct 2026). This is a proposal only. The pinned model
-stays `eleven_multilingual_v2` until the owner ratifies a change, and nothing in the tree switches
-it.
+Status: Accepted (owner decision, 3 Oct 2026; INT-424, GitHub #719, PR #734). The owner, Ario
+Moniri, decided in chat on 3 Oct 2026: "eleven labs is yes". The coordinator relayed the decision
+to this PR. Option (A) is adopted: the pinned model stays `eleven_multilingual_v2` for every
+context, and audio tags are not adopted. Proposed 2 Oct 2026.
 
 ## Context
 
@@ -30,7 +31,7 @@ for another model is refused before the wire (`DeliveryProfileMismatchError`).
 
 ## Decision
 
-**We propose to keep `eleven_multilingual_v2` for every context and not to adopt audio tags now.**
+**We keep `eleven_multilingual_v2` for every context and do not adopt audio tags.**
 Naturalness comes from the v2 delivery profiles and from punctuation in device-composed lead-in
 copy only. Measured against the binding rules, it looks like this:
 
@@ -44,7 +45,7 @@ copy only. Measured against the binding rules, it looks like this:
 
 The options considered:
 
-- **(A) Stay on Multilingual v2 with tuned profiles.** Recommended.
+- **(A) Stay on Multilingual v2 with tuned profiles.** Adopted.
 - **(B) Use `eleven_v3` for welcome, acknowledgement and closing only, with tags from a closed
   table.** Possible after the gates below. Its cost is losing speed and stability on those
   contexts.
@@ -52,9 +53,10 @@ The options considered:
   and style.
 - **(D) Use `eleven_v3` everywhere.** Rejected under invariant 21.
 
-If the owner chooses (B) or (C), these gates come first, in this order:
+(B) and (C) are not adopted. Reopening either is a new decision, and these gates come first, in
+this order:
 
-1. Amend this ADR to Accepted.
+1. Amend this ADR with the owner's new decision.
 2. Record the model registry row and the vendor-terms blocker for the new model.
 3. Prove normaliser-off with a fixture.
 4. Add the closed tag table with a version bump.
@@ -75,6 +77,6 @@ Option (B) would make the delivery table carry two model ids, so `DeliveryProfil
 stop being uniform. The gateway would then select per profile instead of refusing. That is a
 change to the ADR-028 adapter, reviewed under the `cloud-clipgen` threat row.
 
-No `files/00_STATE.md` row is written while this ADR is Proposed. The row lands with ratification.
-No accuracy, quality or naturalness claim is made (invariant 20). Listening notes are
-measurements in `docs/evidence/INT-424.md`.
+This PR writes no `files/00_STATE.md` §3 row. Decision ids there are allocated centrally, so the
+row is the coordinator's to add, as for ADR-033. No accuracy, quality or naturalness claim is made
+(invariant 20). The sample measurements are in `docs/evidence/INT-424.md`.

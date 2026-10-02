@@ -6375,12 +6375,11 @@
   title: "ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal"
   # GitHub #719. Owner request, 2 Oct 2026: questions should sound more natural
   # and emotionally attuned while staying medical and professional. Voice
-  # tuning, not clinical values (docs/evidence/INT-424.md). awaiting-human: the
-  # mechanism, the v2 table and the ADR proposal shipped; the live render needs
-  # the owner's key run (docs/backlog/blockers.md INT-424).
+  # tuning, not clinical values (docs/evidence/INT-424.md). The owner ran the
+  # render, delegated the listening review on 3 Oct 2026 and accepted ADR-034.
   depends_on: [INT-415]
   labels: [area:voice]
-  status: awaiting-human
+  status: done
   evidence: docs/evidence/INT-424.md
   acceptance:
     - "delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"
