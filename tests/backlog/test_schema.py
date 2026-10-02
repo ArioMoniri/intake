@@ -142,7 +142,10 @@ def test_ids_unique_and_well_formed() -> None:
     # time-boxed node-forge exception; owner decision, GitHub #727).
     # + INT-431 (the embed sample's JWT fixture is built at runtime so no
     # token-shaped literal sits at rest; found merging main into #481, #733).
-    assert len(ids) == 328
+    # + INT-395 (no path erased notification_preferences and the DSAR export
+    # did not list Doctor Links; found by INT-393, fixed and closed in the
+    # same PR).
+    assert len(ids) == 329
     import re
 
     for i in ids:

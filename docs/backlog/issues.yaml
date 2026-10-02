@@ -6406,3 +6406,27 @@
     - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
   tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
   sec_row: "connectors"
+- id: INT-395
+  epic: E02-data
+  phase: P0
+  title: "DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links)"
+  depends_on: [INT-037, INT-141, INT-150, INT-393]
+  labels: [area:data, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-395.md
+  # Found by INT-393 (GitHub #654; INT-393 evidence §11): no path erased
+  # notification_preferences although its retention annotation says
+  # patient-deletable, and the DSAR export did not list Doctor Links. Mechanism:
+  # a completeness contract derived from the inventory annotations (subject-
+  # erasable clock => erased; subject-data category or erasable clock =>
+  # exported), the erasure and the export reading one subject sweep, and a
+  # grant preflight that refuses, typed and audited, when the role lacks a
+  # privilege the run needs. app_rw lacks three (notification_preferences and
+  # patient_overlays DELETE, events.session_id UPDATE); granting them is the
+  # owner's INT-394 decision (GitHub #650), recorded, not taken, here.
+  acceptance:
+    - "a completeness contract, derived from the data-inventory annotations (invariant 18): every table annotated patient-deletable is erased by DSAR erasure, and every table holding the patient's personal data appears in the DSAR export; a near-miss control where a planted annotated table missing from either path fails"
+    - "notification_preferences is erased (and the grant needed recorded against INT-394's role decision); the export lists Doctor Links (ids, created, expiry, recipient kind — never the recipient's contact in clear unless the export spec says so)"
+  tests: [tests/legal/test_dsar_flows.py, tests/data/test_session_delete_contract.py, tests/integration/test_session_erasure.py]
+  legal: "KVKK-7,KVKK-11,DEST-2017"
+  sec_row: "data-at-rest"

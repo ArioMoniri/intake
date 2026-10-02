@@ -22,6 +22,15 @@ __all__ = ["DSAR_EXPORT_SECTION_KEYS", "DSAR_EXPORT_STRING_KEYS", "section_key"]
 
 #: Export-document sections, in the order the document renders them. The ids
 #: are ours (technical); the headings are counsel's (Turkish).
+#:
+#: INT-395 added the last four, for the tables the inventory annotations put
+#: under the subject's access right and no existing heading fits: the learned
+#: facts files/09 §3 calls "exported/deletable", the satisfaction comment, the
+#: notification opt-out register (a refusal under row 6563-İYS, deliberately
+#: not a consent — ``consent_guard.NotificationPreferenceDeclaration``) and
+#: the guardian link (its own inventory category, never filed as consent).
+#: Each is one more heading for counsel to author; until then the export
+#: refuses exactly as it does for the first nine.
 DSAR_EXPORT_SECTIONS: Final[tuple[str, ...]] = (
     "visits",
     "notes",
@@ -30,6 +39,10 @@ DSAR_EXPORT_SECTIONS: Final[tuple[str, ...]] = (
     "shares",
     "rectifications",
     "requests",
+    "learned_facts",
+    "feedback",
+    "preferences",
+    "guardians",
 )
 
 
