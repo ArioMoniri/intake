@@ -84,6 +84,12 @@ export interface EvidenceBundle {
   "langfuse_experiment": string;
 }
 
+export interface EvidenceSlot {
+  "slot": string;
+  "values": JsonValue[];
+  "unit"?: string | null;
+}
+
 export interface EvidenceStats {
   "patients": number;
   "clinics": number;
@@ -345,6 +351,7 @@ export interface RosItem {
 export interface RuleFire {
   "id": string;
   "evidence": string;
+  "evidence_slots"?: EvidenceSlot[];
 }
 
 export interface RulesTriageResult {

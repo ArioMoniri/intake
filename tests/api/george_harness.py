@@ -28,6 +28,7 @@ from protocols.compile import compile_bundle, load_life_threat_set, write_bundle
 from protocols.dsl import clip_text_hash
 from voice_clips.audio import SynthesisedSpeech
 from voice_clips.cache import CompiledClipManifest
+from voice_clips.delivery import DeliveryProfile
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 _COMPILE_FIXTURES = REPO_ROOT / "tests" / "fixtures" / "protocols" / "compile"
@@ -43,10 +44,15 @@ class CountingGateway:
     def __init__(self) -> None:
         self.calls = 0
         self.seen: list[str] = []
+        #: the delivery profile key of every call (INT-415)
+        self.profiles: list[str] = []
 
-    def synthesise(self, *, text_tr: str, voice_id: str) -> SynthesisedSpeech:
+    def synthesise(
+        self, *, text_tr: str, voice_id: str, profile: DeliveryProfile
+    ) -> SynthesisedSpeech:
         self.calls += 1
         self.seen.append(text_tr)
+        self.profiles.append(profile.key)
         return SynthesisedSpeech(
             pcm_s16le=b"\x01\x00\x02\x00\x03\x00", sample_rate_hz=24000, channels=1
         )
