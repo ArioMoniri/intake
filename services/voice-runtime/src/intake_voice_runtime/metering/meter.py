@@ -35,11 +35,17 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import Final
 
 from intake_voice_runtime.metering.components import ChargeClass, MeteredComponent
 from intake_voice_runtime.metering.ledger import Admission, SessionLedger
-from intake_voice_runtime.metrics import VOICE_SESSIONS_METERED, VOICE_TTS_CHARS
+from intake_voice_runtime.metering.spend import CallUsage, LaneRate, UnpricedCall, price_call
+from intake_voice_runtime.metrics import (
+    MODEL_SPEND_CAP_EVENTS_TOTAL,
+    VOICE_SESSIONS_METERED,
+    VOICE_TTS_CHARS,
+)
 from intake_voice_runtime.profiles import VoiceProfile
 
 __all__ = ["UNKNOWN_LABEL", "SELF_HOSTED", "SessionMeter", "TurnLabels"]
@@ -144,6 +150,29 @@ class SessionMeter:
         return self.ledger.record(
             MeteredComponent.LLM_EXTRACTION, float(input_tokens + output_tokens)
         )
+
+    def charge_model_call(
+        self, rate: LaneRate | None, usage: CallUsage, charge_class: ChargeClass
+    ) -> Decimal | None:
+        """INT-439: count one call's USD against the deployment's month.
+
+        Returns the month's total, or ``None`` when no monthly ledger is
+        composed in or the store missed the write. An unpriced lane raises
+        :class:`~intake_voice_runtime.metering.spend.UnpricedCall` for elective
+        work — spend nobody can price cannot be bounded — and is counted as a
+        miss for obligatory work, which has already happened and must not fail.
+        """
+        spend = self.ledger.spend
+        if spend is None:
+            return None
+        try:
+            usd = price_call(rate, usage)
+        except UnpricedCall:
+            if charge_class is ChargeClass.ELECTIVE:
+                raise
+            MODEL_SPEND_CAP_EVENTS_TOTAL.labels(event="unpriced_obligatory").inc()
+            return None
+        return spend.record(usd, charge_class)
 
     def charge_audio_seconds(self, seconds: float) -> float:
         """Charge a **measured** duration. There is no byte-length overload.

@@ -31,6 +31,14 @@ CAP           always admitted     admitted while ``total < limit``; refused
 TARGET        always admitted     always admitted; an overrun is reported
 ACCOUNTING    always admitted     always admitted; nothing to overrun
 ============  ==================  =============================================
+
+**INT-439 (00_STATE §3 D19) adds one row above all three.** A ledger handed a
+:class:`~intake_voice_runtime.metering.spend.MonthlySpendLedger` puts every
+elective charge, whatever its component, behind the deployment's monthly USD
+cap first: refused once the month has reached it, or when the month cannot be
+read. That cap is the owner's answer to the number HB-O8 asked for, so a
+per-session CAP whose limit is still unset no longer refuses on that ground —
+the monthly cap bounds the spend instead. Obligatory charges are untouched.
 """
 
 from __future__ import annotations
@@ -47,6 +55,7 @@ from intake_voice_runtime.metering.budgets import (
     SessionBudget,
 )
 from intake_voice_runtime.metering.components import ChargeClass, MeteredComponent
+from intake_voice_runtime.metering.spend import MonthlySpendLedger, SpendReason
 
 __all__ = ["Admission", "AdmissionReason", "SessionLedger"]
 
@@ -64,6 +73,12 @@ class AdmissionReason(enum.StrEnum):
     CAP_EXHAUSTED = "cap_exhausted"
     #: Refused: no cap is declared, so affordability is unknown (fail closed).
     CAP_UNDECLARED = "cap_undeclared"
+    #: INT-439. Admitted: the month's elective spend is inside the monthly cap.
+    WITHIN_MONTHLY_CAP = "within_monthly_cap"
+    #: INT-439. Refused: the month's elective spend has reached the monthly cap.
+    MONTHLY_CAP_REACHED = "monthly_cap_reached"
+    #: INT-439. Refused: the month's spend cannot be read (fail closed).
+    MONTHLY_SPEND_UNKNOWN = "monthly_spend_unknown"
 
 
 class Admission(FrozenModel):
@@ -83,6 +98,7 @@ class SessionLedger:
         session_id: str,
         *,
         budgets: Mapping[MeteredComponent, SessionBudget] | None = None,
+        spend: MonthlySpendLedger | None = None,
     ) -> None:
         if not session_id:
             raise ValueError("a ledger needs a session id to tokenise")
@@ -98,8 +114,14 @@ class SessionLedger:
         self._totals: dict[MeteredComponent, float] = dict.fromkeys(MeteredComponent, 0.0)
         self._charges: dict[MeteredComponent, int] = dict.fromkeys(MeteredComponent, 0)
         self._refusals: dict[MeteredComponent, int] = dict.fromkeys(MeteredComponent, 0)
+        self._spend = spend
 
     # --- reads ---------------------------------------------------------------------
+
+    @property
+    def spend(self) -> MonthlySpendLedger | None:
+        """The deployment's monthly spend ledger, when one was composed in."""
+        return self._spend
 
     @property
     def session_key(self) -> str:
@@ -141,6 +163,8 @@ class SessionLedger:
         budget = self._budgets[component]
         if charge_class is ChargeClass.OBLIGATORY:
             return self._decision(component, charge_class, True, AdmissionReason.OBLIGATORY)
+        if self._spend is not None:
+            return self._monthly(self._spend, component, charge_class, budget)
         if budget.kind is not BudgetKind.CAP:
             return self._decision(component, charge_class, True, AdmissionReason.NOT_CAPPED)
         if budget.limit is None:
@@ -148,6 +172,30 @@ class SessionLedger:
         if self._totals[component] < budget.limit:
             return self._decision(component, charge_class, True, AdmissionReason.WITHIN_CAP)
         return self._decision(component, charge_class, False, AdmissionReason.CAP_EXHAUSTED)
+
+    def _monthly(
+        self,
+        spend: MonthlySpendLedger,
+        component: MeteredComponent,
+        charge_class: ChargeClass,
+        budget: SessionBudget,
+    ) -> Admission:
+        """The INT-439 row: the monthly cap first, then any declared session cap."""
+        verdict = spend.admits(charge_class)
+        if not verdict.admitted:
+            reason = (
+                AdmissionReason.MONTHLY_CAP_REACHED
+                if verdict.reason is SpendReason.CAP_REACHED
+                else AdmissionReason.MONTHLY_SPEND_UNKNOWN
+            )
+            return self._decision(component, charge_class, False, reason)
+        if (
+            budget.kind is BudgetKind.CAP
+            and budget.limit is not None
+            and self._totals[component] >= budget.limit
+        ):
+            return self._decision(component, charge_class, False, AdmissionReason.CAP_EXHAUSTED)
+        return self._decision(component, charge_class, True, AdmissionReason.WITHIN_MONTHLY_CAP)
 
     def _decision(
         self,

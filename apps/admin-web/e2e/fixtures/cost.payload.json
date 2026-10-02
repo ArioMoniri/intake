@@ -2,7 +2,7 @@
   "currency": "USD",
   "config": {
     "path": "infra/costs/unit-prices.yaml",
-    "sha256": "ad96a1162363f38454dffbad87a9dd819ee21034316f0dee180469fd05664e0d",
+    "sha256": "cd5f31bc624e102b7dacd574d44465fc80f80fff867c2b79f00717ce75b847d8",
     "blocker": "HB-O8"
   },
   "source": {
@@ -18,9 +18,7 @@
       "vendor_note": null,
       "unit": "audio_second",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr"
-      ],
+      "profiles": ["residency_tr"],
       "usage_metric": "voice_stt_audio_s",
       "usage_metric_status": "planned",
       "usage_note": null,
@@ -28,7 +26,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -37,9 +36,7 @@
       "vendor_note": null,
       "unit": "character",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr"
-      ],
+      "profiles": ["residency_tr"],
       "usage_metric": "voice_tts_chars",
       "usage_metric_status": "live",
       "usage_note": null,
@@ -47,7 +44,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -56,10 +54,7 @@
       "vendor_note": null,
       "unit": "token",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr",
-        "typed"
-      ],
+      "profiles": ["residency_tr", "typed"],
       "usage_metric": "voice_talker_tokens",
       "usage_metric_status": "planned",
       "usage_note": null,
@@ -67,7 +62,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -76,10 +72,7 @@
       "vendor_note": null,
       "unit": "token",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr",
-        "typed"
-      ],
+      "profiles": ["residency_tr", "typed"],
       "usage_metric": null,
       "usage_metric_status": null,
       "usage_note": "the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)",
@@ -87,7 +80,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -101,10 +95,11 @@
       "usage_metric_status": null,
       "usage_note": "the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 8e-5,
+        "source": "ElevenLabs API pricing page, v2 Multilingual, $0.08 per 1K characters (owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://elevenlabs.io/pricing/api"
       }
     },
     {
@@ -121,7 +116,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -135,10 +131,11 @@
       "usage_metric_status": null,
       "usage_note": "the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 0.9776,
+        "source": "AWS Price List API (AmazonEC2, US East (N. Virginia), g6.2xlarge Linux on-demand, publicationDate 2026-09-25T17:45:21Z; owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-1/index.json"
       }
     },
     {
@@ -155,7 +152,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     }
   ],
@@ -242,11 +240,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -273,11 +270,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -337,11 +333,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -368,11 +363,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -400,78 +394,56 @@
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "asr",
-            "tts_dynamic",
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         },
         {
           "vendor": "self-hosted",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         }
       ],
       "by_profile": [
@@ -562,11 +534,10 @@
           "vendor": "elevenlabs",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main"
           ]
         },
@@ -588,11 +559,10 @@
           "vendor": "aws",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main"
           ]
         },
@@ -693,11 +663,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -724,11 +693,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -788,11 +756,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -819,11 +786,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -851,78 +817,56 @@
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "asr",
-            "tts_dynamic",
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         },
         {
           "vendor": "self-hosted",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         }
       ],
       "by_profile": [
@@ -1013,11 +957,10 @@
           "vendor": "elevenlabs",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main"
           ]
         },
@@ -1039,11 +982,10 @@
           "vendor": "aws",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main"
           ]
         },
@@ -1090,9 +1032,7 @@
         "gpu_host_team"
       ],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "all-vendors-month",
@@ -1120,9 +1060,7 @@
         "gpu_host_team"
       ],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "self-hosted-day",
@@ -1139,16 +1077,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "asr",
-        "tts_dynamic",
-        "llm_talker",
-        "llm_extraction"
-      ],
+      "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "self-hosted-month",
@@ -1165,16 +1096,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "asr",
-        "tts_dynamic",
-        "llm_talker",
-        "llm_extraction"
-      ],
+      "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "elevenlabs-day",
@@ -1191,13 +1115,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "clip_synthesis"
-      ],
+      "missing": ["clip_synthesis"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "elevenlabs-month",
@@ -1214,13 +1134,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "clip_synthesis"
-      ],
+      "missing": ["clip_synthesis"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "aws-day",
@@ -1237,13 +1153,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "gpu_host_onvizit_api"
-      ],
+      "missing": ["gpu_host_onvizit_api"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "aws-month",
@@ -1260,13 +1172,28 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "gpu_host_onvizit_api"
-      ],
+      "missing": ["gpu_host_onvizit_api"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
+    }
+  ],
+  "spend_caps": [
+    {
+      "cap_id": "elective-models-month",
+      "covers": "elective_model_spend",
+      "period": "calendar_month_utc",
+      "limit": {
+        "usd": 80.0,
+        "source": "owner decision in chat, 3 Oct 2026: 'make limit 80 dollars' (HB-O8; 00_STATE §3 D19)",
+        "as_of": "2026-10-03"
+      },
+      "warn_ratio": 0.8,
+      "warn_at_usd": 64.0,
+      "spend_metric": "model_spend_month_usd",
+      "spend_usd": null,
+      "status": "not_evaluable",
+      "reason": "usage source not configured",
+      "alerts": ["ModelSpendCapWarning", "ModelSpendCapReached"]
     }
   ],
   "alerts": {
@@ -1310,6 +1237,16 @@
       {
         "alert": "CostBudgetNotConfigured",
         "budget_id": "aws-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "ModelSpendCapWarning",
+        "budget_id": "elective-models-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "ModelSpendCapReached",
+        "budget_id": "elective-models-month",
         "severity": "ticket"
       }
     ]

@@ -139,3 +139,12 @@ budgets:
     vendor: aws
     period: month
     limit: {usd: null, source: null, as_of: null}
+
+# INT-439: a synthetic cap so the console's spend-cap verdict has a figure to
+# compare. Same absurdity rule: no reader can mistake it for the owner's cap.
+spend_caps:
+  - cap_id: elective-models-month
+    covers: elective_model_spend
+    period: calendar_month_utc
+    limit: {usd: 1000, source: "synthetic test cap, not a decision", as_of: 2026-10-03}
+    warn_ratio: 0.5

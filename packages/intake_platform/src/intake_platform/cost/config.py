@@ -27,6 +27,8 @@ from typing import Final, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from intake_platform.cost.caps import ModelRate, RateRoute, SpendCap
+
 __all__ = [
     "PERIOD_HOURS",
     "PERIOD_WINDOW",
@@ -144,10 +146,18 @@ class _Sourced(BaseModel):
 
 class Price(_Sourced):
     usd_per_unit: float | None = None
+    #: INT-439: the published page the rate was read off, when it is a list
+    #: price rather than an invoice. ``as_of`` is then the day it was retrieved.
+    url: str | None = None
 
     @model_validator(mode="after")
     def _provenance(self) -> Price:
         self._check(self.usd_per_unit, "price.usd_per_unit")
+        if self.url is not None:
+            if self.usd_per_unit is None:
+                raise ValueError("price.url names a page for a price that has no value")
+            if not self.url.startswith("https://") or any(ch.isspace() for ch in self.url):
+                raise ValueError("price.url must be one https:// URL")
         return self
 
 
@@ -259,6 +269,9 @@ class CostConfig(BaseModel):
     currency: Literal["USD"]
     components: tuple[CostComponent, ...] = Field(min_length=1)
     budgets: tuple[Budget, ...] = Field(min_length=1)
+    #: INT-439 / D19: the monthly elective model-spend cap, and the lanes it counts.
+    spend_caps: tuple[SpendCap, ...] = ()
+    model_rates: tuple[ModelRate, ...] = ()
 
     @model_validator(mode="after")
     def _closed_and_covered(self) -> CostConfig:
@@ -289,7 +302,51 @@ class CostConfig(BaseModel):
                 if (vendor, period) not in slots:
                     who = vendor if vendor is not None else "all_vendors"
                     raise ValueError(f"no {period.value} budget for {who}")
+        self._caps_and_rates_resolve()
         return self
+
+    def _caps_and_rates_resolve(self) -> None:
+        cap_ids = [cap.cap_id for cap in self.spend_caps]
+        if len(set(cap_ids)) != len(cap_ids):
+            raise ValueError(f"duplicate spend cap ids: {cap_ids}")
+        if len({cap.covers for cap in self.spend_caps}) != len(self.spend_caps):
+            raise ValueError("two spend caps cover the same spend")
+        rate_ids = [rate.rate_id for rate in self.model_rates]
+        if len(set(rate_ids)) != len(rate_ids):
+            raise ValueError(f"duplicate model rate ids: {rate_ids}")
+        lanes = [(rate.route, rate.provider, rate.model) for rate in self.model_rates]
+        if len(set(lanes)) != len(lanes):
+            raise ValueError("two model rates price the same lane")
+        by_id = {component.component: component for component in self.components}
+        for rate in self.model_rates:
+            component = by_id.get(rate.priced_by)
+            if component is None:
+                raise ValueError(
+                    f"model rate {rate.rate_id} is priced by unknown {rate.priced_by!r}"
+                )
+            if component.price.usd_per_unit is None:
+                raise ValueError(
+                    f"model rate {rate.rate_id} points at {rate.priced_by}, which has no "
+                    "price: a lane charged at an unknown rate cannot be counted against a cap"
+                )
+            if component.unit not in _RATE_UNITS[rate.route]:
+                raise ValueError(
+                    f"model rate {rate.rate_id}: a {rate.route.value} lane cannot be charged "
+                    f"per {component.unit.value}"
+                )
+            if component.vendor != rate.provider:
+                raise ValueError(
+                    f"model rate {rate.rate_id} names provider {rate.provider!r} but its "
+                    f"component is billed by {component.vendor!r}"
+                )
+
+
+#: A self-hosted lane is charged for the host it occupies; a hosted lane for
+#: what the vendor meters.
+_RATE_UNITS: Final[dict[RateRoute, frozenset[Unit]]] = {
+    RateRoute.SELF_HOSTED: frozenset({Unit.HOST_HOUR}),
+    RateRoute.HOSTED: frozenset({Unit.TOKEN, Unit.CHARACTER, Unit.AUDIO_SECOND}),
+}
 
 
 def load_cost_config(path: Path) -> CostConfig:

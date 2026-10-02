@@ -127,6 +127,18 @@ _NO_NUMBER: Final = (
     "awaiting-human in docs/backlog/blockers.md rather than guessed."
 )
 
+#: INT-439. The owner answered HB-O8 with a deployment-wide monthly number
+#: rather than a per-session one, so this row stays unset and says where the
+#: bound now lives.
+_EXTRACTION_MONTHLY: Final = (
+    "No per-session token number is stated. The owner's decision of 3 Oct 2026 "
+    "(00_STATE §3 D19, 'make limit 80 dollars') bounds elective model spend by a "
+    "monthly USD cap across the deployment instead: a ledger composed with "
+    "intake_voice_runtime.metering.spend.MonthlySpendLedger admits elective work "
+    "against that cap, and one composed without it still refuses elective work "
+    "outright, because then nothing bounds it."
+)
+
 _TTS_NO_TARGET: Final = (
     "No file publishes a per-session character target. It is a TARGET rather than a CAP "
     "because CLAUDE.md invariant 10 speaks text_tr verbatim: a cap could only stop "
@@ -141,7 +153,7 @@ PUBLISHED_BUDGETS: Final[Mapping[MeteredComponent, SessionBudget]] = {
         kind=BudgetKind.CAP,
         limit=None,
         source=f"{_S105}; CLAUDE.md invariant 9 (Backend Work is off the speech path)",
-        open_reason=_NO_NUMBER,
+        open_reason=_EXTRACTION_MONTHLY,
     ),
     MeteredComponent.TTS: SessionBudget(
         component=MeteredComponent.TTS,

@@ -99,7 +99,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-415 (ElevenLabs delivery profiles + on-prem TTS wiring guide, GitHub #706)
     # + INT-429 (vulnerabilities gate: dependency upgrades + time-boxed node-forge row, GitHub #727)
     # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
-    assert len(actions) == 328
+    # + INT-439 (80 USD monthly elective spend cap + sourced price book, GitHub #747)
+    assert len(actions) == 329
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

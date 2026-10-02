@@ -95,10 +95,32 @@ class TestAnUnsetBudgetIsLoud:
         assert rules["CostBudgetNotConfigured"]["expr"] == "vector(1)"
 
     def test_the_committed_config_is_all_not_configured(self) -> None:
-        # the state HB-O8 leaves: no limit is set, so every budget alert says so
-        assert {rule["alert"] for rule in _alerts(_groups(CONFIG_PATH))} == {
-            "CostBudgetNotConfigured"
-        }
+        # D19 (INT-439) set the monthly elective cap and left every per-vendor
+        # budget unset, so the budget group still says so for each one
+        groups = _groups(CONFIG_PATH)
+        budget_group = next(g for g in groups["groups"] if g["name"] == "cost-budgets")
+        assert {rule["alert"] for rule in budget_group["rules"]} == {"CostBudgetNotConfigured"}
+
+    def test_the_committed_cap_warns_at_80_percent_and_tickets_at_the_cap(self) -> None:
+        groups = _groups(CONFIG_PATH)
+        cap_group = next(g for g in groups["groups"] if g["name"] == "model-spend-cap")
+        rules = {rule["alert"]: rule for rule in cap_group["rules"]}
+        assert set(rules) == {"ModelSpendCapWarning", "ModelSpendCapReached"}
+        warning, reached = rules["ModelSpendCapWarning"], rules["ModelSpendCapReached"]
+        assert warning["expr"] == (
+            "max(model_spend_month_usd) >= 64.0 and max(model_spend_month_usd) < 80.0"
+        )
+        assert reached["expr"] == "max(model_spend_month_usd) >= 80.0"
+        assert {warning["labels"]["severity"], reached["labels"]["severity"]} == {"ticket"}
+
+    def test_near_miss_a_config_with_no_cap_emits_no_cap_group(self) -> None:
+        names = {g["name"] for g in _groups(PRICED_PATH)["groups"]}
+        assert "cost-budgets" in names
+        config = load_cost_config(CONFIG_PATH).model_copy(update={"spend_caps": ()})
+        assert (
+            cost_rule_groups(config, load_metrics_catalog(CATALOG_PATH))["groups"][-1]["name"]
+            == "cost-budgets"
+        )
 
 
 class TestThresholdIsASoundLowerBound:

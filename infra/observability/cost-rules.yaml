@@ -7,9 +7,11 @@
 # infra/costs/unit-prices.yaml and re-emit:
 #   uv run python scripts/observability/cost_rules.py --emit infra/observability/cost-rules.yaml
 #
-# CostBudgetNotConfigured fires for every budget whose limit is still empty
-# (HB-O8); CostBudgetExceeded is a lower bound over the priced, metered
-# components; CostBudgetIncomplete names the components the bound cannot see.
+# CostBudgetNotConfigured fires for every budget whose limit is still empty;
+# CostBudgetExceeded is a lower bound over the priced, metered components;
+# CostBudgetIncomplete names the components the bound cannot see.
+# ModelSpendCapWarning / ModelSpendCapReached watch the monthly elective
+# model-spend cap (INT-439; 00_STATE §3 D19).
 groups:
 - name: cost-budgets
   rules:
@@ -101,3 +103,21 @@ groups:
       summary: cost budget aws-month has no limit configured
       description: aws spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
       runbook: docs/runbooks/cost-budgets.md#budget-not-configured
+- name: model-spend-cap
+  rules:
+  - alert: ModelSpendCapWarning
+    expr: max(model_spend_month_usd) >= 64.0 and max(model_spend_month_usd) < 80.0
+    labels: &id001
+      severity: ticket
+      budget_id: elective-models-month
+      scope: elective_model_spend
+      period: calendar_month_utc
+    annotations:
+      summary: 'elective-models-month: the month''s model spend has passed 80% of 80.0 USD'
+      runbook: docs/runbooks/cost-budgets.md#spend-cap-warning
+  - alert: ModelSpendCapReached
+    expr: max(model_spend_month_usd) >= 80.0
+    labels: *id001
+    annotations:
+      summary: 'elective-models-month: the month''s model spend reached 80.0 USD; elective model work is refused until the month ends'
+      runbook: docs/runbooks/cost-budgets.md#spend-cap-reached

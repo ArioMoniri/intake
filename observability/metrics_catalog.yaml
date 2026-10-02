@@ -621,6 +621,32 @@ metrics:
       intake_voice_runtime.clinical_agent.work_queue (INT-092); a handler
       fault, a refused preempt provenance and an invariant-22 numeric pair all
       land here as receipts rather than as a crashed pump.
+  # INT-439 / 00_STATE §3 D19: the monthly elective model-spend cap (HB-O8 closed).
+  - name: model_spend_month_usd
+    type: gauge
+    labels: []
+    owner: voice-runtime
+    unit: "USD"
+    target: "< 80 USD per UTC calendar month; ticket at 64 USD (80 %)"
+    status: live
+    description: >-
+      Month-to-date model spend the deployment has counted against the monthly
+      elective cap, in USD, over every charge class (the shared store gives every
+      worker the same total, so readers take max()). Emitted by
+      intake_voice_runtime.metering.spend.MonthlySpendLedger; read by the admin
+      cost module and the ModelSpendCap* rules in infra/observability/cost-rules.yaml.
+  - name: model_spend_cap_events_total
+    type: counter
+    labels: [event]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Monthly spend-cap events: warn (the month crossed the warning ratio),
+      refused_cap_reached, refused_cap_not_configured, refused_store_unavailable,
+      store_unavailable (a write the shared store missed) and unpriced_obligatory
+      (an obligatory call on a lane with no model rate). Emitted by
+      intake_voice_runtime.metering.spend and metering.meter.
   # files/10 §9 observer-lane row: `lane.dropped_frames` is one of the signals
   # that row says lands with INT-110. files/03 §4.7.6 makes it a metric AND a
   # recorded field on every lane signal, so the same number appears here and on

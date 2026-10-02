@@ -1,6 +1,6 @@
 # Runbook — cost budget alerts (INT-190; runbook links added by the INT-021 close-out)
 
-Every alert in `infra/observability/cost-rules.yaml` links one of the three headings
+Every alert in `infra/observability/cost-rules.yaml` links one of the five headings
 below. The file is generated from `infra/costs/unit-prices.yaml` and the metrics
 catalogue by `intake_platform.cost.cost_rule_groups`, and
 `tests/observability/test_cost_rules.py` fails on drift. So a change here is a change to
@@ -69,3 +69,32 @@ the in-scope components the lower bound cannot see, each with a reason:
 While this alert is open, a quiet `CostBudgetExceeded` means "the counted part is under
 the limit", not "the budget holds". Close each listed reason at its source. The alert
 clears for that `budget_id` when nothing in scope is left uncounted.
+
+## Spend cap warning
+
+`ModelSpendCapWarning` fires when `max(model_spend_month_usd)` reaches the cap's
+`warn_ratio` (80 % of the 80 USD monthly cap, i.e. 64 USD) and is still below the cap
+(INT-439; 00_STATE §3 D19). The series is the voice runtime's month-to-date total of
+model spend in the UTC calendar month, counted by
+`intake_voice_runtime.metering.spend.MonthlySpendLedger`.
+
+- Read the admin console's cost module: the `spend_caps` row shows the month's spend,
+  the warning point and the limit.
+- Nothing is refused yet. Elective work (council verifier members, hosted lanes) keeps
+  running until the cap itself is reached.
+- If the month will overrun, the owner decides: raise `spend_caps[].limit.usd` in
+  `infra/costs/unit-prices.yaml` with a new `source` and `as_of`, or let the cap refuse
+  elective work for the rest of the month. An engineer does not raise it.
+
+## Spend cap reached
+
+`ModelSpendCapReached` fires when `max(model_spend_month_usd)` reaches the cap's
+`limit.usd`. From that moment every **elective** model call is refused at admission
+(`AdmissionReason.MONTHLY_CAP_REACHED`) until the UTC month ends. **Obligatory** work —
+the first extraction of an answer the patient has just given — is never refused; it is
+still counted, so the spend can pass the limit by that amount.
+
+- Confirm the refusals in `model_spend_cap_events_total{event="refused_cap_reached"}`.
+- A refusal with `refused_store_unavailable` instead means the shared spend store could
+  not be read. Elective work fails closed until it can be; restore the store.
+- Only the owner raises the cap, as above.

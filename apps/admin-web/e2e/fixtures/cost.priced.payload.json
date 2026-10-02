@@ -2,7 +2,7 @@
   "currency": "USD",
   "config": {
     "path": "tests/fixtures/cost/unit-prices.priced.yaml",
-    "sha256": "ea2dec24ac75a4ffb85eb63e7ed10ea0bd80d99790e4a4f400a65516f4acb5f5",
+    "sha256": "7d9e20d487942f0fb8920de72455d1731cd598b387ef3cd25b75e532c1b043bf",
     "blocker": "HB-O8"
   },
   "source": {
@@ -18,9 +18,7 @@
       "vendor_note": null,
       "unit": "audio_second",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr"
-      ],
+      "profiles": ["residency_tr"],
       "usage_metric": "voice_stt_audio_s",
       "usage_metric_status": "planned",
       "usage_note": null,
@@ -28,7 +26,8 @@
         "state": "configured",
         "usd_per_unit": 3.0,
         "source": "synthetic test rate, not a price",
-        "as_of": "2026-09-26"
+        "as_of": "2026-09-26",
+        "url": null
       }
     },
     {
@@ -37,9 +36,7 @@
       "vendor_note": null,
       "unit": "character",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr"
-      ],
+      "profiles": ["residency_tr"],
       "usage_metric": "voice_tts_chars",
       "usage_metric_status": "live",
       "usage_note": null,
@@ -47,7 +44,8 @@
         "state": "configured",
         "usd_per_unit": 2.0,
         "source": "synthetic test rate, not a price",
-        "as_of": "2026-09-26"
+        "as_of": "2026-09-26",
+        "url": null
       }
     },
     {
@@ -56,10 +54,7 @@
       "vendor_note": null,
       "unit": "token",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr",
-        "typed"
-      ],
+      "profiles": ["residency_tr", "typed"],
       "usage_metric": "voice_talker_tokens",
       "usage_metric_status": "planned",
       "usage_note": null,
@@ -67,7 +62,8 @@
         "state": "configured",
         "usd_per_unit": 1.0,
         "source": "synthetic test rate, not a price",
-        "as_of": "2026-09-26"
+        "as_of": "2026-09-26",
+        "url": null
       }
     },
     {
@@ -76,10 +72,7 @@
       "vendor_note": null,
       "unit": "token",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr",
-        "typed"
-      ],
+      "profiles": ["residency_tr", "typed"],
       "usage_metric": null,
       "usage_metric_status": null,
       "usage_note": "no catalogued series exports extraction tokens",
@@ -87,7 +80,8 @@
         "state": "configured",
         "usd_per_unit": 1.0,
         "source": "synthetic test rate, not a price",
-        "as_of": "2026-09-26"
+        "as_of": "2026-09-26",
+        "url": null
       }
     },
     {
@@ -104,7 +98,8 @@
         "state": "configured",
         "usd_per_unit": 4.0,
         "source": "synthetic test rate, not a price",
-        "as_of": "2026-09-26"
+        "as_of": "2026-09-26",
+        "url": null
       }
     },
     {
@@ -121,7 +116,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -138,7 +134,8 @@
         "state": "configured",
         "usd_per_unit": 5.0,
         "source": "synthetic test rate, not a price",
-        "as_of": "2026-09-26"
+        "as_of": "2026-09-26",
+        "url": null
       }
     },
     {
@@ -155,7 +152,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     }
   ],
@@ -182,9 +180,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet"
-          ]
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
         },
         {
           "component": "tts_dynamic",
@@ -222,9 +218,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued series exports extraction tokens"
-          ]
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
         },
         {
           "component": "clip_synthesis",
@@ -236,9 +230,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued clip-synthesis series"
-          ]
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
         },
         {
           "component": "sms",
@@ -250,9 +242,7 @@
           "price_state": "not_configured",
           "quantity_per_session": 0.5,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured"
-          ]
+          "reasons": ["price not configured"]
         },
         {
           "component": "gpu_host_onvizit_api",
@@ -264,9 +254,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "gpu_host_team",
@@ -278,10 +266,7 @@
           "price_state": "not_configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured",
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "llm_talker",
@@ -307,9 +292,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued series exports extraction tokens"
-          ]
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
         },
         {
           "component": "clip_synthesis",
@@ -321,9 +304,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued clip-synthesis series"
-          ]
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
         },
         {
           "component": "sms",
@@ -335,9 +316,7 @@
           "price_state": "not_configured",
           "quantity_per_session": 0.5,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured"
-          ]
+          "reasons": ["price not configured"]
         },
         {
           "component": "gpu_host_onvizit_api",
@@ -349,9 +328,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "gpu_host_team",
@@ -363,10 +340,7 @@
           "price_state": "not_configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured",
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         }
       ],
       "by_vendor": [
@@ -375,77 +349,56 @@
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "asr",
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["asr", "llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         },
         {
           "vendor": "self-hosted",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         }
       ],
       "by_profile": [
@@ -486,9 +439,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet"
-          ]
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
         },
         {
           "component": "tts_dynamic",
@@ -520,9 +471,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage not metered: no catalogued series exports extraction tokens"
-          ]
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
         },
         {
           "component": "clip_synthesis",
@@ -532,9 +481,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage not metered: no catalogued clip-synthesis series"
-          ]
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
         },
         {
           "component": "sms",
@@ -544,9 +491,7 @@
           "price_state": "not_configured",
           "quantity": 25.0,
           "usd": null,
-          "reasons": [
-            "price not configured"
-          ]
+          "reasons": ["price not configured"]
         },
         {
           "component": "gpu_host_onvizit_api",
@@ -556,9 +501,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "gpu_host_team",
@@ -568,10 +511,7 @@
           "price_state": "not_configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "price not configured",
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         }
       ]
     },
@@ -597,9 +537,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet"
-          ]
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
         },
         {
           "component": "tts_dynamic",
@@ -637,9 +575,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued series exports extraction tokens"
-          ]
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
         },
         {
           "component": "clip_synthesis",
@@ -651,9 +587,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued clip-synthesis series"
-          ]
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
         },
         {
           "component": "sms",
@@ -665,9 +599,7 @@
           "price_state": "not_configured",
           "quantity_per_session": 0.5833333333333334,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured"
-          ]
+          "reasons": ["price not configured"]
         },
         {
           "component": "gpu_host_onvizit_api",
@@ -679,9 +611,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "gpu_host_team",
@@ -693,10 +623,7 @@
           "price_state": "not_configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured",
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "llm_talker",
@@ -722,9 +649,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued series exports extraction tokens"
-          ]
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
         },
         {
           "component": "clip_synthesis",
@@ -736,9 +661,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued clip-synthesis series"
-          ]
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
         },
         {
           "component": "sms",
@@ -750,9 +673,7 @@
           "price_state": "not_configured",
           "quantity_per_session": 0.5833333333333334,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured"
-          ]
+          "reasons": ["price not configured"]
         },
         {
           "component": "gpu_host_onvizit_api",
@@ -764,9 +685,7 @@
           "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "gpu_host_team",
@@ -778,10 +697,7 @@
           "price_state": "not_configured",
           "quantity_per_session": null,
           "usd_per_session": null,
-          "reasons": [
-            "price not configured",
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         }
       ],
       "by_vendor": [
@@ -790,77 +706,56 @@
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "asr",
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["asr", "llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         },
         {
           "vendor": "self-hosted",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "gpu_host_onvizit_api"
-          ]
+          "missing": ["gpu_host_onvizit_api"]
         }
       ],
       "by_profile": [
@@ -901,9 +796,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage series voice_stt_audio_s is catalogued as planned and not emitted yet"
-          ]
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
         },
         {
           "component": "tts_dynamic",
@@ -935,9 +828,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage not metered: no catalogued series exports extraction tokens"
-          ]
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
         },
         {
           "component": "clip_synthesis",
@@ -947,9 +838,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage not metered: no catalogued clip-synthesis series"
-          ]
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
         },
         {
           "component": "sms",
@@ -959,9 +848,7 @@
           "price_state": "not_configured",
           "quantity": 700.0,
           "usd": null,
-          "reasons": [
-            "price not configured"
-          ]
+          "reasons": ["price not configured"]
         },
         {
           "component": "gpu_host_onvizit_api",
@@ -971,9 +858,7 @@
           "price_state": "configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
         },
         {
           "component": "gpu_host_team",
@@ -983,10 +868,7 @@
           "price_state": "not_configured",
           "quantity": null,
           "usd": null,
-          "reasons": [
-            "price not configured",
-            "usage not metered: no catalogued host-uptime series"
-          ]
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
         }
       ]
     }
@@ -1017,10 +899,7 @@
         "gpu_host_team"
       ],
       "reason": "a lower bound on the spend is already above the limit",
-      "alerts": [
-        "CostBudgetExceeded",
-        "CostBudgetIncomplete"
-      ]
+      "alerts": ["CostBudgetExceeded", "CostBudgetIncomplete"]
     },
     {
       "budget_id": "all-vendors-month",
@@ -1047,9 +926,7 @@
         "gpu_host_team"
       ],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "self-hosted-day",
@@ -1066,16 +943,9 @@
       "spend_state": "lower_bound",
       "spend_usd": 96000.0,
       "status": "exceeded",
-      "missing": [
-        "asr",
-        "llm_talker",
-        "llm_extraction"
-      ],
+      "missing": ["asr", "llm_talker", "llm_extraction"],
       "reason": "a lower bound on the spend is already above the limit",
-      "alerts": [
-        "CostBudgetExceeded",
-        "CostBudgetIncomplete"
-      ]
+      "alerts": ["CostBudgetExceeded", "CostBudgetIncomplete"]
     },
     {
       "budget_id": "self-hosted-month",
@@ -1092,16 +962,9 @@
       "spend_state": "lower_bound",
       "spend_usd": 2160000.0,
       "status": "not_evaluable",
-      "missing": [
-        "asr",
-        "llm_talker",
-        "llm_extraction"
-      ],
+      "missing": ["asr", "llm_talker", "llm_extraction"],
       "reason": "cannot be evaluated: no spend is known for asr, llm_talker, llm_extraction",
-      "alerts": [
-        "CostBudgetExceeded",
-        "CostBudgetIncomplete"
-      ]
+      "alerts": ["CostBudgetExceeded", "CostBudgetIncomplete"]
     },
     {
       "budget_id": "elevenlabs-day",
@@ -1118,13 +981,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "clip_synthesis"
-      ],
+      "missing": ["clip_synthesis"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "elevenlabs-month",
@@ -1141,13 +1000,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_evaluable",
-      "missing": [
-        "clip_synthesis"
-      ],
+      "missing": ["clip_synthesis"],
       "reason": "cannot be evaluated: no spend is known for clip_synthesis",
-      "alerts": [
-        "CostBudgetIncomplete"
-      ]
+      "alerts": ["CostBudgetIncomplete"]
     },
     {
       "budget_id": "aws-day",
@@ -1164,13 +1019,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "gpu_host_onvizit_api"
-      ],
+      "missing": ["gpu_host_onvizit_api"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "aws-month",
@@ -1187,13 +1038,28 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "gpu_host_onvizit_api"
-      ],
+      "missing": ["gpu_host_onvizit_api"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
+    }
+  ],
+  "spend_caps": [
+    {
+      "cap_id": "elective-models-month",
+      "covers": "elective_model_spend",
+      "period": "calendar_month_utc",
+      "limit": {
+        "usd": 1000.0,
+        "source": "synthetic test cap, not a decision",
+        "as_of": "2026-10-03"
+      },
+      "warn_ratio": 0.5,
+      "warn_at_usd": 500.0,
+      "spend_metric": "model_spend_month_usd",
+      "spend_usd": 612.5,
+      "status": "warning",
+      "reason": "the month's spend has passed the warning ratio",
+      "alerts": ["ModelSpendCapWarning", "ModelSpendCapReached"]
     }
   ],
   "alerts": {
@@ -1252,6 +1118,16 @@
       {
         "alert": "CostBudgetNotConfigured",
         "budget_id": "aws-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "ModelSpendCapWarning",
+        "budget_id": "elective-models-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "ModelSpendCapReached",
+        "budget_id": "elective-models-month",
         "severity": "ticket"
       }
     ]

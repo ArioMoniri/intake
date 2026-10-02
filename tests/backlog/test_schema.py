@@ -142,7 +142,9 @@ def test_ids_unique_and_well_formed() -> None:
     # time-boxed node-forge exception; owner decision, GitHub #727).
     # + INT-431 (the embed sample's JWT fixture is built at runtime so no
     # token-shaped literal sits at rest; found merging main into #481, #733).
-    assert len(ids) == 328
+    # + INT-439 (HB-O8 closed: the owner's 80 USD monthly elective spend cap and
+    # a sourced price book; 00_STATE D19, GitHub #747).
+    assert len(ids) == 329
     import re
 
     for i in ids:

@@ -37,6 +37,7 @@ from typing import Any, Final
 
 import yaml
 
+from intake_platform.cost.cap_status import CAP_GROUP_NAME, spend_cap_rules
 from intake_platform.cost.config import PERIOD_WINDOW, Budget, BudgetScope, CostConfig
 from intake_platform.cost.queries import usage_term
 from intake_platform.cost.resolve import ResolvedComponent, resolve_components
@@ -86,9 +87,11 @@ _HEADER: Final = f"""\
 # {CONFIG_PATH} and re-emit:
 #   uv run python scripts/observability/cost_rules.py --emit {RULES_PATH}
 #
-# CostBudgetNotConfigured fires for every budget whose limit is still empty
-# (HB-O8); CostBudgetExceeded is a lower bound over the priced, metered
-# components; CostBudgetIncomplete names the components the bound cannot see.
+# CostBudgetNotConfigured fires for every budget whose limit is still empty;
+# CostBudgetExceeded is a lower bound over the priced, metered components;
+# CostBudgetIncomplete names the components the bound cannot see.
+# ModelSpendCapWarning / ModelSpendCapReached watch the monthly elective
+# model-spend cap (INT-439; 00_STATE §3 D19).
 """
 
 
@@ -189,7 +192,12 @@ def cost_rule_groups(config: CostConfig, catalog: MetricsCatalog) -> dict[str, A
     """The Prometheus rule file body, derived from the price file and catalogue."""
     resolved = resolve_components(config, catalog)
     rules = [rule for budget in config.budgets for rule in _budget_rules(budget, resolved)]
-    return {"groups": [{"name": GROUP_NAME, "rules": rules}]}
+    groups: list[dict[str, Any]] = [{"name": GROUP_NAME, "rules": rules}]
+    cap_rules = spend_cap_rules(config)
+    if cap_rules:
+        # INT-439 / D19: the monthly elective model-spend cap
+        groups.append({"name": CAP_GROUP_NAME, "rules": cap_rules})
+    return {"groups": groups}
 
 
 def budget_alert_names(groups: dict[str, Any]) -> dict[str, list[str]]:
