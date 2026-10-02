@@ -289,7 +289,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
     # stated reason.
-    assert len(ids) == 326, f"expected 175 blueprint + 151 added issues, got {len(ids)}"
+    # + INT-427 (dynamic department question sets, next specialty wave, owner
+    # request, GitHub #722).
+    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

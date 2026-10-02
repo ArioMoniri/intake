@@ -96,11 +96,43 @@ sections:
         ask_tr:
           tr: Boynunuzda, koltuk altınızda ya da kasığınızda geçmeyen bir şişlik fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      sislik_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şişlik ne zamandır var?
+        follow_up_tr:
+          tr: Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+        ask_if: boyun_koltuk_kasik_sisligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      sislik_buyumesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Fark ettiğinizden bu yana bu şişlik büyüdü mü?
+        ask_if: boyun_koltuk_kasik_sisligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      birden_fazla_bolgede_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu şişlikten vücudunuzun başka bir yerinde de var mı?
+        ask_if: boyun_koltuk_kasik_sisligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
       gece_terlemesi:
         type: boolean
         required: false
         ask_tr:
           tr: Geceleri uykunuzda aşırı terleme oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      gece_terlemesi_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Gece terlemeleriniz ne zamandır sürüyor?
+        follow_up_tr:
+          tr: Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+        ask_if: gece_terlemesi == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
       istemsiz_kilo_kaybi:
         type: boolean
@@ -108,11 +140,29 @@ sections:
         ask_tr:
           tr: Son aylarda istemeden kilo kaybettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      kilo_kaybi_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Kilo kaybınız ne zamandır sürüyor?
+        follow_up_tr:
+          tr: Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+        ask_if: istemsiz_kilo_kaybi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/hematoloji.md'
       ailede_kan_hastaligi:
         type: boolean
         required: false
         ask_tr:
           tr: Ailenizde kansızlık ya da kan hastalığı olan biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hematoloji.md'
+      ailedeki_kan_hastaligi_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ailenizdeki bu kan hastalığının adını söyleyebilir misiniz?
+        ask_if: ailede_kan_hastaligi == true
+        delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hematoloji.md'
 red_flags:
 - id: rf.hematoloji_l0_taslak

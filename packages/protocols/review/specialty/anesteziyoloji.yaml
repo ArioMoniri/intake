@@ -50,6 +50,32 @@ sections:
         ask_tr:
           tr: Şeker hastalığı, tansiyon ya da astım gibi süregelen bir rahatsızlığınız var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      suregelen_rahatsizlik_adlari:
+        type: string
+        required: false
+        ask_tr:
+          tr: Süregelen rahatsızlıklarınızın adlarını söyleyebilir misiniz?
+        ask_if: suregelen_rahatsizlik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      uyku_apnesi_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size uykuda nefes durması, yani uyku apnesi tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      uyku_solunum_cihazi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Uyurken nefes almanıza yardım eden bir cihaz kullanıyor musunuz?
+        ask_if: uyku_apnesi_tanisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      yakin_solunum_yolu_enfeksiyonu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son haftalarda nezle, grip ya da ateşli bir hastalık geçirdiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
       ilac_lateks_alerjisi:
         type: string
         required: false
@@ -62,12 +88,26 @@ sections:
         ask_tr:
           tr: Daha önce anestezi aldıysanız, o sırada beklenmedik bir sorun yaşandığı size söylendi mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      onceki_anestezi_sorunu_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Önceki anestezide yaşanan sorunu size anlatıldığı kadarıyla söyler misiniz?
+        ask_if: onceki_anestezi_sorunu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
       zor_entubasyon_oykusu:
         type: boolean
         required: false
         ask_tr:
           tr: Önceki bir ameliyatta soluk borunuza tüp yerleştirilirken zorluk yaşandığı size iletildi mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
+      zor_entubasyon_belgesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu zorlukla ilgili size yazılı bir belge verildi mi?
+        ask_if: zor_entubasyon_oykusu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/anesteziyoloji.md'
       son_kati_gida:
         type: date
         required: false
@@ -85,6 +125,23 @@ sections:
         required: false
         ask_tr:
           tr: Ailenizde anestezi aldıktan sonra ciddi bir sorun yaşayan biri olduğunu biliyor musunuz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/anesteziyoloji.md'
+      ailede_anestezi_sorunu_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ailenizdeki kişinin anesteziyle ilgili yaşadığı sorunu biliyorsanız kısaca anlatır mısınız?
+        ask_if: ailede_anestezi_sorunu == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/anesteziyoloji.md'
+      ailede_anestezi_testi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde anestezi sorunu nedeniyle özel bir test yaptıran biri oldu mu?
+        ask_if: ailede_anestezi_sorunu == true
+        delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/anesteziyoloji.md'
 red_flags:
 - id: rf.anesteziyoloji_l0_taslak

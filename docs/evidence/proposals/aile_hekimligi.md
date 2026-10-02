@@ -58,6 +58,8 @@ for the small number of alarm ("red-flag") symptoms that a clinician would want 
   > they...are aged 30 and over and have an unexplained breast lump with or without pain"
   > Rec 1.5.10: "Refer women using a suspected cancer pathway referral for endometrial cancer if
   > they are aged 55 and over with post-menopausal bleeding"
+- **Superseded (2026-10-02):** the Rec 1.13.2 and Rec 1.5.10 quotes above are not in the current
+  NG12 text. Current wording: S3 rec 1.13.2 ("[2026]") and S3 rec 1.5.12 ("[2015, amended 2026]").
 - **Note:** the age thresholds (40/50/30/55) live **inside the English source quotes**; they are not
   spoken to the patient. The Turkish questions in §3 capture the *symptom*, never a numeric
   threshold — the referral age/threshold is a clinician + rules-engine decision, not a patient-facing
@@ -70,6 +72,59 @@ for the small number of alarm ("red-flag") symptoms that a clinician would want 
   patient-facing numeric red-flag sentence. So the fever question is captured as **general symptom
   intake with no threshold asserted**; the sepsis/fever escalation threshold is **NO SOURCE FOUND
   (patient-facing) — clinician + rules engine must supply** (see §4).
+
+### S3 — NICE NG12 Suspected cancer: recognition and referral (current text, INT-427)
+- **guideline_id (proposed):** `NICE-NG12`
+- **Publishing body:** National Institute for Health and Care Excellence (NICE), United Kingdom
+- **Version / date:** NG12 · "Published: 23 June 2015" · "Last updated: 15 April 2026" (page header)
+- **URL:** https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+- **retrieved_on:** 2026-10-02
+- **Verbatim:**
+  > Rec 1.13.2: "For people aged 60 and over with unexplained weight loss (greater than 5% mean weight
+  > loss within a 6-month period)" … "[2026]"
+  > Rec 1.4.2: "Consider a suspected cancer pathway referral for breast cancer in people: with skin
+  > changes that suggest breast cancer, or aged 30 and over with an unexplained lump in the axilla."
+  > Rec 1.11.4: "Consider an urgent, direct access ultrasound scan to assess for soft tissue sarcoma in
+  > adults with an unexplained lump that is increasing in size."
+  > Rec 1.5.12: "Refer women, and trans men and non-binary people with female reproductive organs
+  > using a suspected cancer pathway referral for endometrial cancer if they are aged 55 and over with
+  > unexplained post-menopausal bleeding that cannot be attributed to hormone replacement therapy
+  > (HRT)." "[2015, amended 2026]"
+  > Rec 1.1.1: "Refer people using a suspected cancer pathway referral for lung cancer if they: have
+  > chest X‑ray findings that suggest lung cancer, or are aged 40 and over with unexplained
+  > haemoptysis."
+  > Rec 1.2.1: "Refer people using a suspected cancer pathway referral for oesophageal cancer if they:
+  > have dysphagia" … "[2015, amended 2025]"
+  > Rec 1.3.1: "Offer quantitative faecal immunochemical testing (FIT) using HM‑JACKarc or OC‑Sensor
+  > to guide referral for suspected colorectal cancer in adults:" … "aged 50 and over with any of the
+  > following unexplained symptoms: rectal bleeding"
+
+### S4 — NHS, "High temperature (fever) in adults" (patient page, NOT a guideline)
+- **guideline_id (proposed):** `NHS-FEVER-ADULTS`
+- **Publishing body:** NHS (England), nhs.uk
+- **Version / date:** "Page last reviewed: 24 May 2023" ("Next review due: 24 May 2026"; overdue at
+  retrieval)
+- **URL:** https://www.nhs.uk/symptoms/fever-in-adults/
+- **retrieved_on:** 2026-10-02
+- **Verbatim:**
+  > "a thermometer says your temperature is 38C or above"
+  > "You do not need to take your temperature using a thermometer, but you can if you have one."
+  > "Ask for an urgent GP appointment or get help from NHS 111 if you have:" · "a high temperature and
+  > you've been treating it at home but it's not getting better or is getting worse"
+
+### S5 — Aile Hekimliği Uygulama Yönetmeliği (Türkiye)
+- **guideline_id (proposed):** `RG-28539-AILE-HEKIMLIGI-UYGULAMA-YONETMELIGI`
+- **Publishing body:** T.C. Sağlık Bakanlığı · Resmî Gazete
+- **Version / date:** Resmî Gazete 25 Ocak 2013, Sayı 28539 (original publication text). Consolidated
+  text (mevzuat.gov.tr, MevzuatNo 17051) carries amendments through "RG-9/4/2026-33219"; Madde 4(3)(f)
+  is unchanged there.
+- **URL:** https://www.resmigazete.gov.tr/eskiler/2013/01/20130125-26.htm · consolidated
+  https://www.mevzuat.gov.tr/MevzuatMetin/yonetmelik/7.5.17051.pdf
+- **retrieved_on:** 2026-10-02
+- **Verbatim (Madde 4(3)(f)):**
+  > "Kayıtlı kişilerin yaş, cinsiyet ve hastalık gruplarına yönelik izlem ve taramaları (kanser,
+  > kronik hastalıklar, gebe, lohusa, yenidoğan, bebek, çocuk sağlığı, adölesan (ergen), erişkin, yaşlı
+  > sağlığı ve benzeri) yapmak."
 
 ---
 
@@ -98,6 +153,12 @@ Composition root: `openEHR-EHR-COMPOSITION.intake_previsit.v1` (LOCAL archetype)
 | 11 | Current regular medications | `openEHR-EHR-ACTION.medication.v1` | ACTION | deferred (INT-032) |
 | 12 | Drug / substance allergy | `openEHR-EHR-EVALUATION.adverse_reaction_risk.v1` | EVALUATION | deferred (INT-032) |
 | 13 | Candidate triage outcome (max `YELLOW_REVIEW` from LLM; authoritative level = rules engine only) | `openEHR-EHR-EVALUATION.triage_outcome.v1` | EVALUATION | deferred (INT-032) |
+| §3 Q2a | Fever measured with a thermometer | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| §3 Q2b | Fever still present | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| §3 Q3a | Duration of weight loss | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| §3 Q7a | Site of the new lump | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| §3 Q7b | Lump increasing in size | `openEHR-EHR-OBSERVATION.symptom_sign.v1` | OBSERVATION | deferred (INT-032) |
+| §3 Q9a | Name of the long-term condition | `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | EVALUATION | deferred (INT-032) |
 
 Notes:
 - All leaf paths are **deferred** (`openehr_deferred_reason`, INT-032); none is fabricated.
@@ -108,7 +169,7 @@ Notes:
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions
+## 3. Candidate B1 Turkish pre-visit questions (15)
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2: one question per
 turn); empathetic; no diagnosis/treatment/prognosis language. **All marked "CANDIDATE — clinician to
@@ -136,12 +197,28 @@ CANDIDATE — clinician to approve wording.
 gen: slot=son_gunlerde_ates; type=boolean
 CANDIDATE — clinician to approve wording. No urgency threshold asserted.
 
-**Q3 — Unexplained weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.13.2, "unexplained weight loss")
+**Q2a — Fever measured with a thermometer** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 ("a thermometer says your temperature is 38C or above"; "You do not need to take your temperature using a thermometer, but you can if you have one.")
+> "Ateşinizi termometreyle ölçtünüz mü?"
+gen: slot=ates_olcumu; type=boolean; ask_if=son_gunlerde_ates == true
+CANDIDATE — clinician to approve wording.
+
+**Q2b — Fever still present** · archetype: `OBSERVATION.symptom_sign.v1` · source: S4 ("a high temperature and you've been treating it at home but it's not getting better or is getting worse")
+> "Ateşiniz hâlâ devam ediyor mu?"
+gen: slot=ates_devam_ediyor; type=boolean; ask_if=son_gunlerde_ates == true
+CANDIDATE — clinician to approve wording. No urgency threshold asserted.
+
+**Q3 — Unexplained weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NG12 rec 1.13.2, "For people aged 60 and over with unexplained weight loss (greater than 5% mean weight loss within a 6-month period)")
 > "Son aylarda, beslenmenizde bir değişiklik olmadığı hâlde, istemeden kilo verdiniz mi?"
 gen: slot=istemsiz_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending
 clinician + rules-engine confirmation — NOT authoritative)** if unexplained weight loss is reported,
 per S1.
+
+**Q3a — Duration of weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NG12 rec 1.13.2, "unexplained weight loss (greater than 5% mean weight loss within a 6-month period)")
+> "Kilo kaybınız ne zamandır sürüyor?"
+gen: slot=kilo_kaybi_suresi; type=duration; ask_if=istemsiz_kilo_kaybi == true; follow_up=Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+CANDIDATE — clinician to approve wording. No amount or period threshold in patient copy. Same text
+and slot as hematoloji Q11a (one audio clip).
 
 **Q4 — Haemoptysis (blood when coughing)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.1.1, "unexplained haemoptysis")
 > "Öksürürken balgamınızda ya da tükürüğünüzde kan fark ettiniz mi?"
@@ -168,29 +245,42 @@ CANDIDATE — clinician to approve wording. "kitle" replaced by "sertlik" (findi
 whole-body lump is better anchored on the NG12 soft-tissue lump recommendation (unexplained lump
 increasing in size) than on the breast recommendation; verify and re-cite before sign-off.
 
-**Q8 — Post-menopausal bleeding** (women; conditional) · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NG12 Rec 1.5.10, "post-menopausal bleeding")
+**Q7a — Site of the new lump** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NG12 rec 1.4.2, "an unexplained lump in the axilla"; rec 1.11.4, "an unexplained lump that is increasing in size")
+> "Bu şişliği vücudunuzun neresinde fark ettiniz?"
+gen: slot=sislik_yeri; type=string; ask_if=yeni_sislik_sertlik == true
+CANDIDATE — clinician to approve wording.
+
+**Q7b — Lump increasing in size** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NG12 rec 1.11.4, "an unexplained lump that is increasing in size")
+> "Fark ettiğinizden bu yana bu şişlik büyüdü mü?"
+gen: slot=sislik_buyumesi; type=boolean; ask_if=yeni_sislik_sertlik == true
+CANDIDATE — clinician to approve wording. Same text and slot as hematoloji Q9b (one audio clip).
+
+**Q8 — Post-menopausal bleeding** (women; conditional) · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (NG12 rec 1.5.12, "unexplained post-menopausal bleeding that cannot be attributed to hormone replacement therapy (HRT)")
 > "Adet dönemleriniz tamamen sona erdikten sonra herhangi bir kanamanız oldu mu?"
-gen: slot=menopoz_sonrasi_kanama; type=boolean
+gen: slot=menopoz_sonrasi_kanama; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. The reviewer wants an `ask_if` on sex; the gate is a
 clinician decision pending, so no gate expression is written here. Candidate_flag: **YELLOW_REVIEW
 (candidate, pending clinician + rules-engine confirmation — NOT authoritative)**, per S1.
 
-**Q9 — Known chronic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: general intake (no clinical threshold)
-> "Şeker hastalığı ya da yüksek tansiyon gibi süregelen bir hastalığınız var mı?"
+**Q9 — Known chronic diagnoses** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S5 (Madde 4(3)(f), "kronik hastalıklar"); general intake (no clinical threshold)
+> "Şimdiye kadar söylediklerinizin dışında süregelen bir rahatsızlığınız var mı?"
 gen: slot=suregelen_hastalik; type=boolean
 CANDIDATE — clinician to approve wording.
 
-*(9 candidate questions after revision: 6 alarm-symptom items sourced to S1 (Q3–Q8), 3
-general-intake items (Q1, Q2, Q9).)*
+**Q9a — Name of the long-term condition** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S5 (Madde 4(3)(f), "hastalık gruplarına yönelik izlem ve taramaları (kanser, kronik hastalıklar, …)")
+> "Bu rahatsızlığın adını söyleyebilir misiniz?"
+gen: slot=suregelen_hastalik_adi; type=string; ask_if=suregelen_hastalik == true
+CANDIDATE — clinician to approve wording.
+
+*(15 candidate questions after the INT-427 wave: 6 alarm-symptom items sourced to S1 (Q3–Q8), 3
+general-intake items (Q1, Q2, Q9), 6 gated detail items (Q2a, Q2b, Q3a, Q7a, Q7b, Q9a; §6).)*
 
 ---
 
 ## 4. Gaps — every place NO SOURCE was found (clinician/human must supply)
 
-1. **NG12 current version/date** — the retrieved renders carried inconsistent dates (a "January
-   2026" full-text line; a search reference to a 15 April 2026 weight-loss update). The exact
-   current version and publication date MUST be confirmed against nice.org.uk before sign-off. **NO
-   SOURCE FOUND (authoritative version string) — clinician/curator to confirm.**
+1. **NG12 current version/date** — closed 2026-10-02: S3 records the nice.org.uk page header,
+   "Published: 23 June 2015" · "Last updated: 15 April 2026".
 2. **NG12 verbatim with ellipses** — every S1 sentence was returned **with `...`**; the contiguous
    primary-text wording MUST be re-captured and committed as a verbatim snapshot. **Re-verification
    required.**
@@ -229,3 +319,23 @@ general-intake items (Q1, Q2, Q9).)*
   `status: draft_needs_source` and do not compile. This proposal supplies candidate source S1 for
   that block but does not itself commit a snapshot.
 - **HB-C1** — this pack awaits clinician sign-off; NOT served.
+
+---
+
+## 6. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q2a `ates_olcumu` | added | `son_gunlerde_ates == true` | S4 |
+| Q2b `ates_devam_ediyor` | added | `son_gunlerde_ates == true` | S4 |
+| Q3a `kilo_kaybi_suresi` | added (duration; follow-up) | `istemsiz_kilo_kaybi == true` | S3 |
+| Q7a `sislik_yeri` | added (string) | `yeni_sislik_sertlik == true` | S3 |
+| Q7b `sislik_buyumesi` | added | `yeni_sislik_sertlik == true` | S3 |
+| Q9 `suregelen_hastalik` | reworded: "Şimdiye kadar söylediklerinizin dışında süregelen bir rahatsızlığınız var mı?" (fix round, V-AH-3; first pass: "hastalığınız" → "rahatsızlığınız"); source line cites S5 | — (ungated) | S5 |
+| Q9a `suregelen_hastalik_adi` | added (string) | `suregelen_hastalik == true` | S5 |
+| Q3 `istemsiz_kilo_kaybi` | source line re-cited to S3 rec 1.13.2 (fix round, V-AH-2); text unchanged | — (ungated) | S3 |
+| Q8 `menopoz_sonrasi_kanama` | delivery set to `text_first` (V-AH-1); source line re-cited to S3 rec 1.5.12 (V-AH-2); text unchanged | — (ungated) | S3 |
+| §1 S1 | rec 1.13.2 and rec 1.5.10 quotes marked superseded (V-AH-2) | — | S3 |
+| §1 S3 | recs 1.5.12, 1.1.1, 1.2.1, 1.3.1 added (V-AH-2; red-flag rows A1–A4) | — | S3 |
+| §1 S4, S5 | version lines updated (V-AH-4) | — | S4, S5 |
+| §4 gap 1 | closed with S3 header dates (V-AH-2) | — | S3 |

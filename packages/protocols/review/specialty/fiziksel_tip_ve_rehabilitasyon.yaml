@@ -77,7 +77,7 @@ sections:
         ask_tr:
           tr: Ağrınız uykunuzu bölüyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
-      ates_var_mi:
+      son_gunlerde_ates:
         type: boolean
         required: false
         ask_tr:
@@ -101,11 +101,18 @@ sections:
         ask_tr:
           tr: Daha önce kanser ya da başka önemli bir hastalık tanısı aldınız mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      onemli_hastalik_tanisi_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu tanının adını söyleyebilir misiniz?
+        ask_if: kanser_ya_da_onemli_hastalik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
       idrar_diski_kontrol_degisimi:
         type: boolean
         required: false
         ask_tr:
-          tr: Son günlerde idrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?
+          tr: İdrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
       makat_uyusmasi:
         type: boolean
@@ -119,11 +126,30 @@ sections:
         ask_tr:
           tr: Bacaklarınızda giderek artan bir güçsüzlük ya da her iki bacağınızda birden uyuşma hissediyor musunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      iki_bacaga_yayilan_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      travma_sonrasi_basladi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şikâyetiniz bir düşme, darbe ya da yaralanmadan sonra mı başladı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
       onceki_tani:
         type: boolean
         required: false
         ask_tr:
           tr: Şu anki şikâyetinizle ilgili daha önce bir tanı aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      onceki_tani_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Size söylenen tanının adını söyleyebilir misiniz?
+        ask_if: onceki_tani == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
       onceki_tedavi:
         type: boolean
@@ -131,6 +157,20 @@ sections:
         ask_tr:
           tr: Bu şikâyet için daha önce fizik tedavi, enjeksiyon veya ameliyat gibi bir tedavi gördünüz mü?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      tedavi_sonrasi_agri_azalmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu tedaviden sonra ağrınız azaldı mı?
+        ask_if: onceki_tedavi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      tedavi_sonrasi_islev_artisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu tedaviden sonra günlük işlerinizi daha kolay yapabildiniz mi?
+        ask_if: onceki_tedavi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
       duzenli_ilac:
         type: boolean
         required: false

@@ -69,7 +69,7 @@ sections:
         type: boolean
         required: false
         ask_tr:
-          tr: Saniyeler ya da birkaç dakika içinde en şiddetli hâline ulaşan, ani ve çok şiddetli bir baş ağrınız oldu mu?
+          tr: Saniyeler ya da birkaç dakika içinde çok şiddetlenen ani bir baş ağrınız oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
       giderek_artan_bas_agrisi:
         type: boolean
@@ -87,7 +87,7 @@ sections:
         type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda idrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?
+          tr: İdrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
       makat_uyusmasi:
         type: boolean
@@ -101,6 +101,33 @@ sections:
         ask_tr:
           tr: Belinizden bacağınıza yayılan bir ağrınız var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
+      bacakta_uyusma_karincalanma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu bacağınızda uyuşma ya da karıncalanma oluyor mu?
+        ask_if: bacaga_yayilan_bel_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
+      ayaga_inen_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ağrı ayağınıza ya da ayak parmaklarınıza kadar iniyor mu?
+        ask_if: bacaga_yayilan_bel_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
+      oksurunce_artan_bacak_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu ağrı öksürünce ya da hapşırınca artıyor mu?
+        ask_if: bacaga_yayilan_bel_agrisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
+      iki_bacaga_yayilan_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
       iki_bacakta_guc_kaybi:
         type: boolean
         required: false
@@ -111,13 +138,27 @@ sections:
         type: boolean
         required: false
         ask_tr:
-          tr: Son zamanlarda başınıza ciddi bir darbe aldınız mı?
+          tr: Son zamanlarda başınıza hafif de olsa bir darbe aldınız mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
+      bas_darbesi_tarihi:
+        type: date
+        required: false
+        ask_tr:
+          tr: Başınıza bu darbeyi ne zaman aldınız?
+        ask_if: yakin_bas_darbesi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
       beyin_omurga_tanisi:
         type: boolean
         required: false
         ask_tr:
           tr: Daha önce beyniniz ya da omurganızla ilgili bir tanı aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
+      beyin_omurga_tanisi_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Size söylenen tanının adını söyleyebilir misiniz?
+        ask_if: beyin_omurga_tanisi == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/beyin_ve_sinir_cerrahisi.md'
       beyin_omurga_ameliyati:
         type: boolean

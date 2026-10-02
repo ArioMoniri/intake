@@ -53,6 +53,13 @@ sections:
         ask_tr:
           tr: Ayaklarınızda, ayak bileklerinizde ya da göz kapaklarınızda şişlik fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nefroloji.md'
+      sislikle_kilo_artisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şişlik başladığından beri kilonuzda artış oldu mu?
+        ask_if: ayak_goz_kapagi_sisligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nefroloji.md'
       kopuklu_idrar:
         type: boolean
         required: false
@@ -65,11 +72,34 @@ sections:
         ask_tr:
           tr: İdrarınızda pembe, kırmızı ya da kahverengi bir renk değişikliği gördünüz mü?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nefroloji.md'
+      renk_degisikligi_tekrari:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: İdrarınızdaki bu renk değişikliği birden fazla kez oldu mu?
+        ask_if: idrar_renk_degisikligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nefroloji.md'
+      renk_degisikliginde_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu renk değişikliği sırasında belinizde ya da karnınızın alt kısmında ağrı oldu mu?
+        ask_if: idrar_renk_degisikligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nefroloji.md'
       idrar_miktari_azalmasi:
         type: boolean
         required: false
         ask_tr:
           tr: Son zamanlarda idrar miktarınızda belirgin bir azalma oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nefroloji.md'
+      idrar_azalmasi_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: İdrar miktarınızdaki azalma ne zamandır sürüyor?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        ask_if: idrar_miktari_azalmasi == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/nefroloji.md'
       gecmeyen_kasinti:
         type: boolean
@@ -101,11 +131,27 @@ sections:
         ask_tr:
           tr: Daha önce böbreklerinizde taş olduğu söylendi mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/nefroloji.md'
+      tekrarlayan_bobrek_tasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Böbreklerinizde birden fazla kez taş oluştu mu?
+        ask_if: bobrek_tasi_oykusu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/nefroloji.md'
       ailede_bobrek_hastaligi:
         type: boolean
         required: false
         ask_tr:
           tr: Ailenizde böbrek hastalığı olan biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nefroloji.md'
+      ailedeki_bobrek_hastaligi_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ailenizdeki bu böbrek hastalığının adını söyleyebilir misiniz?
+        ask_if: ailede_bobrek_hastaligi == true
+        delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/nefroloji.md'
       duzenli_agri_kesici:
         type: boolean

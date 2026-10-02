@@ -64,6 +64,12 @@ It assigns **no** authoritative RED/YELLOW/GREEN level and pins **no** clinical 
   > "Diğer bir ağrı tipi istirahatte ağrıdır ve kırmızı bayraklardan neoplastik ve enfeksiyöz
   > patolojilerin …"
   > "Nörolojik kayıp olması da özgül olmamakla beraber, ilerleyici olması durumunda kırmızı bayrakların …"
+- **Completed verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same URL; two reads of the viewer
+  text agreed):**
+  > "Öyküde ateş, iştahsızlık, kilo kaybı gibi konstitüsyonel belirtilerin varlığı akla enfeksiyonları
+  > getirmelidir."
+  > "Nörolojik kayıp olması da özgül olmamakla beraber, ilerleyici olması durumunda kırmızı bayrakların
+  > ayırıcı tanısı yapılmalıdır."
 - **Confidence: MEDIUM (content) / LOW (verbatim fidelity).** This is the closest **Turkish PMR society**
   source retrieved and it confirms the Turkish clinical vocabulary (neoplastik, enfeksiyon, travma;
   konstitüsyonel belirtiler: ateş/iştahsızlık/kilo kaybı; istirahatte ağrı; ilerleyici nörolojik kayıp).
@@ -100,6 +106,9 @@ It assigns **no** authoritative RED/YELLOW/GREEN level and pins **no** clinical 
   > "Severe or progressive bilateral neurological deficit of the legs, such as major motor weakness with
   > knee extension, ankle eversion, or foot dorsiflexion"
   > "Laxity of the anal sphincter"
+- **Added verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same MPS URL; page dated 02/05/2018,
+  last updated 14/11/2018; first of the six bullets):**
+  > "Bilateral sciatica"
 - **Confidence: MEDIUM.** Verbatim obtained via an authoritative secondary reproduction (MPS, who
   co-developed the revision with NICE), not a direct fetch of cks.nice.org.uk. Grounds the cauda-equina
   feeding questions (Q8–Q10). Re-verify against the live CKS page before sign-off.
@@ -118,10 +127,31 @@ It assigns **no** authoritative RED/YELLOW/GREEN level and pins **no** clinical 
 - **Verbatim (Türkçe, tanımlanan patolojiler):**
   > "Neoplastik sorunlar, enfeksiyon, kauda ekina sendromu ve travma (kırık) gibi patolojileri düşündüren
   > semptomlardır."
+- **Re-retrieved verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same URL; page dated 1 Ekim
+  2023; exact case):**
+  > "Bel ağrısında kırmızı bayrak olarak adlandırılan bulgular; neoplastik sorunlar, enfeksiyon, kauda
+  > ekina sendromu ve travma (kırık) gibi patolojileri düşündüren semptomlardır."
+- **Red-flag list items (same page, 2026-10-02):** > "Travma" · "Sistemik kortikostreoid kullanımı"
+- **Risk-factor list item (same page, 2026-10-02):** > "Sistemik streoid kullanımı"
 - **Confidence: LOW.** Single Turkish-language education page. Used only to confirm the Turkish patient
   vocabulary for these red flags (eyer anestezisi, kauda ekina, idrar yapmakta zorluk, gece ağrısı). A
   versioned Türkiye Fiziksel Tıp ve Rehabilitasyon / T.C. Sağlık Bakanlığı primary document must replace
   or back it before any RED action script (§4 gap 2).
+
+### S5 — NICE NG59 spinal-decompression recommendation, as reproduced in an NHS commissioning policy **[retrieved 2026-10-02]**
+- **guideline_id (proposed):** `CMICB-CLIN088-NG59` (secondary reproduction of `NICE-NG59`; the
+  recommendation number is given as 1.3.8 by a search summary only — reconcile against the primary)
+- **Publishing body:** NHS Cheshire and Merseyside Integrated Care Board, policy CMICB_Clin088
+  "Spinal decompression for low back pain and sciatica policy (adults aged 16 years or older)"
+- **Version / date:** "Version 0.4, FINAL [May 2025]"; its reference list dates NG59 "(November 2016)"
+- **URL:** https://www.cheshireandmerseyside.nhs.uk/media/glgbhefd/pol-clin088-lumbarspinaldecompression-final-v04.pdf
+  · primary: https://www.nice.org.uk/guidance/ng59 (HTTP 403 to automated fetch)
+- **retrieved_on:** 2026-10-02
+- **Verbatim (§5.1):**
+  > "NICE NG59 states that spinal decompression surgery should be considered for people with sciatica
+  > ‘when non-surgical treatment has not improved pain or function and their radiological findings are
+  > consistent with sciatic symptoms’."
+- **Confidence: MEDIUM** (secondary reproduction of a NICE recommendation). Grounds Q15a–Q15b only.
 
 ---
 
@@ -185,7 +215,7 @@ Notes:
 
 ---
 
-## 4. Candidate B1 Turkish pre-visit questions (16)
+## 4. Candidate B1 Turkish pre-visit questions (22)
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2: one question per turn);
 empathetic; no diagnosis/treatment/prognosis language (PolicyGuard). **All marked "CANDIDATE — clinician
@@ -241,7 +271,7 @@ Q5.
 **Q7 — Fever** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("ateş, iştahsızlık, kilo kaybı
 gibi konstitüsyonel belirtilerin varlığı akla enfeksiyonları …")
 > "Son zamanlarda ateşiniz oldu mu?"
-gen: slot=ates_var_mi; type=boolean
+gen: slot=son_gunlerde_ates; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician +
 rules-engine confirmation — NOT authoritative)** per S1 constitutional-symptom / malignancy-infection
 wording.
@@ -267,10 +297,17 @@ gen: slot=kanser_ya_da_onemli_hastalik; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none (history question); prior-cancer history
 is a documented red-flag context (S1/S4), level owned by the rules engine.
 
+**Q10a — Name of that diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S4
+("Kanser öyküsü"), S2 ("Exclude specific causes of low back pain, for example, cancer, infection,
+trauma or inflammatory disease such as spondyloarthritis.")
+> "Bu tanının adını söyleyebilir misiniz?"
+gen: slot=onemli_hastalik_tanisi_adi; type=string; ask_if=kanser_ya_da_onemli_hastalik == true
+CANDIDATE — clinician to approve wording.
+
 **Q11 — Bladder/bowel control change (FEEDS cauda equina gate)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S3 (NICE CKS "Difficulty initiating micturition or impaired
 sensation of urinary flow"; "Loss of sensation of rectal fullness"), S4 ("İdrar yapmakta zorluk")
-> "Son günlerde idrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?"
+> "İdrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?"
 gen: slot=idrar_diski_kontrol_degisimi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina (base.life_threat territory, §2).**
 Candidate_flag → max `YELLOW_REVIEW`; this maps to a known neurological emergency, so the authoritative
@@ -293,11 +330,31 @@ gen: slot=bacaklarda_ilerleyen_guc_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. **Overlap: cauda equina bilateral leg deficit.** Candidate_flag
 only; **NO RED assigned.**
 
+**Q13a — Pain spreading to both legs (FEEDS cauda equina gate)** · archetype:
+`OBSERVATION.symptom_sign.v1` · source: S3 ("Bilateral sciatica")
+> "Bacak ağrınız son günlerde her iki bacağınıza birden yayıldı mı?"
+gen: slot=iki_bacaga_yayilan_agri; type=boolean
+CANDIDATE — clinician to approve wording. Ungated. Same id and wording as ortopedi_ve_travmatoloji Q12.
+**Overlap: cauda equina.** Candidate_flag only; **NO RED assigned.**
+
+**Q13b — Onset after a fall or injury** · archetype: `OBSERVATION.story.v1` · source: S4 ("travma
+(kırık)"; "Travma"), S2 ("cancer, infection, trauma")
+> "Şikâyetiniz bir düşme, darbe ya da yaralanmadan sonra mı başladı?"
+gen: slot=travma_sonrasi_basladi; type=boolean
+CANDIDATE — clinician to approve wording. Ungated. Same id and wording as cluster.surgical Q2.
+
 **Q14 — Prior diagnosis for this complaint** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 general intake
 > "Şu anki şikâyetinizle ilgili daha önce bir tanı aldınız mı?"
 gen: slot=onceki_tani; type=boolean
 CANDIDATE — clinician to approve wording. Candidate level: none (history question).
+
+**Q14a — Name of the earlier diagnosis** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2
+("Exclude specific causes of low back pain, for example, cancer, infection, trauma or inflammatory
+disease such as spondyloarthritis.")
+> "Size söylenen tanının adını söyleyebilir misiniz?"
+gen: slot=onceki_tani_adi; type=string; ask_if=onceki_tani == true
+CANDIDATE — clinician to approve wording.
 
 **Q15 — Prior treatment for this complaint** · archetype: `EVALUATION.problem_diagnosis.v1` · source:
 general intake
@@ -306,13 +363,25 @@ gen: slot=onceki_tedavi; type=boolean
 CANDIDATE — clinician to approve wording. Split from Q14 (one question per turn). Candidate level: none
 (history question).
 
+**Q15a — Pain after that treatment** · archetype: `OBSERVATION.story.v1` · source: S5 ("when
+non-surgical treatment has not improved pain or function")
+> "Bu tedaviden sonra ağrınız azaldı mı?"
+gen: slot=tedavi_sonrasi_agri_azalmasi; type=boolean; ask_if=onceki_tedavi == true
+CANDIDATE — clinician to approve wording.
+
+**Q15b — Daily activities after that treatment** · archetype: `OBSERVATION.story.v1` · source: S5
+("when non-surgical treatment has not improved pain or function")
+> "Bu tedaviden sonra günlük işlerinizi daha kolay yapabildiniz mi?"
+gen: slot=tedavi_sonrasi_islev_artisi; type=boolean; ask_if=onceki_tedavi == true
+CANDIDATE — clinician to approve wording.
+
 **Q16 — Current medications** · archetype: `ACTION.medication.v1` · source: general intake
 > "Şu anda düzenli olarak kullandığınız ilaçlar var mı?"
 gen: slot=duzenli_ilac; type=boolean
 CANDIDATE — clinician to approve wording. Clinician may add a corticosteroid / immunosuppressant follow-up
 as a sub-turn (relevant to the infection red-flag context in S1).
 
-*(16 candidate questions.)*
+*(22 candidate questions after the INT-427 wave.)*
 
 ---
 
@@ -320,7 +389,9 @@ as a sub-turn (relevant to the infection red-flag context in S1).
 
 1. **FTR Dergisi verbatim completeness** — S1's Turkish quotes were returned TRUNCATED mid-sentence by the
    scanned-PDF viewer. The full sentences, and the journal cilt/sayı/sayfa, **MUST be completed against
-   the primary FTR Dergisi PDF before the `source` block is committed.**
+   the primary FTR Dergisi PDF before the `source` block is committed.** INT-427 fix round (2026-10-02): the
+   constitutional-symptom and progressive-deficit sentences were completed in §1 S1; cilt/sayı/sayfa
+   are still missing.
 2. **Türkiye Fiziksel Tıp ve Rehabilitasyon Derneği / T.C. Sağlık Bakanlığı versioned clinical guideline**
    — a review article (S1) and an education page (S4) are the only Turkish sources retrieved; no versioned
    Türkiye-first clinical guideline for low-back-pain red flags / cauda equina was located. **NO SOURCE
@@ -373,3 +444,21 @@ as a sub-turn (relevant to the infection red-flag context in S1).
   `status: draft_needs_source` and do not compile. This proposal supplies candidate sources S1–S4 but does
   not itself commit a snapshot.
 - **HB-C1** — this pack awaits clinician (physician of record; physiatrist) sign-off; NOT served.
+
+---
+
+## 8. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q10a `onemli_hastalik_tanisi_adi` | added | `kanser_ya_da_onemli_hastalik == true` | S4, S2 |
+| Q11 `idrar_diski_kontrol_degisimi` | reworded (16 → 14 words; same text as beyin_ve_sinir_cerrahisi Q8); still ungated | — | S3, S4 |
+| Q14a `onceki_tani_adi` | added | `onceki_tani == true` | S2 |
+| Q15a `tedavi_sonrasi_agri_azalmasi` | added | `onceki_tedavi == true` | S5 |
+| Q15b `tedavi_sonrasi_islev_artisi` | added | `onceki_tedavi == true` | S5 |
+| §1 S5 | source added | — | S5 |
+| Q7 | slot `ates_var_mi` → `son_gunlerde_ates` (cluster.medical id); wording unchanged (fix round, V-FTVR-2) | — | S1 |
+| Q13a `iki_bacaga_yayilan_agri` | added (fix round, V-FTVR-1); ungated | — | S3 |
+| Q13b `travma_sonrasi_basladi` | added (fix round, V-FTVR-3); ungated | — | S4, S2 |
+| §1 S3, S4 | verbatim quotes added (fix round) | — | S3, S4 |
+| §1 S1, §5 gap 1 | two truncated quotes completed (fix round) | — | S1 |

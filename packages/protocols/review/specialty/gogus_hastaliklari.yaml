@@ -53,11 +53,27 @@ sections:
         ask_tr:
           tr: Günlerin çoğunda öksürüğünüz oluyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
+      oksuruk_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Öksürüğünüz ne zamandır sürüyor?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        ask_if: cogu_gun_oksuruk == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
       cogu_gun_balgam:
         type: boolean
         required: false
         ask_tr:
           tr: Günlerin çoğunda balgamınız oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
+      balgam_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda balgamınızın rengi, miktarı ya da koyuluğu değişti mi?
+        ask_if: cogu_gun_balgam == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
       akranlardan_cabuk_nefes_darligi:
         type: boolean
@@ -71,11 +87,32 @@ sections:
         ask_tr:
           tr: Son zamanlarda balgamınızda kan gördüğünüz ya da kan tükürdüğünüz oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
+      balgamda_kan_tekrari:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Balgamınızda ya da tükürüğünüzde birden fazla kez kan gördünüz mü?
+        ask_if: balgamda_kan == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
       hisiltili_solunum:
         type: boolean
         required: false
         ask_tr:
           tr: Nefes alıp verirken göğsünüzden hışıltı ya da hırıltı sesi geliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
+      egzersizle_artis:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Egzersiz yaptıktan sonra öksürüğünüz ya da hışıltınız artıyor mu?
+        ask_if: cogu_gun_oksuruk == true || hisiltili_solunum == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
+      mevsimsel_solunum_artisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Öksürüğünüz ya da hışıltınız belli mevsimlerde artıyor mu?
+        ask_if: cogu_gun_oksuruk == true || hisiltili_solunum == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
       gece_sabah_solunum_sikayeti:
         type: boolean
@@ -100,6 +137,15 @@ sections:
         required: false
         ask_tr:
           tr: Çalıştığınız işlerde uzun süre toz, duman ya da gaz soludunuz mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
+      is_disinda_azalma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hâlâ böyle bir işte çalışıyorsanız, şikâyetleriniz işe gitmediğiniz günlerde ya da tatilde azalıyor mu?
+        ask_if: mesleki_toz_duman_gaz == true
+        delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
       istemsiz_kilo_kaybi:
         type: boolean

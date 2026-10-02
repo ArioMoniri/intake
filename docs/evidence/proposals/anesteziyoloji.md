@@ -91,6 +91,59 @@ asserted as authoritative).
   > history of anaesthetic problems is a mandatory part of the anaesthetic history."
 - **Confidence:** MODERATE — a peer-reviewed education review, not a versioned society guideline;
   it grounds *asking the question*, not any triage threshold.
+- **Added verbatim (INT-427, retrieved_on: 2026-10-02, same URL):**
+  > "Information from patients regarding the suspected episode may be useful, including the timing
+  > of the event (during surgery, in the postoperative recovery room, in the surgical ward); the
+  > clinical features of the episode; treatment given; whether unplanned treatment in intensive care
+  > was needed; and the cause of the event provided at the time."
+  > "Details of the family member tested and a family tree will be required in order to ascertain
+  > the risk for the patient."
+
+### S4 — TARD Anestezi Uygulama Kılavuzları: Preoperatif Değerlendirme (Türkiye; primary)
+- **guideline_id (proposed):** `TARD-PREOP-2015`
+- **Publishing body:** Türk Anesteziyoloji ve Reanimasyon Derneği (TARD), Hasta Güvenliği Bilimsel
+  Komitesi
+- **Version:** "PREOPERATİF DEĞERLENDİRME (2015)" (cover) · **date:** 2015
+- **URL:** https://www.tard.org.tr/assets/kilavuz/preoperatifdegerlendirme.pdf
+- **retrieved_on:** 2026-10-02 (PDF text-extracted with `pdftotext`; page numbers are PDF page indices)
+- **Verbatim:**
+  > p. 3: "Önceki anestezi deneyimini ve tıbbi tedavilerini tartışmak"
+  > p. 8: "Öyküde, önceki anestezi tecrübeleri, zor hava yolu öyküsünün olup olmadığı sorgulanmalı."
+  > p. 8: "Zor hava yolu belirteçlerinden iki veya daha fazlası mevcutsa potansiyel zor hava yolu olarak
+  > değerlendirilmeli ve hasta bu konuda bilgilendirilmelidir."
+  > p. 9: "OSAS’sı olan hastalar potansiyel zor hava yolu açısından preop değerlendirilmelidirler ve
+  > postop ilk 12 saatte yakın solunumsal takip ile izlenmelidir, CPAP/BİBAP uygulanmalıdır."
+  > p. 18: "Daha önceki anestezi uygulamasındaki alerji öyküsü"
+- **Added verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same URL):**
+  > p. 9: "Göğüs radyografisi: rutin olarak önerilmemektedir. Sigara içimi, yakın zamanda üst solunum
+  > yolu enfeksiyonu ( ciddi semptomlu hastalarda operasyon 1 ay ertelenmeli), KOAH, kalp hastalığı
+  > olanlarda önerilir."
+  > p. 10: "Üst solunum yolu enfeksiyonu: Özellikle çocuklarda geçirilmiş veya aktif enfeksiyon varsa
+  > elektif cerrahi ertelenir."
+- **Note:** the same document is `cluster_surgical.md` SUR-S1 (retrieved 2026-09-26).
+
+### S5 — ASA 2022 Practice Guidelines for Management of the Difficult Airway
+- **guideline_id (proposed):** `ASA-DIFFICULT-AIRWAY-2022`
+- **Publishing body:** American Society of Anesthesiologists, with ESAIC and nine further societies
+  (cover list)
+- **Version:** 2022 update · **date:** online first 2021 (PDF footer "Anesthesiology 2021; XXX:00–00");
+  DOI 10.1097/ALN.0000000000004002. Print volume and pages not retrieved — confirm against primary.
+- **Citation:** Apfelbaum JL, Hagberg CA, Connis RT, et al. *2022 American Society of
+  Anesthesiologists Practice Guidelines for Management of the Difficult Airway.* Anesthesiology.
+- **URL:** https://www.shanahq.com/main/sites/default/files/shana_library/2022%20ASA%20Practice%20Guidelines%20for%20Management%20of%20the%20Difficult%20Airway.pdf
+- **retrieved_on:** 2026-10-02
+- **Verbatim (Recommendations for Follow-up Care):**
+  > "Inform the patient or a responsible person of the airway difficulty that was encountered to
+  > provide the patient (or responsible person) with a role in guiding and facilitating the delivery
+  > of future care."
+  > "Document the presence and nature of the airway difficulty in the medical record to guide and
+  > facilitate the delivery of future care."
+- **Added verbatim (INT-427 fix round, retrieved_on: 2026-10-02, same URL; Follow-up Care section):**
+  > "Follow-up care includes the topics of: (1) postextubation care (i.e., steroids, racemic
+  > epinephrine), (2) postextubation counseling (i.e., informing and advising the patient or responsible
+  > individual of the occurrence and potential complications associated with a difficult airway), (3)
+  > documentation of difficult airway and management in the medical record and to the patient, and (4)
+  > registration with a difficult airway notification service."
 
 ---
 
@@ -127,7 +180,7 @@ Notes:
 
 ---
 
-## 3. Candidate B1 Turkish pre-visit questions
+## 3. Candidate B1 Turkish pre-visit questions (17)
 
 Register: formal **`siz`** throughout; one concern per question (invariant 2: one question per
 turn); empathetic; no diagnosis/treatment/prognosis language; capture-only (a fasting *instruction*
@@ -163,6 +216,30 @@ general intake (comorbidity capture; S2 lists "current diagnoses" as history con
 gen: slot=suregelen_rahatsizlik; type=boolean
 CANDIDATE — clinician to approve wording.
 
+**Q3a — Names of the chronic conditions** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S2
+("a description of current diagnoses"), S4 (p. 3)
+> "Süregelen rahatsızlıklarınızın adlarını söyleyebilir misiniz?"
+gen: slot=suregelen_rahatsizlik_adlari; type=string; ask_if=suregelen_rahatsizlik == true
+CANDIDATE — clinician to approve wording.
+
+**Q3b — Diagnosed sleep apnoea** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S4 (p. 9,
+"OSAS’sı olan hastalar potansiyel zor hava yolu açısından preop değerlendirilmelidirler")
+> "Size uykuda nefes durması, yani uyku apnesi tanısı konuldu mu?"
+gen: slot=uyku_apnesi_tanisi; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q3c — Breathing device at night** · archetype: `OBSERVATION.story.v1` · source: S4 (p. 9,
+"CPAP/BİBAP")
+> "Uyurken nefes almanıza yardım eden bir cihaz kullanıyor musunuz?"
+gen: slot=uyku_solunum_cihazi; type=boolean; ask_if=uyku_apnesi_tanisi == true
+CANDIDATE — clinician to approve wording.
+
+**Q3d — Recent cold or febrile illness** · archetype: `OBSERVATION.story.v1` · source: S4 (p. 9,
+"yakın zamanda üst solunum yolu enfeksiyonu"; p. 10, "geçirilmiş veya aktif enfeksiyon")
+> "Son haftalarda nezle, grip ya da ateşli bir hastalık geçirdiniz mi?"
+gen: slot=yakin_solunum_yolu_enfeksiyonu; type=boolean
+CANDIDATE — clinician to approve wording.
+
 **Q4 — Drug / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` · source: S2
 (allergies documented — see S2 verbatim + paraphrase caveat)
 > "Herhangi bir ilaca ya da lateks eldivene alerjiniz var mı?"
@@ -176,10 +253,25 @@ source: S3 (previous anaesthetic experiences are part of the anaesthetic history
 gen: slot=onceki_anestezi_sorunu; type=boolean
 CANDIDATE — clinician to approve wording.
 
+**Q5a — What happened during that anaesthesia** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
+source: S3 ("Information from patients regarding the suspected episode may be useful"), S4 (p. 8,
+p. 18)
+> "Önceki anestezide yaşanan sorunu size anlatıldığı kadarıyla söyler misiniz?"
+gen: slot=onceki_anestezi_sorunu_aciklama; type=string; ask_if=onceki_anestezi_sorunu == true
+CANDIDATE — clinician to approve wording.
+
 **Q6 — Difficult-airway / intubation history** · archetype: `OBSERVATION.symptom_sign.v1` · source:
 S2 (airway is a required part of the assessment)
 > "Önceki bir ameliyatta soluk borunuza tüp yerleştirilirken zorluk yaşandığı size iletildi mi?"
 gen: slot=zor_entubasyon_oykusu; type=boolean
+CANDIDATE — clinician to approve wording.
+
+**Q6a — Written record of the airway difficulty** · archetype: `OBSERVATION.story.v1` · source: S5
+("documentation of difficult airway and management in the medical record and to the patient";
+"Inform the patient or a responsible person of the airway difficulty"), S4 (p. 8, "hasta bu konuda
+bilgilendirilmelidir")
+> "Bu zorlukla ilgili size yazılı bir belge verildi mi?"
+gen: slot=zor_entubasyon_belgesi; type=boolean; ask_if=zor_entubasyon_oykusu == true
 CANDIDATE — clinician to approve wording.
 
 **Q7 — Fasting: last solid food** · archetype: `OBSERVATION.story.v1` · source: S1 (aspiration
@@ -204,14 +296,26 @@ pending.
 (INT-041 posture)** · source: S3 ("family history of problems with anaesthesia is a mandatory part
 of the anaesthetic history")
 > "Ailenizde anestezi aldıktan sonra ciddi bir sorun yaşayan biri olduğunu biliyor musunuz?"
-gen: slot=ailede_anestezi_sorunu; type=boolean
+gen: slot=ailede_anestezi_sorunu; type=boolean; delivery=text_first
 CANDIDATE — clinician to approve wording. This is a planning fact, not acuity: no candidate_flag
 (finding 20). S3 makes asking about a family history of malignant-hyperthermia-type reactions
 mandatory; any threshold or action is the clinician's + rules engine's.
 
-*(9 candidate questions after revision. Pre-op topics covered: allergies Q4, prior anaesthesia
-problems Q5–Q6 + Q9, comorbidities Q3, fasting Q7–Q8; medications and anticoagulants are asked by the
-base layer.)*
+**Q9a — What happened to the relative** · archetype: **no archetype root — export blocked (INT-041
+posture)** · source: S3 ("Information from patients regarding the suspected episode may be useful")
+> "Ailenizdeki kişinin anesteziyle ilgili yaşadığı sorunu biliyorsanız kısaca anlatır mısınız?"
+gen: slot=ailede_anestezi_sorunu_aciklama; type=string; ask_if=ailede_anestezi_sorunu == true; delivery=text_first
+CANDIDATE — clinician to approve wording.
+
+**Q9b — Relative tested** · archetype: **no archetype root — export blocked (INT-041 posture)** ·
+source: S3 ("Details of the family member tested and a family tree will be required")
+> "Ailenizde anestezi sorunu nedeniyle özel bir test yaptıran biri oldu mu?"
+gen: slot=ailede_anestezi_testi; type=boolean; ask_if=ailede_anestezi_sorunu == true; delivery=text_first
+CANDIDATE — clinician to approve wording.
+
+*(17 candidate questions after the INT-427 wave. Pre-op topics covered: allergies Q4, prior
+anaesthesia problems Q5–Q6a + Q9–Q9b, comorbidities Q3–Q3c, recent infection Q3d, fasting Q7–Q8;
+medications and anticoagulants are asked by the base layer.)*
 
 ---
 
@@ -220,6 +324,8 @@ base layer.)*
 1. **Türkiye-first primary anaesthesia guideline** — no versioned T.C. Sağlık Bakanlığı or Turkish
    anaesthesia-society (e.g. TARD) pre-operative guideline was retrieved. **NO SOURCE FOUND
    (Türkiye-first) — clinician must supply** the correct primary source, version and date.
+   INT-427 (2026-10-02): TARD 2015 *Preoperatif Değerlendirme* retrieved as S4 (history items only;
+   no fasting value is taken from it). A current TARD edition was not found.
 2. **ASA 2017/2023 Preoperative Fasting primary verbatim** — the asahq.org PDF returned as binary
    and the *Anesthesiology* fulltext returned HTTP 402 (paywall). The intervals are grounded on
    **ESAIC 2011 (S1, verbatim)** plus a web-search summary of ASA; the **ASA primary sentence was
@@ -258,3 +364,28 @@ base layer.)*
   `status: draft_needs_source` and do not compile. This proposal supplies candidate sources S1–S3
   but does not itself commit a snapshot.
 - **HB-C1** — this pack awaits clinician sign-off; NOT served.
+
+---
+
+## 6. INT-427 dynamic wave — change log (2026-10-02)
+
+| item | change | gate | source id |
+|---|---|---|---|
+| Q3a `suregelen_rahatsizlik_adlari` | added | `suregelen_rahatsizlik == true` | S2, S4 |
+| Q3b `uyku_apnesi_tanisi` | added (ungated parent) | — | S4 |
+| Q3c `uyku_solunum_cihazi` | added | `uyku_apnesi_tanisi == true` | S4 |
+| Q5a `onceki_anestezi_sorunu_aciklama` | added | `onceki_anestezi_sorunu == true` | S3, S4 |
+| Q6a `zor_entubasyon_belgesi` | added | `zor_entubasyon_oykusu == true` | S5, S4 |
+| Q9 `ailede_anestezi_sorunu` | delivery set to `text_first` | — | S3 |
+| Q9a `ailede_anestezi_sorunu_aciklama` | added, `text_first` | `ailede_anestezi_sorunu == true` | S3 |
+| Q9b `ailede_anestezi_testi` | added, `text_first` | `ailede_anestezi_sorunu == true` | S3 |
+| §1 S3 | verbatim quotes added | — | S3 |
+| §1 S4, S5 | sources added | — | S4, S5 |
+| §4 gap 1 | updated (S4 retrieved) | — | S4 |
+| Q3a `suregelen_rahatsizlik_adlari` | reworded (fix round, V-A-1) | `suregelen_rahatsizlik == true` | S2, S4 |
+| Q3d `yakin_solunum_yolu_enfeksiyonu` | added (fix round, V-A-2) | — | S4 |
+| Q5a `onceki_anestezi_sorunu_aciklama` | reworded (fix round, V-A-1) | `onceki_anestezi_sorunu == true` | S3, S4 |
+| Q6a `zor_entubasyon_belgesi` | source quote added (fix round, V-A-3) | `zor_entubasyon_oykusu == true` | S5 |
+| Q9a `ailede_anestezi_sorunu_aciklama` | reworded (fix round, V-A-1) | `ailede_anestezi_sorunu == true` | S3 |
+| Q9b `ailede_anestezi_testi` | reworded (fix round, V-A-1) | `ailede_anestezi_sorunu == true` | S3 |
+| §1 S4, S5 | verbatim quotes added (fix round) | — | S4, S5 |

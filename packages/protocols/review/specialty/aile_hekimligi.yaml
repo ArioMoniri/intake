@@ -53,11 +53,34 @@ sections:
         ask_tr:
           tr: Son günlerde ateşiniz oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      ates_olcumu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ateşinizi termometreyle ölçtünüz mü?
+        ask_if: son_gunlerde_ates == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      ates_devam_ediyor:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ateşiniz hâlâ devam ediyor mu?
+        ask_if: son_gunlerde_ates == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
       istemsiz_kilo_kaybi:
         type: boolean
         required: false
         ask_tr:
           tr: Son aylarda, beslenmenizde bir değişiklik olmadığı hâlde, istemeden kilo verdiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      kilo_kaybi_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Kilo kaybınız ne zamandır sürüyor?
+        follow_up_tr:
+          tr: Hafta ya da ay olarak yaklaşık söyleyebilir misiniz?
+        ask_if: istemsiz_kilo_kaybi == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
       balgamda_kan:
         type: boolean
@@ -83,17 +106,39 @@ sections:
         ask_tr:
           tr: Vücudunuzda nedenini bilmediğiniz yeni bir şişlik ya da sertlik fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      sislik_yeri:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu şişliği vücudunuzun neresinde fark ettiniz?
+        ask_if: yeni_sislik_sertlik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      sislik_buyumesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Fark ettiğinizden bu yana bu şişlik büyüdü mü?
+        ask_if: yeni_sislik_sertlik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
       menopoz_sonrasi_kanama:
         type: boolean
         required: false
         ask_tr:
           tr: Adet dönemleriniz tamamen sona erdikten sonra herhangi bir kanamanız oldu mu?
+        delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
       suregelen_hastalik:
         type: boolean
         required: false
         ask_tr:
-          tr: Şeker hastalığı ya da yüksek tansiyon gibi süregelen bir hastalığınız var mı?
+          tr: Şimdiye kadar söylediklerinizin dışında süregelen bir rahatsızlığınız var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      suregelen_hastalik_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu rahatsızlığın adını söyleyebilir misiniz?
+        ask_if: suregelen_hastalik == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
 red_flags:
 - id: rf.aile_hekimligi_l0_taslak

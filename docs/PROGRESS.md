@@ -2957,3 +2957,34 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-02T23:59+03:00 · INT-427 · done (PR open, unmerged — CODEOWNER review)
+- Goal: the next wave of dynamic per-department question sets (GitHub #722), with a medical author, an independent clinical verifier and an engineer.
+- Plan:
+  - Every branch already had a review candidate, so the wave is the dynamic gap: the 8 highest-volume departments with no answer-driven gate and not in #582/#628/#642.
+  - The departments are aile_hekimligi, gogus_hastaliklari, nefroloji, hematoloji, anesteziyoloji, beyin_ve_sinir_cerrahisi, gogus_cerrahisi and fiziksel_tip_ve_rehabilitasyon.
+  - The authors revised the proposals, the blind verifiers reviewed them, the authors fixed the findings, and the engineer regenerated the candidates and rendered the packets.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_int427_dynamic_wave.py` (62).
+  - Near misses: a gated question placed before its gate is caught; `!= false`, `== 'evet'`, `subject_role` and `&&` gates are refused; a plain yes-gate is admitted.
+  - Red run: 19 of 62 failed. Green: 62 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` rc=0 (triage 100 %, mutations 18/18, voice/engine 98.68 %).
+  - `tests/protocols tests/engine`: 1289 passed. Chain validation: 100 packs, 0 findings.
+  - The compile refusal profile is unchanged.
+  - `make coverage-matrix` served stays 0/0/91/1. Candidates without an answer-driven gate went from 24 to 16, and gated questions from 134 to 180.
+- Invariants touched and still passing:
+  - 1, 7: no red-flag rule, instrument or triage source changed; red-flag ideas are proposals only.
+  - 2, 10: patient copy passes PolicyGuard, one question per turn.
+  - 13: L0 is never served.
+  - 17: the TODO form is used only inside `draft_needs_source`.
+  - 20: no accuracy claims.
+  - 22: no numerals in patient copy.
+- Decisions / ADRs / `00_STATE.md` rows: none. D3 was applied as `delivery=text_first`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner: does D3 cover göğüs hastalıkları Q10/Q10a?
+  - HB-C1: should the beyin head-injury-on-anticoagulant proposal be re-based on NICE NG232 rec 1.2.4?
+  - HB-C1: where do the red-flag proposals live (`base.life_threat` or the department stub)?
+  - The other clinician items are listed in docs/evidence/INT-427.md.
+- Next: CODEOWNER review of the PR. After #642 merges, `signoff_packet.py` regenerates the packet index.
+- LOOP_STATUS: CONTINUE
