@@ -6246,10 +6246,12 @@
   title: "The on-device MHRS SMS parser refuses an ambiguous date, as the server does"
   depends_on: [INT-122]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-400.md
   acceptance:
     - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
   tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
+  sec_row: "mobile"
 - id: INT-409
   epic: E08-mobile
   phase: P1
@@ -6369,6 +6371,41 @@
     - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
   tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
   sec_row: "cloud-clipgen"
+- id: INT-429
+  epic: E13-infra
+  phase: P0
+  title: "Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception"
+  # GitHub #727. Trivy's vulnerability DB gained four HIGH advisories after
+  # 27 Sep 2026 and the required vulnerabilities job went red on main. The
+  # node-forge row is the owner's decision of 2 Oct 2026, time-boxed to 30 days.
+  depends_on: []
+  labels: [area:ci]
+  status: done
+  evidence: docs/evidence/INT-429.md
+  acceptance:
+    - "brace-expansion and urllib3 are upgraded to their fixed versions, with lockfiles regenerated and licences verified"
+    - "node-forge gets a PURL-scoped .trivyignore.yaml row with a reachability statement and a 30-day expired_at, owner-approved in chat on 2 Oct 2026, and a test pins the statement and the expiry"
+    - "the vulnerabilities job is green on the PR"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
+- id: INT-431
+  epic: E10-connectors
+  phase: P1
+  title: "The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest"
+  # GitHub #733. Found while merging main into #481: INT-320's synthetic
+  # ticket fixture (payload {"tenant":"dev"}, signature "signature-sample")
+  # sat in the test source as a JWT-shaped literal, and the gitleaks
+  # pre-commit hook refuses any commit that stages the file. No allowlist:
+  # the root cause is the literal, so the literal goes.
+  depends_on: [INT-320]
+  labels: [area:release, risk:security]
+  status: done
+  evidence: docs/evidence/INT-431.md
+  acceptance:
+    - "the fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest; no allowlist, gitleaks:allow or .gitleaksignore entry is added"
+    - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
+  tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
+  sec_row: "connectors"
 - id: INT-428
   epic: E05-voice
   phase: P0
@@ -6395,5 +6432,5 @@
     - "admin Model lanes module: lane provider/model, identity and probes, p50/p95 latency and cost from catalogued series and owner-filled unit prices; four-eyes switch bound to a config hash with a hash-chained audit row; key entry to OpenBao only, never echoed (last four at most); one-click switch to GPU refused unless the identity is healthy; hosted fallback for synthetic only; kill switches stop hosted instantly"
     - "a swap on llm/asr needs green red-flag extraction goldens and negation-set runs for that exact model version; the model is frozen per session; the synthetic flag is immutable; synthetic or hosted runs never count as clinical evidence"
     - "tests: the routing table, mock_hosted_unrepresentable_for_phi_tenant, lane_swap_requires_green_rf_extraction_goldens, model_pin_frozen_in_session, synthetic_flag_immutable (each with a near miss), the deployment split, the key never echoed, the four-eyes switch and its audit chain, fallback, and the adapters against recorded fixtures; no live provider call"
-  tests: [tests/platform/test_model_lane_routing.py, tests/platform/test_model_lane_resolver.py, tests/platform/test_model_lane_hosted_adapter.py, tests/platform/test_model_lane_deployment.py, tests/platform/test_model_lane_shims.py, tests/admin/test_model_lanes_routes.py]
+  tests: [tests/platform/test_model_lane_routing.py, tests/platform/test_model_lane_resolver.py, tests/platform/test_model_lane_hosted_adapter.py, tests/platform/test_model_lane_deployment.py, tests/voice/test_model_lane_shims.py, tests/admin/test_model_lanes_routes.py, tests/infra/test_put_provider_key.py]
   sec_row: "llm-boundary"

@@ -10,12 +10,26 @@
  * Every field is honestly optional. A message we cannot read yields nulls,
  * and the screen falls back to the picker — an invented appointment date
  * would be a lie the whole timing model then trusts (02 §2b).
+ *
+ * INT-400: the date is read by the server's rule (`findPrintedDate`, a port
+ * of `find_printed_date`), with no order, as the server's `parse_mhrs_sms`.
+ * INT-134 read `03.09.2026` day-first, as 3 September. The server refuses it,
+ * because no committed source states the order an MHRS SMS prints. A date
+ * that reads two ways now comes back as `dateRefusal: "ambiguous"`, and the
+ * screen asks the patient for the date. It is never guessed.
  */
 import { branchById, foldTr, type Branch } from "./branches";
+import { findPrintedDate, type PrintedDateRefusal } from "./turkishDates";
 
 export interface ParsedMhrsSms {
-  /** ISO date (YYYY-MM-DD), or null when absent/impossible. */
+  /** ISO date (YYYY-MM-DD), or null when the message's date is refused. */
   dateIso: string | null;
+  /**
+   * Why `dateIso` is null, in the server's words (`VisitFieldRefusal`):
+   * `ambiguous` (reads as two days, or two dates are printed), `not_found`,
+   * or `unreadable`. Null exactly when `dateIso` is set.
+   */
+  dateRefusal: PrintedDateRefusal | null;
   /** HH:MM, or null. */
   time: string | null;
   /** The hospital name as printed, or null. */
@@ -28,6 +42,7 @@ export interface ParsedMhrsSms {
 
 const EMPTY: ParsedMhrsSms = {
   dateIso: null,
+  dateRefusal: "not_found",
   time: null,
   hospital: null,
   branchId: null,
@@ -38,25 +53,7 @@ const EMPTY: ParsedMhrsSms = {
 const UPPER_WORD = "[A-ZÇĞİIÖŞÜ]{2,}";
 const HOSPITAL = new RegExp(`((?:${UPPER_WORD}[- ]+)*HASTANES[İI])`);
 const AFTER_HOSPITAL = new RegExp(`HASTANES[İI]\\s+((?:${UPPER_WORD}[- ]+)*${UPPER_WORD})`);
-const DATE = /(\d{1,2})[./](\d{1,2})[./](\d{4})/;
 const TIME = /saat\s*(\d{1,2})[:.](\d{2})/i;
-
-function isoDate(day: string, month: string, year: string): string | null {
-  const d = Number(day);
-  const m = Number(month);
-  const y = Number(year);
-  const candidate = new Date(Date.UTC(y, m - 1, d));
-  // roundtrip: 31.02 silently rolls over to 03.03 — refuse instead
-  if (
-    candidate.getUTCFullYear() !== y ||
-    candidate.getUTCMonth() !== m - 1 ||
-    candidate.getUTCDate() !== d
-  ) {
-    return null;
-  }
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${y}-${pad(m)}-${pad(d)}`;
-}
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -100,8 +97,10 @@ export function parseMhrsSms(text: string, branches: readonly Branch[]): ParsedM
     return EMPTY;
   }
 
-  const date = DATE.exec(text);
-  const dateIso = date === null ? null : isoDate(date[1], date[2], date[3]);
+  // no order is passed: none is stated for an MHRS SMS (INT-399)
+  const date = findPrintedDate(text);
+  const dateIso = date.ok ? date.iso : null;
+  const dateRefusal = date.ok ? null : date.refusal;
 
   const time = TIME.exec(text);
   const clock = time === null ? null : `${String(Number(time[1])).padStart(2, "0")}:${time[2]}`;
@@ -115,6 +114,7 @@ export function parseMhrsSms(text: string, branches: readonly Branch[]): ParsedM
     // address the original string too — the patient sees their own spelling
     return {
       dateIso,
+      dateRefusal,
       time: clock,
       hospital,
       branchId: branchById(branches, branch.id)?.id ?? null,
@@ -127,6 +127,7 @@ export function parseMhrsSms(text: string, branches: readonly Branch[]): ParsedM
   const trailing = AFTER_HOSPITAL.exec(text);
   return {
     dateIso,
+    dateRefusal,
     time: clock,
     hospital,
     branchId: null,

@@ -1,0 +1,26 @@
+# osv-scanner configuration (INT-429). `make security` step [6/12] and the
+# vulnerabilities job read it from beside pnpm-lock.yaml and uv.lock.
+#
+# One entry, and it expires. tests/ci/test_security_gates.py pins the count at
+# 1, the id, and the expiry. When ignoreUntil passes, osv-scanner reports the
+# advisory again and the gate turns red until node-forge ships a fix or the
+# dependency is gone. Removing the entry sooner is always correct.
+
+[[IgnoredVulns]]
+id = "GHSA-86w9-cpqp-85rv"
+ignoreUntil = 2026-11-01T00:00:00Z
+reason = """\
+OWNER-APPROVED, TIME-BOXED EXCEPTION for node-forge 1.4.0 only. The owner \
+approved a narrow 30-day exception for just that package on 2 Oct 2026 \
+(owner, in chat, 2 Oct 2026: "i approve node-forge ignore"; commit authorised in chat: "commit the node-forge exception files"). This is the advisory trivy reports as \
+CVE-2026-85393 (aliases CVE-2026-33894), RSA PKCS#1 v1.5 signature forgery, \
+with no fixed release: 1.4.0 is the newest node-forge on npm. node-forge is \
+in pnpm-lock.yaml only under @expo/cli 57.0.19 and \
+@expo/code-signing-certificates 0.0.6, which are Node developer tooling. \
+@expo/cli loads it from utils/codesigning.js, which signs development \
+manifests in the `expo start` dev server and is also reached from \
+`expo logout`. It also loads it from run/ios/codeSigning/Security.js, which \
+reads keychain certificates for `expo run:ios`. Neither runs during \
+`expo export`, no app source imports node-forge, and the production iOS and \
+Android `expo export` bundles carry no node-forge code \
+(docs/evidence/INT-429.md)."""
