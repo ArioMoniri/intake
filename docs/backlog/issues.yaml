@@ -5412,7 +5412,8 @@
   title: "Motion: dialogue transients wired to the arbiter"
   depends_on: [INT-334, INT-335, INT-336]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-337.md
   acceptance:
     - "content enters with a 120 ms opacity-only fade at delay 0 and is never deferred; the patient's own typed message renders instantly; no frame shows two questions"
     - "transcript reveal and work chips are commit-window classes, deferred while listening or composing and flushed at the next window; chip selection and confirm commits add no motion"

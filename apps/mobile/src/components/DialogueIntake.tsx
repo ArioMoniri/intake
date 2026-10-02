@@ -53,6 +53,7 @@ import {
   View,
   useColorScheme,
 } from "react-native";
+import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Icon } from "@/components/Icon";
@@ -77,7 +78,10 @@ import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
+import { enteringFor } from "@/lib/motion/native/reanimated";
+import { useDialogueMotion } from "@/lib/motion/native/useDialogueMotion";
 import { orbStateFor } from "@/lib/motion/orb";
+import { WORK, dialogueScene, fadeOf, nodeKey, revealId } from "@/lib/motion/transients";
 import { useSession } from "@/lib/session";
 import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -163,6 +167,9 @@ export function DialogueIntake({
   // On-screen selection for the live confirm turn (seeded pre-selected).
   const [selected, setSelected] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
+  // INT-337: a focused composer shuts the arbiter's commit window (the
+  // patient is mid-sentence), exactly as listening does.
+  const [composerFocused, setComposerFocused] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   // INT-284: the bar reports its own height. This one stacks the section
@@ -244,6 +251,20 @@ export function DialogueIntake({
 
   const step = "step" in turn ? turn.step : -1;
   const question = step >= 0 ? questions[step] : null;
+  const model = sectionPanelModel(questions, state, account?.carriedFacts ?? []);
+  const chipsOpen = turn.phase === "confirming" && question !== null && question.kind !== "text";
+
+  // INT-337: what fades, what renders at once and what waits for the commit
+  // window is the arbiter's answer for each new element (lib/motion/
+  // transients.ts). Nothing here waits on it: it is decided in the render
+  // that shows the element.
+  const scene = dialogueScene(state, {
+    composerFocused,
+    chipsOpen,
+    strip: { filled: model.filled, total: model.total },
+  });
+  const transients = useDialogueMotion(scene, reduceMotion);
+  const motionContext = { reduce: reduceMotion };
 
   /** The confirm tap: store the answer, then let the machine skip ahead. */
   const confirmTurn = () => {
@@ -308,7 +329,6 @@ export function DialogueIntake({
     return null; // terminal callbacks route away / hand over
   }
 
-  const model = sectionPanelModel(questions, state, account?.carriedFacts ?? []);
   // INT-336: the orb's one input. This lane is the dev dialogue over HTTP:
   // it has no media transport to lose and no RED channel (the LiveKit lane
   // feeds both), so those two inputs are honestly "connected" and none.
@@ -320,7 +340,6 @@ export function DialogueIntake({
     transport: "connected",
     red: null,
   });
-  const chipsOpen = turn.phase === "confirming" && question !== null && question.kind !== "text";
   // While the agent speaks, the LAST logged agent turn is the live bubble.
   const liveAgentIndex = turn.phase === "speaking" ? state.stream.length - 1 : -1;
 
@@ -433,7 +452,7 @@ export function DialogueIntake({
     );
   };
 
-  const renderEntry = (entry: StreamEntry, index: number) => {
+  const renderEntry = (entry: StreamEntry, index: number, key: string) => {
     if (entry.kind === "agent_question" || entry.kind === "agent_confirm") {
       return renderAgentBubble(entry, index);
     }
@@ -461,8 +480,12 @@ export function DialogueIntake({
       );
     }
     // Patient turns, keyed by work id. A transcribing bubble is the
-    // in-place stand-in the ASR text will replace (never a takeover).
-    if (entry.status === "transcribing") {
+    // in-place stand-in the ASR text will replace (never a takeover). The
+    // words replace it when the arbiter applies their reveal (INT-337): at
+    // once on an agent turn, at the next window while the patient is
+    // listening or typing.
+    const reveal = revealId(key);
+    if (entry.status === "transcribing" || transients.entered[reveal] === undefined) {
       return (
         <View
           key={`w-${entry.workId}`}
@@ -486,7 +509,13 @@ export function DialogueIntake({
         accessibilityLabel={spoken(t("a11y.speaker.patient"), entry.text)}
         style={[styles.bubble, styles.patientBubble, { backgroundColor: theme.surfaceRaised }]}
       >
-        <AppText role="body">{entry.text}</AppText>
+        {/* Only the new text fades; the bubble frame stays still (C3). */}
+        <Animated.View
+          key={nodeKey(transients, reveal)}
+          entering={enteringFor(fadeOf(transients, reveal, motionContext))}
+        >
+          <AppText role="body">{entry.text}</AppText>
+        </Animated.View>
       </View>
     );
   };
@@ -538,7 +567,21 @@ export function DialogueIntake({
             </View>
           ) : null}
 
-          {state.stream.map(renderEntry)}
+          {/* History never fades in: only what arrives after the first mount
+              can enter, and only as the arbiter grants it (INT-337). */}
+          <LayoutAnimationConfig skipEntering>
+            {state.stream.map((entry, index) => {
+              const key = scene.entries[index].key;
+              return (
+                <Animated.View
+                  key={nodeKey(transients, key)}
+                  entering={enteringFor(fadeOf(transients, key, motionContext))}
+                >
+                  {renderEntry(entry, index, key)}
+                </Animated.View>
+              );
+            })}
+          </LayoutAnimationConfig>
 
           {turn.phase === "listening" ? (
             // The open-mic turn, inside the stream: pulse + tap-to-stop.
@@ -583,11 +626,16 @@ export function DialogueIntake({
             </View>
           ) : null}
 
-          {chipsOpen && question !== null ? (
+          {chipsOpen && question !== null && scene.chips !== null ? (
             // The inline confirm chips on the agent's follow-up turn: the
             // candidate arrives pre-selected; the patient adjusts, then
-            // confirms on the bar (nothing auto-commits).
-            <View style={styles.chipWrap}>
+            // confirms on the bar (nothing auto-commits). The group enters
+            // as one element; a selection changes no motion (INT-337).
+            <Animated.View
+              key={nodeKey(transients, scene.chips)}
+              entering={enteringFor(fadeOf(transients, scene.chips, motionContext))}
+              style={styles.chipWrap}
+            >
               {question.options!.map((option) => {
                 const on = selected.includes(option.id);
                 return (
@@ -623,7 +671,7 @@ export function DialogueIntake({
                   </Pressable>
                 );
               })}
-            </View>
+            </Animated.View>
           ) : null}
 
           <Pressable
@@ -651,13 +699,14 @@ export function DialogueIntake({
               <View style={styles.stripRow}>
                 <PresenceOrb
                   state={orbState}
-                  working={pendingTranscription || state.inflight.length > 0}
+                  working={transients.ring}
+                  workFades={fadeOf(transients, WORK, motionContext) !== undefined}
                   readLevel={session.readLevel}
                 />
                 <View style={styles.stripFill}>
                   <SectionStrip
-                    filled={model.filled}
-                    total={model.total}
+                    filled={transients.strip.filled}
+                    total={transients.strip.total}
                     onPress={() => setSheetOpen(true)}
                   />
                 </View>
@@ -701,6 +750,8 @@ export function DialogueIntake({
                   allowFontScaling={false}
                   value={draft}
                   onChangeText={setDraft}
+                  onFocus={() => setComposerFocused(true)}
+                  onBlur={() => setComposerFocused(false)}
                   returnKeyType="send"
                   onSubmitEditing={send}
                   style={[

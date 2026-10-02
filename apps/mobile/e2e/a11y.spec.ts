@@ -1567,6 +1567,8 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
   "src/lib/motion/native/useLevelSampler.ts":
     "the presence orb's level meter sampling interval (INT-336): it draws loudness, it limits nothing",
+  "src/lib/motion/native/useDialogueMotion.ts":
+    "the end of a ≤ 120 ms fade, reported to the motion arbiter (INT-337): it frees the animation slot, it limits nothing",
   "src/lib/records/extraction.ts":
     "the backoff between asks about a document still being read: when it stops, the reading line stays and nothing is taken",
 };

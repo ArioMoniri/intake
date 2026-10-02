@@ -856,3 +856,87 @@ describe("MOTION-7 — one presence orb carries the dialogue's state", () => {
     expect(specifiers(file(SAMPLER))).toContain("../orb");
   });
 });
+// ---------------------------------------------------------------------------
+// MOTION-8 — the dialogue's transients go through the arbiter
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-337 (docs/design/motion/motion-verification.md §4 MOTION-8). The policy
+ * is lib/motion/transients.ts and its suite; these guards hold the wiring:
+ * every entrance in the dialogue is the arbiter's fade and nothing else moves
+ * there, history does not fade in, the selection never reaches the motion
+ * layer, and the one timer that reports a fade's end lives under src/lib.
+ * Every name this block needs is declared inside it.
+ */
+
+describe("MOTION-8 — the dialogue's transients go through the arbiter", () => {
+  const DIALOGUE = "src/components/DialogueIntake.tsx";
+  const HOOK = "src/lib/motion/native/useDialogueMotion.ts";
+
+  /** The value of every `entering={…}` prop in `source`. */
+  function enterings(source: string): string[] {
+    const text = code(source);
+    return [...text.matchAll(/\bentering=\{/g)].map((m) => {
+      const from = m.index + m[0].length;
+      return text.slice(from, expressionEnd(text, from)).trim();
+    });
+  }
+
+  it("the stream skips entering on its initial mount", () => {
+    const dialogue = code(file(DIALOGUE));
+    const config =
+      /<LayoutAnimationConfig\s+skipEntering\s*>([\s\S]*?)<\/LayoutAnimationConfig>/.exec(dialogue);
+    expect(config, "LayoutAnimationConfig skipEntering in the dialogue").not.toBeNull();
+    expect(config![1]).toMatch(/\bstate\.stream\.map\(/);
+  });
+
+  it("every entrance in the dialogue is the arbiter's fade, and nothing else moves there", () => {
+    // Non-vacuity: the reader finds an entrance and its value.
+    expect(enterings("<Animated.View entering={enteringFor(fadeOf(m, id, ctx))} />")).toEqual([
+      "enteringFor(fadeOf(m, id, ctx))",
+    ]);
+    const dialogue = file(DIALOGUE);
+    const found = enterings(dialogue);
+    // The bubbles, a revealed transcript and the confirm chips.
+    expect(found.length).toBeGreaterThanOrEqual(3);
+    expect(found.filter((v) => !/^enteringFor\(\s*fadeOf\(/.test(v))).toEqual([]);
+    // The decisions come from the arbiter's reducer, fed the scene.
+    expect(code(dialogue)).toMatch(/\bconst\s+scene\s*=\s*dialogueScene\(/);
+    expect(code(dialogue)).toMatch(/\buseDialogueMotion\(\s*scene\s*,/);
+    expect(code(dialogue)).not.toMatch(
+      /\b(?:withTiming|withRepeat|withSequence|useAnimatedStyle|useSharedValue)\b|\bAnimated\s*\.\s*(?:timing|loop|sequence)\b/,
+    );
+  });
+
+  it("the selection never reaches the motion layer", () => {
+    const dialogue = code(file(DIALOGUE));
+    const call = /\bdialogueScene\(/.exec(dialogue);
+    expect(call).not.toBeNull();
+    const from = call!.index + call![0].length;
+    // The whole argument list: up to the bracket that closes the call.
+    let depth = 0;
+    let end = from;
+    for (; end < dialogue.length && depth >= 0; end += 1) {
+      if ("([{".includes(dialogue[end])) depth += 1;
+      else if (")]}".includes(dialogue[end])) depth -= 1;
+    }
+    const args = dialogue.slice(from, end);
+    expect(args).toMatch(/\bcomposerFocused\b/);
+    expect(args).not.toMatch(/\bselected\b/);
+  });
+
+  it("a fade's end is reported by a timer under src/lib, never by the animation", () => {
+    const hook = code(file(HOOK));
+    expect(hook).toMatch(/\bsetTimeout\s*\(/);
+    expect(hook).toMatch(/\breleaseDialogueMotion\(/);
+    // The delay is the fade the policy granted, never a number of its own.
+    expect(literalDurations(hook)).toEqual([]);
+    expect(hook).toMatch(/\bconst\s+fadeMs\s*=[^;]*\bfadeOf\(/);
+    expect(hook).toMatch(/\bsetTimeout\(\s*\(\)\s*=>[^;]*?,\s*fadeMs\s*,?\s*\)/);
+    // No animation calls back into JS; the dialogue owns no timer.
+    for (const name of [HOOK, DIALOGUE]) {
+      expect(code(file(name)), name).not.toMatch(/\bwithCallback\b/);
+    }
+    expect(code(file(DIALOGUE))).not.toMatch(/\bset(?:Interval|Timeout)\s*\(/);
+  });
+});

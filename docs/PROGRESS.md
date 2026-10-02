@@ -33,6 +33,32 @@
 - Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-02T12:00:00+03:00 · INT-337 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #536):
+  - *"content enters with a 120 ms opacity-only fade at delay 0 and is never deferred; the patient's own typed message renders instantly; no frame shows two questions"*
+  - *"transcript reveal and work chips are commit-window classes, deferred while listening or composing and flushed at the next window; chip selection and confirm commits add no motion"*
+- Plan:
+  - A pure scene reducer in `lib/motion/transients.ts` asks the INT-334 arbiter about every new dialogue element.
+  - `native/useDialogueMotion.ts` steps it in the render that changes the scene, and reports each fade's end with a timer.
+  - The dialogue wraps every entry in the arbiter's fade under `LayoutAnimationConfig skipEntering`.
+  - Transcripts wait for the window; the orb's ring is the dialogue's work chip.
+  - Stacked on INT-336 (#716).
+- Tests added:
+  - `transients.test.ts`: 13 MOTION-8 tests over one whole conversation, including a fake-clock test (a fade stalled 30 s defers no content and moves no turn).
+  - `motion.spec.ts`: one self-contained MOTION-8 block with 4 guards.
+  - `a11y.spec.ts`: a BK13 classification for the hook's timer.
+  - RED: the module is missing, and 5 guards fail. GREEN: the whole mobile suite, 121 files and 2457 tests.
+  - Mutants: 15 of 15 killed.
+- Result:
+  - `make check-ts` and `make check-i18n` exit 0.
+  - `tests/backlog` and `tests/smoke` pass (74).
+  - `no_placeholders` is OK after staging.
+  - `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing: 11 (shape), 9, 1 (posture), 8, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The orb's loop hold (ARB-2) is not wired; it is outside this row's acceptance and is recorded in the evidence.
+- Blocked on: nothing.
+- Next: PR `INT-337: Motion: dialogue transients wired to the arbiter` (Closes #536, Sec-Row intake-voice). It merges after #716.
+
 ### 2026-09-27T20:30:00+03:00 · INT-336 · partial — device step pending (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #535):
   - *"orb state is event-driven from orbStateFor with no clock; typed lane, RED ALERT/CALM, failed and handoff hide it; RED SILENT maps to idle; only listening is level-reactive"*

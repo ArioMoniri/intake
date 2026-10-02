@@ -63,13 +63,15 @@ function halfPeriod(kind: OrbLoopKind): number {
 interface PresenceOrbProps {
   /** From `orbStateFor`, and from nowhere else. */
   state: OrbState;
-  /** Transcription or extraction is still in flight behind the turn. */
+  /** The work indicator is shown (the arbiter's work chip, INT-337). */
   working: boolean;
+  /** The arbiter granted the work indicator its fade; otherwise it switches instantly. */
+  workFades: boolean;
   /** The recorder's metering, read by the level sampler while listening. */
   readLevel: LevelReader;
 }
 
-export function PresenceOrb({ state, working, readLevel }: PresenceOrbProps) {
+export function PresenceOrb({ state, working, workFades, readLevel }: PresenceOrbProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
   const reduce = useReducedMotion();
@@ -118,14 +120,14 @@ export function PresenceOrb({ state, working, readLevel }: PresenceOrbProps) {
   }, [state, still, core, halo, retry]);
 
   useEffect(() => {
-    const on = workRing(working, { reduce: still });
+    const on = workRing(working, { reduce: still || !workFades });
     ring.set(
       withTiming(on.opacity, {
         duration: on.durationMs,
         easing: Easing.bezier(...motion.easing.out),
       }),
     );
-  }, [working, still, ring]);
+  }, [working, workFades, still, ring]);
 
   const reactive = visual.levelReactive;
   const coreStyle = useAnimatedStyle(() => ({ opacity: core.get() }));
