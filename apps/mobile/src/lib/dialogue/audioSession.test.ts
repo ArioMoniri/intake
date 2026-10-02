@@ -87,14 +87,19 @@ describe("the session hook uses the contract (INT-440)", () => {
   });
 
   it("plays a bundled clip before it asks any lane to synthesize (INT-440 fast path)", () => {
-    const speaking = hook.slice(
-      hook.indexOf("const speaking ="),
-      hook.indexOf("// Listening driver"),
+    // The store every clip goes through — question, read-back, welcome,
+    // lead-in, acknowledgement — answers from the bundle before it synthesizes.
+    const clips = readFileSync(
+      join(fileURLToPath(new URL(".", import.meta.url)), "clips.ts"),
+      "utf8",
     );
-    const bundled = speaking.indexOf("bundledClipFor(");
-    const ensure = speaking.indexOf("store.ensure(");
+    const store = clips.slice(clips.indexOf("export function dialogueClipStore"));
+    const ensure = store.slice(store.indexOf("async ensure("));
+    const bundled = ensure.indexOf("bundledClipFor(");
+    const synthesized = ensure.indexOf("synthesized.ensure(");
     expect(bundled).toBeGreaterThan(-1);
-    expect(ensure).toBeGreaterThan(bundled);
+    expect(synthesized).toBeGreaterThan(bundled);
+    expect(hook).toContain("dialogueClipStore(");
   });
 
   it("creates every clip player with the keep-active options", () => {

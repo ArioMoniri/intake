@@ -45,6 +45,14 @@
  * unmount AND on session end. PATIENT recordings keep lib/voice.ts's
  * delete-after-upload posture (invariant 3 governs those — untouched).
  * The numeral guard sits inside the synth path (invariant 22 mirror).
+ *
+ * INT-414 speaks a question turn as its PLANNED utterances: the opening's
+ * welcome, or at most one lead-in, transition or acknowledgement, and then the
+ * question verbatim (delivery.ts, deliveryPlan.ts). Every delivery clip is a
+ * catalogue line minted from its deck key (`scriptedDeliveryTr`), never a
+ * patient's words; the cue that picks it is read from the patient's last
+ * action on this device and never awaited; and a lead-in whose clip is not
+ * made yet is dropped for that turn, so the question is never late for it.
  */
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
@@ -62,10 +70,22 @@ import type { IntakeQuestion } from "../intake/questions";
 import { clientTelemetry } from "../telemetry/expoTelemetry";
 import { discardRecording, transcribeRecording } from "../voice";
 import { createAudioModeLatch, DIALOGUE_PLAYER_OPTIONS, type AudioModeLatch } from "./audioSession";
-import { BUNDLED_CLIP_ASSETS } from "./bundledClipAssets";
-import { bundledClipFor } from "./bundledClips";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
-import type { ClipLaneRecord } from "./georgeClip";
+import { readCue, type DeliveryCue, type Utterance } from "./delivery";
+import { deliveryClipName, leadSources, settleTurnClips, shownDelivery } from "./deliveryClips";
+import type { DeliveryContext } from "./deliveryContext";
+import {
+  DELIVERY_DECK,
+  prewarmContextOf,
+  VOICE_DELIVERY_KEYS,
+  type DeliveryKey,
+} from "./deliveryDeck";
+import {
+  HESITANT_OPTION_IDS,
+  planDialogueDelivery,
+  questionDeliveryContextOf,
+} from "./deliveryPlan";
+import { scriptedDeliveryTr, type ClipLaneRecord } from "./georgeClip";
 import { nextQuestionAfter, PREWARM_CONCURRENCY, warmInOrder } from "./prewarm";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import {
@@ -74,14 +94,28 @@ import {
   shouldAttemptSpeech,
   type DialogueStreamAction,
   type DialogueStreamState,
+  type StreamEntry,
 } from "./stream";
 import { clipDeadlineMs, clipName, withDeadline, type ClipStore } from "./tts";
 import type { DialogueCandidate } from "./turn";
+
+/** The stream index of the latest `agent_question` entry, or -1. */
+function lastQuestionIndex(stream: readonly StreamEntry[]): number {
+  for (let index = stream.length - 1; index >= 0; index -= 1) {
+    if (stream[index].kind === "agent_question") {
+      return index;
+    }
+  }
+  return -1;
+}
 
 export interface DialogueSessionOptions {
   questions: readonly IntakeQuestion[];
   /** The pack label the extract daemon receives (the visit's department). */
   packName: string;
+  /** A per-visit id (never PHI) seeding the delivery variation (INT-414), so
+   * one visit always replays the same words. */
+  sessionSeed: string;
   /** Every question answered — the caller routes onward. Clips gone. */
   onDone: () => void;
   /** Hard service failure — the caller lands in the manual steps, carrying
@@ -96,14 +130,23 @@ export interface DialogueSessionOptions {
 export interface DialogueSession {
   /** Turn + pending suggestions + committed answers + the chat log. */
   state: DialogueStreamState;
+  /**
+   * INT-414: what is said around each asked question, keyed by the stream
+   * index of its `agent_question` entry. It is the plan the clips are spoken
+   * from, narrowed to what the voice actually said: a lead-in dropped for want
+   * of a clip is absent here too, and a turn whose clips are still settling
+   * shows none yet (deliveryClips.ts `shownDelivery`). The transcript and the
+   * voice therefore cannot say different things.
+   */
+  delivery: ReadonlyMap<number, readonly Utterance[]>;
   /** True only while a clip is audibly playing — the bubble says
    * "preparing" honestly until then (no duration claim, 02 §5.2). */
   playing: boolean;
-  /** The lane that synthesized the clip now playing (INT-440) — what the
-   * `__DEV__` lane banner reads. Null until a clip has played. */
+  /** The lane that synthesized the question clip now playing (INT-440) — what
+   * the `__DEV__` lane banner reads. Null until a clip has played. */
   voiceLane: ClipLaneRecord | null;
-  /** Dev measurement (INT-440): this turn's question on screen → its audio
-   * playing, in ms; null until it plays. */
+  /** Dev measurement (INT-440): this turn's question on screen → its first
+   * clip playing, in ms; null until it plays. */
   audioStartMs: number | null;
   /** Dev measurement (INT-440): the loudest metered mic level this turn, dB. */
   micPeakDb: number | null;
@@ -134,9 +177,21 @@ function toCandidates(
   return mapped;
 }
 
+/** Whether the confirmed values say "don't know / prefer not to say", or
+ * differ from what was suggested — the two confirm-time delivery cues. */
+function confirmCue(values: readonly string[], suggested: readonly string[]): DeliveryCue {
+  if (values.some((value) => HESITANT_OPTION_IDS.has(value))) {
+    return "hesitant";
+  }
+  const same =
+    values.length === suggested.length && values.every((value) => suggested.includes(value));
+  return same ? "none" : "revised";
+}
+
 export function useDialogueSession({
   questions,
   packName,
+  sessionSeed,
   onDone,
   onFailed,
   onHandoff,
@@ -157,8 +212,6 @@ export function useDialogueSession({
    * loudest metered microphone level (the app's own recorder, not a probe). */
   const [audioStartMs, setAudioStartMs] = useState<number | null>(null);
   const [micPeakDb, setMicPeakDb] = useState<number | null>(null);
-  /** INT-440: the next question's bundled clip, loaded while this one plays. */
-  const preloadRef = useRef<{ text: string; player: AudioPlayer } | null>(null);
 
   const storeRef = useRef<Promise<ClipStore> | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
@@ -170,6 +223,9 @@ export function useDialogueSession({
     audioModeRef.current ??= createAudioModeLatch((mode) => AudioModule.setAudioModeAsync(mode));
     return audioModeRef.current;
   };
+  /** INT-440: players already loaded with a clip that is about to be said —
+   * the rest of this turn's queue, and the next question's clip — by URI. */
+  const preloadedRef = useRef(new Map<string, AudioPlayer>());
   /** One controller for every background extract of the session. */
   const abortRef = useRef<AbortController | null>(null);
   const closedRef = useRef(false);
@@ -179,6 +235,52 @@ export function useDialogueSession({
   const workRef = useRef(0);
   /** The level watch armed for the clip currently playing, if any. */
   const watchRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // INT-414 — conversational delivery. The cue is what the patient's LAST
+  // action looked like (a barge-in, a "don't know", a correction, an empty
+  // turn), recorded by the handlers below from signals already on the device
+  // and never from audio (invariants 3 and 11). Each asked question takes the
+  // pending cue the first time its entry is seen and keeps it, so the plan is
+  // fixed per entry and every re-render reads the same words. `readCue` turns
+  // anything unexpected into "none" on the spot; nothing here is awaited.
+  const pendingCueRef = useRef<DeliveryCue>("none");
+  const cuesRef = useRef(new Map<number, DeliveryCue>());
+  state.stream.forEach((entry, index) => {
+    if (entry.kind === "agent_question" && !cuesRef.current.has(index)) {
+      cuesRef.current.set(
+        index,
+        readCue(() => pendingCueRef.current),
+      );
+      pendingCueRef.current = "none";
+    }
+  });
+  const delivery = planDialogueDelivery(questions, state.stream, cuesRef.current, sessionSeed);
+  const deliveryRef = useRef(delivery);
+  deliveryRef.current = delivery;
+  // What each turn's voice actually said, per delivery line, once its clips
+  // have settled (deliveryClips.ts). State, not a ref: the transcript has to
+  // re-render the moment a lead-in turns out to have been dropped.
+  const [spokenLines, setSpokenLines] = useState<ReadonlyMap<number, readonly boolean[]>>(
+    () => new Map(),
+  );
+  // The turn being spoken right now has not settled its clips yet, so the
+  // transcript claims no delivery line for it until it has.
+  const settlingIndex =
+    state.turn.phase === "speaking" &&
+    state.turn.intent === "question" &&
+    shouldAttemptSpeech({ voiceMuted: state.voiceMuted, voiceRetryIn: state.voiceRetryIn })
+      ? lastQuestionIndex(state.stream)
+      : -1;
+  const shownLines = new Map(
+    [...delivery].map(([index, utterances]) => [
+      index,
+      shownDelivery(utterances, spokenLines.get(index), index === settlingIndex),
+    ]),
+  );
+  /** Delivery clips this session already holds: name → file. A lead-in whose
+   * clip is here plays without a race; one that is not yet made is dropped
+   * for this turn rather than waited for (deliveryClips.ts). */
+  const readyLeadsRef = useRef(new Map<string, string>());
 
   const clearBargeInWatch = () => {
     if (watchRef.current !== null) {
@@ -217,45 +319,62 @@ export function useDialogueSession({
     return storeRef.current;
   };
 
-  /** Releases the preloaded player, if any. */
-  const dropPreload = () => {
-    const preloaded = preloadRef.current;
-    preloadRef.current = null;
-    if (preloaded !== null) {
-      try {
-        preloaded.player.remove();
-      } catch {
-        // already released
+  /** A player for `uri`: the one preloaded for it, else a fresh one. Every
+   * dialogue player keeps the audio session active (INT-440). */
+  const playerFor = (uri: string): AudioPlayer => {
+    const preloaded = preloadedRef.current.get(uri);
+    if (preloaded !== undefined) {
+      preloadedRef.current.delete(uri);
+      return preloaded;
+    }
+    return createAudioPlayer({ uri }, DIALOGUE_PLAYER_OPTIONS);
+  };
+
+  /** Load `uris` into paused players now, releasing any other preloaded one,
+   * so each starts on `play()` with no load in between (INT-440). */
+  const preload = (uris: readonly string[]) => {
+    const keep = new Set(uris);
+    for (const [uri, player] of preloadedRef.current) {
+      if (!keep.has(uri)) {
+        preloadedRef.current.delete(uri);
+        try {
+          player.remove();
+        } catch {
+          // already released
+        }
+      }
+    }
+    for (const uri of uris) {
+      if (!preloadedRef.current.has(uri)) {
+        preloadedRef.current.set(uri, createAudioPlayer({ uri }, DIALOGUE_PLAYER_OPTIONS));
       }
     }
   };
 
-  /** The player preloaded for exactly this line, handed over once. */
-  const takePreloaded = (text: string): AudioPlayer | null => {
-    const preloaded = preloadRef.current;
-    if (preloaded === null || preloaded.text !== text) {
-      return null;
-    }
-    preloadRef.current = null;
-    return preloaded.player;
-  };
-
   /**
-   * Load the likely next question's bundled clip into a paused player while
-   * this one plays (INT-440), so its turn starts on `play()` with no load in
-   * between. Only bundled clips: a live clip is still being warmed by the
-   * pre-warm, and a guess that misses only costs the load it would have saved.
+   * Load the likely next question's clip while this turn plays (INT-440), next
+   * to the clips still queued in this turn (`pending`, read when the clip is
+   * ready). A guess, never a decision: gates may skip that question, and a
+   * missed guess only costs the load it would have saved.
    */
-  const preloadNextQuestion = (step: number) => {
+  const preloadNextQuestion = async (
+    store: ClipStore,
+    step: number,
+    pending: readonly string[],
+  ) => {
     const next = nextQuestionAfter(questions, step, stateRef.current.asked);
-    const text = next === null ? null : questionSpeechTr(next);
-    if (text !== null && preloadRef.current?.text === text) {
+    if (next === null) {
       return;
     }
-    dropPreload();
-    const asset = text === null ? null : bundledClipFor(text, "routine", BUNDLED_CLIP_ASSETS);
-    if (text !== null && asset !== null) {
-      preloadRef.current = { text, player: createAudioPlayer(asset, DIALOGUE_PLAYER_OPTIONS) };
+    try {
+      const name = clipName("question", next.id);
+      const nextContext = questionDeliveryContextOf(next);
+      const uri = await store.ensure(name, questionSpeechTr(next), nextContext);
+      if (!closedRef.current) {
+        preload([...pending, uri]);
+      }
+    } catch {
+      // the next turn ensures its own clip and reports a failure honestly there
     }
   };
 
@@ -351,47 +470,111 @@ export function useDialogueSession({
     }
   };
 
+  /** The planned utterances of the latest ask of `questionId`, and the stream
+   * index they belong to (INT-414). */
+  const plannedTurn = (
+    questionId: string,
+  ): { readonly index: number; readonly utterances: readonly Utterance[] } => {
+    const stream = stateRef.current.stream;
+    for (let index = stream.length - 1; index >= 0; index -= 1) {
+      const entry = stream[index];
+      if (entry.kind === "agent_question" && entry.questionId === questionId) {
+        return { index, utterances: deliveryRef.current.get(index) ?? [] };
+      }
+    }
+    return { index: -1, utterances: [] };
+  };
+
+  /** Make one delivery line's clip, in the context it will be said in
+   * (INT-415). The text is minted from its deck key and nothing else, so no
+   * patient word can reach a synthesizer this way. */
+  const ensureLead = (
+    store: ClipStore,
+    key: DeliveryKey,
+    context: DeliveryContext,
+  ): Promise<string> => {
+    const name = deliveryClipName(key, context);
+    return store.ensure(name, scriptedDeliveryTr(key), context).then((uri) => {
+      readyLeadsRef.current.set(name, uri);
+      return uri;
+    });
+  };
+
+  /** A turn's lead-in clips, one per delivery line: the file when this session
+   * holds it, else the making of it (which `settleTurnClips` never lets hold
+   * the question). The one-to-one order is what `turnClips.spoken` is read
+   * against. */
+  const leadClipsFor = (
+    store: ClipStore,
+    turnPlan: readonly Utterance[],
+  ): (string | Promise<string>)[] =>
+    leadSources(turnPlan, readyLeadsRef.current, (key, context) => ensureLead(store, key, context));
+
   // Pre-warm the session's scripted clips at mount, FIRST QUESTION FIRST
   // (INT-239): the opening turn is the one the patient waits on, so its
-  // clip is the first one ensured — the speaking driver then hits a warm
-  // cache and "soru hazırlanıyor" stays the exception. Every question is
-  // warmed, gated or not: a gate can open mid-conversation and a cold clip
-  // there is the same stall. INT-440: in question order with at most
-  // PREWARM_CONCURRENCY in flight, rather than every clip at once — a burst
-  // overran the George budget and the vendor's concurrency, and the overflow
-  // was asked in the self-hosted voice (prewarm.ts).
+  // clip is ensured on its own before the rest go out in parallel — the
+  // speaking driver then hits a warm cache and "soru hazırlanıyor" stays
+  // the exception. Every question is warmed, gated or not: a gate can open
+  // mid-conversation and a cold clip there is the same stall.
   // Failures stay silent here — the speaking driver re-ensures per turn and
   // surfaces a real store failure honestly there.
+  //
+  // INT-414 adds the delivery lines on the same terms: the opening's welcome
+  // with the first question, and the rest of the spoken deck only after every
+  // question, so a lead-in never competes with a question for the lane and is
+  // already made when a later turn picks it.
   useEffect(() => {
     let stale = false;
     (async () => {
-      const jobs = (store: ClipStore, question: IntakeQuestion): (() => Promise<unknown>)[] => {
-        const lines: [string, string][] = [
-          [clipName("question", question.id), questionSpeechTr(question)],
+      const warm = (store: ClipStore, question: IntakeQuestion): (() => Promise<unknown>)[] => {
+        // A question's context follows from its declarations alone, so it is
+        // the same here as on its turn and the warm clip is the one used.
+        const context = questionDeliveryContextOf(question);
+        const clips = [
+          () =>
+            store.ensure(clipName("question", question.id), questionSpeechTr(question), context),
         ];
         if (question.kind === "text") {
           // The generic confirm line is scripted too — free text never
           // names a clip and patient words are never synthesized.
-          lines.push([clipName("confirm", question.id), confirmSpeechTr(question, [])]);
-        }
-        // INT-440: a bundled line needs no synthesis at all.
-        return lines
-          .filter(([, text]) => bundledClipFor(text, "routine", BUNDLED_CLIP_ASSETS) === null)
-          .map(
-            ([name, text]) =>
-              () =>
-                store.ensure(name, text),
+          clips.push(() =>
+            store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, []), context),
           );
+        }
+        return clips;
       };
       try {
         const store = await clipStore();
+        if (stale || questions.length === 0) {
+          return;
+        }
+        const opening = leadClipsFor(store, deliveryRef.current.get(0) ?? []);
+        await Promise.allSettled([...opening, ...warm(store, questions[0]).map((job) => job())]);
         if (stale) {
           return;
         }
+        // INT-440: in question order with at most PREWARM_CONCURRENCY in
+        // flight, rather than every clip at once — a burst overran the George
+        // budget and the vendor's concurrency, and the overflow was asked in
+        // the self-hosted voice (prewarm.ts). A bundled clip resolves at once.
         await warmInOrder(
-          questions.flatMap((question) => jobs(store, question)),
+          questions.slice(1).flatMap((q) => warm(store, q)),
           PREWARM_CONCURRENCY,
           (job) => job(),
+          () => stale,
+        );
+        if (stale) {
+          return;
+        }
+        // The other welcome variants are never said again in this visit.
+        const openingOnly = new Set<string>([
+          ...DELIVERY_DECK.welcome,
+          ...DELIVERY_DECK.orientVoice,
+        ]);
+        await warmInOrder(
+          VOICE_DELIVERY_KEYS.filter((key) => !openingOnly.has(key)),
+          PREWARM_CONCURRENCY,
+          (key) => ensureLead(store, key, prewarmContextOf(key)),
           () => stale,
         );
       } catch {
@@ -434,7 +617,7 @@ export function useDialogueSession({
     const question = questions[speaking.step];
     let stale = false;
     // INT-440: the question is on screen from this render; the dev banner
-    // reports how long until its audio is actually playing.
+    // reports how long until the turn's first clip is actually playing.
     const turnStartedAt = Date.now();
     setAudioStartMs(null);
     (async () => {
@@ -451,14 +634,7 @@ export function useDialogueSession({
       if (stale) {
         return;
       }
-      const speech =
-        speaking.intent === "question"
-          ? questionSpeechTr(question)
-          : confirmSpeechTr(question, speaking.candidate.values);
-      // INT-440 fast path: a line rendered offline in George's voice plays
-      // from the bundle — no lane, no synthesis, so no mute applies to it.
-      const bundled = bundledClipFor(speech, "routine", BUNDLED_CLIP_ASSETS);
-      if (bundled === null && !shouldAttemptSpeech({ voiceMuted, voiceRetryIn })) {
+      if (!shouldAttemptSpeech({ voiceMuted, voiceRetryIn })) {
         // Silent, and a cooldown is still owed: do not spend an admission on
         // this turn to rediscover it. The question text is on screen; move
         // the turn on, one turn closer to the next attempt.
@@ -473,21 +649,49 @@ export function useDialogueSession({
         return;
       }
       try {
+        const speech =
+          speaking.intent === "question"
+            ? questionSpeechTr(question)
+            : confirmSpeechTr(question, speaking.candidate.values);
         const name =
           speaking.intent === "question"
             ? clipName("question", question.id)
             : question.kind === "text"
               ? clipName("confirm", question.id) // generic clip — free text never names a file
               : clipName("confirm", question.id, speaking.candidate.values);
+        // INT-414: a question turn is said as its planned utterances — the
+        // lead-in or acknowledgement first, the question verbatim last. A
+        // confirm turn is a read-back and carries none.
+        const planned =
+          speaking.intent === "question"
+            ? plannedTurn(question.id)
+            : { index: -1, utterances: [] as readonly Utterance[] };
+        const turnPlan = planned.utterances;
+        // INT-415: the question (and its read-back) is spoken in the
+        // question's own context — the same one the pre-warm made it in.
+        const questionContext = questionDeliveryContextOf(question);
         // INT-261: the ladder may take as long as it likes; the patient may
-        // not be made to wait more than this clip's own worth of work.
-        const source =
-          bundled ??
-          ({
-            uri: await withDeadline(store.ensure(name, speech), clipDeadlineMs(speech)),
-          } as const);
+        // not be made to wait more than this clip's own worth of work. A
+        // lead-in whose clip is not made yet is dropped for this turn rather
+        // than waited for (deliveryClips.ts) — only the opening waits for its
+        // own welcome, which IS that turn's content.
+        const turnClips = await settleTurnClips(
+          withDeadline(store.ensure(name, speech, questionContext), clipDeadlineMs(speech)),
+          leadClipsFor(store, turnPlan),
+          {
+            awaitLeads: turnPlan.some((utterance) => utterance.deliveryContext === "welcome"),
+            deadlineMs: clipDeadlineMs(speech),
+          },
+        );
+        const queue = [...turnClips.leads, turnClips.question];
         if (stale) {
           return;
+        }
+        // The transcript shows what is about to be said and nothing else: a
+        // lead-in dropped above is dropped from the screen too.
+        if (planned.index >= 0) {
+          const said = turnClips.spoken;
+          setSpokenLines((before) => new Map(before).set(planned.index, said));
         }
         // `allowsRecording: true` while the agent speaks (INT-291) — the
         // `.playAndRecord` category on the loudspeaker, applied once per
@@ -496,33 +700,45 @@ export function useDialogueSession({
         if (stale) {
           return;
         }
-        stopPlayback();
-        // INT-440: the session stays active between clips — no deactivate /
-        // re-activate toggle under the open microphone on every turn — and a
-        // player already loaded for this line while the last one played is
-        // used as is.
-        const player = takePreloaded(speech) ?? createAudioPlayer(source, DIALOGUE_PLAYER_OPTIONS);
-        playerRef.current = player;
-        if (bundled !== null) {
-          setVoiceLane({ lane: "elevenlabs_bundled" });
-          clientTelemetry().noteTtsLane({ lane: "elevenlabs_bundled" });
-        } else {
-          setVoiceLane(laneByTextRef.current.get(speech) ?? null);
-        }
+        // INT-440: every clip of the turn is loaded before the first one
+        // plays, so a lead-in hands over to the question with no load in
+        // between — and the session stays active between them.
+        preload(queue);
+        setVoiceLane(laneByTextRef.current.get(speech) ?? null);
         let audible = false;
-        player.addListener("playbackStatusUpdate", (status) => {
-          if (!audible && status.playing && !stale) {
-            audible = true;
-            setAudioStartMs(Date.now() - turnStartedAt);
+        // One player at a time, always cleared before the next clip, so the
+        // utterances of a turn play strictly in order and never overlap. A
+        // barge-in clears `playerRef`, which is what stops the chain: the
+        // finished clip's listener no longer owns the player and plays nothing.
+        const playNext = () => {
+          const uri = queue.shift();
+          if (uri === undefined) {
+            return;
           }
-          if (status.didJustFinish && !stale && playerRef.current === player) {
-            stopPlayback();
-            dispatch({ type: "speech_done" });
-          }
-        });
-        player.play();
+          const last = queue.length === 0;
+          stopPlayback();
+          const player = playerFor(uri);
+          playerRef.current = player;
+          player.addListener("playbackStatusUpdate", (status) => {
+            if (!audible && status.playing && !stale) {
+              audible = true;
+              setAudioStartMs(Date.now() - turnStartedAt);
+            }
+            if (status.didJustFinish && !stale && playerRef.current === player) {
+              if (last) {
+                stopPlayback();
+                dispatch({ type: "speech_done" });
+              } else {
+                playNext();
+              }
+            }
+          });
+          player.play();
+        };
+        playNext();
         setPlaying(true);
-        preloadNextQuestion(speaking.step);
+        // While this turn plays, load the likely next question's clip too.
+        void preloadNextQuestion(store, speaking.step, queue);
         await armBargeInWatch(() => stale);
       } catch {
         // Audio output only — the conversation is unaffected and goes on.
@@ -629,11 +845,12 @@ export function useDialogueSession({
     return () => {
       clearBargeInWatch();
       stopPlayback();
-      dropPreload();
       abortRef.current?.abort();
       if (!closedRef.current && stateRef.current.turn.phase === "listening") {
         void stopAndDiscardRecording();
       }
+      closedRef.current = true; // no preload may land after this (INT-440)
+      preload([]);
       void clearDialogueClips();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
@@ -698,6 +915,11 @@ export function useDialogueSession({
       return;
     }
     const workId = (workRef.current += 1);
+    if (uri === null) {
+      // INT-414: a turn that carried no words — the next question goes
+      // gently. Set BEFORE the dispatch, which is what asks that question.
+      pendingCueRef.current = "long_silence";
+    }
     dispatch({ type: "utterance", workId }); // the next question speaks NOW
     if (uri === null) {
       // Nothing was captured — the bubble goes; the question falls to the
@@ -750,7 +972,22 @@ export function useDialogueSession({
   const bargeIn = () => {
     clearBargeInWatch();
     stopPlayback(); // synchronous — playback halts before anything else runs
+    // INT-414: they cut in, so the next question comes with less, not more.
+    pendingCueRef.current = "barge_in";
     dispatch({ type: "barge_in" });
+  };
+
+  /** The confirm tap. Its values say whether the patient did not know, or
+   * corrected the suggestion — each answered by the next question's line. */
+  const confirm = (values: string[]) => {
+    const turn = stateRef.current.turn;
+    if (turn.phase === "confirming") {
+      const cue = confirmCue(values, turn.candidate.values);
+      if (cue !== "none") {
+        pendingCueRef.current = cue;
+      }
+    }
+    dispatch({ type: "confirm", values });
   };
 
   const leave = async () => {
@@ -766,6 +1003,7 @@ export function useDialogueSession({
 
   return {
     state,
+    delivery: shownLines,
     playing,
     voiceLane,
     audioStartMs,
@@ -774,8 +1012,11 @@ export function useDialogueSession({
     finishListening,
     sendTyped,
     leave,
-    confirm: (values) => dispatch({ type: "confirm", values }),
+    confirm,
     confirmPending: (questionId) => dispatch({ type: "confirm_pending", questionId }),
-    speakCorrection: () => dispatch({ type: "speak" }),
+    speakCorrection: () => {
+      pendingCueRef.current = "revised"; // they are correcting what we suggested
+      dispatch({ type: "speak" });
+    },
   };
 }

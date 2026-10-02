@@ -1,15 +1,31 @@
 [
   {
-    "context": "routine",
-    "text_tr": "Ailenizde bilinen bir hastalık var mı? Kendi sözlerinizle anlatabilirsiniz."
+    "context": "acknowledgement",
+    "text_tr": "Anlıyorum, devam edelim."
   },
   {
-    "context": "routine",
-    "text_tr": "Ailenizde kimlerde var? Kendi sözlerinizle anlatabilirsiniz."
+    "context": "acknowledgement",
+    "text_tr": "Düzeltmeniz için teşekkürler."
   },
   {
-    "context": "routine",
-    "text_tr": "Ailenizdeki hastalığın adını yazabilir misiniz?"
+    "context": "acknowledgement",
+    "text_tr": "Düzelttiğinizi not aldım."
+  },
+  {
+    "context": "acknowledgement",
+    "text_tr": "Not aldım, teşekkürler."
+  },
+  {
+    "context": "acknowledgement",
+    "text_tr": "Peki, bu şekilde not aldım."
+  },
+  {
+    "context": "acknowledgement",
+    "text_tr": "Teşekkür ederim."
+  },
+  {
+    "context": "acknowledgement",
+    "text_tr": "Teşekkürler."
   },
   {
     "context": "routine",
@@ -29,10 +45,6 @@
   },
   {
     "context": "routine",
-    "text_tr": "Annenizde bunlardan hangileri var?"
-  },
-  {
-    "context": "routine",
     "text_tr": "Ağrı ya da baskı hissi başka bir yere yayılıyor mu? Kendi sözlerinizle anlatabilirsiniz."
   },
   {
@@ -41,11 +53,15 @@
   },
   {
     "context": "routine",
-    "text_tr": "Ağrınızı nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Ağrınızla ilgili birkaç ayrıntı soralım."
   },
   {
     "context": "routine",
-    "text_tr": "Babanızda bunlardan hangileri var?"
+    "text_tr": "Ağrınızı biraz daha iyi anlamak istiyorum."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Ağrınızı nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz."
   },
   {
     "context": "routine",
@@ -54,6 +70,14 @@
   {
     "context": "routine",
     "text_tr": "Bilinen bir ilaç ya da madde alerjiniz var mı? Kendi sözlerinizle anlatabilirsiniz."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Bir de şunu öğrenmek istiyorum."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Bitirmeden önce şunu da soralım."
   },
   {
     "context": "routine",
@@ -93,6 +117,10 @@
   },
   {
     "context": "routine",
+    "text_tr": "Devam edelim."
+  },
+  {
+    "context": "routine",
     "text_tr": "Doktorunuzun size söylediği bir hastalık var mı? Kendi sözlerinizle anlatabilirsiniz."
   },
   {
@@ -109,10 +137,6 @@
   },
   {
     "context": "routine",
-    "text_tr": "Erkek kardeşinizde bunlardan hangileri var?"
-  },
-  {
-    "context": "routine",
     "text_tr": "Hangi ameliyatı olduğunuzu yazabilir misiniz?"
   },
   {
@@ -121,11 +145,15 @@
   },
   {
     "context": "routine",
-    "text_tr": "Kan grubunuz nedir? Kendi sözlerinizle anlatabilirsiniz."
+    "text_tr": "Kaldığımız yerden devam edelim."
   },
   {
     "context": "routine",
-    "text_tr": "Kız kardeşinizde bunlardan hangileri var?"
+    "text_tr": "Kaldığımız yerden sürdürelim."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Kan grubunuz nedir? Kendi sözlerinizle anlatabilirsiniz."
   },
   {
     "context": "routine",
@@ -185,10 +213,6 @@
   },
   {
     "context": "routine",
-    "text_tr": "Sizi şöyle anladık: Anne. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
-  },
-  {
-    "context": "routine",
     "text_tr": "Sizi şöyle anladık: Ara sıra içiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
   },
   {
@@ -238,10 +262,6 @@
   {
     "context": "routine",
     "text_tr": "Sizi şöyle anladık: B Rh pozitif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
-  },
-  {
-    "context": "routine",
-    "text_tr": "Sizi şöyle anladık: Baba. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
   },
   {
     "context": "routine",
@@ -325,10 +345,6 @@
   },
   {
     "context": "routine",
-    "text_tr": "Sizi şöyle anladık: Büyükanne ya da büyükbaba. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
-  },
-  {
-    "context": "routine",
     "text_tr": "Sizi şöyle anladık: Daha önce. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
   },
   {
@@ -350,10 +366,6 @@
   {
     "context": "routine",
     "text_tr": "Sizi şöyle anladık: Emin değilim. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
-  },
-  {
-    "context": "routine",
-    "text_tr": "Sizi şöyle anladık: Erkek kardeş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
   },
   {
     "context": "routine",
@@ -434,10 +446,6 @@
   {
     "context": "routine",
     "text_tr": "Sizi şöyle anladık: Künt, belli belirsiz. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
-  },
-  {
-    "context": "routine",
-    "text_tr": "Sizi şöyle anladık: Kız kardeş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
   },
   {
     "context": "routine",
@@ -573,10 +581,6 @@
   },
   {
     "context": "routine",
-    "text_tr": "Sizi şöyle anladık: Çocuk. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
-  },
-  {
-    "context": "routine",
     "text_tr": "Sizi şöyle anladık: Çınlama. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
   },
   {
@@ -625,11 +629,43 @@
   },
   {
     "context": "routine",
+    "text_tr": "Sona yaklaştık."
+  },
+  {
+    "context": "routine",
     "text_tr": "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın."
   },
   {
     "context": "routine",
+    "text_tr": "Söylediğinizi tam anlayamadım. Aynı soruyu bir kez daha soralım."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Sırada alerjilerle ilgili sorular var."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Sırada günlük yaşamınızla ilgili sorular var."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Sırada ilaçlarla ilgili sorular var."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Sırada sağlık geçmişinizle ilgili sorular var."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Sıradaki soruya geçelim."
+  },
+  {
+    "context": "routine",
     "text_tr": "Uzanınca rahatlamak için ne yapıyorsunuz? Kendi sözlerinizle anlatabilirsiniz."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Yanıtınızı tam anlayamadım. Soruyu bir kez daha soralım."
   },
   {
     "context": "routine",
@@ -649,11 +685,15 @@
   },
   {
     "context": "routine",
-    "text_tr": "İlacın adını kendi sözlerinizle yazabilir misiniz?"
+    "text_tr": "Önceki soruya sonra ekrandan dönebilirsiniz."
   },
   {
     "context": "routine",
-    "text_tr": "İlaç dışında herhangi bir madde kullanıyor musunuz? Seçenekler: Hayır, Evet veya Belirtmek istemiyorum."
+    "text_tr": "Önceki soruyu daha sonra ekranda yanıtlayabilirsiniz."
+  },
+  {
+    "context": "routine",
+    "text_tr": "İlacın adını kendi sözlerinizle yazabilir misiniz?"
   },
   {
     "context": "routine",
@@ -673,6 +713,194 @@
   },
   {
     "context": "routine",
+    "text_tr": "Şimdi alerjilerle ilgili sorulara geçelim."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Şimdi günlük yaşamınızla ilgili sorulara geçelim."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Şimdi ilaçlarla ilgili sorulara geçelim."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Şimdi sağlık geçmişinizle ilgili sorulara geçelim."
+  },
+  {
+    "context": "routine",
+    "text_tr": "Şimdi şunu soralım."
+  },
+  {
+    "context": "routine",
     "text_tr": "Şu anda ağrınız var mı? Kendi sözlerinizle anlatabilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Ailenizde bilinen bir hastalık var mı? Kendi sözlerinizle anlatabilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Ailenizde kimlerde var? Kendi sözlerinizle anlatabilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Ailenizdeki hastalığın adını yazabilir misiniz?"
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Annenizde bunlardan hangileri var?"
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Babanızda bunlardan hangileri var?"
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Erkek kardeşinizde bunlardan hangileri var?"
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Kız kardeşinizde bunlardan hangileri var?"
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Nasıl rahat ediyorsanız öyle yanıtlayabilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Anne. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Baba. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Belirtmek istemiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Bilmiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Büyükanne ya da büyükbaba. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Diğer. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Emin değilim. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Erkek kardeş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Evet. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Hayır. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Kalp-damar hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Kan hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Kanser. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Kız kardeş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Yüksek tansiyon. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Çocuk. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sizi şöyle anladık: Şeker hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Söylediğinizi tam anlayamadım. Aynı soruyu bir kez daha soralım."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sıradaki konu biraz daha özel. Acele etmeden yanıtlayabilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Sıradaki sorular ailenizin sağlık geçmişiyle ilgili."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Yanıtınızı tam anlayamadım. Soruyu bir kez daha soralım."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Yavaş yavaş devam edelim."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Önceki soruya sonra ekrandan dönebilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Önceki soruyu daha sonra ekranda yanıtlayabilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "İlaç dışında herhangi bir madde kullanıyor musunuz? Seçenekler: Hayır, Evet veya Belirtmek istemiyorum."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Şimdi ailenizin sağlık geçmişine geçelim. Acele etmeden yanıtlayabilirsiniz."
+  },
+  {
+    "context": "sensitive",
+    "text_tr": "Şimdi biraz daha kişisel bir konuya geçelim."
+  },
+  {
+    "context": "welcome",
+    "text_tr": "Ben konuşurken araya girebilirsiniz. Sorular ekranda yazılı olarak da durur."
+  },
+  {
+    "context": "welcome",
+    "text_tr": "Hoş geldiniz. Muayenenizden önce size bazı sorular soracağım."
+  },
+  {
+    "context": "welcome",
+    "text_tr": "Hoş geldiniz. Muayenenize hazırlık için size bazı sorular sormak istiyorum."
+  },
+  {
+    "context": "welcome",
+    "text_tr": "Merhaba, hoş geldiniz. Muayeneden önce birlikte bazı sorular üzerinden geçelim."
+  },
+  {
+    "context": "welcome",
+    "text_tr": "Soruları ekranda da görebilirsiniz. Dilerseniz yazarak da yanıt verebilirsiniz."
   }
 ]

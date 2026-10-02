@@ -17,11 +17,14 @@
  * session end: no session leaves audio behind, of either kind.
  */
 import * as FileSystem from "expo-file-system/legacy";
+import { Image } from "react-native";
 
 import { AuthApiError, authedFetch } from "../auth/api";
 import { getAccessToken, getRefreshToken } from "../auth/tokens";
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
-import type { DeliveryContext } from "./deliveryContext";
+import { BUNDLED_CLIP_ASSETS } from "./bundledClipAssets";
+import { bundledClipFor } from "./bundledClips";
+import { DEFAULT_DELIVERY_CONTEXT, type DeliveryContext } from "./deliveryContext";
 import {
   fetchGeorgeClipVia,
   georgePreferringSynth,
@@ -31,8 +34,27 @@ import {
   type GeorgeTransport,
   type ScriptedTr,
 } from "./georgeClip";
-import { createClipStore, synthesizeClipWith, type ClipFs, type ClipStore } from "./tts";
+import {
+  assertSpeakableTr,
+  createClipStore,
+  synthesizeClipWith,
+  type ClipFs,
+  type ClipStore,
+} from "./tts";
 import { createTtsLaneSelector, synthesizeWithFallback, type TtsLaneSelector } from "./ttsLane";
+
+/**
+ * The playable URI of a bundled clip (INT-440). React Native's asset registry
+ * resolves any bundled asset, not only images: the Metro dev server's URL in a
+ * dev build, the file inside the app in a release one.
+ */
+function bundledClipUri(asset: number): string {
+  const resolved = Image.resolveAssetSource(asset) as { uri?: string } | null;
+  if (resolved?.uri === undefined || resolved.uri === "") {
+    throw new Error("bundled_clip_unresolved");
+  }
+  return resolved.uri;
+}
 
 /**
  * The George request's transport: the DPoP-bound `authedFetch` the records and
@@ -142,7 +164,12 @@ export function dialogueClipStore(
   // point where that architectural fact is asserted as a ScriptedTr — every
   // OTHER path to the George vendor requires a ScriptedTr minted from an
   // IntakeQuestion (georgeClip.ts), so patient words cannot reach the vendor.
-  return createClipStore(dialogueClipDir(), expoClipFs, (text) => {
+  //
+  // INT-414: the store also hands on each clip's delivery context, which
+  // `prefer` forwards to George (INT-415) and the self-hosted lane ignores.
+  // Delivery lines reach the store the same way questions do: minted from a
+  // deck key (`scriptedDeliveryTr`), never from anything the patient said.
+  const synthesized = createClipStore(dialogueClipDir(), expoClipFs, (text, context) => {
     // INT-440: one utterance per clip on the self-hosted lane (INT-249 picks
     // where it lands), and every clip reports the lane — and tier — that spoke.
     const tiers: string[] = [];
@@ -159,8 +186,22 @@ export function dialogueClipStore(
     const prefer = georgePreferringSynth(george, selfHosted, (outcome) => {
       onClipLane?.(text, outcome.lane === "self_hosted" ? { ...outcome, tiers } : outcome);
     });
-    return prefer(text as ScriptedTr);
+    return prefer(text as ScriptedTr, context);
   });
+  return {
+    // INT-440 fast path: a line rendered offline in George's voice for this
+    // context is played from the app bundle — no lane, no synthesis, no file.
+    async ensure(name, text, context = DEFAULT_DELIVERY_CONTEXT) {
+      const bundled = bundledClipFor(text, context, BUNDLED_CLIP_ASSETS);
+      if (bundled !== null) {
+        assertSpeakableTr(text); // the same guard every other clip passes
+        onClipLane?.(text, { lane: "elevenlabs_bundled" });
+        return bundledClipUri(bundled);
+      }
+      return synthesized.ensure(name, text, context);
+    },
+    clear: () => synthesized.clear(),
+  };
 }
 
 /** Deletes every agent-voice clip of this session (unmount + session end). */

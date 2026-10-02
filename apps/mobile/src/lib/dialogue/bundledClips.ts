@@ -25,8 +25,10 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
-import { DELIVERY_CONTEXTS, type DeliveryContext } from "./deliveryContext";
 import { packForVisit, spokenPack, type IntakeMode } from "../intake/questions";
+import { DELIVERY_CONTEXTS, type DeliveryContext } from "./deliveryContext";
+import { deliveryTextTr, prewarmContextOf, slotOf, VOICE_DELIVERY_KEYS } from "./deliveryDeck";
+import { questionDeliveryContextOf } from "./deliveryPlan";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import { assertSpeakableTr } from "./tts";
 
@@ -78,22 +80,53 @@ export function bundledClipSet(
   for (const department of departments) {
     for (const mode of MODES) {
       for (const question of spokenPack(packForVisit(department, { mode }))) {
-        add("routine", questionSpeechTr(question));
+        // A question and its read-back are spoken in the question's own
+        // context (deliveryPlan.ts) — the same one the driver asks the store for.
+        const context = questionDeliveryContextOf(question);
+        if (!renderable(context)) {
+          continue; // instrument items keep their pinned profile on the live lane
+        }
+        add(context, questionSpeechTr(question));
         // The confirm turn's line. A text step has one generic line (patient
         // words are never synthesized); an option step reads back catalogue
         // LABELS, so each single-option read-back and the bare ask are fixed
         // catalogue strings too. Multi-option read-backs are combinations and
         // stay on the live lanes.
-        add("routine", confirmSpeechTr(question, []));
+        add(context, confirmSpeechTr(question, []));
         if (question.kind === "chips" || question.kind === "single") {
           for (const option of question.options) {
-            add("routine", confirmSpeechTr(question, [option.id]));
+            add(context, confirmSpeechTr(question, [option.id]));
           }
         }
       }
     }
   }
+  // INT-414's spoken delivery lines — welcome, orientation, lead-ins, topic
+  // transitions, acknowledgements — each in the context its slot speaks it
+  // in, plus the question's context for the two slots that borrow it.
+  for (const key of VOICE_DELIVERY_KEYS) {
+    const context = prewarmContextOf(key);
+    const contexts = BORROWING_SLOTS.has(slotOf(key) ?? "")
+      ? [context, "sensitive" as const]
+      : [context];
+    for (const each of contexts) {
+      if (renderable(each)) {
+        add(each, deliveryTextTr(key));
+      }
+    }
+  }
   return [...lines.values()].sort(byContextThenText);
+}
+
+/** The slots whose line takes the struggling question's context (deliveryDeck
+ * SLOT_CONTEXT): rendered in `sensitive` too, so a sensitive question's repair
+ * line is not the one miss. */
+const BORROWING_SLOTS: ReadonlySet<string> = new Set(["repair", "silence"]);
+
+/** RED and instrument lines are never rendered into the bundle: their
+ * profiles are pinned and they stay on their own lanes (invariants 10/21). */
+function renderable(context: DeliveryContext): boolean {
+  return context !== "red" && context !== "instrument";
 }
 
 /** The bundled asset for a line in its context, or null. */

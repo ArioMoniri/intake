@@ -24,6 +24,8 @@ import {
   clipTextHash,
 } from "./bundledClips";
 import { DELIVERY_CONTEXTS } from "./deliveryContext";
+import { deliveryTextTr, prewarmContextOf, slotOf, VOICE_DELIVERY_KEYS } from "./deliveryDeck";
+import { questionDeliveryContextOf } from "./deliveryPlan";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -53,26 +55,55 @@ describe("clipTextHash is protocols.dsl clip_text_hash", () => {
 
 describe("bundledClipSet — exactly the lines the dev dialogue speaks", () => {
   const set = bundledClipSet();
+  const pair = (context: string, text: string) => `${context}\u0000${text}`;
+  const listed = new Set(set.map((line) => pair(line.context, line.text_tr)));
+  // What the app composes, each in the context the driver asks the store for.
   const composed = new Set<string>();
   for (const department of BUNDLED_CLIP_DEPARTMENTS) {
     for (const mode of ["hizli", "detayli"] as const) {
       for (const question of spokenPack(packForVisit(department, { mode }))) {
-        composed.add(questionSpeechTr(question));
-        composed.add(confirmSpeechTr(question, []));
+        const context = questionDeliveryContextOf(question);
+        if (context === "instrument" || context === "red") {
+          continue;
+        }
+        composed.add(pair(context, questionSpeechTr(question)));
+        composed.add(pair(context, confirmSpeechTr(question, [])));
         if (question.kind === "chips" || question.kind === "single") {
           for (const option of question.options) {
-            composed.add(confirmSpeechTr(question, [option.id]));
+            composed.add(pair(context, confirmSpeechTr(question, [option.id])));
           }
         }
       }
     }
   }
-
-  it("covers every question line and its confirm lines, every test department, both modes", () => {
-    const routine = new Set(set.filter((l) => l.context === "routine").map((l) => l.text_tr));
-    for (const text of composed) {
-      expect(routine.has(text), text).toBe(true);
+  const deliveryLines = new Set<string>();
+  for (const key of VOICE_DELIVERY_KEYS) {
+    const context = prewarmContextOf(key);
+    if (context === "instrument" || context === "red") {
+      continue;
     }
+    deliveryLines.add(pair(context, deliveryTextTr(key)));
+    if (["repair", "silence"].includes(slotOf(key) ?? "")) {
+      deliveryLines.add(pair("sensitive", deliveryTextTr(key)));
+    }
+  }
+
+  it("covers every question line and its confirm lines, in the question's context", () => {
+    for (const entry of composed) {
+      expect(listed.has(entry), entry).toBe(true);
+    }
+  });
+
+  it("covers every spoken INT-414 delivery line in the context its slot speaks it in", () => {
+    for (const key of VOICE_DELIVERY_KEYS) {
+      const context = prewarmContextOf(key);
+      if (context !== "instrument" && context !== "red") {
+        expect(listed.has(pair(context, deliveryTextTr(key))), key).toBe(true);
+      }
+    }
+    // the welcome is the opening's content: it must be in the bundle
+    expect(set.some((line) => line.context === "welcome")).toBe(true);
+    expect(set.some((line) => line.context === "acknowledgement")).toBe(true);
   });
 
   it("lists each (context, line) once, numeral- and markup-free, in a known context", () => {
@@ -87,8 +118,9 @@ describe("bundledClipSet — exactly the lines the dev dialogue speaks", () => {
   });
 
   it("lists only lines the app composes — nothing else can reach the renderer", () => {
-    for (const line of set.filter((l) => l.context === "routine")) {
-      expect(composed.has(line.text_tr), line.text_tr).toBe(true);
+    for (const line of set) {
+      const entry = pair(line.context, line.text_tr);
+      expect(composed.has(entry) || deliveryLines.has(entry), entry).toBe(true);
     }
   });
 
