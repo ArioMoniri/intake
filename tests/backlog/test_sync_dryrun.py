@@ -97,8 +97,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-404 (triage rule evidence lines in the reader's locale, GitHub #673)
     # + INT-382 (rule-read slot removal refused in every layer; GitHub #629)
     # + INT-415 (ElevenLabs delivery profiles + on-prem TTS wiring guide, GitHub #706)
+    # + INT-429 (vulnerabilities gate: dependency upgrades + time-boxed node-forge row, GitHub #727)
     # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
-    assert len(actions) == 327
+    assert len(actions) == 328
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
