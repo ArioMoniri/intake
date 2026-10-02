@@ -400,6 +400,18 @@ def voice_control_refused(status: int, code: str) -> HTTPException:
     return HTTPException(status_code=status, detail={"error": code})
 
 
+def model_lanes_refused(status: int, code: str) -> HTTPException:
+    """INT-428: the Model lanes module refused a change or could not reach its
+    store. 422 — a body it will not take (an unexpected field, an unknown lane,
+    route or provider, a malformed key); 403 — a role that may not take the
+    action; 409 — the control's state or the ADR-035 guard forbids it (nothing
+    to change, the control moved, the self-hosted probe is down, a real-PHI
+    deployment with no transfer basis); 503 — no store or key store wired, or
+    unreachable. ``code`` is machine-shaped and echoes no submitted value —
+    least of all a key (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
 def release_freeze_refused(status: int, code: str) -> HTTPException:
     """INT-187: the CI/CD module refused a deploy-freeze change or could not
     reach its store. 422 — a body it will not take (an unexpected field, an

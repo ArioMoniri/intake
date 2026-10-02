@@ -46,7 +46,14 @@ RUN if [ -z "$GIT_SHA" ] || [ "$GIT_SHA" = "dev" ] || [ -z "$BUILT_AT" ] || [ "$
       --home-dir /nonexistent --shell /usr/sbin/nologin intake
 # root-owned and therefore read-only to the service user
 COPY --from=builder /app /app
+# INT-428 (ADR-035; AI/ML review): this is the SYNTHETIC deployment's image.
+# It alone carries the hosted-lane adapters (packages/hosted-lanes, put on the
+# path here rather than installed into the API's closure) and it bakes the
+# data class, so no operator env can declare it anything else. A PHI image
+# carries neither line, and no package on its closure imports the adapters.
 ENV PATH=/app/.venv/bin:$PATH \
+    PYTHONPATH=/app/packages/hosted-lanes/src \
+    INTAKE_DEPLOYMENT_DATA_CLASS=synthetic \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     INTAKE_GIT_SHA=${GIT_SHA} \

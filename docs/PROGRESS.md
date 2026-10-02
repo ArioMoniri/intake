@@ -2957,3 +2957,52 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #724):
+  - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*
+  - *"The admin panel has a model-routing module: per-lane provider (hosted provider / self-hosted GPU / mock), a key entry written only to OpenBao and never shown back, a 4-eyes switch with audit, live lane health and cost, and an instant fallback to the self-hosted lane when it is healthy."*
+  - *"Gateways route through the existing adapter interfaces. Egress allow-list rows are added per provider. No PHI is logged. Numbers are normalised before TTS (invariant 22)."*
+  - *"Tests cover the routing decision, the fail-closed real-PHI guard, the key never being echoed, and the audit row on every switch."*
+  - Narrowed by the binding medical (finding 12) and AI/ML reviews, and extended by the owner to model selection per lane. These remove the DPA branch and mock, split the deployment, attest models, freeze the model per session, and gate swaps on red-flag goldens.
+- Plan: ADR-035.
+  - A vendor-free platform (`intake_platform.model_lanes`): guard, catalogue, qualifications, decision table, identity health, the `ModelResolver` / `SessionLanes`, and dispatch.
+  - Synthetic-image-only adapters (`packages/hosted-lanes`) behind the existing interfaces.
+  - Five DangerousActions and ten audited routes, plus the admin-web module.
+  - Catalogued metrics and owner-filled cost rows.
+  - The terminal key route and its deploy hook.
+- Tests added (each safety rule with its near miss):
+  - `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment}.py`
+  - `tests/voice/test_model_lane_shims.py`
+  - `tests/admin/test_model_lanes_routes.py`
+  - `tests/infra/test_put_provider_key.py`
+  - 58 admin-web specs.
+  - The named four are `mock_hosted_unrepresentable_for_phi_tenant`, `lane_swap_requires_green_rf_extraction_goldens`, `model_pin_frozen_in_session` and `synthetic_flag_immutable`.
+  - RED: 4 failed (route drives, RBAC rows, cost budgets and fixtures). Every guard was then mutated, and each mutation was RED (5/5).
+- Result:
+  - check-py: ruff, format and `mypy --strict` (537 files) are clean. Whole tree: 9779 passed at 94.73 %, and every scoped lane is at its floor.
+  - check-ts: lint and typecheck are clean. vitest: admin-web 385, mobile 2413.
+  - safety: 18/18 mutations detected.
+  - security: the staged diff and the branch range have no leaks. semgrep, bandit, trivy config, checkov, licences, the PHI scan and the claims scan are clean. `trivy fs` and osv flag lockfile advisories already on main.
+  - no_placeholders (staged): OK. The vendor-call gate: OK.
+- Invariants touched and still passing: 1, 2, 3, 6, 13, 14, 17, 19 (relaxed for the synthetic deployment only, ADR-035), 20 and 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-035 (number allocated by the coordinator).
+  - The egress allow-list row was refused by the permission classifier (a hook-protected file), reported, and not routed around.
+  - The OpenBao `model-lanes` grant was restored at the coordinator's request and is flagged for review.
+- Blocked on:
+  - owner: "Add the `openai-api` egress row and its INT-001 gate exception under ADR-035";
+  - owner: "Give the synthetic host an egress route to the provider";
+  - clinical: "Which golden set and sensitivity floor qualify an llm/asr model version (medical review, physician decision 8)?".
+  - No HB id is minted here.
+- Next: split rows for the coordinator:
+  1. guarded transport for the self-hosted extraction clients;
+  2. `/identity` on the GPU servers;
+  3. a drift canary;
+  4. model@revision recording keys;
+  5. a schema-keyword lint;
+  6. an egress proxy for the synthetic host;
+  7. lanes in the mobile release build;
+  8. ElevenLabs as a hosted TTS provider, and the George route on the synthetic host;
+  9. MonthlySpendLedger in dispatch.
+- LOOP_STATUS: WAITING_HUMAN
+

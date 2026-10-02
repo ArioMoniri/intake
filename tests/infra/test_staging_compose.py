@@ -663,11 +663,21 @@ class TestOpenBao:
             r'path\s+"([^"]+)"\s*\{\s*capabilities\s*=\s*\[([^\]]*)\]\s*\}', _text(API_POLICY)
         )
         assert blocks
+        # INT-428 (ADR-035): the one grant outside transit/ is the hosted-lane
+        # provider keys, and exactly these two paths with these capabilities
+        model_lanes = {
+            "secret/data/model-lanes/*": {"create", "update", "read"},
+            "secret/metadata/model-lanes/*": {"read", "list", "delete"},
+        }
         for path, caps in blocks:
+            granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}
+            if path in model_lanes:
+                assert granted == model_lanes[path], (path, granted)
+                continue
             assert path.startswith("transit/"), path
             assert f"/{prefix}-" in path, path
-            granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}
             assert granted <= {"create", "update", "read"}, (path, granted)
+        assert {path for path, _ in blocks} >= set(model_lanes)
 
     def test_init_enables_transit_and_creates_the_probe_kek(self) -> None:
         probe = _load_probe()

@@ -6369,3 +6369,31 @@
     - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
   tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
   sec_row: "cloud-clipgen"
+- id: INT-428
+  epic: E05-voice
+  phase: P0
+  title: "Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over"
+  # GitHub #724. Owner decision, 2 Oct 2026 (chat): "use openai or similar
+  # provider let api to be set from admin panel and let to switch for gpu
+  # models", extended the same day to per-lane model selection and narrowed by
+  # the binding medical (finding 12) and AI/ML reviews (ADR-035). The mechanism
+  # ships; serving a hosted lane awaits humans: the hook-protected egress
+  # allow-list row and its INT-001 gate exception, the provider key, a second
+  # console approver, unit prices, and the clinically signed golden set whose
+  # green runs qualify a model version. The AI/ML items not in this change
+  # (guarded transport for the self-hosted extraction clients, /identity on the
+  # GPU servers, a drift canary, model@revision recording keys, a
+  # schema-keyword lint, an egress route for the synthetic host) are split rows
+  # for the coordinator to allocate.
+  depends_on: [INT-182, INT-187, INT-018]
+  labels: [area:api, area:voice, risk:security]
+  status: awaiting-human
+  evidence: docs/evidence/INT-428.md
+  acceptance:
+    - "ADR-035 records the owner decision and its scope against invariant 19: hosted lanes exist only in the synthetic deployment image; for real PHI they are unrepresentable (no DPA branch, no mock route); the relaxation reverts when the GPU lanes are healthy"
+    - "per-lane and per-role routing (self_hosted | hosted:<provider>) with provider AND model selection: dated-snapshot hosted allow-lists, attested registry models only (TR + phi_path for PHI), identity probe and per-call model check; a typed ModelResolver role -> (provider, model)"
+    - "admin Model lanes module: lane provider/model, identity and probes, p50/p95 latency and cost from catalogued series and owner-filled unit prices; four-eyes switch bound to a config hash with a hash-chained audit row; key entry to OpenBao only, never echoed (last four at most); one-click switch to GPU refused unless the identity is healthy; hosted fallback for synthetic only; kill switches stop hosted instantly"
+    - "a swap on llm/asr needs green red-flag extraction goldens and negation-set runs for that exact model version; the model is frozen per session; the synthetic flag is immutable; synthetic or hosted runs never count as clinical evidence"
+    - "tests: the routing table, mock_hosted_unrepresentable_for_phi_tenant, lane_swap_requires_green_rf_extraction_goldens, model_pin_frozen_in_session, synthetic_flag_immutable (each with a near miss), the deployment split, the key never echoed, the four-eyes switch and its audit chain, fallback, and the adapters against recorded fixtures; no live provider call"
+  tests: [tests/platform/test_model_lane_routing.py, tests/platform/test_model_lane_resolver.py, tests/platform/test_model_lane_hosted_adapter.py, tests/platform/test_model_lane_deployment.py, tests/platform/test_model_lane_shims.py, tests/admin/test_model_lanes_routes.py]
+  sec_row: "llm-boundary"

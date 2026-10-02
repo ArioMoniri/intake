@@ -1544,6 +1544,88 @@ metrics:
       (freeze_engage, freeze_lift) and outcome (requested, applied, unchanged,
       refused). The alert of the two deploy-freeze DangerousActions; who acted
       is on the audit chain and in the freeze record, never on a label.
+  - name: admin_model_lane_changes_total
+    id: admin.model_lane_changes_total
+    type: counter
+    labels: [control, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Model lanes module control changes (INT-428, ADR-035), by control
+      (route_switch, self_hosted_engage, hosted_disable, hosted_release,
+      key_set) and outcome (requested, applied, unchanged, refused). The alert
+      of the five model-lane DangerousActions; who acted is on the audit
+      chain, never on a label, and no key is ever a label or a value.
+  # --- INT-428: the model lanes (ADR-035) --------------------------------------
+  # route is self_hosted | hosted and provider is a ProviderId or
+  # `none` — two id-shaped labels, never a tenant, a text or a key.
+  - name: model_lane_calls_total
+    type: counter
+    labels: [lane, route, provider, outcome]
+    owner: platform
+    unit: "count"
+    status: live
+    description: >-
+      Model-lane calls (llm, asr, tts) by serving route, provider and outcome
+      (ok, failed). Emitted by intake_platform.model_lanes.dispatch.
+  - name: model_lane_latency_seconds
+    type: histogram
+    labels: [lane, route, provider]
+    owner: platform
+    unit: "s"
+    status: live
+    description: >-
+      Model-lane call latency in seconds by serving route and provider; the
+      Model lanes console reads its p50 and p95.
+  - name: model_lane_tokens_total
+    type: counter
+    labels: [lane, route, provider, direction]
+    owner: platform
+    unit: "tokens"
+    status: live
+    description: >-
+      Tokens a model lane's backend reported, by direction (input, output).
+      Zero is what nothing reported, never an estimate. Priced by
+      infra/costs/unit-prices.yaml.
+  - name: model_lane_audio_seconds_total
+    type: counter
+    labels: [lane, route, provider]
+    owner: platform
+    unit: "s"
+    status: live
+    description: >-
+      Audio seconds a model lane's ASR backend reported transcribing. Priced
+      by infra/costs/unit-prices.yaml.
+  - name: model_lane_characters_total
+    type: counter
+    labels: [lane, route, provider]
+    owner: platform
+    unit: "chars"
+    status: live
+    description: >-
+      Characters a model lane sent for synthesis (after the invariant-22
+      numeral refusal). Priced by infra/costs/unit-prices.yaml.
+  - name: model_lane_fallback_total
+    type: counter
+    labels: [lane, provider]
+    owner: platform
+    unit: "count"
+    status: live
+    description: >-
+      Calls served by a hosted fallback because the lane's self-hosted backend
+      was unhealthy or failed (ADR-035; only for tenants the guard admits).
+  - name: model_lane_refused_total
+    type: counter
+    labels: [lane, reason]
+    owner: platform
+    unit: "count"
+    status: live
+    description: >-
+      Model-lane calls refused, by lane and closed reason code (for example
+      hosted_lane_real_phi_refused, hosted_disabled, kill_switch_engaged,
+      self_hosted_unhealthy, model_not_qualified, model_identity_mismatch,
+      hosted_lane_no_answer, hosted_egress_not_listed).
   - name: admin_break_glass_patient_log_lag_h
     id: admin.break_glass_patient_log_lag_h
     type: gauge

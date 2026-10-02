@@ -9,6 +9,7 @@ Everything is synthetic (files/04 §7).
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,12 @@ from protocols.cli import load_registry
 from protocols.compile import CompiledBundle, LifeThreatSet, compile_bundle, load_life_threat_set
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
+
+# INT-428: the routed-gateway suite composes routers with the platform
+# suite's model-lane fakes rather than a second, drifting copy of them.
+_PLATFORM_TESTS = Path(__file__).resolve().parents[1] / "platform"
+if str(_PLATFORM_TESTS) not in sys.path:
+    sys.path.append(str(_PLATFORM_TESTS))
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "protocols" / "compile"
 SIGNED_LIFE_THREAT = FIXTURES / "life_threat_signed.yaml"

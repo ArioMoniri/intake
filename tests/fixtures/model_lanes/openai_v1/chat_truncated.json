@@ -1,0 +1,15 @@
+{
+  "_comment": "TEST FIXTURE (INT-428). A recorded-shape truncation: finish_reason length and a half-written JSON object. Invented; no call was made.",
+  "id": "chatcmpl-unit-lane-0003",
+  "object": "chat.completion",
+  "created": 1790424000,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "{\"slots\": [{\"slot", "refusal": null },
+      "finish_reason": "length"
+    }
+  ],
+  "usage": { "prompt_tokens": 412, "completion_tokens": 16, "total_tokens": 428 }
+}

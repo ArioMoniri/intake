@@ -77,6 +77,11 @@ services:
       # release gate reads it, in a one-off api container, before it restarts
       # anything; unset, the gate refuses every deploy.
       INTAKE_RELEASE_FREEZE_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-428 (ADR-035): the model-lane control the console's Model lanes
+      # module writes and every routed gateway reads. The deployment's data
+      # class is NOT set here: the synthetic image bakes it, so no compose or
+      # env edit can turn this host into something else.
+      INTAKE_MODEL_LANES_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
       # The object store: the minio service below, over the internal backend
       # network. The API creates its buckets itself on first use, the audit
       # bucket with object lock, so nothing here pre-creates one.
