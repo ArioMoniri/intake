@@ -1,5 +1,36 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
+- Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
+- Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
+- Tests added: `the synthetic ticket fixture (INT-431)` pins three base64url parts that decode to the fixture.
+  - RED: gitleaks 8.18.4 and 8.30.1 each report `jwt` at lines 39 and 41.
+  - GREEN: both versions report no leaks; vitest 9 passed; typecheck, lint and prettier are clean.
+- Result: docs/evidence/INT-431.md. Pins 326 → 327; files/11 regenerated.
+- Invariants touched and still passing: 14 (the scanner gate is unchanged; nothing is allowlisted), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing. CI's pinned gitleaks (8.24.3) runs as the PR's own check.
+- Next: PR `INT-431: …` (Closes #733, Sec-Row connectors); then #481 can be recommitted.
+
+### 2026-09-27T16:00:00Z · INT-400 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #666): *"the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"*. Found by INT-122 §10.4: the device read `03.09.2026` day-first, and the server refuses it.
+- Plan:
+  - Port `turkish_dates.parse_printed_date` / `find_printed_date` line for line to `apps/mobile/src/lib/taxonomy/turkishDates.ts`: no default order, the server's refusal names, and the server's scan order.
+  - Match Python's Unicode `\d`, `\w`, `[^\W\d_]`, `\s`, `int()` and `fold_tr` to explicit device classes, code point by code point.
+  - `parseMhrsSms` gains `dateRefusal`. The form's new `ambiguous_date` notice leaves the date field empty; the patient writes the date.
+  - One fixture, `tests/fixtures/records/mhrs_dates.json`, holds both sides.
+- Tests added: `tests/records/test_mhrs.py`, `turkishDates.test.ts`, the fixture rows in `mhrsSms.test.ts`, reducer cases in `visits.test.ts`, and pins in `e2e/visits.spec.ts`.
+  - Near-miss controls `13.09.2026` and `05.05.2026` are read. `03.09.2026` is refused.
+  - RED: 46 of 85 failed. The old device guessed a date on 8 shared messages where the server refuses.
+  - GREEN: 117 targeted, 2278 mobile, 58 server.
+  - Mutants: 10 of 10 caught.
+- Result: docs/evidence/INT-400.md. check-i18n, ruff, format, typecheck, lint, the records/release/mobile/infra/backlog/ci/experience lanes, `no_placeholders` after staging, `phi_scan`, sec-row linkage and `evidence_check` all pass. `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 5 (tr first; en mirrored), 6 (nothing echoes the message), 17, 22 (a date that reads two ways never becomes a date).
+- Decisions / ADRs / `00_STATE.md` rows: none new. `HARDCODED_EXEMPT` gains `lib/taxonomy/turkishDates.ts`, with its reason. New patient copy `visits.new.smsAmbiguousDate` is flagged for clinical-reviewer sign-off.
+- Blocked on: nothing. The order itself stays with INT-399 (Ask 2); nothing here chooses it.
+- Next: PR `INT-400: the on-device MHRS SMS parser refuses an ambiguous date, as the server does` (Closes #666, Sec-Row mobile, depends on #663), unmerged for review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T10:45:00+03:00 · INT-395 · done (PR open)
 - Goal (GitHub #654, P0): DSAR erasure and export cover every patient-deletable table. Found by INT-393 §11: no path erased `notification_preferences`, and the export did not list Doctor Links.
 - Plan:
@@ -2952,4 +2983,37 @@
   - Found, not fixed (HB-C12(a)): of the nine archetype ids, only four exist at the transcribed id and version in the CKM mirror (5cb099fa). symptom_sign is a CLUSTER.v2, adverse_reaction_risk is v2, PHQ-9 is `phq_9.v0`, GAD-7 is `gad_7_score.v0`.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): the coordinator must file the GitHub issue for INT-257 (none exists) before the PR can say `Closes #n`. No HB row.
 - Next: file the issue, then open the PR `INT-257: the openEHR OPT carries occurrences and validates against the OPT 1.4 schema` (Sec-Row clinical-core) and watch `check-integration` for the 201.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T16:30:00Z · INT-415 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-415): a typed, versioned delivery-profile table maps each delivery context to ElevenLabs voice_settings plus the pinned model id, server-side only, with the profile id in the clip cache key and RED/instrument the most stable with no style; only scripted catalogue text is sent (INT-326 guards unchanged), the normaliser-off request and invariant 22 stay enforced; docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr controls; unit tests cover the table and prove the request body carries voice_settings.
+- Plan:
+  - `voice_clips.delivery` holds the table beside the gateway.
+  - `TtsGateway.synthesise` takes a required profile, and the ElevenLabs body carries `voice_settings`.
+  - The offline build reads each row's context from its subject, with the profile key in the object key.
+  - The dev route gains `delivery_context`, refuses red, pins RED and instrument rows, and keys its cache by profile.
+  - The mobile client sends `delivery_context`, sharing `deliveryContext.ts` with INT-414.
+  - The guide is written.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_delivery_profiles.py`.
+  - Extended: `test_elevenlabs_clipgen.py`, `test_clip_cache_builder.py`, `test_clip_manifest.py`, `tests/api/test_dev_voice_george.py`, `georgeClip.test.ts`.
+  - Near misses:
+    - labels close to a context (`Red`, `routine `) are refused;
+    - the vendor-range edges are admitted;
+    - `rfx.foo` and `rf` stay routine;
+    - an unpinned text is served in any context but red.
+  - RED run: collection errors (module absent) and 4 mobile failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9153 passed; every coverage floor met; voice-clips 99.73 %).
+  - `make check-ts` exit 0 (mobile 2264 passed).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, prettier.
+  - `check-integration` is CI-only.
+  - `make safety` and `make security` are in the evidence file.
+- Invariants touched and still passing: 3, 6 (the text is never echoed), 10, 13, 14 (the key stays env-only), 17, 19, 20 (no claims), 21 (RED never on demand), 22.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-028 amendment note (no decision changed).
+  - The `cloud-clipgen` threat row is updated.
+  - No new metric.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
+- Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE

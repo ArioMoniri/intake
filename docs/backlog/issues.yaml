@@ -6246,10 +6246,12 @@
   title: "The on-device MHRS SMS parser refuses an ambiguous date, as the server does"
   depends_on: [INT-122]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-400.md
   acceptance:
     - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
   tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
+  sec_row: "mobile"
 - id: INT-409
   epic: E08-mobile
   phase: P1
@@ -6336,6 +6338,74 @@
     - "golden tests with a near-miss (a full stop in tr fails); `make safety` green; CODEOWNER review"
   tests: [tests/protocols/test_triage_evidence_render.py, tests/safety/test_numeric_carrier.py, tests/schemas/test_fhir_mappers.py, tests/engine/test_note_golden.py, tests/records/test_quantity_render.py]
   sec_row: "triage"
+- id: INT-382
+  epic: E03-protocols
+  phase: P0
+  title: "The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads"
+  depends_on: [INT-258]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-382.md
+  acceptance:
+    - "resolve_protocol / protocols compile refuses any op in any layer (overlay or chain pack) that leaves a red-flag rule, draft or signed, reading a slot that is not declared in the merged pack, with a typed refusal naming the rule id and slot id (ids only)"
+    - "base.life_threat is covered in the same way"
+    - "golden tests: chain-pack suppress refused; overlay refusal unchanged; a near-miss where suppressing a slot no rule reads is admitted; the same check over every served and review pack on main passes, or lists what fails"
+    - "make safety green; CODEOWNER review"
+  tests: [tests/protocols/test_rule_slot_removal.py]
+  sec_row: "protocol-registry"
+- id: INT-415
+  epic: E05-voice
+  phase: P1
+  title: "ElevenLabs delivery profiles per question context + on-prem TTS wiring guide"
+  # GitHub #706. Owner request, 27 Sep 2026: warm at the opening, professional
+  # afterwards. The profile values are voice tuning, not clinical values; the
+  # owner's listening review is still owed (docs/evidence/INT-415.md).
+  depends_on: [INT-326]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-415.md
+  acceptance:
+    - "a typed, versioned delivery-profile table maps each delivery context (welcome, routine question, sensitive question, instrument item, acknowledgement, RED script, closing) to ElevenLabs voice_settings (stability, similarity_boost, style, use_speaker_boost, speed) plus the pinned model id; server-side only, the key never reaches the device; the profile id is part of the clip cache key; RED and instrument profiles are the most stable and use no style exaggeration"
+    - "only scripted catalogue text is ever sent, never patient words (the INT-326 guards unchanged); the numeral-normaliser-off request and invariant 22 stay enforced"
+    - "docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr TTS controls, covering the adapter interface, the model registry fields (model_id@revision + sha256, licence_verified_at, self_hostable, probe), the clip manifest, the latency budget and a cut-over checklist; no model is named as pinned unless it is in files/03 §4.9.1"
+    - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
+  tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
+  sec_row: "cloud-clipgen"
+- id: INT-429
+  epic: E13-infra
+  phase: P0
+  title: "Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception"
+  # GitHub #727. Trivy's vulnerability DB gained four HIGH advisories after
+  # 27 Sep 2026 and the required vulnerabilities job went red on main. The
+  # node-forge row is the owner's decision of 2 Oct 2026, time-boxed to 30 days.
+  depends_on: []
+  labels: [area:ci]
+  status: done
+  evidence: docs/evidence/INT-429.md
+  acceptance:
+    - "brace-expansion and urllib3 are upgraded to their fixed versions, with lockfiles regenerated and licences verified"
+    - "node-forge gets a PURL-scoped .trivyignore.yaml row with a reachability statement and a 30-day expired_at, owner-approved in chat on 2 Oct 2026, and a test pins the statement and the expiry"
+    - "the vulnerabilities job is green on the PR"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
+- id: INT-431
+  epic: E10-connectors
+  phase: P1
+  title: "The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest"
+  # GitHub #733. Found while merging main into #481: INT-320's synthetic
+  # ticket fixture (payload {"tenant":"dev"}, signature "signature-sample")
+  # sat in the test source as a JWT-shaped literal, and the gitleaks
+  # pre-commit hook refuses any commit that stages the file. No allowlist:
+  # the root cause is the literal, so the literal goes.
+  depends_on: [INT-320]
+  labels: [area:release, risk:security]
+  status: done
+  evidence: docs/evidence/INT-431.md
+  acceptance:
+    - "the fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest; no allowlist, gitleaks:allow or .gitleaksignore entry is added"
+    - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
+  tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
+  sec_row: "connectors"
 - id: INT-395
   epic: E02-data
   phase: P0

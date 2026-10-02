@@ -56,6 +56,7 @@ mute would also make zero.
 
 from __future__ import annotations
 
+import datetime
 import importlib.util
 import json
 import os
@@ -641,6 +642,45 @@ def test_trivyignore_rows_are_purl_scoped() -> None:
         )
 
 
+def test_the_node_forge_exception_is_scoped_and_expires() -> None:
+    """INT-429: the one owner-approved, time-boxed row (2 Oct 2026).
+
+    node-forge 1.4.0 has no fixed release for CVE-2026-85393. The row names
+    exactly that package version. It states how the package is reached and
+    what the evidence is, and it expires within 30 days of the decision. After
+    that date trivy reports the finding again and the gate turns red.
+    """
+    rows = yaml.safe_load(TRIVYIGNORE.read_text(encoding="utf-8"))["vulnerabilities"]
+    forge = [r for r in rows if r.get("id") == "CVE-2026-85393"]
+    assert len(forge) == 1
+    row = forge[0]
+    assert row["purls"] == ["pkg:npm/node-forge@1.4.0"], "scoped to the one version, nothing wider"
+    expiry = row.get("expired_at")
+    assert isinstance(expiry, datetime.date), "the exception must carry trivy's expired_at"
+    assert datetime.date(2026, 10, 2) < expiry <= datetime.date(2026, 11, 1), (
+        "30 days from the decision, no more"
+    )
+    statement = " ".join(str(row.get("statement", "")).split())
+    for must in ("owner", "expo export", "@expo/cli", "docs/evidence/INT-429.md"):
+        assert must in statement, f"the statement must say {must!r}"
+
+
+def test_the_osv_exception_names_one_advisory_and_expires() -> None:
+    """INT-429: osv-scanner's view of the same node-forge advisory, same terms."""
+    config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    assert set(config) == {"IgnoredVulns"}, "no package-wide override, no other mute form"
+    (entry,) = config["IgnoredVulns"]
+    assert entry["id"] == "GHSA-86w9-cpqp-85rv"
+    until = entry.get("ignoreUntil")
+    assert isinstance(until, datetime.datetime), "the exception must carry ignoreUntil"
+    assert datetime.date(2026, 10, 2) < until.date() <= datetime.date(2026, 11, 1), (
+        "30 days, no more"
+    )
+    reason = " ".join(str(entry.get("reason", "")).split())
+    for must in ("owner", "node-forge 1.4.0", "expo export", "docs/evidence/INT-429.md"):
+        assert must in reason, f"the reason must say {must!r}"
+
+
 def test_make_security_actually_loads_the_trivy_ignore_file() -> None:
     """trivy 0.74 auto-detects .trivyignore but NOT .trivyignore.yaml.
 
@@ -821,8 +861,19 @@ OSV_SUPPRESSION_FILES = (
 # on PyPI, which is provably not a dependency at all. The ceiling accommodates
 # that one row and nothing else, and per CLAUDE.md invariant 17 it may only
 # shrink.
-MAX_OSV_SUPPRESSIONS = 0
-MAX_TRIVY_SUPPRESSIONS = 1
+#
+# INT-429 raises it to 2, by owner decision on 2 Oct 2026. The second row is
+# node-forge 1.4.0 (CVE-2026-85393), which has no fixed release. That row is
+# PURL-scoped, carries a reachability statement and expires on 2026-11-01
+# (test_the_node_forge_exception_is_scoped_and_expires below). When it goes,
+# this pin goes back to 1.
+#
+# INT-429 also raises the osv pin from 0 to 1, under the same owner decision
+# (a narrow 30-day exception for just that package). osv-scanner reports the
+# same advisory as GHSA-86w9-cpqp-85rv, and its one entry is in
+# osv-scanner.toml (test_the_osv_exception_names_one_advisory_and_expires).
+MAX_OSV_SUPPRESSIONS = 1
+MAX_TRIVY_SUPPRESSIONS = 2
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
 # apps/mobile (1753 tests) and 2 in packages/clinical-schemas (6 tests).
@@ -874,6 +925,12 @@ def _suppression_entries(path: Path) -> list[str]:
         loaded = yaml.safe_load(text) or {}
         rows = loaded.get("vulnerabilities") or [] if isinstance(loaded, dict) else []
         return [str(row.get("id", row)) for row in rows]
+    if path.suffix == ".toml":
+        # osv-scanner: an ignored advisory, or a package override that mutes one
+        loaded_toml = tomllib.loads(text)
+        ignored = [str(row.get("id", row)) for row in loaded_toml.get("IgnoredVulns", [])]
+        overrides = [str(row.get("name", row)) for row in loaded_toml.get("PackageOverrides", [])]
+        return ignored + overrides
     # trivy's legacy plain form: one bare advisory id per line.
     return [
         stripped
@@ -1010,3 +1067,19 @@ def test_the_suppression_counter_counts_rows_not_list_items(tmp_path: Path) -> N
     assert len(_suppression_entries(legacy)) == 2, "the legacy plain form still counts"
 
     assert _suppression_entries(tmp_path / "absent.yaml") == []
+
+
+def test_the_suppression_counter_reads_osv_toml(tmp_path: Path) -> None:
+    """INT-429: osv-scanner's config is TOML, and both of its mute forms count.
+
+    Before INT-429 the counter sent `.toml` down the legacy plain-text branch,
+    where `id = "GHSA-..."` never starts with an advisory prefix, so an osv
+    suppression counted as zero and the osv pin could not see one.
+    """
+    config = tmp_path / "osv-scanner.toml"
+    config.write_text(
+        '[[IgnoredVulns]]\nid = "GHSA-aaaa-bbbb-cccc"\nreason = "x"\n\n'
+        '[[PackageOverrides]]\nname = "left-pad"\necosystem = "npm"\nvulnerability.ignore = true\n',
+        encoding="utf-8",
+    )
+    assert _suppression_entries(config) == ["GHSA-aaaa-bbbb-cccc", "left-pad"]
