@@ -783,27 +783,31 @@ it or whose tests exercise it.
   missed RED (patient safety, the highest-consequence failure in the product); [D] false-RED
   volume eroding clinician trust.
   **RED acknowledgement (§9 row, files/02 §8):** [D/De] the alert fires and **nobody
-  answers** — no queue, no clock, no metric, no alert; `triage.events_total` counts REDs that
-  fired, not REDs anyone answered; a RED visit rescheduled or cancelled out of everyone's
-  sight.
+  answers** — `triage.events_total` counts REDs that fired, not REDs anyone answered; a RED
+  visit rescheduled or cancelled out of everyone's sight.
 - **Controls (files/10):** §9 triage row — deterministic rules only, LLM cannot set levels,
   preemption path tested, rule changes via ADR plus sign-off; monotonic inheritance with
   `base.life_threat` unextendable (CLAUDE.md invariant 7); RED three axes with no default
   register/location (invariant 21, ADR-023).
-  **RED acknowledgement (§9, inv. 49):** every RED produces a clinic inbox entry within 60 s
-  regardless of connector presence and starts an acknowledgement clock; a Safety queue in the
-  console (files/08 §3, F19) where `tenant_clinical_responsible` acknowledges; an SLA breach
-  pages; a files/02 §2b reschedule or cancel on a RED visit raises an entry regardless of
-  connector presence.
+  **RED acknowledgement (§9, inv. 49), INT-406:** Layer B hands every rules-engine RED to
+  the clinician route as it settles, which puts an ids-only entry in the clinic Safety inbox
+  in-process — no connector on the path — and a runtime without the inbox store is not
+  ready; the console's Safety queue (files/08 §3, F19) is answered by
+  `tenant_clinical_responsible` alone (tier 1, audited write-ahead naming the entry); a
+  sweep pages past the files/02 §8.2 SLA (default 4 h, counted in wall-clock hours until a
+  tenant calendar is recorded) and pages when the inbox cannot be read; a files/02 §2b
+  reschedule or cancel on a visit carrying a RED entry raises its own entry.
 - **Signals:** RED events (`triage.events_total`, named in §9), preemption latency,
   false-RED reviews, missed-flag reports — land with INT-080 and INT-025.
-  `clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` (§9) are catalogued
-  `planned` in `observability/metrics_catalog.yaml`; nothing emits them yet.
+  `clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` (§9) are emitted by
+  INT-406, with `clinic_red_inbox_pending_age_s` and `clinic_red_inbox_route_failures_total`
+  for the 60 s half; the last three page through `infra/observability/safety-rules.yaml`
+  (`docs/runbooks/red-acknowledgement.md`), and the latency histogram is the measurement.
 - **Tests:** golden suite with near-miss negatives and mutation tests land with INT-059;
-  preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is **unowned**:
-  the INT-020 close-out found no backlog row whose acceptance carries the Safety queue, the
-  acknowledgement clock or inv. 49, and records the gap in docs/evidence/INT-020.md for the
-  coordinator to allocate (an agent does not mint an issue id).
+  preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is owned by
+  INT-406: `tests/safety/test_red_acknowledgement_sla.py` (fake clocks: entry ≤ 60 s with no
+  connector, page at SLA + 1 s and not at the SLA, a transition on a RED visit raises an
+  entry; YELLOW, GREEN, an LLM candidate and an unpinned RED never create one).
 
 ## `wellbeing` — screening instruments
 

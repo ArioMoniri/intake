@@ -145,7 +145,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-395 (no path erased notification_preferences and the DSAR export
     # did not list Doctor Links; found by INT-393, fixed and closed in the
     # same PR).
-    assert len(ids) == 329
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
+    # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
+    assert len(ids) == 330
     import re
 
     for i in ids:
