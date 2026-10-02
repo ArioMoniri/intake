@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T01:30:00+03:00 · INT-439 · doing (PR open, not merged; stacked on #751)
+- Goal: GitHub #747 acceptance, verbatim:
+  - *"The metering budget has a monthly limit of 80 USD for elective model spend, covering council verifier members and hosted lanes. It is enforced by the existing ledger, which refuses work beyond the limit and warns at 80%. Obligatory primary extraction is never refused because of the elective cap."*
+  - *"The price book is filled from published vendor pricing pages (url + retrieved_on) for the hosted models in use. Self-hosted cost is per GPU-hour, from the AWS price list."*
+  - *"The admin cost module shows spend against the cap. The decision is recorded in 00_STATE §3 and HB-O8 is closed."*
+- Plan:
+  - Add `SpendCap` and `ModelRate` to the price file, pointing each rate at a sourced component price.
+  - Add `MonthlySpendLedger` with in-memory and Redis stores, enforced through `SessionLedger` and `SessionMeter`.
+  - Add a cap row and two rules to the cost module, and a renderer in admin-web.
+  - Record D19 and close HB-O8.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/voice/test_spend_cap.py` and `tests/admin/test_cost_spend_cap.py`, plus seven spend-cap cases in `apps/admin-web/e2e/cost.spec.ts`.
+  - Four pinned tests changed, each with its reason; the table is in `docs/evidence/INT-439.md`.
+  - RED: 2 collection errors with the implementation absent.
+- Result: see the gates in `docs/evidence/INT-439.md`.
+- Invariants touched and still passing: 6 (PHI-free series, keys and logs), 9 (the ledger does O(1) work; nothing awaits), 13 (both series catalogued `live`), 17 (no number without a source), 19, 20.
+- Decisions / ADRs / `00_STATE.md` rows: D19 (owner, 3 Oct 2026). D18 was double-minted on two unmerged branches (INT-421, INT-332); this row skips it.
+- Blocked on: nothing for this row. The INT-190 rates for the remaining components and the per-vendor budgets stay with the owner in `docs/backlog/blockers.md`. OpenAI rates go into INT-428's components when the second of the two PRs merges.
+- Next: the coordinator asked for the INT-428 `dispatch` wiring, so the branch is stacked on #751 and every hosted call is gated and charged. Hooking INT-430's verifier desk to `SessionMeter.charge_model_call` waits until INT-430 is on main.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.

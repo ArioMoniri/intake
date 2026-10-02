@@ -1,5 +1,10 @@
 """Running one call on a role's assignment (INT-428, ADR-035).
 
+INT-439 (00_STATE §3 D19): every hosted attempt — the first and a fallback
+retry alike — is admitted by the router's :class:`~intake_platform.
+model_lanes.spend.HostedSpendGate` before it runs and charged after, so the
+synthetic deployment's hosted lanes stop at the owner's 80 USD monthly cap.
+
 :func:`dispatch` is the one place a routed gateway runs a call: it refuses an
 unavailable assignment with a code, times the call, meters it, and — outside a
 session, when a self-hosted call fails and the role has an admitted fallback
@@ -33,6 +38,7 @@ from intake_platform.model_lanes.router import (
     SessionLanes,
     target_role,
 )
+from intake_platform.model_lanes.spend import CODE_UNMETERED, HostedSpendGate, SpendGateRefused
 
 __all__ = ["LaneResult", "dispatch", "verify_served_model"]
 
@@ -76,6 +82,32 @@ def _meter(assignment: ModelAssignment, usage: HostedUsage) -> None:
         MODEL_LANE_AUDIO_SECONDS_TOTAL.labels(**labels).inc(usage.audio_seconds)
     if usage.characters:
         MODEL_LANE_CHARACTERS_TOTAL.labels(**labels).inc(usage.characters)
+
+
+def _model_id(assignment: ModelAssignment) -> str | None:
+    return assignment.model.model_id if assignment.model is not None else None
+
+
+def _hosted(assignment: ModelAssignment) -> bool:
+    return assignment.route is not None and assignment.route.kind is RouteKind.HOSTED
+
+
+def _admit_spend(router: LaneRouter, lane: Lane, assignment: ModelAssignment) -> None:
+    """INT-439: a hosted call runs only inside the monthly elective cap."""
+    if not _hosted(assignment):
+        return
+    gate: HostedSpendGate | None = router.spend
+    if gate is None:
+        raise _refuse(lane, CODE_UNMETERED)
+    try:
+        gate.admit(assignment.provider, _model_id(assignment))
+    except SpendGateRefused as refused:
+        raise _refuse(lane, refused.code) from None
+
+
+def _charge_spend(router: LaneRouter, assignment: ModelAssignment, usage: HostedUsage) -> None:
+    if _hosted(assignment) and router.spend is not None:
+        router.spend.charge(assignment.provider, _model_id(assignment), usage)
 
 
 def _attempt[T](
@@ -141,8 +173,11 @@ def dispatch[T](
     if not assignment.available or assignment.route is None:
         raise _refuse(target.lane, assignment.reason)
     _count_fallback(assignment)
+    _admit_spend(router, target.lane, assignment)
     try:
-        return _attempt(assignment, call, failures).value
+        result = _attempt(assignment, call, failures)
+        _charge_spend(router, assignment, result.usage)
+        return result.value
     except HostedLaneUnavailable as failure:
         raise _refuse(target.lane, failure.code) from None
     except LaneIdentityMismatch:
@@ -159,8 +194,11 @@ def dispatch[T](
     if not retry.available or retry.route is None or retry.route.kind is not RouteKind.HOSTED:
         raise _refuse(target.lane, "self_hosted_failed")
     _count_fallback(retry)
+    _admit_spend(router, target.lane, retry)
     try:
-        return _attempt(retry, call, failures).value
+        result = _attempt(retry, call, failures)
+        _charge_spend(router, retry, result.usage)
+        return result.value
     except HostedLaneUnavailable as failure:
         raise _refuse(target.lane, failure.code) from None
     except LaneIdentityMismatch:

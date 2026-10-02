@@ -21,6 +21,15 @@ empty and :func:`priced_cost` raises :class:`CostNotPriced` rather than
 returning a zero — **zero is a claim that a session was free**, which is a
 different and equally false statement.
 
+**INT-439 (00_STATE §3 D19) changes where money lives, not this book.** The
+owner's decision admits published list prices, so ``infra/costs/unit-prices.yaml``
+now carries two — the AWS g6.2xlarge host-hour and the ElevenLabs v2 Multilingual
+character — and :mod:`intake_voice_runtime.metering.spend` charges each model call
+at its lane's rate against the monthly elective cap. A *per-token* self-hosted
+rate still does not exist: a host-hour price says nothing about throughput, and
+dividing it by a guessed tokens-per-second figure would be the invented number
+rule 1 forbids. So this per-component book stays empty, and
+
 **Consequence, stated plainly: ``cost.per_session`` is not emitted.** It stays
 ``status: planned`` in the catalogue, no ``Gauge`` is declared for it anywhere
 in this package, and the acceptance line *"cost.per_session emitted"* is not

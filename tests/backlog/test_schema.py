@@ -145,7 +145,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-428 (hosted model lanes for the synthetic deployment, switchable
     # from the admin panel with a GPU switch-over; owner decision, ADR-035,
     # GitHub #724).
-    assert len(ids) == 329
+    # + INT-439 (HB-O8 closed: the owner's 80 USD monthly elective spend cap and
+    # a sourced price book; 00_STATE D19, GitHub #747).
+    assert len(ids) == 330
     import re
 
     for i in ids:

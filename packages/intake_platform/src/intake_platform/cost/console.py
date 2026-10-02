@@ -34,6 +34,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final
 
+from intake_platform.cost.cap_status import spend_cap_rows
 from intake_platform.cost.config import (
     PERIOD_WINDOW,
     BudgetScope,
@@ -359,6 +360,7 @@ def _component(resolved: ResolvedComponent) -> dict[str, Any]:
             "usd_per_unit": price.usd_per_unit,
             "source": price.source,
             "as_of": price.as_of.isoformat() if price.as_of else None,
+            "url": price.url,
         },
     }
 
@@ -392,6 +394,7 @@ def compose_cost_payload(
         "components": [_component(r) for r in resolved],
         "windows": list(windows.values()),
         "budgets": [_budget(config, i, windows, alerts) for i in range(len(config.budgets))],
+        "spend_caps": spend_cap_rows(config, runner),
         "alerts": {
             "rules_path": RULES_PATH,
             "rules": [

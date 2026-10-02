@@ -100,7 +100,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-429 (vulnerabilities gate: dependency upgrades + time-boxed node-forge row, GitHub #727)
     # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
     # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
-    assert len(actions) == 329
+    # + INT-439 (80 USD monthly elective spend cap + sourced price book, GitHub #747)
+    assert len(actions) == 330
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

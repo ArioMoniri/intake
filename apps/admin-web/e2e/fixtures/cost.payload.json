@@ -2,7 +2,7 @@
   "currency": "USD",
   "config": {
     "path": "infra/costs/unit-prices.yaml",
-    "sha256": "89859692c05dbafe08a1ceb838ed4273a87df6fc2321d6b3d36f520675fe4083",
+    "sha256": "c3475aa05974793bd70ffe3bd0adece585ede068e40dbee4349a890387dc4a7f",
     "blocker": "HB-O8"
   },
   "source": {
@@ -26,7 +26,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -43,7 +44,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -60,7 +62,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -77,7 +80,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -91,10 +95,11 @@
       "usage_metric_status": null,
       "usage_note": "the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 8e-5,
+        "source": "ElevenLabs API pricing page, v2 Multilingual, $0.08 per 1K characters (owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://elevenlabs.io/pricing/api"
       }
     },
     {
@@ -111,7 +116,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -125,10 +131,11 @@
       "usage_metric_status": null,
       "usage_note": "the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 0.9776,
+        "source": "AWS Price List API (AmazonEC2, US East (N. Virginia), g6.2xlarge Linux on-demand, publicationDate 2026-09-25T17:45:21Z; owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-1/index.json"
       }
     },
     {
@@ -145,7 +152,8 @@
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     },
     {
@@ -159,10 +167,11 @@
       "usage_metric_status": "live",
       "usage_note": null,
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 1.5e-7,
+        "source": "OpenAI API pricing page, gpt-4o-mini input, $0.15 per 1M tokens, standard tier (owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://developers.openai.com/api/docs/pricing"
       }
     },
     {
@@ -176,10 +185,11 @@
       "usage_metric_status": "live",
       "usage_note": null,
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 6e-7,
+        "source": "OpenAI API pricing page, gpt-4o-mini output, $0.60 per 1M tokens, standard tier (owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://developers.openai.com/api/docs/pricing"
       }
     },
     {
@@ -193,10 +203,11 @@
       "usage_metric_status": "live",
       "usage_note": null,
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 1.25e-6,
+        "source": "OpenAI API pricing page, gpt-4o-mini-transcribe input, $1.25 per 1M tokens, standard tier (owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://developers.openai.com/api/docs/pricing"
       }
     },
     {
@@ -210,10 +221,11 @@
       "usage_metric_status": "live",
       "usage_note": null,
       "price": {
-        "state": "not_configured",
-        "usd_per_unit": null,
-        "source": null,
-        "as_of": null
+        "state": "configured",
+        "usd_per_unit": 5e-6,
+        "source": "OpenAI API pricing page, gpt-4o-mini-transcribe output, $5.00 per 1M tokens, standard tier (owner decision D19)",
+        "as_of": "2026-10-03",
+        "url": "https://developers.openai.com/api/docs/pricing"
       }
     },
     {
@@ -225,12 +237,13 @@
       "profiles": [],
       "usage_metric": "model_lane_characters_total",
       "usage_metric_status": "live",
-      "usage_note": "the speech route reports no usage; characters sent are what is metered, so the owner's per-character price is derived from the provider's invoice for the same period",
+      "usage_note": "the speech route reports no usage; characters sent are what is metered, so the owner's per-character price is derived from the provider's invoice for the same period. gpt-4o-mini-tts has no per-character list price (only text-input and audio-output tokens, which the route does not report), so this row stays empty and the hosted TTS lane is refused under the monthly cap until it is priced (INT-439)",
       "price": {
         "state": "not_configured",
         "usd_per_unit": null,
         "source": null,
-        "as_of": null
+        "as_of": null,
+        "url": null
       }
     }
   ],
@@ -317,11 +330,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -348,11 +360,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -380,11 +391,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -395,11 +405,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -410,11 +419,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -425,11 +433,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -487,11 +494,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -518,11 +524,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -550,11 +555,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -565,11 +569,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -580,11 +583,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -595,11 +597,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -801,11 +802,10 @@
           "vendor": "elevenlabs",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main"
           ]
         },
@@ -827,11 +827,10 @@
           "vendor": "aws",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main"
           ]
         },
@@ -853,11 +852,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -866,11 +864,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -879,11 +876,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -892,11 +888,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -997,11 +992,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -1028,11 +1022,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -1060,11 +1053,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1075,11 +1067,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1090,11 +1081,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1105,11 +1095,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1167,11 +1156,10 @@
           "attribution": "allocated",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -1198,11 +1186,10 @@
           "attribution": "allocated",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
@@ -1230,11 +1217,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1245,11 +1231,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1260,11 +1245,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1275,11 +1259,10 @@
           "attribution": "allocated",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity_per_session": null,
           "usd_per_session": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1481,11 +1464,10 @@
           "vendor": "elevenlabs",
           "unit": "character",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the offline scripted-clip build (ADR-028, make clips) has no catalogued synthesis series on main"
           ]
         },
@@ -1507,11 +1489,10 @@
           "vendor": "aws",
           "unit": "host_hour",
           "usage_state": "not_metered",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "usage not metered: the dedicated AWS host of INT-352; no catalogued host-uptime series exists on main"
           ]
         },
@@ -1533,11 +1514,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1546,11 +1526,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1559,11 +1538,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1572,11 +1550,10 @@
           "vendor": "openai",
           "unit": "token",
           "usage_state": "source_unavailable",
-          "price_state": "not_configured",
+          "price_state": "configured",
           "quantity": null,
           "usd": null,
           "reasons": [
-            "price not configured",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         },
@@ -1828,6 +1805,25 @@
       "alerts": ["CostBudgetNotConfigured"]
     }
   ],
+  "spend_caps": [
+    {
+      "cap_id": "elective-models-month",
+      "covers": "elective_model_spend",
+      "period": "calendar_month_utc",
+      "limit": {
+        "usd": 80.0,
+        "source": "owner decision in chat, 3 Oct 2026: 'make limit 80 dollars' (HB-O8; 00_STATE §3 D19)",
+        "as_of": "2026-10-03"
+      },
+      "warn_ratio": 0.8,
+      "warn_at_usd": 64.0,
+      "spend_metric": "model_spend_month_usd",
+      "spend_usd": null,
+      "status": "not_evaluable",
+      "reason": "usage source not configured",
+      "alerts": ["ModelSpendCapWarning", "ModelSpendCapReached"]
+    }
+  ],
   "alerts": {
     "rules_path": "infra/observability/cost-rules.yaml",
     "rules": [
@@ -1879,6 +1875,16 @@
       {
         "alert": "CostBudgetNotConfigured",
         "budget_id": "openai-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "ModelSpendCapWarning",
+        "budget_id": "elective-models-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "ModelSpendCapReached",
+        "budget_id": "elective-models-month",
         "severity": "ticket"
       }
     ]

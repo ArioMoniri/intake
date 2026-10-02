@@ -342,6 +342,16 @@ it or whose tests exercise it.
   `admin.audit_external_anchor_age_min` (files/10 §9) — land with INT-016, INT-023, INT-025.
 - **Tests:** tests/platform/test_redaction.py; tests/security/test_trace_redaction.py;
   inv. 36 and the flip-and-repair test (inv. 40) land with INT-016 and the console issues.
+- **INT-439 (00_STATE §3 D19): the monthly spend cap is a signal on this pipeline, so it
+  must carry nothing a person could be read from.**
+  - **Series.** `model_spend_month_usd` is one unlabelled gauge. `model_spend_cap_events_total`
+    is labelled only by a closed `event` code.
+  - **Shared store.** The Redis keys are `intake:spend:<deployment>:<YYYY-MM>:<charge class>`
+    and hold one integer each: no session, tenant or patient id, and no per-call history.
+  - **Logs.** The warning line names only the cap id and the month.
+  - **Failure.** If the shared store is unreachable, elective model work fails closed. The
+    missed write is counted, not dropped.
+  - **Tests:** `tests/voice/test_spend_cap.py` and `tests/admin/test_cost_spend_cap.py`.
 
 ## `audit` — the hash-chained audit log
 

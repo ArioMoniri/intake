@@ -381,15 +381,45 @@ class TestBudgets:
 
 
 class TestNoPhiAndNoInventedZero:
-    def test_the_committed_state_carries_no_money_at_all(self) -> None:
+    def test_the_committed_state_carries_only_sourced_money(self) -> None:
+        """INT-439 / D19: two list prices, each with its page and retrieval day,
+        the owner's cap, and no spend figure while no usage source is configured."""
         payload = _compose(CONFIG_PATH, None)
+        priced = {
+            c["component"]: c["price"]
+            for c in payload["components"]
+            if c["price"]["state"] == "configured"
+        }
+        assert set(priced) == {
+            "clip_synthesis",
+            "gpu_host_onvizit_api",
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+        }
+        for price in priced.values():
+            assert price["url"].startswith("https://")
+            assert price["source"] and price["as_of"] == "2026-10-03"
         for key, value in _walk(payload):
-            if key is not None and key.startswith("usd"):
-                assert value is None, f"{key} carries {value!r} with no price configured"
-        for component in payload["components"]:
-            assert component["price"]["state"] == "not_configured"
+            if key in {"spend_usd", "usd_per_session", "total_usd"}:
+                assert value is None, f"{key} carries {value!r} with no usage source"
         for budget in payload["budgets"]:
             assert budget["status"] == "not_configured"
+        (cap,) = payload["spend_caps"]
+        assert (cap["limit"]["usd"], cap["warn_at_usd"]) == (80.0, 64.0)
+        assert cap["spend_usd"] is None and cap["status"] == "not_evaluable"
+
+    def test_near_miss_an_unpriced_component_still_carries_no_money(self) -> None:
+        payload = _compose(CONFIG_PATH, None)
+        sms = next(c for c in payload["components"] if c["component"] == "sms")
+        assert sms["price"] == {
+            "state": "not_configured",
+            "usd_per_unit": None,
+            "source": None,
+            "as_of": None,
+            "url": None,
+        }
 
     def test_every_identifier_is_id_shaped_and_no_key_is_a_phi_label(self) -> None:
         payload = _priced()

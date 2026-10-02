@@ -18,6 +18,8 @@ export interface PriceWire {
   readonly usd_per_unit: number | null;
   readonly source: string | null;
   readonly as_of: string | null;
+  /** INT-439: the published price page, when the rate is a list price. */
+  readonly url?: string | null;
 }
 
 export interface ComponentWire {
@@ -106,6 +108,21 @@ export interface BudgetWire {
   readonly alerts: readonly string[];
 }
 
+/** INT-439 / D19: the monthly elective model-spend cap. */
+export interface SpendCapWire {
+  readonly cap_id: string;
+  readonly covers: string;
+  readonly period: string;
+  readonly limit: { readonly usd: number; readonly source: string; readonly as_of: string };
+  readonly warn_ratio: number;
+  readonly warn_at_usd: number;
+  readonly spend_metric: string;
+  readonly spend_usd: number | null;
+  readonly status: string;
+  readonly reason: string;
+  readonly alerts: readonly string[];
+}
+
 export interface AlertRuleWire {
   readonly alert: string;
   readonly budget_id: string;
@@ -121,6 +138,7 @@ export interface CostPayload {
   readonly components: readonly ComponentWire[];
   readonly windows: readonly WindowWire[];
   readonly budgets: readonly BudgetWire[];
+  readonly spend_caps?: readonly SpendCapWire[];
   readonly alerts: { readonly rules_path: string; readonly rules: readonly AlertRuleWire[] };
 }
 
@@ -193,6 +211,18 @@ export interface BudgetPresentation {
   readonly alerts: readonly string[];
 }
 
+export interface SpendCapPresentation {
+  readonly capId: string;
+  readonly covers: string;
+  readonly period: string;
+  readonly limit: string;
+  readonly warnAt: string;
+  readonly spend: string;
+  readonly status: string;
+  readonly statusText: string;
+  readonly alerts: readonly string[];
+}
+
 export interface CostPresentation {
   readonly currency: string;
   readonly config: { readonly path: string; readonly sha256: string; readonly blocker: string };
@@ -201,6 +231,7 @@ export interface CostPresentation {
   readonly components: readonly ComponentPresentation[];
   readonly windows: readonly WindowPresentation[];
   readonly budgets: readonly BudgetPresentation[];
+  readonly spendCaps: readonly SpendCapPresentation[];
   readonly alerts: {
     readonly rulesPath: string;
     readonly rules: readonly { readonly alert: string; readonly budgetId: string }[];

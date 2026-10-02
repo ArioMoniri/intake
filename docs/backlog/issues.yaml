@@ -6434,3 +6434,22 @@
     - "tests: the routing table, mock_hosted_unrepresentable_for_phi_tenant, lane_swap_requires_green_rf_extraction_goldens, model_pin_frozen_in_session, synthetic_flag_immutable (each with a near miss), the deployment split, the key never echoed, the four-eyes switch and its audit chain, fallback, and the adapters against recorded fixtures; no live provider call"
   tests: [tests/platform/test_model_lane_routing.py, tests/platform/test_model_lane_resolver.py, tests/platform/test_model_lane_hosted_adapter.py, tests/platform/test_model_lane_deployment.py, tests/voice/test_model_lane_shims.py, tests/admin/test_model_lanes_routes.py, tests/infra/test_put_provider_key.py]
   sec_row: "llm-boundary"
+- id: INT-439
+  epic: E12-admin
+  phase: P0
+  title: "HB-O8 closed: an 80 USD/month cap on elective model spend, warning at 80 %, and a sourced price book"
+  # GitHub #747. Owner decision, 3 Oct 2026, in chat: "make limit 80 dollars"
+  # (00_STATE §3 D19). The prices are vendor list prices and the AWS price list,
+  # each with its page and retrieval day; no number here is an engineer's.
+  depends_on: [INT-101, INT-190, INT-428]
+  labels: [area:admin, area:voice]
+  status: doing
+  evidence: docs/evidence/INT-439.md
+  acceptance:
+    - "a monthly limit of 80 USD on elective model spend (council verifier members and hosted lanes), enforced by the existing SessionLedger through MonthlySpendLedger: elective work is refused once the UTC month reaches the limit, or when the month cannot be read, and a warning fires at 80 % (64 USD); obligatory primary extraction is counted and never refused"
+    - "the price book is filled from published pages with url and retrieved_on: the AWS g6.2xlarge us-east-1 on-demand host-hour from the AWS Price List and the ElevenLabs v2 Multilingual character from the ElevenLabs API pricing page; self-hosted lanes are charged per GPU host-hour of the seconds they occupy; a lane with no rate is unpriced, never zero"
+    - "the admin cost module shows the month's spend against the cap with a sound verdict (within, warning, reached, not_evaluable), ModelSpendCapWarning and ModelSpendCapReached are generated into the cost rules with runbook headings, and both series are catalogued live"
+    - "the decision is recorded as 00_STATE §3 D19 and HB-O8 is closed with the reason; tests cover every threshold with a near-miss, the shared Redis store across workers, a store outage failing elective work closed, and the schema refusals"
+    - "every INT-428 hosted model-lane call (dispatch, first attempt and fallback retry) is admitted by the monthly cap before the provider is asked and charged after at its sourced per-measure rates (OpenAI gpt-4o-mini and gpt-4o-mini-transcribe list prices); a router with no gate, or a hosted lane with no rate, refuses every hosted call"
+  tests: [tests/voice/test_spend_cap.py, tests/admin/test_cost_spend_cap.py, tests/admin/test_cost_module.py, tests/observability/test_cost_rules.py, tests/platform/test_model_lane_spend.py, apps/admin-web/e2e/cost.spec.ts]
+  sec_row: "observability-pipeline"

@@ -15,6 +15,9 @@ default:
   the synthetic deployment.
 - the allow-list, the self-hosted lane map, the registry and the
   qualification register, at their committed repo-relative paths.
+- INT-439: ``infra/costs/unit-prices.yaml`` (the monthly elective cap and the
+  hosted lanes' sourced rates). Its spend store is the control store's Redis,
+  keyed by the deployment's data class, so every process counts one month.
 
 **Hosted lanes belong to the deployment's image.** The hosted adapters are the
 ``intake_hosted_lanes`` package, which only the synthetic image carries. They
@@ -33,6 +36,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
+import redis
+
+from intake_platform.cost.config import load_cost_config
+from intake_platform.cost.rules import CONFIG_PATH as COST_CONFIG_PATH
+from intake_platform.cost.spend import RedisSpendStore
 from intake_platform.egress import EgressAllowlist, assert_dev_only_vendors, load_allowlist
 from intake_platform.model_lanes.guard import deployment_data_class
 from intake_platform.model_lanes.health import (
@@ -53,7 +61,12 @@ from intake_platform.model_lanes.qualifications import (
     QualificationRegistry,
 )
 from intake_platform.model_lanes.router import LaneRouter
-from intake_platform.model_lanes.store import ModelLanesStore, model_lanes_store_from_env
+from intake_platform.model_lanes.spend import HostedSpendGate
+from intake_platform.model_lanes.store import (
+    ENV_MODEL_LANES_REDIS_URL,
+    ModelLanesStore,
+    model_lanes_store_from_env,
+)
 
 __all__ = [
     "ENV_MODEL_LANES_ALLOWLIST",
@@ -133,6 +146,13 @@ def model_lanes_from_env(
         except Exception as err:  # the class name says what is missing; no value is logged
             _LOGGER.warning("model-lane key store unconfigured: %s", type(err).__name__)
     hosted = load_hosted_lanes(env, keys=keys, allowlist=allowlist, root=root)
+    spend = HostedSpendGate.from_config(
+        load_cost_config(root / COST_CONFIG_PATH),
+        RedisSpendStore(
+            redis.Redis.from_url(env[ENV_MODEL_LANES_REDIS_URL].strip()),
+            deployment=declared.value,
+        ),
+    )
     router = LaneRouter(
         store=store,
         hosted=hosted,
@@ -144,5 +164,6 @@ def model_lanes_from_env(
         declared=declared,
         health=SelfHostedHealth(self_hosted_endpoints_from_env(env)),
         kill_switch=kill_switch,
+        spend=spend,
     )
     return ModelLanesWiring(store=store, router=router)

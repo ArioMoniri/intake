@@ -1,10 +1,12 @@
 # infra/costs/unit-prices.yaml — the cost module's only source of money (INT-190).
 #
-# OWNER-FILLED. Every price and every budget limit ships EMPTY, and each stays
-# empty until a human supplies it together with a `source` (who said so: an
-# invoice, a contract, a quote reference) and an `as_of` date. No agent writes a
-# number here: a plausible invented price is worse than a missing one, because
-# no diff makes it look wrong (files/HUMAN_BLOCKERS.md rule 1; HB-O8 (b)).
+# OWNER-FILLED. A price or a limit is set only with a `source` (who said so: an
+# invoice, a contract, a quote reference, or — since the owner's decision of
+# 3 Oct 2026, 00_STATE §3 D19 — a vendor's published price page, whose `url` is
+# then recorded and whose `as_of` is the day it was retrieved) and an `as_of`
+# date. No agent writes a number that has no such source: a plausible invented
+# price is worse than a missing one, because no diff makes it look wrong
+# (files/HUMAN_BLOCKERS.md rule 1). HB-O8 is closed by D19 (INT-439).
 #
 # What an empty field does — it fails closed, never to zero:
 # - a component with no price renders "price not configured" on the admin
@@ -97,7 +99,13 @@ components:
     usage_note: >-
       the offline scripted-clip build (ADR-028, make clips) has no catalogued
       synthesis series on main
-    price: {usd_per_unit: null, source: null, as_of: null}
+    # eleven_multilingual_v2, the model packages/voice-clips pins: "v2
+    # Multilingual" at $0.08 per 1K characters, the same in every plan column.
+    price:
+      usd_per_unit: 0.00008
+      source: "ElevenLabs API pricing page, v2 Multilingual, $0.08 per 1K characters (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://elevenlabs.io/pricing/api
 
   - component: sms
     vendor: null
@@ -122,7 +130,13 @@ components:
     usage_note: >-
       the dedicated AWS host of INT-352; no catalogued host-uptime series
       exists on main
-    price: {usd_per_unit: null, source: null, as_of: null}
+    # g6.2xlarge (NVIDIA L4), us-east-1, Linux, shared tenancy, on-demand — the
+    # instance type of both AWS hosts (onvizit-api and the qwen model server).
+    price:
+      usd_per_unit: 0.9776
+      source: "AWS Price List API (AmazonEC2, US East (N. Virginia), g6.2xlarge Linux on-demand, publicationDate 2026-09-25T17:45:21Z; owner decision D19)"
+      as_of: 2026-10-03
+      url: https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-1/index.json
 
   - component: gpu_host_team
     vendor: null
@@ -149,7 +163,11 @@ components:
       aggregation: counter_increase
       selector: {lane: llm, provider: openai, direction: input}
     usage_note: null
-    price: {usd_per_unit: null, source: null, as_of: null}
+    price:
+      usd_per_unit: 0.00000015
+      source: "OpenAI API pricing page, gpt-4o-mini input, $0.15 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
 
   - component: hosted_llm_output
     vendor: openai
@@ -161,7 +179,11 @@ components:
       aggregation: counter_increase
       selector: {lane: llm, provider: openai, direction: output}
     usage_note: null
-    price: {usd_per_unit: null, source: null, as_of: null}
+    price:
+      usd_per_unit: 0.0000006
+      source: "OpenAI API pricing page, gpt-4o-mini output, $0.60 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
 
   - component: hosted_asr_input
     vendor: openai
@@ -173,7 +195,11 @@ components:
       aggregation: counter_increase
       selector: {lane: asr, provider: openai, direction: input}
     usage_note: null
-    price: {usd_per_unit: null, source: null, as_of: null}
+    price:
+      usd_per_unit: 0.00000125
+      source: "OpenAI API pricing page, gpt-4o-mini-transcribe input, $1.25 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
 
   - component: hosted_asr_output
     vendor: openai
@@ -185,7 +211,11 @@ components:
       aggregation: counter_increase
       selector: {lane: asr, provider: openai, direction: output}
     usage_note: null
-    price: {usd_per_unit: null, source: null, as_of: null}
+    price:
+      usd_per_unit: 0.000005
+      source: "OpenAI API pricing page, gpt-4o-mini-transcribe output, $5.00 per 1M tokens, standard tier (owner decision D19)"
+      as_of: 2026-10-03
+      url: https://developers.openai.com/api/docs/pricing
 
   - component: hosted_tts
     vendor: openai
@@ -199,7 +229,10 @@ components:
     usage_note: >-
       the speech route reports no usage; characters sent are what is metered,
       so the owner's per-character price is derived from the provider's
-      invoice for the same period
+      invoice for the same period. gpt-4o-mini-tts has no per-character list
+      price (only text-input and audio-output tokens, which the route does not
+      report), so this row stays empty and the hosted TTS lane is refused under
+      the monthly cap until it is priced (INT-439)
     price: {usd_per_unit: null, source: null, as_of: null}
 
 budgets:
@@ -253,3 +286,49 @@ budgets:
     vendor: openai
     period: month
     limit: {usd: null, source: null, as_of: null}
+
+# INT-439 / D19 — the owner's "make limit 80 dollars" (3 Oct 2026). A calendar
+# month (UTC) of ELECTIVE model spend: council verifier members and hosted model
+# lanes. Elective work is refused once the month-to-date spend reaches the
+# limit and warns at warn_ratio of it; obligatory work (the first extraction of
+# an answer the patient has just given) is counted and never refused.
+spend_caps:
+  - cap_id: elective-models-month
+    covers: elective_model_spend
+    period: calendar_month_utc
+    limit:
+      usd: 80
+      source: "owner decision in chat, 3 Oct 2026: 'make limit 80 dollars' (HB-O8; 00_STATE §3 D19)"
+      as_of: 2026-10-03
+    warn_ratio: 0.8
+
+# Which priced component each measure of a model lane's use is charged at. A
+# rate holds no number: it points at components above, so one figure lives in
+# one place.
+model_rates:
+  - rate_id: self-hosted-g6-2xlarge
+    route: self_hosted
+    provider: aws
+    model: g6.2xlarge
+    charges: {busy_seconds: gpu_host_onvizit_api}
+    note: >-
+      every self-hosted lane on an AWS g6.2xlarge host is charged for the host
+      seconds the call occupied, at the on-demand host-hour price
+  - rate_id: hosted-elevenlabs-multilingual-v2
+    route: hosted
+    provider: elevenlabs
+    model: eleven_multilingual_v2
+    charges: {characters: clip_synthesis}
+    note: charged per character synthesised, at the published v2 Multilingual rate
+  - rate_id: hosted-openai-gpt-4o-mini
+    route: hosted
+    provider: openai
+    model: gpt-4o-mini
+    charges: {input_tokens: hosted_llm_input, output_tokens: hosted_llm_output}
+    note: the INT-428 hosted llm lane, charged per input and output token
+  - rate_id: hosted-openai-gpt-4o-mini-transcribe
+    route: hosted
+    provider: openai
+    model: gpt-4o-mini-transcribe
+    charges: {input_tokens: hosted_asr_input, output_tokens: hosted_asr_output}
+    note: the INT-428 hosted asr lane, charged per input and output token

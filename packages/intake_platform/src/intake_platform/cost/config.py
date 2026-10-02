@@ -27,6 +27,8 @@ from typing import Final, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from intake_platform.cost.caps import Measure, ModelRate, RateRoute, SpendCap
+
 __all__ = [
     "PERIOD_HOURS",
     "PERIOD_WINDOW",
@@ -144,10 +146,18 @@ class _Sourced(BaseModel):
 
 class Price(_Sourced):
     usd_per_unit: float | None = None
+    #: INT-439: the published page the rate was read off, when it is a list
+    #: price rather than an invoice. ``as_of`` is then the day it was retrieved.
+    url: str | None = None
 
     @model_validator(mode="after")
     def _provenance(self) -> Price:
         self._check(self.usd_per_unit, "price.usd_per_unit")
+        if self.url is not None:
+            if self.usd_per_unit is None:
+                raise ValueError("price.url names a page for a price that has no value")
+            if not self.url.startswith("https://") or any(ch.isspace() for ch in self.url):
+                raise ValueError("price.url must be one https:// URL")
         return self
 
 
@@ -259,6 +269,9 @@ class CostConfig(BaseModel):
     currency: Literal["USD"]
     components: tuple[CostComponent, ...] = Field(min_length=1)
     budgets: tuple[Budget, ...] = Field(min_length=1)
+    #: INT-439 / D19: the monthly elective model-spend cap, and the lanes it counts.
+    spend_caps: tuple[SpendCap, ...] = ()
+    model_rates: tuple[ModelRate, ...] = ()
 
     @model_validator(mode="after")
     def _closed_and_covered(self) -> CostConfig:
@@ -289,7 +302,66 @@ class CostConfig(BaseModel):
                 if (vendor, period) not in slots:
                     who = vendor if vendor is not None else "all_vendors"
                     raise ValueError(f"no {period.value} budget for {who}")
+        self._caps_and_rates_resolve()
         return self
+
+    def _caps_and_rates_resolve(self) -> None:
+        cap_ids = [cap.cap_id for cap in self.spend_caps]
+        if len(set(cap_ids)) != len(cap_ids):
+            raise ValueError(f"duplicate spend cap ids: {cap_ids}")
+        if len({cap.covers for cap in self.spend_caps}) != len(self.spend_caps):
+            raise ValueError("two spend caps cover the same spend")
+        rate_ids = [rate.rate_id for rate in self.model_rates]
+        if len(set(rate_ids)) != len(rate_ids):
+            raise ValueError(f"duplicate model rate ids: {rate_ids}")
+        lanes = [(rate.route, rate.provider, rate.model) for rate in self.model_rates]
+        if len(set(lanes)) != len(lanes):
+            raise ValueError("two model rates price the same lane")
+        by_id = {component.component: component for component in self.components}
+        for rate in self.model_rates:
+            for measure, priced_by in rate.charges.items():
+                self._check_charge(rate, measure, by_id.get(priced_by), priced_by)
+
+    @staticmethod
+    def _check_charge(
+        rate: ModelRate, measure: Measure, component: CostComponent | None, priced_by: str
+    ) -> None:
+        where = f"model rate {rate.rate_id} ({measure.value})"
+        if component is None:
+            raise ValueError(f"{where} is priced by unknown {priced_by!r}")
+        if component.price.usd_per_unit is None:
+            raise ValueError(
+                f"{where} points at {priced_by}, which has no price: a lane charged at "
+                "an unknown rate cannot be counted against a cap"
+            )
+        if measure not in _ROUTE_MEASURES[rate.route]:
+            raise ValueError(f"{where}: a {rate.route.value} lane cannot be charged by it")
+        if component.unit is not _MEASURE_UNIT[measure]:
+            raise ValueError(
+                f"{where}: {priced_by} is priced per {component.unit.value}, which "
+                f"cannot be charged by {measure.value}"
+            )
+        if component.vendor != rate.provider:
+            raise ValueError(
+                f"{where} names provider {rate.provider!r} but its component is billed "
+                f"by {component.vendor!r}"
+            )
+
+
+#: A self-hosted lane is charged for the host it occupies; a hosted lane for
+#: what the vendor meters.
+_ROUTE_MEASURES: Final[dict[RateRoute, frozenset[Measure]]] = {
+    RateRoute.SELF_HOSTED: frozenset({Measure.BUSY_SECONDS}),
+    RateRoute.HOSTED: frozenset(set(Measure) - {Measure.BUSY_SECONDS}),
+}
+#: The unit a measure's price must be quoted in.
+_MEASURE_UNIT: Final[dict[Measure, Unit]] = {
+    Measure.INPUT_TOKENS: Unit.TOKEN,
+    Measure.OUTPUT_TOKENS: Unit.TOKEN,
+    Measure.CHARACTERS: Unit.CHARACTER,
+    Measure.AUDIO_SECONDS: Unit.AUDIO_SECOND,
+    Measure.BUSY_SECONDS: Unit.HOST_HOUR,
+}
 
 
 def load_cost_config(path: Path) -> CostConfig:

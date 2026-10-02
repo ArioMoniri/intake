@@ -47,6 +47,7 @@ import {
   UnsoundBudgetVerdict,
   UnsourcedPrice,
 } from "./refusals";
+import { renderSpendCap } from "./spendCap";
 import {
   PROFILES,
   type BudgetPresentation,
@@ -66,6 +67,7 @@ import {
 } from "./types";
 
 export * from "./refusals";
+export * from "./spendCap";
 export * from "./types";
 
 /* ------------------------------------------------------------------ */
@@ -145,6 +147,19 @@ function usd(value: number): string {
   return atom(value, CURRENCY, 6);
 }
 
+/**
+ * A unit price (INT-439). A list price per token is 1.5e-7 USD, which six
+ * fraction digits would paint as "0" — the invented zero this module refuses
+ * everywhere else. Significant digits keep every published figure visible.
+ */
+function usdRate(value: number): string {
+  const text = value.toLocaleString("en-GB", {
+    useGrouping: false,
+    maximumSignificantDigits: 6,
+  });
+  return `${text}${NBSP}${CURRENCY}`;
+}
+
 /* ------------------------------------------------------------------ */
 /* Renderers                                                           */
 /* ------------------------------------------------------------------ */
@@ -179,10 +194,15 @@ function renderComponent(wire: ComponentWire): ComponentPresentation {
     wire.price.as_of,
   );
   const unit = unitLabel(wire.unit);
+  const url = wire.price.url ?? null;
+  if (url !== null && (wire.price.usd_per_unit === null || !/^https:\/\/\S+$/.test(url))) {
+    throw new UnsourcedPrice(`component ${component}`);
+  }
+  const page = url === null ? "" : ` (${url})`;
   const price =
     wire.price.usd_per_unit === null
       ? PRICE_NOT_CONFIGURED
-      : `${usd(wire.price.usd_per_unit)} per ${unit.replace(/s$/, "")} ${provenance}`;
+      : `${usdRate(wire.price.usd_per_unit)} per ${unit.replace(/s$/, "")} ${provenance}${page}`;
   const usage =
     wire.usage_metric === null
       ? `not metered — ${wire.usage_note ?? ""}`.trim()
@@ -401,6 +421,7 @@ export function renderCostModule(payload: CostPayload): CostPresentation {
     components: payload.components.map(renderComponent),
     windows: payload.windows.map(renderWindow),
     budgets: payload.budgets.map(renderBudget),
+    spendCaps: (payload.spend_caps ?? []).map((cap) => renderSpendCap(cap, usd, id)),
     alerts: {
       rulesPath: payload.alerts.rules_path,
       rules: payload.alerts.rules.map((rule) => ({

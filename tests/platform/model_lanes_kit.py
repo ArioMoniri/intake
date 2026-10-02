@@ -9,9 +9,19 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 import httpx
+from intake_platform.cost.caps import (
+    CapPeriod,
+    Measure,
+    RateRoute,
+    SpendCap,
+    SpendCapLimit,
+)
+from intake_platform.cost.spend import InMemorySpendStore, LaneRate, MonthlySpendLedger
 from intake_platform.egress import DataClass
 from intake_platform.model_lanes import (
     HostedChat,
@@ -37,6 +47,7 @@ from intake_platform.model_lanes import (
     TenantDataClass,
 )
 from intake_platform.model_lanes.qualifications import EvalRun, EvalStatus, Qualification
+from intake_platform.model_lanes.spend import HostedSpendGate
 
 #: Fake, test-only weights manifest: 64-hex values that are no file's digest.
 WEIGHTS = {"model.safetensors": "a" * 64}
@@ -202,6 +213,49 @@ class FakeHostedBackend:
         return self.probe_ok
 
 
+#: INT-439: SYNTHETIC test rates for the three kit snapshots — whole-cent figures no
+#: reader could mistake for a provider's price (the committed list prices live in
+#: infra/costs/unit-prices.yaml and are asserted in tests/voice/test_spend_cap.py).
+TEST_RATES = {
+    (RateRoute.HOSTED, "openai", "gpt-4o-mini"): LaneRate(
+        rate_id="test-llm",
+        route=RateRoute.HOSTED,
+        prices={Measure.INPUT_TOKENS: Decimal("0.01"), Measure.OUTPUT_TOKENS: Decimal("0.02")},
+    ),
+    (RateRoute.HOSTED, "openai", "gpt-4o-mini-transcribe"): LaneRate(
+        rate_id="test-asr",
+        route=RateRoute.HOSTED,
+        prices={Measure.INPUT_TOKENS: Decimal("0.01")},
+    ),
+    (RateRoute.HOSTED, "openai", "gpt-4o-mini-tts"): LaneRate(
+        rate_id="test-tts",
+        route=RateRoute.HOSTED,
+        prices={Measure.CHARACTERS: Decimal("0.01")},
+    ),
+}
+NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
+
+
+def spend_gate(
+    *,
+    cap_usd: str = "80",
+    rates: Mapping[tuple[RateRoute, str, str], LaneRate] | None = None,
+    store: InMemorySpendStore | None = None,
+) -> HostedSpendGate:
+    """A gate over a fresh in-memory month, the owner's cap by default."""
+    cap = SpendCap(
+        cap_id="elective-models-month",
+        covers="elective_model_spend",
+        period=CapPeriod.CALENDAR_MONTH_UTC,
+        limit=SpendCapLimit(usd=Decimal(cap_usd), source="test cap", as_of=NOW.date()),
+        warn_ratio=Decimal("0.8"),
+    )
+    ledger = MonthlySpendLedger(
+        cap=cap, store=store or InMemorySpendStore(), wall_clock=lambda: NOW
+    )
+    return HostedSpendGate(ledger=ledger, rates=TEST_RATES if rates is None else rates)
+
+
 def hosted_lanes(backend: FakeHostedBackend | None, *, listed: bool = True) -> HostedLanes:
     info = HostedProviderInfo(
         provider=ProviderId.OPENAI,
@@ -266,6 +320,8 @@ def build_lanes(
     qualifications: QualificationRegistry | None = None,
     served: bool = True,
     kill_switch: Any = None,
+    spend: HostedSpendGate | None = None,
+    unmetered: bool = False,
 ) -> Lanes:
     rows = {lane: self_hosted_row(lane, component=f"gpu-{lane.value}") for lane in Lane}
     identities: dict[Lane, ServedIdentity | None] = {
@@ -295,5 +351,6 @@ def build_lanes(
         declared=declared,
         health=health,
         kill_switch=kill_switch,
+        spend=None if unmetered else (spend or spend_gate()),
     )
     return Lanes(router, store, kv, keys, backend, identities, rows)

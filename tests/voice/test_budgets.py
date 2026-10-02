@@ -298,6 +298,9 @@ def test_the_ledger_keeps_running_totals_not_a_sequence_of_charges() -> None:
         "_totals",
         "_charges",
         "_refusals",
+        # INT-439: a reference to the deployment's monthly spend ledger, which
+        # holds one integer total per (month, charge class) — never a charge list.
+        "_spend",
     }
     for name, value in vars(ledger).items():
         assert not isinstance(value, list | tuple | set), (

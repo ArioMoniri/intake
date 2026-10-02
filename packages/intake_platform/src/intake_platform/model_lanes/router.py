@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from intake_platform.egress import DataClass
 from intake_platform.model_lanes.guard import effective_data_class
@@ -52,6 +52,9 @@ from intake_platform.model_lanes.models import ModelCatalogue, ModelRef, ModelSe
 from intake_platform.model_lanes.qualifications import QualificationRegistry
 from intake_platform.model_lanes.routing import RouteDecision, decide_route, hosted_block
 from intake_platform.model_lanes.store import ModelLanesReader, ModelLanesUnavailable
+
+if TYPE_CHECKING:
+    from intake_platform.model_lanes.spend import HostedSpendGate
 
 __all__ = [
     "LaneRouter",
@@ -147,7 +150,11 @@ class LaneRouter:
         declared: TenantDataClass,
         health: SelfHostedHealth,
         kill_switch: Callable[[str], bool] | None = None,
+        spend: HostedSpendGate | None = None,
     ) -> None:
+        #: INT-439: the monthly elective cap every hosted call is charged
+        #: against. ``None`` refuses every hosted call (fail closed).
+        self.spend = spend
         self.store = store
         self.hosted = hosted
         self.models = models

@@ -10,8 +10,9 @@
  * the Python lane the moment either file and the module disagree.
  *
  * - `cost.payload.json` is the committed state: `infra/costs/unit-prices.yaml`
- *   with every price and every budget empty (HB-O8), and no Prometheus source
- *   configured for the console. Nothing on it may carry money.
+ *   with six sourced list prices and the owner's 80 USD monthly elective cap
+ *   (INT-439, 00_STATE D19), every vendor budget still empty, and no Prometheus
+ *   source configured for the console. No spend figure may appear on it.
  * - `cost.priced.payload.json` is the same module over a TEST-ONLY price file
  *   (`tests/fixtures/cost/unit-prices.priced.yaml`, synthetic rates) and the
  *   recorded metric responses in `tests/fixtures/cost/prometheus_responses.json`.
@@ -92,20 +93,32 @@ function day(view: CostPresentation): WindowPresentation {
 /** Quantity and unit cross the boundary as one atom (invariant 22). */
 const NBSP = String.fromCharCode(0xa0);
 
-describe("the committed state — nothing is priced, nothing is invented", () => {
-  it("shows every component as price not configured", () => {
+describe("the committed state — only sourced prices, nothing invented", () => {
+  it("shows the two sourced list prices with their pages, and nothing else priced", () => {
     const view = renderCostModule(committed());
-    expect(view.components.length).toBeGreaterThan(0);
+    const priced = view.components.filter((c) => c.priceConfigured).map((c) => c.component);
+    expect(priced.sort()).toEqual([
+      "clip_synthesis",
+      "gpu_host_onvizit_api",
+      "hosted_asr_input",
+      "hosted_asr_output",
+      "hosted_llm_input",
+      "hosted_llm_output",
+    ]);
     for (const component of view.components) {
-      expect(component.priceConfigured).toBe(false);
-      expect(component.price).toBe("price not configured");
+      if (component.priceConfigured) {
+        expect(component.price).toMatch(/as of 2026-10-03 \(https:\/\/\S+\)$/);
+      } else {
+        expect(component.price).toBe("price not configured");
+      }
     }
   });
 
-  it("carries no money anywhere on the page", () => {
+  it("carries no spend figure anywhere on the page", () => {
     const view = renderCostModule(committed());
-    const painted = JSON.stringify(view);
-    expect(painted).not.toMatch(new RegExp(`\\d${NBSP}USD`));
+    for (const cap of view.spendCaps) {
+      expect(cap.spend).toBe("unknown");
+    }
     for (const window of view.windows) {
       for (const row of window.perSession) {
         expect(row.hasFigure).toBe(false);
@@ -328,5 +341,66 @@ describe("negative controls — what a tampered or drifted body cannot buy", () 
   it("near miss: the untampered payloads both render", () => {
     expect(() => renderCostModule(committed())).not.toThrow();
     expect(() => renderCostModule(priced())).not.toThrow();
+  });
+});
+
+describe("the monthly elective spend cap (INT-439, 00_STATE D19)", () => {
+  it("shows the owner's 80 USD cap, its 64 USD warning point and an unknown spend", () => {
+    const [cap] = renderCostModule(committed()).spendCaps;
+    expect(cap).toBeDefined();
+    expect(cap!.limit).toContain(`80${NBSP}USD`);
+    expect(cap!.limit).toContain("make limit 80 dollars");
+    expect(cap!.warnAt).toBe(`64${NBSP}USD (80 %)`);
+    expect(cap!.status).toBe("not_evaluable");
+    expect(cap!.alerts).toEqual(["ModelSpendCapWarning", "ModelSpendCapReached"]);
+  });
+
+  it("paints the priced fixture's month as past the warning point", () => {
+    const [cap] = renderCostModule(priced()).spendCaps;
+    expect(cap!.spend).toBe(`612.5${NBSP}USD`);
+    expect(cap!.status).toBe("warning");
+  });
+
+  it("refuses 'within' on a spend past the warning point", () => {
+    const payload = tamper(priced());
+    payload.spend_caps![0]!.status = "within";
+    expect(() => renderCostModule(payload as CostPayload)).toThrow(UnsoundBudgetVerdict);
+  });
+
+  it("refuses a spend figure on a verdict that says the spend is unknown", () => {
+    const payload = tamper(committed());
+    payload.spend_caps![0]!.spend_usd = 0;
+    expect(() => renderCostModule(payload as CostPayload)).toThrow(UnsoundBudgetVerdict);
+  });
+
+  it("refuses a cap with no source", () => {
+    const payload = tamper(committed());
+    payload.spend_caps![0]!.limit.source = " ";
+    expect(() => renderCostModule(payload as CostPayload)).toThrow(UnsourcedPrice);
+  });
+
+  it("refuses a warning point that is not the ratio of the limit", () => {
+    const payload = tamper(committed());
+    payload.spend_caps![0]!.warn_at_usd = 70;
+    expect(() => renderCostModule(payload as CostPayload)).toThrow(UnsoundBudgetVerdict);
+  });
+
+  it("paints a per-token list price in full, never as a rounded zero", () => {
+    const view = renderCostModule(committed());
+    const llm = view.components.find((c) => c.component === "hosted_llm_input");
+    expect(llm!.price.startsWith(`0.00000015${NBSP}USD per token`)).toBe(true);
+    const clip = view.components.find((c) => c.component === "clip_synthesis");
+    expect(clip!.price.startsWith(`0.00008${NBSP}USD per character`)).toBe(true);
+  });
+
+  it("refuses a price page that is not https", () => {
+    const payload = tamper(committed());
+    const clip = payload.components.find((c) => c.component === "clip_synthesis")!;
+    clip.price.url = "http://elevenlabs.io/pricing/api";
+    expect(() => renderCostModule(payload as CostPayload)).toThrow(UnsourcedPrice);
+  });
+
+  it("near miss: the untampered committed payload renders", () => {
+    expect(() => renderCostModule(committed())).not.toThrow();
   });
 });
