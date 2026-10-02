@@ -82,7 +82,7 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
         glassEffectStyle="regular"
         colorScheme={scheme}
         onLayout={report}
-        style={[...barStyle, { borderTopColor: theme.border }]}
+        style={[...barStyle, { borderTopColor: theme.separator }]}
       >
         {inner}
       </GlassView>
@@ -94,7 +94,7 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
     return (
       <View
         onLayout={report}
-        style={[...barStyle, { backgroundColor: theme.surface, borderTopColor: theme.border }]}
+        style={[...barStyle, { backgroundColor: theme.surface, borderTopColor: theme.separator }]}
       >
         {inner}
       </View>

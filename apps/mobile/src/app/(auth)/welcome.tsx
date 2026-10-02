@@ -26,9 +26,15 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { GlassCard } from "@/components/GlassCard";
 import { Kicker } from "@/components/Kicker";
-import { AppText, PrimaryButton, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import {
+  AppText,
+  Card,
+  PrimaryButton,
+  Screen,
+  SecondaryButton,
+  useTheme,
+} from "@/components/Themed";
 import { verticalSlop } from "@/lib/a11y/target";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
 import { appLocaleChooser, chooseFromChooser } from "@/lib/locale/chooser";
@@ -117,7 +123,7 @@ function DevSignIn() {
     };
   }, []);
   return (
-    <GlassCard style={styles.devCard}>
+    <Card style={styles.devCard}>
       <Kicker label={t("welcome.devSignIn")} />
       {accounts.map((account) => (
         <SecondaryButton
@@ -132,7 +138,7 @@ function DevSignIn() {
       <AppText role="caption" color="inkFaint">
         {t("welcome.devNote")}
       </AppText>
-    </GlassCard>
+    </Card>
   );
 }
 

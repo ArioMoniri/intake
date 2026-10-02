@@ -32,7 +32,7 @@
 |---|---|---|---|---|---|
 | Tab rail pill | `FloatingTabBar` | `GlassView` `regular`, radius `chip`, no wash | `BlurView` 60 + `glassFallback` wash + hairline | `surface` + `border` hairline | Before this pass the rail was blur on every OS (research A4). Not interactive (rule 5). |
 | Bottom CTA bar | `GlassBar` | `GlassView` `regular` + top hairline | `BlurView` 55 + wash + top hairline | `surface` + top `border` hairline | Owns the physical bottom edge on intake and review. Height is measured (INT-284) in all three modes. |
-| Welcome dev card | `GlassCard` | `GlassView` `regular` | `BlurView` 50 + wash + hairline | `surface` + hairline + light shadow | `__DEV__` only. It is content on glass, which HIG advises against. It is tolerated because patients never see it. **Do not reuse `GlassCard` for patient content.** |
+| ~~Welcome dev card~~ | ~~`GlassCard`~~ | — | — | — | **Removed by INT-422** ([system-refresh.md](../system-refresh.md)): content never sits on glass, dev-only or not. The dev card is a plain `Card`. |
 
 `glassFallback` alphas, `radius` and `spacing` are unchanged. No palette hex changes, so the pinned AA suite in `theme.test.ts` is untouched.
 

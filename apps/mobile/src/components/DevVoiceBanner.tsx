@@ -60,6 +60,7 @@ export function DevVoiceBanner({ report }: DevVoiceBannerProps) {
 const styles = StyleSheet.create({
   banner: {
     borderRadius: radius.control,
+    borderCurve: "continuous",
     borderWidth: 1,
     gap: 2,
     marginHorizontal: spacing.screen,

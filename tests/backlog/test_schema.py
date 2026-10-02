@@ -138,7 +138,9 @@ def test_ids_unique_and_well_formed() -> None:
     # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide; owner request, GitHub #706).
-    assert len(ids) == 326
+    # + INT-422 (design system refresh: native Apple feel, restrained palette,
+    # SF Symbols, contrast in three modes; owner request, GitHub #714).
+    assert len(ids) == 327
     import re
 
     for i in ids:

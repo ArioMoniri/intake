@@ -6369,3 +6369,20 @@
     - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
   tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
   sec_row: "cloud-clipgen"
+- id: INT-422
+  epic: E08-mobile
+  phase: P1
+  title: "Design system refresh: native Apple feel, restrained palette, SF Symbols, no AI-generic styling"
+  # GitHub #714. Owner request, 27 Sep 2026: the visual system looked
+  # AI-generated. RED surfaces unchanged (ADR-033); no copy changed.
+  depends_on: [INT-412]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-422.md
+  acceptance:
+    - "theme tokens revised to one restrained accent with Apple system semantics (grouped backgrounds, label ladder, fill, separator) and their Material roles, a Dynamic Type scale, an 8-pt grid, 12-pt continuous corners and materials on the functional chrome only; no gradient, glow, shadow or decorative illustration"
+    - "every glyph is an SF Symbol on iOS and a Material Symbol on Android through the one icon layer, pinned by a guard test"
+    - "WCAG contrast is tested in light, dark and Increase Contrast: AA for every text pair, AAA for clinical text, 3:1 for control boundaries; RED colours are unchanged in every mode"
+    - "before/after simulator captures and the rationale are in docs/design/system-refresh.md"
+  tests: [apps/mobile/src/lib/theme.test.ts, apps/mobile/src/lib/a11y/contrast.test.ts, apps/mobile/e2e/designSystem.spec.ts, apps/mobile/src/lib/symbols.test.ts]
+  sec_row: "mobile"

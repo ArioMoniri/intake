@@ -7,8 +7,8 @@
  * path forbids free numeric entry outright (invariant 22).
  *
  * Two forms, one component, and TWO reasons to take the second. Below the
- * large-text scale a group of two or three is a row of tonal pills on a raised
- * track (the Oura segment register). It stacks into full-width rows when the
+ * large-text scale a group of two or three is the iOS segmented control: a
+ * raised thumb on a grey track (INT-422). It stacks into full-width rows when the
  * text is large — and also whenever there are more than three options, at any
  * scale, because five Turkish labels do not fit a phone width: measured on the
  * simulator at OS 1.0, "Daha büyük" and "En büyük" each wrapped to two lines
@@ -21,9 +21,10 @@
  * inferred: `radiogroup` names the question, each row is a `radio` that states
  * whether it is the chosen one, and every row reaches the target floor by BOX
  * (`minHeight: MIN_TAP`) — never by slop, which on a row of adjacent pills
- * would make a neighbour unreachable. Selection is carried by a filled pill in
- * the inline form (a luminance inversion, not a hue) and by a border plus a
- * checkmark once stacked, so it never rests on colour alone.
+ * would make a neighbour unreachable. Selection is carried by the thumb, its
+ * edge (3:1 or more on the track) and a semibold label in the inline form, and
+ * by a tinted border plus a checkmark once stacked, so it never rests on
+ * colour alone.
  */
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -83,20 +84,18 @@ export function Segmented({ label, options, value, onChange, hint }: SegmentedPr
               styles.option,
               stacked ? styles.optionStacked : styles.optionInline,
               {
-                backgroundColor: stacked ? theme.surface : selected ? theme.cta : "transparent",
-                borderColor: stacked && selected ? theme.ink : "transparent",
+                backgroundColor: stacked ? theme.surface : selected ? theme.thumb : "transparent",
+                borderColor: selected ? (stacked ? theme.primary : theme.inkFaint) : "transparent",
                 opacity: pressed ? motion.press.opacity : 1,
               },
             ]}
           >
-            <AppText
-              role="label"
-              color={stacked ? "ink" : selected ? "onCta" : "inkSoft"}
-              style={selected ? styles.selectedLabel : undefined}
-            >
+            <AppText role="label" color="ink" style={selected ? styles.selectedLabel : undefined}>
               {option.label}
             </AppText>
-            {stacked && selected ? <Icon name="checkmark" size={20} tintColor={theme.ink} /> : null}
+            {stacked && selected ? (
+              <Icon name="checkmark" size={20} tintColor={theme.primary} />
+            ) : null}
           </Pressable>
         );
       })}
@@ -108,7 +107,8 @@ const styles = StyleSheet.create({
   group: { gap: spacing.xs },
   groupInline: {
     flexDirection: "row",
-    borderRadius: radius.chip,
+    borderRadius: radius.control,
+    borderCurve: "continuous",
     padding: spacing.xs,
   },
   groupStacked: { flexDirection: "column", gap: spacing.sm },
@@ -123,7 +123,9 @@ const styles = StyleSheet.create({
   optionInline: {
     flex: 1,
     flexBasis: 0,
-    borderRadius: radius.chip,
+    // The thumb's corner sits concentric inside the track's.
+    borderRadius: radius.control - spacing.xs,
+    borderCurve: "continuous",
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
   },
@@ -135,6 +137,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignSelf: "stretch",
     borderRadius: radius.group,
+    borderCurve: "continuous",
     // A stacked row is a list row, and the app's list rows are 56.
     minHeight: 56,
     paddingHorizontal: spacing.md,

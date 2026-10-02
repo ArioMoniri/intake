@@ -1,7 +1,7 @@
 /**
  * The OS accessibility signals the app reacts to (INT-144; Reduce
  * Transparency since the Apple-native pass, docs/design/apple-native/spec.md
- * §4).
+ * §4; Increase Contrast since INT-422, docs/design/system-refresh.md §3).
  *
  * Kept apart from ./motion so the policy stays unit-testable without a
  * React Native runtime: this file is the thin adapter that reads the
@@ -18,8 +18,10 @@ import {
 } from "@/lib/motion/policyStore";
 import { reducedMotion } from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
+import type { Contrast } from "@/lib/theme";
 
 import { lineStep, nextAnnouncement, type Politeness } from "./announce";
+import { contrastMode } from "./contrast";
 
 /**
  * The app's one reduce-motion store (INT-331, MOTION-2): one OS read and one
@@ -91,6 +93,38 @@ export function useReducedTransparency(): boolean | null {
     reduceTransparencyStore.getSnapshot,
     // Static web rendering has no OS to ask: unknown.
     reduceTransparencyStore.getSnapshot,
+  );
+}
+
+/**
+ * The app's one Increase Contrast store (INT-422): the same shared store over
+ * iOS Increase Contrast and Android High contrast text. The device adapter is
+ * loaded lazily on the first subscription, like the two above.
+ */
+const increaseContrastStore = createOsSettingStore(
+  deferredOsSettingSource(() =>
+    import("@/lib/a11y/native/increaseContrastSource").then(
+      (native) => native.nativeIncreaseContrastSource,
+    ),
+  ),
+);
+
+/**
+ * Which palette the OS contrast request selects (lib/a11y/contrast.ts):
+ * `high` when the OS asks for more contrast, `standard` when it does not or
+ * has not answered. Read by `useTheme()`, so every surface that takes its
+ * colours from the theme follows the setting, and follows a change live.
+ *
+ * There is no in-app switch: the request is the patient's system-wide one.
+ */
+export function useIncreasedContrast(): Contrast {
+  return contrastMode(
+    useSyncExternalStore(
+      increaseContrastStore.subscribe,
+      increaseContrastStore.getSnapshot,
+      // Static web rendering has no OS to ask: unknown.
+      increaseContrastStore.getSnapshot,
+    ),
   );
 }
 
