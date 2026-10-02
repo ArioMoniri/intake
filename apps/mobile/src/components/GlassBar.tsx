@@ -116,7 +116,51 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
   );
 }
 
+/**
+ * The navigation bar's material (INT-433): the same three answers as the
+ * bottom bar, drawn behind a transparent native-stack header
+ * (`headerBackground`), so the question scrolls under glass at the top and
+ * the bottom alike. It holds nothing itself: the system draws the back button
+ * over it. Reduce Transparency gets the page ground, which is the bar the
+ * screen had before, so the patient who asked for no transparency sees no
+ * change at all.
+ */
+export function GlassNavBackground() {
+  const theme = useTheme();
+  const scheme = useScheme();
+  const mode = useGlassMode();
+  const fallback = glassFallback(scheme);
+  if (mode === "liquid") {
+    return (
+      <GlassView
+        glassEffectStyle="regular"
+        colorScheme={scheme}
+        style={[StyleSheet.absoluteFill, styles.navEdge, { borderBottomColor: theme.separator }]}
+      />
+    );
+  }
+  if (mode === "solid") {
+    return <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]} />;
+  }
+  return (
+    <View
+      style={[StyleSheet.absoluteFill, styles.navEdge, { borderBottomColor: fallback.borderColor }]}
+    >
+      <BlurView
+        intensity={55}
+        tint={scheme === "dark" ? "dark" : "light"}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { backgroundColor: fallback.backgroundColor }]}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  navEdge: { borderBottomWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   // flexShrink (INT-360): a host that caps its bottom stack — the dialogue,
   // whose stack must fit above a landscape keyboard — can take height back
   // from the bar, and the bar hands it on to a scroller inside it. With no cap

@@ -293,8 +293,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-423 (chat rhythm, glass on chrome only, content solid; owner
     # request, GitHub #718)
     # + INT-425 (App Store / Play screenshots from real captures; owner
-    # request, GitHub #720); grows only with a stated reason.
-    assert len(ids) == 329, f"expected 175 blueprint + 154 added issues, got {len(ids)}"
+    # request, GitHub #720)
+    # + INT-433 (question screen redesign, Mobbin-referenced; owner request,
+    # GitHub #739); grows only with a stated reason.
+    assert len(ids) == 330, f"expected 175 blueprint + 155 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

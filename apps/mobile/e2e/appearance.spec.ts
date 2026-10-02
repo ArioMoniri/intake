@@ -171,7 +171,8 @@ describe("T-22 — the colour scheme has one overridable source", () => {
     expect(consumers).toContain("src/components/FloatingTabBar.tsx");
     expect(consumers).toContain("src/components/GlassBar.tsx");
     expect(consumers).toContain("src/components/SectionPanel.tsx");
-    expect(consumers).toContain("src/app/(tabs)/visits/[visitId]/intake.tsx");
+    // The typed intake left this list in INT-433: its chips take their fills
+    // from palette tokens in both schemes, through useTheme().
   });
 
   it("useScheme resolves the stored override, and useTheme goes through it", () => {

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**329 issues.** By phase: P0 161 · P1 114 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 217 · todo 74 · withdrawn 1.
+**330 issues.** By phase: P0 161 · P1 115 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 218 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -291,6 +291,7 @@
 | INT-422 | Design system refresh: native Apple feel, restrained palette, SF Symbols, no AI-generic styling | E08-mobile | INT-412 | area:mobile | done |
 | INT-423 | Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid | E08-mobile | INT-422 | area:mobile | done |
 | INT-425 | App Store / Play screenshots: story-led, real captures, app-store-screenshots skill | E08-mobile | INT-422, INT-423 | area:mobile | done |
+| INT-433 | Question screen redesign: native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced) | E08-mobile | INT-422, INT-423 | area:mobile | done |
 
 ## P2
 

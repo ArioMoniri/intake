@@ -52,7 +52,7 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --all-packages
-      - run: make edge-plugin a
+      - run: make edge-plugin
       - run: make check-integration
 
   gates:

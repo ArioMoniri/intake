@@ -6418,3 +6418,21 @@
     - "the source project is in the repo, and the rationale is in docs/design/store-screenshots.md"
   tests: [tests/store/test_store_screenshots.py]
   sec_row: "mobile"
+- id: INT-433
+  epic: E08-mobile
+  phase: P1
+  title: "Question screen redesign: native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)"
+  # GitHub #739. Owner review of the store shot, 2 Oct 2026. Builds on
+  # INT-422's tokens and INT-423's materials; question text, instruments and
+  # RED surfaces unchanged.
+  depends_on: [INT-422, INT-423]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-433.md
+  acceptance:
+    - "the dot row is replaced with a native progress treatment (a thin determinate bar and a 'Soru 3 / 12' style line over the applicable flow); the numerals are display-only (invariant 22) and the control is announced as one progress value"
+    - "iOS-native filled fields with no heavy outline and a focus ring; filled capsule choice chips with a tinted, checked selected state; a Liquid Glass bottom action bar and nav bar with content on solid fills; Reduce Transparency falls back to solid"
+    - "Mobbin references (best-in-class health and onboarding questionnaire screens) are cited in docs/design/question-screen.md, with before/after captures"
+    - "question text is unchanged (invariant 10), RED surfaces are untouched, contrast tests pass and Dynamic Type works up to AX5"
+  tests: [apps/mobile/src/lib/intake/questionScreen.test.ts, apps/mobile/e2e/questionScreen.spec.ts, apps/mobile/e2e/overflow.spec.ts, apps/mobile/e2e/typed_intake.spec.ts]
+  sec_row: "mobile"

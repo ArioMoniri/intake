@@ -143,8 +143,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-423 (chat rhythm, Liquid Glass on chrome only, content solid;
     # owner request, GitHub #718).
     # + INT-425 (App Store / Play screenshots from real captures, owner request,
-    # GitHub #720); grows only with a stated reason.
-    assert len(ids) == 329
+    # GitHub #720)
+    # + INT-433 (question screen: native progress, filled inputs, capsule
+    # chips, Liquid Glass bars; owner request, GitHub #739); grows only with a stated reason.
+    assert len(ids) == 330
     import re
 
     for i in ids:
