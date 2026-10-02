@@ -2957,3 +2957,36 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-02T18:00:00+03:00 · INT-424 · awaiting-human (PR open, not merged; the live render waits on the owner's key run)
+- Goal: acceptance verbatim (GitHub #719):
+  - *"delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"*
+  - *"an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"*
+  - *"RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"*
+- Plan:
+  - Bump the table to `PROFILE_VERSION = 2`, with each row picked from a rendered candidate grid.
+  - Add a sample-render tool through the existing gateway: verbatim catalogue lines, a spend cap, and labelled and blind pages in `.cache/voice-samples/`.
+  - Refuse SSML and audio tags inside scripted text.
+  - Write ADR-034 (Proposed).
+  - Add the v2 table, the pacing rules and the owner's render steps to the wiring guide.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_render_delivery_samples.py`.
+  - Extended: `test_delivery_profiles.py` (v2 table, key bump per context, retired `@v1` take), `test_elevenlabs_clipgen.py` (markup refused), `tests/api/test_dev_voice_george.py` (markup → 422).
+  - Near misses:
+    - the same settings under a new version still change the key;
+    - the ellipsis, dash, semicolon and comma reach the wire unchanged;
+    - a gap under 150 ms is not a pause.
+  - RED run: 2 collection errors (`PROFILE_VERSION`, `MarkupInScriptError` absent) and 2 API failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9684 passed at 95.77 %; voice-clips 99.73 %; every floor met).
+  - `make safety` exit 0 (triage 534 at 100 % branch; 18/18 mutations; voice-runtime 1626 at 98.68 %; red-team 121).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, and backlog/smoke/docs/evidence 122 passed.
+  - `make security` is in the evidence file.
+  - No TS changed.
+- Invariants touched and still passing: 6 (the key is never printed), 10 (markup refused), 17, 19, 20 (no claims), 21 (RED most stable, style 0), 22 (SSML breaks refused).
+- Decisions / ADRs / `00_STATE.md` rows: ADR-034 Proposed (no `00_STATE.md` row until ratified). No metric, no threat-row change.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Who and what: the owner runs the one-line render in `docs/voice/on-prem-tts-wiring.md` §8 and confirms or swaps the v2 pick per context (`docs/backlog/blockers.md` INT-424; no HB id minted).
+  - Why: the agent could not reach the ElevenLabs key, because the permission classifier denied reading the secrets file. Spend so far is 0 USD.
+- Next: PR `INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal` (Closes #719, Sec-Row cloud-clipgen), left unmerged until the owner's listening pass.
+- LOOP_STATUS: WAITING_HUMAN

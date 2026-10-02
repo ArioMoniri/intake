@@ -58,6 +58,7 @@ from voice_clips.delivery import (
     DELIVERY_CONTEXTS,
     DELIVERY_PROFILES,
     MAX_STYLE,
+    PROFILE_VERSION,
     SPEED_MAX,
     SPEED_MIN,
     DeliveryProfile,
@@ -150,6 +151,67 @@ class TestEveryContextResolves:
             )
 
 
+# ------------------------------------------------------------- v2 (INT-424)
+
+
+#: The INT-415 rows as merged, spelled out once: the v2 retune is a diff
+#: against these, and their keys must never be reused by a v2 clip.
+V1_SETTINGS = {
+    "welcome": (0.40, 0.20, 0.98),
+    "routine": (0.55, 0.05, 1.00),
+    "sensitive": (0.65, 0.00, 0.92),
+    "instrument": (0.80, 0.00, 0.95),
+    "acknowledgement": (0.48, 0.15, 1.02),
+    "red": (0.85, 0.00, 0.95),
+    "closing": (0.42, 0.20, 0.97),
+}
+
+
+class TestTheV2Table:
+    """INT-424: the table is retuned from rendered samples and bumped to v2, so
+    every clip made under v1 is a cache miss rather than a stale replay."""
+
+    def test_the_table_is_version_two(self) -> None:
+        assert PROFILE_VERSION == 2
+        assert {profile.version for profile in DELIVERY_PROFILES.values()} == {PROFILE_VERSION}
+
+    @pytest.mark.parametrize("context", SEVEN)
+    def test_every_context_resolves_to_a_v2_key(self, context: str) -> None:
+        assert delivery_profile(context).key == f"delivery.{context}@v2"
+
+    @pytest.mark.parametrize("context", ["red", "instrument"])
+    def test_red_and_instrument_stay_neutral_in_v2(self, context: str) -> None:
+        settings = delivery_profile(context).voice_settings
+        assert settings.style == 0.0
+        assert settings.stability >= V1_SETTINGS[context][0], "never less stable than v1"
+
+    @pytest.mark.parametrize("context", SEVEN)
+    def test_the_bump_changes_every_clip_key(self, context: str, bundle: CompiledBundle) -> None:
+        v2 = delivery_profile(context)
+        stability, style, speed = V1_SETTINGS[context]
+        v1 = dataclasses.replace(
+            v2,
+            version=1,
+            voice_settings=dataclasses.replace(
+                v2.voice_settings, stability=stability, style=style, speed=speed
+            ),
+        )
+        entry = bundle.clip_manifest[0].entry
+        assert v1.key != v2.key
+        assert clip_object_key(entry, profile=v1) != clip_object_key(entry, profile=v2)
+
+    def test_the_same_settings_under_a_new_version_are_still_a_new_key(
+        self, bundle: CompiledBundle
+    ) -> None:
+        """Near-miss control: the key moves on the version alone, so a row whose
+        values the review kept is still re-synthesised under v2."""
+        profile = delivery_profile("routine")
+        older = dataclasses.replace(profile, version=PROFILE_VERSION - 1)
+        entry = bundle.clip_manifest[0].entry
+        assert older.voice_settings == profile.voice_settings
+        assert clip_object_key(entry, profile=older) != clip_object_key(entry, profile=profile)
+
+
 # ------------------------------------------------------------ the principles
 
 
@@ -180,7 +242,7 @@ class TestTheOwnersPrinciplesHold:
 
     def test_routine_is_calm_and_neutral(self) -> None:
         routine = _p("routine").voice_settings
-        assert routine.speed == 1.0
+        assert 0.95 <= routine.speed <= 1.0, "an unhurried normal pace, never brisk"
         assert routine.style <= _p("acknowledgement").voice_settings.style
         assert routine.stability > _p("welcome").voice_settings.stability
 
@@ -357,8 +419,8 @@ class TestTheOfflineBuildSpeaksEachRowInItsProfile:
         build_clip_cache(manifest=manifest, gateway=gateway, cache=cache)
         expected = [delivery_profile(row.delivery_context).key for row in manifest.entries]
         assert gateway.profiles == expected
-        assert "delivery.red@v1" in gateway.profiles
-        assert "delivery.routine@v1" in gateway.profiles
+        assert f"delivery.red@v{PROFILE_VERSION}" in gateway.profiles
+        assert f"delivery.routine@v{PROFILE_VERSION}" in gateway.profiles
 
     def test_the_object_key_carries_the_profile_id_and_version(
         self, dist: Path, recordings: Path, cache: ClipCache
@@ -417,15 +479,24 @@ class TestARecordingIsBoundToItsProfile:
         )
 
     def test_a_recording_for_another_profile_is_refused(self, tmp_path: Path) -> None:
-        self._record(tmp_path, "delivery.welcome@v1")
+        welcome = delivery_profile("welcome").key
+        self._record(tmp_path, welcome)
         with pytest.raises(RecordedSpeechMismatchError) as raised:
             RecordedTtsGateway(root=tmp_path).synthesise(
                 text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
             )
-        assert "delivery.welcome@v1" in str(raised.value)
+        assert welcome in str(raised.value)
+
+    def test_a_take_made_under_the_retired_version_is_refused(self, tmp_path: Path) -> None:
+        """INT-424: the v2 bump retires every v1 take, even for the same context."""
+        self._record(tmp_path, "delivery.red@v1")
+        with pytest.raises(RecordedSpeechMismatchError):
+            RecordedTtsGateway(root=tmp_path).synthesise(
+                text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
+            )
 
     def test_a_recording_for_the_same_profile_is_replayed(self, tmp_path: Path) -> None:
-        self._record(tmp_path, "delivery.red@v1")
+        self._record(tmp_path, delivery_profile("red").key)
         speech = RecordedTtsGateway(root=tmp_path).synthesise(
             text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
         )

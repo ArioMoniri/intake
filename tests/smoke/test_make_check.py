@@ -289,7 +289,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
     # stated reason.
-    assert len(ids) == 326, f"expected 175 blueprint + 151 added issues, got {len(ids)}"
+    # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
+    # proposal, owner request, GitHub #719); grows only with a stated reason.
+    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

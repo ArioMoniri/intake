@@ -23,8 +23,8 @@ the cache instead of quietly replaying clips tuned under the old settings.
 **These are voice-tuning values, not clinical values.** They decide pace,
 steadiness and expressiveness of George's voice. They decide nothing a
 clinician reads, and no triage level. The rationale for each row is in
-docs/evidence/INT-415.md, and a listening review by the owner is still owed
-before the numbers are called settled. Two things are fixed by rule rather
+docs/evidence/INT-415.md (v1) and docs/evidence/INT-424.md (v2, picked from
+candidates rendered for the owner's listening review). Two things are fixed by rule rather
 than by ear, and tests assert both: RED scripts and instrument items are the
 most stable profiles with zero style exaggeration, and the identity knobs
 (similarity, speaker boost) are equal across profiles, so a delivery change is
@@ -55,6 +55,7 @@ __all__ = [
     "DELIVERY_PROFILES",
     "MAX_STYLE",
     "PINNED_CONTEXTS",
+    "PROFILE_VERSION",
     "SPEED_MAX",
     "SPEED_MIN",
     "DeliveryContext",
@@ -84,6 +85,10 @@ DEFAULT_DELIVERY_CONTEXT: Final[DeliveryContext] = "routine"
 #: action script is RED delivery and an instrument item is instrument delivery,
 #: whatever a caller labels them. The on-demand route holds a request to the pin.
 PINNED_CONTEXTS: Final[frozenset[DeliveryContext]] = frozenset({"red", "instrument"})
+
+#: The table's version (INT-424 retune). It is in every profile key and so in
+#: every clip key: a bump re-synthesises instead of replaying older takes.
+PROFILE_VERSION: Final = 2
 
 #: ElevenLabs' documented speed range for ``voice_settings.speed``.
 SPEED_MIN: Final = 0.7
@@ -188,7 +193,7 @@ def _profile(
     stability: float,
     style: float,
     speed: float,
-    version: int = 1,
+    version: int = PROFILE_VERSION,
 ) -> DeliveryProfile:
     """One table row. Similarity and speaker boost are the identity knobs, so
     they take the vendor defaults and are the same in every row."""
@@ -206,26 +211,29 @@ def _profile(
     )
 
 
-#: The table (v1 of every row). The rationale per row is in
-#: docs/evidence/INT-415.md. Retune a row by editing it AND bumping its
-#: ``version``: the version is in the clip key, so the retune re-synthesises
-#: instead of replaying clips made under the old settings.
+#: The table, v2 of every row (INT-424). v1 (INT-415) was a reasoned start; each
+#: v2 row is one of the candidates rendered by
+#: scripts/voice/render_delivery_samples.py (a test holds that). The v1 values,
+#: the candidates and the per-clip signal statistics are in
+#: docs/evidence/INT-424.md. Retune a row by editing it AND bumping
+#: :data:`PROFILE_VERSION`: the version is in the clip key, so the retune
+#: re-synthesises instead of replaying clips made under the old settings.
 DELIVERY_PROFILES: Final[Mapping[DeliveryContext, DeliveryProfile]] = MappingProxyType(
     {
         # warmest: lowest stability (more natural variation), modest style
-        "welcome": _profile("welcome", stability=0.40, style=0.20, speed=0.98),
-        # calm, neutral, professional: near the vendor's own defaults
-        "routine": _profile("routine", stability=0.55, style=0.05, speed=1.00),
-        # steadier and slower than routine, no exaggeration
-        "sensitive": _profile("sensitive", stability=0.65, style=0.00, speed=0.92),
+        "welcome": _profile("welcome", stability=0.35, style=0.25, speed=0.97),
+        # calm and professional, a little less flat than v1
+        "routine": _profile("routine", stability=0.50, style=0.10, speed=0.98),
+        # gentler and slower than routine, steadier, no exaggeration
+        "sensitive": _profile("sensitive", stability=0.60, style=0.00, speed=0.90),
         # validated items: very stable, no exaggeration, slightly slower
         "instrument": _profile("instrument", stability=0.80, style=0.00, speed=0.95),
-        # brief and warm: a little livelier than routine, never slower
-        "acknowledgement": _profile("acknowledgement", stability=0.48, style=0.15, speed=1.02),
+        # brief and warm: livelier than routine, never slower
+        "acknowledgement": _profile("acknowledgement", stability=0.42, style=0.20, speed=1.02),
         # the most stable of all, no exaggeration, clear rather than rushed
-        "red": _profile("red", stability=0.85, style=0.00, speed=0.95),
-        # warm like the welcome, a touch steadier
-        "closing": _profile("closing", stability=0.42, style=0.20, speed=0.97),
+        "red": _profile("red", stability=0.90, style=0.00, speed=0.95),
+        # warm like the welcome, a touch slower to close
+        "closing": _profile("closing", stability=0.38, style=0.25, speed=0.96),
     }
 )
 

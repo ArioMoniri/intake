@@ -6369,3 +6369,22 @@
     - "unit tests cover the profile table (every context resolves; RED has zero style; the profile id changes the cache key) and prove the request body carries voice_settings"
   tests: [tests/api/test_dev_voice_george.py, tests/voice/test_delivery_profiles.py, tests/voice/test_elevenlabs_clipgen.py]
   sec_row: "cloud-clipgen"
+- id: INT-424
+  epic: E05-voice
+  phase: P1
+  title: "ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal"
+  # GitHub #719. Owner request, 2 Oct 2026: questions should sound more natural
+  # and emotionally attuned while staying medical and professional. Voice
+  # tuning, not clinical values (docs/evidence/INT-424.md). awaiting-human: the
+  # mechanism, the v2 table and the ADR proposal shipped; the live render needs
+  # the owner's key run (docs/backlog/blockers.md INT-424).
+  depends_on: [INT-415]
+  labels: [area:voice]
+  status: awaiting-human
+  evidence: docs/evidence/INT-424.md
+  acceptance:
+    - "delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"
+    - "an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"
+    - "RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"
+  tests: [tests/voice/test_delivery_profiles.py, tests/voice/test_render_delivery_samples.py, tests/voice/test_elevenlabs_clipgen.py, tests/api/test_dev_voice_george.py]
+  sec_row: "cloud-clipgen"
