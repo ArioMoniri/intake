@@ -6439,7 +6439,7 @@
   # review is required before any real patient (files/00_STATE.md §3 D18).
   depends_on: [INT-353]
   labels: [area:protocols, risk:clinical]
-  status: doing
+  status: done
   evidence: docs/evidence/INT-432.md
   acceptance:
     - "a clinical decisions register (docs/clinical/decisions/, with machine-readable packages/protocols/decisions/) resolves the open decisions from the INT-428/430 reviews, INT-414, INT-427, HB-C3 and HB-C6, and the #642 packets; each entry carries the decision, its source (guideline id, version, date, url, retrieved_on against a committed verbatim snapshot under packages/protocols/sources/, or an openEHR CKM archetype id and revision), the authoring agent role and the independent verifier's verdict"

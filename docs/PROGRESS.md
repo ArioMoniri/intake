@@ -3018,7 +3018,7 @@
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
-### 2026-10-03T18:00:00+03:00 · INT-432 · doing (first batch; PR open, not merged)
+### 2026-10-03T18:00:00+03:00 · INT-432 · done (PR #757 open, not merged)
 - Goal: the clinical decisions register under owner decision D18 ("agent-only sign-off anyway"), scoped to simulated-patient stress testing; a licensed physician's review is required before any real patient. Acceptance quoted in docs/evidence/INT-432.md.
 - Plan:
   - Three medical-author agents (EM/IM; EM operations / informatics + paediatrics; the INT-427 specialties) write CD-01..CD-18 from current guidelines and openEHR CKM against verbatim snapshots in packages/protocols/sources/.
@@ -3036,5 +3036,5 @@
 - Invariants touched and still passing: 1, 2, 5 (tr first, en mirror), 7 (the life-threat set is untouched; slots declared under the names its rules read), 10, 17 (every unsourced value is the sanctioned literal under a draft entry), 20 (no performance figure anywhere), 21, 22 (no digits in patient copy).
 - Decisions / ADRs / `00_STATE.md` rows: D18 in files/00_STATE.md §3 and the changelog; files/04 §1 records the three read sections. D17 stands; no clinical_signoff field is filled; HB-C1 is not closed.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): one owner question, not a clinical one — does D3's occupational-exposure approval cover göğüs hastalıkları Q10/Q10a (CD-11 owner_question; V-GH-2)? text_first and not-servable stay meanwhile.
-- Next: apply the CD-11..CD-18 `apply_after_737_merges` changes once PR #737 merges; batch 2 verifies INT-414's 48 delivery lines; then the #642 sign-off packets in batches.
+- Next: apply the CD-11..CD-18 `apply_after_737_merges` changes once PR #737 merges. The rest is split by the coordinator: INT-447 (#758, INT-414's 48 lines) and INT-448 (#759, the #642 packet items).
 - LOOP_STATUS: CONTINUE
