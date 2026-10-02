@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**330 issues.** By phase: P0 164 · P1 112 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 219 · todo 73 · withdrawn 1.
+**331 issues.** By phase: P0 164 · P1 113 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 220 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -292,6 +292,7 @@
 | INT-404 | Triage rule evidence strings render quantities with the locale decimal separator | E03-protocols | INT-386 | area:protocols, risk:clinical | done |
 | INT-415 | ElevenLabs delivery profiles per question context + on-prem TTS wiring guide | E05-voice | INT-326 | area:voice | done |
 | INT-431 | The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest | E10-connectors | INT-320 | area:release, risk:security | done |
+| INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
 
 ## P2
 

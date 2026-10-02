@@ -6448,3 +6448,20 @@
     - "the decision is recorded in files/00_STATE.md §3, scoped to simulated-patient stress testing, with the note that a licensed physician's review is required before any real patient"
   tests: [tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py]
   sec_row: "clinical-content"
+- id: INT-447
+  epic: E08-mobile
+  phase: P1
+  title: "Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced)"
+  # GitHub #758. Split from INT-432 (#735). Owner decision D18: agent-authored,
+  # independently agent-verified, for simulated-patient testing only; a licensed
+  # physician's review is required before any real patient. The lines are
+  # INT-414's (#726, not yet on main, so not a depends_on edge here).
+  depends_on: [INT-432]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-447.md
+  acceptance:
+    - "a medical-author agent and an independent verifier agent check every INT-414 delivery line against PolicyGuard, B1 and siz, using Turkish health-literacy sources; each line gets a decision record"
+    - "the approval:human-clinical label on #726 is cleared through this process"
+  tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
+  sec_row: "clinical-content"
