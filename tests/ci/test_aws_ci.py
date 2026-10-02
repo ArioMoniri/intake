@@ -503,6 +503,17 @@ def test_a_waiting_run_takes_whichever_slot_frees_first() -> None:
     assert "until a slot frees" in host
 
 
+def test_artefacts_are_fetched_before_waiting_for_a_slot() -> None:
+    # Measured 2 Oct (PR 683): the run waited 40 minutes for a slot, and then
+    # its 30-minute presigned bundle URL answered 403. The downloads must come
+    # before the wait.
+    host = (REPO / "scripts/ci/aws_ci_host.sh").read_text(encoding="utf-8")
+    bundle = host.index('-o "$RUN_DIR/in/repo.bundle" "$BUNDLE_URL"')
+    deid = host.index('-o "$deid.$RUN_ID.part" "$DEID_URL"')
+    slot = host.index("until a slot frees")
+    assert bundle < slot and deid < slot
+
+
 def test_scripts_parse() -> None:
     for name in ("aws_ci.sh", "aws_ci_host.sh", "aws_ci_gates.sh"):
         subprocess.run(["bash", "-n", str(REPO / "scripts/ci" / name)], check=True)

@@ -103,6 +103,24 @@ install -d -m 0700 -o 10001 -g 10001 "$RUN_DIR/out"
 # with "Permission denied" without this).
 chmod -R go+rX "$HARNESS"
 
+# Fetch before queueing for a slot: the presigned URLs live 30 minutes, and a
+# run that waited 40 minutes for a slot got a 403 (PR 683, 2 Oct).
+curl --proto '=https' -fsS -o "$RUN_DIR/in/repo.bundle" "$BUNDLE_URL"
+echo "$BUNDLE_SHA256  $RUN_DIR/in/repo.bundle" | sha256sum -c --quiet - || die "bundle sha256 mismatch"
+
+deid="$STATE/cache/deid/$DEID_NAME"
+if ! { [[ -f $deid ]] && echo "$DEID_SHA256  $deid" | sha256sum -c --quiet - 2>/dev/null; }; then
+  if [[ -n $DEID_URL ]]; then
+    # a per-run part file: two runs may fetch at once; mv is atomic
+    curl --proto '=https' -fsSL -o "$deid.$RUN_ID.part" "$DEID_URL"
+    echo "$DEID_SHA256  $deid.$RUN_ID.part" | sha256sum -c --quiet - || die "de-id model sha256 mismatch"
+    mv -f "$deid.$RUN_ID.part" "$deid"
+    say "de-id model cached"
+  else
+    say "no verified de-id model in the cache and no URL; check-py's de-id tests will fail"
+  fi
+fi
+
 SLOT=""
 waited=0
 while :; do
@@ -121,21 +139,6 @@ while :; do
 done
 started=$(date +%s)
 say "run $RUN_ID on slot $SLOT"
-
-curl --proto '=https' -fsS -o "$RUN_DIR/in/repo.bundle" "$BUNDLE_URL"
-echo "$BUNDLE_SHA256  $RUN_DIR/in/repo.bundle" | sha256sum -c --quiet - || die "bundle sha256 mismatch"
-
-deid="$STATE/cache/deid/$DEID_NAME"
-if ! { [[ -f $deid ]] && echo "$DEID_SHA256  $deid" | sha256sum -c --quiet - 2>/dev/null; }; then
-  if [[ -n $DEID_URL ]]; then
-    curl --proto '=https' -fsSL -o "$deid.part" "$DEID_URL"
-    echo "$DEID_SHA256  $deid.part" | sha256sum -c --quiet - || die "de-id model sha256 mismatch"
-    mv -f "$deid.part" "$deid"
-    say "de-id model cached"
-  else
-    say "no verified de-id model in the cache and no URL; check-py's de-id tests will fail"
-  fi
-fi
 
 image="intake-ci/runner:$(sha256sum "$HARNESS/infra/ci/Dockerfile.runner" | cut -c1-16)"
 if ! docker image inspect "$image" >/dev/null 2>&1; then
