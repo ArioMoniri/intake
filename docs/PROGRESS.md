@@ -1,5 +1,28 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-02T20:20:00Z · INT-421 · doing (admin tier live; PR #723 open, not merged)
+- Goal: continue INT-421 after the owner's `aws login`:
+  - deploy the admin tier;
+  - retire the "deneme hastası" fixture, audited;
+  - re-run smoke;
+  - apply the owner's decision of 2 Oct 2026, *"dont make admin access ip restricted"*.
+- Tests added:
+  - `tests/infra/test_staging_admin_tier.py`: the explicit allow-all, with an empty list as the near miss (admits nobody); the two-factor flow kept; the edge recreated on each deploy, with `wait_healthy caddy` as the near miss.
+- Result:
+  - Release `7d2cc23d` is live with 9 services up. `smoke.sh` passed 19 checks, sbom_digest `sha256:80d9eed4…`.
+  - The fixture was retired (consents 3, patient 1, tenant 1), audited as chain entries 5 to 9, and 0 rows remain.
+  - George answers 404.
+  - Two first-run defects were found and fixed: caddy kept the previous release's Caddyfile, and the caddy wait used a healthcheck caddy does not declare.
+- Decisions / ADRs / `00_STATE.md` rows: **D18** (owner, 2 Oct 2026).
+  - HB-A16's ranges half is closed. Its tenant→deployment map half stays open.
+- Blocked on owner:
+  - HB-A3 (Apple, Google), an Expo token;
+  - an SMS vendor with a DPA;
+  - INT-408 (workers);
+  - Keycloak staff accounts.
+  - Hosted lanes are INT-428.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-02T12:00:00Z · INT-421 · doing (PR open, not merged; AWS session expired mid-iteration)
 - Goal: acceptance verbatim (GitHub #713):
   - *"The AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis). The SBOM stamp and smoke/probe results are recorded in the evidence. Nothing but simulated patients reaches us-east-1."*

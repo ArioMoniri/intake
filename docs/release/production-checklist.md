@@ -56,7 +56,7 @@ When it stops, the previous release keeps serving. Section 1 of docs/evidence/IN
 
 ## 3. One-time steps after the first deploy of this release
 
-1. **Retire the dev fixture.** This is the owner's directive: "in production don't include deneme hastası". On the host, as root, in `/opt/intake/infra/staging`, run:
+1. **Retire the dev fixture.** This is the owner's directive: "in production don't include deneme hastası". It was done on the AWS host on 2 Oct 2026 (docs/evidence/INT-421.md §3), so a re-run there reports `absent`. On any other host, as root, in `/opt/intake/infra/staging`, run:
    ```bash
    source ./lib.sh && load_env && stamp_revision && stamp_sbom_from_disk && \
      compose run --rm --no-deps -T api python -m intake_api.dev_fixture_retire

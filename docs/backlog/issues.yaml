@@ -6377,20 +6377,22 @@
   labels: [area:infra]
   status: doing
   evidence: docs/evidence/INT-421.md
-  # 2 Oct 2026 (PR, not merged). These are done:
-  #   - main 7ca881c8 + the pgvector fix runs on the host as c155a0d3, smoke green;
-  #   - the admin tier (Keycloak, oauth2-proxy, admin-web) is built and tested;
-  #   - no dev fixture is seeded outside dev, and dev_fixture_retire removes the old one, audited;
-  #   - the George route is gone outside dev;
+  # 2 Oct 2026 (PR #723, not merged). These are done:
+  #   - release 7d2cc23d is live on the host with every existing service up (api, postgres+pgvector,
+  #     redis, openbao, minio, caddy, keycloak, oauth2-proxy, admin-web), smoke green (19 checks),
+  #     and the SBOM stamped;
+  #   - the admin console is at https://admin.3-211-2-143.sslip.io behind a Keycloak login with two
+  #     factors, with network access open by owner decision D18;
+  #   - the "deneme hastası" fixture was retired on the host, audited by id;
+  #   - the George route answers 404 on the host;
   #   - the EAS production profile is in place, and both production exports build.
   # Gaps:
-  #   - the admin-tier deploy and the host retirement wait on the owner's AWS re-login
-  #     (the CLI session expired);
   #   - there is no workers process (INT-408);
-  #   - there is no hosted/backup model lane, and voice is __DEV__-only;
+  #   - the synthetic-probe runner is dev-tier only;
+  #   - hosted model lanes are INT-428;
   #   - release sign-in needs SMS + App Attest (HB-A3);
-  #   - the console shows live data only after HB-A16;
-  #   - eas build needs the owner's EXPO_TOKEN and Apple/Google accounts (HB-A3).
+  #   - eas build needs the owner's EXPO_TOKEN and Apple/Google accounts (HB-A3);
+  #   - the iOS identity arrives with INT-420.
   acceptance:
     - "the AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis); the SBOM stamp and smoke/probe results are recorded in the evidence; nothing but simulated patients reaches us-east-1"
     - "the EAS production profiles build from main with the Önvizit identity and the production API URL; anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask"
