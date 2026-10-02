@@ -8,7 +8,7 @@ load-bearing:
   product. The ``sen`` detector matched ``\\w+din``, so the Talker could not
   say it.
 * ``…hekiminize ulaşsın`` — the third-person optative, matched by ``\\w+sın``.
-* ``Vizite tanı koymaz`` — the *disclaimer*, matched by ``\\btanı\\s+koy``.
+* ``Önvizit tanı koymaz`` — the *disclaimer*, matched by ``\\btanı\\s+koy``.
 
 And two findings land on RED action scripts (``Acil Servis'e gidin``), where
 CLAUDE.md invariant 21 makes the bare imperative plural mandatory: a guard
@@ -69,7 +69,7 @@ AUDIT_FINDINGS: tuple[tuple[str, str], ...] = (
     ("app.tagline", "Muayeneden önce, anlattıklarınız hekiminize ulaşsın."),
     (
         "app.disclaimer",
-        "Vizite tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
+        "Önvizit tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
     ),
     ("welcome.phoneCta", "Telefonla devam edin"),
     ("auth.phone.invalid", "Numarayı kontrol edin; 05 ile başlamalı."),
@@ -94,7 +94,7 @@ AUDIT_FINDINGS: tuple[tuple[str, str], ...] = (
     ("review.resume", "Kaldığınız yerden devam edin"),
     ("visit.reviewNote", "Notu kontrol edin"),
     ("consent.firstRun.continue", "Devam edin"),
-    ("consent.basis.service", "Vizite'yi kullanmayı bırakırsanız sona erer."),
+    ("consent.basis.service", "Önvizit'i kullanmayı bırakırsanız sona erer."),
     ("health.attach.confirm", "Bu özet, vizit notunuzun taslağına eklensin mi?"),
     (
         "base.life_threat rules[0].action.ON_SITE.action_tr",
@@ -344,9 +344,9 @@ def test_nouns_that_end_in_the_same_syllables_are_not_address(
 @pytest.mark.parametrize(
     "sentence",
     [
-        "Vizite tanı koymaz.",
+        "Önvizit tanı koymaz.",
         "Bu uygulama teşhis koymaz.",
-        "Vizite size tanı koymuyor.",
+        "Önvizit size tanı koymuyor.",
         "Burada tanı konmadı.",
         "Doktorunuz size bir tanı söyledi mi?",
     ],
@@ -363,7 +363,7 @@ def test_a_disclaimer_is_not_a_diagnosis(guard: PolicyGuard, sentence: str) -> N
     [
         "Randevu tarihiniz belli değilse boş bırakın.",
         "Tam sürümü kullanın ya da yazarak devam edin.",
-        "Vizite'yi kullanmayı bırakırsanız sona erer.",
+        "Önvizit'i kullanmayı bırakırsanız sona erer.",
         "Bölümleri kontrol edin.",
         "Düzenli kullandığınız bir ilaç var mı?",
         "Daha önce bu şikâyet için tedavi gördünüz mü?",

@@ -235,7 +235,7 @@ B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
 #:   treatment — ``bırakın``/``kullanın`` anchored to the clinical sense, here
 #:               used of a date field, an app version and the service itself.
 #:   diagnosis — ``\btanı\s+koy`` matches the *negated* disclaimer
-#:               "Vizite tanı koymaz", which is the sentence that exists to deny
+#:               "Önvizit tanı koymaz", which is the sentence that exists to deny
 #:               diagnosis.
 #:   multi_question — one question whose subject is set off by a comma.
 #:   jargon    — the length arm of the same check; see B1_LENGTH_FINDINGS.

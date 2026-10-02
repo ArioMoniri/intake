@@ -4,11 +4,11 @@ Status: Accepted
 
 ## Context
 
-Vizite has to be presentable as a service a partner (a hospital group, a clinic
+Önvizit has to be presentable as a service a partner (a hospital group, a clinic
 platform) drops into its own app "as a button": the patient taps *Start
-pre-visit*, the Vizite intake runs branded for that partner, and the clinician
+pre-visit*, the Önvizit intake runs branded for that partner, and the clinician
 note flows back. The tempting shape — a web component or SDK that renders the
-Vizite intake UI inside the partner's page/origin — is the wrong one for this
+Önvizit intake UI inside the partner's page/origin — is the wrong one for this
 product: it puts a PHI surface inside a third-party origin (the exact
 "no PHI store reachable from a browser origin" hazard the admin-console threat
 model names), it makes the partner's page an injection surface into a Class IIb
@@ -26,7 +26,7 @@ unprovable.
 ## Decision
 
 The embed surface is a **signed, single-use, short-lived launch-ticket
-handshake**, and the "button" is a thin launcher that never holds a Vizite
+handshake**, and the "button" is a thin launcher that never holds an Önvizit
 secret. A partner embed tenant is a registered row in a second list,
 `infra/tenants/embed_registry.yaml`, addressed only by `tenant_id` — the
 connector-destination shape of ADR-026 — carrying constrained branding (data:
@@ -39,10 +39,10 @@ prod rows). The partner **backend** mints a ticket server-to-server
 (the `room_tokens` primitive), carrying a closed claim set `{tenant_id, nonce,
 iat, exp≤120s, purpose="previsit_intake"}` and **no clinical or personal value**
 — signed with that tenant's own key resolved from OpenBao (inv. 14). The
-patient's device presents the ticket (`POST /embed/v1/launch`); Vizite verifies
+patient's device presents the ticket (`POST /embed/v1/launch`); Önvizit verifies
 the signature under the tenant's key, refuses an expired, replayed (single-use
 nonce), tampered or wrong-purpose ticket, and returns only the tenant's theme
-and the id of the consent document set to show — Vizite then collects consent
+and the id of the consent document set to show — Önvizit then collects consent
 through its own docs/legal-bound flow (inv. 4, inv. 18), `device_functions`
 stays off (ADR-020), and the note flows back through the existing connector push
 (ADR-026), so the embed adds no new outbound PHI path. Isolation holds because
@@ -57,7 +57,7 @@ DB-free core is `packages/intake_platform/embed` (registry, ticket mint/verify,
 launch-context resolution), the FastAPI surface is `services/api` under a new
 `partner_embed` consent-scan marker caged to `/embed`, and the partner button is
 `packages/embed-sdk` (TS strict) which calls the partner's own backend and only
-ever opens an `https` Vizite URL. No new database table, migration or
+ever opens an `https` Önvizit URL. No new database table, migration or
 personal-data field is introduced: a partner-supplied patient identifier — the
 correlation that would let the note flow back to a specific partner record — is
 deliberately **out of scope** here, because linking it is a new personal-data

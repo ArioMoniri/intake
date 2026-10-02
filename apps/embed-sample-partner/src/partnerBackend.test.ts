@@ -1,7 +1,7 @@
 /**
  * INT-320 follow-up — the fixture-backed proof of the sample partner handshake.
  *
- * No live infra: a recorded upstream response stands in for the real Vizite
+ * No live infra: a recorded upstream response stands in for the real Önvizit
  * ``POST /embed/v1/launch-tickets``. What these tests pin:
  * - the partner backend calls the real embed endpoint with POST, the bearer
  *   credential and a ``{tenant_id}`` body — and nothing else;
@@ -155,7 +155,7 @@ describe("handleTicketRequest", () => {
     });
     expect(result.status).toBe(500);
     expect(result.body).toEqual({ error: "partner_backend_unconfigured" });
-    expect(result.logLine).toContain("VIZITE_ADMIN_TOKEN");
+    expect(result.logLine).toContain("ONVIZIT_ADMIN_TOKEN");
   });
 
   it("maps an upstream refusal to an id-shaped error, no token or upstream body", async () => {
@@ -197,7 +197,7 @@ describe("partner backend output composes with @intake/embed-sdk", () => {
 
     let opened: string | undefined;
     const launched = await startPrevisit({
-      ticketEndpoint: "/vizite/ticket",
+      ticketEndpoint: "/onvizit/ticket",
       fetchImpl: pageFetch,
       open: (url) => {
         opened = url;

@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Vizite",
+    "name": "Önvizit",
     "slug": "intake-mobile",
     "version": "0.1.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "intake",
+    "scheme": ["onvizit", "intake"],
     "userInterfaceStyle": "automatic",
     "locales": {
       "tr": "./src/locales/app-tr.json",
       "en": "./src/locales/app-en.json"
     },
     "ios": {
-      "icon": "./assets/expo.icon",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ariomoniri.intakemobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -52,7 +52,7 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Vizite; adım, nabız ve uyku verilerinizi yalnızca bu cihazda görüntülemek ve ancak sizin onayınızla vizit notunuza eklemek için okur.",
+          "NSHealthShareUsageDescription": "Önvizit; adım, nabız ve uyku verilerinizi yalnızca bu cihazda görüntülemek ve ancak sizin onayınızla vizit notunuza eklemek için okur.",
           "NSHealthUpdateUsageDescription": false,
           "background": false
         }

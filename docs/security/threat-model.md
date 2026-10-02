@@ -99,7 +99,7 @@ it or whose tests exercise it.
 | `apps/mobile` | `mobile`, `onboarding`, `intake-voice`, `records`, `share-centre`, `kiosk`, `notifications` | the patient app |
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
-| `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/embed-sdk` | `embed` | the partner launcher, holding no Önvizit secret |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
 | `packages/voice-clips` | `protocol-registry`, `cloud-clipgen`, `voice-runtime` | the clip cache, its build and the agent-audio framing |
@@ -1480,7 +1480,7 @@ it or whose tests exercise it.
   load — hex colours, bounded display name, id-shaped refs, partner markup/URLs/schemes
   refused — so there is no injection surface; `device_functions` may not be enabled for an
   embed tenant (ADR-020); a `prod` tenant is refused without `dpa_ref` + `brand_permission_ref`
-  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Vizite's own
+  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Önvizit's own
   docs/legal-bound flow (inv. 4, inv. 18), never by the partner; the note flows back only
   through the existing connector path (ADR-026), so the embed adds no new outbound PHI path;
   refusals are id-shaped codes only (inv. 6). A partner-supplied patient identifier is **out

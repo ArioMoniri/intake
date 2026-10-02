@@ -132,7 +132,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-410 (the synthetic seed accounts leave the release bundle, proven
     # over the production export; audit F30, found by INT-179's close-out,
     # GitHub #689).
-    assert len(ids) == 323
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name; owner request, GitHub #712).
+    assert len(ids) == 324
     import re
 
     for i in ids:
