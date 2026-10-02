@@ -72,7 +72,24 @@ ROLE_PASSWORD_KEYS=(
 # refused). require_sms_with_app_attest refuses the one unsafe mix.
 APP_ATTEST_KEYS=(INTAKE_APP_ATTEST_TEAM_ID INTAKE_APP_ATTEST_BUNDLE_ID INTAKE_APP_ATTEST_ENVIRONMENT)
 SMS_KEYS=(TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM)
-OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}" "${SMS_KEYS[@]}")
+# INT-421: the admin console's source ranges (HB-A16). The value is the
+# owner's. An empty list admits nobody to the API's /admin routes.
+ADMIN_CONSOLE_KEYS=(INTAKE_ADMIN_IP_ALLOWLIST)
+OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}" "${SMS_KEYS[@]}" "${ADMIN_CONSOLE_KEYS[@]}")
+
+# INT-421: keys generated as 32 random bytes in base64url (43 characters, no
+# padding), rather than gen_secret's 64 hex. oauth2-proxy accepts a cookie
+# secret only as 16, 24 or 32 bytes, raw or base64-decoded, and 64 hex
+# characters are neither.
+COOKIE_SECRET_KEYS=(OAUTH2_PROXY_COOKIE_SECRET)
+
+# INT-421: the admin tier. Keycloak keeps its own database in the staging
+# Postgres, under its own role. The API reads the realm's key set from a file
+# that deploy.sh mirrors on every deploy, so no admin request depends on
+# Keycloak answering (intake_platform.admin.oidc).
+KEYCLOAK_DB=keycloak
+KEYCLOAK_REALM=intake
+JWKS_FILE="$STATE_DIR/keycloak-jwks.json"
 ATTEST_SMS_RUNBOOK='docs/runbooks/staging.md, section "App Attest and SMS"'
 
 log() { printf '[intake-staging] %s\n' "$*" >&2; }
@@ -104,6 +121,20 @@ gen_secret() {
   # 256 bits from the kernel CSPRNG, as hex: safe inside URLs, SQL and HCL
   od -An -tx1 -N32 /dev/urandom | tr -d ' \n'
   printf '\n'
+}
+
+gen_cookie_secret() {
+  # INT-421: 256 bits from the kernel CSPRNG, as unpadded base64url (43
+  # characters), the form oauth2-proxy decodes to a 32-byte key
+  python3 -c 'import base64, sys; sys.stdout.write(base64.urlsafe_b64encode(open("/dev/urandom", "rb").read(32)).decode().rstrip("=") + "\n")'
+}
+
+is_cookie_secret_key() {
+  local key=$1 cookie_key
+  for cookie_key in "${COOKIE_SECRET_KEYS[@]}"; do
+    [[ $key == "$cookie_key" ]] && return 0
+  done
+  return 1
 }
 
 validate_hostname() {
@@ -177,7 +208,11 @@ generate_missing_secrets() {
       continue
     fi
     if [[ -z $(env_get "$ENV_FILE" "$key") ]]; then
-      env_set "$ENV_FILE" "$key" "$(gen_secret)"
+      if is_cookie_secret_key "$key"; then
+        env_set "$ENV_FILE" "$key" "$(gen_cookie_secret)"
+      else
+        env_set "$ENV_FILE" "$key" "$(gen_secret)"
+      fi
       log "generated $key"
     fi
   done < <(template_keys)
@@ -625,6 +660,98 @@ rotate_role_passwords() {
   done
   printf '%s' "$sql" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U intake -d intake >/dev/null
   log "re-keyed ${#ROLE_PASSWORD_KEYS[@]} database roles away from their committed dev passwords"
+}
+
+# --- the admin tier (INT-421) -----------------------------------------------------------
+
+build_admin_web_image() {
+  # The console image, built from the same commit as the api. compose
+  # interpolates the whole file, so this call needs the build-time value too.
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web
+}
+
+ensure_keycloak_database() {
+  # Keycloak's own role and database, both created only if absent. The role's
+  # password is re-applied on every run. The SQL travels on stdin with
+  # statement logging off, so the password never reaches argv or a log, as
+  # with rotate_role_passwords.
+  local value sql
+  value=$(env_get "$ENV_FILE" KEYCLOAK_DB_PASSWORD)
+  [[ $value =~ ^[0-9a-f]{64}$ ]] || die "KEYCLOAK_DB_PASSWORD is not a generated secret: run ./init.sh"
+  sql="SET log_statement = 'none'; SET log_min_error_statement = 'panic';"$'\n'
+  sql+="DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${KEYCLOAK_DB}') THEN"
+  sql+=" CREATE ROLE ${KEYCLOAK_DB} LOGIN; END IF; END \$\$;"$'\n'
+  sql+="ALTER ROLE ${KEYCLOAK_DB} PASSWORD '${value}';"$'\n'
+  sql+="SELECT 'CREATE DATABASE ${KEYCLOAK_DB} OWNER ${KEYCLOAK_DB}'"
+  sql+=" WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${KEYCLOAK_DB}') \\gexec"$'\n'
+  printf '%s' "$sql" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U intake -d intake >/dev/null
+  log "keycloak database and role present"
+}
+
+ensure_jwks_file() {
+  # Every api container mounts $JWKS_FILE, migrations and the release gate
+  # included, so it must exist before the first one is created. Absent, docker
+  # would create a directory in its place. The empty key set is the console's
+  # closed state: the API loads no key and answers 503 on every /admin route.
+  if [[ ! -f $JWKS_FILE ]]; then
+    printf '{"keys": []}\n' >"$JWKS_FILE"
+    chmod 644 "$JWKS_FILE"
+    log "no realm key set mirrored yet: the admin console stays closed (503) until mirror_keycloak_jwks"
+  fi
+}
+
+jwks_is_usable() {
+  # a JWKS document with at least one RSA signing key, the only kind the
+  # API's verifier loads (RS256)
+  python3 -c '
+import json, sys
+try:
+    doc = json.load(sys.stdin)
+except ValueError:
+    sys.exit(1)
+keys = doc.get("keys") if isinstance(doc, dict) else None
+ok = isinstance(keys, list) and any(
+    isinstance(k, dict) and k.get("kty") == "RSA" and k.get("use") in (None, "sig")
+    and k.get("alg") in (None, "RS256") and k.get("n") and k.get("e")
+    for k in keys
+)
+sys.exit(0 if ok else 1)
+'
+}
+
+# shellcheck disable=SC2034 # JWKS_CHANGED is read by deploy.sh after its final up
+mirror_keycloak_jwks() {
+  # The realm's public key set, read over the internal network by a one-off
+  # api container (Keycloak's image carries no HTTP client) and written beside
+  # the host's state. Public keys only. A key rotation is the next deploy. If
+  # the fetch fails or returns no usable key, the previous file stays, and the
+  # console stays as it was: closed on the first deploy.
+  #
+  # The file is rewritten in place, never moved over. An api container binds
+  # the file's inode, so a moved-in replacement would never reach it. The API
+  # reads the key set once, at start, so JWKS_CHANGED=1 tells deploy.sh to
+  # restart the api after its final up.
+  local doc
+  JWKS_CHANGED=0
+  # shellcheck disable=SC2016
+  doc=$(compose run --rm --no-deps -T api python -c '
+import sys, urllib.request
+url = "http://keycloak:8080/realms/" + sys.argv[1] + "/protocol/openid-connect/certs"
+with urllib.request.urlopen(url, timeout=10) as response:
+    sys.stdout.write(response.read().decode("utf-8"))
+' "$KEYCLOAK_REALM" 2>/dev/null) || doc=""
+  if ! jwks_is_usable <<<"$doc"; then
+    log "WARNING: realm ${KEYCLOAK_REALM} served no usable key set; the admin console keeps its previous state"
+    return 0
+  fi
+  if [[ -f $JWKS_FILE ]] && [[ $(<"$JWKS_FILE") == "$doc" ]]; then
+    log "realm ${KEYCLOAK_REALM} key set unchanged"
+    return 0
+  fi
+  printf '%s\n' "$doc" >"$JWKS_FILE"
+  chmod 644 "$JWKS_FILE"
+  JWKS_CHANGED=1
+  log "realm ${KEYCLOAK_REALM} key set mirrored to $JWKS_FILE"
 }
 
 # --- the release gate (INT-187) ---------------------------------------------------------

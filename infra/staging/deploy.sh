@@ -30,9 +30,12 @@
 #      error budget is exhausted, or the freeze cannot be read.
 #   4. Unseals OpenBao and renews the API's periodic token.
 #   5. Migrates, and re-keys any new migration role.
-#   6. Brings the project up on exactly the image the SBOM describes, and
-#      waits for health.
-#   7. Probes /healthz and /readyz over public HTTPS.
+#   6. INT-421: makes sure Keycloak's database exists, starts Keycloak (which
+#      imports the staff realm on first start), and mirrors the realm's public
+#      key set for the API's admin gate.
+#   7. Brings the project up on exactly the image the SBOM describes (and the
+#      console image built beside it), and waits for health.
+#   8. Probes /healthz and /readyz over public HTTPS.
 set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -44,8 +47,10 @@ require_tools
 require_no_unencrypted_swap
 load_env
 require_sms_with_app_attest
+ensure_jwks_file
 stamp_revision
 build_api_image
+build_admin_web_image
 stamp_sbom
 require_release_not_frozen
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}, SBOM ${INTAKE_SBOM_DIGEST}) to https://${STAGING_HOSTNAME}"
@@ -59,8 +64,18 @@ wait_healthy postgres
 run_migrations
 rotate_role_passwords
 
+# INT-421: the staff realm, then its key set, before the api starts reading it
+ensure_keycloak_database
+compose up -d --no-build --wait keycloak
+mirror_keycloak_jwks
+
 # --no-build: the api runs the image build_api_image made and syft described
 compose up -d --no-build --wait --remove-orphans
+if ((JWKS_CHANGED == 1)); then
+  # the API reads the key set once, at start
+  compose restart api
+  wait_healthy api
+fi
 
 for path in /healthz /readyz; do
   if ! wait_https "$path"; then
