@@ -735,6 +735,11 @@ def test_gitleaksignore_rows_are_fully_scoped_and_only_shrink() -> None:
         "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:97",
         "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:generic-api-key:99",
         "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:110",
+        # INT-426: owner approval, 3 Oct 2026, "ignore the two old token
+        # fingerprints". A fake JWT test fixture in history ("signature-sample");
+        # the full-history scan in `make security` [1/12] reports it forever.
+        "2c6a5dcf299b997682602044d14f79d8f9ac35d7:apps/embed-sample-partner/src/partnerBackend.test.ts:jwt:39",
+        "2c6a5dcf299b997682602044d14f79d8f9ac35d7:apps/embed-sample-partner/src/partnerBackend.test.ts:jwt:41",
     }
     assert rows <= pinned, f"gitleaks ignore file grew beyond the pinned set: {rows - pinned}"
 
