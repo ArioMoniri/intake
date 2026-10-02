@@ -6386,3 +6386,19 @@
     - "before/after simulator captures and the rationale are in docs/design/system-refresh.md"
   tests: [apps/mobile/src/lib/theme.test.ts, apps/mobile/src/lib/a11y/contrast.test.ts, apps/mobile/e2e/designSystem.spec.ts, apps/mobile/src/lib/symbols.test.ts]
   sec_row: "mobile"
+- id: INT-423
+  epic: E08-mobile
+  phase: P1
+  title: "Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid"
+  # GitHub #718. Owner request, 2 Oct 2026. Builds on INT-422's tokens; RED,
+  # copy (INT-414) and motion (ADR-033, INT-336/337) untouched.
+  depends_on: [INT-422]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-423.md
+  acceptance:
+    - "system materials (glass/blur) only on chrome and floating controls (composer, bars); bubbles and text on solid fills; Reduce Transparency falls back to solid"
+    - "natural rhythm: consecutive turns grouped with the tail on a run's last bubble, a readable measure, and Dynamic Type up to the AX sizes with no question word broken; the listening state follows ADR-033 motion; RED unchanged"
+    - "contrast tests cover the chat pairs in light, dark and increased contrast; before/after captures and the rationale in docs/design/"
+  tests: [apps/mobile/src/lib/dialogue/rhythm.test.ts, apps/mobile/src/lib/dialogue/chatContrast.test.ts, apps/mobile/e2e/chatRhythm.spec.ts]
+  sec_row: "mobile"

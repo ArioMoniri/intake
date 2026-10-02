@@ -140,7 +140,9 @@ def test_ids_unique_and_well_formed() -> None:
     # on-prem TTS wiring guide; owner request, GitHub #706).
     # + INT-422 (design system refresh: native Apple feel, restrained palette,
     # SF Symbols, contrast in three modes; owner request, GitHub #714).
-    assert len(ids) == 327
+    # + INT-423 (chat rhythm, Liquid Glass on chrome only, content solid;
+    # owner request, GitHub #718).
+    assert len(ids) == 328
     import re
 
     for i in ids:

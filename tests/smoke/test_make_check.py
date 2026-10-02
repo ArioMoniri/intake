@@ -289,8 +289,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-415 (ElevenLabs delivery profiles per question context and the
     # on-prem TTS wiring guide, owner request, GitHub #706)
     # + INT-422 (design system refresh: native Apple feel, restrained palette,
-    # SF Symbols; owner request, GitHub #714); grows only with a stated reason.
-    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
+    # SF Symbols; owner request, GitHub #714)
+    # + INT-423 (chat rhythm, glass on chrome only, content solid; owner
+    # request, GitHub #718); grows only with a stated reason.
+    assert len(ids) == 328, f"expected 175 blueprint + 153 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
