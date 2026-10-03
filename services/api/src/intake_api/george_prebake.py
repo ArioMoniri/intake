@@ -13,12 +13,18 @@ tree (HB-C1), and the route reads its own on-disk cache keyed by
 ``delivery.<context>@v<version>`` and ``clip_text_hash``. This bakes that cache
 from the same catalogue the route admits.
 
+- **The v4 key.** Since the cast (INT-449, D20) every row is v4, the voice E04
+  on ``eleven_v3``, so a clip baked under v2 (George) sits at another address
+  and is never counted as cached, served or replayed. ``probe`` prints the
+  key it spoke under.
+
 - **Catalogue only, never RED.** Every row of the route's catalogue is baked in
   its pinned context; a RED row is skipped (pre-positioned on the device,
   never fetched — invariant 21).
 - **A spend is a decision.** ``plan`` dials nothing. ``apply`` refuses unless
   ``--max-characters`` covers what the misses would send; the vendor bills by
-  character. A cache hit sends nothing.
+  character, and a tagged row sends its closed-table tags too, so the count is
+  of the wire text. A cache hit sends nothing.
 - **Ids only** (invariant 6): counts, lanes and refusal classes, never a text.
 """
 
@@ -31,7 +37,7 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from typing import Final, TextIO
 
-from voice_clips.delivery import delivery_profile
+from voice_clips.delivery import PROFILE_VERSION, delivery_profile
 from voice_clips.gateway import TtsError
 
 from intake_api.dev_voice import GeorgeWiring, george_wiring_from_env
@@ -55,14 +61,20 @@ def _misses(wiring: GeorgeWiring, rows: list[CatalogueRow]) -> list[CatalogueRow
     ]
 
 
+def _wire_characters(row: CatalogueRow) -> int:
+    """What the vendor bills for one row: its tags, a space, and the script."""
+    return len(delivery_profile(row.delivery_context).wire_prefix) + len(row.text_tr)
+
+
 def _plan(wiring: GeorgeWiring, out: TextIO) -> tuple[list[CatalogueRow], int]:
     rows = _bakeable(wiring)
     misses = _misses(wiring, rows)
-    characters = sum(len(row.text_tr) for row in misses)
+    characters = sum(_wire_characters(row) for row in misses)
     skipped = len(wiring.catalogue.rows) - len(rows)
     print(
         f"prebake: {len(rows)} rows ({skipped} red skipped), {len(rows) - len(misses)} cached, "
-        f"{len(misses)} to synthesise, {characters} characters",
+        f"{len(misses)} to synthesise, {characters} characters on the wire, "
+        f"keyed delivery.*@v{PROFILE_VERSION}",
         file=out,
     )
     return misses, characters
@@ -100,15 +112,15 @@ def _probe(wiring: GeorgeWiring, out: TextIO, err: TextIO) -> int:
         print("clip: the catalogue is empty", file=err)
         return 1
     row = rows[PROBE_SUBJECT_TEXT_INDEX]
+    profile = delivery_profile(row.delivery_context)
     try:
-        served = wiring.cache.ensure(row.text_tr, delivery_profile(row.delivery_context))
+        served = wiring.cache.ensure(row.text_tr, profile)
     except TtsError as error:
         print(f"clip: FAIL {getattr(error, 'code', type(error).__name__)}", file=err)
         return 1
     cache = "hit" if served.hit else "miss"
     print(
-        f"clip: lane={served.lane} cache={cache} profile={row.delivery_context} "
-        f"bytes={len(served.wav)}",
+        f"clip: lane={served.lane} cache={cache} profile={profile.key} bytes={len(served.wav)}",
         file=out,
     )
     return 0

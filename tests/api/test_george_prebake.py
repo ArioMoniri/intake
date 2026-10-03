@@ -9,6 +9,7 @@ and names counts and lanes, never a text (invariant 6).
 from __future__ import annotations
 
 import io
+import re
 from pathlib import Path
 
 from george_harness import CountingGateway, budget
@@ -123,7 +124,8 @@ def test_probe_speaks_one_row_and_names_its_lane(tmp_path: Path) -> None:
     wiring = _wiring(tmp_path, gateway)
     code, out, _ = _run(wiring, "probe")
     assert code == 0 and "lane=elevenlabs cache=miss" in out
-    assert "profile=delivery.routine@v4" in out, "smoke step 7 shows the key it baked"
+    # smoke step 7 shows the v4 key it spoke under (the catalogue fixes the row)
+    assert re.search(r"profile=delivery\.(routine|instrument)@v4 ", out)
     code, out, _ = _run(wiring, "probe")
     assert code == 0 and "lane=elevenlabs cache=hit" in out
     assert gateway.calls == 1

@@ -95,6 +95,7 @@ __all__ = [
     "assert_numeral_free",
     "assert_speakable_tr",
     "tts_gateway_from_env",
+    "wire_text",
 ]
 
 ENV_TTS_ENDPOINT: Final = "INTAKE_TTS_ENDPOINT"
@@ -239,6 +240,27 @@ def assert_speakable_tr(text_tr: str) -> None:
         )
 
 
+def wire_text(text_tr: str, profile: DeliveryProfile) -> str:
+    """The exact ``text`` an ElevenLabs request carries (INT-449, D20).
+
+    ``text_tr`` passes the whole :func:`assert_speakable_tr` gate first, so a
+    tag, an SSML element or a numeral inside the script is refused before any
+    tag exists. Then the profile's closed-table tags (its ``wire_prefix``) go
+    in front, and the composed text is checked once more for a numeral, since
+    it is what reaches the model (invariant 22). The tags come from the served
+    delivery table only: a caller names a context, never a tag. RED and
+    instrument rows carry none, so their wire text is the script alone.
+
+    The offline clip-gen gateway (ADR-028, which rendered the bundled set) and
+    the hosted lane (INT-443) both compose through here, so the two can never
+    send different words for the same row.
+    """
+    assert_speakable_tr(text_tr)
+    text = profile.wire_prefix + text_tr
+    assert_numeral_free(text)
+    return text
+
+
 @dataclass(frozen=True)
 class HttpTtsGateway:
     """A self-hosted TTS reached over HTTP; the endpoint comes from config.
@@ -373,7 +395,7 @@ class ElevenLabsClipGenGateway:
                     json={
                         # INT-449: the profile's closed-table tags, on the wire
                         # only; text_tr itself is the script, verbatim (inv. 10)
-                        "text": profile.wire_prefix + text_tr,
+                        "text": wire_text(text_tr, profile),
                         "model_id": self.model_id,
                         # invariant 22: disable the vendor normaliser — the
                         # compiler already expanded every numeral to orthography.

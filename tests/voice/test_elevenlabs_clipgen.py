@@ -33,7 +33,9 @@ from voice_clips.gateway import (
     TtsNotConfiguredError,
     TtsRefusedError,
     TtsUnavailableError,
+    assert_numeral_free,
     tts_gateway_from_env,
+    wire_text,
 )
 
 _SECRET = "sk-do-not-log-me"  # noqa: S105 - a fake key for the fixture, never a real one
@@ -149,6 +151,44 @@ def test_markup_is_refused_before_the_wire(text_tr: str) -> None:
 
     with pytest.raises(MarkupInScriptError):
         _gateway(handler).synthesise(text_tr=text_tr, voice_id="el-tr-voice", profile=ROUTINE)
+
+
+# --- the one composer of the wire text (INT-443 with INT-449, D20) -----------
+
+
+@pytest.mark.parametrize(
+    ("context", "wire"),
+    [
+        ("welcome", "[warmly] Merhaba."),
+        ("routine", "[calm] Merhaba."),
+        ("sensitive", "[softly] [reassuring] Merhaba."),
+        ("acknowledgement", "[gently] Merhaba."),
+        ("closing", "[warmly] Merhaba."),
+        ("instrument", "Merhaba."),
+        ("red", "Merhaba."),
+    ],
+)
+def test_the_wire_text_is_the_rows_tags_then_the_script(context: str, wire: str) -> None:
+    assert wire_text("Merhaba.", delivery_profile(context)) == wire
+
+
+@pytest.mark.parametrize(
+    ("text_tr", "error"),
+    [
+        ("[warmly] Merhaba.", MarkupInScriptError),  # a tag never rides inside the script
+        ("Merhaba. [laughs]", MarkupInScriptError),
+        ("Merhaba 5.", NumeralInScriptError),
+    ],
+)
+def test_the_script_is_gated_before_any_tag_exists(text_tr: str, error: type[Exception]) -> None:
+    with pytest.raises(error):
+        wire_text(text_tr, ROUTINE)
+
+
+def test_the_numeral_gate_reads_the_wire_text_and_admits_the_tags() -> None:
+    assert_numeral_free("[softly] [reassuring] Merhaba.")  # tags are not numerals
+    with pytest.raises(NumeralInScriptError):
+        assert_numeral_free("[calm] Merhaba ½.")  # near miss: one vulgar fraction
 
 
 def test_punctuation_pacing_is_not_markup() -> None:

@@ -6643,13 +6643,16 @@
   # through the INT-442 proxy and the allow-list, the key from OpenBao,
   # catalogue text only, the v2 profiles (INT-424). It serves once the owner's
   # egress row lands; the mobile half (DPoP fetch, gapless playback, the lane
-  # record) is INT-440's branch.
+  # record) is INT-440's branch. Owner decision D20 (INT-449, 3 Oct 2026)
+  # replaced the v2 profiles and eleven_multilingual_v2 with the cast take E04:
+  # eleven_v3, every row v4, closed-table tags on the wire only. The first
+  # acceptance line states the served pins as D20 left them.
   depends_on: [INT-442, INT-428, INT-424, INT-326]
   labels: [area:voice, risk:security]
   status: awaiting-human
   evidence: docs/evidence/INT-443.md
   acceptance:
-    - "an ElevenLabs adapter in the hosted TTS lane that speaks catalogue or scripted text only (the server's catalogue, including the app's generated scripted catalogue), refuses numerals and markup, never fetches RED, uses the v2 profiles by delivery context and eleven_multilingual_v2; the cache is keyed by profile@version and pre-baked on the host"
+    - "an ElevenLabs adapter in the hosted TTS lane that speaks catalogue or scripted text only (the server's catalogue, including the app's generated scripted catalogue), refuses numerals and markup, never fetches RED, uses the served delivery profiles by context and the pinned model (v2 and eleven_multilingual_v2 when filed; since D20 the v4 rows, the voice E04 on eleven_v3, with each tagged context's closed-table tags prepended on the wire after every refusal has read text_tr, and none for RED or instrument); the cache is keyed by profile@version and pre-baked on the host"
     - "it is the default TTS on the synthetic host once its key and egress row exist; a vendor failure falls back to the self-hosted TTS, recorded per clip (X-Clip-Lane, the cache path, api_clip_lane_total); the route mounts on the synthetic host only, never on a PHI deployment; the budget charges misses and refusals, never hits"
     - "the mobile client plays it gaplessly over a DPoP-authenticated fetch (INT-440's branch), and voice-e2e confirms the lane"
   tests: [tests/api/test_hosted_clip_lane.py, tests/api/test_george_prebake.py, tests/platform/test_elevenlabs_hosted_tts.py, tests/infra/test_staging_hosted_tts.py, tests/api/test_dev_voice_hardening.py, apps/mobile/src/lib/dialogue/scriptedCatalogue.test.ts]

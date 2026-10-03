@@ -13,13 +13,27 @@ before the wire, in this order:
 3. **RED.** A ``red`` delivery profile is refused outright: the RED script is
    pre-positioned on the device and triggered over the data channel, never
    fetched (invariant 21).
-4. **A profile tuned for another model.** The v2 delivery profiles are tuned
-   on ``eleven_multilingual_v2``; a profile naming another model is refused,
-   because changing the model is an ADR (ADR-034), not a profile edit.
+4. **A profile tuned for another model.** The v4 delivery profiles are the
+   owner's cast take E04 on ``eleven_v3`` (INT-449, D20); a profile naming
+   another model is refused, because changing the model is an ADR (ADR-034),
+   not a profile edit.
+5. **A profile that is not the served row.** The profile must be exactly
+   ``voice_clips.delivery.DELIVERY_PROFILES[context]``: its version, tags,
+   settings and voice. The tags therefore come from the server's table and
+   from nowhere else, and a v2-era or hand-built row never reaches the wire.
+6. **A voice that is not the row's.** A malformed voice id never becomes a
+   path segment, and a well-formed one that is not the cast voice is refused.
 
-The request is the ADR-028 clip-gen request: the vendor's own text normaliser
-off (``apply_text_normalization: "off"``), the profile's ``voice_settings``,
-raw 16-bit PCM back. It goes through
+Every refusal reads ``text_tr``, before any tag exists. Only then is the wire
+text composed by :func:`voice_clips.gateway.wire_text`: the row's closed-table
+tags (``[warmly]``, ``[calm]``, ``[softly] [reassuring]``, ``[gently]``), then
+the script verbatim (invariant 10); RED and instrument rows carry no tag.
+
+The request is the ADR-028 clip-gen request, field for field the one the
+bundled E04 clips were rendered with (``scripts/voice/render_cast_clips.py``):
+the wire text, the pinned model, the vendor's own text normaliser off
+(``apply_text_normalization: "off"``), the profile's ``voice_settings``, raw
+16-bit PCM back. It goes through
 :func:`intake_platform.egress.guarded_client` under ``hosted_model_inference``
 on ``NON_PERSONAL`` data, so the allow-list decides it in process, and through
 the synthetic host's forward proxy, which decides it again at the network.
@@ -55,7 +69,7 @@ from intake_platform.model_lanes.keys import (
     ProviderKeyNotSet,
 )
 from voice_clips.audio import SynthesisedSpeech
-from voice_clips.delivery import DeliveryProfile
+from voice_clips.delivery import DELIVERY_PROFILES, DeliveryProfile
 from voice_clips.gateway import (
     ELEVENLABS_MODEL_ID,
     ELEVENLABS_PCM_RATE_HZ,
@@ -63,6 +77,7 @@ from voice_clips.gateway import (
     TtsRefusedError,
     TtsUnavailableError,
     assert_speakable_tr,
+    wire_text,
 )
 
 __all__ = [
@@ -95,8 +110,9 @@ class HostedTtsUnavailable(TtsUnavailableError):
 
 
 class HostedTtsRefused(TtsRefusedError):
-    """Refused before the wire: off the catalogue, RED, or a voice id that is
-    not one. No lane may speak it on this path, so no caller falls back.
+    """Refused before the wire: off the catalogue, RED, a profile that is not
+    the served row, or a voice id that is not the row's. No lane may speak it
+    on this path, so no caller falls back.
     ``code`` as above."""
 
     def __init__(self, code: str) -> None:
@@ -161,7 +177,10 @@ class ElevenLabsHostedTts:
                 f"delivery profile {profile.key} is tuned for model {profile.model_id!r}, "
                 f"and this lane pins {self.model_id!r}; changing the model needs an ADR"
             )
-        if not _VOICE_ID.fullmatch(voice_id):
+        if profile != DELIVERY_PROFILES[profile.context]:
+            # the tags, settings, version and voice are the served table's only
+            raise HostedTtsRefused("hosted_tts_profile_not_served")
+        if not _VOICE_ID.fullmatch(voice_id) or voice_id != profile.voice_id:
             raise HostedTtsRefused("hosted_tts_voice_refused")
 
     def _api_key(self) -> str:
@@ -176,6 +195,8 @@ class ElevenLabsHostedTts:
         self, *, text_tr: str, voice_id: str, profile: DeliveryProfile
     ) -> SynthesisedSpeech:
         self._refuse_before_the_wire(text_tr, voice_id, profile)
+        # every refusal above read text_tr; the row's tags join it only here
+        text = wire_text(text_tr, profile)
         headers = {"xi-api-key": self._api_key()}
         context = EgressContext(
             purpose=EgressPurpose.HOSTED_MODEL_INFERENCE, data_class=DataClass.NON_PERSONAL
@@ -197,7 +218,10 @@ class ElevenLabsHostedTts:
                     params={"output_format": f"pcm_{self.sample_rate_hz}"},
                     headers=headers,
                     json={
-                        "text": text_tr,
+                        # INT-449 (D20): the served row's tags, then the script
+                        # verbatim (invariant 10); the same text the bundled
+                        # E04 clips were rendered from
+                        "text": text,
                         "model_id": self.model_id,
                         # invariant 22: the compiler's expansion is the only
                         # normaliser that ever runs

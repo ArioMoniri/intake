@@ -1,5 +1,19 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T23:55:00+03:00 · INT-443 · awaiting-human (PR #775 open, stacked on #772; the cast take on the wire)
+- Goal: #772 (INT-449, owner decision D20) pinned the cast take E04 — `eleven_v3`, every row v4, closed-table tags at Natural 0.5, RED and instrument Robust 1.0 and untagged — and left this lane one change: send `profile.wire_prefix + text_tr`. Make that change so the tags come only from the served table and every refusal reads the script alone.
+- Plan:
+  - Merge `origin/main`, then `origin/int-449-turkish-voice-casting`, resolving from git's conflict list and validating before each commit.
+  - Tests first: the tags on the wire per context, none for instrument and RED, a client tag refused, v2 against v4 keys, `eleven_v3` on the wire, the hosted request equal to the offline one.
+  - Then one composer of the wire text, used by both ElevenLabs paths.
+- Tests added (with the near-miss negative for any safety rule): tests/platform/test_elevenlabs_hosted_tts.py (wire tags per context, instrument alone, a tag inside text_tr refused even when catalogued, forged rows and another voice refused, offline continuity), tests/api/test_hosted_clip_lane.py (route tags per context, five client tag or setting bodies refused, a v2-era clip never served against a v4 hit), tests/api/test_george_prebake.py (wire characters billed, v2 not cached, the v4 key printed), tests/voice/test_elevenlabs_clipgen.py (`wire_text`). Red: 18 and 9 failed. Green: 47, 54 and 39 passed.
+- Result (`make check` / `make safety` / `make security` summary): `make check-py` exit 0 (main 10573 passed at 94.71 %; voice-clips 99.51 %; voice-runtime 98.48 %; every floor met); `make safety` exit 0 (triage 100 % branch, 18/18 mutations); no_placeholders, vendor-call, PHI and claims scans OK; gitleaks clean on the range; `make security` not re-run (no lockfile, image or IaC change).
+- Invariants touched and still passing: 10 (`text_tr` verbatim; the tags exist on the wire only), 21 (RED refused on this lane and never tagged), 22 (the numeral gate runs on `text_tr` and again on the wire text), 6 (codes only), 19 (synthetic deployment only, unchanged).
+- Decisions / ADRs / `00_STATE.md` rows: D20 is merged in from #772. ADR-034 records the D20 amendment, ADR-035 names the v4 rows on `eleven_v3`, and the `cloud-clipgen` threat row gains render-time tags. The INT-443 acceptance states the D20 pins.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): unchanged from the first entry. The owner's egress commit (the `elevenlabs-api` row) and a deploy are still pending; then `george_prebake plan` and `apply --max-characters N` bake the v4 cache.
+- Next: #772 lands first, then this PR; merge `origin/main` once more before the merge queue takes it.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
 - Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
 - Plan:
