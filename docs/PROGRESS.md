@@ -3115,3 +3115,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): one owner question, not a clinical one — does D3's occupational-exposure approval cover göğüs hastalıkları Q10/Q10a (CD-11 owner_question; V-GH-2)? text_first and not-servable stay meanwhile.
 - Next: apply the CD-11..CD-18 `apply_after_737_merges` changes once PR #737 merges. The rest is split by the coordinator: INT-447 (#758, INT-414's 48 lines) and INT-448 (#759, the #642 packet items).
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T23:30:00+03:00 · INT-448 · done (PR open, not merged)
+- Goal: every #642 sign-off packet item (197) gets a sourced decision and an independent verdict under owner decision D18 (simulated-patient stress testing; a licensed physician's review is required before any real patient).
+- Plan: parse the packets at 151cf34f into a committed item fixture; two medical-author agents write CD-100..CD-106 against verbatim snapshots; the independent verifier re-fetches every source and returns verdicts; authors revise until all agree. Owner-decider parts stay owner questions.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_signoff_packet_decisions.py (an item decided twice, missing or misfiled fails; an owner-only item decided by an agent fails). Red run: 8 failed.
+- Result (`make check` / `make safety` / `make security` summary): `make safety` exit 0 (triage 100 %, 18/18 mutations); protocols lane 97.39 %; 1366 passed across protocols/engine/backlog/smoke; ruff, format, mypy clean; no_placeholders OK. `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 2, 7 (no rule gate slot left unaskable; nothing removed or relaxed), 17, 20, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new; the feeding construct left open by CD-10 is closed by CD-100 T9/T48 and CD-103 L75 (both items kept, ungated).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): 31 owner questions recorded per item in CD-100..CD-106 (generator fixed slots vs base, self/proxy wording under HB-L20, D3 categories); none blocks the merge.
+- Next: apply the packet decisions through the proposals and the generator once #642 merges.
+- LOOP_STATUS: CONTINUE

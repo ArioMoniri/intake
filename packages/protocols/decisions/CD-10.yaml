@@ -225,6 +225,7 @@ value:
       action: keep_distinct_narrower_construct
       gen_line: "gen: slot=idrar_azalmasi; type=boolean"
   pending_construct_choice:
+    closed_by: "INT-448 CD-100 T9/T48 (az_beslenme, feeding or drinking less than usual) and CD-103 L75 (icemez_ememez, unable to drink or breastfeed), both true_is_concern and ungated"
     rule: >-
       These feeding and drinking items fall under the same convention
       (NG143 Table 2 puts poor feeding in infants in the circulation and

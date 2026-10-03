@@ -1,0 +1,1450 @@
+# INT-448 clinical decision CD-100 (GitHub #759). Agent-authored under owner
+# decision D18 (2 Oct 2026): simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote
+# below appears verbatim in the named snapshot; spec_basis quotes appear verbatim
+# in the named committed file. Not a pack: the lead applies each change to the
+# proposal (docs/evidence/proposals/<slug>.md) and regenerates the candidates.
+# No triage level, route, register, location or red-flag rule is created,
+# changed or removed here. The only gate change (T4) asks more patients, never
+# fewer (invariant 7).
+kind: clinical_decision
+id: CD-100
+title: "#642 packet items: near-twin sweep T1–T50"
+question: >-
+  For each of the fifty near-twin rows T1–T50 of the near-twin sweep
+  (docs/evidence/verification/near-twin-sweep-582.md at 151cf34f, filed in the
+  #642 sign-off packets), where two slots in one extends chain ask the same or an
+  overlapping fact, which slot stays, which is dropped or narrowed, and with what
+  Turkish text, or which part belongs to the owner?
+decision: >-
+  Each row gets one outcome. accept means the twin is real but both slots stay
+  unchanged under their own ids, because each records a fact the other does not
+  (the §C "keep under its own id" path). change means the exact slot, text or gate
+  change given in the row. owner_question means every decider is the owner or the
+  base owner, which D18 does not reach, so the row is recorded as a question and
+  not decided. Outcomes: 10 accept, 32 change, 8 owner_question, 0 reject,
+  0 draft_needs_source. Four rules decide most rows. (1) A base must_ask slot is
+  the id of record and cannot be suppressed, so a branch item that re-asks it
+  word for word (course since onset, complaint location, what was tried) is
+  removed, and one whose extra half is clinically distinct keeps only that half:
+  the base allergy item is one record for every substance class
+  (openEHR adverse_reaction_risk), so dental, anaesthesia and dermatology items
+  keep only the procedure-relevant substances; drug intolerance is a separate
+  record from drug allergy (NICE CG183 1.2.5), so the diabetes, endocrinology and
+  internal-medicine items keep only the non-allergic reaction; and the
+  anticoagulant half of a medicine item goes to base anticoagulant_use. (2) A
+  branch umbrella that names a cluster item drops what the cluster asks: the
+  family-medicine chronic-disease umbrella asks only for other diseases, the
+  pain-clinic impact item keeps work and sleep (NICE NG193 1.1.8), and the AMATEM
+  item keeps health harm (NICE CG115 1.2.2.6). (3) Hydration and feeding items in
+  child_health follow CD-10's true_is_concern polarity. The urine rows are CD-10's
+  change, already applied. The feeding construct CD-10 left open is decided here:
+  one shared az_beslenme ask for feeding or drinking less than usual (NICE NG143
+  "poor feeding in infants"), asked ungated beside CD-103's icemez_ememez, which
+  asks the IMCI general danger sign directly (the verifier's ruling: different
+  thresholds, not twins). An answer that the child takes nothing at all is a yes,
+  never "hayır". Under two months a yes is itself IMCI's young-infant "not feeding
+  well" sign. (4) Kept pairs are distinct constructs on a
+  source: unexplained against recent fever (NG12 1.10.1), vaccine-component
+  allergy and acute illness on the day of vaccination (Green Book chapter 6), the
+  child allergen list while base is self-addressed, food intolerance for the
+  dietitian, any vomiting against vomiting everything, a new lump anywhere
+  against a lump in the complaint area, faltering weight against growth concern,
+  prior substance-use treatment against prior mental-health support, and
+  breathing effort against chest indrawing. In women's health the LMP and the
+  pregnancy gate are each asked once under the base id. The pregnancy-gated items
+  open on pregnancy_status != 'hayir', so "emin değilim" now opens them (NICE
+  NG126 1.4.5). On pregnancy_status, "bilmiyorum" and every hedge are recorded as
+  "emin değilim", never UNCLEAR, because an Unknown gate opens nothing (files/13
+  §9.2). This asks more patients, never fewer. The removed slots also leave the
+  INT-353 reorder op's order list. The base-side mechanics of the LMP and the
+  pregnancy gate are owner parts. Renamed slots take a new id whenever the old id names the part
+  removed, so a stale reader fails at compile time instead of misreading. Generated
+  soru_N ids after a removed item are pinned with explicit slot= names so no other
+  id moves.
+status: active
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient
+  stress testing only. A licensed physician's review is required before any real
+  patient. D18 does not reach the owner and base-owner parts; they are recorded
+  as owner questions in owner_part and in the eight owner_question rows.
+question_origin: >-
+  #642 sign-off packets at 151cf34f; docs/evidence/verification/near-twin-sweep-582.md
+  §A rows T1–T50 and §C resolution codes B, C, F, P and S (at 151cf34f, not on main).
+author_role: "internal medicine, obstetrics and gynaecology, paediatrics, psychiatry, anaesthesiology, dentistry and family medicine physician (agent)"
+inference_disclosure: >-
+  The sources fix each construct. The Turkish wording, the choice to narrow
+  rather than drop an item, and the new slot ids are this author's
+  representation decisions. Every
+  new Turkish string is ≤ B1, uses siz, has one question mark and no digits, and
+  names no diagnosis. NICE CG116 is scoped to under 19s. It is cited for the
+  dietitian item only as the source that names food avoidance as a history
+  element. CG115 covers alcohol, and AMATEM also sees other substances.
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.5"
+    quote: "they may be pregnant, and think about offering a pregnancy test even when symptoms are non-specific and"
+    snapshot: packages/protocols/sources/NICE-NG126.txt
+    supports: "T1 (LMP asked of every patient in the chain), T4 ('emin değilim' opens the pregnancy items)"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.3"
+    quote: "amenorrhoea or missed period"
+    snapshot: packages/protocols/sources/NICE-NG126.txt
+    supports: "T1: a missed period is a common symptom, so the LMP date is needed whatever the pregnancy answer"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.8"
+    quote: "Exclude the possibility of ectopic pregnancy, even in the absence of risk factors (such as previous ectopic pregnancy), because about a third of women with an ectopic pregnancy will have no known risk factors."
+    snapshot: packages/protocols/sources/NICE-NG126.txt
+    supports: "T4: an unsure answer is not a reason to skip the pregnancy items"
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.1.1"
+    quote: "has decreased urine output"
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "T5, T7, T8, T10: the az_cis construct and polarity (CD-10)"
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.1.2"
+    quote: "infants who have stopped breastfeeding during the illness"
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "T9, T48: a child who has stopped feeding is at increased risk, which az_beslenme (evet for a not-at-all answer) and icemez_ememez record"
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.1.2"
+    quote: "children who have vomited more than twice in the previous 24 hours"
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "T45: vomiting below the 'everything' threshold still matters"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.6"
+    quote: "Recognise that children with any of the following symptoms or signs are in at least an intermediate-risk group for serious illness:"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "T5–T10, T48: reduced urine output and poor feeding are intermediate-risk features"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.6"
+    quote: "poor feeding in infants"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "T9, T48: the az_beslenme construct (feeding less than usual)"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.6"
+    quote: "reduced urine output"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "T5, T7, T8, T10 (CD-10)"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.5"
+    quote: "moderate or severe chest indrawing"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "T47: chest indrawing is its own high-risk sign"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "Table 2, Respiratory row"
+    quote: "Tachypnoea: respiratory rate"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "T49: fast breathing is its own feature, which the cluster's hizli_nefes asks"
+  - kind: guideline
+    guideline_id: NICE-NG18
+    title: "Diabetes (type 1 and type 2) in children and young people: diagnosis and management"
+    version_or_date: "NICE guideline NG18; published 01 August 2015; last updated 11 May 2023; minor change March 2026 (recommendation 1.1.1 updated to highlight checking for diabetic ketoacidosis)"
+    url: "https://www.nice.org.uk/guidance/ng18/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "signs of type 1 diabetes in children and young people include:"
+    snapshot: packages/protocols/sources/NICE-NG18.txt
+    supports: "T5: polyuria is a sign of its own, the opposite direction to decreased urine output, so sik_bol_idrar stays"
+    note: "The list under this line in the snapshot names polyuria and polydipsia."
+  - kind: guideline
+    guideline_id: WHO-IMCI-CHART-2014
+    title: "Integrated Management of Childhood Illness: Chart Booklet"
+    version_or_date: "March 2014; ISBN 978 92 4 150682 3"
+    url: "https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf"
+    retrieved_on: 2026-10-03
+    section: "Check for general danger signs"
+    quote: "Is the child able to drink or breastfeed?"
+    snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
+    supports: "T9, T48: the danger-sign threshold, which CD-103's icemez_ememez asks directly"
+    caveat: "IMCI is a clinician's chart for children aged two months up to five years; it is cited for the construct, not for any threshold number."
+  - kind: guideline
+    guideline_id: WHO-IMCI-CHART-2014
+    title: "Integrated Management of Childhood Illness: Chart Booklet"
+    version_or_date: "March 2014; ISBN 978 92 4 150682 3"
+    url: "https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf"
+    retrieved_on: 2026-10-03
+    section: "Check for general danger signs"
+    quote: "Does the child vomit everything?"
+    snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
+    supports: "T45: the cluster's her_seyi_kusma threshold"
+  - kind: guideline
+    guideline_id: WHO-IMCI-CHART-2014
+    title: "Integrated Management of Childhood Illness: Chart Booklet"
+    version_or_date: "March 2014; ISBN 978 92 4 150682 3"
+    url: "https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf"
+    retrieved_on: 2026-10-03
+    section: "Then ask about main symptoms"
+    quote: "Does the child have cough or difficult breathing?"
+    snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
+    supports: "T47, T49: difficult breathing is the asked symptom"
+  - kind: guideline
+    guideline_id: WHO-IMCI-CHART-2014
+    title: "Integrated Management of Childhood Illness: Chart Booklet"
+    version_or_date: "March 2014; ISBN 978 92 4 150682 3"
+    url: "https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf"
+    retrieved_on: 2026-10-03
+    section: "Then ask about main symptoms"
+    quote: "Look for chest indrawing."
+    snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
+    supports: "T47: chest indrawing is a separate looked-for sign"
+  - kind: guideline
+    guideline_id: WHO-IMCI-CHART-2014
+    title: "Integrated Management of Childhood Illness: Chart Booklet"
+    version_or_date: "March 2014; ISBN 978 92 4 150682 3"
+    url: "https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf"
+    retrieved_on: 2026-10-03
+    section: "Does the child have diarrhoea?"
+    quote: "Not able to drink or drinking poorly?"
+    snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
+    supports: "T9, T48: beside the general danger sign (not able to drink or breastfeed), IMCI's dehydration assessment asks about drinking poorly as well as not being able to drink"
+  - kind: guideline
+    guideline_id: WHO-IMCI-CHART-2014
+    title: "Integrated Management of Childhood Illness: Chart Booklet"
+    version_or_date: "March 2014; ISBN 978 92 4 150682 3"
+    url: "https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf"
+    retrieved_on: 2026-10-03
+    section: "Sick young infant age up to 2 months: check for very severe disease"
+    quote: "Is the infant having difficulty in feeding?"
+    snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
+    supports: "T9, T48: for an infant under two months the asked symptom is difficulty in feeding, which az_beslenme asks"
+  - kind: guideline
+    guideline_id: WHO-IMCI-CHART-2014
+    title: "Integrated Management of Childhood Illness: Chart Booklet"
+    version_or_date: "March 2014; ISBN 978 92 4 150682 3"
+    url: "https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf"
+    retrieved_on: 2026-10-03
+    section: "Sick young infant age up to 2 months: VERY SEVERE DISEASE signs"
+    quote: "Not feeding well or"
+    snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
+    supports: "T9, T48: under two months 'not feeding well' is itself a very-severe-disease sign, so az_beslenme = evet carries it; the general danger sign for two months up to five years is icemez_ememez's"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Is there a history of the specific symptom or sign being present?">'
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: "T9, T48: yes records that the named finding is present (true_is_concern, as CD-10)"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.10.1"
+    quote: "unexplained fever"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "T6: unexplained fever is a referral feature apart from recent fever"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Terms-used-in-this-guideline"
+    retrieved_on: 2026-10-03
+    section: "Terms used in this guideline: Unexplained"
+    quote: "Symptoms or signs that have not led to a diagnosis being made by the healthcare professional in primary care after initial assessment (including history, examination and any primary care investigations)."
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "T6: 'unexplained' is the clinician's finding, so the patient's 'nedenini bilmediğiniz' is recorded as a report and never asserted as NG12's term (as CD-14)"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.10.6"
+    quote: "presenting with unexplained lymphadenopathy or splenomegaly"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "T44: a new lump away from the complaint area is a finding of its own"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-EVALUATION.adverse_reaction_risk.v2"
+    revision: "2.0.2"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.7022"
+    retrieved_on: 2026-10-03
+    quote: "This archetype is intended to provide a single place within the health record to document the propensity for the full range of reactions, from trivial to life-threatening:"
+    snapshot: packages/protocols/sources/openEHR-EHR-EVALUATION.adverse_reaction_risk.v2.txt
+    supports: "T16, T18–T23, T25, T33: base allergies is the one record"
+    note: "base.intake binds allergies to adverse_reaction_risk.v1; v2 is the current published revision."
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-EVALUATION.adverse_reaction_risk.v2"
+    revision: "2.0.2"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.7022"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Any other substance encountered including venom, latex and other environmental substances.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-EVALUATION.adverse_reaction_risk.v2.txt
+    supports: "T16, T18, T21, T23: latex and insect venom are substances in the same record"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-EVALUATION.adverse_reaction_risk.v2"
+    revision: "2.0.2"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.7022"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Any substance consumed to provide nutritional support for the body, such as peanut or egg.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-EVALUATION.adverse_reaction_risk.v2.txt
+    supports: "T20, T21: food is a substance category of the same record"
+  - kind: guideline
+    guideline_id: NICE-CG183
+    title: "Drug allergy: diagnosis and management"
+    version_or_date: "Clinical guideline CG183; published 03 September 2014; minor change November 2018"
+    url: "https://www.nice.org.uk/guidance/cg183/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.5"
+    quote: "Ensure that drug allergy status is documented separately from adverse drug reactions and that it is clearly visible to all healthcare professionals who are prescribing drugs."
+    snapshot: packages/protocols/sources/NICE-CG183.txt
+    supports: "T25, T33: drug intolerance is a separate fact from drug allergy"
+  - kind: guideline
+    guideline_id: NICE-CG183
+    title: "Drug allergy: diagnosis and management"
+    version_or_date: "Clinical guideline CG183; published 03 September 2014; minor change November 2018"
+    url: "https://www.nice.org.uk/guidance/cg183/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.1"
+    quote: "Document people's drug allergy status in their medical records using 1 of the following:"
+    snapshot: packages/protocols/sources/NICE-CG183.txt
+    supports: "T16, T18, T22, T23, T25, T33: one drug-allergy status, which base allergies records"
+  - kind: guideline
+    guideline_id: NICE-CG116
+    title: "Food allergy in under 19s: assessment and diagnosis"
+    version_or_date: "Clinical guideline CG116; published 23 February 2011; minor change October 2018"
+    url: "https://www.nice.org.uk/guidance/cg116/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.3"
+    quote: "details of any foods that are avoided and the reasons why"
+    snapshot: packages/protocols/sources/NICE-CG116.txt
+    supports: "T20, T21: food avoidance is its own history element"
+    caveat: "Scoped to under 19s; for the adult dietitian item (T20) it is cited for the history element, not for its age scope."
+  - kind: guideline
+    guideline_id: UKHSA-GREENBOOK-CH6-2017
+    title: "Contraindications and special considerations: the green book, chapter 6"
+    version_or_date: "Chapter 6, August 2017; gov.uk page last updated 26 October 2017"
+    url: "https://www.gov.uk/government/publications/contraindications-and-special-considerations-the-green-book-chapter-6"
+    retrieved_on: 2026-10-03
+    section: "Previous anaphylaxis to a vaccine or to a vaccine component"
+    quote: "or a confirmed anaphylactic reaction to another component contained in the relevant vaccine should not receive the vaccine concerned."
+    snapshot: packages/protocols/sources/UKHSA-GREENBOOK-CH6-2017.txt
+    supports: "T19: vaccine-component allergy is a contraindication construct of its own"
+  - kind: guideline
+    guideline_id: UKHSA-GREENBOOK-CH6-2017
+    title: "Contraindications and special considerations: the green book, chapter 6"
+    version_or_date: "Chapter 6, August 2017; gov.uk page last updated 26 October 2017"
+    url: "https://www.gov.uk/government/publications/contraindications-and-special-considerations-the-green-book-chapter-6"
+    retrieved_on: 2026-10-03
+    section: "Gelatine allergy"
+    quote: "Gelatine allergy"
+    snapshot: packages/protocols/sources/UKHSA-GREENBOOK-CH6-2017.txt
+    supports: "T19: gelatine (and egg, and neomycin, streptomycin or polymyxin B) are named vaccine components"
+  - kind: guideline
+    guideline_id: UKHSA-GREENBOOK-CH6-2017
+    title: "Contraindications and special considerations: the green book, chapter 6"
+    version_or_date: "Chapter 6, August 2017; gov.uk page last updated 26 October 2017"
+    url: "https://www.gov.uk/government/publications/contraindications-and-special-considerations-the-green-book-chapter-6"
+    retrieved_on: 2026-10-03
+    section: "Temporary deferral of immunisation"
+    quote: "Minor illnesses without fever or systemic upset are not valid reasons to postpone immunisation."
+    snapshot: packages/protocols/sources/UKHSA-GREENBOOK-CH6-2017.txt
+    supports: "T43: a current health complaint is not the deferral fact"
+  - kind: guideline
+    guideline_id: UKHSA-GREENBOOK-CH6-2017
+    title: "Contraindications and special considerations: the green book, chapter 6"
+    version_or_date: "Chapter 6, August 2017; gov.uk page last updated 26 October 2017"
+    url: "https://www.gov.uk/government/publications/contraindications-and-special-considerations-the-green-book-chapter-6"
+    retrieved_on: 2026-10-03
+    section: "Temporary deferral of immunisation"
+    quote: "immunisation may be postponed until they have fully recovered."
+    snapshot: packages/protocols/sources/UKHSA-GREENBOOK-CH6-2017.txt
+    supports: "T43: being acutely unwell on the day is the deferral fact that bugun_hasta asks"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Description progression of the symptom or sign at the time of reporting.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2-progression-impact.txt
+    supports: "T24, T27, T28, T34, T36: course since onset is one element of the symptom record"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"The severity of the symptom or sign has worsened overall during this episode.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2-progression-impact.txt
+    supports: "T24, T27, T28, T34, T36: base trajectory's coded answers match the Progression values"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Description of the impact of this symptom or sign.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2-progression-impact.txt
+    supports: "T40, T42: impact is recorded per symptom"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Simple body site where the symptom or sign was reported.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+    supports: "T26, T29, T31: the complaint's site is one element of the symptom record"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-EVALUATION.problem_diagnosis.v1"
+    revision: "1.7.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.169"
+    retrieved_on: 2026-10-03
+    quote: "For recording details about a single, identified health problem or diagnosis."
+    snapshot: packages/protocols/sources/openEHR-EHR-EVALUATION.problem_diagnosis.v1.txt
+    supports: "T37–T39: each diagnosis is one record, so it is asked once"
+  - kind: guideline
+    guideline_id: NICE-NG5
+    title: "Medicines optimisation: the safe and effective use of medicines to enable the best possible outcomes"
+    version_or_date: "NICE guideline NG5; published 04 March 2015; minor changes September 2019, June 2021 and October 2021"
+    url: "https://www.nice.org.uk/guidance/ng5/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3 Medicines reconciliation"
+    quote: "is the process of identifying an accurate list of a person's current medicines"
+    snapshot: packages/protocols/sources/NICE-NG5.txt
+    supports: "T30, T32: one medicine list, so the anticoagulant fact is asked once, by base anticoagulant_use"
+  - kind: guideline
+    guideline_id: NICE-NG246
+    title: "Overweight and obesity management"
+    version_or_date: "NICE guideline NG246; published 14 January 2025; last updated 08 January 2026; minor changes February 2025, March 2025, April 2025, March 2026 and September 2026"
+    url: "https://www.nice.org.uk/guidance/ng246/chapter/Discussing-results-and-referral"
+    retrieved_on: 2026-10-03
+    section: "1.11.7"
+    quote: "Discuss any previous or ongoing overweight and obesity management interventions or attempts, including:"
+    snapshot: packages/protocols/sources/NICE-NG246.txt
+    supports: "T35: previous attempts are needed once, and base treatments_tried asks them"
+    note: "NG246 replaced CG189 in January 2025 (Update information in the snapshot)."
+  - kind: guideline
+    guideline_id: NICE-NG193
+    title: "Chronic pain (primary and secondary) in over 16s: assessment of all chronic pain and management of chronic primary pain"
+    version_or_date: "NICE guideline NG193; published 07 April 2021; minor changes October 2021, January 2022 and April 2022"
+    url: "https://www.nice.org.uk/guidance/ng193/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.8"
+    quote: "lifestyle and day-to-day activities, including work and sleep disturbance"
+    snapshot: packages/protocols/sources/NICE-NG193.txt
+    supports: "T40: the pain clinic keeps work and sleep impact"
+  - kind: guideline
+    guideline_id: NICE-NG193
+    title: "Chronic pain (primary and secondary) in over 16s: assessment of all chronic pain and management of chronic primary pain"
+    version_or_date: "NICE guideline NG193; published 07 April 2021; minor changes October 2021, January 2022 and April 2022"
+    url: "https://www.nice.org.uk/guidance/ng193/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.8"
+    quote: "Ask the person to describe how chronic pain affects their life"
+    snapshot: packages/protocols/sources/NICE-NG193.txt
+    supports: "T40: an open description rather than a graded degree"
+  - kind: guideline
+    guideline_id: NICE-CG115
+    title: "Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence"
+    version_or_date: "Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014; minor changes up to April 2026"
+    url: "https://www.nice.org.uk/guidance/cg115/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.2.5"
+    quote: "Agree the initial treatment plan, taking into account the service user's preferences and outcomes of any previous treatment."
+    snapshot: packages/protocols/sources/NICE-CG115.txt
+    supports: "T41: previous treatment for the substance problem is its own fact"
+  - kind: guideline
+    guideline_id: NICE-CG115
+    title: "Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence"
+    version_or_date: "Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014; minor changes up to April 2026"
+    url: "https://www.nice.org.uk/guidance/cg115/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.2.7"
+    quote: "Assess comorbid mental health problems as part of any comprehensive assessment"
+    snapshot: packages/protocols/sources/NICE-CG115.txt
+    supports: "T41: mental-health history is assessed apart from the substance problem"
+  - kind: guideline
+    guideline_id: NICE-CG115
+    title: "Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence"
+    version_or_date: "Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014; minor changes up to April 2026"
+    url: "https://www.nice.org.uk/guidance/cg115/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.2.6"
+    quote: "physical health problems"
+    snapshot: packages/protocols/sources/NICE-CG115.txt
+    supports: "T42: physical health harm is an assessment area apart from psychological and social problems"
+  - kind: guideline
+    guideline_id: NICE-NG75
+    title: "Faltering growth: recognition and management of faltering growth in children"
+    version_or_date: "NICE guideline NG75; published 27 September 2017; minor change October 2021"
+    url: "https://www.nice.org.uk/guidance/ng75/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.1"
+    quote: "Consider using the following as thresholds for concern about faltering growth in infants and children"
+    snapshot: packages/protocols/sources/NICE-NG75.txt
+    supports: "T50: weight faltering is defined on weight change, apart from a general growth concern"
+  - kind: guideline
+    guideline_id: NICE-NG75
+    title: "Faltering growth: recognition and management of faltering growth in children"
+    version_or_date: "NICE guideline NG75; published 27 September 2017; minor change October 2021"
+    url: "https://www.nice.org.uk/guidance/ng75/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3"
+    quote: "If there are concerns about an infant's length or a child's length or height,"
+    snapshot: packages/protocols/sources/NICE-NG75.txt
+    supports: "T46, T50: concern about height is the linear-growth half the cluster's buyume_endisesi asks"
+spec_basis:
+  - file: packages/protocols/base/intake.yaml
+    section: "pmh_fh_sh.lmp_date"
+    quote: "ask_if: \"pregnancy_status != 'hayir'\""
+    supports: "T1: base asks the LMP only when pregnancy is possible"
+  - file: packages/protocols/base/intake.yaml
+    section: "pmh_fh_sh.pregnancy_status"
+    quote: 'tr: ["evet", "hayır", "emin değilim"]'
+    supports: "T4: the base gate keeps an unsure answer that a boolean loses"
+  - file: packages/protocols/review/cluster/womens_health.yaml
+    section: "sorular.gebelik_dogrulandi"
+    quote: "ask_if: pregnancy_status != 'hayir'"
+    supports: "T4: the cluster already gates its pregnancy items on the base slot"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.2 The frontier"
+    quote: "UNKNOWN does NOT open a gate"
+    supports: "T4: an UNCLEAR pregnancy_status makes the gate Unknown and opens nothing, so the not-sure answer must be the 'emin değilim' choice"
+  - file: packages/protocols/decisions/CD-04.yaml
+    section: "decision"
+    quote: "The mapping is per rule and per slot"
+    supports: "T4: a per-slot answer mapping for pregnancy_status beside CD-04's '*' rows"
+  - file: CLAUDE.md
+    section: "Non-negotiable invariants, 7"
+    quote: "Red-flag rules are monotonic across protocol inheritance: children/overlays add or tighten, never remove or relax."
+    supports: "T4: the gate change only adds askers"
+  - file: packages/protocols/base/intake.yaml
+    section: "meds_allergies.allergies"
+    quote: 'tr: "Bilinen bir ilaç ya da madde alerjiniz var mı?"'
+    supports: "T16, T18–T23, T25, T33: base asks drug and substance allergy in every chain"
+  - file: packages/protocols/base/intake.yaml
+    section: "chest_pain.present (proxy stop-gap)"
+    quote: "ask_tr per slot, and this copy asks about the SPEAKER's chest."
+    supports: "T21: a base ask is addressed to the speaker, so in a child chain it does not ask about the child"
+  - file: packages/protocols/base/intake.yaml
+    section: "hpi.trajectory"
+    quote: 'tr: ["daha kötü", "aynı", "daha iyi"]'
+    supports: "T24, T27, T28, T34, T36"
+  - file: packages/protocols/base/intake.yaml
+    section: "hpi.location_text"
+    quote: 'tr: "Şikâyetinizi vücudunuzun neresinde hissediyorsunuz?"'
+    supports: "T26, T29, T31"
+  - file: packages/protocols/base/intake.yaml
+    section: "meds_allergies.anticoagulant_use"
+    quote: 'tr: "Kan sulandırıcı bir ilaç kullanıyor musunuz?"'
+    supports: "T30, T32"
+  - file: packages/protocols/review/cluster/surgical.yaml
+    section: "sorular.iltihap_giderici_kullanimi"
+    quote: "tr: Son günlerde iltihap giderici bir ağrı kesici kullandınız mı?"
+    supports: "T32: every surgical chain already asks about anti-inflammatory painkillers"
+  - file: packages/protocols/base/intake.yaml
+    section: "hpi.treatments_tried"
+    quote: 'tr: "Bu şikâyet için şimdiye kadar ne denediniz?"'
+    supports: "T35"
+  - file: packages/protocols/review/cluster/medical.yaml
+    section: "sorular.hipoglisemi_atagi and ayak_yarasi"
+    quote: "ask_if: diyabet_tanisi == true"
+    supports: "T37–T39: the named cluster diagnoses gate follow-ups, so they stay and the umbrella narrows"
+  - file: scripts/dev/gen_specialty_packs.py
+    section: "build_pack"
+    quote: 'sid = q.slot or f"soru_{i}"'
+    supports: "T24, T26–T29, T31, T33, T34: generated ids are positional, so ids after a removed item are pinned"
+  - file: docs/evidence/verification/cluster-wave-b.md
+    section: "F, child_health"
+    quote: "A same-polarity twin takes the cluster id and keeps its own text, so its re-declaration replaces the cluster slot and the fact is asked once."
+    supports: "T9, T10: neonatoloji keeps its infant text under the shared id"
+  - file: packages/protocols/decisions/CD-10.yaml
+    section: "value.pending_construct_choice.rule"
+    quote: "When the construct is chosen, its ask follows true_is_concern."
+    supports: "T9, T48"
+value:
+  packet_commit: 151cf34f
+  trail: docs/evidence/verification/near-twin-sweep-582.md
+  outcome_meaning:
+    accept: "the twin is real; both slots stay unchanged under their own ids because each records a fact the other does not"
+    change: "apply the exact change given; the lead edits the proposal and regenerates the candidate"
+    owner_question: "every decider is the owner or the base owner; recorded, not decided (D18)"
+  renaming_rule: "a narrowed slot takes a new id whenever its old id names the part removed; generated soru_N ids after a removed item are pinned with explicit slot= names so no other id moves"
+  items:
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L94"
+      ref: T1
+      packets: [kadin_hastaliklari_ve_dogum]
+      deciders: [HB-C1, base owner]
+      question: "Base lmp_date and kadın hastalıkları ve doğum Q2 son_adet_tarihi ask the same LMP date; which stays, and for whom?"
+      outcome: change
+      change: >-
+        One LMP date, under base pmh_fh_sh.lmp_date (the id of record). In the
+        kadin_hastaliklari_ve_dogum chain it is asked of every patient, not only
+        when pregnancy_status != 'hayir'. Order of work: first, base lmp_date is
+        asked without that gate in this chain (owner_part). Then remove proposal Q2
+        (gen: slot=son_adet_tarihi; type=date) from
+        docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md, and remove
+        son_adet_tarihi from the order list of the candidate's INT-353 reorder op
+        (ops[0], pointer /sections/sorular/slots, at 151cf34f), wherever the
+        candidate carries that op. Until the first step lands,
+        son_adet_tarihi stays unchanged, so no patient loses the LMP ask. No Turkish
+        text changes.
+      clinical_basis: >-
+        A woman of reproductive age may be pregnant even when her symptoms are
+        non-specific and she does not expect it (NG126 1.4.5), and a missed period is
+        a common symptom of ectopic pregnancy (NG126 1.4.3). So the gynaecology chain
+        needs the LMP date whatever the pregnancy answer, asked once.
+      sources: [NICE-NG126]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml pmh_fh_sh.lmp_date"]
+      status: active
+      owner_part: >-
+        Base owner: base lmp_date carries ask_if pregnancy_status != 'hayir'. The
+        generator writes branch slots only in sorular, so a branch item cannot replace
+        or re-gate the base slot by its id (§C code B). Will
+        base ask lmp_date without that gate in the women's-health chains (or in every
+        chain), or will base offer a chain-level way to widen it? The clinical
+        requirement is that every patient in this chain is asked.
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L95"
+      ref: T2
+      packets: [_cross-cutting]
+      deciders: [base owner, owner]
+      question: "The generator's fixed ziyaret_baglami.basvuru_nedeni re-asks base chief_complaint_text in all 91 chains; which goes?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: every decider is non-clinical, which D18 does not reach (§C code F)."
+      status: owner_question
+      owner_part: >-
+        Owner and base owner: the reason for the visit is asked twice in every chain,
+        by the generator's fixed slot ziyaret_baglami.basvuru_nedeni and by base
+        chief_complaint_text. Should the generator drop the fixed reason slot where
+        base already asks it (the reason-dedup requirement, cluster-wave-b §E-7), or
+        should base change?
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L96"
+      ref: T3
+      packets: [_cross-cutting]
+      deciders: [base owner, owner]
+      question: "The generator's fixed ziyaret_baglami.sikayet_suresi re-asks base duration in all 91 chains; which goes?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: every decider is non-clinical, which D18 does not reach (§C code F)."
+      status: owner_question
+      owner_part: >-
+        Owner and base owner: complaint duration is asked twice in every chain, by
+        the generator's fixed slot ziyaret_baglami.sikayet_suresi and by base
+        duration. Should the generator omit the fixed duration slot where base asks
+        it (duration=omit, cluster-wave-b §E-4), or should base change?
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L97"
+      ref: T4
+      packets: [kadin_hastaliklari_ve_dogum]
+      deciders: [HB-C1, base owner]
+      question: "Base pregnancy_status (evet/hayır/emin değilim) and kadın Q3 gebelik_durumu (boolean) ask the same thing, and the boolean gates five pregnancy items; which is the gate?"
+      outcome: change
+      change: >-
+        (a) Remove proposal Q3 (gebelik_durumu) from
+        docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md, and remove
+        gebelik_durumu from the order list of the candidate's INT-353 reorder op
+        (ops[0], pointer /sections/sorular/slots, at 151cf34f), wherever the
+        candidate carries that op. (b) The five items now gated on
+        gebelik_durumu == true (gebelikte_kanama, gebelikte_siddetli_bas_agrisi,
+        gebelikte_gorme_bozuklugu, bebek_hareketlerinde_azalma, gebelikte_su_gelmesi)
+        are gated instead on ask_if=pregnancy_status != 'hayir', the gate the
+        cluster's gebelik_dogrulandi already reads. "emin değilim" now opens them.
+        (c) Answer mapping for pmh_fh_sh.pregnancy_status, a per-slot entry beside
+        CD-04's '*' rows: "bilmiyorum" and any hedge (for example "sanmıyorum",
+        "galiba", "olabilir", "bilemiyorum") are recorded as the "emin değilim"
+        choice, never as UNCLEAR and never as "hayır". Only a plain "hayır" is
+        "hayır". UNCLEAR would make pregnancy_status != 'hayir' Unknown, and an
+        Unknown gate opens nothing (files/13 §9.2), so an unsure woman would never
+        hear the five items. The answer is still the patient's direct answer to the
+        scripted question (CD-02). Steps (b) and (c) widen the gate and add askers,
+        so they only tighten (invariant 7). No red-flag rule and no Turkish text
+        change.
+      clinical_basis: >-
+        A woman who is unsure whether she is pregnant must be treated as possibly
+        pregnant (NG126 1.4.5). Ectopic pregnancy must be excluded even without risk
+        factors (NG126 1.4.8). The boolean drops the unsure answer that base keeps,
+        and an unsure or "bilmiyorum" answer must open the pregnancy items rather
+        than leave them unasked.
+      sources: [NICE-NG126]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml pmh_fh_sh.pregnancy_status", "packages/protocols/review/cluster/womens_health.yaml sorular.gebelik_dogrulandi", "files/13_QUESTION_FLOW.md §9.2", "packages/protocols/decisions/CD-04.yaml decision"]
+      status: active
+      owner_part: >-
+        Base owner: confirm that base pregnancy_status, with its "emin değilim"
+        answer, is the pregnancy gate of record that branch items may read. Confirm
+        that it is asked before every branch item gated on it (the gatekeeper
+        ordering the base pack records the DSL cannot yet express). Then the INT-353
+        reorder op in this candidate can be re-examined.
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L98"
+      ref: T5
+      packets: [cluster_child_health, cocuk_endokrinolojisi]
+      deciders: [HB-C3]
+      question: "Cluster cis_miktari ('as much urine as usual') is answered 'hayır' for less and for more urine, so a polyuric child reads in the reduced-urine alarm direction next to cocuk_endokrinolojisi sik_bol_idrar; what fixes it?"
+      outcome: change
+      change: >-
+        CD-10's change, already applied on this branch: the cluster's cis_miktari is
+        az_cis, "Çocuğunuz her zamankinden daha az çiş yapıyor mu?" (gen: slot=az_cis;
+        type=boolean). cocuk_endokrinolojisi sik_bol_idrar stays unchanged. A polyuric
+        child now answers az_cis "hayır" and sik_bol_idrar "evet".
+      clinical_basis: >-
+        Decreased urine output is a dehydration finding (CG84 1.2.1.1; NG143 1.2.6).
+        Polyuria is a separate sign of the opposite direction (NG18 1.1.1). One
+        directional item each keeps them apart.
+      sources: [NICE-CG84, NICE-NG143, NICE-NG18, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L99"
+      ref: T6
+      packets: [cluster_medical, ic_hastaliklari]
+      deciders: [HB-C1, clinician]
+      question: "İç hastalıkları Q4 (unexplained fever, 'son zamanlarda') overlaps cluster son_gunlerde_ates (any fever, 'son günlerde'); merge or keep?"
+      outcome: accept
+      clinical_basis: >-
+        Unexplained fever over the recent weeks is its own referral feature (NG12
+        1.10.1), not the same fact as any fever in the last days. Both stay under
+        their own ids; merging would lose the 'unexplained' qualifier or the window.
+        Q4's id is the one CD-102 (cluster-wave-a.md#L243) gives it,
+        nedenini_bilmedigi_ates (soru_3 at 151cf34f), a non-asserting name.
+        "Unexplained" is the clinician's finding in NG12's own definition, so the
+        patient's "nedenini bilmediğiniz" answer is recorded as the patient's report
+        and never asserted as NG12's term (as CD-14).
+      sources: [NICE-NG12]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L100"
+      ref: T7
+      packets: [cluster_child_health, cocuk_gastroenterolojisi]
+      deciders: [HB-C3, paediatrician]
+      question: "Cluster cis_miktari and cocuk_gastroenterolojisi az_cis have opposite polarity; which polarity, and is the fact asked once?"
+      outcome: change
+      change: >-
+        CD-10's change, already applied on this branch: true_is_concern. The
+        cluster's item is az_cis, "Çocuğunuz her zamankinden daha az çiş yapıyor
+        mu?". cocuk_gastroenterolojisi's az_cis has the same id and text, so its
+        re-declaration replaces the cluster slot and the fact is asked once.
+      clinical_basis: >-
+        The sources state the finding in its abnormal direction and ask whether it is
+        present (CG84 1.2.1.1; NG143 1.2.6). "Evet" records it (symptom_sign_screening
+        Presence).
+      sources: [NICE-CG84, NICE-NG143, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L101"
+      ref: T8
+      packets: [cluster_child_health, cocuk_nefrolojisi]
+      deciders: [HB-C3]
+      question: "Cluster cis_miktari and cocuk_nefrolojisi idrar_azalmasi have opposite polarity; which polarity, and are they one fact?"
+      outcome: change
+      change: >-
+        CD-10's change, already applied on this branch: the cluster's item is az_cis
+        (true_is_concern). cocuk_nefrolojisi idrar_azalmasi stays unchanged as a
+        separate, narrower item (marked reduction or near-absence) with the same
+        polarity.
+      clinical_basis: >-
+        Decreased urine output is the screening finding (CG84 1.2.1.1). Marked
+        reduction is a narrower threshold that a renaming would erase.
+      sources: [NICE-CG84, NICE-NG143]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L102"
+      ref: T9
+      packets: [cluster_child_health, neonatoloji]
+      deciders: [HB-C3]
+      question: "Cluster beslenme_sivi_alimi ('feeding as usual', false is the concern) and neonatoloji beslenmede_azalma ('feeding less', true is the concern) are an opposite-polarity twin; which construct and polarity?"
+      outcome: change
+      change: >-
+        Feeding construct, under CD-10's true_is_concern. (a) cluster.child_health
+        and cocuk_sagligi_ve_hastaliklari: beslenme_sivi_alimi becomes az_beslenme,
+        "Çocuğunuz her zamankinden daha az besleniyor ya da içiyor mu?" (gen:
+        slot=az_beslenme; type=boolean). (b) neonatoloji: beslenmede_azalma takes the
+        shared id and keeps its own infant text, "Bebeğiniz son günlerde her
+        zamankinden daha az mı besleniyor?" (gen: slot=az_beslenme; type=boolean). Its
+        re-declaration replaces the cluster slot, so the fact is asked once. Both
+        stay ungated. (c) The IMCI general danger sign is asked directly and ungated
+        by icemez_ememez (CD-103, cluster-wave-b.md#L75: "Çocuğunuz hiçbir şey içemez
+        ya da ememez hâle geldi mi?") beside az_beslenme. No stopped-completely
+        follow-up is added: beslenmeyi_birakma, proposed in round 1, is withdrawn
+        and superseded by icemez_ememez, in every pack including neonatoloji
+        (verifier's feeding-construct ruling, round 2). (d) Answer semantics for
+        az_beslenme: an answer that the child is not feeding or drinking at all
+        ("hiç içmiyor", "hiçbir şey almıyor", "emmiyor", "hiç yemiyor"), even when it
+        starts with "hayır", is az_beslenme = evet (ASKED_PRESENT), never "hayır".
+      clinical_basis: >-
+        Poor feeding in infants is an intermediate-risk feature (NG143 1.2.6). Not
+        being able to drink or breastfeed is an IMCI general danger sign for children
+        aged two months up to five years. The two are different thresholds, not
+        twins, so both are asked: icemez_ememez asks the danger sign, and under two
+        months az_beslenme is itself IMCI's young-infant "Not feeding well" sign. An
+        infant who stopped breastfeeding during the illness is at increased risk (CG84
+        1.2.1.2). A child who takes nothing at all is feeding less than usual, so that
+        answer to az_beslenme can never read as "hayır".
+      sources: [NICE-NG143, WHO-IMCI-CHART-2014, NICE-CG84, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L103"
+      ref: T10
+      packets: [cluster_child_health, neonatoloji]
+      deciders: [HB-C3]
+      question: "Cluster cis_miktari and neonatoloji islak_bez_azalmasi are an opposite-polarity twin; which polarity, and is the fact asked once?"
+      outcome: change
+      change: >-
+        CD-10's change, already applied on this branch: the cluster's item is az_cis
+        (true_is_concern). neonatoloji islak_bez_azalmasi takes the id az_cis and keeps
+        its nappy text, "Bebeğinizin bezi her zamankinden daha seyrek mi ıslanıyor?",
+        so the fact is asked once.
+      clinical_basis: >-
+        Fewer wet nappies is decreased urine output in a nappy-wearing infant (CG84
+        1.2.1.1; NG143 1.2.6). It is one fact with one polarity.
+      sources: [NICE-CG84, NICE-NG143]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L104"
+      ref: T11
+      packets: [cematem, cluster_mental_health]
+      deciders: [owner]
+      question: "ÇEMATEM destek_cevresi (support for the parent and child) and cluster sosyal_destek (the answerer's support) ask one construct about different subjects; what happens?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: the only decider is the owner with the self/proxy ADR, which D18 does not reach (§C code S)."
+      status: owner_question
+      owner_part: >-
+        Owner, with the self/proxy ADR (wave 8 §E-4): in ÇEMATEM the branch asks about
+        the child and the cluster's sosyal_destek asks the answerer about themselves.
+        Does each such branch suppress_slot the cluster's self-addressed slot
+        (cluster-wave-b §E-3), or does the DSL select proxy copy? It is latent while
+        INT-223 refuses every under-18 path (HB-L20).
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L105"
+      ref: T12
+      packets: [cematem, cluster_mental_health]
+      deciders: [owner]
+      question: "Cluster islevsellik_etkilenimi (the answerer's functioning) and ÇEMATEM gunluk_yasam_etkisi (the child's daily life) ask one construct about different subjects; what happens?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: the only decider is the owner with the self/proxy ADR, which D18 does not reach (§C code S)."
+      status: owner_question
+      owner_part: >-
+        Owner, with the self/proxy ADR: should ÇEMATEM suppress_slot the cluster's
+        self-addressed islevsellik_etkilenimi, or should the DSL select proxy copy, so
+        the answerer is not asked about their own work beside the child's daily life?
+        Latent under INT-223 (HB-L20).
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L106"
+      ref: T13
+      packets: [cematem, cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
+      deciders: [owner]
+      question: "ÇEMATEM and çocuk ve ergen ruh sağlığı onceki_destek (the child's prior support) and cluster onceki_ruh_sagligi_destegi (the answerer's) ask one construct about different subjects; what happens?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: the only decider is the owner with the self/proxy ADR, which D18 does not reach (§C code S)."
+      status: owner_question
+      owner_part: >-
+        Owner, with the self/proxy ADR: should both child mental-health branches
+        suppress_slot the cluster's self-addressed onceki_ruh_sagligi_destegi (and its
+        gated onceden_iyi_gelen), or should the DSL select proxy copy? Latent under
+        INT-223 (HB-L20).
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L107"
+      ref: T14
+      packets: [cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
+      deciders: [owner]
+      question: "Cluster uyku_duzeni_degisikligi (the answerer's sleep) and çocuk ve ergen ruh sağlığı uyku_degisikligi (the child's sleep) ask one construct about different subjects; what happens?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: the only decider is the owner with the self/proxy ADR, which D18 does not reach (§C code S)."
+      status: owner_question
+      owner_part: >-
+        Owner, with the self/proxy ADR: should çocuk ve ergen ruh sağlığı
+        suppress_slot the cluster's self-addressed uyku_duzeni_degisikligi, or should
+        the DSL select proxy copy? Latent under INT-223 (HB-L20).
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L108"
+      ref: T15
+      packets: [cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
+      deciders: [owner]
+      question: "Cluster islevsellik_etkilenimi (the answerer's work) and çocuk ve ergen ruh sağlığı okul_gunluk_etkisi (the child's school and daily life) ask one construct about different subjects; what happens?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: the only decider is the owner with the self/proxy ADR, which D18 does not reach (§C code S)."
+      status: owner_question
+      owner_part: >-
+        Owner, with the self/proxy ADR: should çocuk ve ergen ruh sağlığı
+        suppress_slot the cluster's self-addressed islevsellik_etkilenimi, or should
+        the DSL select proxy copy? Latent under INT-223 (HB-L20).
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L109"
+      ref: T16
+      packets: [agiz_dis_ve_cene_cerrahisi]
+      deciders: [HB-C1]
+      question: "Ağız, diş ve çene cerrahisi Q12 re-asks drug allergy (base allergies) and adds local anaesthetic and latex; drop or narrow?"
+      outcome: change
+      change: >-
+        Narrow proposal Q12 to the substances base does not name: "Diş uyuşturma
+        iğnesine ya da lateks eldivene alerjiniz var mı?" (gen:
+        slot=lokal_anestezik_lateks_alerjisi; type=boolean), a yes/no ask with the
+        same id, type and text as diş hekimliği and endodonti (T23). The id changes
+        because the old id names the drug half that was removed.
+      clinical_basis: >-
+        Base allergies is the one record for every substance class (adverse_reaction_risk
+        v2), and it records drug-allergy status (CG183 1.2.1). Latex is a substance of
+        that same record, and the dental anaesthetic is a lay prompt this procedure
+        needs.
+      sources: [openEHR-EHR-EVALUATION.adverse_reaction_risk.v2, NICE-CG183]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L110"
+      ref: T17
+      packets: [_cross-cutting]
+      deciders: [base owner]
+      question: "Base onset_date and base duration are both must_ask and record when the complaint began (date against duration); keep both?"
+      outcome: owner_question
+      clinical_basis: "Not decided here: the only decider is the base owner, which D18 does not reach (base-internal, §C code B)."
+      status: owner_question
+      owner_part: >-
+        Base owner: onset_date ("Bu şikâyetiniz ne zaman başladı?") and duration
+        ("Şikâyetiniz başladığından beri ne kadar sürüyor?") are both base must_ask and
+        record the same fact. Should base keep both, or ask one and derive the other?
+        Note: onset_date is the tense_anchor of the base red-flag rules, so any change
+        keeps a date.
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L111"
+      ref: T18
+      packets: [anesteziyoloji]
+      deciders: [HB-C1]
+      question: "Anesteziyoloji Q4 re-asks drug allergy (base allergies) and adds latex; drop or narrow?"
+      outcome: change
+      change: >-
+        Narrow proposal Q4 to latex: "Lateks eldivene alerjiniz var mı?" (gen:
+        slot=lateks_alerjisi; type=boolean), a yes/no ask. The id changes because the
+        old id names the drug half that was removed. The drug, including any
+        anaesthetic drug, is captured by base allergies.
+      clinical_basis: >-
+        Drug-allergy status is one record (CG183 1.2.1; adverse_reaction_risk v2),
+        which base allergies asks. Latex is a named substance of that record, and
+        operating theatres use it, so the prompt stays.
+      sources: [openEHR-EHR-EVALUATION.adverse_reaction_risk.v2, NICE-CG183]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L112"
+      ref: T19
+      packets: [asi]
+      deciders: [HB-C1]
+      question: "Aşı Q4 asi_bileseni_alerjisi (serious allergy to egg, gelatin or a drug) overlaps base allergies; drop or keep?"
+      outcome: accept
+      clinical_basis: >-
+        A confirmed anaphylactic reaction to a component of the relevant vaccine is a
+        contraindication to that vaccine (Green Book chapter 6). The chapter names egg,
+        gelatine and neomycin, streptomycin or polymyxin B as components. So this is
+        vaccine contraindication screening, not the general allergy list, and both
+        stay.
+      sources: [UKHSA-GREENBOOK-CH6-2017, openEHR-EHR-EVALUATION.adverse_reaction_risk.v2]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L113"
+      ref: T20
+      packets: [beslenme_ve_diyet]
+      deciders: [HB-C1]
+      question: "Beslenme ve diyet Q9 besin_alerjisi (food that disagrees or causes allergy) overlaps base allergies ('madde'); drop or keep?"
+      outcome: accept
+      clinical_basis: >-
+        Food is a substance class of the same allergy record (adverse_reaction_risk v2),
+        but base names only drugs and 'madde'. The dietitian needs the foods avoided
+        and why (CG116 1.1.3), including intolerance ('dokunan'). Both stay.
+      sources: [openEHR-EHR-EVALUATION.adverse_reaction_risk.v2, NICE-CG116]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L114"
+      ref: T21
+      packets: [cocuk_immunolojisi_ve_alerjisi]
+      deciders: [HB-C3]
+      question: "Çocuk immünolojisi ve alerjisi Q12 bilinen_tetikleyici (the child's food, drug or sting allergy) overlaps base allergies; drop or narrow?"
+      outcome: accept
+      clinical_basis: >-
+        Base allergies asks the speaker about themselves ("alerjiniz"). In a child chain
+        it therefore does not reliably ask about the child, and the branch item is the
+        only ask for the child's allergens to avoid (CG116 1.1.3). Food and venom are
+        substances of the same record (adverse_reaction_risk v2). Both stay. Its drug
+        half can be dropped once proxy copy exists, which is the owner's self/proxy
+        decision.
+      sources: [NICE-CG116, openEHR-EHR-EVALUATION.adverse_reaction_risk.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml chest_pain.present (proxy stop-gap)"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L115"
+      ref: T22
+      packets: [deri_ve_zuhrevi_hastaliklari]
+      deciders: [HB-C1]
+      question: "Deri ve zührevi hastalıkları Q11 re-asks drug allergy (base allergies) and adds products put on the skin; drop or narrow?"
+      outcome: change
+      change: >-
+        Narrow proposal Q11 to topical products: "Cildinize sürdüğünüz bir ürüne karşı
+        alerjiniz olduğunu fark ettiniz mi?" (gen: slot=cilt_urunu_alerjisi;
+        type=boolean). The id changes because the old id names the drug half that
+        was removed.
+      clinical_basis: >-
+        Drug-allergy status is one record that base asks (CG183 1.2.1;
+        adverse_reaction_risk v2). Products applied to the skin are other substances
+        of that record, and the dermatologist needs them.
+      sources: [openEHR-EHR-EVALUATION.adverse_reaction_risk.v2, NICE-CG183]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L116"
+      ref: T23
+      packets: [dis_hekimligi, endodonti]
+      deciders: [HB-C1]
+      question: "Diş hekimliği Q14 and endodonti Q16 ilac_alerjisi re-ask drug allergy (base allergies) and add local anaesthetic and latex; drop or narrow?"
+      outcome: change
+      change: >-
+        In both proposals narrow the item to "Diş uyuşturma iğnesine ya da lateks
+        eldivene alerjiniz var mı?" (gen: slot=lokal_anestezik_lateks_alerjisi;
+        type=boolean), the same id and text as ağız, diş ve çene cerrahisi (T16). The
+        id changes because ilac_alerjisi names the drug half that was removed.
+      clinical_basis: >-
+        As T16: drug-allergy status is the one base record (CG183 1.2.1;
+        adverse_reaction_risk v2), and latex and the dental anaesthetic are the
+        procedure-relevant substances base does not name.
+      sources: [openEHR-EHR-EVALUATION.adverse_reaction_risk.v2, NICE-CG183]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L117"
+      ref: T24
+      packets: [diyabet_poliklinigi]
+      deciders: [HB-C1]
+      question: "Diyabet polikliniği Q2 soru_1 ('how has it changed since it began') re-asks base trajectory; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q2 (soru_1) from docs/evidence/proposals/diyabet_poliklinigi.md.
+        Base trajectory (must_ask, daha kötü / aynı / daha iyi) is the record. No other
+        generated id exists in this pack, so none moves.
+      clinical_basis: >-
+        The course since onset is one element of the symptom record (symptom_sign v2
+        Progression), and base trajectory asks it in every chain with matching values.
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.trajectory"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L118"
+      ref: T25
+      packets: [diyabet_poliklinigi, endokrinoloji_ve_metabolizma]
+      deciders: [HB-C1]
+      question: "Diyabet Q14 and endokrinoloji Q13 ilac_alerjisi ('drug allergy or a reaction to a drug') re-ask base allergies; drop or narrow?"
+      outcome: change
+      change: >-
+        In both proposals narrow the item to the non-allergic reaction: "Alerji
+        dışında, size dokunan bir ilaç oldu mu?" (gen: slot=ilac_dokunmasi;
+        type=boolean). The id changes because ilac_alerjisi now names the half that
+        was removed.
+      clinical_basis: >-
+        Drug allergy is recorded once (CG183 1.2.1), and base allergies asks it. Other
+        adverse drug reactions are documented separately from allergy status (CG183
+        1.2.5) and fall within the same risk record (adverse_reaction_risk v2). Drug
+        intolerance shapes treatment choice in diabetes and endocrinology.
+      sources: [NICE-CG183, openEHR-EHR-EVALUATION.adverse_reaction_risk.v2]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L119"
+      ref: T26
+      packets: [el_cerrahisi]
+      deciders: [HB-C1]
+      question: "El cerrahisi Q3 soru_2 (where in the hand or arm) re-asks base location_text; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q3 (soru_2) from docs/evidence/proposals/el_cerrahisi.md. Base
+        location_text (must_ask) and its follow-up ('Elinizle gösterebileceğiniz bir
+        yer varsa tarif edebilirsiniz.') record the site. No other generated id
+        exists in this pack, so none moves.
+      clinical_basis: >-
+        The complaint's site is one element of the symptom record (symptom_sign v2
+        Body site), and base asks it as free text in every chain, so the hand and
+        finger detail is captured there.
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.location_text"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L120"
+      ref: T27
+      packets: [endodonti]
+      deciders: [HB-C1]
+      question: "Endodonti Q2 soru_1 re-asks base trajectory; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q2 (soru_1) from docs/evidence/proposals/endodonti.md. Base
+        trajectory is the record. No other generated id exists in this pack, so none
+        moves.
+      clinical_basis: "As T24: course since onset is one symptom-record element (symptom_sign v2 Progression), and base trajectory asks it."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.trajectory"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L121"
+      ref: T28
+      packets: [endokrinoloji_ve_metabolizma]
+      deciders: [HB-C1]
+      question: "Endokrinoloji ve metabolizma Q2 soru_1 re-asks base trajectory; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q2 (soru_1) from
+        docs/evidence/proposals/endokrinoloji_ve_metabolizma.md. Base trajectory is
+        the record. No other generated id exists in this pack, so none moves.
+      clinical_basis: "As T24: course since onset is one symptom-record element (symptom_sign v2 Progression), and base trajectory asks it."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.trajectory"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L122"
+      ref: T29
+      packets: [fiziksel_tip_ve_rehabilitasyon]
+      deciders: [HB-C1]
+      question: "Fiziksel tıp ve rehabilitasyon Q3 soru_2 (where pain or limitation is worst) re-asks base location_text; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q3 (soru_2) from
+        docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md. Q2 comes before it
+        and keeps soru_1. Q4 takes CD-17's id gunluk_islev_kisitlanmasi; if CD-17's
+        rebind is not yet applied, pin Q4 as slot=soru_3, so no id moves.
+      clinical_basis: "As T26: the site is one symptom-record element (symptom_sign v2 Body site), and base location_text asks it in every chain."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.location_text", "scripts/dev/gen_specialty_packs.py build_pack"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L123"
+      ref: T30
+      packets: [fizyoterapi]
+      deciders: [HB-C1]
+      question: "Fizyoterapi Q14 duzenli_ilac names 'kan sulandırıcı' as an example, re-asking base anticoagulant_use; what changes?"
+      outcome: change
+      change: >-
+        Remove the anticoagulant example from proposal Q14: "Şu anda düzenli olarak
+        kullandığınız ilaçlar var mı? Örneğin kortizon içeren ilaçlar." (gen:
+        slot=duzenli_ilac; type=boolean). This applies whatever is decided for the item
+        as a whole under its medicine-list row (§B M9). The anticoagulant fact is read
+        from base anticoagulant_use.
+      clinical_basis: >-
+        One accurate list of current medicines is the aim (NG5 1.3). Base
+        anticoagulant_use asks the anticoagulant fact in every chain, so the example
+        only repeats it.
+      sources: [NICE-NG5]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml meds_allergies.anticoagulant_use"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L124"
+      ref: T31
+      packets: [fizyoterapi]
+      deciders: [HB-C1]
+      question: "Fizyoterapi Q2 soru_1 (where pain is worst) re-asks base location_text; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q2 (soru_1) from docs/evidence/proposals/fizyoterapi.md. Base
+        location_text is the record. No other generated id exists in this pack, so
+        none moves.
+      clinical_basis: "As T26: the site is one symptom-record element (symptom_sign v2 Body site), and base location_text asks it in every chain."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.location_text"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L125"
+      ref: T32
+      packets: [gastroenteroloji_cerrahisi]
+      deciders: [HB-C1]
+      question: "Gastroenteroloji cerrahisi Q15 agri_kesici_kan_sulandirici (painkiller or anticoagulant) has an anticoagulant half identical to base anticoagulant_use; drop or narrow?"
+      outcome: change
+      change: >-
+        Remove proposal Q15 (agri_kesici_kan_sulandirici) from
+        docs/evidence/proposals/gastroenteroloji_cerrahisi.md. The anticoagulant half
+        is base anticoagulant_use. Anti-inflammatory painkillers are asked in every
+        surgical chain by cluster.surgical iltihap_giderici_kullanimi. Any other
+        painkiller is on the base medicine list.
+        §B M11 names the same slot and should be read with this row.
+      clinical_basis: >-
+        One accurate medicine list (NG5 1.3): both halves are already asked, by base
+        and by the surgical cluster, so the item only repeats them.
+      sources: [NICE-NG5]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml meds_allergies.anticoagulant_use", "packages/protocols/review/cluster/surgical.yaml sorular.iltihap_giderici_kullanimi"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L126"
+      ref: T33
+      packets: [ic_hastaliklari]
+      deciders: [HB-C1]
+      question: "İç hastalıkları Q12 soru_11 ('allergy or a bad reaction to a drug') re-asks base allergies; drop or narrow?"
+      outcome: change
+      change: >-
+        Narrow proposal Q12 to the non-allergic reaction, with the same text and id as
+        T25: "Alerji dışında, size dokunan bir ilaç oldu mu?" (gen: slot=ilac_dokunmasi;
+        type=boolean).
+      clinical_basis: "As T25: drug allergy is the one base record (CG183 1.2.1); other adverse drug reactions are documented separately (CG183 1.2.5)."
+      sources: [NICE-CG183, openEHR-EHR-EVALUATION.adverse_reaction_risk.v2]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L127"
+      ref: T34
+      packets: [ic_hastaliklari]
+      deciders: [HB-C1]
+      question: "İç hastalıkları Q2 soru_1 re-asks base trajectory; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q2 (soru_1) from docs/evidence/proposals/ic_hastaliklari.md.
+        The ids follow the candidate at 151cf34f. Q3 keeps its applied rebind,
+        gen: slot=istemsiz_kilo_kaybi. Q4 takes CD-102's id nedenini_bilmedigi_ates
+        (cluster-wave-a.md#L243; T6). Q5 takes gece_terlemesi (CD-104, INT-353.md#L286;
+        CD-101 T76). Q10 takes slot=suregelen_baska_hastalik (CD-101 T75). So that
+        no other id moves, pin only the remaining generated ids at their current
+        names: Q6 slot=soru_5, Q7 slot=soru_6, Q8 slot=soru_7, Q9 slot=soru_8, Q11
+        slot=soru_10. Q12 becomes slot=ilac_dokunmasi (T33). No pin may move Q3: a
+        pin of Q3 to soru_2 would undo the applied weight-loss rebind.
+      clinical_basis: "As T24: course since onset is one symptom-record element (symptom_sign v2 Progression), and base trajectory asks it."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.trajectory", "scripts/dev/gen_specialty_packs.py build_pack"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L128"
+      ref: T35
+      packets: [obezite_poliklinigi]
+      deciders: [HB-C1]
+      question: "Obezite polikliniği Q3 kilo_verme_yontemleri ('what have you tried to lose weight') re-asks base treatments_tried when the complaint is the weight; drop or keep?"
+      outcome: change
+      change: >-
+        Remove kilo_verme_yontemleri (gen: slot=kilo_verme_yontemleri;
+        ask_if=onceki_kilo_verme_denemesi == true) from
+        docs/evidence/proposals/obezite_poliklinigi.md. onceki_kilo_verme_denemesi and
+        kilo_vermeyi_zorlastiran stay unchanged. Nothing reads the removed id.
+      clinical_basis: >-
+        Previous weight-management attempts are discussed with their experiences and
+        barriers (NG246 1.11.7). In the obesity clinic the complaint is the weight, so
+        base treatments_tried already asks what was tried, and the branch keeps the
+        attempt and barrier items.
+      sources: [NICE-NG246]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.treatments_tried"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L129"
+      ref: T36
+      packets: [ruh_sagligi_ve_hastaliklari]
+      deciders: [HB-C1, psychiatrist]
+      question: "Ruh sağlığı ve hastalıkları Q3 sikayet_seyri re-asks base trajectory; drop or keep?"
+      outcome: change
+      change: >-
+        Remove proposal Q3 (sikayet_seyri) from
+        docs/evidence/proposals/ruh_sagligi_ve_hastaliklari.md. Base trajectory is the
+        record. Nothing reads the removed id.
+      clinical_basis: >-
+        The course since onset is one symptom-record element (symptom_sign v2
+        Progression). Episodic features the psychiatrist needs are asked by their own
+        items (yukselmis_duygudurum_donemi, psikiyatrik_yatis_oykusu).
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.trajectory"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L130"
+      ref: T37
+      packets: [aile_hekimligi, cluster_medical]
+      deciders: [HB-C1]
+      question: "Aile hekimliği Q9 suregelen_hastalik (a chronic-disease umbrella) contains cluster astim_koah_tanisi, bobrek_hastaligi_tanisi and tiroit_hastaligi_tanisi; merge or narrow?"
+      outcome: change
+      change: >-
+        Narrow aile hekimliği Q9 to other chronic diseases: "Süregelen başka bir
+        hastalığınız var mı?" (gen: slot=suregelen_baska_hastalik; type=boolean). The
+        cluster's five named diagnosis items are asked before it in this chain. The id
+        changes because the old item named diabetes and hypertension. The same change
+        closes T38 and T39.
+      clinical_basis: >-
+        Each diagnosis is one record (problem_diagnosis v1). The named cluster items
+        gate their own follow-ups, so they stay, and the umbrella asks only for
+        diseases they do not name.
+      sources: [openEHR-EHR-EVALUATION.problem_diagnosis.v1]
+      spec_basis_ref: ["packages/protocols/review/cluster/medical.yaml sorular.hipoglisemi_atagi and ayak_yarasi"]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L131"
+      ref: T38
+      packets: [aile_hekimligi, cluster_medical]
+      deciders: [HB-C1]
+      question: "Aile hekimliği Q9 suregelen_hastalik names diabetes, which cluster diyabet_tanisi asks; merge or narrow?"
+      outcome: change
+      change: "The T37 change: aile hekimliği Q9 becomes \"Süregelen başka bir hastalığınız var mı?\" (gen: slot=suregelen_baska_hastalik; type=boolean); diyabet_tanisi stays and keeps gating hipoglisemi_atagi and ayak_yarasi."
+      clinical_basis: "As T37: one record per diagnosis (problem_diagnosis v1); the named item gates follow-ups and stays."
+      sources: [openEHR-EHR-EVALUATION.problem_diagnosis.v1]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L132"
+      ref: T39
+      packets: [aile_hekimligi, cluster_medical]
+      deciders: [HB-C1]
+      question: "Aile hekimliği Q9 suregelen_hastalik names hypertension, which cluster yuksek_tansiyon_tanisi asks; merge or narrow?"
+      outcome: change
+      change: "The T37 change: aile hekimliği Q9 becomes \"Süregelen başka bir hastalığınız var mı?\" (gen: slot=suregelen_baska_hastalik; type=boolean); yuksek_tansiyon_tanisi stays and keeps gating evde_tansiyon_olcumu."
+      clinical_basis: "As T37: one record per diagnosis (problem_diagnosis v1); the named item gates follow-ups and stays."
+      sources: [openEHR-EHR-EVALUATION.problem_diagnosis.v1]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L133"
+      ref: T40
+      packets: [algoloji, cluster_medical]
+      deciders: [HB-C1]
+      question: "Algoloji Q10 agri_etkisi (how much pain affects daily tasks, work or sleep) overlaps cluster gunluk_islev_kisitlanmasi (difficulty with daily tasks, yes/no); merge or narrow?"
+      outcome: change
+      change: >-
+        Narrow algoloji Q10 to what the cluster does not ask, as an open description:
+        "Ağrınız işinizi ya da uykunuzu nasıl etkiliyor?" (gen: slot=agri_etkisi;
+        type=string). The cluster's gunluk_islev_kisitlanmasi asks daily tasks. As in
+        CD-17, the graded 'ne ölçüde' is dropped.
+      clinical_basis: >-
+        NG193 1.1.8 asks the person to describe how chronic pain affects their life,
+        naming work and sleep disturbance among day-to-day activities. Impact is
+        recorded per symptom (symptom_sign v2 Impact). Daily tasks are already asked
+        once by the cluster.
+      sources: [NICE-NG193, openEHR-EHR-CLUSTER.symptom_sign.v2]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L134"
+      ref: T41
+      packets: [amatem, cluster_mental_health]
+      deciders: [HB-C1, psychiatrist]
+      question: "AMATEM Q10 onceki_destek (prior help for the substance problem) overlaps cluster onceki_ruh_sagligi_destegi (prior mental-health support); merge or keep?"
+      outcome: accept
+      clinical_basis: >-
+        Outcomes of any previous treatment for the substance problem shape the initial
+        plan (CG115 1.2.2.5). Comorbid mental-health problems are assessed as their
+        own area (CG115 1.2.2.7). These are two facts, and both stay.
+      sources: [NICE-CG115]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L135"
+      ref: T42
+      packets: [amatem, cluster_mental_health]
+      deciders: [HB-C1, clinician, psychiatrist]
+      question: "AMATEM Q6 gunluk_yasam_etkisi (effect on daily life or health) overlaps cluster islevsellik_etkilenimi (effect on work or daily responsibilities); merge or narrow?"
+      outcome: change
+      change: >-
+        Narrow AMATEM Q6 to health harm: "Bu durum sağlığınızı etkiliyor mu?" (gen:
+        slot=saglik_etkisi; type=boolean). The functioning half is the cluster's
+        islevsellik_etkilenimi. The id changes because the old id names the half that
+        was removed.
+      clinical_basis: >-
+        Physical health problems and psychological and social problems are separate
+        assessment areas (CG115 1.2.2.6). The cluster asks the functioning area, so the
+        branch keeps the health area.
+      sources: [NICE-CG115, openEHR-EHR-CLUSTER.symptom_sign.v2]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L136"
+      ref: T43
+      packets: [asi, cluster_allied_and_reports]
+      deciders: [HB-C1]
+      question: "Aşı Q5 bugun_hasta (feeling ill today) overlaps cluster guncel_saglik_sikayeti (any current health complaint); merge or keep?"
+      outcome: accept
+      clinical_basis: >-
+        Being acutely unwell on the day can postpone immunisation, whereas minor
+        illness without fever or systemic upset is not a reason to postpone (Green Book
+        chapter 6). Feeling ill today is the deferral fact, and a current complaint is
+        not. Both stay.
+      sources: [UKHSA-GREENBOOK-CH6-2017]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L137"
+      ref: T44
+      packets: [cerrahi_onkoloji, cluster_surgical]
+      deciders: [HB-C1]
+      question: "Cerrahi onkoloji Q3 yeni_sislik_sertlik (a new lump anywhere) contains cluster bolgede_sislik_sertlik (any lump in the complaint area); merge or keep?"
+      outcome: accept
+      clinical_basis: >-
+        A new lump away from the complaint area, such as a node, is a finding of its
+        own (NG12 1.10.6). The cluster item also records a known lump at the complaint
+        site that is not new, so neither contains the other, and both stay.
+      sources: [NICE-NG12]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L138"
+      ref: T45
+      packets: [cluster_child_health, cocuk_cerrahisi]
+      deciders: [HB-C3]
+      question: "Çocuk cerrahisi Q5 kusma (any recent vomiting) overlaps cluster her_seyi_kusma (vomits everything); merge or keep?"
+      outcome: accept
+      clinical_basis: >-
+        Vomiting everything is an IMCI general danger sign. Vomiting below that
+        threshold still matters (CG84 1.2.1.2), and kusma gates the bilious-vomit
+        follow-up yesil_kusma. These are two thresholds, and both stay.
+      sources: [WHO-IMCI-CHART-2014, NICE-CG84]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L139"
+      ref: T46
+      packets: [cluster_child_health, cocuk_endokrinolojisi]
+      deciders: [HB-C3]
+      question: "Çocuk endokrinolojisi Q10 buyume_ergenlik_endisesi (height, growth or puberty against peers) contains cluster buyume_endisesi (height or weight-gain concern); merge or narrow?"
+      outcome: change
+      change: >-
+        Narrow çocuk endokrinolojisi Q10 to puberty: "Çocuğunuzun ergenlik gelişimi
+        yaşıtlarına göre sizi endişelendiriyor mu?" (gen: slot=ergenlik_endisesi;
+        type=boolean). The height and growth half is the cluster's buyume_endisesi. The
+        id changes because the old id names the half that was removed.
+      clinical_basis: >-
+        Concern about a child's length or height is the linear-growth concern (NG75
+        1.2.3) that the cluster item already asks. Puberty is the part only this item
+        asks.
+      sources: [NICE-NG75]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L140"
+      ref: T47
+      packets: [cluster_child_health, cocuk_enfeksiyon_hastaliklari]
+      deciders: [HB-C3]
+      question: "Çocuk enfeksiyon Q10 nefes_zorlanma (breathing effort or fast breathing) overlaps cluster gogus_icine_cekilme (chest indrawing); merge or keep?"
+      outcome: accept
+      clinical_basis: >-
+        IMCI asks whether there is difficult breathing and then looks for chest
+        indrawing. Moderate or severe indrawing is its own high-risk sign (NG143
+        1.2.5). Both stay; the branch item's text changes under T49.
+      sources: [WHO-IMCI-CHART-2014, NICE-NG143]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L141"
+      ref: T48
+      packets: [cluster_child_health, cocuk_enfeksiyon_hastaliklari]
+      deciders: [HB-C3]
+      question: "Cluster beslenme_sivi_alimi (feeding as usual) against çocuk enfeksiyon Q4 emebiliyor_icebiliyor (able to breastfeed or drink, the IMCI danger sign): which construct?"
+      outcome: change
+      change: >-
+        Remove emebiliyor_icebiliyor; the chain inherits az_beslenme and
+        icemez_ememez. Both constructs are asked, ungated, under CD-10's
+        true_is_concern: the cluster's az_beslenme, "Çocuğunuz her zamankinden daha
+        az besleniyor ya da içiyor mu?" (T9), and CD-103's icemez_ememez, "Çocuğunuz
+        hiçbir şey içemez ya da ememez hâle geldi mi?". T9's answer semantics apply:
+        "hiç içmiyor", "emmiyor" and every not-at-all answer to az_beslenme are evet,
+        never "hayır".
+      clinical_basis: >-
+        Feeding less than usual is the intermediate-risk feature (NG143 1.2.6). Not
+        being able to drink or breastfeed is the IMCI general danger sign, and IMCI's
+        dehydration assessment asks about drinking poorly as well as not being able to
+        drink. They are different thresholds, so the chain asks both, and
+        icemez_ememez carries the danger sign the removed item asked.
+      sources: [NICE-NG143, WHO-IMCI-CHART-2014, NICE-CG84, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L142"
+      ref: T49
+      packets: [cluster_child_health, cocuk_enfeksiyon_hastaliklari]
+      deciders: [HB-C3]
+      question: "Çocuk enfeksiyon Q10 nefes_zorlanma contains 'her zamankinden hızlı soluma', which cluster hizli_nefes asks; merge or narrow?"
+      outcome: change
+      change: >-
+        Narrow çocuk enfeksiyon Q10 to breathing effort: "Çocuğunuz şu sıralarda nefes
+        almakta zorlanıyor mu?" (gen: slot=nefes_zorlanma; type=boolean). The id stays
+        because it names what remains. Fast breathing is the cluster's hizli_nefes.
+      clinical_basis: >-
+        Tachypnoea is its own feature (NG143 Table 2), which hizli_nefes asks.
+        Difficult breathing is the IMCI asked symptom. Each is asked once.
+      sources: [NICE-NG143, WHO-IMCI-CHART-2014]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L143"
+      ref: T50
+      packets: [cluster_child_health, cocuk_gastroenterolojisi]
+      deciders: [HB-C3]
+      question: "Cluster buyume_endisesi (height or weight-gain concern) overlaps çocuk gastroenteroloji Q10 kilo_alamama (poor weight gain or weight loss recently); merge or keep?"
+      outcome: accept
+      clinical_basis: >-
+        Faltering weight is defined on observed weight change (NG75 1.2.1), and
+        height concern is a separate linear-growth question (NG75 1.2.3). The branch
+        item records observed recent weight faltering or loss, and the cluster records
+        a parent's concern, including height. Both stay.
+      sources: [NICE-NG75]
+      status: active
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
