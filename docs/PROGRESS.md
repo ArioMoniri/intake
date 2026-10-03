@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T01:30:00Z · INT-449 · awaiting-human (PR open, the owner's pick)
+- Goal: acceptance verbatim (GitHub #762): *"Native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines. The owner picks from a blind page."* and *"The chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered. Intonation continuity between words is measured."*
+- Plan:
+  - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
+  - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
+  - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
+- Tests added: `tests/voice/test_cast_turkish_voices.py` (33).
+  - Near-miss controls: a line one word off its source refuses the whole run; a George-era `@v1` recording is refused once the pin lands (in the prepared change).
+  - RED: collection error with the modules absent, then 5 failures (a property called as a method; a verified accent overriding the voice's own).
+  - GREEN: 33 passed.
+- Result: docs/evidence/INT-449.md and docs/voice/casting-2026-10.md.
+  - The coordinator ran the render: 6,516 characters, 1.95 USD at the planning rate, all 108 takes aligned.
+  - Cavit ranks first on both models; Mine (v3) and Toprak (v2) follow among the native voices.
+  - George on v2 ranks third, so the continuity figures do not hear accent and the owner's blind ear decides.
+  - Pins 330 → 331; files/11 regenerated. The check-py lanes touched are green; `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 10 (catalogue text only, verbatim against its source, markup refused), 19 (offline lane only, ADR-028), 20 (measurements of these takes, not properties), 22 (`assert_speakable_tr` before the wire; normaliser off).
+- Decisions / ADRs / `00_STATE.md` rows: none taken. A v3 pick is a model change recorded as the owner's decision in ADR-034 (PR #734).
+- Blocked on: the owner's pick of a blind code (Ario Moniri: *"Which coded row should the clip set be built with?"*). This answers docs/backlog/blockers.md INT-319 ask (c); ask (a), the vendor's commercial-use terms, stays open.
+- Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.

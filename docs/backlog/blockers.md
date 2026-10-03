@@ -146,6 +146,7 @@ value is one and a catalogue label where it is not, and never the slot ref — e
 other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
 is clinical copy against the packs' slot definitions.
 | INT-296 | awaiting-human (KVKK category of a second locale; column shipped, registry holds only `tr`) | DPO / Turkish counsel (with the owner) | Under which KVKK category, lawful basis, retention and recipients does `sessions.locale` sit once a second language is offered — given that with `tr` alone the column records the service's own language and states nothing about the patient, but a language choice among several can proxy ethnic origin (m.6 special category)? | HB-L25 |
+| INT-449 | awaiting-human (the owner's blind pick; casting tool shipped, render done, pin change prepared) | owner (Ario Moniri) | Which coded row on the blind casting page (`.cache/voice-cast/20261003T004143Z/blind.html`, docs/voice/casting-2026-10.md) should the fixed clip set be built with? That answers INT-319's ask (c), the Turkish voice id; its ask (a), the vendor's commercial-use terms, stays open. | none minted here (HB ids are the coordinator's to allocate) |
 
 ## INT-136 — instruments render verbatim, and nothing renders
 
