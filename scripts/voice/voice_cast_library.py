@@ -275,6 +275,19 @@ def vendor_client(
     )
 
 
+def vendor_status(response: httpx.Response) -> str:
+    """The vendor's machine status token (``detail.status``, e.g. ``quota_exceeded``),
+    or ``unknown``. Only a short snake_case token is kept: never the body or a message,
+    which could echo request data."""
+    try:
+        detail = response.json().get("detail")
+    except (ValueError, AttributeError):
+        return "unknown"
+    status = detail.get("status") if isinstance(detail, Mapping) else None
+    ok = isinstance(status, str) and 0 < len(status) <= 40
+    return status if ok and status.replace("_", "").isalpha() and status.islower() else "unknown"
+
+
 def get_json(client: httpx.Client, path: str, params: Mapping[str, Any]) -> Any:
     response = client.get(path, params=dict(params))
     if response.status_code // 100 != 2:

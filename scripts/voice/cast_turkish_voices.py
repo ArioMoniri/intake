@@ -1,8 +1,6 @@
 """INT-449: cast the best native Turkish ElevenLabs voice, by ear and by measurement.
 
-The owner hears George, an English voice, speaking Turkish: the intonation
-between words is off and the delivery is flat. This tool puts native Turkish
-candidates side by side.
+George is an English voice speaking Turkish; this puts native candidates side by side.
 
 1. **Shortlist by metadata** (``voice_cast_library``): Turkish-language voices
    from the vendor's library, plus any premade voice that lists Turkish; native
@@ -16,24 +14,19 @@ candidates side by side.
    ``.cache/voice-cast/<run>/``: ``blind.html`` (coded, shuffled) and
    ``labelled.html`` (names, terms, figures), plus ``index.json``.
 
-**Only catalogue text reaches the vendor.** Before any call, each line must
-occur verbatim in its named source file (the working tree first, else the named
-branch, for the INT-414 delivery lines that are not on main yet), pass
-``assert_speakable_tr`` (invariant 22) and carry no markup (invariant 10). The
-library query carries filters only. No patient word and no numeral is sent.
+**Only catalogue text reaches the vendor**: each line is verbatim in its named
+source (working tree, else the named branch for the INT-414 lines), passes
+``assert_speakable_tr`` (invariant 22) and carries no markup (invariant 10).
 
-**The request is the gateway's.** ``tts_gateway_from_env`` selects the ADR-028
-offline adapter and supplies the base URL and key from the environment; this
-tool never prints, logs or stores either. Synthesis uses the same endpoint with
-``/with-timestamps``, so the vendor's character alignment gives exact word
-boundaries. :func:`request_body` is the gateway's body (normaliser off, the
-profile's ``voice_settings``), and a test holds the two equal.
+**The request is the gateway's**: ``tts_gateway_from_env`` supplies the base URL
+and key from the environment (never printed, logged or stored); synthesis uses
+``/with-timestamps`` for exact word boundaries, and a test holds
+:func:`request_body` equal to the gateway's body (normaliser off).
 
-**Spend is capped twice.** ``--plan`` (the default) reads the library, which is
-free, and prints the shortlist and the estimate. ``--live`` refuses unless
-``EVAL_BUDGET_USD`` is set and the estimate fits inside it and inside
-:data:`SPEND_CEILING_USD`. ``--estimate`` dials nothing. ``--analyse RUN``
-re-measures a finished run offline.
+**Spend is capped twice**: ``--live`` needs ``EVAL_BUDGET_USD`` and an estimate
+inside it and inside :data:`SPEND_CEILING_USD`; an HTTP 401 (key or quota) stops
+the run. ``--plan`` reads the library (free), ``--estimate`` dials nothing,
+``--analyse RUN`` re-measures offline.
 """
 
 from __future__ import annotations
@@ -64,6 +57,7 @@ from voice_cast_library import (
     score,
     shortlist,
     vendor_client,
+    vendor_status,
 )
 from voice_cast_report import (
     Alignment,
@@ -116,10 +110,9 @@ class CatalogueLine:
     ref: str | None = None
 
 
-#: One line per context the owner named, each verbatim from its source. No
-#: validated instrument item is authored in this tree (instruments.ts refuses
-#: with ``items_not_authored``), so the instrument context speaks the catalogue
-#: instrument lead-in under the instrument profile; an item is never invented.
+#: One line per context the owner named, verbatim from its source. No instrument item
+#: is authored here (``items_not_authored``), so the instrument context speaks the
+#: catalogue lead-in under the instrument profile; an item is never invented.
 LINES: Final[tuple[CatalogueLine, ...]] = (
     CatalogueLine(
         "welcome",
@@ -226,7 +219,8 @@ def synthesise_aligned(
         json=request_body(text_tr, profile, prefix),
     )
     if response.status_code // 100 != 2:
-        raise CastRefused(f"synthesis answered HTTP {response.status_code} (key not echoed)")
+        code, status = response.status_code, vendor_status(response)
+        raise CastRefused(f"synthesis answered HTTP {code} ({status}; key not echoed)")
     data = response.json()
     pcm = base64.b64decode(data.get("audio_base64") or "")
     if not pcm:
@@ -292,17 +286,23 @@ def render(
     """Render every combination's lines and return the characters sent.
 
     A voice whose first v2 line is refused is dropped. If v3 is refused for a
-    voice that v2 rendered, v3 is dropped for the rest of the run.
+    voice that v2 rendered, v3 is dropped for the rest of the run. An HTTP 401
+    is account-wide (key or quota), so it stops the run.
     """
     billed_k = 0.0
     chars = 0
     v2_ok: set[str] = set()
     v2_failed: set[str] = set()
-    v3_dead = False
+    v3_dead = halted = False
     for combo in sorted(combos, key=lambda c: (c.voice.voice_id, c.model_id)):
+        if halted:
+            combo.errors.append("skipped: an HTTP 401 (key or quota) stopped the run")
+            continue
         for line in lines:
             if combo.errors and not combo.clips:
                 break
+            if line.key in combo.clips:  # a resumed combination keeps the takes it has
+                continue
             if combo.model_id == V3 and (v3_dead or combo.voice.voice_id in v2_failed):
                 combo.errors.append("skipped: v3 refused earlier, or the voice failed on v2")
                 break
@@ -323,6 +323,9 @@ def render(
                 )
             except (CastRefused, httpx.HTTPError) as exc:
                 combo.errors.append(f"{line.key}: {exc}")
+                halted = "HTTP 401" in str(exc)
+                if halted:
+                    break
                 continue
             for folder, name, payload in (
                 ("audio", f"{line.key}.wav", wav_bytes(speech)),

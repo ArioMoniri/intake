@@ -175,6 +175,60 @@ The rank is the mean of each row's rank on gap, jump and rate CV. Lower is stead
   in the run (0.54), points to octave errors in the pitch tracker. Its median is the figure to
   read.
 
+## Round 2: eleven_v3 with render-time emotion tags (3 Oct 2026)
+
+The owner's feedback on round 1 was "ElevenLabs could do better and more emotional". Round 2 used:
+
+- **voices:** the four kept native voices, plus two more chosen from the library because their
+  own descriptions claim expressiveness or emotion: Gamze Özdemir and Marcus/Ozzano;
+- **model:** `eleven_v3` only, at Creative (0.0) and Natural (0.5) stability;
+- **tags:** the closed per-context table, prepended on the wire only. RED and instrument carry no
+  tag (see `adr-034-amendment-proposal-render-time-tags.md`).
+
+The run is `20261003T123356Z-r2`.
+
+**What rendered.** Six of the twelve combinations rendered, 36 takes in all: Mine, Meloxia and
+Marcus, each at both stability levels. Every request from the fourth voice in render order
+onwards (Gamze, Cavit and Toprak, at both levels) was refused with HTTP 401, after one call each.
+
+- Cavit and Toprak rendered on v3 with the same key in round 1, so the refusal is not specific to
+  those voices.
+- A refusal that starts at one point in the run and then hits every later request fits an
+  account-wide cause, most likely the key's or the account's character quota.
+- The tool did not record the vendor's status token in this run. It now keeps it (for example,
+  `quota_exceeded`), stops on the first 401, and can `--resume` a run, rendering only the missing
+  takes under the same codes.
+
+**Characters.** The run recorded 2,874 characters. Of these, 2,454 went to the 36 rendered takes;
+the other 420 are the six refused welcome requests, which the tool counts conservatively but which
+were not rendered.
+
+**Tags.** No tag was read aloud as a word:
+
+- Each tag's characters cover 64 to 293 ms of the vendor's alignment. That is shorter than any one
+  of those words spoken.
+- Where audio begins is in line with the untagged RED and instrument lines (0 to 0.11 s).
+- The one exception to listen for is `[gently]` on the acknowledgement. In all six takes there is
+  60 to 200 ms of sound before the first word, close to speech level. It may be an audible breath.
+
+**Measurements.** These are measurements of these takes, on the same six lines. They cannot be
+compared with round 1, whose settings differ. The rank is the mean of the ranks on gap, pitch jump
+and rate CV, as in round 1.
+
+| Rank | Voice   | Stability | Gap ms | Jump st (median / p90) | Rate CV | Syll/s | Range st |
+| ---: | ------- | --------- | -----: | ---------------------: | ------: | -----: | -------: |
+|    1 | Mine    | natural   |      7 |             1.75 / 8.8 |    0.18 |   6.05 |     11.4 |
+|    2 | Meloxia | natural   |      8 |             1.76 / 5.5 |    0.22 |   6.23 |     14.8 |
+|    3 | Marcus  | creative  |      1 |            1.93 / 19.5 |    0.24 |   5.94 |     20.6 |
+|    4 | Mine    | creative  |      9 |             2.04 / 5.6 |    0.18 |   5.96 |     13.8 |
+|    5 | Marcus  | natural   |      1 |            2.87 / 21.4 |    0.23 |   5.79 |     21.3 |
+|    6 | Meloxia | creative  |      9 |             1.67 / 6.3 |    0.24 |   5.87 |     13.8 |
+
+Marcus has the widest pitch range of either round, at 20.6 to 21.3 semitones. Its 90th-percentile
+jump of about 20 semitones means large pitch swings, or octave errors in the tracker, so listen to
+it for over-acting. Mine's range rose from 9.5 semitones on untagged v3 in round 1 to 11.4 to 13.8
+here. Meloxia's stayed about the same, 13.8 to 14.8 against 15.6.
+
 ## Terms
 
 The candidates are Voice Library voices used directly by id. They are not added to the account.

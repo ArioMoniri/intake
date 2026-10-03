@@ -217,8 +217,12 @@ def live_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("EVAL_BUDGET_USD", "5")
 
 
-def _vendor(*, v3_listed: bool = True, align_tags: bool = True) -> tuple[Any, list[Any]]:
+def _vendor(
+    *, v3_listed: bool = True, align_tags: bool = True, quota: int | None = None
+) -> tuple[Any, list[Any]]:
+    """``quota``: successful syntheses before every later one is HTTP 401 quota_exceeded."""
     seen: list[httpx.Request] = []
+    served = [0]
     library = [_raw(name, voice_id=vid, description="calm") for vid, name in r2.CORE]
     library += [_raw("f-extra"), _raw("m-extra", gender="male")]
 
@@ -240,6 +244,10 @@ def _vendor(*, v3_listed: bool = True, align_tags: bool = True) -> tuple[Any, li
                     for m in ids
                 ],
             )
+        if quota is not None and served[0] >= quota:
+            detail = {"status": "quota_exceeded", "message": f"echo {KEY} and the text"}
+            return httpx.Response(401, json={"detail": detail})
+        served[0] += 1
         wire = json.loads(request.content)["text"]
         line = next(x.text_tr for x in cast.LINES if wire.endswith(x.text_tr))
         pcm, alignment = _speak(wire, line, align_tags=align_tags)
@@ -250,7 +258,58 @@ def _vendor(*, v3_listed: bool = True, align_tags: bool = True) -> tuple[Any, li
 
 
 def _args(tmp_path: Path, **over: Any) -> argparse.Namespace:
-    return argparse.Namespace(**{"live": True, "estimate": False, "out": tmp_path, **over})
+    base = {"live": True, "estimate": False, "resume": None, "out": tmp_path}
+    return argparse.Namespace(**{**base, **over})
+
+
+def _synth(seen: list[httpx.Request]) -> list[httpx.Request]:
+    return [r for r in seen if "text-to-speech" in r.url.path]
+
+
+def test_a_401_stops_the_run_and_resume_renders_only_the_missing_takes(
+    live_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    transport, seen = _vendor(quota=20)
+    assert r2.run(_args(tmp_path), transport) == 0
+    (run_dir,) = list(tmp_path.iterdir())
+    first = json.loads((run_dir / "index.json").read_text(encoding="utf-8"))
+    assert len(_synth(seen)) == 21, "twenty served, one refused, then nothing more is sent"
+    errors = [e for v in first["combos"].values() for e in v["errors"]]
+    assert any("HTTP 401 (quota_exceeded" in e for e in errors)
+    assert any("stopped the run" in e for e in errors)
+    assert KEY not in json.dumps(first) and "the text" not in json.dumps(first)
+    kept = {(c, k): p for c, v in first["combos"].items() for k, p in v["clips"].items()}
+    assert len(kept) == 20
+    incomplete = {v["voice"]["voice_id"] for v in first["combos"].values() if len(v["clips"]) < 6}
+
+    healthy, seen2 = _vendor()
+    assert r2.run(_args(tmp_path, live=False, resume=run_dir), healthy) == 0
+    again = json.loads((run_dir / "index.json").read_text(encoding="utf-8"))
+    assert again["blind_order"] == first["blind_order"]
+    assert all(len(v["clips"]) == 6 for v in again["combos"].values())
+    assert len(_synth(seen2)) == 12 * 6 - 20, "only the missing takes are sent"
+    assert {r.url.path.split("/")[3] for r in _synth(seen2)} <= incomplete
+    assert all(again["combos"][c]["clips"][k] == p for (c, k), p in kept.items())
+    assert again["chars_sent"] > first["chars_sent"] and len(again["resumed_at"]) == 1
+    assert KEY not in capsys.readouterr().out
+
+
+def test_resume_refuses_a_round_one_run(live_env: None, tmp_path: Path) -> None:
+    (tmp_path / "index.json").write_text(json.dumps({"round": 1, "combos": {}}), encoding="utf-8")
+    transport, seen = _vendor()
+    with pytest.raises(lib.CastRefused, match="not a round-2 run"):
+        r2.run(_args(tmp_path, live=False, resume=tmp_path), transport)
+    assert _synth(seen) == []
+
+
+def test_vendor_status_keeps_only_a_snake_case_token() -> None:
+    def resp(body: Any) -> httpx.Response:
+        return httpx.Response(401, json=body)
+
+    assert lib.vendor_status(resp({"detail": {"status": "quota_exceeded"}})) == "quota_exceeded"
+    assert lib.vendor_status(resp({"detail": {"status": f"leak {KEY}"}})) == "unknown"
+    assert lib.vendor_status(resp({"detail": "plain message"})) == "unknown"
+    assert lib.vendor_status(httpx.Response(500, content=b"not json")) == "unknown"
 
 
 @pytest.mark.parametrize("align_tags", [True, False])

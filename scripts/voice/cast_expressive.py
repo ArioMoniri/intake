@@ -38,7 +38,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
-from typing import Final
+from typing import Any, Final
 
 import httpx
 from cast_turkish_voices import (
@@ -144,8 +144,10 @@ def run(args: argparse.Namespace, transport: httpx.BaseTransport | None = None) 
         }
         print(json.dumps(report))
         return 0
-    base, key, budget = _credentials(args.live)
+    base, key, budget = _credentials(args.live or args.resume is not None)
     with vendor_client(base, key, transport) as client:
+        if args.resume is not None:
+            return resume(args.resume, client, budget or 0.0)
         models = fetch_models(client)
         if models is not None and V3 not in models:
             raise CastRefused("eleven_v3 is not listed for Turkish; round 2 is v3 only")
@@ -180,6 +182,7 @@ def run(args: argparse.Namespace, transport: httpx.BaseTransport | None = None) 
             c.code: {
                 "voice": asdict(c.voice),
                 "model_id": c.model_id,
+                "setting_key": c.setting,
                 "setting": f"{c.setting} (stability {STABILITY[c.setting]}), tagged",
                 "clips": c.clips,
                 "errors": c.errors,
@@ -193,11 +196,59 @@ def run(args: argparse.Namespace, transport: httpx.BaseTransport | None = None) 
     return 0
 
 
+def _pending(index: Mapping[str, Any]) -> list[Combo]:
+    """The run's combinations missing a take, under their original codes and keeping
+    the takes they have."""
+    todo = []
+    for code, combo in index["combos"].items():
+        if len(combo["clips"]) == len(LINES):
+            continue
+        setting = combo.get("setting_key") or combo["setting"].split()[0]
+        if setting not in STABILITY:
+            raise CastRefused(f"{code} names an unknown setting {setting!r}")
+        raw = {**combo["voice"], "verified": tuple(tuple(v) for v in combo["voice"]["verified"])}
+        todo.append(
+            Combo(
+                code=code,
+                voice=Voice(**raw),
+                model_id=V3,
+                clips=dict(combo["clips"]),
+                setting=setting,
+            )
+        )
+    return todo
+
+
+def resume(run_dir: Path, client: httpx.Client, budget: float) -> int:
+    """Render only the takes a run is missing, into the same run and codes."""
+    index = json.loads((run_dir / "index.json").read_text(encoding="utf-8"))
+    if index.get("round") != 2:
+        raise CastRefused(f"{run_dir} is not a round-2 run")
+    todo = _pending(index)
+    multiplier = float(index["models"].get(V3, 1.0))
+    missing = [line for c in todo for line in LINES if line.key not in c.clips]
+    usd = round(wire_chars(missing) * multiplier / 1000 * USD_PER_1K_CHARS, 2)
+    print(f"resume: {len(missing)} missing takes in {len(todo)} combinations; estimate {usd} USD")
+    if usd > budget or usd > SPEND_CEILING_USD:
+        raise CastRefused(f"estimate {usd} USD exceeds the budget ({budget}) or the ceiling")
+    sent = render(todo, client, run_dir, LINES, budget, {V3: multiplier}, plan=plan)
+    for combo in todo:
+        index["combos"][combo.code].update(clips=combo.clips, errors=combo.errors)
+    index["chars_sent"] += sent
+    index["usd_at_planning_rate"] = round(index["chars_sent"] / 1000 * USD_PER_1K_CHARS, 2)
+    index.setdefault("resumed_at", []).append(datetime.now(UTC).isoformat(timespec="seconds"))
+    _write(run_dir / "index.json", json.dumps(index, ensure_ascii=False, indent=2))
+    analyse(run_dir)
+    print(f"resumed {sent} chars; open {run_dir / 'blind.html'}")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--live", action="store_true", help="render (paid); default is --plan")
     mode.add_argument("--estimate", action="store_true", help="print the estimate, dial nothing")
+    mode.add_argument("--resume", type=Path, metavar="RUN", help="render a run's empty combos")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     try:
         return run(parser.parse_args(argv))
