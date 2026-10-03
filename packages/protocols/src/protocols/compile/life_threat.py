@@ -360,15 +360,22 @@ def _split_rule(raw: object, index: int) -> dict[str, Any]:
     return annotations
 
 
-def load_life_threat_set(path: Path) -> LifeThreatSet:
+def load_life_threat_set(path: Path, *, data: bytes | None = None) -> LifeThreatSet:
     """Load and schema-validate the ``kind: life_threat_set`` document.
 
     A chain pack is refused here for the same reason ``load_pack`` refuses a
     life-threat set: the two documents have different safety semantics and
     neither may impersonate the other (files/12 §1).
+
+    ``data`` (INT-465) parses bytes the caller already holds instead of
+    reading ``path`` again, so a signature checked over those bytes covers
+    exactly what is parsed; ``path`` then names the document in errors only.
     """
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8") if data is None else data.decode("utf-8")
+        raw = yaml.safe_load(text)
+    except UnicodeDecodeError as exc:
+        raise LifeThreatSetError(f"{path}: life-threat set is not UTF-8") from exc
     except OSError as exc:
         raise LifeThreatSetError(f"{path}: life-threat set not readable: {exc}") from exc
     except yaml.YAMLError as exc:

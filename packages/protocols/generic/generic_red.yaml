@@ -1,35 +1,215 @@
-# The generic RED escalation (INT-453): what the device shows when a RED's own
-# pre-positioned script cannot be addressed.
+# The generic RED escalation (INT-453; activated by INT-465): what the device
+# shows when a RED's own pre-positioned script cannot be addressed.
 #
 # Source of truth: CD-24 in the INT-432 clinical-decisions register,
-# packages/protocols/decisions/CD-24.yaml on #757. The decision was authored by
-# an EM/IM-cardiology physician agent and independently verified as "agree"
-# (int-432-cd24 2e6bbf26). Scope is D18: simulated-patient stress testing only,
-# and a licensed physician's review is required before any real patient. The
-# copy below is CD-24's value.scripts.base.generic_red, verbatim.
+# packages/protocols/decisions/CD-24.yaml (docs/clinical/decisions/CD-24.md).
+# An emergency medicine and internal medicine/cardiology physician agent
+# authored it, and an independent clinical verifier agent agreed on
+# 2026-10-03. Scope is D18: simulated-patient stress testing only. A licensed
+# physician's review is required before any real patient.
 #
-# Status stays draft_needs_source until the CD-24 register row is on main
-# (#757). Until then protocols.generic_red refuses this document, so no RED
-# script catalog is served and device_functions cannot be enabled.
+# Everything below is copied from CD-24's record: the copy is
+# value.scripts.base.generic_red verbatim, and every source block and spec
+# sentence is one CD-24 cites. Each block's supports names only the fields
+# CD-24's own supports line gives it, for this location.
+# tests/protocols/test_generic_red.py proves all three, and every guideline
+# quote is checked verbatim against its committed snapshot at load.
 #
-# Register: CD-24 register_policy carry_engine_register. The generic trigger
+# Register: carry_engine_register (CD-24 register_policy). The generic trigger
 # carries the engine result's own register and is never fixed at ALERT.
+#
+# The ON_SITE action line keeps its authoring markup, as CD-24 wrote it.
+# protocols.red_render expands it before any screen or TTS sees it: the bold
+# markers are removed, and the [ — {{tenant.acil_location_tr}}] segment takes
+# the tenant's value or is dropped when unset (files/04 §8.2: never defaulted).
 #
 # Still draft in CD-24, and so not here:
 # - the SILENT copy (meanwhile the same text is shown in flow, with no audio);
 # - the register when fired rules declare different registers;
 # - the wait before an unanswered location question resolves to REMOTE;
-# - generic driving, accompaniment and nil-by-mouth do-nots.
+# - generic driving, accompaniment and nil-by-mouth do-nots for REMOTE.
+#
+# This file's bytes are covered by the synthetic-only test-key signature in
+# packages/protocols/signing/red_rule_set.synthetic.json. Any edit voids it
+# until it is re-signed (docs/runbooks/red-rule-set-signing.md).
 kind: generic_red
 decision: CD-24
-status: draft_needs_source
+scope: simulated_patient_stress_testing
+status: active
 register_policy: carry_engine_register
-source_gap: >-
-  Verified as CD-24 (INT-432; int-432-cd24 2e6bbf26) and landing on #757. This
-  document becomes active, with CD-24's TR-EK4-2022 source block, once that
-  register row is on main. Serving it then also needs the compiler's tr
-  expansion of the ON_SITE line (bold markers and the optional tenant
-  acil_location_tr segment) rather than the raw text below.
+scripts:
+  REMOTE:
+    location: REMOTE
+    script_id: base.generic_red.remote
+    register: carry_engine_register
+    sources:
+    - kind: guideline
+      guideline_id: TR-ACIL-TEBLIG-DEG-2024
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğde Değişiklik Yapılmasına Dair Tebliğ"
+      version_or_date: "RG 11/10/2024 sayı 32689"
+      url: "https://www.resmigazete.gov.tr/eskiler/2024/10/20241011-3.htm"
+      retrieved_on: 2026-10-02
+      quote: "İllerde 112 acil çağrı merkezi bünyesinde acil sağlık çağrılarının karşılandığı ve ambulansların sevk ve idare edildiği birimi"
+      snapshot: "packages/protocols/sources/TR-ACIL-TEBLIG-DEG-2024.txt"
+      supports: action_tr
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+      version_or_date: "RG 13/9/2022 sayı 31952 (EK-4 unchanged by RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Kategori 1: Hayatı tehdit eden ve hızlı agresif yaklaşım ve acil olarak eş zamanlı değerlendirme ve tedavi gerektiren durumlar. Bu durumlarda hasta hiç bekletilmeden kırmızı alana alınır."
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: do_nots_tr
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+      version_or_date: "RG 13/9/2022 sayı 31952"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Kategori 2: Hayatı tehdit etme olasılığı yüksek olan ve 10 dakika içerisinde değerlendirilip tedavi edilmesi gerekli durumlar."
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: "do_nots_tr, why_tr"
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(5))"
+      version_or_date: "RG 13/9/2022 sayı 31952 (MADDE 8(1)-(5) unchanged by the 2023 and 2024 amendments)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+      retrieved_on: 2026-10-02
+      quote: "(5) 112 acil ambulanslarıyla sağlık tesisine getirilen hastalara ayrıca triyaj uygulaması yapılmaz."
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: why_tr
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 4(1)(p))"
+      version_or_date: "RG 13/9/2022 sayı 31952"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+      retrieved_on: 2026-10-02
+      quote: "tıbbi önceliklerinin ve yönlendirilecekleri tedavi birimlerinin belirlenmesi işlemini"
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: why_tr
+    spec_basis:
+    - file: "files/04_CLINICAL_PROTOCOLS.md"
+      section: "§4.1 Turkish crisis resources (the closed number table)"
+      quote: "single national emergency number since 1 Feb 2018; psychiatric emergencies including suicide risk are in remit"
+      supports: "action_tr, primary, show_112"
+    - file: "files/02_PRODUCT_SPEC.md"
+      section: "§5.3 The EMERGENCY_NOW persuasion line is location-specific"
+      quote: "Both are statements about the service rather than about the patient's condition, so both are safe in every register."
+      supports: why_tr
+    - file: "files/04_CLINICAL_PROTOCOLS.md"
+      section: "§8.1 rule 6"
+      quote: "Action scripts carry the do-nots."
+      supports: do_nots_tr
+    - file: CLAUDE.md
+      section: "Clinical content rules, patient copy"
+      quote: "Invert inside RED, where the bare imperative plural (Tutun · Arayın · Bakmayın) is correct because ambiguity is the harm."
+      supports: "action_tr, do_nots_tr"
+  ON_SITE:
+    location: ON_SITE
+    script_id: base.generic_red.on_site
+    register: carry_engine_register
+    sources:
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+      version_or_date: "RG 13/9/2022 sayı 31952 (EK-4 unchanged by RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Kategori 1: Hayatı tehdit eden ve hızlı agresif yaklaşım ve acil olarak eş zamanlı değerlendirme ve tedavi gerektiren durumlar. Bu durumlarda hasta hiç bekletilmeden kırmızı alana alınır."
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: why_tr
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+      version_or_date: "RG 13/9/2022 sayı 31952"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Kategori 2: Hayatı tehdit etme olasılığı yüksek olan ve 10 dakika içerisinde değerlendirilip tedavi edilmesi gerekli durumlar."
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: "do_nots_tr, why_tr"
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 4(1)(p))"
+      version_or_date: "RG 13/9/2022 sayı 31952"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+      retrieved_on: 2026-10-02
+      quote: "tıbbi önceliklerinin ve yönlendirilecekleri tedavi birimlerinin belirlenmesi işlemini"
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: why_tr
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(3))"
+      version_or_date: "RG 13/9/2022 sayı 31952"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+      retrieved_on: 2026-10-02
+      quote: "ayaktan hasta girişlerinde, mümkün olması halinde kayıt ve triyaj işleminin aynı anda yapılması esastır"
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: why_tr
+    - kind: guideline
+      guideline_id: TR-EK4-2022
+      title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(3))"
+      version_or_date: "RG 13/9/2022 sayı 31952"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+      retrieved_on: 2026-10-02
+      quote: "Ayaktan başvurduğu halde hayati tehlikesi olduğu değerlendirilen hastalar için kayıt ve triyaj işlemi yapılmaksızın sağlık personeli eşliğinde uygun görülen alana yönlendirilir."
+      snapshot: "packages/protocols/sources/TR-EK4-2022.txt"
+      supports: do_nots_tr
+    spec_basis:
+    - file: "files/02_PRODUCT_SPEC.md"
+      section: "§5.3 Axis 3, location table (ON_SITE row)"
+      quote: "Direct them to the hospital's acil servis red area now, and notify staff in the same action."
+      supports: "primary, notify_staff_immediate"
+    - file: "files/02_PRODUCT_SPEC.md"
+      section: "§5.3 What the ON_SITE text must contain"
+      quote: "is therefore promoted from an optional button to an automatic action"
+      supports: action_tr
+    - file: "files/02_PRODUCT_SPEC.md"
+      section: "§5.3 What the ON_SITE text must contain"
+      quote: "is the sentence that changes behaviour; without it the alert is a mood."
+      supports: action_tr
+    - file: "files/02_PRODUCT_SPEC.md"
+      section: "§5.3 What the ON_SITE text must contain"
+      quote: "Not de-emphasised, not below the fold — absent."
+      supports: "show_112, action_tr, do_nots_tr, why_tr"
+    - file: CLAUDE.md
+      section: "Non-negotiable invariant 21"
+      quote: "Under ON_SITE the 112 affordance is absent, not de-emphasised."
+      supports: show_112
+    - file: "files/02_PRODUCT_SPEC.md"
+      section: "§5.3 The EMERGENCY_NOW persuasion line is location-specific"
+      quote: "Both are statements about the service rather than about the patient's condition, so both are safe in every register."
+      supports: why_tr
+    - file: "files/protocols/base.life_threat.yaml"
+      section: "rf.chest_pain_cardiac_features, action.ON_SITE.action_tr (exemplar 1)"
+      quote: "Acil Servis'e gidin[ — {{tenant.acil_location_tr}}]."
+      supports: action_tr
+    - file: "files/04_CLINICAL_PROTOCOLS.md"
+      section: "§8.1 rule 6"
+      quote: "Action scripts carry the do-nots."
+      supports: do_nots_tr
+    - file: CLAUDE.md
+      section: "Clinical content rules, patient copy"
+      quote: "Invert inside RED, where the bare imperative plural (Tutun · Arayın · Bakmayın) is correct because ambiguity is the harm."
+      supports: "action_tr, do_nots_tr"
+  UNKNOWN:
+    location: UNKNOWN
+    script_id: base.generic_red.unknown
+    register: carry_engine_register
+    sources: []
+    spec_basis:
+    - file: CLAUDE.md
+      section: "Non-negotiable invariant 21"
+      quote: "Under ON_SITE the 112 affordance is absent, not de-emphasised."
+      supports: ask_one_tr
+    - file: "files/02_PRODUCT_SPEC.md"
+      section: "§5.3 Axis 3, location table (UNKNOWN row)"
+      quote: "Never guess: a guess is wrong in one of the two directions above, and both of those are harms."
+      supports: ask_one_tr
+    - file: "files/04_CLINICAL_PROTOCOLS.md"
+      section: "§8.1 rule 7"
+      quote: "It is never resolved by guessing"
+      supports: ask_one_tr
 action:
   REMOTE:
     primary: CALL_112
@@ -38,7 +218,7 @@ action:
       tr: "Hemen 112 Acil Çağrı Merkezi'ni arayın."
     do_nots_tr:
       tr:
-        - "Randevuyu beklemeyin."
+      - "Randevuyu beklemeyin."
     why_tr:
       tr: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
   ON_SITE:
@@ -49,8 +229,8 @@ action:
       tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
     do_nots_tr:
       tr:
-        - "Poliklinik sırasında beklemeyin."
-        - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+      - "Poliklinik sırasında beklemeyin."
+      - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
     why_tr:
       tr: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
   UNKNOWN:

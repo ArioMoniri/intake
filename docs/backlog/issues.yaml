@@ -6551,3 +6551,24 @@
     - "an end-to-end test proves a red-flag answer reaches the RED screen on both lanes, with a near-miss control that does not; the answer-to-RED time is measured"
   tests: [tests/api/test_triage_hop.py, apps/mobile/e2e/red.spec.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/e2e/motion.spec.ts]
   sec_row: "triage"
+- id: INT-465
+  epic: E03-protocols
+  phase: P0
+  title: "generic RED active from CD-24, and the red rule set signed with a synthetic-only test key"
+  # GitHub #794. Follows INT-453 (#767) and INT-446 (#756) once INT-432's
+  # CD-24 reached main (PR #757). Owner decision D23, 3 Oct 2026, read with
+  # D18: a non-exportable OpenBao test key on the synthetic AWS host signs the
+  # rule set that host serves to simulated patients, and every non-synthetic
+  # tenant rejects it. D17 and HB-C1 are unchanged; INT-058 (cosign) is the
+  # production path and is untouched.
+  depends_on: [INT-432, INT-446, INT-453]
+  labels: [area:protocols, risk:clinical, risk:security]
+  status: done
+  evidence: docs/evidence/INT-465.md
+  acceptance:
+    - "generic_red.yaml is active with CD-24's own source blocks, each quote verbatim in a committed snapshot under packages/protocols/sources/; every location entry (REMOTE, ON_SITE, UNKNOWN) states its location and the CD-24 register policy (carry_engine_register); no ON_SITE text, number or action code carries 112; each with a near-miss test"
+    - "the ON_SITE bold markers and the [ — {{tenant.acil_location_tr}}] segment are expanded before the screen and TTS: markup-free, the segment resolved from the tenant's value or dropped when unset, never defaulted; every spoken generic string passes expand_tr (112 → yüz on iki) with no digit, markup or placeholder; each with a near-miss test"
+    - "the generic RED goldens (CD-24's near-miss tests) are in tests/safety and make safety is green"
+    - "the served red rule set is signed with an ed25519 test key held non-exportable in OpenBao Transit on the synthetic AWS host, never in the repo or a log; a synthetic tenant config serves it only with a valid test-key signature over its exact bytes; a test proves any non-synthetic tenant config rejects the test-key signature; the production signing path (INT-058, cosign) and its key are untouched"
+  tests: [tests/protocols/test_generic_red.py, tests/protocols/test_red_render.py, tests/protocols/test_red_signature.py, tests/protocols/test_red_rule_set_signature_cli.py, tests/safety/test_generic_red_goldens.py, tests/api/test_triage_hop.py, tests/api/test_triage_tenant_kind.py, tests/infra/test_red_signing_infra.py, tests/voice/test_red_winner.py]
+  sec_row: "triage"

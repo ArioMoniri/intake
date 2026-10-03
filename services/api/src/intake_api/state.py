@@ -16,6 +16,7 @@ from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
 from intake_platform.previsit_output import RecipientRegistry, load_recipients
+from intake_platform.red_tenant import TenantRedConfig
 from intake_platform.safety_inbox import SafetyInbox
 from intake_platform.tokenization import Tokenizer
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -164,7 +165,12 @@ class ApiState:
         """The served rule set, loaded once; ``None`` means fail closed (503)."""
         if not self._red_rules_loaded:
             self._red_rules = load_served_red_rules(
-                self.settings.triage_rules_path, self.settings.triage_generic_red_path
+                self.settings.triage_rules_path,
+                self.settings.triage_generic_red_path,
+                signature_path=self.settings.triage_signature_path,
+                # INT-465: no tenant record holds acil_location_tr yet (files/08
+                # asks for it with a change tier), so the segment is dropped.
+                tenant=TenantRedConfig(kind=self.settings.triage_tenant_kind),
             )
             self._red_rules_loaded = True
         return self._red_rules

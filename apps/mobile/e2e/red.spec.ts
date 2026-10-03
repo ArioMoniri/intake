@@ -411,7 +411,8 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
         mode: "rootLayer",
         register: "ALERT",
         location: "REMOTE",
-        actionTr: "Sentetik genel yönerge.",
+        // INT-465: the active CD-24 copy, as the route serves it (rendered).
+        actionTr: "Hemen 112 Acil Çağrı Merkezi'ni arayın.",
         call112: true,
       });
       // Near miss: with the script present the rule's own words show, not the generic.

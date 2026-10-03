@@ -35,8 +35,8 @@ from intake_api.consent_guard import unguarded_data_routes
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SIGNED = REPO_ROOT / "tests" / "fixtures" / "protocols" / "compile" / "life_threat_signed.yaml"
 GOLDEN = REPO_ROOT / "tests" / "fixtures" / "triage_hop"
-GENERIC = GOLDEN / "generic_red_sentetik.yaml"
-COMMITTED_GENERIC = REPO_ROOT / "packages" / "protocols" / "generic" / "generic_red.yaml"
+# INT-465: the committed generic RED is active (CD-24), so every test serves it.
+GENERIC = REPO_ROOT / "packages" / "protocols" / "generic" / "generic_red.yaml"
 
 REFERENCE_TIME = "2026-08-29T10:00:00+03:00"
 FIRING = {"ziyaret.basvuru_nedeni": "sentetik_yasamsal", "sure_dakika": "2026-08-29"}
@@ -326,15 +326,23 @@ def test_the_simulator_set_fires_on_the_typed_free_note_only(
             assert body == {"kind": "triage_level", "level": "GREEN"}
 
 
-@pytest.mark.parametrize("generic", ["committed-draft-cd24", "absent"])
+def _draft_generic(tmp_path: Path) -> Path:
+    doc = yaml.safe_load(GENERIC.read_text(encoding="utf-8"))
+    doc["status"] = "draft_needs_source"
+    doc["source_gap"] = "sentetik: the register row is withdrawn"
+    path = tmp_path / "generic_draft.yaml"
+    path.write_text(yaml.safe_dump(doc, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("generic", ["draft", "absent"])
 def test_nothing_is_served_while_the_generic_red_is_draft_or_absent(
     tmp_path: Path, generic: str
 ) -> None:
     """INT-453 serve precondition: a blank generic RED never reaches a live
-    tenant. The committed document is draft_needs_source until CD-24 lands,
-    so the signed set is not served. The near miss is every other test here:
-    with the servable SENTETİK generic, the very same set serves."""
-    path = COMMITTED_GENERIC if generic == "committed-draft-cd24" else tmp_path / "absent.yaml"
+    tenant. A draft generic, or none, serves nothing. The near miss is every
+    other test here: with the active CD-24 generic, the very same set serves."""
+    path = _draft_generic(tmp_path) if generic == "draft" else tmp_path / "absent.yaml"
     for harness in build_harness(
         tmp_path,
         token_patient=PATIENT_TOKEN,
@@ -351,3 +359,91 @@ def test_the_catalog_pre_positions_the_generic_red(harness: ApiHarness) -> None:
     assert catalog["scripts"]["base.generic_red.on_site"]["show112"] is False
     unknown = catalog["questions"]["base.generic_red.unknown"]
     assert unknown["askTr"] == "Şu anda hastanede misiniz?"
+    # INT-465: the generic is CD-24's copy, rendered (no markup reaches the screen).
+    assert catalog["scripts"]["base.generic_red.remote"]["actionTr"] == (
+        "Hemen 112 Acil Çağrı Merkezi'ni arayın."
+    )
+    assert catalog["scripts"]["base.generic_red.on_site"]["actionTr"] == (
+        "Acil Servis'e gidin. Randevuyu beklemeyin. Görevlilere haber verildi."
+    )
+
+
+# --- INT-465: the synthetic host's rule set, signed with the synthetic-only test key ---------
+
+LIFE_THREAT = REPO_ROOT / "files" / "protocols" / "base.life_threat.yaml"
+SIGNATURE = REPO_ROOT / "packages" / "protocols" / "signing" / "red_rule_set.synthetic.json"
+CARDIAC = "rf.chest_pain_cardiac_features"
+
+
+def _synthetic(
+    tmp_path: Path,
+    *,
+    kind: str = "synthetic",
+    rules: Path = LIFE_THREAT,
+    signature: Path | None = SIGNATURE,
+) -> Iterator[ApiHarness]:
+    return build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=rules,
+        triage_signature_path=signature,
+        triage_tenant_kind=kind,
+    )
+
+
+def test_a_synthetic_tenant_serves_the_test_key_signed_life_threat_set(tmp_path: Path) -> None:
+    """The owner's 3 Oct 2026 decision with D18: on the synthetic host the test-key
+    signature stands in for the physician's sign-off (HB-C1), for simulated patients
+    only. Drafts are never served and every script is rendered."""
+    for harness in _synthetic(tmp_path):
+        response = harness.client.get("/v1/triage/red-scripts", headers=harness.patient())
+        assert response.status_code == 200, response.text
+        catalog = response.json()
+        assert catalog["scripts"][f"{CARDIAC}.remote"]["actionTr"] == "Hemen 112'yi arayın."
+        assert catalog["scripts"][f"{CARDIAC}.on_site"]["show112"] is False
+        assert "base.generic_red.on_site" in catalog["scripts"]
+        assert not any(key.startswith("rf.crisis_disclosure") for key in catalog["scripts"])
+        assert not any(key.startswith("rf.paediatric_airway") for key in catalog["scripts"])
+        # Near miss: an answer set with no chest pain stays GREEN.
+        near = _evaluate(harness, {"chest_pain.character": "baskı"})
+        assert near == {"kind": "triage_level", "level": "GREEN"}
+
+
+@pytest.mark.parametrize("kind", ["real", "", "production", "Synthetic"])
+def test_any_non_synthetic_tenant_rejects_the_test_key_signed_set(
+    tmp_path: Path, kind: str
+) -> None:
+    """The same files and the same signature: anything but the exact synthetic
+    kind is a real tenant, and a real tenant refuses the test key."""
+    for harness in _synthetic(tmp_path, kind=kind):
+        _assert_closed(harness)
+
+
+def test_a_real_tenant_refuses_a_test_signature_even_beside_a_clinically_signed_set(
+    tmp_path: Path,
+) -> None:
+    """A test-key signature never helps on a real tenant. Configured beside a set that
+    carries a complete sign-off, it makes the set unservable rather than trusted. Near
+    miss: the same set with no signature configured serves (the ``harness`` fixture)."""
+    for harness in _synthetic(tmp_path, kind="real", rules=SIGNED):
+        _assert_closed(harness)
+
+
+def test_a_synthetic_tenant_without_a_signature_fails_closed(tmp_path: Path) -> None:
+    for harness in _synthetic(tmp_path, signature=None):
+        _assert_closed(harness)
+
+
+def test_a_synthetic_tenant_with_a_malformed_signature_fails_closed(tmp_path: Path) -> None:
+    broken = tmp_path / "envelope.json"
+    broken.write_bytes(b"\xff not an envelope")
+    for harness in _synthetic(tmp_path, signature=broken):
+        _assert_closed(harness)
+
+
+def test_a_synthetic_tenant_refuses_a_changed_byte(tmp_path: Path) -> None:
+    tampered = tmp_path / "base.life_threat.yaml"
+    tampered.write_bytes(LIFE_THREAT.read_bytes() + b"\n")
+    for harness in _synthetic(tmp_path, rules=tampered):
+        _assert_closed(harness)

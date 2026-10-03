@@ -32,6 +32,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+import yaml
 from intake_platform.admin import (
     DANGEROUS_ACTIONS,
     ActionDirection,
@@ -386,7 +387,16 @@ class TestDeviceFunctionsNeedsAServableGenericRed:
 
     REPO = Path(__file__).resolve().parents[2]
     COMMITTED = REPO / "packages" / "protocols" / "generic" / "generic_red.yaml"
-    SENTETIK = REPO / "tests" / "fixtures" / "triage_hop" / "generic_red_sentetik.yaml"
+
+    @classmethod
+    def draft(cls, tmp_path: Path) -> Path:
+        """The committed CD-24 copy, set back to draft_needs_source (INT-465)."""
+        doc = yaml.safe_load(cls.COMMITTED.read_text(encoding="utf-8"))
+        doc["status"] = "draft_needs_source"
+        doc["source_gap"] = "sentetik: the register row is withdrawn"
+        path = tmp_path / "generic_draft.yaml"
+        path.write_text(yaml.safe_dump(doc, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        return path
 
     @staticmethod
     def precondition(path: Path) -> GenericRedPrecondition:
@@ -402,19 +412,19 @@ class TestDeviceFunctionsNeedsAServableGenericRed:
         assert caught.value.code == "flag_device_functions_generic_red_unservable"
         assert gov.effective_safety("device_functions") is False
 
-    def test_the_committed_draft_cd24_copy_refuses(self) -> None:
+    def test_a_draft_generic_copy_refuses(self, tmp_path: Path) -> None:
         gov = FlagGovernor(
             FourEyesService(clock=Clock()),
-            generic_red_precondition=self.precondition(self.COMMITTED),
+            generic_red_precondition=self.precondition(self.draft(tmp_path)),
         )
         with pytest.raises(DeviceFunctionsPreconditionUnmet):
             self._open(gov)
 
     def test_a_servable_generic_lets_the_two_key_ceremony_complete(self) -> None:
-        """Near miss: the same ceremony with servable (SENTETİK) copy succeeds."""
+        """Near miss: the same ceremony with the active CD-24 copy (INT-465) succeeds."""
         gov = FlagGovernor(
             FourEyesService(clock=Clock()),
-            generic_red_precondition=self.precondition(self.SENTETIK),
+            generic_red_precondition=self.precondition(self.COMMITTED),
         )
         pending = gov.open_enable(
             key="device_functions", actor=ACTOR, justification=justification(), ttl=CHANGE_TTL
