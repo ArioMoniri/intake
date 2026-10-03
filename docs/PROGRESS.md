@@ -3474,6 +3474,6 @@
   - ADR-039 S7 under the same owner approval; the D23 row notes it.
   - #793's first-draft "no gradient" is superseded; the row and the issue body are rewritten to S7.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id):
-  - None new. The glass and capture-protection decision from #797 now has supporting evidence: glass draws on these unprotected screens.
+  - None new. Glass draws on these unprotected screens. INT-472 later showed that a protected screen can draw it too, so the cause is not established.
 - Next: section 4 (review and summary as grouped inset lists), then section 5 (in-tree detent sheets, ADR-038 A3).
 - LOOP_STATUS: CONTINUE
