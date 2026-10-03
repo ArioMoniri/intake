@@ -3200,3 +3200,40 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): 31 owner questions recorded per item in CD-100..CD-106 (generator fixed slots vs base, self/proxy wording under HB-L20, D3 categories); none blocks the merge.
 - Next: apply the packet decisions through the proposals and the generator once #642 merges.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:00:00Z · INT-414 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-414, GitHub #705): a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase, question context and the patient's on-device state (read-only), and never alters the question text; every new string is B1 Turkish in the siz register, warm through verb mood, passes PolicyGuard, with an en mirror; an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr and a RED gets nothing added; no numerals reach TTS and no patient words are composed into speech; all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md.
+- Plan:
+  - `delivery.ts` composes `lead_in | transition | acknowledgement | question`, deterministic by an FNV-1a hash of the session seed and turn index.
+  - `deliveryDeck.ts` maps slot to keys and context, with no strings; `deliveryPlan.ts` folds the composer over a sitting.
+  - The typed lane renders the line above the unconditional question heading; the voice lane speaks the planned utterances in order and drops a lead-in whose clip is not ready.
+  - Each utterance carries its INT-415 delivery context through the clip store to the George route; the route allow-list holds the 42 spoken lines verbatim.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `delivery.test.ts`, `deliveryPlan.test.ts`, `tests/release/test_delivery_copy.py`, `tests/api/test_dev_voice_delivery.py`.
+  - Extended: `tests/api/test_dev_voice_hardening.py`; the existing `tests/release/test_i18n_complete.py` sweep covers every new key.
+  - Near misses: a question one trailing space off, a RED script with one decoration, a delivery line turned into a question, an outcome reassurance in an acknowledgement, an allow-list one character off.
+  - RED run: module absent, then 4 failures, then 5 context-threading failures; 10 of 10 mutants killed.
+- Result (`make check` / `make safety` / `make security` summary), merged with main at 79ba5659:
+  - `pnpm -r typecheck`, `make check-ts` (mobile 2482 passed), `make check-i18n` (191 passed), `make check-py` (9786 passed; every coverage floor met), `make safety` (triage 100 %, 18 of 18 mutations detected), `tests/backlog` + `tests/smoke`, and `no_placeholders` all exit 0.
+  - `check-integration` is CI-only; `make security` is the CI gate set (no dependency, model or egress added).
+  - Conflicts with main were only the generated and counted backlog files; the pinned counts are 327 and files/11 is re-rendered.
+- Invariants touched and still passing: 2, 3, 5, 10, 11, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none. No id minted; the spoken "tekrar" repeat command is an owner decision recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines in docs/evidence/INT-414.md, or which do you rewrite?" The lines are engineer-authored and unsigned. Owner asks, not HB rows: which docs/legal/strings.yaml string may the opening use to say answers go to the doctor (INT-210), and a listening review of the contexts on George.
+- Next: PR `INT-414: Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim` (Closes #705, Sec-Row mobile), left unmerged for review.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T20:40:00Z · INT-414 · done (PR open, not merged; clinical-reviewer pre-review applied)
+- Goal: the clinical-reviewer agent pre-reviewed PR #726 and asked for copy and code changes; acceptance is unchanged (docs/backlog/issues.yaml INT-414).
+- Plan:
+  - Copy: eleven lines reworded and three polished in `tr.ts`, `en.ts` and the server allow-list, after confirming in `stream.ts` that a silent turn's question always returns in the manual steps.
+  - Code: `questionContextOf` can return `red` from a pack declaration (`redAdjacent`) and the turn after it gets no acknowledgement or cadence line; the instrument check moves above the repair branch; a lead-in dropped for want of a clip is dropped from the transcript as well as the voice.
+- Tests added (with the near-miss negative for any safety rule):
+  - `delivery.test.ts`, `deliveryPlan.test.ts` (20 failed before the change), `stream.test.ts`, plus the existing `tests/release/test_delivery_copy.py` allow-list check (1 failed before the mirror followed).
+  - Near misses: the same stretch after a routine step is warmed on some seeds, so the after-RED assertion is not vacuous; a re-asked first instrument item gets the introduction, not a repair line; every ready/stalled pattern of three lines keeps voice and screen equal.
+- Result (`make check` / `make safety` / `make security` summary): typecheck, `make check-ts` (mobile 2499 passed), `make check-i18n` (191), ruff, mypy, the affected pytest lanes, `make safety` (18 of 18) and `no_placeholders` exit 0. The whole-tree `make check-py` was not repeated.
+- Invariants touched and still passing: 2, 10, 11, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines, or which do you rewrite?" The 12 revised lines are marked pre-reviewed by the clinical-reviewer agent on 2 Oct 2026; physician sign-off is still open. files/04 §4.2 pre-brief: the sensitive transition lines are not that pre-brief, which is owed separately.
+- Next: the `leadIn` rendering through #728's `ChatLines` waits for #728 to reach main.
+- LOOP_STATUS: WAITING_HUMAN

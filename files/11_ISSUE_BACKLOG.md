@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**337 issues.** By phase: P0 167 · P1 116 · P2 47 · P3 7. By status: awaiting-human 33 · doing 6 · done 224 · todo 73 · withdrawn 1.
+**338 issues.** By phase: P0 167 · P1 117 · P2 47 · P3 7. By status: awaiting-human 33 · doing 6 · done 225 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -299,6 +299,7 @@
 | INT-431 | The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest | E10-connectors | INT-320 | area:release, risk:security | done |
 | INT-426 | CI on AWS: gate runner via S3+SSM with commit status, no workflow edits | E13-infra | INT-352 | area:ci | done |
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
+| INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 
 ## P2
 
