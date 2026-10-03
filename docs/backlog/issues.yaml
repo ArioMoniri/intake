@@ -6653,3 +6653,22 @@
     - "a release checklist in docs/ runs end to end"
   tests: [tests/infra/test_staging_admin_tier.py, tests/api/test_dev_fixture_production.py, apps/mobile/e2e/releaseConfig.spec.ts]
   sec_row: "platform"
+- id: INT-463
+  epic: E13-infra
+  phase: P1
+  title: "All CI jobs on the AWS self-hosted runner"
+  # GitHub #790. Owner order, 3 Oct 2026: every GitHub Actions run executes on
+  # the AWS host, not on GitHub-hosted runners (billing). The runner is
+  # installed from infra/ci/aws-runner. The workflow edits are an owner patch:
+  # security.yml is hook-protected and the session classifier refused the
+  # ci.yml staging, so the owner applies both files to the PR branch.
+  depends_on: [INT-206, INT-426]
+  labels: [area:ci, approval:human-infra]
+  status: awaiting-human
+  evidence: docs/evidence/INT-463.md
+  acceptance:
+    - "a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; it is ephemeral and re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker is available to that user only as rootless Docker, for workflow service and container actions"
+    - "every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts that no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml"
+    - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
+  tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
+  sec_row: "cicd"

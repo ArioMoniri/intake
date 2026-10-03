@@ -163,7 +163,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
-    assert len(ids) == 340
+    # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
+    # order of 3 Oct 2026, GitHub #790).
+    assert len(ids) == 341
     import re
 
     for i in ids:
