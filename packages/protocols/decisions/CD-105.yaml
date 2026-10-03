@@ -175,6 +175,46 @@ sources:
     version_or_date: "NICE guideline NG201; published 19 August 2021; minor changes up to December 2025"
     url: "https://www.nice.org.uk/guidance/ng201/chapter/Recommendations"
     retrieved_on: 2026-10-03
+    section: "1.2.34"
+    quote: "advise her to contact maternity services at any time of day or night if she has any concerns about her baby's movements or she notices reduced fetal movements after 24+0 weeks"
+    snapshot: packages/protocols/sources/NICE-NG201.txt
+    supports: "wave7 L88 answer mapping (movements that have stopped are the concern, never a 'no') and wave7 L117 (the sourced action for reduced fetal movements)"
+  - kind: guideline
+    guideline_id: NICE-NG133
+    title: "Hypertension in pregnancy: diagnosis and management"
+    version_or_date: "NICE guideline NG133; published 25 June 2019; last updated 17 April 2023; minor changes August 2022, October 2022 and October 2023 (Update information)"
+    url: "https://www.nice.org.uk/guidance/ng133/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "Advise pregnant women to see a healthcare professional immediately if they experience symptoms of pre-eclampsia."
+    snapshot: packages/protocols/sources/NICE-NG133.txt
+    supports: "wave7 L117: the sourced action for pre-eclampsia symptoms"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.5.12"
+    quote: "aged 55 and over with unexplained post-menopausal bleeding that cannot be attributed to hormone replacement therapy (HRT)."
+    snapshot: packages/protocols/sources/NICE-NG12-B.txt
+    supports: "wave6 L57 answer mapping: bleeding after periods have stopped is a referral feature, never an absent answer"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.5.14"
+    quote: "who are aged under 55 with unexplained post-menopausal bleeding that cannot be attributed to HRT."
+    snapshot: packages/protocols/sources/NICE-NG12-B.txt
+    supports: "wave6 L57 answer mapping, at any age"
+  - kind: guideline
+    guideline_id: NICE-NG201
+    title: "Antenatal care"
+    version_or_date: "NICE guideline NG201; published 19 August 2021; minor changes up to December 2025"
+    url: "https://www.nice.org.uk/guidance/ng201/chapter/Recommendations"
+    retrieved_on: 2026-10-03
     section: "1.1.7"
     quote: "Plan 10 routine antenatal appointments with a midwife or doctor for nulliparous women."
     snapshot: packages/protocols/sources/NICE-NG201.txt
@@ -356,6 +396,18 @@ spec_basis:
     section: "Table"
     quote: "| bilmiyorum | I do not know | * | UNCLEAR | active |"
     supports: "answer mappings in wave6 L57 and wave7 L88"
+  - file: docs/clinical/decisions/CD-04.md
+    section: "Decision"
+    quote: "the matcher tests every entry below before it tests a plain negative"
+    supports: "answer mappings in wave6 L57 and wave7 L88: the qualified entries are tested before any plain 'hayır'"
+  - file: docs/clinical/decisions/CD-04.md
+    section: "Table"
+    quote: "| şu an yok ama vardı | none now, but there was (resolved episode) | chest_pain.present | PRESENT_QUALIFIED | active |"
+    supports: "wave7 L88: movements felt before and now absent are present-qualified, not absent"
+  - file: packages/protocols/base/intake.yaml
+    section: "hpi.onset_date and hpi.duration"
+    quote: "must_ask: true"
+    supports: "wave7 L93 and wave8 L94 owner part: base asks complaint timing in every chain"
   - file: packages/protocols/decisions/CD-13.yaml
     section: "value.rules.base_life_threat"
     quote: "a base.life_threat rule reads base.intake slots or base probes only"
@@ -388,6 +440,7 @@ value:
       question: "Should the pre-visit pack ask when the patient last ate and drank before surgery?"
       outcome: reject
       clinical_basis: "Fasting intervals are counted in hours before the operation, so a time reported at a pre-visit days earlier carries no information and could be mistaken for a fasting record; son_kati_gida and son_sivi leave the anesteziyoloji pre-visit pack, no gate or op names them, and the team asks them on the day of surgery."
+      source_note: "The TARD 2025 adult preoperative guideline was searched first; its text layer sets no fasting interval (it mentions the usual fasting period once, in a medicines paragraph on PDF p. 26), so the ESAIC guideline is cited for how fasting is timed."
       sources: [ESAIC-FASTING-2011]
       status: active
     - item: "docs/evidence/verification/specialty-wave1-3.md#L69"
@@ -448,12 +501,17 @@ value:
       question: "Can the heavy-period item keep its conditional lead-in when no slot can gate it?"
       outcome: accept
       clinical_basis: >-
-        Yes, with a per-slot answer mapping: "adet görmüyorum", "menopozdayım", "adetlerim
-        kesildi" and a plain "hayır" record ASKED_ABSENT (no heavy menstrual bleeding to
-        report); "bilmiyorum" records UNCLEAR (CD-04). The item is a menstrual-bleeding
-        history question (NICE NG88), and the lead-in lets a person who does not menstruate
-        answer no without a gate.
-      sources: [NICE-NG88, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+        Yes, with a per-slot answer mapping on yogun_uzun_adet_kanamasi, whose entries are
+        tested before any plain negative (CD-04). Any report of bleeding or spotting after
+        periods have stopped ("menopozdayım ama kanamam oldu", "adetim kesildi ama lekelenme
+        oluyor") records PRESENT_QUALIFIED (qualifier bleeding_after_periods_stopped), is
+        carried into the note and never records ASKED_ABSENT, because unexplained
+        post-menopausal bleeding is a NICE NG12 referral feature at any age; no level is set
+        here. Only a plain "adet görmüyorum", "menopozdayım" or "adetlerim kesildi" with no
+        bleeding reported, or a plain "hayır", records ASKED_ABSENT; "bilmiyorum" records
+        UNCLEAR. The item is otherwise a menstrual-bleeding history question (NICE NG88),
+        and the lead-in lets a person who does not menstruate answer no without a gate.
+      sources: [NICE-NG88, NICE-NG12, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
       owner_part: >-
         Base owner: add a sex or menstrual-status slot to base (HB-C6 family) so that this
@@ -540,13 +598,19 @@ value:
       outcome: accept
       clinical_basis: >-
         Yes, as the candidates stand (bebek_hareketi_hissediliyor, then
-        bebek_hareketlerinde_azalma gated on it), with an answer mapping that keeps the gate
-        from closing on a hedge: any report of movement, including "bazen", "galiba" or
-        "hissediyorum ama emin değilim", records PRESENT_QUALIFIED and opens the gate; only
-        "henüz hissetmedim" or a plain "hayır" records ASKED_ABSENT; "bilmiyorum" records
-        UNCLEAR and the follow-up is asked once. NG201 asks about movements once they are
-        felt; the gestational threshold is the HB-C4 rule author's, and NG201's is after
-        24+0 weeks.
+        bebek_hareketlerinde_azalma gated on it), with a per-slot answer mapping whose
+        entries are tested before any plain negative (CD-04). On
+        bebek_hareketi_hissediliyor: any report of movement, including "bazen", "galiba" or
+        "hissediyorum ama emin değilim", records PRESENT_QUALIFIED and opens the gate;
+        movements felt before and now absent ("artık hissetmiyorum", "durdu", "kesildi",
+        "eskiden hissediyordum ama şimdi yok") record PRESENT_QUALIFIED with qualifier
+        previously_felt_now_absent and open the gate, as CD-04 reads "şu an yok ama vardı";
+        only "henüz hissetmedim" or a plain "hayır" records ASKED_ABSENT, and "bilmiyorum"
+        records UNCLEAR with its follow-up asked once. On bebek_hareketlerinde_azalma: "hiç
+        hissetmiyorum", "durdu" and "kesildi" record "evet" (ASKED_PRESENT), never "hayır".
+        NG201 asks about movements once they are felt and tells a woman to contact maternity
+        services at any time of day or night about reduced movements; the gestational
+        threshold is the HB-C4 rule author's, and NG201's is after 24+0 weeks.
       sources: [NICE-NG201]
       status: active
     - item: "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L91"
@@ -571,6 +635,11 @@ value:
       clinical_basis: "A duration describes a reported disturbance; a scan preparation or a genetic counselling visit often has none, so the ask has nothing to time and is left out."
       sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
       status: active
+      owner_part: >-
+        Base owner: base onset_date and duration are must_ask in every chain, so omitting the
+        pack's sikayet_suresi does not remove the timing ask from these visits; a base-level
+        gate or a visit-type rule is the base owner's (as CD-103 cluster-wave-b.md#L116 and
+        CD-100 T17 route it).
     - item: "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L109"
       ref: "wave 7 nukleer Q2, Q3"
       packets: [hematoloji, nefroloji, nukleer_tip]
@@ -595,13 +664,18 @@ value:
       deciders: [HB-C4, HB-C3, clinician, base owner]
       question: "Where do rules for the pregnancy, neonatal, oncology-emergency and ovarian hyperstimulation inputs belong?"
       outcome: draft_needs_source
-      clinical_basis: "The answers stay note inputs. Metastatic spinal cord compression is placed by CD-13 (bvsc-6, base.life_threat); pregnancy bleeding or pain is the existing base family rf.pregnancy_bleeding_pain; the rest (pre-eclampsia, membranes, preterm labour, hyperemesis, neonatal jaundice and the HB-C3 items, SVC obstruction, hypercalcaemia, ovarian hyperstimulation) have no rule set and no action sourced here."
+      clinical_basis: "The answers stay note inputs. Metastatic spinal cord compression is placed by CD-13 (bvsc-6, base.life_threat); pregnancy bleeding or pain is the existing base family rf.pregnancy_bleeding_pain. Two actions are sourced: pre-eclampsia symptoms call for seeing a healthcare professional immediately (NG133 1.1.1), and reduced fetal movements for contacting maternity services at any time of day or night (NG201 1.2.34). The rest (membranes, preterm labour, hyperemesis, neonatal jaundice and the HB-C3 items, SVC obstruction, hypercalcaemia, ovarian hyperstimulation) have no action sourced here."
+      sources: [NICE-NG133, NICE-NG201]
       status: draft_needs_source
       source_gap: >-
-        HB-C4's pregnancy rule set and HB-C3's paediatric rule set do not exist, and no
-        snapshot in the repository states a layperson-reportable trigger with an action for
-        SVC obstruction, hypercalcaemia or ovarian hyperstimulation. Nothing is extended.
-      pending_value: "TODO: placement and action for each unruled pregnancy, neonatal and oncology-emergency input requires clinical sign-off"
+        Pre-eclampsia and reduced fetal movements have sourced actions (NG133 1.1.1, NG201
+        1.2.34), but their EK-4 level, register and gestational threshold are not stated by
+        any snapshot, and HB-C4's pregnancy rule set, where they would sit, does not exist.
+        HB-C3's paediatric rule set does not exist either, and no snapshot in the repository
+        states a layperson-reportable trigger with an action for ruptured membranes, preterm
+        labour, hyperemesis, neonatal jaundice, SVC obstruction, hypercalcaemia or ovarian
+        hyperstimulation. Nothing is extended.
+      pending_value: "TODO: EK-4 level, register and gestational threshold for the pre-eclampsia and reduced-fetal-movement rules, and placement and action for the other unruled pregnancy, neonatal and oncology-emergency inputs, requires clinical sign-off"
       owner_part: >-
         Base owner, with HB-C3 and HB-C4: place each family once its action is sourced, with
         base-level trigger slots where the pattern can present in any booking (CD-13).
@@ -643,6 +717,11 @@ value:
       clinical_basis: "Older-adult reviews are periodic by design and dental recalls are scheduled, so these visits often have no reported disturbance to time; the ask is left out rather than answered for a complaint the patient does not have."
       sources: [TR-SB-HSGM-COKYONLU-YASLI-2025, openEHR-EHR-CLUSTER.symptom_sign.v2]
       status: active
+      owner_part: >-
+        Base owner: base onset_date and duration are must_ask in every chain, so omitting the
+        pack's sikayet_suresi does not remove the timing ask from these visits; a base-level
+        gate or a visit-type rule is the base owner's (as CD-103 cluster-wave-b.md#L116 and
+        CD-100 T17 route it).
     - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L95"
       ref: "wave 8 ortodonti (all items)"
       packets: [ortodonti]
@@ -760,7 +839,8 @@ value:
         mu?" · gen: slot=egzersizde_bayilma; type=boolean, and Q15 "Spor yaparken göğsünüzde
         ağrı, sıkışma ya da baskı hissettiniz mi?" · gen:
         slot=egzersizde_gogus_rahatsizligi; type=boolean. Both ungated inputs; no rule reads
-        them here.
+        them here. A base.life_threat rule for fainting during exertion, when written, keys
+        on a base-level "during exertion" slot (CD-13), never on these pack inputs.
       clinical_basis: "Fainting during exertion is a NICE red flag for urgent cardiovascular assessment and chest discomfort brought on by exertion is the anginal pattern, so a pre-participation visit that asks neither misses its two central cardiac facts."
       sources: [NICE-CG109, NICE-CG95]
       status: active
@@ -820,7 +900,7 @@ value:
       deciders: [clinician]
       question: "Is 'düzenli olarak' right in place of 'haftanın çoğu günü'?"
       outcome: accept
-      clinical_basis: "Yes: WHO states activity as a weekly total, not a number of days, so a day count in the ask would set a threshold no source gives; the clinician applies any threshold."
+      clinical_basis: "Yes: WHO states adult aerobic activity as a weekly total of minutes accumulated throughout the week, not a number of days, so a day count in the ask would set a threshold no source gives; the clinician applies any threshold."
       sources: [WHO-PA-2020]
       status: active
     - item: "docs/evidence/verification/specialty-wave9-occupational-public.md#L113"
@@ -840,4 +920,7 @@ value:
         Base owner and the HB-C2 author: place the sudden hearing loss and exertional
         fainting families in base.life_threat (CD-13 rule 1) and the rest once sourced.
 verifier:
-  verdict: pending
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (fetal-movement mapping; post-period bleeding; base-owner parts on omitted duration; pregnancy and neonatal source gap); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

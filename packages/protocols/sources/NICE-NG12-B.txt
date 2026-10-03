@@ -5,11 +5,20 @@
 # url: https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
 # retrieved_on: 2026-10-03
 # retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
-# scope: verbatim excerpt of the page header and recommendations 1.8.1-1.8.2 (head and neck cancers); nothing paraphrased or edited; omissions marked [...]. A second excerpt of the guideline beside NICE-NG12.txt.
+# scope: verbatim excerpt of the page header, recommendations 1.5.12 and 1.5.14 (endometrial cancer, post-menopausal bleeding) and recommendations 1.8.1-1.8.2 (head and neck cancers); nothing paraphrased or edited; omissions marked [...]. A second excerpt of the guideline beside NICE-NG12.txt.
 ---
 Reference number: NG12
 Published: 23 June 2015
 Last updated: 15 April 2026
+[...]
+Endometrial cancer
+Age 55 and over
+1.5.12
+Refer women, and trans men and non-binary people with female reproductive organs using a suspected cancer pathway referral for endometrial cancer if they are aged 55 and over with unexplained post-menopausal bleeding that cannot be attributed to hormone replacement therapy (HRT). [2015, amended 2026]
+[...]
+Age under 55
+1.5.14
+Consider a suspected cancer pathway referral for endometrial cancer in women, and trans men and non-binary people with female reproductive organs who are aged under 55 with unexplained post-menopausal bleeding that cannot be attributed to HRT. [2015, amended 2026]
 [...]
 1.8 Head and neck cancers
 Laryngeal cancer

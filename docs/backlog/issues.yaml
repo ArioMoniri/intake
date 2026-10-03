@@ -6481,7 +6481,7 @@
   # owner questions, never decided by an agent.
   depends_on: [INT-432]
   labels: [area:protocols, risk:clinical]
-  status: doing
+  status: done
   evidence: docs/evidence/INT-448.md
   acceptance:
     - "every #642 packet item gets a sourced decision record (guideline or openEHR, with a verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source"

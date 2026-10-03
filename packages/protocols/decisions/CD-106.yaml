@@ -70,6 +70,16 @@ sources:
     snapshot: packages/protocols/sources/NICE-NG126-B.txt
     supports: "reorder-op L43: the out-of-period bleeding item stays ungated, because pregnancy can be unknown (as CD-102 cluster-wave-a.md#L117)"
   - kind: guideline
+    guideline_id: NICE-NG201
+    title: "Antenatal care"
+    version_or_date: "NICE guideline NG201; published 19 August 2021; minor changes up to December 2025"
+    url: "https://www.nice.org.uk/guidance/ng201/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.34"
+    quote: "advise her to contact maternity services at any time of day or night if she has any concerns about her baby's movements or she notices reduced fetal movements after 24+0 weeks"
+    snapshot: packages/protocols/sources/NICE-NG201.txt
+    supports: "reorder-op L38: reduced fetal movements call for prompt assessment"
+  - kind: guideline
     guideline_id: NICE-NG143
     title: "Fever in under 5s: assessment and initial management"
     version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
@@ -195,8 +205,8 @@ value:
         directly before the earliest reader, giving the order the review lists, and the two
         unit tests' expected orders change with it. Either way no gate or op names a slot
         that has been removed.
-      clinical_basis: "Bleeding, reduced movements, severe headache and visual disturbance in pregnancy are alarm inputs that NICE sends for immediate or emergency assessment, and the budget governor drops late DETAIL items first, so they keep their early place; what the patient hears today does not change."
-      sources: [NICE-NG133, NICE-NG126]
+      clinical_basis: "Bleeding, reduced movements, severe headache and visual disturbance in pregnancy are alarm inputs that NICE sends for prompt assessment (A&E for significant bleeding or pain, a healthcare professional immediately for pre-eclampsia symptoms, maternity services at any time of day or night for reduced movements), and the budget governor drops late DETAIL items first, so they keep their early place; what the patient hears today does not change."
+      sources: [NICE-NG133, NICE-NG126, NICE-NG201]
       status: active
     - item: "docs/evidence/verification/reorder-op-582.md#L42"
       ref: "reorder-op A-8 (gebelik_sonrasi_ates against kadın ates_var_mi)"
@@ -268,15 +278,16 @@ value:
       question: "Do any of the widened or narrowed rebinds need a change?"
       outcome: change
       change: >-
-        One change: diyabet_poliklinigi Q5 → "Beslenmenizde bir değişiklik olmadığı hâlde
-        son aylarda kilo verdiniz mi?" · gen: slot=istemsiz_kilo_kaybi; type=boolean. The
-        rest stand: uykulu_tepkisiz with "halsiz" keeps the waking item uyandirma_zorlugu
+        One change: diyabet_poliklinigi Q5 takes the cluster's verified text verbatim, "Son
+        aylarda istemeden kilo verdiniz mi?" · gen: slot=istemsiz_kilo_kaybi; type=boolean,
+        not the diet-premise wording (a dieting patient who lost more than intended would
+        answer that one "hayır"; CD-101 T62 already split that construct). The rest stand: uykulu_tepkisiz with "halsiz" keeps the waking item uyandirma_zorlugu
         apart (CD-104 L300); the fever texts follow CD-103 cluster-wave-b.md#L79, with
         neonatoloji's own text; the narrower suregen_tani, the endodontic
         dis_hassasiyeti, and the broader islem_sonrasi_uzun_kanama and ses_kisikligi keep
         the cluster's fact; KBB's blockage half is the cluster's isitme_azalmasi_tikaniklik
         (CD-101 T82).
-      clinical_basis: "Unintentional weight loss is judged over months, so 'son zamanlarda' is too vague a frame for the shared id; the other differences keep the same fact within each pack's scope and lose no alarm input."
+      clinical_basis: "Unintentional weight loss is judged over months, so 'son zamanlarda' is too vague a frame for the shared id, and the cluster's 'istemeden' asks unintended loss without a diet premise; the other differences keep the same fact within each pack's scope and lose no alarm input."
       sources: [NICE-NG12, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
     - item: "docs/evidence/verification/sibling-rebinds-582.md#L61"
@@ -285,7 +296,7 @@ value:
       deciders: [owner]
       question: "fiziksel_tip_ve_rehabilitasyon's ates_var_mi near-twins cluster medical son_gunlerde_ates, so the fever is asked twice; who resolves it?"
       outcome: owner_question
-      clinical_basis: "Not decided here; routed to the cluster-wave-a owner, as CD-104 INT-353.md#L432."
+      clinical_basis: "Not decided here: CD-101 T68 already gives the clinical answer (fiziksel tıp Q7 is removed and the chain asks the cluster's son_gunlerde_ates once), which leaves only the routing to its owner, as CD-104 INT-353.md#L432."
       status: owner_question
       owner_part: >-
         Cluster-wave-a owner: decide whether fiziksel_tip_ve_rehabilitasyon's ates_var_mi
@@ -304,4 +315,7 @@ value:
         cerrahisi and agiz_dis_cene_radyolojisi keep their ungated nefes_yutkunma_guclugu or
         take the cluster's gate.
 verifier:
-  verdict: pending
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (diyabet weight-loss text verbatim from the cluster; NG201 1.2.34 for the reorder op); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
