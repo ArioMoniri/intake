@@ -1,0 +1,52 @@
+# guideline_id: NICE-NG5
+# title: Medicines optimisation: the safe and effective use of medicines to enable the best possible outcomes
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG5; published 04 March 2015; minor changes September 2019, June 2021 and October 2021 (Update information)
+# url: https://www.nice.org.uk/guidance/ng5/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng5/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; HTML source line wraps collapsed to single spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the Recommendations page header and section 1.3 (Medicines reconciliation, 1.3.1-1.3.7), then the Update information page (minor-change list); nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG5
+Published: 04 March 2015
+[...]
+1.3 Medicines reconciliation
+Medicines reconciliation, as defined by the Institute for Healthcare Improvement, is the process of identifying an accurate list of a person's current medicines and comparing them with the current list in use, recognising any discrepancies, and documenting any changes, thereby resulting in a complete list of medicines, accurately communicated. The term 'medicines' also includes over‑the‑counter or complementary medicines, and any discrepancies should be resolved. The medicines reconciliation process will vary depending on the care setting that the person has just moved into – for example, from primary care into hospital, or from hospital to a care home.
+1.3.1
+In an acute setting, accurately list all of the person's medicines (including prescribed, over‑the‑counter and complementary medicines) and carry out medicines reconciliation within 24 hours or sooner if clinically necessary, when the person moves from one care setting to another – for example, if they are admitted to hospital.
+
+1.3.2
+Recognise that medicines reconciliation may need to be carried out on more than one occasion during a hospital stay – for example, when the person is admitted, transferred between wards or discharged.
+
+1.3.3
+In primary care, carry out medicines reconciliation for all people who have been discharged from hospital or another care setting. This should happen as soon as is practically possible, before a prescription or new supply of medicines is issued and within 1 week of the GP practice receiving the information.
+
+1.3.4
+In all care settings organisations should ensure that a designated health professional has overall organisational responsibility for the medicines reconciliation process. The process should be determined locally and include:
+organisational responsibilities
+
+responsibilities of health and social care practitioners involved in the process (including who they are accountable to)
+
+individual training and competency needs.
+
+1.3.5
+Organisations should ensure that medicines reconciliation is carried out by a trained and competent health professional – ideally a pharmacist, pharmacy technician, nurse or doctor – with the necessary knowledge, skills and expertise including:
+effective communication skills
+
+technical knowledge of processes for managing medicines
+
+therapeutic knowledge of medicines use.
+
+1.3.6
+Involve patients and their family members or carers, where appropriate, in the medicines reconciliation process.
+
+1.3.7
+When carrying out medicines reconciliation, record relevant information on an electronic or paper‑based form. See section 1.2 on medicines‑related communication systems.
+
+[...]
+Update information
+Minor changes since publication
+October 2021: We added a link to NICE's guideline on shared decision making in section 1.6 on patient decision aids.
+June 2021: In recommendation 1.6.7 we added a link to NICE's Standards framework for shared-decision-making support tools, including patient decision aids .
+September 2019 : We updated links to guidance on confidentiality in recommendation 1.2.1, and added a link to our guideline on decision making and mental capacity in section 1.6.

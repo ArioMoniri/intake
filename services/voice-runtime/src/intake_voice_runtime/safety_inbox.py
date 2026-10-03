@@ -13,8 +13,10 @@ it, and each property of the port survives:
   or hospital system sits between the RED and the entry — "regardless of
   connector presence" (files/02 §8.2) holds by construction.
 - **Ids only** (invariant 6). The notification carries ids and closed axes and
-  the entry keeps the ids; the register and location are the patient surface's
-  business and the clinician queue does not need them to answer.
+  the entry keeps the ids plus the register — a closed enum the clinician
+  queue does not show, recorded because files/02 §2b re-shows a RED "in the
+  register the original RED used" when its visit moves (INT-407). The location
+  is not kept: it is re-derived for wherever the patient then stands.
 - **Bound per session, checked at binding.** The tenant, session and visit are
   the session's; a mis-shaped one raises here, when the session is composed,
   rather than at the RED.
@@ -67,5 +69,8 @@ class SafetyInboxNotifier:
                 work_id=notification.work_id,
                 rule_ids=notification.rule_ids,
                 at=self.wall_clock(),
+                # INT-407: the register rides on the one server-side record of
+                # the RED, so a later files/02 §2b re-show is told the same way
+                register=notification.register,
             )
         )

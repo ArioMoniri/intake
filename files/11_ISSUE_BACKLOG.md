@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**331 issues.** By phase: P0 164 · P1 113 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 220 · todo 73 · withdrawn 1.
+**338 issues.** By phase: P0 166 · P1 118 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 226 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -175,6 +175,8 @@
 | INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
 | INT-395 | DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links) | E02-data | INT-037, INT-141, INT-150, INT-393 | area:data, risk:legal | done |
 | INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
+| INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
+| INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
 
 ## P1
 
@@ -267,6 +269,8 @@
 | INT-369 | schemathesis API fuzzing runs in CI instead of being recorded as deferred | E13-infra | INT-215 | area:infra, risk:security | todo |
 | INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
 | INT-370 | Visits calendar view and Geçmiş (past) list on Vizitlerim | E08-mobile | INT-341 | area:mobile | done |
+| INT-378 | Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims | E12-admin | INT-373, INT-365 | area:admin, risk:security | done |
+| INT-389 | Owner decision: second factor for console roles outside the patient-content set (TOTP vs aaguid) | E12-admin | INT-378, INT-365 | area:admin, risk:security | awaiting-human |
 | INT-377 | /admin/models and /admin/ops fail closed on a malformed probe-results file | E12-admin | INT-183, INT-351 | area:admin | done |
 | INT-373 | Keycloak realm emits the claims the admin console requires (aud=api, org, tenant, aaguid, credential_id) | E12-admin | INT-180 | area:admin, risk:security | done |
 | INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
@@ -292,6 +296,9 @@
 | INT-404 | Triage rule evidence strings render quantities with the locale decimal separator | E03-protocols | INT-386 | area:protocols, risk:clinical | done |
 | INT-415 | ElevenLabs delivery profiles per question context + on-prem TTS wiring guide | E05-voice | INT-326 | area:voice | done |
 | INT-431 | The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest | E10-connectors | INT-320 | area:release, risk:security | done |
+| INT-426 | CI on AWS: gate runner via S3+SSM with commit status, no workflow edits | E13-infra | INT-352 | area:ci | done |
+| INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
+| INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 
 ## P2

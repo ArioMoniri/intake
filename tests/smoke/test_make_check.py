@@ -299,9 +299,24 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
     # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
     # with a stated reason.
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status, owner request, GitHub #721); grows only with a stated
+    # reason.
+    # + INT-407 (the files/02 §2b visit lifecycle state machine — a RED visit
+    # cannot silently move; found by INT-406's PR as GitHub #684); grows only
+    # with a stated reason.
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # GitHub #735); grows only with a stated reason.
+    # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
+    # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
+    # a stated reason.
+    # + INT-448 (the #642 sign-off packet items under D18, GitHub #759); grows
+    # only with a stated reason.
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415, owner request, GitHub #705); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
     # with a stated reason.
-    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
+    assert len(ids) == 338, f"expected 175 blueprint + 163 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

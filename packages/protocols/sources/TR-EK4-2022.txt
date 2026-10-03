@@ -1,0 +1,97 @@
+# guideline_id: TR-EK4-2022
+# title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 4(1)(p), MADDE 8(1)-(5) and EK-4)
+# publisher: T.C. Sağlık Bakanlığı, Resmî Gazete
+# version_or_date: RG 13/9/2022 sayı 31952 (amended RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689; neither amendment touches EK-4, MADDE 4(1)(p) or MADDE 8(1)-(5))
+# url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm
+# url_annex: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+# retrieved_on: 2026-10-02
+# retrieval: curl with browser UA. Tebliğ body: HTML (windows-1254) text-extracted; HTML source line wraps collapsed to single spaces as a browser renders them. EK-4: the annex PDF is a scanned image (jbig2, no text layer); PDF pages 12-13 of 19 (printed 'Ekleri Film 27' and '28') were rendered at 400 dpi and transcribed by visual reading, cross-checked against tesseract OCR; one table cell per line in reading order (RENK / ALAN VE VAKA NİTELİĞİ / VAKANIN YÖNLENDİRİLDİĞİ BİRİM KRİTERLERİ / ÖRNEK DURUMLAR), spelling kept as printed (including 'hastalalar'); apostrophe glyphs written as U+2019.
+# scope: verbatim excerpt of MADDE 4(1) lead-in and (p), MADDE 8(1)-(5) and the whole EK-4 table; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+# note: the URL https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-6.htm cited by the existing base.life_threat rules returned HTTP 404 on 2026-10-02; the Tebliğ is item 20220913-5 in the RG index of 13/9/2022.
+---
+YATAKLI SAĞLIK TESİSLERİNDE ACİL SERVİS HİZMETLERİNİN
+UYGULAMA USUL VE ESASLARI HAKKINDA TEBLİĞ
+[...]
+Tanımlar ve kısaltmalar
+MADDE 4- (1) Bu Tebliğde geçen;
+[...]
+p) Triyaj: Acil servislere başvuran hastaların, görevli sağlık personeli tarafından hastalıkları ile ilgili şikâyetleri ile belirtilerinin şiddeti ve tıbbi durumlarının aciliyeti gözetilerek, tıbbi önceliklerinin ve yönlendirilecekleri tedavi birimlerinin belirlenmesi işlemini,
+[...]
+ifade eder.
+[...]
+ÜÇÜNCÜ BÖLÜM
+Triyaj Uygulaması ve Renk Kodlaması, Muayene ve Refakat Esasları
+Triyaj uygulaması ve renk kodlaması
+MADDE 8- (1) Triyaj işlemi; acil servis yoğunluğuna bağlı olarak hastaların zarar görmesini engellemek, ihtiyaç duydukları tıbbi bakıma gecikmeksizin ulaşmalarını sağlamak amacıyla bu Tebliğin Ek-4’ünde belirtilen hükümler çerçevesinde uygun sayıda personel ile yapılır.
+(2) Triyaj işlemi Ek-4’te belirtilen tablo kullanılarak yapılabileceği gibi uluslararası kabul görmüş başka triyaj yöntemi ile de yapılabilir. Triyaj yapacak personele hizmet içi eğitim verilmiş olmalıdır. Triyaj eğitimleri acil servis sorumlu tabibi tarafından verilir veya verdirilir. Acil servisteki hastalara farklı triyaj sistemi uygulansa dahi veri takibinin doğru şekilde takip edilebilmesi amacıyla uygulanan sistemin skorlarının, Ek-4’te belirtilen renk kodlamasına en yakın olacak şekilde belirtilerek SBYS kaydı sağlanır.
+(3) Triyaj işlemi yapılması gereken acil servislerde ayaktan hasta girişlerinde, mümkün olması halinde kayıt ve triyaj işleminin aynı anda yapılması esastır. Kayıt ve triyaj işleminin aynı anda yapılamaması halinde bu işlemler uygun bir ortamda, yeterli bir alan ayrılarak, önce triyaj sonra kayıt işlemi şeklinde gerçekleştirilir. Ayaktan başvurduğu halde hayati tehlikesi olduğu değerlendirilen hastalar için kayıt ve triyaj işlemi yapılmaksızın sağlık personeli eşliğinde uygun görülen alana yönlendirilir. Kayıt işlemleri uygun zamanda gerçekleştirilir.
+(4) Hasta yoğunluğu yaşanan veya ihtiyaç duyulan yerlerde hasta bekleme alanındaki hastaların aciliyet durumlarının değişmesi ihtimaline karşı sağlık personeli tarafından sabit bir noktadan gözlem yöntemiyle veya dolaşarak triyaj/takip işlemi de yapılabilir. Bu şekilde yapılacak triyaj işlemi, vital bulgu alınmadan, gözlem ve/veya basit şikayet sorgusu ile gerçekleştirilir.
+(5) 112 acil ambulanslarıyla sağlık tesisine getirilen hastalara ayrıca triyaj uygulaması yapılmaz. Yapılan değerlendirme neticesinde hasta, ihtiyacına göre kırmızı veya sarı alana alınır. 112 acil ambulansı ile getirilen hastaların triyaj ve diğer SBYS kayıtları, ambulans bekletilmeksizin yataklı sağlık kurumu tarafından yapılır.
+[...]
+EK-4
+RENK KODLAMASI VE TRİYAJ UYGULAMASI
+RENK | ALAN VE VAKA NİTELİĞİ | VAKANIN YÖNLENDİRİLDİĞİ BİRİM KRİTERLERİ | ÖRNEK DURUMLAR
+Yeşil
+Ayaktan başvuran, genel durumu itibariyle stabil olan, akut semptomları sebebiyle beklemesi hayati tehdit, morbidite veya komplikasyon oluşturmayacak basit sağlık sorunları bulunan hastalar.
+Bu kategoride olan hastalalar acil servis içerisinde yeşil alanda muayene edilmelidir.
+* Genel durumu ve hayati bulguları stabil olan hastada her türlü basit belirti
+* Yüksek risk taşımayan ve hafif derecedeki her türlü ağrı
+* Aktif yakınması olmayan düşük riskli hastalık öyküsü
+Sarı
+Kategori 1: Hayatı tehdit etme olasılığı, uzuv kaybı riski ve önemli morbidite oranı olan durumlar.
+Bu kategoride değerlendirilen hastalar hekim veya triaj eğitimi almış sağlık personelinin bilgisi dahilinde doğrudan ilgili tanı/tedavi alanına alınmalıdır.
+* Diastolik>110 mmHg, Sistolik>180 mmHg olan kan basıncı yüksekliği
+* Herhangi bir nedenle orta derecede kan kaybı
+* Yardımcı solunum kaslarının solunuma katılmadığı orta derecede solunum sıkıntısı
+* Nöbet geçirme öyküsü (uyanık)
+* Ateş yüksekliği olan onkoloji hastası veya steroid kullanan hasta
+* İnatçı kusma
+* Amnezi ile birlikte kafa travması olan ancak bilinci açık hasta
+* Kardiyak öykü ile uyumlu olmayan göğüs ağrısı
+* 65 yaş üstü karın ağrısı olan hasta
+* Şiddetli karın ağrısı olan hasta
+* Deformite, ciddi laserasyon ve ezilme yaralanması içeren ekstremite yaralanması
+* Suistimal riski veya şüphesi olan hasta
+* Stresli ve kendine zarar verme riski olan hasta
+Kategori 2: Orta ve uzamış dönem belirtileri olan ve ciddiyet potansiyeli taşıyan durumlar. (Solunum sayısı, nabız, kan basıncı, oksijen saturasyonu, vücut sıcaklığı anormal olan hastalar ile medikal tedavi ihtiyacı olan hastalar ve subjektif ağrı skoru maksimum skorun % 80’i olan hastalardır )
+Bu kategoride değerlendirilen hastalar hekim veya triaj eğitimi almış sağlık personelinin bilgisi dahilinde doğrudan ilgili tanı/tedavi alanına alınmalıdır.
+* Basit kanamalar
+* Göğüs ağrısı ve solunum sıkıntısı olmayan basit göğüs yaralanmaları
+* Solunum sıkıntısı olmayan yutma zorluğu
+* Bilinç kaybı olmayan minör kafa travmaları
+* Dehidratasyon belirtileri olmayan kusma ve ishaller
+* Normal görme fonksiyonu olan göz inflamasyonları veya gözde yabancı cisim
+* Minör ekstremite travması (ayak bileği burkulması, muhtemel basit fraktür, komplike olmayan laserasyon) normal vital bulgular
+* Şiddetli olmayan karın ağrısı
+* Zarar verme riski olmayan davranış bozukluğu olan hastalar
+EK-4
+RENK KODLAMASI VE TRİYAJ UYGULAMASI
+Kırmızı
+Kategori 1: Hayatı tehdit eden ve hızlı agresif yaklaşım ve acil olarak eş zamanlı değerlendirme ve tedavi gerektiren durumlar. Bu durumlarda hasta hiç bekletilmeden kırmızı alana alınır.
+Kırmızı ana renk kodunda değerlendirilen hastalardan bilinci kapalı, hava yolu güvenliği, solunum ve dolaşımı olmayan hastalar derhal yeniden canlandırma (resusitasyon) odasına alınacaktır.
+* Kardiyak arrest
+* Solunumsal arrest
+* Havayolu tıkanıklığı riski
+* Major çoklu travma
+* Solunum sayısı < 10/dakika
+* Sadece ağrıya yanıt veren veya yanıtsız olan hastalar
+* Devam eden veya uzamış nöbet
+Kategori 2: Hayatı tehdit etme olasılığı yüksek olan ve 10 dakika içerisinde değerlendirilip tedavi edilmesi gerekli durumlar.
+Bilinci kapanabilecek, hava yolu güvensiz ve solunumu durabileceği ön görülen hastalar doğrudan kırmızı alana alınacaktır.
+* İlaç aşırı alımı olan hastanın yanıtsız veya hipoventilasyonda olması
+* Kardiyak ağrıya benzer göğüs ağrısı
+* Yardımcı solunum kaslarının solunuma katıldığı veya bakılabiliyor ise pulseoksimetri değerinin<%90’nın altında olduğu ciddi nefes darlığı olan hastalar
+* Şiddetli stridor veya yutkunma güçlüğü ile beraber olan havayolu tıkanıklığı riski
+* Dolaşım bozukluğu
+-Nemli, soğuk deri, perfüzyon bozukluğu
+-Kalp hızı<50 veya >150 olması
+-Hemodinamik bulgularla beraber olan hipotansiyon
+* Akut hemiparazi/disfazi
+* Letarji ile birlikte ateş (her yaş)
+* İrrigasyon gerektiren asit/alkali ile göz teması
+* Major fraktür veya ampütasyon gibi ciddi lokalize travma
+* Herhangi bir nedenle olan ciddi ağrı
+-Önemli sedatif veya diğer toksik maddelerin oral alımı
+* Davranışsal/Psikiyatrik
+-Şiddet içeren agresif davranışlar
+-Kendine veya diğerlerine zarar veren davranışlar
