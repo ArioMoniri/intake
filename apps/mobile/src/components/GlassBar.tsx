@@ -78,15 +78,30 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
     </View>
   );
   if (mode === "liquid") {
+    // The bar's floor (INT-472). On the clinical screens this bar serves, iOS
+    // often draws no Liquid Glass at all (captured on INT451-16e), and a bare
+    // GlassView is then see-through: the note scrolled visibly under the CTA.
+    // The system blur under the fallback wash is drawn either way, so the bar
+    // is a frosted bar whether or not the glass above it draws.
     return (
-      <GlassView
-        glassEffectStyle="regular"
-        colorScheme={scheme}
-        onLayout={report}
-        style={[...barStyle, { borderTopColor: theme.separator }]}
-      >
+      <View onLayout={report} style={[...barStyle, { borderTopColor: theme.separator }]}>
+        <BlurView
+          intensity={55}
+          tint={scheme === "dark" ? "dark" : "light"}
+          style={StyleSheet.absoluteFill}
+        />
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: fallback.backgroundColor }]}
+        />
+        <GlassView
+          glassEffectStyle="regular"
+          colorScheme={scheme}
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+        />
         {inner}
-      </GlassView>
+      </View>
     );
   }
   if (mode === "solid") {

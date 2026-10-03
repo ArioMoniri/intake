@@ -6719,3 +6719,22 @@
     - "no copy changes, every visible line is an existing key; Dynamic Type at AX5 scrolls with nothing clipped; every label measured on the captures reaches AA in light and dark; before/after captures in light and dark are committed"
   tests: [apps/mobile/e2e/authStage.spec.ts, apps/mobile/src/lib/stage/field.test.ts, apps/mobile/src/lib/stage/nav.test.ts, apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/palette.test.ts, tests/docs/test_adr_039.py]
   sec_row: "mobile"
+- id: INT-472
+  epic: E08-mobile
+  phase: P1
+  title: "Review and send as iOS grouped inset lists: section rows, share switch rows, a metadata summary"
+  # GitHub #802. Section 4 of the native pass (owner, 3 Oct 2026: the app read
+  # as AI-generated). iOS Settings grouped inset lists (library-patterns §5.2
+  # "Review and summary"); never-blocks-send, scope semantics and the
+  # no-network rule unchanged. Stacked on INT-464 (#801).
+  depends_on: [INT-464, INT-137]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-472.md
+  acceptance:
+    - "each note section is one grouped inset list: the section title as its header outside the group, the answer lines as rows, the share control as a switch row (Hekimle paylaşılsın, the state in words under it, named with its section, read-only once sent), editing as a navigation row with a chevron (absent once sent), and the section's note as the group's footer"
+    - "a checkpointed partial note shows an Eksik kalanlar group with the info, the unanswered questions as rows and resume as a navigation row; the share summary is a metadata group above Gönder (what, who, until when, each label over its values); after send the ladder has its own group and CSAT is unchanged"
+    - "never blocks send: the CTA carries no condition, no disabled state and no await; the screen reaches no network; no Doctor Link payload; the send handler and the scope semantics are unchanged; one new string (review.shareSwitch, tr and en, siz-safe); no motion is added"
+    - "the bottom bar is never see-through: where iOS draws no Liquid Glass it is still a frosted bar; contrast holds in light and dark; AX5 scrolls with nothing clipped; before/after simulator captures are committed"
+  tests: [apps/mobile/src/lib/intake/reviewRows.test.ts, apps/mobile/e2e/reviewGrouped.spec.ts, apps/mobile/e2e/review_send.spec.ts]
+  sec_row: "mobile"

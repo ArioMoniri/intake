@@ -329,7 +329,12 @@ describe("invariant 5 — accessible names come from the catalog, never a litera
     const users = TSX.filter((f) => /\blib\/a11y\/labels\b/.test(f.source)).map((f) => f.name);
     expect(users).toContain("src/components/DialogueIntake.tsx");
     expect(users).toContain("src/components/SectionPanel.tsx");
-    expect(users).toContain("src/app/(tabs)/visits/[visitId]/review.tsx");
+    // INT-472: the review screen names its controls through the rows'
+    // `labelContext`, which ListRow and SwitchRow compose with these helpers.
+    expect(users).toContain("src/components/SwitchRow.tsx");
+    expect(users).toContain("src/components/ListRow.tsx");
+    const review = TSX.find((f) => f.name === "src/app/(tabs)/visits/[visitId]/review.tsx")!;
+    expect(review.source).toMatch(/labelContext=\{t\(section\.titleKey\)\}/);
   });
 });
 

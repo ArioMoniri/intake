@@ -691,6 +691,7 @@ export const en: Record<MessageKey, string> = {
   "review.edit": "Edit",
   "review.shared": "Shared",
   "review.notShared": "Not shared",
+  "review.shareSwitch": "Share with your doctor",
   "review.send": "Send to your doctor",
   "review.sentInfo": "Your note was sent. You will see the status here once your doctor views it.",
   "review.empty": "No answers yet. Answer a few questions first.",

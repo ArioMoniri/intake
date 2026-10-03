@@ -87,6 +87,11 @@ export interface CarriedFactReviewProps {
   disabled: boolean;
   /** Clock injected so the screen stays deterministic under test. */
   now?: () => string;
+  /**
+   * The block's own top rule. False inside a grouped list (INT-472), whose
+   * separators already divide its rows.
+   */
+  rule?: boolean;
 }
 
 export function CarriedFactReview({
@@ -96,13 +101,14 @@ export function CarriedFactReview({
   onDecide,
   disabled,
   now = () => new Date().toISOString(),
+  rule = true,
 }: CarriedFactReviewProps) {
   if (facts.length === 0) {
     return null;
   }
   return (
     <View style={styles.block}>
-      <Hairline />
+      {rule ? <Hairline /> : null}
       <AppText role="body">{t("carried.title")}</AppText>
       <AppText role="caption" color="inkSoft">
         {t("carried.body")}

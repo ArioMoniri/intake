@@ -718,6 +718,9 @@ export const tr = {
   "review.edit": "Düzenleyin",
   "review.shared": "Paylaşılıyor",
   "review.notShared": "Paylaşılmıyor",
+  // INT-472: the share switch row's steady label; the state stays in words
+  // under it (review.shared / review.notShared).
+  "review.shareSwitch": "Hekimle paylaşılsın",
   "review.send": "Hekiminize gönderin",
   "review.sentInfo": "Notunuz gönderildi. Hekiminiz görüntülediğinde durumu burada görürsünüz.",
   "review.empty": "Henüz yanıt yok. Önce birkaç soruyu yanıtlayın.",

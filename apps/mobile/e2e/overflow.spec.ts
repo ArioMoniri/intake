@@ -272,15 +272,19 @@ describe("the dialogue gate", () => {
 
 describe("the review card header", () => {
   it("wraps rather than pushing its controls off the screen", () => {
-    // Measured at 2.0 on an iPhone 16 Pro: the section header is a
+    // Measured at 2.0 on an iPhone 16 Pro: the section header was a
     // `space-between` row holding a Kicker and the scope chips, and RN
     // flex children do not shrink by default — so "Paylaşılıyor" and the
     // "Düzenleyin" Pressable ran off the right edge, clipped and untappable.
     // The consent state of a section is not optional reading.
+    //
+    // INT-472: the header holds no control any more. The share control is a
+    // SwitchRow, which turns into a column above the large-text scale
+    // (appearance.spec T-17), and the edit is a full-width ListRow.
     const review = file("src/app/(tabs)/visits/[visitId]/review.tsx");
-    const header = review.match(/sectionHeader: \{([^}]*)\}/);
-    expect(header, "sectionHeader is not declared the way this test reads it").not.toBeNull();
-    expect(header![1]).toContain('flexWrap: "wrap"');
+    expect(review).not.toMatch(/sectionHeader|scopeChip/);
+    expect(review).toMatch(/<SwitchRow\b/);
+    expect(file("src/components/SwitchRow.tsx")).toMatch(/stacked \? styles\.rowStacked/);
   });
 });
 

@@ -168,8 +168,36 @@ export function ListRow({
   return <View style={[styles.row, inset ? styles.rowInset : null]}>{body}</View>;
 }
 
+/**
+ * A metadata row (INT-472, Astryx MetadataList): a quiet label over its
+ * values, for facts read rather than acted on, such as what a share sends,
+ * to whom and until when. Long Turkish values wrap under their label instead
+ * of being squeezed into a right-hand column.
+ */
+export function MetadataRow({ label, values }: { label: string; values: readonly string[] }) {
+  return (
+    <View style={styles.metadata}>
+      <AppText role="caption" color="inkSoft">
+        {label}
+      </AppText>
+      {values.map((value) => (
+        <AppText key={value} role="body">
+          {value}
+        </AppText>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
+  metadata: {
+    gap: 2,
+    minHeight: 56,
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+  },
   group: {
     borderRadius: radius.group,
     borderCurve: "continuous",

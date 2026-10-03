@@ -92,10 +92,15 @@ function sendHandler(): string {
 
 describe("section-level scope UI", () => {
   it("gives every section a switch that names the section it governs", () => {
+    // INT-472: the switch is the app's SwitchRow, which carries the role and
+    // joins the section's name to its own (e2e/reviewGrouped.spec.ts).
     const source = file(REVIEW);
-    expect(source).toContain('accessibilityRole="switch"');
+    expect(source).toContain("<SwitchRow");
+    expect(source).toContain("labelContext={t(section.titleKey)}");
     expect(source).toContain('type: "scope"');
-    expect(source).toContain("withContext(");
+    const row = file("src/components/SwitchRow.tsx");
+    expect(row).toContain('accessibilityRole="switch"');
+    expect(row).toContain("withContext(");
   });
 
   it("keeps the scope switch out of the send path — the CTA never reads a scope", () => {
@@ -114,11 +119,15 @@ describe("consent summary above Gönder (02 §5.4)", () => {
   });
 
   it("is rendered on the review screen with all three of §5.4's parts", () => {
+    // INT-472: the screen draws the summary's metadata rows; the rows and
+    // their three parts are built (and unit-tested) in lib/intake/reviewRows.
     const source = file(REVIEW);
     expect(source).toContain("shareSummary(");
-    expect(source).toContain('t("review.consent.sections")');
-    expect(source).toContain('t("review.consent.recipient")');
-    expect(source).toContain('t("review.consent.until")');
+    expect(source).toContain("shareSummaryRows(summary)");
+    const rows = file("src/lib/intake/reviewRows.ts");
+    expect(rows).toContain('t("review.consent.sections")');
+    expect(rows).toContain('t("review.consent.recipient")');
+    expect(rows).toContain('t("review.consent.until")');
   });
 
   it("states the expiry ANCHOR and renders no countdown (02 §2)", () => {

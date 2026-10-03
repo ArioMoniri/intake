@@ -3477,3 +3477,31 @@
   - None new. The glass and capture-protection decision from #797 now has supporting evidence: glass draws on these unprotected screens.
 - Next: section 4 (review and summary as grouped inset lists), then section 5 (in-tree detent sheets, ADR-038 A3).
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T01:30:00+03:00 · INT-472 · done (PR open, not merged; stacked on #801)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-472):
+  - each note section as a grouped inset list, with a switch row for sharing and navigation rows for edits;
+  - the eksik group, a metadata summary and the ladder group;
+  - never-blocks-send and no-network unchanged; one new string; no motion;
+  - a bar that is never see-through; AA; AX5; captures.
+- Plan:
+  - Pure rows first (`reviewSectionRows`, `shareSummaryRows`), then `SwitchRow`'s context and read-only state, `MetadataRow`, then the screen.
+  - Move each guard by name, keeping its intent.
+- Tests added (with the near-miss negative for any safety rule):
+  - `reviewRows.test.ts` (near miss: the same section before sending offers its edit);
+  - `reviewGrouped.spec.ts` (near miss: a bare GlassView bar is caught);
+  - `review_send.spec` updates;
+  - RED run: 14 failed / 30 passed plus 1 import failure.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 145 files, 2969 tests; `tsc` clean; Python gates after staging;
+  - `check-integration` CI-only.
+- Invariants touched and still passing:
+  - 2 and 5: one new string, mirrored and siz-safe.
+  - 4: the scope dispatch is unchanged.
+  - 6: no logs.
+  - 22: the expiry is an anchor in words.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The glass finding is corrected: capture protection alone does not decide whether iOS draws Liquid Glass, because a protected screen drew it after a hot reload. INT-464's evidence is corrected.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none new.
+- Next: section 5 (in-tree detent sheets under the RED root layer, ADR-038 A3).
+- LOOP_STATUS: CONTINUE

@@ -423,7 +423,8 @@ describe("T-17 — SwitchRow is a switch, with its state", () => {
 
   it("declares the platform role and the value", () => {
     expect(row()).toContain('accessibilityRole="switch"');
-    expect(row()).toContain("accessibilityState={{ checked }}");
+    // INT-472 adds the read-only state beside the value.
+    expect(row()).toMatch(/accessibilityState=\{\{ checked(?:, disabled)? \}\}/);
   });
 
   it("the whole row is the target, so it clears the floor by box", () => {

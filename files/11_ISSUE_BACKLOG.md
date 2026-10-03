@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**344 issues.** By phase: P0 166 · P1 124 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 234 · todo 71 · withdrawn 1.
+**345 issues.** By phase: P0 166 · P1 125 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 235 · todo 71 · withdrawn 1.
 
 ## P0
 
@@ -306,6 +306,7 @@
 | INT-462 | Native chat: a Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips | E08-mobile | INT-433, INT-337, INT-340, INT-461 | area:mobile | done |
 | INT-466 | Chat stage: ADR-039 (owner-approved orb motion, gradient, glass controls, radii, palette) and the live chat on it | E08-mobile | INT-462, INT-461 | area:mobile | done |
 | INT-464 | Native welcome and sign-in in the stage language: iOS setup layout, still mark, filled fields, static large titles | E08-mobile | INT-466, INT-433 | area:mobile | done |
+| INT-472 | Review and send as iOS grouped inset lists: section rows, share switch rows, a metadata summary | E08-mobile | INT-464, INT-137 | area:mobile | done |
 
 ## P2
 

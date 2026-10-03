@@ -141,7 +141,7 @@ function DevSignIn({ palette }: { palette: StagePalette }) {
   }
   return (
     <View style={styles.devSection}>
-      <Kicker label={t("welcome.devSignIn")} />
+      <Kicker label={t("welcome.devSignIn")} inset />
       <ListGroup surface={palette.card} footer={t("welcome.devNote")}>
         {accounts.map((account) => (
           <ListRow
