@@ -307,9 +307,12 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-432 (the clinical decisions register under owner decision D18,
     # GitHub #735); grows only with a stated reason.
+    # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
+    # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
+    # a stated reason.
     # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
-    assert len(ids) == 334, f"expected 175 blueprint + 159 added issues, got {len(ids)}"
+    assert len(ids) == 336, f"expected 175 blueprint + 161 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

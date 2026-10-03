@@ -11,6 +11,8 @@
     "docker-compose",
     "dockerfile",
     "github-actions",
+    "maven",
+    "maven-wrapper",
     "npm",
     "pep621",
     "pip_requirements",
@@ -129,6 +131,18 @@
       "groupName": "pre-commit hooks"
     },
     {
+      "description": "The Keycloak provider's Maven build (infra/keycloak/providers/webauthn-session-notes: pom.xml and the wrapper's Maven distribution): one weekly PR for minor and patch updates. The same PR re-records the module's .mvn/checksums and the jar pin, or the check-py CI job's provider build refuses it (docs/runbooks/keycloak-realm.md §3).",
+      "matchManagers": ["maven", "maven-wrapper"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "keycloak provider (maven)"
+    },
+    {
+      "description": "The provider compiles against the Keycloak it runs in, so the Keycloak image and the org.keycloak artefacts move in one PR (tests/admin/test_webauthn_session_notes_provider.py holds keycloak.version to the compose tag).",
+      "matchPackageNames": ["org.keycloak:*", "quay.io/keycloak/keycloak"],
+      "groupName": "keycloak",
+      "minimumReleaseAge": "7 days"
+    },
+    {
       "description": "The Expo SDK moves as a unit (`npx expo install --fix` picks the compatible set), so its packages share one PR that waits for a maintainer to ask for it on the Dependency Dashboard. A security fix is not held back: vulnerabilityAlerts overrides this.",
       "matchFileNames": ["apps/mobile/package.json"],
       "matchPackageNames": [
@@ -163,6 +177,11 @@
     {
       "description": "Supply-chain cooldown: a regular npm or PyPI release is proposed only after it has been public for seven days, long enough for a compromised release to be caught and yanked (semgrep p/ci renovate-missing-minimum-release-age). Every rule that names packages or dependency types carries the same cooldown. Security updates skip it: vulnerabilityAlerts clears minimumReleaseAge.",
       "matchDatasources": ["npm", "pypi"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "The same seven-day cooldown for Maven Central releases (the Keycloak provider's build and test dependencies and its plugins).",
+      "matchDatasources": ["maven"],
       "minimumReleaseAge": "7 days"
     },
     {
