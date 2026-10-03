@@ -159,9 +159,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415; owner request, GitHub #705).
+    # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
     # + INT-470 (the INT-448 owner questions resolved: CD-110 under D18, D24 by
     # the owner; GitHub #798).
-    assert len(ids) == 338
+    assert len(ids) == 339
     import re
 
     for i in ids:
