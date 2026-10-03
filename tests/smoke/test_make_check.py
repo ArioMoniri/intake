@@ -305,7 +305,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-407 (the files/02 §2b visit lifecycle state machine — a RED visit
     # cannot silently move; found by INT-406's PR as GitHub #684); grows only
     # with a stated reason.
-    assert len(ids) == 332, f"expected 175 blueprint + 157 added issues, got {len(ids)}"
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # GitHub #735); grows only with a stated reason.
+    assert len(ids) == 333, f"expected 175 blueprint + 158 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

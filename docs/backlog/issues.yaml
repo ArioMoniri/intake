@@ -6494,3 +6494,21 @@
     - "the T-24h confirm message is queued as a transactional message and stays unsent while no SMS vendor is configured (INT-358); it is never sent by a fake"
   tests: [tests/api/test_visit_lifecycle.py, tests/safety/test_red_visit_transition.py, tests/platform/test_visit_lifecycle_machine.py]
   sec_row: "visits"
+- id: INT-432
+  epic: E03-protocols
+  phase: P0
+  title: "Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18)"
+  # GitHub #735. Owner decision, 2 Oct 2026: "agent-only sign-off anyway".
+  # Scope: simulated-patient stress testing only; a licensed physician's
+  # review is required before any real patient (files/00_STATE.md §3 D18).
+  depends_on: [INT-353]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-432.md
+  acceptance:
+    - "a clinical decisions register (docs/clinical/decisions/, with machine-readable packages/protocols/decisions/) resolves the open decisions from the INT-428/430 reviews, INT-414, INT-427, HB-C3 and HB-C6, and the #642 packets; each entry carries the decision, its source (guideline id, version, date, url, retrieved_on against a committed verbatim snapshot under packages/protocols/sources/, or an openEHR CKM archetype id and revision), the authoring agent role and the independent verifier's verdict"
+    - "no value without a source: anything unsupported stays draft_needs_source with the invariant-17 sanctioned literal and is reported, never invented; a typed loader refuses a quote that is not verbatim in its snapshot"
+    - "red-flag changes keep invariant 7, with golden tests and near-miss negative controls, and make safety passes"
+    - "the decision is recorded in files/00_STATE.md §3, scoped to simulated-patient stress testing, with the note that a licensed physician's review is required before any real patient"
+  tests: [tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py]
+  sec_row: "clinical-content"

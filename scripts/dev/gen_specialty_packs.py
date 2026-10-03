@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from protocols.types import DataCategory
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "packages/protocols/specialty"
@@ -66,7 +67,11 @@ GEN_MARKER = "# generated-by: scripts/dev/gen_specialty_packs.py"
 LEGACY_GEN_MARKER = "AI-assembled from guidelines in"
 SLOT_TYPES = {"boolean", "date", "duration", "string"}
 DELIVERIES = {"voice", "text_first", "text_only"}
-GEN_KEYS = {"slot", "type", "ask_if", "follow_up", "hold", "delivery"}
+GEN_KEYS = {"slot", "type", "ask_if", "follow_up", "hold", "delivery", "data_category"}
+# The D3 data categories (protocols.types.DataCategory). general_health is the
+# slot default and is never written; a tag the closed set does not know is
+# refused here, before the pack loader would refuse it (INT-349, INT-432 CD-11).
+DATA_CATEGORIES = frozenset(c.value for c in DataCategory) - {DataCategory.GENERAL_HEALTH.value}
 PACK_KEYS = {"duration_ask", "duration_follow_up"}
 GATE_NAME = re.compile(r"\b([a-z][a-z0-9_]*)\s*(?:==|!=|>=|<=|>|<)")
 FIXED_SLOTS = frozenset({"basvuru_nedeni", "sikayet_suresi"})
@@ -87,6 +92,7 @@ class Question:
     archetype: str | None = None
     number: int | None = None
     delivery: str | None = None
+    data_category: str | None = None
 
 
 def _one_question(text: str) -> bool:
@@ -137,6 +143,10 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
         if delivery is not None and delivery not in DELIVERIES:
             warnings.append(f"refused Q{label}: unknown delivery {delivery!r}")
             continue
+        category = gen.get("data_category")
+        if category is not None and category not in DATA_CATEGORIES:
+            warnings.append(f"refused Q{label}: unknown data_category {category!r}")
+            continue
         if re.search(r"\d", q):
             warnings.append(f"refused Q{label}: digit in patient text (invariant 22)")
             continue
@@ -167,6 +177,7 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
                 archetype=am.group(1) if am else None,
                 number=int(nm.group(1)) if nm else None,
                 delivery=delivery,
+                data_category=category,
             )
         )
     return questions, warnings
@@ -213,6 +224,8 @@ def _slot(q: Question, slug: str) -> dict[str, Any]:
         slot["ask_if"] = q.ask_if
     if q.delivery:
         slot["delivery"] = q.delivery
+    if q.data_category:
+        slot["data_category"] = q.data_category
     slot["openehr_deferred_reason"] = _deferred_reason(slug, q.archetype)
     return slot
 
