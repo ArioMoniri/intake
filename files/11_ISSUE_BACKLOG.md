@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**339 issues.** By phase: P0 166 · P1 119 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 227 · todo 73 · withdrawn 1.
+**340 issues.** By phase: P0 166 · P1 120 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 228 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -301,6 +301,7 @@
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
+| INT-469 | Adli Tıp pack drops the allied report-purpose item (rapor_amaci), per LD-01 | E03-protocols | INT-448 | area:protocols, risk:clinical | done |
 
 ## P2
 

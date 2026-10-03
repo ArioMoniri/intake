@@ -162,7 +162,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
-    assert len(ids) == 339
+    # + INT-469 (the Adli Tıp candidate drops the allied report-purpose item;
+    # from a legal-lane decision, GitHub #810).
+    assert len(ids) == 340
     import re
 
     for i in ids:

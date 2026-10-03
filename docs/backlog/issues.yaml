@@ -6623,3 +6623,21 @@
     - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
   tests: [tests/voice/test_cast_turkish_voices.py]
   sec_row: "cloud-clipgen"
+- id: INT-469
+  epic: E03-protocols
+  phase: P1
+  title: "Adli Tıp pack drops the allied report-purpose item (rapor_amaci), per LD-01"
+  # GitHub #810, from the legal lane's LD-01 (INT-471, GitHub #800, 3 Oct
+  # 2026): the purpose of an adli rapor is the requesting authority's. The
+  # same PR applies CD-105's adli_tip holds (wave 1-3 finding 21), whose Q3
+  # and Q5 still reached the candidate.
+  depends_on: [INT-448]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-469.md
+  acceptance:
+    - "the resolved adli_tip pack has no rapor_amaci, suppressed through the protocol source (the proposal and the generator), never by hand in a served pack; a test asserts its absence"
+    - "near miss: sağlık kurulu and the other allied branches keep rapor_amaci"
+    - "golden tests updated, make safety green, clinical-reviewer and CODEOWNER review; LD-01 cross-referenced"
+  tests: [tests/protocols/test_adli_tip_report_purpose.py, tests/protocols/test_gen_specialty_packs.py]
+  sec_row: "clinical-content"
