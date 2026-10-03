@@ -1,0 +1,42 @@
+# INT-463 — one ephemeral run of the intake-aws-ci GitHub Actions runner.
+# cycle.sh registers it with --ephemeral, then starts this unit and waits. The
+# runner takes exactly one job, exits, and cycle.sh wipes everything it left.
+#
+# Jobs run as ghrunner with no new privileges. The root file system is
+# read-only to them (ProtectSystem=strict), so a job cannot fill the root disk.
+# /opt is an empty read-only tmpfs apart from the runner tree, home (with the
+# workspace in home/work, as on GitHub's runners) and temp on the NVMe volume; /home, /root and every staging path are
+# inaccessible. guard.sh adds the ACL and egress denials before every job.
+[Unit]
+Description=One ephemeral job of the intake-aws-ci Actions runner (INT-463)
+After=network-online.target intake-aws-ci-dockerd.service
+Wants=intake-aws-ci-dockerd.service
+PartOf=intake-aws-ci-runner.service
+RequiresMountsFor=/opt/dlami/nvme
+
+[Service]
+Type=simple
+User=ghrunner
+Group=ghrunner
+Slice=intake-aws-ci.slice
+Environment=HOME=/opt/dlami/nvme/intake-aws-ci/home
+Environment=TMPDIR=/tmp
+Environment=LANG=C.UTF-8
+Environment=DOCKER_HOST=unix:///run/intake-aws-ci/docker.sock
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+WorkingDirectory=/opt/dlami/nvme/intake-aws-ci/runner
+ExecStart=/opt/dlami/nvme/intake-aws-ci/runner/run.sh
+Restart=no
+TimeoutStopSec=120
+KillMode=control-group
+OOMScoreAdjust=500
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+TemporaryFileSystem=/opt:ro
+BindPaths=/opt/dlami/nvme/intake-aws-ci/runner
+BindPaths=/opt/dlami/nvme/intake-aws-ci/home
+BindPaths=/opt/dlami/nvme/intake-aws-ci/tmp:/tmp
+BindPaths=/opt/dlami/nvme/intake-aws-ci/tmp:/var/tmp
+ReadWritePaths=-/run/intake-aws-ci
+InaccessiblePaths=-/etc/intake-staging -/etc/intake-aws-ci-runner -/var/lib/intake-ci -/var/lib/docker -/var/lib/containerd -/var/lib/amazon -/var/log/amazon -/var/lib/cloud -/run/containerd -/run/docker.sock
