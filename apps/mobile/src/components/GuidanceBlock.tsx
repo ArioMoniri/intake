@@ -6,11 +6,10 @@
  * (no instruments, no advice — HB-L2 stays blocked); the block frames empty
  * spaces instead of a lone "nothing here" card.
  *
- * Design pass 6: an optional quiet geometric mark — Oura's permission
- * primers (Mobbin d1c03e40, 3f29d971, 6b8646ec) open with a glyph inside a
- * hairline-outlined rounded square (~56 pt, 1 px outline, ~24 pt glyph)
- * above the title. One mark per screen, on the block the screen is about;
- * the glyph is soft ink, never the accent.
+ * An optional mark: one SF Symbol, bare and in the tint, above the title, the
+ * way Apple's own privacy and onboarding primers open (INT-422). No outlined
+ * box or illustration around it. One mark per screen, on the block the screen
+ * is about.
  */
 import { StyleSheet, View } from "react-native";
 
@@ -27,7 +26,7 @@ interface GuidanceBlockProps {
   bodyKey: MessageKey;
   /** The one block per screen that carries the accent kicker. */
   accent?: boolean;
-  /** Symbol registry row for the outlined-badge mark; set it on ONE block per screen. */
+  /** Symbol registry row for the block's mark; set it on ONE block per screen. */
   icon?: SymbolKey;
 }
 
@@ -42,12 +41,8 @@ export function GuidanceBlock({
   return (
     <View style={styles.block}>
       {icon ? (
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          style={[styles.badge, { borderColor: theme.border }]}
-        >
-          <Icon name={icon} size={24} tintColor={theme.inkSoft} />
+        <View accessibilityElementsHidden importantForAccessibility="no" style={styles.mark}>
+          <Icon name={icon} size={36} tintColor={theme.primary} />
         </View>
       ) : null}
       <Kicker label={t(kickerKey)} tone={accent ? "accent" : "neutral"} />
@@ -66,14 +61,5 @@ export function GuidanceBlock({
 
 const styles = StyleSheet.create({
   block: { gap: spacing.sm },
-  // The Oura primer badge: 56 pt outlined rounded square, glyph centred.
-  badge: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.xs,
-  },
+  mark: { alignSelf: "flex-start", marginBottom: spacing.xs },
 });

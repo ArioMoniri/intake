@@ -71,13 +71,13 @@ export function VoiceNote({ onTranscript }: { onTranscript: (text: string) => vo
       onPress={phase === "recording" ? stop : start}
       style={[
         styles.pill,
-        {
-          backgroundColor: phase === "recording" ? theme.primarySoft : theme.surface,
-          borderColor: phase === "recording" ? theme.primary : theme.border,
-        },
+        // INT-433: a filled, tinted capsule like the chips beside it, not an
+        // outline. Recording inverts to the filled tint, and its label
+        // changes too, so the state is never the colour alone.
+        { backgroundColor: phase === "recording" ? theme.primary : theme.primarySoft },
       ]}
     >
-      <AppText role="label" color={phase === "recording" ? "primary" : "inkSoft"}>
+      <AppText role="label" color={phase === "recording" ? "onPrimary" : "primary"}>
         {label}
       </AppText>
     </Pressable>
@@ -87,7 +87,6 @@ export function VoiceNote({ onTranscript }: { onTranscript: (text: string) => vo
 const styles = StyleSheet.create({
   pill: {
     borderRadius: radius.chip,
-    borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
     alignSelf: "flex-start",

@@ -147,7 +147,13 @@ def test_ids_unique_and_well_formed() -> None:
     # same PR).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
-    assert len(ids) == 330
+    # + INT-422 (design system refresh: native Apple feel, restrained palette,
+    # SF Symbols, contrast in three modes; owner request, GitHub #714).
+    # + INT-423 (chat rhythm, Liquid Glass on chrome only, content solid;
+    # owner request, GitHub #718).
+    # + INT-433 (question screen: native progress, filled inputs, capsule
+    # chips, Liquid Glass bars; owner request, GitHub #739).
+    assert len(ids) == 333
     import re
 
     for i in ids:

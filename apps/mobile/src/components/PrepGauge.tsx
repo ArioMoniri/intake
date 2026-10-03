@@ -1,14 +1,12 @@
 /**
- * Semicircular prep gauge (design pass 5): the Oura home leads with a big
- * centred numeral under a thin arc — this is that focal point for the next
- * visit's preparation, in pure Views (no SVG dependency): a half-ring track
- * clipped to its top half, and a fill half-ring rotating up around the
- * baseline centre; the clip window hides whatever sits below the horizon.
+ * Semicircular prep gauge: the next visit's preparation as one numeral under
+ * a thin arc, in pure Views (no SVG dependency): a half-ring track clipped to
+ * its top half, and a fill half-ring rotating up around the baseline centre;
+ * the clip window hides whatever sits below the horizon.
  *
- * Register rules from the reference: the arc and numeral are INK, not the
- * accent (Oura's gauge is white; the accent stays reserved for the screen's
- * one CTA), the numeral is the serif display face, and the label under it is
- * the tracked kicker caption. The percent string comes from
+ * Register (INT-422): the numeral is SF Pro Rounded, as Apple's own health
+ * numerals are; the fill arc is the tint over a grey track, the way a
+ * progress ring reads in Fitness; the label is a semibold Footnote. The percent string comes from
  * Intl.NumberFormat so tr renders "%42" and en "42%" — the symbol side is a
  * locale rule, never hand-assembled (00 §2).
  */
@@ -17,7 +15,7 @@ import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { AppText, useFontScale, useTheme } from "@/components/Themed";
 import { shortSide } from "@/lib/a11y/orientation";
 import { getLocale } from "@/lib/i18n";
-import { scaledControl, spacing, tracking } from "@/lib/theme";
+import { scaledControl, spacing } from "@/lib/theme";
 
 /** The arc's diameter at scale 1.0 (design pass 5 measurement). */
 const BASE_SIZE = 232;
@@ -75,7 +73,7 @@ export function PrepGauge({ fraction, label }: { fraction: number; label: string
       style={styles.wrap}
     >
       <View style={[styles.window, { width: size, height: size / 2 }]} pointerEvents="none">
-        <View style={[styles.ring, ring, { borderColor: theme.border }]} />
+        <View style={[styles.ring, ring, { borderColor: theme.surfaceRaised }]} />
         <View
           style={[
             styles.fillLayer,
@@ -83,7 +81,7 @@ export function PrepGauge({ fraction, label }: { fraction: number; label: string
             { transform: [{ rotate: `${-180 + clamped * 180}deg` }] },
           ]}
         >
-          <View style={[styles.ring, ring, { borderColor: theme.ink }]} />
+          <View style={[styles.ring, ring, { borderColor: theme.primary }]} />
         </View>
       </View>
       {/* The numeral overlaps INTO the bowl but lives outside the clip
@@ -125,5 +123,5 @@ const styles = StyleSheet.create({
   // Pulls the numeral up into the arc bowl; the overlap parks it on the
   // baseline and scales with the bowl (marginTop is set at render).
   numeral: { alignItems: "center" },
-  label: { fontWeight: "600", letterSpacing: tracking.kicker },
+  label: { fontWeight: "600" },
 });

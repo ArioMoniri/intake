@@ -166,12 +166,13 @@ describe("T-22 — the colour scheme has one overridable source", () => {
 
   it("every other consumer takes the resolved hook", () => {
     const consumers = TREE.filter((f) => /\buseScheme\(\)/.test(f.source)).map((f) => f.name);
-    expect(consumers).toContain("src/components/ListRow.tsx");
+    // ListRow left this list in INT-422: it takes useTheme(), which resolves
+    // through useScheme() (asserted below).
     expect(consumers).toContain("src/components/FloatingTabBar.tsx");
     expect(consumers).toContain("src/components/GlassBar.tsx");
-    expect(consumers).toContain("src/components/GlassCard.tsx");
     expect(consumers).toContain("src/components/SectionPanel.tsx");
-    expect(consumers).toContain("src/app/(tabs)/visits/[visitId]/intake.tsx");
+    // The typed intake left this list in INT-433: its chips take their fills
+    // from palette tokens in both schemes, through useTheme().
   });
 
   it("useScheme resolves the stored override, and useTheme goes through it", () => {
@@ -356,7 +357,7 @@ describe("00 §2 — a Turkish word never loses its suffix", () => {
     // shrinking the text (banned by 00 §2), so what is left is a copy decision.
     // This pins that the two banned levers stay unused on the display roles.
     const themed = file("src/components/Themed.tsx");
-    expect(themed).toContain('fontSize: scaledSize(role, fontScale)');
+    expect(themed).toContain("fontSize: scaledSize(role, fontScale)");
     expect(themed).not.toContain("adjustsFontSizeToFit");
     expect(themed).not.toContain("minimumFontScale");
   });
@@ -365,9 +366,11 @@ describe("00 §2 — a Turkish word never loses its suffix", () => {
     // The width a long Turkish word needs is the only thing that stops React
     // Native breaking it, and taking padding back costs the patient nothing —
     // unlike shrinking the text they just chose to enlarge.
+    // INT-422: the card's padding IS the tight measure, the 16 pt content
+    // margin, at every scale, so there is no air left to give back.
     const themed = file("src/components/Themed.tsx");
-    expect(themed).toContain("cardTight");
-    expect(themed).toContain("isLargeText(useFontScale())");
+    expect(themed).toMatch(/ {2}card: \{[^}]*padding: spacing\.md,/);
+    expect(themed).not.toMatch(/ {2}card: \{[^}]*padding: spacing\.(?:lg|xl),/);
   });
 });
 
