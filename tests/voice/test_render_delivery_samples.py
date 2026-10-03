@@ -8,9 +8,11 @@ What this file pins, with no network and no key:
 - **The candidates stay inside the rules the table keeps.** Every setting
   builds a valid profile on the pinned model; RED and instrument candidates
   carry style 0; the first column of every context is the merged v1 row.
-- **The shipped v2 row is one the owner could listen to.** Each context's v2
-  settings are one of that context's rendered candidates, so no value in the
-  table was chosen without a clip behind it.
+- **The shipped v2 row was one the owner could listen to.** Each context's v2
+  settings (INT-424) were one of that context's rendered candidates, so no
+  value in that table was chosen without a clip behind it. The served table is
+  v4 since the cast (INT-449, D20), picked on the casting page instead; the v2
+  rows are spelled out here as they shipped.
 - **Spend is capped** by the 5 USD sample ceiling and by ``EVAL_BUDGET_USD``.
 - **The render writes clips and pages through a gateway**, here a fake one,
   and the signal statistics measure what a synthetic clip actually contains.
@@ -35,6 +37,18 @@ sys.path.insert(0, str(REPO / "scripts" / "voice"))
 import render_delivery_samples as samples  # noqa: E402
 
 RATE = 24000
+
+#: The v2 table as it shipped under INT-424 (stability, style, speed), George on
+#: eleven_multilingual_v2; the served table moved to v4 with the cast (D20).
+V2_SHIPPED = {
+    "welcome": (0.38, 0.30, 0.98),
+    "routine": (0.55, 0.05, 1.00),
+    "sensitive": (0.65, 0.00, 0.92),
+    "instrument": (0.85, 0.00, 0.93),
+    "acknowledgement": (0.45, 0.15, 1.00),
+    "red": (0.90, 0.00, 0.92),
+    "closing": (0.42, 0.20, 0.97),
+}
 
 
 def _tone(seconds: float, hz: float = 150.0, level: float = 0.25) -> np.ndarray:
@@ -117,9 +131,12 @@ class TestTheCandidates:
 
     @pytest.mark.parametrize("context", DELIVERY_CONTEXTS)
     def test_the_shipped_v2_row_was_rendered(self, context: str) -> None:
-        shipped = DELIVERY_PROFILES[context].voice_settings
         rendered = {(c.stability, c.style, c.speed) for c in samples.CANDIDATES[context]}
-        assert (shipped.stability, shipped.style, shipped.speed) in rendered
+        assert V2_SHIPPED[context] in rendered
+
+    def test_the_v2_rows_are_no_longer_served(self) -> None:
+        """INT-449 (D20) replaced every v2 row; none is served under its key."""
+        assert all(profile.version == 4 for profile in DELIVERY_PROFILES.values())
 
 
 class TestSpend:

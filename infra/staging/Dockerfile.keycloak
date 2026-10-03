@@ -1,0 +1,63 @@
+# INT-421 + INT-378: the staff Keycloak, plus the provider that writes the aaguid and
+# credential_id session notes. The admin console refuses every staff token that lacks them
+# (INT-180), and stock Keycloak writes neither, so without this jar nobody can sign in.
+#
+# Two stages. The build context is the repository root, and
+# Dockerfile.keycloak.dockerignore, next to this file, sends the provider module and its pin
+# only.
+#
+#   provider  builds infra/keycloak/providers/webauthn-session-notes exactly as
+#             `make keycloak-provider` does:
+#               - Maven 3.9.16 is fetched and checked against the distributionSha256Sum in the
+#                 module's maven-wrapper.properties, the one place that pin lives. It is
+#                 extracted with the JDK's jar tool. The wrapper itself is not used: without
+#                 unzip it switches to the .tar.gz, which that zip sum cannot match;
+#               - every artefact Maven resolves must match the module's trusted checksums
+#                 (.mvn/maven.config, read by mvn itself);
+#               - the provider's tests run;
+#               - a jar that is not byte-identical to
+#                 infra/keycloak/providers/webauthn-session-notes.sha256 fails the build.
+#   runtime   INT-390's Keycloak image, unchanged, plus that one jar in /opt/keycloak/providers.
+#             compose runs `start`, never --optimized, so start-up re-augments and loads it.
+#
+# Nothing from the build stage but the checked jar reaches the image.
+#
+# Digests, with each index recomputed from its manifest bytes:
+#   eclipse-temurin:21.0.11_10-jdk-noble
+#     Docker Hub v2 API, 3 Oct 2026.
+#     JDK 21.0.11+10, the build that reproduced the pin: GPL-2.0 with the Classpath Exception,
+#     read from the raw LICENSE at adoptium/jdk21u tag jdk-21.0.11+10 (347 lines, sha256
+#     4b9abebc4338048a7c2dc184e9f800deb349366bdf28eb23c2677a77b4c87726).
+#     Build stage only.
+#   Keycloak 26.7.4 (the second FROM)
+#     INT-390's pin, the same reference as infra/docker-compose.obs.yml. Apache-2.0.
+
+FROM eclipse-temurin:21.0.11_10-jdk-noble@sha256:8a79c84cdf6967ae437eba13c8859d74d41aeccb1e65a42191ca57b1992ad0b8 AS provider
+WORKDIR /src
+COPY infra/keycloak/providers/webauthn-session-notes.sha256 /src/
+COPY infra/keycloak/providers/webauthn-session-notes /src/webauthn-session-notes
+RUN set -eu; \
+    props=/src/webauthn-session-notes/.mvn/wrapper/maven-wrapper.properties; \
+    url=$(sed -n 's/^distributionUrl=//p' "$props"); \
+    sum=$(sed -n 's/^distributionSha256Sum=//p' "$props"); \
+    case "$url" in https://*.zip) ;; *) echo "distributionUrl is not an https zip" >&2; exit 1 ;; esac; \
+    curl -fsSL --proto '=https' -o /tmp/maven.zip "$url"; \
+    echo "$sum  /tmp/maven.zip" | sha256sum -c -; \
+    mkdir /opt/maven; \
+    cd /opt/maven; \
+    jar xf /tmp/maven.zip; \
+    chmod +x /opt/maven/apache-maven-*/bin/mvn; \
+    cd /src/webauthn-session-notes; \
+    /opt/maven/apache-maven-*/bin/mvn -B clean verify; \
+    cd target; \
+    sha256sum -c /src/webauthn-session-notes.sha256
+
+FROM quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+COPY --from=provider --chown=root:root --chmod=0444 \
+    /src/webauthn-session-notes/target/intake-webauthn-session-notes-1.0.0.jar \
+    /opt/keycloak/providers/intake-webauthn-session-notes-1.0.0.jar
+# The image carries no curl or wget; bash probes the management port's readiness endpoint,
+# as compose.yaml's healthcheck does (which overrides this one there).
+HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=30 \
+  CMD ["/bin/bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: 127.0.0.1:9000\\r\\nConnection: close\\r\\n\\r\\n' >&3 && read -r line <&3 && [[ \"$line\" == *'200'* ]]"]
+USER 1000

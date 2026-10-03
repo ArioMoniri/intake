@@ -646,6 +646,42 @@ it or whose tests exercise it.
 - **Signals:** OCR failures and processing time (§9) land with INT-134.
 - **Tests:** image fuzzing lands with INT-134 and INT-122.
 
+### INT-407 — the visit lifecycle (files/02 §2b): a RED visit cannot silently move
+
+- **Assets:** the visit's lifecycle state (`visit.lifecycle`, a plain slot on the session
+  row — no new table or column), its datetime, the shares and Doctor Links hanging off its
+  note, the queued T-24h confirm, the clinic Safety inbox.
+- **Threats:** [D·safety] a RED-flagged visit rescheduled or cancelled with nobody told —
+  *"invisible to everyone"*; [S·safety] a check-in that claims `ON_SITE` from a geofence in
+  the car park or a QR scanned by a relative, turning a RED's 112 into "walk to the acil"
+  for someone outside; [I] a cancelled visit's note still readable by the clinic or through
+  a Doctor Link; [I] a Doctor Link that expires before (issue-time anchoring) or outlives
+  (a stale anchor after a reschedule) the visit it serves; [T] a lost update re-planning a
+  cancelled visit; [R] a move with no record of who made it.
+- **Controls:** a typed machine refuses every move outside the table (409, nothing
+  written) and audits each move by id (`visit:<id>/transition:<id>`); the row is locked
+  `FOR UPDATE` for the move. A reschedule or cancel reads the INT-406 inbox **before**
+  writing and writes its entry **before** committing — unwired or unreachable, the move is
+  refused (503); no connector is on the path. The patient re-show is a pointer (rule,
+  register, location) at the pre-positioned script, in the RED's recorded register, with
+  location re-derived — `UNKNOWN` outside a session; a register never recorded is not
+  guessed and `DEFERRED_CLINICIAN` is not shown. Check-in evidence is certain only on an
+  affirmative signal; anything else is `UNKNOWN`, never `ON_SITE` (invariant 21). A cancel
+  revokes every share and link (routing hints dropped) and withdraws the clinic's read;
+  a reschedule re-pins live links (row and hint) to the new `visit_datetime + 72 h` and
+  never revives a revoked or expired one. The T-24h confirm is queued transactional-only,
+  has no `sent` state, and the dispatch seam refuses before any transport (no SMS vendor,
+  INT-358; no reviewed body). The delta-session offer is behind a safety flag.
+- **Signals:** every move and every hook is a hash-chained audit row by id
+  (`api.visit.transition.*`, `api.note.share_revoked`, `api.doctor_link.revoked`,
+  `api.visit.clinician_entry_withdrawn`, `api.doctor_link.expiry_repinned`); the RED moves
+  land in the Safety queue and page on INT-406's clock.
+- **Tests:** `tests/platform/test_visit_lifecycle_machine.py` (every (from, to) pair, the
+  guards, location, the confirm gate), `tests/api/test_visit_lifecycle.py` (route, cancel,
+  reschedule with the issue-time near-miss, staleness, check-in doubt, the queued confirm),
+  `tests/safety/test_red_visit_transition.py` (RED move → entry with no connector on a fake
+  clock, the re-show per register, near-miss controls, fail-closed inbox).
+
 ## `intake-voice` — the patient-facing voice session
 
 - **Assets:** live audio, session tokens, the RED delivery path, patient trust in the voice.
@@ -783,27 +819,31 @@ it or whose tests exercise it.
   missed RED (patient safety, the highest-consequence failure in the product); [D] false-RED
   volume eroding clinician trust.
   **RED acknowledgement (§9 row, files/02 §8):** [D/De] the alert fires and **nobody
-  answers** — no queue, no clock, no metric, no alert; `triage.events_total` counts REDs that
-  fired, not REDs anyone answered; a RED visit rescheduled or cancelled out of everyone's
-  sight.
+  answers** — `triage.events_total` counts REDs that fired, not REDs anyone answered; a RED
+  visit rescheduled or cancelled out of everyone's sight.
 - **Controls (files/10):** §9 triage row — deterministic rules only, LLM cannot set levels,
   preemption path tested, rule changes via ADR plus sign-off; monotonic inheritance with
   `base.life_threat` unextendable (CLAUDE.md invariant 7); RED three axes with no default
   register/location (invariant 21, ADR-023).
-  **RED acknowledgement (§9, inv. 49):** every RED produces a clinic inbox entry within 60 s
-  regardless of connector presence and starts an acknowledgement clock; a Safety queue in the
-  console (files/08 §3, F19) where `tenant_clinical_responsible` acknowledges; an SLA breach
-  pages; a files/02 §2b reschedule or cancel on a RED visit raises an entry regardless of
-  connector presence.
+  **RED acknowledgement (§9, inv. 49), INT-406:** Layer B hands every rules-engine RED to
+  the clinician route as it settles, which puts an ids-only entry in the clinic Safety inbox
+  in-process — no connector on the path — and a runtime without the inbox store is not
+  ready; the console's Safety queue (files/08 §3, F19) is answered by
+  `tenant_clinical_responsible` alone (tier 1, audited write-ahead naming the entry); a
+  sweep pages past the files/02 §8.2 SLA (default 4 h, counted in wall-clock hours until a
+  tenant calendar is recorded) and pages when the inbox cannot be read; a files/02 §2b
+  reschedule or cancel on a visit carrying a RED entry raises its own entry.
 - **Signals:** RED events (`triage.events_total`, named in §9), preemption latency,
   false-RED reviews, missed-flag reports — land with INT-080 and INT-025.
-  `clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` (§9) are catalogued
-  `planned` in `observability/metrics_catalog.yaml`; nothing emits them yet.
+  `clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` (§9) are emitted by
+  INT-406, with `clinic_red_inbox_pending_age_s` and `clinic_red_inbox_route_failures_total`
+  for the 60 s half; the last three page through `infra/observability/safety-rules.yaml`
+  (`docs/runbooks/red-acknowledgement.md`), and the latency histogram is the measurement.
 - **Tests:** golden suite with near-miss negatives and mutation tests land with INT-059;
-  preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is **unowned**:
-  the INT-020 close-out found no backlog row whose acceptance carries the Safety queue, the
-  acknowledgement clock or inv. 49, and records the gap in docs/evidence/INT-020.md for the
-  coordinator to allocate (an agent does not mint an issue id).
+  preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is owned by
+  INT-406: `tests/safety/test_red_acknowledgement_sla.py` (fake clocks: entry ≤ 60 s with no
+  connector, page at SLA + 1 s and not at the SLA, a transition on a RED visit raises an
+  entry; YELLOW, GREEN, an LLM candidate and an unpinned RED never create one).
 
 ## `wellbeing` — screening instruments
 
@@ -1799,6 +1839,21 @@ it or whose tests exercise it.
     26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
     closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
     `tests/admin/test_realm_claim_mappers.py`.
+  - **Controls added by INT-378 (the WebAuthn provider writes the two notes):** the staff flow
+    runs `intake-webauthn-session-notes`, which is Keycloak's own WebAuthn authenticator
+    unchanged. Only after that authenticator returns SUCCESS does it write the asserted
+    credential's stored AAGUID and its base64url id as the two notes, so neither value can
+    come from anything but a verified assertion ([S] against a forged actor block). Any other
+    outcome writes nothing, and the token is refused. The values are identifiers, never
+    personal data, and nothing is logged (inv 6). Supply chain (inv 14): Keycloak is compiled
+    against and not bundled. The Maven distribution is pinned by sha256, and so is every
+    artefact Maven resolves (the build fails on a missing or different hash). The jar is
+    reproducible and pinned (`infra/keycloak/providers/webauthn-session-notes.sha256`), and
+    the required CI job `check-py` rebuilds it against the pin. The committed realm also now
+    imports: Keycloak keeps a flow description in NVARCHAR(255), and a longer one had failed
+    the import. Tests: the provider's Java suite (`make keycloak-provider`) and
+    `tests/admin/test_webauthn_session_notes_provider.py`, which replays a recorded real
+    Keycloak login (26.7.4, the composed version). Open: the owner's TOTP decision (INT-389, #644).
   - **Controls added by INT-366 (quarterly access review, one-action offboarding, 60-day
     auto-disable; files/08 §2.4, §2.7):** against [E] access that outlives its need and a
     departure that leaves one identity store open. `GET /admin/access/review` is generated
@@ -1859,11 +1914,11 @@ it or whose tests exercise it.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
-  the same file, with property tests over generated ids (INT-391).
-  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the realm-import column
+  the same file, with property tests over generated ids (INT-391); the realm-import column
   limits, the image digest and the import file name in
-  `tests/infra/test_keycloak_realm_import.py` (INT-390).
-  the same file, with property tests over generated ids (INT-391). Break-glass (INT-180):
+  `tests/infra/test_keycloak_realm_import.py` (INT-390); the WebAuthn session-notes
+  provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
+  (INT-378). Break-glass (INT-180):
   the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
   `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both
   break-glass routes in `tests/admin/test_admin_audit.py`; only break-glass roles carrying the

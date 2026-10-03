@@ -72,6 +72,7 @@ from protocols.dsl import clip_text_hash
 from pydantic import BaseModel, ConfigDict, Field
 from voice_clips.audio import wav_bytes
 from voice_clips.delivery import (
+    CLIPGEN_VOICE_ID,
     DEFAULT_DELIVERY_CONTEXT,
     DeliveryContext,
     DeliveryProfile,
@@ -110,8 +111,10 @@ __all__ = [
     "router",
 ]
 
-#: George — the voice id ADR-028 pins; the model (eleven_multilingual_v2) and
-#: the numeral-normaliser-off request are the gateway's, unchanged.
+#: George, the ADR-028 voice until INT-449. The route now speaks in the cast
+#: voice, ``voice_clips.delivery.CLIPGEN_VOICE_ID`` (D20); the constant stays so
+#: the change of voice is asserted, and a George-era clip is never replayed (the
+#: profile version in the cache key moved to v4).
 GEORGE_VOICE_ID: Final = "JBFqnCBsd6RMkjVDRZzb"
 
 #: Opt-in dev phrase. Anything but the exact string leaves the route
@@ -147,7 +150,7 @@ class GeorgeClipCache:
 
     gateway: TtsGateway
     cache_dir: Path
-    voice_id: str = GEORGE_VOICE_ID
+    voice_id: str = CLIPGEN_VOICE_ID
 
     def ensure(self, text_tr: str, profile: DeliveryProfile) -> tuple[bytes, bool]:
         """Return ``(wav_body, cache_hit)``.

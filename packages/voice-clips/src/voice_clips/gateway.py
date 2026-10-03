@@ -92,8 +92,10 @@ __all__ = [
     "TtsRefusedError",
     "TtsUnavailableError",
     "UnspeakableScriptError",
+    "assert_numeral_free",
     "assert_speakable_tr",
     "tts_gateway_from_env",
+    "wire_text",
 ]
 
 ENV_TTS_ENDPOINT: Final = "INTAKE_TTS_ENDPOINT"
@@ -113,9 +115,11 @@ ENV_ELEVENLABS_KEY: Final = "TTS_ELEVENLABS_API_KEY"
 #: taken there — the recorded fixture is.
 ENV_EVAL_BUDGET_USD: Final = "EVAL_BUDGET_USD"
 
-#: The multilingual model id (Turkish among its languages) and the raw-PCM
-#: sample rate the offline clip-gen requests. Config, not a claim about output.
-ELEVENLABS_MODEL_ID: Final = "eleven_multilingual_v2"
+#: The pinned model id and the raw-PCM sample rate the offline clip-gen
+#: requests. Config, not a claim about output. ``eleven_v3`` since INT-449
+#: (D20; ADR-034 amended by the owner's pick of the cast take E04, 3 Oct 2026);
+#: it was ``eleven_multilingual_v2`` under INT-319/INT-415.
+ELEVENLABS_MODEL_ID: Final = "eleven_v3"
 ELEVENLABS_PCM_RATE_HZ: Final = 24000
 
 #: The dev bridges expose ``POST /synthesize`` returning a WAV body
@@ -192,6 +196,26 @@ class TtsGateway(Protocol):
 _MARKUP_CHARS: Final = frozenset("<>[]")
 
 
+def assert_numeral_free(text: str) -> None:
+    """Refuse any Unicode number character (invariant 22). Never rewrite one.
+
+    The numeral half of :func:`assert_speakable_tr`, on its own so it can run on
+    the exact text a request carries: ``text_tr`` plus a profile's closed-table
+    tags (INT-449). The tags are markup by construction, so the whole wire text
+    can never pass the markup half; it must still carry no numeral, because the
+    wire text is what reaches the model.
+    """
+    offenders = sorted({char for char in text if unicodedata.category(char).startswith("N")})
+    if offenders:
+        raise NumeralInScriptError(
+            f"scripted text still carries {''.join(offenders)!r} — the compiler expands "
+            "every numeral to Turkish orthography and no TTS in any profile may see "
+            "one (CLAUDE.md invariant 22; files/03 §4.9.6). The builder refuses; it "
+            "does not normalise, because a second normaliser is a second opinion "
+            "about a dose"
+        )
+
+
 def assert_speakable_tr(text_tr: str) -> None:
     """Refuse any Unicode number character, and any markup. Never rewrite either.
 
@@ -206,15 +230,7 @@ def assert_speakable_tr(text_tr: str) -> None:
     profile and in punctuation; an expressive-markup model is an ADR question
     (docs/adr/ADR-034), not a string edit.
     """
-    offenders = sorted({char for char in text_tr if unicodedata.category(char).startswith("N")})
-    if offenders:
-        raise NumeralInScriptError(
-            f"scripted text still carries {''.join(offenders)!r} — the compiler expands "
-            "every numeral to Turkish orthography and no TTS in any profile may see "
-            "one (CLAUDE.md invariant 22; files/03 §4.9.6). The builder refuses; it "
-            "does not normalise, because a second normaliser is a second opinion "
-            "about a dose"
-        )
+    assert_numeral_free(text_tr)
     markup = sorted(_MARKUP_CHARS.intersection(text_tr))
     if markup:
         raise MarkupInScriptError(
@@ -222,6 +238,27 @@ def assert_speakable_tr(text_tr: str) -> None:
             "rides inside verbatim text_tr (CLAUDE.md invariants 10 and 22); the gate "
             "refuses and never strips"
         )
+
+
+def wire_text(text_tr: str, profile: DeliveryProfile) -> str:
+    """The exact ``text`` an ElevenLabs request carries (INT-449, D20).
+
+    ``text_tr`` passes the whole :func:`assert_speakable_tr` gate first, so a
+    tag, an SSML element or a numeral inside the script is refused before any
+    tag exists. Then the profile's closed-table tags (its ``wire_prefix``) go
+    in front, and the composed text is checked once more for a numeral, since
+    it is what reaches the model (invariant 22). The tags come from the served
+    delivery table only: a caller names a context, never a tag. RED and
+    instrument rows carry none, so their wire text is the script alone.
+
+    The offline clip-gen gateway (ADR-028, which rendered the bundled set)
+    composes through here, and so does any later lane that speaks a row, so
+    two lanes can never send different words for the same row.
+    """
+    assert_speakable_tr(text_tr)
+    text = profile.wire_prefix + text_tr
+    assert_numeral_free(text)
+    return text
 
 
 @dataclass(frozen=True)
@@ -356,7 +393,9 @@ class ElevenLabsClipGenGateway:
                     params={"output_format": f"pcm_{self.sample_rate_hz}"},
                     headers={"xi-api-key": self.api_key},
                     json={
-                        "text": text_tr,
+                        # INT-449: the profile's closed-table tags, on the wire
+                        # only; text_tr itself is the script, verbatim (inv. 10)
+                        "text": wire_text(text_tr, profile),
                         "model_id": self.model_id,
                         # invariant 22: disable the vendor normaliser — the
                         # compiler already expanded every numeral to orthography.

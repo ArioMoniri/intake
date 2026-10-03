@@ -1,0 +1,30 @@
+# guideline_id: NICE-CG115
+# title: Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014
+# url: https://www.nice.org.uk/guidance/cg115/chapter/Recommendations
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header, recommendation 1.2.1.1 and recommendation 1.2.2.6; nothing paraphrased or edited; omissions marked [...]. Filename carries -B because a separate NICE-CG115.txt excerpt is authored on another INT-448 branch; both declare the same guideline_id.
+---
+Reference number: CG115
+Published: 23 February 2011
+Last updated: 21 October 2014
+[...]
+1.2 Identification and assessment
+1.2.1 General principles
+1.2.1.1
+Make sure that assessment of risk is part of any assessment, that it informs the development of the overall care plan, and that it covers risk to self (including unplanned withdrawal, suicidality and neglect) and risk to others.
+[...]
+Comprehensive assessment
+1.2.2.6
+Consider a comprehensive assessment for all adults referred to specialist alcohol services who score more than 15 on the AUDIT. A comprehensive assessment should assess multiple areas of need, be structured in a clinical interview, use relevant and validated clinical tools (see recommendation 1.2.1.4), and cover the following areas:
+alcohol use, including:
+consumption: historical and recent patterns of drinking (using, for example, a retrospective drinking diary), and if possible, additional information (for example, from a family member or carer)
+dependence (using, for example, SADQ or LDQ)
+alcohol-related problems (using, for example, APQ)
+other drug misuse, including over-the-counter medication
+physical health problems
+psychological and social problems
+cognitive function (using, for example, the Mini-Mental State Examination [MMSE])
+readiness and belief in ability to change.

@@ -5,6 +5,15 @@ Moniri, decided in chat on 3 Oct 2026: "eleven labs is yes". The coordinator rel
 to this PR. Option (A) is adopted: the pinned model stays `eleven_multilingual_v2` for every
 context, and audio tags are not adopted. Proposed 2 Oct 2026.
 
+**Amended 3 Oct 2026 (owner decision D20, INT-449).** The owner picked the cast take E04 ("use E04
+voice"), which adopts `docs/voice/adr-034-amendment-proposal-render-time-tags.md` and replaces
+option (A) for the clip lane: `eleven_v3`, the voice `2PwDxni9MpXdYqgALrBh`, every delivery row at
+v4, and render-time emotion tags from a closed per-context table. The tags are prepended on the
+wire only (`voice_clips.gateway.wire_text`), outside `text_tr` and `clip_text_hash`; RED and
+instrument rows are Robust (stability 1.0) and never tagged; a tag inside `text_tr` is still
+refused (`MarkupInScriptError`). The amendment lists the gates still open (2, 3, 5 and 7). The
+text below is the decision as first taken, kept for the record.
+
 ## Context
 
 The owner wants the scripted questions to sound more natural and emotionally attuned while
