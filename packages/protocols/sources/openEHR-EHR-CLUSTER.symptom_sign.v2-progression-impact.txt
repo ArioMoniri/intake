@@ -1,0 +1,48 @@
+# guideline_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+# title: Symptom/Sign (openEHR Clinical Knowledge Manager archetype) - Progression, Impact and Precipitating factor terms
+# publisher: openEHR Foundation (CKM cid 1013.1.6769, lifecycle PUBLISHED)
+# version_or_date: revision 2.1.4; build_uid e45fe563-4cb6-4d98-aea3-07e9a7c01aaf; MD5-CAM-1.0.1 6693D3AAC8F91648625B726EC5070CCD
+# url: https://ckm.openehr.org/ckm/archetypes/1013.1.6769
+# url_adl: https://ckm.openehr.org/ckm/rest/v1/archetypes/1013.1.6769/adl
+# retrieved_on: 2026-10-03
+# retrieval: curl of the CKM REST ADL export (ADL 1.4, utf-8, BOM and CR stripped); the same revision as the committed openEHR-EHR-CLUSTER.symptom_sign.v2.txt, which excerpts other terms
+# scope: verbatim ADL lines - archetype id, lifecycle and revision lines, the English term definitions of at0155 (Impact) and at0180-at0184 (Progression and its values), and at0165 (Precipitating factor) cut at its description line; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+archetype (adl_version=1.4; uid=88c7d677-fa69-498f-aec2-976c53d15a6f)
+	openEHR-EHR-CLUSTER.symptom_sign.v2
+[...]
+	lifecycle_state = <"published">
+[...]
+		["revision"] = <"2.1.4">
+[...]
+				["at0155"] = <
+					text = <"Impact">
+					description = <"Description of the impact of this symptom or sign.">
+					comment = <"Assessment of impact could consider the severity, duration and frequency of the symptom as well as the type of impact including, but not limited to, functional, social and emotional impact. Occurrences of this data element are set to 0..* to allow multiple types of impact to be separated out in a template if desired. Examples for functional impact from hearing loss may include: 'Difficulty Hearing in Quiet Environment'; 'Difficulty Hearing the TV or Radio'; 'Difficulty Hearing Group Conversation'; and 'Difficulty Hearing on Phone'.">
+				>
+[...]
+				["at0180"] = <
+					text = <"Progression">
+					description = <"Description progression of the symptom or sign at the time of reporting.">
+					comment = <"Occurrences of this data element are set to 0..* to allow multiple types of progression to be separated out in a template if desired - for example, severity or frequency. The Text data type is added as an option, to support other value sets than the ones included in the archetype.">
+				>
+				["at0181"] = <
+					text = <"Improving">
+					description = <"The severity of the symptom or sign has improved overall during this episode.">
+				>
+				["at0182"] = <
+					text = <"Unchanged">
+					description = <"The severity of the symptom or sign has not changed overall during this episode.">
+				>
+				["at0183"] = <
+					text = <"Worsening">
+					description = <"The severity of the symptom or sign has worsened overall during this episode.">
+				>
+				["at0184"] = <
+					text = <"Resolved">
+					description = <"The severity of the symptom or sign has resolved.">
+				>
+[...]
+				["at0165"] = <
+					text = <"Precipitating factor">
+					description = <"Details about specified factors that are associated with the precipitation of the symptom or sign.">

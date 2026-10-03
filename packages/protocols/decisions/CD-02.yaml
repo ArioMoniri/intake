@@ -1,0 +1,143 @@
+kind: clinical_decision
+id: CD-02
+title: "The never-silently-filled slot list"
+question: "Which slots or slot classes may never be filled from narrative, the council, a document or drug-name inference, and may be filled only by a direct answer to the scripted question or a keypad/chip value rendered back to the patient?"
+decision: "Eight classes are never silently filled. Two are derived, not listed: every slot that any red-flag rule reads in its gate (rule_gate_slots) and every slot that any rule names as its tense_anchor (tense_anchors), at any rule status, so the list grows when a rule is written and cannot shrink when one is promoted. Six are explicit: the base.intake red_flags probes, the class gates (anticoagulant, immunosuppression including chemotherapy, pregnancy), numeric inputs, validated-instrument items, the subject role, and the two text_only safeguarding probes. A slot in any class is filled only by the patient's direct answer to its scripted question, or by a keypad or chip value that is rendered back on screen. Narrative, the council, a document and a drug name may arm the scripted probe (CD-03) and may be shown to the clinician with their provenance, but they never set the value and never yield ASKED_ABSENT. The clinical basis: NICE CG95 makes the chest-pain check a direct, immediate question; the CKM screening archetype models presence and absence as answers to pre-defined questions, while the history archetype records positive presence and sends an explicitly reported absence to a separate exclusion archetype, so keeping narrative from ever producing ASKED_ABSENT is this author's conservative choice (see inference_disclosure), resting on the repository's own rule that an unanswered slot renders as 'Sorulmadı', never as an elicited negative; and NICE NG5 makes medicines reconciliation a task for a trained health professional with the patient involved, which an automated drug-name-to-class inference is not. Instrument items, numeric inputs and the subject role are on the list because project invariants already bind them (CLAUDE.md invariants 10 and 22, files/04 instrument fidelity); they are recorded here for completeness, not resolved by this decision."
+status: active
+scope: simulated_patient_stress_testing
+author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
+inference_disclosure: "openEHR does model an explicitly reported absence (CLUSTER.exclusion_symptom_sign, named in the Symptom/Sign misuse text), so no cited source forbids recording an absence volunteered in narrative. Refusing it, so that ASKED_ABSENT comes only from a direct answer to the scripted question, is this author's conservative choice: a narrative denial is not the elicited negative a pertinent-negative list asserts. The repository's own spec states the same asymmetry (spec_basis)."
+spec_basis:
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.4 The budget governor — and which way it yields"
+    quote: "An 18-turn cap that can silently drop a must-ask is precisely the mechanism by which this product would generate a note asserting an unelicited negative."
+    supports: "forbidden_fill, forbidden_sources_may (never ASKED_ABSENT)"
+  - file: files/protocols/base.life_threat.yaml
+    section: "RULE SCHEMA, gate"
+    quote: 'which renders as "Sorulmadı" — never as an elicited negative.'
+    supports: "forbidden_sources_may (an unanswered slot stays NOT_ASKED)"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.3 Seven answer states"
+    quote: "`ASKED_ABSENT` — **the only state that may enter `ros_pertinent`**"
+    supports: "forbidden_sources_may"
+sources:
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "Check immediately whether people currently have chest pain."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "To create a framework for recording answers to pre-defined screening questions about symptoms or signs."
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "This archetype has been designed to record the positive presence of the symptom or sign as part of history taking using OBSERVATION.story, or in conjunction with a positive response to OBSERVATION.symptom_sign_screening."
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "Not to be used to record that a symptom or sign was explicitly reported as not present - use CLUSTER.exclusion_symptom_sign carefully for specific purposes where the overheads of recording in this way warrant the additional complexity."
+    caveat: "Cited for the separation of positive history from explicit absence; it does not itself forbid recording a volunteered absence (inference_disclosure)."
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+  - kind: guideline
+    guideline_id: NICE-NG5
+    title: "Medicines optimisation: the safe and effective use of medicines to enable the best possible outcomes"
+    version_or_date: "NG5, published 04 March 2015; minor changes September 2019, June 2021 and October 2021"
+    url: "https://www.nice.org.uk/guidance/ng5/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "Organisations should ensure that medicines reconciliation is carried out by a trained and competent health professional"
+    snapshot: packages/protocols/sources/NICE-NG5.txt
+  - kind: guideline
+    guideline_id: NICE-NG5
+    title: "Medicines optimisation: the safe and effective use of medicines to enable the best possible outcomes"
+    version_or_date: "NG5, published 04 March 2015; minor changes September 2019, June 2021 and October 2021"
+    url: "https://www.nice.org.uk/guidance/ng5/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "Involve patients and their family members or carers, where appropriate, in the medicines reconciliation process."
+    snapshot: packages/protocols/sources/NICE-NG5.txt
+value:
+  slot_classes:
+    - id: rule_gate_slots
+      derivation: rule_reads
+      description: "Every patient-answerable slot referenced in the gate of any red-flag rule in base.life_threat or in any pack, whatever the rule's status. Today: from the two active rules, chest_pain.present, chest_pain.character, chest_pain.radiation, associated.diaphoresis, associated.dyspnoea and trauma.recent; from the draft rf.paediatric_airway_obstruction, subject.age_years, airway.stridor_reported, airway.drooling_unable_to_swallow, airway.tripod_position and airway.muffled_voice (answered by the parent or guardian); from the draft rf.crisis_disclosure_signposting, safety.self_harm_statement when it is set from the patient's own answer (when it is set by the lexicon it is a system predicate like transcript.*). System-derived predicates (transcript.*) are computed by the deterministic lexicon on the raw transcript, never by the council, and are not patient-answered slots, so this fill rule does not apply to them."
+      sources: [NICE-CG95, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1, openEHR-EHR-CLUSTER.symptom_sign.v2]
+    - id: tense_anchors
+      derivation: rule_reads
+      description: "Every slot that any rule names as its tense_anchor. Today chest_pain.onset_at (active rules) and airway.onset_at (draft rf.paediatric_airway_obstruction); transcript.utterance_at (draft crisis rule) is a system timestamp, not an answer; hpi.time_last_known_well joins when rf.stroke_fast is written. Resolution of the anchor answer is CD-05."
+      sources: [NICE-CG95]
+    - id: red_flag_probes
+      derivation: explicit
+      slots:
+        - red_flags.rf_chest_pain_acute
+        - red_flags.rf_stroke_fast
+        - red_flags.rf_dyspnoea_rest
+        - red_flags.rf_anaphylaxis
+        - red_flags.rf_severe_bleeding
+        - red_flags.rf_suicidal_intent
+        - red_flags.rf_sepsis_like
+        - red_flags.rf_thunderclap_headache
+        - red_flags.rf_pregnancy_bleeding_pain
+        - red_flags.rf_fever_high_persistent
+        - red_flags.rf_weight_loss_unintentional
+        - red_flags.rf_new_neuro_deficit_subacute
+        - red_flags.rf_suicidal_ideation_passive
+      description: "The base.intake red_flags probes. All are unaskable today (no copy, families draft_needs_source); they are listed so that the fill rule already holds the moment a probe gains its question."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - id: class_gates
+      derivation: explicit
+      slots:
+        - meds_allergies.anticoagulant_use
+        - pmh_fh_sh.immunosuppression
+        - pmh_fh_sh.pregnancy_status
+      description: "Scripted yes/no/unsure class gates. Never inferred from a drug name on the imported list, from a document or from narrative; a matched drug name may be shown back for the patient to confirm, but it does not set the gate. Chemotherapy is inside immunosuppression (its follow_up names it). Insulin has no slot today and joins this class when one is declared."
+      sources: [NICE-NG5]
+    - id: numeric_inputs
+      derivation: explicit
+      slots:
+        - hpi.severity_nrs
+        - pmh_fh_sh.weight_kg
+      description: "Numbers that feed, or may feed, a rule: entered by keypad or chip and rendered back (both slots already carry confirm_tr). No number is inferred and no dose is inferred."
+      basis: "CLAUDE.md invariant 22 (project rule, not a clinical source)"
+    - id: instrument_items
+      derivation: explicit
+      slots:
+        - screening.phq2
+        - screening.gad2
+        - screening.phq9
+        - screening.gad7
+        - screening.cssrs_screen
+      description: "Validated-instrument items: an explicit verbatim option selection only; never scored from narrative."
+      basis: "files/04 header, instrument fidelity, and CLAUDE.md invariant 10 (project rules, not a clinical source)"
+    - id: subject_identity
+      derivation: explicit
+      slots:
+        - identity_check.subject_role
+      description: "Who the answers are about decides the age band and therefore which rules and which reviewer apply; never set by the council."
+      basis: "physician review 2 Oct 2026, item 10 (project rule, not a clinical source)"
+    - id: safeguarding_text_only
+      derivation: explicit
+      slots:
+        - red_flags.rf_suicidal_intent
+        - red_flags.rf_suicidal_ideation_passive
+      description: "text_only sections: no extraction runs at all; the value comes only from the patient's typed or chip answer."
+      basis: "files/13 §13 and physician review 2 Oct 2026, item 10 (project rules, not a clinical source)"
+  permitted_fill: [direct_scripted_answer, keypad_or_chip_rendered_back]
+  forbidden_fill: [narrative, council, document, drug_name_inference]
+  forbidden_sources_may: "arm the scripted probe (CD-03) and appear to the clinician with provenance; never set a value, never clear one, never yield ASKED_ABSENT"
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

@@ -60,3 +60,24 @@ vulnerabilities:
       code; the measured check is recorded in docs/evidence/INT-429.md.
 
       This row expires after 30 days. Removing it sooner is always correct.
+
+  - id: CVE-2026-93687
+    purls:
+      - "pkg:npm/braces@3.0.3"
+    # Time-boxed, same expiry as the matching osv-scanner.toml entry
+    # (GHSA-vfj7-8cjw-p6xm). trivy stops honouring this row after this date.
+    expired_at: 2026-11-02
+    statement: >
+      OWNER-APPROVED, TIME-BOXED EXCEPTION, not a quiet acceptance. The owner
+      approved it in chat on 3 Oct 2026 ("approve for the two osv
+      exceptions", then "patch" for this trivy row). This is the same braces
+      3.0.3 advisory as the osv entry: stack-exhaustion denial of service
+      through deeply nested patterns. No fixed release exists, and the
+      newest micromatch still needs ^3.0.3.
+
+      How it is reached: braces 3.0.3 is in pnpm-lock.yaml only under
+      micromatch 4.0.8, under metro-file-map 0.84.5, Metro's build-time file
+      crawler. It expands glob patterns from the repository's own build
+      configuration, never patient input. It is not in either production
+      `expo export` bundle, and no server runtime image installs npm packages
+      (docs/evidence/INT-426.md). Removing this row sooner is always correct.

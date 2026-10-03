@@ -392,7 +392,8 @@ def second_factor_violations(realm: Mapping[str, Any]) -> list[str]:
     expected = {
         "auth-username-password-form": AMR_FIRST_FACTOR,
         "auth-otp-form": AMR_OTP,
-        "webauthn-authenticator": AMR_WEBAUTHN,
+        # INT-378: the stock WebAuthn authenticator plus the aaguid/credential_id notes
+        "intake-webauthn-session-notes": AMR_WEBAUTHN,
     }
     if references(realm) != expected:
         violations.append(f"references {references(realm)} != {expected}")

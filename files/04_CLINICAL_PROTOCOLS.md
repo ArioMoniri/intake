@@ -25,6 +25,7 @@
 | `reason_for_visit` | chief complaint in own words; "Bu ziyaretten en çok ne bekliyorsunuz?" | — | `chief_complaint_text`, `patient_goals[]` |
 | `hpi` | OLDCARTS/SOCRATES: onset, location, duration, character, aggravating/relieving, radiation, timing, severity 0–10, progression, prior similar episodes, treatments tried | associated symptoms sweep | `onset_date`, `duration`, `severity_nrs`, `trajectory`, `treatments_tried[]` |
 | `red_flags` | universal set (§3) asked only if not already excluded by HPI | — | `rf.*` booleans |
+| `chest_pain` · `associated` · `trauma` (added 2 Oct 2026, INT-432) | the slots the two active `base.life_threat` chest-pain rules read: one screen asked of every session (`chest_pain.present`), six follow-ups that open only on its yes | — | `chest_pain.{present, character, radiation, onset_at}`, `associated.{diaphoresis, dyspnoea}`, `trauma.recent` — copy from decision CD-01 (`docs/clinical/decisions/`, D18 scope: simulated-patient stress testing) |
 | `meds_allergies` | confirm imported list; new/stopped meds; OTC/herbal ("bitkisel"); allergies + reaction | adherence, side effects | `meds[]{name, atc, dose, adherence}`, `allergies[]` |
 | `pmh_fh_sh` (delta) | new diagnoses/hospitalisations since last visit; pregnancy possibility (if applicable) | smoking (pack-years), alcohol, occupation, living situation, caregiver | … |
 | `screening` | PHQ-2, GAD-2 (universal, consent-gated) | PHQ-9/GAD-7 if positive; C-SSRS path if item-9>0 | `phq2`, `gad2`, `phq9`, `gad7`, `cssrs_screen` |
