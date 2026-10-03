@@ -11,13 +11,15 @@
  * Face: the platform's own (SF Pro on iOS, the system sans on Android) since
  * INT-422, so there is nothing to load and the first frame is the real one.
  */
-import { Stack } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { ReduceMotion, ReducedMotionConfig } from "react-native-reanimated";
 
 import { KioskGate } from "@/components/KioskGate";
+import { useScheme, useTheme } from "@/components/Themed";
 import { useReducedMotion } from "@/lib/a11y/prefs";
+import { navigationThemeFor } from "@/lib/navigationTheme";
 import { routeClassOf, transitionFor } from "@/lib/motion/transitions";
 import { AppearanceProvider } from "@/lib/prefs/AppearanceProvider";
 import { SessionProvider, useSession } from "@/lib/session";
@@ -36,6 +38,33 @@ const APP_START_MS = Date.now();
 function ReanimatedMotionPolicy() {
   const reduceMotion = useReducedMotion();
   return <ReducedMotionConfig mode={reduceMotion ? ReduceMotion.Always : ReduceMotion.Never} />;
+}
+
+/**
+ * The navigators' theme and the status bar follow the app's resolved scheme
+ * (the OS setting or the Görünüm override), never the library default.
+ *
+ * The native stack passes its theme's `dark` flag to every native header as
+ * the bar's user-interface style. With React Navigation's default theme that
+ * flag was always false, so on a dark screen each bar was forced light, and
+ * on iOS 26 the back chevron took the light label colour: black on the black
+ * page (INT-433's report, reproduced on INT451-16e). lib/navigationTheme.ts
+ * builds the theme from the app's own tokens; the fonts stay the library's.
+ */
+function NavigationTheme({ children }: { children: ReactNode }) {
+  const scheme = useScheme();
+  const colors = useTheme();
+  const value = useMemo(() => {
+    const base = scheme === "dark" ? DarkTheme : DefaultTheme;
+    return { ...base, ...navigationThemeFor(scheme, colors) };
+  }, [scheme, colors]);
+  return <ThemeProvider value={value}>{children}</ThemeProvider>;
+}
+
+/** The status bar's content follows the same scheme, gate or not. */
+function SchemeStatusBar() {
+  const scheme = useScheme();
+  return <StatusBar style={scheme === "dark" ? "light" : "dark"} />;
 }
 
 function LocalizedStack() {
@@ -73,12 +102,14 @@ export default function RootLayout() {
     <AppearanceProvider>
       <ReanimatedMotionPolicy />
       <SessionProvider>
-        <StatusBar style="auto" />
+        <SchemeStatusBar />
         {/* INT-143 — on a clinic-provisioned kiosk this gates entry/exit on
             the clinic PIN, wipes between patients and blocks on tamper; on a
             normal phone it is a pass-through. */}
         <KioskGate>
-          <LocalizedStack />
+          <NavigationTheme>
+            <LocalizedStack />
+          </NavigationTheme>
         </KioskGate>
       </SessionProvider>
     </AppearanceProvider>

@@ -91,17 +91,46 @@ describe("§3.1 row press: the fill highlights, the words keep their ink", () =>
 });
 
 describe("§3.2 the glass nav bar: one helper, the visit's pushed screens", () => {
-  it("withGlassNav lives in the glass host and draws GlassNavBackground", () => {
+  it("withGlassNav takes the glass mode and asks navBarChrome what to draw", () => {
     const bars = source(BARS);
     const helper = bars.slice(bars.indexOf("export function withGlassNav"));
+    expect(helper).toMatch(
+      /export function withGlassNav\(\s*options: StackScreenOptions,\s*mode: GlassMode/,
+    );
+    expect(helper).toContain("navBarChrome(mode)");
     expect(helper).toContain("headerTransparent: true");
     expect(helper).toContain('headerStyle: { backgroundColor: "transparent" }');
-    expect(helper).toContain("headerBackground: () => <GlassNavBackground />");
   });
 
-  it.each(GLASS_NAV_SCREENS)("%s rides the glass nav bar", (name) => {
+  it("iOS 26: the bar's own system chrome material, drawn by UIKit, no app background", () => {
+    const bars = source(BARS);
+    const helper = bars.slice(bars.indexOf("export function withGlassNav"));
+    expect(helper).toMatch(
+      /chrome\.background === "systemMaterial"\s*\?\s*\{ headerBlurEffect: "systemChromeMaterial" as const \}\s*:\s*\{ headerBackground: \(\) => <GlassNavBackground \/> \}/,
+    );
+    // The scroll-edge effect would stack on the bar blur (react-native-screens'
+    // own warning), so every edge is hidden.
+    expect(helper).toContain(
+      'scrollEdgeEffects: { top: "hidden", bottom: "hidden", left: "hidden", right: "hidden" }',
+    );
+  });
+
+  it("near miss: no full-bar Liquid Glass is drawn behind the nav bar", () => {
+    // Captured on INT451-16e: a full-bar GlassView let scrolled content draw
+    // through the bar title and the back chevron.
+    const bars = source(BARS);
+    const nav = bars.slice(
+      bars.indexOf("export function GlassNavBackground"),
+      bars.indexOf("export function withGlassNav"),
+    );
+    expect(nav).not.toMatch(/<GlassView\b/);
+    expect(nav).toMatch(/mode === "solid"[\s\S]*?backgroundColor: theme\.background/);
+  });
+
+  it.each(GLASS_NAV_SCREENS)("%s rides the glass nav bar with the live glass mode", (name) => {
     const screen = source(name);
-    expect(screen).toMatch(/options=\{withGlassNav\(headerOptions\(/);
+    expect(screen).toContain("useGlassMode()");
+    expect(screen).toMatch(/options=\{withGlassNav\(headerOptions\([^]*?\),\s*glass\)\}/);
   });
 
   it.each(GLASS_NAV_SCREENS)("%s clears the bar by the header's own height", (name) => {
@@ -122,6 +151,42 @@ describe("§3.2 the glass nav bar: one helper, the visit's pushed screens", () =
       review.indexOf('t("review.empty")'),
     );
     expect(empty).toContain('options={headerOptions("")}');
+  });
+});
+
+describe("the native bars follow the app's scheme (the dark back chevron)", () => {
+  const ROOT = "src/app/_layout.tsx";
+
+  it("the root wraps the navigators in a theme built from the app's own scheme", () => {
+    const root = source(ROOT);
+    expect(root).toMatch(/import \{[^}]*\bThemeProvider\b[^}]*\} from "expo-router"/);
+    expect(root).toContain("navigationThemeFor(scheme, colors)");
+    const theme = root.slice(root.indexOf("function NavigationTheme"));
+    expect(theme).toMatch(/<ThemeProvider value=\{value\}>\{children\}<\/ThemeProvider>/);
+    expect(root).toMatch(/<NavigationTheme>\s*<LocalizedStack \/>\s*<\/NavigationTheme>/);
+  });
+
+  it("the theme reads the in-app scheme, never the OS one alone", () => {
+    const root = source(ROOT);
+    const theme = root.slice(root.indexOf("function NavigationTheme"));
+    expect(theme).toContain("useScheme()");
+    expect(theme).toContain("useTheme()");
+  });
+
+  it("the status bar follows the same scheme, outside the kiosk gate", () => {
+    const root = source(ROOT);
+    expect(root).not.toContain('<StatusBar style="auto" />');
+    expect(root).toMatch(/<StatusBar style=\{scheme === "dark" \? "light" : "dark"\} \/>/);
+    expect(root).toMatch(/<SchemeStatusBar \/>[\s\S]*<KioskGate>/);
+  });
+});
+
+describe("a switch row's track stays visible while the row is pressed", () => {
+  it("SwitchRow paints its track from switchTrackToken with the live press state", () => {
+    const row = source("src/components/SwitchRow.tsx");
+    expect(row).toMatch(/\{\(\{ pressed \}\) =>/);
+    expect(row).toContain("theme[switchTrackToken({ checked, pressed })]");
+    expect(row).not.toMatch(/backgroundColor: checked \? theme\.primary : theme\.surfaceRaised/);
   });
 });
 

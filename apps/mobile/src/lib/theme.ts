@@ -273,6 +273,28 @@ export const motion = { fadeMs: duration.fade, duration, easing, loop, press } a
 export const rowPressFill: ColorToken = "surfaceRaised";
 
 /**
+ * A switch row's track. Off, it rests on `surfaceRaised`, which is also
+ * `rowPressFill`, so while the row was pressed the track vanished into it and
+ * only the knob was left (captured on INT451-16e). A UISwitch's off track is a
+ * translucent fill, always a step off whatever is behind it; this token does
+ * the same with opaque colours by stepping to `surface` on the pressed fill.
+ * On, it is the accent in both states. lib/a11y/rowPress.test.ts holds the
+ * step and the knob's 3:1 in every scheme and contrast mode.
+ */
+export function switchTrackToken({
+  checked,
+  pressed,
+}: {
+  readonly checked: boolean;
+  readonly pressed: boolean;
+}): ColorToken {
+  if (checked) {
+    return "primary";
+  }
+  return pressed ? "surface" : "surfaceRaised";
+}
+
+/**
  * The platform face. `System` is SF Pro on iOS, which picks the Text or
  * Display optical size and its tracking itself; Android has no family by that
  * name and falls back to its own system sans (Roboto). No face is bundled.

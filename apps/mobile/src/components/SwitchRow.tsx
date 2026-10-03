@@ -28,7 +28,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppText, useFontScale, useTheme } from "@/components/Themed";
 import { isLargeText } from "@/lib/prefs/appearance";
-import { rowPressFill, scaledControl, spacing } from "@/lib/theme";
+import { rowPressFill, scaledControl, spacing, switchTrackToken } from "@/lib/theme";
 
 interface SwitchRowProps {
   label: string;
@@ -61,38 +61,44 @@ export function SwitchRow({ label, sublabel, checked, onChange, hint }: SwitchRo
         pressed ? { backgroundColor: theme[rowPressFill] } : null,
       ]}
     >
-      <View style={stacked ? styles.labelsStacked : styles.labels}>
-        <AppText role="body">{label}</AppText>
-        {sublabel ? (
-          <AppText role="caption" color="inkFaint">
-            {sublabel}
-          </AppText>
-        ) : null}
-      </View>
-      <View
-        style={[
-          styles.track,
-          {
-            width: trackWidth,
-            height: trackHeight,
-            borderRadius: trackHeight / 2,
-            padding: inset,
-            backgroundColor: checked ? theme.primary : theme.surfaceRaised,
-            // Position, not only fill — the knob sitting left or right is the
-            // half of the signal that survives a colour deficiency.
-            alignItems: checked ? "flex-end" : "flex-start",
-          },
-        ]}
-      >
-        <View
-          style={{
-            width: knob,
-            height: knob,
-            borderRadius: knob / 2,
-            backgroundColor: checked ? theme.onPrimary : theme.inkFaint,
-          }}
-        />
-      </View>
+      {({ pressed }) => (
+        <>
+          <View style={stacked ? styles.labelsStacked : styles.labels}>
+            <AppText role="body">{label}</AppText>
+            {sublabel ? (
+              <AppText role="caption" color="inkFaint">
+                {sublabel}
+              </AppText>
+            ) : null}
+          </View>
+          <View
+            style={[
+              styles.track,
+              {
+                width: trackWidth,
+                height: trackHeight,
+                borderRadius: trackHeight / 2,
+                padding: inset,
+                // The off track steps off the pressed row fill, which shares
+                // its resting colour (lib/theme switchTrackToken).
+                backgroundColor: theme[switchTrackToken({ checked, pressed })],
+                // Position, not only fill — the knob sitting left or right is the
+                // half of the signal that survives a colour deficiency.
+                alignItems: checked ? "flex-end" : "flex-start",
+              },
+            ]}
+          >
+            <View
+              style={{
+                width: knob,
+                height: knob,
+                borderRadius: knob / 2,
+                backgroundColor: checked ? theme.onPrimary : theme.inkFaint,
+              }}
+            />
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
