@@ -107,7 +107,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-378 (WebAuthn session-notes provider, GitHub #621) and INT-389 (its
     # TOTP clause as an owner decision, GitHub #644)
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
-    assert len(actions) == 336
+    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
+    assert len(actions) == 337
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

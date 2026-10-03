@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**336 issues.** By phase: P0 165 · P1 117 · P2 47 · P3 7. By status: awaiting-human 34 · doing 5 · done 223 · todo 73 · withdrawn 1.
+**337 issues.** By phase: P0 165 · P1 118 · P2 47 · P3 7. By status: awaiting-human 35 · doing 5 · done 223 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -298,6 +298,7 @@
 | INT-426 | CI on AWS: gate runner via S3+SSM with commit status, no workflow edits | E13-infra | INT-352 | area:ci | done |
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
+| INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 
 ## P2
 

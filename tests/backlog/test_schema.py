@@ -157,8 +157,9 @@ def test_ids_unique_and_well_formed() -> None:
     # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
     # owner decision, GitHub #644).
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
-    # order of 3 Oct 2026, GitHub #790).
-    assert len(ids) == 336
+    # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
+    # three, each with its own user, daemon and network namespace, GitHub #799).
+    assert len(ids) == 337
     import re
 
     for i in ids:
