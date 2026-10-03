@@ -85,6 +85,17 @@ staging (`intake-staging`). Every aws-ci container is limited as follows.
   on `127.0.0.1:2375`. Nothing publishes a host port, and the host docker
   socket is never mounted. `tests/ci/test_aws_ci.py` pins all of this.
 - **Disk.** The host refuses to start a run with less than 25 GB free.
+  Measured on 3 Oct 2026 with both slots warm, the docker volumes and images
+  on the host took about 27 GB, and the root disk went from 89 GB free
+  before INT-426 to 59 GB free. Most of that is the two slots' dind image
+  stores and caches, which are reused and not per run.
+- **If the laptop client dies mid-run.** This can be a closed lid, an
+  expired session or a killed shell. The host run still finishes and tears
+  its containers down, but nothing uploads the log or posts the final status,
+  so the commit's `aws-ci` stays `pending`. Run `make ci-aws` on the same PR
+  again: the new run replaces the status. The orphaned run directory (root,
+  0700, the raw log) is removed by the two-day sweep at the start of any
+  later run.
 - **Caches.** Each slot keeps per-slot caches: the dind image store, uv,
   pnpm, trivy and XDG. They hold no run state. dind is purged of containers
   and volumes at the start and end of every run, which also keeps Docker Hub
