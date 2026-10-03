@@ -137,10 +137,12 @@ Each screen clears the bar by `useHeaderHeight()`, never a constant, because the
 
 Taken on 3 Oct 2026 on `INT451-16e` (iPhone 16e, iOS 26.1, Expo Go 57.0.9, 9:41 status bar) after the owner granted the device, serving this branch with `pnpm exec expo start --go --port 8095` in `apps/mobile`, signed in as the synthetic dev account Ayşe Yılmaz, at the default text size. The files are in `docs/design/interaction-patterns/`.
 
-The first pass found the two defects described in §3.1 and §3.2: content drawing through the glass nav bar, and the invisible dark-mode back chevron. `found-01-glass-nav-content-collision-light.png` and `found-03-dark-chevron-missing.png` record them. The `after-*` files below were retaken once both were fixed. The `before-*` comparisons from `origin/int-433-question-screen` were not retaken: the `found-*` files are the before state of the two fixes, and the solid bar they would have shown is the Reduce Transparency capture.
+The first pass found the defects described in §3.1 and §3.2: content drawing through the glass nav bar, the invisible dark-mode back chevron, and the switch track lost in the pressed row. `found-01-glass-nav-content-collision-light.png` and `found-03-dark-chevron-missing.png` record the first two. The `after-*` files were retaken once all three were fixed. The `before-*` files were served from `origin/int-433-question-screen` (`6a5b6313`): there the bar is solid, so content is clipped at its edge rather than passing under it, and a pressed row dims its words.
 
 | Path | Screen and state |
 |---|---|
+| `before-01-visit-detail-scrolled-light.png` | Visit detail on INT-433: the solid bar |
+| `before-02-appearance-row-pressed-light.png` | Profilim › Görünüm on INT-433 with a switch row held down: the whole row, words included, dimmed |
 | `found-01-glass-nav-content-collision-light.png` | Visit detail with content held under the bar, first pass: the card's date and title draw through the bar title and back chevron |
 | `found-03-dark-chevron-missing.png` | The share centre in dark mode, first pass: no back chevron, though tapping its place goes back |
 | `after-01-visit-detail-scrolled-light.png` | Visit detail with content held under the bar: the system chrome material frosts it |

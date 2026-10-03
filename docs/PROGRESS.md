@@ -3158,3 +3158,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner (@ArioMoniri) needs to grant access to the `INT451-16e` simulator ("Let Claude use it" in the simulator panel) so the six captures in interaction-patterns.md §4 can be taken. This is not an HB row: it is a tool grant, not a decision.
 - Next: PR `INT-451: mobile interaction patterns within ADR-033 — row press highlight, glass nav bar, ADR-037 proposal` (Closes #764, Sec-Row mobile). Leave it unmerged and merge it after #725, #728 and #740 once the captures land.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T19:40:00+03:00 · INT-451 · done (PR open, not merged; captures taken, three defects fixed)
+- Goal: take the six INT-451 captures on the owner-granted INT451-16e simulator and clear #771's hold.
+- Plan: capture; fix what the captures show, test first; retake; record ADR-037's ratification.
+- Tests added (with the near-miss negative for any safety rule): `navBarChrome` (no mode leaves the bar clear or paints full-bar glass), `navigationTheme.test.ts` (the light default under a dark palette is caught), the switch track (the old track on the pressed fill at 1:1), spec wiring for the helper, the root theme, the status bar and the track, and `tests/docs/test_adr_037.py`. Red: 26 mobile tests and 2 docs tests failed. Green: mobile 131 files and 2751 tests; docs 26.
+- Result (`make check` / `make safety` / `make security` summary): `pnpm run typecheck` is clean and `pnpm run lint` gives 0 errors (the 2 warnings are already on `main`). `no_placeholders` is OK after staging, and tests/backlog, tests/docs and smoke pass. `check-integration` is CI-only.
+- Invariants touched and still passing: 21. RED paints no navigator colour, and the RED-surface pin is unchanged.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-037 Accepted (owner, 3 Oct 2026, "approve ADR-037"); D22.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. Q-37.2 (ClinicalAuthor) stays open, failing closed.
+- Next: INT-462 (native chat), stacked on this branch.
+- LOOP_STATUS: CONTINUE

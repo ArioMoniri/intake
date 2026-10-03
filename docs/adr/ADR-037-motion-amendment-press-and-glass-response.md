@@ -1,6 +1,6 @@
 # ADR-037 · Amendment proposal to ADR-033: three bounded exceptions for press response and native glass
 
-Status: Proposed (INT-451, GitHub #764, 3 Oct 2026). This ADR is not ratified, so none of it ships. ADR-033 (Accepted on 27 Sep 2026 on PR #571, which is not yet on `main`) governs until the owner answers §6. Every mechanism named below is held off by an existing test, and those tests stay as they are until ratification.
+Status: Accepted (owner ratification, 3 Oct 2026, in chat: "approve ADR-037"; INT-451, GitHub #764, PR #771). Proposed the same day. Ratification makes P1 to P3 shippable, each in the issue that implements it with the guard change named in "What ratification would change"; INT-451 itself ships none of them, so every existing guard stays as it is until that issue lands. Q-37.2 is the ClinicalAuthor's and is not answered by the owner's approval, so its fail-closed default stands: every chip on an intake step is excluded from P1. ADR-038 (PR #788) reuses P1's spring numbers.
 
 Source: `docs/design/interaction-patterns.md`. That document surveyed seven web motion libraries the owner named (kobra.systems, beautifului.dev, kinetics.colorion.co, beui.dev, transitions.dev, astryx.atmeta.com, reverseui.com) and Mobbin. It records which of their patterns fit ADR-033 and shipped, and which were rejected. This ADR carries only the three movements the survey recommends and that ADR-033 forbids.
 
