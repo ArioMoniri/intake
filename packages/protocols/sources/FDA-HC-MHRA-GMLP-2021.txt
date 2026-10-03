@@ -1,0 +1,33 @@
+# guideline_id: FDA-HC-MHRA-GMLP-2021
+# title: Good machine learning practice for medical device development: guiding principles
+# publisher: U.S. FDA, Health Canada and the UK MHRA (joint); page published by MHRA on GOV.UK
+# version_or_date: Published 27 October 2021 (no withdrawal notice on the page at retrieval)
+# url: https://www.gov.uk/government/publications/good-machine-learning-practice-for-medical-device-development-guiding-principles/good-machine-learning-practice-for-medical-device-development-guiding-principles
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; trailing whitespace removed from every line
+# scope: verbatim excerpt of the title, publication line, the opening paragraph and guiding principles 3-6, 8 and 10; Open Government Licence v3.0; nothing paraphrased or edited; omissions marked [...]
+# note: IMDRF/AIML WG/N88 FINAL:2025 is the harmonised successor text; imdrf.org timed out from this host at retrieval, so it is not cited
+---
+ Good machine learning practice for medical device development: guiding principles
+ Published 27 October 2021
+[...]
+ The U.S. Food and Drug Administration (FDA), Health Canada, and the United Kingdom’s Medicines and Healthcare products Regulatory Agency (MHRA) have jointly identified 10 guiding principles that can inform the development of good machine learning practice (GMLP). These guiding principles will help promote safe, effective, and high-quality medical devices that use artificial intelligence and machine learning (AI/ML).
+[...]
+3. Clinical study participants and data sets are representative of the intended patient population
+Data collection protocols should ensure that the relevant characteristics of the intended patient population (for example, in terms of age, gender, sex, race, and ethnicity), use, and measurement inputs are sufficiently represented in a sample of adequate size in the clinical study and training and test datasets, so that results can be reasonably generalised to the population of interest.
+This is important to manage any bias, promote appropriate and generalisable performance across the intended patient population, assess usability, and identify circumstances where the model may underperform.
+4. Training data sets are independent of test sets
+Training and test datasets are selected and maintained to be appropriately independent of one another. All potential sources of dependence, including patient, data acquisition and site factors are considered and addressed to assure independence.
+5. Selected reference datasets are based upon best available methods
+Accepted, best available methods for developing a reference dataset (that is, a reference standard) ensure that clinically relevant and well characterised data are collected and the limitations of the reference are understood. If available, accepted reference datasets in model development and testing that promote and demonstrate model robustness and generalisability across the intended patient population are used.
+6. Model design is tailored to the available data and reflects the intended use of the device
+Model design is suited to the available data and supports the active mitigation of known risks, like overfitting, performance degradation, and security risks.
+The clinical benefits and risks related to the product are well understood, used to derive clinically meaningful performance goals for testing, and support that the product can safely and effectively achieve its intended use.
+Considerations include the impact of both global and local performance and uncertainty/variability in the device inputs, outputs, intended patient populations and clinical use conditions.
+[...]
+8. Testing demonstrates device performance during clinically relevant conditions
+Statistically sound test plans are developed and executed to generate clinically relevant device performance information independently of the training data set. Considerations include the intended patient population, important subgroups, clinical environment and use by the human-AI team, measurement inputs, and potential confounding factors.
+[...]
+10. Deployed models are monitored for performance and retraining risks are managed
+Deployed models have the capability to be monitored in “real world” use with a focus on maintained or improved safety and performance.
+Additionally, when models are periodically or continually trained after deployment, there are appropriate controls in place to manage risks of overfitting, unintended bias, or degradation of the model (for example, dataset drift) that may impact the safety and performance of the model as it is used by the human-AI team.

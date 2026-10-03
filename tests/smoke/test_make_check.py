@@ -294,6 +294,24 @@ def test_backlog_parses_and_is_complete() -> None:
     # stated reason.
     # + INT-431 (the embed sample's JWT fixture is built at runtime, found
     # merging main into #481, GitHub #733); grows only with a stated reason.
+    # + INT-395 (DSAR erasure and export cover every patient-deletable table,
+    # found by INT-393); grows only with a stated reason.
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
+    # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
+    # with a stated reason.
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status, owner request, GitHub #721); grows only with a stated
+    # reason.
+    # + INT-407 (the files/02 §2b visit lifecycle state machine — a RED visit
+    # cannot silently move; found by INT-406's PR as GitHub #684); grows only
+    # with a stated reason.
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # GitHub #735); grows only with a stated reason.
+    # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
+    # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
+    # a stated reason.
+    # + INT-448 (the #642 sign-off packet items under D18, GitHub #759); grows
+    # only with a stated reason.
     # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
     # GitHub #724); grows only with a stated reason.
     # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
@@ -302,7 +320,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # proposal, owner request, GitHub #719); grows only with a stated reason.
     # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
     # INT-428, GitHub #753); grows only with a stated reason.
-    assert len(ids) == 332, f"expected 175 blueprint + 157 added issues, got {len(ids)}"
+    assert len(ids) == 340, f"expected 175 blueprint + 165 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

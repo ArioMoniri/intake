@@ -669,8 +669,7 @@ def test_the_osv_exception_names_one_advisory_and_expires() -> None:
     """INT-429: osv-scanner's view of the same node-forge advisory, same terms."""
     config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
     assert set(config) == {"IgnoredVulns"}, "no package-wide override, no other mute form"
-    (entry,) = config["IgnoredVulns"]
-    assert entry["id"] == "GHSA-86w9-cpqp-85rv"
+    (entry,) = [e for e in config["IgnoredVulns"] if e["id"] == "GHSA-86w9-cpqp-85rv"]
     until = entry.get("ignoreUntil")
     assert isinstance(until, datetime.datetime), "the exception must carry ignoreUntil"
     assert datetime.date(2026, 10, 2) < until.date() <= datetime.date(2026, 11, 1), (
@@ -679,6 +678,76 @@ def test_the_osv_exception_names_one_advisory_and_expires() -> None:
     reason = " ".join(str(entry.get("reason", "")).split())
     for must in ("owner", "node-forge 1.4.0", "expo export", "docs/evidence/INT-429.md"):
         assert must in reason, f"the reason must say {must!r}"
+
+
+# INT-426 follow-up: the two advisories OSV reissued on 2 Oct with no fix.
+OSV_NO_FIX_ROWS = {
+    "GHSA-vfj7-8cjw-p6xm": ("braces 3.0.3", "micromatch 4.0.8", "metro-file-map"),
+    "GHSA-ch52-4w7c-c8xp": ("http-cache-semantics 4.2.0", "@expo/ngrok", "--tunnel"),
+}
+
+# INT-378: the one OSV record keycloak-services 26.7.4 still matches. Its range is open,
+# and its GitHub source ends below 26.5.5 (docs/evidence/INT-390.md, INT-378.md). The
+# entry sits beside the provider's pom, the only config osv-scanner applies to it.
+OSV_SAML_BROKER_ROW = "GHSA-794g-x443-36f7"
+OSV_KEYCLOAK_CONFIG = REPO / "infra/keycloak/providers/webauthn-session-notes/osv-scanner.toml"
+
+
+def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
+    """Each entry names one advisory of one package, says how it is reached,
+    and expires within 30 days of 3 Oct 2026, after which the gate turns red."""
+    config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    entries = {e["id"]: e for e in config["IgnoredVulns"]}
+    assert set(entries) == {"GHSA-86w9-cpqp-85rv", *OSV_NO_FIX_ROWS}, "nothing else is muted"
+    for advisory, musts in OSV_NO_FIX_ROWS.items():
+        entry = entries[advisory]
+        until = entry.get("ignoreUntil")
+        assert isinstance(until, datetime.datetime), f"{advisory} must carry ignoreUntil"
+        assert datetime.date(2026, 10, 3) < until.date() <= datetime.date(2026, 11, 2), (
+            f"{advisory}: 30 days, no more"
+        )
+        reason = " ".join(str(entry.get("reason", "")).split())
+        for must in (
+            "approve for the two osv exceptions",
+            "expo export",
+            "docs/evidence/INT-426.md",
+            *musts,
+        ):
+            assert must in reason, f"{advisory}: the reason must say {must!r}"
+
+
+def test_the_keycloak_osv_exception_is_bounded_reasoned_and_expires() -> None:
+    """One advisory of one package, beside the pom it applies to.
+
+    The reason names the one version, why the record is not live for it (GitHub's
+    bound and the fixing change), why it is unreachable, and its evidence. It
+    expires within 30 days of 3 Oct 2026, after which the gate turns red again."""
+    config = tomllib.loads(OSV_KEYCLOAK_CONFIG.read_text(encoding="utf-8"))
+    assert set(config) == {"IgnoredVulns"}, "no package-wide override, no other mute form"
+    (entry,) = config["IgnoredVulns"]
+    assert entry["id"] == OSV_SAML_BROKER_ROW
+    until = entry.get("ignoreUntil")
+    assert isinstance(until, datetime.datetime), "the exception must carry ignoreUntil"
+    assert datetime.date(2026, 10, 3) < until.date() <= datetime.date(2026, 11, 2), (
+        "30 days, no more"
+    )
+    reason = " ".join(str(entry.get("reason", "")).split())
+    for must in (
+        "keycloak-services 26.7.4 only",
+        "< 26.5.5",
+        "keycloak/keycloak#46912",
+        "provided",
+        "no identity provider",
+        "docs/evidence/INT-378.md",
+    ):
+        assert must in reason, f"the reason must say {must!r}"
+
+
+def test_near_miss_the_root_config_would_not_reach_the_pom() -> None:
+    """The root file names no Keycloak advisory: there it would be an unused ignore."""
+    root = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    assert OSV_SAML_BROKER_ROW not in {e["id"] for e in root["IgnoredVulns"]}
+    assert OSV_KEYCLOAK_CONFIG in _tracked_suppression_files(OSV_SUPPRESSION_FILES)
 
 
 def test_make_security_actually_loads_the_trivy_ignore_file() -> None:
@@ -735,6 +804,11 @@ def test_gitleaksignore_rows_are_fully_scoped_and_only_shrink() -> None:
         "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:97",
         "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:generic-api-key:99",
         "a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:110",
+        # INT-426: owner approval, 3 Oct 2026, "ignore the two old token
+        # fingerprints". A fake JWT test fixture in history ("signature-sample");
+        # the full-history scan in `make security` [1/12] reports it forever.
+        "2c6a5dcf299b997682602044d14f79d8f9ac35d7:apps/embed-sample-partner/src/partnerBackend.test.ts:jwt:39",
+        "2c6a5dcf299b997682602044d14f79d8f9ac35d7:apps/embed-sample-partner/src/partnerBackend.test.ts:jwt:41",
     }
     assert rows <= pinned, f"gitleaks ignore file grew beyond the pinned set: {rows - pinned}"
 
@@ -872,8 +946,31 @@ OSV_SUPPRESSION_FILES = (
 # (a narrow 30-day exception for just that package). osv-scanner reports the
 # same advisory as GHSA-86w9-cpqp-85rv, and its one entry is in
 # osv-scanner.toml (test_the_osv_exception_names_one_advisory_and_expires).
-MAX_OSV_SUPPRESSIONS = 1
-MAX_TRIVY_SUPPRESSIONS = 2
+#
+# The INT-426 follow-up raises the osv pin from 1 to 3, by exactly two, on the
+# owner's approval in chat on 3 Oct 2026: "approve for the two osv exceptions".
+# The two are braces 3.0.3 and http-cache-semantics 4.2.0, which OSV reissued
+# on 2 Oct with no fixed release
+# (test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire). The pin goes
+# back down as each entry expires or is removed.
+#
+# INT-378 raises it from 3 to 4, by exactly one. That happens only through the
+# owner's own commit of owner-643-keycloak-exception.patch.
+# - The advisory: GHSA-794g-x443-36f7 on keycloak-services 26.7.4, whose open
+#   OSV range has a GitHub source that ends below 26.5.5, so no Keycloak
+#   version clears it.
+# - The entry sits beside the provider's pom, because osv-scanner reads config
+#   per manifest directory. The pin therefore counts every tracked osv config
+#   file, not only the root's (_tracked_suppression_files).
+# - It expires on 2 Nov 2026
+#   (test_the_keycloak_osv_exception_is_bounded_reasoned_and_expires).
+# - The trivy pin does not move, because trivy reports nothing for that pom.
+MAX_OSV_SUPPRESSIONS = 4
+# The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
+# the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
+# owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
+# entry, and the pin goes back down when it does.
+MAX_TRIVY_SUPPRESSIONS = 3
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
 # apps/mobile (1753 tests) and 2 in packages/clinical-schemas (6 tests).
@@ -907,6 +1004,19 @@ def _resolved_versions(package: str) -> list[str]:
     text = LOCKFILE.read_text(encoding="utf-8")
     pattern = re.compile(rf"^  '?{re.escape(package)}@(\d+\.\d+\.\d+[^:'(]*)'?[:(]", re.M)
     return sorted({m.group(1) for m in pattern.finditer(text)})
+
+
+def _tracked_suppression_files(names: tuple[str, ...]) -> list[Path]:
+    """Every TRACKED file with one of these names, at any depth.
+
+    osv-scanner reads the config beside each manifest (INT-378's pom carries its
+    own), so a pin that counted the root file alone could be passed by moving a
+    suppression one directory down.
+    """
+    listed = subprocess.run(
+        ["git", "ls-files", "-z"], cwd=REPO, capture_output=True, check=True
+    ).stdout.decode("utf-8")
+    return [REPO / rel for rel in listed.split("\0") if rel and Path(rel).name in names]
 
 
 def _suppression_entries(path: Path) -> list[str]:
@@ -955,8 +1065,8 @@ def test_every_advisory_is_cleared_by_a_resolved_version() -> None:
 
 def test_osv_suppressions_do_not_grow() -> None:
     total = 0
-    for name in OSV_SUPPRESSION_FILES:
-        total += len(_suppression_entries(REPO / name))
+    for path in _tracked_suppression_files(OSV_SUPPRESSION_FILES):
+        total += len(_suppression_entries(path))
     assert total <= MAX_OSV_SUPPRESSIONS, (
         f"osv-scanner suppression entries rose to {total} (pin {MAX_OSV_SUPPRESSIONS}). "
         "INT-310 clears step [6/12] by upgrading; a suppression here undoes that."
@@ -975,14 +1085,11 @@ def test_trivy_suppressions_do_not_grow() -> None:
 
 def test_no_suppression_file_names_any_of_the_eight_advisories() -> None:
     """A pin on counts is not enough: one row could replace another."""
-    for name in TRIVY_SUPPRESSION_FILES + OSV_SUPPRESSION_FILES:
-        path = REPO / name
-        if not path.exists():
-            continue
+    for path in _tracked_suppression_files(TRIVY_SUPPRESSION_FILES + OSV_SUPPRESSION_FILES):
         body = path.read_text(encoding="utf-8")
         for advisory in ADVISORY_IDS:
             assert advisory not in body, (
-                f"{name} names {advisory} — INT-310's contract is that these are "
+                f"{path.relative_to(REPO)} names {advisory} — INT-310's contract is that these are "
                 "cleared by upgrading, never by suppression"
             )
 
