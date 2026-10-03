@@ -167,7 +167,8 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-378 (the Keycloak provider that writes the aaguid and credential_id
     # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
     # owner decision, GitHub #644).
-    assert len(ids) == 342
+    # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
+    assert len(ids) == 343
     import re
 
     for i in ids:

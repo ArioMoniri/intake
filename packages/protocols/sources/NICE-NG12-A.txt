@@ -1,0 +1,61 @@
+# guideline_id: NICE-NG12
+# title: Suspected cancer: recognition and referral
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG12; published 23 June 2015; last updated 15 April 2026; minor changes October 2021 and March 2024 (Update information)
+# url: https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+# url_update_information: https://www.nice.org.uk/guidance/ng12/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header, recommendation 1.2.1 to its first bullet, 1.7.1 with the major features of the weighted 7-point checklist, 1.7.4, 1.8.1 to 1.8.3 and 1.10.2, then the first Update information entry and the list of minor changes; a second NICE-NG12 snapshot beside the committed NICE-NG12.txt, which excerpts other recommendations; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+NICE guideline
+Reference number: NG12
+Published:
+23 June 2015
+Last updated:
+15 April 2026
+[...]
+1.2.1
+Refer people using a suspected cancer pathway referral for oesophageal cancer if they:
+have dysphagia, or
+[...]
+1.7 Skin cancers
+Malignant melanoma of the skin
+1.7.1
+Refer people using a suspected cancer pathway referral for melanoma if they have a suspicious pigmented skin lesion with a weighted 7‑point checklist score of 3 or more. [2015]
+Weighted 7‑point checklist
+Major features of the lesions (scoring 2 points each):
+change in size
+irregular shape
+irregular colour.
+[...]
+Squamous cell carcinoma
+1.7.4
+Consider a suspected cancer pathway referral for people with a skin lesion that raises the suspicion of squamous cell carcinoma. [2015]
+[...]
+1.8 Head and neck cancers
+Laryngeal cancer
+1.8.1
+Consider a suspected cancer pathway referral for laryngeal cancer in people aged 45 and over with:
+persistent and unexplained hoarseness, or
+an unexplained lump in the neck. [2015]
+Oral cancer
+1.8.2
+Consider a suspected cancer pathway referral for oral cancer in people with either:
+unexplained ulceration in the oral cavity lasting for more than 3 weeks, or
+a persistent and unexplained lump in the neck. [2015]
+1.8.3
+Consider an urgent referral for assessment for possible oral cancer by a dentist in people who have either:
+a lump on the lip or in the oral cavity, or
+a red or red and white patch in the oral cavity consistent with erythroplakia or erythroleukoplakia. [2015]
+[...]
+Leukaemia in children and young people
+1.10.2
+Refer children and young people for immediate specialist assessment for leukaemia if they have unexplained petechiae or hepatosplenomegaly. [2015]
+[...]
+Update information
+April 2026:  In the gynaecological cancers section, we reviewed the evidence and amended recommendations 1.5.6 to 1.5.9, and 1.5.11 on ovarian cancer age and serum CA125 thresholds, and recommendations 1.5.12, 1.5.14 and 1.5.15 on endometrial cancer. In the symptoms of concern in adults section, we reviewed the evidence and amended recommendation 1.13.2 on non-site-specific weight loss.
+[...]
+Minor changes since publication
+March 2024: In recommendation 1.12.2 and the table on symptoms in children and young people, we changed absent red reflex to absent fundal ('red') reflex. See the surveillance report for more information.
+October 2021: In recommendation 1.12.2, we added a cross-reference to NICE's guideline on suspected neurological conditions for advice for children who have new-onset squint with an absent fundal 'red' reflex. See the surveillance report for more information. We also added a link to NICE's guideline on babies, children and young people's experience of healthcare in the sections on childhood cancers and symptoms in children and young people.
