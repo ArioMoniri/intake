@@ -3072,3 +3072,33 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner asks, not HB rows: buy Kobra and/or Reverse UI if wanted; ask the Kinetics author for a LICENSE.
 - Next: PR `INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked)` (Closes #763, Sec-Row admin-console), left unmerged. Cost and Roadmap pages, and Model lanes (#751), take the shared chart primitives when they land.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:40:00+03:00 · INT-459 · done (PR #784 open, not merged)
+- Goal (GitHub #783, owner request): make the admin console read as premium and Apple-native rather than AI-generated.
+  - In scope: the dashboard, the shell, tables, Model lanes, settings, and the empty, loading and error states.
+  - Glass on chrome only, with fallbacks.
+  - Tokens for both themes, with AA tested.
+  - Spring motion, none on a control.
+  - No behaviour change.
+- Plan:
+  - Stack on INT-450 (#776), which already licence-checked the owner's libraries.
+  - Add three sheets (tokens, shell, content) and a sidebar `ConsoleNav` with drawn symbols and a language switch.
+  - Make the settings-style four-eyes forms still.
+  - Centre the refused states, inset the empty state, and render not-found per request.
+  - Model lanes (#751) inherits the shell through its shared class names.
+- Tests added: `e2e/native.spec.ts` (31), `e2e/states.spec.ts` (10), `src/ops/nav.test.tsx` (15). `e2e/accessibility.spec.ts` now reads every sheet. Each property has its near-miss: Apple's dark systemBlue fails AA, a 70 % glass fails, a planted glass card is caught, INT-450's tile entrance would move the forms, and React streams a late SVG segment in a style attribute.
+  - RED 1: three suites failed to load.
+  - RED 2: 23 failed against an empty layer. The critical-control test named six INT-450 rules that moved a control.
+  - RED 3: in the production build behind the CSP, a route-level `loading.tsx` streamed `<svg style="display:none">`, which was blocked; and a prerendered 404's scripts had no nonce.
+- Result:
+  - admin-web 431 passed; typecheck, lint, prettier and `next build` clean.
+  - `pnpm -r typecheck` and `pnpm -r lint` exit 0; `make check-ts` exit 0.
+  - Backlog and smoke 74 passed (pins 331 → 332, files/11 regenerated).
+  - `no_placeholders` OK after staging.
+  - Production check: zero CSP violations and no `style=` on any page.
+  - Captures are in `docs/design/admin-premium/`. `docs/design/library-patterns.md` maps the libraries and Mobbin patterns to the mobile chat; it cites #716, #717, #726, #728, #740 and #771 where they already deliver an item.
+- Invariants touched and still passing: 5 (tr first, en mirrored), 6 (ids only), 14 (the CSP is unchanged and tighter in practice: the 404 now carries the nonce), 17 (an unknown tile has no figure; no placeholder), 20 (no claim).
+- Decisions / ADRs / `00_STATE.md` rows: none. The `loading.tsx` withdrawal is recorded in the evidence.
+- Blocked on: the owner and the security reviewer. Should the CSP admit React's `style="display:none"` on streamed segments (`style-src-attr 'unsafe-hashes'` with the hash of that one string), so that the console can have a route-level loading state?
+- Next: merge #776, then #784. The Model lanes nav entry (three lines) goes to whichever of #751 and #784 merges second.
+- LOOP_STATUS: CONTINUE
