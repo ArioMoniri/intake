@@ -6585,6 +6585,23 @@
     - "all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md"
   tests: [apps/mobile/src/lib/dialogue/delivery.test.ts, apps/mobile/src/lib/dialogue/deliveryPlan.test.ts, tests/release/test_delivery_copy.py, tests/release/test_i18n_complete.py, tests/api/test_dev_voice_delivery.py]
   sec_row: "mobile"
+- id: INT-447
+  epic: E08-mobile
+  phase: P1
+  title: "Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced)"
+  # GitHub #758. Split from INT-432 (#735). Owner decision D18: agent-authored,
+  # independently agent-verified, for simulated-patient testing only; a licensed
+  # physician's review is required before any real patient. The lines are
+  # INT-414's (#726, not yet on main, so not a depends_on edge here).
+  depends_on: [INT-432]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-447.md
+  acceptance:
+    - "a medical-author agent and an independent verifier agent check every INT-414 delivery line against PolicyGuard, B1 and siz, using Turkish health-literacy sources; each line gets a decision record"
+    - "the approval:human-clinical label on #726 is cleared through this process"
+  tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
+  sec_row: "clinical-content"
 - id: INT-449
   epic: E05-voice
   phase: P1

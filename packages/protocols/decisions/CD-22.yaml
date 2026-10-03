@@ -1,0 +1,321 @@
+# INT-447 clinical decision CD-22. Agent-authored under owner decision D18
+# (2 Oct 2026, INT-432): simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote
+# below appears verbatim in the named snapshot; spec_basis quotes appear
+# verbatim in the named committed file. Not a pack: nothing here is compiled
+# or served. The Turkish of each line is byte-equal to its catalogue key.
+kind: clinical_decision
+id: CD-22
+title: 'INT-414 delivery lines: instrument and sensitive framing (rows 27-32, 39-40)'
+question: INT-414 (#726) adds conversational delivery lines around each question. Do the instrument introductions,
+  the sensitive-section transitions and cadence lines, and the family-history transitions pass PolicyGuard
+  (no diagnosis, treatment, prognosis, reassurance or minimising), stay B1 plain Turkish in the siz register,
+  ask nothing, carry no numeral, and fit the moment they are said?
+decision: 'Seven pass unchanged and one is reworded. sensitiveLead.b opened with the interrogative word
+  ''Nasıl'', which only the conditional ''-sanız'' resolves at the third word, so it began like a question
+  right before the turn''s one real question. It becomes ''Size rahat gelen şekilde yanıtlayabilirsiniz.'',
+  with the same meaning, the same register and no promise about skipping. ''Anket'' is kept over ''ölçek''
+  in the instrument lines because it is the everyday word. These lines are transitions: they are not the
+  files/04 §4.2 pre-brief required before the suicide-pathway items, which is owed separately and is not
+  discharged here. The new line is in the catalogue, the server allow-list and the HB-C1 table on #726
+  (INT-414). Each line below is its own entry with its six checks, the author''s verdict and the verifier''s
+  verdict; the Turkish is byte-equal to the catalogue key it names.'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (INT-432): agent sign-off for simulated-patient testing only. A licensed
+  physician''s review is required before any real patient; that requirement is unchanged by this record.'
+question_origin: 'INT-447 (#758), split from INT-432 (#735): the HB-C1 table in docs/evidence/INT-414.md
+  and the approval:human-clinical label on #726.'
+author_role: family medicine physician, patient communication and health literacy (agent; medical author)
+sources:
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Önsöz (foreword), the plan's aims
+  quote: Aynı zamanda sağlık iletişiminde yalın, erişilebilir ve kültürel açıdan hassas içeriklerin geliştirilmesi
+    de planda öncelikli olarak ele alınmıştır.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Activity 2.2.4.2 (Hedef 2)
+  quote: Hasta ve hasta yakınına verilen belge ve formların anlaşılır bir dille yazılması ve güncellenmesi.
+  supports: lines[*].checks.b1_plain_language
+  note: The plan's own activity for documents and forms given to patients; an intake form spoken or shown
+    to the patient is held to it.
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Dünyada ve Ülkemizde Sağlık Okuryazarlığı Düzeyi ve İlişkili Faktörler, Dünyadaki Durum
+  quote: sağlık profesyonellerinin hastalarla güvene dayalı bir ilişki kurma ve ilaçları hakkında sade
+    bir anlatımla bilgi verme suretiyle hastaların sağlık okuryazarlığının artırılabileceği saptanmıştır
+  supports: lines[*].checks.fits_context
+  caveat: Cited for trust and plain explanation as the communication aim; the sentence is about medicines
+    information, and nothing here informs about medicines.
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 kişiden 7’sinin Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: Araştırma sonuçlarına göre Türkiye’de yaklaşık olarak 10 kişiden 7’sinin sağlık okuryazarlığı
+    düzeyi yetersiz veya sınırlı.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 Yaşlıdan 9’unun Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: 65 ve üzeri yaş grubu için elde edilen sonuçlar, 10 yaşlıdan 9’unun sağlık okuryazarlığının yetersiz
+    veya sınırlı olduğunu göstermekte.
+  supports: lines[*].checks.b1_plain_language
+spec_basis:
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 2
+  quote: Patient-facing text passes `PolicyGuard` (no diagnosis/treatment/prognosis language; one question
+    per turn; B1 Turkish).
+  supports: lines[*].checks.policyguard, lines[*].checks.not_a_question
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: lines[*].checks.no_numerals
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: 'Patient copy: ≤ B1 Turkish, empathetic, no medical jargon without explanation, never alarming
+    beyond the triage action.'
+  supports: lines[*].checks.b1_plain_language
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Register is `siz` universally — never `sen`, reachable only by mirroring
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Warmth comes from verb mood (`-elim/-alım`), not the pronoun.
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: conversational delivery may paraphrase the lead-in, never the item.
+  supports: lines[*].checks.fits_context
+- file: files/03_ARCHITECTURE.md
+  section: §4.2 Layer A, Realtime Talker boundary
+  quote: empathic acknowledgement ≤ 5 words; no diagnosis/treatment/prognosis language; one question per
+    turn; B1 Turkish
+  supports: lines[*].checks.fits_context
+- file: files/04_CLINICAL_PROTOCOLS.md
+  section: ⚠ 4.2 Preconditions for shipping the suicide pathway at all
+  quote: Add a **pre-brief before the sensitive items**, not a script after them
+  supports: decision
+value:
+  line_count: 8
+  changed:
+  - dialogue.delivery.sensitiveLead.b
+  checks:
+    policyguard: 'PolicyGuard.filter(text, scripted=False) on the dynamic path: no violation, nothing
+      dropped, no bridge; and by reading, no diagnosis, treatment, prognosis, reassurance or minimising'
+    b1_plain_language: at most two sentences of at most fifteen words, everyday words, no medical jargon
+      (Sağlık Bakanlığı plain-language aim)
+    siz_register: siz throughout; no sen; no doubled-polite imperative; warmth from -elim/-alım and -ebilirsiniz
+    not_a_question: no '?', no mı/mi/mu/mü, no interrogative opening a listener hears as a question
+    no_numerals: no digit in tr or en (invariant 22)
+    fits_context: true to what the product does at that moment, and right for the slot, the delivery context
+      and the lane
+  lines:
+  - row: 27
+    key: dialogue.delivery.instrument.a
+    slot: instrument
+    delivery_context: instrument
+    said_when: Before the first item of a validated instrument (none is served today)
+    lane: voice_and_screen
+    tr: Sıradaki sorular standart bir ankete ait. Bu yüzden her zaman aynı şekilde sorulur.
+    en: The next questions belong to a standard questionnaire. That is why they are always asked the same
+      way.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Explains why the wording is fixed. ''Anket'' is kept over ''ölçek'': it is the everyday word,
+      and ''ölçek'' is technical and also means a measuring scale. No instrument is served today: INSTRUMENT_ITEMS
+      is empty because no pack is servable (HB-C1) and the item text is not authored (INT-116). Nothing
+      is said between items.'
+    verifier_verdict: agree
+    verifier_note: The line is fine; the note blames HB-L2/HB-L3 for no instrument being served, but PHQ-9/GAD-7
+      are GO and INSTRUMENT_ITEMS is empty because of HB-C1 and INT-116 (note-only fix).
+  - row: 28
+    key: dialogue.delivery.instrument.b
+    slot: instrument
+    delivery_context: instrument
+    said_when: Before the first item of a validated instrument (none is served today)
+    lane: voice_and_screen
+    tr: Şimdi herkese aynı biçimde sorulan bir ankete geçelim.
+    en: Now let us move to a questionnaire that is asked the same way of everyone.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Explains why the wording is fixed. ''Anket'' is kept over ''ölçek'': it is the everyday word,
+      and ''ölçek'' is technical and also means a measuring scale. No instrument is served today: INSTRUMENT_ITEMS
+      is empty because no pack is servable (HB-C1) and the item text is not authored (INT-116). Nothing
+      is said between items.'
+    verifier_verdict: agree
+    verifier_note: Same note-only fix as instrument.a.
+  - row: 29
+    key: dialogue.delivery.sensitive.a
+    slot: sensitive
+    delivery_context: sensitive
+    said_when: Entering a sensitive section (02 §33 deferral unit or files/13 §13 text_first)
+    lane: voice_and_screen
+    tr: Sıradaki konu biraz daha özel. Acele etmeden yanıtlayabilirsiniz.
+    en: The next topic is a little more private. You can answer without hurrying.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Frames the topic as personal and removes time pressure; promises nothing about skipping. It
+      is a transition, not the files/04 §4.2 pre-brief required before the suicide-pathway items, which
+      is owed separately.
+    verifier_verdict: agree
+  - row: 30
+    key: dialogue.delivery.sensitive.b
+    slot: sensitive
+    delivery_context: sensitive
+    said_when: Entering a sensitive section (02 §33 deferral unit or files/13 §13 text_first)
+    lane: voice_and_screen
+    tr: Şimdi biraz daha kişisel bir konuya geçelim.
+    en: Now let us move to a more personal topic.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Frames the topic as personal; promises nothing about skipping. It is a transition, not the files/04
+      §4.2 pre-brief required before the suicide-pathway items, which is owed separately.
+    verifier_verdict: agree
+    verifier_note: The line is fine, but the shared note's 'removes time pressure' applies only to sensitive.a
+      (note-only fix).
+  - row: 31
+    key: dialogue.delivery.sensitiveLead.a
+    slot: sensitiveLead
+    delivery_context: sensitive
+    said_when: Cadence lead-in inside a sensitive section
+    lane: voice_and_screen
+    tr: Yavaş yavaş devam edelim.
+    en: Let us continue, little by little.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Gentler cadence inside a sensitive section; no reassurance about the answer and no promise about
+      skipping.
+    verifier_verdict: agree
+  - row: 32
+    key: dialogue.delivery.sensitiveLead.b
+    slot: sensitiveLead
+    delivery_context: sensitive
+    said_when: Cadence lead-in inside a sensitive section
+    lane: voice_and_screen
+    tr: Size rahat gelen şekilde yanıtlayabilirsiniz.
+    previous_tr: Nasıl rahat ediyorsanız öyle yanıtlayabilirsiniz.
+    en: You can answer in the way that feels comfortable to you.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: change
+    note: The line opened with the interrogative word 'Nasıl', which only the conditional '-sanız' resolves
+      at the third word, so it began like a question right before the turn's one real question; the plain-language
+      aim also favours the simpler participle. Same meaning, same register, no promise about skipping.
+    verifier_verdict: agree
+    verifier_note: 'The change is right: no interrogative opener, a simpler participle, the same meaning
+      and en; but the stated reason overstates it, because ''-sanız'' resolves ''Nasıl'' at the third
+      word, and ''öyle'' is not the last word.'
+  - row: 39
+    key: dialogue.delivery.topic.family.a
+    slot: topic.family
+    delivery_context: sensitive
+    said_when: Entering family history (a 02 §33 deferral unit)
+    lane: voice_and_screen
+    tr: Şimdi ailenizin sağlık geçmişine geçelim. Acele etmeden yanıtlayabilirsiniz.
+    en: Now let us turn to your family's health history. You can answer without hurrying.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts family history in the sensitive register: it is about people not in the room. Not
+      the files/04 §4.2 pre-brief.'
+    verifier_verdict: agree
+  - row: 40
+    key: dialogue.delivery.topic.family.b
+    slot: topic.family
+    delivery_context: sensitive
+    said_when: Entering family history (a 02 §33 deferral unit)
+    lane: voice_and_screen
+    tr: Sıradaki sorular ailenizin sağlık geçmişiyle ilgili.
+    en: The next questions are about your family's health history.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts family history in the sensitive register: it is about people not in the room. Not
+      the files/04 §4.2 pre-brief.'
+    verifier_verdict: agree
+verifier:
+  verdict: agree_with_changes
+  role: independent clinical verifier (agent; internal medicine and Turkish health literacy)
+  verified_on: '2026-10-03'
+  notes: 'Independent verification, 3 Oct 2026: every line agreed; the record-text fixes listed here were
+    applied by the author before commit, and no line verdict changed. The sensitiveLead.b change is agreed,
+    and the other seven lines are agreed. Fixes: (1) the decision and the row 32 reason overstate how
+    late the question reading resolves; (2) the claim that the Turkish is byte-equal to the catalogue
+    is false for row 32 until INT-414 changes three copies (see defects); (3) the files/04 §4.2 label;
+    (4) the rows 27-28 HB attribution; (5) the row 30 note; (6) the shared source label. The verifier
+    saw only the committed output, the two source snapshots, the repository rules and the INT-414 code,
+    never the author''s reasoning; it re-fetched both sources and found every quote verbatim. Scope D18:
+    simulated-patient stress testing only; a licensed physician''s review is required before any real
+    patient.'
