@@ -35,6 +35,7 @@ import {
 } from "@/lib/calendar";
 import { deviceClock, todayIso, type Clock } from "@/lib/clock";
 import { getLocale, t } from "@/lib/i18n";
+import { haptic } from "@/lib/motion/appHaptics";
 import { useSession, type VisitFixture } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 import { splitVisits } from "@/lib/visits";
@@ -108,7 +109,10 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
               label={t("visits.view.label")}
               options={viewOptions}
               value={view}
-              onChange={(id) => setView(id as ViewMode)}
+              onChange={(id) => {
+                haptic("select", { surface: "visits", valueChanged: id !== view });
+                setView(id as ViewMode);
+              }}
             />
             {view === "list" ? (
               <>
@@ -144,7 +148,10 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
                   viewMonth={viewMonth}
                   onChangeMonth={setViewMonth}
                   selectedIso={selectedDay}
-                  onSelectDay={setSelectedDay}
+                  onSelectDay={(iso) => {
+                    haptic("select", { surface: "visits", valueChanged: iso !== selectedDay });
+                    setSelectedDay(iso);
+                  }}
                 />
                 <View style={styles.section}>
                   <AppText role="label" heading color="inkSoft">

@@ -5,12 +5,13 @@
  * surface is INT-132/135). Gated by the voice consent AND __DEV__ (this is
  * the demo bridge, not the product voice runtime — see lib/voice.ts).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { AudioModule, RecordingPresets, useAudioRecorder } from "expo-audio";
 
 import { AppText, useTheme } from "@/components/Themed";
 import { t } from "@/lib/i18n";
+import { appHaptics } from "@/lib/motion/appHaptics";
 import { transcribeRecording } from "@/lib/voice";
 import { radius, spacing } from "@/lib/theme";
 
@@ -20,6 +21,12 @@ export function VoiceNote({ onTranscript }: { onTranscript: (text: string) => vo
   const theme = useTheme();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [phase, setPhase] = useState<Phase>("idle");
+  // INT-340: a hot microphone holds every haptic; the gate asks the recorder at fire time.
+  useEffect(
+    () => appHaptics.register({ micHot: () => recorder.isRecording }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mount; the probe reads live state
+    [],
+  );
 
   const start = async () => {
     const permission = await AudioModule.requestRecordingPermissionsAsync();
