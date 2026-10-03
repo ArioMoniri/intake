@@ -37,6 +37,7 @@ from intake_platform.admin.access import IdentityWiring
 from intake_platform.admin.access.review import CONSOLE_SECTIONS, ReviewLedger
 from intake_platform.admin.principal import ClaimsRejected
 from intake_platform.release_freeze import ReleaseFreezeStore
+from intake_platform.safety_inbox import SafetyInbox
 from intake_platform.voice_control import VoiceControlStore
 
 #: The tenant deployment map the wiring ships EMPTY (files/08 §2.6): whether
@@ -96,6 +97,7 @@ def build_admin_wiring(
     release_freeze: ReleaseFreezeStore | None = None,
     identity: IdentityWiring | None = None,
     review_clock: Callable[[], datetime] | None = None,
+    safety_inbox: SafetyInbox | None = None,
 ) -> AdminWiring:
     return AdminWiring(
         claims=RecordedClaimsVerifier(recorded_claims()),
@@ -106,6 +108,7 @@ def build_admin_wiring(
         release_freeze=release_freeze,
         review_ledger=ReviewLedger(clock=review_clock),
         identity=identity,
+        safety_inbox=safety_inbox,
     )
 
 
@@ -353,6 +356,16 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         f"/admin/access/offboard/{'0' * 32}/confirm",
         "sre_oncall",
         {"system": "grafana"},
+    ),
+    # INT-406 — the Safety queue. The harness wires no inbox, so a permitted
+    # role reaches the handler and is answered 503 — past the guard, audited,
+    # and never 403.
+    RouteDrive("GET", "/admin/safety-queue", "/admin/safety-queue", "tenant_clinical_responsible"),
+    RouteDrive(
+        "POST",
+        "/admin/safety-queue/{entry_id}/acknowledge",
+        f"/admin/safety-queue/sx_{'0' * 32}/acknowledge",
+        "tenant_clinical_responsible",
     ),
 )
 

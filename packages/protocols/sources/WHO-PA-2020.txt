@@ -1,0 +1,16 @@
+# guideline_id: WHO-PA-2020
+# title: WHO guidelines on physical activity and sedentary behaviour
+# publisher: World Health Organization
+# version_or_date: 2020 (WHO IRIS handle 10665/336656, issued 2020-11-17); ISBN 978-92-4-001512-8 (electronic version)
+# url: https://iris.who.int/handle/10665/336656
+# url_pdf: https://iris.who.int/server/api/core/bitstreams/faa83413-d89e-4be9-bb01-b24671aef7ca/content
+# retrieved_on: 2026-10-03
+# retrieval: item found through the IRIS DSpace REST search API; PDF fetched with curl (HTTP 200, 4041257 bytes); text extracted with pdftotext (poppler); page numbers are PDF page indices; within each excerpted paragraph the PDF line wraps are joined with single spaces; characters otherwise kept as extracted
+# scope: verbatim excerpt of the ISBN line (PDF p. 4) and the adult aerobic-activity recommendation (PDF p. 12); nothing paraphrased or edited; omissions marked [...]
+---
+[PDF p. 4]
+ISBN 978-92-4-001512-8 (electronic version)
+[...]
+[PDF p. 12]
+Strong recommendation, moderate certainty evidence
+Adults should do at least 150– 300 minutes of moderate-intensity aerobic physical activity; or at least 75–150 minutes of vigorousintensity aerobic physical activity; or an equivalent combination of moderate- and vigorous-intensity activity throughout the week, for substantial health benefits.

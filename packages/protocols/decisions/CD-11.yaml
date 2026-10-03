@@ -165,7 +165,22 @@ value:
     finding: V-GH-2
     decider: owner
     question: "Does D3's occupational-exposure approval, delivered text_first, cover göğüs hastalıkları Q10 and Q10a?"
-    open: true
+    open: false
+    owner_answer:
+      quote: "yes for workplace"
+      answered_on: 2026-10-03
+      channel: "owner, in chat, relayed by the INT-432 coordinator"
+      reading: >-
+        Workplace exposure is approved as a data category (`occupational`) for
+        göğüs hastalıkları Q10 and Q10a. The new current-exposure gate below asks
+        about the same workplace exposure and falls in the same category.
+      applied:
+        - "docs/legal/data-categories.yaml: the occupational row's purpose names göğüs hastalıkları; every counsel field stays null, so the compiler still refuses to serve these slots (INT-349)"
+        - "docs/evidence/proposals/gogus_hastaliklari.md Q10: gen data_category=occupational and delivery=text_first; the review pack regenerated"
+        - "Q10a, Q10b and the new gate take data_category=occupational with the CD-11 apply_after_737_merges entries, since those items arrive with PR #737"
+      not_decided_by_this_answer:
+        - "the counsel fields of the occupational row: basis, retention, recipients, consent scope (INT-349)"
+        - "storage per category and envelope encryption of sensitive slots (D3, Not decided by D3)"
     recommended_reading:
       answer: "yes, as review-queue candidates only"
       approval_unit: data_category
@@ -231,14 +246,14 @@ value:
       text: |-
         **Q10a — Still working with that exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S9 (NG245 rec 1.4.1, "Are symptoms the same, better or worse on days away from work?")
         > "Şu anda da toz, duman ya da gaz soluduğunuz bir işte çalışıyor musunuz?"
-        gen: slot=mesleki_maruziyet_suruyor; type=boolean; ask_if=mesleki_toz_duman_gaz == true; delivery=text_first
+        gen: slot=mesleki_maruziyet_suruyor; type=boolean; ask_if=mesleki_toz_duman_gaz == true; delivery=text_first; data_category=occupational
         CANDIDATE — clinician to approve wording. Current-exposure gate for Q10b (CD-11).
     - file: docs/evidence/proposals/gogus_hastaliklari.md
       where: "§3, the current Q10a block (slot is_disinda_azalma)"
       change: relabel_reword_regate
       heading: "**Q10b — Symptoms ease away from work**"
       ask_tr: "Şikâyetleriniz işe gitmediğiniz günlerde ya da tatilde azalıyor mu?"
-      gen: "gen: slot=is_disinda_azalma; type=boolean; ask_if=mesleki_maruziyet_suruyor == true; delivery=text_first"
+      gen: "gen: slot=is_disinda_azalma; type=boolean; ask_if=mesleki_maruziyet_suruyor == true; delivery=text_first; data_category=occupational"
     - file: docs/evidence/verification/gogus_hastaliklari.md
       where: "§1 red-flag row 4 (rf.gogus_hastaliklari_mesleki_bilesen)"
       change: trigger_and_when
@@ -265,4 +280,4 @@ verifier:
   verdict: agree
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree_with_changes (D3 reading is the owner's; asthma population); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Independent verification: round 1 agree_with_changes (D3 reading is the owner's; asthma population); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. The owner answered the D3 question on 2026-10-03 after verification; it is a non-clinical decision, recorded as owner_answer, and changes no clinical value. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

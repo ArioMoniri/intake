@@ -13,11 +13,13 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import cast
 
 from fastapi import APIRouter
 from intake_platform.consent import is_scope_allowed
 from intake_platform.db.models import SessionAttribution
 from intake_platform.profiles import Attribution
+from intake_platform.visit_lifecycle import DELTA_SESSION_OFFER_FLAG
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from intake_api import store
@@ -29,19 +31,26 @@ from intake_api.errors import not_found
 from intake_api.schemas import (
     VisitCreate,
     VisitOut,
+    VisitStateOut,
     resolved_attribution,
     validated_new_visit,
 )
 from intake_api.state import ApiState, State
 
-__all__ = ["router"]
+__all__ = ["CORE_SCOPE", "router", "visit_out"]
 
 router = APIRouter(prefix="/v1/visits", tags=["visits"])
 
 CORE_SCOPE = "core"
 
 
-def _to_out(record: store.VisitRecord) -> VisitOut:
+def visit_out(record: store.VisitRecord, *, now: datetime, offer: bool) -> VisitOut:
+    """The one projection of a visit record. ``offer`` is the
+    ``delta_session_offer`` flag's value: the offer is shown only for a stale
+    note AND an open flag, and the flag stays shut until the offer's copy is
+    clinically reviewed (INT-407)."""
+    lifecycle = record.lifecycle
+    stale = record.note_stale(now)
     return VisitOut(
         id=record.id,
         hospital=record.hospital,
@@ -60,7 +69,17 @@ def _to_out(record: store.VisitRecord) -> VisitOut:
         # can forget the flag.
         proxy_reported=record.proxy_reported,
         third_party_present=record.third_party_present,
+        # INT-407 — files/02 §2b, server-authoritative; the device reflects it
+        state=cast(VisitStateOut, lifecycle.state.value),
+        check_in_certain=lifecycle.check_in.certain if lifecycle.check_in is not None else None,
+        note_stale=stale,
+        delta_session_offered=stale and offer,
+        red_resurface=list(lifecycle.red_resurface),
     )
+
+
+def _offer(state: ApiState) -> bool:
+    return state.flags.get_bool(DELTA_SESSION_OFFER_FLAG, False)
 
 
 async def require_visit_consent(
@@ -111,7 +130,9 @@ async def list_visits(principal: Principal, state: State) -> list[VisitOut]:
             resource_ref=resource_ref,
             consent_scope=f"scope:{CORE_SCOPE}",
         )
-        return [_to_out(r) for r in records]
+        now = state.clock()
+        offer = _offer(state)
+        return [visit_out(r, now=now, offer=offer) for r in records]
 
 
 @router.post(
@@ -186,4 +207,4 @@ async def read_visit(visit_id: uuid.UUID, principal: Principal, state: State) ->
             resource_ref=f"visit:{record.id}",
             consent_scope=f"scope:{CORE_SCOPE}",
         )
-        return _to_out(record)
+        return visit_out(record, now=state.clock(), offer=_offer(state))

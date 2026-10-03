@@ -53,9 +53,15 @@ def _loaded() -> list[Path]:
 # --- which files Prometheus loads ------------------------------------------------------
 
 
-def test_prometheus_loads_the_three_rule_files() -> None:
+def test_prometheus_loads_the_four_rule_files() -> None:
+    # INT-406 added safety-rules.yaml (the RED acknowledgement pages, invariant 49)
     names = sorted(path.name for path in _loaded())
-    assert names == ["cost-rules.yaml", "prometheus-rules.yaml", "security-rules.yaml"]
+    assert names == [
+        "cost-rules.yaml",
+        "prometheus-rules.yaml",
+        "safety-rules.yaml",
+        "security-rules.yaml",
+    ]
     for path in _loaded():
         assert path.is_file(), f"prometheus.yml loads {path.name}, which does not exist"
 

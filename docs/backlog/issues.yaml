@@ -5919,6 +5919,43 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-378
+  epic: E12-admin
+  phase: P1
+  title: "Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims"
+  depends_on: [INT-373, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-378.md
+  # GitHub #621. Found by INT-373 (PR #619). Delivered: the provider
+  # (infra/keycloak/providers/webauthn-session-notes, pinned jar, built
+  # against the composed Keycloak 26.7.4) and a recorded real Keycloak login
+  # the console admits, with the stock authenticator's login refused as the
+  # control. The issue's third clause, the owner's TOTP decision, is split
+  # out as INT-389 (GitHub #644) and stays awaiting-human; the console's
+  # aaguid rule is unchanged until it is recorded.
+  acceptance:
+    - "a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes, which the #619 mappers put into the token; its licence is verified, and it is built reproducibly and pinned by sha256 (invariant 14)"
+    - "a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"
+  tests: [tests/admin/test_webauthn_session_notes_provider.py]
+  sec_row: "admin-console"
+- id: INT-389
+  epic: E12-admin
+  phase: P1
+  title: "Owner decision: second factor for console roles outside the patient-content set (TOTP vs aaguid)"
+  depends_on: [INT-378, INT-365]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  # GitHub #644. Split out of INT-378 (#621 clause 3) so the provider PR (#643)
+  # can close its engineering part. INT-365 admits TOTP for the roles that
+  # never reach patient content, but a TOTP login carries no AAGUID and the
+  # console requires one, so today every TOTP sign-in is refused (fail closed).
+  # The owner chooses; no agent may.
+  acceptance:
+    - "owner decision (awaiting-human): INT-365 admits TOTP for roles outside the patient-content set, but a TOTP login has no AAGUID and the console requires one. Either (a) require WebAuthn for every console role, or (b) require `aaguid` only when `amr` contains `hwk`. The implementation follows the recorded choice."
+    - "the decision is recorded (who, when); the verifier follows it; tests for both TOTP and WebAuthn logins per role class, with a near-miss control"
+  tests: [tests/admin/test_staff_second_factor.py]
+  sec_row: "admin-console"
 - id: INT-377
   epic: E12-admin
   phase: P1
@@ -6430,6 +6467,70 @@
   tests: [tests/legal/test_dsar_flows.py, tests/data/test_session_delete_contract.py, tests/integration/test_session_erasure.py]
   legal: "KVKK-7,KVKK-11,DEST-2017"
   sec_row: "data-at-rest"
+- id: INT-406
+  epic: E09-clinician
+  phase: P0
+  title: "RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49)"
+  # GitHub #681. Found by INT-020 (PR #680): files/10 §9's RED acknowledgement
+  # row and invariant 49 `red_acknowledgement_sla_guard` (files/10 §9.1) had no
+  # owning backlog row; the id was allocated by the coordinator. The SLA is
+  # files/02 §8.2's ("default 4 business hours"), counted in wall-clock hours
+  # because no business calendar is recorded — never later than the
+  # business-hours reading. No triage rule, level or RED semantic is touched:
+  # the inbox consumes the rules-engine RED at Layer B's settle.
+  depends_on: [INT-025, INT-080, INT-092, INT-093, INT-180]
+  labels: [area:clinician, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-406.md
+  acceptance:
+    - "every RED (rules-engine RED only, invariant 1) produces a clinic inbox entry within 60 s, whatever connector is present; the acknowledgement clock starts at the entry; `tenant_clinical_responsible` acknowledges (audited, ids only)"
+    - "unacknowledged past the SLA pages the on-call route; the SLA value comes from 02 §8 or is owner-set (never invented; fail closed to paging immediately if unset)"
+    - "a 02 §2b reschedule or cancel on a RED visit raises an entry, regardless of connector presence"
+    - "`clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` are emitted, catalogued and alerted (runbook linked)"
+    - "invariant 49 is enforced by a simulator/runtime test with a fake clock (entry ≤ 60 s; page at SLA + ε; a transition on a RED visit raises an entry), with near-miss controls"
+  tests: [tests/safety/test_red_acknowledgement_sla.py, tests/platform/test_safety_inbox.py, tests/admin/test_safety_queue.py, tests/voice/test_safety_inbox_notifier.py]
+  sec_row: "triage"
+- id: INT-426
+  epic: E13-infra
+  phase: P1
+  title: "CI on AWS: gate runner via S3+SSM with commit status, no workflow edits"
+  # GitHub #721. Owner request, 2 Oct 2026: run the CI gates on the AWS host to
+  # avoid GitHub Actions billing and flakiness. Switching Actions off is an
+  # owner step (docs/ci/aws-ci.md); no workflow file is edited here.
+  depends_on: [INT-352]
+  labels: [area:ci]
+  status: done
+  evidence: docs/evidence/INT-426.md
+  acceptance:
+    - "make ci-aws PR=<n> (or a script under scripts/ci/) ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set (make edge-plugin, check-py, check-ts, check-integration, safety, security) in an isolated compose project with resource limits, so the live stack is not starved"
+    - "the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"
+    - "workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"
+  tests: [tests/ci/test_aws_ci.py]
+  sec_row: "cicd"
+- id: INT-407
+  epic: E02-data
+  phase: P1
+  title: "Visit lifecycle state machine (02 §2b): a RED visit cannot silently move"
+  # GitHub #684. Found by INT-406 (PR #683): files/02 §2b's lifecycle had no
+  # backlog row and nothing moved a visit, so `SafetyInbox.visit_transition`
+  # had no caller; the id was allocated by the coordinator. Built on #683's
+  # branch (it records the RED's register on the inbox entry). The T-24h
+  # confirm stays unsent (INT-358, and no reviewed body); the delta-session
+  # offer stays behind a safety flag until its copy is clinically reviewed; the
+  # machine refuses `missed` without an owner-set grace (files/02 names none).
+  depends_on: [INT-197, INT-150, INT-306, INT-406]
+  labels: [area:api, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-407.md
+  acceptance:
+    - "the visit states `planned → confirmed → checked_in → attended`, `cancelled`, `rescheduled` (new datetime → planned), `missed` (datetime + grace, no check-in), as a typed state machine; invalid transitions are refused; every transition is audited by id"
+    - "a `rescheduled` or `cancelled` transition on a visit carrying an unresolved RED raises a clinic inbox entry (INT-406), regardless of connector presence, and re-shows the crisis signposting in the register the original RED used (the existing RED script, verbatim)"
+    - "on `cancelled`: shared notes are auto-revoked, and the clinician inbox entry is withdrawn; on `rescheduled`: the note is marked stale 7 days after its session, and a delta session is offered (existing copy only; any new string goes to clinical review)"
+    - "Doctor Link expiry is pinned to `visit_datetime + 72 h`, never `issue_time + 72 h`"
+    - "`checked_in` doubt (a geofence outside the building, a QR scanned by someone other than the patient) yields `UNKNOWN` location, never ON_SITE (invariant 21)"
+    - "the T-24h confirm message is queued as a transactional message and stays unsent while no SMS vendor is configured (INT-358); it is never sent by a fake"
+  tests: [tests/api/test_visit_lifecycle.py, tests/safety/test_red_visit_transition.py, tests/platform/test_visit_lifecycle_machine.py]
+  sec_row: "visits"
 - id: INT-432
   epic: E03-protocols
   phase: P0
@@ -6448,6 +6549,42 @@
     - "the decision is recorded in files/00_STATE.md §3, scoped to simulated-patient stress testing, with the note that a licensed physician's review is required before any real patient"
   tests: [tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py]
   sec_row: "clinical-content"
+- id: INT-448
+  epic: E03-protocols
+  phase: P0
+  title: "Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines"
+  # GitHub #759, split from INT-432 (#735). Owner decision D18 scope:
+  # simulated-patient stress testing; a licensed physician's review is
+  # required before any real patient. Owner-decider parts are recorded as
+  # owner questions, never decided by an agent.
+  depends_on: [INT-432]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-448.md
+  acceptance:
+    - "every #642 packet item gets a sourced decision record (guideline or openEHR, with a verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source"
+    - "red-flag changes keep invariant 7, with golden tests and near-miss controls"
+  tests: [tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"
+- id: INT-414
+  epic: E08-mobile
+  phase: P1
+  title: "Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim"
+  # GitHub #705. Owner request, 27 Sep 2026. Stacked on INT-415, whose delivery
+  # contexts every utterance carries. The new copy is listed for clinician
+  # review under HB-C1 in docs/evidence/INT-414.md and is not signed.
+  depends_on: [INT-415]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-414.md
+  acceptance:
+    - "a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase (opening / first question / mid / sensitive topic / closing), question context (routine, sensitive, instrument, pain, RED-adjacent) and the patient's on-device state (read-only, invariant 11), and never alters the question text"
+    - "every new string is B1 Turkish in the siz register, uses warmth through verb mood (-elim/-alım) and passes PolicyGuard (no diagnosis, treatment or prognosis language; one question per turn); en is the mirror"
+    - "an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr in the composed output (a test over every served pack and instrument), and a RED gets nothing added"
+    - "no numerals reach TTS (invariant 22); no patient words are composed into speech"
+    - "all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md"
+  tests: [apps/mobile/src/lib/dialogue/delivery.test.ts, apps/mobile/src/lib/dialogue/deliveryPlan.test.ts, tests/release/test_delivery_copy.py, tests/release/test_i18n_complete.py, tests/api/test_dev_voice_delivery.py]
+  sec_row: "mobile"
 - id: INT-447
   epic: E08-mobile
   phase: P1
