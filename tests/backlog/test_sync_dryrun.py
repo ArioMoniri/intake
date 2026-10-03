@@ -104,7 +104,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-426 (CI on AWS: gate runner via S3 + SSM, aws-ci commit status, GitHub #721)
     # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
     # + INT-432 (clinical decisions register under owner decision D18, GitHub #735)
-    assert len(actions) == 333
+    # + INT-378 (WebAuthn session-notes provider, GitHub #621) and INT-389 (its
+    # TOTP clause as an owner decision, GitHub #644)
+    assert len(actions) == 335
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

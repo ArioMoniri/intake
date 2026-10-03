@@ -327,9 +327,21 @@ release-gate:
 # file statically.
 OBS_COMPOSE := docker compose -f infra/docker-compose.obs.yml --profile obs
 
-.PHONY: obs obs-down
+.PHONY: obs obs-down keycloak-provider
 
-obs:
+# INT-378: the Keycloak provider that writes the aaguid/credential_id session notes.
+# mvnw fetches the sha256-pinned Maven; every artefact must match .mvn/checksums; the
+# jar is reproducible and must equal the committed pin before it is staged in deploy/,
+# the directory the obs Keycloak mounts at /opt/keycloak/providers. CI runs this target.
+KEYCLOAK_PROVIDERS := infra/keycloak/providers
+KEYCLOAK_PROVIDER_JAR := intake-webauthn-session-notes-1.0.0.jar
+
+keycloak-provider:
+	cd $(KEYCLOAK_PROVIDERS)/webauthn-session-notes && ./mvnw -B clean verify
+	cd $(KEYCLOAK_PROVIDERS)/webauthn-session-notes/target && shasum -a 256 -c ../../webauthn-session-notes.sha256
+	cp $(KEYCLOAK_PROVIDERS)/webauthn-session-notes/target/$(KEYCLOAK_PROVIDER_JAR) $(KEYCLOAK_PROVIDERS)/deploy/$(KEYCLOAK_PROVIDER_JAR)
+
+obs: keycloak-provider
 	$(OBS_COMPOSE) up -d --build --wait
 
 obs-down:

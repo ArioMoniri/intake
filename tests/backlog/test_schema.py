@@ -153,7 +153,10 @@ def test_ids_unique_and_well_formed() -> None:
     # move; found by INT-406's PR, whose visit_transition had no caller, #684).
     # + INT-432 (the clinical decisions register under owner decision D18,
     # agent-authored and independently agent-verified; GitHub #735).
-    assert len(ids) == 333
+    # + INT-378 (the Keycloak provider that writes the aaguid and credential_id
+    # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
+    # owner decision, GitHub #644).
+    assert len(ids) == 335
     import re
 
     for i in ids:
