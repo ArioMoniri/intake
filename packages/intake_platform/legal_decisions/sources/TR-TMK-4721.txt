@@ -1,11 +1,17 @@
 # source_id: TR-TMK-4721
 # instrument: 4721 sayılı Türk Medeni Kanunu
-# provisions: m.9-16, m.335, m.342, m.403, m.448
+# provisions: m.5, m.9-16, m.335, m.342, m.403, m.448
 # gazette: 8/12/2001 sayı 24607
 # url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=4721&MevzuatTertip=5
 # retrieved_on: 2026-10-03
-# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited articles
+# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited articles; [...] marks an omission between excerpts
 ---
+C.
+Genel nitelikli hükümler
+Madde
+5 - Bu Kanun ve Borçlar Kanununun genel nitelikli hükümleri, uygun düştüğü
+ölçüde tüm özel hukuk ilişkilerine uygulanır.
+[...]
 Fiil ehliyeti
 1.
 Kapsamı
@@ -54,7 +60,7 @@ rızası olmadıkça, kendi işlemleriyle borç altına giremezler. Karşılıks
 ve kişiye sıkı sıkıya bağlı hakları kullanmada bu rıza gerekli değildir.
 Ayırt
 etme gücüne sahip küçükler ve kısıtlılar haksız fiillerinden sorumludurlar.
-
+[...]
 VELÂYET
 A.
 Genel olarak
@@ -66,7 +72,7 @@ olmadıkça velâyet ana ve babadan alınamaz.
 Hâkim
 vasi atanmasına gerek görmedikçe, kısıtlanan ergin çocuklar da ana ve babanın
 velâyeti altında kalırlar.
-
+[...]
 Çocuğun temsil edilmesi
 Madde
 342- Ana ve baba, velâyetleri çerçevesinde üçüncü kişilere karşı çocuklarının
@@ -77,7 +83,7 @@ varsayabilirler.
 Vesayet
 makamlarının iznine bağlı hususlar dışında kısıtlıların temsiline ilişkin hükümler
 velâyetteki temsilde de uygulanır.
-
+[...]
 Vasi ve kayyım
 Madde
 403- Vasi, vesayet altındaki küçüğün veya kısıtlının kişiliği ve malvarlığı
@@ -88,7 +94,7 @@ belirli işleri görmek veya malvarlığını yönetmek için atanır.
 Bu
 Kanunun vasi hakkındaki hükümleri, aksi belirtilmiş olmadıkça kayyım hakkında
 da uygulanır.
-
+[...]
 Temsil
 1.
 Genel olarak

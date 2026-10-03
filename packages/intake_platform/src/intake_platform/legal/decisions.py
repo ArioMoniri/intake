@@ -1,9 +1,10 @@
 """The legal decisions register (INT-471, owner decision D25).
 
-files/00_STATE.md §3 D25: open legal questions are decided by a sourced
+files/00_STATE.md §3 D25: open legal questions are routed first to a sourced
 legal-author agent and verified by a separate legal-reviewer agent, **for
 synthetic and test use only**. A licensed Turkish lawyer countersigns before
-any real patient, and legal questions go to this lane, never to the owner.
+any real patient. CLAUDE.md's stop-and-ask items and owner-named HB rows
+still go to the owner, with the lane's output as a recommendation.
 D25 mirrors D18, the clinical lane (``protocols.clinical_decisions``), and
 this module mirrors that loader.
 
@@ -21,19 +22,26 @@ decision that does not hold its own provenance:
   whose header declares the same ``source_id`` and ``retrieved_on``
   (Unicode NFC and runs of whitespace are the only normalisation);
 - no answer without a source: ``proposed`` and ``active`` need at least one
-  source; ``draft`` carries a ``legal_gap`` sentence saying what is missing
-  and which source would settle it, and so does any key ``value_status``
-  marks ``draft``;
+  source; every source and spec sentence names the ``value`` path it
+  ``supports`` and that path exists; every answered leaf of ``value`` is
+  supported by one of them; ``draft`` carries a ``legal_gap`` sentence saying
+  what is missing and which source would settle it, and so does any key
+  ``value_status`` marks ``draft``; a leaf that says "not decided" is draft;
+- the snapshot agrees with the citation: same ``source_id``, ``url``,
+  ``retrieved_on`` and Resmî Gazete date and number (or standard version),
+  and a quote of at least four words;
 - no pending token anywhere: the invariant-17 literal is the clinical
   lane's sole exception, and this lane does not widen it — a draft states
   its gap in words and its value is absent;
-- no active decision without the reviewer: ``active`` needs an ``agree`` or
-  ``agree_with_changes`` verdict, and a decision the reviewer agreed with is
-  not left ``proposed``;
+- no active decision without an independent reviewer: ``active`` needs an
+  ``agree`` verdict, or ``agree_with_changes`` with the applied changes in
+  ``verifier.notes``, from a role that is not the author's; a decision the
+  reviewer agreed with is not left ``proposed``;
 - no real patient without a lawyer: ``real_patient`` scope needs an active
   decision and every field of a licensed Turkish lawyer's countersign, the
   six-field block that mirrors the physician's ``clinical_signoff``
-  (HUMAN_BLOCKERS HB-C1).
+  (HUMAN_BLOCKERS HB-C1) — a full 40-hex commit, a date no earlier than the
+  reviewer's verdict, and an evidence file that is committed.
 
 A consumer reads a value only through :func:`value_for`, which runs
 :func:`clearance` first: a draft or proposed decision, or a draft key, is
@@ -126,6 +134,10 @@ _PENDING_TOKEN = "TO" + "DO"
 _DECISION_ID = r"^LD-\d{2,3}$"
 _SOURCE_ID = r"^[A-Z0-9][A-Z0-9.-]*$"
 _EVIDENCE_PREFIX = "docs/evidence/"
+_MIN_QUOTE_WORDS = 4
+_QUESTION_TARGET = "question"
+_WILDCARD = "*"
+_OPEN_MARKER = "not decided"
 
 
 class LegalDecisionError(ValueError):
@@ -204,9 +216,11 @@ class LegalSource(FrozenModel):
     gazette: Gazette | None = Field(default=None, description="Resmî Gazete date and number.")
     version_or_date: str | None = Field(default=None, description="Version of a standard.")
     retrieved_on: date = Field(description="Retrieval date; the snapshot declares the same.")
-    quote: str = Field(min_length=1, description="Verbatim supporting quote.")
+    quote: str = Field(min_length=1, description="Verbatim supporting quote, four words or more.")
     snapshot: str = Field(description="Committed snapshot path under legal_decisions/sources/.")
-    supports: str | None = Field(default=None, description="Which value key it supports.")
+    supports: str = Field(
+        min_length=1, description="The dotted value path it supports ('*' matches one key)."
+    )
     caveat: str | None = Field(default=None, description="Limits on how far it reaches.")
     note: str | None = Field(default=None, description="Provenance commentary.")
 
@@ -224,6 +238,10 @@ class LegalSource(FrozenModel):
             )
         if self.kind == "standard" and not (self.version_or_date and self.version_or_date.strip()):
             raise ValueError(f"{self.source_id}: a standard names its version_or_date")
+        if len(self.quote.split()) < _MIN_QUOTE_WORDS:
+            raise ValueError(
+                f"{self.source_id}: a quote of fewer than four words proves nothing: {self.quote!r}"
+            )
         return self
 
 
@@ -259,6 +277,10 @@ def _blank(value: object) -> bool:
     return value is None or (isinstance(value, str) and not value.strip())
 
 
+def _same_role(left: str, right: str) -> bool:
+    return " ".join(left.lower().split()) == " ".join(right.lower().split())
+
+
 class CounselCountersign(FrozenModel):
     """A licensed Turkish lawyer's countersign. Every field is nullable so an
     unsigned block still parses; the refusal is the decision's, where it can
@@ -267,7 +289,9 @@ class CounselCountersign(FrozenModel):
     lawyer_name: str | None = Field(default=None, description="The countersigning lawyer.")
     bar_association: str | None = Field(default=None, description="Baro the lawyer is in.")
     bar_registration_no: str | None = Field(default=None, description="Baro sicil numarası.")
-    signed_commit: str | None = Field(default=None, description="Commit the signature binds to.")
+    signed_commit: str | None = Field(
+        default=None, description="The full 40-hex commit the signature binds to."
+    )
     signed_on: date | None = Field(default=None, description="Countersign date.")
     evidence: str | None = Field(default=None, description="Where the countersign is recorded.")
 
@@ -277,6 +301,9 @@ class CounselCountersign(FrozenModel):
             raise ValueError(
                 f"a countersign is recorded under {_EVIDENCE_PREFIX}, not {self.evidence!r}"
             )
+        commit = self.signed_commit
+        if not _blank(commit) and not re.fullmatch(r"[0-9a-f]{40}", str(commit)):
+            raise ValueError(f"a countersign binds a full 40-hex commit, not {commit!r}")
         return self
 
     def missing(self) -> tuple[str, ...]:
@@ -356,6 +383,20 @@ class LegalDecision(FrozenModel):
             raise ValueError(
                 f"{self.id}: a decision the reviewer agreed with is active, not proposed"
             )
+        if (
+            self.status is DecisionStatus.ACTIVE
+            and verdict is VerifierVerdict.AGREE_WITH_CHANGES
+            and _blank(self.verifier.notes)
+        ):
+            raise ValueError(
+                f"{self.id}: agree_with_changes makes a decision active only once the changes "
+                "are applied and recorded in verifier.notes"
+            )
+        role = self.verifier.role
+        if role is not None and _same_role(role, self.author_role):
+            raise ValueError(
+                f"{self.id}: the reviewer must be independent of the author, not {role!r}"
+            )
         self._check_scope()
         return self
 
@@ -371,6 +412,13 @@ class LegalDecision(FrozenModel):
             missing = countersign.missing()
             if missing:
                 raise ValueError(f"{self.id}: the countersign is missing {', '.join(missing)}")
+            verified_on = self.verifier.verified_on
+            signed_on = countersign.signed_on
+            if signed_on is not None and verified_on is not None and signed_on < verified_on:
+                raise ValueError(
+                    f"{self.id}: the countersign is dated before the reviewer's verdict "
+                    f"({signed_on} < {verified_on})"
+                )
         elif countersign is not None and not countersign.is_empty():
             raise ValueError(f"{self.id}: a countersign belongs to a real_patient decision")
 
@@ -453,6 +501,113 @@ def _check_value_status(decision: LegalDecision) -> None:
             )
 
 
+def _leaves(node: Mapping[str, Any], prefix: str = "") -> Iterator[tuple[str, Any]]:
+    """Every (dotted path, value) whose value is not a non-empty mapping."""
+    for key, child in node.items():
+        path = f"{prefix}.{key}" if prefix else str(key)
+        if isinstance(child, Mapping) and child:
+            yield from _leaves(child, path)
+        else:
+            yield path, child
+
+
+def _names(pattern: str, path: str) -> bool:
+    """Whether ``pattern`` names ``path`` or a key above it ('*' matches one key)."""
+    wanted = pattern.split(".")
+    parts = path.split(".")
+    if len(wanted) > len(parts):
+        return False
+    return all(want in (_WILDCARD, part) for want, part in zip(wanted, parts, strict=False))
+
+
+def _check_supports(decision: LegalDecision) -> None:
+    """Every source and spec sentence supports a value that exists, and every
+    answered leaf is supported by one of them. An open answer is draft."""
+    leaves = list(_leaves(decision.value))
+    targets = [
+        (f"source {s.source_id} ({s.provision})", s.supports, False) for s in decision.sources
+    ]
+    targets += [(f"spec_basis {b.file}", b.supports, True) for b in decision.spec_basis]
+    for label, pattern, may_name_question in targets:
+        if may_name_question and pattern == _QUESTION_TARGET:
+            continue
+        if all(part == _WILDCARD for part in pattern.split(".")):
+            raise LegalDecisionError(
+                f"{decision.id}: {label} supports the bare wildcard {pattern!r}; name the value"
+            )
+        if not any(_names(pattern, path) for path, _ in leaves):
+            raise LegalDecisionError(
+                f"{decision.id}: {label} supports {pattern!r}, which resolves to nothing in value"
+            )
+    drafted = draft_paths(decision)
+    patterns = [pattern for _, pattern, _ in targets]
+    for path, leaf in leaves:
+        if any(path == key or path.startswith(f"{key}.") for key in drafted):
+            continue
+        if isinstance(leaf, str) and _OPEN_MARKER in leaf.lower():
+            raise LegalDecisionError(
+                f"{decision.id}: {path!r} says it is not decided but is not marked draft; "
+                "an open answer is draft and absent"
+            )
+        if not any(_names(pattern, path) for pattern in patterns):
+            raise LegalDecisionError(
+                f"{decision.id}: {path!r} has no source: name it in a source's or a spec "
+                "sentence's supports, or mark it draft"
+            )
+
+
+def _gazette_in(header: Mapping[str, str]) -> tuple[date, int] | None:
+    match = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4}) sayı (\d+)\b", header.get("gazette", ""))
+    if match is None:
+        return None
+    day, month, year, number = (int(group) for group in match.groups())
+    return date(year, month, day), number
+
+
+def _check_header(decision_id: str, source: LegalSource, header: Mapping[str, str]) -> None:
+    snapshot = source.snapshot
+    if header.get("source_id") != source.source_id:
+        raise LegalDecisionError(
+            f"{decision_id}: snapshot {snapshot!r} declares {header.get('source_id')!r}, "
+            f"the source cites {source.source_id!r}"
+        )
+    if header.get("retrieved_on") != source.retrieved_on.isoformat():
+        raise LegalDecisionError(
+            f"{decision_id}: snapshot {snapshot!r} was retrieved_on "
+            f"{header.get('retrieved_on')!r}, the source says {source.retrieved_on.isoformat()!r}"
+        )
+    if header.get("url") != source.url:
+        raise LegalDecisionError(
+            f"{decision_id}: snapshot {snapshot!r} was taken from url {header.get('url')!r}, "
+            f"the source cites {source.url!r}"
+        )
+    if source.gazette is not None:
+        cited = (source.gazette.published_on, source.gazette.number)
+        if _gazette_in(header) != cited:
+            raise LegalDecisionError(
+                f"{decision_id}: snapshot {snapshot!r} declares gazette "
+                f"{header.get('gazette')!r}, the source cites {cited[0]} sayı {cited[1]}"
+            )
+    if source.kind == "standard" and header.get("version_or_date") != source.version_or_date:
+        raise LegalDecisionError(
+            f"{decision_id}: snapshot {snapshot!r} declares version_or_date "
+            f"{header.get('version_or_date')!r}, the source cites {source.version_or_date!r}"
+        )
+
+
+def _check_countersign_evidence(decision: LegalDecision, repo_root: Path) -> None:
+    countersign = decision.counsel_countersign
+    if countersign is None or _blank(countersign.evidence):
+        return
+    record = str(countersign.evidence).split("#", 1)[0]
+    root = repo_root.resolve()
+    path = (root / record).resolve()
+    if not path.is_relative_to(root) or not path.is_file():
+        raise LegalDecisionError(
+            f"{decision.id}: the countersign's evidence file {record!r} is not committed"
+        )
+
+
 def _check_snapshot(decision_id: str, source: LegalSource, repo_root: Path) -> None:
     snapshot = source.snapshot
     if not snapshot.startswith(_SNAPSHOT_PREFIX) or ".." in Path(snapshot).parts:
@@ -468,16 +623,7 @@ def _check_snapshot(decision_id: str, source: LegalSource, repo_root: Path) -> N
         body = snapshot_body(text)
     except LegalDecisionError as exc:
         raise LegalDecisionError(f"{decision_id}: {snapshot!r}: {exc}") from exc
-    if header.get("source_id") != source.source_id:
-        raise LegalDecisionError(
-            f"{decision_id}: snapshot {snapshot!r} declares {header.get('source_id')!r}, "
-            f"the source cites {source.source_id!r}"
-        )
-    if header.get("retrieved_on") != source.retrieved_on.isoformat():
-        raise LegalDecisionError(
-            f"{decision_id}: snapshot {snapshot!r} was retrieved_on "
-            f"{header.get('retrieved_on')!r}, the source says {source.retrieved_on.isoformat()!r}"
-        )
+    _check_header(decision_id, source, header)
     if not quote_in_snapshot(source.quote, body):
         raise LegalDecisionError(
             f"{decision_id}: quote is not verbatim in {snapshot!r}: {source.quote[:80]!r}"
@@ -510,9 +656,11 @@ def load_decision(path: Path, *, repo_root: Path | None = None) -> LegalDecision
     if path.stem != decision.id:
         raise LegalDecisionError(f"{path.name}: file name and id {decision.id!r} disagree")
     _check_value_status(decision)
+    _check_supports(decision)
     for source in decision.sources:
         _check_snapshot(decision.id, source, root)
     _check_spec_basis(decision, root)
+    _check_countersign_evidence(decision, root)
     return decision
 
 

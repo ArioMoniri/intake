@@ -3212,3 +3212,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond the reviewer's verdict. Before any real patient, a licensed Turkish lawyer must countersign each LD; HB-L20 stays open for that lawyer.
 - Next: the orchestrator relays the legal reviewer's verdicts; each agreeing LD flips to `active`. Finding for PR #796: the RED location question must stay answerable after the wait (LD-05).
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T02:00:00+03:00 · INT-471 · done (PR #809 open, round 2 of the legal review applied)
+- Goal: apply every blocking and should-fix finding of the independent legal reviewer's round 1 on `017439e0` (REQUEST_CHANGES; agree_with_changes on LD-01..LD-05).
+- Plan: stack on #804 for D24; tighten the loader (per-value provenance, header/citation agreement, four-word quotes, "not decided" is draft, independent reviewer, full countersign checks); restructure LD-01..LD-05; re-base the Sağlık Raporları snapshot on the mevzuat.gov.tr text layer; snapshot TMK m.5, TBK m.92 and KSVY m.2; reword D25 to "this lane first".
+- Tests added (with the near-miss negative for any safety rule): 12 new tests in `tests/legal/test_legal_decisions.py`, each beside the shape it admits (59 in all, the loader at full branch coverage); red run recorded in docs/evidence/INT-471.md.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-471.md "Round 2 gates".
+- Invariants touched and still passing: 4, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: D25 reworded (routed to the lane first; stop-and-ask items and owner-named HB rows still go to the owner). files/06 §1 gains SRY-2026 and 5378 + G2025-10. No id minted; follow-ups INT-473 and INT-474 are the orchestrator's.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond re-verification. Consent scope per data row is a stop-and-ask item for the owner; a licensed Turkish lawyer countersigns before any real patient.
+- Next: the orchestrator spawns re-verification; agreeing LDs flip to `active` with the verdict recorded.
+- LOOP_STATUS: WAITING_HUMAN

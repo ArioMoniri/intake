@@ -99,6 +99,7 @@ def _source(**overrides: Any) -> dict[str, Any]:
         "retrieved_on": "2026-10-03",
         "quote": "Kişisel veriler ilgili kişinin açık rızası olmaksızın işlenemez.",
         "snapshot": f"{SOURCES}/TEST-LAW-1.txt",
+        "supports": "basis",
     }
     base.update(overrides)
     return base
@@ -116,7 +117,7 @@ def _decision(**overrides: Any) -> dict[str, Any]:
         "scope": "synthetic_test_only",
         "author_role": "Turkish health and data-protection lawyer (agent)",
         "sources": [_source()],
-        "value": {"basis": "acik_riza", "retention": "unset"},
+        "value": {"basis": "acik_riza"},
         "verifier": {"verdict": "pending"},
     }
     base.update(overrides)
@@ -132,6 +133,9 @@ def root(tmp_path: Path) -> Path:
     spec = tmp_path / "files"
     spec.mkdir()
     (spec / "00_STATE.md").write_text("Legal questions go to this lane.\n", encoding="utf-8")
+    evidence = tmp_path / "docs" / "evidence"
+    evidence.mkdir(parents=True)
+    (evidence / "INT-471.md").write_text("## countersign\n", encoding="utf-8")
     return tmp_path
 
 
@@ -139,6 +143,14 @@ def _write(root: Path, document: dict[str, Any]) -> Path:
     path = root / f"{document['id']}.yaml"
     path.write_text(yaml.safe_dump(document, allow_unicode=True), encoding="utf-8")
     return path
+
+
+def _snapshot_at(root: Path, url: str) -> dict[str, Any]:
+    """A copy of the test snapshot published at another official url."""
+    name = f"TEST-LAW-1-{abs(hash(url)) % 10_000}.txt"
+    text = SNAPSHOT.replace(_source()["url"], url)
+    (root / SOURCES / name).write_text(text, encoding="utf-8")
+    return _source(url=url, snapshot=f"{SOURCES}/{name}")
 
 
 def _load(root: Path, **overrides: Any) -> Any:
@@ -209,7 +221,7 @@ def test_legislation_is_cited_from_an_official_host(root: Path) -> None:
     secondary = _source(url="https://www.alomaliye.com/2026/05/19/saglik-raporlari-yonetmeligi/")
     with pytest.raises(LegalDecisionError, match="official"):
         _load(root, sources=[secondary])
-    official = _source(url="https://www.resmigazete.gov.tr/eskiler/2026/05/20260519-12.pdf")
+    official = _snapshot_at(root, "https://www.resmigazete.gov.tr/eskiler/2026/05/20260519-12.pdf")
     assert _load(root, sources=[official])
 
 
@@ -217,7 +229,7 @@ def test_a_lookalike_host_is_not_official(root: Path) -> None:
     lookalike = _source(url="https://mevzuat.gov.tr.example.com/mevzuat?MevzuatNo=1")
     with pytest.raises(LegalDecisionError, match="official"):
         _load(root, sources=[lookalike])
-    subdomain = _source(url="https://shgmmevzuatdb.saglik.gov.tr/TR-117242/x.html")
+    subdomain = _snapshot_at(root, "https://shgmmevzuatdb.saglik.gov.tr/TR-117242/x.html")
     assert _load(root, sources=[subdomain])
 
 
@@ -239,6 +251,7 @@ def test_a_standard_is_cited_from_its_publisher_with_its_version(root: Path) -> 
         "retrieved_on": "2026-10-03",
         "quote": "The time limit is essential and extending it would invalidate the activity",
         "snapshot": f"{SOURCES}/TEST-STD-1.txt",
+        "supports": "basis",
     }
     assert _load(root, sources=[standard])
     with pytest.raises(LegalDecisionError, match="version_or_date"):
@@ -282,7 +295,10 @@ def test_a_pending_token_is_refused_anywhere_even_in_a_draft(root: Path) -> None
 
 
 def test_a_draft_key_is_named_in_value_status_and_explained_by_the_gap(root: Path) -> None:
-    partly = {"value_status": {"basis": "sourced", "retention": "draft"}}
+    partly = {
+        "value": {"basis": "acik_riza", "retention": "unset"},
+        "value_status": {"basis": "sourced", "retention": "draft"},
+    }
     with pytest.raises(LegalDecisionError, match="legal_gap"):
         _load(root, **partly)
     decision = _load(root, legal_gap="No retrieved text sets the retention period.", **partly)
@@ -294,6 +310,7 @@ def test_value_status_names_keys_that_exist(root: Path) -> None:
         _load(root, value_status={"recipients": "draft"}, legal_gap="gap")
     nested = _load(
         root,
+        sources=[_source(supports="rows.relatives.basis")],
         value={"rows": {"relatives": {"basis": "x", "notice": "unset"}}},
         value_status={"rows.relatives.notice": "draft"},
         legal_gap="No retrieved text says how a relative is informed.",
@@ -311,7 +328,7 @@ def test_a_spec_basis_quote_must_be_verbatim_in_a_committed_file(root: Path) -> 
         "file": "files/00_STATE.md",
         "section": "§3 D25",
         "quote": "Legal questions go to this lane.",
-        "supports": "routing",
+        "supports": "basis",
     }
     assert _load(root, spec_basis=[basis])
     with pytest.raises(LegalDecisionError, match="not verbatim"):
@@ -332,9 +349,8 @@ def test_a_decision_without_a_non_pending_verdict_cannot_be_active(root: Path) -
         _load(root, status="active", verifier=dict(VERIFIED, verdict="disagree"))
     active = _load(root, status="active", verifier=VERIFIED)
     assert active.verifier.verdict is VerifierVerdict.AGREE
-    with_changes = _load(
-        root, status="active", verifier=dict(VERIFIED, verdict="agree_with_changes")
-    )
+    applied = dict(VERIFIED, verdict="agree_with_changes", notes="Changes 1-3 applied in abc1234.")
+    with_changes = _load(root, status="active", verifier=applied)
     assert with_changes.status is DecisionStatus.ACTIVE
 
 
@@ -437,6 +453,7 @@ def test_a_draft_value_is_absent_never_defaulted(root: Path) -> None:
         root,
         status="active",
         verifier=VERIFIED,
+        sources=[_source(supports="rows.basis")],
         value={"rows": {"basis": "acik_riza", "retention": "unset"}},
         value_status={"rows.retention": "draft"},
         legal_gap="No retrieved text sets the retention period.",
@@ -450,6 +467,153 @@ def test_a_draft_value_is_absent_never_defaulted(root: Path) -> None:
         value_for(decision, "rows.recipients", Audience.SYNTHETIC_TEST)
     with pytest.raises(LegalClearanceError, match="licensed"):
         value_for(decision, "rows.basis", Audience.REAL_PATIENT)
+
+
+# --- round 2: every answer is tied to the text that gives it ------------------------------
+
+
+def test_a_sourced_leaf_that_says_not_decided_is_refused(root: Path) -> None:
+    value = {"basis": "acik_riza", "minor": "not decided (HB-L20)"}
+    with pytest.raises(LegalDecisionError, match="not decided"):
+        _load(root, value=value)
+    drafted = _load(
+        root,
+        value=value,
+        value_status={"minor": "draft"},
+        legal_gap="No retrieved text says whether a minor consents alone.",
+    )
+    assert draft_paths(drafted) == ("minor",)
+
+
+def test_every_source_names_the_value_it_supports(root: Path) -> None:
+    bare = _source()
+    del bare["supports"]
+    with pytest.raises(LegalDecisionError, match="supports"):
+        _load(root, sources=[bare])
+
+
+def test_a_supports_path_must_resolve_in_value(root: Path) -> None:
+    with pytest.raises(LegalDecisionError, match="resolves to nothing"):
+        _load(root, sources=[_source(supports="basis"), _source(supports="retention")])
+    rows = {"rows": {"a": {"basis": "x"}, "b": {"basis": "y"}}}
+    assert _load(root, value=rows, sources=[_source(supports="rows.*.basis")])
+    with pytest.raises(LegalDecisionError, match="resolves to nothing"):
+        _load(
+            root,
+            value=rows,
+            sources=[_source(supports="rows.*.basis"), _source(supports="rows.*.notice")],
+        )
+    with pytest.raises(LegalDecisionError, match="wildcard"):
+        _load(root, sources=[_source(supports="*")])
+
+
+def test_every_sourced_leaf_is_covered_by_a_source_or_a_spec_basis(root: Path) -> None:
+    value = {"basis": "acik_riza", "recipients": "the tenant's clinicians"}
+    with pytest.raises(LegalDecisionError, match="'recipients' has no source"):
+        _load(root, value=value)
+    assert _load(
+        root,
+        value=value,
+        value_status={"recipients": "draft"},
+        legal_gap="No retrieved text names the recipients.",
+    )
+    spec = {
+        "file": "files/00_STATE.md",
+        "section": "§3",
+        "quote": "Legal questions go to this lane.",
+        "supports": "recipients",
+    }
+    assert _load(root, value=value, spec_basis=[spec])
+    nested = {"rows": {"basis": "acik_riza", "recipients": "the tenant's clinicians"}}
+    assert _load(root, value=nested, sources=[_source(supports="rows")])
+
+
+def test_a_spec_basis_supports_a_value_or_the_question(root: Path) -> None:
+    spec = {
+        "file": "files/00_STATE.md",
+        "section": "§3",
+        "quote": "Legal questions go to this lane.",
+        "supports": "nothing_here",
+    }
+    with pytest.raises(LegalDecisionError, match="resolves to nothing"):
+        _load(root, spec_basis=[spec])
+    assert _load(root, spec_basis=[dict(spec, supports="question")])
+    with pytest.raises(LegalDecisionError, match="resolves to nothing"):
+        _load(root, sources=[_source(supports="basis"), _source(supports="question")])
+
+
+def test_the_snapshot_header_carries_the_cited_gazette(root: Path) -> None:
+    with pytest.raises(LegalDecisionError, match="gazette"):
+        _load(root, sources=[_source(gazette={"published_on": "2016-04-07", "number": 29678})])
+    with pytest.raises(LegalDecisionError, match="gazette"):
+        _load(root, sources=[_source(gazette={"published_on": "2016-04-08", "number": 29677})])
+    (root / SOURCES / "TEST-LAW-NOGAZ.txt").write_text(
+        SNAPSHOT.replace("# gazette: 7/4/2016 sayı 29677\n", ""), encoding="utf-8"
+    )
+    with pytest.raises(LegalDecisionError, match="gazette"):
+        _load(root, sources=[_source(snapshot=f"{SOURCES}/TEST-LAW-NOGAZ.txt")])
+
+
+def test_the_snapshot_header_carries_the_cited_url(root: Path) -> None:
+    other = "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=2&MevzuatTur=1&MevzuatTertip=5"
+    with pytest.raises(LegalDecisionError, match="url"):
+        _load(root, sources=[_source(url=other)])
+
+
+def test_a_standard_snapshot_carries_the_cited_version(root: Path) -> None:
+    standard = {
+        "kind": "standard",
+        "source_id": "TEST-STD-1",
+        "instrument": "Synthetic Accessibility Standard",
+        "provision": "SC 2.2.1",
+        "url": "https://www.w3.org/TR/2024/REC-WCAG22-20241212/",
+        "version_or_date": "W3C Recommendation 5 October 2023",
+        "retrieved_on": "2026-10-03",
+        "quote": "The time limit is essential and extending it would invalidate the activity",
+        "snapshot": f"{SOURCES}/TEST-STD-1.txt",
+        "supports": "basis",
+    }
+    with pytest.raises(LegalDecisionError, match="version_or_date"):
+        _load(root, sources=[standard])
+
+
+def test_a_quote_shorter_than_four_words_is_refused(root: Path) -> None:
+    with pytest.raises(LegalDecisionError, match="four words"):
+        _load(root, sources=[_source(quote="açık rızası olmaksızın")])
+    assert _load(root, sources=[_source(quote="açık rızası olmaksızın işlenemez.")])
+
+
+def test_agree_with_changes_is_active_only_with_the_changes_recorded(root: Path) -> None:
+    changed = dict(VERIFIED, verdict="agree_with_changes")
+    with pytest.raises(LegalDecisionError, match="notes"):
+        _load(root, status="active", verifier=changed)
+    with pytest.raises(LegalDecisionError, match="notes"):
+        _load(root, status="active", verifier=dict(changed, notes="  "))
+    assert _load(root, status="active", verifier=dict(changed, notes="Applied in abc1234."))
+
+
+def test_the_reviewer_is_not_the_author(root: Path) -> None:
+    same = dict(VERIFIED, role="Turkish health and data-protection lawyer (agent)")
+    with pytest.raises(LegalDecisionError, match="independent"):
+        _load(root, status="active", verifier=same)
+    with pytest.raises(LegalDecisionError, match="independent"):
+        _load(
+            root,
+            status="active",
+            verifier=dict(same, role="  turkish HEALTH and data-protection lawyer (agent) "),
+        )
+
+
+def test_a_countersign_binds_a_commit_a_date_and_an_evidence_file(root: Path) -> None:
+    signed = {"status": "active", "verifier": VERIFIED, "scope": "real_patient"}
+    with pytest.raises(LegalDecisionError, match="40"):
+        _load(root, counsel_countersign=dict(COUNTERSIGN, signed_commit="abc1234"), **signed)
+    with pytest.raises(LegalDecisionError, match="before"):
+        _load(root, counsel_countersign=dict(COUNTERSIGN, signed_on="2026-10-02"), **signed)
+    absent = dict(COUNTERSIGN, evidence="docs/evidence/INT-999.md#countersign")
+    with pytest.raises(LegalDecisionError, match="not committed"):
+        _load(root, counsel_countersign=absent, **signed)
+    assert _load(root, counsel_countersign=COUNTERSIGN, **signed)
 
 
 # --- document shape ---------------------------------------------------------------------
@@ -541,24 +705,48 @@ def test_ld01_keeps_the_report_purpose_item_out_of_adli_tip() -> None:
     value = load_register()["LD-01"].value
     assert value["allied_q3_rapor_amaci"]["carried_to_adli_tip"] is False
     assert value["saglik_raporlari_yonetmeligi_governs_adli_rapor"] is True
-    assert value["intake_answer_into_adli_rapor"] == "never"
+    assert value["madde_8_5_and_adli_rapor"] == "moot_for_product"
+    # The pack still inherits the slot until INT-473; the decision says so.
+    assert value["as_built"]["adli_tip_inherits_rapor_amaci"] is True
+    # The no-intake-answer rule is a product rule, not a reading of the text.
+    assert "intake_answer_into_adli_rapor" not in value
+    assert "product rule" in load_register()["LD-01"].inference_disclosure
 
 
 def test_ld02_names_no_proxy_for_an_adult_and_closes_the_child_and_carer_paths() -> None:
     decision = load_register()["LD-02"]
-    who = decision.value["who_may_answer"]
+    who = decision.value["who_may_act_in_law"]
     assert who["adult_not_restricted"] == "self_only"
-    assert who["carer_without_legal_representation"] == "nobody"
+    assert who["adult_without_discernment_unrepresented"] == "nobody_in_law"
+    assert decision.value["carers"]["synthetic_product_rule"] == "nobody_answers"
     assert decision.value["synthetic_paths"] == {"child": "closed", "carer": "closed"}
-    assert "hb_l20.adolescent_self_consent" in draft_paths(decision)
+    drafted = draft_paths(decision)
+    assert {"hb_l20.adolescent_self_consent", "consent_footing.minor_with_discernment"} <= set(
+        drafted
+    )
+    assert "hb_l20.leap_day_maturity" not in drafted
+    assert value_for_synthetic_is_refused(decision, "consent_footing.minor_with_discernment")
+
+
+def value_for_synthetic_is_refused(decision: Any, key: str) -> bool:
+    """A draft key stays absent even once the decision is verified."""
+    verified = decision.model_copy(update={"status": DecisionStatus.ACTIVE})
+    with pytest.raises(LegalClearanceError, match="draft"):
+        value_for(verified, key, Audience.SYNTHETIC_TEST)
+    return True
 
 
 def test_ld03_bases_relatives_data_on_the_health_provider_and_never_on_the_patient() -> None:
-    rows = load_register()["LD-03"].value["rows"]
+    decision = load_register()["LD-03"]
+    rows = decision.value["rows"]
     relatives = rows["family_history_relatives_consanguinity"]
     assert relatives["basis_patient"] == "kvkk_6_3_a_acik_riza"
     assert relatives["basis_other_subject"]["hospital_deployment"] == "kvkk_6_3_e"
     assert rows["hearing_voices_q16"]["register_category"] == "general_health"
+    assert {
+        "rows.family_history_relatives_consanguinity.consent_scope",
+        "rows.hearing_voices_q16.consent_scope",
+    } <= set(draft_paths(decision))
 
 
 def test_ld04_files_tb_contact_under_household_and_sick_leave_under_occupational() -> None:
@@ -566,6 +754,8 @@ def test_ld04_files_tb_contact_under_household_and_sick_leave_under_occupational
     assert items["isle_ilgili_rapor"]["register_category"] == "occupational"
     assert items["is_suresi"]["kvkk_class"] == "ordinary"
     assert items["evde_verem_temasi"]["register_category"] == "household"
+    assert "only as far as that care requires" in items["evde_verem_temasi"]["recipients"]
+    assert all("purpose" in item for item in items.values())
 
 
 def test_ld05_holds_the_essential_exception_only_while_a_late_answer_is_honoured() -> None:
@@ -573,3 +763,11 @@ def test_ld05_holds_the_essential_exception_only_while_a_late_answer_is_honoured
     assert value["is_a_time_limit_under_sc_2_2_1"] is True
     assert value["classification"] == "essential_exception_conditional"
     assert value["condition"]["late_location_answer_honoured"] is True
+    assert "no_conforming_alternative_for_the_advance" in value
+
+
+def test_every_committed_decision_records_round_one_and_awaits_re_verification() -> None:
+    for decision in load_register().values():
+        assert decision.status is DecisionStatus.PROPOSED, decision.id
+        assert decision.verifier.verdict is VerifierVerdict.PENDING, decision.id
+        assert decision.verifier.notes and "Round 1" in decision.verifier.notes, decision.id

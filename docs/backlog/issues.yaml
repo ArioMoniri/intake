@@ -6629,13 +6629,16 @@
   # to approve legal parts or review them like forensics i give permisison
   # with this message". Scope: synthetic and test use only; a licensed
   # Turkish lawyer countersigns before any real patient (files/00_STATE.md
-  # §3 D25). Legal questions go to this lane, never to the owner.
-  depends_on: [INT-432]
+  # §3 D25). Legal questions go to this lane first; CLAUDE.md's stop-and-ask
+  # items and owner-named HB rows still go to the owner, with the lane's
+  # output as a recommendation. Stacked on INT-470 (#804) for D24.
+  depends_on: [INT-432, INT-470]
   labels: [area:legal]
+  legal: "KVKK-4,KVKK-5,KVKK-6,KVKK-10,AYD-2018,KSVY-5,KSVY-6,KSVY-7,KSVY-13,KSVY-16,HHY-15,HHY-22,HHY-23,HHY-24,TMK-339,SRY-2026,5378"
   status: done
   evidence: docs/evidence/INT-471.md
   acceptance:
-    - "D25 in files/00_STATE.md §3 records the policy with the owner's quote, the synthetic/test scope and the real-patient countersign gate, and that legal questions go to this lane, never to the owner"
+    - "D25 in files/00_STATE.md §3 records the policy with the owner's quote, the synthetic/test scope and the real-patient countersign gate, and that legal questions are routed to this lane first (CLAUDE.md's stop-and-ask items and owner-named HB rows still go to the owner, with the lane's output as a recommendation)"
     - "a legal decisions register (LD-NN, the shape of packages/protocols/decisions/CD-NN.yaml) with a typed loader and tests: every decision cites KVKK, its secondary regulations, Ministry of Health regulations or Resmî Gazete texts against a committed verbatim snapshot with retrieved_on; no source means draft with a legal_gap, never an invented answer; each carries the independent legal reviewer's verdict (near-miss: an unsourced or unverified decision fails; a real-patient decision without a licensed lawyer's countersign fails)"
     - "first decisions LD-01..LD-05: the Adli Tıp report purpose; minors and proxy answers (HB-L20) in synthetic scope; KVKK inventory rows for family history, relatives' health, consanguinity and the hearing-voices item; occupational items (sick leave, tenure, household TB contact); the WCAG 2.2.1 classification of the RED no-answer wait"
     - "docs/legal/ texts keep their hash binding and strings.yaml stays verbatim"
