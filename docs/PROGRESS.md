@@ -3229,3 +3229,44 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T12:00:00+03:00 · INT-469 · done (PR open, not merged)
+- Goal: GitHub #810. The resolved Adli Tıp pack drops the allied cluster's report-purpose item `rapor_amaci`, per the legal lane's LD-01 (INT-471, GitHub #800). An adli rapor's purpose is the requesting authority's (Sağlık Raporları Yönetmeliği Madde 40(4), 50(4)).
+  - Acceptance:
+    - "the resolved adli_tip pack has no rapor_amaci, suppressed through the protocol source (the proposal and the generator), never by hand in a served pack; a test asserts its absence"
+    - "near miss: sağlık kurulu and the other allied branches keep rapor_amaci"
+    - "golden tests updated, make safety green, clinical-reviewer and CODEOWNER review; LD-01 cross-referenced"
+  - Filed as INT-473; renumbered by the orchestrator because #807 held that id.
+- Plan:
+  - A `suppress_slot` op (files/12 §3.1), legal because the slot is not must_ask and no rule or gate reads it.
+  - The generator gains `pack: suppress=<section>.<slot>`, emitting one op per target.
+  - The proposal carries the line, and the candidate is regenerated, never hand-edited.
+  - In the same PR, as a separate commit: apply CD-105's adli_tip holds. Q3 and Q5 were held in prose but still emitted.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_adli_tip_report_purpose.py` (new):
+    - the merged adli_tip pack has no `rapor_amaci`, and nothing else is removed;
+    - near misses: Sağlık Kurulu, the five other allied branches and the cluster keep it;
+    - the resolution head never hands an Adli Tıp booking a pack that asks it, and a cluster promoted ahead of adli_tip is caught.
+  - `tests/protocols/test_gen_specialty_packs.py`:
+    - the suppress option and its four refusals (undeclared, must_ask, own slot, gate-read);
+    - the committed candidate is byte-equal to the generator's output;
+    - CD-105's `adli_tip_safety_items_held` (near miss: `suregelen_hastalik` stays);
+    - a held-item sweep over 99 proposals;
+    - an unheld/held synthetic near miss.
+  - Red runs:
+    - 14 failed / 35 passed at `ad601d13`;
+    - 1 failed / 130 passed at `4f0496f2` before the hold fix.
+- Result (`make check` / `make safety` / `make security` summary):
+  - tests/protocols + tests/safety: 1716 passed, protocols coverage 97.39 %.
+  - Backlog and smoke tests green with the row added.
+  - ruff, mypy --strict and `no_placeholders` (after staging) are clean.
+  - `make safety`: exit 0 (triage 586 passed at 100 % branch; 18/18 mutations detected; voice-runtime 1677 passed at 98.65 %; red team 121 passed).
+  - The coverage matrix is unchanged (0/0/91/1).
+  - check-integration and `make security` are CI-only here.
+- Invariants touched and still passing: 2, 7 (a question is removed, no rule), 13, 17, 18 (CD-105 holds applied), 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new. This applies LD-01 (D25 lane, on INT-471's PR) and CD-105 (INT-448).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (physician of record) is unchanged. The candidate stays L0; `approval:human-clinical` is on the PR.
+- Next:
+  - CD-105's other pinned tests are not on main.
+  - LD-01 leaves open what Adli Tıp asks in place of the report purpose.
+- LOOP_STATUS: CONTINUE
