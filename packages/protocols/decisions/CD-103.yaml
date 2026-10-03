@@ -305,7 +305,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors, and D3 open item 3 for a guardian's answers in a child's record"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors, and D3 open item 3 for a guardian's answers in a child's record"
     - item: "docs/evidence/verification/cluster-wave-b.md#L79"
       ref: "cluster-wave-b §A.1 child Q2"
       packets: [cluster_child_health, cocuk_enfeksiyon_hastaliklari]
@@ -382,7 +382,7 @@ value:
         answer: "3Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Mental-health Q16 (hearing voices) is ordinary special-category health data, text_first, self-report only."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): its special-category data inventory row"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): confirming the special-category (KVKK) classification of this item, and its inventory row"
     - item: "docs/evidence/verification/cluster-wave-b.md#L103"
       ref: "cluster-wave-b §A.3 dental Q10"
       packets: [cluster_dental, ortodonti, pedodonti, periodontoloji, protetik, restoratif]
@@ -424,7 +424,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors"
     - item: "docs/evidence/verification/cluster-wave-b.md#L115"
       ref: "cluster-wave-b §A.4 allied Q3"
       packets: [adli_tip, cluster_allied_and_reports, is_ve_meslek_hastaliklari, saglik_kurulu]
@@ -442,7 +442,7 @@ value:
         answer: "4Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Occupational clinics may ask sick leave, tenure and household TB contact; Adli Tıp stays out of 'report purpose' until legal review."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): Adli Tıp and the report-purpose export bar"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): Adli Tıp and the report-purpose export bar"
     - item: "docs/evidence/verification/cluster-wave-b.md#L116"
       ref: "cluster-wave-b §A.4 allied §0 minimal HPI"
       packets: [cluster_allied_and_reports]
@@ -472,7 +472,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): carer-answered data in a health report (a report visit is a legal process)"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): carer-answered data in a health report (a report visit is a legal process)"
 verifier:
   verdict: agree
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
