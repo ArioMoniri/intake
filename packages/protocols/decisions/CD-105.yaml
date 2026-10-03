@@ -600,7 +600,7 @@ value:
         answer: "2Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Family history, relatives' health and consanguinity are one sensitive section: text_first, each item with an INT-349 inventory row."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): the INT-349 inventory rows for the family-history section"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the INT-349 inventory rows for the family-history section"
     - item: "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L88"
       ref: "wave 7 gebe Q9; perinatoloji Q12"
       packets: [gebe_poliklinigi, perinatoloji]
@@ -708,7 +708,7 @@ value:
         answer: "2Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Family history, relatives' health and consanguinity are one sensitive section: text_first, each item with an INT-349 inventory row."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): the INT-349 inventory row for ailede_epilepsi"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the INT-349 inventory row for ailede_epilepsi"
     - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L90"
       ref: "wave 8 yasli Q9"
       packets: [yasli_sagligi_poliklinigi]
@@ -833,7 +833,7 @@ value:
         answer: "2Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Family history, relatives' health and consanguinity are one sensitive section: text_first, each item with an INT-349 inventory row."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): the INT-349 inventory rows for the twelve slots; the one consanguinity id is chosen when they are written"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the INT-349 inventory rows for the twelve slots; the one consanguinity id is chosen when they are written"
     - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L114"
       ref: "wave 8 pedodonti (parent cluster)"
       packets: [cluster_child_health, cluster_dental, pedodonti]
@@ -859,7 +859,7 @@ value:
         answer: "5Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "The read-aloud accommodation item may be spoken rather than text_first."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): the item's INT-349 inventory row"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the item's INT-349 inventory row"
     - item: "docs/evidence/verification/specialty-wave9-occupational-public.md#L77"
       ref: "wave 9 spor §0, §2.2"
       packets: [spor_hekimligi]
@@ -909,7 +909,7 @@ value:
         answer: "4Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Occupational clinics may ask sick leave, tenure and household TB contact; Adli Tıp stays out of 'report purpose' until legal review."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): the inventory rows for sick leave, tenure and household TB contact"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the inventory rows for sick leave, tenure and household TB contact"
     - item: "docs/evidence/verification/specialty-wave9-occupational-public.md#L94"
       ref: "wave 9 iş ve meslek Q13"
       packets: [is_ve_meslek_hastaliklari]

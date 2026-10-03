@@ -3168,8 +3168,19 @@
 - Plan: tests first for a two-way resolution pointer (row → resolver, resolver → row); CD-110 decides the 13 clinical owner questions and 5 base-owner parts against seven new verbatim snapshots (Calgary-Cambridge, openEHR reason_for_encounter and symptom_sign timing, NICE NG257, SDCEP MADP 2026, RCEM Learning, the TR adult disability regulation); D24 records the owner's reply "1Y 2Y 3Y 4Y 5Y 6A" in files/00_STATE.md and on 18 rows, with legal follow-through routed to INT-471.
 - Tests added (with the near-miss negative for any safety rule): tests/protocols/test_owner_question_resolutions.py (a dangling or duplicate resolution, a resolution of an item decided elsewhere, a missing back-pointer, an owner quote the state file lacks, an erased question and a part handed back to the owner each fail; 13 near-miss cases). Red run: 5 failed, 15 passed.
 - Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-470.md; `test_every_decision_carries_an_independent_verdict` fails on CD-110 until the independent verdict is recorded, by design.
-- Invariants touched and still passing: 2 (new copy PolicyGuard-clean), 7 (no rule, rule input or tense anchor changes; nothing extends base.life_threat), 17 (one nested draft_needs_source value with the sanctioned literal), 18 (legal parts routed, not decided), 22.
+- Invariants touched and still passing: 2 (new copy PolicyGuard-clean), 7 (no rule or tense anchor changes in this PR; nothing extends base.life_threat; the lmp_date guard is a red-flag gate-input change when applied, with goldens and make safety — corrected in round 2), 17 (one nested draft_needs_source value with the sanctioned literal), 18 (legal parts routed, not decided), 22.
 - Decisions / ADRs / `00_STATE.md` rows: D24 (owner, 3 Oct 2026) added to §3 with a changelog line; CD-110 added to the clinical decisions register.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for this issue; the lmp_date population guard's age bounds stay draft_needs_source (no source), and the legal parts go to INT-471.
 - Next: record the independent verifier's verdict on CD-110; then apply CD-110 through the proposals and the generators once #642 merges.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T01:30:00+03:00 · INT-470 · round 2 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the independent verifier's round 1 on #804 (request_changes: 1 blocker, 9 major, 5 minor).
+- Plan: tests first for each finding (tests/protocols/test_cd110_decisions.py, and routing and legal-part checks in test_owner_question_resolutions.py), then CD-110 round 2, the D25 pointers replaced by INT-471, cluster-wave-a #L128 routed rather than resolved (D24 17 items), the six owner questions committed verbatim with channel and date.
+- Tests added (with the near-miss negative for any safety rule): gate semantics evaluated with protocols.triage.expr (unsure and chest-pain reopen open the history; a child's face swelling alone opens the airway item; trismus never alone); lmp guard fails toward asking; duration never derived from an episodic or unknown answer; legal parts naming a missing decision fail. Red run: 18 failed, 34 passed.
+- Result: see docs/evidence/INT-470.md (round 2 and green run); the only red test is CD-110's pending verdict, by design.
+- Invariants touched and still passing: 2, 7 (lmp_date guard flagged as a red-flag gate input for its application), 17, 18 (seven new slot ids routed for inventory rows), 22.
+- Decisions / ADRs / `00_STATE.md` rows: D24 row narrowed to 17 items with the channel and the 1Y/3Y notes.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 2, then resume INT-472.
 - LOOP_STATUS: CONTINUE

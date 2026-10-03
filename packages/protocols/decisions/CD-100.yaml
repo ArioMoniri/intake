@@ -858,7 +858,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L105"
       ref: T12
       packets: [cematem, cluster_mental_health]
@@ -877,7 +877,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L106"
       ref: T13
       packets: [cematem, cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
@@ -896,7 +896,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L107"
       ref: T14
       packets: [cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
@@ -914,7 +914,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L108"
       ref: T15
       packets: [cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
@@ -932,7 +932,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L109"
       ref: T16
       packets: [agiz_dis_ve_cene_cerrahisi]

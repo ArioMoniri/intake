@@ -98,11 +98,27 @@ D24_ANSWERS = {
     f"{_WB}115": "4Y",
     f"{_W9}71": "5Y",
     f"{_W6}61": "6A",
-    f"{_WA}128": "invariant 18",
 }
 # Every D24 item has a legal or data follow-through except the TRD/TTD one,
 # which 6A answers by not taking a snapshot at all.
 D24_WITHOUT_LEGAL_PART = frozenset({f"{_W6}61"})
+# No owner answer covers cluster-wave-a #L128 (text_first before the INT-349
+# rows): it is routed to the legal lane, not resolved (review of #804, finding 10).
+LEGAL_LANE = "the legal lane (INT-471, GitHub #800)"
+LEGAL_PART_PREFIX = "routed to the legal lane (INT-471, GitHub #800)"
+ROUTED_TO_LEGAL_LANE = frozenset({f"{_WA}128"})
+DECISION_NUMBER = re.compile(r"\bD\d+\b")
+# The six questions as put to the owner on 3 Oct 2026, committed verbatim in
+# docs/evidence/INT-470.md (review of #804, finding 11).
+EVIDENCE = REPO_ROOT / "docs" / "evidence" / "INT-470.md"
+OWNER_QUESTION_OPENINGS = (
+    "1. Proxy answers (parent/carer answering for the patient):",
+    "2. Family history, relatives' health and consanguinity = one sensitive section:",
+    '3. "Do you hear voices others don\'t?" (mental-health Q16):',
+    "4. Purpose scope: occupational clinics may ask sick leave, job tenure and household TB",
+    "5. The read-aloud accommodation question (nursing-education Q10) may be spoken",
+    "6. Turkish society guideline texts (TRD, TTD): A = cite international guidelines only,",
+)
 
 type Rows = Mapping[str, tuple[str, Mapping[str, Any]]]
 type Resolutions = Mapping[str, list[Mapping[str, Any]]]
@@ -128,8 +144,11 @@ def resolution_problems(
     for item, (_record, row) in rows.items():
         resolver = row.get("resolved_by")
         part_resolver = row.get("owner_part_resolved_by")
+        routed = row.get("routed_to")
         if resolver is not None and part_resolver is not None:
             problems.append(f"{item}: resolved as a whole and in part")
+        if routed is not None:
+            problems.extend(_routing_problems(item, row, str(routed)))
         if resolver is not None:
             if OWNER_DECISION_ID.match(str(resolver)):
                 counts[item] += 1
@@ -208,6 +227,34 @@ def _pointer_problems(
     return problems
 
 
+def _routing_problems(item: str, row: Mapping[str, Any], routed: str) -> list[str]:
+    problems: list[str] = []
+    if routed != LEGAL_LANE:
+        problems.append(f"{item}: routed_to {routed!r} is not {LEGAL_LANE}")
+    if row.get("resolved_by") is not None:
+        problems.append(f"{item}: routed and resolved at once")
+    if row.get("outcome") != "owner_question":
+        problems.append(f"{item}: routed_to on a row decided as {row.get('outcome')!r}")
+    if not str(row.get("owner_part", "")).strip():
+        problems.append(f"{item}: a routed owner question keeps its question (owner_part)")
+    if not str(row.get("routing_note", "")).strip():
+        problems.append(f"{item}: a routing says why it is not an owner answer")
+    return problems
+
+
+def legal_part_problems(texts: list[str], owner_rows: Mapping[str, str]) -> list[str]:
+    """A legal part routes to the legal lane by issue, and any owner decision it
+    names exists in files/00_STATE.md §3 (a D-number from another PR dangles)."""
+    problems: list[str] = []
+    for text in texts:
+        if not text.startswith(LEGAL_PART_PREFIX):
+            problems.append(f"{text[:60]!r}: does not route to {LEGAL_LANE}")
+        for number in DECISION_NUMBER.findall(text):
+            if number not in owner_rows:
+                problems.append(f"{text[:60]!r}: names {number}, which files/00_STATE.md lacks")
+    return problems
+
+
 def _dangling(item: str, resolver: str, part: str, resolutions: Resolutions) -> list[str]:
     matches = [
         entry
@@ -254,9 +301,13 @@ def test_every_int448_owner_question_is_resolved_and_keeps_its_history() -> None
     open_questions = [
         item
         for item, (_, row) in rows.items()
-        if row["outcome"] == "owner_question" and not row.get("resolved_by")
+        if row["outcome"] == "owner_question"
+        and not row.get("resolved_by")
+        and not row.get("routed_to")
     ]
     assert open_questions == []
+    routed = {item for item, (_, row) in rows.items() if row.get("routed_to")}
+    assert routed == ROUTED_TO_LEGAL_LANE
     assert sum(1 for _, row in rows.values() if row["outcome"] == "owner_question") == 31
 
 
@@ -283,6 +334,41 @@ def test_d24_resolves_exactly_the_owner_reply_items() -> None:
         row["owner_answer"]["quote"] for item, (_, row) in rows.items() if item in resolved
     } == {D24_QUOTE}
     assert D24_QUOTE in owner_rows["D24"]
+    assert "17" in owner_rows["D24"] and "#L128" not in owner_rows["D24"]
+
+
+def test_the_six_owner_questions_are_committed_with_channel_and_date() -> None:
+    text = EVIDENCE.read_text(encoding="utf-8")
+    for opening in OWNER_QUESTION_OPENINGS:
+        assert opening in text, opening
+    assert "orchestrator → main conversation → owner in chat, 3 Oct 2026" in text
+
+
+def _legal_texts() -> list[str]:
+    rows, resolutions, _ = _committed()
+    texts = [str(row["legal_part"]) for _, row in rows.values() if row.get("legal_part")]
+    texts += [str(e["legal_part"]) for e in resolutions["CD-110"] if e.get("legal_part")]
+    return texts
+
+
+def test_every_legal_part_routes_by_issue_and_names_no_missing_decision() -> None:
+    _, _, owner_rows = _committed()
+    texts = _legal_texts()
+    assert len(texts) == 17
+    assert legal_part_problems(texts, owner_rows) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("routed to the legal lane (D25, INT-471 #800): rows", "does not route"),
+        (f"{LEGAL_PART_PREFIX}: as D25 decides", "names D25"),
+        ("routed to counsel: rows", "does not route"),
+    ],
+)
+def test_a_legal_part_naming_a_missing_decision_or_no_issue_fails(text: str, expected: str) -> None:
+    problems = legal_part_problems([text], {"D24": "| **D24** |"})
+    assert any(expected in problem for problem in problems), problems
 
 
 def test_legal_and_data_follow_through_is_routed_not_decided() -> None:
@@ -323,6 +409,15 @@ def _fixture() -> tuple[
             },
         ),
         "d": ("CD-103", {"outcome": "accept"}),
+        "e": (
+            "CD-102",
+            {
+                "outcome": "owner_question",
+                "owner_part": "q",
+                "routed_to": LEGAL_LANE,
+                "routing_note": "no owner answer covers it",
+            },
+        ),
     }
     resolutions = {
         "CD-110": [
@@ -365,6 +460,9 @@ def test_the_near_miss_fixture_itself_is_clean() -> None:
         ("part_on_a_row_without_one", "no owner_part"),
         ("unknown_item", "no INT-448 row"),
         ("wrong_home_record", "names record"),
+        ("routed_elsewhere", "is not the legal lane"),
+        ("routed_and_resolved", "routed and resolved"),
+        ("routed_without_reason", "says why"),
     ],
 )
 def test_each_wrong_resolution_fails(case: str, expected: str) -> None:
@@ -395,5 +493,12 @@ def test_each_wrong_resolution_fails(case: str, expected: str) -> None:
         resolutions["CD-110"].append(_resolution("zz", "CD-100", "owner_question"))
     elif case == "wrong_home_record":
         resolutions["CD-110"][0]["record"] = "CD-101"
+    elif case == "routed_elsewhere":
+        rows["e"][1]["routed_to"] = "D25"
+    elif case == "routed_and_resolved":
+        rows["e"][1]["resolved_by"] = "D24"
+        rows["e"][1]["owner_answer"] = {"quote": "1Y 2Y", "answer": "1Y"}
+    elif case == "routed_without_reason":
+        del rows["e"][1]["routing_note"]
     problems = resolution_problems(rows, resolutions, owner_rows)
     assert any(expected in problem for problem in problems), problems

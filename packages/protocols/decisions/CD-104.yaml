@@ -524,7 +524,7 @@ value:
         answer: "1Y"
         quote: "1Y 2Y 3Y 4Y 5Y 6A"
         reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
-      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors and counsel's conditions for any under-18 path"
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors and counsel's conditions for any under-18 path"
     - item: "docs/evidence/INT-353.md#L314"
       ref: "INT-353 rebind row: agiz_dis_cene_radyolojisi Q8, Q9"
       packets: [agiz_dis_cene_radyolojisi]
