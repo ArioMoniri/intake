@@ -309,22 +309,78 @@ describe("MOTION-11 — the gate conditions", () => {
 });
 
 describe("MOTION-11 — surfaces", () => {
-  it("no haptic on any intake chip, in either lane", () => {
-    expect(SURFACE_EVENTS.intakeChip).toEqual([]);
-    const lanes = [
-      { ...CLEAR, voiceSessionActive: true, micHot: true }, // voice, listening
-      { ...CLEAR, voiceSessionActive: true }, // voice, confirming with the mic closed
-      CLEAR, // typed
+  it("ADR-038 A2: an answer chip and the composer mic own one event, the selection tick", () => {
+    // INT-462. Every option gives the same tick, so no answer is rewarded over
+    // another; the mic's tick is the tap that opens the microphone.
+    expect(SURFACE_EVENTS.intakeChip).toEqual(["select"]);
+    expect(SURFACE_EVENTS.dialogueMic).toEqual(["select"]);
+    for (const surface of ["intakeChip", "dialogueMic"] as const) {
+      for (const platform of ["ios", "android"] as const) {
+        const call = hapticFor("select", {
+          platform,
+          surface,
+          ...CLEAR,
+          ...PROOF,
+          valueChanged: true,
+        });
+        expect(call, `${surface}/${platform}`).toEqual(
+          platform === "ios"
+            ? { platform: "ios", method: "selectionAsync" }
+            : { platform: "android", method: "performAndroidHapticsAsync", type: "segment-tick" },
+        );
+        for (const event of HAPTIC_EVENTS.filter((e) => e !== "select")) {
+          expect(hapticFor(event, { platform, surface, ...CLEAR, ...PROOF })).toBeNull();
+        }
+      }
+    }
+  });
+
+  it("ADR-038 A2: never while speech plays or the mic is hot, never on RED, never after silence", () => {
+    const blocked = [
+      { ...CLEAR, voiceSessionActive: true }, // the agent is speaking
+      { ...CLEAR, micHot: true }, // the patient is talking
+      { ...CLEAR, redPresented: true },
+      { ...CLEAR, silentOrThirdPartyThisSession: true },
     ];
-    for (const platform of PLATFORMS) {
-      for (const lane of lanes) {
-        for (const event of HAPTIC_EVENTS) {
+    for (const surface of ["intakeChip", "dialogueMic"] as const) {
+      for (const platform of PLATFORMS) {
+        for (const lane of blocked) {
           expect(
-            hapticFor(event, { platform, surface: "intakeChip", ...lane, ...PROOF }),
+            hapticFor("select", { platform, surface, ...lane, ...PROOF, valueChanged: true }),
+            `${surface} ${JSON.stringify(lane)}`,
           ).toBeNull();
         }
       }
     }
+  });
+
+  it("ADR-038 A2: a validated instrument's options are never felt", () => {
+    expect(SURFACE_EVENTS.instrumentOption).toEqual([]);
+    for (const platform of PLATFORMS) {
+      for (const event of HAPTIC_EVENTS) {
+        expect(
+          hapticFor(event, {
+            platform,
+            surface: "instrumentOption",
+            ...CLEAR,
+            ...PROOF,
+            valueChanged: true,
+          }),
+        ).toBeNull();
+      }
+    }
+  });
+
+  it("near miss: a chip tap that changes nothing is not felt", () => {
+    expect(
+      hapticFor("select", {
+        platform: "ios",
+        surface: "intakeChip",
+        ...CLEAR,
+        ...PROOF,
+        valueChanged: false,
+      }),
+    ).toBeNull();
   });
 
   it("consent grant and withdraw never fire a haptic", () => {
@@ -442,7 +498,8 @@ describe("MOTION-11 — what fires, and when", () => {
 
   it("select fires only when the value changes", () => {
     const selectable = HAPTIC_SURFACES.filter((s) => SURFACE_EVENTS[s].includes("select"));
-    expect(selectable).toEqual(["settings", "visits"]);
+    // ADR-038 A2 (INT-462) adds the answer chip and the composer mic.
+    expect(selectable).toEqual(["settings", "visits", "intakeChip", "dialogueMic"]);
     for (const platform of PLATFORMS) {
       for (const surface of selectable) {
         expect(hapticFor("select", ctx({ platform, surface, valueChanged: false }))).toBeNull();

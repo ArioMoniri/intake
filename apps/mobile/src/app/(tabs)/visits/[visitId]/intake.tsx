@@ -85,6 +85,7 @@ import {
   voiceIntakeReducer,
   type PrefillMap,
 } from "@/lib/intake/voiceFirst";
+import { haptic } from "@/lib/motion/appHaptics";
 import { enteringFor } from "@/lib/motion/native/reanimated";
 import { typedFallback, typedStep } from "@/lib/motion/transients";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
@@ -689,7 +690,12 @@ function StepFlow({
                       accessibilityLabel={t(o.labelKey)}
                       accessibilityHint={t("a11y.selectHint")}
                       accessibilityState={{ checked: on }}
-                      onPress={() => toggleChip(o.id)}
+                      onPress={() => {
+                        toggleChip(o.id);
+                        // ADR-038 A2 (INT-462): every option ticks the same;
+                        // a validated instrument's options never reach here.
+                        haptic("select", { surface: "intakeChip", valueChanged: true });
+                      }}
                       style={[styles.chip, { backgroundColor: look.backgroundColor }]}
                     >
                       {look.check ? (

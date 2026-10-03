@@ -70,7 +70,7 @@ import {
 } from "@/components/Themed";
 import { joinParts, spoken } from "@/lib/a11y/labels";
 import { scrollAnimated } from "@/lib/a11y/motion";
-import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
+import { useIncreasedContrast, useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import {
   BUBBLE_SHARE,
@@ -80,6 +80,8 @@ import {
   sideOf,
   type Side,
 } from "@/lib/dialogue/rhythm";
+import { FOCUS_RING, chipChrome, filledFieldChrome } from "@/lib/controlChrome";
+import { composerTrailing } from "@/lib/dialogue/composer";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
 import { questionAsideTr } from "@/lib/dialogue/speech";
 import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
@@ -87,12 +89,23 @@ import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
+import { haptic } from "@/lib/motion/appHaptics";
+import { bubbleEntrance, bubbleGranted } from "@/lib/motion/bubbles";
+import { bubbleEntering } from "@/lib/motion/native/bubbleEntering";
 import { enteringFor } from "@/lib/motion/native/reanimated";
 import { useDialogueMotion } from "@/lib/motion/native/useDialogueMotion";
 import { orbStateFor } from "@/lib/motion/orb";
 import { WORK, dialogueScene, fadeOf, nodeKey, revealId } from "@/lib/motion/transients";
 import { useSession } from "@/lib/session";
 import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
+
+/**
+ * INT-462 (P3): the trailing control draws a 32 pt disc centred in its own
+ * 44 pt target box at the capsule's trailing edge, so the disc sits 6 pt in
+ * from the capsule on every side and the two radii are concentric.
+ */
+const TRAILING_SIZE = 32;
+const TRAILING_GLYPH = 15;
 
 interface DialogueIntakeProps {
   visitId: string | undefined;
@@ -218,6 +231,9 @@ export function DialogueIntake({
   // The conversation reads bottom-up: keep the newest turn in view.
   const streamLength = state.stream.length;
   const reduceMotion = useReducedMotion();
+  // Increase Contrast restores the resting boundaries INT-433's filled rules
+  // drop (the composer capsule and an unselected chip).
+  const increasedContrast = useIncreasedContrast() === "high";
   useEffect(() => {
     const frame = requestAnimationFrame(() =>
       scrollRef.current?.scrollToEnd({ animated: scrollAnimated(reduceMotion) }),
@@ -340,6 +356,36 @@ export function DialogueIntake({
   if (turn.phase === "done" || turn.phase === "failed" || turn.phase === "handoff") {
     return null; // terminal callbacks route away / hand over
   }
+
+  // INT-462 (P3): the composer's one trailing control (lib/dialogue/composer).
+  // The mic opens the microphone only from this press, through the session's
+  // own paths, and asks for its selection tick first, while the microphone is
+  // still closed (ADR-038 A2; the gate refuses it while the agent speaks).
+  const trailing = composerTrailing({ draft, phase: turn.phase });
+  const trailingDisabled = trailing.kind === "send" && !trailing.enabled;
+  const mic = trailing.kind === "mic";
+  const trailingLabel =
+    trailing.kind === "mic"
+      ? t("dialogue.mic")
+      : trailing.kind === "stop"
+        ? t("voiceFirst.stop")
+        : t("dialogue.send");
+  const pressTrailing = () => {
+    if (trailing.kind === "send") {
+      send();
+      return;
+    }
+    if (trailing.kind === "stop") {
+      void session.finishListening();
+      return;
+    }
+    haptic("select", { surface: "dialogueMic", valueChanged: true });
+    if (trailing.opens === "bargeIn") {
+      session.bargeIn();
+    } else {
+      session.speakCorrection();
+    }
+  };
 
   // INT-336: the orb's one input. This lane is the dev dialogue over HTTP:
   // it has no media transport to lose and no RED channel (the LiveKit lane
@@ -611,9 +657,20 @@ export function DialogueIntake({
             {state.stream.map((entry, index) => {
               const key = scene.entries[index].key;
               return (
+                // ADR-038 A1 (INT-462): a bubble the arbiter grants rises 8 pt on
+                // the critically damped spring under the one fade; Reduce Motion
+                // keeps the fade; nothing moves while a RED shows. This lane has
+                // no RED channel (INT-336's orb takes `red: null` the same way);
+                // INT-446 wires it, and RED paints as a root layer above this.
                 <Animated.View
                   key={nodeKey(transients, key)}
-                  entering={enteringFor(fadeOf(transients, key, motionContext))}
+                  entering={bubbleEntering(
+                    bubbleEntrance({
+                      granted: bubbleGranted(transients, key, reduceMotion),
+                      redPresented: false,
+                      reduce: reduceMotion,
+                    }),
+                  )}
                 >
                   {renderEntry(entry, index, key)}
                 </Animated.View>
@@ -677,6 +734,9 @@ export function DialogueIntake({
             >
               {question.options!.map((option) => {
                 const on = selected.includes(option.id);
+                // INT-462 (P5): INT-433's chip rule. Selected is tinted AND
+                // checked, so the state is never carried by the hue alone.
+                const look = chipChrome(theme, on);
                 return (
                   <Pressable
                     key={option.id}
@@ -687,24 +747,39 @@ export function DialogueIntake({
                     accessibilityLabel={t(option.labelKey)}
                     accessibilityHint={t("a11y.selectHint")}
                     accessibilityState={{ checked: on }}
-                    onPress={() =>
+                    onPress={() => {
+                      const changes = question.kind !== "single" || !on;
                       setSelected((prev) =>
                         question.kind === "single"
                           ? [option.id]
                           : prev.includes(option.id)
                             ? prev.filter((x) => x !== option.id)
                             : [...prev, option.id],
-                      )
-                    }
+                      );
+                      // ADR-038 A2: the same tick for every option; the gate
+                      // refuses it while speech plays or the mic is hot.
+                      if (changes) {
+                        haptic("select", { surface: "intakeChip", valueChanged: true });
+                      }
+                    }}
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: on ? theme.primarySoft : theme.surface,
-                        borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                        backgroundColor: look.backgroundColor,
+                        // Increase Contrast gives the resting chip its control
+                        // boundary back, as iOS adds shapes under that setting.
+                        borderColor: !on && increasedContrast ? theme.border : "transparent",
                       },
                     ]}
                   >
-                    <AppText role="label" color={on ? "primary" : "ink"}>
+                    {look.check ? (
+                      <Icon
+                        name="checkmark"
+                        size={scaledSize("label", fontScale)}
+                        tintColor={theme.primary}
+                      />
+                    ) : null}
+                    <AppText role="label" color={look.textColor} style={styles.chipLabel}>
                       {t(option.labelKey)}
                     </AppText>
                   </Pressable>
@@ -777,8 +852,16 @@ export function DialogueIntake({
               ) : null}
             </ScrollView>
             {/* The persistent composer: typing is always available — voice
-              and text are one conversation, never two modes. */}
-            <View style={styles.composerRow}>
+              and text are one conversation, never two modes. INT-462 (P1, P2):
+              one filled capsule on the glass bar, INT-433's field rule (a
+              solid fill, a tint ring while focused, no resting outline), with
+              its one trailing control inside the trailing edge. */}
+            <View
+              style={[
+                styles.composerRow,
+                filledFieldChrome(theme, { focused: composerFocused, increasedContrast }),
+              ]}
+            >
               <View style={styles.composerFieldWrap}>
                 <TextInput
                   accessibilityLabel={t("dialogue.typeThisStep")}
@@ -795,12 +878,7 @@ export function DialogueIntake({
                   onSubmitEditing={send}
                   style={[
                     styles.composerField,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: dark ? "transparent" : theme.border,
-                      color: theme.ink,
-                      fontSize: scaledSize("body", fontScale),
-                    },
+                    { color: theme.ink, fontSize: scaledSize("body", fontScale) },
                   ]}
                 />
                 {draft.length === 0 ? (
@@ -821,28 +899,49 @@ export function DialogueIntake({
                   </View>
                 ) : null}
               </View>
+              {/* INT-462 (P3): one control, chosen by composerTrailing — the mic
+                while the draft is empty, send once there are words, stop while
+                listening. A 32 pt disc inside the capsule, drawn in a 44 pt
+                target box (SC 2.5.8; the app's slop is vertical only, so the box
+                is the control's own). The swap is instant. */}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t("dialogue.send")}
+                accessibilityLabel={trailingLabel}
+                accessibilityHint={trailing.kind === "mic" ? t("a11y.dialogue.micHint") : undefined}
                 // Icon-only, so the disabled state has no visible word either:
                 // the disabled opacity is the sighted half and this is the other.
-                accessibilityState={{ disabled: draft.trim().length === 0 }}
-                disabled={draft.trim().length === 0}
-                onPress={send}
+                accessibilityState={{ disabled: trailingDisabled }}
+                disabled={trailingDisabled}
+                onPress={pressTrailing}
                 style={({ pressed }) => [
                   styles.sendButton,
                   {
-                    backgroundColor: theme.cta,
-                    opacity:
-                      draft.trim().length === 0
-                        ? motion.press.disabledOpacity
-                        : pressed
-                          ? motion.press.opacity
-                          : 1,
+                    opacity: trailingDisabled
+                      ? motion.press.disabledOpacity
+                      : pressed
+                        ? motion.press.opacity
+                        : 1,
                   },
                 ]}
               >
-                <Icon name="arrow.up" size={17} tintColor={theme.onCta} />
+                <View
+                  style={[
+                    styles.trailingDisc,
+                    { backgroundColor: mic ? theme.primarySoft : theme.cta },
+                  ]}
+                >
+                  <Icon
+                    name={
+                      trailing.kind === "mic"
+                        ? "mic.fill"
+                        : trailing.kind === "stop"
+                          ? "stop.fill"
+                          : "arrow.up"
+                    }
+                    size={TRAILING_GLYPH}
+                    tintColor={mic ? theme.primary : theme.onCta}
+                  />
+                </View>
               </Pressable>
             </View>
           </GlassBar>
@@ -891,6 +990,9 @@ const styles = StyleSheet.create({
   stripFill: { flex: 1 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     borderRadius: radius.chip,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
@@ -903,19 +1005,27 @@ const styles = StyleSheet.create({
     // truncating it is banned (files/00 §2).
     maxWidth: "100%",
   },
+  // The label may wrap inside the chip's bound, beside the check.
+  chipLabel: { flexShrink: 1 },
   bottomStack: { position: "absolute", left: 0, right: 0, bottom: 0 },
   // Its natural height while the stack has room, and it gives height back —
   // then scrolls — once the stack is capped (INT-360).
   barScroll: { flexGrow: 0, flexShrink: 1 },
   barItem: { marginBottom: spacing.sm },
   barStack: { gap: spacing.sm },
-  composerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  // INT-462 (P1): the capsule. Its fill and its ring come from INT-433's
+  // filled-field rule; the trailing control sits inside its trailing edge, a
+  // circle inset so the capsule's own radius is concentric with it.
+  composerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: radius.chip,
+    borderCurve: "continuous",
+    minHeight: MIN_TAP,
+  },
   composerFieldWrap: { flex: 1, justifyContent: "center" },
   composerField: {
-    borderRadius: radius.control,
-    borderCurve: "continuous",
-    borderWidth: 1,
-    minHeight: 44,
+    minHeight: MIN_TAP - 2 * FOCUS_RING,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontFamily: fonts.sans,
@@ -925,9 +1035,16 @@ const styles = StyleSheet.create({
     left: spacing.md,
     right: spacing.md,
   },
+  // The control's own 44 pt target box; the disc sits centred in it.
   sendButton: {
-    width: 44,
-    height: 44,
+    width: MIN_TAP,
+    height: MIN_TAP,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trailingDisc: {
+    width: TRAILING_SIZE,
+    height: TRAILING_SIZE,
     borderRadius: radius.chip,
     alignItems: "center",
     justifyContent: "center",

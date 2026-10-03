@@ -8,8 +8,6 @@
  * this module formats are display-only and never reach the spoken lane
  * (invariant 22).
  */
-import type { ColorToken, ThemeColors } from "@/lib/theme";
-
 /** Where the current question sits in the flow the patient is actually in. */
 export interface QuestionPosition {
   /** 1-based place of the current question in the applicable list. */
@@ -60,43 +58,14 @@ function digits(n: number): string {
   return Math.trunc(n).toString(10);
 }
 
-/** The focus ring's width, held in every state so focusing never moves text. */
-export const FOCUS_RING = 2;
-
-export interface FieldChrome {
-  readonly backgroundColor: string;
-  readonly borderColor: string;
-  readonly borderWidth: number;
-}
-
 /**
- * The filled answer field (HIG text field on a grouped ground): a `surface`
- * fill with no resting outline; a tint-coloured ring while focused; and the
- * `border` control boundary back at rest when the OS asks for Increase
- * Contrast, the same way iOS adds shapes to controls under that setting.
+ * The filled field and the chip are the shared control rules (lib/controlChrome.ts):
+ * the chat takes them too, and it must not import this module (invariant 22).
  */
-export function filledFieldChrome(
-  colors: ThemeColors,
-  state: { readonly focused: boolean; readonly increasedContrast: boolean },
-): FieldChrome {
-  const borderColor = state.focused
-    ? colors.primary
-    : state.increasedContrast
-      ? colors.border
-      : "transparent";
-  return { backgroundColor: colors.surface, borderColor, borderWidth: FOCUS_RING };
-}
-
-export interface ChipChrome {
-  readonly backgroundColor: string;
-  readonly textColor: ColorToken;
-  /** The selected chip draws a check, so its state is not carried by colour alone. */
-  readonly check: boolean;
-}
-
-/** A filled capsule; the selected one is tinted, labelled in the tint and checked. */
-export function chipChrome(colors: ThemeColors, selected: boolean): ChipChrome {
-  return selected
-    ? { backgroundColor: colors.primarySoft, textColor: "primary", check: true }
-    : { backgroundColor: colors.surface, textColor: "ink", check: false };
-}
+export {
+  FOCUS_RING,
+  chipChrome,
+  filledFieldChrome,
+  type ChipChrome,
+  type FieldChrome,
+} from "@/lib/controlChrome";

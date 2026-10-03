@@ -654,6 +654,7 @@ export const en: Record<MessageKey, string> = {
   "dialogue.sheetHint": "Suggestions are added to the note only after you confirm them.",
   "dialogue.close": "Close",
   "dialogue.send": "Send",
+  "dialogue.mic": "Answer by speaking",
   "intake.next": "Continue",
   "intake.finish": "See the summary",
 
@@ -840,6 +841,7 @@ export const en: Record<MessageKey, string> = {
   "a11y.dialogue.bargeInHint": "Double tap to interrupt and start speaking.",
   "a11y.dialogue.stopHint": "Double tap to finish speaking.",
   "a11y.dialogue.composerHint": "You can type here instead of speaking.",
+  "a11y.dialogue.micHint": "Opens the microphone.",
   "a11y.dialogue.sectionsHint": "Double tap to see the sections going into your note.",
   "a11y.dialogue.exitHint": "Double tap to leave the conversation and continue by typing.",
   // ── INT-141 · Notifications ──────────────────────────────────────────────

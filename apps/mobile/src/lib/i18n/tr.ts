@@ -682,6 +682,7 @@ export const tr = {
   "dialogue.sheetHint": "Öneriler siz onayladıktan sonra nota eklenir.",
   "dialogue.close": "Kapatın",
   "dialogue.send": "Gönderin",
+  "dialogue.mic": "Konuşarak yanıtlayın",
   "intake.next": "Devam edin",
   "intake.finish": "Özeti görün",
 
@@ -875,6 +876,7 @@ export const tr = {
   "a11y.dialogue.bargeInHint": "Sözü kesip konuşmaya başlamak için iki kez dokunun.",
   "a11y.dialogue.stopHint": "Konuşmanızı bitirmek için iki kez dokunun.",
   "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
+  "a11y.dialogue.micHint": "Mikrofonu açar.",
   "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
   "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
   // ── INT-141 · Bildirimler ────────────────────────────────────────────

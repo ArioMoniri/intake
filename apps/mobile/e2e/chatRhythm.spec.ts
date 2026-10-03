@@ -49,7 +49,9 @@ describe("materials on chrome, content on solid fills (HIG Materials)", () => {
     expect(fills.length).toBeGreaterThan(3);
     for (const fill of fills) {
       expect(fill).toMatch(
-        /^(?:theme\.(?:surface|surfaceRaised|primarySoft|primary|ink|cta)|[a-z]+ \? theme\.\w+ : theme\.\w+)$/,
+        // INT-462: a chip takes INT-433's chipChrome, whose two fills are the
+        // palette's surface and primarySoft (lib/controlChrome.ts).
+        /^(?:theme\.(?:surface|surfaceRaised|primarySoft|primary|ink|cta)|[a-z]+ \? theme\.\w+ : theme\.\w+|look\.backgroundColor)$/,
       );
     }
   });

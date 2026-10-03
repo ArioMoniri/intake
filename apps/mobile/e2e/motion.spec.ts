@@ -244,6 +244,10 @@ const SRC_TREE = TREE.filter((f) => f.name.startsWith("src/"));
 
 const FADE_MODULE = "src/lib/motion/fade.ts";
 
+/** ADR-038 A1 (INT-462): the bubble entrance, the one module allowed a spring. */
+const BUBBLE_ENTERING = "src/lib/motion/native/bubbleEntering.ts";
+const SPRING_ALLOWED: readonly string[] = [BUBBLE_ENTERING];
+
 /** Forbidden APIs, spelled from parts so this file never names them whole. */
 const LINEAR = ["Linear", "Transition"].join("");
 const SPRING = ["with", "Spring"].join("");
@@ -379,9 +383,34 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
 
     expect(SRC_TREE.length).toBeGreaterThan(100);
     const offenders = SRC_TREE.flatMap((f) =>
-      forbiddenApis(f.source).map((name) => `${f.name}: ${name}`),
+      forbiddenApis(f.source)
+        // ADR-038 A1: the bubble entrance is the one module that may spring.
+        .filter((name) => !(name === SPRING && SPRING_ALLOWED.includes(f.name)))
+        .map((name) => `${f.name}: ${name}`),
     );
     expect(offenders).toEqual([]);
+  });
+
+  it("ADR-038 A1: the one spring is the bubble entrance, and every number it uses is the ADR's", () => {
+    expect(SPRING_ALLOWED).toEqual([BUBBLE_ENTERING]);
+    const native = file(BUBBLE_ENTERING);
+    expect(forbiddenApis(native)).toEqual([SPRING]);
+    // The rise and the spring are read from the pure module the ADR pins
+    // (lib/motion/bubbles.test.ts), never written here.
+    expect(code(native)).toMatch(/import \{[^}]*\bBUBBLE_SPRING\b[^}]*\} from "\.\.\/bubbles"/);
+    // Opacity runs from 0 to 1 and the rise settles at 0; any other number
+    // would be a timing or a distance of the module's own.
+    const numbers = [...code(native).matchAll(/(?<![\w.])\d+(?:\.\d+)?(?![\w.])/g)].map(
+      (m) => m[0],
+    );
+    expect(numbers.filter((n) => n !== "0" && n !== "1")).toEqual([]);
+    // Only translateY and opacity move: no scale, no other transform.
+    expect(code(native)).not.toMatch(/\bscale[XY]?\b|\btranslateX\b|\brotate\b/);
+    // Nothing else in src springs: the near miss is any second module.
+    const springing = SRC_TREE.filter((f) => forbiddenApis(f.source).includes(SPRING)).map(
+      (f) => f.name,
+    );
+    expect(springing).toEqual([BUBBLE_ENTERING]);
   });
 
   it("Reanimated CSS transitions take their duration from cssFade", () => {
@@ -902,7 +931,14 @@ describe("MOTION-8 — the dialogue's transients go through the arbiter", () => 
     const found = enterings(dialogue);
     // The bubbles, a revealed transcript and the confirm chips.
     expect(found.length).toBeGreaterThanOrEqual(3);
-    expect(found.filter((v) => !/^enteringFor\(\s*fadeOf\(/.test(v))).toEqual([]);
+    // ADR-038 A1 (INT-462): a stream bubble enters through the A1 spring, but
+    // only as the arbiter grants it; everything else is the arbiter's fade.
+    const granted =
+      /^bubbleEntering\(\s*bubbleEntrance\(\{\s*granted: bubbleGranted\(transients, key, reduceMotion\),/;
+    expect(found.filter((v) => granted.test(v))).toHaveLength(1);
+    expect(found.filter((v) => !/^enteringFor\(\s*fadeOf\(/.test(v) && !granted.test(v))).toEqual(
+      [],
+    );
     // The decisions come from the arbiter's reducer, fed the scene.
     expect(code(dialogue)).toMatch(/\bconst\s+scene\s*=\s*dialogueScene\(/);
     expect(code(dialogue)).toMatch(/\buseDialogueMotion\(\s*scene\s*,/);
@@ -1051,6 +1087,13 @@ const WIRED_HAPTICS: Record<string, { events: string[]; surfaces: string[] }> = 
     surfaces: ["shareRevoke"],
   },
   "src/app/(tabs)/visits/index.tsx": { events: ["select"], surfaces: ["visits"] },
+  // ADR-038 A2 (INT-462): the selection tick on an answer chip, in both lanes,
+  // and on the composer mic. Instrument options never ask.
+  "src/app/(tabs)/visits/[visitId]/intake.tsx": { events: ["select"], surfaces: ["intakeChip"] },
+  "src/components/DialogueIntake.tsx": {
+    events: ["select"],
+    surfaces: ["dialogueMic", "intakeChip"],
+  },
 };
 
 /** Every recorder in the app, each registered with the gate for as long as it lives. */
@@ -1188,7 +1231,7 @@ describe("MOTION-11 — haptics reach the device through one lazy adapter", () =
 });
 
 describe("MOTION-11 — who asks for a haptic, and who reports the microphone", () => {
-  it("only the wired handlers ask, never an intake, consent, legal or error surface", () => {
+  it("only the wired handlers ask, never a consent, legal, error or instrument surface", () => {
     // Non-vacuity: both call forms, a conditional event and the surface.
     expect(
       hapticRequests(`haptic(next ? "toggleOn" : "toggleOff", { surface: "settings" });`),
@@ -1235,5 +1278,10 @@ describe("MOTION-11 — who asks for a haptic, and who reports the microphone", 
     }
     const dialogue = registration.exec(code(file("src/lib/dialogue/useDialogueSession.ts")));
     expect(dialogue![1]).toMatch(/\bvoiceSessionActive\s*:\s*\(\)\s*=>/);
+    // ADR-038 A2: for the gate the dialogue is active while the agent's speech
+    // plays or is prepared (its speaking phase); a silent confirm turn is not.
+    expect(dialogue![1]).toMatch(
+      /\bvoiceSessionActive\s*:\s*\(\)\s*=>\s*!closedRef\.current\s*&&\s*stateRef\.current\.turn\.phase === "speaking"/,
+    );
   });
 });

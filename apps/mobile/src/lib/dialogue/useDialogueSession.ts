@@ -511,14 +511,17 @@ export function useDialogueSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
   }, []);
 
-  // INT-340: no haptic while this conversation holds the audio session or the
-  // microphone. The gate asks at fire time: the session is open until it
-  // closes, and the microphone is whatever the recorder reports at that
-  // moment, never a guess from the route or the turn.
+  // INT-340: no haptic while this conversation is audible or listening. The
+  // gate asks at fire time. ADR-038 A2 (INT-462) narrows "active" to what a
+  // haptic could disturb: the agent's speech, which plays or is prepared
+  // during the speaking phase, and the microphone, which is whatever the
+  // recorder reports at that moment, never a guess from the route. A silent
+  // confirm turn with the microphone closed is not active, so a chip there
+  // can give its selection tick.
   useEffect(
     () =>
       appHaptics.register({
-        voiceSessionActive: () => !closedRef.current,
+        voiceSessionActive: () => !closedRef.current && stateRef.current.turn.phase === "speaking",
         micHot: () => recorder.isRecording,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per session; both probes read live values

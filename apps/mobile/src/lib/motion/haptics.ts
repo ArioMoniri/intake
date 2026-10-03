@@ -16,9 +16,10 @@
  * - nothing in this session has made silence permanent. After a SILENT RED
  *   or a third party, a buzz on the table is the cue 02 §5.3 names (S-3);
  * - the surface owns the event (`SURFACE_EVENTS`). Consent, legal text,
- *   errors and intake chips own none. A consent grant and its withdrawal feel
- *   the same because neither is felt, and choosing an answer is never
- *   rewarded (P4, P17);
+ *   errors and validated instrument options own none. A consent grant and its
+ *   withdrawal feel the same because neither is felt (P4). An answer chip and
+ *   the composer mic own the selection tick (ADR-038 A2, owner, 3 Oct 2026):
+ *   every option ticks the same, so no answer is rewarded over another (P17);
  * - `select` only on a real change, and `success` only when the server has
  *   confirmed the outcome, never on the press that asked for it (P12, P13).
  *
@@ -70,7 +71,9 @@ export type HapticSurface =
   | "consent"
   | "legal"
   | "error"
-  | "intakeChip";
+  | "intakeChip"
+  | "dialogueMic"
+  | "instrumentOption";
 
 /**
  * The events each surface may fire:
@@ -90,7 +93,14 @@ export const SURFACE_EVENTS: { readonly [S in HapticSurface]: readonly HapticEve
   consent: [],
   legal: [],
   error: [],
-  intakeChip: [],
+  // ADR-038 A2 (INT-462): the same tick for every option, so no answer is
+  // rewarded over another; the live gate still refuses it while speech plays,
+  // the mic is hot, a RED shows or a session has gone silent.
+  intakeChip: ["select"],
+  // The tap on the composer mic that opens the microphone, before it opens.
+  dialogueMic: ["select"],
+  // A validated instrument is administered as validated: never felt.
+  instrumentOption: [],
 };
 
 export const HAPTIC_SURFACES = Object.keys(SURFACE_EVENTS) as readonly HapticSurface[];
