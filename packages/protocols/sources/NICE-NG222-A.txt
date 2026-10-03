@@ -1,12 +1,12 @@
 # guideline_id: NICE-NG222
 # title: Depression in adults: treatment and management
 # publisher: National Institute for Health and Care Excellence (NICE)
-# version_or_date: NICE guideline NG222; published 29 June 2022; minor change December 2025 (Update information)
+# version_or_date: NICE guideline NG222; published 29 June 2022; minor changes February 2023, April 2023, May 2024, September 2024, October 2025 and December 2025 (Update information)
 # url: https://www.nice.org.uk/guidance/ng222/chapter/Recommendations
 # url_update_information: https://www.nice.org.uk/guidance/ng222/chapter/Update-information
 # retrieved_on: 2026-10-03
 # retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
-# scope: verbatim excerpt of the page header and recommendations 1.2.6 and 1.2.7 to its fourth bullet, then the first Update information entry and the minor change; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+# scope: verbatim excerpt of the page header and recommendations 1.2.6 and 1.2.7 to its fourth bullet, then the first Update information entry and the list of minor changes since publication; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
 ---
 Depression in adults: treatment and management
 NICE guideline
@@ -29,3 +29,9 @@ June 2022: This guideline updates and replaces NICE guideline CG90 (published O
 [...]
 Minor changes since publication
 December 2025 : We amended the information on antidepressant medication in tables 1 and 2 to emphasise the need for regular reviews in relation to length of treatment and give details of when the first review should happen.
+October 2025: We amended recommendation 1.5.3 to clarify our advice on first-line treatment for less severe depression.
+September 2024: We added links to relevant technology appraisal guidance in the sections on further-line treatment and treatment-resistant depression .
+May 2024: We have simplified the guideline by removing recommendations on general principles of care that are covered in other NICE guidelines (for example, the NICE guideline on service user experience in adult mental health ).
+This is a presentational change only, and no changes to practice are intended.
+April 2023: In recommendation 1.4.11 we clarified the timing of the first review after starting antidepressant medication for people aged 18 to 25 years or where there is a particular concern for risk of suicide.
+February 2023: We made a correction to the terms used section for the DSM-5 definition of depression.

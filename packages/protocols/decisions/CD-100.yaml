@@ -1196,9 +1196,9 @@ value:
         The ids follow the candidate at 151cf34f. Q3 keeps its applied rebind,
         gen: slot=istemsiz_kilo_kaybi. Q4 takes CD-102's id nedenini_bilmedigi_ates
         (cluster-wave-a.md#L243; T6). Q5 takes gece_terlemesi (CD-104, INT-353.md#L286;
-        CD-101 T76). So that no other id moves, pin the remaining generated ids at
-        their current names: Q6 slot=soru_5, Q7 slot=soru_6, Q8 slot=soru_7, Q9
-        slot=soru_8, Q10 slot=soru_9 (renamed only where CD-101 T75 applies), Q11
+        CD-101 T76). Q10 takes slot=suregelen_baska_hastalik (CD-101 T75). So that
+        no other id moves, pin only the remaining generated ids at their current
+        names: Q6 slot=soru_5, Q7 slot=soru_6, Q8 slot=soru_7, Q9 slot=soru_8, Q11
         slot=soru_10. Q12 becomes slot=ilac_dokunmasi (T33). No pin may move Q3: a
         pin of Q3 to soru_2 would undo the applied weight-loss rebind.
       clinical_basis: "As T24: course since onset is one symptom-record element (symptom_sign v2 Progression), and base trajectory asks it."
@@ -1444,17 +1444,7 @@ value:
       sources: [NICE-NG75]
       status: active
 verifier:
-  verdict: pending
-  notes: >-
-    Round 1 (independent verifier, relayed by the INT-448 lead on 2026-10-03):
-    agree_with_changes. This revision applies the required changes (T4 answer
-    mapping on pregnancy_status; T1 and T4 removals from the INT-353 reorder op's
-    order list; T9 and T48 not-at-all answer semantics and the IMCI young-infant
-    sign; T16 type=boolean; NG18 March 2026 minor change) and the non-blocking ones
-    (T6 report-not-assertion; NG246 minor changes; T18 type=boolean; the neonatoloji
-    follow-up text). Round 2 (relayed 2026-10-03): the verifier ruled on the
-    feeding construct (az_beslenme and CD-103's icemez_ememez are both kept as
-    different thresholds; beslenmeyi_birakma is withdrawn) and corrected the
-    iç hastalıkları ids to the 151cf34f candidate (Q3 istemsiz_kilo_kaybi, Q4
-    nedenini_bilmedigi_ates, Q5 gece_terlemesi; T34 pins only Q6 to Q11). T6, T9,
-    T34 and T48 are revised accordingly. Awaiting re-verification.
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

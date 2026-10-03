@@ -376,7 +376,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG222
     title: "Depression in adults: treatment and management"
-    version_or_date: "NICE guideline NG222; published 29 June 2022; minor change December 2025"
+    version_or_date: "NICE guideline NG222; published 29 June 2022; minor changes February 2023, April 2023, May 2024, September 2024, October 2025 and December 2025"
     url: "https://www.nice.org.uk/guidance/ng222/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.2.7"
@@ -1183,4 +1183,4 @@ verifier:
   verdict: agree
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Independent verification: round 1 agree (the NG222-A version line was completed afterwards, at the verifier's non-blocking request). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
