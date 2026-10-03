@@ -3590,3 +3590,31 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: the native pass's five sections are open as stacked PRs (#792 → #797 → #801 → #806 → this). Delete the generated iOS project once the owner has reviewed on device.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T00:55:00+03:00 · INT-477 · done (PR open, not merged; stacked on #808)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-477; owner, 4 Oct 2026: "solid"):
+  - every capture-protected screen renders solid chrome, with no glass material and no blur view, in both themes; the glass components fall back to solid whenever capture protection is active;
+  - a test that a capture-protected screen never mounts a glass view, with the near miss that an unprotected screen with the same chrome still mounts glass;
+  - ADR-039 records the decision with the owner's quote and date, as an amendment;
+  - no motion, haptic or RED change.
+- Plan:
+  - The pure policy first: capture protection outranks the OS in `glassMode`.
+  - Then where protection is in force (`lib/auth/captureProtection`): the route, so a screen is solid from its first frame, and the window, so the chrome stays solid while any screen holds protection.
+  - Then the wiring: the one hook, the two navigators' `screenLayout`, the rail's scope and the guard.
+- Tests added (with the near-miss negative for any safety rule):
+  - `glass.test.ts` (near miss: the same inputs unprotected give glass, or blur);
+  - `captureProtection.test.ts`: the routes are discovered from the source, a protected screen is solid from its first frame, and it covers the window store and the guard's order. Near miss: the visit screen with the same glass nav bar keeps glass.
+  - `captureChrome.spec.ts`: a closed list of glass hosts, each solid branch free of material, and the scope wiring. Near misses: a blur in a solid branch, an OS-only hook, a navigator without the scope.
+  - `test_adr_039.py` (the amendment and the D23 note).
+  - RED run: 4 failed plus 2 import failures; 2 doc tests failed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile 3140 tests, `tsc` clean, lint 0 errors);
+  - the docs, backlog, smoke and release Python lanes pass;
+  - `check-integration` is CI-only (no container runtime).
+- Invariants touched and still passing: 2 and 5 (no copy), 6 (the store holds a count), 21 (no RED file touched). ADR-033 and ADR-038 are unchanged.
+- Decisions / ADRs / `00_STATE.md` rows: an ADR-039 amendment (INT-477, 4 Oct 2026), noted in D23. No new D-row.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next:
+  - INT-131's shared capture key releases OS protection early: the first protected screen to unmount releases it for all. Reported for its own issue.
+  - A device check of the protected screens in both themes is owed.
+- LOOP_STATUS: CONTINUE

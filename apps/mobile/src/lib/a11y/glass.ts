@@ -15,6 +15,11 @@
  * "is glass available?" would keep a see-through rail under a patient who
  * asked for none. An unknown answer (the OS has not replied, or refused) is
  * solid: the same fail-closed stance as reduce motion (INT-331).
+ *
+ * Capture protection outranks both (INT-477; ADR-039 amendment, owner,
+ * 4 Oct 2026: "solid"). Liquid Glass was unreliable on the capture-protected
+ * screens and the cause is not known, so while protection is in force every
+ * surface is solid, whatever the OS offers: no glass and no blur.
  */
 export type GlassMode = "liquid" | "blur" | "solid";
 
@@ -23,10 +28,19 @@ export interface GlassInputs {
   readonly liquidGlass: boolean;
   /** The OS Reduce Transparency setting; `null` until the OS has answered. */
   readonly reduceTransparency: boolean | null;
+  /**
+   * A capture-protected screen (INT-131) is the route this surface sits
+   * under, or holds the window's protection (lib/auth/captureProtection).
+   */
+  readonly captureProtected: boolean;
 }
 
-export function glassMode({ liquidGlass, reduceTransparency }: GlassInputs): GlassMode {
-  if (reduceTransparency !== false) {
+export function glassMode({
+  liquidGlass,
+  reduceTransparency,
+  captureProtected,
+}: GlassInputs): GlassMode {
+  if (captureProtected || reduceTransparency !== false) {
     return "solid";
   }
   return liquidGlass ? "liquid" : "blur";

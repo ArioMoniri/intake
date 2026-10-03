@@ -7,9 +7,14 @@
  * (INT-144, SC 2.2.2). The intake cannot be swiped away — its header back
  * control is the exit (INT-330); the policy decides that by route, in
  * lib/motion/transitions.
+ *
+ * INT-477: each screen is scoped by its route name, so a capture-protected
+ * one (intake, review, shares, issue-link) is solid chrome from its first
+ * frame, before its own guard has run (lib/auth/captureProtection).
  */
 import { Stack } from "expo-router";
 
+import { CaptureProtectedScope } from "@/components/glassMode";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { routeClassOf, transitionFor } from "@/lib/motion/transitions";
 
@@ -21,6 +26,11 @@ export default function VisitsLayout() {
         headerShown: false,
         ...transitionFor(routeClassOf(`(tabs)/visits/${route.name}`), { reduce: reduceMotion }),
       })}
+      screenLayout={({ route, children }) => (
+        <CaptureProtectedScope route={`(tabs)/visits/${route.name}`}>
+          {children}
+        </CaptureProtectedScope>
+      )}
     />
   );
 }

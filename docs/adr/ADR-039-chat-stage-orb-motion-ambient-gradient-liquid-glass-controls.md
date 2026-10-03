@@ -95,3 +95,22 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 - **Harder.** Five allow-lists grow by named stage files and may only shrink afterwards. A device check of the glass on each iOS major version is owed, and timings go to `docs/evidence/` with a device and a date (invariant 20).
 - **Not done.** A tilt-following highlight would need `expo-sensors`. Its pedometer code needs a motion-permission string, which is a store artefact for legal review, and the simulator has no gyroscope to test it on. The highlight is still.
 - **Records.** `files/00_STATE.md` §3 row **D23**. No HUMAN_BLOCKERS id is minted.
+
+## Amendment — solid chrome on capture-protected screens (INT-477, 4 Oct 2026)
+
+Owner decision, in chat, 4 Oct 2026: "solid" (INT-477, GitHub #817). The designer found Liquid Glass unreliable on the screens that INT-131's capture protection (expo-screen-capture) guards. The cause is not known (`docs/evidence/INT-466.md`, `docs/evidence/INT-472.md`), and the designer recommended solid chrome there. This amendment changes nothing above for a screen that is not capture-protected.
+
+- **Every capture-protected screen draws solid chrome, in both themes: never Liquid Glass and never a blur.** These screens are records, wellbeing, the intake (typed and spoken), review and send, the share centre and the doctor-link issue screen. The kiosk PIN screen is protected too, and it already carries no glass.
+- **One policy decides it.** Capture protection outranks the OS: `glassMode` answers `solid` whatever Liquid Glass availability and Reduce Transparency say. Every glass surface already has a solid answer, so a protected screen draws what Reduce Transparency draws:
+  - a solid tab rail and a solid bottom bar;
+  - a solid nav bar, with no system chrome material and no scroll-edge effect;
+  - solid stage controls and a flat stage wash;
+  - the orb without its clear lens or its glow.
+- **Off protected screens, S3 stands.** The control layer stays glass on every screen that is not protected.
+- **From the first frame.** The navigators scope each screen by its route name, and the tab rail reads the route it sits over. A protected screen is therefore solid before its own guard has run. The list of protected routes is checked against the source.
+- **For as long as the window is protected.** Protection covers the whole window and can outlive focus: a tab screen stays mounted after its first visit and keeps its protection. While any screen holds protection, every glass surface in the window is solid. The guard holds the window before it asks the OS for protection. It lets go only after the release has settled.
+- **Unchanged.** No motion, haptic or RED behaviour changes. ADR-033's and ADR-038's rules stand, the orb moves only as S1 allows, and the RED root layer is untouched. INT-131's protection itself is unchanged.
+- **Tests:**
+  - `apps/mobile/src/lib/a11y/glass.test.ts`: capture protection outranks the OS. Near miss: the same inputs without protection give glass.
+  - `apps/mobile/src/lib/auth/captureProtection.test.ts`: the routes are discovered from the source, and a protected screen is solid from its first frame. It also covers the window store and the guard's order. Near miss: the visit screen with the same glass nav bar keeps its glass.
+  - `apps/mobile/e2e/captureChrome.spec.ts`: the wiring, and a closed list of glass hosts whose solid branches mount no material.

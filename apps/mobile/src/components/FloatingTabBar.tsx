@@ -56,9 +56,10 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "@/components/Icon";
-import { useGlassMode } from "@/components/glassMode";
+import { CaptureProtectedScope, useGlassMode } from "@/components/glassMode";
 import { AppText, useFontScale, useScheme, useTheme } from "@/components/Themed";
 import { MIN_TAP } from "@/lib/a11y/target";
+import { focusedRoutePath } from "@/lib/auth/captureProtection";
 import { t, type MessageKey } from "@/lib/i18n";
 import { RAIL_GLYPH_BASE, railCollapses, railWellSize } from "@/lib/prefs/appearance";
 import type { SymbolKey } from "@/lib/symbols";
@@ -97,6 +98,9 @@ const TAB_META: Record<string, { labelKey: MessageKey; symbol: SymbolKey }> = {
   wellbeing: { labelKey: "tabs.wellbeing", symbol: "heart" },
   me: { labelKey: "tabs.me", symbol: "person.crop.circle" },
 };
+
+/** The route group whose navigator this rail serves (app/(tabs)/_layout). */
+const TABS_GROUP = "(tabs)";
 
 /** "me/index" → "me"; "visits" → "visits" — the rail thinks in sections. */
 function sectionOf(routeName: string): string {
@@ -219,83 +223,87 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
         },
       ]}
     >
-      <RailPill>
-        {items.map((route) => {
-          const section = sectionOf(route.name);
-          const meta = TAB_META[section];
-          const active = activeSection === section;
-          return (
-            <Pressable
-              key={route.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={t(meta.labelKey)}
-              onPress={() => {
-                const event = navigation.emit({
-                  type: "tabPress",
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (event.defaultPrevented) {
-                  return;
-                }
-                const focusedName = state.routes[state.index].name;
-                if (!active || focusedName !== route.name) {
-                  // Switch sections — or hop from a sibling section route
-                  // ("me/learned") back to the item's own route.
-                  navigation.navigate(route.name);
-                } else if (
-                  route.state &&
-                  typeof route.state.index === "number" &&
-                  route.state.index > 0 &&
-                  route.state.key
-                ) {
-                  // Native-tabs parity: re-pressing the active tab pops its
-                  // nested stack to the section root.
-                  navigation.dispatch({ type: "POP_TO_TOP", target: route.state.key });
-                }
-              }}
-              style={[
-                styles.item,
-                collapsed ? styles.itemCollapsed : null,
-                { minHeight: well },
-                collapsed ? { minWidth: well } : null,
-              ]}
-            >
-              <View
+      {/* INT-477: over a capture-protected screen the pill is solid from the
+          frame that screen is focused, before its own guard has run. */}
+      <CaptureProtectedScope route={focusedRoutePath(TABS_GROUP, state.routes[state.index])}>
+        <RailPill>
+          {items.map((route) => {
+            const section = sectionOf(route.name);
+            const meta = TAB_META[section];
+            const active = activeSection === section;
+            return (
+              <Pressable
+                key={route.key}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={t(meta.labelKey)}
+                onPress={() => {
+                  const event = navigation.emit({
+                    type: "tabPress",
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+                  if (event.defaultPrevented) {
+                    return;
+                  }
+                  const focusedName = state.routes[state.index].name;
+                  if (!active || focusedName !== route.name) {
+                    // Switch sections — or hop from a sibling section route
+                    // ("me/learned") back to the item's own route.
+                    navigation.navigate(route.name);
+                  } else if (
+                    route.state &&
+                    typeof route.state.index === "number" &&
+                    route.state.index > 0 &&
+                    route.state.key
+                  ) {
+                    // Native-tabs parity: re-pressing the active tab pops its
+                    // nested stack to the section root.
+                    navigation.dispatch({ type: "POP_TO_TOP", target: route.state.key });
+                  }
+                }}
                 style={[
-                  styles.glyphWell,
-                  { width: well, height: well },
-                  collapsed && active ? styles.activeWell : null,
-                  collapsed && active ? { backgroundColor: theme.surfaceRaised } : null,
+                  styles.item,
+                  collapsed ? styles.itemCollapsed : null,
+                  { minHeight: well },
+                  collapsed ? { minWidth: well } : null,
                 ]}
               >
-                <Icon
-                  name={meta.symbol}
-                  size={glyph}
-                  // Oura marks the active item with full-contrast ink, not the
-                  // accent (pass 4 measurement) — brightness + weight carry the
-                  // state, and the label is present at every scale below 1.6
-                  // (02 §8.2); above it, the well carries the state instead.
-                  tintColor={active ? theme.primary : theme.inkFaint}
-                  // HIG tab bars: the selected tab draws the filled variant, a
-                  // shape cue that holds without colour (BK8 / SC 1.4.1).
-                  selected={active}
-                />
-              </View>
-              {collapsed ? null : (
-                <AppText
-                  role="micro"
-                  color={active ? "primary" : "inkFaint"}
-                  style={active ? styles.activeLabel : undefined}
+                <View
+                  style={[
+                    styles.glyphWell,
+                    { width: well, height: well },
+                    collapsed && active ? styles.activeWell : null,
+                    collapsed && active ? { backgroundColor: theme.surfaceRaised } : null,
+                  ]}
                 >
-                  {t(meta.labelKey)}
-                </AppText>
-              )}
-            </Pressable>
-          );
-        })}
-      </RailPill>
+                  <Icon
+                    name={meta.symbol}
+                    size={glyph}
+                    // Oura marks the active item with full-contrast ink, not the
+                    // accent (pass 4 measurement) — brightness + weight carry the
+                    // state, and the label is present at every scale below 1.6
+                    // (02 §8.2); above it, the well carries the state instead.
+                    tintColor={active ? theme.primary : theme.inkFaint}
+                    // HIG tab bars: the selected tab draws the filled variant, a
+                    // shape cue that holds without colour (BK8 / SC 1.4.1).
+                    selected={active}
+                  />
+                </View>
+                {collapsed ? null : (
+                  <AppText
+                    role="micro"
+                    color={active ? "primary" : "inkFaint"}
+                    style={active ? styles.activeLabel : undefined}
+                  >
+                    {t(meta.labelKey)}
+                  </AppText>
+                )}
+              </Pressable>
+            );
+          })}
+        </RailPill>
+      </CaptureProtectedScope>
     </View>
   );
 }

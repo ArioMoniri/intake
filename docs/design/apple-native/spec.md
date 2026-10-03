@@ -34,6 +34,8 @@
 | Bottom CTA bar | `GlassBar` | `GlassView` `regular` + top hairline | `BlurView` 55 + wash + top hairline | `surface` + top `border` hairline | Owns the physical bottom edge on intake and review. Height is measured (INT-284) in all three modes. |
 | ~~Welcome dev card~~ | ~~`GlassCard`~~ | — | — | — | **Removed by INT-422** ([system-refresh.md](../system-refresh.md)): content never sits on glass, dev-only or not. The dev card is a plain `Card`. |
 
+Capture protection (INT-477, ADR-039 amendment): while a capture-protected screen is focused, or holds the window's protection, every surface in this table takes its `solid` column.
+
 `glassFallback` alphas, `radius` and `spacing` are unchanged. No palette hex changes, so the pinned AA suite in `theme.test.ts` is untouched.
 
 ### 1.2 Symbol registry

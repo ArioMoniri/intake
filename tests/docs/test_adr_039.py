@@ -165,3 +165,51 @@ def test_registered_in_the_index_and_the_state_file() -> None:
     row = next((line for line in decisions.splitlines() if line.startswith("| **D23**")), None)
     assert row is not None, "files/00 §3 has no D23 row"
     assert "ADR-039" in row and OWNER_QUOTE in row
+
+
+AMENDMENT = "## Amendment — solid chrome on capture-protected screens (INT-477, 4 Oct 2026)"
+AMENDMENT_QUOTE = '"solid"'
+
+
+def test_int477_amendment_quotes_the_owner_and_bounds_the_change() -> None:
+    """INT-477 (GitHub #817): a dated amendment quoting the owner, not a rewrite."""
+    text = _adr()
+    assert AMENDMENT in text, "ADR-039 has no INT-477 amendment section"
+    # An amendment follows the record it amends; the original stays whole.
+    assert text.index(AMENDMENT) > text.index("## Consequences")
+    amendment = _section(text, AMENDMENT)
+    for needle in (
+        AMENDMENT_QUOTE,
+        "4 Oct 2026",
+        "#817",
+        "capture-protected",
+        "both themes",
+        "never Liquid Glass",
+        "blur",
+        "Reduce Transparency",
+        "first frame",
+        "window",
+        "cause",
+        "ADR-033",
+        "ADR-038",
+        "RED",
+        "motion",
+        "haptic",
+        "glass.test.ts",
+        "captureProtection.test.ts",
+        "captureChrome.spec.ts",
+    ):
+        assert needle in amendment, f"the INT-477 amendment lost {needle!r}"
+
+
+def test_int477_amendment_leaves_the_ratified_decision_standing() -> None:
+    text = _adr()
+    status = re.search(r"^Status:\s+(.+)$", text, re.M)
+    assert status is not None and "3 Oct 2026" in status.group(1)
+    head = text[: text.index(AMENDMENT)]
+    # S3's original wording is untouched above the amendment.
+    assert "Under Reduce Transparency every glass surface is a solid stage fill." in head
+    state = STATE.read_text(encoding="utf-8")
+    decisions = _section(state, "## 3. Decisions")
+    row = next(line for line in decisions.splitlines() if line.startswith("| **D23**"))
+    assert "INT-477" in row and AMENDMENT_QUOTE in row and OWNER_QUOTE in row

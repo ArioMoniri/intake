@@ -6793,3 +6793,22 @@
     - "the sheet's content and copy are unchanged; focus stays in the sheet and the VoiceOver escape and Android back close it; no new strings; before/after simulator captures in light and dark are committed"
   tests: [apps/mobile/src/lib/motion/sheet.test.ts, apps/mobile/e2e/sheets.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/a11y.spec.ts]
   sec_row: "mobile"
+- id: INT-477
+  epic: E08-mobile
+  phase: P1
+  title: 'Solid chrome on capture-protected screens (owner: "solid"), never Liquid Glass'
+  # GitHub #817. Owner, in chat, 4 Oct 2026: "solid". The designer found
+  # Liquid Glass unreliable on the screens INT-131's capture protection
+  # guards, and the cause is not known. Amends ADR-039 (INT-466) by a dated
+  # section. Stacked on INT-473 (#808).
+  depends_on: [INT-131]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-477.md
+  acceptance:
+    - "every capture-protected screen renders solid chrome (no glass material, no blur view) in both themes; the glass components fall back to the solid variant whenever capture protection is active"
+    - "test: a capture-protected screen never mounts a glass view; near miss: an unprotected screen with the same chrome still mounts glass"
+    - "ADR-039 records the decision with the owner's quote and date (an amendment section, not a rewrite)"
+    - "no motion, haptics or RED behaviour change; ADR-033 and ADR-038 rules unchanged"
+  tests: [apps/mobile/src/lib/a11y/glass.test.ts, apps/mobile/src/lib/auth/captureProtection.test.ts, apps/mobile/e2e/captureChrome.spec.ts, tests/docs/test_adr_039.py]
+  sec_row: "mobile"

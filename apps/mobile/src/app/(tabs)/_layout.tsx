@@ -17,6 +17,7 @@ import { Tabs } from "expo-router/js-tabs";
 
 import { BiometricGate } from "@/components/BiometricGate";
 import { FloatingTabBar } from "@/components/FloatingTabBar";
+import { CaptureProtectedScope } from "@/components/glassMode";
 import { useTheme } from "@/components/Themed";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { routeClassOf, tabTransition } from "@/lib/motion/transitions";
@@ -60,6 +61,11 @@ function TabsShell({
         ...tabTransition(routeClassOf(`(tabs)/${route.name}`), { reduce: reduceMotion }),
         sceneStyle: { backgroundColor: themeBackground },
       })}
+      // INT-477: a capture-protected tab is solid chrome from its first frame,
+      // before its own guard has run (lib/auth/captureProtection).
+      screenLayout={({ route, children }) => (
+        <CaptureProtectedScope route={`(tabs)/${route.name}`}>{children}</CaptureProtectedScope>
+      )}
     >
       <Tabs.Screen name="today" />
       <Tabs.Screen name="visits" />

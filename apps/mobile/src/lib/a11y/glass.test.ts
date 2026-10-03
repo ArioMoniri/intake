@@ -12,6 +12,10 @@
  * doc comment says so), so availability alone cannot decide. The unknown case
  * fails closed to solid, as reduce motion fails closed to reduced (INT-331):
  * the surface a patient who needs contrast can read is the one shown first.
+ *
+ * INT-477 (ADR-039 amendment; owner, 4 Oct 2026: "solid"): capture protection
+ * outranks both. A capture-protected screen draws solid chrome whatever the OS
+ * offers, because Liquid Glass was unreliable there and the cause is unknown.
  */
 import { describe, expect, it } from "vitest";
 
@@ -31,7 +35,7 @@ describe("glassMode", () => {
   it.each(table)(
     "liquid glass available %s, reduce transparency %s → %s",
     (liquidGlass, reduceTransparency, mode) => {
-      expect(glassMode({ liquidGlass, reduceTransparency })).toBe(mode);
+      expect(glassMode({ liquidGlass, reduceTransparency, captureProtected: false })).toBe(mode);
     },
   );
 
@@ -39,7 +43,30 @@ describe("glassMode", () => {
     // The near miss: a policy that asked only "is Liquid Glass available?"
     // would answer liquid here, and the patient who turned transparency down
     // would still get a see-through rail.
-    expect(glassMode({ liquidGlass: true, reduceTransparency: true })).not.toBe("liquid");
+    expect(
+      glassMode({ liquidGlass: true, reduceTransparency: true, captureProtected: false }),
+    ).not.toBe("liquid");
+  });
+
+  it.each(table)(
+    "capture protection (INT-477): available %s, reduce transparency %s → solid, whatever the OS says",
+    (liquidGlass, reduceTransparency) => {
+      expect(glassMode({ liquidGlass, reduceTransparency, captureProtected: true })).toBe("solid");
+    },
+  );
+
+  it("near miss: the same inputs without capture protection still give Liquid Glass", () => {
+    // The OS offers glass and the patient allows transparency: only the
+    // protection turns it off, so a policy that ignored it would draw glass.
+    const offered = { liquidGlass: true, reduceTransparency: false } as const;
+    expect(glassMode({ ...offered, captureProtected: false })).toBe("liquid");
+    expect(glassMode({ ...offered, captureProtected: true })).toBe("solid");
+  });
+
+  it("near miss: capture protection is no blur either, on an OS without Liquid Glass", () => {
+    const offered = { liquidGlass: false, reduceTransparency: false } as const;
+    expect(glassMode({ ...offered, captureProtected: false })).toBe("blur");
+    expect(glassMode({ ...offered, captureProtected: true })).toBe("solid");
   });
 
   it("the three modes are the whole vocabulary", () => {
