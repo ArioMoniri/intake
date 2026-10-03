@@ -124,6 +124,8 @@ async def read_note(visit_id: uuid.UUID, principal: Principal, state: State) -> 
             # carries. Never stored a second time (it cannot drift).
             proxy_reported=record.proxy_reported,
             third_party_present=record.third_party_present,
+            # INT-407 — files/02 §2b: whoever reads the note is told it is stale
+            stale=record.note_stale(state.clock()),
         )
 
 
@@ -201,6 +203,9 @@ async def write_note(
             status="sent" if sent else "draft",
             proxy_reported=record.proxy_reported,
             third_party_present=record.third_party_present,
+            # INT-407: a send is a completed session, so its anchor is now and
+            # the note is fresh; a draft save keeps the anchor it had
+            stale=False if sent else record.note_stale(state.clock()),
         )
 
 

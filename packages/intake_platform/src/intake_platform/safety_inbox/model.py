@@ -23,6 +23,14 @@ kinds and instants. So that is the whole field set:
   the RED path, in-process — and nothing later moves it: a store that was
   down when the RED fired writes the entry late, but the clinic's clock still
   started at the RED.
+- **A RED entry records the register it was told in** (INT-407). files/02 §2b
+  re-shows the crisis signposting *"in the register the original RED used"*
+  when a RED visit moves, and this entry is the only server-side record of a
+  RED — so the register rides on it, a closed enum and never words. It is
+  optional only because an entry written before INT-407 has none; a reader
+  that finds none withholds the re-show rather than choose a register, since a
+  default register *"would be chosen once, by an engineer, for all future
+  rules"* (files/02 §5.3). The transition kinds carry none.
 """
 
 from __future__ import annotations
@@ -30,9 +38,11 @@ from __future__ import annotations
 import enum
 import hashlib
 import re
+import warnings
 from datetime import datetime, timedelta
 from typing import Annotated, Final, Literal, Self
 
+from clinical_schemas.triage import RedRegister
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
@@ -146,6 +156,17 @@ def _aware(value: datetime, name: str) -> datetime:
     return value
 
 
+# The blueprint names the RED axis field `register` (CLAUDE.md invariant 21;
+# files/02 §5.3); pydantic warns because ABCMeta exposes a classmethod of the
+# same name. The blueprint name wins — suppress exactly that warning, as
+# clinical_schemas.triage does for its own.
+warnings.filterwarnings(
+    "ignore",
+    message='Field name "register" in "InboxEntry" shadows an attribute in parent',
+    category=UserWarning,
+)
+
+
 class InboxEntry(BaseModel):
     """Immutable; acknowledging returns a new entry."""
 
@@ -163,12 +184,16 @@ class InboxEntry(BaseModel):
     created_at: datetime
     acknowledged_at: datetime | None = None
     acknowledged_by: _Subject | None = None
+    #: INT-407: how the RED was told (files/02 §5.3 Axis 2), for the §2b re-show.
+    register: RedRegister | None = None
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
         _aware(self.created_at, "created_at")
         if self.entry_id != entry_id_for(self.tenant_id, self.kind, self.source_ref):
             raise ValueError("entry_id is derived from tenant, kind and source, never chosen")
+        if self.register is not None and self.kind is not EntryKind.RED:
+            raise ValueError("only a RED entry records a register; a transition was told nothing")
         if (self.acknowledged_at is None) != (self.acknowledged_by is None):
             raise ValueError("an acknowledgement names both who and when, or neither")
         if self.acknowledged_at is not None:
@@ -187,6 +212,7 @@ class InboxEntry(BaseModel):
         work_id: str,
         rule_ids: tuple[str, ...],
         at: datetime,
+        register: RedRegister | None = None,
     ) -> InboxEntry:
         return cls(
             entry_id=entry_id_for(tenant_id, EntryKind.RED, work_id),
@@ -197,6 +223,7 @@ class InboxEntry(BaseModel):
             rule_ids=rule_ids,
             source_ref=work_id,
             created_at=at,
+            register=register,
         )
 
     @classmethod

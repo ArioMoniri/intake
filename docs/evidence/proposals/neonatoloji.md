@@ -125,7 +125,7 @@ to feed today.
 | Q10 | Fever in a newborn | HB-C3 "fever under 3 months" | input only |
 | Q6, Q11 | Feeding less; unusually sleepy / hard to wake | HB-C3 "lethargy/poor feeding in an infant" | input only |
 | Q12 | Laboured breathing / grunting | HB-C3 "breathing difficulty" (parent-reportable form) | input only |
-| Q7 | Fewer wet nappies (`islak_bez_azalmasi == true` is the concern) | HB-C3 "dehydration signs" | input only |
+| Q7 | Fewer wet nappies (`az_cis == true` is the concern; CD-10) | HB-C3 "dehydration signs" | input only |
 | Q8, Q9 | Jaundice; pale stool | **absent** from HB-C3's list and from `base.life_threat` | input only; §4 gap 2 |
 
 ### 2.3 Red-flag candidates — for physician review — not encoded
@@ -196,7 +196,8 @@ CANDIDATE — clinician to approve wording. **Feeds HB-C3 poor feeding (§2.2).*
 
 **Q7 — Nappies wet less often than usual** · archetype: `OBSERVATION.symptom_sign.v1` · source: NE-S1 PDF p. 12 ("bez ıslatır"); NE-S5 rec 1.5.14 ("wet and dirty nappies")
 > "Bebeğinizin bezi her zamankinden daha seyrek mi ıslanıyor?"
-gen: slot=islak_bez_azalmasi; type=boolean
+gen: slot=az_cis; type=boolean
+INT-432 decision CD-10: same polarity (`true` is the concern), renamed onto the shared hydration id `az_cis`; the nappy wording stays.
 CANDIDATE — clinician to approve wording. Polarity is now *true = concern* (wave-7 flip), like every
 other symptom slot here; an HB-C3 rule reading this slot tests `== true`. **Feeds HB-C3 dehydration (§2.2).**
 
