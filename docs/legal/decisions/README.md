@@ -12,8 +12,8 @@ Machine-readable entries: `packages/intake_platform/legal_decisions/LD-NN.yaml`,
 
 | Decision | Title | Status | Reviewer verdict | Lawyer countersign |
 |---|---|---|---|---|
-| [LD-01](LD-01.md) | Adli Tıp: the report-purpose item, and whether the Sağlık Raporları Yönetmeliği governs forensic reports | `proposed` | pending | none |
-| [LD-02](LD-02.md) | Minors and proxy answers (HB-L20) in synthetic and test sessions | `proposed` | pending | none |
-| [LD-03](LD-03.md) | KVKK inventory rows: family history, relatives' health and consanguinity; the hearing-voices item (Q16) | `proposed` | pending | none |
-| [LD-04](LD-04.md) | Occupational items: work-related sick leave, job tenure and household tuberculosis contact — category and basis | `proposed` | pending | none |
-| [LD-05](LD-05.md) | WCAG 2.2 SC 2.2.1: classification of the RED no-answer wait | `proposed` | pending | none |
+| [LD-01](LD-01.md) | Adli Tıp: the report-purpose item, and whether the Sağlık Raporları Yönetmeliği governs forensic reports | `active` | agree_with_changes | none |
+| [LD-02](LD-02.md) | Minors and proxy answers (HB-L20) in synthetic and test sessions | `active` | agree_with_changes | none |
+| [LD-03](LD-03.md) | KVKK inventory rows: family history, relatives' health and consanguinity; the hearing-voices item (Q16) | `active` | agree | none |
+| [LD-04](LD-04.md) | Occupational items: work-related sick leave, job tenure and household tuberculosis contact — category and basis | `active` | agree_with_changes | none |
+| [LD-05](LD-05.md) | WCAG 2.2 SC 2.2.1: classification of the RED no-answer wait | `active` | agree_with_changes | none |

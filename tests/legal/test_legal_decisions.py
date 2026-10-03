@@ -787,9 +787,14 @@ def test_every_committed_decision_is_either_awaiting_review_or_independently_ver
 
 
 def _text_of(decision_id: str) -> str:
+    """What a decision asserts today: the YAML without its verifier block and the
+    prose twin above its verdict. The reviewer's history may quote what was wrong."""
     yaml_text = (REGISTER_DIR / f"{decision_id}.yaml").read_text(encoding="utf-8")
     md_text = (DOCS_DIR / f"{decision_id}.md").read_text(encoding="utf-8")
-    return yaml_text + md_text
+    asserted_yaml = yaml_text.split("\nverifier:\n", 1)[0]
+    asserted_md = md_text.split("\n## Reviewer verdict\n", 1)[0]
+    assert asserted_yaml != yaml_text and asserted_md != md_text, decision_id
+    return asserted_yaml + asserted_md
 
 
 def test_ld01_names_the_adli_tip_follow_up_by_its_own_id() -> None:
