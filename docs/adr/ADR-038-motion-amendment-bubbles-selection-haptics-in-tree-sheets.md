@@ -22,7 +22,8 @@ The owner asked for all three. CLAUDE.md requires an ADR for an architecture cha
 
 ### A1 — Spring-in message bubbles (amends §1)
 
-- **What moves.** A message bubble that is new in the dialogue transcript (an agent turn, the patient's typed or transcribed turn, or the open-mic bubble) enters with opacity 0 → 1 over 120 ms and a vertical offset of **8 pt → 0** driven by a critically damped spring. Nothing else in the transcript moves.
+- **What moves.** A new agent bubble in the dialogue transcript enters with opacity 0 → 1 over 120 ms and a vertical offset of **8 pt → 0** driven by a critically damped spring. Nothing else in the transcript moves.
+- **The patient's own words stay instant.** The patient's typed or transcribed bubble and the open-mic bubble keep INT-337's instant render (its C4 rule). They answer the patient's own action, so the patient never waits on their own words, and the next question arriving in the same commit keeps the arbiter's one animation slot.
 - **The spring.** ADR-037 P1's numbers, so the app has one spring: stiffness 1500, damping 77.5, mass 1, damping ratio ζ = 1, `overshootClamping: true`. It settles in about 150 ms and never overshoots. No scale: scaled text blurs while it moves.
 - **One element at a time.** The bubble's entrance is the arbiter's `content` class (INT-337, PR #717). A higher arrival snaps it to its end state. A bubble that was already on screen when the transcript mounted never animates. The platform auto-scroll at a turn boundary stays ADR-033 §3's one permitted co-occurrence.
 - **Never on RED.** While any ALERT, CALM or SILENT RED is presented (`redPresentationMode(register) !== "none"`), a bubble renders at its end state with no motion. RED surfaces themselves stay at zero motion (ADR-033 §5).

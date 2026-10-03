@@ -64,8 +64,16 @@ def test_a1_bubble_spring_is_bounded() -> None:
         "Never on RED",
         "Reduce Motion",
         "`content` class",
+        "The patient's own words stay instant",
+        "INT-337's instant render",
     ):
         assert needle in a1, f"A1 lost {needle!r}"
+    # Only the agent's bubble moves: the patient's typed or transcribed
+    # bubble and the open-mic bubble stay outside the arbiter (INT-337 C4).
+    moves = re.search(r"\*\*What moves\.\*\*(.+)", a1)
+    assert moves is not None, "A1 lost its 'What moves' bullet"
+    assert "agent bubble" in moves.group(1)
+    assert "patient" not in moves.group(1)
 
 
 def test_a2_haptics_are_bounded() -> None:
