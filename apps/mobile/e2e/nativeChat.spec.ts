@@ -84,6 +84,19 @@ describe("P1/P2: the composer is one capsule on the glass bar", () => {
       /trailingDisc: \{\s*width: TRAILING_SIZE,\s*height: TRAILING_SIZE,\s*borderRadius: radius\.chip/,
     );
   });
+
+  it("the transcript follows the newest turn again when the bar re-measures", () => {
+    // Found on the simulator: a confirm turn adds two CTAs to the bar, the
+    // bar reports its new height after the follow already ran, and the last
+    // chip row sat under the bar until the patient scrolled.
+    const dialogue = source(DIALOGUE);
+    const follow = dialogue.match(
+      /useEffect\(\(\) => \{\s*const frame = requestAnimationFrame\(\(\) =>\s*scrollRef\.current\?\.scrollToEnd[\s\S]*?\}, \[([^\]]*)\]\);/,
+    );
+    expect(follow, "the follow effect").not.toBeNull();
+    const deps = (follow?.[1] ?? "").split(",").map((dep) => dep.trim());
+    expect(deps).toEqual(expect.arrayContaining(["streamLength", "turn.phase", "barClearance"]));
+  });
 });
 
 describe("P3: the mic opens only on tap, through the session's own paths", () => {

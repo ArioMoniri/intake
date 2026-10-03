@@ -234,12 +234,16 @@ export function DialogueIntake({
   // Increase Contrast restores the resting boundaries INT-433's filled rules
   // drop (the composer capsule and an unselected chip).
   const increasedContrast = useIncreasedContrast() === "high";
+  // The bar's clearance is a dependency too: a confirm turn adds two CTAs to
+  // the bar, and its new height arrives after the turn does. Without it the
+  // follow ran against the old padding and left the last chip row under the
+  // bar until the patient scrolled (INT-462, seen on the simulator).
   useEffect(() => {
     const frame = requestAnimationFrame(() =>
       scrollRef.current?.scrollToEnd({ animated: scrollAnimated(reduceMotion) }),
     );
     return () => cancelAnimationFrame(frame);
-  }, [streamLength, turn.phase, reduceMotion]);
+  }, [streamLength, turn.phase, reduceMotion, barClearance]);
 
   /**
    * The turn state, as one Turkish sentence (INT-144).
