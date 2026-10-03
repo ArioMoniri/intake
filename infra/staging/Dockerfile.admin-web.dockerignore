@@ -1,0 +1,19 @@
+*
+# INT-421: deny everything by default. Then re-include the pnpm workspace
+# manifests, because the frozen lockfile names every importer, and the
+# console's own sources.
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+!apps/*/package.json
+!packages/*/package.json
+!services/*/package.json
+!apps/admin-web/
+**/.env
+**/.env.*
+**/.git
+**/node_modules
+**/.next
+**/e2e
+**/*.test.ts

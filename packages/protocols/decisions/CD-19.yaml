@@ -1,0 +1,319 @@
+# INT-447 clinical decision CD-19. Agent-authored under owner decision D18
+# (2 Oct 2026, INT-432): simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote
+# below appears verbatim in the named snapshot; spec_basis quotes appear
+# verbatim in the named committed file. Not a pack: nothing here is compiled
+# or served. The Turkish of each line is byte-equal to its catalogue key.
+kind: clinical_decision
+id: CD-19
+title: 'INT-414 delivery lines: opening and resume (rows 1-9)'
+question: INT-414 (#726) adds conversational delivery lines around each question. Do the opening and resume
+  lines (three welcomes, two voice orientations, two typed orientations, two resume lines) pass PolicyGuard
+  (no diagnosis, treatment, prognosis, reassurance or minimising), stay B1 plain Turkish in the siz register,
+  ask nothing, carry no numeral, and fit the moment they are said?
+decision: 'All nine pass unchanged. They greet, say what will happen and state only the affordances the
+  product really has, in short sentences of everyday words and the siz register, and none of them asks
+  anything or carries a numeral. None says where the answers go: that wording renders only from docs/legal/
+  (invariant 18), and docs/legal/strings.yaml is not authored yet (HB-L27). Each line below is its own
+  entry with its six checks, the author''s verdict and the verifier''s verdict; the Turkish is byte-equal
+  to the catalogue key it names.'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (INT-432): agent sign-off for simulated-patient testing only. A licensed
+  physician''s review is required before any real patient; that requirement is unchanged by this record.'
+question_origin: 'INT-447 (#758), split from INT-432 (#735): the HB-C1 table in docs/evidence/INT-414.md
+  and the approval:human-clinical label on #726.'
+author_role: family medicine physician, patient communication and health literacy (agent; medical author)
+sources:
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Önsöz (foreword), the plan's aims
+  quote: Aynı zamanda sağlık iletişiminde yalın, erişilebilir ve kültürel açıdan hassas içeriklerin geliştirilmesi
+    de planda öncelikli olarak ele alınmıştır.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Activity 2.2.4.2 (Hedef 2)
+  quote: Hasta ve hasta yakınına verilen belge ve formların anlaşılır bir dille yazılması ve güncellenmesi.
+  supports: lines[*].checks.b1_plain_language
+  note: The plan's own activity for documents and forms given to patients; an intake form spoken or shown
+    to the patient is held to it.
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Dünyada ve Ülkemizde Sağlık Okuryazarlığı Düzeyi ve İlişkili Faktörler, Dünyadaki Durum
+  quote: sağlık profesyonellerinin hastalarla güvene dayalı bir ilişki kurma ve ilaçları hakkında sade
+    bir anlatımla bilgi verme suretiyle hastaların sağlık okuryazarlığının artırılabileceği saptanmıştır
+  supports: lines[*].checks.fits_context
+  caveat: Cited for trust and plain explanation as the communication aim; the sentence is about medicines
+    information, and nothing here informs about medicines.
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 kişiden 7’sinin Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: Araştırma sonuçlarına göre Türkiye’de yaklaşık olarak 10 kişiden 7’sinin sağlık okuryazarlığı
+    düzeyi yetersiz veya sınırlı.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 Yaşlıdan 9’unun Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: 65 ve üzeri yaş grubu için elde edilen sonuçlar, 10 yaşlıdan 9’unun sağlık okuryazarlığının yetersiz
+    veya sınırlı olduğunu göstermekte.
+  supports: lines[*].checks.b1_plain_language
+spec_basis:
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 2
+  quote: Patient-facing text passes `PolicyGuard` (no diagnosis/treatment/prognosis language; one question
+    per turn; B1 Turkish).
+  supports: lines[*].checks.policyguard, lines[*].checks.not_a_question
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: lines[*].checks.no_numerals
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: 'Patient copy: ≤ B1 Turkish, empathetic, no medical jargon without explanation, never alarming
+    beyond the triage action.'
+  supports: lines[*].checks.b1_plain_language
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Register is `siz` universally — never `sen`, reachable only by mirroring
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Warmth comes from verb mood (`-elim/-alım`), not the pronoun.
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: conversational delivery may paraphrase the lead-in, never the item.
+  supports: lines[*].checks.fits_context
+- file: files/03_ARCHITECTURE.md
+  section: §4.2 Layer A, Realtime Talker boundary
+  quote: empathic acknowledgement ≤ 5 words; no diagnosis/treatment/prognosis language; one question per
+    turn; B1 Turkish
+  supports: lines[*].checks.fits_context
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 18
+  quote: consent and legal texts render only from `docs/legal/` with hash binding
+  supports: lines[*].note
+value:
+  line_count: 9
+  changed: []
+  checks:
+    policyguard: 'PolicyGuard.filter(text, scripted=False) on the dynamic path: no violation, nothing
+      dropped, no bridge; and by reading, no diagnosis, treatment, prognosis, reassurance or minimising'
+    b1_plain_language: at most two sentences of at most fifteen words, everyday words, no medical jargon
+      (Sağlık Bakanlığı plain-language aim)
+    siz_register: siz throughout; no sen; no doubled-polite imperative; warmth from -elim/-alım and -ebilirsiniz
+    not_a_question: no '?', no mı/mi/mu/mü, no interrogative opening a listener hears as a question
+    no_numerals: no digit in tr or en (invariant 22)
+    fits_context: true to what the product does at that moment, and right for the slot, the delivery context
+      and the lane
+  lines:
+  - row: 1
+    key: dialogue.delivery.welcome.a
+    slot: welcome
+    delivery_context: welcome
+    said_when: Opening, first line (voice and typed)
+    lane: voice_and_screen
+    tr: Hoş geldiniz. Muayenenizden önce size bazı sorular soracağım.
+    en: Welcome. Before your examination, I will ask you some questions.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Greets and says what will happen. ''Muayene'' and ''bazı sorular'' promise no count, no length
+      and no outcome. Says nothing about where answers go: invariant 18 keeps that to docs/legal/.'
+    verifier_verdict: agree
+  - row: 2
+    key: dialogue.delivery.welcome.b
+    slot: welcome
+    delivery_context: welcome
+    said_when: Opening, first line (voice and typed)
+    lane: voice_and_screen
+    tr: Merhaba, hoş geldiniz. Muayeneden önce birlikte bazı sorular üzerinden geçelim.
+    en: Hello, and welcome. Before the examination, let us go through some questions together.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Greets and says what will happen. ''Muayene'' and ''bazı sorular'' promise no count, no length
+      and no outcome. Says nothing about where answers go: invariant 18 keeps that to docs/legal/.'
+    verifier_verdict: agree
+  - row: 3
+    key: dialogue.delivery.welcome.c
+    slot: welcome
+    delivery_context: welcome
+    said_when: Opening, first line (voice and typed)
+    lane: voice_and_screen
+    tr: Hoş geldiniz. Muayenenize hazırlık için size bazı sorular sormak istiyorum.
+    en: Welcome. To prepare for your examination, I would like to ask you some questions.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Greets and says what will happen. ''Muayene'' and ''bazı sorular'' promise no count, no length
+      and no outcome. Says nothing about where answers go: invariant 18 keeps that to docs/legal/.'
+    verifier_verdict: agree
+  - row: 4
+    key: dialogue.delivery.orientVoice.a
+    slot: orientVoice
+    delivery_context: welcome
+    said_when: Opening, second line (voice)
+    lane: voice_and_screen
+    tr: Soruları ekranda da görebilirsiniz. Dilerseniz yazarak da yanıt verebilirsiniz.
+    en: You can also see the questions on the screen. If you wish, you can answer by typing too.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'States only affordances the voice lane really has: the question text stays on screen and typing
+      is accepted at any time. Plain everyday words; the -ebilirsiniz form offers, it does not instruct.'
+    verifier_verdict: agree
+    verifier_note: 'True: the question text stays in its bubble and the voice lane accepts typed input
+      (sendTyped).'
+  - row: 5
+    key: dialogue.delivery.orientVoice.b
+    slot: orientVoice
+    delivery_context: welcome
+    said_when: Opening, second line (voice)
+    lane: voice_and_screen
+    tr: Ben konuşurken araya girebilirsiniz. Sorular ekranda yazılı olarak da durur.
+    en: You can interrupt me while I am speaking. The questions also stay written on the screen.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'States only affordances the voice lane really has: barge-in works and the question text stays
+      on screen. Plain everyday words; the -ebilirsiniz form offers, it does not instruct.'
+    verifier_verdict: agree
+    verifier_note: 'True: bargeIn() halts playback, typing over speech is also a barge-in, and the question
+      text stays on screen.'
+  - row: 6
+    key: dialogue.delivery.orientTyped.a
+    slot: orientTyped
+    delivery_context: welcome
+    said_when: Opening, second line (typed; display only)
+    lane: display_only
+    tr: Soruları kendi hızınızda yanıtlayabilirsiniz.
+    en: You can answer the questions at your own pace.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Removes time pressure without promising a duration. Display only.
+    verifier_verdict: agree
+  - row: 7
+    key: dialogue.delivery.orientTyped.b
+    slot: orientTyped
+    delivery_context: welcome
+    said_when: Opening, second line (typed; display only)
+    lane: display_only
+    tr: Acele etmeden, kendi hızınızda ilerleyebilirsiniz.
+    en: You can move through them at your own pace, without hurrying.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Removes time pressure without promising a duration. Display only.
+    verifier_verdict: agree
+  - row: 8
+    key: dialogue.delivery.resume.a
+    slot: resume
+    delivery_context: routine
+    said_when: First step of a sitting that did not open the intake
+    lane: voice_and_screen
+    tr: Kaldığımız yerden devam edelim.
+    en: Let us continue where we left off.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: A resumed or handed-over intake is not welcomed twice. -elim mood, no judgement about the break.
+    verifier_verdict: agree
+  - row: 9
+    key: dialogue.delivery.resume.b
+    slot: resume
+    delivery_context: routine
+    said_when: First step of a sitting that did not open the intake
+    lane: voice_and_screen
+    tr: Kaldığımız yerden sürdürelim.
+    en: Let us pick up where we left off.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: A resumed or handed-over intake is not welcomed twice. -elim mood, no judgement about the break.
+    verifier_verdict: agree
+verifier:
+  verdict: agree_with_changes
+  role: independent clinical verifier (agent; internal medicine and Turkish health literacy)
+  verified_on: '2026-10-03'
+  notes: 'Independent verification, 3 Oct 2026: every line agreed; the record-text fixes listed here were
+    applied by the author before commit, and no line verdict changed. All nine lines agreed; the orientation
+    claims (screen text, typing, barge-in) hold in useDialogueSession.ts and stream.ts. Text-only fixes:
+    (1) the shared literature source label; (2) ''the file does not exist yet (INT-210)'' should name
+    docs/legal/strings.yaml and the authoring blocker HB-L27, because INT-210 shipped the mechanism; (3)
+    the rows 4-5 shared note lists barge-in, which orientVoice.a does not state. The verifier saw only
+    the committed output, the two source snapshots, the repository rules and the INT-414 code, never the
+    author''s reasoning; it re-fetched both sources and found every quote verbatim. Scope D18: simulated-patient
+    stress testing only; a licensed physician''s review is required before any real patient.'

@@ -1,0 +1,39 @@
+# INT-421: the admin console image (apps/admin-web, Next.js). Multi-stage,
+# non-root, every base pinned by digest. The build context is the repository
+# root. Dockerfile.admin-web.dockerignore, which sits next to this file, sends
+# the pnpm workspace manifests and apps/admin-web only.
+#
+# The console serves nothing without a signed-in Keycloak session. oauth2-proxy
+# stands in front of it (compose.yaml), and the API's INT-180 gate decides
+# every admin read. This image holds no secret, and no environment value is
+# baked into it.
+#
+# Digest resolved from Docker Hub's v2 API on 2 Oct 2026, and recomputed from
+# the manifest bytes:
+#   node:24.21.0-trixie-slim   (MIT; Node.js licence)
+
+FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS builder
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    CI=1
+WORKDIR /app
+COPY . /app
+# The lockfile is frozen. The filter installs admin-web's own dependency
+# closure plus the workspace root, which carries the typescript `next build`
+# needs.
+RUN corepack enable \
+ && pnpm install --frozen-lockfile --filter "@intake/admin-web..." --filter intake \
+ && pnpm --filter @intake/admin-web exec next build
+
+FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS runtime
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+# root-owned, so the files are read-only to the service user
+COPY --from=builder /app /app
+WORKDIR /app/apps/admin-web
+USER 10001:10001
+EXPOSE 3000
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.status===200?0:1),()=>process.exit(1))"]
+CMD ["node_modules/.bin/next", "start", "--port", "3000"]
