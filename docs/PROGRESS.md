@@ -72,6 +72,44 @@
   - INT-408 (workers).
   - The asks are in docs/release/production-checklist.md §6. No HB id is minted here.
 - Next: the owner runs `aws login`; then deploy `21097828` or later, run `dev_fixture_retire` on the host, and record both in docs/evidence/INT-421.md.
+
+### 2026-10-03T17:00:00Z · INT-463 · awaiting-human (PR open, not merged; the owner's workflow commit 66cc6f91 is on it)
+- Goal: the acceptance, verbatim (GitHub #790):
+  - a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; ephemeral, re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker for that user is rootless only.
+  - every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml.
+  - on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner.
+- Plan:
+  - Install the runner over SSM from `infra/ci/aws-runner`:
+    - a root, unsandboxed supervisor (`cycle.sh`) runs the guards, registers with `--ephemeral`, runs one job in the sandboxed `intake-aws-ci-job.service`, then wipes;
+    - rootless Docker runs in its own sandboxed unit;
+    - everything sits on the instance-store NVMe, under a resource slice.
+  - Declare the pool.
+  - Write the test.
+  - Hand the workflow change to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/ci/test_aws_runner.py`, with a hosted-name near-miss control.
+  - `tests/infra/test_ci_no_phi.py` is updated for the declared pool. The TR-DC label still fails closed, and a declared pool with no collected heartbeat reports Failed, not healthy.
+  - Red run: 40 failed, 37 passed. After the pool was declared: 39 failed (the 13 jobs × 3 `runs-on` assertions the owner patch fixes) and 113 passed.
+  - The patch was checked with `git apply --check` plus a YAML parse on `main` and on #643's branch: 13/13 jobs on intake-aws-ci.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local: the touched lanes, backlog counts and smoke counts (334, after main added INT-407 and INT-432), shellcheck, and no_placeholders (staged).
+  - The full check-py, check-ts, check-integration and security gates run on the PR, on the AWS runner, after the owner commit.
+  - Host isolation was measured as ghrunner (docs/evidence/INT-463.md).
+- Invariants touched and still passing:
+  - 6: no PHI in CI. The pool is phi_path false, and the six-surface policy is unchanged.
+  - 13: the ci-runners probe now reports a missing heartbeat rather than Skipped.
+  - 14: every gate still runs, with the same tools and pins; only the machine changes.
+  - 17.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - The owner's order of 3 Oct 2026 answers HB-I7's spend for a non-TR pool. The note is on HB-I7.
+  - The TR-DC pool stays open (HB-L11).
+  - No ADR was minted: no invariant is relaxed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - The owner applied `owner-ci-aws-runners.patch` as 66cc6f91 (security.yml is hook-protected; the classifier refuses workflow edits from an agent).
+  - The runner stays ephemeral (INT-206). The host registrar reads the admin token from SSM as root and mints a registration token before every registration; the persistent-runner alternative was refused by the classifier as a security weakening.
+  - owner: the SSM SecureString `/intake/staging/gh_runner_admin_pat` holds 16 words of prose, not a token. Overwrite it with the raw fine-grained token, so the host's registrar mints a registration token before every job. HB-I7.
+- Result on #791 (aa07c3b2): 12 of 12 jobs ran on intake-aws-ci-1, re-registering by itself after each (the last ten via the SSM registrar); 11 green. gitleaks found no leaks but failed its SARIF upload because the workspace sat beside $HOME; fixed in-repo (workspace under home), awaiting a host reinstall.
+- Next: `scripts/ci/aws_runner.sh install` once host changes are cleared, then re-run #791.
 - LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
