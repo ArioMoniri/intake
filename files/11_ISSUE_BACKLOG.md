@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**329 issues.** By phase: P0 162 · P1 113 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 217 · todo 74 · withdrawn 1.
+**331 issues.** By phase: P0 164 · P1 113 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 220 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -173,6 +173,8 @@
 | INT-390 | Keycloak upgraded to a patched release, and the committed realm imports on it | E12-admin | INT-023, INT-365 | area:admin, risk:security | done |
 | INT-382 | The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads | E03-protocols | INT-258 | area:protocols, risk:clinical | done |
 | INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
+| INT-395 | DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links) | E02-data | INT-037, INT-141, INT-150, INT-393 | area:data, risk:legal | done |
+| INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
 
 ## P1
 
@@ -282,7 +284,7 @@
 | INT-408 | Workers tier SLOs: the owner decides the tier and its targets | E01-platform | INT-021 | area:observability | awaiting-human |
 | INT-398 | Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox | E07-records | INT-122 | area:records, risk:security | awaiting-human |
 | INT-399 | Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2) | E07-records | INT-122 | area:records | awaiting-human |
-| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | todo |
+| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | done |
 | INT-409 | The visits list uses the real date, not a pinned TODAY_FIXTURE, in every build | E08-mobile | INT-370 | area:mobile, risk:clinical | done |
 | INT-410 | Release bundles carry no synthetic seed accounts (audit F30) | E08-mobile | INT-130 | area:mobile, risk:security | done |
 | INT-412 | Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal | E08-mobile | INT-360 | area:mobile | done |

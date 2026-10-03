@@ -294,10 +294,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # stated reason.
     # + INT-431 (the embed sample's JWT fixture is built at runtime, found
     # merging main into #481, GitHub #733); grows only with a stated reason.
+    # + INT-395 (DSAR erasure and export cover every patient-deletable table,
+    # found by INT-393); grows only with a stated reason.
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
+    # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
+    # with a stated reason.
     # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
     # commit status, owner request, GitHub #721); grows only with a stated
     # reason.
-    assert len(ids) == 329, f"expected 175 blueprint + 154 added issues, got {len(ids)}"
+    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
