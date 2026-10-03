@@ -22,6 +22,13 @@ Proposal format (section titled "Candidate …", or `## 3.` when it holds Q item
 The `gen:` line is optional. Q1 fills basvuru_nedeni. `hold=` keeps an item out
 of the pack (unsourced or unverified). An ask with more than one question mark,
 or with a digit, is refused (invariants 2 and 22).
+
+An optional `pack:` line in the same section sets pack-level options:
+    pack: duration_ask=<t>; duration_follow_up=<t>; suppress=<section>.<slot>[,…]
+`suppress=` drops a slot the parent chain (base.intake and the extended cluster
+candidate) declares, as one files/12 §3.1 `suppress_slot` op per target. A
+target the chain does not declare, a must_ask slot, a slot this pack declares
+itself, or a slot a surviving gate reads is refused before anything is written.
 """
 
 from __future__ import annotations
@@ -72,7 +79,9 @@ GEN_KEYS = {"slot", "type", "ask_if", "follow_up", "hold", "delivery", "data_cat
 # slot default and is never written; a tag the closed set does not know is
 # refused here, before the pack loader would refuse it (INT-349, INT-432 CD-11).
 DATA_CATEGORIES = frozenset(c.value for c in DataCategory) - {DataCategory.GENERAL_HEALTH.value}
-PACK_KEYS = {"duration_ask", "duration_follow_up"}
+PACK_TEXT_KEYS = {"duration_ask", "duration_follow_up"}
+PACK_KEYS = PACK_TEXT_KEYS | {"suppress"}
+SUPPRESS_TARGET = re.compile(r"^([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)$")
 GATE_NAME = re.compile(r"\b([a-z][a-z0-9_]*)\s*(?:==|!=|>=|<=|>|<)")
 FIXED_SLOTS = frozenset({"basvuru_nedeni", "sikayet_suresi"})
 DURATION_ASK = "Bu şikâyetiniz ne zamandır var?"
@@ -186,26 +195,110 @@ def extract_questions(md_text: str) -> tuple[list[Question], list[str]]:
 def extract_pack_options(md_text: str) -> dict[str, str]:
     """Read an optional `pack:` line (e.g. a branch-appropriate duration ask).
 
-    Raises ValueError on an unknown key or an ask that is not one question.
+    Raises ValueError on an unknown key, an ask that is not one question, or a
+    malformed or repeated suppress target.
     """
     pm = re.search(r"^pack:\s*(.+)$", _question_region(md_text), re.M)
     options = _parse_gen(pm.group(1)) if pm else {}
     unknown = sorted(set(options) - PACK_KEYS)
     if unknown:
         raise ValueError(f"unknown pack key(s) {unknown}")
-    for key, text in options.items():
-        if not _one_question(text):
+    for key in sorted(PACK_TEXT_KEYS & set(options)):
+        if not _one_question(options[key]):
             raise ValueError(f"pack {key} must be one question without a digit")
+    if "suppress" in options:
+        suppress_targets(options["suppress"])
     return options
+
+
+def suppress_targets(spec: str) -> tuple[tuple[str, str], ...]:
+    """Parse `suppress=<section>.<slot>[,…]` into (section, slot) pairs."""
+    targets: list[tuple[str, str]] = []
+    for item in spec.split(","):
+        match = SUPPRESS_TARGET.match(item.strip())
+        if match is None:
+            raise ValueError(f"suppress target {item.strip()!r} is not <section>.<slot>")
+        target = (match.group(1), match.group(2))
+        if target in targets:
+            raise ValueError(f"suppress target {item.strip()!r} is repeated")
+        targets.append(target)
+    return tuple(targets)
+
+
+def _slots_of(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        section_id: dict((section or {}).get("slots") or {})
+        for section_id, section in (doc.get("sections") or {}).items()
+    }
 
 
 def base_slot_names() -> frozenset[str]:
     """Slot names declared by base.intake, which a specialty gate may read."""
     base = yaml.safe_load((ROOT / "packages/protocols/base/intake.yaml").read_text("utf-8"))
     names: set[str] = set()
-    for section in (base.get("sections") or {}).values():
-        names.update((section or {}).get("slots") or {})
+    for slots in _slots_of(base).values():
+        names.update(slots)
     return frozenset(names)
+
+
+def inherited_slots(extends: str) -> dict[str, dict[str, dict[str, Any]]]:
+    """Section -> slot -> slot document the parent chain declares: base.intake,
+    then the cluster pack a specialty extends (served when promoted, else its
+    review candidate). A child's own declaration of a key wins, as in the merge."""
+    docs = [yaml.safe_load((ROOT / "packages/protocols/base/intake.yaml").read_text("utf-8"))]
+    if extends.startswith("cluster."):
+        name = extends.removeprefix("cluster.")
+        served, review = SERVED_CLUSTER / f"{name}.yaml", REVIEW_CLUSTER / f"{name}.yaml"
+        path = served if served.exists() else review
+        if path.exists():
+            docs.append(yaml.safe_load(path.read_text(encoding="utf-8")))
+    merged: dict[str, dict[str, dict[str, Any]]] = {}
+    for doc in docs:
+        for section_id, slots in _slots_of(doc).items():
+            merged.setdefault(section_id, {}).update(slots)
+    return merged
+
+
+def _suppress_ops(
+    slug: str,
+    spec: str | None,
+    inherited: dict[str, dict[str, dict[str, Any]]],
+    own: dict[str, dict[str, dict[str, Any]]],
+) -> list[dict[str, str]]:
+    """One suppress_slot op per target, refusing what the compiler would refuse
+    (files/12 §3.1-3.2) or what would silently drop another question."""
+    if spec is None:
+        return []
+    targets = suppress_targets(spec)
+    for section_id, key in targets:
+        slot = inherited.get(section_id, {}).get(key)
+        if slot is None:
+            raise ValueError(
+                f"{slug}: suppress {section_id}.{key} — the parent chain does not declare it"
+            )
+        if slot.get("must_ask") is True:
+            raise ValueError(
+                f"{slug}: suppress {section_id}.{key} is must_ask — suppress_slot on a "
+                "must_ask slot is a hard compile error (files/12 §3.2)"
+            )
+        if key in own.get(section_id, {}):
+            raise ValueError(f"{slug}: suppress {section_id}.{key} — this pack declares itself")
+    removed = {key for _, key in targets}
+    for chain in (inherited, own):
+        for section_id, slots in chain.items():
+            for key, slot in slots.items():
+                if (section_id, key) in targets:
+                    continue
+                read = removed & set(GATE_NAME.findall(str(slot.get("ask_if") or "")))
+                if read:
+                    raise ValueError(
+                        f"{slug}: suppress {sorted(read)} — the gate of {section_id}.{key} "
+                        "reads it, so that question would never be asked"
+                    )
+    return [
+        {"op": "suppress_slot", "pointer": f"/sections/{section_id}/slots/{key}"}
+        for section_id, key in targets
+    ]
 
 
 def _deferred_reason(slug: str, archetype: str | None) -> str:
@@ -238,12 +331,14 @@ def build_pack(
     base_slots: frozenset[str] = frozenset(),
     options: dict[str, str] | None = None,
     layer: str = "specialty",
+    inherited: dict[str, dict[str, dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     """Pure: the pack document for `slug` (maturity L0 until signed).
 
     Raises ValueError on a duplicate slot id or an ask_if that reads a slot
     neither declared earlier in this pack nor by base.intake — such a gate
-    never opens, so the question would silently never be asked.
+    never opens, so the question would silently never be asked — and on a
+    `suppress` option `_suppress_ops` refuses against `inherited`.
     """
     options = options or {}
     reason = questions[0]
@@ -264,7 +359,30 @@ def build_pack(
             if missing:
                 raise ValueError(f"{slug}: {sid} ask_if reads undeclared slot(s) {missing}")
         sorular[sid] = _slot(q, slug)
-    return {
+    sections: dict[str, Any] = {
+        "ziyaret_baglami": {
+            "slots": {
+                "basvuru_nedeni": {
+                    "type": "string",
+                    "required": True,
+                    "ask_tr": {"tr": reason.text},
+                    "follow_up_tr": {"tr": reason_follow_up},
+                    "openehr_deferred_reason": _deferred_reason(slug, reason.archetype),
+                },
+                "sikayet_suresi": {
+                    "type": "duration",
+                    "required": False,
+                    "ask_tr": {"tr": options.get("duration_ask", DURATION_ASK)},
+                    "follow_up_tr": {"tr": options.get("duration_follow_up", DURATION_FOLLOW_UP)},
+                    "openehr_deferred_reason": _deferred_reason(slug, None),
+                },
+            }
+        },
+        "sorular": {"slots": sorular},
+    }
+    own = {section_id: section["slots"] for section_id, section in sections.items()}
+    ops = _suppress_ops(slug, options.get("suppress"), inherited or {}, own)
+    pack: dict[str, Any] = {
         "kind": "pack",
         "id": draft["id"],
         "layer": layer,
@@ -276,29 +394,12 @@ def build_pack(
         "title_tr": title,
         "extends": draft.get("extends", "cluster.medical"),
         "visit_types": draft.get("visit_types", ["first", "followup", "report"]),
-        "sections": {
-            "ziyaret_baglami": {
-                "slots": {
-                    "basvuru_nedeni": {
-                        "type": "string",
-                        "required": True,
-                        "ask_tr": {"tr": reason.text},
-                        "follow_up_tr": {"tr": reason_follow_up},
-                        "openehr_deferred_reason": _deferred_reason(slug, reason.archetype),
-                    },
-                    "sikayet_suresi": {
-                        "type": "duration",
-                        "required": False,
-                        "ask_tr": {"tr": options.get("duration_ask", DURATION_ASK)},
-                        "follow_up_tr": {
-                            "tr": options.get("duration_follow_up", DURATION_FOLLOW_UP)
-                        },
-                        "openehr_deferred_reason": _deferred_reason(slug, None),
-                    },
-                }
-            },
-            "sorular": {"slots": sorular},
-        },
+        "sections": sections,
+    }
+    if ops:
+        pack["ops"] = ops
+    return {
+        **pack,
         "red_flags": [
             {
                 "id": f"rf.{slug}_l0_taslak",
@@ -410,7 +511,13 @@ def gen(slug: str) -> tuple[str, bool]:
         return f"SKIP {slug}: Q1 (reason for visit) was refused or held{notes}", False
     try:
         pack = build_pack(
-            draft, slug, qs, base_slots=base_slot_names(), options=options, layer=layer
+            draft,
+            slug,
+            qs,
+            base_slots=base_slot_names(),
+            options=options,
+            layer=layer,
+            inherited=inherited_slots(draft.get("extends", "cluster.medical")),
         )
     except ValueError as exc:
         return f"SKIP {slug}: {exc}{notes}", False

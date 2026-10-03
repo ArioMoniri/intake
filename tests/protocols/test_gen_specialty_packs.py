@@ -300,3 +300,102 @@ def test_an_unknown_cluster_is_refused() -> None:
     line, ok = GEN.gen("cluster_not_a_cluster")
     assert not ok
     assert "unknown cluster" in line
+
+
+# --- INT-469: a branch drops an inherited slot through one suppress_slot op ----
+
+INHERITED = {
+    "ziyaret_baglami": {
+        "basvuru_nedeni": {"type": "string", "required": True},
+        "sikayet_suresi": {"type": "duration"},
+    },
+    "sorular": {
+        "bayginlik": {"type": "boolean"},
+        "rapor_icin_basvuru": {"type": "boolean"},
+        "rapor_amaci": {"type": "string", "ask_if": "rapor_icin_basvuru == true"},
+        "kurum_sevk_yazisi": {"type": "boolean", "ask_if": "rapor_icin_basvuru == true"},
+    },
+    "hpi": {"onset": {"type": "string", "must_ask": True}},
+}
+SUPPRESS_OP = {"op": "suppress_slot", "pointer": "/sections/sorular/slots/rapor_amaci"}
+
+
+def _with_pack_line(line: str) -> str:
+    return PROPOSAL.replace(
+        "## 4. Candidate B1 Turkish pre-visit questions (5)\n",
+        f"## 4. Candidate B1 Turkish pre-visit questions (5)\n\npack: {line}\n",
+    )
+
+
+def test_a_pack_line_suppresses_an_inherited_slot_through_one_suppress_slot_op() -> None:
+    text = _with_pack_line("suppress=sorular.rapor_amaci")
+    options = GEN.extract_pack_options(text)
+    qs, _ = GEN.extract_questions(text)
+    pack = GEN.build_pack(DRAFT, "ornek", qs, options=options, inherited=INHERITED)
+    assert pack["ops"] == [SUPPRESS_OP]
+    assert list(pack)[-2:] == ["ops", "red_flags"]
+    assert "rapor_amaci" not in pack["sections"]["sorular"]["slots"]
+
+
+def test_near_miss_without_a_suppress_line_the_pack_carries_no_ops() -> None:
+    qs, _ = GEN.extract_questions(PROPOSAL)
+    pack = GEN.build_pack(DRAFT, "ornek", qs, options={}, inherited=INHERITED)
+    assert "ops" not in pack
+
+
+@pytest.mark.parametrize(
+    ("spec", "why"),
+    [
+        ("sorular.olmayan_slot", "does not declare"),
+        ("hpi.onset", "must_ask"),
+        ("sorular.bayginlik", "declares itself"),
+        ("sorular.rapor_icin_basvuru", "gate"),
+    ],
+)
+def test_a_suppression_the_compiler_would_refuse_is_refused_by_the_generator(
+    spec: str, why: str
+) -> None:
+    text = _with_pack_line(f"suppress={spec}")
+    options = GEN.extract_pack_options(text)
+    qs, _ = GEN.extract_questions(text)
+    with pytest.raises(ValueError, match=why):
+        GEN.build_pack(DRAFT, "ornek", qs, options=options, inherited=INHERITED)
+
+
+@pytest.mark.parametrize(
+    "spec", ["rapor_amaci", "sorular/rapor_amaci", "sorular.rapor_amaci,sorular.rapor_amaci"]
+)
+def test_a_malformed_or_repeated_suppress_target_is_refused(spec: str) -> None:
+    with pytest.raises(ValueError, match="suppress target"):
+        GEN.extract_pack_options(_with_pack_line(f"suppress={spec}"))
+
+
+def test_inherited_slots_are_the_base_and_the_extended_cluster_candidate() -> None:
+    slots = GEN.inherited_slots("cluster.allied_and_reports")
+    assert "rapor_amaci" in slots["sorular"]
+    assert slots["sorular"]["rapor_amaci"].get("must_ask") is not True
+    assert any(slot.get("must_ask") for section in slots.values() for slot in section.values())
+    assert "rapor_amaci" not in GEN.inherited_slots("cluster.medical").get("sorular", {})
+
+
+def test_the_adli_tip_candidate_is_what_the_generator_emits_from_its_proposal() -> None:
+    import yaml
+
+    slug = "adli_tip"
+    text = (GEN.PROP / f"{slug}.md").read_text(encoding="utf-8")
+    draft = yaml.safe_load((GEN.SPEC / f"{slug}.yaml").read_text(encoding="utf-8"))
+    qs, _ = GEN.extract_questions(text)
+    pack = GEN.build_pack(
+        draft,
+        slug,
+        qs,
+        base_slots=GEN.base_slot_names(),
+        options=GEN.extract_pack_options(text),
+        inherited=GEN.inherited_slots(draft["extends"]),
+    )
+    committed = (GEN.REVIEW / f"{slug}.yaml").read_text(encoding="utf-8")
+    emitted = GEN.header(slug) + yaml.safe_dump(
+        pack, allow_unicode=True, sort_keys=False, width=1000
+    )
+    assert committed == emitted
+    assert pack["ops"] == [SUPPRESS_OP]

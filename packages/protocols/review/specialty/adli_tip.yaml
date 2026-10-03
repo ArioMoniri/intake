@@ -64,6 +64,9 @@ sections:
         ask_tr:
           tr: Doktorun bilmesi gereken, süregelen bir hastalığınız var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/adli_tip.md'
+ops:
+- op: suppress_slot
+  pointer: /sections/sorular/slots/rapor_amaci
 red_flags:
 - id: rf.adli_tip_l0_taslak
   label_tr: Adli Tıp ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

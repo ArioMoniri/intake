@@ -178,6 +178,19 @@ strangulation answers are a new sensitive data category on a patient-owned devic
 with the perpetrator. That is a stop-and-ask item (new categories of personal data) for the owner, the
 legal-reviewer and the clinician; none of the three is served until it is decided.
 
+Revised 2026-10-04 (INT-469, GitHub #810): the allied cluster's report-purpose item `rapor_amaci`
+(cluster Q3, "Bu raporun hangi amaçla istendiğini kısaca söyler misiniz?") is **not carried** to Adli
+Tıp. Legal decision LD-01 (the INT-471 legal lane, GitHub #800) holds that a forensic examination and
+report are made on a competent authority's proper request and must answer that authority's questions
+(Sağlık Raporları Yönetmeliği, RG 19/5/2026 sayı 33258, Madde 40(4) and 50(4)), so the purpose of an
+adli rapor is the authority's, not something the person examined declares; Madde 50(1) and 48(1) keep
+every intake answer out of an adli rapor. The `pack:` line below makes the generator emit one
+`suppress_slot` op for the inherited slot (files/12 §3.1); the rest of the cluster's report items
+stay, and the other allied branches, Sağlık Kurulu among them, keep `rapor_amaci`. Nothing is asked in
+its place: LD-01 leaves the replacement item undecided.
+
+pack: suppress=sorular.rapor_amaci
+
 **Q1 — Reason for the appointment** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake (no clinical threshold)
 > "Bugünkü randevunuzun konusu nedir?"
 CANDIDATE — clinician to approve wording. The typed-only "yazabilirsiniz" is gone (voice-first,
