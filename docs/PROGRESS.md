@@ -3372,3 +3372,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: re-verification of CD-111; the application rides #796.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T07:30:00+03:00 · INT-468 · final verdict (PR #813, CD-111 agree)
+- Goal: record the independent verifier's round-3 verdict (approve) and fix its wording notes in the verdict commit.
+- Plan: test first (the verdict test asserts agree with round 3 in the history), then CD-111, the md twin and the evidence.
+- Tests added (with the near-miss negative for any safety rule): the verdict test now requires agree, the role and the date, and a round 3 whose per-item keys match round 2's and are all agree. Red run: 1 failed, 56 passed; green 90 passed.
+- Result: CD-111 verifier agree (independent D18 clinical verifier (agent), 2026-10-04); `make safety` exit 0; protocols, safety, backlog and smoke lanes 1816 passed, 0 failed; see docs/evidence/INT-468.md (Final verdict).
+- Invariants touched and still passing: 2, 7, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: merge #813 when the merge queue reaches it; the row stays doing until #796 applies the decided lists.
+- LOOP_STATUS: CONTINUE
