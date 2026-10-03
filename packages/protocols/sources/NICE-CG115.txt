@@ -1,7 +1,7 @@
 # guideline_id: NICE-CG115
 # title: Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence
 # publisher: National Institute for Health and Care Excellence (NICE)
-# version_or_date: Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014; minor changes up to April 2026 (Update information)
+# version_or_date: Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014; minor changes August 2019, March 2020, October 2022, March 2025 and April 2026 (Update information)
 # url: https://www.nice.org.uk/guidance/cg115/chapter/Recommendations
 # url_update_information: https://www.nice.org.uk/guidance/cg115/chapter/Update-information
 # retrieved_on: 2026-10-03

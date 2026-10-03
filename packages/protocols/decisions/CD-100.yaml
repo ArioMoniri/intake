@@ -40,10 +40,11 @@ decision: >-
   child_health follow CD-10's true_is_concern polarity. The urine rows are CD-10's
   change, already applied. The feeding construct CD-10 left open is decided here:
   one shared az_beslenme ask for feeding or drinking less than usual (NICE NG143
-  "poor feeding in infants"), followed, only after a yes, by a stopped-completely
-  ask for the IMCI general danger sign. An answer that the child takes nothing at
-  all is a yes, never "hayır". Under two months a yes is itself IMCI's young-infant
-  "not feeding well" sign. (4) Kept pairs are distinct constructs on a
+  "poor feeding in infants"), asked ungated beside CD-103's icemez_ememez, which
+  asks the IMCI general danger sign directly (the verifier's ruling: different
+  thresholds, not twins). An answer that the child takes nothing at all is a yes,
+  never "hayır". Under two months a yes is itself IMCI's young-infant "not feeding
+  well" sign. (4) Kept pairs are distinct constructs on a
   source: unexplained against recent fever (NG12 1.10.1), vaccine-component
   allergy and acute illness on the day of vaccination (Green Book chapter 6), the
   child allergen list while base is self-addressed, food intolerance for the
@@ -74,8 +75,8 @@ question_origin: >-
 author_role: "internal medicine, obstetrics and gynaecology, paediatrics, psychiatry, anaesthesiology, dentistry and family medicine physician (agent)"
 inference_disclosure: >-
   The sources fix each construct. The Turkish wording, the choice to narrow
-  rather than drop an item, the new slot ids and the order of the
-  stopped-completely follow-up are this author's representation decisions. Every
+  rather than drop an item, and the new slot ids are this author's
+  representation decisions. Every
   new Turkish string is ≤ B1, uses siz, has one question mark and no digits, and
   names no diagnosis. NICE CG116 is scoped to under 19s. It is cited for the
   dietitian item only as the source that names food avoidance as a history
@@ -130,7 +131,7 @@ sources:
     section: "1.2.1.2"
     quote: "infants who have stopped breastfeeding during the illness"
     snapshot: packages/protocols/sources/NICE-CG84.txt
-    supports: "T9, T48: the stopped-completely follow-up"
+    supports: "T9, T48: a child who has stopped feeding is at increased risk, which az_beslenme (evet for a not-at-all answer) and icemez_ememez record"
   - kind: guideline
     guideline_id: NICE-CG84
     title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
@@ -211,7 +212,7 @@ sources:
     section: "Check for general danger signs"
     quote: "Is the child able to drink or breastfeed?"
     snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
-    supports: "T9, T48: the danger-sign threshold, asked as the stopped-completely follow-up"
+    supports: "T9, T48: the danger-sign threshold, which CD-103's icemez_ememez asks directly"
     caveat: "IMCI is a clinician's chart for children aged two months up to five years; it is cited for the construct, not for any threshold number."
   - kind: guideline
     guideline_id: WHO-IMCI-CHART-2014
@@ -272,7 +273,7 @@ sources:
     section: "Sick young infant age up to 2 months: VERY SEVERE DISEASE signs"
     quote: "Not feeding well or"
     snapshot: packages/protocols/sources/WHO-IMCI-CHART-2014.txt
-    supports: "T9, T48: under two months 'not feeding well' is itself a very-severe-disease sign, so az_beslenme = evet carries it; the stopped-completely threshold is the general danger sign for two months up to five years"
+    supports: "T9, T48: under two months 'not feeding well' is itself a very-severe-disease sign, so az_beslenme = evet carries it; the general danger sign for two months up to five years is icemez_ememez's"
   - kind: openehr_ckm
     archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
     revision: "1.0.7"
@@ -738,15 +739,17 @@ value:
       ref: T6
       packets: [cluster_medical, ic_hastaliklari]
       deciders: [HB-C1, clinician]
-      question: "İç hastalıkları Q4 soru_3 (unexplained fever, 'son zamanlarda') overlaps cluster son_gunlerde_ates (any fever, 'son günlerde'); merge or keep?"
+      question: "İç hastalıkları Q4 (unexplained fever, 'son zamanlarda') overlaps cluster son_gunlerde_ates (any fever, 'son günlerde'); merge or keep?"
       outcome: accept
       clinical_basis: >-
         Unexplained fever over the recent weeks is its own referral feature (NG12
-        1.10.1), not the same fact as any fever in the last days. Both stay; merging
-        would lose the 'unexplained' qualifier or the window. "Unexplained" is the
-        clinician's finding in NG12's own definition, so the patient's "nedenini
-        bilmediğiniz" answer is recorded as the patient's report and never asserted
-        as NG12's term (as CD-14).
+        1.10.1), not the same fact as any fever in the last days. Both stay under
+        their own ids; merging would lose the 'unexplained' qualifier or the window.
+        Q4's id is the one CD-102 (cluster-wave-a.md#L243) gives it,
+        nedenini_bilmedigi_ates (soru_3 at 151cf34f), a non-asserting name.
+        "Unexplained" is the clinician's finding in NG12's own definition, so the
+        patient's "nedenini bilmediğiniz" answer is recorded as the patient's report
+        and never asserted as NG12's term (as CD-14).
       sources: [NICE-NG12]
       status: active
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L100"
@@ -795,28 +798,25 @@ value:
         slot=az_beslenme; type=boolean). (b) neonatoloji: beslenmede_azalma takes the
         shared id and keeps its own infant text, "Bebeğiniz son günlerde her
         zamankinden daha az mı besleniyor?" (gen: slot=az_beslenme; type=boolean). Its
-        re-declaration replaces the cluster slot, so the fact is asked once. (c)
-        cluster.child_health adds a follow-up asked only after a yes: "Çocuğunuz
-        emmeyi ya da içmeyi tamamen bıraktı mı?" (gen: slot=beslenmeyi_birakma;
-        type=boolean; ask_if=az_beslenme == true). Neonatoloji re-declares the same
-        id and gate with its infant text: "Bebeğiniz emmeyi ya da beslenmeyi tamamen
-        bıraktı mı?" (gen: slot=beslenmeyi_birakma; type=boolean;
-        ask_if=az_beslenme == true). Both are new and add, never remove. (d) Answer
-        semantics for az_beslenme: an answer that the child is not feeding or
-        drinking at all ("hiç içmiyor", "hiçbir şey almıyor", "emmiyor", "hiç
-        yemiyor"), even when it starts with "hayır", is az_beslenme = evet
-        (ASKED_PRESENT), never "hayır", and beslenmeyi_birakma is then asked.
+        re-declaration replaces the cluster slot, so the fact is asked once. Both
+        stay ungated. (c) The IMCI general danger sign is asked directly and ungated
+        by icemez_ememez (CD-103, cluster-wave-b.md#L75: "Çocuğunuz hiçbir şey içemez
+        ya da ememez hâle geldi mi?") beside az_beslenme. No stopped-completely
+        follow-up is added: beslenmeyi_birakma, proposed in round 1, is withdrawn
+        and superseded by icemez_ememez, in every pack including neonatoloji
+        (verifier's feeding-construct ruling, round 2). (d) Answer semantics for
+        az_beslenme: an answer that the child is not feeding or drinking at all
+        ("hiç içmiyor", "hiçbir şey almıyor", "emmiyor", "hiç yemiyor"), even when it
+        starts with "hayır", is az_beslenme = evet (ASKED_PRESENT), never "hayır".
       clinical_basis: >-
         Poor feeding in infants is an intermediate-risk feature (NG143 1.2.6). Not
         being able to drink or breastfeed is an IMCI general danger sign for children
-        aged two months up to five years. For a young infant up to two months,
-        difficulty in feeding is the asked symptom and "not feeding well" is itself a
-        very-severe-disease sign (IMCI young-infant chart), which az_beslenme = evet
-        already records. An infant who stopped breastfeeding during the illness is at
-        increased risk (CG84 1.2.1.2). A less-than-usual ask catches every grade, and
-        the gated follow-up keeps the older child's danger-sign threshold. A child who
-        takes nothing at all is feeding less than usual, so that answer can never
-        read as "hayır".
+        aged two months up to five years. The two are different thresholds, not
+        twins, so both are asked: icemez_ememez asks the danger sign, and under two
+        months az_beslenme is itself IMCI's young-infant "Not feeding well" sign. An
+        infant who stopped breastfeeding during the illness is at increased risk (CG84
+        1.2.1.2). A child who takes nothing at all is feeding less than usual, so that
+        answer to az_beslenme can never read as "hayır".
       sources: [NICE-NG143, WHO-IMCI-CHART-2014, NICE-CG84, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L103"
@@ -1192,11 +1192,15 @@ value:
       question: "İç hastalıkları Q2 soru_1 re-asks base trajectory; drop or keep?"
       outcome: change
       change: >-
-        Remove proposal Q2 (soru_1) from docs/evidence/proposals/ic_hastaliklari.md. So
-        that no other id moves, pin the remaining generated ids at their current names:
-        Q3 slot=soru_2, Q4 slot=soru_3, Q5 slot=soru_4, Q6 slot=soru_5, Q7 slot=soru_6,
-        Q8 slot=soru_7, Q9 slot=soru_8, Q10 slot=soru_9, Q11 slot=soru_10. Q12 becomes
-        slot=ilac_dokunmasi (T33).
+        Remove proposal Q2 (soru_1) from docs/evidence/proposals/ic_hastaliklari.md.
+        The ids follow the candidate at 151cf34f. Q3 keeps its applied rebind,
+        gen: slot=istemsiz_kilo_kaybi. Q4 takes CD-102's id nedenini_bilmedigi_ates
+        (cluster-wave-a.md#L243; T6). Q5 takes gece_terlemesi (CD-104, INT-353.md#L286;
+        CD-101 T76). So that no other id moves, pin the remaining generated ids at
+        their current names: Q6 slot=soru_5, Q7 slot=soru_6, Q8 slot=soru_7, Q9
+        slot=soru_8, Q10 slot=soru_9 (renamed only where CD-101 T75 applies), Q11
+        slot=soru_10. Q12 becomes slot=ilac_dokunmasi (T33). No pin may move Q3: a
+        pin of Q3 to soru_2 would undo the applied weight-loss rebind.
       clinical_basis: "As T24: course since onset is one symptom-record element (symptom_sign v2 Progression), and base trajectory asks it."
       sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
       spec_basis_ref: ["packages/protocols/base/intake.yaml hpi.trajectory", "scripts/dev/gen_specialty_packs.py build_pack"]
@@ -1396,19 +1400,19 @@ value:
       question: "Cluster beslenme_sivi_alimi (feeding as usual) against çocuk enfeksiyon Q4 emebiliyor_icebiliyor (able to breastfeed or drink, the IMCI danger sign): which construct?"
       outcome: change
       change: >-
-        Both constructs, in order, under CD-10's true_is_concern. Remove çocuk
-        enfeksiyon Q4 (emebiliyor_icebiliyor), so the chain inherits the cluster's
-        az_beslenme, "Çocuğunuz her zamankinden daha az besleniyor ya da içiyor mu?".
-        The chain also inherits its gated follow-up beslenmeyi_birakma, "Çocuğunuz
-        emmeyi ya da içmeyi tamamen bıraktı mı?" (ask_if=az_beslenme == true). Both are
-        defined in T9, with T9's answer semantics: "hiç içmiyor", "emmiyor" and every
-        not-at-all answer are az_beslenme = evet, never "hayır".
+        Remove emebiliyor_icebiliyor; the chain inherits az_beslenme and
+        icemez_ememez. Both constructs are asked, ungated, under CD-10's
+        true_is_concern: the cluster's az_beslenme, "Çocuğunuz her zamankinden daha
+        az besleniyor ya da içiyor mu?" (T9), and CD-103's icemez_ememez, "Çocuğunuz
+        hiçbir şey içemez ya da ememez hâle geldi mi?". T9's answer semantics apply:
+        "hiç içmiyor", "emmiyor" and every not-at-all answer to az_beslenme are evet,
+        never "hayır".
       clinical_basis: >-
         Feeding less than usual is the intermediate-risk feature (NG143 1.2.6). Not
         being able to drink or breastfeed is the IMCI general danger sign, and IMCI's
         dehydration assessment asks about drinking poorly as well as not being able to
-        drink. The screen catches both, and the gated follow-up keeps the danger
-        threshold.
+        drink. They are different thresholds, so the chain asks both, and
+        icemez_ememez carries the danger sign the removed item asked.
       sources: [NICE-NG143, WHO-IMCI-CHART-2014, NICE-CG84, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L142"
@@ -1448,4 +1452,9 @@ verifier:
     order list; T9 and T48 not-at-all answer semantics and the IMCI young-infant
     sign; T16 type=boolean; NG18 March 2026 minor change) and the non-blocking ones
     (T6 report-not-assertion; NG246 minor changes; T18 type=boolean; the neonatoloji
-    follow-up text). Awaiting re-verification.
+    follow-up text). Round 2 (relayed 2026-10-03): the verifier ruled on the
+    feeding construct (az_beslenme and CD-103's icemez_ememez are both kept as
+    different thresholds; beslenmeyi_birakma is withdrawn) and corrected the
+    iç hastalıkları ids to the 151cf34f candidate (Q3 istemsiz_kilo_kaybi, Q4
+    nedenini_bilmedigi_ates, Q5 gece_terlemesi; T34 pins only Q6 to Q11). T6, T9,
+    T34 and T48 are revised accordingly. Awaiting re-verification.
