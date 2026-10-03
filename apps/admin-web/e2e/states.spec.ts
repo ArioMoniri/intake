@@ -1,13 +1,15 @@
 /**
  * INT-459 — the console's empty, loading and error states.
  *
- * - **Loading** has no route-level boundary. A `loading.tsx` was built (a
- *   static skeleton of the shell) and withdrawn: under it the page streams,
- *   and React parks a late chart segment in `<svg style="display:none">`,
- *   which the console's CSP (no `unsafe-inline` style) refuses. The spec keeps
- *   that from coming back, with the mechanism reproduced as its near-miss.
- *   While a page loads, the previous page stays up and the browser shows its
- *   own progress.
+ * - **Loading** (`app/loading.tsx`): a static skeleton of the shell,
+ *   announced as busy in tr and en, with no figure. Under it every page
+ *   streams, and React parks a late SVG segment (a chart that finishes after
+ *   its card) in `<svg aria-hidden="true" style="display:none">` until its
+ *   script moves it into place. The CSP admits exactly that one attribute
+ *   value by its hash (owner decision, 3 Oct 2026). The spec derives the value
+ *   from React's own streamed markup and from the renderer Next.js ships, and
+ *   pins the hash path; its near-misses show every other inline style, and a
+ *   `<style>` element with the same text, still refused.
  * - **Not found** (`app/not-found.tsx`): an empty state with one way back.
  * - **Refused and unavailable** pages keep their markup (INT-181/351) and are
  *   laid out by the layer as a centred state view with a symbol.
@@ -16,8 +18,9 @@
  *
  * Every state passes axe; each property has its near-miss.
  */
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { PassThrough } from "node:stream";
 import { JSDOM } from "jsdom";
 import { createElement, Suspense, use, type ReactElement } from "react";
@@ -32,11 +35,20 @@ vi.mock("next/server", () => ({
   },
 }));
 
+import Loading from "../app/loading";
 import NotFound from "../app/not-found";
 import { OpsConsole } from "../src/ops/console";
-import { NotFoundView } from "../src/ui/states";
+import { buildCsp } from "../src/ops/csp";
+import { LoadingView, NotFoundView } from "../src/ui/states";
 import { documentFor, violations } from "./support/axe";
-import { APP, nativeRules, selectorsOf } from "./support/css";
+import { nativeRules, selectorsOf } from "./support/css";
+import {
+  admitsStyleAttribute,
+  admitsStyleElement,
+  directivesOf,
+  hashSource,
+  unsafeSources,
+} from "./support/csp";
 
 const NATIVE = nativeRules();
 
@@ -65,42 +77,140 @@ function later<T>(value: T, ms: number): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
 
-describe("loading: no route-level boundary, because the CSP refuses what it streams", () => {
-  it("there is no app/loading.tsx (nor a loading file under any route)", () => {
-    const loading = readdirSync(join(APP), { recursive: true }).filter((f) =>
-      /(^|\/)loading\.(tsx|ts|jsx|js)$/.test(String(f)),
+/** What a route-level loading.tsx does to the overview: the page streams
+ * under the boundary, a chart's SVG finishes after its card, and React parks
+ * the late segment in a hidden `<svg>` until its script moves it into place
+ * (INT-459 evidence, red run 3). */
+function lateChartSegment(): Promise<string> {
+  const card = later("card", 5);
+  const bars = later("bars", 30);
+  function Bars(): ReactElement {
+    use(bars);
+    return createElement("rect", { className: "bar", width: 2, height: 8 });
+  }
+  function Card(): ReactElement {
+    use(card);
+    return createElement(
+      "svg",
+      { role: "img", "aria-label": "x" },
+      createElement("g", null, "key"),
+      createElement(Bars),
     );
-    expect(loading).toEqual([]);
+  }
+  return streamed(
+    createElement(
+      "main",
+      null,
+      createElement(Suspense, { fallback: createElement("p", null, "…") }, createElement(Card)),
+    ),
+  );
+}
+
+/** Every distinct inline style attribute value in a stretch of markup. */
+function styleAttributes(html: string): string[] {
+  return [...new Set([...html.matchAll(/\sstyle="([^"]*)"/g)].map((m) => m[1]!))].sort();
+}
+
+/** The fixed style values (a `property:value` between the quotes) in the
+ * renderer Next.js runs for App Router pages in production, webpack and
+ * Turbopack builds. The bundles' only other `style="` is the open quote for a
+ * `style` prop, and the console sets none (asserted per page elsewhere). */
+function shippedSegmentStyles(): string[] {
+  const next = dirname(createRequire(import.meta.url).resolve("next/package.json"));
+  const found = new Set<string>();
+  for (const bundle of ["app-page.runtime.prod.js", "app-page-turbo.runtime.prod.js"]) {
+    const source = readFileSync(join(next, "dist", "compiled", "next-server", bundle), "utf8");
+    for (const m of source.matchAll(/style="([a-z-]+:[^"'\\]+)"/g)) found.add(m[1]!);
+  }
+  return [...found].sort();
+}
+
+const NONCE = "bm9uY2U=";
+const POLICY = buildCsp(NONCE, "production");
+
+describe("loading: a skeleton of the shell, busy in both languages", () => {
+  const html = renderToStaticMarkup(createElement(LoadingView));
+
+  it("app/loading.tsx renders the skeleton view", () => {
+    expect(renderToStaticMarkup(Loading())).toBe(html);
   });
 
-  it("near-miss: a chart that streams in under a boundary arrives in a style attribute", async () => {
-    // What a route-level loading.tsx did to the overview in production: the
-    // page streams under the boundary, a chart's SVG finishes after its card,
-    // and React parks the late segment in `<svg style="display:none">`, which
-    // `style-src 'self' 'nonce-…'` blocks (INT-459 evidence, red run 3).
-    const card = later("card", 5);
-    const bars = later("bars", 30);
-    function Bars(): ReactElement {
-      use(bars);
-      return createElement("rect", { className: "bar", width: 2, height: 8 });
-    }
-    function Card(): ReactElement {
-      use(card);
-      return createElement(
-        "svg",
-        { role: "img", "aria-label": "x" },
-        createElement("g", null, "key"),
-        createElement(Bars),
-      );
-    }
-    const html = await streamed(
-      createElement(
-        "main",
-        null,
-        createElement(Suspense, { fallback: createElement("p", null, "…") }, createElement(Card)),
-      ),
+  it("is one main region, marked busy, that says so in tr and en", () => {
+    expect(html).toMatch(/^<main[^>]*class="ops"[^>]*aria-busy="true"/);
+    expect(html).toMatch(/<h1[^>]*>Yükleniyor<\/h1>/);
+    expect(html).toMatch(/role="status"/);
+    expect(html).toMatch(/lang="en"[^>]*>Loading/);
+  });
+
+  it("shows no figure, no link and no style attribute", () => {
+    const text = new JSDOM(html).window.document.body.textContent ?? "";
+    expect(text).not.toMatch(/\d/);
+    expect(html).not.toContain("<a ");
+    expect(html).not.toMatch(/\sstyle=/);
+  });
+
+  it("its skeleton is decoration, hidden from assistive technology", () => {
+    const doc = new JSDOM(html).window.document;
+    const bones = [...doc.querySelectorAll(".bone")];
+    expect(bones.length).toBeGreaterThan(0);
+    for (const bone of bones) expect(bone.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it("passes axe", async () => {
+    expect(await violations(documentFor(createElement(LoadingView), "tr"))).toEqual([]);
+  });
+});
+
+describe("loading: the CSP admits React's streamed segment style by its hash, and nothing else", () => {
+  it("React parks a late chart segment in a style attribute; the policy admits exactly that value", async () => {
+    const streamedStyles = styleAttributes(await lateChartSegment());
+    expect(streamedStyles.length).toBe(1);
+    for (const value of streamedStyles) expect(admitsStyleAttribute(POLICY, value)).toBe(true);
+    expect(directivesOf(POLICY).get("style-src-attr")).toEqual([
+      "'unsafe-hashes'",
+      ...streamedStyles.map(hashSource),
+    ]);
+  });
+
+  it("the renderer Next.js ships parks segments in the same one value", async () => {
+    expect(shippedSegmentStyles()).toEqual(styleAttributes(await lateChartSegment()));
+  });
+
+  it("the only unsafe keyword is 'unsafe-hashes', and only for style attributes", () => {
+    expect(unsafeSources(POLICY)).toEqual(["style-src-attr 'unsafe-hashes'"]);
+    expect(POLICY).not.toMatch(/unsafe-inline/);
+    expect(directivesOf(POLICY).get("style-src")).toEqual(["'self'", `'nonce-${NONCE}'`]);
+    expect(directivesOf(buildCsp(NONCE, "development")).get("style-src-attr")).toEqual(
+      directivesOf(POLICY).get("style-src-attr"),
     );
-    expect(html).toMatch(/<svg aria-hidden="true" style="display:none" id="S:\d+">/);
+  });
+
+  it("near-miss: any other inline style is still refused", async () => {
+    const [admitted] = styleAttributes(await lateChartSegment());
+    const others = [
+      "color:red",
+      "display:block",
+      `${admitted!};`,
+      ` ${admitted!}`,
+      admitted!.toUpperCase(),
+      admitted!.replace(":", ": "),
+      `${admitted!}!important`,
+    ];
+    for (const value of others) expect(admitsStyleAttribute(POLICY, value), value).toBe(false);
+  });
+
+  it("near-miss: the hash admits the attribute only; a <style> with the same text is refused", async () => {
+    const [admitted] = styleAttributes(await lateChartSegment());
+    expect(admitsStyleElement(POLICY, `svg{${admitted!}}`)).toBe(false);
+    expect(admitsStyleElement(POLICY, admitted!)).toBe(false);
+    expect(admitsStyleElement(POLICY, `svg{${admitted!}}`, NONCE)).toBe(true);
+  });
+
+  it("near-miss: without 'unsafe-hashes' a browser ignores the hash for an attribute", async () => {
+    const [admitted] = styleAttributes(await lateChartSegment());
+    const withoutKeyword = POLICY.replace("'unsafe-hashes' ", "");
+    expect(withoutKeyword).not.toBe(POLICY);
+    expect(admitsStyleAttribute(withoutKeyword, admitted!)).toBe(false);
   });
 });
 
