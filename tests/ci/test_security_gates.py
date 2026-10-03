@@ -914,7 +914,11 @@ OSV_SUPPRESSION_FILES = (
 # (test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire). The pin goes
 # back down as each entry expires or is removed.
 MAX_OSV_SUPPRESSIONS = 3
-MAX_TRIVY_SUPPRESSIONS = 2
+# The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
+# the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
+# owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
+# entry, and the pin goes back down when it does.
+MAX_TRIVY_SUPPRESSIONS = 3
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
 # apps/mobile (1753 tests) and 2 in packages/clinical-schemas (6 tests).
