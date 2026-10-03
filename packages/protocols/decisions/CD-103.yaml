@@ -19,9 +19,12 @@ decision: >-
   names the WHO lower chest wall sign and adds intercostal indrawing; the non-blanching
   rash item stays ungated; the vaccination item stays boolean, because "bilmiyorum" is
   recorded as UNCLEAR (CD-04, CKM Unknown). Changed (2): hydration polarity is CD-10's
-  true_is_concern, and the cluster's feeding item becomes the IMCI general danger sign,
-  inability to drink or breastfeed (new id icemez_ememez; beslenme_sivi_alimi and
-  emebiliyor_icebiliyor retire into it; neonatoloji keeps its infant poor-feeding item);
+  true_is_concern, and the cluster keeps both feeding constructs because their thresholds
+  differ: feeding or drinking less than usual (az_beslenme, CD-100 T9; NG143's poor
+  feeding, kept and not merged) and, as a separate ungated item beside it, the IMCI
+  general danger sign of inability to drink or breastfeed (new id icemez_ememez);
+  beslenme_sivi_alimi and emebiliyor_icebiliyor retire into these two, and neonatoloji's
+  infant item takes az_beslenme with its own text;
   the child fever ask becomes "oldu mu" with a recency frame, and its duration follow-up
   no longer presumes an ongoing fever. Rejected (2): the persecutory-ideation item and the
   risk-to-others item stay held and are not asked before the visit, because a pre-visit
@@ -110,7 +113,7 @@ sources:
     section: "1.2.6"
     quote: "poor feeding in infants"
     snapshot: packages/protocols/sources/NICE-NG143.txt
-    supports: "item L75: infant poor feeding is a separate, intermediate-risk construct, kept in neonatoloji"
+    supports: "item L75: feeding less than usual is a separate, intermediate-risk construct (az_beslenme), kept beside the danger sign and not merged into it"
   - kind: guideline
     guideline_id: NICE-NG143
     title: "Fever in under 5s: assessment and initial management"
@@ -159,6 +162,7 @@ sources:
     quote: "The enquiry should be made in private on a one-to-one basis in an environment where the person feels safe, and in a kind, sensitive manner."
     snapshot: packages/protocols/sources/NICE-PH50.txt
     supports: "item L88: asking whether others intend harm is a safeguarding enquiry that belongs with trained staff in private"
+    caveat: "PH50 is a domestic violence and abuse guideline. It is cited for how a safeguarding enquiry is made (trained staff, in private, one to one), not as a source on persecutory ideation."
   - kind: guideline
     guideline_id: NICE-PH50
     title: "Domestic violence and abuse: multi-agency working"
@@ -169,6 +173,7 @@ sources:
     quote: "Ensure all services have formal referral pathways in place for domestic violence and abuse."
     snapshot: packages/protocols/sources/NICE-PH50.txt
     supports: "item L88: a disclosure needs a referral pathway, which a pre-visit form does not have"
+    caveat: "Cited for the referral pathway a safeguarding disclosure needs; PH50 does not address persecutory ideation."
   - kind: guideline
     guideline_id: NICE-NG10
     title: "Violence and aggression: short-term management in mental health, health and community settings"
@@ -231,9 +236,10 @@ spec_basis:
     quote: "Forbidden as triggers: respiratory-rate counts, chest-indrawing grading, skin turgor, capillary refill"
     supports: "item L72: the ask captures presence only; no rule may grade indrawing"
 inference_disclosure: >-
-  The sources fix the constructs. Choosing the danger sign over 'feeding as usual' for the
-  whole child cluster, the new slot id, and the Turkish wording of the feeding and fever
-  items are this author's choices made on those sources. The feeding ask puts the question
+  The sources fix the constructs. Asking the danger sign as its own item beside the
+  feeding-less item (az_beslenme, whose text is CD-100's), the new slot id, and the
+  Turkish wording of the danger-sign and fever items are this author's choices made on
+  those sources. The feeding ask puts the question
   particle on a positive verb ("hâle geldi mi") so that "evet" means the danger sign is
   present and no negative-question ambiguity arises. NG143 and the WHO pocket book are
   written for young children; whether their features apply above five years stays the
@@ -267,15 +273,18 @@ value:
       outcome: change
       change: >-
         (1) Polarity: CD-10 decided it (true_is_concern; Q7 is az_cis) and this item
-        accepts that. (2) Construct: Q5 becomes the IMCI general danger sign in the concern
-        direction: "Çocuğunuz hiçbir şey içemez ya da ememez hâle geldi mi?" · gen:
-        slot=icemez_ememez; type=boolean. The id changes with the construct and the
+        accepts that. (2) Construct: both constructs are kept, because their thresholds
+        differ. Q5 beslenme_sivi_alimi becomes az_beslenme as CD-100 T9 decides it ("Çocuğunuz
+        her zamankinden daha az besleniyor ya da içiyor mu?", ungated, true_is_concern).
+        Beside it the cluster adds a separate ungated item, the IMCI general danger sign in
+        the concern direction: "Çocuğunuz hiçbir şey içemez ya da ememez hâle geldi mi?" ·
+        gen: slot=icemez_ememez; type=boolean. The ids change with the construct and the
         polarity (CD-10: no rename across polarities), so beslenme_sivi_alimi leaves the
         cluster. cocuk_sagligi_ve_hastaliklari drops its beslenme_sivi_alimi re-declaration
-        and inherits the cluster item; cocuk_enfeksiyon_hastaliklari replaces
-        emebiliyor_icebiliyor with the same gen line and text. neonatoloji keeps
-        beslenmede_azalma (infant poor feeding, already true_is_concern) as its own item.
-      clinical_basis: "The WHO general danger sign is inability to drink or breastfeed, which needs the most urgent response, while NG143's poor feeding is an intermediate-risk sign for infants only; asking 'as usual' merges the two, so a febrile child who eats less but drinks well gives the same answer as a child who cannot drink at all, and the record cannot tell which construct the answer means."
+        and inherits both; cocuk_enfeksiyon_hastaliklari removes emebiliyor_icebiliyor and
+        inherits both; neonatoloji's beslenmede_azalma takes az_beslenme with its own infant
+        text and inherits icemez_ememez.
+      clinical_basis: "The WHO general danger sign, inability to drink or breastfeed, needs the most urgent response, while NG143's poor feeding is an intermediate-risk sign at a lower threshold; asking 'as usual' merges the two so the record cannot tell which one an answer means, so each is asked as its own item and NG143's poor feeding is kept, not merged into the danger sign."
       sources: [WHO-POCKETBOOK-2013, NICE-NG143]
       status: active
     - item: "docs/evidence/verification/cluster-wave-b.md#L77"
@@ -433,3 +442,9 @@ value:
         function enters a report as the patient's.
 verifier:
   verdict: pending
+  notes: >-
+    Round 1 (independent verifier, via the INT-448 lead): agree_with_changes. Applied in
+    round 2: L75 keeps both feeding constructs (az_beslenme as CD-100 T9 decides it, and
+    icemez_ememez as a separate ungated item); NG143's poor feeding is kept, not merged;
+    the PH50 sources carry a caveat that PH50 is cited for how a safeguarding enquiry is
+    made.

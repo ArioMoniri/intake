@@ -1,7 +1,7 @@
 # guideline_id: NICE-NG127
 # title: Suspected neurological conditions: recognition and referral
 # publisher: National Institute for Health and Care Excellence (NICE)
-# version_or_date: NICE guideline NG127; published 01 May 2019; last updated 02 October 2023
+# version_or_date: NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information, https://www.nice.org.uk/guidance/ng127/chapter/Update-information, retrieved 2026-10-03)
 # url: https://www.nice.org.uk/guidance/ng127/chapter/Recommendations
 # retrieved_on: 2026-10-03
 # retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped

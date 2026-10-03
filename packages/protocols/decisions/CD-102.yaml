@@ -23,9 +23,12 @@ decision: >-
   anchors move to the TARD 2025 comorbidity sections, and a stroke or transient stroke
   history item is added because TARD postpones elective surgery after one; cluster.medical
   gains the ungated hyperglycaemia-with-vomiting input, because TEMD 2026 records DKA as
-  the first sign of diabetes in many patients; the pregnancy swelling item returns to NICE
-  NG133's sudden swelling of the face, hands or feet; ic_hastaliklari adopts the cluster's
-  night-sweat question and keeps its unexplained-fever item apart under a semantic id.
+  the first sign of diabetes in many patients (a note input only; a DKA rule, when
+  written, sits in base.life_threat on a base-level slot); the pregnancy swelling item
+  returns to NICE NG133's sudden swelling of the face, hands or feet; ic_hastaliklari
+  adopts the cluster's night-sweat question and keeps its fever-of-unknown-cause item
+  apart as nedenini_bilmedigi_ates, recorded as the patient's report and never asserted
+  as NG12's "unexplained".
   Rejected (1): the base fever, weight-loss and pregnancy-bleeding probes do not take the
   cluster ids and are never filled from a cluster answer, because each probe carries a
   severity criterion the screen does not ask; the mechanics are the base owner's.
@@ -255,7 +258,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG133
     title: "Hypertension in pregnancy: diagnosis and management"
-    version_or_date: "NICE guideline NG133; published 25 June 2019; last updated 17 April 2023"
+    version_or_date: "NICE guideline NG133; published 25 June 2019; last updated 17 April 2023; minor changes August 2022, October 2022 and October 2023 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng133/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.1.1"
@@ -265,7 +268,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG133
     title: "Hypertension in pregnancy: diagnosis and management"
-    version_or_date: "NICE guideline NG133; published 25 June 2019; last updated 17 April 2023"
+    version_or_date: "NICE guideline NG133; published 25 June 2019; last updated 17 April 2023; minor changes August 2022, October 2022 and October 2023 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng133/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.1.1"
@@ -275,7 +278,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG98
     title: "Hearing loss in adults: assessment and management"
-    version_or_date: "NICE guideline NG98; published 21 June 2018; last updated 02 October 2023"
+    version_or_date: "NICE guideline NG98; published 21 June 2018; last updated 02 October 2023; minor change March 2025 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng98/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.1.2"
@@ -285,7 +288,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG127
     title: "Suspected neurological conditions: recognition and referral"
-    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023"
+    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng127/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.2.1"
@@ -295,7 +298,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG127
     title: "Suspected neurological conditions: recognition and referral"
-    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023"
+    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng127/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.2.5"
@@ -305,7 +308,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG127
     title: "Suspected neurological conditions: recognition and referral"
-    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023"
+    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng127/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.2.6"
@@ -398,8 +401,10 @@ value:
         (Tablo 12.1) · "Çok susama ya da sık idrara çıkmayla birlikte bulantı, kusma veya
         karın ağrısı oluyor mu?" · gen: slot=hiperglisemi_bulanti_kusma; type=boolean.
         Ungated. Same text and id as diyabet_poliklinigi Q8, so that pack's re-declaration
-        replaces it. Input only: no level, no rule, no candidate flag. Re-anchor MED-S3 on the
-        2026 edition (TEMD-DM-2026).
+        replaces it. Input only: no level, no rule, no candidate flag. A DKA rule, when
+        written, is placed in base.life_threat with a base-level trigger slot (CD-13 rule 1);
+        this cluster item is a note input only and never that rule's gate slot. Re-anchor
+        MED-S3 on the 2026 edition (TEMD-DM-2026).
       clinical_basis: "TEMD 2026 names thirst, polyuria, nausea, vomiting and abdominal pain as DKA symptoms and records DKA as the first sign of diabetes in most children with type 1 and in some adults, so a gate on a known diagnosis would close the item for the new-onset patients it exists for."
       sources: [TEMD-DM-2026]
       status: active
@@ -508,9 +513,10 @@ value:
         chain asks it once: "Son zamanlarda geceleri çarşafınızı ıslatacak kadar terlediniz
         mi?" · gen: slot=gece_terlemesi; type=boolean. Q4 (unexplained fever): keep it apart
         from son_gunlerde_ates under a semantic id, text unchanged ("Son zamanlarda
-        nedenini bilmediğiniz bir ateşiniz oldu mu?") · gen: slot=aciklanamayan_ates;
-        type=boolean.
-      clinical_basis: "The cluster asks drenching night sweats in a recent window, the form the haematology referral guidance names, while ic Q5 has no window and a lower threshold; ic Q4 asks a fever whose cause is unknown over recent weeks, the NG12 unexplained-fever construct, while the cluster asks any fever in recent days, so one cannot stand for the other."
+        nedenini bilmediğiniz bir ateşiniz oldu mu?") · gen: slot=nedenini_bilmedigi_ates;
+        type=boolean. The patient's report is recorded as such and is never asserted as
+        NG12's clinician-defined "unexplained" (CD-14).
+      clinical_basis: "The cluster asks drenching night sweats in a recent window, the form the haematology referral guidance names, while ic Q5 has no window and a lower threshold; ic Q4 asks a fever whose cause the patient does not know, which is close to NG12's unexplained fever (a clinician's finding after assessment), while the cluster asks any fever in recent days, so one cannot stand for the other."
       sources: [SCOT-SRG-2025, NICE-NG12, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
     - item: "docs/evidence/verification/cluster-wave-a.md#L244"
@@ -533,3 +539,9 @@ value:
       status: active
 verifier:
   verdict: pending
+  notes: >-
+    Round 1 (independent verifier, via the INT-448 lead): agree_with_changes. Applied in
+    round 2: the ic Q4 id is nedenini_bilmedigi_ates and the patient's report is never
+    asserted as NG12's "unexplained" (L243); L113 states that a DKA rule sits in
+    base.life_threat with a base-level trigger slot and this item is a note input only;
+    NG98, NG127 and NG133 version strings carry their link-only minor changes.

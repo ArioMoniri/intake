@@ -20,18 +20,21 @@ decision: >-
   dizziness-or-imbalance item stays apart; cocuk_gogus_hastaliklari keeps the WHO
   chest-indrawing text; the four opposite-polarity hydration twins follow CD-10; the
   pedodonti proxy airway text is right if the owner keeps the airway ask. Changed (13):
-  ic_hastaliklari adopts the cluster night-sweat question and keeps its unexplained-fever
-  item apart as aciklanamayan_ates; KBB adopts the cluster vertigo question and keeps a
+  ic_hastaliklari adopts the cluster night-sweat question and keeps its fever-of-unknown-
+  cause item apart as nedenini_bilmedigi_ates (the patient's report, never asserted as
+  NG12's "unexplained"); KBB adopts the cluster vertigo question and keeps a
   persistent neck lump apart, without "kitle"; göz adopts the cluster vision-change
   question, keeps transient sudden loss, floaters and flashes apart, and narrows its
   redness item to the skin around the eye; the child fever ask becomes "oldu mu" and
-  uyandirma_zorlugu stays separate; the child feeding item becomes the WHO danger sign
-  (CD-103); klinik psikoloji's psychotherapy item becomes a detail under the cluster's
+  uyandirma_zorlugu stays separate; the child chains keep both feeding constructs, the
+  feeding-less item az_beslenme (CD-100 T9) and the WHO danger sign icemez_ememez
+  (CD-103), and neonatoloji's infant item takes az_beslenme; klinik psikoloji's
+  psychotherapy item becomes a detail under the cluster's
   support item; AMATEM's two-fact item splits into the cluster's functioning item and a
   health-effect item. Four items are owner questions (ÇEMATEM and Çocuk ve Ergen Ruh
   Sağlığı, the dental radiology airway id, the held sağlık kurulu item, and the FTR fever
-  near-twin). Where the owner reverted a rebind on 27 Sep 2026, the owner confirms
-  re-applying it.
+  near-twin). Where the owner reverted a rebind on 27 Sep 2026, that decision already
+  re-applies it once the clinician chooses, which this decision does.
 status: active
 scope: simulated_patient_stress_testing
 scope_note: >-
@@ -145,7 +148,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG127
     title: "Suspected neurological conditions: recognition and referral"
-    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023"
+    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng127/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.2.1"
@@ -155,7 +158,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG127
     title: "Suspected neurological conditions: recognition and referral"
-    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023"
+    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng127/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.2.5"
@@ -165,7 +168,7 @@ sources:
   - kind: guideline
     guideline_id: NICE-NG127
     title: "Suspected neurological conditions: recognition and referral"
-    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023"
+    version_or_date: "NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information)"
     url: "https://www.nice.org.uk/guidance/ng127/chapter/Recommendations"
     retrieved_on: 2026-10-03
     section: "1.2.6"
@@ -221,7 +224,7 @@ sources:
     section: "1.2.6"
     quote: "poor feeding in infants"
     snapshot: packages/protocols/sources/NICE-NG143.txt
-    supports: "items L303 and L304: neonatoloji's beslenmede_azalma is the infant construct and stays"
+    supports: "items L303 and L304: feeding less than usual is a lower-threshold construct kept beside the danger sign; neonatoloji's infant item carries it as az_beslenme"
   - kind: guideline
     guideline_id: NICE-NG143
     title: "Fever in under 5s: assessment and initial management"
@@ -332,9 +335,10 @@ value:
         zamanlarda geceleri çarşafınızı ıslatacak kadar terlediniz mi?" · gen:
         slot=gece_terlemesi; type=boolean. Q4 stays apart from son_gunlerde_ates under a
         semantic id, text unchanged: "Son zamanlarda nedenini bilmediğiniz bir ateşiniz
-        oldu mu?" · gen: slot=aciklanamayan_ates; type=boolean. Same decision as CD-102
-        item cluster-wave-a.md#L243.
-      clinical_basis: "The cluster asks drenching night sweats in a recent window, the form haematology referral guidance names, while ic Q5 has no window and a lower threshold; ic Q4 is NG12's unexplained fever, a fever whose cause is not known, while the cluster asks any recent fever, so it stays apart."
+        oldu mu?" · gen: slot=nedenini_bilmedigi_ates; type=boolean. The patient's report
+        is recorded as such and is never asserted as NG12's clinician-defined "unexplained"
+        (CD-14). Same decision as CD-102 item cluster-wave-a.md#L243.
+      clinical_basis: "The cluster asks drenching night sweats in a recent window, the form haematology referral guidance names, while ic Q5 has no window and a lower threshold; ic Q4 asks a fever whose cause the patient does not know, close to NG12's unexplained fever (a clinician's finding after assessment), while the cluster asks any recent fever, so it stays apart."
       sources: [SCOT-SRG-2025, NICE-NG12, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
     - item: "docs/evidence/INT-353.md#L287"
@@ -422,7 +426,7 @@ value:
       deciders: [HB-C3, paediatrician]
       question: "Which polarity do neonatoloji beslenmede_azalma and islak_bez_azalmasi, cocuk_gastroenterolojisi az_cis and cocuk_nefrolojisi idrar_azalmasi follow, so that no rename inverts an answer?"
       outcome: accept
-      clinical_basis: "CD-10 decided it: every hydration item is true_is_concern, islak_bez_azalmasi takes az_cis with its nappy text, az_cis is already the target, idrar_azalmasi stays a narrower separate item, and beslenmede_azalma keeps its id as the infant poor-feeding construct (CD-103 item cluster-wave-b.md#L75)."
+      clinical_basis: "CD-10 decided it: every hydration item is true_is_concern, islak_bez_azalmasi takes az_cis with its nappy text, az_cis is already the target, idrar_azalmasi stays a narrower separate item, and beslenmede_azalma takes the shared id az_beslenme with its infant text (CD-100 T9; CD-103 item cluster-wave-b.md#L75), already in the concern direction, so no answer inverts."
       sources: [NICE-CG84, NICE-NG143]
       status: active
     - item: "docs/evidence/INT-353.md#L304"
@@ -432,16 +436,22 @@ value:
       question: "Which feeding construct does child_health ask, and does the cluster item stay where a specialty asks its own vomiting, growth or breathing item?"
       outcome: change
       change: >-
-        (1) Feeding: the cluster asks the WHO danger sign, "Çocuğunuz hiçbir şey içemez ya
-        da ememez hâle geldi mi?" · gen: slot=icemez_ememez; type=boolean;
-        emebiliyor_icebiliyor and beslenme_sivi_alimi retire into it, and neonatoloji keeps
-        beslenmede_azalma (CD-103 item cluster-wave-b.md#L75). (2) Vomiting: her_seyi_kusma
-        stays in every child chain unchanged; sivi_tutamama, kusma_beslenme_reddi and
-        tekrarlayan_kusma_beslenememe stay as their packs' own items. (3) Growth:
-        buyume_endisesi stays; buyume_ergenlik_endisesi, yavas_kilo_alma, buyume_geriligi and
-        kilo_alamama stay as their packs' own items. (4) Breathing: inleme and
-        gogus_icine_cekilme stay in neonatoloji beside its own nefes_zorlanmasi.
-      clinical_basis: "Vomiting everything is a WHO general danger sign and is never replaced by a narrower specialty item, while not tolerating fluids, feed refusal and recurrent vomiting are separate risk constructs; grunting and chest indrawing are separate high-risk NG143 features; the growth items each add a construct (puberty, peers, weight loss), so no item is merged and the worst case is a near repeat."
+        (1) Feeding, the same reconciliation as CD-103 item cluster-wave-b.md#L75: both
+        constructs are kept. beslenme_sivi_alimi becomes az_beslenme as CD-100 T9 decides
+        it ("Çocuğunuz her zamankinden daha az besleniyor ya da içiyor mu?", ungated), and
+        the cluster adds the WHO danger sign as a separate ungated item, "Çocuğunuz hiçbir
+        şey içemez ya da ememez hâle geldi mi?" · gen: slot=icemez_ememez; type=boolean.
+        cocuk_sagligi_ve_hastaliklari and cocuk_enfeksiyon_hastaliklari drop
+        beslenme_sivi_alimi and emebiliyor_icebiliyor and inherit both; neonatoloji's
+        beslenmede_azalma takes az_beslenme with its own infant text and inherits
+        icemez_ememez. (2) Vomiting: her_seyi_kusma stays in every child chain unchanged;
+        sivi_tutamama, kusma_beslenme_reddi and tekrarlayan_kusma_beslenememe stay as their
+        packs' own items. (3) Growth: buyume_endisesi stays; yavas_kilo_alma,
+        buyume_geriligi and kilo_alamama stay as their packs' own items;
+        buyume_ergenlik_endisesi is decided by CD-100 T46, which narrows it to
+        ergenlik_endisesi. (4) Breathing: inleme and gogus_icine_cekilme stay in neonatoloji
+        beside its own nefes_zorlanmasi.
+      clinical_basis: "The WHO danger sign and NG143's poor feeding have different thresholds, so both are asked and neither is merged into the other; vomiting everything is a WHO general danger sign and is never replaced by a narrower specialty item, while not tolerating fluids, feed refusal and recurrent vomiting are separate risk constructs; grunting and chest indrawing are separate high-risk NG143 features; the remaining growth items each add a construct (peers, weight loss), so no item is merged and the worst case is a near repeat."
       sources: [WHO-POCKETBOOK-2013, NICE-NG143, NICE-CG84, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
     - item: "docs/evidence/INT-353.md#L306"
@@ -531,9 +541,10 @@ value:
       outcome: change
       change: >-
         Keep it apart under a semantic boolean id, text unchanged: "Son zamanlarda nedenini
-        bilmediğiniz bir ateşiniz oldu mu?" · gen: slot=aciklanamayan_ates; type=boolean
-        (replaces soru_3, string).
-      clinical_basis: "ic Q4 asks NG12's unexplained fever, a fever whose cause has not been found, which a yes to any recent fever does not carry, so it is not the cluster's fact; it becomes a typed yes/no under a name that says what it asks."
+        bilmediğiniz bir ateşiniz oldu mu?" · gen: slot=nedenini_bilmedigi_ates; type=boolean
+        (replaces soru_3, string). The patient's report is recorded as such and is never
+        asserted as NG12's clinician-defined "unexplained" (CD-14).
+      clinical_basis: "ic Q4 asks a fever whose cause the patient does not know, close to NG12's unexplained fever (a clinician's finding after assessment), which a yes to any recent fever does not carry, so it is not the cluster's fact; it becomes a typed yes/no under a name that says what it asks and asserts nothing the patient cannot report."
       sources: [NICE-NG12, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
     - item: "docs/evidence/INT-353.md#L424"
@@ -550,8 +561,9 @@ value:
       sources: [SCOT-SRG-2025, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
       status: active
       owner_part: >-
-        Owner: the 27 Sep 2026 revert of this rebind was the owner's; confirm that it is
-        re-applied in the review queue on this decision (simulated-patient testing only).
+        Owner: no further action. The owner's 27 Sep 2026 decision reverted this rebind until
+        the clinician chooses and re-applies it once they do; this decision is that choice,
+        for simulated-patient testing only.
     - item: "docs/evidence/INT-353.md#L425"
       ref: "INT-353 review fix D-3: KBB Q5 → donme_hissi"
       packets: [kulak_burun_bogaz_hastaliklari]
@@ -618,3 +630,11 @@ value:
         route it to a clinician item.
 verifier:
   verdict: pending
+  notes: >-
+    Round 1 (independent verifier, via the INT-448 lead): agree_with_changes. Applied in
+    round 2: the ic Q4 id is nedenini_bilmedigi_ates and the patient's report is never
+    asserted as NG12's "unexplained" (L286, L422); L303 and L304 (1) follow the shared
+    feeding ruling (az_beslenme as CD-100 T9 decides it, icemez_ememez beside it,
+    neonatoloji's infant item takes az_beslenme); L304 (3) leaves buyume_ergenlik_endisesi
+    to CD-100 T46; L424's owner part records that no further owner action is needed;
+    NG127 version strings carry their link-only minor changes.
