@@ -514,6 +514,16 @@ def test_artefacts_are_fetched_before_waiting_for_a_slot() -> None:
     assert bundle < slot and deid < slot
 
 
+def test_the_runner_sees_the_daemon_root_dir_like_a_github_runner() -> None:
+    # Measured 2 Oct (PR 682): the backup drill runs `df` on
+    # `docker info`'s DockerRootDir, which exists on a GitHub runner and was
+    # absent in the runner here. The daemon's data volume is mounted read-only
+    # at that path, so `df` measures the disk the daemon really writes to.
+    services = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))["services"]
+    assert "dind:/var/lib/docker:ro" in services["runner"]["volumes"]
+    assert "dind:/var/lib/docker" in services["dind"]["volumes"]
+
+
 def test_scripts_parse() -> None:
     for name in ("aws_ci.sh", "aws_ci_host.sh", "aws_ci_gates.sh"):
         subprocess.run(["bash", "-n", str(REPO / "scripts/ci" / name)], check=True)

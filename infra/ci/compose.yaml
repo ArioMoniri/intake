@@ -84,6 +84,11 @@ services:
       AWS_CI_SHA: ${AWS_CI_SHA}
     volumes:
       - work:/work
+      # read-only: `docker info` reports DockerRootDir=/var/lib/docker, and a
+      # gate that runs `df` on it (the backup drill) measures the disk the
+      # daemon really writes to, as on a GitHub runner. The runner already
+      # drives dind through its API, so this grants it nothing new.
+      - dind:/var/lib/docker:ro
       - ${AWS_CI_RUN_DIR}/out:/out
       - ${AWS_CI_RUN_DIR}/harness:/harness:ro
       - uv:/caches/uv
