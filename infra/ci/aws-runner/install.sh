@@ -14,9 +14,9 @@
 #      before it is unpacked
 #   5. scripts, units and the slice, then the guards once (fail closed)
 #   6. starts rootless Docker and proves it answers as ghrunner, then enables
-#      and (re)starts the supervisor and the disk watchdog. Without a
-#      registration credential the supervisor waits, offline, and registers
-#      once scripts/ci/aws_runner.sh token or registrar hands one over.
+#      and (re)starts the supervisor and the disk watchdog. The supervisor's
+#      registrar mints a registration token before every registration from the
+#      owner's admin token in SSM; if that fails it waits, offline.
 # It never reads, prints or writes a credential.
 set -euo pipefail
 set +x
@@ -144,10 +144,7 @@ say "rootless Docker answers as $RUNNER_USER: $(runuser -u "$RUNNER_USER" -- env
 systemctl enable --now intake-aws-ci-diskwatch.timer >/dev/null 2>&1
 systemctl enable intake-aws-ci-runner.service >/dev/null 2>&1
 systemctl restart --no-block intake-aws-ci-runner.service
-if [ -s "$SECRET_DIR/registrar-header" ] || [ -s "$SECRET_DIR/registration-token" ]; then
-  say "supervisor (re)started; a registration credential is present"
-else
-  say "supervisor started; it stays offline until scripts/ci/aws_runner.sh token or registrar hands over a credential"
-fi
+rm -f "$SECRET_DIR/registrar-header"
+say "supervisor (re)started; its registrar reads $REGISTRAR_PARAM before every registration"
 say "df after:"
 df -h / "$NVME_MOUNT"

@@ -2,7 +2,6 @@
 # INT-463 — runs as root on the host, sent over SSM by scripts/ci/aws_runner.sh.
 #
 #   fetch-credential.sh registration <ssm parameter name>
-#   fetch-credential.sh registrar <ssm parameter name>
 #
 # The laptop puts the credential into SSM Parameter Store as a SecureString,
 # so the SSM command carries only the parameter's name. This script reads it
@@ -24,7 +23,6 @@ if ! [[ "$name" =~ ^/intake/aws-ci-runner/[a-z0-9-]+$ ]]; then
 fi
 case "$kind" in
   registration) target="$SECRET_DIR/registration-token" ;;
-  registrar) target="$SECRET_DIR/registrar-header" ;;
   *)
     echo "intake-aws-ci: unknown credential kind"
     exit 2
@@ -40,11 +38,7 @@ if ! [[ "$value" =~ ^[A-Za-z0-9_-]{20,255}$ ]]; then
   echo "intake-aws-ci: the parameter does not hold a credential of the expected shape"
   exit 1
 fi
-if [ "$kind" = registrar ]; then
-  printf 'Authorization: Bearer %s\n' "$value" >"$target.new"
-else
-  printf '%s' "$value" >"$target.new"
-fi
+printf '%s' "$value" >"$target.new"
 unset value
 chmod 0600 "$target.new"
 mv -f "$target.new" "$target"

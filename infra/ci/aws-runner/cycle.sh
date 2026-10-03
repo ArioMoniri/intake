@@ -9,12 +9,12 @@
 #            registration with --ephemeral. The registration token reaches
 #            config.sh in ACTIONS_RUNNER_INPUT_TOKEN, never on a command line,
 #            and it is never printed. Its source, in order:
-#              SECRET_DIR/registrar-header    a fine-grained token that may
-#                                             mint registration tokens
-#                                             (Administration: write, this
-#                                             repository only)
-#              SECRET_DIR/registration-token  a one-hour registration token
-#                                             from scripts/ci/aws_runner.sh token
+#              the registrar   a fresh registration token minted for this pass
+#                              with the owner's admin token, read from SSM
+#                              (REGISTRAR_PARAM) by this root process only
+#              SECRET_DIR/registration-token
+#                              a one-hour registration token from
+#                              scripts/ci/aws_runner.sh token, the fallback
 #   run      `systemctl start --wait intake-aws-ci-job.service`: the runner
 #            process, as ghrunner, inside that unit's sandbox. It takes exactly
 #            one job and exits.
@@ -34,20 +34,38 @@ set +e
 JOB_UNIT=intake-aws-ci-job.service
 RETRY_S=30
 
+registrar_token() {
+  # The owner's fine-grained token (this repository only, Administration: read
+  # and write) is read from SSM with the instance role, which only root on this
+  # host can reach: guard.sh rejects the metadata service for the runner user.
+  # It goes to curl as a header on stdin, never as an argument, and is unset
+  # before this returns. Only the minted registration token leaves.
+  local pat token
+  pat=$(aws ssm get-parameter --region "$REGISTRAR_REGION" --name "$REGISTRAR_PARAM" \
+    --with-decryption --query Parameter.Value --output text 2>/dev/null) || pat=""
+  if ! [[ "$pat" =~ ^[A-Za-z0-9_]{20,255}$ ]]; then
+    unset pat
+    say "the registrar could not read $REGISTRAR_PARAM" >&2
+    return 1
+  fi
+  token=$(printf 'Authorization: Bearer %s\n' "$pat" | curl -fsS -m 30 -X POST \
+    -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' -H @- \
+    "https://api.github.com/repos/$REPO_SLUG/actions/runners/registration-token" |
+    jq -r '.token // empty') || token=""
+  unset pat
+  if [ -z "$token" ]; then
+    say "the registrar's token did not mint a registration token" >&2
+    return 1
+  fi
+  printf '%s' "$token"
+}
+
 registration_token() {
   local token=""
-  if [ -s "$SECRET_DIR/registrar-header" ]; then
-    token=$(curl -fsS -m 30 -X POST \
-      -H 'Accept: application/vnd.github+json' \
-      -H 'X-GitHub-Api-Version: 2022-11-28' \
-      -H @"$SECRET_DIR/registrar-header" \
-      "https://api.github.com/repos/$REPO_SLUG/actions/runners/registration-token" |
-      jq -r '.token // empty')
-    if [ -z "$token" ]; then
-      say "the registrar credential did not mint a registration token"
-    fi
-  fi
-  if [ -z "$token" ] && [ -s "$SECRET_DIR/registration-token" ]; then
+  if token=$(registrar_token); then
+    # The one-hour hand-over token is stale once the registrar works.
+    rm -f "$SECRET_DIR/registration-token"
+  elif [ -s "$SECRET_DIR/registration-token" ]; then
     token=$(tr -d '[:space:]' <"$SECRET_DIR/registration-token")
   fi
   if ! [[ "$token" =~ ^[A-Za-z0-9_-]{20,255}$ ]]; then
@@ -92,7 +110,7 @@ prepare() {
 
   local token
   if ! token=$(registration_token); then
-    say "FAIL: no usable registration credential in $SECRET_DIR. Run scripts/ci/aws_runner.sh token (one hour) or scripts/ci/aws_runner.sh registrar (lasting)."
+    say "FAIL: no registration token: the registrar failed and no one-hour token is in $SECRET_DIR (scripts/ci/aws_runner.sh token)."
     return 1
   fi
   # config.sh checks its libraries relative to the working directory.
@@ -100,7 +118,7 @@ prepare() {
     ./config.sh --unattended --ephemeral --replace --disableupdate \
     --url "$REPO_URL" --name "$RUNNER_NAME" --labels "$RUNNER_LABELS" \
     --work "$CI_ROOT/work" >/dev/null); then
-    say "FAIL: GitHub refused the registration (an expired one-hour token, or a revoked registrar credential)"
+    say "FAIL: GitHub refused the registration (an expired one-hour token, or a revoked admin token)"
     return 1
   fi
   unset token

@@ -146,7 +146,7 @@ value is one and a catalogue label where it is not, and never the slot ref — e
 other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
 is clinical copy against the packs' slot definitions.
 | INT-296 | awaiting-human (KVKK category of a second locale; column shipped, registry holds only `tr`) | DPO / Turkish counsel (with the owner) | Under which KVKK category, lawful basis, retention and recipients does `sessions.locale` sit once a second language is offered — given that with `tr` alone the column records the service's own language and states nothing about the patient, but a language choice among several can proxy ethnic origin (m.6 special category)? | HB-L25 |
-| INT-463 | awaiting-human (runner installed and online; workflow edits are owner-only) | owner | Apply `owner-ci-aws-runners.patch` (ci.yml + security.yml, every `runs-on` to `[self-hosted, linux, intake-aws-ci]`) to the INT-463 branch and push, because security.yml is hook-protected and the session classifier refuses workflow edits from an agent; and, for a runner that re-registers without a laptop, pipe a fine-grained token (this repository only, Administration: read and write) into `scripts/ci/aws_runner.sh registrar`. | HB-I7 |
+| INT-463 | awaiting-human (runner and registrar installed; the admin token in SSM is not a token) | owner | Overwrite the SSM SecureString `/intake/staging/gh_runner_admin_pat` with the raw fine-grained token (this repository only, Administration: read and write): today it holds 16 words of prose, so the host's registrar refuses and the ephemeral runner re-registers only while a one-hour fallback token lasts. | HB-I7 |
 
 ## INT-136 — instruments render verbatim, and nothing renders
 

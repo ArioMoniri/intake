@@ -257,7 +257,84 @@ def test_the_token_never_reaches_a_command_line_or_a_log() -> None:
         code = _code(_script(name))
         assert "set +x" in code, name
         assert "set -x" not in code, name
-        assert not re.search(r"echo[^\n]*\$\{?(token|value)\b", code), name
+        assert not re.search(r"echo[^\n]*\$\{?(token|value|pat)\b", code), name
+
+
+# --- the registrar: a fresh registration token before every registration ---------------
+
+REGISTRAR_PARAM = "/intake/staging/gh_runner_admin_pat"
+
+
+def _registrar() -> str:
+    return _code(_script("cycle.sh")).split("registrar_token() {", 1)[1].split("\n}", 1)[0]
+
+
+def test_the_registrar_reads_the_admin_token_from_ssm() -> None:
+    """The owner's fine-grained token (this repository only, Administration:
+    read and write) lives in SSM as a SecureString. The root supervisor reads
+    it with the instance role at each registration, and nothing else does."""
+    assert _conf()["REGISTRAR_PARAM"] == REGISTRAR_PARAM
+    registrar = _registrar()
+    assert "aws ssm get-parameter" in registrar
+    assert '--name "$REGISTRAR_PARAM"' in registrar
+    assert "--with-decryption" in registrar
+    assert "unset pat" in registrar
+
+
+def test_the_admin_token_reaches_github_only_through_stdin() -> None:
+    """argv is world-readable in /proc; the token goes to curl as a header on
+    stdin (`-H @-`), never as an argument, and is never printed."""
+    registrar = _registrar()
+    assert "printf 'Authorization: Bearer %s\\n' \"$pat\" | curl" in registrar
+    assert "-H @-" in registrar
+    for line in registrar.splitlines():
+        if "curl" in line or "echo" in line or "say" in line:
+            assert "$pat" not in line.split("|", 1)[-1], line
+    assert "actions/runners/registration-token" in registrar
+
+
+def test_the_registrar_reports_on_stderr_not_into_the_token() -> None:
+    """registrar_token's stdout is captured as the token, so its messages go to
+    stderr; otherwise a refusal is swallowed into a variable and never logged
+    (measured on the host on 3 Oct 2026: the first refusal left no log line)."""
+    says = [line for line in _registrar().splitlines() if line.strip().startswith("say ")]
+    assert says, "the registrar reports nothing"
+    for line in says:
+        assert line.rstrip().endswith(">&2"), line
+
+
+def test_every_registration_mints_a_fresh_token_first() -> None:
+    """Ephemeral: each pass registers anew, and each registration asks the
+    registrar first; the one-hour hand-over token is only the fallback."""
+    cycle = _code(_script("cycle.sh"))
+    prepare = cycle.split("prepare() {", 1)[1].split("\n}", 1)[0]
+    assert "registration_token" in prepare
+    chooser = cycle.split("registration_token() {", 1)[1].split("\n}", 1)[0]
+    assert chooser.index("registrar_token") < chooser.index('"$SECRET_DIR/registration-token"')
+    assert "registrar-header" not in cycle
+
+
+def test_only_root_can_reach_the_admin_token() -> None:
+    """The supervisor that reads it runs as root and unsandboxed; jobs run as
+    ghrunner, whose route to the instance role (the metadata service) is
+    rejected by the net guard, and whose units hide the root-only secret dir."""
+    supervisor = _unit("intake-aws-ci-runner.service")["Service"]
+    assert "User" not in supervisor
+    job = _unit("intake-aws-ci-job.service")["Service"]
+    assert job["User"] == "ghrunner"
+    assert "169.254.0.0/16" in _code(_script("guard.sh"))
+    assert "-/etc/intake-aws-ci-runner" in " ".join(
+        _values("intake-aws-ci-job.service", "InaccessiblePaths")
+    )
+
+
+def test_the_hand_over_path_no_longer_takes_an_admin_token() -> None:
+    """The admin token is the owner's to place in SSM; the laptop script only
+    ever hands over a one-hour registration token, as the fallback."""
+    operator = _code(OPERATOR.read_text(encoding="utf-8"))
+    assert "registrar)" not in operator
+    fetch = _code(_script("fetch-credential.sh"))
+    assert "registrar)" not in fetch
 
 
 def test_every_job_ends_with_a_wipe() -> None:

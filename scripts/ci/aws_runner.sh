@@ -8,11 +8,10 @@
 #       sha256-pinned archive over S3 + a presigned URL, and runs install.sh
 #       as root over SSM
 #   scripts/ci/aws_runner.sh token
-#       mints a one-hour registration token with gh and hands it to the host
-#   scripts/ci/aws_runner.sh registrar
-#       reads a fine-grained token (this repository only, Administration:
-#       read and write) from stdin and hands it to the host, so the runner
-#       re-registers after every job without a laptop
+#       mints a one-hour registration token with gh and hands it to the host.
+#       Only a fallback: the host's registrar mints a fresh one before every
+#       registration from the owner's admin token in SSM
+#       (/intake/staging/gh_runner_admin_pat), which never leaves the host.
 #   scripts/ci/aws_runner.sh status
 #       unit states, the GitHub registration and df; no credential
 #
@@ -58,7 +57,7 @@ ssm_run() {
 }
 
 hand_over() {
-  # $1: registration|registrar. The credential arrives on stdin.
+  # $1: registration. The credential arrives on stdin.
   local kind=$1 name rc=0 private
   name="/intake/aws-ci-runner/$kind-$(date -u +%Y%m%d%H%M%S)-$RANDOM"
   # The aws CLI cannot read a parameter file from a pipe, so the request lives
@@ -117,11 +116,6 @@ cmd_token() {
   gh api -X POST "repos/$REPO_SLUG/actions/runners/registration-token" --jq .token | hand_over registration
 }
 
-cmd_registrar() {
-  [ ! -t 0 ] || die "pipe the token on stdin, e.g. pbpaste | scripts/ci/aws_runner.sh registrar"
-  hand_over registrar
-}
-
 cmd_status() {
   ssm_run "systemctl is-active intake-aws-ci-dockerd.service intake-aws-ci-runner.service intake-aws-ci-diskwatch.timer || true
 journalctl -u intake-aws-ci-runner.service -n 15 --no-pager -o cat | grep -E '^intake-aws-ci|Listening|Running job|completed with result' || true
@@ -132,7 +126,6 @@ df -h / /opt/dlami/nvme" 120 || true
 case "${1:-}" in
   install) cmd_install "${@:2}" ;;
   token) cmd_token ;;
-  registrar) cmd_registrar ;;
   status) cmd_status ;;
   *)
     sed -n '2,20p' "$0" >&2
