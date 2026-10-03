@@ -3249,3 +3249,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: re-verification of CD-111; the orchestrator routes the application into #796.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T05:30:00+03:00 · INT-468 · round 3 (PR #813, verifier verdict pending re-verification)
+- Goal: answer CD-111's round 2 (nothing clinical blocks: INT-447's sec_row restored, NICE clause, stale NHS supports, a removal-only partial application, four notes).
+- Plan: tests first in tests/protocols/test_red_clinical_values.py, then CD-111 round 3.
+- Tests added (with the near-miss negative for any safety rule): the pin checks each location is its original or decided list in the same state (removal-only and one-location near misses); CD-24 at ON_SITE fails; served REMOTE shows 112; three more by-mouth forms. Red run: 4 failed, 53 passed; green 57 passed.
+- Result: see docs/evidence/INT-468.md (round 3); the only red test is CD-111's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-111; the application rides #796.
+- LOOP_STATUS: CONTINUE

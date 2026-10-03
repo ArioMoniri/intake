@@ -98,7 +98,7 @@ sources:
     section: "While you're waiting for medical help"
     quote: "Keep checking someone who may be having a heart attack to make sure they're still responding and breathing."
     snapshot: packages/protocols/sources/NHS-HEART-ATTACK-2026.txt
-    supports: "REMOTE line 3: the person with the patient has a role, so they are told"
+    supports: "REMOTE line 3: a companion who stays can keep checking that the patient is still responding and breathing"
   - kind: guideline
     guideline_id: RCUK-ERC-FIRST-AID-2025
     title: "First Aid Guidelines (Resuscitation Council UK, based on the ERC Guidelines 2025 First Aid)"
@@ -249,7 +249,7 @@ value:
       from: "Bir şey yiyip içmeyin."
       outcome: remove
       to: null
-      clinical_basis: "It conflicts with current care: chest-pain first aid has the person chew or dissolve aspirin while emergency help is awaited, NICE gives aspirin by mouth as soon as possible and before hospital, and the call handler gives the advice on what to do. No retrieved source supports nil by mouth for suspected acute coronary syndrome."
+      clinical_basis: "It conflicts with current care: chest-pain first aid has the person chew or dissolve aspirin while emergency help is awaited, NICE CG95 has a clinician offer aspirin as soon as possible and records it when given before arrival at hospital, and the call handler gives the advice on what to do. No retrieved source supports nil by mouth for suspected acute coronary syndrome."
       sources: [RCUK-ERC-FIRST-AID-2025, NICE-CG95, NHS-HEART-ATTACK-2026]
       status: active
     - location: REMOTE
@@ -318,10 +318,11 @@ value:
     where: "files/protocols/base.life_threat.yaml, rf.chest_pain_cardiac_features, action.REMOTE.do_nots_tr and action.ON_SITE.do_nots_tr; the lines stand the same on main and on the INT-465 branch (#796), which edits the adjacent why_tr lines, so the change is routed into #796 rather than stacked here"
     follows: "files/02_PRODUCT_SPEC.md §5.3 worked ON_SITE text drops its nil-by-mouth bullet; tests/fixtures/protocols/int314_tr_content_baseline.json updates the moved entries in file order; tests/voice/test_policyguard_precision.py swaps the two retired lines for the decided texts; any triage golden that dumps do_nots_tr follows the decided lists"
     not_reached: "The paediatric airway rule's 'Su, yiyecek ya da ilaç vermeyin.' is a different rule and is not decided here."
-    pins: "tests/protocols/test_red_clinical_values.py holds before and after application: each line is its old text or its decided text, never a third; once any changed line lands, every location holds exactly the decided list, so a removed line is gone. The application PR on #796 adds the goldens with near-miss controls and make safety."
+    pins: "tests/protocols/test_red_clinical_values.py holds before and after application: each location's served list is either its original list or its decided list, and both locations are in the same state, so no partial application passes, a removal alone included; the application PR on #796 adds the goldens with near-miss controls and make safety"
   physician_review:
     - "Should the clinic notification say that the location question went unanswered, so the clinic knows the patient may not be able to act (EENA)? Decided by the physician of record before any real patient."
     - "REMOTE line 1 no longer rules out being driven by someone else; whether to advise an ambulance over a relative's car is weighed by the physician of record before any real patient; no retrieved source states it either way."
+    - "In an adult proxy session, REMOTE line 3 (and 'kendiniz' in line 1) addresses the companion as if they were the patient, and the cardiac script has no proxy variant (CD-24's generic uses subject-less wording); should the cardiac script get a proxy-addressed variant before any real patient? No wording changes now."
   verification_history:
     - round: 1
       date: 2026-10-03
@@ -341,6 +342,24 @@ value:
         "late answer switch": "agree with note (files/02 §5.3 cited; LD-05 once on main)"
         "wait draft": "agree"
         "applied through #796": "agree with note (row kept open; full-application test)"
+    - round: 2
+      date: 2026-10-04
+      head: f99e0da8
+      reviewer: "independent D18 clinical verifier (agent)"
+      verdict: request_changes
+      findings: "nothing clinical blocks; 1 medium (INT-447 lost its sec_row in a merge), 3 low (NICE clause, stale NHS supports, a removal-only partial application passed the pin), 4 notes; round 3 addresses each (docs/evidence/INT-468.md, round 3)"
+      per_item:
+        "REMOTE line 1 change": "agree with note ('kendiniz' to the physician; proxy variant)"
+        "REMOTE nil-by-mouth remove": "agree with note (NICE clause)"
+        "REMOTE line 3 change": "agree with note (stale supports; proxy variant)"
+        "ON_SITE 'Poliklinik sırasında beklemeyin.' accept": "agree"
+        "ON_SITE 'Tek başınıza gitmeyin — …' accept": "agree"
+        "ON_SITE nil-by-mouth remove": "agree"
+        "no medicine line": "agree"
+        "no answer → REMOTE with 112": "agree (CD-24 near miss and served show_112 added)"
+        "late answer switch": "agree with note (LD-05 once on main)"
+        "wait draft": "agree"
+        "applied through #796": "agree with note (the pin now checks original or decided per location, in the same state)"
 value_status:
   do_nots: active
   decided_lists: active

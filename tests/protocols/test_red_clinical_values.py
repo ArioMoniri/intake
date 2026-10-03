@@ -42,7 +42,7 @@ _PENDING = "TO" + "DO"
 # matched only in its verb and noun forms (review of #812, finding 5).
 BY_MOUTH = re.compile(
     r"\b(?:yiy|yeme|yemey|yiyecek|içme|içmey|içecek|içiniz|ağ[ıi]?z|yut|çiğne|aspirin|ilaç|hap"
-    r"|tablet)|\baç\s+kal",
+    r"|tablet|sıvı|tüket)|\baç\s+kal|\bsu\s+(?:al|iç|ver)",
     re.IGNORECASE,
 )
 # A do-not line is a prohibition: its verb is the bare negative imperative
@@ -243,6 +243,9 @@ def _line(**overrides: Any) -> dict[str, Any]:
         ({"outcome": "keep"}, "not accept, change or remove"),
         ({"to": "Ağzınıza bir şey almayın."}, "food, drink"),
         ({"to": "Aç kalın."}, "food, drink"),
+        ({"to": "Su almayın."}, "food, drink"),
+        ({"to": "Sıvı almayın."}, "food, drink"),
+        ({"to": "Hiçbir şey tüketmeyin."}, "food, drink"),
         (
             {"to": "Yanınızda biri varsa durumu ona söyleyin ve sizinle kalmasını isteyin."},
             "not a prohibition",
@@ -350,13 +353,17 @@ def test_no_answer_is_remote_with_112_here_in_the_rule_and_in_cd24() -> None:
         ({"on_no_answer": None}, "REMOTE", "resolves to REMOTE"),
         ({"show_112_on_no_answer": False}, "REMOTE", "shows 112"),
         ({}, "ON_SITE", "served rule"),
+        ({}, "CD24_ON_SITE", "CD-24"),
     ],
 )
 def test_each_wrong_location_rule_fails(
     overrides: dict[str, Any], served: str, expected: str
 ) -> None:
     rule = {"on_no_answer": "REMOTE", "show_112_on_no_answer": True, **overrides}
-    problems = location_rule_problems(rule, served, "REMOTE")
+    cd24 = "REMOTE"
+    if served == "CD24_ON_SITE":
+        served, cd24 = "REMOTE", "ON_SITE"
+    problems = location_rule_problems(rule, served, cd24)
     assert any(expected in p for p in problems), problems
 
 
@@ -366,19 +373,26 @@ def test_each_wrong_location_rule_fails(
 def application_problems(
     served: Mapping[str, Sequence[str]], value: Mapping[str, Any]
 ) -> list[str]:
-    """Before the change the rule holds the old lines; once any changed line lands,
-    every location holds exactly the decided list, so a removed line is gone."""
-    changed = {
-        line["to"] for line in value["do_nots"] if line["outcome"] == "change" and line.get("to")
-    }
-    applied = any(text in changed for loc in LOCATIONS for text in served[loc])
-    if not applied:
-        return []
-    return [
-        f"{loc}: applied in part, {list(served[loc])} is not {value['decided_lists'][loc]}"
+    """Each location's served list is either its original list (the ``from`` texts
+    in record order) or its decided list, and both locations are in the same
+    state, so no partial application (a removal alone included) passes."""
+    original = {
+        loc: [line["from"] for line in value["do_nots"] if line["location"] == loc]
         for loc in LOCATIONS
-        if list(served[loc]) != list(value["decided_lists"][loc])
-    ]
+    }
+    states = set()
+    problems: list[str] = []
+    for loc in LOCATIONS:
+        listed = list(served[loc])
+        if listed == original[loc]:
+            states.add("original")
+        elif listed == list(value["decided_lists"][loc]):
+            states.add("decided")
+        else:
+            problems.append(f"{loc}: {listed} is neither the original nor the decided list")
+    if len(states) > 1:
+        problems.append("one location is applied and the other is not")
+    return problems
 
 
 def test_the_served_rule_is_either_unapplied_or_exactly_the_decision() -> None:
@@ -394,6 +408,35 @@ def test_a_partial_application_keeping_a_removed_line_fails() -> None:
     served = {loc: list(value["decided_lists"][loc]) for loc in LOCATIONS}
     served["ON_SITE"] = [*served["ON_SITE"], "Bir şey yiyip içmeyin."]
     assert application_problems(served, value)
+
+
+def test_a_removal_only_application_fails() -> None:
+    value = _cd111()
+    served = {
+        "REMOTE": [
+            "Kendi aracınızla yola çıkmayın.",
+            "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin.",
+        ],
+        "ON_SITE": [
+            "Poliklinik sırasında beklemeyin.",
+            "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.",
+        ],
+    }
+    assert application_problems(served, value)
+
+
+def test_one_location_applied_and_the_other_original_fails() -> None:
+    value = _cd111()
+    original_on_site = [line["from"] for line in value["do_nots"] if line["location"] == "ON_SITE"]
+    served = {"REMOTE": list(value["decided_lists"]["REMOTE"]), "ON_SITE": original_on_site}
+    assert any("one location is applied" in p for p in application_problems(served, value))
+
+
+def test_the_served_remote_branch_shows_112() -> None:
+    document = yaml.safe_load(LIFE_THREAT.read_text(encoding="utf-8"))
+    rule = next(r for r in document["rules"] if r["id"] == RULE_ID)
+    assert rule["action"]["REMOTE"]["show_112"] is True
+    assert rule["action"]["ON_SITE"]["show_112"] is False
 
 
 # --- the remaining round-1 findings, pinned -----------------------------------------
@@ -421,6 +464,28 @@ def test_the_notification_question_and_the_driving_implication_go_to_the_physici
     assert "driven by someone else" in str(decision.inference_disclosure)
 
 
+def test_nice_is_credited_only_for_what_it_states() -> None:
+    value = _cd111()
+    line = next(
+        x for x in value["do_nots"] if x["location"] == "REMOTE" and x["outcome"] == "remove"
+    )
+    assert "NICE gives aspirin by mouth" not in line["clinical_basis"]
+    assert "NICE CG95 has a clinician offer aspirin as soon as possible" in line["clinical_basis"]
+
+
+def test_the_keep_checking_support_describes_the_decided_line_3() -> None:
+    supports = [s.supports or "" for s in _decision().sources if "Keep checking" in (s.quote or "")]
+    assert supports == [
+        "REMOTE line 3: a companion who stays can keep checking that the patient is still "
+        "responding and breathing"
+    ]
+
+
+def test_the_proxy_variant_question_goes_to_the_physician() -> None:
+    review = _cd111()["physician_review"]
+    assert any("proxy" in item for item in review)
+
+
 def test_the_late_answer_cites_the_product_spec() -> None:
     quotes = [b.quote for b in _decision().spec_basis]
     assert "offered, and answering it re-derives location as `ON_SITE`" in quotes
@@ -432,3 +497,6 @@ def test_round_one_is_history_and_the_verdict_waits() -> None:
     round_one = decision.value["verification_history"][0]
     assert round_one["round"] == 1 and round_one["verdict"] == "request_changes"
     assert len(round_one["per_item"]) == 11
+    round_two = decision.value["verification_history"][1]
+    assert round_two["round"] == 2 and round_two["verdict"] == "request_changes"
+    assert len(round_two["per_item"]) == 11
