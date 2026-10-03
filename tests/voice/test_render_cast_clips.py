@@ -67,7 +67,12 @@ def _pcm() -> bytes:
 
 
 def _vendor(
-    *, used: int = 0, limit: int = 100_000, sub_status: int = 200, refuse_after: int | None = None
+    *,
+    used: int = 0,
+    limit: int = 100_000,
+    sub_status: int = 200,
+    refuse_after: int | None = None,
+    extension: int | None = None,
 ) -> tuple[httpx.MockTransport, list[httpx.Request]]:
     seen: list[httpx.Request] = []
     served = [0]
@@ -79,7 +84,13 @@ def _vendor(
                 return httpx.Response(
                     sub_status, json={"detail": {"status": "missing_permissions"}}
                 )
-            return httpx.Response(200, json={"character_count": used, "character_limit": limit})
+            body: dict[str, object] = {"character_count": used, "character_limit": limit}
+            if extension is not None:
+                body |= {
+                    "allowed_to_extend_character_limit": True,
+                    "max_character_limit_extension": extension,
+                }
+            return httpx.Response(200, json=body)
         if request.url.path == "/v1/models":
             return httpx.Response(
                 200,
@@ -191,6 +202,20 @@ def test_short_credits_stop_the_run_with_the_exact_characters_needed(tmp_path: P
         rcc.render(clip_set, tmp_path / "out", _gateway(transport), 5.0, transport)
     assert f"needs {need} characters" in str(raised.value)
     assert f"{need - 1} remain" in str(raised.value)
+    assert _synth(seen) == []
+
+
+def test_usage_based_billing_counts_up_to_its_owner_set_ceiling(tmp_path: Path) -> None:
+    clip_set = rcc.load_set(_set_file(tmp_path))
+    need = rcc.plan_report(clip_set.lines, tmp_path / "out")["wire_chars"]
+    transport, _ = _vendor(used=100_000 - 12, extension=need)
+    assert (
+        rcc.check_quota(httpx.Client(base_url="https://vendor.test", transport=transport), need)
+        == 12 + need
+    )
+    short, seen = _vendor(used=100_000 - 12, extension=need - 13)
+    with pytest.raises(rcc.RenderRefused, match=f"{need - 1} remain"):
+        rcc.render(clip_set, tmp_path / "out", _gateway(short), 5.0, short)
     assert _synth(seen) == []
 
 

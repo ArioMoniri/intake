@@ -187,6 +187,10 @@ def check_quota(client: httpx.Client, need: int) -> int:
         )
     data = response.json()
     remaining = int(data.get("character_limit") or 0) - int(data.get("character_count") or 0)
+    # Usage-based billing, once the owner turns it on, lets the account run past
+    # the plan up to the ceiling they set; past that the vendor refuses anyway.
+    if data.get("allowed_to_extend_character_limit") is True:
+        remaining += int(data.get("max_character_limit_extension") or 0)
     if need > remaining:
         raise RenderRefused(
             f"the render needs {need} characters and {remaining} remain on the account"
