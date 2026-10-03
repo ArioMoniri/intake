@@ -55,6 +55,7 @@ from intake_api.dev_voice_guard import (
     ENV_GEORGE_CLIP_DIST,
     intake_env_is_prod,
     load_scripted_catalogue,
+    with_delivery_lines,
 )
 from protocols.dsl import clip_text_hash
 from voice_clips import ManifestTamperedError
@@ -393,7 +394,8 @@ def test_dev_with_every_flag_and_a_compiled_catalogue_builds_the_wiring(
     monkeypatch.delenv("INTAKE_ENV", raising=False)
     wiring = george_wiring_from_env()
     assert wiring is not None
-    assert wiring.catalogue == load_scripted_catalogue(dist)
+    # INT-414: every compiled row, widened by the fixed delivery lines only.
+    assert wiring.catalogue == with_delivery_lines(load_scripted_catalogue(dist))
 
 
 def test_no_compiled_catalogue_leaves_the_lane_unconfigured(

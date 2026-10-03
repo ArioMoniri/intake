@@ -15,7 +15,11 @@ itself, so none of it depends on a well-behaved client:
   "patient words never reach the vendor" is a server fact, not a client promise.
   Every manifest is read through ``voice_clips.load_clip_manifest``, so a pack
   edited after compile (a row whose text no longer hashes to its key) refuses
-  the whole catalogue rather than widening it.
+  the whole catalogue rather than widening it. The one widening is INT-414's:
+  the fixed conversational delivery lines (:mod:`intake_api.dev_voice_delivery`,
+  verbatim ``tr`` catalogue copy, pinned to it by test) join a catalogue that
+  loaded, hashed the same way (:func:`with_delivery_lines`). They carry no
+  delivery pin, so the route refuses them under ``red`` like any other text.
 - **The delivery pins** (INT-415). The same compiled rows say whose text each
   one is. A rule's action script is pinned to ``red``, which is never served
   on demand, and an instrument item is pinned to ``instrument``. So a client
@@ -43,6 +47,7 @@ itself, so none of it depends on a well-behaved client:
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 from collections.abc import Mapping
@@ -64,6 +69,7 @@ from voice_clips.delivery import DELIVERY_CONTEXTS, PINNED_CONTEXTS, DeliveryCon
 from voice_clips.errors import ClipCacheError
 from voice_clips.gateway import UnspeakableScriptError, assert_speakable_tr
 
+from intake_api.dev_voice_delivery import delivery_text_hashes
 from intake_api.settings import is_dev_env
 
 __all__ = [
@@ -87,6 +93,7 @@ __all__ = [
     "load_app_catalogue",
     "load_scripted_catalogue",
     "scripted_catalogue_from_env",
+    "with_delivery_lines",
 ]
 
 logger = logging.getLogger("intake_api")
@@ -225,6 +232,19 @@ def catalogue_from_rows(rows: list[CatalogueRow]) -> ScriptedCatalogue:
     )
 
 
+def with_delivery_lines(catalogue: ScriptedCatalogue) -> ScriptedCatalogue:
+    """``catalogue`` widened by the fixed conversational delivery lines (INT-414).
+
+    Widening only: every manifest row stays admitted with whatever else the
+    catalogue carries about it (``dataclasses.replace`` keeps every other
+    field), and the lines added are the verbatim ``tr`` catalogue strings of
+    :mod:`intake_api.dev_voice_delivery` — fixed copy with no slot a patient's
+    words could fill."""
+    return dataclasses.replace(
+        catalogue, text_hashes=catalogue.text_hashes | delivery_text_hashes()
+    )
+
+
 class AppCatalogueError(ClipCacheError):
     """The app's scripted catalogue is not the file its generator writes."""
 
@@ -300,7 +320,7 @@ def scripted_catalogue_from_env(env: Mapping[str, str] | None = None) -> Scripte
     if not catalogue.text_hashes:
         logger.warning("george lane unconfigured: no catalogue to admit text from")
         return None
-    return catalogue
+    return with_delivery_lines(catalogue)
 
 
 def george_budget(redis_url: str) -> TokenBucketLimiter:

@@ -157,6 +157,8 @@ def test_ids_unique_and_well_formed() -> None:
     # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
     # owner decision, GitHub #644).
     # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
     # + INT-428 (hosted model lanes for the synthetic deployment, switchable
     # from the admin panel with a GPU switch-over; owner decision, ADR-035,
     # GitHub #724).
@@ -168,7 +170,7 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-428, GitHub #753).
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
-    assert len(ids) == 341
+    assert len(ids) == 342
     import re
 
     for i in ids:
