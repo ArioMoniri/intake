@@ -300,7 +300,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-415, owner request, GitHub #705); grows only with a stated reason.
     # + INT-440 (voice-first end-to-end test on the iOS simulator, owner
     # request, GitHub #748); grows only with a stated reason.
-    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
+    # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
+    # with a stated reason.
+    assert len(ids) == 332, f"expected 175 blueprint + 157 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

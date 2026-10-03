@@ -149,7 +149,9 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-415; owner request, GitHub #705).
     # + INT-440 (voice-first end-to-end test on the iOS simulator and the
     # robotic-voice fixes; owner request, GitHub #748).
-    assert len(ids) == 331
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
+    # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
+    assert len(ids) == 332
     import re
 
     for i in ids:
