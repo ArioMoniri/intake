@@ -229,6 +229,9 @@ def build_harness(
     # INT-453: the generic RED document. Default: the committed one, which is
     # draft_needs_source until CD-24 lands, so nothing is served.
     triage_generic_red_path: Path | None = None,
+    # INT-407: the clinic Safety inbox a RED visit's move raises its entry in.
+    # None is the unwired state, in which a reschedule or cancel answers 503.
+    safety_inbox: Any = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -313,6 +316,7 @@ def build_harness(
             # INT-320: the partner embed wiring. None keeps the shipping
             # default in which every /embed route answers 503.
             embed=embed,
+            safety_inbox=safety_inbox,
         )
     )
     # INT-180: the console's IP allow-list reads the transport peer, so the

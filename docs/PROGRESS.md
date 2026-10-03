@@ -32,6 +32,34 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 Q2's fail-closed default (no RED haptic) holds; INT-340's `presentRed` belongs in RedLayer when #710 merges.
 - Blocked on: HB-C1. No signed `base.life_threat` exists, so no RED fires in a real session; that is the designed state. Generic copy for an unrenderable RED is a clinical and legal string and is not authored.
 - Next: PR `INT-446: …` (Closes #756, Sec-Row triage). Do not merge.
+### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
+- **Goal.** The acceptance, verbatim (GitHub #721):
+  - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*
+  - *"the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"*
+  - *"workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"*
+- **Plan.**
+  - The laptop does the git bundle and the harness `git archive`, uploads both to S3 with presigned URLs, then runs SSM AWS-RunShellScript.
+  - The host runs the compose project `intake-ci-<run id>` with three services: `prep`, `dind` (privileged, loopback API) and `runner` (uid 10001). Each service is capped on CPU, memory and pids, weighted at a quarter of the default `cpu_shares`, and has `oom_score_adj` 500. Two flock slots.
+  - The runner redacts the log (secret shapes plus `intake_platform.ci.find_identifiers`), scans it with gitleaks and `phi_scan.sh`, and uploads it only if both pass.
+  - The result is posted as the commit status `aws-ci` through `gh api`.
+- **Tests added.**
+  - `tests/ci/test_aws_ci.py`, 57 tests. They cover: arguments; the fork guard; the run id; the SSM bootstrap and upload commands; the SigV4 presigner against AWS's documented example; the status payload, including a harness error and a withheld log; redaction, with a checksum-valid TCKN computed at run time; and the static isolation and pin checks.
+  - `tests/ci/test_gitleaks_pin_compat.py`, 3 tests.
+  - RED: a collection error with the module absent, then `1 failed` for the harness-error status, `4 failed, 53 passed` for the probe mode, and `1 failed, 2 passed` for the gitleaks table.
+- **Result.**
+  - **Locally:** `tests/ci tests/backlog tests/smoke` pass; ruff, format and shellcheck are clean; `no_placeholders` is OK.
+  - **aws-ci on main (2ff595ef):** check-py, check-ts, check-integration, safety and edge-plugin are green. check-integration's 17 GitHub errors are gone, because `make edge-plugin` runs first. Security is red at gitleaks over the full history: 6 findings under the pinned 8.24.3. The cause: `.gitleaks.toml` used `[[allowlists]]`, which 8.24.3 ignores (fixed). The other 2 findings are an old fake JWT fixture, cleared by two fingerprints on the owner's approval of 3 Oct 2026.
+  - **aws-ci on PR #730:** the same picture. Its expo-export probe found 0 node-forge modules in either production bundle.
+  - **Each run took 47 minutes on the host.** The cost per run is in docs/ci/aws-ci.md.
+- **Invariants touched and still passing:** 6 (the log is redacted and scanned before upload), 14 (every gate runs, at the pinned scanner versions) and 15 (the live stack's capacity is protected by caps, weights and OOM order).
+- **Decisions.**
+  - The owner approved the two gitleaks fingerprints ("ignore the two old token fingerprints", relayed 3 Oct 2026). No ADR.
+  - The permission system refused to stage the gate files (`.gitleaks.toml`, `.gitleaksignore`, `tests/ci/test_gitleaks_pin_compat.py`, and the pin rows in `tests/ci/test_security_gates.py`), so the owner commits them.
+- **Blocked on:** none for the runner. Each PR's own verdict is its `aws-ci` commit status.
+- **Next:**
+  - Owner: make `aws-ci` required, and disable or keep Actions (docs/ci/aws-ci.md, "Owner steps").
+  - At the next workflow edit, raise CI's gitleaks pin to ≥ 8.25; this is the owner's change.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
@@ -3049,4 +3077,25 @@
   - No new metric.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00+03:00 · INT-432 · done (PR #757 open, not merged)
+- Goal: the clinical decisions register under owner decision D18 ("agent-only sign-off anyway"), scoped to simulated-patient stress testing; a licensed physician's review is required before any real patient. Acceptance quoted in docs/evidence/INT-432.md.
+- Plan:
+  - Three medical-author agents (EM/IM; EM operations / informatics + paediatrics; the INT-427 specialties) write CD-01..CD-18 from current guidelines and openEHR CKM against verbatim snapshots in packages/protocols/sources/.
+  - An independent verifier agent, seeing only output and sources, re-fetches every source and returns verdicts; authors revise until all agree.
+  - The lead builds the typed loader, applies the decisions (HB-C6 slots, HB-C3 polarity), and wires the tests.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py.
+  - Extended: test_base_intake_pack.py (three life-threat read sections), test_gate_refs.py (six new gates).
+  - Near misses: LT-01-N fires nothing; LT-02-N lands KIRMIZI_K2; neck-only radiation fires neither arm while neck-and-arm (CONTESTED) fires K2; a reworded quote is refused; the inverted hydration wording is gone from the whole review queue.
+  - Red run: 2 failed (empty register) and 15 failed (KeyError 'chest_pain.present').
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations).
+  - Protocols lane 98.10 % (1560 passed); tests/protocols + tests/engine 1280 passed; ruff, format and mypy clean; no_placeholders OK after staging.
+  - `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 2, 5 (tr first, en mirror), 7 (the life-threat set is untouched; slots declared under the names its rules read), 10, 17 (every unsourced value is the sanctioned literal under a draft entry), 20 (no performance figure anywhere), 21, 22 (no digits in patient copy).
+- Decisions / ADRs / `00_STATE.md` rows: D18 in files/00_STATE.md §3 and the changelog; files/04 §1 records the three read sections. D17 stands; no clinical_signoff field is filled; HB-C1 is not closed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): one owner question, not a clinical one — does D3's occupational-exposure approval cover göğüs hastalıkları Q10/Q10a (CD-11 owner_question; V-GH-2)? text_first and not-servable stay meanwhile.
+- Next: apply the CD-11..CD-18 `apply_after_737_merges` changes once PR #737 merges. The rest is split by the coordinator: INT-447 (#758, INT-414's 48 lines) and INT-448 (#759, the #642 packet items).
 - LOOP_STATUS: CONTINUE

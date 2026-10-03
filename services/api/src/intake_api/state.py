@@ -4,7 +4,9 @@ tests inject their own, the env path builds the real ones (app.py)."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Depends, Request
@@ -14,6 +16,7 @@ from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
 from intake_platform.previsit_output import RecipientRegistry, load_recipients
+from intake_platform.safety_inbox import SafetyInbox
 from intake_platform.tokenization import Tokenizer
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -33,6 +36,10 @@ if TYPE_CHECKING:
     from intake_api.otp import OtpAuthService
 
 __all__ = ["ApiState", "State", "get_state"]
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 def _catalog_from_settings(settings: ApiSettings) -> ConsentTextCatalog:
@@ -85,6 +92,15 @@ class ApiState:
     # flags are pre-declared False in BOTH providers — a call-site default
     # cannot open one.
     flags: FlagProvider = field(default_factory=default_provider)
+    # INT-407: the clinic Safety inbox (INT-406) a RED visit's reschedule or
+    # cancel raises its entry in — the same store the voice runtime writes.
+    # None = unwired, so those two moves answer 503 rather than happen
+    # silently; every other move needs no inbox.
+    safety_inbox: SafetyInbox | None = None
+    # INT-407: the wall clock the lifecycle stamps transitions with and reads
+    # staleness against — one clock, injectable, so a test advances time
+    # instead of sleeping (docs/TDD.md rule 6).
+    clock: Callable[[], datetime] = field(default=_utc_now)
     # INT-189: the egress transfer feed the compliance vendor-transfer register
     # auto-fills from (intake_platform.compliance.register). Empty by default:
     # the durable egress log lives in Loki and querying it is a follow-up, so

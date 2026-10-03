@@ -75,6 +75,7 @@ from intake_api import (
     satisfaction,
     taxonomy_routes,
     triage_hop,
+    visit_lifecycle,
     visits,
     visits_acibadem,
 )
@@ -153,6 +154,10 @@ class ApiWiring:
     # None = no row (the shipped state), so /v1/visits/sync answers
     # "unavailable" (fail closed).
     acibadem: AcibademAppointmentsClient | None = None
+    # INT-407: the clinic Safety inbox a RED visit's reschedule or cancel
+    # raises its entry in (files/02 §2b). None = unwired: those two moves
+    # answer 503 rather than happen silently.
+    safety_inbox: SafetyInbox | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -446,6 +451,9 @@ def wiring_from_env() -> ApiWiring:
         embed=_embed_from_settings(settings),
         george=george_wiring_from_env(redis_url=settings.redis_url),
         acibadem=visits_acibadem.acibadem_client_from_registry(settings.clinical_sources_path),
+        # INT-407: the same store the console's queue reads and the voice
+        # runtime writes (INTAKE_SAFETY_INBOX_REDIS_URL)
+        safety_inbox=_safety_inbox_from_env(),
     )
 
 
@@ -463,6 +471,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         doctor_link=_doctor_link_service(w.auth),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
+        safety_inbox=w.safety_inbox,
     )
 
     @asynccontextmanager
@@ -582,6 +591,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
+    app.include_router(visit_lifecycle.router)
     app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
     app.include_router(previsit_output.router)

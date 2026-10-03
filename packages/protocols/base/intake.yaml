@@ -440,6 +440,172 @@ sections:
           its storage shape is settled.
 
   # ===================================================================================
+  # base.life_threat read-sections — INT-432 / HB-C6, decision CD-01
+  # (docs/clinical/decisions/CD-01.md; packages/protocols/decisions/CD-01.yaml).
+  #
+  # The two ACTIVE life-threat rules (rf.chest_pain_cardiac_features,
+  # rf.chest_pain_no_cardiac_history) read `chest_pain.*`, `associated.*` and
+  # `trauma.*` — section-qualified references in the `gate:` namespace (12 §2.4).
+  # Until these sections existed no session could fill those reads, every read was
+  # Unknown, and neither rule could ever fire (12 §1.1; 04 §8.2
+  # `no_rule_references_an_undeclared_slot`). The life-threat set is NOT touched:
+  # it is a sibling set nothing may extend (12 §1), so the slots are declared here,
+  # under the names its rules already read.
+  #
+  # Owner decision D18 (files/00_STATE.md §3): question copy and choices are
+  # agent-authored from NICE CG95, EK-4 and openEHR CKM, agent-verified, for
+  # simulated-patient stress testing only. A licensed physician's review is
+  # required before any real patient; the pack stays L0 and is never served.
+  #
+  # Turn cost: the screen is asked of every session (the set is evaluated on every
+  # session, 04 §8); the six follow-ups open only on its yes. Against the fast-mode
+  # budget that is HB-C5's arithmetic, measured by
+  # test_the_fast_mode_turn_budget_is_over_subscribed, not decided here.
+  # ===================================================================================
+  chest_pain:
+    delivery: voice
+    slots:
+      present:
+        # NICE CG95 1.2.1.1: check whether the person currently has chest pain and,
+        # if pain free, when the last episode was; CG95 counts discomfort as pain.
+        # PROXY STOP-GAP (CD-01 `proxy_until_dsl_selects_copy`): the DSL holds one
+        # ask_tr per slot, and this copy asks about the SPEAKER's chest. In a proxy
+        # session the screen is skipped rather than let the speaker's own pain fill
+        # the patient's rule-gate slot; the six follow-ups then never open, stay
+        # NOT_ASKED and count as missing must-ask coverage ("Sorulmadı"), and CD-01
+        # requires a CD-08 clinic-inbox item (kind proxy_chest_pain_screen_unasked).
+        # CD-01 carries the proxy copy for when the DSL can select it.
+        type: boolean
+        required: true
+        must_ask: true
+        skip_if: "identity_check.subject_role == 'yakınım adına'"
+        openehr_deferred_reason: >-
+          CD-01 binds this probe to openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          rev 1.0.7 at0005 'Presence?'; the pinned template carries roots only and
+          not that archetype (HB-C12), so a path here would resolve against a
+          fabrication (12 §8.1).
+        ask_tr:
+          tr: "Göğsünüzde şu anda ya da yakın zamanda ağrı veya rahatsızlık oldu mu?"
+        follow_up_tr:
+          tr: "Göğsünüzde herhangi bir ağrı ya da rahatsızlık hissettiniz mi?"
+      character:
+        # The first three choices are the literals rf.chest_pain_cardiac_features
+        # tests; `yanma` is CKM at0189's burning character (finding F6: outside the
+        # rule's cardiac set); `başka bir his` keeps an answer for every other word,
+        # which hpi.character_text records verbatim. `bilmiyorum` is not a value: it
+        # is the UNCLEAR answer state (CD-04).
+        type: code
+        valueset: vs.chest_pain_character
+        required: true
+        must_ask: true
+        ask_if: "chest_pain.present == true"
+        openehr_deferred_reason: >-
+          CD-01 binds this slot to openEHR-EHR-CLUSTER.symptom_sign.v2 rev 2.1.4
+          at0189 'Character'; the pinned template carries roots only and not that
+          CLUSTER (HB-C12).
+        ask_tr:
+          tr: "Göğsünüzdeki bu his en çok hangisine benziyor: baskı, sıkışma, ağırlık, yanma ya da başka bir his?"
+        choices_tr:
+          tr: ["baskı", "sıkışma", "ağırlık", "yanma", "başka bir his"]
+        follow_up_tr:
+          tr: "Baskı, sıkışma, ağırlık, yanma ya da başka bir his diyebilirsiniz; hangisi size daha yakın?"
+      radiation:
+        # kol/çene/sırt are the K2 rule's literals (NICE CG95 1.2.1.3: arms, back,
+        # jaw); boyun/omuz are CG95 1.3.3.1 sites outside the rule's set (finding
+        # F5); `yok` is the literal the SARI rule requires. More than one site may
+        # be named: the slot holds one value, so an answer naming several sites is
+        # CONTESTED carrying every named site, which triage evaluates in the
+        # escalating world (12 §7.3) — never one site chosen for the patient.
+        type: code
+        valueset: vs.chest_pain_radiation
+        required: true
+        must_ask: true
+        ask_if: "chest_pain.present == true"
+        openehr_deferred_reason: >-
+          CD-01 binds this slot to openEHR-EHR-CLUSTER.symptom_sign.v2 rev 2.1.4
+          at0151 'Body site'; the pinned template carries roots only and not that
+          CLUSTER (HB-C12).
+        ask_tr:
+          tr: "Bu ağrı ya da rahatsızlık kolunuza, çenenize, sırtınıza, boynunuza, omzunuza ya da başka bir yere yayılıyor mu?"
+        choices_tr:
+          tr: ["kol", "çene", "sırt", "boyun", "omuz", "başka bir yer", "yok"]
+        follow_up_tr:
+          tr: "Yayılmıyorsa yok diyebilirsiniz; yayılıyorsa nerelere yayıldığını söyler misiniz?"
+      onset_at:
+        # The tense anchor of both active rules. It holds the MOST RECENT episode
+        # (or "ongoing now"), not the first onset (finding F7; NICE CG95 1.2.1.1),
+        # and is answered only by a closed choice; each choice resolves to an ISO
+        # date against the session reference time as decided in CD-05 — never by
+        # narrative, a document or the council (CD-02, CD-05).
+        type: date
+        required: true
+        must_ask: true
+        ask_if: "chest_pain.present == true"
+        openehr_deferred_reason: >-
+          CD-01 binds this slot to openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          rev 1.0.7 at0037 'Timing'; the pinned template carries roots only and not
+          that archetype (HB-C12).
+        ask_tr:
+          tr: "Göğsünüzdeki bu ağrı ya da rahatsızlık en son ne zaman oldu?"
+        choices_tr:
+          tr: ["şu anda var", "son on iki saat içinde", "on iki saatten önce ama son üç gün içinde", "üç günden daha önce"]
+        follow_up_tr:
+          tr: "Şu anda var, son on iki saat içinde, on iki saatten önce ama son üç gün içinde ya da üç günden daha önce diyebilirsiniz; hangisi doğru?"
+
+  associated:
+    delivery: voice
+    slots:
+      diaphoresis:
+        # NICE CG95 1.2.1.3: chest pain with "marked sweating".
+        type: boolean
+        required: true
+        must_ask: true
+        ask_if: "chest_pain.present == true"
+        openehr_deferred_reason: >-
+          CD-01 binds this probe to openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          rev 1.0.7 at0005 'Presence?'; the pinned template carries roots only and
+          not that archetype (HB-C12).
+        ask_tr:
+          tr: "Bu ağrı ya da rahatsızlık sırasında çok terlediniz mi?"
+        follow_up_tr:
+          tr: "Ağrı olduğu sırada normalden çok daha fazla terleme oldu mu?"
+      dyspnoea:
+        # NICE CG95 1.2.1.3: chest pain with breathlessness.
+        type: boolean
+        required: true
+        must_ask: true
+        ask_if: "chest_pain.present == true"
+        openehr_deferred_reason: >-
+          CD-01 binds this probe to openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          rev 1.0.7 at0005 'Presence?'; the pinned template carries roots only and
+          not that archetype (HB-C12).
+        ask_tr:
+          tr: "Bu ağrı ya da rahatsızlık sırasında nefes almakta zorlandınız mı?"
+        follow_up_tr:
+          tr: "Ağrı sırasında nefesiniz daraldı mı?"
+
+  trauma:
+    delivery: voice
+    slots:
+      recent:
+        # EK-4 places simple chest injuries without chest pain or breathing
+        # difficulty in a separate arm; the SARI rule requires trauma.recent ==
+        # false. Recency is anchored to the episode, not to a number of days: no
+        # retrieved source states one (CD-01).
+        type: boolean
+        required: true
+        must_ask: true
+        ask_if: "chest_pain.present == true"
+        openehr_deferred_reason: >-
+          CD-01 binds this probe to openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          rev 1.0.7 at0005 'Presence?'; the pinned template carries roots only and
+          not that archetype (HB-C12).
+        ask_tr:
+          tr: "Bu ağrı ya da rahatsızlık başlamadan önce göğsünüz bir darbe ya da kaza sonucu yaralandı mı?"
+        follow_up_tr:
+          tr: "Düşme, çarpma ya da kaza gibi bir nedenle göğsünüze bir şey oldu mu?"
+
+  # ===================================================================================
   # 04 §1 row 5 — meds_allergies. `anticoagulant_use` is HB-C6 addition 4 of 6, and it
   # lives here rather than in an overlay on purpose: `overlay.anticoagulated` exists,
   # but overlays may only add or tighten (04 §2.3), so the BASE slot must exist or the
