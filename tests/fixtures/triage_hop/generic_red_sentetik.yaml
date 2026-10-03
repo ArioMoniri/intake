@@ -6,7 +6,7 @@
 kind: generic_red
 decision: CD-24
 status: active
-register: ALERT
+register_policy: carry_engine_register
 source:
   guideline_id: SYN-GUIDE-B
   guideline_title: "Sentetik kılavuz B"

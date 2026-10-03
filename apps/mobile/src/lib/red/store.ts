@@ -137,28 +137,34 @@ export function redScreen(state: RedState | null): RedScreen {
 }
 
 /**
- * The generic escalation (INT-453; livekit/red.ts `genericRed`): a RED whose
- * own script or question is not on this device is still a RED on screen —
- * ALERT, the root layer, at the trigger's own location (no 112 under
- * ON_SITE). Under UNKNOWN it asks the generic question when one is on the
- * device and offers no 112 until the answer; with no question copy it offers
- * none at all (files/04 §8.1 rule 7: never resolved by guessing). Its words
- * are the generic script's own, or none: the copy is `draft_needs_source`
- * (CD-24) and nothing is invented.
+ * The generic escalation (INT-453; CD-24; livekit/red.ts `genericRed`). A RED
+ * whose own script or question is not on this device is still a RED on screen:
+ * - Register: the trigger's own (CD-24 carry_engine_register). ALERT and CALM
+ *   paint the root layer, SILENT renders in the flow with no headline (CD-24's
+ *   meanwhile for SILENT), and DEFERRED_CLINICIAN never gets here.
+ * - Location: the trigger's own, so there is no 112 under ON_SITE.
+ * - UNKNOWN: it asks CD-24's "Şu anda hastanede misiniz?" first, with no 112
+ *   until the answer; with no question copy it offers none at all
+ *   (files/04 §8.1 rule 7: never resolved by guessing).
+ * - Words: CD-24's generic copy, or none. Nothing is invented.
  */
 function genericScreen(
   trigger: RedTrigger,
   catalog: PrePositionedRed,
   answer: LocationAnswer,
 ): RedScreen {
+  const mode = redPresentationMode(trigger.register);
+  if (mode === "none") {
+    return NONE; // unreachable from redScreen, which answers DEFERRED_CLINICIAN first
+  }
   let location: RedLocation = trigger.location;
   if (location === "UNKNOWN") {
     const question = catalog.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN];
     if (question !== undefined && answer === "unanswered") {
       return {
         kind: "ask",
-        mode: "rootLayer",
-        register: "ALERT",
+        mode,
+        register: trigger.register,
         askTr: question.askTr,
         motion: RED_MOTION,
       };
@@ -170,7 +176,7 @@ function genericScreen(
   const presentation = genericRed({ ...trigger, location }, catalog.scripts);
   return {
     kind: "act",
-    mode: "rootLayer",
+    mode,
     register: presentation.register,
     location,
     actionTr: presentation.script.actionTr,

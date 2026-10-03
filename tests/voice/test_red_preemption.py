@@ -545,19 +545,8 @@ class TestThePathTouchesNoMediaTransport:
         constructor's parameter set is pinned, so adding one fails here."""
         import dataclasses
 
-        fields = {field.name: field for field in dataclasses.fields(RedPreemption) if field.init}
-        assert set(fields) == {
-            "canceller",
-            "channel",
-            "clinic",
-            "scripts",
-            "clock",
-            "generic_register",
-        }
-        # INT-453's addition is a value, not a port: CD-24's register for the
-        # generic escalation (an enum), defaulting to ALERT.
-        assert fields["generic_register"].type == "RedRegister"
-        assert fields["generic_register"].default is RedRegister.ALERT
+        parameters = {field.name for field in dataclasses.fields(RedPreemption) if field.init}
+        assert parameters == {"canceller", "channel", "clinic", "scripts", "clock"}
 
     def test_at_runtime_the_only_media_call_is_the_cancel(self) -> None:
         rig = Rig()
@@ -680,7 +669,10 @@ class TestNoPhiOnTheRedPath:
             "location",
             "evaluated_at_ms",
             "patient_facing",
+            # INT-453 / CD-24 delivery floor: a boolean, no patient material.
+            "silent_generic",
         }
+        assert isinstance(dumped["silent_generic"], bool)
         assert "sentetik_yanit" not in json.dumps(dumped, ensure_ascii=False)
 
 

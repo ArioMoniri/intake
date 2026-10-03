@@ -142,11 +142,11 @@ export const GENERIC_RED_SCRIPT_IDS = {
 } as const satisfies Record<RedLocation, string>;
 
 /**
- * The generic escalation's words while none are signed: there are none. The
- * copy is `draft_needs_source` (INT-453 → the INT-432 clinical-decisions
- * register), so nothing is invented here. The RED still shows — ALERT, with
- * the location-correct affordance — and its words arrive the day a signed
- * generic script is compiled into the catalog under the ids above.
+ * What a generic RED shows when even the generic script is not on this device:
+ * no words, never invented ones (invariant 17). The serve precondition keeps a
+ * served catalog from ever lacking CD-24's generic copy, so this is the
+ * worst-case device skew on the LiveKit lane, not a state a served session
+ * reaches. The RED still shows, with the location-correct affordance.
  */
 const UNWORDED_GENERIC: RedScript = {
   primary: "GENERIC_ESCALATION",
@@ -156,31 +156,19 @@ const UNWORDED_GENERIC: RedScript = {
   whyTr: null,
 };
 
-/** The register until CD-24 (pending) says otherwise: the most conservative. */
-export const DEFAULT_GENERIC_RED_REGISTER: RedRegister = "ALERT";
-
-const GENERIC_IDS: ReadonlySet<string> = new Set(Object.values(GENERIC_RED_SCRIPT_IDS));
-
-/**
- * How a generic RED is told. A trigger the server sent as the generic
- * escalation carries the server's register, which is CD-24's once that lands.
- * A RED the device could not resolve on its own is told in the default.
- */
-function genericRegister(trigger: RedTrigger): RedRegister {
-  return GENERIC_IDS.has(trigger.scriptId) ? trigger.register : DEFAULT_GENERIC_RED_REGISTER;
-}
-
 /**
  * The RED a patient sees when the trigger's own script is not on the device
- * (INT-453): never nothing. The register is the most conservative, ALERT. The
- * location is the trigger's own, so ON_SITE carries no 112. The words come
- * from the catalog's generic script when one is pre-positioned.
+ * (INT-453; CD-24): never nothing.
+ * - Register: the trigger's own, which is the engine result's (CD-24
+ *   carry_engine_register), never a fixed ALERT.
+ * - Location: the trigger's own, so ON_SITE carries no 112.
+ * - Words: the catalog's generic script, CD-24's copy.
  */
 export function genericRed(trigger: RedTrigger, catalog: RedScriptCatalog): RedPresentation {
   const script = catalog[GENERIC_RED_SCRIPT_IDS[trigger.location]] ?? UNWORDED_GENERIC;
   return {
     ruleId: trigger.ruleId,
-    register: genericRegister(trigger),
+    register: trigger.register,
     location: trigger.location,
     script,
     show112: trigger.location === "ON_SITE" ? false : script.show112,

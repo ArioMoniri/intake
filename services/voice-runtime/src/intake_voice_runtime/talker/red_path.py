@@ -58,7 +58,7 @@ from typing import Annotated, Literal, Protocol, runtime_checkable
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult, TriageLevel
-from protocols.generic_red import DEFAULT_GENERIC_RED_REGISTER, GENERIC_RED_SCRIPT_IDS
+from protocols.generic_red import GENERIC_RED_SCRIPT_IDS
 from pydantic import Field, StringConstraints
 
 from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS
@@ -67,7 +67,6 @@ from intake_voice_runtime.talker.preemption import BackendResult, Priority
 
 __all__ = [
     "E2E_BUDGET_MS",
-    "DEFAULT_GENERIC_RED_REGISTER",
     "GENERIC_RED_SCRIPT_IDS",
     "ID_SHAPE",
     "REGISTER_DELIVERY",
@@ -200,6 +199,14 @@ class RedNotification(FrozenModel):
         description="False for DEFERRED_CLINICIAN, whose whole definition is "
         "that the patient surface does not change (files/02 §5.3)."
     )
+    silent_generic: bool = Field(
+        default=False,
+        description="CD-24 delivery floor (INT-453): the device was given the generic "
+        "escalation in the SILENT register, so a time-critical RED may have been "
+        "delivered silently with no rule-specific script. It is set for every SILENT "
+        "generic, a superset of CD-24's 'SILENT chosen over a co-fired ALERT or CALM', "
+        "because the result carries no per-rule register.",
+    )
 
 
 # --- the register table --------------------------------------------------------------
@@ -310,13 +317,13 @@ class MappingRedScriptIndex:
         return self.entries.get((rule_id, location))
 
 
-# The generic escalation (INT-453): what the device shows when a RED's own
-# script cannot be addressed, at the result's own location, so ON_SITE still
-# carries no 112. Ids, copy and register live in ``protocols.generic_red``.
-# The copy and the register are CD-24 (INT-432), which is pending, so the copy
-# is ``draft_needs_source`` and :attr:`RedPreemption.generic_register` defaults
-# to ALERT until CD-24's servable document supplies it
-# (``protocols.generic_red.generic_red_register``).
+# The generic escalation (INT-453; CD-24): what the device shows when a RED's
+# own script cannot be addressed. It uses the result's own location, so ON_SITE
+# still carries no 112, and the result's own register (CD-24
+# register_policy carry_engine_register), never a fixed one. Ids and copy live
+# in ``protocols.generic_red``. The SILENT copy and the register for mixed
+# registers stay draft_needs_source in CD-24. The floor is: intake stops, and
+# the clinic notification marks a SILENT generic (RedNotification.silent_generic).
 
 
 # --- the outcome ---------------------------------------------------------------------------
@@ -373,9 +380,6 @@ class RedPreemption:
     clinic: ClinicNotifier
     scripts: RedScriptIndex
     clock: Clock
-    #: CD-24 (pending): the generic escalation's register. ALERT until a servable
-    #: generic RED document supplies one (protocols.generic_red).
-    generic_register: RedRegister = DEFAULT_GENERIC_RED_REGISTER
     _delivered: dict[str, RedPreemptionOutcome] = field(default_factory=dict, init=False)
 
     async def trigger(
@@ -410,6 +414,10 @@ class RedPreemption:
                 location=location,
                 evaluated_at_ms=evaluated_at_ms,
                 patient_facing=delivery.triggers_device,
+                # A pure lookup, so the clinician route still runs first.
+                silent_generic=delivery.triggers_device
+                and register is RedRegister.SILENT
+                and self._script_for(triage) is None,
             )
         )
 
@@ -466,21 +474,21 @@ class RedPreemption:
         position in ``rules``, which is ordered by severity then id while the
         engine breaks a severity tie on register. A RED whose script the pack
         cannot address — pack drift, or a result that names no RED — is still
-        shown: the generic escalation, at the most conservative register, for
-        the result's own location (so no 112 under ON_SITE), and it fails
-        loudly as SCRIPT_UNADDRESSABLE. A patient who is shown nothing is the
-        one outcome this path must never produce.
+        shown: the generic escalation, in the result's own register (CD-24
+        carry_engine_register) and for the result's own location (so no 112
+        under ON_SITE), and it fails loudly as SCRIPT_UNADDRESSABLE. A patient
+        who is shown nothing is the one outcome this path must never produce.
         """
         register, location = triage.register, triage.location
         assert register is not None and location is not None  # noqa: S101 - RulesTriageResult
         violations: list[RedViolation] = []
         rule_id = _red_rule(triage)
-        script_id = None if rule_id is None else self.scripts.script_id_for(rule_id, location)
+        script_id = self._script_for(triage)
         if rule_id is None or script_id is None:
             violations.append(RedViolation.SCRIPT_UNADDRESSABLE)
             message = RedTriggerMessage(
                 rule_id=rule_id if rule_id is not None else triage.rules[0].id,
-                register=self.generic_register,
+                register=register,
                 location=location,
                 script_id=GENERIC_RED_SCRIPT_IDS[location],
             )
@@ -494,6 +502,13 @@ class RedPreemption:
         if elapsed_ms > E2E_BUDGET_MS:
             violations.append(RedViolation.E2E_BUDGET)
         return message.script_id, ack.script_started_at_ms, violations
+
+    def _script_for(self, triage: RulesTriageResult) -> str | None:
+        """The named RED's own script at the result's location, or None."""
+        rule_id = _red_rule(triage)
+        if rule_id is None or triage.location is None:
+            return None
+        return self.scripts.script_id_for(rule_id, triage.location)
 
     async def _redeliver(
         self, recorded: RedPreemptionOutcome, triage: RulesTriageResult

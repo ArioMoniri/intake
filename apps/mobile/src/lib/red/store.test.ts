@@ -122,66 +122,69 @@ describe("RED screen — every register × location × answer", () => {
     expect(remote.kind === "act" && remote.call112).toBe(true);
   });
 
-  // INT-453: a RED whose script is missing still shows the generic RED, the
-  // ALERT root layer at the trigger's own location, and invents no words.
-  it.each([
-    ["REMOTE", true],
-    ["ON_SITE", false],
-    ["UNKNOWN", false],
-  ] as const)(
-    "a RED with a missing script shows the generic RED (%s → 112 %s)",
-    (location, call112) => {
-      const empty: PrePositionedRed = { scripts: {}, questions: {} };
-      for (const register of ["ALERT", "CALM", "SILENT"] as const) {
-        const s: RedState = { ...state(register, location, "unanswered"), catalog: empty };
-        expect(redScreen(s)).toEqual({
+  // INT-453 / CD-24: a RED whose script is missing still shows the generic
+  // RED, in the trigger's OWN register (carry_engine_register, never a fixed
+  // ALERT), at the trigger's own location, with CD-24's generic copy.
+  const generic: PrePositionedRed = {
+    scripts: {
+      [GENERIC_RED_SCRIPT_IDS.REMOTE]: CATALOG.scripts[GENERIC_RED_SCRIPT_IDS.REMOTE],
+      [GENERIC_RED_SCRIPT_IDS.ON_SITE]: CATALOG.scripts[GENERIC_RED_SCRIPT_IDS.ON_SITE],
+    },
+    questions: {
+      [GENERIC_RED_SCRIPT_IDS.UNKNOWN]: CATALOG.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN],
+    },
+  };
+  const MODE = { ALERT: "rootLayer", CALM: "rootLayer", SILENT: "inFlow" } as const;
+
+  for (const register of ["ALERT", "CALM", "SILENT"] as const) {
+    for (const location of RED_LOCATIONS) {
+      it(`generic RED: ${register} × ${location} keeps its register, location and affordance`, () => {
+        const store = createRedStore();
+        store.present({ ...trigger(register, location), scriptId: "rf.not.on.device" }, generic);
+        const mode = MODE[register];
+        if (location === "UNKNOWN") {
+          // CD-24's verdict: ask first; no 112 before the answer.
+          expect(redScreen(store.getSnapshot())).toEqual({
+            kind: "ask",
+            mode,
+            register,
+            askTr: RAW.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN].askTr,
+            motion: RED_MOTION,
+          });
+          store.answerLocation("notInHospital");
+        }
+        const resolved = location === "UNKNOWN" ? "REMOTE" : location;
+        const raw = RAW.scripts[GENERIC_RED_SCRIPT_IDS[resolved]];
+        expect(redScreen(store.getSnapshot())).toMatchObject({
           kind: "act",
-          mode: "rootLayer",
-          register: "ALERT",
-          location,
-          actionTr: "",
-          doNotsTr: [],
-          whyTr: null,
-          call112,
-          motion: RED_MOTION,
+          mode,
+          register,
+          location: resolved,
+          actionTr: raw.actionTr, // CD-24's copy, verbatim
+          call112: resolved === "REMOTE", // never under ON_SITE
         });
-        // The patient is shown a RED, so the dialogue stops.
-        expect(redStopsDialogue(s)).toBe(true);
-      }
-      // Near miss: a clinician-only RED still changes nothing on the patient's screen.
+        // The patient is shown a RED (SILENT included), so the dialogue stops.
+        expect(redStopsDialogue(store.getSnapshot())).toBe(true);
+      });
+    }
+  }
+
+  it("near misses: a clinician-only RED shows nothing; an empty catalog invents no words", () => {
+    const empty: PrePositionedRed = { scripts: {}, questions: {} };
+    for (const location of RED_LOCATIONS) {
       const deferred: RedState = {
         ...state("DEFERRED_CLINICIAN", location, "unanswered"),
-        catalog: empty,
+        catalog: generic,
       };
       expect(redScreen(deferred)).toEqual({ kind: "none" });
-    },
-  );
-
-  it("a generic RED under UNKNOWN asks the generic question first, when one is on the device", () => {
-    const generic = {
-      scripts: {
-        [GENERIC_RED_SCRIPT_IDS.REMOTE]: CATALOG.scripts[scriptIdFor(RULE, "REMOTE")],
-        [GENERIC_RED_SCRIPT_IDS.ON_SITE]: CATALOG.scripts[scriptIdFor(RULE, "ON_SITE")],
-      },
-      questions: {
-        [GENERIC_RED_SCRIPT_IDS.UNKNOWN]: CATALOG.questions[scriptIdFor(RULE, "UNKNOWN")],
-      },
-    };
-    const store = createRedStore();
-    store.present({ ...trigger("CALM", "UNKNOWN"), scriptId: "rf.not.on.device.unknown" }, generic);
-    expect(redScreen(store.getSnapshot())).toMatchObject({
-      kind: "ask",
-      register: "ALERT",
-      askTr: RAW.questions[scriptIdFor(RULE, "UNKNOWN")].askTr,
-    });
-    store.answerLocation("notInHospital");
-    // The generic script's own words, verbatim, and 112 once the answer allows it.
-    expect(redScreen(store.getSnapshot())).toMatchObject({
-      kind: "act",
-      location: "REMOTE",
-      actionTr: RAW.scripts[scriptIdFor(RULE, "REMOTE")].actionTr,
-      call112: true,
-    });
+      const bare: RedState = { ...state("CALM", location, "unanswered"), catalog: empty };
+      expect(redScreen(bare)).toMatchObject({
+        kind: "act",
+        register: "CALM",
+        actionTr: "",
+        call112: location === "REMOTE",
+      });
+    }
   });
 });
 

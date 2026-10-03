@@ -42,7 +42,6 @@ from intake_voice_runtime.ports import WorkState
 from intake_voice_runtime.talker.delivery import DeliveryClass
 from intake_voice_runtime.talker.preemption import BackendResult, Presentation, Priority
 from intake_voice_runtime.talker.red_path import (
-    DEFAULT_GENERIC_RED_REGISTER,
     GENERIC_RED_SCRIPT_IDS,
     MappingRedScriptIndex,
     RedPathViolation,
@@ -51,7 +50,7 @@ from intake_voice_runtime.talker.red_path import (
 )
 from protocols import EK4Level, RedFlagRule
 from protocols.compile import load_life_threat_set
-from protocols.generic_red import generic_red_register, load_generic_red
+from protocols.generic_red import load_generic_red
 from protocols.triage import SlotAnswer, TriageContext, evaluate_triage
 from test_red_preemption import Rig
 
@@ -195,9 +194,17 @@ def test_one_fired_rule_without_a_name_is_its_own_red() -> None:
 # --- unaddressable is still a RED on the device ----------------------------------------------
 
 
+DEVICE_REGISTERS = (RedRegister.ALERT, RedRegister.CALM, RedRegister.SILENT)
+
+
 @pytest.mark.parametrize("location", list(RedLocation))
-def test_an_unaddressable_red_shows_the_generic_red_on_the_device(location: RedLocation) -> None:
-    rule = red(RULE_A, RedRegister.SILENT)
+@pytest.mark.parametrize("register", DEVICE_REGISTERS)
+def test_an_unaddressable_red_shows_the_generic_red_in_the_results_own_register(
+    register: RedRegister, location: RedLocation
+) -> None:
+    """CD-24 carry_engine_register: the generic is told in the engine result's
+    own register, never a fixed ALERT, at the result's own location."""
+    rule = red(RULE_A, register)
     triage = evaluate_triage((rule,), FIRING, location).result
     rig = Rig(scripts=MappingRedScriptIndex(entries={}))  # pack drift: no script for it
     with pytest.raises(RedPathViolation) as excinfo:
@@ -205,11 +212,40 @@ def test_an_unaddressable_red_shows_the_generic_red_on_the_device(location: RedL
     assert RedViolation.SCRIPT_UNADDRESSABLE in excinfo.value.violations  # loud
     [message] = sent(rig)  # …and still shown
     assert message.script_id == GENERIC_RED_SCRIPT_IDS[location]
-    assert message.register is DEFAULT_GENERIC_RED_REGISTER is RedRegister.ALERT
+    assert message.register is register  # the result's own, never a fixed ALERT
     assert message.location is location  # ON_SITE stays ON_SITE: the device shows no 112
     assert message.rule_id == RULE_A
+    # The delivery floor: intake stops and the clinician is told, with a silent
+    # generic marked as such.
     assert rig.media.calls == ["cancel"]
-    assert len(rig.clinic.notifications) == 1
+    [notice] = rig.clinic.notifications
+    assert notice.silent_generic is (register is RedRegister.SILENT)
+
+
+@pytest.mark.parametrize("location", list(RedLocation))
+def test_a_deferred_clinician_red_never_reaches_the_device_even_unaddressable(
+    location: RedLocation,
+) -> None:
+    rule = red(RULE_A, RedRegister.DEFERRED_CLINICIAN)
+    triage = evaluate_triage((rule,), FIRING, location).result
+    rig = Rig(scripts=MappingRedScriptIndex(entries={}))
+    outcome = rig.trigger(preempt(triage))
+    assert sent(rig) == []
+    assert rig.media.calls == []
+    [notice] = rig.clinic.notifications
+    assert (notice.patient_facing, notice.silent_generic) == (False, False)
+    assert outcome.violations == ()
+
+
+def test_a_silent_red_with_its_own_script_is_not_marked_generic() -> None:
+    """Near miss for the floor's notice: a SILENT RED delivered with its own
+    script is the rule's own approved silence, not a generic one."""
+    rule = red(RULE_A, RedRegister.SILENT)
+    triage = evaluate_triage((rule,), FIRING, RedLocation.REMOTE).result
+    rig = Rig(scripts=scripts(RULE_A))
+    rig.trigger(preempt(triage))
+    [notice] = rig.clinic.notifications
+    assert notice.silent_generic is False
 
 
 def test_several_fired_rules_with_no_name_show_the_generic_red_never_a_position() -> None:
@@ -271,22 +307,10 @@ def test_the_device_mirrors_the_generic_red_ids() -> None:
     source = CLIENT_RED_TS.read_text(encoding="utf-8")
     for location, script_id in GENERIC_RED_SCRIPT_IDS.items():
         assert re.search(rf'{location.value}:\s*"{re.escape(script_id)}"', source), location
-    assert re.search(r'DEFAULT_GENERIC_RED_REGISTER: RedRegister = "ALERT"', source)
 
 
-def test_the_generic_register_is_configured_from_cd24() -> None:
-    """CD-24 (pending) decides the generic's register. Until then it is ALERT,
-    and once a servable generic document names one, the path tells it in that
-    register (``generic_red_register`` → ``RedPreemption.generic_register``)."""
-    rule = red(RULE_A, RedRegister.SILENT)
-    triage = evaluate_triage((rule,), FIRING, RedLocation.REMOTE).result
-    landed = load_generic_red(GENERIC_SENTETIK).model_copy(update={"register": RedRegister.CALM})
-    rig = Rig(scripts=MappingRedScriptIndex(entries={}))
-    rig.path.generic_register = generic_red_register(landed)
-    with pytest.raises(RedPathViolation):
-        rig.trigger(preempt(triage))
-    assert [m.register for m in sent(rig)] == [RedRegister.CALM]
-    # Near miss: the committed draft keeps the default, ALERT.
-    default = Rig(scripts=MappingRedScriptIndex(entries={}))
-    assert default.path.generic_register is DEFAULT_GENERIC_RED_REGISTER
-    assert generic_red_register(load_generic_red(GENERIC_COMMITTED)) is RedRegister.ALERT
+def test_the_generic_document_carries_cd24s_register_policy() -> None:
+    """The policy the path implements is the document's own literal, so the
+    two cannot drift: carry the engine result's register (CD-24)."""
+    for path in (GENERIC_SENTETIK, GENERIC_COMMITTED):
+        assert load_generic_red(path).register_policy == "carry_engine_register"

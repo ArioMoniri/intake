@@ -1,16 +1,61 @@
 # The generic RED escalation (INT-453): what the device shows when a RED's own
-# pre-positioned script cannot be addressed. The copy and the register are a
-# clinical decision, CD-24 in the INT-432 clinical-decisions register (agent
-# author plus independent verifier, D18), which is OPEN. Until it lands this
-# document is draft_needs_source, so protocols.generic_red refuses it: no RED
-# script catalog is served and device_functions cannot be enabled. A blank
-# generic never reaches a live tenant. Nothing below is clinical content.
+# pre-positioned script cannot be addressed.
+#
+# Source of truth: CD-24 in the INT-432 clinical-decisions register,
+# packages/protocols/decisions/CD-24.yaml on #757. The decision was authored by
+# an EM/IM-cardiology physician agent and independently verified as "agree"
+# (int-432-cd24 2e6bbf26). Scope is D18: simulated-patient stress testing only,
+# and a licensed physician's review is required before any real patient. The
+# copy below is CD-24's value.scripts.base.generic_red, verbatim.
+#
+# Status stays draft_needs_source until the CD-24 register row is on main
+# (#757). Until then protocols.generic_red refuses this document, so no RED
+# script catalog is served and device_functions cannot be enabled.
+#
+# Register: CD-24 register_policy carry_engine_register. The generic trigger
+# carries the engine result's own register and is never fixed at ALERT.
+#
+# Still draft in CD-24, and so not here:
+# - the SILENT copy (meanwhile the same text is shown in flow, with no audio);
+# - the register when fired rules declare different registers;
+# - the wait before an unanswered location question resolves to REMOTE;
+# - generic driving, accompaniment and nil-by-mouth do-nots.
 kind: generic_red
 decision: CD-24
 status: draft_needs_source
-register: ALERT
+register_policy: carry_engine_register
 source_gap: >-
-  Unsupplied: the generic escalation's action_tr, do_nots_tr and why_tr for
-  REMOTE and ON_SITE, the UNKNOWN ask_one_tr (files/04 §8.1 rule 7), and
-  whether the generic is told in ALERT or in the triggering result's own
-  register. All of it is open as CD-24 in docs/clinical/decisions/ (INT-432).
+  Verified as CD-24 (INT-432; int-432-cd24 2e6bbf26) and landing on #757. This
+  document becomes active, with CD-24's TR-EK4-2022 source block, once that
+  register row is on main. Serving it then also needs the compiler's tr
+  expansion of the ON_SITE line (bold markers and the optional tenant
+  acil_location_tr segment) rather than the raw text below.
+action:
+  REMOTE:
+    primary: CALL_112
+    show_112: true
+    action_tr:
+      tr: "Hemen 112 Acil Çağrı Merkezi'ni arayın."
+    do_nots_tr:
+      tr:
+        - "Randevuyu beklemeyin."
+    why_tr:
+      tr: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+  ON_SITE:
+    primary: GO_TO_IN_HOUSE_ACIL
+    show_112: false
+    notify_staff_immediate: true
+    action_tr:
+      tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+    do_nots_tr:
+      tr:
+        - "Poliklinik sırasında beklemeyin."
+        - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+    why_tr:
+      tr: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+  UNKNOWN:
+    ask_one_tr:
+      tr: "Şu anda hastanede misiniz?"
+    on_yes: ON_SITE
+    on_no: REMOTE
+    on_no_answer: REMOTE
