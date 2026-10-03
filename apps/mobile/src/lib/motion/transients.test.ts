@@ -401,7 +401,7 @@ describe("MOTION-10 — a typed step change (C16)", () => {
     expect(inside(body, at("t(question.titleKey)"))).toBe(true);
     expect(inside(body, at("question.options!.map"))).toBe(true);
     // …and the progress and the CTA are not: they swap instantly with the step (C9, C16).
-    expect(inside(body, at("styles.progressRow"))).toBe(false);
+    expect(inside(body, at("<QuestionProgress"))).toBe(false);
     const bars = [...flow.matchAll(/<GlassBar\b/g)];
     expect(bars.length).toBeGreaterThan(0);
     expect(bars.filter((m) => inside(body, m.index))).toEqual([]);

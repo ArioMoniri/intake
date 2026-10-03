@@ -1,93 +1,223 @@
 /**
- * Vizite design tokens (INT-130, premium pass INT-193;
- * docs/design/mobile-ui.md).
+ * Önvizit design tokens (INT-130; native refresh INT-422,
+ * docs/design/system-refresh.md).
  *
- * Calm dark-on-light (02 §5.2): warm paper ground, deep ink, ONE accent.
- * The premium register (Oura/Tiimo/ChatGPT study): serif display for hero
- * moments, deeper near-black dark mode with tonal card separation, soft
- * large radii, Liquid Glass surfaces where the system provides them.
- * RED is reserved for the emergency route alone — nothing else in the app
- * may use it (02 §5.3). Motion budget: 120 ms fades, one animated element
- * at a time (02 §5.2a) — tokens carry the number so nobody re-invents it.
+ * The register is Apple's own: grouped system grounds, a label hierarchy,
+ * the platform face at Dynamic Type sizes, an 8-pt grid, 12-pt continuous
+ * corners, and ONE restrained accent, a clinical teal. There are no
+ * gradients, glows, shadows or tracked eyebrows anywhere in the palette, and
+ * nothing here exists to decorate. Materials (Liquid Glass, blur) are for the
+ * functional chrome only: the tab rail and the bottom bar
+ * (docs/design/apple-native/spec.md §0 rule 1).
+ *
+ * RED is reserved for the emergency route alone, and its two colours are
+ * unchanged by this refresh in every scheme and contrast mode (02 §5.3,
+ * ADR-033 §5). Motion budget: 120 ms fades, one animated element at a time
+ * (02 §5.2a). Tokens carry the numbers, so nobody re-invents them.
  *
  * Turkish rules baked in (00 §2): no text-transform anywhere (İ/ı casing
  * corrupts strings), no mid-word truncation, sentence case only.
  *
- * Pure TS module — no react-native imports, so every token and the type
- * scale are unit-testable in node. Platform resolution (fonts, shadows)
- * happens in components/Themed.tsx.
+ * Pure TS: no react-native imports, so every token, every contrast pair and
+ * the type scale are unit-testable in node. Platform resolution (the font
+ * family, the Increase Contrast answer) happens in components/Themed.tsx.
  */
 
+/**
+ * The colour tokens. Every scheme and contrast mode defines exactly this set.
+ *
+ * Grounds follow Apple's grouped hierarchy: `background` is the page,
+ * `surface` a cell or card on it, `surfaceRaised` a fill one step up (chips,
+ * the segmented track, a secondary button). Text follows the label ladder:
+ * `ink` (label), `inkSoft` (secondaryLabel), `inkFaint` (tertiaryLabel).
+ * `border` is a CONTROL boundary, strong enough to identify an input or an
+ * unselected chip on its own (SC 1.4.11); `separator` is the decorative
+ * hairline between rows.
+ */
+export type ColorToken =
+  | "background"
+  | "surface"
+  | "surfaceRaised"
+  | "thumb"
+  | "ink"
+  | "inkSoft"
+  | "inkFaint"
+  | "border"
+  | "separator"
+  | "primary"
+  | "primarySoft"
+  | "onPrimary"
+  | "cta"
+  | "onCta"
+  | "amber"
+  | "amberSoft"
+  | "success"
+  | "successSoft"
+  | "emergency"
+  | "emergencySoft";
+
+export type ThemeColors = Readonly<Record<ColorToken, string>>;
+
+export type ColorScheme = "light" | "dark";
+
+/**
+ * The OS contrast request: iOS "Increase Contrast" (Darker System Colors) or
+ * Android "High contrast text". Both palettes clear every floor in
+ * theme.test.ts; `high` strengthens text, boundaries and the accent, and
+ * leaves the grounds where they are so nothing moves.
+ */
+export type Contrast = "standard" | "high";
+
+/**
+ * Standard contrast: the palette nearly every patient sees. One literal, so
+ * scripts/compliance/render_a11y_report.py reads the same hexes the app
+ * renders. RED (`emergency`, `emergencySoft`) keeps its pre-refresh values,
+ * and theme.test.ts asserts they are identical in every scheme and contrast
+ * mode.
+ */
 export const palette = {
   light: {
-    background: "#FAF8F4", // warm paper (Pi/Tiimo-class calm, not clinical white)
-    surface: "#FFFFFF",
-    // One tonal step ABOVE surface (design pass 5): leading icon wells,
-    // tonal chips and off-state pills — the Oura "raised" grey that replaces
-    // outlines in the tag register.
-    surfaceRaised: "#F1EDE4",
-    ink: "#1C1B18",
-    inkSoft: "#5C594F",
-    inkFaint: "#8A867A",
-    border: "#EAE6DD",
-    primary: "#0F7B6C", // şifa teal — the single accent
-    primarySoft: "#EAF5F2", // light enough that primary text on it clears AA (4.6:1)
+    background: "#F2F2F7", // systemGroupedBackground
+    surface: "#FFFFFF", // secondarySystemGroupedBackground
+    surfaceRaised: "#E5E5EA", // systemGray5: chips, tracks, the gray button
+    thumb: "#FFFFFF", // the selected segment
+    ink: "#000000", // label
+    inkSoft: "#48484A", // secondaryLabel, opaque and AAA on its grounds
+    inkFaint: "#636366", // tertiaryLabel, opaque and AA on every ground
+    border: "#86868B", // control boundary, 3:1 on surface and background
+    separator: "#C6C6C8", // opaqueSeparator
+    primary: "#0B7366", // the one accent: tint for text, glyphs, selection
+    primarySoft: "#E1F0ED",
     onPrimary: "#FFFFFF",
-    // Design pass 6: the focal CTA is a NEUTRAL pill (Oura's forward action
-    // is bone-on-dark in every Mobbin capture; a saturated slab is the one
-    // register Oura never uses). Light mode carries the inverse: ink pill on
-    // the paper ground. ADDED tokens — no existing hex changed; the teal
-    // accent lives on in selection, progress and status moments.
-    cta: "#1C1B18",
-    onCta: "#FAF8F4",
-    amber: "#9A5B00", // YELLOW status pill only
+    cta: "#0B7366", // the filled prominent button
+    onCta: "#FFFFFF",
+    amber: "#9A5B00", // YELLOW status only
     amberSoft: "#FBF1DF",
-    success: "#1B7F4B",
-    successSoft: "#E4F2EA",
+    success: "#146C3E",
+    successSoft: "#E3F3E8",
     emergency: "#B3261E", // RESERVED: RED route (ALERT register) only
     emergencySoft: "#F9E5E3",
   },
   dark: {
-    background: "#0F0E0C", // Oura-register near-black with warmth
-    surface: "#211F1B", // a full step lighter than ground — cards must separate
-    surfaceRaised: "#2B2823", // one more tonal step for chips/icon wells
-
-    ink: "#F2F0EA",
-    inkSoft: "#B7B3A7",
-    inkFaint: "#8A867A",
-    border: "#353128",
-    primary: "#4FA79A",
-    primarySoft: "#22322F",
-    onPrimary: "#10201D",
+    background: "#000000", // systemGroupedBackground
+    surface: "#1C1C1E", // secondarySystemGroupedBackground
+    surfaceRaised: "#2C2C2E", // systemGray5
+    thumb: "#636366",
+    ink: "#FFFFFF", // label
+    inkSoft: "#AEAEB2",
+    inkFaint: "#98989D",
+    border: "#6A6A6F",
+    separator: "#38383A", // opaqueSeparator
+    primary: "#4FC3B1",
+    primarySoft: "#13302B",
+    onPrimary: "#06201C",
+    cta: "#0E7C6E",
+    onCta: "#FFFFFF",
     amber: "#E0A34E",
     amberSoft: "#332A1C",
     success: "#5CB884",
     successSoft: "#1E2E25",
     emergency: "#E5756D",
     emergencySoft: "#392320",
-    // Design pass 6: bone pill on near-black — the measured Oura CTA
-    // (warm cream ≈6 % saturation vs the 36 % teal slab it replaces).
-    cta: "#F3EDE3",
-    onCta: "#1C1B18",
   },
 } as const;
 
-export type ColorScheme = keyof typeof palette;
-export type ThemeColors = (typeof palette)[ColorScheme];
+/**
+ * Increase Contrast. The grounds and RED are the standard ones; text,
+ * boundaries, separators and the accent step further from the grounds, and
+ * theme.test.ts holds every pair to at least its standard ratio.
+ */
+export const highContrastPalette: Readonly<Record<ColorScheme, ThemeColors>> = {
+  light: {
+    ...palette.light,
+    inkSoft: "#3A3A3C",
+    inkFaint: "#48484A",
+    border: "#6C6C70",
+    separator: "#8E8E93",
+    primary: "#06594F",
+    cta: "#06594F",
+    amber: "#7B4800",
+    success: "#0B5A31",
+  },
+  dark: {
+    ...palette.dark,
+    inkSoft: "#D1D1D6",
+    inkFaint: "#AEAEB2",
+    border: "#8E8E93",
+    separator: "#636366",
+    primary: "#7DDCCB",
+    amber: "#F0B868",
+    success: "#7AD29F",
+  },
+};
 
-export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, screen: 20 } as const;
+/** The palette for a scheme and contrast mode; both modes define every token. */
+export function colorsFor(scheme: ColorScheme, contrast: Contrast): ThemeColors {
+  const colors: ThemeColors = contrast === "high" ? highContrastPalette[scheme] : palette[scheme];
+  return colors;
+}
 
 /**
- * Softer, larger geometry; CTAs are full pills. Design pass 4 (measured
- * against Mobbin Oura captures): cards 24, hero surfaces 32 — Oura's dark
- * cards are visibly rounder than our pass-3 20/28.
+ * What each token IS on each platform: the UIKit semantic colour on iOS and
+ * the Material 3 colour role on Android. `exact` marks the tokens whose
+ * standard values are Apple's documented values in both schemes
+ * (theme.test.ts pins them). The others keep Apple's role and move its value:
+ * secondaryLabel and tertiaryLabel are translucent in UIKit and measure about
+ * 3.4:1 and 1.9:1 on white, below this app's floors, so they are opaque and
+ * darker here; the accent is the brand's.
+ *
+ * The app renders these hex values rather than `PlatformColor`, because the
+ * patient's in-app theme (INT-260) can differ from the OS one and a system
+ * colour would follow the OS, and because a system colour cannot be measured
+ * in node, where the contrast floors are enforced.
  */
+export interface SystemRole {
+  readonly ios: string;
+  readonly android: string;
+  readonly exact: boolean;
+}
+
+export const SYSTEM_ROLES: Readonly<Record<ColorToken, SystemRole>> = {
+  background: { ios: "systemGroupedBackground", android: "surfaceContainer", exact: true },
+  surface: {
+    ios: "secondarySystemGroupedBackground",
+    android: "surfaceContainerLowest",
+    exact: true,
+  },
+  surfaceRaised: { ios: "systemGray5", android: "surfaceContainerHighest", exact: true },
+  thumb: { ios: "systemBackground (segment thumb)", android: "surfaceBright", exact: false },
+  ink: { ios: "label", android: "onSurface", exact: true },
+  inkSoft: { ios: "secondaryLabel", android: "onSurfaceVariant", exact: false },
+  inkFaint: { ios: "tertiaryLabel", android: "onSurfaceVariant", exact: false },
+  border: { ios: "opaqueSeparator (as a boundary)", android: "outline", exact: false },
+  separator: { ios: "opaqueSeparator", android: "outlineVariant", exact: true },
+  primary: { ios: "tintColor", android: "primary", exact: false },
+  primarySoft: { ios: "tintColor (tinted fill)", android: "primaryContainer", exact: false },
+  onPrimary: { ios: "white on tint", android: "onPrimary", exact: false },
+  cta: { ios: "tintColor (borderedProminent)", android: "primary", exact: false },
+  onCta: { ios: "white on tint", android: "onPrimary", exact: false },
+  amber: { ios: "systemOrange (darkened)", android: "tertiary", exact: false },
+  amberSoft: { ios: "systemOrange (tinted fill)", android: "tertiaryContainer", exact: false },
+  success: { ios: "systemGreen (darkened)", android: "secondary", exact: false },
+  successSoft: { ios: "systemGreen (tinted fill)", android: "secondaryContainer", exact: false },
+  emergency: { ios: "systemRed (reserved)", android: "error", exact: false },
+  emergencySoft: { ios: "systemRed (tinted fill)", android: "errorContainer", exact: false },
+};
+
 /**
- * `group` (design pass 5): grouped list containers — Oura's settings and
- * contributor groups sit visibly squarer (~16) than its content cards; one
- * radius for every ListGroup so rows read as a table, not a card stack.
+ * The 8-pt grid. `xs` is the one half step (hairline gaps inside a control);
+ * every other value is a multiple of 8. `screen` is the iPhone readable
+ * margin, the same 16 an inset grouped list uses.
  */
-export const radius = { card: 24, control: 999, hero: 32, chip: 999, group: 16 } as const;
+export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, screen: 16 } as const;
+
+/**
+ * Corners, drawn with `borderCurve: "continuous"` (the squircle iOS uses).
+ * One 12-pt radius for every container and control, and a capsule for small
+ * tags and pills. No surface is rounder than 12: the oversized 24 and 32 pt
+ * corners are gone.
+ */
+export const radius = { card: 12, group: 12, control: 12, chip: 999 } as const;
 
 /**
  * Motion budget (02 §5.2a): fades only, and only this long.
@@ -131,84 +261,130 @@ const press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 } as const;
 export const motion = { fadeMs: duration.fade, duration, easing, loop, press } as const;
 
 /**
- * Display face: Newsreader (OFL 1.1 — commercially usable; loaded as an app
- * asset via @expo-google-fonts/newsreader in the root layout) for hero/title
- * lines — the Oura-register soft serif. Body stays system sans. Platform
- * serif names remain as the pre-load fallback chain.
+ * Row press feedback (INT-451, docs/design/interaction-patterns.md §3.1): a
+ * grouped-list row and a switch row show a press by stepping their fill to
+ * this token, the way a UIKit cell highlights and a Material 3 list item
+ * lays its pressed state over the row. The words stay at full ink. Dimming
+ * the whole row to `press.rowOpacity` dimmed the words too, and a sublabel
+ * fell to about 3.1:1 while the finger was down (lib/a11y/rowPress.test.ts).
+ * It is an instant state swap with no duration, so ADR-033's budget does not
+ * apply to it and reduce motion has nothing to collapse.
+ */
+export const rowPressFill: ColorToken = "surfaceRaised";
+
+/**
+ * The platform face. `System` is SF Pro on iOS, which picks the Text or
+ * Display optical size and its tracking itself; Android has no family by that
+ * name and falls back to its own system sans (Roboto). No face is bundled.
+ *
+ * `rounded` is SF Pro Rounded, for the one numeral moment a screen may have
+ * (the prep gauge), the way Apple's own health and fitness numerals use it.
+ * React Native resolves `ui-rounded` to the system rounded design on iOS;
+ * Android has none and takes the sans. Themed.tsx picks per platform.
  */
 export const fonts = {
-  /**
-   * Design pass 5: 600 read one register heavier than the Oura headline
-   * serif (a bookish regular-to-medium); 500 at display sizes matches the
-   * reference weight without thinning small titles.
-   */
-  display: "Newsreader_500Medium",
-  displayFallback: { ios: "Georgia", android: "serif", default: "serif" },
-  /**
-   * Body sans: Inter (OFL 1.1 — commercially usable; loaded via
-   * @expo-google-fonts/inter in the root layout). Design pass 4: Oura's UI
-   * sans is Inter-class — rounder apertures and a taller x-height than the
-   * platform faces — so body/label/caption roles carry it explicitly.
-   * Weights are separate loaded families; Themed.tsx maps fontWeight →
-   * family (custom fonts on iOS do not synthesize weights reliably).
-   */
-  sans: "Inter_400Regular",
-  sansMedium: "Inter_500Medium",
-  sansSemiBold: "Inter_600SemiBold",
+  sans: "System",
+  rounded: { ios: "ui-rounded", default: "System" },
 } as const;
 
 /**
- * Depth: light mode floats cards on a soft, wide shadow; dark mode relies
- * on tonal separation like Oura (shadows read as mud on near-black).
- */
-export const shadow = {
-  light: { color: "#1C1B18", opacity: 0.07, radius: 18, offsetY: 8 },
-  dark: { color: "#000000", opacity: 0, radius: 0, offsetY: 0 },
-} as const;
-
-/**
- * Glass fallback (Android, iOS < 26, web): a soft tint wash laid OVER a real
- * BlurView plus a hairline border — the closest honest approximation of the
- * system material (design pass 3: the wash alone read as flat plastic; the
- * blur underneath is what makes it glass). Alphas are low because the blur
- * carries most of the separation.
+ * Glass fallback (Android, iOS below 26, web): a neutral wash over a real
+ * BlurView, plus a separator hairline, in the grouped-background hue. It is
+ * chrome only; under Reduce Transparency the surface token replaces it.
  */
 export function glassFallback(scheme: ColorScheme): {
   backgroundColor: string;
   borderColor: string;
 } {
   return scheme === "dark"
-    ? { backgroundColor: "rgba(33, 31, 27, 0.45)", borderColor: "rgba(242, 240, 234, 0.10)" }
-    : { backgroundColor: "rgba(255, 255, 255, 0.42)", borderColor: "rgba(28, 27, 24, 0.08)" };
+    ? { backgroundColor: "rgba(28, 28, 30, 0.72)", borderColor: "rgba(84, 84, 88, 0.6)" }
+    : { backgroundColor: "rgba(249, 249, 249, 0.78)", borderColor: "rgba(60, 60, 67, 0.2)" };
 }
 
 /**
- * Letter tracking (design pass 3, Oura register): kickers/eyebrows breathe
- * with a wide caption; everything else stays untracked. Never pair this with
- * a case transform (İ/ı rule) — the tracking IS the emphasis. Pass 4 widened
- * 0.5 → 0.8 against the Mobbin captures: Oura's smallcaps eyebrows track
- * wider than our pass-3 pills read.
+ * Apple's Dynamic Type ladder at the default (Large) content size, in points
+ * (Human Interface Guidelines, Typography, iOS text styles).
  */
-export const tracking = { kicker: 0.8 } as const;
+export const textStyles = {
+  largeTitle: 34,
+  title1: 28,
+  title2: 22,
+  title3: 20,
+  headline: 17,
+  body: 17,
+  callout: 16,
+  subheadline: 15,
+  footnote: 13,
+  caption1: 12,
+  caption2: 11,
+} as const;
+
+export type TextStyleName = keyof typeof textStyles;
 
 /**
- * Base sizes at fontScale 1.0. Body 17 matches the platform default.
- * `display` (design pass 5): the one big-numeral moment a screen may have —
- * Oura's score numerals sit around 64 pt; 56 keeps the register while
- * surviving fontScale 2.0. `micro` is chrome-only (tab rail captions): Oura
- * rail labels measure ~11; never use it for reading text.
+ * The app's text roles, each one rung of Apple's ladder, and its weight.
+ *
+ * - `hero`: a screen's own title, Large Title bold.
+ * - `question`: the one question on an intake step, Title 2 semibold. It is
+ *   a rung below the Large Title on purpose: at the 2.0 cap the longest word
+ *   of every question still fits the narrowest iPhone on one line
+ *   (e2e/designSystem.spec.ts), where a Large Title would break it mid-word.
+ * - `title`: a card or section title, Title 3 semibold.
+ * - `body`, `label` (Subheadline), `caption` (Footnote), `micro` (Caption 2,
+ *   chrome only: the tab rail's captions).
+ * - `display` sits outside the ladder: the one big numeral a screen may
+ *   have, in SF Pro Rounded.
  */
 export const typeScale = {
   display: 56,
-  hero: 34,
-  title: 24,
-  body: 17,
-  label: 15,
-  caption: 13,
-  micro: 11,
+  hero: textStyles.largeTitle,
+  question: textStyles.title2,
+  title: textStyles.title3,
+  body: textStyles.body,
+  label: textStyles.subheadline,
+  caption: textStyles.footnote,
+  micro: textStyles.caption2,
 } as const;
 
 export type TypeRole = keyof typeof typeScale;
+
+/**
+ * Each role and the rung it takes, as pairs (theme.test.ts proves `typeScale`
+ * agrees with them). Pairs rather than an object, so no role name sits beside
+ * a string as if it were a prop the i18n scan should read.
+ */
+export const ROLE_LADDER: readonly (readonly [Exclude<TypeRole, "display">, TextStyleName])[] = [
+  ["hero", "largeTitle"],
+  ["question", "title2"],
+  ["title", "title3"],
+  ["body", "body"],
+  ["label", "subheadline"],
+  ["caption", "footnote"],
+  ["micro", "caption2"],
+];
+
+export type FontWeight = 400 | 600 | 700;
+
+/** A role's default weight; a caller's own `fontWeight` still wins. */
+export const roleWeight: Readonly<Record<TypeRole, FontWeight>> = {
+  display: 600,
+  hero: 700,
+  question: 600,
+  title: 600,
+  body: 400,
+  label: 400,
+  caption: 400,
+  micro: 400,
+};
+
+/**
+ * The roles set in SF Pro Rounded on iOS: a screen's own title and the one
+ * numeral. Warmth from the face, not from decoration (INT-422).
+ */
+export const ROUNDED_ROLES: readonly TypeRole[] = ["display", "hero"];
+
+/** The roles set as headings, at the tight leading. */
+export const HEADING_ROLES: readonly TypeRole[] = ["display", "hero", "question", "title"];
 
 /**
  * Dynamic type: sizes follow the user's fontScale up to 2.0 (02 §8.2 — full
@@ -249,12 +425,11 @@ export function scaledControl(base: number, fontScale: number): number {
 }
 
 /**
- * Line height: display roles (hero/title) sit tight at 1.2 — the Oura serif
- * register collapses at book leading (design pass 3) — while body roles keep
- * 1.4 so Turkish diacritics (ğ, ş, İ) stay unclipped at reading sizes. 1.2
- * still clears the diacritics at display sizes because the glyphs are large.
+ * Line height: heading roles sit at 1.2; reading roles keep 1.4, looser than
+ * Apple's own body leading, so Turkish diacritics (ğ, ş, İ) stay unclipped
+ * and a clinical paragraph keeps its air at every size.
  */
 export function lineHeight(role: TypeRole, fontScale: number): number {
-  const factor = role === "display" || role === "hero" || role === "title" ? 1.2 : 1.4;
+  const factor = HEADING_ROLES.includes(role) ? 1.2 : 1.4;
   return Math.round(scaledSize(role, fontScale) * factor);
 }

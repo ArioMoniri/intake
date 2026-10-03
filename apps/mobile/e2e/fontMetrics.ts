@@ -3,10 +3,18 @@
  *
  * React Native has no DOM and vitest has no text engine, so a claim about
  * whether a Turkish label fits a phone can be arithmetic or it can be a
- * guess. This module makes it arithmetic: it reads `Inter_400Regular.ttf`
- * — the file `theme.ts` names as `fonts.sans` and the root layout loads —
- * and sums the horizontal advances the font itself declares for the exact
- * code points in a string.
+ * guess. This module makes it arithmetic: it reads a TrueType file and sums
+ * the horizontal advances the font itself declares for the exact code points
+ * in a string.
+ *
+ * Since INT-422 the app sets the platform face (SF Pro on iOS), which is not
+ * redistributable, so the specs read Inter (OFL) instead. On the build Mac SF
+ * Pro's advances measured 0.85 to 0.91 of Inter's across all 1066 Turkish
+ * catalogue strings, and SF Pro Semibold set by CoreText 0.92 of Inter
+ * SemiBold on the widest question words (docs/evidence/INT-422.md): a line
+ * that fits in Inter fits
+ * on the device, and Inter is an upper bound in the same direction as the
+ * kerning note below.
  *
  * What it does NOT model: kerning. Inter carries its pairs in GPOS, which
  * CoreText applies and this reader ignores, and kerning only ever pulls

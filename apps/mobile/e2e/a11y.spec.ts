@@ -1425,14 +1425,17 @@ describe("voice dialogue — a screen-reader user can follow the conversation", 
 /* ------------------------------------------------------------------ */
 
 describe("BK8 / SC 1.4.1 — nothing is carried by colour alone", () => {
-  it("the intake progress dots are decoration and are hidden from the reader", () => {
-    const intake = TSX.find((f) => f.name === "src/app/(tabs)/visits/[visitId]/intake.tsx")!;
-    const dots = readOpenings(intake.source, intake.name, ["View"]).filter((o) =>
-      /styles\.progressDot/.test(o.props),
+  it("the intake progress is one progressbar whose value is spoken, not a hue", () => {
+    // INT-433 replaced the colour-only dot row: the bar's fill is the sighted
+    // cue and the progressbar's value text is the fact a reader hears.
+    const progress = TSX.find((f) => f.name === "src/components/QuestionProgress.tsx")!;
+    const bars = readOpenings(progress.source, progress.name, ["View"]).filter((o) =>
+      /accessibilityRole="progressbar"/.test(o.props),
     );
-    expect(dots.length).toBe(1);
-    expect(hasProp(dots[0].props, "accessibilityElementsHidden")).toBe(true);
-    expect(hasProp(dots[0].props, "importantForAccessibility")).toBe(true);
+    expect(bars.length).toBe(1);
+    expect(hasProp(bars[0].props, "accessibilityValue")).toBe(true);
+    expect(hasProp(bars[0].props, "accessibilityLabel")).toBe(true);
+    expect(TSX.some((f) => /styles\.progressDot/.test(f.source))).toBe(false);
   });
 
   it("the status ladder speaks which rungs are reached", () => {

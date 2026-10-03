@@ -57,6 +57,7 @@ import {
   useColorScheme,
 } from "react-native";
 
+import { AgentQuestionLines } from "@/components/ChatLines";
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
@@ -72,6 +73,14 @@ import { joinParts, spoken } from "@/lib/a11y/labels";
 import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
 import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
+import {
+  BUBBLE_SHARE,
+  GROUPED_MARGIN,
+  bubbleMaxWidth,
+  placeTurns,
+  sideOf,
+  type Side,
+} from "@/lib/dialogue/rhythm";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
 import { questionAsideTr } from "@/lib/dialogue/speech";
 import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
@@ -179,6 +188,9 @@ export function DialogueIntake({
   const theme = useTheme();
   const dark = useColorScheme() === "dark";
   const fontScale = useFontScale();
+  // The transcript's own laid-out width (INT-423): the measure is a share of
+  // the box the bubbles sit in, so landscape insets are already out of it.
+  const [transcriptWidth, setTranscriptWidth] = useState<number | null>(null);
   const { account, updateNote } = useSession();
 
   const session = useDialogueSession({
@@ -348,12 +360,35 @@ export function DialogueIntake({
   // While the agent speaks, the LAST logged agent turn is the live bubble.
   const liveAgentIndex = turn.phase === "speaking" ? state.stream.length - 1 : -1;
 
+  // INT-423: the rhythm. Consecutive turns from one speaker group, and the
+  // tail belongs to a run's last bubble; the open-mic turn is the patient's,
+  // after the stream. The measure is lib/dialogue/rhythm's.
+  const sides: Side[] = [
+    ...state.stream.map(sideOf),
+    ...(turn.phase === "listening" ? (["patient"] as const) : []),
+  ];
+  const placements = placeTurns(sides);
+  const measure =
+    transcriptWidth === null
+      ? (`${BUBBLE_SHARE * 100}%` as const)
+      : bubbleMaxWidth(transcriptWidth - 2 * spacing.screen, fontScale);
+  const shape = (index: number) => {
+    const placement = placements[index];
+    const tail = placement?.tail
+      ? sides[index] === "agent"
+        ? styles.agentTail
+        : styles.patientTail
+      : null;
+    return [{ maxWidth: measure, marginTop: placement?.grouped ? GROUPED_MARGIN : 0 }, tail];
+  };
+
   const renderAgentBubble = (entry: StreamEntry, index: number) => {
     const live = index === liveAgentIndex;
     const bubbleStyle = [
       styles.bubble,
       styles.agentBubble,
       { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
+      ...shape(index),
     ];
     let body: ReactNode = null;
     // The same words the bubble renders, in reading order, so the spoken
@@ -373,16 +408,7 @@ export function DialogueIntake({
       // session readable rather than lossy.
       const aside = questionAsideTr(q);
       said = [t(q.titleKey), aside ?? ""];
-      body = (
-        <>
-          <AppText role="body">{t(q.titleKey)}</AppText>
-          {aside !== null ? (
-            <AppText role="caption" color="inkSoft">
-              {aside}
-            </AppText>
-          ) : null}
-        </>
-      );
+      body = <AgentQuestionLines question={t(q.titleKey)} aside={aside} />;
     } else if (entry.kind === "agent_confirm") {
       const q = questions.find((item) => item.id === entry.questionId);
       said =
@@ -480,6 +506,7 @@ export function DialogueIntake({
             styles.bubble,
             styles.agentBubble,
             { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
+            ...shape(index),
           ]}
         >
           <AppText role="caption" color="inkSoft">
@@ -499,7 +526,12 @@ export function DialogueIntake({
           // announced once by useLiveAnnouncement; a live region here would
           // say it a second time.
           accessibilityLabel={spoken(t("a11y.speaker.patient"), t("dialogue.transcribing"))}
-          style={[styles.bubble, styles.patientBubble, { backgroundColor: theme.surfaceRaised }]}
+          style={[
+            styles.bubble,
+            styles.patientBubble,
+            { backgroundColor: theme.surfaceRaised },
+            ...shape(index),
+          ]}
         >
           <View style={styles.stateRow}>
             <ActivityIndicator size="small" color={theme.inkFaint} />
@@ -515,7 +547,12 @@ export function DialogueIntake({
         key={`w-${entry.workId}`}
         accessible
         accessibilityLabel={spoken(t("a11y.speaker.patient"), entry.text)}
-        style={[styles.bubble, styles.patientBubble, { backgroundColor: theme.surfaceRaised }]}
+        style={[
+          styles.bubble,
+          styles.patientBubble,
+          { backgroundColor: theme.surfaceRaised },
+          ...shape(index),
+        ]}
       >
         <AppText role="body">{entry.text}</AppText>
       </View>
@@ -543,6 +580,7 @@ export function DialogueIntake({
           // user knows the scroller they landed in is the transcript and not
           // the page.
           accessibilityLabel={t("a11y.dialogue.transcript")}
+          onLayout={(event) => setTranscriptWidth(event.nativeEvent.layout.width)}
           contentContainerStyle={[styles.content, { paddingBottom: barClearance }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -590,6 +628,7 @@ export function DialogueIntake({
                   borderColor: dark ? "transparent" : theme.primary,
                   opacity: pressed ? motion.press.rowOpacity : 1,
                 },
+                ...shape(state.stream.length),
               ]}
             >
               <View style={styles.stateRow}>
@@ -796,8 +835,8 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen },
   bubble: {
-    maxWidth: "84%",
     borderRadius: radius.group,
+    borderCurve: "continuous",
     padding: spacing.md,
     gap: spacing.xs,
     // The speaking bubble IS the barge-in target (INT-235), and the
@@ -808,13 +847,14 @@ const styles = StyleSheet.create({
   },
   agentBubble: {
     alignSelf: "flex-start",
-    borderBottomLeftRadius: 6,
     borderWidth: 1,
   },
   patientBubble: {
     alignSelf: "flex-end",
-    borderBottomRightRadius: 6,
   },
+  // INT-423: the tail corner, on a speaker's last bubble in a run only.
+  agentTail: { borderBottomLeftRadius: spacing.xs },
+  patientTail: { borderBottomRightRadius: spacing.xs },
   listeningBubble: { borderWidth: 1 },
   stateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   pulseDot: { width: 8, height: 8, borderRadius: radius.chip },
@@ -842,6 +882,7 @@ const styles = StyleSheet.create({
   composerFieldWrap: { flex: 1, justifyContent: "center" },
   composerField: {
     borderRadius: radius.control,
+    borderCurve: "continuous",
     borderWidth: 1,
     minHeight: 44,
     paddingHorizontal: spacing.md,
@@ -856,7 +897,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 44,
     height: 44,
-    borderRadius: radius.control,
+    borderRadius: radius.chip,
     alignItems: "center",
     justifyContent: "center",
   },

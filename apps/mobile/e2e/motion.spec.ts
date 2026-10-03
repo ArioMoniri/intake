@@ -421,8 +421,8 @@ const TOKENS = "src/lib/theme.ts";
  * line. This list may only shrink.
  */
 const STATIC_OPACITY: readonly { readonly name: string; readonly value: string }[] = [
-  // The hairline divider's resting tone (`styles.hairline`).
-  { name: "src/components/Themed.tsx", value: "0.9" },
+  // Empty since INT-422: the hairline's resting 0.9 went when it took the
+  // separator token.
 ];
 
 /** A fractional opacity (`0.6`, `.4`). The rest states 0 and 1 are not feedback. */
@@ -543,16 +543,19 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
 
     // The scan found the sites it is about: every press-feedback component on
     // main, and the three disabled controls (both buttons and the composer's
-    // send, whose 0.4 was normalised to the token's 0.5).
+    // send, whose 0.4 was normalised to the token's 0.5). The grouped-list
+    // rows (ListRow, SwitchRow) left this scan in INT-451: they show a press
+    // with the `rowPressFill` highlight instead of a dim, which
+    // e2e/interactionPatterns.spec.ts holds. A row that dims again comes back
+    // here and must read the token.
     expect(sites.length).toBeGreaterThanOrEqual(10);
     expect([...new Set(sites.map((s) => s.name))]).toEqual(
       expect.arrayContaining([
         "src/components/DialogueIntake.tsx",
-        "src/components/ListRow.tsx",
         "src/components/SectionPanel.tsx",
         "src/components/Segmented.tsx",
-        "src/components/SwitchRow.tsx",
         "src/components/Themed.tsx",
+        "src/components/VisitCalendar.tsx",
       ]),
     );
     const disabled = sites

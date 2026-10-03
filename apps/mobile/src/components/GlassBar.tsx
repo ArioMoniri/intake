@@ -19,7 +19,7 @@ import { GlassView } from "expo-glass-effect";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useGlassMode } from "@/components/glassMode";
-import { useFontScale, useScheme, useTheme } from "@/components/Themed";
+import { useFontScale, useScheme, useTheme, type StackScreenOptions } from "@/components/Themed";
 import { glassBarClearance } from "@/lib/prefs/appearance";
 import { glassFallback, spacing } from "@/lib/theme";
 
@@ -82,7 +82,7 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
         glassEffectStyle="regular"
         colorScheme={scheme}
         onLayout={report}
-        style={[...barStyle, { borderTopColor: theme.border }]}
+        style={[...barStyle, { borderTopColor: theme.separator }]}
       >
         {inner}
       </GlassView>
@@ -94,7 +94,7 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
     return (
       <View
         onLayout={report}
-        style={[...barStyle, { backgroundColor: theme.surface, borderTopColor: theme.border }]}
+        style={[...barStyle, { backgroundColor: theme.surface, borderTopColor: theme.separator }]}
       >
         {inner}
       </View>
@@ -116,7 +116,70 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
   );
 }
 
+/**
+ * The navigation bar's material (INT-433): the same three answers as the
+ * bottom bar, drawn behind a transparent native-stack header
+ * (`headerBackground`), so the question scrolls under glass at the top and
+ * the bottom alike. It holds nothing itself: the system draws the back button
+ * over it. Reduce Transparency gets the page ground, which is the bar the
+ * screen had before, so the patient who asked for no transparency sees no
+ * change at all.
+ */
+export function GlassNavBackground() {
+  const theme = useTheme();
+  const scheme = useScheme();
+  const mode = useGlassMode();
+  const fallback = glassFallback(scheme);
+  if (mode === "liquid") {
+    return (
+      <GlassView
+        glassEffectStyle="regular"
+        colorScheme={scheme}
+        style={[StyleSheet.absoluteFill, styles.navEdge, { borderBottomColor: theme.separator }]}
+      />
+    );
+  }
+  if (mode === "solid") {
+    return <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]} />;
+  }
+  return (
+    <View
+      style={[StyleSheet.absoluteFill, styles.navEdge, { borderBottomColor: fallback.borderColor }]}
+    >
+      <BlurView
+        intensity={55}
+        tint={scheme === "dark" ? "dark" : "light"}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { backgroundColor: fallback.backgroundColor }]}
+      />
+    </View>
+  );
+}
+
+/**
+ * A pushed screen's navigation bar on glass (INT-451,
+ * docs/design/interaction-patterns.md §3.2): INT-433's material for the typed
+ * question, as one helper for the visit's other pushed screens. The header
+ * turns transparent over `GlassNavBackground`, so it takes the same three
+ * answers as every glass surface, solid included. The host clears the bar by
+ * `useHeaderHeight()`, never a constant, because the bar grows with the title
+ * at large text sizes. The bar is chrome: the system back button and the
+ * title sit on it, and the screen's content only scrolls under it.
+ */
+export function withGlassNav(options: StackScreenOptions): StackScreenOptions {
+  return {
+    ...options,
+    headerTransparent: true,
+    headerStyle: { backgroundColor: "transparent" },
+    headerBackground: () => <GlassNavBackground />,
+  };
+}
+
 const styles = StyleSheet.create({
+  navEdge: { borderBottomWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   // flexShrink (INT-360): a host that caps its bottom stack — the dialogue,
   // whose stack must fit above a landscape keyboard — can take height back
   // from the bar, and the bar hands it on to a scroller inside it. With no cap

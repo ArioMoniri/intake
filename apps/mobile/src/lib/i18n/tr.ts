@@ -594,9 +594,13 @@ export const tr = {
   "intake.hpi.bowelRelief": "Tuvalet sonrası",
   "intake.opt.itEases": "Azalıyor",
   "intake.opt.itIncreases": "Artıyor",
-  // The flow length follows the answers, so the progress row counts what is
-  // answered and says plainly that more questions may follow (INT-239).
-  "intake.progress.answered": "soru yanıtlandı",
+  // INT-433: "Soru N / M" over the applicable flow, with N and M inserted at
+  // render (display-only, invariant 22), and the reader's worded value
+  // "Soru N, toplam M". The growth line says plainly that more questions may
+  // follow while a gate could still open (INT-239).
+  "intake.progress.name": "İlerleme",
+  "intake.progress.question": "Soru",
+  "intake.progress.of": "toplam",
   "intake.progress.grows": "Yanıtlarınıza göre birkaç soru daha gelebilir.",
   "voice.speakToAdd": "Konuşarak ekleyin",
   "voice.listening": "Dinliyor… durdurmak için dokunun",
