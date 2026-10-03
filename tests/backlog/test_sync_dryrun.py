@@ -109,7 +109,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-448 (#642 packet items under D18, GitHub #759)
     # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
     # + INT-447 (INT-414's delivery lines verified under D18, GitHub #758)
-    # + INT-472 (CD-111, cardiac RED do-nots and the location wait, GitHub #805)
+    # + INT-468 (CD-111, cardiac RED do-nots and the location wait, GitHub #805)
     assert len(actions) == 339
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
