@@ -168,8 +168,13 @@
   letter-spacing: -0.005em;
 }
 
-/* A fact list never widens the page: its columns may shrink, and on a narrow
-   screen the term sits above its value so a long id keeps its whole line. */
+/* A fact list never widens the page: its columns may shrink, and in a narrow
+   tile (a phone, or a quarter-width card) the term sits above its value so a
+   long id keeps its whole line instead of being cut or broken mid-word. */
+.tile {
+  container-type: inline-size;
+}
+
 .facts {
   grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
 }
@@ -179,7 +184,7 @@
   min-width: 0;
 }
 
-@media (max-width: 480px) {
+@container (max-width: 400px) {
   .facts {
     grid-template-columns: minmax(0, 1fr);
     gap: 0 16px;
