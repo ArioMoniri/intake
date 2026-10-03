@@ -23,6 +23,7 @@ from typing import Literal
 from intake_platform.red_tenant import TenantKind
 
 __all__ = [
+    "ENV_TRIAGE_DEPLOYMENT",
     "ENV_TRIAGE_SIGNATURE",
     "ENV_TRIAGE_TENANT_KIND",
     "SYNTHETIC_TENANT_ENVIRONMENTS",
@@ -88,6 +89,8 @@ KekMode = Literal["transit", "file-dev"]
 # INT-465: the synthetic-only test-key signature over the red rule set.
 ENV_TRIAGE_SIGNATURE = "INTAKE_API_TRIAGE_SIGNATURE"
 ENV_TRIAGE_TENANT_KIND = "INTAKE_API_TRIAGE_TENANT_KIND"
+#: The host a synthetic tenant runs on; the test signature names exactly one.
+ENV_TRIAGE_DEPLOYMENT = "INTAKE_API_TRIAGE_DEPLOYMENT"
 #: Where a synthetic triage tenant may be declared: dev, and the synthetic
 #: staging host (infra/staging: SYNTHETIC PATIENTS ONLY). Nowhere else.
 SYNTHETIC_TENANT_ENVIRONMENTS = frozenset({"dev", "staging"})
@@ -165,6 +168,12 @@ def refuse_synthetic_tenant_outside_synthetic_host(environ: Mapping[str, str]) -
         raise TriageTenantRefusedError(
             f"{ENV_TRIAGE_TENANT_KIND}=synthetic is refused in INTAKE_ENV={named}: only an "
             "explicit dev or the synthetic staging host may trust the test key (INT-465)"
+        )
+    if not environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip():
+        raise TriageTenantRefusedError(
+            f"{ENV_TRIAGE_TENANT_KIND}=synthetic needs {ENV_TRIAGE_DEPLOYMENT}: the test "
+            "signature is bound to one host, and a tenant that names none cannot be "
+            "checked against it (INT-465)"
         )
 
 
@@ -260,6 +269,7 @@ class ApiSettings:
     # it; a synthetic tenant requires it (intake_platform.red_signature).
     triage_signature_path: Path | None = None
     triage_tenant_kind: TenantKind = TenantKind.REAL
+    triage_deployment: str | None = None
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).
@@ -344,5 +354,6 @@ class ApiSettings:
                 else None
             ),
             triage_tenant_kind=_triage_tenant_kind(os.environ),
+            triage_deployment=os.environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip() or None,
             environment=environment_name(os.environ),
         )

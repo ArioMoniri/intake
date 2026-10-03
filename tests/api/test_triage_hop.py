@@ -373,6 +373,7 @@ def test_the_catalog_pre_positions_the_generic_red(harness: ApiHarness) -> None:
 LIFE_THREAT = REPO_ROOT / "files" / "protocols" / "base.life_threat.yaml"
 SIGNATURE = REPO_ROOT / "packages" / "protocols" / "signing" / "red_rule_set.synthetic.json"
 CARDIAC = "rf.chest_pain_cardiac_features"
+HOST = "i-0e489e48739f5de98"
 
 
 def _synthetic(
@@ -381,6 +382,7 @@ def _synthetic(
     kind: str = "synthetic",
     rules: Path = LIFE_THREAT,
     signature: Path | None = SIGNATURE,
+    deployment: str | None = HOST,
 ) -> Iterator[ApiHarness]:
     return build_harness(
         tmp_path,
@@ -389,6 +391,7 @@ def _synthetic(
         triage_rules_path=rules,
         triage_signature_path=signature,
         triage_tenant_kind=kind,
+        triage_deployment=deployment,
     )
 
 
@@ -427,6 +430,13 @@ def test_a_real_tenant_refuses_a_test_signature_even_beside_a_clinically_signed_
     carries a complete sign-off, it makes the set unservable rather than trusted. Near
     miss: the same set with no signature configured serves (the ``harness`` fixture)."""
     for harness in _synthetic(tmp_path, kind="real", rules=SIGNED):
+        _assert_closed(harness)
+
+
+def test_a_synthetic_tenant_on_another_host_fails_closed(tmp_path: Path) -> None:
+    """The committed signature names i-0e489e48739f5de98. The same files on another
+    host do not serve. Near miss: the first synthetic test above serves on the bound host."""
+    for harness in _synthetic(tmp_path, deployment="i-0123456789abcdef0"):
         _assert_closed(harness)
 
 

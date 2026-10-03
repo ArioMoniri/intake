@@ -234,6 +234,7 @@ def build_harness(
     # the exact "synthetic" is synthetic, as ApiSettings.from_env reads it).
     triage_signature_path: Path | None = None,
     triage_tenant_kind: str | None = None,
+    triage_deployment: str | None = None,
     # INT-407: the clinic Safety inbox a RED visit's move raises its entry in.
     # None is the unwired state, in which a reschedule or cancel answers 503.
     safety_inbox: Any = None,
@@ -280,6 +281,7 @@ def build_harness(
         # the fail-closed path point this at a missing/broken file instead
         triage_rules_path=triage_rules_path,
         triage_signature_path=triage_signature_path,
+        triage_deployment=triage_deployment,
         triage_tenant_kind=(
             TenantKind.SYNTHETIC
             if triage_tenant_kind == TenantKind.SYNTHETIC.value

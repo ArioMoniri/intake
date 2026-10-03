@@ -16,7 +16,8 @@ alone. The public half is committed in :data:`COMMITTED_TRUST_REGISTRY`.
 - the sha256 of the generic RED document's bytes;
 - the exact sorted list of rule ids served (only ``active`` rules; a draft rule is
   never served);
-- the scope the signature was made for.
+- the scope the signature was made for;
+- the one host it is for (``deployment``), which the tenant config must name.
 A changed byte, a dropped or added rule, or a payload edited after signing is refused.
 
 **Who may accept it.** A tenant admits a key scope only through
@@ -173,6 +174,11 @@ class RedRuleSetPayload(FrozenModel):
     served_rule_ids: tuple[str, ...] = Field(
         min_length=1, description="The rule ids served: active rules only, sorted, unique."
     )
+    deployment: str = Field(
+        pattern=r"^[a-z0-9][a-z0-9-]{2,63}$",
+        description="The one host this signature is for (review round 2): the synthetic "
+        "AWS host's instance id.",
+    )
 
     @field_validator("served_rule_ids")
     @classmethod
@@ -191,8 +197,10 @@ class RedRuleSetPayload(FrozenModel):
         generic_red_path: str,
         generic_red_bytes: bytes,
         served_rule_ids: Sequence[str],
+        deployment: str,
     ) -> RedRuleSetPayload:
         return cls(
+            deployment=deployment,
             kind=PAYLOAD_KIND,
             scope=scope,
             authority=AUTHORITY,
@@ -269,6 +277,8 @@ def verify_red_rule_set(
         set(served_rule_ids)
     ) != len(served_rule_ids):
         raise RedSignatureRefused("served_rules_mismatch")
+    if tenant.deployment != payload.deployment:
+        raise RedSignatureRefused("deployment_mismatch")
     return key
 
 

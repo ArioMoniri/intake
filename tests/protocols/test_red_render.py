@@ -30,6 +30,7 @@ from protocols.compile.number_expansion import expand_for_locale
 from protocols.red_render import (
     RedRenderError,
     assert_markup_free,
+    assert_speakable_red,
     render_red_text,
     spoken_red_text,
 )
@@ -109,6 +110,30 @@ def test_the_spoken_form_expands_112_and_carries_no_markup() -> None:
     on_site = spoken_red_text(ON_SITE, acil_location_tr=None)
     assert not MARKUP.search(on_site)
     assert not re.search(r"\d", on_site)
+
+
+@pytest.mark.parametrize(
+    "row",
+    ["Hemen 112 Acil Çağrı Merkezi'ni arayın.", "Hemen **yüz on iki** arayın.", "Gidin {{x}}."],
+    ids=["digit", "markup", "template-field"],
+)
+def test_a_red_clip_row_with_a_digit_or_markup_is_refused(row: str) -> None:
+    """Invariant 22: no numeral reaches a TTS model. This is the last check before a
+    RED clip row is handed over. Near miss: the expanded form is speakable."""
+    with pytest.raises(RedRenderError):
+        assert_speakable_red(row)
+    assert_speakable_red("Hemen yüz on iki Acil Çağrı Merkezi'ni arayın.")
+
+
+def test_the_served_cardiac_remote_line_has_no_spoken_form_yet() -> None:
+    """INT-455 and INT-456 stay blockers to any spoken RED rule script: the
+    exemplar's "**112**'yi" cannot be expanded, so it can never be handed to a TTS
+    model. Near miss: the generic's bare "112 " can."""
+    from protocols.compile.tr_orthography import TrExpansionError
+
+    with pytest.raises(TrExpansionError):
+        spoken_red_text("Hemen **112**'yi arayın.", acil_location_tr=None)
+    assert spoken_red_text(REMOTE, acil_location_tr=None)
 
 
 def test_without_the_render_step_markup_would_reach_tts() -> None:

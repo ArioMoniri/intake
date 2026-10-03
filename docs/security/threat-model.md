@@ -990,7 +990,8 @@ it or whose tests exercise it.
   is `synthetic_test`. `intake_platform.red_signature.admitted_scopes` is an allow-list keyed on
   the synthetic tenant kind alone and runs before any cryptography, and the API refuses to boot
   with a synthetic tenant unless `INTAKE_ENV` is explicitly `dev` or `staging`. The signature
-  binds the exact bytes parsed (each document read once) and the served rule list. This is not
+  binds the exact bytes parsed (each document read once), the served rule list and the one host
+  it is for (`deployment`, which a synthetic tenant config must name). This is not
   the production path (cosign, INT-058, untouched). Signal: a refusal logs its id-shaped code
   (`intake_api.triage_rules`). Tests: `tests/protocols/test_red_signature.py` (every
   non-synthetic tenant config rejects the key), `tests/api/test_triage_tenant_kind.py`,

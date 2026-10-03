@@ -49,6 +49,8 @@ from protocols.types import RuleStatus
 REPO = Path(__file__).resolve().parents[2]
 LIFE_THREAT = "files/protocols/base.life_threat.yaml"
 GENERIC = "packages/protocols/generic/generic_red.yaml"
+#: The synthetic AWS host the signature is bound to (D23).
+DEPLOYMENT = "i-0e489e48739f5de98"
 _TRANSIT = re.compile(r"^[a-z]+:v([1-9][0-9]*):([A-Za-z0-9+/]+=*)$")
 
 
@@ -66,6 +68,7 @@ def build_payload(life_threat: str = LIFE_THREAT, generic: str = GENERIC) -> Red
         generic_red_path=generic,
         generic_red_bytes=(REPO / generic).read_bytes(),
         served_rule_ids=served_rule_ids(REPO / life_threat),
+        deployment=DEPLOYMENT,
     )
 
 
@@ -90,7 +93,7 @@ def verify_committed(
         verify_red_rule_set(
             signature,
             registry=load_trust_registry(COMMITTED_TRUST_REGISTRY),
-            tenant=TenantRedConfig(kind=kind),
+            tenant=TenantRedConfig(kind=kind, deployment=DEPLOYMENT),
             life_threat_bytes=(REPO / signature.payload.life_threat.path).read_bytes(),
             generic_red_bytes=(REPO / signature.payload.generic_red.path).read_bytes(),
             served_rule_ids=served_rule_ids(REPO / signature.payload.life_threat.path),
@@ -131,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
         verify_red_rule_set(
             envelope,
             registry=load_trust_registry(COMMITTED_TRUST_REGISTRY),
-            tenant=TenantRedConfig(kind=TenantKind.SYNTHETIC),
+            tenant=TenantRedConfig(kind=TenantKind.SYNTHETIC, deployment=DEPLOYMENT),
             life_threat_bytes=(REPO / payload.life_threat.path).read_bytes(),
             generic_red_bytes=(REPO / payload.generic_red.path).read_bytes(),
             served_rule_ids=served_rule_ids(REPO / payload.life_threat.path),

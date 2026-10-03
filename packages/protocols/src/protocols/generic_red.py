@@ -55,17 +55,11 @@ from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import RedLocation
 from pydantic import Field, ValidationError, model_validator
 
-from protocols.clinical_decisions import (
-    DecisionRegisterError,
-    GuidelineSource,
-    SpecBasis,
-    quote_in_snapshot,
-    snapshot_body,
-    snapshot_header,
-)
+from protocols.clinical_decisions import GuidelineSource, SpecBasis
 from protocols.compile.emit_clips import ClipRow, SpeakableText, rows_from
 from protocols.dsl import LocationAction, RedFlagAction
-from protocols.red_render import RedRenderError, render_red_text
+from protocols.red_render import RedRenderError, assert_speakable_red, render_red_text
+from protocols.source_snapshots import source_snapshot_problem
 from protocols.types import RuleStatus
 
 __all__ = [
@@ -229,21 +223,24 @@ def _check_no_112_on_site(action: RedFlagAction) -> None:
 
 
 def _check_snapshots(copy: GenericRedCopy, repo_root: Path) -> None:
+    """Each guideline source agrees with its committed snapshot: header id, the
+    quote verbatim, the url (``url`` or ``url_annex``) and ``retrieved_on``."""
     for entry in (copy.scripts or {}).values():
         for source in entry.sources:
-            snapshot = source.snapshot
-            if not snapshot.startswith(_SNAPSHOT_PREFIX) or ".." in snapshot:
-                raise GenericRedError(f"snapshot {snapshot!r} must live under {_SNAPSHOT_PREFIX}")
-            path = repo_root / snapshot
-            try:
-                text = path.read_text(encoding="utf-8")
-                header, body = snapshot_header(text), snapshot_body(text)
-            except (OSError, DecisionRegisterError) as exc:
-                raise GenericRedError(f"snapshot {snapshot!r} is not committed") from exc
-            if header.get("guideline_id") != source.guideline_id:
-                raise GenericRedError(f"snapshot {snapshot!r} is not {source.guideline_id}")
-            if not quote_in_snapshot(source.quote, body):
-                raise GenericRedError(f"a quote is not verbatim in {snapshot!r}")
+            if not source.snapshot.startswith(_SNAPSHOT_PREFIX):
+                raise GenericRedError(
+                    f"snapshot {source.snapshot!r} must live under {_SNAPSHOT_PREFIX}"
+                )
+            problem = source_snapshot_problem(
+                quote_snapshot=source.snapshot,
+                guideline_id=source.guideline_id,
+                quote=source.quote,
+                url=source.url,
+                retrieved_on=source.retrieved_on,
+                repo_root=repo_root,
+            )
+            if problem is not None:
+                raise GenericRedError(problem)
 
 
 def load_generic_red(
@@ -308,4 +305,10 @@ def generic_red_clip_rows(
     rows, _prompts, refusals = rows_from(sources, voice=voice)
     if refusals:
         raise GenericRedError(f"generic RED text cannot be spoken: {refusals[0].message}")
+    try:
+        for row in rows:
+            # The last check before a RED row is handed to a TTS model (invariant 22).
+            assert_speakable_red(row.text_tr)
+    except RedRenderError as exc:
+        raise GenericRedError(f"generic RED text cannot be spoken: {exc}") from exc
     return rows

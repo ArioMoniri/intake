@@ -21,7 +21,16 @@ import {
   type PrePositionedRed,
 } from "./hop";
 import { deriveRedLocation } from "./location";
-import { createRedStore, redScreen, redStopsDialogue, type RedState } from "./store";
+import {
+  createRedStore,
+  dialogueFrozenAt,
+  dialogueShown,
+  RedCatalogIncomplete,
+  redScreen,
+  redStopsDialogue,
+  UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS,
+  type RedState,
+} from "./store";
 
 const FIXTURES = join(__dirname, "..", "..", "..", "..", "..", "tests", "fixtures", "triage_hop");
 const CATALOG_BYTES = new Uint8Array(readFileSync(join(FIXTURES, "red_catalog.json")));
@@ -46,7 +55,12 @@ function state(register: RedRegister, location: RedLocation, answer: LocationAns
   return { trigger: trigger(register, location), catalog: CATALOG, answer, elapsedMs: null };
 }
 
-const ANSWERS: readonly LocationAnswer[] = ["unanswered", "inHospital", "notInHospital"];
+const ANSWERS: readonly LocationAnswer[] = [
+  "unanswered",
+  "inHospital",
+  "notInHospital",
+  "noAnswer",
+];
 
 describe("RED screen — every register × location × answer", () => {
   it("the recorded catalog decodes: every rule id is a scriptIdFor id, and the generic RED is pre-positioned", () => {
@@ -169,22 +183,119 @@ describe("RED screen — every register × location × answer", () => {
     }
   }
 
-  it("near misses: a clinician-only RED shows nothing; an empty catalog invents no words", () => {
-    const empty: PrePositionedRed = { scripts: {}, questions: {} };
+  it("near miss: a clinician-only RED shows nothing", () => {
     for (const location of RED_LOCATIONS) {
       const deferred: RedState = {
         ...state("DEFERRED_CLINICIAN", location, "unanswered"),
         catalog: generic,
       };
       expect(redScreen(deferred)).toEqual({ kind: "none" });
-      const bare: RedState = { ...state("CALM", location, "unanswered"), catalog: empty };
-      expect(redScreen(bare)).toMatchObject({
+    }
+  });
+
+  // INT-465, review round 2: a wordless generic is a failure, never a pass.
+  it("CD-24 generic_red_silent_is_never_wordless: a SILENT generic with no copy fails at every location", () => {
+    const empty: PrePositionedRed = { scripts: {}, questions: {} };
+    const wordless: PrePositionedRed = {
+      ...generic,
+      scripts: {
+        ...generic.scripts,
+        [GENERIC_RED_SCRIPT_IDS.REMOTE]: {
+          ...generic.scripts[GENERIC_RED_SCRIPT_IDS.REMOTE],
+          actionTr: "",
+        },
+      },
+    };
+    for (const catalog of [empty, wordless]) {
+      for (const location of RED_LOCATIONS) {
+        const store = createRedStore();
+        const missing = { ...trigger("SILENT", location), scriptId: "rf.not.on.device" };
+        expect(() => store.present(missing, catalog)).toThrow(RedCatalogIncomplete);
+        expect(store.getSnapshot()).toBeNull();
+        const bare: RedState = { trigger: missing, catalog, answer: "noAnswer", elapsedMs: null };
+        expect(() => redScreen(bare)).toThrow(RedCatalogIncomplete);
+      }
+    }
+    // Near miss: with CD-24's copy the same SILENT generic shows words, in the flow.
+    for (const location of ["REMOTE", "ON_SITE"] as const) {
+      const store = createRedStore();
+      store.present({ ...trigger("SILENT", location), scriptId: "rf.not.on.device" }, generic);
+      const screen = redScreen(store.getSnapshot());
+      expect(screen.kind === "act" && screen.mode).toBe("inFlow");
+      expect(screen.kind === "act" && screen.actionTr.length > 0).toBe(true);
+    }
+  });
+
+  it("CD-24 generic_red_unknown_asks_before_112: the question first, no 112 control", () => {
+    for (const register of ["ALERT", "CALM", "SILENT"] as const) {
+      const store = createRedStore();
+      store.present({ ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" }, generic);
+      const screen = redScreen(store.getSnapshot());
+      expect(screen.kind).toBe("ask");
+      expect("call112" in screen).toBe(false);
+    }
+  });
+
+  it("CD-24 generic_red_unknown_no_answer_goes_remote: no answer drives the store to REMOTE with 112", () => {
+    for (const register of ["ALERT", "CALM", "SILENT"] as const) {
+      const store = createRedStore();
+      store.present({ ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" }, generic);
+      store.answerLocation("noAnswer");
+      expect(redScreen(store.getSnapshot())).toMatchObject({
         kind: "act",
-        register: "CALM",
-        actionTr: "",
-        call112: location === "REMOTE",
+        register,
+        location: "REMOTE",
+        actionTr: RAW.scripts[GENERIC_RED_SCRIPT_IDS.REMOTE].actionTr,
+        call112: true,
+      });
+      // Near miss: "evet" goes ON_SITE, which has words and no 112.
+      const yes = createRedStore();
+      yes.present({ ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" }, generic);
+      yes.answerLocation("inHospital");
+      expect(redScreen(yes.getSnapshot())).toMatchObject({
+        kind: "act",
+        location: "ON_SITE",
+        actionTr: RAW.scripts[GENERIC_RED_SCRIPT_IDS.ON_SITE].actionTr,
+        call112: false,
       });
     }
+    // The rule's own question takes its own on_no_answer branch, too.
+    const own = createRedStore();
+    own.present(trigger("ALERT", "UNKNOWN"), CATALOG);
+    own.answerLocation("noAnswer");
+    const screen = redScreen(own.getSnapshot());
+    expect(screen.kind === "act" && [screen.location, screen.call112]).toEqual(["REMOTE", true]);
+  });
+
+  it("the device's no-answer wait is a named, unsigned engineering value (CD-24 no_answer_wait is draft)", () => {
+    // Recorded as unsigned, never as a clinical value: CD-24 fail_closed_while_draft.
+    expect(UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS).toBeGreaterThan(0);
+    expect(Number.isInteger(UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS)).toBe(true);
+  });
+
+  it("CD-24 generic_red_stops_intake: a question that arrives after the RED is not shown", () => {
+    const before = ["q1", "a1"];
+    const red: RedState = {
+      trigger: { ...trigger("SILENT", "REMOTE"), scriptId: "rf.not.on.device" },
+      catalog: generic,
+      answer: "unanswered",
+      elapsedMs: null,
+    };
+    // The RED lands while the stream has two entries; the agent's next question
+    // arrives after it.
+    const frozen = dialogueFrozenAt(null, redStopsDialogue(red), before.length);
+    expect(frozen).toBe(2);
+    const after = [...before, "q2: Ateşiniz var mı?"];
+    expect(dialogueShown(after, dialogueFrozenAt(frozen, redStopsDialogue(red), after.length))).toEqual(
+      before,
+    );
+    // Near miss: with no RED, or a clinician-only one, the question shows.
+    expect(dialogueFrozenAt(null, redStopsDialogue(null), after.length)).toBeNull();
+    expect(dialogueShown(after, null)).toEqual(after);
+    const deferred: RedState = { ...red, trigger: { ...red.trigger, register: "DEFERRED_CLINICIAN" } };
+    expect(dialogueShown(after, dialogueFrozenAt(null, redStopsDialogue(deferred), after.length))).toEqual(
+      after,
+    );
   });
 });
 

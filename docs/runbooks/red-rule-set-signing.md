@@ -19,7 +19,9 @@ The signature covers three things:
 - the exact bytes of `packages/protocols/generic/generic_red.yaml`;
 - the sorted ids of the `active` rules, which are the only rules served. A draft is never served.
 
-A change to any of the three voids the signature, and the host then serves nothing (503). The set must be re-signed.
+The payload also names the one host it is for (`deployment: i-0e489e48739f5de98`). The API compares it with `INTAKE_API_TRIAGE_DEPLOYMENT`, which the staging compose declares.
+
+A change to any of these voids the signature, and the host then serves nothing (503). The set must be re-signed.
 
 ## One-time setup (done 3 Oct 2026)
 
@@ -41,6 +43,6 @@ No token reaches argv, stdout or a log. Do not run it from a shell that echoes i
 
 ## How the API uses it
 
-The synthetic host's compose sets three variables: `INTAKE_API_TRIAGE_TENANT_KIND=synthetic`, `INTAKE_API_TRIAGE_RULES` and `INTAKE_API_TRIAGE_SIGNATURE`.
+The synthetic host's compose sets four variables: `INTAKE_API_TRIAGE_TENANT_KIND=synthetic`, `INTAKE_API_TRIAGE_RULES`, `INTAKE_API_TRIAGE_SIGNATURE` and `INTAKE_API_TRIAGE_DEPLOYMENT`. The API refuses to boot with a synthetic tenant that names no host.
 - The API refuses to boot with a synthetic tenant in any `INTAKE_ENV` other than `dev` or `staging`.
 - Any other tenant kind is real. A real tenant rejects the test key before any cryptography and keeps the HB-C1 interlock.

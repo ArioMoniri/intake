@@ -5,7 +5,7 @@
     "authority": "D18 (2 Oct 2026) and the owner's decision of 3 Oct 2026: a test key signs the red rule set for the synthetic AWS test host only. A licensed physician's review is required before any real patient.",
     "life_threat": {
       "path": "files/protocols/base.life_threat.yaml",
-      "sha256": "723cf94cd39d1104a51f864b144518a12e3756c03cbded61965def7b31e24bf0"
+      "sha256": "c33a737f4ecdf76b8c6f196fe7a01ab77f685b7c1411cbf3d4ec831ef4eeb887"
     },
     "generic_red": {
       "path": "packages/protocols/generic/generic_red.yaml",
@@ -14,8 +14,9 @@
     "served_rule_ids": [
       "rf.chest_pain_cardiac_features",
       "rf.chest_pain_no_cardiac_history"
-    ]
+    ],
+    "deployment": "i-0e489e48739f5de98"
   },
   "key_id": "redset-synthetic-test@1",
-  "signature": "TlXpYauE90HG99x1N14wVRKqBCzKsgqdzW+7x84wLNDN1lqLxBhX7OR0rzeGKdkOEi2MmV2iNqhJ3xGHpE6mAA=="
+  "signature": "56qDoLZgsrjEv15XGobV90W0uZrp3U6YxuBSEFgAFg/A09cc1dHER0J7hQwyugAApsLi8p3ZMICtVCMmtcUkCA=="
 }

@@ -112,6 +112,10 @@ def test_only_the_synthetic_api_declares_the_synthetic_tenant_and_its_signed_set
     api = services["api"]["environment"]
     assert api["INTAKE_ENV"] == "staging"
     assert api["INTAKE_API_TRIAGE_TENANT_KIND"] == "synthetic"
+    # The host the signature is bound to (review round 2), and the one it names.
+    assert api["INTAKE_API_TRIAGE_DEPLOYMENT"] == "i-0e489e48739f5de98"
+    signed = yaml.safe_load(SIGNATURE.read_text(encoding="utf-8"))
+    assert signed["payload"]["deployment"] == api["INTAKE_API_TRIAGE_DEPLOYMENT"]
     assert (REPO / api["INTAKE_API_TRIAGE_RULES"]).is_file()
     assert REPO / api["INTAKE_API_TRIAGE_SIGNATURE"] == SIGNATURE
     for name, service in services.items():

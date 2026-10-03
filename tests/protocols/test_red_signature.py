@@ -52,10 +52,12 @@ REPO = Path(__file__).resolve().parents[2]
 LIFE_THREAT = REPO / "files" / "protocols" / "base.life_threat.yaml"
 GENERIC = REPO / "packages" / "protocols" / "generic" / "generic_red.yaml"
 
-SYNTHETIC = TenantRedConfig(kind=TenantKind.SYNTHETIC)
+#: The synthetic AWS host the committed signature is bound to (review round 2).
+DEPLOYMENT = "i-0e489e48739f5de98"
+SYNTHETIC = TenantRedConfig(kind=TenantKind.SYNTHETIC, deployment=DEPLOYMENT)
 NON_SYNTHETIC_KINDS = [kind for kind in TenantKind if kind is not TenantKind.SYNTHETIC]
 NON_SYNTHETIC_CONFIGS = [
-    TenantRedConfig(kind=kind, acil_location_tr=location)
+    TenantRedConfig(kind=kind, acil_location_tr=location, deployment=DEPLOYMENT)
     for kind in NON_SYNTHETIC_KINDS
     for location in (None, "zemin kat")
 ]
@@ -94,6 +96,7 @@ def _payload(**update: Any) -> RedRuleSetPayload:
         generic_red_path="packages/protocols/generic/generic_red.yaml",
         generic_red_bytes=GR_BYTES,
         served_rule_ids=SERVED,
+        deployment=DEPLOYMENT,
     )
     return payload.model_copy(update=update)
 
@@ -232,6 +235,28 @@ def test_the_payload_must_declare_the_keys_own_scope() -> None:
     doc["scope"] = "production"
     with pytest.raises(ValueError):
         RedRuleSetPayload.model_validate(doc)
+
+
+@pytest.mark.parametrize(
+    "tenant",
+    [
+        TenantRedConfig(kind=TenantKind.SYNTHETIC, deployment="i-0123456789abcdef0"),
+        TenantRedConfig(kind=TenantKind.SYNTHETIC, deployment=None),
+    ],
+    ids=["another-host", "no-host-declared"],
+)
+def test_a_synthetic_tenant_on_another_deployment_is_refused(tenant: TenantRedConfig) -> None:
+    """The signature names the one host it is for. A synthetic tenant elsewhere, or
+    one that declares no host, refuses it. Near miss: the bound host accepts it."""
+    key = Ed25519PrivateKey.generate()
+    with pytest.raises(RedSignatureRefused) as caught:
+        _verify(_signed(key), _registry(key), tenant)
+    assert caught.value.code == "deployment_mismatch"
+    assert _verify(_signed(key), _registry(key), SYNTHETIC).scope is KeyScope.SYNTHETIC_TEST
+
+
+def test_the_committed_signature_is_bound_to_the_synthetic_host() -> None:
+    assert load_signature(COMMITTED_SIGNATURE).payload.deployment == DEPLOYMENT
 
 
 def test_canonical_bytes_are_stable_and_ordered() -> None:

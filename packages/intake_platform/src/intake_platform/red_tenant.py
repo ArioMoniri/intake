@@ -16,6 +16,11 @@ about the tenant does:
   it never falls back to an invented floor, wing or direction. No tenant record holds
   this field yet: files/08 asks for it with a change tier, and that is not built.
   Every caller therefore passes ``None`` today.
+- **deployment.** The host this tenant runs on, for example the synthetic AWS host's
+  instance id. The test-key signature names the one host it is for, so a synthetic
+  tenant on any other host, or one that names no host, refuses it
+  (``intake_platform.red_signature``). It is configuration, not attestation: the
+  synthetic host's compose file declares it.
 """
 
 from __future__ import annotations
@@ -39,3 +44,4 @@ class TenantRedConfig:
 
     kind: TenantKind = TenantKind.REAL
     acil_location_tr: str | None = None
+    deployment: str | None = None

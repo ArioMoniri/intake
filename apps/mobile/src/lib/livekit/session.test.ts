@@ -10,7 +10,13 @@ import { describe, expect, it, vi } from "vitest";
 import { createVoiceSession, type AppLifecycle, type VoiceSessionDeps } from "./session";
 import type { VoiceSessionEvent } from "./events";
 import { redAffordances } from "../motion/red";
-import { GENERIC_RED_SCRIPT_IDS, genericRed, type RedScriptCatalog } from "./red";
+import {
+  GENERIC_RED_SCRIPT_IDS,
+  genericRed,
+  genericRedCopy,
+  type GenericRedCopy,
+  type RedScriptCatalog,
+} from "./red";
 import type { RoomAdapter, RoomCredentials, RuntimeEnvironment, TransportSample } from "./types";
 
 const SESSION_ID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
@@ -108,7 +114,27 @@ class FakeAdapter implements RoomAdapter {
   }
 }
 
+/** SENTETİK generic copy: the session refuses to start without words for it (CD-24). */
+const GENERIC_SCRIPTS: RedScriptCatalog = {
+  [GENERIC_RED_SCRIPT_IDS.REMOTE]: {
+    primary: "CALL_112",
+    show112: true,
+    actionTr: "Sentetik genel yönerge.",
+    doNotsTr: [],
+    whyTr: null,
+  },
+  [GENERIC_RED_SCRIPT_IDS.ON_SITE]: {
+    primary: "GO_TO_IN_HOUSE_ACIL",
+    show112: false,
+    actionTr: "Sentetik yerinde yönerge.",
+    doNotsTr: [],
+    whyTr: null,
+  },
+};
+const GENERIC = genericRedCopy(GENERIC_SCRIPTS) as GenericRedCopy;
+
 const RED_SCRIPTS: RedScriptCatalog = {
+  ...GENERIC_SCRIPTS,
   "life_threat.chest_pain.remote": {
     primary: "CALL_112",
     show112: true,
@@ -518,11 +544,14 @@ describe("RED over the data channel (invariant 21)", () => {
       if (red?.type !== "red") {
         throw new Error("expected a red event: the patient must be shown a RED");
       }
-      // CD-24: the trigger's own register and location; no invented words.
+      // CD-24: the trigger's own register and location, and the generic copy's own
+      // words; UNKNOWN carries the no-answer branch (REMOTE) and still asks first.
       expect(red.presentation.register).toBe("CALM");
       expect(red.presentation.location).toBe(location);
       expect(red.presentation.show112).toBe(show112);
-      expect(red.presentation.script.actionTr).toBe("");
+      expect(red.presentation.script.actionTr).toBe(
+        location === "ON_SITE" ? "Sentetik yerinde yönerge." : "Sentetik genel yönerge.",
+      );
     },
   );
 
@@ -537,7 +566,7 @@ describe("RED over the data channel (invariant 21)", () => {
             location: "REMOTE",
             scriptId,
           },
-          {},
+          GENERIC,
         );
         expect(shown.register).toBe(register);
       }
@@ -554,7 +583,7 @@ describe("RED over the data channel (invariant 21)", () => {
           location,
           scriptId: GENERIC_RED_SCRIPT_IDS[location],
         },
-        {},
+        GENERIC,
       );
     // UNKNOWN: the question first, never a guessed 112…
     expect(redAffordances(at("UNKNOWN"), "unanswered")).toEqual({
@@ -571,14 +600,14 @@ describe("RED over the data channel (invariant 21)", () => {
     });
   });
 
-  it("uses the generic script's own words once one is pre-positioned (near miss: none invented)", () => {
-    const signed = {
-      primary: "GENERIC_ESCALATION",
-      show112: true,
-      actionTr: "Sentetik genel yönerge.",
-      doNotsTr: [],
-      whyTr: null,
-    };
+  it("uses the generic script's own words; ON_SITE clamps 112 even if the copy authorised it", () => {
+    const authorising = genericRedCopy({
+      ...GENERIC_SCRIPTS,
+      [GENERIC_RED_SCRIPT_IDS.ON_SITE]: {
+        ...GENERIC_SCRIPTS[GENERIC_RED_SCRIPT_IDS.ON_SITE],
+        show112: true,
+      },
+    }) as GenericRedCopy;
     const trigger = {
       kind: "red_trigger" as const,
       ruleId: "life_threat.unknown",
@@ -586,10 +615,53 @@ describe("RED over the data channel (invariant 21)", () => {
       location: "ON_SITE" as const,
       scriptId: "life_threat.not.on.this.device",
     };
-    const shown = genericRed(trigger, { [GENERIC_RED_SCRIPT_IDS.ON_SITE]: signed });
-    expect(shown.script).toBe(signed);
-    expect(shown.show112).toBe(false); // ON_SITE clamps even a script that authorises 112
-    expect(genericRed(trigger, {}).script.actionTr).toBe("");
+    const shown = genericRed(trigger, authorising);
+    expect(shown.script).toBe(authorising.ON_SITE);
+    expect(shown.show112).toBe(false);
+  });
+
+  // INT-465, review round 2.
+  describe("CD-24 generic_red_silent_is_never_wordless — the session", () => {
+    it.each([
+      ["no generic copy", {}],
+      ["only REMOTE", { [GENERIC_RED_SCRIPT_IDS.REMOTE]: GENERIC_SCRIPTS[GENERIC_RED_SCRIPT_IDS.REMOTE] }],
+      [
+        "a wordless ON_SITE",
+        {
+          ...GENERIC_SCRIPTS,
+          [GENERIC_RED_SCRIPT_IDS.ON_SITE]: {
+            ...GENERIC_SCRIPTS[GENERIC_RED_SCRIPT_IDS.ON_SITE],
+            actionTr: "",
+          },
+        },
+      ],
+    ] as const)("refuses to start with %s, before the microphone or a token", async (_name, scripts) => {
+      const asked: string[] = [];
+      const { deps, tokenFetches } = harness({
+        redScripts: scripts,
+        permission: {
+          request: async () => {
+            asked.push("mic");
+            return { granted: true };
+          },
+        },
+      });
+      const session = createVoiceSession(deps);
+      const events = collect(session);
+      await session.start();
+      expect(session.phase).toBe("failed");
+      expect(events).toContainEqual({ type: "failed", reason: "red_copy_missing" });
+      expect(asked).toEqual([]);
+      expect(tokenFetches()).toBe(0);
+      expect(genericRedCopy(scripts)).toBeNull();
+    });
+
+    it("near miss: with the generic copy the same session starts", async () => {
+      const { deps } = harness();
+      const session = createVoiceSession(deps);
+      await session.start();
+      expect(session.phase).toBe("connected");
+    });
   });
 
   it("ignores non-RED and malformed traffic without emitting anything", async () => {

@@ -25,7 +25,13 @@ import { probeVoiceTransport, streamingVoiceSupported } from "./capability";
 import type { VoiceSessionEvent, VoiceSessionListener } from "./events";
 import { emitTurnQuality, noopMetricSink, type MetricSink } from "./metrics";
 import { addSample, closeWindow, openWindow, type QualityWindow } from "./quality";
-import { decodeRedTrigger, genericRed, resolveRed, type RedScriptCatalog } from "./red";
+import {
+  decodeRedTrigger,
+  genericRed,
+  genericRedCopy,
+  resolveRed,
+  type RedScriptCatalog,
+} from "./red";
 import { nextReconnect, tokenNeedsRemint } from "./reconnect";
 import type {
   MicrophonePermission,
@@ -86,6 +92,8 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
   const now = deps.now ?? (() => Date.now());
   const sleep = deps.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   const jitter = deps.jitter ?? Math.random;
+  // INT-465: read once; the catalog is on the device before the session starts.
+  const genericCopy = genericRedCopy(deps.redScripts);
 
   const listeners = new Set<VoiceSessionListener>();
   let phase: SessionPhase = "idle";
@@ -132,10 +140,14 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
       return;
     }
     // A RED whose script is not on this device is still a RED on screen: the
-    // generic escalation (INT-453), never nothing.
+    // generic escalation (INT-453), never nothing and never wordless (INT-465:
+    // start() refuses a catalog without the generic copy, so it is here).
     const presentation =
-      resolveRed(trigger, deps.redScripts) ?? genericRed(trigger, deps.redScripts);
-    emit({ type: "red", presentation });
+      resolveRed(trigger, deps.redScripts) ??
+      (genericCopy === null ? null : genericRed(trigger, genericCopy));
+    if (presentation !== null) {
+      emit({ type: "red", presentation });
+    }
   };
 
   const handleConnectionChange = (state: "connected" | "reconnecting" | "disconnected") => {
@@ -243,6 +255,13 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
 
     async start() {
       if (closed || phase !== "idle") {
+        return;
+      }
+      // 0. INT-465: a session that could not say a generic RED does not begin
+      // (CD-24 generic_red_silent_is_never_wordless) — before the microphone,
+      // a token or a room.
+      if (genericCopy === null) {
+        fail("red_copy_missing");
         return;
       }
       // 1. Capability, before anything else. Expo Go cannot host the native

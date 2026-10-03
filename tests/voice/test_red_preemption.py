@@ -724,6 +724,32 @@ class TestTheSessionStopsTheIntake:
         assert outcome.step_id is None
         assert outcome.spoken_text == ""
 
+    def test_protocol_next_after_a_red_offers_and_speaks_no_question(self) -> None:
+        """CD-24 ``generic_red_stops_intake``, voice negative (INT-465). The Talker's
+        own ``protocol_next`` tool reads the engine directly, outside the turn loop,
+        so it is gated too: after a patient-facing RED it offers no step, a repeat
+        has nothing to repeat, and the turn loop speaks nothing. The near miss is the
+        same call before the RED, which does offer the step."""
+        from intake_voice_runtime.talker.tools import RepeatReason, build_talker_tools
+
+        rig = Rig()
+        session = build_session(rig.clock, steps=[scripted_step()], rule_ids=PACK_RULES)
+        session.preemption = rig.path
+        tools = build_talker_tools(session)
+        before = tools.handler("protocol_next")()
+        assert before is not None and before.step_id == "s1"  # near miss: before the RED
+
+        async def scenario() -> Any:
+            await session.deliver_preempt(red_result(), evaluated_at_ms=0.0)
+            return await session.take_turn(None)
+
+        outcome = rig.clock.run(scenario())
+        assert tools.handler("protocol_next")() is None
+        assert session.protocol_next() is None
+        with pytest.raises(LookupError):
+            tools.handler("request_repeat_or_clarify")(RepeatReason.NOT_HEARD)
+        assert outcome.step_id is None and outcome.spoken_text == ""
+
     def test_a_deferred_clinician_red_leaves_the_session_running(self) -> None:
         rig = Rig()
         session = build_session(rig.clock, steps=[scripted_step()], rule_ids=PACK_RULES)

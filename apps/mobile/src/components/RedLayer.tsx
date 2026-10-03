@@ -31,6 +31,7 @@ import { deviceClock, todayIso } from "@/lib/clock";
 import { t } from "@/lib/i18n";
 import type { HopTransport } from "@/lib/red/hop";
 import { deriveRedLocation } from "@/lib/red/location";
+import { startNoAnswerClock } from "@/lib/red/noAnswerClock";
 import { createRedHop, redScreen, redStore, type RedHop, type RedScreen } from "@/lib/red/store";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
@@ -102,14 +103,11 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
     );
   }
   return (
-    <View style={styles.body} testID={screen.actionTr.length === 0 ? "red-generic" : undefined}>
-      {/* INT-453: a generic RED has no words until its copy is signed (CD-24);
-          the takeover and the location-correct affordance still show. */}
-      {screen.actionTr.length > 0 ? (
-        <AppText role={headline ? "title" : "body"} heading={headline}>
-          {screen.actionTr}
-        </AppText>
-      ) : null}
+    <View style={styles.body}>
+      {/* INT-465: never wordless — the catalog is refused without CD-24's copy. */}
+      <AppText role={headline ? "title" : "body"} heading={headline}>
+        {screen.actionTr}
+      </AppText>
       {screen.call112 ? (
         <RedButton
           label={t("red.call112")}
@@ -169,6 +167,11 @@ export function RedLayer() {
   useRulesEngineHop();
   const theme = useTheme();
   const screen = useRedScreen();
+  // CD-24 generic_red_unknown_no_answer_goes_remote: an unanswered location
+  // question takes the rule's no-answer branch (REMOTE, 112) after the unsigned
+  // wait — never silence. Mounted once, at the root, for every register.
+  const asking = screen.kind === "ask";
+  useEffect(() => (asking ? startNoAnswerClock(redStore) : undefined), [asking]);
   if ((screen.kind !== "ask" && screen.kind !== "act") || screen.mode !== "rootLayer") {
     return null;
   }

@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 from intake_api.settings import (
+    ENV_TRIAGE_DEPLOYMENT,
     ENV_TRIAGE_SIGNATURE,
     ENV_TRIAGE_TENANT_KIND,
     ApiSettings,
@@ -33,9 +34,25 @@ CREDENTIALS = {
 }
 
 
-def _env(monkeypatch: pytest.MonkeyPatch, environment: str | None, kind: str | None) -> None:
-    for name in list(CREDENTIALS) + ["INTAKE_ENV", ENV_TRIAGE_TENANT_KIND, ENV_TRIAGE_SIGNATURE]:
+HOST = "i-0e489e48739f5de98"
+
+
+def _env(
+    monkeypatch: pytest.MonkeyPatch,
+    environment: str | None,
+    kind: str | None,
+    deployment: str | None = HOST,
+) -> None:
+    for name in [
+        *CREDENTIALS,
+        "INTAKE_ENV",
+        ENV_TRIAGE_TENANT_KIND,
+        ENV_TRIAGE_SIGNATURE,
+        ENV_TRIAGE_DEPLOYMENT,
+    ]:
         monkeypatch.delenv(name, raising=False)
+    if deployment is not None:
+        monkeypatch.setenv(ENV_TRIAGE_DEPLOYMENT, deployment)
     for name, value in CREDENTIALS.items():
         monkeypatch.setenv(name, value)
     if environment is not None:
@@ -71,6 +88,21 @@ def test_anything_but_the_exact_value_is_a_real_tenant(
     """Near miss for the two cases above: a real tenant boots in every environment."""
     _env(monkeypatch, "prod", kind)
     assert ApiSettings.from_env().triage_tenant_kind is TenantKind.REAL
+
+
+@pytest.mark.parametrize("deployment", [None, "", "   "])
+def test_a_synthetic_tenant_that_names_no_host_refuses_to_boot(
+    monkeypatch: pytest.MonkeyPatch, deployment: str | None
+) -> None:
+    """The test signature is bound to one host. A synthetic tenant that does not
+    say which host it is cannot be checked against it, so it refuses at boot.
+    Near miss: the same environment naming the host boots."""
+    _env(monkeypatch, "staging", "synthetic", deployment=deployment)
+    with pytest.raises(TriageTenantRefusedError) as caught:
+        ApiSettings.from_env()
+    assert ENV_TRIAGE_DEPLOYMENT in str(caught.value)
+    _env(monkeypatch, "staging", "synthetic")
+    assert ApiSettings.from_env().triage_deployment == HOST
 
 
 def test_the_signature_path_is_read_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:

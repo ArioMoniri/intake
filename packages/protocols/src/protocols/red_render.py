@@ -38,6 +38,7 @@ __all__ = [
     "TENANT_ACIL_LOCATION",
     "RedRenderError",
     "assert_markup_free",
+    "assert_speakable_red",
     "render_red_text",
     "spoken_red_text",
 ]
@@ -102,8 +103,16 @@ def spoken_red_text(
 ) -> str:
     """What a TTS model may be given: rendered, then numerals expanded (invariant 22)."""
     spoken = expand_for_locale(render_red_text(authored, acil_location_tr=acil_location_tr), locale)
-    assert_markup_free(spoken.text)
+    assert_speakable_red(spoken.text)
     return spoken.text
+
+
+def assert_speakable_red(text: str) -> None:
+    """Raise unless ``text`` may be handed to a TTS model: no digit (CLAUDE.md
+    invariant 22: the compiler expands every numeral first) and no markup."""
+    if any(character.isdigit() for character in text):
+        raise RedRenderError("a numeral left in RED text bound for TTS (invariant 22)")
+    assert_markup_free(text)
 
 
 def assert_markup_free(text: str) -> None:

@@ -428,11 +428,28 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
     },
   );
 
-  it("RedLayer renders the generic RED: no empty headline, the affordance still mounts", () => {
+  it("RedLayer renders the RED's words always, and the 112 control only where allowed", () => {
     const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
-    expect(layer).toMatch(/screen\.actionTr\.length\s*>\s*0\s*\?/);
-    expect(layer).toMatch(/testID=\{screen\.actionTr\.length === 0 \? "red-generic"/);
+    // INT-465: never wordless (CD-24); no branch hides an empty action line.
+    expect(layer).not.toMatch(/actionTr\.length/);
     expect(layer).toMatch(/\{screen\.call112 \?/);
+  });
+
+  it("an unanswered location question starts the no-answer clock (CD-24), owned by no component", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    expect(layer).toMatch(
+      /useEffect\(\(\)\s*=>\s*\(asking \? startNoAnswerClock\(redStore\) : undefined\),\s*\[asking\]\)/,
+    );
+    expect(layer).not.toMatch(/setTimeout|setInterval/);
+  });
+
+  it("CD-24 generic_red_stops_intake: the dialogue shows nothing that arrives after the RED", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    expect(dialogue).toMatch(/dialogueShown\(state\.stream,\s*frozenAt\)\.map\(renderEntry\)/);
+    expect(dialogue).not.toMatch(/\{state\.stream\.map\(renderEntry\)\}/);
+    for (const phase of ["listening", "settling", "confirming"]) {
+      expect(dialogue).not.toMatch(new RegExp(`\\{turn\\.phase === "${phase}" \\?`));
+    }
   });
 });
 

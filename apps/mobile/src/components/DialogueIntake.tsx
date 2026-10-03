@@ -79,7 +79,7 @@ import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
-import { redStopsDialogue, redStore } from "@/lib/red/store";
+import { dialogueFrozenAt, dialogueShown, redStopsDialogue, redStore } from "@/lib/red/store";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
 import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
@@ -202,6 +202,11 @@ export function DialogueIntake({
   // every register the patient sees (SILENT included: no audio, ever).
   const red = useSyncExternalStore(redStore.subscribe, redStore.getSnapshot);
   const stopsDialogue = redStopsDialogue(red);
+  // INT-465 (CD-24 generic_red_stops_intake): the stream freezes where the RED
+  // landed; a question the agent was already sending is never shown after it.
+  const frozenRef = useRef<number | null>(null);
+  frozenRef.current = dialogueFrozenAt(frozenRef.current, stopsDialogue, state.stream.length);
+  const frozenAt = frozenRef.current;
   useEffect(() => {
     if (stopsDialogue) {
       void session.leave();
@@ -583,9 +588,9 @@ export function DialogueIntake({
             </View>
           ) : null}
 
-          {state.stream.map(renderEntry)}
+          {dialogueShown(state.stream, frozenAt).map(renderEntry)}
 
-          {turn.phase === "listening" ? (
+          {!stopsDialogue && turn.phase === "listening" ? (
             // The open-mic turn, inside the stream: pulse + tap-to-stop.
             <Pressable
               accessibilityRole="button"
@@ -618,7 +623,7 @@ export function DialogueIntake({
             </Pressable>
           ) : null}
 
-          {turn.phase === "settling" ? (
+          {!stopsDialogue && turn.phase === "settling" ? (
             // The one honest wait: everything is asked, the last answers are
             // still being worked into the note — quiet, in-stream.
             <View accessible style={styles.stateRow}>
@@ -629,7 +634,7 @@ export function DialogueIntake({
             </View>
           ) : null}
 
-          {chipsOpen && question !== null ? (
+          {!stopsDialogue && chipsOpen && question !== null ? (
             // The inline confirm chips on the agent's follow-up turn: the
             // candidate arrives pre-selected; the patient adjusts, then
             // confirms on the bar (nothing auto-commits).
@@ -702,7 +707,7 @@ export function DialogueIntake({
                 total={model.total}
                 onPress={() => setSheetOpen(true)}
               />
-              {turn.phase === "listening" ? (
+              {!stopsDialogue && turn.phase === "listening" ? (
                 <View style={styles.barItem}>
                   <PrimaryButton
                     label={t("voiceFirst.stop")}
@@ -710,7 +715,7 @@ export function DialogueIntake({
                   />
                 </View>
               ) : null}
-              {turn.phase === "confirming" ? (
+              {!stopsDialogue && turn.phase === "confirming" ? (
                 <View style={[styles.barItem, styles.barStack]}>
                   <PrimaryButton
                     label={t("dialogue.confirm")}

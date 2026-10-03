@@ -170,7 +170,10 @@ class ApiState:
                 signature_path=self.settings.triage_signature_path,
                 # INT-465: no tenant record holds acil_location_tr yet (files/08
                 # asks for it with a change tier), so the segment is dropped.
-                tenant=TenantRedConfig(kind=self.settings.triage_tenant_kind),
+                tenant=TenantRedConfig(
+                    kind=self.settings.triage_tenant_kind,
+                    deployment=self.settings.triage_deployment,
+                ),
             )
             self._red_rules_loaded = True
         return self._red_rules

@@ -284,8 +284,12 @@ class Instrument(FrozenModel):
 class SourceBlock(FrozenModel):
     """Per-rule provenance (files/12 §2.5; files/04 §8.1 rule 3; CLAUDE.md
     clinical content rules). The quote must appear verbatim in a committed
-    snapshot under packages/protocols/sources/ — enforced by the compiler
-    slice (INT-041), not here."""
+    snapshot under packages/protocols/sources/, and the url and retrieved_on
+    must be the snapshot header's. Not enforced here, where the repository is
+    out of reach: ``protocols.source_snapshots`` is the check, and
+    ``protocols.compile.load_life_threat_set`` runs it on every life-threat
+    rule at load (INT-465). A chain pack's red-flag rules cite no snapshot
+    today; when one does, its loader runs the same check."""
 
     guideline_id: TrText = Field(description="Guideline identifier (files/12 §2.5).")
     guideline_title: TrText | None = Field(

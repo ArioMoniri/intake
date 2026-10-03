@@ -103,6 +103,10 @@ services:
       # The API refuses a synthetic tenant outside dev and staging, and every
       # other tenant rejects this signature.
       INTAKE_API_TRIAGE_TENANT_KIND: synthetic
+      # The host the signature names (review round 2). Declared, not attested:
+      # the same compose on another host would claim this id, which is why the
+      # API also refuses a synthetic tenant outside dev and staging.
+      INTAKE_API_TRIAGE_DEPLOYMENT: i-0e489e48739f5de98
       INTAKE_API_TRIAGE_RULES: files/protocols/base.life_threat.yaml
       INTAKE_API_TRIAGE_SIGNATURE: packages/protocols/signing/red_rule_set.synthetic.json
     depends_on:

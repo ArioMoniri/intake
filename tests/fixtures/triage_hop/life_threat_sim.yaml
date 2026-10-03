@@ -44,7 +44,7 @@ rules:
       url: "https://example.invalid/syn-guide-b"
       retrieved_on: 2026-08-28
       quote: "sentetik yaşamsal alıntı"
-      quote_snapshot: packages/protocols/sources/SYN-GUIDE-B.txt
+      quote_snapshot: tests/fixtures/protocols/sources/SYN-GUIDE-B.txt
     action:
       REMOTE:
         primary: CALL_112

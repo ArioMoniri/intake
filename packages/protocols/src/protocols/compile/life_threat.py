@@ -40,6 +40,8 @@ from clinical_schemas.common import FrozenModel, JsonScalar
 from pydantic import Field, JsonValue, StringConstraints, ValidationError, model_validator
 
 from protocols.dsl import RedFlagRule, RuleId, TrText
+from protocols.source_snapshots import source_snapshot_problem
+from protocols.types import RuleStatus
 
 __all__ = [
     "PENDING_WORK_KEY",
@@ -401,6 +403,33 @@ def load_life_threat_set(path: Path, *, data: bytes | None = None) -> LifeThreat
         raise LifeThreatSetError(f"{path}: rules must be a list (files/12 §1)")
     payload["rules"] = [_split_rule(rule, index) for index, rule in enumerate(rules)]
     try:
-        return LifeThreatSet.model_validate(payload)
+        loaded = LifeThreatSet.model_validate(payload)
     except ValidationError as exc:
         raise LifeThreatSetError(f"{path}: {exc}") from exc
+    _check_sources_against_snapshots(path, loaded)
+    return loaded
+
+
+def _check_sources_against_snapshots(path: Path, life_threat: LifeThreatSet) -> None:
+    """INT-465: every cited snapshot agrees with its source block, and every
+    ``active`` rule cites one (CLAUDE.md clinical content rules: "against a
+    committed verbatim snapshot"). A draft rule may not have one yet: it says
+    what it waits for instead. dsl.SourceBlock names this check."""
+    for entry in life_threat.rules:
+        rule = entry.rule
+        source = rule.source
+        if source is None or source.quote_snapshot is None:
+            if rule.status is RuleStatus.ACTIVE:
+                raise LifeThreatSetError(
+                    f"{path}: {rule.id} is active and cites no committed snapshot"
+                )
+            continue
+        problem = source_snapshot_problem(
+            quote_snapshot=source.quote_snapshot,
+            guideline_id=source.guideline_id,
+            quote=source.quote,
+            url=source.url,
+            retrieved_on=source.retrieved_on,
+        )
+        if problem is not None:
+            raise LifeThreatSetError(f"{path}: {rule.id}: {problem}")

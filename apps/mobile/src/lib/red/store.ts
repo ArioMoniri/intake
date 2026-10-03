@@ -21,6 +21,7 @@ import type { Answer } from "../intake/note";
 import {
   GENERIC_RED_SCRIPT_IDS,
   genericRed,
+  genericRedCopy,
   resolveRed,
   type RedLocation,
   type RedRegister,
@@ -42,7 +43,38 @@ import {
   type HopOutcome,
   type HopTransport,
   type PrePositionedRed,
+  type RedLocationQuestion,
 } from "./hop";
+
+/**
+ * How long the device waits on an unanswered location question before it takes
+ * the rule's no-answer branch (REMOTE, with the 112 control).
+ *
+ * UNSIGNED ENGINEERING VALUE. CD-24 keeps `no_answer_wait` draft_needs_source:
+ * no source states a wait, and EK-4's ten minutes is a treatment target, not a
+ * question timeout. CD-24 `fail_closed_while_draft` allows the device a wait in
+ * the meantime only if it is recorded as unsigned, and fixes that on expiry the
+ * branch is always REMOTE, never silence. It is recorded in
+ * docs/evidence/INT-465.md. A physician decides the value before any real patient.
+ */
+export const UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS = 30_000;
+
+/** A catalog that cannot say CD-24's generic RED reached the store (INT-465). */
+export class RedCatalogIncomplete extends Error {
+  constructor() {
+    super("the pre-positioned RED catalog cannot say the generic RED (CD-24)");
+    this.name = "RedCatalogIncomplete";
+  }
+}
+
+function assertGenericCopy(catalog: PrePositionedRed): void {
+  if (
+    genericRedCopy(catalog.scripts) === null ||
+    catalog.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN] === undefined
+  ) {
+    throw new RedCatalogIncomplete();
+  }
+}
 
 export interface RedState {
   readonly trigger: RedTrigger;
@@ -113,7 +145,7 @@ export function redScreen(state: RedState | null): RedScreen {
       };
     }
     // The rule's own branch targets decide where each answer goes.
-    located = answer === "inHospital" ? question.onYes : question.onNo;
+    located = branchFor(question, answer);
     scriptId = scriptIdFor(trigger.ruleId, located);
   } else {
     located = trigger.location;
@@ -134,6 +166,17 @@ export function redScreen(state: RedState | null): RedScreen {
     call112: redAffordances(presentation, answer).call112,
     motion: RED_MOTION,
   };
+}
+
+/** The branch the rule's own question takes for this answer (files/04 §8.1 rule 7). */
+function branchFor(
+  question: RedLocationQuestion,
+  answer: Exclude<LocationAnswer, "unanswered">,
+): Exclude<RedLocation, "UNKNOWN"> {
+  if (answer === "inHospital") {
+    return question.onYes;
+  }
+  return answer === "noAnswer" ? question.onNoAnswer : question.onNo;
 }
 
 /**
@@ -157,10 +200,19 @@ function genericScreen(
   if (mode === "none") {
     return NONE; // unreachable from redScreen, which answers DEFERRED_CLINICIAN first
   }
-  let location: RedLocation = trigger.location;
-  if (location === "UNKNOWN") {
+  // INT-465: never wordless — a catalog without the generic copy fails here.
+  const copy = genericRedCopy(catalog.scripts);
+  if (copy === null) {
+    throw new RedCatalogIncomplete();
+  }
+  let location: Exclude<RedLocation, "UNKNOWN">;
+  if (trigger.location === "UNKNOWN") {
     const question = catalog.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN];
-    if (question !== undefined && answer === "unanswered") {
+    if (question === undefined) {
+      throw new RedCatalogIncomplete();
+    }
+    if (answer === "unanswered") {
+      // CD-24's verdict: ask first, with no 112 before the answer.
       return {
         kind: "ask",
         mode,
@@ -169,11 +221,11 @@ function genericScreen(
         motion: RED_MOTION,
       };
     }
-    if (question !== undefined) {
-      location = answer === "inHospital" ? question.onYes : question.onNo;
-    }
+    location = branchFor(question, answer);
+  } else {
+    location = trigger.location;
   }
-  const presentation = genericRed({ ...trigger, location }, catalog.scripts);
+  const presentation = genericRed({ ...trigger, location }, copy);
   return {
     kind: "act",
     mode,
@@ -182,7 +234,7 @@ function genericScreen(
     actionTr: presentation.script.actionTr,
     doNotsTr: presentation.script.doNotsTr,
     whyTr: presentation.script.whyTr,
-    call112: redAffordances(presentation, location === "UNKNOWN" ? "unanswered" : answer).call112,
+    call112: redAffordances(presentation, answer).call112,
     motion: RED_MOTION,
   };
 }
@@ -204,7 +256,7 @@ export interface RedStore {
   subscribe: (listener: () => void) => () => void;
   /** A rules-engine trigger arrived. Escalation only (see the header). */
   present: (trigger: RedTrigger, catalog: PrePositionedRed, elapsedMs?: number | null) => void;
-  /** The patient answered the one location question. */
+  /** The patient answered the one location question, or it went unanswered (`noAnswer`). */
   answerLocation: (answer: Exclude<LocationAnswer, "unanswered">) => void;
 }
 
@@ -225,6 +277,9 @@ export function createRedStore(): RedStore {
       };
     },
     present: (trigger, catalog, elapsedMs = null) => {
+      // INT-465: a catalog that cannot say the generic RED fails at every
+      // location (CD-24 generic_red_silent_is_never_wordless).
+      assertGenericCopy(catalog);
       if (redStopsDialogue(state)) {
         return; // a RED the patient sees stays until they act on it
       }
@@ -243,6 +298,27 @@ export function createRedStore(): RedStore {
       emit();
     },
   };
+}
+
+/**
+ * CD-24 `generic_red_stops_intake`, on the device (INT-465): the dialogue stream
+ * is frozen at its length when a RED first stops the dialogue. Pure: the caller
+ * keeps the result and passes it back on every render.
+ */
+export function dialogueFrozenAt(
+  previous: number | null,
+  stopsDialogue: boolean,
+  length: number,
+): number | null {
+  if (previous !== null) {
+    return previous;
+  }
+  return stopsDialogue ? length : null;
+}
+
+/** What of the dialogue stream may still show: nothing that arrived after the RED. */
+export function dialogueShown<T>(stream: readonly T[], frozenAt: number | null): readonly T[] {
+  return frozenAt === null ? stream : stream.slice(0, frozenAt);
 }
 
 /** The app's one RED store. */

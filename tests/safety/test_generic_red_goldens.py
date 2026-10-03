@@ -38,7 +38,7 @@ from protocols.red_render import RedRenderError, assert_markup_free
 REPO = Path(__file__).resolve().parents[2]
 LIFE_THREAT = REPO / "files" / "protocols" / "base.life_threat.yaml"
 GENERIC = REPO / "packages" / "protocols" / "generic" / "generic_red.yaml"
-SYNTHETIC = TenantRedConfig(kind=TenantKind.SYNTHETIC)
+SYNTHETIC = TenantRedConfig(kind=TenantKind.SYNTHETIC, deployment="i-0e489e48739f5de98")
 REMOTE_ID = GENERIC_RED_SCRIPT_IDS[RedLocation.REMOTE]
 ON_SITE_ID = GENERIC_RED_SCRIPT_IDS[RedLocation.ON_SITE]
 UNKNOWN_ID = GENERIC_RED_SCRIPT_IDS[RedLocation.UNKNOWN]
@@ -88,11 +88,15 @@ def test_g02_unknown_generic_asks_before_any_112(catalog: CatalogOut) -> None:
 def test_g03_no_answer_goes_remote_and_is_never_left_without_an_action(
     catalog: CatalogOut,
 ) -> None:
+    """The catalog half. The device half drives the RED store from the question to
+    REMOTE with the 112 control (apps/mobile/src/lib/red/store.test.ts, listed in
+    CD24_GOLDENS below)."""
     question = catalog.questions[UNKNOWN_ID]
-    assert question.onNoAnswer == "REMOTE"
-    assert catalog.scripts[REMOTE_ID].actionTr
-    # Near miss: only "evet" leads ON_SITE.
-    assert question.onYes == "ON_SITE" and question.onNoAnswer != "ON_SITE"
+    no_answer = catalog.scripts[REMOTE_ID] if question.onNoAnswer == "REMOTE" else None
+    assert no_answer is not None and no_answer.actionTr and no_answer.show112 is True
+    # Near miss: "evet" leads ON_SITE, a script with words and no 112.
+    yes = catalog.scripts[ON_SITE_ID] if question.onYes == "ON_SITE" else None
+    assert yes is not None and yes.actionTr and yes.show112 is False
 
 
 def test_g04_the_generic_names_no_condition(catalog: CatalogOut) -> None:
@@ -176,3 +180,93 @@ def test_g09_the_same_set_is_never_served_to_a_non_synthetic_tenant() -> None:
             )
             is None
         )
+
+
+# --- CD-24's near-miss tests, and where each one is pinned ---------------------------------
+
+#: CD-24 (docs/clinical/decisions/CD-24.md, "Near-miss tests that pin it") names twelve
+#: tests. Some live in the device or the voice runtime, where the behaviour is, so this
+#: registry lists each one by file and by the name it is pinned under. A file that loses
+#: one fails here.
+CD24_GOLDENS: dict[str, tuple[tuple[str, str], ...]] = {
+    "generic_red_on_site_has_no_112_anywhere": (
+        (
+            "tests/safety/test_generic_red_goldens.py",
+            "test_g01_on_site_generic_has_no_112_anywhere",
+        ),
+        ("tests/protocols/test_generic_red.py", "test_on_site_carries_no_112_in_any_carrier"),
+    ),
+    "generic_red_unknown_asks_before_112": (
+        (
+            "tests/safety/test_generic_red_goldens.py",
+            "test_g02_unknown_generic_asks_before_any_112",
+        ),
+        ("apps/mobile/src/lib/red/store.test.ts", "CD-24 generic_red_unknown_asks_before_112"),
+    ),
+    "generic_red_unknown_no_answer_goes_remote": (
+        ("tests/safety/test_generic_red_goldens.py", "test_g03_no_answer_goes_remote"),
+        (
+            "apps/mobile/src/lib/red/store.test.ts",
+            "CD-24 generic_red_unknown_no_answer_goes_remote",
+        ),
+    ),
+    "generic_red_copy_names_no_condition": (
+        ("tests/safety/test_generic_red_goldens.py", "test_g04_the_generic_names_no_condition"),
+    ),
+    "generic_red_strings_expand_for_tts": (
+        ("tests/safety/test_generic_red_goldens.py", "test_g05_every_spoken_generic_string"),
+    ),
+    "generic_red_carries_the_engine_register": (
+        (
+            "tests/voice/test_red_winner.py",
+            "test_an_unaddressable_red_shows_the_generic_red_in_the_results_own_register",
+        ),
+    ),
+    "generic_red_mixed_registers_take_the_most_restrictive": (
+        (
+            "tests/voice/test_red_winner.py",
+            "test_a_generic_over_mixed_registers_takes_the_most_restrictive",
+        ),
+    ),
+    "generic_red_silent_is_never_wordless": (
+        ("apps/mobile/src/lib/red/hop.test.ts", "CD-24 generic_red_silent_is_never_wordless"),
+        (
+            "apps/mobile/src/lib/livekit/session.test.ts",
+            "CD-24 generic_red_silent_is_never_wordless",
+        ),
+    ),
+    "generic_red_stops_intake": (
+        (
+            "tests/voice/test_red_preemption.py",
+            "test_protocol_next_after_a_red_offers_and_speaks_no_question",
+        ),
+        ("apps/mobile/src/lib/red/store.test.ts", "CD-24 generic_red_stops_intake"),
+    ),
+    "silent_over_alert_is_stated_to_the_clinic": (
+        (
+            "tests/voice/test_red_winner.py",
+            "test_a_generic_over_mixed_registers_takes_the_most_restrictive",
+        ),
+        (
+            "tests/voice/test_red_winner.py",
+            "test_a_silent_red_with_its_own_script_is_not_marked_generic",
+        ),
+    ),
+    "generic_red_on_site_asks_for_an_escort": (
+        ("tests/safety/test_generic_red_goldens.py", "test_g06_on_site_asks_for_an_escort"),
+    ),
+    "generic_red_deferred_never_reaches_device": (
+        (
+            "tests/voice/test_red_winner.py",
+            "test_a_deferred_clinician_red_never_reaches_the_device_even_unaddressable",
+        ),
+    ),
+}
+
+
+def test_every_cd24_golden_is_pinned_where_the_registry_says() -> None:
+    named = (REPO / "docs" / "clinical" / "decisions" / "CD-24.md").read_text(encoding="utf-8")
+    assert set(re.findall(r"^- `([a-z0-9_]+)`", named, re.M)) == set(CD24_GOLDENS)
+    for golden, places in CD24_GOLDENS.items():
+        for path, name in places:
+            assert name in (REPO / path).read_text(encoding="utf-8"), (golden, path, name)
