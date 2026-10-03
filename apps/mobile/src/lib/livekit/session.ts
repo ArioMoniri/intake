@@ -25,7 +25,7 @@ import { probeVoiceTransport, streamingVoiceSupported } from "./capability";
 import type { VoiceSessionEvent, VoiceSessionListener } from "./events";
 import { emitTurnQuality, noopMetricSink, type MetricSink } from "./metrics";
 import { addSample, closeWindow, openWindow, type QualityWindow } from "./quality";
-import { decodeRedTrigger, resolveRed, type RedScriptCatalog } from "./red";
+import { decodeRedTrigger, genericRed, resolveRed, type RedScriptCatalog } from "./red";
 import { nextReconnect, tokenNeedsRemint } from "./reconnect";
 import type {
   MicrophonePermission,
@@ -131,11 +131,10 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
       // message kinds belong to INT-091/092 and are ignored here.
       return;
     }
-    const presentation = resolveRed(trigger, deps.redScripts);
-    if (presentation === null) {
-      emit({ type: "red_unrenderable", ruleId: trigger.ruleId });
-      return;
-    }
+    // A RED whose script is not on this device is still a RED on screen: the
+    // generic escalation (INT-453), never nothing.
+    const presentation =
+      resolveRed(trigger, deps.redScripts) ?? genericRed(trigger, deps.redScripts);
     emit({ type: "red", presentation });
   };
 

@@ -41,11 +41,6 @@ export type VoiceSessionEvent =
    * (invariant 21).
    */
   | { readonly type: "red"; readonly presentation: RedPresentation }
-  /**
-   * A RED arrived but its script is not on this device. The caller escalates
-   * generically; it must never invent clinical words to fill the gap.
-   */
-  | { readonly type: "red_unrenderable"; readonly ruleId: string }
   /** Terminal. The caller falls back to the typed intake. */
   | { readonly type: "failed"; readonly reason: SessionFailure };
 

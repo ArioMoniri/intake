@@ -234,6 +234,7 @@ def evaluate_triage(
             rules=rule_fires,
             register=_required_register(winner),
             location=location,
+            red_rule_id=winner.id,
         ),
         ek4=ek4,
         action=_resolved_action(winner, location),

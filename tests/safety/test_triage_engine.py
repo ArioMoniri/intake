@@ -280,6 +280,16 @@ class TestWinningRedRule:
             assert winning_red_rule(ordering) is silent
         assert evaluation.result.register is silent.register
         assert evaluation.action is silent.action.remote  # type: ignore[union-attr]
+        # The result names its RED, so no consumer re-derives the winner.
+        assert evaluation.result.red_rule_id == silent.id
+
+    def test_every_red_names_its_winner_and_no_other_level_names_one(self) -> None:
+        silent_k2 = _red("rf.sentetik_a", RedRegister.SILENT, EK4Level.KIRMIZI_K2)
+        alert_k1 = _red("rf.sentetik_b", RedRegister.ALERT, EK4Level.KIRMIZI_K1)
+        yellow = make_rule("rf.sentetik_c", EK4Level.SARI_K1, "c == true")
+        assert _fire_all(silent_k2, alert_k1, yellow).result.red_rule_id == alert_k1.id
+        # Near miss: YELLOW alone carries no RED id.
+        assert _fire_all(yellow).result.red_rule_id is None
 
     def test_severity_outranks_register_and_yellow_rules_never_win(self) -> None:
         silent_k2 = _red("rf.sentetik_a", RedRegister.SILENT, EK4Level.KIRMIZI_K2)

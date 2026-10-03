@@ -407,7 +407,6 @@ describe("dialogue seam", () => {
         },
       }),
     ).toBeNull();
-    expect(toDialogueStreamAction({ type: "red_unrenderable", ruleId: "x" })).toBeNull();
   });
 
   it("documents the wiring line the coordinator adds", () => {

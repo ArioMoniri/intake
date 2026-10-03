@@ -2,20 +2,21 @@
 
 ### 2026-10-04T00:30:00Z · INT-453 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #767): *"The RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr. A multi-rule test with a near-miss control is included."* and *"`make safety` passes, with triage at 100% branch coverage."* Found by INT-446 (#766).
-- Plan:
-  - Make the engine's winner selection public as `protocols.triage.winning_red_rule`; `evaluate_triage` now uses it.
-  - `MappingRedScriptIndex` carries the pack's rules.
-  - `RedPreemption` asks the engine for the winner. Several fired rules without the pack's rules, a register disagreement, or no RED rule among them are SCRIPT_UNADDRESSABLE: never a guess.
-- Tests added: `tests/voice/test_red_winner.py`, which drives the real engine into the real RED path, and `TestWinningRedRule`. The near miss in each: `rules[0]` is the ALERT rule, and its script must not be sent.
-  - RED (only `rule_ids[0]` restored): 6 failed, 2 passed.
-  - GREEN: 52 voice and 38 engine tests passed.
+- Plan (after review round 1 on #773, CHANGES-REQUESTED):
+  - (a) The engine names its RED in `RulesTriageResult.red_rule_id` (schemas and codegen updated), so the path reads it and never re-derives it. Only that RED rule must be addressable, so a YELLOW rule beside it is irrelevant.
+  - (b) An unaddressable RED still triggers a device-visible generic escalation: ALERT, at the result's own location, so 112 is absent under ON_SITE and a generic UNKNOWN asks the question before any 112. It fails loudly.
+  - A replay of an unaddressable RED re-sends the device trigger.
+  - Device: `genericRed`; the session emits `red`, never nothing.
+- Tests added: `tests/voice/test_red_winner.py` (rewritten), the schema validation test, the engine `red_rule_id` and `winning_red_rule` tests, and the device generic-RED tests. Near misses: `rules[0]`'s script is never sent; the YELLOW rule has no script; a replay after a delivered RED is a no-op; ON_SITE shows no 112.
+  - RED (`rules[0]` restored): 4 failed, including the rewritten severity test. The previous #773 path fails at collection.
+  - GREEN: 1211 Python tests; mobile 2529.
 - Result: docs/evidence/INT-453.md.
-  - `make safety` exit 0: triage at 100 % branch (567 passed); voice-runtime at 98.65 %, with `red_path.py` at 100 %; the mutation report DETECTED every mutant.
-  - ruff and `mypy --strict` are clean.
+  - `make safety` exit 0: triage at 100 % branch (568 passed); `red_path.py` at 100 %; the mutation report DETECTED every mutant.
+  - typecheck, ruff and `mypy --strict` are clean.
   - Pins 330 → 331; files/11 regenerated.
-- Invariants touched and still passing: 1, 9 (only a rules-engine RED preempts), 10 (the device renders the winner's own `text_tr` through its script id), 17 (unaddressable, never guessed), 21.
-- Decisions / ADRs / `00_STATE.md` rows: none.
-- Blocked on: nothing. A change under packages/protocols needs CODEOWNER review.
+- Invariants touched and still passing: 1, 9 (only a rules-engine RED preempts), 10 (the named rule's own `text_tr`), 17 (generic copy is `draft_needs_source`, nothing invented), 21 (no 112 under ON_SITE).
+- Decisions / ADRs / `00_STATE.md` rows: none. The generic escalation copy is CD-24 in the INT-432 register (agent author plus independent verifier, D18) and is pending.
+- Blocked on: nothing for merge. A change under packages/protocols and packages/clinical-schemas needs CODEOWNER review. CD-24 copy is pending; until then the device shows the RED with no words.
 - Next: PR `INT-453: …` (Closes #767, Sec-Row triage). Do not merge.
 
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
