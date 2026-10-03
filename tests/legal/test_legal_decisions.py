@@ -41,6 +41,8 @@ from intake_platform.legal.decisions import (
     load_decision,
     load_register,
     quote_in_snapshot,
+    snapshot_body,
+    snapshot_header,
     value_for,
 )
 
@@ -161,6 +163,12 @@ def test_a_quote_that_is_not_in_its_snapshot_is_refused(root: Path) -> None:
 def test_quote_matching_normalises_whitespace_and_nothing_else() -> None:
     assert quote_in_snapshot("a  b\nc", "x a b c y")
     assert not quote_in_snapshot("a b, c", "x a b c y")
+
+
+def test_only_hash_lines_above_the_separator_are_header_and_the_body_is_below_it() -> None:
+    text = "# source_id: X-1\na stray title line\n# retrieved_on: 2026-10-03\n---\nbody line\n"
+    assert snapshot_header(text) == {"source_id": "X-1", "retrieved_on": "2026-10-03"}
+    assert snapshot_body(text) == "body line"
 
 
 def test_a_snapshot_that_is_not_committed_is_refused(root: Path) -> None:

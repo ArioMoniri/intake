@@ -6585,3 +6585,23 @@
     - "all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md"
   tests: [apps/mobile/src/lib/dialogue/delivery.test.ts, apps/mobile/src/lib/dialogue/deliveryPlan.test.ts, tests/release/test_delivery_copy.py, tests/release/test_i18n_complete.py, tests/api/test_dev_voice_delivery.py]
   sec_row: "mobile"
+- id: INT-471
+  epic: E14-legal
+  phase: P1
+  title: "Legal lane — sourced legal-author agent + independent legal-reviewer decide legal items (owner decision D25, synthetic/test scope)"
+  # GitHub #800. Owner, 3 Oct 2026: "also set an legal profesional subagetns
+  # to approve legal parts or review them like forensics i give permisison
+  # with this message". Scope: synthetic and test use only; a licensed
+  # Turkish lawyer countersigns before any real patient (files/00_STATE.md
+  # §3 D25). Legal questions go to this lane, never to the owner.
+  depends_on: [INT-432]
+  labels: [area:legal]
+  status: done
+  evidence: docs/evidence/INT-471.md
+  acceptance:
+    - "D25 in files/00_STATE.md §3 records the policy with the owner's quote, the synthetic/test scope and the real-patient countersign gate, and that legal questions go to this lane, never to the owner"
+    - "a legal decisions register (LD-NN, the shape of packages/protocols/decisions/CD-NN.yaml) with a typed loader and tests: every decision cites KVKK, its secondary regulations, Ministry of Health regulations or Resmî Gazete texts against a committed verbatim snapshot with retrieved_on; no source means draft with a legal_gap, never an invented answer; each carries the independent legal reviewer's verdict (near-miss: an unsourced or unverified decision fails; a real-patient decision without a licensed lawyer's countersign fails)"
+    - "first decisions LD-01..LD-05: the Adli Tıp report purpose; minors and proxy answers (HB-L20) in synthetic scope; KVKK inventory rows for family history, relatives' health, consanguinity and the hearing-voices item; occupational items (sick leave, tenure, household TB contact); the WCAG 2.2.1 classification of the RED no-answer wait"
+    - "docs/legal/ texts keep their hash binding and strings.yaml stays verbatim"
+  tests: [tests/legal/test_legal_decisions.py]
+  sec_row: "compliance-evidence"

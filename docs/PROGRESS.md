@@ -3163,3 +3163,19 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines, or which do you rewrite?" The 12 revised lines are marked pre-reviewed by the clinical-reviewer agent on 2 Oct 2026; physician sign-off is still open. files/04 §4.2 pre-brief: the sensitive transition lines are not that pre-brief, which is owed separately.
 - Next: the `leadIn` rendering through #728's `ChatLines` waits for #728 to reach main.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T18:00:00Z · INT-471 · done (PR open; LD-01..LD-05 proposed, awaiting the legal reviewer)
+- Goal: owner decision D25 (3 Oct 2026) — a sourced legal-author agent decides and a separate legal-reviewer agent verifies legal items, for synthetic and test use only; a licensed Turkish lawyer countersigns before any real patient; legal questions go to this lane, never to the owner (docs/backlog/issues.yaml INT-471).
+- Plan:
+  - `intake_platform.legal.decisions`: the LD register loader, mirroring the CD loader, with a real-patient countersign gate shaped like the physician's (D17, HB-C1).
+  - Verbatim snapshots of only the cited articles (KVKK, Aydınlatma Tebliği, TMK, Hasta Hakları Yönetmeliği, KSVY, Sağlık Raporları Yönetmeliği, Genelge 2025/10, WCAG 2.2) under `packages/intake_platform/legal_decisions/sources/`.
+  - LD-01..LD-05 with prose twins in `docs/legal/decisions/`; D25 in files/00_STATE.md §3 and §8.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_legal_decisions.py` (46): a non-verbatim quote, an unofficial or look-alike host, legislation without its Resmî Gazete, an unsourced non-draft decision, a draft without a legal_gap, any pending token, an active decision without the reviewer's verdict, a verified decision left proposed, a real-patient decision without the full countersign, and a countersign outside docs/evidence/ — each beside the near miss that loads; every committed LD refuses real-patient clearance.
+  - Red run: module absent, then 10 register tests failing while the 35 loader tests passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-471.md "Gates".
+- Invariants touched and still passing: 4, 6, 17 (no literal widened; the gate and its allow-list untouched), 18 (no hash-bound text changed, no counsel field filled), 20.
+- Decisions / ADRs / `00_STATE.md` rows: D25 (new). No HB id minted.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond the reviewer's verdict. Before any real patient, a licensed Turkish lawyer must countersign each LD; HB-L20 stays open for that lawyer.
+- Next: the orchestrator relays the legal reviewer's verdicts; each agreeing LD flips to `active`. Finding for PR #796: the RED location question must stay answerable after the wait (LD-05).
+- LOOP_STATUS: WAITING_HUMAN

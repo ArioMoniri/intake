@@ -314,7 +314,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # only with a stated reason.
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415, owner request, GitHub #705); grows only with a stated reason.
-    assert len(ids) == 337, f"expected 175 blueprint + 162 added issues, got {len(ids)}"
+    # + INT-471 (the legal decisions register under owner decision D25, GitHub
+    # #800); grows only with a stated reason.
+    assert len(ids) == 338, f"expected 175 blueprint + 163 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
