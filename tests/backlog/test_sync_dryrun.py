@@ -109,9 +109,11 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-448 (#642 packet items under D18, GitHub #759)
     # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
     # + INT-447 (INT-414's delivery lines verified under D18, GitHub #758)
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762)
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
     # + INT-470 (INT-448 owner questions resolved by CD-110 and D24, GitHub #798)
     # + INT-471 (legal decisions register under owner decision D25, GitHub #800)
-    assert len(actions) == 340
+    assert len(actions) == 342
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**340 issues.** By phase: P0 166 · P1 120 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 228 · todo 73 · withdrawn 1.
+**342 issues.** By phase: P0 167 · P1 121 · P2 47 · P3 7. By status: awaiting-human 33 · doing 6 · done 229 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -177,6 +177,7 @@
 | INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
 | INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 | INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
+| INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | INT-352 | area:infra | doing |
 
 ## P1
 
@@ -300,6 +301,7 @@
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
+| INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 | INT-470 | INT-448 follow-up — resolve its owner questions: clinical ones under D18 (CD-110), product and data ones by owner decision D24 | E03-protocols | INT-448 | area:protocols, risk:clinical | done |
 | INT-471 | Legal lane — sourced legal-author agent + independent legal-reviewer decide legal items (owner decision D25, synthetic/test scope) | E14-legal | INT-432, INT-470 | area:legal | done |
 
