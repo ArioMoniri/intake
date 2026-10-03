@@ -3383,3 +3383,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: re-verification of CD-110 round 4.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T07:00:00+03:00 · INT-470 · final verdict (PR #804, CD-110 agree)
+- Goal: record the independent verifier's round-4 verdict (agree, no blocker) and fix its one minor and two notes in the verdict commit.
+- Plan: tests first (the #L104 reorder op moves the gate slot forward, never the airway item later; the verdict test asserts agree with round 4 in the history), then CD-110, the md twin and the evidence.
+- Tests added (with the near-miss negative for any safety rule): `test_pedodonti_moves_the_gate_slot_forward_never_the_airway_item_later` (the removed INT-353 kadın op wording fails); the lead's `dental_airway_one_posture` near miss gains "an op that moves the airway item after dis_eti_sisligi fails". Red run: 2 failed, 40 passed; green 113 passed.
+- Result: CD-110 verifier agree (independent D18 clinical verifier (agent), 2026-10-04); `make safety` exit 0; protocols, safety, backlog and smoke lanes 1829 passed, 0 failed; see docs/evidence/INT-470.md (Final verdict).
+- Invariants touched and still passing: 2, 7, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: merge #804 when the merge queue reaches it.
+- LOOP_STATUS: CONTINUE

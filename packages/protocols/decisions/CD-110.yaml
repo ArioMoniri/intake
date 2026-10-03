@@ -707,9 +707,12 @@ value:
         on facial or gum swelling or a recent blow to the face or jaw. In the merged chain
         every gate slot precedes the airway item: where the merge keeps the re-declared
         airway item at the cluster's position and appends a pedodonti-only slot
-        (dis_eti_sisligi) after it, the pack carries a reorder op (as INT-353's kadın op)
-        until the files/13 §9.5 ordering check exists, and the lead's
-        dental_airway_one_posture test checks merged order. The cluster's Q15
+        (dis_eti_sisligi) after it, the pack carries a reorder op that moves the gate slot
+        dis_eti_sisligi to directly before the airway item and leaves every other key in
+        merged order (CD-106 reorder-op A-4's move-the-gate-forward correction); the
+        airway item is never moved later. The op stays until the files/13 §9.5 ordering
+        check exists, and the lead's dental_airway_one_posture test checks merged order.
+        The cluster's Q15
         (kalici_dis_cikti), gated on yuz_cene_darbe, is self-addressed and is re-addressed
         for the child under owner decision D24 (1Y). Latent: pedodonti opens only once that
         proxy mechanism exists and an under-18 path opens.
@@ -1009,5 +1012,33 @@ value:
         "specialty-wave8-geriatric-dental.md#L96": "agree"
         "sibling-rebinds-582.md#L61": "agree"
         "sibling-rebinds-582.md#L118": "agree"
+    - round: 4
+      date: 2026-10-04
+      head: 0fcfee18
+      reviewer: "independent D18 clinical verifier (agent)"
+      verdict: agree
+      findings: "No blocker; 1 minor (the #L104 reorder op named the removed INT-353 kadın op and did not say which item moves) and 2 notes (episodicity word bound; stale round lines in the evidence), fixed in the verdict commit as specified"
+      per_resolution:
+        "near-twin-sweep-582.md#L95 (T2)": "agree"
+        "near-twin-sweep-582.md#L96 (T3)": "agree"
+        "near-twin-sweep-582.md#L110 (T17)": "agree with note (the follow-up sits at the 15-word B1 limit)"
+        "near-twin-sweep-582.md#L185 (T92)": "agree"
+        "near-twin-sweep-582.md#L94 (T1)": "agree with note (latent until all three prerequisites exist; the lead's engine-frontier test is the proof of the three-valued behaviour)"
+        "near-twin-sweep-582.md#L97 (T4)": "agree"
+        "cluster-wave-b.md#L103": "agree"
+        "cluster-wave-b.md#L104": "agree"
+        "cluster-wave-b.md#L116": "agree"
+        "INT-353.md#L314": "agree"
+        "INT-353.md#L315": "agree"
+        "INT-353.md#L316": "agree"
+        "INT-353.md#L432": "agree"
+        "specialty-wave7-onc-women-peds.md#L93": "agree"
+        "specialty-wave8-geriatric-dental.md#L94": "agree"
+        "specialty-wave8-geriatric-dental.md#L96": "agree"
+        "sibling-rebinds-582.md#L61": "agree"
+        "sibling-rebinds-582.md#L118": "agree"
 verifier:
-  verdict: pending
+  verdict: agree
+  role: "independent D18 clinical verifier (agent)"
+  verified_on: 2026-10-04
+  notes: "Round 1 request_changes (7c20078c); round 2 request_changes (6917e51d); round 3 request_changes (9ebde62b); round 4 agree (0fcfee18), with the #L104 reorder-op minor fixed in the verdict commit as specified. Quotes checked against the committed snapshots. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

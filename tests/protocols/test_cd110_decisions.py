@@ -367,6 +367,11 @@ def test_the_gum_swelling_reading_is_disclosed_as_the_authors() -> None:
     assert "gum swelling comes with gum pain" in str(load_register()["CD-110"].inference_disclosure)
 
 
+def test_pedodonti_moves_the_gate_slot_forward_never_the_airway_item_later() -> None:
+    change = _resolution(f"{_WB}104")["change"]
+    assert "move" in change and "gate slot" in change and "INT-353's kadın op" not in change
+
+
 def test_one_posture_only_widens_and_endodonti_keeps_under_tongue_swelling() -> None:
     posture = _resolution(f"{_W8}96")
     assert posture["branch_rule"] == (
@@ -401,9 +406,11 @@ def test_calgary_cambridge_is_cited_for_structure_only() -> None:
     assert "at0002" in str(decision.inference_disclosure)
 
 
-def test_round_one_is_history_and_the_verdict_waits_for_re_verification() -> None:
+def test_rounds_one_to_four_are_history_and_the_final_verdict_is_agree() -> None:
     decision = load_register()["CD-110"]
-    assert decision.verifier.verdict is VerifierVerdict.PENDING
+    assert decision.verifier.verdict is VerifierVerdict.AGREE
+    assert decision.verifier.role == "independent D18 clinical verifier (agent)"
+    assert str(decision.verifier.verified_on) == "2026-10-04"
     history = decision.value["verification_history"]
     assert history[0]["round"] == 1 and history[0]["verdict"] == "request_changes"
     assert len(history[0]["per_resolution"]) == 18
@@ -411,3 +418,7 @@ def test_round_one_is_history_and_the_verdict_waits_for_re_verification() -> Non
     assert len(history[1]["per_resolution"]) == 18
     assert history[2]["round"] == 3 and history[2]["verdict"] == "request_changes"
     assert len(history[2]["per_resolution"]) == 18
+    final = history[3]
+    assert final["round"] == 4 and final["verdict"] == "agree"
+    assert len(final["per_resolution"]) == 18
+    assert all(v.startswith("agree") for v in final["per_resolution"].values())
