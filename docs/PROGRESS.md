@@ -3164,6 +3164,26 @@
 - Next: the `leadIn` rendering through #728's `ChatLines` waits for #728 to reach main.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-03T22:00:00+03:00 · INT-447 · done (PR open, not merged)
+- Goal: verify INT-414's 48 delivery lines (#726) under owner decision D18 (INT-432). That means a medical-author pass and an independent verifier pass, sourced to Sağlık Bakanlığı health-literacy material, with a decision record per line, so the approval:human-clinical label on #726 can come off. Scope is simulated-patient testing only; a licensed physician reviews before any real patient.
+- Plan:
+  - Author pass by a family-medicine and health-literacy agent: six checks per line (PolicyGuard, B1, siz, not a question, no numerals, fits context).
+  - Independent verifier pass: sees only the records, the snapshots, the rules and the INT-414 code.
+  - Records CD-19..CD-23 in INT-432's format (numbers agreed with the INT-432 lead).
+  - Line fixes go on #726's branch.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_delivery_line_decisions.py.
+  - Near misses refused by the same checker: a line turned into a question, an outcome reassurance, a numeral, an interrogative opening (the line CD-22 replaced), an over-long acknowledgement, an over-long sentence, the sen register.
+  - Red run: a collection error with no records (KeyError 'CD-19'), then 2 failed while the verifier verdicts were pending.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations).
+  - tests/protocols + backlog + smoke: 1161 passed. On #726: release lane and mobile vitest (2499) green after the line fix.
+  - check-integration and `make security` are CI-only here.
+- Verdict: 48/48 lines pass; one reworded (sensitiveLead.b, CD-22), pushed to #726 as 8fc8442c.
+- Invariants touched and still passing: 2 (PolicyGuard, one question per turn, B1), 5 (tr first, en mirror), 10 (no question or instrument item touched), 17 (no pending token; nothing draft), 18 (no line says where answers go), 20 (no performance figure), 22 (no digits in any line).
+- Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
+- Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
 ### 2026-10-04T00:30:00+03:00 · INT-472 · done (PR open, verifier verdict pending)
 - Goal: decide, under D18, the cardiac RED rule's three unsourced do-not lines and the wait before an unanswered "Şu anda hastanede misiniz?" resolves to REMOTE.
 - Plan: tests first for the decided lines and the wait (no number without a source); CD-111 against four new verbatim snapshots (NHS heart attack page, RCUK First Aid Guidelines 2025 from ERC 2025, NICE CG95 1.2.3, EENA silent-calls v2.0); decision recorded, application routed into #796 (INT-465), which edits the same action block.
