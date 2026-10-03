@@ -3126,3 +3126,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): 31 owner questions recorded per item in CD-100..CD-106 (generator fixed slots vs base, self/proxy wording under HB-L20, D3 categories); none blocks the merge.
 - Next: apply the packet decisions through the proposals and the generator once #642 merges.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T23:59:00+03:00 · INT-470 · done (PR open, verifier verdict pending)
+- Goal: resolve every owner question INT-448 left open: the clinical ones under D18 as restated on 3 Oct 2026 (sourced medical agents, independent verifier, never back to the owner), the product and data ones by the owner's own answer (D24).
+- Plan: tests first for a two-way resolution pointer (row → resolver, resolver → row); CD-110 decides the 13 clinical owner questions and 5 base-owner parts against seven new verbatim snapshots (Calgary-Cambridge, openEHR reason_for_encounter and symptom_sign timing, NICE NG257, SDCEP MADP 2026, RCEM Learning, the TR adult disability regulation); D24 records the owner's reply "1Y 2Y 3Y 4Y 5Y 6A" in files/00_STATE.md and on 18 rows, with legal follow-through routed to INT-471.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_owner_question_resolutions.py (a dangling or duplicate resolution, a resolution of an item decided elsewhere, a missing back-pointer, an owner quote the state file lacks, an erased question and a part handed back to the owner each fail; 13 near-miss cases). Red run: 5 failed, 15 passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-470.md; `test_every_decision_carries_an_independent_verdict` fails on CD-110 until the independent verdict is recorded, by design.
+- Invariants touched and still passing: 2 (new copy PolicyGuard-clean), 7 (no rule, rule input or tense anchor changes; nothing extends base.life_threat), 17 (one nested draft_needs_source value with the sanctioned literal), 18 (legal parts routed, not decided), 22.
+- Decisions / ADRs / `00_STATE.md` rows: D24 (owner, 3 Oct 2026) added to §3 with a changelog line; CD-110 added to the clinical decisions register.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for this issue; the lmp_date population guard's age bounds stay draft_needs_source (no source), and the legal parts go to INT-471.
+- Next: record the independent verifier's verdict on CD-110; then apply CD-110 through the proposals and the generators once #642 merges.
+- LOOP_STATUS: CONTINUE

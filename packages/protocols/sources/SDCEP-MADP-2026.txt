@@ -1,0 +1,110 @@
+# guideline_id: SDCEP-MADP-2026
+# title: Management of Acute Dental Problems, second edition (Scottish Dental Clinical Effectiveness Programme)
+# publisher: Scottish Dental Clinical Effectiveness Programme (SDCEP), NHS Education for Scotland
+# version_or_date: second edition published 24 March 2026; guidance updates page last entry 30 September 2026 (supporting tools only)
+# url: https://www.acutedentalproblems.sdcep.org.uk/
+# pages: /about-this-guidance/updates/ (sha256 19266c09); /guidance/pathways-to-providers-of-care/swelling-pathway/ (3722bf8d); /guidance/management-of-oral-conditions/common-oral-conditions/acute-apical-abscess/ (b71c89c2); .../acute-pericoronitis-including-erupting-teeth-in-children/ (f6274e8a); .../acute-periodontal-conditions/ (f73fb679); /guidance/management-of-oral-conditions/less-common-oral-conditions/injuries-to-the-mouth-face-and-jaws/ (4a5b7b08)
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 for every page); HTML (utf-8) text-extracted with a block-level parser: scripts and styles dropped, tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed, non-breaking spaces rendered as plain spaces, blank lines dropped
+# scope: verbatim excerpts of six pages of the guidance website, in the order listed under pages: the updates table, the swelling-pathway lead text, and the title, key signs and initial-management airway lines of the acute apical abscess, acute pericoronitis, acute periodontal conditions and injuries pages; nothing paraphrased or edited; omissions and page boundaries marked [...]
+---
+Guidance updates
+Following its publication in March 2026, this guidance might be amended or supplemented. Details of updates to the guidance will be noted here.
+Date
+Guidance update
+30 September 2026
+Decision Support Toolkit for all healthcare professionals provided via Supporting tools
+30 September 2026
+Emergency Dental Care – Practice Guide added to Supporting tools, for use in dental practices
+30 September 2026
+Video Introduction added to About this guidance
+24 March 2026
+Second Edition of the guidance published
+[...]
+Swelling pathway
+[...]
+Patient with swelling
+Many patients present with swelling and pain. Therefore, this pathway links to the pain pathway and includes the steps to determine whether a patient with pain might require emergency medical care.
+[...]
+Acute apical abscess
+[...]
+Key signs and symptoms
+Pain (usually localised to a single tooth; often quick onset with varying severity; source easy to ascertain as tooth becomes progressively more sensitive to chewing and touch)
+Swelling of the gingiva (gum), face or neck (swelling caused by abscess often pushes affected tooth against other teeth, creating discomfort in the lower-upper teeth contact and may sometimes cause the tooth to become mobile; indicates spreading infection)
+Fever
+Listlessness, lethargy, loss of appetite for children younger than 16 years old
+Initial management
+Determine if the airway is compromised. Symptoms include: difficulty breathing; high pitched breathing sound (stridor); difficulty swallowing (dysphagia); hoarse or muffled sounding voice (dysphonia).
+If the airway is compromised, send the patient immediately to emergency medical care at the nearest emergency department or call 999.
+If the airway is not compromised:
+[...]
+Acute pericoronitis (including erupting teeth in children)
+[...]
+Brief description of the condition
+Infection or inflammation of the operculum (i.e. the gingiva [gum] tissue covering a partially erupted tooth). Pain associated with erupting teeth in children (both primary and permanent teeth).
+Key signs and symptoms
+Pain (usually well-localised around a partially erupted tooth)
+Swelling (swelling of the gingiva around a partially erupted tooth; can extend to facial swelling, especially with lower molar tooth)
+Discomfort with swallowing
+Limited mouth opening
+Unpleasant taste or odour from the affected area
+Fever
+Nausea
+Fatigue
+Note that pericoronitis in third molars and temporomandibular disorder (TMD; see Acute temporomandibular disorder) can present with similar symptoms (pain and limited mouth opening) and a diagnosis of TMD should be considered for a partially erupted third molar with no signs of infection.
+Initial management
+Determine if the airway is compromised. Symptoms include: difficulty breathing; high pitched breathing sound (stridor); difficulty swallowing (dysphagia); hoarse or muffled sounding voice (dysphonia).
+If the airway is compromised, send the patient immediately to emergency medical care at the nearest emergency department or call 999.
+If the airway is not compromised:
+[...]
+Acute periodontal conditions
+[...]
+Key signs and symptoms
+Necrotising periodontal disease:
+Pain (general or localised)
+Swelling
+Bleeding
+Halitosis
+Ulcerated gingival tissue
+Loss of gingival papillae
+Loss of attachment/bone (in necrotising ulcerative periodontitis)
+Malaise
+Fever
+Periodontal abscess:
+Pain and tenderness of gingival tissue
+Increased tooth mobility
+Fever and swollen or enlarged regional lymph nodes
+Presence of swelling on gingiva
+Suppuration from the gingiva
+Endodontic-periodontal lesion:
+Generalised periodontal disease may be present with localised pain
+Swelling with or without suppuration on palpation
+Deep pocketing to root apex with bleeding on probing
+Tenderness to percussion
+Initial management
+Determine if the airway is compromised. Symptoms include: difficulty breathing; high pitched breathing sound (stridor); difficulty swallowing (dysphagia); hoarse or muffled sounding voice (dysphonia).
+If the airway is compromised, send the patient immediately to emergency medical care at the nearest emergency department or call 999.
+If the airway is not compromised:
+[...]
+Injuries to the mouth, face and jaws
+[...]
+Key signs and symptoms
+Dento-alveolar injuries
+Pain
+Bleeding
+Fracture of tooth or loss of tooth structure
+Increased mobility of tooth or several teeth as a unit
+Tooth looks displaced or elongated
+Empty tooth socket
+Maxillo-facial fractures and soft tissue injuries
+Pain exacerbated by movement
+Bleeding
+Swelling
+Teeth/dentures do not meet together in the way that they did before
+Tooth mobility
+Paraesthesia (tingling, prickling, pins and needles, or burning sensations)
+Other problems specific to bone fractures e.g. nose bleeds, diplopia (double vision), loss of visual acuity
+Initial management
+Determine if the patient is in need of emergency medical attention (e.g. bleeding is severe and will not stop within 15-30 minutes; there has been significant facial trauma; the patient has had a head injury or loss of consciousness; inhalation of tooth or tooth fragment; airway obstruction).
+If in need of emergency medical attention, send the patient for emergency medical care at the nearest emergency department or if the patient is not safe to move, call 999. Be aware of the risk of cervical spine injury in deciding whether to move a patient.
+If not in need of emergency medical attention:

@@ -1,0 +1,46 @@
+# guideline_id: RCEM-LEARNING-DENTAL-2023
+# title: Dental Emergencies (RCEMLearning reference)
+# publisher: Royal College of Emergency Medicine (RCEMLearning); authors Chris Connolly, Katherine Rankin; editor Jonathan D Whittaker
+# version_or_date: published 25/09/2023 (as printed on the page)
+# url: https://www.rcemlearning.co.uk/reference/dental-emergencies/
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200; sha256 of the HTML 60fe7920174c32579320c6af9ddf3aba84b6610b30927396a996d1cb8a7d3612); HTML (utf-8) text-extracted with a block-level parser: scripts and styles dropped, tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed, blank lines dropped
+# scope: verbatim excerpt - the title and byline, the examination section (airway signs, face and mouth examination, learning bites) and the Ludwig's angina paragraphs; nothing paraphrased or edited; omissions marked [...]. An educational reference of the Royal College, not a guideline: cited for the airway signs of dental infection beside SDCEP-MADP-2026.
+---
+Dental Emergencies
+Author: Chris Connolly, Katherine Rankin / Editor: Jonathan D Whittaker / Reviewers: Louise Burrows, Tadgh Moriarty, Phil Delbridge / Codes: MaC1, MaC3, MaP1, MaP2, SLO1, SLO5 / Published: 25/09/2023
+[...]
+Examination of the mouth
+The initial examination must include an ABC assessment as, rarely, dental infection may be complicated by airway obstruction. The presence of any of the following may indicate actual or impending airway compromise and should prompt an urgent senior anaesthetic assessment:
+Stridor
+Difficulty in breathing
+Dysphagia
+Dysphonia (alteration in the character of the voice)
+Learning Bite
+Dental infections may be complicated by airway compromise and need urgent anaesthetic intervention.
+A general examination and set of observations including temperature, blood pressure, pulse, respiratory rate and oxygen saturations will identify signs of systemic disturbance.
+Examination of the face
+Is there visible swelling? if there is:
+Where is it?
+Cheek swelling is typically found in either upper or lower tooth abscess
+Submandibular swelling occurs in infection of the molars
+Is it firm or fluctuant? Fluctuant swelling indicates a collection of fluid usually pus.
+Does it extend into the neck? This may indicate spreading infection.
+Is there trismus (inability to open the mouth normally)?
+Are there any palpable lymph nodes present?
+Examination of the mouth
+For an adequate examination, it is essential to use a bright light, tongue depressor and mirror.
+Look at the teeth: what condition are they in? Are there any caries?
+Are the gums red, bleeding, inflamed or swollen?
+Look in the sublingual space for swelling and redness; these are signs of sublingual infection and potential airway compromise
+Look at the pharynx; is there evidence of swelling? This may indicate retropharyngeal spread of infection
+Feel in the mouth with a gloved finger for tenderness, swelling and/or fluctuance
+Learning Bite
+Swelling of the pharynx or under the tongue are serious signs that indicate spread of infection into the deeper tissues.
+[...]
+Ludwig’s Angina
+Ludwig’s Angina is a potentially life threatening complication of untreated dental infection. It is a rapidly progressing submaxillary, submandibular, and sublingual necrotizing cellulitis and can lead to airway obstruction and death. It requires an early diagnosis and treatment which may include an urgent surgical airway if the airway is compromised.
+Two thirds of cases of Ludwig’s angina are odontogenic [10], anterior teeth often being the starting site for sublingual infection and 2nd and 3rd molars are a starting point for submaxillary space infection [10]. The presentation is variable, but typical symptoms include dysphagia, neck pain and tooth pain, while signs include tongue elevation and/or protrusion and neck swelling [11]. Trismus is usually absent unless there is spread into the parapharyngeal space. Patients frequently have comorbidities such as diabetes, HIV or are immunosuppressed [10].
+There may also be signs of airway obstruction such as stridor and dyspnoea.
+[...]
+Ludwig’s angina can rapidly progress to airway compromise. Early recognition is the key to treatment.

@@ -1,0 +1,32 @@
+# guideline_id: TR-ERISKIN-ENGELLILIK-2019
+# title: Erişkinler İçin Engellilik Değerlendirmesi Hakkında Yönetmelik
+# publisher: T.C. Aile ve Sosyal Hizmetler Bakanlığı, Engelli ve Yaşlı Hizmetleri Genel Müdürlüğü (mevzuat page); regulation published in the Resmî Gazete
+# version_or_date: Resmî Gazete 20/2/2019, sayı 30692 (as printed on the page); later amendments, if any, are not reflected in this excerpt
+# url: https://www.aile.gov.tr/eyhgm/mevzuat/ulusal-mevzuat/yonetmelikler/eriskinler-icin-engellilik-degerlendirmesi-hakkinda-yonetmelik/
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200; sha256 of the HTML ee71364093e90d140052965bb605638f4fa3fdf9b2b937baa1d5f1273e35b00d); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block (the page itself hard-wraps lines inside a paragraph), whitespace runs collapsed, blank lines dropped
+# scope: verbatim excerpt - the title, the Resmî Gazete line and MADDE 8(1)(a)-(ı); nothing paraphrased or edited; omissions marked [...]. A regulation, not a clinical guideline: cited for which functional facts a disability board records, never for a clinical value.
+---
+Erişkinler İçin Engellilik Değerlendirmesi Hakkında Yönetmelik
+[...]
+Resmi Gazete Tarihi : 20/2/2019 Resmi Gazete Sayısı : 30692
+[...]
+MADDE 8 – (1) Engelli sağlık kurulu raporu düzenlenmesi için;
+a) Birey veya vasisi, başvuru dilekçesi ile rapor vermeye yetkili olan sağlık kuruluşuna başvurur. Değerlendirme için bireyin ve/veya vasisinin sağlık
+beyanına uygun olarak ilgili poliklinikler belirlenerek süreç başlatılır.
+b) Muayene formuna, poliklinik muayene tarihi ve kayıt numarası yazılır.
+c) Engele ilişkin klinik bulgular, ICD kodları, radyolojik tetkikler, laboratuvar bilgileri, tanı, doku, organ ve/veya fonksiyon kaybı ile engel oranı
+Ek-2’de yer alan muayene formuna uygun yazılır, imzalanır ve kaşelenir.
+ç) Raporun başvuru yapılan sağlık kuruluşunca düzenlenmesi esastır. Sağlık kuruluşunda rapor düzenleyecek ilgili branş hekiminin bulunmaması veya gerekli
+tetkiklerin yapılamaması hâllerinde ilgili hekim tarafından konsültasyon formu ile birlikte en yakın sağlık kuruluşundan konsültasyon ve tetkik hizmetleri
+alınarak muayene formu tamamlanır. Tamamlanan muayene formları kurula sevk edilir.
+d) Kurul, birey bizzat görerek bireyin engellilik durumunu bu Yönetmelikte belirtilen esaslara göre belirler.
+e) Raporun ilgili kısmına bireyin engel grubu belirtilir. Birden fazla engel grubu işaretlenebilir, bu kısım boş bırakılmaz.
+f) Raporda yer alan bağımlılık değerlendirmesi alanına “evet” ya da “hayır” ifadesi yazılarak bireyin durumu belirtilir ve bu alan hiç bir suretle boş
+bırakılamaz. Bu Yönetmelikte geçen “tam bağımlı engelli birey” ifadesi, ilgili mevzuatın uygulanması açısından ağır engellilik durumunu ifade eder.
+g) Rapor, sisteme kaydedilir. Sistemden rapor numarası alınmadan düzenlenen raporlar geçersiz rapor olarak kabul edilir.
+ğ) Rapor kurum müracaatlarında üç, bireysel müracaatlarda iki nüsha olarak düzenlenir. Raporun bir nüshası bireye veya vasisine verilir. Kurum müracaatlarında
+raporun bir nüshası raporu isteyen kuruma bildirilir. İhtiyaç hâlinde rapor nüshaları başhekimlik onayı ile çoğaltılır.
+h) Bireyin engellilik durumu dikkate alınarak çalıştırılamayacağı işlerin niteliği rapora mutlaka yazılır.
+ı) Bireylerden engellilik durumu sürekli olarak tekerlekli sandalye veya sedye kullanımını gerektirecek nitelikte olanlar ile sadece engelliliğine uygun
+hareket ettirici özel tertibatla taşıt kullanabilecek olanların durumu raporun açıklama kısmına yazılır.

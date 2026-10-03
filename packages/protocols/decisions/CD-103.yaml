@@ -300,6 +300,12 @@ value:
         must_ask items a proxy form or a subject_role gate in child_health sessions, so that
         a guardian's own pregnancy, smoking, alcohol, weight or complaint never enters the
         child's record (D3 open item 3).
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors, and D3 open item 3 for a guardian's answers in a child's record"
     - item: "docs/evidence/verification/cluster-wave-b.md#L79"
       ref: "cluster-wave-b §A.1 child Q2"
       packets: [cluster_child_health, cocuk_enfeksiyon_hastaliklari]
@@ -371,6 +377,12 @@ value:
         Owner: confirm or overrule the verifier's reading that Q16 is ordinary
         special-category health data released text_first and gated to self-report, or hold
         it.
+      resolved_by: D24
+      owner_answer:
+        answer: "3Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Mental-health Q16 (hearing voices) is ordinary special-category health data, text_first, self-report only."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): its special-category data inventory row"
     - item: "docs/evidence/verification/cluster-wave-b.md#L103"
       ref: "cluster-wave-b §A.3 dental Q10"
       packets: [cluster_dental, ortodonti, pedodonti, periodontoloji, protetik, restoratif]
@@ -382,6 +394,7 @@ value:
       owner_part: >-
         Owner: choose one of the three gen lines in cluster-wave-b §C for dental Q10 (ask
         gated, ask ungated, or delete and leave it to base.life_threat).
+      resolved_by: CD-110
     - item: "docs/evidence/verification/cluster-wave-b.md#L104"
       ref: "cluster-wave-b §A.3 dental Q10 in pedodonti"
       packets: [cluster_dental, pedodonti]
@@ -393,6 +406,7 @@ value:
       owner_part: >-
         Owner: if dental Q10 is kept, confirm that pedodonti re-declares
         nefes_yutkunma_guclugu with the proxy text before INT-223 opens any under-18 path.
+      resolved_by: CD-110
     - item: "docs/evidence/verification/cluster-wave-b.md#L105"
       ref: "cluster-wave-b §A.3 pedodonti (other items)"
       packets: [cluster_dental, pedodonti]
@@ -405,6 +419,12 @@ value:
         Owner, with the self/proxy ADR (wave 8 §E-4): decide how pedodonti suppresses or
         re-addresses the cluster's self-addressed items (bleeding after dental work, bone
         medicine, knocked-out teeth) before INT-223 opens any under-18 path.
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
     - item: "docs/evidence/verification/cluster-wave-b.md#L115"
       ref: "cluster-wave-b §A.4 allied Q3"
       packets: [adli_tip, cluster_allied_and_reports, is_ve_meslek_hastaliklari, saglik_kurulu]
@@ -417,6 +437,12 @@ value:
         Owner: confirm or narrow D3's 'report purpose' scope for the seven allied branches,
         including Adli Tıp; the legal-reviewer confirms whether AL-S1 governs forensic
         reports and that the Madde 8(5) export bar covers Adli Tıp.
+      resolved_by: D24
+      owner_answer:
+        answer: "4Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Occupational clinics may ask sick leave, tenure and household TB contact; Adli Tıp stays out of 'report purpose' until legal review."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): Adli Tıp and the report-purpose export bar"
     - item: "docs/evidence/verification/cluster-wave-b.md#L116"
       ref: "cluster-wave-b §A.4 allied §0 minimal HPI"
       packets: [cluster_allied_and_reports]
@@ -428,6 +454,7 @@ value:
       owner_part: >-
         Base owner: choose a base-level gate or a visit-type rule that makes the base HPI
         conditional for report-only allied visits, or keep it unconditional.
+      resolved_by: CD-110
     - item: "docs/evidence/verification/cluster-wave-b.md#L117"
       ref: "cluster-wave-b §A.4 Evde Sağlık (proxy)"
       packets: [cluster_allied_and_reports, evde_saglik]
@@ -440,6 +467,12 @@ value:
         Owner, with the self/proxy ADR (wave 8 §E-4): decide how Evde Sağlık re-addresses
         or suppresses cluster Q7 and Q10 to Q12 when a carer answers, so that no carer's own
         function enters a report as the patient's.
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): carer-answered data in a health report (a report visit is a legal process)"
 verifier:
   verdict: agree
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
