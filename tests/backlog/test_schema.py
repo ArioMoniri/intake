@@ -153,7 +153,9 @@ def test_ids_unique_and_well_formed() -> None:
     # owner request, GitHub #718).
     # + INT-433 (question screen: native progress, filled inputs, capsule
     # chips, Liquid Glass bars; owner request, GitHub #739).
-    assert len(ids) == 333
+    # + INT-451 (interaction patterns from the owner-listed libraries and
+    # Mobbin, within ADR-033; owner request, GitHub #764).
+    assert len(ids) == 334
     import re
 
     for i in ids:

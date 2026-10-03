@@ -6504,3 +6504,23 @@
     - "question text is unchanged (invariant 10), RED surfaces are untouched, contrast tests pass and Dynamic Type works up to AX5"
   tests: [apps/mobile/src/lib/intake/questionScreen.test.ts, apps/mobile/e2e/questionScreen.spec.ts, apps/mobile/e2e/overflow.spec.ts, apps/mobile/e2e/typed_intake.spec.ts]
   sec_row: "mobile"
+- id: INT-451
+  epic: E08-mobile
+  phase: P1
+  title: "Mobile interaction patterns from the owner-listed libraries and Mobbin, within ADR-033 and Liquid Glass"
+  # GitHub #764. Owner request, 3 Oct 2026. Builds on INT-422, INT-423 and
+  # INT-433 (open PRs #725, #728, #740, merged into this branch). RED, legal
+  # text, question text and copy unchanged; motion beyond ADR-033 is the
+  # ADR-037 proposal and does not ship.
+  depends_on: [INT-433]
+  labels: [area:mobile]
+  status: doing
+  evidence: docs/evidence/INT-451.md
+  acceptance:
+    - "docs/design/interaction-patterns.md records what was adopted, adapted or rejected from kobra.systems, beautifului.dev, kinetics.colorion.co, beui.dev, transitions.dev, astryx.atmeta.com, reverseui.com and Mobbin, with sources cited and each licence verified; no library code is copied"
+    - "the adopted patterns ship within ADR-033 (no spring, scale, translate or duration added; nothing on RED): rows show a press with an instant highlight fill that keeps their text at full ink, and the visit's pushed screens ride the glass nav bar on chrome only, solid under Reduce Transparency"
+    - "contrast tests hold every row pair on the pressed fill in light, dark and both Increase Contrast palettes, with a near-miss for the old dim; question text, RED surfaces and copy are unchanged"
+    - "every spring or scale the survey recommends is an ADR-033 amendment proposal (ADR-037, Proposed) with a clinical-safety rationale, and none of it ships"
+    - "before/after simulator captures are in docs/design/interaction-patterns/"
+  tests: [apps/mobile/src/lib/a11y/rowPress.test.ts, apps/mobile/e2e/interactionPatterns.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/nativeChrome.spec.ts]
+  sec_row: "mobile"

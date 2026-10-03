@@ -3126,3 +3126,35 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. Observed: the dark-mode back chevron is invisible on pushed screens (pre-existing, not in this scope).
 - Next: PR `INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)` (Closes #739, Sec-Row mobile), left unmerged; merge after #725 and #728.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T03:55:00+03:00 · INT-451 · doing (PR open, not merged; carries INT-422, INT-423 and INT-433 until they land; captures pending the owner's simulator grant)
+- Goal (acceptance verbatim, docs/backlog/issues.yaml INT-451):
+  - survey seven libraries the owner named, plus Mobbin, with licences verified;
+  - ship what fits ADR-033 on Liquid Glass chrome only, with Reduce Transparency solid and contrast tested;
+  - put every spring or scale in an ADR-033 amendment proposal;
+  - add before/after captures.
+- Plan:
+  - Merge `origin/int-433-question-screen`, which carries #725 and #728.
+  - Ship two motionless patterns: a row press highlight (`rowPressFill`) and `withGlassNav` on the visit's pushed screens.
+  - Record the rest in `docs/design/interaction-patterns.md` and ADR-037 (Proposed).
+- Tests added (with the near-miss negative for any safety rule):
+  - `src/lib/a11y/rowPress.test.ts`. Near miss: the old 0.7 dim drops a sublabel to about 3.1:1.
+  - `e2e/interactionPatterns.spec.ts`. Near miss: a dimming row callback is caught. It also checks that no touched file has motion or the `emergency` token.
+  - MOTION-12 in `e2e/motion.spec.ts`: the expected list was updated, with the reason.
+  - Red run: 23 failed, 20 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exits 0 (mobile 130 files / 2721 tests);
+  - `pnpm -r typecheck` is clean;
+  - `make check-i18n`: 44 passed;
+  - tests/backlog, tests/docs and smoke pass;
+  - `no_placeholders` OK;
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 5: no i18n change;
+  - 10: question text verbatim;
+  - 17: no filler tokens;
+  - 21: RED untouched; the motion spec's RED file pin passes.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-037 is Proposed (three bounded exceptions: press scale, interactive glass, collapsing large title). No 00_STATE row is written until it is ratified.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner (@ArioMoniri) needs to grant access to the `INT451-16e` simulator ("Let Claude use it" in the simulator panel) so the six captures in interaction-patterns.md §4 can be taken. This is not an HB row: it is a tool grant, not a decision.
+- Next: PR `INT-451: mobile interaction patterns within ADR-033 — row press highlight, glass nav bar, ADR-037 proposal` (Closes #764, Sec-Row mobile). Leave it unmerged and merge it after #725, #728 and #740 once the captures land.
+- LOOP_STATUS: WAITING_HUMAN

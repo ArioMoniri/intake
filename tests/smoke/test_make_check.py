@@ -305,7 +305,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # request, GitHub #718)
     # + INT-433 (question screen redesign, Mobbin-referenced; owner request,
     # GitHub #739); grows only with a stated reason.
-    assert len(ids) == 333, f"expected 175 blueprint + 158 added issues, got {len(ids)}"
+    # + INT-451 (interaction patterns from the owner-listed libraries and
+    # Mobbin, within ADR-033; owner request, GitHub #764); grows only with a
+    # stated reason.
+    assert len(ids) == 334, f"expected 175 blueprint + 159 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
