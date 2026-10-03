@@ -65,7 +65,16 @@ from voice_cast_library import (
     shortlist,
     vendor_client,
 )
-from voice_cast_report import Alignment, aggregate, blind_page, clip_metrics, labelled_page, rank
+from voice_cast_report import (
+    Alignment,
+    aggregate,
+    blind_page,
+    clip_metrics,
+    labelled_page,
+    rank,
+    split_prefix,
+)
+from voice_cast_tags import TagRefused, check_prefix
 from voice_clips.audio import SynthesisedSpeech, wav_bytes, wav_to_speech
 from voice_clips.delivery import (
     DeliveryContext,
@@ -180,10 +189,11 @@ def profile_for(line: CatalogueLine, model_id: str) -> DeliveryProfile:
     return delivery_profile(line.key) if model_id == V2 else v3_profile(line.key)
 
 
-def request_body(text_tr: str, profile: DeliveryProfile) -> dict[str, Any]:
-    """The ADR-028 gateway's request body, field for field."""
+def request_body(text_tr: str, profile: DeliveryProfile, prefix: str = "") -> dict[str, Any]:
+    """The ADR-028 gateway's request body, field for field. A round-2 tag prefix
+    (``voice_cast_tags``) exists only here, on the wire, never in ``text_tr``."""
     return {
-        "text": text_tr,
+        "text": prefix + text_tr,
         "model_id": profile.model_id,
         "apply_text_normalization": "off",
         "voice_settings": profile.voice_settings.as_request(),
@@ -191,17 +201,29 @@ def request_body(text_tr: str, profile: DeliveryProfile) -> dict[str, Any]:
 
 
 def synthesise_aligned(
-    client: httpx.Client, *, text_tr: str, voice_id: str, profile: DeliveryProfile
+    client: httpx.Client,
+    *,
+    text_tr: str,
+    voice_id: str,
+    profile: DeliveryProfile,
+    prefix: str = "",
 ) -> tuple[SynthesisedSpeech, Alignment | None]:
     assert_speakable_tr(text_tr)
     if _MARKUP.intersection(text_tr):
         raise CastRefused("markup in scripted text (invariant 10)")
     if profile.model_id not in (V2, V3):
         raise CastRefused(f"model {profile.model_id!r} is not a casting model")
+    if prefix and profile.model_id != V3:
+        raise CastRefused("audio tags are a v3 render-time proposal only")
+    try:
+        check_prefix(profile.context, prefix)
+    except TagRefused as exc:
+        raise CastRefused(str(exc)) from None
+    assert_speakable_tr(prefix + text_tr)
     response = client.post(
         f"/v1/text-to-speech/{voice_id}/with-timestamps",
         params={"output_format": f"pcm_{ELEVENLABS_PCM_RATE_HZ}"},
-        json=request_body(text_tr, profile),
+        json=request_body(text_tr, profile, prefix),
     )
     if response.status_code // 100 != 2:
         raise CastRefused(f"synthesis answered HTTP {response.status_code} (key not echoed)")
@@ -240,6 +262,15 @@ class Combo:
     model_id: str
     clips: dict[str, str] = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
+    setting: str = ""
+
+
+#: How one line of one combination is requested: its profile and its wire prefix.
+Plan = Callable[[Combo, CatalogueLine], tuple[DeliveryProfile, str]]
+
+
+def default_plan(combo: Combo, line: CatalogueLine) -> tuple[DeliveryProfile, str]:
+    return profile_for(line, combo.model_id), ""
 
 
 def assign_codes(cast: Sequence[Voice], models: Sequence[str]) -> list[Combo]:
@@ -256,6 +287,7 @@ def render(
     lines: Sequence[CatalogueLine],
     budget_usd: float,
     multipliers: Mapping[str, float],
+    plan: Plan = default_plan,
 ) -> int:
     """Render every combination's lines and return the characters sent.
 
@@ -274,24 +306,27 @@ def render(
             if combo.model_id == V3 and (v3_dead or combo.voice.voice_id in v2_failed):
                 combo.errors.append("skipped: v3 refused earlier, or the voice failed on v2")
                 break
-            cost_k = len(line.text_tr) * multipliers.get(combo.model_id, 1.0) / 1000
+            profile, prefix = plan(combo, line)
+            wire = len(prefix) + len(line.text_tr)
+            cost_k = wire * multipliers.get(combo.model_id, 1.0) / 1000
             if (billed_k + cost_k) * USD_PER_1K_CHARS > budget_usd:
                 raise CastRefused("the running spend would pass the budget; stopped")
             billed_k += cost_k
-            chars += len(line.text_tr)
+            chars += wire
             try:
                 speech, alignment = synthesise_aligned(
                     client,
                     text_tr=line.text_tr,
                     voice_id=combo.voice.voice_id,
-                    profile=profile_for(line, combo.model_id),
+                    profile=profile,
+                    prefix=prefix,
                 )
             except (CastRefused, httpx.HTTPError) as exc:
                 combo.errors.append(f"{line.key}: {exc}")
                 continue
             for folder, name, payload in (
                 ("audio", f"{line.key}.wav", wav_bytes(speech)),
-                ("align", f"{line.key}.json", _align_json(alignment)),
+                ("align", f"{line.key}.json", _align_json(alignment, prefix)),
             ):
                 (run_dir / folder / combo.code).mkdir(parents=True, exist_ok=True)
                 (run_dir / folder / combo.code / name).write_bytes(payload)
@@ -303,8 +338,8 @@ def render(
     return chars
 
 
-def _align_json(alignment: Alignment | None) -> bytes:
-    body = {"alignment": alignment.as_json() if alignment else None}
+def _align_json(alignment: Alignment | None, prefix: str = "") -> bytes:
+    body = {"alignment": alignment.as_json() if alignment else None, "prefix": prefix}
     return json.dumps(body, ensure_ascii=False).encode("utf-8")
 
 
@@ -320,11 +355,17 @@ def analyse(run_dir: Path) -> list[tuple[str, float]]:
             speech = wav_to_speech((run_dir / rel).read_bytes())
             align_path = run_dir / "align" / code / f"{key}.json"
             raw = json.loads(align_path.read_text(encoding="utf-8")) if align_path.is_file() else {}
-            alignment = Alignment.from_json(raw.get("alignment"))
+            alignment, tag_ms = split_prefix(Alignment.from_json(raw.get("alignment")), texts[key])
             take = clip_metrics(speech.samples, speech.sample_rate_hz, texts[key], alignment)
             takes.append(take)
-            combo["takes"][key] = asdict(take)
+            combo["takes"][key] = {
+                **asdict(take),
+                "prefix": raw.get("prefix", ""),
+                "tag_ms": tag_ms,
+            }
         combo["metrics"] = aggregate(takes)
+        tag_spans = [t["tag_ms"] for t in combo["takes"].values() if t["tag_ms"] is not None]
+        combo["metrics"]["tag_ms_max"] = max(tag_spans) if tag_spans else None
     ranked = rank({c: v["metrics"] for c, v in index["combos"].items() if v["clips"]})
     index["ranking"] = [{"code": c, "mean_rank": s} for c, s in ranked]
     clips = {c: v["clips"] for c, v in index["combos"].items()}

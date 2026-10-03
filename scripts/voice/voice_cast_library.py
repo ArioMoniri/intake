@@ -224,6 +224,33 @@ def shortlist(voices: Sequence[Voice], size: int = SHORTLIST_SIZE) -> list[Voice
     return sorted(picked, key=lambda v: (-score(v), v.name))
 
 
+#: Words in a voice's own name or description that claim expressiveness or emotion
+#: (English and Turkish stems). Round 2 looks for these on top of eligibility.
+EXPRESSIVE_WORDS: Final = tuple("expressive emotion duygu empath empati heartfelt içten".split())
+
+
+def expressive_extras(
+    voices: Sequence[Voice], exclude: frozenset[str], per_gender: int = 1
+) -> list[Voice]:
+    """Round 2: eligible, middle-aged native voices whose own description names
+    expressiveness or emotion, best metadata score first, ``per_gender`` each."""
+    pool = [
+        v
+        for v in voices
+        if exclusion(v) is None
+        and v.voice_id not in exclude
+        and v.age == "middle_aged"
+        and not set(v.descriptive.replace(",", " ").split()) & AVOID_TONE
+        and not any(w in v.description.lower() for w in BAD_WORDS)
+        and any(w in f"{v.name} {v.description}".lower() for w in EXPRESSIVE_WORDS)
+    ]
+    picked: list[Voice] = []
+    for gender in ("female", "male"):
+        same = sorted((v for v in pool if v.gender == gender), key=lambda v: (-score(v), v.name))
+        picked += same[:per_gender]
+    return picked
+
+
 def george() -> Voice:
     return Voice(
         voice_id=GEORGE_VOICE_ID,

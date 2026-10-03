@@ -250,6 +250,32 @@ def _boundary_jump(
     return None
 
 
+def split_prefix(alignment: Alignment | None, text: str) -> tuple[Alignment | None, float | None]:
+    """The alignment of ``text`` alone, and the audio span (ms) of anything before it.
+
+    A round-2 request carries a tag prefix the catalogue line does not. The vendor
+    may align the tag characters or drop them; either way the line's own characters
+    end the alignment. The span the leading characters cover is reported as a
+    measurement: near zero means the tag was read as direction, not spoken.
+    """
+    if alignment is None:
+        return None, None
+    joined = "".join(alignment.chars)
+    if joined == text:
+        return alignment, None
+    if not joined.endswith(text):
+        return None, None
+    k = len(joined) - len(text)
+    lead = [i for i in range(k) if not alignment.chars[i].isspace()]
+    span = (
+        (max(alignment.ends[i] for i in lead) - min(alignment.starts[i] for i in lead)) * 1000.0
+        if lead
+        else 0.0
+    )
+    tail = Alignment(alignment.chars[k:], alignment.starts[k:], alignment.ends[k:])
+    return tail, span
+
+
 def _mean(values: Sequence[float]) -> float | None:
     return float(np.mean(values)) if values else None
 
@@ -412,7 +438,8 @@ def labelled_page(
             f"<td><b>{html.escape(code)}</b></td>"
             f"<td>{html.escape(str(voice['name']))}<br><code>{html.escape(voice['voice_id'])}"
             f"</code><br><small>{html.escape(str(voice['source']))}</small></td>"
-            f"<td><code>{html.escape(combo['model_id'])}</code></td>"
+            f"<td><code>{html.escape(combo['model_id'])}</code>"
+            f"<br><small>{html.escape(str(combo.get('setting') or ''))}</small></td>"
             f"<td><small>{html.escape(meta)}</small></td>"
             f"<td class='num'>{_fmt(m.get('gap_ms'), 0)}</td>"
             f"<td class='num'>{_fmt(m.get('break_share'), 2)}</td>"
