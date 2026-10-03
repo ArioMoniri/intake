@@ -370,6 +370,31 @@ export function intakeLive(state: RedState | null): boolean {
   return !redStopsDialogue(state);
 }
 
+/**
+ * What the patient is shown, as a key for moving the screen reader's focus
+ * (INT-465 round 4): kind, location, and whether the location question is still
+ * open. Null when nothing is shown.
+ */
+export function redFocusKey(screen: RedScreen): string | null {
+  if (screen.kind === "none") {
+    return null;
+  }
+  if (screen.kind === "ask") {
+    return "ask";
+  }
+  return `act:${screen.location}:${screen.lateAskTr !== null ? "open" : "closed"}`;
+}
+
+/**
+ * Whether the screen reader's focus moves to the RED's words: only when an
+ * ask/act screen changes into a different one — the question answered, or a late
+ * answer that withdraws the 112 control (LD-05). Never on first paint, never on
+ * an identical re-render, never when the RED leaves.
+ */
+export function movesRedFocus(previous: string | null, next: string | null): boolean {
+  return previous !== null && next !== null && previous !== next;
+}
+
 /** Whether the root RED layer covers the navigator (ALERT and CALM), for assistive technology. */
 export function redCoversNavigator(screen: RedScreen): boolean {
   return (screen.kind === "ask" || screen.kind === "act") && screen.mode === "rootLayer";

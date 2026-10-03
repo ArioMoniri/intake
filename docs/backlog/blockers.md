@@ -510,4 +510,4 @@ coordinator decision, not one an agent mints.
 
 | issue | status | who | the one sentence they must answer | HB id |
 |---|---|---|---|---|
-| INT-465 | awaiting-human (the wait only; the no-answer branch is fixed at REMOTE and the device runs an unsigned engineering value on synthetic tenants) | physician of record (**Dr Efe Onganer**) | How long may an unanswered "Şu anda hastanede misiniz?" stand before the RED takes its REMOTE branch? | HB-C25 |
+| INT-465 | awaiting-human (the wait and the late answer; the no-answer branch is fixed at REMOTE, and since LD-05 a late answer still moves the RED; the device runs both on synthetic tenants only) | physician of record (**Dr Efe Onganer**) | How long may an unanswered "Şu anda hastanede misiniz?" stand before the RED takes its REMOTE branch — and may a late answer move the RED, may a later "hayır" restore REMOTE, should the screen say why 112 is gone, and is a SILENT RED's large 112 right? | HB-C25 |

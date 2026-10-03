@@ -103,8 +103,8 @@ class QuestionOut(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     askTr: str  # noqa: N815
-    onYes: Literal["ON_SITE", "REMOTE"]  # noqa: N815
-    onNo: Literal["ON_SITE", "REMOTE"]  # noqa: N815
+    onYes: Literal["ON_SITE"]  # noqa: N815 — yes is in the hospital (INT-465 round 4)
+    onNo: Literal["REMOTE"]  # noqa: N815
     onNoAnswer: Literal["REMOTE"]  # noqa: N815 — never ON_SITE (INT-465; files/04 §8.1 rule 7)
 
 

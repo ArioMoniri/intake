@@ -48,6 +48,26 @@ def test_the_served_catalog_refuses_an_on_site_no_answer_branch() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("on_yes", "on_no"),
+    [("REMOTE", "REMOTE"), ("ON_SITE", "ON_SITE"), ("REMOTE", "ON_SITE")],
+)
+def test_yes_is_on_site_and_no_is_remote_at_both_boundaries(on_yes: str, on_no: str) -> None:
+    """Round 4 (tightening only): "Şu anda hastanede misiniz?" — yes means ON_SITE and
+    no means REMOTE in every committed rule; the types now say so (DSL and catalog)."""
+    with pytest.raises(ValidationError):
+        UnknownAction(ask_one_tr=ASK, on_yes=on_yes, on_no=on_no, on_no_answer="REMOTE")  # type: ignore[arg-type]
+    with pytest.raises(ValidationError):
+        QuestionOut(askTr="x", onYes=on_yes, onNo=on_no, onNoAnswer="REMOTE")  # type: ignore[arg-type]
+
+
+def test_near_miss_yes_on_site_and_no_remote_load() -> None:
+    loaded = UnknownAction(ask_one_tr=ASK, on_yes="ON_SITE", on_no="REMOTE", on_no_answer="REMOTE")
+    assert (loaded.on_yes, loaded.on_no) == ("ON_SITE", "REMOTE")
+    out = QuestionOut(askTr="x", onYes="ON_SITE", onNo="REMOTE", onNoAnswer="REMOTE")
+    assert (out.onYes, out.onNo) == ("ON_SITE", "REMOTE")
+
+
 def _write(tmp_path: Path, source: Path, edit: Any) -> Path:
     doc = copy.deepcopy(yaml.safe_load(source.read_text(encoding="utf-8")))
     edit(doc)

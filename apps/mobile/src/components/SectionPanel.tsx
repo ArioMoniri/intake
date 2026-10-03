@@ -45,7 +45,8 @@ function valueText(row: SectionRow): string {
 interface SectionStripProps {
   filled: number;
   total: number;
-  onPress: () => void;
+  /** Opens the sheet; absent while a RED stands (INT-465), so the strip opens nothing. */
+  onPress?: () => void;
 }
 
 /** The collapsed strip: quiet chrome on the dialogue's glass bar. */
@@ -64,6 +65,8 @@ export function SectionStrip({ filled, total, onPress }: SectionStripProps) {
       // the SC 2.5.8 floor without pushing the composer off the screen.
       hitSlop={verticalSlop(36)}
       onPress={onPress}
+      disabled={onPress === undefined}
+      accessibilityState={{ disabled: onPress === undefined }}
       style={({ pressed }) => [styles.strip, { opacity: pressed ? motion.press.rowOpacity : 1 }]}
     >
       <View style={[styles.stripDot, { backgroundColor: theme.primary }]} />

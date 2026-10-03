@@ -150,6 +150,9 @@ export function useStackHeader(): (title: string) => StackScreenOptions {
   });
 }
 
+/** AppText's host view, for focus moves; screens never name react-native's Text (BK24). */
+export type AppTextHandle = Text;
+
 interface AppTextProps {
   role?: TypeRole;
   color?: keyof ThemeColors;
@@ -185,6 +188,8 @@ interface AppTextProps {
   spokenAs?: string;
   /** The line can be selected and copied (INT-465: the 112 number, files/02 §5.3). */
   selectable?: boolean;
+  /** The line's host view, for a screen that moves the screen reader's focus onto it (INT-465). */
+  ref?: Ref<AppTextHandle>;
   children: ReactNode;
 }
 
@@ -196,6 +201,7 @@ export function AppText({
   live,
   spokenAs,
   selectable = false,
+  ref,
   children,
 }: AppTextProps) {
   const theme = useTheme();
@@ -218,6 +224,7 @@ export function AppText({
     // Sizes come from scaledSize; RN's own multiplier is disabled so the
     // 2.0 cap (layout-survival, 02 §8.2) is applied in exactly one place.
     <Text
+      ref={ref}
       allowFontScaling={false}
       accessibilityRole={heading ? "header" : live !== undefined ? "alert" : undefined}
       accessibilityLiveRegion={live}

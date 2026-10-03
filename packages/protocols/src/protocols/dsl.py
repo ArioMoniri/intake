@@ -482,11 +482,13 @@ class UnknownAction(FrozenModel):
         "locale's entry: a language in which this asked two questions would be a "
         "language deciding which action resolves (CLAUDE.md invariant 21)."
     )
-    on_yes: Literal["ON_SITE", "REMOTE"] = Field(
-        description="Branch taken on yes (files/protocols/base.life_threat.yaml)."
+    on_yes: Literal["ON_SITE"] = Field(
+        description='Branch taken on yes to "Şu anda hastanede misiniz?": ON_SITE '
+        "(files/protocols/base.life_threat.yaml; INT-465 round 4, tightening only)."
     )
-    on_no: Literal["ON_SITE", "REMOTE"] = Field(
-        description="Branch taken on no (files/protocols/base.life_threat.yaml)."
+    on_no: Literal["REMOTE"] = Field(
+        description="Branch taken on no: REMOTE (files/protocols/base.life_threat.yaml; "
+        "INT-465 round 4, tightening only)."
     )
     on_no_answer: Literal["REMOTE"] = Field(
         description="Safe branch if and only if the question was asked and went "

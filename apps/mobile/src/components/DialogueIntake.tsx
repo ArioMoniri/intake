@@ -209,6 +209,7 @@ export function DialogueIntake({
   const frozenAt = frozenRef.current;
   useEffect(() => {
     if (stopsDialogue) {
+      setSheetOpen(false); // an open sheet's confirms are commits too (round 4)
       void session.leave();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- leave() is stable in effect; the RED is the trigger
@@ -324,6 +325,9 @@ export function DialogueIntake({
   /** Panel-row confirm of one pending suggestion (invariant 1: this tap
    * IS the patient's confirm — nothing commits without it). */
   const confirmRow = (questionId: string) => {
+    if (stopsDialogue) {
+      return; // CD-24 generic_red_stops_intake: nothing commits under a RED
+    }
     const candidate = state.pending[questionId];
     if (candidate === undefined) {
       return;
@@ -708,7 +712,7 @@ export function DialogueIntake({
               <SectionStrip
                 filled={model.filled}
                 total={model.total}
-                onPress={() => setSheetOpen(true)}
+                onPress={stopsDialogue ? undefined : () => setSheetOpen(true)}
               />
               {!stopsDialogue && turn.phase === "listening" ? (
                 <View style={styles.barItem}>

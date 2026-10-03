@@ -455,7 +455,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // DEFERRED — not asked quieter, not asked in text — and the note carries
   // `eksik: ortam uygun değildi` (buildNote). Wellbeing is today's only
   // deferral consumer; the dev packs carry no sensitive-flagged questions.
-  if (detayli && privacy === "unchecked" && !editing) {
+  // INT-465 round 4: it is a question with two commit controls, so a standing
+  // RED skips it like every other step and the flow below shows <RedInFlow />.
+  if (live && detayli && privacy === "unchecked" && !editing) {
     return (
       <ScrollView
         contentContainerStyle={styles.content}

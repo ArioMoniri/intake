@@ -19,12 +19,16 @@
  * transport). The words are the rule's own `tr`, verbatim; this file adds only
  * the controls around them. Under ON_SITE the 112 control is not rendered —
  * absent, not de-emphasised — and under UNKNOWN it is not rendered until the
- * one location question is answered.
+ * one location question is answered, or until the unsigned no-answer wait takes
+ * the rule's REMOTE branch (CD-24; HB-C25). After that wait the question stays
+ * open below the 112 control, and a late answer still moves the RED (LD-05).
+ * When the RED changes under the patient, the screen reader's focus moves to its
+ * words (`useRedFocus`), never on first paint.
  */
-import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { AccessibilityInfo, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { AppText, useTheme } from "@/components/Themed";
+import { AppText, useTheme, type AppTextHandle } from "@/components/Themed";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { authedFetch } from "@/lib/auth/api";
 import { deviceClock, todayIso } from "@/lib/clock";
@@ -35,7 +39,9 @@ import { startNoAnswerClock } from "@/lib/red/noAnswerClock";
 import {
   createRedHop,
   EMERGENCY_NUMBER,
+  movesRedFocus,
   redCoversNavigator,
+  redFocusKey,
   redScreen,
   redStore,
   type RedHop,
@@ -88,13 +94,35 @@ function useRulesEngineHop(): void {
   }, [notes, visits, kioskActive]);
 }
 
+/**
+ * Moves the screen reader's focus to the RED's words when the RED changes under
+ * the patient — the question answered, or a late answer that withdraws the 112
+ * control (INT-465 round 4; LD-05). Post-paint, never on first paint and never on
+ * an identical re-render (lib/red/store.ts `movesRedFocus`); the KioskGate pattern.
+ */
+function useRedFocus(screen: RedScreen): RefObject<AppTextHandle | null> {
+  const lead = useRef<AppTextHandle>(null);
+  const shown = useRef<string | null>(null);
+  const key = redFocusKey(screen);
+  useEffect(() => {
+    const previous = shown.current;
+    shown.current = key;
+    const node = lead.current;
+    if (movesRedFocus(previous, key) && node !== null) {
+      AccessibilityInfo.sendAccessibilityEvent(node, "focus");
+    }
+  }, [key]);
+  return lead;
+}
+
 function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" }> }) {
   // SILENT has no headline (files/02 §5.3): the words read as the flow's own.
   const headline = screen.mode === "rootLayer";
+  const lead = useRedFocus(screen);
   if (screen.kind === "ask") {
     return (
       <View style={styles.body}>
-        <AppText role={headline ? "title" : "body"} heading={headline}>
+        <AppText ref={lead} role={headline ? "title" : "body"} heading={headline}>
           {screen.askTr}
         </AppText>
         <View style={styles.row}>
@@ -113,7 +141,7 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
   return (
     <View style={styles.body}>
       {/* INT-465: never wordless — the catalog is refused without CD-24's copy. */}
-      <AppText role={headline ? "title" : "body"} heading={headline}>
+      <AppText ref={lead} role={headline ? "title" : "body"} heading={headline}>
         {screen.actionTr}
       </AppText>
       {screen.call112 ? (

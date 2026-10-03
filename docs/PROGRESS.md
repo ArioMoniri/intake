@@ -36,8 +36,19 @@
     - HB-C25 (the unsigned no-answer wait) was added;
     - a late location answer after the wait is honoured (LD-05, INT-471 #800), and BK13
       cites it.
-    Recorded, not built: the hop notifies no clinic (INT-406 added to `depends_on`), and the
-    cardiac do-not lines are unsourced. Rule bytes are unchanged, so there was no re-sign.
+    Recorded, not built: the hop notifies no clinic, and the cardiac do-not lines are unsourced.
+    Rule bytes are unchanged, so there was no re-sign.
+  - Review round 4 (orchestrator, REQUEST_CHANGES), test-first with near misses:
+    - the privacy self-check is gated on `live`;
+    - the hop-lane notification gap is held by two tripwire tests and owned by INT-475 (#814);
+      `depends_on` is back to [INT-432, INT-446, INT-453];
+    - focus moves to the RED's words when it changes (never on first paint);
+    - the section sheet cannot open or commit under a RED;
+    - the 112 block near miss is added;
+    - HB-C25 carries the five LD-05 physician questions;
+    - `on_yes`/`on_no` are narrowed;
+    - the kiosk/RED-store observation is recorded under INT-476 (#815).
+    No rule bytes changed, so there was no re-sign.
 - Invariants touched and still passing: 1, 2, 7, 10, 14, 17, 21, 22.
 - Decisions / ADRs / `00_STATE.md` rows: CD-25 (decision register); D23 (owner, 3 Oct 2026, read with D18). D17 and HB-C1 are unchanged, and INT-058 (cosign) is untouched.
 - Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b, HB-C25). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).

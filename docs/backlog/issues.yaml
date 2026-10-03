@@ -6560,12 +6560,14 @@
   # D18: a non-exportable OpenBao test key on the synthetic AWS host signs the
   # rule set that host serves to simulated patients, and every non-synthetic
   # tenant rejects it. D17 and HB-C1 are unchanged; INT-058 (cosign) is the
-  # production path and is untouched. Review round 3 (docs/evidence/INT-465.md,
-  # findings): INT-406 (the clinic Safety inbox) backs the ON_SITE line
-  # "Görevlilere haber verildi." — the voice runtime's RED reaches that inbox,
-  # the API triage hop does not yet; INT-081 (the engine that binds typed
-  # answers) is what the hop needs before a typed answer can fire the rule.
-  depends_on: [INT-081, INT-406, INT-432, INT-446, INT-453]
+  # production path and is untouched. Follow-up, not a prerequisite: INT-475
+  # (GitHub #814) makes the API triage hop raise the clinic Safety-inbox entry
+  # and sends the device's location answer to the server, so the ON_SITE line
+  # "Görevlilere haber verildi." holds on every lane (finding 6 in
+  # docs/evidence/INT-465.md). Until then the round-4 tripwire tests in
+  # tests/api/test_triage_hop.py prove no served RED rule can fire through the
+  # hop. INT-476 (GitHub #815) owns the kiosk-wipe / RED-store finding.
+  depends_on: [INT-432, INT-446, INT-453]
   labels: [area:protocols, risk:clinical, risk:security]
   status: done
   evidence: docs/evidence/INT-465.md

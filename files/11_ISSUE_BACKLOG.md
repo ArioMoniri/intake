@@ -178,7 +178,7 @@
 | INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 | INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done |
 | INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
-| INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-081, INT-406, INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
+| INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
 
 ## P1
 

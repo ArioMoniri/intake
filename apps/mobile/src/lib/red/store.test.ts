@@ -26,8 +26,10 @@ import {
   dialogueFrozenAt,
   dialogueShown,
   intakeLive,
+  movesRedFocus,
   RedCatalogIncomplete,
   redCoversNavigator,
+  redFocusKey,
   redScreen,
   redStopsDialogue,
   UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS,
@@ -444,6 +446,25 @@ describe("RED store — escalation only", () => {
         });
       }
     }
+
+    // Round 4 (MAJOR 3): a late "evet" is the one path that withdraws an emergency
+    // instruction already given, so the screen reader's focus follows the change.
+    it("a late answer moves the screen reader's focus to the new words; an identical re-render does not", () => {
+      const store = createRedStore();
+      store.present(trigger("ALERT", "UNKNOWN"), CATALOG);
+      const asked = redFocusKey(redScreen(store.getSnapshot()));
+      expect(movesRedFocus(null, asked)).toBe(false); // first paint: never
+      store.answerLocation("noAnswer");
+      const remote = redFocusKey(redScreen(store.getSnapshot()));
+      expect(movesRedFocus(asked, remote)).toBe(true); // ask → act
+      store.answerLocation("inHospital");
+      const onSite = redFocusKey(redScreen(store.getSnapshot()));
+      expect(movesRedFocus(remote, onSite)).toBe(true); // REMOTE + 112 → ON_SITE, 112 gone
+      // Near miss: the same screen rendered again moves nothing.
+      expect(movesRedFocus(onSite, redFocusKey(redScreen(store.getSnapshot())))).toBe(false);
+      // …and a RED that leaves the screen moves nothing either.
+      expect(movesRedFocus(onSite, redFocusKey({ kind: "none" }))).toBe(false);
+    });
 
     it("the patient's own answer is final: nothing moves it afterwards", () => {
       const store = createRedStore();

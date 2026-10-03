@@ -437,8 +437,18 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
 
   it("REMOTE shows 112 as large selectable text beside the tel: control (files/02 §5.3)", () => {
     const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
-    expect(layer).toMatch(/selectable[^>]*>\s*\{EMERGENCY_NUMBER\}/);
-    expect(layer).toMatch(/Linking\.openURL\(`tel:\$\{EMERGENCY_NUMBER\}`\)/);
+    const start = layer.indexOf("{screen.call112 ? (");
+    const end = layer.indexOf(") : null}", start);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const block = layer.slice(start, end);
+    expect(block).toMatch(/selectable[^>]*>\s*\{EMERGENCY_NUMBER\}/);
+    expect(block).toMatch(/Linking\.openURL\(`tel:\$\{EMERGENCY_NUMBER\}`\)/);
+    // Near miss (invariant 21): the number appears nowhere outside the call112
+    // gate except its import, so no location can show it ungated.
+    const rest = layer.slice(0, start) + layer.slice(end);
+    expect(rest.match(/EMERGENCY_NUMBER/g)).toEqual(["EMERGENCY_NUMBER"]);
+    expect(rest).not.toMatch(/tel:/);
   });
 
   it("after the no-answer branch the question stays answerable, below the action and 112 (LD-05)", () => {
@@ -450,6 +460,21 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
     expect(late).toBeGreaterThan(call);
     expect(layer.slice(late)).toMatch(/redStore\.answerLocation\("inHospital"\)/);
     expect(layer.slice(late)).toMatch(/redStore\.answerLocation\("notInHospital"\)/);
+  });
+
+  it("when the RED changes under the patient, the screen reader's focus moves to its words (round 4)", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    // One post-paint effect, keyed on what the patient is shown, moves focus
+    // with the KioskGate pattern; lib/red/store.ts decides when (first paint
+    // and an identical re-render never move it — store.test.ts).
+    expect(layer).toMatch(/const key = redFocusKey\(screen\);/);
+    expect(layer).toMatch(
+      /if \(movesRedFocus\(previous, key\) && node !== null\) \{\s*AccessibilityInfo\.sendAccessibilityEvent\(node, "focus"\);/,
+    );
+    expect(layer).toMatch(/\}, \[key\]\);/);
+    // The target is the RED's own words: the question, and the action.
+    expect(layer).toMatch(/<AppText ref=\{lead\}[^>]*>\s*\{screen\.askTr\}/);
+    expect(layer).toMatch(/<AppText ref=\{lead\}[^>]*>\s*\{screen\.actionTr\}/);
   });
 
   it("the unsigned no-answer wait cites its human blocker, HB-C25", () => {
@@ -529,6 +554,13 @@ describe("INT-446 — the RED path", () => {
     for (const i of bars) {
       expect(lines[i - 1], `GlassBar at line ${i + 1}`).toMatch(/\{live && /);
     }
+    // Round 4: the 02 §33 privacy self-check is an early return with two commit
+    // controls, so it is gated on `live` too. Near miss: while the intake is live
+    // the same branch still asks its question.
+    const check = typed.indexOf('if (live && detayli && privacy === "unchecked" && !editing)');
+    expect(check).toBeGreaterThan(-1);
+    expect(typed).not.toMatch(/if \(detayli && privacy === "unchecked"/);
+    expect(typed.slice(check, check + 400)).toMatch(/t\("intake\.privacy\.q"\)/);
   });
 
   it("the dialogue hides its composer and its way back to the steps while a RED stands", () => {
@@ -537,6 +569,26 @@ describe("INT-446 — the RED path", () => {
       /\{!stopsDialogue \? \(\s*<Pressable[^>]*accessibilityLabel=\{t\("voiceFirst\.typeInstead"\)\}/,
     );
     expect(dialogue).toMatch(/\{!stopsDialogue \? \(\s*<View style=\{styles\.composerRow\}>/);
+  });
+
+  it("the section sheet cannot open or commit while a RED stands (round 4)", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    // The strip opens nothing under a RED…
+    expect(dialogue).toMatch(
+      /<SectionStrip[\s\S]{0,160}onPress=\{stopsDialogue \? undefined : \(\) => setSheetOpen\(true\)\}/,
+    );
+    // …a row confirm writes nothing…
+    const confirm = dialogue.indexOf("const confirmRow = (questionId: string) => {");
+    expect(confirm).toBeGreaterThan(-1);
+    expect(dialogue.slice(confirm, confirm + 160)).toMatch(/if \(stopsDialogue\) \{\s*return;/);
+    // …and an open sheet closes when the RED arrives.
+    expect(dialogue).toMatch(
+      /if \(stopsDialogue\) \{\s*setSheetOpen\(false\);\s*void session\.leave\(\);/,
+    );
+    // Near miss: without a RED the strip still opens the sheet.
+    const strip = code(readFileSync(join(SRC, "components/SectionPanel.tsx"), "utf8"));
+    expect(strip).toMatch(/onPress\?: \(\) => void;/);
+    expect(strip).toMatch(/disabled=\{onPress === undefined\}/);
   });
 
   it("the navigator is hidden from assistive technology under the root RED layer (Android and iOS)", () => {

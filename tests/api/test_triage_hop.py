@@ -31,6 +31,9 @@ import pytest
 import yaml
 from api_harness import ADMIN_TOKEN, PATIENT_TOKEN, ApiHarness, build_harness
 from intake_api.consent_guard import unguarded_data_routes
+from protocols.compile.life_threat import load_life_threat_set
+from protocols.triage.expr import And, BoolRef, Compare, Lit, Or, WhenNode, parse_when
+from protocols.types import RuleStatus
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SIGNED = REPO_ROOT / "tests" / "fixtures" / "protocols" / "compile" / "life_threat_signed.yaml"
@@ -502,6 +505,89 @@ def test_near_miss_112_in_the_remote_script_is_served(tmp_path: Path) -> None:
         response = harness.client.get("/v1/triage/red-scripts", headers=harness.patient())
         assert response.status_code == 200, response.text
         assert response.json()["scripts"]["rf.sentetik_yasamsal.remote"]["actionTr"] == words
+
+
+def requires_bool(node: WhenNode) -> bool:
+    """Whether ``node`` can only come out TRUE with a boolean answer bound.
+
+    The hop carries strings and lists of strings only (``EvaluateIn.answers``), and a
+    string compared with a boolean is UNKNOWN, never TRUE (protocols.triage.expr
+    ``_equal``). So a boolean atom, or a comparison against a boolean literal, can
+    never be TRUE through the hop; an AND fails if any part needs a boolean; an OR
+    only if every part does. A NOT is counted as fireable, the cautious reading.
+    """
+    if isinstance(node, BoolRef):
+        return True
+    if isinstance(node, Compare):
+        return any(
+            isinstance(side, Lit) and isinstance(side.value, bool)
+            for side in (node.left, node.right)
+        )
+    if isinstance(node, And):
+        return any(requires_bool(item) for item in node.items)
+    if isinstance(node, Or):
+        return all(requires_bool(item) for item in node.items)
+    return False
+
+
+@pytest.mark.parametrize(
+    ("when", "needs_bool"),
+    [
+        ("a.b", True),
+        ("a.b == true", True),
+        ("a.b == 'x'", False),
+        ("a.b == true && c.d == 'x'", True),
+        ("a.b == true || c.d == 'x'", False),
+        ("a.b == true || c.d == false", True),
+        ("!(a.b == 'x')", False),
+        ("a.b in {'x', 'y'}", False),
+    ],
+)
+def test_the_tripwire_reads_the_grammar(when: str, needs_bool: bool) -> None:
+    assert requires_bool(parse_when(when)) is needs_bool
+
+
+def test_tripwire_no_served_red_rule_can_fire_through_the_hop() -> None:
+    """INT-465 finding 6; INT-475 (GitHub #814) owns the fix.
+
+    The ON_SITE RED says "Görevlilere haber verildi." and the hop notifies no clinic.
+    That copy may stand on the synthetic host only while no served RED rule can reach a
+    patient through the hop: every active KIRMIZI rule in base.life_threat needs a
+    boolean answer, which the hop cannot carry. When this test or the schema pin below
+    fails, a RED can reach a patient through the hop, and finding 6 closes in the same
+    PR (INT-475: the hop raises the Safety-inbox entry and the device's location answer
+    reaches the server).
+    """
+    served = load_life_threat_set(LIFE_THREAT)
+    reds = [
+        entry.rule
+        for entry in served.rules
+        if entry.rule.status is RuleStatus.ACTIVE and entry.rule.level.value.startswith("KIRMIZI")
+    ]
+    assert [rule.id for rule in reds] == [CARDIAC]
+    for rule in reds:
+        assert requires_bool(parse_when(rule.when)), rule.id
+    # Near miss: the SENTETİK rule fires through the hop from a string answer
+    # (test_red_answer_returns_the_data_channel_packet), and the tripwire says so.
+    sentetik = load_life_threat_set(SIGNED, allow_fixture_snapshots=True).rules[0].rule
+    assert not requires_bool(parse_when(sentetik.when))
+
+
+def test_tripwire_the_hop_refuses_a_json_boolean_answer(tmp_path: Path) -> None:
+    """The schema half of the tripwire above: a JSON boolean is a 422, so the served
+    cardiac rule's boolean atoms stay unbindable through the hop (INT-475)."""
+    booleans = {"chest_pain.present": True, "associated.dyspnoea": True}
+    for harness in _synthetic(tmp_path):
+        response = harness.client.post(
+            "/v1/triage/evaluate",
+            headers=harness.patient(),
+            json={"location": "ON_SITE", "reference_time": REFERENCE_TIME, "answers": booleans},
+        )
+        assert response.status_code == 422, response.text
+        # Near miss: the same answers as strings are accepted, and no RED comes back.
+        strings = {"chest_pain.present": "true", "associated.dyspnoea": "true"}
+        body = _evaluate(harness, strings, "ON_SITE")
+        assert body["kind"] == "triage_level", body
 
 
 def test_a_synthetic_tenant_refuses_a_changed_byte(tmp_path: Path) -> None:
