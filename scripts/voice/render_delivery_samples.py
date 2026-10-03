@@ -17,8 +17,11 @@ selects the ADR-028 offline clip-gen adapter. The key and base URL come from
 the environment the gateway already reads, and this tool never prints, logs or
 stores either. The text passes ``assert_speakable_tr`` (invariant 22) and the
 vendor normaliser stays off. The model stays pinned: every candidate is a
-``DeliveryProfile`` for ``eleven_multilingual_v2``, built through the same
-bounds checks as the table.
+``DeliveryProfile`` for the pinned ``ELEVENLABS_MODEL_ID``, built through the
+same bounds checks as the table. The INT-424 set was rendered on
+``eleven_multilingual_v2``; since the cast (INT-449, D20) the pin is
+``eleven_v3`` and the served voice is ``CLIPGEN_VOICE_ID``, so the bundled
+clips are rendered by ``scripts/voice/render_cast_clips.py`` instead.
 
 **Spend is capped twice.** ``--plan`` (the default) dials nothing and prints
 the character count and the estimate. ``--live`` refuses unless

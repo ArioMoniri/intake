@@ -320,7 +320,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # proposal, owner request, GitHub #719); grows only with a stated reason.
     # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
     # INT-428, GitHub #753); grows only with a stated reason.
-    assert len(ids) == 340, f"expected 175 blueprint + 165 added issues, got {len(ids)}"
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
+    # with a stated reason.
+    assert len(ids) == 341, f"expected 175 blueprint + 166 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

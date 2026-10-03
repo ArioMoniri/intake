@@ -54,6 +54,7 @@ from voice_clips import (
     load_clip_manifest,
 )
 from voice_clips.delivery import (
+    CLIPGEN_VOICE_ID,
     DEFAULT_DELIVERY_CONTEXT,
     DELIVERY_CONTEXTS,
     DELIVERY_PROFILES,
@@ -151,11 +152,10 @@ class TestEveryContextResolves:
             )
 
 
-# ------------------------------------------------------------- v2 (INT-424)
+# ------------------------------------------- earlier tables (INT-424, INT-449)
 
 
-#: The INT-415 rows as merged, spelled out once: the v2 retune is a diff
-#: against these, and their keys must never be reused by a v2 clip.
+#: The INT-415 rows as merged (v1), spelled out once: (stability, style, speed).
 V1_SETTINGS = {
     "welcome": (0.40, 0.20, 0.98),
     "routine": (0.55, 0.05, 1.00),
@@ -166,45 +166,81 @@ V1_SETTINGS = {
     "closing": (0.42, 0.20, 0.97),
 }
 
+#: The INT-424 rows (v2), George on eleven_multilingual_v2: (stability, style,
+#: speed). The cast (INT-449, D20) replaced them; no v2 clip may answer for v4.
+V2_SETTINGS = {
+    "welcome": (0.38, 0.30, 0.98),
+    "routine": (0.55, 0.05, 1.00),
+    "sensitive": (0.65, 0.00, 0.92),
+    "instrument": (0.85, 0.00, 0.93),
+    "acknowledgement": (0.45, 0.15, 1.00),
+    "red": (0.90, 0.00, 0.92),
+    "closing": (0.42, 0.20, 0.97),
+}
+#: George and the model the earlier tables were tuned on.
+GEORGE = "JBFqnCBsd6RMkjVDRZzb"
+EARLIER_MODEL = "eleven_multilingual_v2"
 
-class TestTheV2Table:
-    """INT-424: the table is retuned from rendered samples and bumped to v2, so
-    every clip made under v1 is a cache miss rather than a stale replay."""
 
-    def test_the_table_is_version_two(self) -> None:
-        assert PROFILE_VERSION == 2
+def _earlier(
+    version: int, table: dict[str, tuple[float, float, float]], context: str
+) -> DeliveryProfile:
+    """The row ``context`` as an earlier table had it: George, the old model,
+    no tags, that table's settings, that version."""
+    current = delivery_profile(context)
+    stability, style, speed = table[context]
+    return dataclasses.replace(
+        current,
+        version=version,
+        model_id=EARLIER_MODEL,
+        voice_id=GEORGE,
+        tags=(),
+        voice_settings=dataclasses.replace(
+            current.voice_settings, stability=stability, style=style, speed=speed
+        ),
+    )
+
+
+class TestTheTableVersion:
+    """INT-424 bumped the table to v2 and the cast (INT-449, D20) to v4, so every
+    clip made under an earlier table is a cache miss rather than a stale replay."""
+
+    def test_the_table_is_version_four(self) -> None:
+        assert PROFILE_VERSION == 4
         assert {profile.version for profile in DELIVERY_PROFILES.values()} == {PROFILE_VERSION}
 
     @pytest.mark.parametrize("context", SEVEN)
-    def test_every_context_resolves_to_a_v2_key(self, context: str) -> None:
-        assert delivery_profile(context).key == f"delivery.{context}@v2"
+    def test_every_context_resolves_to_a_v4_key(self, context: str) -> None:
+        assert delivery_profile(context).key == f"delivery.{context}@v4"
 
     @pytest.mark.parametrize("context", ["red", "instrument"])
-    def test_red_and_instrument_stay_neutral_in_v2(self, context: str) -> None:
+    def test_red_and_instrument_are_never_less_stable_than_an_earlier_table(
+        self, context: str
+    ) -> None:
         settings = delivery_profile(context).voice_settings
         assert settings.style == 0.0
-        assert settings.stability >= V1_SETTINGS[context][0], "never less stable than v1"
+        assert settings.stability >= V1_SETTINGS[context][0]
+        assert settings.stability >= V2_SETTINGS[context][0]
 
     @pytest.mark.parametrize("context", SEVEN)
-    def test_the_bump_changes_every_clip_key(self, context: str, bundle: CompiledBundle) -> None:
-        v2 = delivery_profile(context)
-        stability, style, speed = V1_SETTINGS[context]
-        v1 = dataclasses.replace(
-            v2,
-            version=1,
-            voice_settings=dataclasses.replace(
-                v2.voice_settings, stability=stability, style=style, speed=speed
-            ),
-        )
+    @pytest.mark.parametrize(("version", "table"), [(1, V1_SETTINGS), (2, V2_SETTINGS)])
+    def test_every_earlier_table_is_another_clip_key(
+        self,
+        context: str,
+        version: int,
+        table: dict[str, tuple[float, float, float]],
+        bundle: CompiledBundle,
+    ) -> None:
+        current, older = delivery_profile(context), _earlier(version, table, context)
         entry = bundle.clip_manifest[0].entry
-        assert v1.key != v2.key
-        assert clip_object_key(entry, profile=v1) != clip_object_key(entry, profile=v2)
+        assert older.key == f"delivery.{context}@v{version}" != current.key
+        assert clip_object_key(entry, profile=older) != clip_object_key(entry, profile=current)
 
     def test_the_same_settings_under_a_new_version_are_still_a_new_key(
         self, bundle: CompiledBundle
     ) -> None:
         """Near-miss control: the key moves on the version alone, so a row whose
-        values the review kept is still re-synthesised under v2."""
+        values a review kept is still re-synthesised under the new version."""
         profile = delivery_profile("routine")
         older = dataclasses.replace(profile, version=PROFILE_VERSION - 1)
         entry = bundle.clip_manifest[0].entry
@@ -226,35 +262,47 @@ class TestTheOwnersPrinciplesHold:
         assert all(mine >= other.voice_settings.stability for other in _others("red", "instrument"))
         assert all(mine > other.voice_settings.stability for other in _others("red", "instrument"))
 
+    # INT-449 (D20; ADR-034 amendment accepted by the owner's pick of E04, 3 Oct
+    # 2026): on eleven_v3 the warmth of the opening and the softness of a
+    # sensitive question are carried by closed-table audio tags, not by a lower
+    # stability or a slower speed. E04 was heard at one Natural stability and
+    # the default speed for every tagged context, so the INT-415 numeric
+    # tuning these tests used to pin is superseded; RED and instrument keep
+    # their rule above, now as Robust (the most stable) and never tagged.
+
     @pytest.mark.parametrize("context", ["welcome", "closing"])
-    def test_welcome_and_closing_are_the_warmest(self, context: str) -> None:
-        mine = _p(context).voice_settings
-        rest = _others("welcome", "closing")
-        assert all(mine.stability < other.voice_settings.stability for other in rest)
-        assert all(mine.style >= other.voice_settings.style for other in rest)
-        assert 0.0 < mine.style <= MAX_STYLE, "modest style: present, and capped"
+    def test_welcome_and_closing_carry_the_warm_tag_and_nothing_else_does(
+        self, context: str
+    ) -> None:
+        assert _p(context).tags == ("[warmly]",)
+        assert all("[warmly]" not in p.tags for p in _others("welcome", "closing"))
 
-    def test_sensitive_is_slower_and_steadier_than_routine(self) -> None:
-        sensitive, routine = _p("sensitive").voice_settings, _p("routine").voice_settings
-        assert sensitive.speed < routine.speed
-        assert sensitive.stability > routine.stability
-        assert sensitive.style <= routine.style
+    def test_a_sensitive_question_is_asked_softly(self) -> None:
+        assert _p("sensitive").tags == ("[softly]", "[reassuring]")
 
-    def test_routine_is_calm_and_neutral(self) -> None:
-        routine = _p("routine").voice_settings
-        assert 0.95 <= routine.speed <= 1.0, "an unhurried normal pace, never brisk"
-        assert routine.style <= _p("acknowledgement").voice_settings.style
-        assert routine.stability > _p("welcome").voice_settings.stability
+    def test_routine_is_calm_and_an_acknowledgement_gentle(self) -> None:
+        assert _p("routine").tags == ("[calm]",)
+        assert _p("acknowledgement").tags == ("[gently]",)
 
-    def test_an_acknowledgement_is_warm_and_does_not_drag(self) -> None:
-        ack, routine = _p("acknowledgement").voice_settings, _p("routine").voice_settings
-        assert ack.style > 0.0
-        assert ack.stability < routine.stability
-        assert ack.speed >= routine.speed
+    @pytest.mark.parametrize("context", ["red", "instrument"])
+    def test_red_and_instrument_never_carry_a_tag(self, context: str) -> None:
+        assert _p(context).tags == ()
+        assert _p(context).wire_prefix == ""
+
+    def test_the_tagged_contexts_are_the_cast_take_e04(self) -> None:
+        """Natural stability, default speed, no style: the settings E04 was heard at."""
+        for profile in _others("red", "instrument"):
+            settings = profile.voice_settings
+            assert (settings.stability, settings.speed, settings.style) == (0.5, 1.0, 0.0)
+        for context in ("red", "instrument"):
+            assert _p(context).voice_settings.stability == 1.0
+
+    def test_style_is_never_exaggerated(self) -> None:
+        assert all(p.voice_settings.style <= MAX_STYLE for p in DELIVERY_PROFILES.values())
 
     def test_the_voice_stays_the_same_voice_in_every_profile(self) -> None:
         """Similarity and speaker boost are identity knobs; a delivery profile
-        may change how George speaks, never whose voice it is."""
+        may change how the cast voice speaks, never whose voice it is."""
         similarity = {p.voice_settings.similarity_boost for p in DELIVERY_PROFILES.values()}
         boost = {p.voice_settings.use_speaker_boost for p in DELIVERY_PROFILES.values()}
         assert len(similarity) == 1
@@ -262,6 +310,35 @@ class TestTheOwnersPrinciplesHold:
 
     def test_every_profile_is_pinned_to_the_one_model(self) -> None:
         assert {p.model_id for p in DELIVERY_PROFILES.values()} == {ELEVENLABS_MODEL_ID}
+        assert ELEVENLABS_MODEL_ID == "eleven_v3"
+
+    def test_every_profile_speaks_in_the_one_cast_voice(self) -> None:
+        """INT-449: the owner's blind pick E04, the same in every row."""
+        assert {p.voice_id for p in DELIVERY_PROFILES.values()} == {CLIPGEN_VOICE_ID}
+        assert CLIPGEN_VOICE_ID == "2PwDxni9MpXdYqgALrBh"
+
+    def test_the_cast_bumped_every_row_to_v4(self) -> None:
+        """A clip made in George's voice, or under any earlier tuning, is a
+        cache miss and never a replay."""
+        assert {p.version for p in DELIVERY_PROFILES.values()} == {4}
+
+
+class TestTagsAreClosedAndOnlyOnTheWire:
+    @pytest.mark.parametrize("context", ["red", "instrument"])
+    def test_a_tag_on_red_or_instrument_is_refused(self, context: str) -> None:
+        with pytest.raises(DeliveryProfileError):
+            dataclasses.replace(_p(context), tags=("[calm]",))
+
+    @pytest.mark.parametrize(
+        "tag", ["[pause]", "[Warmly]", "warmly", "[warmly", "[two words]", "[sıcak]", "[1]", ""]
+    )
+    def test_a_tag_that_is_not_one_lowercase_bracketed_word_is_refused(self, tag: str) -> None:
+        with pytest.raises(DeliveryProfileError):
+            dataclasses.replace(_p("welcome"), tags=(tag,))
+
+    def test_the_wire_prefix_is_the_tags_and_one_space(self) -> None:
+        assert _p("sensitive").wire_prefix == "[softly] [reassuring] "
+        assert _p("welcome").wire_prefix == "[warmly] "
 
 
 # ---------------------------------------------------------------- the bounds
@@ -419,8 +496,8 @@ class TestTheOfflineBuildSpeaksEachRowInItsProfile:
         build_clip_cache(manifest=manifest, gateway=gateway, cache=cache)
         expected = [delivery_profile(row.delivery_context).key for row in manifest.entries]
         assert gateway.profiles == expected
-        assert f"delivery.red@v{PROFILE_VERSION}" in gateway.profiles
-        assert f"delivery.routine@v{PROFILE_VERSION}" in gateway.profiles
+        assert "delivery.red@v4" in gateway.profiles
+        assert "delivery.routine@v4" in gateway.profiles
 
     def test_the_object_key_carries_the_profile_id_and_version(
         self, dist: Path, recordings: Path, cache: ClipCache
@@ -495,8 +572,17 @@ class TestARecordingIsBoundToItsProfile:
                 text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
             )
 
+    def test_a_george_era_recording_is_refused_after_the_cast(self, tmp_path: Path) -> None:
+        """INT-449 near miss: same context and text, the last version George was
+        made under (v2, INT-424); the cast bumped every row to v4."""
+        self._record(tmp_path, "delivery.red@v2")
+        with pytest.raises(RecordedSpeechMismatchError):
+            RecordedTtsGateway(root=tmp_path).synthesise(
+                text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
+            )
+
     def test_a_recording_for_the_same_profile_is_replayed(self, tmp_path: Path) -> None:
-        self._record(tmp_path, delivery_profile("red").key)
+        self._record(tmp_path, "delivery.red@v4")
         speech = RecordedTtsGateway(root=tmp_path).synthesise(
             text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
         )

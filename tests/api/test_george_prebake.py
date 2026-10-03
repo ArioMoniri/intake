@@ -58,7 +58,7 @@ def test_apply_bakes_every_row_in_its_context_and_never_red(tmp_path: Path) -> N
     wiring = _wiring(tmp_path, gateway)
     code, out, _ = _run(wiring, "apply", "--max-characters", "1000")
     assert code == 0 and "elevenlabs=2" in out
-    assert sorted(gateway.profiles) == ["delivery.instrument@v2", "delivery.routine@v2"]
+    assert sorted(gateway.profiles) == ["delivery.instrument@v4", "delivery.routine@v4"]
     assert RED not in gateway.seen
     # a second run finds everything cached and sends nothing
     code, out, _ = _run(wiring, "apply", "--max-characters", "0")

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**340 issues.** By phase: P0 167 · P1 119 · P2 47 · P3 7. By status: awaiting-human 36 · doing 5 · done 225 · todo 73 · withdrawn 1.
+**341 issues.** By phase: P0 167 · P1 120 · P2 47 · P3 7. By status: awaiting-human 36 · doing 5 · done 226 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -302,6 +302,7 @@
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-424 | ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal | E05-voice | INT-415 | area:voice | done |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
+| INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 
 ## P2
 

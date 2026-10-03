@@ -111,7 +111,7 @@ def test_a_catalogue_text_is_one_request_in_the_clip_gen_shape() -> None:
     body = json.loads(request.content)
     assert body == {
         "text": SCRIPTED,
-        "model_id": "eleven_multilingual_v2",
+        "model_id": "eleven_v3",
         "apply_text_normalization": "off",
         "voice_settings": profile.voice_settings.as_request(),
     }
@@ -152,7 +152,11 @@ def test_a_profile_for_another_model_and_a_bad_voice_id_are_refused() -> None:
     vendor = Vendor()
     lane = _lane(vendor)
     other = ElevenLabsHostedTts(
-        host=lane.host, key=lane.key, policy=lane.policy, admits=lane.admits, model_id="eleven_v3"
+        host=lane.host,
+        key=lane.key,
+        policy=lane.policy,
+        admits=lane.admits,
+        model_id="eleven_multilingual_v2",
     )
     with pytest.raises(DeliveryProfileMismatchError):
         other.synthesise(text_tr=SCRIPTED, voice_id=VOICE, profile=delivery_profile("routine"))

@@ -166,7 +166,9 @@ def test_ids_unique_and_well_formed() -> None:
     # the expressive-model ADR proposal; owner request, GitHub #719).
     # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
     # INT-428, GitHub #753).
-    assert len(ids) == 340
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    assert len(ids) == 341
     import re
 
     for i in ids:

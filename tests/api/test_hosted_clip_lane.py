@@ -9,8 +9,9 @@ What is held here, each with its near miss:
 - **Where the wiring comes from.** The synthetic lane reads its key from the
   key store, its host from the allow-list row, its cache from its own
   variable; a PHI deployment never touches the key store.
-- **What the route serves.** A catalogue text in the v2 profile of its
-  context, cached by ``delivery.<context>@v2``; a hit is free and never dials;
+- **What the route serves.** A catalogue text in the v4 profile of its
+  context (the cast voice E04 on eleven_v3, D20), cached by
+  ``delivery.<context>@v4``; a hit is free and never dials;
   RED is refused; a vendor failure falls back to the self-hosted lane when one
   is configured, recorded in ``X-Clip-Lane``, the cache path and the metric.
 - **The app's catalogue.** The committed file loads and admits what the app
@@ -35,7 +36,6 @@ from intake_api.consent_guard import dev_voice_scripted_routes
 from intake_api.dev_voice import (
     CLIP_LANE_TOTAL,
     GEORGE_CLIP_PATH,
-    GEORGE_VOICE_ID,
     GeorgeClipCache,
     GeorgeWiring,
     george_wiring_from_env,
@@ -62,7 +62,7 @@ from intake_platform.egress import (
 )
 from intake_platform.model_lanes.keys import ProviderApiKey
 from voice_clips.audio import SynthesisedSpeech
-from voice_clips.delivery import DeliveryProfile, delivery_profile
+from voice_clips.delivery import CLIPGEN_VOICE_ID, DeliveryProfile, delivery_profile
 
 REPO = Path(__file__).resolve().parents[2]
 SHIPPED_ALLOWLIST = REPO / "infra" / "security" / "egress-allowlist.yaml"
@@ -281,7 +281,7 @@ def _count(lane: str, cache: str) -> float:
     return CLIP_LANE_TOTAL.labels(lane=lane, cache=cache)._value.get()  # type: ignore[no-any-return]
 
 
-def test_a_catalogue_text_is_served_by_elevenlabs_in_its_v2_profile(tmp_path: Path) -> None:
+def test_a_catalogue_text_is_served_by_elevenlabs_in_its_v4_profile(tmp_path: Path) -> None:
     vendor = Vendor()
     client = router_client(_wiring(tmp_path, vendor))
     before = _count("elevenlabs", "miss")
@@ -293,10 +293,10 @@ def test_a_catalogue_text_is_served_by_elevenlabs_in_its_v2_profile(tmp_path: Pa
     (request,) = vendor.requests
     body = json.loads(request.content)
     routine = delivery_profile("routine")
-    assert routine.key == "delivery.routine@v2"
-    assert body["model_id"] == "eleven_multilingual_v2"
+    assert routine.key == "delivery.routine@v4"
+    assert body["model_id"] == "eleven_v3"
     assert body["voice_settings"] == routine.voice_settings.as_request()
-    assert request.url.path == f"/v1/text-to-speech/{GEORGE_VOICE_ID}"
+    assert request.url.path == f"/v1/text-to-speech/{CLIPGEN_VOICE_ID}"
     assert (tmp_path / "clips" / routine.key).is_dir(), "cache keyed by profile@version"
 
 
