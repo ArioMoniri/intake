@@ -6602,6 +6602,27 @@
     - "the approval:human-clinical label on #726 is cleared through this process"
   tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
   sec_row: "clinical-content"
+- id: INT-449
+  epic: E05-voice
+  phase: P1
+  title: "Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation"
+  # GitHub #762. Owner request, 3 Oct 2026: George is an English voice speaking
+  # Turkish; the intonation between words is off and the delivery lacks
+  # emotion. ADR-034 keeps eleven_multilingual_v2 unless the owner re-decides;
+  # a v3 pick is the owner's decision, recorded in that ADR. The owner picked
+  # E04 on 3 Oct 2026 ("use E04 voice"; D20): eleven_v3, render-time tags, the
+  # ADR-034 amendment accepted. The pin is applied and the bundled set was
+  # re-rendered in E04 (226/226, evidence). Copying the gitignored clips into
+  # the app is INT-440's dev-build step (#768).
+  depends_on: [INT-415]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-449.md
+  acceptance:
+    - "native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines; the owner picks from a blind page"
+    - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
+  tests: [tests/voice/test_cast_turkish_voices.py]
+  sec_row: "cloud-clipgen"
 - id: INT-450
   epic: E12-admin
   phase: P1

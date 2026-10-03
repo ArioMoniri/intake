@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**340 issues.** By phase: P0 166 · P1 120 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 228 · todo 73 · withdrawn 1.
+**341 issues.** By phase: P0 166 · P1 121 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 229 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -300,6 +300,7 @@
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
+| INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 | INT-450 | admin-web UI upgrade with owner-listed component libraries (licence-checked) | E12-admin | INT-181, INT-182, INT-187, INT-351, INT-366 | area:admin | done |
 | INT-459 | admin-web premium redesign | E12-admin | INT-450 | area:admin | done |
 

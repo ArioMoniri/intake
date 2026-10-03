@@ -77,6 +77,50 @@
 - Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
 - Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619; #598 landed on main during the iteration. After merge, the owner deploys the provider (runbook §3).
 
+### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
+- Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
+- Plan:
+  - D20 records the pick, and the ADR-034 render-time-tags amendment is Accepted.
+  - `voice_clips.delivery` pins `CLIPGEN_VOICE_ID` `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, with every row at v4.
+  - Tagged contexts sit at Natural stability. RED and instrument sit at Robust and are never tagged.
+  - The gateway prepends the profile's tags on the wire only, and the dev route speaks E04.
+  - `render_cast_clips.py` re-renders INT-440's set behind a quota check and spend gates.
+- Tests added: E04 table tests; tag rules (a tag on RED or instrument refused, `[pause]` and malformed tags refused); a request test that the text is the tags plus the verbatim line, with no tag on RED or instrument; a numeral refused with a tag in front; and 15 re-render tests (quota short or unreadable, stop on refusal, resume).
+  - Near miss: a George-era `@v1` recording is refused.
+  - RED: an ImportError, plus 9 clip-gen failures.
+  - GREEN: voice-clips lane 1,190 (99.74 %); voice-runtime lane 1,676 (98.65 %); API voice tests 60; backlog, smoke and docs 94; ruff and the check-py `mypy --strict` set clean; text gates OK.
+- Result:
+  - The coordinator ran the render: 226 of 226 lines, 16,963 characters, about 5.09 USD at the planning rate.
+  - Every address is the set's own hash, and no RED or instrument clip is present.
+  - Clips are in `.cache/bundled-clips-e04/`. Copying them into the app is INT-440's gitignored dev-build step (#768).
+- Invariants touched and still passing: 10 (tags never in `text_tr`), 19 (offline lane), 20, 21 (RED is the most stable and untagged), 22 (numerals refused before the wire).
+- Decisions / ADRs / `00_STATE.md` rows: D20, and the ADR-034 amendment Accepted.
+  - Open amendment gates: 2 (registry row and vendor terms), 3 (vendor numeral fixture), 5 (round-trip ASR) and 7 (a Robust RED or instrument take to listen to).
+- Blocked on: nothing for INT-449. INT-319's ask (a), the vendor's commercial-use terms, stays open.
+- Next: #768 copies the clips and switches its renderer to the pin after #772. #775 sends `wire_prefix`. #734 and #768 conflict on `delivery.py`, and whichever lands second takes v4.
+- LOOP_STATUS: DONE
+
+### 2026-10-03T01:30:00Z · INT-449 · awaiting-human (PR open, the owner's pick)
+- Goal: acceptance verbatim (GitHub #762): *"Native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines. The owner picks from a blind page."* and *"The chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered. Intonation continuity between words is measured."*
+- Plan:
+  - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
+  - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
+  - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
+- Tests added: `tests/voice/test_cast_turkish_voices.py` (33).
+  - Near-miss controls: a line one word off its source refuses the whole run; a George-era `@v1` recording is refused once the pin lands (in the prepared change).
+  - RED: collection error with the modules absent, then 5 failures (a property called as a method; a verified accent overriding the voice's own).
+  - GREEN: 33 passed.
+- Result: docs/evidence/INT-449.md and docs/voice/casting-2026-10.md.
+  - The coordinator ran the render: 6,516 characters, 1.95 USD at the planning rate, all 108 takes aligned.
+  - Cavit ranks first on both models; Mine (v3) and Toprak (v2) follow among the native voices.
+  - George on v2 ranks third, so the continuity figures do not hear accent and the owner's blind ear decides.
+  - Pins 330 → 331; files/11 regenerated. The check-py lanes touched are green; `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 10 (catalogue text only, verbatim against its source, markup refused), 19 (offline lane only, ADR-028), 20 (measurements of these takes, not properties), 22 (`assert_speakable_tr` before the wire; normaliser off).
+- Decisions / ADRs / `00_STATE.md` rows: none taken. A v3 pick is a model change recorded as the owner's decision in ADR-034 (PR #734).
+- Blocked on: the owner's pick of a blind code (Ario Moniri: *"Which coded row should the clip set be built with?"*). This answers docs/backlog/blockers.md INT-319 ask (c); ask (a), the vendor's commercial-use terms, stays open.
+- Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
