@@ -63,6 +63,7 @@ from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.talker.clips import ClipCatalogue, ClipRef
 from protocols.dsl import clip_text_hash
 from pydantic import ValidationError
+from red_harness import RecordingClinicNotifier
 from talker_harness import (
     VOICE_ID,
     FakeClock,
@@ -669,6 +670,7 @@ def test_a_voice_session_spends_characters_and_a_typed_session_spends_none() -> 
         sink=parity.RecordingSink(clock=voice_clock),
         memory=parity.InMemoryPatientMemory(),
         tenant_id=parity.TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=parity.RecordingScreen(),
         meter=voice_meter,
     )
@@ -684,6 +686,7 @@ def test_a_voice_session_spends_characters_and_a_typed_session_spends_none() -> 
         gateway=parity.ScriptedGateway(parity.ANSWERS),
         memory=parity.InMemoryPatientMemory(),
         tenant_id=parity.TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=parity.RecordingScreen(),
         meter=typed_meter,
     )
@@ -713,6 +716,7 @@ def test_both_profiles_spend_the_same_tokens_on_the_same_answers() -> None:
         sink=parity.RecordingSink(clock=voice_clock),
         memory=parity.InMemoryPatientMemory(),
         tenant_id=parity.TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=parity.RecordingScreen(),
         meter=voice_meter,
     )
@@ -728,6 +732,7 @@ def test_both_profiles_spend_the_same_tokens_on_the_same_answers() -> None:
         gateway=parity.ScriptedGateway(parity.ANSWERS),
         memory=parity.InMemoryPatientMemory(),
         tenant_id=parity.TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=parity.RecordingScreen(),
         meter=typed_meter,
     )
@@ -750,6 +755,7 @@ def test_a_session_composed_without_a_meter_is_unchanged() -> None:
         gateway=parity.ScriptedGateway(parity.ANSWERS),
         memory=parity.InMemoryPatientMemory(),
         tenant_id=parity.TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=parity.RecordingScreen(),
     )
     _drive(stack, clock)
