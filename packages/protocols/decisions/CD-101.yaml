@@ -1180,4 +1180,7 @@ value:
         a later revision? This decision keeps them ungated; the question is only
         whether the mechanism should exist.
 verifier:
-  verdict: pending
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

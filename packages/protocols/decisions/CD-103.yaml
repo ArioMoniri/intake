@@ -441,10 +441,7 @@ value:
         or suppresses cluster Q7 and Q10 to Q12 when a carer answers, so that no carer's own
         function enters a report as the patient's.
 verifier:
-  verdict: pending
-  notes: >-
-    Round 1 (independent verifier, via the INT-448 lead): agree_with_changes. Applied in
-    round 2: L75 keeps both feeding constructs (az_beslenme as CD-100 T9 decides it, and
-    icemez_ememez as a separate ungated item); NG143's poor feeding is kept, not merged;
-    the PH50 sources carry a caveat that PH50 is cited for how a safeguarding enquiry is
-    made.
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (feeding constructs reconciled; PH50 caveat); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
