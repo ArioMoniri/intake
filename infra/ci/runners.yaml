@@ -1,8 +1,18 @@
 # INT-206 — the self-hosted CI runner pools (files/08 §6 CI row; files/06 §5).
 #
-# THE LIST IS EMPTY AND THAT IS THE CURRENT STATE, not an omission.
+# ONE POOL IS DECLARED, AND IT IS NOT THE TR-DC POOL.
 #
-# Two open rows own it, and neither is an engineering question:
+# INT-463: on 3 Oct 2026 the owner ordered every GitHub Actions run onto the
+# AWS host (billing). intake-aws-ci is that pool: an ephemeral runner on EC2
+# i-0e489e48739f5de98 in us-east-1, the host that serves synthetic staging only.
+# It is installed from infra/ci/aws-runner. Every field below was read from the
+# host and the GitHub API, not invented. It answers the spend half of HB-I7 for
+# a pool outside Türkiye. It does not answer the TR-DC residency claim in
+# files/06 §5, which stays open under the rows below. That is safe only because
+# no PHI is ever in CI (phi_path: false, and the six-surface policy enforces it).
+#
+# The TR-DC pool is still undeclared. Two open rows own it, and neither is an
+# engineering question:
 #
 #   HB-I7  — self-hosted CI runners. 175 issues x a realistic 35-60 min PR gate
 #            is 100-175 CPU-hours; the loop is bounded by CI, not by the model.
@@ -20,14 +30,11 @@
 # Reading HB-I5 as blocking CI runners would postpone a choice that is actually
 # available to be made.
 #
-# So there is no facility to name, no provider to name and no runner label that
-# resolves to anything — not because none could exist, but because nobody has
-# chosen. Nothing here is filled in with a plausible value:
-# intake_platform.ci fails closed on any `runs-on` that names a self-hosted
-# label absent from this file, and the runner-heartbeat probe reports the
-# blocker row rather than a result. Until a pool exists, CI runs on
-# GitHub-hosted runners, which files/08 §6 records as the fallback precisely
-# because no PHI is ever in CI.
+# So there is no TR facility to name, no TR provider to name, and no TR runner
+# label that resolves to anything. That is not because none could exist; it is
+# because nobody has chosen one. Nothing here is filled in with a plausible
+# value. intake_platform.ci fails closed on any `runs-on` that names a
+# self-hosted label absent from this file.
 #
 # WHAT A ROW MUST CARRY, and why each field is refused rather than defaulted:
 #
@@ -50,4 +57,17 @@
 #   max_heartbeat_age_s  how stale a heartbeat may be before the pool is
 #                        reported unhealthy
 
-pools: []
+pools:
+  - label: intake-aws-ci
+    location: "AWS us-east-1 (us-east-1c), EC2 i-0e489e48739f5de98, the synthetic staging host. Not in Türkiye: this is not the TR-DC pool of files/06 §5"
+    provider: "Amazon Web Services, Inc. (account 235229001983)"
+    # A user-owned repository has no runner groups. The runner is registered
+    # at repository level, so it is reachable from ArioMoniri/intake only.
+    runner_group: "repository-level: ArioMoniri/intake (a user-owned repository has no runner groups)"
+    ephemeral: true
+    phi_path: false
+    # The GitHub API reports this runner's status (online, busy). No collector
+    # reads it into the sweep yet, so the probe reports a missing heartbeat
+    # rather than a healthy pool.
+    heartbeat_url: "https://api.github.com/repos/ArioMoniri/intake/actions/runners"
+    max_heartbeat_age_s: 600

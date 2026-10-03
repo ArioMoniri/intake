@@ -302,7 +302,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
     # commit status, owner request, GitHub #721); grows only with a stated
     # reason.
-    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
+    # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
+    # 3 Oct 2026, GitHub #790); grows only with a stated reason.
+    assert len(ids) == 332, f"expected 175 blueprint + 157 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

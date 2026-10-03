@@ -1,5 +1,42 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T17:00:00Z · INT-463 · awaiting-human (PR open, not merged; owner applies the workflow patch)
+- Goal: the acceptance, verbatim (GitHub #790):
+  - a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; ephemeral, re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker for that user is rootless only.
+  - every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml.
+  - on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner.
+- Plan:
+  - Install the runner over SSM from `infra/ci/aws-runner`:
+    - a root, unsandboxed supervisor (`cycle.sh`) runs the guards, registers with `--ephemeral`, runs one job in the sandboxed `intake-aws-ci-job.service`, then wipes;
+    - rootless Docker runs in its own sandboxed unit;
+    - everything sits on the instance-store NVMe, under a resource slice.
+  - Declare the pool.
+  - Write the test.
+  - Hand the workflow change to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/ci/test_aws_runner.py`, with a hosted-name near-miss control.
+  - `tests/infra/test_ci_no_phi.py` is updated for the declared pool. The TR-DC label still fails closed, and a declared pool with no collected heartbeat reports Failed, not healthy.
+  - Red run: 40 failed, 37 passed. After the pool was declared: 39 failed (the 13 jobs × 3 `runs-on` assertions the owner patch fixes) and 113 passed.
+  - The patch was checked with `git apply --check` plus a YAML parse on `main` and on #643's branch: 13/13 jobs on intake-aws-ci.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local: the touched lanes, backlog counts and smoke counts (332), shellcheck, and no_placeholders (staged).
+  - The full check-py, check-ts, check-integration and security gates run on the PR, on the AWS runner, after the owner commit.
+  - Host isolation was measured as ghrunner (docs/evidence/INT-463.md).
+- Invariants touched and still passing:
+  - 6: no PHI in CI. The pool is phi_path false, and the six-surface policy is unchanged.
+  - 13: the ci-runners probe now reports a missing heartbeat rather than Skipped.
+  - 14: every gate still runs, with the same tools and pins; only the machine changes.
+  - 17.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - The owner's order of 3 Oct 2026 answers HB-I7's spend for a non-TR pool. The note is on HB-I7.
+  - The TR-DC pool stays open (HB-L11).
+  - No ADR was minted: no invariant is relaxed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - owner: apply `owner-ci-aws-runners.patch` to this branch and push (security.yml is hook-protected; the classifier refuses workflow edits from an agent);
+  - owner: pipe a fine-grained registrar token into `scripts/ci/aws_runner.sh registrar`, so the runner re-registers after every job without the hourly token. HB-I7.
+- Next: once the owner commit lands, read every job's `runner_name` on the PR run and record it in the evidence.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
 - **Goal.** The acceptance, verbatim (GitHub #721):
   - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*
