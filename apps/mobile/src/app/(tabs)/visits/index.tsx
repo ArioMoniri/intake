@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Link, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { EmptyState } from "@/components/EmptyState";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { Segmented, type SegmentedOption } from "@/components/Segmented";
@@ -34,6 +35,7 @@ import {
 } from "@/lib/calendar";
 import { deviceClock, todayIso, type Clock } from "@/lib/clock";
 import { getLocale, t } from "@/lib/i18n";
+import { haptic } from "@/lib/motion/appHaptics";
 import { useSession, type VisitFixture } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 import { splitVisits } from "@/lib/visits";
@@ -100,18 +102,17 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
           {t("visits.title")}
         </AppText>
         {visits.length === 0 ? (
-          <Card>
-            <AppText role="body" color="inkSoft">
-              {t("visits.empty")}
-            </AppText>
-          </Card>
+          <EmptyState icon="calendar" message={t("visits.empty")} />
         ) : (
           <>
             <Segmented
               label={t("visits.view.label")}
               options={viewOptions}
               value={view}
-              onChange={(id) => setView(id as ViewMode)}
+              onChange={(id) => {
+                haptic("select", { surface: "visits", valueChanged: id !== view });
+                setView(id as ViewMode);
+              }}
             />
             {view === "list" ? (
               <>
@@ -147,7 +148,10 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
                   viewMonth={viewMonth}
                   onChangeMonth={setViewMonth}
                   selectedIso={selectedDay}
-                  onSelectDay={setSelectedDay}
+                  onSelectDay={(iso) => {
+                    haptic("select", { surface: "visits", valueChanged: iso !== selectedDay });
+                    setSelectedDay(iso);
+                  }}
                 />
                 <View style={styles.section}>
                   <AppText role="label" heading color="inkSoft">

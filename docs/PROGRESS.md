@@ -137,6 +137,50 @@
 - Merge with main after #670 (INT-123), evidence §12: `record_embeddings` is declared. The sweep reads it in the patient's RLS namespace, the export lists it in the documents section (without the vector's numbers), and the erasure declares SELECT and DELETE on it. RED 2 failed, 26 passed; GREEN 176 passed. One alembic head (`0014_int123`). Pins: main's count + 1 (324 after the second merge of main, which brought INT-409..413); files/11 regenerated.
 - Next: PR `INT-395: DSAR erasure and export cover every patient-deletable table` (Closes #654, Sec-Row data-at-rest), left unmerged for review.
 
+### 2026-09-27T15:30:00+03:00 · INT-340 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #539):
+  - *"no haptic while the voice session is active or the microphone is hot (read at fire time), for any RED register, or for the rest of a session in which a SILENT RED or a third party occurred"*
+  - *"no haptic for consent, errors or intake chips; success fires only on a server-confirmed outcome; HapticCall has no error, warning or heavy member"*
+  - *"expo-haptics is imported only by the engine adapter via import(); its licence is verified from the raw LICENSE blob; the Android build blocks VIBRATE"*
+- Plan:
+  - A pure `hapticFor` policy (`motion/haptics.ts`) and a pure live gate (`motion/hapticGate.ts`). The gate reads probes at fire time, and again before the native call. Its SILENT/third-party flag cannot be cleared, and it lets one haptic through per commit and per action id.
+  - One adapter (`motion/native/hapticsEngine.ts`), the only file that names expo-haptics, reached through `import()`. Android plays `performAndroidHapticsAsync` only.
+  - `app.config.ts` blocks VIBRATE for every profile; app.json is untouched.
+  - Wiring, each a one-line call in a handler beside its visual:
+    - `select`: Görünüm's three `Segmented`, the visits Liste/Takvim switch and a calendar day;
+    - `toggleOn`/`toggleOff`: the two Görünüm `SwitchRow`s;
+    - `arm`: the share revoke's and the DSAR erasure's first tap;
+    - `success`: link issued, link revoked and DSAR recorded or withdrawn, each after the server's answer.
+  - The dialogue (`voiceSessionActive`, `micHot`) and `VoiceNote` (`micHot`) register live probes. The companion declaration marks the session.
+  - Not wired, each with its reason: note sent (the review send is local and has no server confirmation), CSAT, the notification rows and every consent row.
+  - Dependency: expo-haptics ~57.0.3 (`npx expo install`). MIT, read from the raw root LICENSE at the package's `gitHead` 9e5319c0 and byte-identical to the tarball's copy (sha256 fb3ca4a8…), retrieved 2026-09-27.
+- Tests added (with the near-miss negative for any safety rule):
+  - `motion/haptics.test.ts` (17): the 12 DoD titles verbatim, plus a positive control, the companion wiring, errors, fail-closed inputs and engine failure. Near misses:
+    - the mic turns hot while the adapter loads;
+    - the mic is hot when asked and cold later;
+    - a stale caller-supplied mic state;
+    - a dismissed ALERT or CALM (not sticky);
+    - DEFERRED_CLINICIAN (invisible);
+    - an unknown register;
+    - the patient alone (no mark).
+  - `e2e/motion.spec.ts` MOTION-11 (4): lazy-only import, the VIBRATE block over four profiles and three configs, the closed wiring list, and the microphone owners.
+  - One store test each for shares and DSAR.
+  - RED: 4 guards failed and the policy module was missing; the 2 store tests failed against `main`'s stores. GREEN: 58/58, and the whole mobile suite 113 files, 2283 tests.
+  - Mutants: 19 of 19 killed (2 of them by `tsc` at the `expectTypeOf` pins), each restored with `cp`.
+- Result:
+  - Passed: `make check-ts` exit 0 (mobile lint 0 errors), `make check-i18n` 30 passed, `tests/backlog` + `tests/smoke` + `test_threat_model` 81 passed, the licence gate, prettier, `expo export --platform ios --dev` (the lazy import resolved) and `expo config --type introspect` (VIBRATE `tools:node="remove"`).
+  - The first `check-i18n` run caught a generic that the scanner read as a JSX text node; it was fixed.
+  - `make check` was not run whole (check-integration is CI-only); `make safety` and `make security` were not run (no protocol, triage or Python change).
+- Invariants touched and still passing: 3 and 9 (the dialogue edit reads `recorder.isRecording` and a ref only), 6 (nothing logs), 8 (+23 tests), 17 (every module has its consumer; `presentRed` is for INT-135's RED layer), 19 (MIT, verified from the raw blob), 21 (no RED path touched; ADR-033 Q2's default of none).
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+  - It follows ADR-033 §6 (Proposed) in its fail-closed defaults.
+  - The session boundary is the app process, the same life as the companion declaration. It over-suppresses, which is the fail-closed direction.
+  - iOS maps toggles to the selection tick and arm to a Light impact (spec §6.1). Android excludes Long_Press and Drag_Start, which AOSP maps to a heavy click.
+  - `docs/security/threat-model.md` `mobile` gains "Controls added by INT-340".
+- Blocked on: nothing. DoD B: the legal-reviewer confirms the permission inventory, the licence-auditor confirms MIT, and ClinicalAuthor Dr Efe Onganer answers ADR-033 Q2 (default: none).
+- Next: PR `INT-340: Haptics: one policy, sticky suppression, server-confirmed success` (Closes #539, Sec-Row mobile).
+- LOOP_STATUS: CONTINUE
+
 ### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
 - Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
   - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
@@ -169,6 +213,49 @@
 - Blocked on: owner (backlog) — "Does the worker tier become `services/workers`, under which issue, and what objective does each worker SLI files/08 §4 A leaves open carry?" (`docs/backlog/blockers.md` INT-021; no HB id is minted here).
 - Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T12:00:00+03:00 · INT-337 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #536):
+  - *"content enters with a 120 ms opacity-only fade at delay 0 and is never deferred; the patient's own typed message renders instantly; no frame shows two questions"*
+  - *"transcript reveal and work chips are commit-window classes, deferred while listening or composing and flushed at the next window; chip selection and confirm commits add no motion"*
+- Plan:
+  - A pure scene reducer in `lib/motion/transients.ts` asks the INT-334 arbiter about every new dialogue element.
+  - `native/useDialogueMotion.ts` steps it in the render that changes the scene, and reports each fade's end with a timer.
+  - The dialogue wraps every entry in the arbiter's fade under `LayoutAnimationConfig skipEntering`.
+  - Transcripts wait for the window; the orb's ring is the dialogue's work chip.
+  - Stacked on INT-336 (#716).
+- Tests added:
+  - `transients.test.ts`: 13 MOTION-8 tests over one whole conversation, including a fake-clock test (a fade stalled 30 s defers no content and moves no turn).
+  - `motion.spec.ts`: one self-contained MOTION-8 block with 4 guards.
+  - `a11y.spec.ts`: a BK13 classification for the hook's timer.
+  - RED: the module is missing, and 5 guards fail. GREEN: the whole mobile suite, 121 files and 2457 tests.
+  - Mutants: 15 of 15 killed.
+- Result:
+  - `make check-ts` and `make check-i18n` exit 0.
+  - `tests/backlog` and `tests/smoke` pass (74).
+  - `no_placeholders` is OK after staging.
+  - `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing: 11 (shape), 9, 1 (posture), 8, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The orb's loop hold (ARB-2) is not wired; it is outside this row's acceptance and is recorded in the evidence.
+- Blocked on: nothing.
+- Next: PR `INT-337: Motion: dialogue transients wired to the arbiter` (Closes #536, Sec-Row intake-voice). It merges after #716.
+
+### 2026-09-27T20:30:00+03:00 · INT-336 · partial — device step pending (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #535):
+  - *"orb state is event-driven from orbStateFor with no clock; typed lane, RED ALERT/CALM, failed and handoff hide it; RED SILENT maps to idle; only listening is level-reactive"*
+  - *"the level updates at ≤ 10 Hz with zero React renders per sample; the orb is hidden from accessibility and not pressable; it is opacity-only until the owner answers the scale question"*
+  - *"release-build device evidence: a JS-thread stall does not stop the orb and DialogueIntake's render count stays flat across a ten-second listen"*
+- Plan: re-land the orb from `main`. The first PR (#702) merged into INT-333's branch after that branch had already merged, so nothing reached `main`. The change is the same: the pure `lib/motion/orb.ts` and the orb tokens; `PresenceOrb.tsx` on the UI thread; `native/useLevelSampler.ts` writing one shared value; the dialogue drops `PulseDot` and its three spinners. ADR-033 Q5 is open, so the orb is opacity-only.
+- Tests added:
+  - `orb.test.ts`, 20 tests, including a new fake-clock test: the orb stalled 30 s changes no turn, and every turn is decided at its event.
+  - Six MOTION-7 guards, scoped inside their `describe`. Two are new: nothing waits on the orb; the orb writes no number of its own.
+  - RED: the module is missing and 9 guards fail. GREEN: the whole mobile suite, 121 files and 2435 tests.
+  - Mutants: 20 of 20 killed. M13 survived at first and exposed a gap, which the number guard closes.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass (74); `no_placeholders` is OK after staging. `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing: 3, 6, 11 (the level is one scalar, and the orb adds no wait to a turn), 9, 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. `docs/design/motion/enhancements.md` is carried over from #702 and decides nothing.
+- Blocked on: the owner's reference devices for acceptance line 3, so the row stays `todo` with no `evidence:` key (the INT-330, INT-341 and INT-338 precedent).
+- Next: PR `INT-336: Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners` (Closes #535, Sec-Row intake-voice), then INT-337.
 
 ### 2026-09-27T14:00:00+03:00 · INT-333 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #532):
@@ -3184,4 +3271,204 @@
 - Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T22:30:00+03:00 · INT-422 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-422):
+  - theme tokens revised to one restrained accent with Apple system semantics, Dynamic Type, an 8-pt grid, 12-pt continuous corners and materials on chrome only, with no gradient, glow, shadow or illustration;
+  - SF Symbols on iOS and Material Symbols on Android through one icon layer, pinned by a guard;
+  - WCAG AA everywhere, AAA for clinical text and 3:1 for boundaries in light, dark and Increase Contrast, with RED unchanged;
+  - before/after captures and the rationale in docs/design/system-refresh.md.
+- Plan:
+  - Tokens in `theme.ts`, with an Increase Contrast store applied in `useTheme()`.
+  - Restyle through the shared components only.
+  - Questions move to a Title 2 `question` role so AX sizes never break a word.
+  - `GlassCard` goes.
+  - Friendly `EmptyState` and rounded Large Titles, for the owner's warmth direction.
+  - Captures from the iPhone 16e simulator.
+- Tests added (with the near-miss negative for any safety rule):
+  - `theme.test.ts` rewritten: contrast in four modes, RED pins, Apple values, grid, ladder.
+  - New: `a11y/contrast.test.ts` and `e2e/designSystem.spec.ts` (no gradient, shadow, tracking or glass on content; Dynamic Type AX1-AX5 on 375 pt).
+  - Near misses: a Large Title breaks the words; a regressed palette reopens 1.4.3.
+  - RED run: 73 failed / 20 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 2493 passed;
+  - `make check-ts` exit 0;
+  - `pnpm -r typecheck` clean;
+  - `make check-i18n` 43 passed;
+  - tests/legal 520 passed;
+  - expo lint 0 errors;
+  - `expo export --platform ios --dev` exit 0;
+  - `no_placeholders` clean (staged);
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 2: no copy changed.
+  - 5: no i18n edits.
+  - 17: no placeholders.
+  - 20: font widths are recorded as measurements.
+  - 21: RED colours and RED-path files unchanged.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. It is a visual register within ADR-033 and INT-412.
+  - `mobile-ui.md`'s visual register is marked superseded.
+  - The conformance report re-assesses 1.4.3 and 1.4.11 to Supports, code-verified, with DA-05 still to confirm on device.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: PR `INT-422: design system refresh — native Apple feel, restrained palette, SF Symbols, no AI-generic styling` (Closes #714, Sec-Row mobile), left unmerged.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T23:30:00+03:00 · INT-423 · done (PR open, not merged; stacked on INT-422)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-423):
+  - materials only on chrome and floating controls, content on solid fills, Reduce Transparency solid;
+  - grouped turns, a readable measure and Dynamic Type to AX with no word broken, motion per ADR-033, RED unchanged;
+  - chat contrast in light, dark and increased contrast;
+  - before/after captures and the rationale in docs/design/.
+- Plan:
+  - A pure `lib/dialogue/rhythm.ts` for grouping and measure.
+  - `ChatLines.tsx` for the lead-in hierarchy.
+  - `DialogueIntake` takes each bubble's shape from them, with styles and placement only.
+  - The branch is stacked on INT-422 for its Increase Contrast palette and tokens.
+- Tests added (with the near-miss negative for any safety rule):
+  - `rhythm.test.ts` (near miss: alternating speakers never group);
+  - `chatContrast.test.ts` (near miss: the old faint ink on the wash fails);
+  - `e2e/chatRhythm.spec.ts` (no material in the transcript; tails only on a run's end; XS to AX5 fit at 320 pt; near miss: the old 84 % bubble breaks a word);
+  - RED run: 2 suites failed (module absent).
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 2527 passed;
+  - `make check-ts` exit 0;
+  - `make check-i18n` 43 passed;
+  - expo lint 0 errors;
+  - iOS export exit 0;
+  - `no_placeholders` OK;
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 2, 5, 10: no copy, and the question is verbatim;
+  - 17: no placeholders;
+  - 21: RED is untouched.
+- Decisions / ADRs / `00_STATE.md` rows: none. HIG materials are applied within INT-412's `glassMode`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner step: conversation captures need the voice lane up.
+- Next: PR `INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid` (Closes #718, Sec-Row mobile), base `int-422-design-system-refresh`, left unmerged.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T00:40:00+03:00 · INT-433 · done (PR open, not merged; carries INT-422 and INT-423 until they land)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-433):
+  - native progress (a thin bar and "Soru N / M"), with display-only numerals announced as one value;
+  - filled fields, capsule chips with a selected state, and Liquid Glass bars with content solid and Reduce Transparency solid;
+  - Mobbin references and before/after captures in docs/design/question-screen.md;
+  - question text, RED, contrast and Dynamic Type unchanged.
+- Plan:
+  - A pure `lib/intake/questionScreen.ts` for position, field and chip chrome.
+  - `QuestionProgress.tsx` for the bar.
+  - `GlassNavBackground` in `GlassBar.tsx` for the nav bar.
+  - `intake.tsx` takes styles from them; the branch merges `int-423-chat-rhythm` for INT-422/423 tokens.
+- Tests added (with the near-miss negative for any safety rule):
+  - `questionScreen.test.ts` (near miss: an id outside the flow never yields a zero bar; a 1200-question flow prints ungrouped digits);
+  - `e2e/questionScreen.spec.ts` (no dot rail anywhere; the spoken lane never imports the progress; a warning banner keeps the solid bar);
+  - RED run: 6 files, 19 tests failed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 2565 passed;
+  - `make check-ts` exit 0;
+  - `pnpm -r typecheck` done;
+  - `make check-i18n` 43 passed;
+  - tests/backlog and smoke passed;
+  - `no_placeholders` OK;
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 5: tr-first progress words;
+  - 10: verbatim question;
+  - 17: no filler tokens;
+  - 21: RED untouched;
+  - 22: numerals display-only, typed lane only.
+- Decisions / ADRs / `00_STATE.md` rows: none. INT-136's "no printed total" becomes "the total is the applicable flow, with the growth line while it can grow", at the owner's request.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. Observed: the dark-mode back chevron is invisible on pushed screens (pre-existing, not in this scope).
+- Next: PR `INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)` (Closes #739, Sec-Row mobile), left unmerged; merge after #725 and #728.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T03:55:00+03:00 · INT-451 · doing (PR open, not merged; carries INT-422, INT-423 and INT-433 until they land; captures pending the owner's simulator grant)
+- Goal (acceptance verbatim, docs/backlog/issues.yaml INT-451):
+  - survey seven libraries the owner named, plus Mobbin, with licences verified;
+  - ship what fits ADR-033 on Liquid Glass chrome only, with Reduce Transparency solid and contrast tested;
+  - put every spring or scale in an ADR-033 amendment proposal;
+  - add before/after captures.
+- Plan:
+  - Merge `origin/int-433-question-screen`, which carries #725 and #728.
+  - Ship two motionless patterns: a row press highlight (`rowPressFill`) and `withGlassNav` on the visit's pushed screens.
+  - Record the rest in `docs/design/interaction-patterns.md` and ADR-037 (Proposed).
+- Tests added (with the near-miss negative for any safety rule):
+  - `src/lib/a11y/rowPress.test.ts`. Near miss: the old 0.7 dim drops a sublabel to about 3.1:1.
+  - `e2e/interactionPatterns.spec.ts`. Near miss: a dimming row callback is caught. It also checks that no touched file has motion or the `emergency` token.
+  - MOTION-12 in `e2e/motion.spec.ts`: the expected list was updated, with the reason.
+  - Red run: 23 failed, 20 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exits 0 (mobile 130 files / 2721 tests);
+  - `pnpm -r typecheck` is clean;
+  - `make check-i18n`: 44 passed;
+  - tests/backlog, tests/docs and smoke pass;
+  - `no_placeholders` OK;
+  - `check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 5: no i18n change;
+  - 10: question text verbatim;
+  - 17: no filler tokens;
+  - 21: RED untouched; the motion spec's RED file pin passes.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-037 is Proposed (three bounded exceptions: press scale, interactive glass, collapsing large title). No 00_STATE row is written until it is ratified.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner (@ArioMoniri) needs to grant access to the `INT451-16e` simulator ("Let Claude use it" in the simulator panel) so the six captures in interaction-patterns.md §4 can be taken. This is not an HB row: it is a tool grant, not a decision.
+- Next: PR `INT-451: mobile interaction patterns within ADR-033 — row press highlight, glass nav bar, ADR-037 proposal` (Closes #764, Sec-Row mobile). Leave it unmerged and merge it after #725, #728 and #740 once the captures land.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T19:40:00+03:00 · INT-451 · done (PR open, not merged; captures taken, three defects fixed)
+- Goal: take the six INT-451 captures on the owner-granted INT451-16e simulator and clear #771's hold.
+- Plan: capture; fix what the captures show, test first; retake; record ADR-037's ratification.
+- Tests added (with the near-miss negative for any safety rule): `navBarChrome` (no mode leaves the bar clear or paints full-bar glass), `navigationTheme.test.ts` (the light default under a dark palette is caught), the switch track (the old track on the pressed fill at 1:1), spec wiring for the helper, the root theme, the status bar and the track, and `tests/docs/test_adr_037.py`. Red: 26 mobile tests and 2 docs tests failed. Green: mobile 131 files and 2751 tests; docs 26.
+- Result (`make check` / `make safety` / `make security` summary): `pnpm run typecheck` is clean and `pnpm run lint` gives 0 errors (the 2 warnings are already on `main`). `no_placeholders` is OK after staging, and tests/backlog, tests/docs and smoke pass. `check-integration` is CI-only.
+- Invariants touched and still passing: 21. RED paints no navigator colour, and the RED-surface pin is unchanged.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-037 Accepted (owner, 3 Oct 2026, "approve ADR-037"); D22.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. Q-37.2 (ClinicalAuthor) stays open, failing closed.
+- Next: INT-462 (native chat), stacked on this branch.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00+03:00 · INT-461 · done (PR open, not merged)
+- Goal: record the owner-ratified amendment to ADR-033 (ADR-038) so the native pass can ship spring-in bubbles, selection haptics on answer chips and the mic, and in-tree detent sheets, each bounded.
+- Plan: ADR-038 with A1–A3 and a bound-to-test table; files/00 §3 row D21 (D18–D20 are claimed by open PRs); docs/index.md entry; a docs test pinning every bound; backlog row and counts.
+- Tests added (with the near-miss negative for any safety rule): `tests/docs/test_adr_038.py` (6). Each bound is a separate needle, so dropping any one of them (the RED exclusion, the Reduce Motion fallback, the no-presented-sheet rule) fails the suite. Red: 6 failed with the ADR absent. Green: 6 passed.
+- Result (`make check` / `make safety` / `make security` summary): `tests/docs`, `tests/backlog` and `tests/smoke` pass, and `no_placeholders` passes after staging. Docs only, no code.
+- Invariants touched and still passing: 21 (RED stays zero-motion and paints above any sheet, A3), 17.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-038 Accepted (owner, 3 Oct 2026, "yes approve 1-3"); D21.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: INT-462 (native chat) implements A1 and A2 test first.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T20:15:00+03:00 · INT-462 · done (PR open, not merged; stacked on #725, #728, #740, #771, #716, #717, #710, #788)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-462):
+  - one filled capsule composer on the glass bar, with one trailing control inside;
+  - an empty-composer mic that opens only on tap, swaps to send and stop, with RED unchanged;
+  - agent bubbles spring in per ADR-038 A1, with a fade under Reduce Motion and no motion on RED;
+  - filled, checked 44 pt capsule chips;
+  - selection haptics on chips and the mic through INT-340's gate per ADR-038 A2;
+  - contrast holds in light, dark and Increase Contrast, with question text verbatim and no numerals spoken.
+- Plan:
+  - Pure rules first (`composerTrailing`, `bubbleEntrance`, the haptic owners), then the wiring in `DialogueIntake`.
+  - Move the field and chip chrome to `lib/controlChrome.ts`, so the spoken lane stays clear of the question module.
+  - Take simulator captures, before and after.
+- Tests added (with the near-miss negative for any safety rule):
+  - `composer.test.ts` and `bubbles.test.ts` (near misses: RED presented, Reduce Motion, an ungranted bubble);
+  - `haptics.test.ts` additions (near misses: instrument options, speaking phase, hot mic, RED);
+  - `e2e/nativeChat.spec.ts`, including "no effect opens the microphone";
+  - `motion.spec.ts` and `chatRhythm.spec.ts` extensions;
+  - RED run: 5 files failed (15 tests, plus 2 import failures).
+  - The follow fix found on the simulator: red 1 failed / 12 passed, then green.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile vitest 136 files, 2856 tests; lint 0 errors);
+  - mobile `tsc` clean;
+  - backlog, docs, smoke, i18n and legal pytest green after staging;
+  - `no_placeholders` clean;
+  - `check-integration` CI-only.
+- Invariants touched and still passing:
+  - 2 and 22: new copy is `siz`, descriptive and numeral-free.
+  - 10: question text is unchanged.
+  - 21: no RED surface touched; the guard asserts no RED token in the dialogue.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - Implements ADR-038 A1 and A2.
+  - A1's text was narrowed on #788 to the agent's bubble, matching INT-337's instant patient render.
+  - No new D-row.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: section 2 (welcome and onboarding), then verify #740 on the simulator, then section 4 (grouped inset lists) and section 5 (in-tree detent sheets, ADR-038 A3).
 - LOOP_STATUS: CONTINUE

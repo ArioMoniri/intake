@@ -44,9 +44,6 @@ import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -56,10 +53,13 @@ import {
   View,
   useColorScheme,
 } from "react-native";
+import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
+import { AgentQuestionLines } from "@/components/ChatLines";
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
+import { PresenceOrb } from "@/components/PresenceOrb";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import {
   AppText,
@@ -69,9 +69,19 @@ import {
   useTheme,
 } from "@/components/Themed";
 import { joinParts, spoken } from "@/lib/a11y/labels";
-import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
-import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
+import { scrollAnimated } from "@/lib/a11y/motion";
+import { useIncreasedContrast, useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
+import {
+  BUBBLE_SHARE,
+  GROUPED_MARGIN,
+  bubbleMaxWidth,
+  placeTurns,
+  sideOf,
+  type Side,
+} from "@/lib/dialogue/rhythm";
+import { FOCUS_RING, chipChrome, filledFieldChrome } from "@/lib/controlChrome";
+import { composerTrailing } from "@/lib/dialogue/composer";
 import type { Utterance } from "@/lib/dialogue/delivery";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
@@ -81,8 +91,23 @@ import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
+import { haptic } from "@/lib/motion/appHaptics";
+import { bubbleEntrance, bubbleGranted } from "@/lib/motion/bubbles";
+import { bubbleEntering } from "@/lib/motion/native/bubbleEntering";
+import { enteringFor } from "@/lib/motion/native/reanimated";
+import { useDialogueMotion } from "@/lib/motion/native/useDialogueMotion";
+import { orbStateFor } from "@/lib/motion/orb";
+import { WORK, dialogueScene, fadeOf, nodeKey, revealId } from "@/lib/motion/transients";
 import { useSession } from "@/lib/session";
 import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
+
+/**
+ * INT-462 (P3): the trailing control draws a 32 pt disc centred in its own
+ * 44 pt target box at the capsule's trailing edge, so the disc sits 6 pt in
+ * from the capsule on every side and the two radii are concentric.
+ */
+const TRAILING_SIZE = 32;
+const TRAILING_GLYPH = 15;
 
 interface DialogueIntakeProps {
   visitId: string | undefined;
@@ -119,53 +144,19 @@ function valueLabels(questionId: string, values: readonly string[]): string {
     .join(", ");
 }
 
-/** The pulse's curve: ease-in-out sine, so the turn has no visible corner. */
-const BREATH = Easing.bezier(...motion.easing.breath);
-
-/** Quiet pulse for the open-mic turn — a single fading element, within
- * the 02 §5.2a budget (fades only, one animated element at a time). Its
- * period is `motion.loop.pulsePeriodMs`, a FULL cycle: each half is one
- * fade, far slower than SC 2.3.1's 3 Hz (INT-335). */
-function PulseDot() {
+/** The live turn's marker in its bubble: a still dot (INT-336). The state
+ * moves on the presence orb in the glass bar, one element for the whole
+ * dialogue, so the bubbles no longer pulse or spin; their words say the
+ * rest. */
+function StateDot() {
   const theme = useTheme();
-  const reduceMotion = useReducedMotion();
-  const animate = loopingDecorationEnabled(reduceMotion);
-  const opacity = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (!animate) {
-      // SC 2.2.2: this loop runs for the whole open-mic turn — far past the
-      // five seconds the criterion allows — and carries nothing the adjacent
-      // "Sizi dinliyorum" line does not already say. Under reduce-motion it
-      // rests at full opacity: the dot stays, the movement goes.
-      opacity.setValue(1);
-      return undefined;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: motion.loop.pulsePeriodMs / 2,
-          easing: BREATH,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: motion.loop.pulsePeriodMs / 2,
-          easing: BREATH,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [animate, opacity]);
   return (
-    <Animated.View
-      // Pure decoration: the state it signals is spoken by the text beside
-      // it, so announcing the dot as well would say everything twice.
+    <View
+      // Pure decoration: the state it marks is spoken by the text beside it,
+      // so announcing the dot as well would say everything twice.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[styles.pulseDot, { backgroundColor: theme.primary, opacity }]}
+      style={[styles.stateDot, { backgroundColor: theme.primary }]}
     />
   );
 }
@@ -181,6 +172,9 @@ export function DialogueIntake({
   const theme = useTheme();
   const dark = useColorScheme() === "dark";
   const fontScale = useFontScale();
+  // The transcript's own laid-out width (INT-423): the measure is a share of
+  // the box the bubbles sit in, so landscape insets are already out of it.
+  const [transcriptWidth, setTranscriptWidth] = useState<number | null>(null);
   const { account, updateNote } = useSession();
 
   const session = useDialogueSession({
@@ -203,6 +197,9 @@ export function DialogueIntake({
   // On-screen selection for the live confirm turn (seeded pre-selected).
   const [selected, setSelected] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
+  // INT-337: a focused composer shuts the arbiter's commit window (the
+  // patient is mid-sentence), exactly as listening does.
+  const [composerFocused, setComposerFocused] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   // INT-284: the bar reports its own height. This one stacks the section
@@ -239,12 +236,19 @@ export function DialogueIntake({
   // The conversation reads bottom-up: keep the newest turn in view.
   const streamLength = state.stream.length;
   const reduceMotion = useReducedMotion();
+  // Increase Contrast restores the resting boundaries INT-433's filled rules
+  // drop (the composer capsule and an unselected chip).
+  const increasedContrast = useIncreasedContrast() === "high";
+  // The bar's clearance is a dependency too: a confirm turn adds two CTAs to
+  // the bar, and its new height arrives after the turn does. Without it the
+  // follow ran against the old padding and left the last chip row under the
+  // bar until the patient scrolled (INT-462, seen on the simulator).
   useEffect(() => {
     const frame = requestAnimationFrame(() =>
       scrollRef.current?.scrollToEnd({ animated: scrollAnimated(reduceMotion) }),
     );
     return () => cancelAnimationFrame(frame);
-  }, [streamLength, turn.phase, reduceMotion]);
+  }, [streamLength, turn.phase, reduceMotion, barClearance]);
 
   /**
    * The turn state, as one Turkish sentence (INT-144).
@@ -284,6 +288,20 @@ export function DialogueIntake({
 
   const step = "step" in turn ? turn.step : -1;
   const question = step >= 0 ? questions[step] : null;
+  const model = sectionPanelModel(questions, state, account?.carriedFacts ?? []);
+  const chipsOpen = turn.phase === "confirming" && question !== null && question.kind !== "text";
+
+  // INT-337: what fades, what renders at once and what waits for the commit
+  // window is the arbiter's answer for each new element (lib/motion/
+  // transients.ts). Nothing here waits on it: it is decided in the render
+  // that shows the element.
+  const scene = dialogueScene(state, {
+    composerFocused,
+    chipsOpen,
+    strip: { filled: model.filled, total: model.total },
+  });
+  const transients = useDialogueMotion(scene, reduceMotion);
+  const motionContext = { reduce: reduceMotion };
 
   /** The confirm tap: store the answer, then let the machine skip ahead. */
   const confirmTurn = () => {
@@ -348,10 +366,71 @@ export function DialogueIntake({
     return null; // terminal callbacks route away / hand over
   }
 
-  const model = sectionPanelModel(questions, state, account?.carriedFacts ?? []);
-  const chipsOpen = turn.phase === "confirming" && question !== null && question.kind !== "text";
+  // INT-462 (P3): the composer's one trailing control (lib/dialogue/composer).
+  // The mic opens the microphone only from this press, through the session's
+  // own paths, and asks for its selection tick first, while the microphone is
+  // still closed (ADR-038 A2; the gate refuses it while the agent speaks).
+  const trailing = composerTrailing({ draft, phase: turn.phase });
+  const trailingDisabled = trailing.kind === "send" && !trailing.enabled;
+  const mic = trailing.kind === "mic";
+  const trailingLabel =
+    trailing.kind === "mic"
+      ? t("dialogue.mic")
+      : trailing.kind === "stop"
+        ? t("voiceFirst.stop")
+        : t("dialogue.send");
+  const pressTrailing = () => {
+    if (trailing.kind === "send") {
+      send();
+      return;
+    }
+    if (trailing.kind === "stop") {
+      void session.finishListening();
+      return;
+    }
+    haptic("select", { surface: "dialogueMic", valueChanged: true });
+    if (trailing.opens === "bargeIn") {
+      session.bargeIn();
+    } else {
+      session.speakCorrection();
+    }
+  };
+
+  // INT-336: the orb's one input. This lane is the dev dialogue over HTTP:
+  // it has no media transport to lose and no RED channel (the LiveKit lane
+  // feeds both), so those two inputs are honestly "connected" and none.
+  const orbState = orbStateFor({
+    lane: "voice",
+    turnPhase: turn.phase,
+    playing: session.playing,
+    voiceMuted: state.voiceMuted,
+    transport: "connected",
+    red: null,
+  });
   // While the agent speaks, the LAST logged agent turn is the live bubble.
   const liveAgentIndex = turn.phase === "speaking" ? state.stream.length - 1 : -1;
+
+  // INT-423: the rhythm. Consecutive turns from one speaker group, and the
+  // tail belongs to a run's last bubble; the open-mic turn is the patient's,
+  // after the stream. The measure is lib/dialogue/rhythm's.
+  const sides: Side[] = [
+    ...state.stream.map(sideOf),
+    ...(turn.phase === "listening" ? (["patient"] as const) : []),
+  ];
+  const placements = placeTurns(sides);
+  const measure =
+    transcriptWidth === null
+      ? (`${BUBBLE_SHARE * 100}%` as const)
+      : bubbleMaxWidth(transcriptWidth - 2 * spacing.screen, fontScale);
+  const shape = (index: number) => {
+    const placement = placements[index];
+    const tail = placement?.tail
+      ? sides[index] === "agent"
+        ? styles.agentTail
+        : styles.patientTail
+      : null;
+    return [{ maxWidth: measure, marginTop: placement?.grouped ? GROUPED_MARGIN : 0 }, tail];
+  };
 
   /**
    * One conversational delivery line (INT-414) — a welcome, lead-in,
@@ -375,6 +454,8 @@ export function DialogueIntake({
           styles.bubble,
           styles.agentBubble,
           { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
+          // INT-423's measure; it sits outside the rhythm's turn list, so no tail.
+          { maxWidth: measure },
         ]}
       >
         <AppText role="caption" color="inkSoft">
@@ -390,6 +471,7 @@ export function DialogueIntake({
       styles.bubble,
       styles.agentBubble,
       { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
+      ...shape(index),
     ];
     let body: ReactNode = null;
     // The same words the bubble renders, in reading order, so the spoken
@@ -409,16 +491,7 @@ export function DialogueIntake({
       // session readable rather than lossy.
       const aside = questionAsideTr(q);
       said = [t(q.titleKey), aside ?? ""];
-      body = (
-        <>
-          <AppText role="body">{t(q.titleKey)}</AppText>
-          {aside !== null ? (
-            <AppText role="caption" color="inkSoft">
-              {aside}
-            </AppText>
-          ) : null}
-        </>
-      );
+      body = <AgentQuestionLines question={t(q.titleKey)} aside={aside} />;
     } else if (entry.kind === "agent_confirm") {
       const q = questions.find((item) => item.id === entry.questionId);
       said =
@@ -484,11 +557,7 @@ export function DialogueIntake({
       >
         {body}
         <View style={styles.stateRow}>
-          {session.playing ? (
-            <PulseDot />
-          ) : (
-            <ActivityIndicator size="small" color={theme.inkFaint} />
-          )}
+          <StateDot />
           <AppText role="caption" color="inkFaint">
             {session.playing ? t("dialogue.speakingHint") : t("dialogue.preparing")}
           </AppText>
@@ -497,7 +566,7 @@ export function DialogueIntake({
     );
   };
 
-  const renderEntry = (entry: StreamEntry, index: number) => {
+  const renderEntry = (entry: StreamEntry, index: number, key: string) => {
     if (entry.kind === "agent_question") {
       // INT-414: what is said around the question, then the question.
       const lines = (session.delivery.get(index) ?? []).filter((u) => u.kind !== "question");
@@ -524,8 +593,12 @@ export function DialogueIntake({
       return null;
     }
     // Patient turns, keyed by work id. A transcribing bubble is the
-    // in-place stand-in the ASR text will replace (never a takeover).
-    if (entry.status === "transcribing") {
+    // in-place stand-in the ASR text will replace (never a takeover). The
+    // words replace it when the arbiter applies their reveal (INT-337): at
+    // once on an agent turn, at the next window while the patient is
+    // listening or typing.
+    const reveal = revealId(key);
+    if (entry.status === "transcribing" || transients.entered[reveal] === undefined) {
       return (
         <View
           key={`w-${entry.workId}`}
@@ -534,14 +607,16 @@ export function DialogueIntake({
           // announced once by useLiveAnnouncement; a live region here would
           // say it a second time.
           accessibilityLabel={spoken(t("a11y.speaker.patient"), t("dialogue.transcribing"))}
-          style={[styles.bubble, styles.patientBubble, { backgroundColor: theme.surfaceRaised }]}
+          style={[
+            styles.bubble,
+            styles.patientBubble,
+            { backgroundColor: theme.surfaceRaised },
+            ...shape(index),
+          ]}
         >
-          <View style={styles.stateRow}>
-            <ActivityIndicator size="small" color={theme.inkFaint} />
-            <AppText role="caption" color="inkSoft">
-              {t("dialogue.transcribing")}
-            </AppText>
-          </View>
+          <AppText role="caption" color="inkSoft">
+            {t("dialogue.transcribing")}
+          </AppText>
         </View>
       );
     }
@@ -550,9 +625,20 @@ export function DialogueIntake({
         key={`w-${entry.workId}`}
         accessible
         accessibilityLabel={spoken(t("a11y.speaker.patient"), entry.text)}
-        style={[styles.bubble, styles.patientBubble, { backgroundColor: theme.surfaceRaised }]}
+        style={[
+          styles.bubble,
+          styles.patientBubble,
+          { backgroundColor: theme.surfaceRaised },
+          ...shape(index),
+        ]}
       >
-        <AppText role="body">{entry.text}</AppText>
+        {/* Only the new text fades; the bubble frame stays still (C3). */}
+        <Animated.View
+          key={nodeKey(transients, reveal)}
+          entering={enteringFor(fadeOf(transients, reveal, motionContext))}
+        >
+          <AppText role="body">{entry.text}</AppText>
+        </Animated.View>
       </View>
     );
   };
@@ -578,6 +664,7 @@ export function DialogueIntake({
           // user knows the scroller they landed in is the transcript and not
           // the page.
           accessibilityLabel={t("a11y.dialogue.transcript")}
+          onLayout={(event) => setTranscriptWidth(event.nativeEvent.layout.width)}
           contentContainerStyle={[styles.content, { paddingBottom: barClearance }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -604,7 +691,32 @@ export function DialogueIntake({
             </View>
           ) : null}
 
-          {state.stream.map(renderEntry)}
+          {/* History never fades in: only what arrives after the first mount
+              can enter, and only as the arbiter grants it (INT-337). */}
+          <LayoutAnimationConfig skipEntering>
+            {state.stream.map((entry, index) => {
+              const key = scene.entries[index].key;
+              return (
+                // ADR-038 A1 (INT-462): a bubble the arbiter grants rises 8 pt on
+                // the critically damped spring under the one fade; Reduce Motion
+                // keeps the fade; nothing moves while a RED shows. This lane has
+                // no RED channel (INT-336's orb takes `red: null` the same way);
+                // INT-446 wires it, and RED paints as a root layer above this.
+                <Animated.View
+                  key={nodeKey(transients, key)}
+                  entering={bubbleEntering(
+                    bubbleEntrance({
+                      granted: bubbleGranted(transients, key, reduceMotion),
+                      redPresented: false,
+                      reduce: reduceMotion,
+                    }),
+                  )}
+                >
+                  {renderEntry(entry, index, key)}
+                </Animated.View>
+              );
+            })}
+          </LayoutAnimationConfig>
 
           {turn.phase === "listening" ? (
             // The open-mic turn, inside the stream: pulse + tap-to-stop.
@@ -625,10 +737,11 @@ export function DialogueIntake({
                   borderColor: dark ? "transparent" : theme.primary,
                   opacity: pressed ? motion.press.rowOpacity : 1,
                 },
+                ...shape(state.stream.length),
               ]}
             >
               <View style={styles.stateRow}>
-                <PulseDot />
+                <StateDot />
                 <AppText role="body" color="primary">
                   {t("voiceFirst.listening")}
                 </AppText>
@@ -643,20 +756,27 @@ export function DialogueIntake({
             // The one honest wait: everything is asked, the last answers are
             // still being worked into the note — quiet, in-stream.
             <View accessible style={styles.stateRow}>
-              <ActivityIndicator size="small" color={theme.inkFaint} />
               <AppText role="caption" color="inkSoft">
                 {t("voiceFirst.preparing")}
               </AppText>
             </View>
           ) : null}
 
-          {chipsOpen && question !== null ? (
+          {chipsOpen && question !== null && scene.chips !== null ? (
             // The inline confirm chips on the agent's follow-up turn: the
             // candidate arrives pre-selected; the patient adjusts, then
-            // confirms on the bar (nothing auto-commits).
-            <View style={styles.chipWrap}>
+            // confirms on the bar (nothing auto-commits). The group enters
+            // as one element; a selection changes no motion (INT-337).
+            <Animated.View
+              key={nodeKey(transients, scene.chips)}
+              entering={enteringFor(fadeOf(transients, scene.chips, motionContext))}
+              style={styles.chipWrap}
+            >
               {question.options!.map((option) => {
                 const on = selected.includes(option.id);
+                // INT-462 (P5): INT-433's chip rule. Selected is tinted AND
+                // checked, so the state is never carried by the hue alone.
+                const look = chipChrome(theme, on);
                 return (
                   <Pressable
                     key={option.id}
@@ -667,30 +787,45 @@ export function DialogueIntake({
                     accessibilityLabel={t(option.labelKey)}
                     accessibilityHint={t("a11y.selectHint")}
                     accessibilityState={{ checked: on }}
-                    onPress={() =>
+                    onPress={() => {
+                      const changes = question.kind !== "single" || !on;
                       setSelected((prev) =>
                         question.kind === "single"
                           ? [option.id]
                           : prev.includes(option.id)
                             ? prev.filter((x) => x !== option.id)
                             : [...prev, option.id],
-                      )
-                    }
+                      );
+                      // ADR-038 A2: the same tick for every option; the gate
+                      // refuses it while speech plays or the mic is hot.
+                      if (changes) {
+                        haptic("select", { surface: "intakeChip", valueChanged: true });
+                      }
+                    }}
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: on ? theme.primarySoft : theme.surface,
-                        borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                        backgroundColor: look.backgroundColor,
+                        // Increase Contrast gives the resting chip its control
+                        // boundary back, as iOS adds shapes under that setting.
+                        borderColor: !on && increasedContrast ? theme.border : "transparent",
                       },
                     ]}
                   >
-                    <AppText role="label" color={on ? "primary" : "ink"}>
+                    {look.check ? (
+                      <Icon
+                        name="checkmark"
+                        size={scaledSize("label", fontScale)}
+                        tintColor={theme.primary}
+                      />
+                    ) : null}
+                    <AppText role="label" color={look.textColor} style={styles.chipLabel}>
                       {t(option.labelKey)}
                     </AppText>
                   </Pressable>
                 );
               })}
-            </View>
+            </Animated.View>
           ) : null}
 
           <Pressable
@@ -715,11 +850,21 @@ export function DialogueIntake({
               up); the composer below keeps its whole height, so the field
               the patient is typing into stays in view. */}
             <ScrollView style={styles.barScroll} keyboardShouldPersistTaps="handled">
-              <SectionStrip
-                filled={model.filled}
-                total={model.total}
-                onPress={() => setSheetOpen(true)}
-              />
+              <View style={styles.stripRow}>
+                <PresenceOrb
+                  state={orbState}
+                  working={transients.ring}
+                  workFades={fadeOf(transients, WORK, motionContext) !== undefined}
+                  readLevel={session.readLevel}
+                />
+                <View style={styles.stripFill}>
+                  <SectionStrip
+                    filled={transients.strip.filled}
+                    total={transients.strip.total}
+                    onPress={() => setSheetOpen(true)}
+                  />
+                </View>
+              </View>
               {turn.phase === "listening" ? (
                 <View style={styles.barItem}>
                   <PrimaryButton
@@ -747,8 +892,16 @@ export function DialogueIntake({
               ) : null}
             </ScrollView>
             {/* The persistent composer: typing is always available — voice
-              and text are one conversation, never two modes. */}
-            <View style={styles.composerRow}>
+              and text are one conversation, never two modes. INT-462 (P1, P2):
+              one filled capsule on the glass bar, INT-433's field rule (a
+              solid fill, a tint ring while focused, no resting outline), with
+              its one trailing control inside the trailing edge. */}
+            <View
+              style={[
+                styles.composerRow,
+                filledFieldChrome(theme, { focused: composerFocused, increasedContrast }),
+              ]}
+            >
               <View style={styles.composerFieldWrap}>
                 <TextInput
                   accessibilityLabel={t("dialogue.typeThisStep")}
@@ -759,16 +912,13 @@ export function DialogueIntake({
                   allowFontScaling={false}
                   value={draft}
                   onChangeText={setDraft}
+                  onFocus={() => setComposerFocused(true)}
+                  onBlur={() => setComposerFocused(false)}
                   returnKeyType="send"
                   onSubmitEditing={send}
                   style={[
                     styles.composerField,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: dark ? "transparent" : theme.border,
-                      color: theme.ink,
-                      fontSize: scaledSize("body", fontScale),
-                    },
+                    { color: theme.ink, fontSize: scaledSize("body", fontScale) },
                   ]}
                 />
                 {draft.length === 0 ? (
@@ -789,28 +939,49 @@ export function DialogueIntake({
                   </View>
                 ) : null}
               </View>
+              {/* INT-462 (P3): one control, chosen by composerTrailing — the mic
+                while the draft is empty, send once there are words, stop while
+                listening. A 32 pt disc inside the capsule, drawn in a 44 pt
+                target box (SC 2.5.8; the app's slop is vertical only, so the box
+                is the control's own). The swap is instant. */}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t("dialogue.send")}
+                accessibilityLabel={trailingLabel}
+                accessibilityHint={trailing.kind === "mic" ? t("a11y.dialogue.micHint") : undefined}
                 // Icon-only, so the disabled state has no visible word either:
                 // the disabled opacity is the sighted half and this is the other.
-                accessibilityState={{ disabled: draft.trim().length === 0 }}
-                disabled={draft.trim().length === 0}
-                onPress={send}
+                accessibilityState={{ disabled: trailingDisabled }}
+                disabled={trailingDisabled}
+                onPress={pressTrailing}
                 style={({ pressed }) => [
                   styles.sendButton,
                   {
-                    backgroundColor: theme.cta,
-                    opacity:
-                      draft.trim().length === 0
-                        ? motion.press.disabledOpacity
-                        : pressed
-                          ? motion.press.opacity
-                          : 1,
+                    opacity: trailingDisabled
+                      ? motion.press.disabledOpacity
+                      : pressed
+                        ? motion.press.opacity
+                        : 1,
                   },
                 ]}
               >
-                <Icon name="arrow.up" size={17} tintColor={theme.onCta} />
+                <View
+                  style={[
+                    styles.trailingDisc,
+                    { backgroundColor: mic ? theme.primarySoft : theme.cta },
+                  ]}
+                >
+                  <Icon
+                    name={
+                      trailing.kind === "mic"
+                        ? "mic.fill"
+                        : trailing.kind === "stop"
+                          ? "stop.fill"
+                          : "arrow.up"
+                    }
+                    size={TRAILING_GLYPH}
+                    tintColor={mic ? theme.primary : theme.onCta}
+                  />
+                </View>
               </Pressable>
             </View>
           </GlassBar>
@@ -831,8 +1002,8 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.screen },
   bubble: {
-    maxWidth: "84%",
     borderRadius: radius.group,
+    borderCurve: "continuous",
     padding: spacing.md,
     gap: spacing.xs,
     // The speaking bubble IS the barge-in target (INT-235), and the
@@ -843,18 +1014,25 @@ const styles = StyleSheet.create({
   },
   agentBubble: {
     alignSelf: "flex-start",
-    borderBottomLeftRadius: 6,
     borderWidth: 1,
   },
   patientBubble: {
     alignSelf: "flex-end",
-    borderBottomRightRadius: 6,
   },
+  // INT-423: the tail corner, on a speaker's last bubble in a run only.
+  agentTail: { borderBottomLeftRadius: spacing.xs },
+  patientTail: { borderBottomRightRadius: spacing.xs },
   listeningBubble: { borderWidth: 1 },
   stateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  pulseDot: { width: 8, height: 8, borderRadius: radius.chip },
+  stateDot: { width: 8, height: 8, borderRadius: radius.chip },
+  // The orb leads the bar's first row; the strip takes the rest of it.
+  stripRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  stripFill: { flex: 1 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     borderRadius: radius.chip,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
@@ -867,18 +1045,27 @@ const styles = StyleSheet.create({
     // truncating it is banned (files/00 §2).
     maxWidth: "100%",
   },
+  // The label may wrap inside the chip's bound, beside the check.
+  chipLabel: { flexShrink: 1 },
   bottomStack: { position: "absolute", left: 0, right: 0, bottom: 0 },
   // Its natural height while the stack has room, and it gives height back —
   // then scrolls — once the stack is capped (INT-360).
   barScroll: { flexGrow: 0, flexShrink: 1 },
   barItem: { marginBottom: spacing.sm },
   barStack: { gap: spacing.sm },
-  composerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  // INT-462 (P1): the capsule. Its fill and its ring come from INT-433's
+  // filled-field rule; the trailing control sits inside its trailing edge, a
+  // circle inset so the capsule's own radius is concentric with it.
+  composerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: radius.chip,
+    borderCurve: "continuous",
+    minHeight: MIN_TAP,
+  },
   composerFieldWrap: { flex: 1, justifyContent: "center" },
   composerField: {
-    borderRadius: radius.control,
-    borderWidth: 1,
-    minHeight: 44,
+    minHeight: MIN_TAP - 2 * FOCUS_RING,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontFamily: fonts.sans,
@@ -888,10 +1075,17 @@ const styles = StyleSheet.create({
     left: spacing.md,
     right: spacing.md,
   },
+  // The control's own 44 pt target box; the disc sits centred in it.
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.control,
+    width: MIN_TAP,
+    height: MIN_TAP,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trailingDisc: {
+    width: TRAILING_SIZE,
+    height: TRAILING_SIZE,
+    borderRadius: radius.chip,
     alignItems: "center",
     justifyContent: "center",
   },

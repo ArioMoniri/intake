@@ -39,6 +39,7 @@
  * format is invented here; §6 of the spec fails the build if one appears.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -46,7 +47,8 @@ import { AnnouncedText, useNews } from "@/components/Announced";
 import { BiometricGate } from "@/components/BiometricGate";
 import { CarriedFactReview } from "@/components/CarriedFacts";
 import { CsatPrompt } from "@/components/CsatPrompt";
-import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance, withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
 import { StatusLadder } from "@/components/StatusLadder";
 import {
@@ -104,6 +106,12 @@ function ReviewAndSend() {
   // hooks may not be conditional.
   const [barHeight, setBarHeight] = useState<number | null>(null);
   const barClearance = useGlassBarClearance(barHeight);
+  // INT-451: the note scrolls between two glass bars and clears the top one
+  // by the header's own height. The empty state keeps the solid bar: it has
+  // nothing to scroll under it.
+  const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { account, notes, updateNote, visits } = useSession();
   // Who is answering the carried-fact question — INT-133's derived
@@ -183,12 +191,16 @@ function ReviewAndSend() {
       {/* Design pass 6: back-only top bar (every Oura flow carries a
           top-left way out — Mobbin 11265937, b67baac0); the serif line in
           the body stays the title, so the bar is untitled. */}
-      <Stack.Screen options={headerOptions("")} />
+      <Stack.Screen options={withGlassNav(headerOptions(""), glass)} />
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
         <ScrollView
-          contentContainerStyle={[styles.content, sent ? null : { paddingBottom: barClearance }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: headerHeight + spacing.screen },
+            sent ? null : { paddingBottom: barClearance },
+          ]}
         >
           {/* The top bar is deliberately untitled (design pass 6), so this
               serif line is the screen's only title — and therefore the one

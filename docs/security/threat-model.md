@@ -1628,6 +1628,17 @@ it or whose tests exercise it.
 - **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
   drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
   `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`.
+- **Controls added by INT-340 (haptics, motion S-3):** [I/L] a buzz is a disclosure to whoever
+  holds or sits near the phone, so no haptic fires while the voice session is open or the
+  microphone is hot (read from the recorder at fire time), while a RED is on screen, or for the
+  rest of a session in which a SILENT RED or a third party (any companion declaration) occurred;
+  nothing clears that flag. Consent, legal text, errors and intake chips never fire one, and
+  `success` waits for the server's answer. [E] the permission inventory cannot grow through a
+  library manifest: expo-haptics declares `VIBRATE`, and every Android build blocks it
+  (`tools:node="remove"`), because the app plays haptics on Android only through
+  `View.performHapticFeedback`. The native module is reached from one adapter by lazy
+  `import()`. Tests: `apps/mobile/src/lib/motion/haptics.test.ts`, `apps/mobile/e2e/motion.spec.ts`
+  (MOTION-11).
 
 ## `experience` — satisfaction and wait-time measurement
 

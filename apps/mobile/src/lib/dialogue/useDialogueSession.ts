@@ -66,6 +66,7 @@ import { configuredServiceCandidates } from "../dev/expoHosts";
 import { BARGE_IN_SAMPLE_MS, createSpeechOnsetDetector } from "./bargeIn";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
+import { appHaptics } from "../motion/appHaptics";
 import { discardRecording, transcribeRecording } from "../voice";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { readCue, type DeliveryCue, type Utterance } from "./delivery";
@@ -153,6 +154,12 @@ export interface DialogueSession {
   confirmPending: (questionId: string) => void;
   /** From the confirm card: the patient speaks the correction instead. */
   speakCorrection: () => void;
+  /**
+   * INT-336: the recorder's current metering in dBFS, or undefined when it has
+   * none. One loudness scalar for the presence orb's halo, read by its
+   * sampler while listening; never a buffer, and never stored or sent.
+   */
+  readLevel: () => number | undefined;
 }
 
 function toCandidates(
@@ -718,6 +725,23 @@ export function useDialogueSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
   }, []);
 
+  // INT-340: no haptic while this conversation is audible or listening. The
+  // gate asks at fire time. ADR-038 A2 (INT-462) narrows "active" to what a
+  // haptic could disturb: the agent's speech, which plays or is prepared
+  // during the speaking phase, and the microphone, which is whatever the
+  // recorder reports at that moment, never a guess from the route. A silent
+  // confirm turn with the microphone closed is not active, so a chip there
+  // can give its selection tick.
+  useEffect(
+    () =>
+      appHaptics.register({
+        voiceSessionActive: () => !closedRef.current && stateRef.current.turn.phase === "speaking",
+        micHot: () => recorder.isRecording,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per session; both probes read live values
+    [],
+  );
+
   /** The reconcile tail every utterance shares: extract against every
    * remaining unanswered question (the daemon accepts any subset), then
    * settle the work id. Failures settle EMPTY — extraction is enrichment
@@ -876,6 +900,14 @@ export function useDialogueSession({
     speakCorrection: () => {
       pendingCueRef.current = "revised"; // they are correcting what we suggested
       dispatch({ type: "speak" });
+    },
+    readLevel: () => {
+      try {
+        return recorder.getStatus().metering;
+      } catch {
+        // The recorder is not running: no reading, which the orb treats as silence.
+        return undefined;
+      }
     },
   };
 }

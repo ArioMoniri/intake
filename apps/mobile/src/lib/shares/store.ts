@@ -115,16 +115,20 @@ export async function loadShareCentre(visitId: string): Promise<void> {
  * mirrors that: it takes a visit and a grant, and consults no consent value,
  * so a withdrawal of `share:previsit_note` cannot reach the decision to call
  * it. A refusal register a refusal can lock is not a refusal register.
+ *
+ * Resolves `true` only when the server's own record came back (INT-340: the
+ * screen's success haptic waits for this answer, never for the press).
  */
-export async function revokeShare(visitId: string, linkId: string): Promise<void> {
+export async function revokeShare(visitId: string, linkId: string): Promise<boolean> {
   const row = await revokeShareLink(visitId, linkId);
   if (row === null) {
     commit({ ...state, unsent: true });
-    return;
+    return false;
   }
   commit({
     ...state,
     links: ordered(state.links.map((link) => (link.id === row.id ? row : link))),
     unsent: false,
   });
+  return true;
 }

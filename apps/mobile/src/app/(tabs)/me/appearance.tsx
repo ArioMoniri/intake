@@ -35,6 +35,7 @@ import { Segmented, type SegmentedOption } from "@/components/Segmented";
 import { SwitchRow } from "@/components/SwitchRow";
 import { AppText, Card, RAIL_EDGES, Screen, useTheme } from "@/components/Themed";
 import { t, type MessageKey } from "@/lib/i18n";
+import { haptic } from "@/lib/motion/appHaptics";
 import { nearestStep, type StartMode, type TextStep, type ThemePref } from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import { radius, spacing } from "@/lib/theme";
@@ -64,9 +65,7 @@ const START_KEYS: readonly { id: string; key: MessageKey }[] = [
   { id: "typed", key: "appearance.start.typed" },
 ];
 
-function labelled(
-  rows: readonly { id: string; key: MessageKey }[],
-): readonly SegmentedOption[] {
+function labelled(rows: readonly { id: string; key: MessageKey }[]): readonly SegmentedOption[] {
   return rows.map((row) => ({ id: row.id, label: t(row.key) }));
 }
 
@@ -78,11 +77,7 @@ function Preview() {
   const theme = useTheme();
   return (
     <Card>
-      <View
-        accessible
-        accessibilityLabel={t("a11y.appearance.preview")}
-        style={styles.preview}
-      >
+      <View accessible accessibilityLabel={t("a11y.appearance.preview")} style={styles.preview}>
         <View style={[styles.bubble, { backgroundColor: theme.surfaceRaised }]}>
           <AppText role="body">{t("intake.q.complaint")}</AppText>
         </View>
@@ -127,7 +122,13 @@ export default function Appearance() {
             // `null` while the phone decides: no rung is the patient's choice,
             // so none is shown as one.
             value={prefs.textStep === null ? null : String(prefs.textStep)}
-            onChange={(id) => update({ textStep: Number(id) as TextStep })}
+            onChange={(id) => {
+              haptic("select", {
+                surface: "settings",
+                valueChanged: id !== String(prefs.textStep),
+              });
+              update({ textStep: Number(id) as TextStep });
+            }}
           />
           <ListGroup footer={t("appearance.overrideNote")}>
             <SwitchRow
@@ -137,9 +138,10 @@ export default function Appearance() {
               // Turning it OFF must not resize the screen under the finger
               // that turned it off, so the first app value is the rung nearest
               // whatever is already on screen.
-              onChange={(next) =>
-                update({ textStep: next ? null : nearestStep(osFontScale) })
-              }
+              onChange={(next) => {
+                haptic(next ? "toggleOn" : "toggleOff", { surface: "settings" });
+                update({ textStep: next ? null : nearestStep(osFontScale) });
+              }}
             />
           </ListGroup>
         </View>
@@ -151,7 +153,10 @@ export default function Appearance() {
             hint={t("a11y.appearance.theme")}
             options={labelled(THEME_KEYS)}
             value={prefs.theme}
-            onChange={(id) => update({ theme: id as ThemePref })}
+            onChange={(id) => {
+              haptic("select", { surface: "settings", valueChanged: id !== prefs.theme });
+              update({ theme: id as ThemePref });
+            }}
           />
         </View>
 
@@ -162,7 +167,10 @@ export default function Appearance() {
               label={t("appearance.motion")}
               hint={t("a11y.appearance.motion")}
               checked={prefs.reduceMotion}
-              onChange={(next) => update({ reduceMotion: next })}
+              onChange={(next) => {
+                haptic(next ? "toggleOn" : "toggleOff", { surface: "settings" });
+                update({ reduceMotion: next });
+              }}
             />
           </ListGroup>
         </View>
@@ -174,7 +182,10 @@ export default function Appearance() {
             hint={t("a11y.appearance.start")}
             options={labelled(START_KEYS)}
             value={prefs.startMode}
-            onChange={(id) => update({ startMode: id as StartMode })}
+            onChange={(id) => {
+              haptic("select", { surface: "settings", valueChanged: id !== prefs.startMode });
+              update({ startMode: id as StartMode });
+            }}
           />
         </View>
 

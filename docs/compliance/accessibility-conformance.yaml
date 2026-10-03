@@ -40,12 +40,14 @@ report:
     INT-387 re-assessed 3.3.1, 3.3.8 and 4.1.3, and the 3.2.2 remark, against
     `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`.
     INT-397 re-assessed 4.1.3 on branch `int-397-status-lines`, built on
-    `int-387-conformance-refresh` at `76d98388`
+    `int-387-conformance-refresh` at `76d98388`. INT-422 re-assessed 1.4.3
+    and 1.4.11 on branch `int-422-design-system-refresh`, against the palette
+    it introduced
   assessed_by: >-
     INT-226 engineering pass: automated source assertions, code inspection and
     palette arithmetic. Rows re-assessed since, by the same method: 1.3.4 and
     1.4.10 (INT-360), 2.2.1 (INT-363), 3.3.1, 3.3.8, 4.1.3 and the 3.2.2
-    remark (INT-387), and 4.1.3 again (INT-397)
+    remark (INT-387), 4.1.3 again (INT-397), and 1.4.3 and 1.4.11 (INT-422)
   standards: >-
     WCAG 2.2 (W3C Recommendation, 5 October 2023), Level A and AA. EN 301 549
     V3.2.1 (2021-03), clauses 5, 11 and 12 as they apply to a mobile application.
@@ -156,7 +158,7 @@ wcag:
     tests:
       - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityLabel"
       - "apps/mobile/e2e/a11y.spec.ts::the send button is icon-only, so its name and disabled state are explicit"
-      - "apps/mobile/e2e/a11y.spec.ts::the intake progress dots are decoration and are hidden from the reader"
+      - "apps/mobile/e2e/a11y.spec.ts::the intake progress is one progressbar whose value is spoken, not a hue"
       - "apps/mobile/e2e/a11y.spec.ts::the prep gauge reports a value, not only a rendered arc"
     manual: [MC-01]
     remarks: >-
@@ -239,7 +241,7 @@ wcag:
     bk: BK8
     status: Supports
     tests:
-      - "apps/mobile/e2e/a11y.spec.ts::the intake progress dots are decoration and are hidden from the reader"
+      - "apps/mobile/e2e/a11y.spec.ts::the intake progress is one progressbar whose value is spoken, not a hue"
       - "apps/mobile/e2e/a11y.spec.ts::the status ladder speaks which rungs are reached"
       - "apps/mobile/e2e/a11y.spec.ts::an error is never carried by colour alone"
       - "apps/mobile/e2e/appearance.spec.ts::the active item is still not carried by colour alone once the label is gone"
@@ -635,19 +637,16 @@ wcag:
   - sc: "1.4.3"
     name: Contrast (Minimum)
     level: AA
-    status: Partially Supports
+    status: Supports
     tests:
-      - "apps/mobile/src/lib/theme.test.ts::%s body text meets WCAG AA (4.5:1)"
-      - "apps/mobile/src/lib/theme.test.ts::%s: the known sub-AA pairs hold their measured floor"
-    finding: >-
-      The quietest text tone, `inkFaint`, carries 13 pt caption text below
-      4.5 : 1 on every light ground and on the dark raised ground. The light
-      "Dosyaya eklendi" chip (`success` on `successSoft`) also falls short. The
-      measurements are in §4.
+      - "apps/mobile/src/lib/theme.test.ts::$name: every text pair meets WCAG AA (4.5:1)"
+      - "apps/mobile/src/lib/theme.test.ts::the known sub-AA pairs of the old palette are closed"
     remarks: >-
-      Body text, soft ink, primary, status-pill and CTA pairs meet 4.5 : 1 in
-      both schemes. Closing the gap needs a palette decision from the design
-      owner (INT-144 report §5.1 and §5.2).
+      Since INT-422 every text colour the app sets meets 4.5 : 1 on every ground
+      it is set on, in light, dark and the OS Increase Contrast mode, and
+      clinical text meets 7 : 1. The two pairs INT-144 found below the floor
+      (`inkFaint` on the light grounds, the light "Dosyaya eklendi" chip) are
+      closed; §4 measures them from the palette. DA-05 confirms on hardware.
 
   - sc: "1.4.4"
     name: Resize Text
@@ -688,16 +687,16 @@ wcag:
   - sc: "1.4.11"
     name: Non-text Contrast
     level: AA
-    status: Partially Supports
+    status: Supports
+    tests:
+      - "apps/mobile/src/lib/theme.test.ts::$name: control boundaries and fills meet SC 1.4.11 (3:1)"
     manual: [MC-24]
-    finding: >-
-      In light mode an unselected interactive chip's only boundary is the
-      `border` hairline. The hairline measures below 3 : 1 against both the chip
-      fill and the screen ground (§4), and the chip fill barely differs from the
-      ground.
     remarks: >-
-      Selected chips (a `primary` border) and every dark-mode chip (filled,
-      tonal) are distinguishable. INT-144 report §5.3 gives the recommended fix.
+      MC-24 recorded the gap before INT-422: an unselected chip's only boundary
+      was a hairline below 3 : 1. INT-422 split that token in two. The `border`
+      that outlines inputs and unselected chips now measures 3 : 1 or more on
+      both grounds in every scheme and contrast mode (§4), and decorative row
+      hairlines take a separate `separator` token.
 
   - sc: "1.4.12"
     name: Text Spacing

@@ -66,3 +66,5 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-026 Connector destinations: a second list, one engine](adr/ADR-026-connector-destinations-second-list-one-engine.md)
 - [ADR-027 SMART backend services: a second auth mode, a second host](adr/ADR-027-smart-second-auth-mode-second-host.md)
 - [ADR-029 Embeddable white-label handshake](adr/ADR-029-embeddable-white-label-handshake.md)
+- [ADR-037 Amendment to ADR-033: press response and native glass](adr/ADR-037-motion-amendment-press-and-glass-response.md) *(ratified by the owner, 3 Oct 2026; INT-451)*
+- [ADR-038 Amendment to ADR-033: spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets](adr/ADR-038-motion-amendment-bubbles-selection-haptics-in-tree-sheets.md) *(ratified by the owner, 3 Oct 2026; INT-461)*
