@@ -1,0 +1,28 @@
+# guideline_id: TARD-ERISKIN-NKC-PREOP-2025
+# title: Elektif Non-Kardiyak Cerrahi (NKC) Geçirecek Erişkinlerin Pre-Operatif Değerlendirme Kılavuzu
+# publisher: Türk Anesteziyoloji ve Reanimasyon Derneği (TARD), Hasta ve Çalışan Güvenliği Bilimsel Kurulu
+# version_or_date: Şubat 2025 (cover); PDF created 20 February 2025; 31 PDF pages
+# url: https://akademi.tard.org.tr/pdf/kilavuz/elektif-non-kardiyak-cerrahi-preoperatif-degerlendirme.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200, 761835 bytes); text extracted with pdftotext (poppler); page numbers are PDF page indices; within each excerpted paragraph the PDF line wraps are joined with single spaces; the evidence-grade column (1A-2C), which pdftotext emits as a separate block beside the bullet text, is not part of the excerpted paragraphs; bullet glyphs omitted; characters otherwise kept as extracted, including the footnote digits that follow a sentence
+# scope: verbatim excerpt of the comorbidity headings and first bullets on PDF pp. 8-11 and the Nöromusküler hastalık bullets on PDF p. 18; nothing paraphrased or edited; omissions marked [...]. A second excerpt of the guideline beside TARD-ERISKIN-NKC-PREOP-2025.txt, which holds the cover and scope paragraph.
+---
+[PDF p. 8]
+Kronik Kalp Yetmezliği (KKY) veya koroner arter hastalığı (KAH) olan veya olmayan hastalarda yüksek riskli cerrahiden önce rutin preoperatif odaklanmış kardiyak POCUS’un postoperatif morbiditeyi azaltabileceğine dair ikna edici kanıt yoktur2.
+[...]
+[PDF p. 9]
+Kronik obstrüktif akciğer hastalığı (KOAH)
+Nefes darlığı, hırıltılı solunum ve balgamın pürülan olup olmadığı sorgulanır4.
+[...]
+[PDF p. 10]
+Böbrek hastalığı
+Postoperatif ABH riski olan hastaları tespit etmek için ileri yaş, obezite ve benzeri faktörlerin göz önünde bulundurulması tavsiye edilir. Ayrıca olası nefrotoksik ilaç uygulamalarında, volüm durumu ve kan basıncı kontrolünde ekstra dikkat gerekir1.
+[...]
+[PDF p. 11]
+Diyabet
+Diyabetes mellituslu hastalarda, bilinen veya şüpheli kardiyovaküler hastalık için olan kılavuzlardakine uygun bir yönetim tavsiye edilir1.
+[...]
+[PDF p. 18]
+Nöromusküler hastalık
+Nörolojik hastalığı olan bir hasta için (örneğin; inme, nöbet bozukluğu, multipl skleroz), son olaylara, alevlenmelere veya durumun zayıf kontrolüne dair ayrıntılı bir öykü gereklidir4.
+Mental durum, konuşma, kranial sinirler, yürüyüş ve motor ve duyusal fonksiyondaki eksiklikleri belgeleyen temel bir nörolojik muayene önemlidir. İnme veya geçici nörolojik defisit tam olarak değerlendirilmezse veya ameliyattan önceki 1 ay içinde ortaya çıkarsa, elektif cerrahi ertelenir4.

@@ -156,9 +156,16 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-378 (the Keycloak provider that writes the aaguid and credential_id
     # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
     # owner decision, GitHub #644).
+    # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
     # order of 3 Oct 2026, GitHub #790).
-    assert len(ids) == 336
+    assert len(ids) == 341
     import re
 
     for i in ids:

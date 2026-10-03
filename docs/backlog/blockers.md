@@ -423,6 +423,10 @@ and the text is verbatim (inv 10). Three asks are a human's, not an agent's:
 - **(c) The Turkish voice id.** The supplied key is a scoped TTS key with no `voices_read`, so
   the voice library cannot be browsed; the small-run used a stable public multilingual voice.
   *"Which warm Turkish ElevenLabs voice id should the fixed set be built with?"* — owner.
+  **Answered 3 Oct 2026 (INT-449, D20):** the owner picked E04 from the blind casting page
+  ("use E04 voice"): `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, pinned as
+  `voice_clips.delivery.CLIPGEN_VOICE_ID` (docs/voice/casting-2026-10.md). Asks (a) and (b)
+  stay open.
 
 Also open and separate: a **fresh on-hardware on-prem run** over `int319-scripted-tr-v1` waits
 on GPU access (server unreachable this build, `gpu`); a production `make clips VOICE=<elevenlabs-…>`
