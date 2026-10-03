@@ -6453,3 +6453,26 @@
     - "invariant 49 is enforced by a simulator/runtime test with a fake clock (entry ≤ 60 s; page at SLA + ε; a transition on a RED visit raises an entry), with near-miss controls"
   tests: [tests/safety/test_red_acknowledgement_sla.py, tests/platform/test_safety_inbox.py, tests/admin/test_safety_queue.py, tests/voice/test_safety_inbox_notifier.py]
   sec_row: "triage"
+- id: INT-450
+  epic: E12-admin
+  phase: P1
+  title: "admin-web UI upgrade with owner-listed component libraries (licence-checked)"
+  # GitHub #763. Owner request, 3 Oct 2026: eight libraries named for the admin
+  # console. Each was licence-checked from its raw LICENSE blob or, where none
+  # exists, its licence/terms page (docs/evidence/INT-450.md). Adopted by
+  # porting into the console's own server-rendered markup and stylesheet (the
+  # CSP admits no inline style and no foreign script): EvilCharts, beUI's public
+  # library and Astryx (MIT) and two free Transitions.dev transitions. Not
+  # adopted: Kinetics (no LICENSE in its repository), Kobra and Reverse UI (paid
+  # licences, an owner purchase), Beautiful UI (MIT, but no component fits an
+  # ops console). Cost and Roadmap have no rendered page on main and Model
+  # lanes is PR #751, so their charts follow those pages.
+  depends_on: [INT-181, INT-182, INT-187, INT-351, INT-366]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-450.md
+  acceptance:
+    - "kobra, beautifului, beui, reverseui, astryx, transitions, evilcharts and kinetics are each licence-verified from their raw LICENSE."
+    - "Admin-web dashboards, charts and interactions are upgraded with the adopted ones. Accessibility is tested and before/after captures are recorded."
+  tests: [apps/admin-web/e2e/accessibility.spec.ts, apps/admin-web/src/ui/charts.test.tsx]
+  sec_row: "admin-console"

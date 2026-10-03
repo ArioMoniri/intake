@@ -24,9 +24,16 @@ export interface TileProps {
   children?: ReactNode;
 }
 
+/**
+ * A tile is an `article`, not a `section`: a labelled section is a region
+ * landmark, and a tile titled like the band around it ("Deploy gate" inside
+ * "Deploy gate") made two landmarks of one name (axe `landmark-unique`,
+ * INT-450). The bands stay the page's regions; a tile stays reachable by its
+ * heading.
+ */
 export function Tile({ id, title, state, reason, c, meta, children }: TileProps): ReactElement {
   return (
-    <section
+    <article
       data-tile={id}
       data-tile-state={state}
       className={`tile tile-${state}`}
@@ -43,7 +50,7 @@ export function Tile({ id, title, state, reason, c, meta, children }: TileProps)
       ) : (
         children
       )}
-    </section>
+    </article>
   );
 }
 

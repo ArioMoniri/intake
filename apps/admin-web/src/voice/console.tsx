@@ -14,6 +14,8 @@ import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { BarList } from "../ui/charts";
+import { sharesOf } from "../ui/figure";
 import type { ResultCode } from "./actions";
 import { ControlForms, ControlsTile, PendingTile } from "./controls";
 import { COPY, type Lang, type VoiceCopy } from "./copy";
@@ -92,6 +94,26 @@ function KillSwitchActivity({ view, c }: { view: VoiceView; c: C }): ReactElemen
   );
 }
 
+/** INT-450 — p50 and p95 per profile, drawn on one scale so the two compare. */
+function LatencyCharts({ view, c }: { view: VoiceView; c: C }): ReactElement | null {
+  const rows = view.turnLatency.rows;
+  if (rows.length === 0) return null;
+  const shares = sharesOf(rows.flatMap((row) => [row.p50, row.p95]));
+  const series = (p: 0 | 1) =>
+    rows.map((row, i) => ({
+      key: row.profile,
+      text: p === 0 ? row.p50 : row.p95,
+      share: shares[i * 2 + p] ?? null,
+      tone: "data" as const,
+    }));
+  return (
+    <div className="viz">
+      <BarList id="turn-p50" title={c.cols.p50} rows={series(0)} c={c} />
+      <BarList id="turn-p95" title={c.cols.p95} rows={series(1)} c={c} />
+    </div>
+  );
+}
+
 function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
   const t = view.turnLatency;
   const meta = (
@@ -108,6 +130,7 @@ function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
       c={c}
       meta={meta}
     >
+      <LatencyCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>

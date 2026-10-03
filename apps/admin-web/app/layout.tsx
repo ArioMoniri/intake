@@ -2,14 +2,16 @@
  * INT-351 — the admin-web App Router shell (files/08 §7: Next.js App Router;
  * audit F26 — the console was headless view-models only).
  *
- * Deliberately minimal: one stylesheet, bundled and served from `'self'`
- * (the CSP carries no `unsafe-inline`, so no `style` attribute is used
- * anywhere), no client component, no third-party script, font or frame.
+ * Deliberately minimal: two stylesheets — the console's own and the INT-450
+ * refresh layer over it — bundled and served from `'self'` (the CSP carries no
+ * `unsafe-inline`, so no `style` attribute is used anywhere), no client
+ * component, no third-party script, font or frame.
  */
 import type { Metadata } from "next";
 import type { ReactElement, ReactNode } from "react";
 
 import "./console.css";
+import "./refresh.css";
 
 export const metadata: Metadata = {
   title: "INTAKE admin",

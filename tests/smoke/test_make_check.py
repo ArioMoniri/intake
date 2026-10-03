@@ -299,7 +299,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
     # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
     # with a stated reason.
-    assert len(ids) == 330, f"expected 175 blueprint + 155 added issues, got {len(ids)}"
+    # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
+    # licence-checked, owner request, GitHub #763); grows only with a stated
+    # reason.
+    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -3017,3 +3017,58 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T04:10:00+03:00 · INT-450 · done (PR open, not merged)
+- Goal: GitHub #763, the owner's request of 3 Oct 2026. Acceptance, verbatim:
+  - "kobra, beautifului, beui, reverseui, astryx, transitions, evilcharts and kinetics are each licence-verified from their raw LICENSE."
+  - "Admin-web dashboards, charts and interactions are upgraded with the adopted ones. Accessibility is tested and before/after captures are recorded."
+- Plan:
+  - Read each licence from its raw LICENSE blob, or its licence/terms page where there is none, and record the URL, sha256 and date.
+  - Port the adopted ones into the console's own server-rendered SVG and bundled CSS. The CSP admits no inline style and no foreign script, so Recharts and Motion cannot be installed as they are.
+  - Chart the dashboards where data exists, and refresh the navigation, cards, tables, forms and motion.
+  - Gate it all with axe, a token contrast check and a reduced-motion check.
+- Licences:
+  - Adopted:
+    - EvilCharts (MIT);
+    - beUI public library (MIT);
+    - Astryx (MIT);
+    - Transitions.dev, two free transitions under its custom licence.
+  - Cleared but not used: Beautiful UI (MIT). It ships chat-agent primitives, and none fits the console.
+  - Rejected:
+    - Kinetics: no LICENSE in its repository; the site's "MIT" is a badge.
+    - Kobra: paid, per seat. Owner purchase.
+    - Reverse UI: paid lifetime licence; the free tier has no licence text. Owner purchase.
+- Tests added (with the near-miss negative for any safety rule):
+  - `apps/admin-web/e2e/accessibility.spec.ts` (33 tests):
+    - axe WCAG 2.1 A/AA + best practice over 8 page states × tr/en, all with 0 violations;
+    - token contrast in both themes;
+    - reduced motion;
+    - one repeating animation only;
+    - no `text-transform`, ellipsis or break-all (files/00_STATE Turkish casing);
+    - CSP and stylesheet origin checks.
+    - Near-misses: a nameless chart image fails axe; a 0.55 gradient fails 3:1; a planted uppercase rule is caught.
+  - `apps/admin-web/src/ui/charts.test.tsx` (15 tests). Near-misses: a grouped figure draws no bar; 0 is not unknown; a stale reading is named stale.
+  - RED runs: 1 + 7 failures, recorded in the evidence. They caught three defects:
+    - a grouped number charted as 1;
+    - a pre-existing `landmark-unique` defect on CI/CD and Voice (tiles are now `article`);
+    - a 2.1:1 bar gradient.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile 2526 passed). admin-web is now 375 passed: 327 existing plus 48 new.
+  - admin-web `build` green.
+  - `check_licenses.py` OK, and `no_placeholders` OK after staging.
+  - `tests/backlog` and `tests/smoke/test_make_check.py` green, with pins 330 → 331.
+  - `make security`: steps 2–5 and 7–12 are green.
+    - Step 1 (gitleaks, full history) reports 7 findings, all in commits already on main; the staged diff is clean.
+    - Step 6 (OSV) reports `braces@3.0.3` and `http-cache-semantics@4.2.0`. The same two are on origin/main's lockfile; none comes from this change's additions.
+  - No Python, protocol or voice change, so `make safety` is not affected.
+- Invariants touched and still passing:
+  - 6: charts carry ids only;
+  - 14: CSP unchanged, verified in Chrome under the production policy with zero violations;
+  - 17: a chart renders only in an `ok` tile, and an unknown figure draws no mark;
+  - 19: licences read from raw blobs;
+  - 20: no target drawn beside a figure;
+  - 22: a chart parses the printed atom and refuses grouping.
+- Decisions / ADRs / `00_STATE.md` rows: none. The port-not-install choice follows from the existing CSP and is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner asks, not HB rows: buy Kobra and/or Reverse UI if wanted; ask the Kinetics author for a LICENSE.
+- Next: PR `INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked)` (Closes #763, Sec-Row admin-console), left unmerged. Cost and Roadmap pages, and Model lanes (#751), take the shared chart primitives when they land.
+- LOOP_STATUS: CONTINUE

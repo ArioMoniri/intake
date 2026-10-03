@@ -13,6 +13,8 @@ import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { BarList, Gauge, toneOf } from "../ui/charts";
+import { percentOf, sharesOf } from "../ui/figure";
 import { COPY, type Lang, type OverviewCopy } from "./copy";
 import type { OverviewState } from "./load";
 import type { Age, OverviewView, SloView } from "./module";
@@ -43,17 +45,27 @@ function SloTile({ t, c }: { t: SloView; c: C }): ReactElement {
       c={c}
       meta={meta}
     >
-      <dl className="facts">
-        <dt>{c.slo.sli}</dt>
-        <dd>
-          <Cell value={t.sli} c={c} />
-        </dd>
-        <dt>{c.slo.budget}</dt>
-        <dd data-overspent={t.budgetOverspent === true ? "true" : "false"}>
-          <Cell value={t.budgetRemaining} c={c} />
-          {t.budgetOverspent === true ? <> · {c.slo.overspent}</> : null}
-        </dd>
-      </dl>
+      <div className="kpis">
+        <Gauge
+          id={`slo-budget-${t.key}`}
+          label={c.slo.budget}
+          text={t.budgetRemaining}
+          share={percentOf(t.budgetRemaining)}
+          tone={t.budgetOverspent === true ? "bad" : "ok"}
+          c={c}
+        />
+        <dl className="facts">
+          <dt>{c.slo.sli}</dt>
+          <dd>
+            <Cell value={t.sli} c={c} />
+          </dd>
+          <dt>{c.slo.budget}</dt>
+          <dd data-overspent={t.budgetOverspent === true ? "true" : "false"}>
+            <Cell value={t.budgetRemaining} c={c} />
+            {t.budgetOverspent === true ? <> · {c.slo.overspent}</> : null}
+          </dd>
+        </dl>
+      </div>
       <ScrollTable>
         <thead>
           <tr>
@@ -117,6 +129,29 @@ function Slos({ view, c }: { view: OverviewView; c: C }): ReactElement {
   );
 }
 
+/** INT-450 — the measured probes' latency, drawn; a stale reading is hatched. */
+function ProbeLatency({ view, c }: { view: OverviewView; c: C }): ReactElement | null {
+  const measured = view.probeMatrix.rows.filter((row) => row.latency !== null);
+  if (measured.length === 0) return null;
+  const shares = sharesOf(measured.map((row) => row.latency));
+  return (
+    <div className="viz">
+      <BarList
+        id="probe-latency"
+        title={c.probes.latency}
+        rows={measured.map((row, i) => ({
+          key: row.component,
+          text: row.latency,
+          share: shares[i] ?? null,
+          tone: toneOf(row.status),
+          stale: row.stale,
+        }))}
+        c={{ unknown: c.unknown, stale: c.probes.stale }}
+      />
+    </div>
+  );
+}
+
 function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
   const m = view.probeMatrix;
   const meta = (
@@ -134,6 +169,7 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
       c={c}
       meta={meta}
     >
+      <ProbeLatency view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>

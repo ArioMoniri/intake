@@ -10,6 +10,7 @@
  */
 import type { ReactElement } from "react";
 
+import { ClipCharts, GpuCharts, UsageCharts } from "./charts";
 import { COPY, type Copy, type Lang } from "./copy";
 import type { OpsConsoleState } from "./load";
 import type { OpsView } from "./module";
@@ -102,6 +103,7 @@ function Gpu({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const t = view.tiles.gpu;
   return (
     <Tile id="gpu" title={c.gpu.title} state={t.state} reason={t.reason} c={c}>
+      <GpuCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -160,6 +162,7 @@ function Usage({ view, c }: { view: OpsView; c: Copy }): ReactElement {
       c={c}
       meta={meta}
     >
+      <UsageCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -199,6 +202,7 @@ function Clips({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const meta = <p className="window">{windowLabel(c, t.window)}</p>;
   return (
     <Tile id="clip_cache" title={c.clips.title} state={t.state} reason={t.reason} c={c} meta={meta}>
+      <ClipCharts view={view} c={c} />
       <dl className="facts">
         <dt>{c.clips.hit}</dt>
         <dd>

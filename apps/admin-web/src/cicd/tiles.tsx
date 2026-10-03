@@ -10,6 +10,7 @@
 import type { ReactElement } from "react";
 
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { GatePass, RunDurations } from "./charts";
 import type { CicdCopy } from "./copy";
 import type { CicdView } from "./module";
 
@@ -36,6 +37,7 @@ export function Pipelines({ view, c }: { view: CicdView; c: C }): ReactElement {
       c={c}
       meta={meta}
     >
+      <RunDurations view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -103,6 +105,7 @@ export function Gates({ view, c }: { view: CicdView; c: C }): ReactElement {
     );
   return (
     <Tile id="gates" title={c.tiles.gates} state={t.state} reason={t.reason} c={c} meta={meta}>
+      <GatePass view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
