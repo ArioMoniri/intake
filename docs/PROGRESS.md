@@ -3229,3 +3229,22 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T21:50:00Z · INT-474 · done (PR open, not merged)
+- Goal: issue #811, from the INT-471 legal lane (LD-03, LD-04; proposed, in legal review, D25 scope). Acceptance restated: "The compiler/runtime refuses the categories household, relatives_health and partner_fertility unless the deployment role is the hospital-controller role, independent of the register row. Tests: consumer deployment with a filled row is refused; near-miss: hospital deployment with a filled row is served (synthetic). Cross-reference LD-03, LD-04 and D25; no consent text changes."
+- Plan:
+  - Role source: the existing typed tenant field `tenants.kvkk_role` (INT-030; `processor` means the hospital is controller). No new column, so no new inventory annotation.
+  - `protocols.deployment_role`: closed `DeploymentRole` enum with no default member; the gated set is the register's own `OTHER_SUBJECT_CATEGORIES`.
+  - Compiler: refusal `DATA_CATEGORY_DEPLOYMENT_ROLE`, independent of `DATA_CATEGORY_REGISTER_INCOMPLETE`. `protocols compile --deployment-role` and `make protocols-compile DEPLOYMENT_ROLE=`; unset refuses. The manifest records the role.
+  - Store: `write_slot_answer` reads the tenant row's role and refuses before writing. No caller parameter can carry a role.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_deployment_role_gate.py and tests/data/test_deployment_role_store_gate.py.
+  - Consumer deployment with a filled row refused, missing role refused, and the near miss: a hospital-controller deployment with a filled row compiles and stores. Covered for all three categories, in the compiler, the CLI and the store.
+  - Red run: 29 failed, including the defect itself: a filled register compiled a relatives_health slot with no role.
+  - The INT-349 storage test's tenant is now provisioned as a hospital-controller deployment; no assertion changed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-474.md §6. ruff and mypy are clean, the protocols lane is 1724 passed at 97.41 %, and the gate modules are at 100 % branch.
+- Invariants touched and still passing: 4 (consent scope: the answer store narrows), 6 (refusals carry ids only), 17 (nothing filled; the register stays empty), 18 (no docs/legal/ or strings.yaml change; no new data field or category).
+- Decisions / ADRs / `00_STATE.md` rows: none. LD-03/LD-04 are cited as proposed; D25 is cited from the legal lane.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new. Counsel's open question is in LD-03/LD-04: does any KVKK ground exist for the other person's data in the consumer deployment? Until it is answered the gate stays closed there.
+- Next: PR `INT-474: …` (Closes #811, Sec-Row consent).
+- LOOP_STATUS: CONTINUE

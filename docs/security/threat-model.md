@@ -559,9 +559,16 @@ it or whose tests exercise it.
 - **Controls (files/10):** §9 consent row — versioned objects, server-side enforcement on
   every read, re-prompt on change; CLAUDE.md invariant 18 — texts render only from
   docs/legal/ with hash binding; `consent_vendor_parity` (inv. 25) ties named vendors to the
-  egress allow-list.
+  egress allow-list. INT-474: answers about a person who is not the patient (`household`,
+  `relatives_health`, `partner_fertility`) ride KVKK m.6(3)(e) through the hospital as
+  controller (INT-471 LD-03, LD-04), so the compiler (`DATA_CATEGORY_DEPLOYMENT_ROLE`) and
+  the answer store admit them only for the hospital-controller deployment, read from
+  configuration (`--deployment-role`, `tenants.kvkk_role`), whatever the register row says.
 - **Signals:** `consent_guard` denials and re-prompt rates (§9) land with INT-038.
 - **Tests:** route-table scan proving every clinical route checks a scope lands with INT-038.
+  `tests/protocols/test_deployment_role_gate.py` and
+  `tests/data/test_deployment_role_store_gate.py` (INT-474): consumer deployment and missing
+  role refused with a filled register row; hospital-controller deployment admitted.
 
 ## `companions` — proxy, guardian and minor flows
 

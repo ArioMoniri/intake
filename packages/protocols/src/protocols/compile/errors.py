@@ -46,6 +46,8 @@ class RefusalCode(enum.StrEnum):
     DATA_CATEGORY_UNKNOWN = "DATA_CATEGORY_UNKNOWN"
     DATA_CATEGORY_REGISTER_INCOMPLETE = "DATA_CATEGORY_REGISTER_INCOMPLETE"
     DATA_CATEGORY_RELAXED = "DATA_CATEGORY_RELAXED"
+    # another person is the data subject: hospital-controller deployment only (INT-474)
+    DATA_CATEGORY_DEPLOYMENT_ROLE = "DATA_CATEGORY_DEPLOYMENT_ROLE"
 
     # --- delivery annotations with an open human blocker (INT-255)
     CRISIS_ESCALATION_POLICY_ABSENT = "CRISIS_ESCALATION_POLICY_ABSENT"

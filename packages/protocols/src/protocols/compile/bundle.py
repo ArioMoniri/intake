@@ -30,6 +30,7 @@ from protocols.compile.errors import CompileError
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.resolve import ResolvedProtocol, resolve_protocol
 from protocols.data_register import DataCategoryRegister
+from protocols.deployment_role import DeploymentRole
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
@@ -102,10 +103,14 @@ def compile_bundle(
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
     data_register: DataCategoryRegister | None = None,
+    deployment_role: DeploymentRole | None = None,
 ) -> CompiledBundle:
     """Resolve, project, and hash. Raises :class:`CompileError` on any refusal.
 
-    ``data_register`` gates tagged slots (INT-349); omitted, it has no rows."""
+    ``data_register`` gates tagged slots (INT-349); omitted, it has no rows.
+    ``deployment_role`` gates the other-subject categories (INT-474); omitted,
+    none is declared and they refuse. The manifest records the role compiled
+    for, so a bundle built for the hospital deployment says so."""
     document = resolve_protocol(
         pack_id=pack_id,
         registry=registry,
@@ -115,6 +120,7 @@ def compile_bundle(
         licences=licences,
         locale=locale,
         data_register=data_register,
+        deployment_role=deployment_role,
     )
     clips, prompts, clip_refusals = clip_manifest(document, voice, locale=locale)
     doc, fhir_refusals = questionnaire(document, prompts)
@@ -155,6 +161,7 @@ def compile_bundle(
             "overlays": list(document.overlays),
             "voice": voice,
             "locale": locale,
+            "deployment_role": None if deployment_role is None else deployment_role.value,
             "resolved_protocol_hash": document.resolved_protocol_hash,
             "opt_template_id": template.template_id,
             "opt_sha256": template.sha256,

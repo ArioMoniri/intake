@@ -47,6 +47,7 @@ from protocols.compile import (
     write_bundle,
 )
 from protocols.data_register import DATA_REGISTER_PATH, DataRegisterError, load_data_register
+from protocols.deployment_role import DeploymentRole
 from protocols.loader import PackRegistry, PackSchemaError, load_pack
 from protocols.locale_text import DEFAULT_LOCALE
 from protocols.taxonomy import (
@@ -197,6 +198,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         "is incomplete is refused",
     )
     com.add_argument(
+        "--deployment-role",
+        type=DeploymentRole,
+        choices=list(DeploymentRole),
+        default=None,
+        help="the KVKK role of the deployment the bundle is compiled for (INT-474; "
+        "files/06 §0.1). household, relatives_health and partner_fertility slots "
+        "compile only for hospital_controller; omitted, no role is declared and "
+        "they are refused whatever the register says",
+    )
+    com.add_argument(
         "--locale",
         default=DEFAULT_LOCALE,
         help="locale the bundle speaks (default: %(default)s). The clip manifest "
@@ -253,6 +264,7 @@ def _compile_command(args: argparse.Namespace) -> int:
             locale=args.locale,
             overlays=tuple(args.overlays),
             data_register=data_register,
+            deployment_role=args.deployment_role,
         )
     except CompileError as exc:
         print(f"compile: refused to emit {args.pack} ({len(exc.refusals)} reasons)")

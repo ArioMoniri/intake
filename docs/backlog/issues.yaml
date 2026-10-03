@@ -6623,3 +6623,25 @@
     - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
   tests: [tests/voice/test_cast_turkish_voices.py]
   sec_row: "cloud-clipgen"
+- id: INT-474
+  epic: E14-legal
+  phase: P1
+  title: "Deployment-role gate for relatives', household and partner data categories before any register row is filled"
+  # GitHub #811, from the INT-471 legal lane (LD-03, LD-04; proposed, in legal
+  # review, D25 scope: synthetic and test use only). Relatives' health,
+  # household-member and partner-fertility data ride KVKK m.6(3)(e) through the
+  # hospital as data controller; the consumer deployment stays draft. The role
+  # is the existing typed tenant field (tenants.kvkk_role, processor = the
+  # hospital is controller) at runtime and --deployment-role at compile time.
+  # No register row, consent text or docs/legal/ file changes.
+  depends_on: [INT-448]
+  labels: [area:legal]
+  status: done
+  evidence: docs/evidence/INT-474.md
+  acceptance:
+    - "the compiler and the answer store refuse household, relatives_health and partner_fertility unless the deployment role is the hospital-controller role, independent of the register row; an absent role is refused"
+    - "tests: a consumer deployment with a filled row is refused, a missing role is refused, and the near miss, a hospital-controller deployment with a filled row, is admitted (synthetic)"
+    - "LD-03, LD-04 and D25 are cross-referenced; no consent text, docs/legal/ text or strings.yaml changes"
+  tests: [tests/protocols/test_deployment_role_gate.py, tests/data/test_deployment_role_store_gate.py, tests/protocols/test_data_category_gate.py, tests/data/test_sensitive_slot_categories.py]
+  legal: "KVKK-6,KVKK-10"
+  sec_row: "consent"

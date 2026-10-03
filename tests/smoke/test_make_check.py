@@ -318,7 +318,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # GitHub #758); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
     # with a stated reason.
-    assert len(ids) == 339, f"expected 175 blueprint + 164 added issues, got {len(ids)}"
+    # + INT-474 (deployment-role gate on the other-subject data categories, from
+    # the INT-471 legal lane, GitHub #811); grows only with a stated reason.
+    assert len(ids) == 340, f"expected 175 blueprint + 165 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
