@@ -6453,6 +6453,23 @@
     - "invariant 49 is enforced by a simulator/runtime test with a fake clock (entry ≤ 60 s; page at SLA + ε; a transition on a RED visit raises an entry), with near-miss controls"
   tests: [tests/safety/test_red_acknowledgement_sla.py, tests/platform/test_safety_inbox.py, tests/admin/test_safety_queue.py, tests/voice/test_safety_inbox_notifier.py]
   sec_row: "triage"
+- id: INT-426
+  epic: E13-infra
+  phase: P1
+  title: "CI on AWS: gate runner via S3+SSM with commit status, no workflow edits"
+  # GitHub #721. Owner request, 2 Oct 2026: run the CI gates on the AWS host to
+  # avoid GitHub Actions billing and flakiness. Switching Actions off is an
+  # owner step (docs/ci/aws-ci.md); no workflow file is edited here.
+  depends_on: [INT-352]
+  labels: [area:ci]
+  status: done
+  evidence: docs/evidence/INT-426.md
+  acceptance:
+    - "make ci-aws PR=<n> (or a script under scripts/ci/) ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set (make edge-plugin, check-py, check-ts, check-integration, safety, security) in an isolated compose project with resource limits, so the live stack is not starved"
+    - "the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"
+    - "workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"
+  tests: [tests/ci/test_aws_ci.py]
+  sec_row: "cicd"
 - id: INT-407
   epic: E02-data
   phase: P1
