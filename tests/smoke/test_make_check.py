@@ -333,7 +333,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-472 (review and send as grouped inset lists, GitHub #802);
     # grows only with a stated reason.
-    assert len(ids) == 346, f"expected 175 blueprint + 171 added issues, got {len(ids)}"
+    # + INT-447 (INT-414's 48 delivery lines verified under owner decision D18,
+    # GitHub #758); grows only with a stated reason.
+    assert len(ids) == 347, f"expected 175 blueprint + 172 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

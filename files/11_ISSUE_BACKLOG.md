@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**346 issues.** By phase: P0 166 · P1 126 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 236 · todo 71 · withdrawn 1.
+**347 issues.** By phase: P0 166 · P1 127 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 237 · todo 71 · withdrawn 1.
 
 ## P0
 
@@ -299,6 +299,7 @@
 | INT-426 | CI on AWS: gate runner via S3+SSM with commit status, no workflow edits | E13-infra | INT-352 | area:ci | done |
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
+| INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
 | INT-422 | Design system refresh: native Apple feel, restrained palette, SF Symbols, no AI-generic styling | E08-mobile | INT-412 | area:mobile | done |
 | INT-423 | Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid | E08-mobile | INT-422 | area:mobile | done |
 | INT-433 | Question screen redesign: native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced) | E08-mobile | INT-422, INT-423 | area:mobile | done |
