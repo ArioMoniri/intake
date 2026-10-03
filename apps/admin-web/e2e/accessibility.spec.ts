@@ -33,6 +33,7 @@ import { OverviewConsole } from "../src/overview/console";
 import { renderOverview, type ReliabilityPayload } from "../src/overview/module";
 import { VoiceConsole } from "../src/voice/console";
 import { renderVoice, type VoicePayload } from "../src/voice/module";
+import { SHEETS } from "./support/css";
 
 const FIXTURES = join(__dirname, "fixtures");
 const APP = join(__dirname, "..", "app");
@@ -169,7 +170,7 @@ describe("every rendered console page passes axe (WCAG 2.1 A/AA + best practice)
 
 // Comments are prose (the refresh layer's header names what it forbids), so
 // every check below reads the rules alone.
-const STYLES = ["console.css", "refresh.css"].map((f) =>
+const STYLES = SHEETS.map((f) =>
   readFileSync(join(APP, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, ""),
 );
 const CSS = STYLES.join("\n");
@@ -310,7 +311,7 @@ describe("the CSP stays whole", () => {
     const imports = [...layout.matchAll(/^import\s+(?:[^"]+from\s+)?"([^"]+)";/gm)].map(
       (m) => m[1],
     );
-    expect(imports.filter((i) => i!.endsWith(".css"))).toEqual(["./console.css", "./refresh.css"]);
+    expect(imports.filter((i) => i!.endsWith(".css"))).toEqual(SHEETS.map((s) => `./${s}`));
     expect(imports.every((i) => i === "next" || i === "react" || i!.startsWith("./"))).toBe(true);
   });
 

@@ -1,0 +1,404 @@
+/* INT-459 — content on solid fills: bands, cards, inspector lists, inset
+   tables, the charts' marks, the settings-style four-eyes forms, and the
+   empty and error states. Motion is a spring and never moves a
+   control or anything holding one (e2e/native.spec.ts). */
+
+/* --- content: bands, cards, facts --------------------------------------------- */
+
+.band {
+  margin-top: 30px;
+}
+
+.band-head {
+  margin: 0 0 2px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.band > .window {
+  font-size: 13px;
+}
+
+.grid {
+  align-items: start;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.tile,
+.tile-unknown {
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.tile::before {
+  content: none;
+}
+
+.tile-head {
+  margin-bottom: 12px;
+}
+
+.tile-head h2 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+
+.grid > .tile:not(form):not(:has(button)):not(:has(input)):not(:has(select)):not(:has(textarea)) {
+  animation: rise 560ms var(--spring-snappy) both;
+}
+
+/* An inspector list: term left, value right, a hairline between terms. A term
+   with several values keeps them in the value column, one under another. */
+.facts {
+  gap: 0;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.facts dt {
+  grid-column: 1;
+  padding: 6px 16px 6px 0;
+}
+
+.facts dd {
+  grid-column: 2;
+  padding: 6px 0;
+  text-align: end;
+}
+
+.facts dt:not(:first-of-type),
+.facts dt:not(:first-of-type) + dd {
+  border-top: 1px solid var(--hairline);
+}
+
+.facts dd + dd {
+  padding-top: 0;
+}
+
+@container (max-width: 400px) {
+  .facts dt,
+  .facts dd {
+    grid-column: 1;
+  }
+
+  .facts dt {
+    padding-bottom: 0;
+  }
+
+  .facts dt:not(:first-of-type) + dd {
+    border-top: 0;
+  }
+
+  .facts dd {
+    padding-top: 2px;
+    text-align: start;
+  }
+}
+
+/* --- tables: an inset list --------------------------------------------------- */
+
+.scroll {
+  margin: 0 -10px;
+  padding: 0;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+th,
+td {
+  padding: 8px 10px;
+}
+
+th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  vertical-align: bottom;
+  border-bottom: 1px solid var(--line);
+}
+
+td {
+  border-bottom: 1px solid var(--hairline);
+}
+
+tbody tr:hover td:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+tbody tr:hover td:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+/* --- charts: the ported marks, without glow, on springs ---------------------- */
+
+.gauge-arc {
+  filter: none;
+  animation-timing-function: var(--spring-smooth);
+}
+
+.bar {
+  animation-timing-function: var(--spring-smooth);
+}
+
+.gauge-value {
+  font-family: var(--font-rounded);
+  font-size: 22px;
+}
+
+.bar-value,
+.gauge-value {
+  animation-timing-function: var(--spring-snappy);
+}
+
+/* --- settings: the four-eyes forms, still ------------------------------------ */
+
+form.tile {
+  gap: 12px;
+}
+
+form.tile > .tile-head {
+  margin-bottom: 0;
+}
+
+form.tile label,
+form.tile fieldset {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+fieldset {
+  margin: 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+
+legend {
+  padding: 0 4px;
+}
+
+form.tile fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+select,
+textarea,
+input:not([type="hidden"]):not([type="checkbox"]) {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--field);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-control);
+}
+
+textarea {
+  resize: vertical;
+}
+
+select:focus-visible,
+textarea:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-color: var(--focus);
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent-fill);
+}
+
+form.tile button[type="submit"] {
+  justify-self: end;
+  min-height: 32px;
+  padding: 6px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  border: 0;
+  border-radius: 999px;
+  opacity: 1;
+}
+
+form.tile button[type="submit"]:hover,
+form.tile button[type="submit"]:active {
+  background: var(--accent-fill-active);
+  opacity: 1;
+}
+
+button:disabled {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+}
+
+/* --- states: notices, results, empty, refused, not found ------------------- */
+
+.refusal,
+.result {
+  position: relative;
+  margin: 16px 0 0;
+  padding: 12px 16px 12px 44px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+/* A form's outcome, back from the redirect, settles in once. */
+.result {
+  margin-top: 10px;
+  padding-block: 8px;
+  animation: rise 480ms var(--spring-snappy) both;
+}
+
+.refusal::before,
+.result::before {
+  content: "!";
+  content: "!" / "";
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--surface);
+  background: var(--warn);
+  border-radius: 50%;
+}
+
+.refusal[data-refusal]::before {
+  background: var(--bad);
+}
+
+.result::before {
+  content: "i";
+  content: "i" / "";
+  top: 8px;
+  color: var(--on-accent);
+  background: var(--accent-fill);
+}
+
+.unknown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+
+.unknown::before {
+  content: "?";
+  content: "?" / "";
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--unknown);
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+
+.unknown strong {
+  font-weight: 600;
+  color: var(--unknown);
+}
+
+.unknown code {
+  margin-left: 0;
+}
+
+/* A page with no header is a state of its own: a refusal, an unavailable API,
+   or an address that is not a page. It is centred, with its symbol above. */
+.ops:not(:has(> .page-head)) {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  max-width: 560px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 48px 20px;
+  text-align: center;
+}
+
+.ops:not(:has(> .page-head)) > .refusal {
+  padding: 56px 24px 20px;
+  font-size: 14px;
+}
+
+.ops:not(:has(> .page-head)) > .refusal::before {
+  top: 18px;
+  left: calc(50% - 15px);
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+}
+
+.state-glyph {
+  margin: 0;
+  color: var(--muted);
+}
+
+.state-glyph .glyph {
+  width: 44px;
+  height: 44px;
+  stroke-width: 1.4;
+}
+
+.state-alt,
+.state-body {
+  margin: 0;
+  color: var(--muted);
+}

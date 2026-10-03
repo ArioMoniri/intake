@@ -141,9 +141,6 @@
   border-top: 1px solid var(--line);
   border-radius: var(--radius-container);
   box-shadow: var(--shadow-tile);
-  transition:
-    box-shadow var(--duration-medium) var(--ease-out),
-    border-color var(--duration-medium) var(--ease-out);
 }
 
 .tile::before {
@@ -204,7 +201,8 @@
   }
 }
 
-.grid > .tile {
+/* INT-459: a four-eyes form, or a card holding a control, arrives still. */
+.grid > .tile:not(form):not(:has(button)):not(:has(input)):not(:has(select)):not(:has(textarea)) {
   animation: panel-in 400ms var(--ease-out) both;
 }
 
@@ -258,7 +256,6 @@ input:not([type="hidden"]) {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-inner);
-  transition: border-color var(--duration-fast) var(--ease-out);
 }
 
 select:hover,
@@ -277,7 +274,6 @@ button {
   border: 1px solid transparent;
   border-radius: var(--radius-element);
   cursor: pointer;
-  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 button:hover {
@@ -307,10 +303,6 @@ th {
 
 td {
   padding: 6px 12px 6px 0;
-}
-
-tbody tr td {
-  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 tbody tr:hover td {

@@ -149,7 +149,9 @@ def test_ids_unique_and_well_formed() -> None:
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
     # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
     # each licence-checked; owner request, GitHub #763).
-    assert len(ids) == 331
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only, tokens and AA contrast tested; owner request, GitHub #783).
+    assert len(ids) == 332
     import re
 
     for i in ids:

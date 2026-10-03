@@ -302,7 +302,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
     # licence-checked, owner request, GitHub #763); grows only with a stated
     # reason.
-    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only; owner request, GitHub #783); grows only with a stated reason.
+    assert len(ids) == 332, f"expected 175 blueprint + 157 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

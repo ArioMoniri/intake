@@ -102,7 +102,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
     # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
     # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
-    assert len(actions) == 331
+    # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
+    assert len(actions) == 332
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
