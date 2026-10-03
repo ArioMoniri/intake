@@ -3249,3 +3249,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: re-verification of CD-110 round 2, then resume INT-472.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T03:30:00+03:00 · INT-470 · round 3 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the verifier's round 2 on #804 (3 major, all "fail toward not asking", 3 minor, 3 notes).
+- Plan: tests first in tests/protocols/test_cd110_decisions.py, then CD-110 round 3.
+- Tests added (with the near-miss negative for any safety rule): the lmp gate evaluated as a truth table (an evet or emin değilim at a recorded age outside the bounds is asked); the pedodonti gate's injury term; an unanswered or skipped presence screen opens the history; trismus never the only term. Red run: 7 failed, 27 passed; green 72 passed.
+- Result: see docs/evidence/INT-470.md (round 3); the only red test is CD-110's pending verdict.
+- Invariants touched and still passing: 2, 7 (every gate change widens: the lmp guard is an extra OR term), 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 3.
+- LOOP_STATUS: CONTINUE
