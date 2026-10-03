@@ -1,0 +1,22 @@
+# source_id: W3C-WCAG22-UNDERSTANDING-2.2.1
+# instrument: Understanding Success Criterion 2.2.1: Timing Adjustable (WCAG 2.2 Understanding Docs)
+# provisions: Intent (what counts as a time limit; a timer with an alternative); Examples (the ticket-purchasing case)
+# version_or_date: WCAG 2.2 Understanding Docs, as published on 2026-10-03 (the page carries no version date)
+# url: https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html
+# retrieved_on: 2026-10-03
+# transcription: HTML tags removed, line breaks as served; only the cited sentences. Copyright © W3C, reproduced as a short excerpt under the W3C Document License. Understanding documents are informative, not normative.
+---
+Any process that happens without user initiation after a set time or on a periodic
+basis is a time limit. This includes partial or full updates of content (for example,
+page refresh), changes to content, or the expiration of a window of opportunity for
+a user to react to a request for input.
+[...]
+Content that operates on a timer does not need to be time adjustable if there is an alternative that does not rely on a timer.
+[...]
+An on-line ticket-purchasing site gives the user two minutes to confirm a purchase
+before the seats are returned to the general pool. Because tickets on such sites can
+sell out quickly, holding a ticket longer than that may invalidate the nature of the
+site, so this is a case in which the timing is essential and cannot be extended without
+invalidating the activity. However, the site does move as much of the process out
+of the time-critical period as possible, for instance allowing users to provide necessary
+information like name, payment method, etc., before entering the time-critical stage.

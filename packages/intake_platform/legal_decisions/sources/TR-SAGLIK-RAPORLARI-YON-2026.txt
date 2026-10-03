@@ -1,0 +1,56 @@
+# source_id: TR-SAGLIK-RAPORLARI-YON-2026
+# instrument: Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361, 18 Mayıs 2026)
+# provisions: m.2, m.4(1)(m), m.6(1)-(2), m.8(5), m.39(1), m.40(1) and (4), m.48(1) and (3), m.50(1), (4), (6) and (8), m.52(5)
+# gazette: 19/5/2026 sayı 33258 (in force on publication, m.71)
+# url: https://www.resmigazete.gov.tr/eskiler/2026/05/20260519-12.pdf
+# retrieved_on: 2026-10-03
+# transcription: the official PDF (35 pages, QuarkXPress, no text layer) was rendered at 110 dpi; each paragraph below was taken from the HTML copy at https://www.alomaliye.com/2026/05/19/saglik-raporlari-yonetmeligi-karar-sayisi-11361/ (retrieved the same day) and checked word by word against the official page images (PDF pages 2, 3, 4, 5, 17, 19, 21, 22 and 23); article headings use the official plain hyphen. Nothing paraphrased or edited; [...] marks an omission between excerpts.
+---
+SAĞLIK RAPORLARI YÖNETMELİĞİ
+[...]
+Kapsam
+MADDE 2- (1) Bu Yönetmelik, resmi ve özel tüm sağlık hizmeti sunucularını, özel hukuk tüzel kişileri ve gerçek kişileri kapsar.
+[...]
+Tanımlar
+MADDE 4- (1) Bu Yönetmeliğin uygulanmasında;
+[...]
+m) Sağlık raporu: Düzenlendiği tarihte kişinin beden ve ruh sağlığının belirli bir amaca uygun olup olmadığının veya genel sağlık durumunun, bir veya birden çok hekim tarafından yapılan muayene ve değerlendirme sonucunda tespit edilip kayıt altına alındığı belgeyi,
+[...]
+Başvuru usulü
+MADDE 6- (1) Sağlık raporu talep eden kişilerin, öncelikle e-Devlet üzerinden kişisel sağlık bilgi formunu doldurmaları veya gerekmesi hâlinde güncellemeleri gerekir. Bu işlemler, 18 yaşından küçüklerin veli ya da vasisi tarafından yapılır.
+(2) Sağlık kurulu raporu talep eden kişiler, rapor vermeye yetkili sağlık kuruluşuna rapor istek nedenini belirten dilekçe ile ya da kurum tarafından sevk edilenler kurumun sevk yazısı ile başvurur. Kısıtlılık kararı olanlar vasisi, 18 yaşından küçükler ise vasisi veya velisi ile birlikte başvurmak zorundadır. Durum bildirir tek hekim sağlık raporu başvurularında dilekçe ya da sevk yazısı şartı aranmaz.
+[...]
+Sağlık raporu muayene işlemleri
+MADDE 8- [...]
+(5) Sağlık raporları kural olarak sadece sağlık durumunu yansıtır. Raporun hangi amaçla alındığı, mevzuatta o amaç için özel bir sağlık kriteri yoksa veya Bakanlık izni mevcut değilse, rapora eklenemez. Sağlık kurulu veya hekim, düzenlediği sağlık raporlarında aşağıdaki durumlar hariç, raporun alınma amacını belirten özel bir ibareye yer veremez:
+a) İlgili mevzuatta o raporun alınma amacı için özel bir sağlık kriteri belirlenmişse.
+b) Bakanlık tarafından bu özel ifadenin rapora eklenmesi uygun görülmüşse.
+[...]
+SEKİZİNCİ BÖLÜM
+Adli Hekimlik Hizmetleri
+Adli raporların düzenlenmesi ve formatı
+MADDE 39- (1) Sağlık kuruluşlarınca yürütülen adli hekimlik hizmetleri; travmaya bağlı adli vakaların değerlendirilmesi ve bunlara ait adli raporların düzenlenmesi ile adli ölü muayenesi ve otopsi işlemleridir. Sağlık kuruluşlarınca yürütülen adli hekimlik hizmetleri; kimlik tespiti, cinsel saldırı olgularının değerlendirilmesi, yaş tayini, maluliyet, işgücü kaybının değerlendirilmesi, ceza ehliyeti ve hukukî ehliyet tespiti ile kişinin işlediği fiilin hukukî anlam ve sonuçlarını algılama ve/veya davranışlarını yönlendirme yeteneğinin yeterince gelişip gelişmediğinin değerlendirilmesi gibi hizmetleri kapsar.
+[...]
+Adli vakaların muayenesi ve rapor tanzimi
+MADDE 40- (1) Bir suça ilişkin olarak şüpheli veya sanık ile mağdur ve diğer kişilerin beden muayenesi, bu kişilerin vücudundan örnek alınması ve muayene sonucunda rapor tanzimi, 5271 sayılı Kanun ve bu Kanuna istinaden çıkarılan ilgili mevzuata göre yapılır.
+[...]
+(4) Adli muayene ve sonucunda rapor tanzimi işleminin, yetkili bir resmî makamın usulünce talebi üzerine yapılması esastır. Bu çerçevede, muayene ve sonucunda rapor tanzimi için adli vaka olarak hekime gönderilen kişinin gönderilme işleminin, ilgili Kanunda belirtilen adli makamlarca veya adli makamların emri altındaki kolluk görevlileri aracılığı ile yapılması gerekir.
+[...]
+Adli muayenede dikkat edilecek hususlar ve muayene koşulları
+MADDE 48- (1) Adli vaka olarak sevk edilen kişi, hekim tarafından bizzat görülerek muayene edilir. Başkasının ifadesine dayanılarak rapor tanzim edilmez.
+[...]
+(3) Muayenenin diğer kişilerin göremeyeceği ve duyamayacağı bir ortamda yapılması, muayene esnasında hekim ile muayene edilen kişinin yalnız kalmaları ve muayenenin hekim-hasta ilişkileri çerçevesinde gerçekleştirilmesi esastır. Hekimin gerek görmesi hâlinde bir sağlık mesleği mensubu personel muayene ortamında hazır bulundurulabilir. Ancak hekim, kişisel güvenlik endişesi ile muayenenin kolluk görevlisinin gözetiminde yapılmasını isteyebilir. Bu durumda, hekimin isteği belgelendirilerek yerine getirilir.
+[...]
+Adli raporların düzenlenmesi
+MADDE 50- (1) Adli raporlar, bütünüyle muayeneyi yapan hekimin tespit ettiği objektif bulgulara, konsültasyonlara ve tetkik sonuçlarının incelenmesi ile meslekî bilgileri ışığında yapacağı değerlendirmelere dayanılarak, tarafsız bir şekilde düzenlenmelidir.
+[...]
+(4) Raporda, saptanan bulgulara, varsa travmatik lezyonlara ve yapılmışsa tetkik sonuçlarına ayrıntılı olarak yer verilir. Adli değerlendirmede “yaşamsal tehlike” kararı verilmişse, karara dayanak teşkil eden bulgular raporun sonuç kısmında mutlaka belirtilir. Adli makamlar tarafından sorulan sorular muhakkak cevaplandırılır. Sorulmamış olmakla birlikte adli soruşturmanın boyutunu etkileyebilecek durumlar varsa rapora yazılır.
+[...]
+(6) Raporların düzenlenmesinde ve işlem süreçlerinde gizlilik kurallarına uyulur.
+[...]
+(8) Bakanlık sistemlerine aktarılan tetkik sonuçları, görüntüleme kayıt ve raporları ile tıbbi belgeler ayrıca arşivlenmez veya onaylanmaz, kişiye verilmez. Adli makamlarca kişi veya vekili ile paylaşılmaması gerektiğine karar verilen raporlar, elektronik sistemler üzerinden kişinin erişimine açılmaz.
+[...]
+Adli olaya taraf olan kişilere sağlık hizmet sunumu ve ödeme esasları
+MADDE 52- [...]
+(5) Özel sağlık hizmet sunucularına adli rapor düzenlenmesi amacıyla sevk yapılamaz. Kamu üniversite hastanelerine sağlık hizmet sunucularınca yapılan sevkler dışında düzenlenen adli rapor bedelleri Bakanlıkça karşılanmaz. Ancak yargı faaliyetinin etkin bir şekilde yapılabilmesi amacıyla mahkeme ve savcılıklarca ivedi olduğu değerlendirilerek doğrudan kamu üniversite hastanelerine gönderilen kişilere düzenlenen adli rapor bedelleri, sağlık hizmet sunucusunun bulunduğu ilin il sağlık müdürlüğü tarafından karşılanır.
+[...]

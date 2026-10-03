@@ -1,0 +1,11 @@
+# source_id: TR-KSVY-2019
+# instrument: Kişisel Sağlık Verileri Hakkında Yönetmelik
+# provisions: m.6(1)
+# gazette: 21/6/2019 sayı 30808 (amended 3/12/2025 sayı 33096 and 4/7/2026 sayı 33300)
+# url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=32610&MevzuatTertip=5
+# retrieved_on: 2026-10-03
+# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited paragraph
+---
+MADDE 6 – (1) Sağlık hizmeti sunumunda
+görevli kişiler; ilgili kişinin sağlık verilerine ancak, verilecek olan sağlık
+hizmetinin gereği ile sınırlı olmak kaydıyla erişebilir.

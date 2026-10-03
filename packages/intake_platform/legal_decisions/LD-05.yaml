@@ -1,0 +1,151 @@
+kind: legal_decision
+id: LD-05
+title: "WCAG 2.2 SC 2.2.1: classification of the RED no-answer wait"
+question: "Under a RED with UNKNOWN location the device asks one question ('Şu anda hastanede misiniz?') and, when no answer comes within a wait, takes the rule's no-answer branch: REMOTE, with the 112 control (PR #796, apps/mobile/src/lib/red/noAnswerClock.ts). The accessibility audit registers that wait as a WCAG 2.2 SC 2.2.1 Essential Exception. Is that classification right, and does a Turkish accessibility rule apply? The length of the wait is a clinical value decided elsewhere and is not part of this question."
+outcome: "The wait is a time limit set by the content under SC 2.2.1: the Understanding document counts the expiration of a window of opportunity to react to a request for input as a time limit, and that is exactly what the wait ends. Turn off, Adjust and Extend are not acceptable here, because each would hold back emergency guidance from a patient who may be unable to answer; the Real-time and 20 Hour exceptions do not fit. The Essential Exception holds, but only for one part of what the timer does and only on one condition. Advancing to the no-answer branch is essential: extending the wait would invalidate the activity, which is getting an action in front of a patient who cannot answer. Closing the question is not essential: WCAG's definition of essential requires that the functionality cannot be achieved in another way that would conform, and here it can, by leaving the location question answerable after the wait ends, which takes nothing from the patient — the Understanding document says content on a timer need not be adjustable where an alternative not relying on the timer exists, and its own example of an essential limit moves as much of the process as possible out of the timed stage. So the classification is: Essential Exception, conditional on a late location answer being honoured. As built in PR #796 the condition is not met: the store ignores any location answer once the wait has resolved it to no answer, so a patient who answers late cannot. Until the question stays answerable, the classification fails and SC 2.2.1 (BK13) cannot be reported as supported for this timer. What the device shows when a late 'evet' arrives after REMOTE guidance — CD-24's on_yes branch, the ON_SITE script — is the clinical lane's to decide; this decision says only that the answer must be accepted. The Turkish rule: Cumhurbaşkanlığı Genelgesi 2025/10 grounds web and mobile accessibility in Law 5378 and requires, among others, private hospitals to bring their web sites and mobile applications into line with the Ministry's Kontrol Listesi A Seviyesi and WCAG 2.2 within one year; SC 2.2.1 is a Level A criterion. Whether the Genelge binds the product itself or the hospital whose patients use it is not decided; either way the product's own target already contains Level A."
+legal_basis: "W3C WCAG 2.2 (Recommendation, 12 December 2024) SC 2.2.1 and the glossary definition of 'essential'; Understanding SC 2.2.1 (informative); Cumhurbaşkanlığı Genelgesi 2025/10 (RG 21/6/2025, 32933)."
+status: proposed
+scope: synthetic_test_only
+scope_note: "Owner decision D25 (3 Oct 2026): agent-decided and agent-verified legal items, for synthetic and test use only. A licensed Turkish lawyer countersigns before any real patient."
+question_origin: "PR #796 (INT-465): 'The a11y audit registers it as a WCAG 2.2.1 Essential Exception; the owner should confirm that classification.' Under D25 that question comes to this lane, not to the owner."
+author_role: "Turkish accessibility and health-technology regulatory lawyer (agent)"
+inference_disclosure: "Splitting the timer into an essential advance and a non-essential closure is this author's application of WCAG's definition of 'essential' together with the informative Understanding text; W3C does not discuss emergency guidance. The finding about PR #796 reads its store code as of 3 Oct 2026 (answerLocation returns early unless the answer is still 'unanswered'), which is not on main and may change before it merges. That the Genelge reaches a vendor-provided patient app only through the hospital is not assumed either way."
+sources:
+  - kind: standard
+    source_id: W3C-WCAG22
+    instrument: "Web Content Accessibility Guidelines (WCAG) 2.2"
+    provision: "Success Criterion 2.2.1 Timing Adjustable (Level A)"
+    url: "https://www.w3.org/TR/2024/REC-WCAG22-20241212/"
+    version_or_date: "W3C Recommendation 12 December 2024"
+    retrieved_on: 2026-10-03
+    quote: "For each time limit that is set by the content, at least one of the following is true:"
+    snapshot: packages/intake_platform/legal_decisions/sources/W3C-WCAG22.txt
+    supports: is_a_time_limit_under_sc_2_2_1
+  - kind: standard
+    source_id: W3C-WCAG22
+    instrument: "Web Content Accessibility Guidelines (WCAG) 2.2"
+    provision: "Success Criterion 2.2.1, Essential Exception"
+    url: "https://www.w3.org/TR/2024/REC-WCAG22-20241212/"
+    version_or_date: "W3C Recommendation 12 December 2024"
+    retrieved_on: 2026-10-03
+    quote: "Essential Exception The time limit is essential and extending it would invalidate the activity; or"
+    snapshot: packages/intake_platform/legal_decisions/sources/W3C-WCAG22.txt
+    supports: classification
+  - kind: standard
+    source_id: W3C-WCAG22
+    instrument: "Web Content Accessibility Guidelines (WCAG) 2.2"
+    provision: "Glossary: essential"
+    url: "https://www.w3.org/TR/2024/REC-WCAG22-20241212/"
+    version_or_date: "W3C Recommendation 12 December 2024"
+    retrieved_on: 2026-10-03
+    quote: "if removed, would fundamentally change the information or functionality of the content, and information and functionality cannot be achieved in another way that would conform"
+    snapshot: packages/intake_platform/legal_decisions/sources/W3C-WCAG22.txt
+    supports: condition
+  - kind: standard
+    source_id: W3C-WCAG22
+    instrument: "Web Content Accessibility Guidelines (WCAG) 2.2"
+    provision: "Success Criterion 2.2.1, Real-time Exception and 20 Hour Exception"
+    url: "https://www.w3.org/TR/2024/REC-WCAG22-20241212/"
+    version_or_date: "W3C Recommendation 12 December 2024"
+    retrieved_on: 2026-10-03
+    quote: "The time limit is a required part of a real-time event (for example, an auction), and no alternative to the time limit is possible; or"
+    snapshot: packages/intake_platform/legal_decisions/sources/W3C-WCAG22.txt
+    supports: other_exceptions
+  - kind: standard
+    source_id: W3C-WCAG22-UNDERSTANDING-2.2.1
+    instrument: "Understanding Success Criterion 2.2.1: Timing Adjustable"
+    provision: "Intent"
+    url: "https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html"
+    version_or_date: "WCAG 2.2 Understanding Docs, as published on 2026-10-03"
+    retrieved_on: 2026-10-03
+    quote: "or the expiration of a window of opportunity for a user to react to a request for input."
+    snapshot: packages/intake_platform/legal_decisions/sources/W3C-WCAG22-UNDERSTANDING-2.2.1.txt
+    supports: is_a_time_limit_under_sc_2_2_1
+    caveat: "Understanding documents are informative, not normative."
+  - kind: standard
+    source_id: W3C-WCAG22-UNDERSTANDING-2.2.1
+    instrument: "Understanding Success Criterion 2.2.1: Timing Adjustable"
+    provision: "Intent"
+    url: "https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html"
+    version_or_date: "WCAG 2.2 Understanding Docs, as published on 2026-10-03"
+    retrieved_on: 2026-10-03
+    quote: "Content that operates on a timer does not need to be time adjustable if there is an alternative that does not rely on a timer."
+    snapshot: packages/intake_platform/legal_decisions/sources/W3C-WCAG22-UNDERSTANDING-2.2.1.txt
+    supports: condition
+    caveat: "Understanding documents are informative, not normative."
+  - kind: standard
+    source_id: W3C-WCAG22-UNDERSTANDING-2.2.1
+    instrument: "Understanding Success Criterion 2.2.1: Timing Adjustable"
+    provision: "Examples (ticket purchase)"
+    url: "https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html"
+    version_or_date: "WCAG 2.2 Understanding Docs, as published on 2026-10-03"
+    retrieved_on: 2026-10-03
+    quote: "However, the site does move as much of the process out of the time-critical period as possible,"
+    snapshot: packages/intake_platform/legal_decisions/sources/W3C-WCAG22-UNDERSTANDING-2.2.1.txt
+    supports: condition
+    caveat: "Understanding documents are informative, not normative."
+  - kind: legislation
+    source_id: TR-GENELGE-2025-10
+    instrument: "Web Siteleri ve Mobil Uygulamaların Erişilebilirliği ile İlgili 2025/10 Sayılı Cumhurbaşkanlığı Genelgesi"
+    provision: "paragraph on Law 5378"
+    url: "https://www.resmigazete.gov.tr/eskiler/2025/06/20250621-17.pdf"
+    gazette: {published_on: 2025-06-21, number: 32933}
+    retrieved_on: 2026-10-03
+    quote: "1/7/2005 tarihli ve 5378 sayılı Engelliler Hakkında Kanun gereği, bilgilendirme hizmetleri ile bilgi ve iletişim teknolojisinin erişilebilirliğinin sağlanması yasal zorunluluktur."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-GENELGE-2025-10.txt
+    supports: turkish_rule
+  - kind: legislation
+    source_id: TR-GENELGE-2025-10
+    instrument: "Web Siteleri ve Mobil Uygulamaların Erişilebilirliği ile İlgili 2025/10 Sayılı Cumhurbaşkanlığı Genelgesi"
+    provision: "paragraph on who must conform and by when"
+    url: "https://www.resmigazete.gov.tr/eskiler/2025/06/20250621-17.pdf"
+    gazette: {published_on: 2025-06-21, number: 32933}
+    retrieved_on: 2026-10-03
+    quote: "bankalar, özel hastaneler, Millî Eğitim Bakanlığı izniyle açılan özel öğretim kurumları,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-GENELGE-2025-10.txt
+    supports: turkish_rule
+  - kind: legislation
+    source_id: TR-GENELGE-2025-10
+    instrument: "Web Siteleri ve Mobil Uygulamaların Erişilebilirliği ile İlgili 2025/10 Sayılı Cumhurbaşkanlığı Genelgesi"
+    provision: "paragraph on who must conform and by when"
+    url: "https://www.resmigazete.gov.tr/eskiler/2025/06/20250621-17.pdf"
+    gazette: {published_on: 2025-06-21, number: 32933}
+    retrieved_on: 2026-10-03
+    quote: "Web Siteleri ve Mobil Uygulamaların Erişilebilirliği Kontrol Listesi - A Seviyesi ile Web İçeriği Erişilebilirlik Kılavuzuna (WCAG-2.2.) uygun hale getirilmesi hususunda bilgilerini ve gereğini rica ederim."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-GENELGE-2025-10.txt
+    supports: turkish_rule
+legal_gap: "One part is not answered by any retrieved text: whether the Genelge 2025/10 binds a patient app that a vendor provides to a private hospital, or only the hospital's own web sites and mobile applications. The Aile ve Sosyal Hizmetler Bakanlığı's implementing procedures for the İzleme and İnceleme Komisyonları, not snapshotted here, would settle it."
+value:
+  timer: "the RED no-answer wait on the UNKNOWN location question (PR #796)"
+  is_a_time_limit_under_sc_2_2_1: true
+  level: A
+  turn_off_adjust_extend: "not offered: each would hold back emergency guidance from a patient who may be unable to answer"
+  other_exceptions: "Real-time and 20 Hour exceptions do not apply"
+  classification: essential_exception_conditional
+  essential_part: "advancing to the rule's no-answer branch (REMOTE, with the 112 control) when the wait ends"
+  condition:
+    late_location_answer_honoured: true
+    meaning: "after the wait ends the location question stays answerable, and a late answer is taken"
+  as_built_in_pr_796: "does not meet the condition: a location answer after the wait is ignored"
+  if_condition_unmet: "the closure is not essential, the exception does not cover the timer, and SC 2.2.1 (BK13) cannot be reported as supported"
+  wait_length: "not part of this decision; a clinical value (CD-24 no_answer_wait)"
+  late_answer_display: "the clinical lane's (CD-24 on_yes branch)"
+  turkish_rule:
+    instrument: "Cumhurbaşkanlığı Genelgesi 2025/10"
+    requirement: "private hospitals' web sites and mobile applications conform to the Kontrol Listesi A Seviyesi and WCAG 2.2 within one year"
+    applies_to_sc_2_2_1: true
+    addressee_for_a_vendor_app: "not decided"
+value_status:
+  turkish_rule.addressee_for_a_vendor_app: draft
+spec_basis:
+  - file: docs/compliance/accessibility-conformance-report.md
+    section: "Level A rows"
+    quote: "| BK13 | 2.2.1 Timing Adjustable |"
+    supports: if_condition_unmet
+  - file: docs/compliance/accessibility-conformance-report.md
+    section: "Standards"
+    quote: "The Ministry's \"Erişilebilirlik Kontrol Listesi — A Seviyesi\" through the BK numbers on the Level A rows"
+    supports: turkish_rule.applies_to_sc_2_2_1
+fail_closed_while_draft: "The conformance report's BK13 row is not marked supported for this timer until the late answer is honoured; the classification of the vendor app under the Genelge stays with counsel."
+verifier:
+  verdict: pending

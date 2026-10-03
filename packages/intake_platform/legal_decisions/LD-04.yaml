@@ -1,0 +1,146 @@
+kind: legal_decision
+id: LD-04
+title: "Occupational items: work-related sick leave, job tenure and household tuberculosis contact — category and basis"
+question: "Under which KVKK category and on what ground are three released items processed: iş ve meslek hastalıkları Q17 (isle_ilgili_rapor, a health report taken for a work-related health problem), Q18 (is_suresi, time in the current job) and halk sağlığı Q11 (evde_verem_temasi, someone in the household recently diagnosed with tuberculosis)?"
+outcome: "Q17, work-related sick leave: whether the patient took a health report for a health problem is the patient's own health data, special category under KVKK m.6(1); a sağlık raporu is by definition the record of a person's health status (Sağlık Raporları Yönetmeliği Madde 4(1)(m)). The INT-349 register row is occupational, as D3 and the owner's D24 answer 4 read it. Ground: the patient's açık rıza under the files/06 §2 consent scope (KVKK m.6(3)(a)). The employment and occupational-safety ground of m.6(3)(f) is not ours: it covers what a legal obligation in those fields makes necessary, and a pre-visit intake discharges no such obligation. Q18, job tenure: how long the patient has worked in the current job is not among the categories m.6(1) lists, so it is ordinary personal data; its ground is the patient's açık rıza (KVKK m.5(1)) under the same consent scope, it sits in the occupational row, and it keeps the protections of the record it is stored in. Q11, household tuberculosis contact: the answer says something about two people. For the patient it is health data about their own exposure (m.6(1)), processed on açık rıza (m.6(3)(a)). For the household member it is that person's health data, a diagnosis, and that person gave no consent; the ground is m.6(3)(e), processing necessary for protecting public health, preventive medicine and medical diagnosis by persons under a duty of secrecy or authorised institutions. As in LD-03, that ground is the health service provider's: it holds in the hospital deployment and is not decided for the consumer deployment, where the item is not served. The INT-349 register row is household (D3's household contacts). The household member's notice follows the Tebliğ timing (Aydınlatma Tebliği m.6(1)); the mechanism is not decided. Recipients for all three: the tenant's clinicians giving this visit's care, through the consented share, only as far as that care requires (Kişisel Sağlık Verileri Hakkında Yönetmelik m.6(1)); an employer is not a person giving the health service and never receives these answers. Retention is not decided for any of the three."
+legal_basis: "KVKK 6698 m.5(1); m.6(1); m.6(3)(a), (e), (f); Aydınlatma Tebliği m.6(1); Kişisel Sağlık Verileri Hakkında Yönetmelik m.6(1); Sağlık Raporları Yönetmeliği Madde 4(1)(m)."
+status: proposed
+scope: synthetic_test_only
+scope_note: "Owner decision D25 (3 Oct 2026): agent-decided and agent-verified legal items, for synthetic and test use only. A licensed Turkish lawyer countersigns before any real patient; until then docs/legal/data-categories.yaml keeps its counsel fields empty."
+question_origin: "docs/evidence/verification/specialty-wave9-occupational-public.md (line 88) read Q17 and Q18 as within D3's employer and occupational line and released halk sağlığı Q11 under D3's household contacts; docs/clinical/decisions/CD-105.md left the reading as an owner question, which the owner answered in D24 answer 4 (INT-470, recorded in files/00_STATE.md §3 by a separate PR). This decision supplies the category and basis that D3 left to counsel."
+author_role: "Turkish data-protection (KVKK) and occupational-health-law lawyer (agent)"
+inference_disclosure: "That m.6(3)(f) does not cover a pre-visit intake is this author's reading: the ground is tied to 'hukuki yükümlülüklerin yerine getirilmesi', and the intake fulfils none. That an employer never receives the answers is this author's application of KSVY m.6(1), which limits access to people giving the health service. Treating the household member's diagnosis under m.6(3)(e) and leaving the consumer deployment open follows LD-03's reading of who may use that ground."
+sources:
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "sağlığı, cinsel hayatı, ceza mahkûmiyeti ve güvenlik tedbirleriyle ilgili verileri ile biyometrik ve genetik verileri özel nitelikli kişisel veridir."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: items.*.kvkk_class
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 4(1)(m)"
+    url: "https://www.resmigazete.gov.tr/eskiler/2026/05/20260519-12.pdf"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Sağlık raporu: Düzenlendiği tarihte kişinin beden ve ruh sağlığının belirli bir amaca uygun olup olmadığının veya genel sağlık durumunun, bir veya birden çok hekim tarafından yapılan muayene ve değerlendirme sonucunda tespit edilip kayıt altına alındığı belgeyi,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: items.isle_ilgili_rapor.kvkk_class
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(3)(a) (as amended by 7499 sayılı Kanun)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Özel nitelikli kişisel verilerin işlenmesi yasaktır. Ancak bu verilerin işlenmesi; a) İlgili kişinin açık rızasının olması,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: items.*.basis_patient
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(3)(f) (as amended by 7499 sayılı Kanun)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "İstihdam, iş sağlığı ve güvenliği, sosyal güvenlik, sosyal hizmetler ve sosyal yardım alanlarındaki hukuki yükümlülüklerin yerine getirilmesi için zorunlu olması,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: items.isle_ilgili_rapor.not_the_basis
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.5(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Kişisel veriler ilgili kişinin açık rızası olmaksızın işlenemez."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: items.is_suresi.basis_patient
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(3)(e) (as amended by 7499 sayılı Kanun)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Sır saklama yükümlülüğü altında bulunan kişiler veya yetkili kurum ve kuruluşlarca, kamu sağlığının korunması, koruyucu hekimlik, tıbbi teşhis, tedavi ve bakım hizmetlerinin yürütülmesi ile sağlık hizmetlerinin planlanması, yönetimi ve finansmanı amacıyla gerekli olması,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: items.evde_verem_temasi.basis_other_subject
+  - kind: legislation
+    source_id: TR-KVKK-AYDINLATMA-TEBLIGI
+    instrument: "Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ"
+    provision: "m.6(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=9&MevzuatNo=24454&MevzuatTertip=5"
+    gazette: {published_on: 2018-03-10, number: 30356}
+    retrieved_on: 2026-10-03
+    quote: "Kişisel verilerin ilgili kişiden elde edilmemesi halinde;"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-AYDINLATMA-TEBLIGI.txt
+    supports: items.evde_verem_temasi.other_subject_notice
+  - kind: legislation
+    source_id: TR-KSVY-2019
+    instrument: "Kişisel Sağlık Verileri Hakkında Yönetmelik"
+    provision: "m.6(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=32610&MevzuatTertip=5"
+    gazette: {published_on: 2019-06-21, number: 30808}
+    retrieved_on: 2026-10-03
+    quote: "Sağlık hizmeti sunumunda görevli kişiler; ilgili kişinin sağlık verilerine ancak, verilecek olan sağlık hizmetinin gereği ile sınırlı olmak kaydıyla erişebilir."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KSVY-2019.txt
+    supports: items.*.recipients
+legal_gap: "Three parts are not answered by any retrieved text. Consumer-deployment ground for the household member's diagnosis: the same open question as LD-03 (whether a controller that is not a health institution may rely on KVKK m.6(3)(e)); a Kurul decision or counsel's opinion would settle it. Notice mechanism for the household member: the Tebliğ m.6(1) gives the timing, not a way to reach someone the controller never contacts; a Kurul decision or counsel would settle it. Retention for all three items: no retrieved text sets it; the hospital medical-record retention rules and the deletion regulation, neither snapshotted here, would settle it."
+value:
+  items:
+    isle_ilgili_rapor:
+      asked_in: "iş ve meslek hastalıkları Q17"
+      register_category: occupational
+      kvkk_class: special_category
+      basis_patient: kvkk_6_3_a_acik_riza
+      not_the_basis: "KVKK m.6(3)(f), which is tied to employment and occupational-safety obligations the intake does not discharge"
+      recipients: "the tenant's clinicians giving this visit's care, through the consented share; never the employer"
+      retention: "not decided"
+    is_suresi:
+      asked_in: "iş ve meslek hastalıkları Q18"
+      register_category: occupational
+      kvkk_class: ordinary
+      basis_patient: kvkk_5_1_acik_riza
+      recipients: "the tenant's clinicians giving this visit's care, through the consented share; never the employer"
+      retention: "not decided"
+    evde_verem_temasi:
+      asked_in: "halk sağlığı Q11"
+      register_category: household
+      kvkk_class: special_category
+      basis_patient: kvkk_6_3_a_acik_riza
+      basis_other_subject:
+        hospital_deployment: kvkk_6_3_e
+        consumer_deployment: "not decided; the item is not served in the consumer deployment"
+      other_subject_notice:
+        timing: "within a reasonable time of collection, at the first contact, or at the latest at the first transfer"
+        mechanism: "not decided"
+      recipients: "the tenant's clinicians giving this visit's care, through the consented share"
+      retention: "not decided"
+value_status:
+  items.isle_ilgili_rapor.retention: draft
+  items.is_suresi.retention: draft
+  items.evde_verem_temasi.basis_other_subject.consumer_deployment: draft
+  items.evde_verem_temasi.other_subject_notice.mechanism: draft
+  items.evde_verem_temasi.retention: draft
+spec_basis:
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: what the approval covers"
+    quote: "employer / occupational exposure and report purpose (iş ve meslek hastalıkları, sağlık kurulu);"
+    supports: items.isle_ilgili_rapor.register_category
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: what the approval covers"
+    quote: "household basic needs and household contacts (sosyal pediatri, halk sağlığı, nükleer tıp);"
+    supports: items.evde_verem_temasi.register_category
+  - file: docs/evidence/verification/specialty-wave9-occupational-public.md
+    section: "§A, row iş ve meslek Q6, Q15–Q18; halk sağlığı Q11"
+    quote: "Q17 (sick leave) and Q18 (tenure) are read as within that line."
+    supports: question
+fail_closed_while_draft: "The household tuberculosis item is not served in the consumer deployment; no notice text is rendered to a household member; retention stays the slots.value annotation's engineering default, unconfirmed by this lane; and the compiler keeps refusing occupational and household slots for a real patient because the served register's counsel fields are empty."
+verifier:
+  verdict: pending

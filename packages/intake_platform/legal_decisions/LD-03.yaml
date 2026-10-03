@@ -1,0 +1,178 @@
+kind: legal_decision
+id: LD-03
+title: "KVKK inventory rows: family history, relatives' health and consanguinity; the hearing-voices item (Q16)"
+question: "What are the KVKK inventory rows {category, purpose, basis, retention, recipients} for (a) the one sensitive, text_first section that asks about family health history, relatives' illnesses and parental consanguinity, whose relatives are data subjects too, and (b) the mental-health cluster's hearing-voices item Q16 (baskalarinin_duymadigi_sesler)? On what ground are the relatives' data processed, and what notice do they get?"
+outcome: "(a) Family history, relatives' health and consanguinity. Category: special-category personal data under KVKK m.6(1), which names health and genetic data; the INT-349 register row is relatives_health. Consanguinity is not named in m.6(1); it is processed with the same special-category protections because it is asked only for the patient's genetic risk. Purpose: the patient's own diagnosis and care, a specific, explicit and legitimate purpose limited to what it needs (KVKK m.4(2)(c), (ç)). Basis for the patient: açık rıza under the files/06 §2 consent scope (KVKK m.6(3)(a)), as for every other answer the patient gives about their own health. Basis for the relatives: their açık rıza is not available, because açık rıza is the data subject's own freely given consent (KVKK m.3(1)(a)) and the patient cannot give it for them; the ground is m.6(3)(e), processing necessary for medical diagnosis, treatment and care by persons under a duty of secrecy or by authorised institutions. That ground belongs to the health service provider. It is therefore available in the hospital deployment, where the hospital is the controller and the product processes on its behalf (KVKK m.3(1)(ğ), (ı); files/06 §0.1). In the consumer deployment the company is the controller and is neither a health professional under a statutory duty of secrecy nor an authorised health institution, so whether any ground exists there is not decided, and the section is not served in that deployment. Notice to the relatives: KVKK m.10 requires notice when data are obtained, and where data are not obtained from the person concerned the Tebliğ fixes the time — within a reasonable time of collection, at the first contact, or at the latest at the first transfer (Aydınlatma Tebliği m.6(1)); how a controller that never contacts a patient's relatives discharges that duty is not decided. Recipients: the tenant's clinicians giving this visit's care, through the consented share, and only as far as that care requires (Kişisel Sağlık Verileri Hakkında Yönetmelik m.6(1)). Measures: the Kurul's adequate measures for special-category data apply (KVKK m.6(4)). Retention is not decided. Delivery: one sensitive section, text_first (D24 answer 2). (b) Hearing voices, Q16. Category: the patient's own health data, special category under KVKK m.6(1); it is an ordinary symptom item, so the register category is general_health and no new INT-349 row is needed (D24 answer 3 confirmed the verifier's reading). Purpose and basis: the patient's own diagnosis and care under açık rıza (KVKK m.6(3)(a)), as the slots.value inventory annotation already states. No other person is a data subject. Recipients: as in (a). It is asked only of the patient (self-report), text_first, and never scored. Retention is not decided. The served register docs/legal/data-categories.yaml keeps its counsel fields empty: an agent fills no counsel field (D25), so the compiler still refuses to serve these slots for a real patient."
+legal_basis: "KVKK 6698 m.3(1)(a), (ç), (ğ), (ı); m.4(2)(c), (ç); m.6(1), m.6(3)(a), m.6(3)(e), m.6(4); m.10(1); Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ m.6(1); Kişisel Sağlık Verileri Hakkında Yönetmelik m.6(1)."
+status: proposed
+scope: synthetic_test_only
+scope_note: "Owner decision D25 (3 Oct 2026): agent-decided and agent-verified legal items, for synthetic and test use only. A licensed Turkish lawyer countersigns before any real patient; until then docs/legal/data-categories.yaml keeps its counsel fields empty."
+question_origin: "INT-349 and owner decision D3 (docs/evidence/verification/owner-decisions-2026-09-26.md): counsel must decide, per category, the KVKK m.6 basis and a separate basis and notice where another person is the data subject. The owner's D24 answers 2 and 3 (INT-470, recorded in files/00_STATE.md §3 by a separate PR) put family history, relatives' health and consanguinity in one sensitive text_first section and confirmed Q16 as an ordinary health item."
+author_role: "Turkish data-protection (KVKK) and health-law lawyer (agent)"
+inference_disclosure: "Treating consanguinity as special-category data is this author's choice of the more protective reading; m.6(1) does not name it. That m.6(3)(e) is the health service provider's ground and not the software company's is this author's reading of 'sır saklama yükümlülüğü altında bulunan kişiler veya yetkili kurum ve kuruluşlarca': a contractual confidentiality undertaking is not read as the statutory duty the provision means, and that reading is exactly what stays open for the consumer deployment. The controller and processor roles are the product's own design (files/06 §0.1), not a legal finding."
+sources:
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "sağlığı, cinsel hayatı, ceza mahkûmiyeti ve güvenlik tedbirleriyle ilgili verileri ile biyometrik ve genetik verileri özel nitelikli kişisel veridir."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.*.kvkk_class
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(3)(a) (as amended by 7499 sayılı Kanun)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Özel nitelikli kişisel verilerin işlenmesi yasaktır. Ancak bu verilerin işlenmesi; a) İlgili kişinin açık rızasının olması,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.*.basis_patient
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(3)(e) (as amended by 7499 sayılı Kanun)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Sır saklama yükümlülüğü altında bulunan kişiler veya yetkili kurum ve kuruluşlarca, kamu sağlığının korunması, koruyucu hekimlik, tıbbi teşhis, tedavi ve bakım hizmetlerinin yürütülmesi ile sağlık hizmetlerinin planlanması, yönetimi ve finansmanı amacıyla gerekli olması,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.family_history_relatives_consanguinity.basis_other_subject
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.3(1)(a)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Açık rıza: Belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rızayı,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.family_history_relatives_consanguinity.basis_other_subject
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.3(1)(ğ)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Veri işleyen: Veri sorumlusunun verdiği yetkiye dayanarak onun adına kişisel verileri işleyen gerçek veya tüzel kişiyi,"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.family_history_relatives_consanguinity.basis_other_subject.hospital_deployment
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.4(2)(c)-(ç)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "c) Belirli, açık ve meşru amaçlar için işlenme. ç) İşlendikleri amaçla bağlantılı, sınırlı ve ölçülü olma."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.*.purpose
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.6(4)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Özel nitelikli kişisel verilerin işlenmesinde, ayrıca Kurul tarafından belirlenen yeterli önlemlerin alınması şarttır."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.family_history_relatives_consanguinity.measures
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.10(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "Kişisel verilerin elde edilmesi sırasında veri sorumlusu veya yetkilendirdiği kişi, ilgili kişilere;"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.family_history_relatives_consanguinity.other_subject_notice
+  - kind: legislation
+    source_id: TR-KVKK-6698
+    instrument: "6698 sayılı Kişisel Verilerin Korunması Kanunu"
+    provision: "m.28(2)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5"
+    gazette: {published_on: 2016-04-07, number: 29677}
+    retrieved_on: 2026-10-03
+    quote: "veri sorumlusunun aydınlatma yükümlülüğünü düzenleyen 10 uncu, zararın giderilmesini talep etme hakkı hariç, ilgili kişinin haklarını düzenleyen 11 inci ve Veri Sorumluları Siciline kayıt yükümlülüğünü düzenleyen 16 ncı maddeleri aşağıdaki hâllerde uygulanmaz:"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+    supports: rows.family_history_relatives_consanguinity.other_subject_notice.mechanism
+    caveat: "Its four cases (crime prevention or investigation, data the person made public, supervisory or disciplinary work of public bodies, the State's fiscal interests) do not cover a health provider's intake; cited for why the notice duty stays and the mechanism is open."
+  - kind: legislation
+    source_id: TR-KVKK-AYDINLATMA-TEBLIGI
+    instrument: "Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ"
+    provision: "m.6(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=9&MevzuatNo=24454&MevzuatTertip=5"
+    gazette: {published_on: 2018-03-10, number: 30356}
+    retrieved_on: 2026-10-03
+    quote: "a) Kişisel verilerin elde edilmesinden itibaren makul bir süre içerisinde, b) Kişisel verilerin ilgili kişi ile iletişim amacıyla kullanılacak olması durumunda, ilk iletişim kurulması esnasında, c) Kişisel verilerin aktarılacak olması halinde, en geç kişisel verilerin ilk kez aktarımının yapılacağı esnada ilgili kişiyi aydınlatma yükümlülüğünün yerine getirilmesi gerekir."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-AYDINLATMA-TEBLIGI.txt
+    supports: rows.family_history_relatives_consanguinity.other_subject_notice.timing
+  - kind: legislation
+    source_id: TR-KSVY-2019
+    instrument: "Kişisel Sağlık Verileri Hakkında Yönetmelik"
+    provision: "m.6(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=32610&MevzuatTertip=5"
+    gazette: {published_on: 2019-06-21, number: 30808}
+    retrieved_on: 2026-10-03
+    quote: "Sağlık hizmeti sunumunda görevli kişiler; ilgili kişinin sağlık verilerine ancak, verilecek olan sağlık hizmetinin gereği ile sınırlı olmak kaydıyla erişebilir."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-KSVY-2019.txt
+    supports: rows.*.recipients
+legal_gap: "Three parts are not answered by any retrieved text. Consumer-deployment ground for relatives' data: whether a company that is the controller but not a health institution can rely on KVKK m.6(3)(e), or on any ground, for data about people who never consented; a Kurul decision on third-party health data in patient-reported family history, or counsel's opinion, would settle it. Notice mechanism for relatives: the Tebliğ m.6(1) gives the timing but no way to reach people the controller never contacts and no exemption for them, and KVKK m.28 lists none that fits; a Kurul decision or counsel would settle it. Retention for both rows: no retrieved text sets how long a pre-visit answer is kept; the hospital medical-record retention rules and the Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik, neither snapshotted here, would settle it."
+value:
+  rows:
+    family_history_relatives_consanguinity:
+      register_category: relatives_health
+      kvkk_class: special_category
+      purpose: "the patient's own diagnosis and care: family health history, relatives' illnesses and parental consanguinity, asked only for the patient's own risk"
+      basis_patient: kvkk_6_3_a_acik_riza
+      basis_other_subject:
+        hospital_deployment: kvkk_6_3_e
+        consumer_deployment: "not decided; the section is not served in the consumer deployment"
+      other_subject_notice:
+        timing: "within a reasonable time of collection, at the first contact, or at the latest at the first transfer"
+        mechanism: "not decided"
+      recipients: "the tenant's clinicians giving this visit's care, through the consented share, only as far as that care requires"
+      measures: "the Kurul's adequate measures for special-category data (KVKK m.6(4))"
+      retention: "not decided"
+      delivery: "one sensitive section, text_first"
+    hearing_voices_q16:
+      slot: baskalarinin_duymadigi_sesler
+      register_category: general_health
+      kvkk_class: special_category
+      purpose: "the patient's own diagnosis and care"
+      basis_patient: kvkk_6_3_a_acik_riza
+      other_subject: none
+      recipients: "the tenant's clinicians giving this visit's care, through the consented share, only as far as that care requires"
+      retention: "not decided"
+      asked_of: "the patient only (self-report), text_first, never scored"
+  served_register: "docs/legal/data-categories.yaml keeps every counsel field empty until a licensed lawyer signs"
+value_status:
+  rows.family_history_relatives_consanguinity.basis_other_subject.consumer_deployment: draft
+  rows.family_history_relatives_consanguinity.other_subject_notice.mechanism: draft
+  rows.family_history_relatives_consanguinity.retention: draft
+  rows.hearing_voices_q16.retention: draft
+spec_basis:
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: what the approval covers, and what it does not"
+    quote: "a separate basis and notice where another person is the data subject (relatives, partner, household members);"
+    supports: question
+  - file: files/06_COMPLIANCE_TR.md
+    section: "§0.1 Two data-protection roles, by deployment"
+    quote: "the hospital is controller; INTAKE is"
+    supports: rows.family_history_relatives_consanguinity.basis_other_subject
+  - file: packages/intake_platform/src/intake_platform/db/inventory.py
+    section: "BASIS_HEALTH_CONSENT"
+    quote: "KVKK m.6 — special-category health data under açık rıza per consent scope"
+    supports: rows.hearing_voices_q16.basis_patient
+  - file: docs/evidence/verification/cluster-wave-b.md
+    section: "§C cluster_mental_health, Q16"
+    quote: "invariant 18: special_category_health like every symptom slot (verifier's reading, owner may overrule)."
+    supports: rows.hearing_voices_q16.register_category
+fail_closed_while_draft: "The relatives section is not served in the consumer deployment; no notice text is rendered to anyone; retention stays the slots.value annotation's engineering default, unconfirmed by this lane; and the compiler keeps refusing every relatives_health slot for a real patient because the served register's counsel fields are empty."
+verifier:
+  verdict: pending

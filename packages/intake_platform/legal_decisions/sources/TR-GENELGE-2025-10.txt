@@ -1,0 +1,16 @@
+# source_id: TR-GENELGE-2025-10
+# instrument: Web Siteleri ve Mobil Uygulamaların Erişilebilirliği ile İlgili 2025/10 Sayılı Cumhurbaşkanlığı Genelgesi (20 Haziran 2025)
+# provisions: the paragraph on Law 5378, the paragraph publishing the Kontrol Listesi, and the paragraph setting who must conform and by when
+# gazette: 21/6/2025 sayı 32933
+# url: https://www.resmigazete.gov.tr/eskiler/2025/06/20250621-17.pdf
+# retrieved_on: 2026-10-03
+# transcription: the official one-page PDF has no text layer; it was rendered at 260 dpi and the cited paragraphs were transcribed by visual reading, then compared with the HTML copy at https://www.alomaliye.com/2025/06/21/web-siteleri-ve-mobil-uygulamalarin-erisilebilirligi-2025-10/ (retrieved the same day), which differs from the official image in three places ('kurumlan', 'havayolu', an en dash); the official image wins. Line breaks are not the printed ones. Nothing paraphrased or edited; [...] marks an omission between excerpts.
+---
+GENELGE
+2025/10
+[...]
+1/7/2005 tarihli ve 5378 sayılı Engelliler Hakkında Kanun gereği, bilgilendirme hizmetleri ile bilgi ve iletişim teknolojisinin erişilebilirliğinin sağlanması yasal zorunluluktur.
+[...]
+İzleme, Danışma ve İnceleme Komisyonlarının çalışma usul ve esasları Aile ve Sosyal Hizmetler Bakanlığı (Bakanlık) tarafından belirlenecek, İzleme Komisyonunun yürüttüğü izleme faaliyetlerine ilişkin sonuç raporları Aile ve Sosyal Hizmetler Bakanı tarafından duyurulacaktır. İzleme süreci tamamlanan ve erişilebilir olduğu tespit edilen kurum ve kuruluşların web sayfalarına veya mobil uygulamalarına Bakanlık tarafından 2 yıl süreyle Erişilebilirlik Logosu kullanım hakkı verilecektir. Web Siteleri ve Mobil Uygulamaların Erişilebilirliği Kontrol Listesi - A Seviyesi ile Web İçeriği Erişilebilirlik Kılavuzu (WCAG-2.2.) Bakanlığın resmi internet adresinde (www.aile.gov.tr) yayımlanacaktır.
+Web siteleri ve mobil uygulamaların; kamu kurum ve kuruluşları, üniversiteler, belediyeler, kamu iktisadi teşebbüsleri, belediyeye ait şirket, işletme ve iştirakler, kamu kurumu niteliğindeki meslek kuruluşları, bankalar, özel hastaneler, Millî Eğitim Bakanlığı izniyle açılan özel öğretim kurumları, 10/7/2003 tarihli ve 4925 sayılı Karayolu Taşıma Kanunu kapsamındaki karayolu taşıtları, yolcu gemileri, demir yolu ve hava yolu ile yolcu taşıma hizmeti sunan özel kuruluşlar, Kültür ve Turizm Bakanlığından işletme belgesi alan A Grubu acenteler, elektronik haberleşme sektöründe hizmet sunan ve 200.000’in üzerinde abonesi bulunan işletmeciler tarafından 1 yıl içinde; 23/10/2014 tarihli ve 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun kapsamında elektronik ticaret yapan hizmet sağlayıcıları tarafından 2 yıl içinde Web Siteleri ve Mobil Uygulamaların Erişilebilirliği Kontrol Listesi - A Seviyesi ile Web İçeriği Erişilebilirlik Kılavuzuna (WCAG-2.2.) uygun hale getirilmesi hususunda bilgilerini ve gereğini rica ederim.
+20 Haziran 2025
