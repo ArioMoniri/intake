@@ -21,6 +21,15 @@
  * - Decoration: hidden from the accessibility tree and not pressable. The
  *   dialogue's text and its one live announcement carry every state.
  * - Under reduce-motion it is still: no loop, no level, no transition.
+ *
+ * ADR-039 S1 (INT-466): on the chat stage the caller passes `stage`, and the
+ * orb draws the stage body (components/stage/VoiceOrb), a gradient sphere
+ * whose breathing and turning come from the S1 policy the caller computed
+ * from this same state. The voice level scales that body through
+ * `levelScale`, a worklet on the sampler's shared value, so a sample still
+ * renders nothing. The work ring keeps its fade. Nothing else changes: the
+ * state is still `orbStateFor`'s, the orb is still decoration, and it still
+ * reports nothing back.
  */
 import { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
@@ -34,6 +43,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { VoiceOrb } from "@/components/stage/VoiceOrb";
 import { useFontScale, useTheme } from "@/components/Themed";
 import { loopingDecorationEnabled } from "@/lib/a11y/motion";
 import { useReducedMotion } from "@/lib/a11y/prefs";
@@ -46,6 +56,8 @@ import {
   type OrbLoopKind,
   type OrbState,
 } from "@/lib/motion/orb";
+import { levelScale, type StageOrbMotion } from "@/lib/stage/orb";
+import type { StagePalette } from "@/lib/stage/palette";
 import { motion, radius, scaledControl } from "@/lib/theme";
 
 /** Half of a loop's full period: each half is one fade (SC 2.3.1: over 167 ms). */
@@ -69,9 +81,16 @@ interface PresenceOrbProps {
   workFades: boolean;
   /** The recorder's metering, read by the level sampler while listening. */
   readLevel: LevelReader;
+  /** The chat stage's body (ADR-039 S1); absent, the orb draws its disc. */
+  stage?: {
+    readonly size: number;
+    readonly motion: StageOrbMotion;
+    readonly palette: StagePalette;
+    readonly glass: boolean;
+  };
 }
 
-export function PresenceOrb({ state, working, workFades, readLevel }: PresenceOrbProps) {
+export function PresenceOrb({ state, working, workFades, readLevel, stage }: PresenceOrbProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
   const reduce = useReducedMotion();
@@ -138,9 +157,43 @@ export function PresenceOrb({ state, working, workFades, readLevel }: PresenceOr
     () => ({ opacity: reactive ? level.get() * motion.orb.haloOpacity : 0 }),
     [reactive],
   );
+  const gain = stage?.motion.levelGain ?? 0;
+  const stageLevelStyle = useAnimatedStyle(
+    () => ({ transform: [{ scale: levelScale(level.get(), gain) }] }),
+    [gain],
+  );
 
   if (!visual.mounted) {
     return null;
+  }
+  if (stage !== undefined) {
+    return (
+      <View
+        // Decoration, as the disc is: the stage writes and announces the state.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        pointerEvents="none"
+        style={styles.box}
+      >
+        <Animated.View style={stageLevelStyle}>
+          <VoiceOrb
+            size={stage.size}
+            motion={stage.motion}
+            palette={stage.palette}
+            glass={stage.glass}
+          />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.layer,
+            { width: stage.size, height: stage.size, borderRadius: radius.chip },
+            { borderColor: stage.palette.inkSoft },
+            styles.ring,
+            ringStyle,
+          ]}
+        />
+      </View>
+    );
   }
   const box = scaledControl(motion.orb.boxPt, fontScale);
   const disc = scaledControl(motion.orb.sizePt, fontScale);

@@ -6565,3 +6565,24 @@
     - "contrast holds in light, dark and Increase Contrast; question text is verbatim; no numeral reaches spoken text; the spoken lane never imports the question module"
   tests: [apps/mobile/src/lib/dialogue/composer.test.ts, apps/mobile/src/lib/motion/bubbles.test.ts, apps/mobile/src/lib/motion/haptics.test.ts, apps/mobile/e2e/nativeChat.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/chatRhythm.spec.ts]
   sec_row: "mobile"
+- id: INT-466
+  epic: E08-mobile
+  phase: P1
+  title: "Chat stage: ADR-039 (owner-approved orb motion, gradient, glass controls, radii, palette) and the live chat on it"
+  # GitHub #795. Owner, 3 Oct 2026: the chat still looked old; a bold,
+  # Oura-like redesign. Prototype approved ("yes to all"); Apple's Liquid
+  # Glass guidance (docs/design/liquid-glass-research.md) keeps glass on the
+  # control layer. Stacked on INT-462 (#792). RED, haptics, announcements,
+  # verbatim text and the siz register unchanged.
+  depends_on: [INT-462, INT-461]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-466.md
+  acceptance:
+    - "ADR-039 is Accepted with the owner's quote and a D-row, bounds each of the six approved items by number and surface, and names the test that pins each; the design-rule guards move to those bounds and keep their near misses"
+    - "the live dialogue draws on the stage: a still ambient backdrop, the one presence orb in a SwiftUI body that breathes, turns and follows the voice level only while something is happening, large rounded question text, solid messages and answer cards, and Liquid Glass on the control layer only (native bar, composer, turn actions in one GlassContainer)"
+    - "RED, haptics, the one live announcement, verbatim question text, the siz register and the turn logic are unchanged; the orb is still under Reduce Motion and on RED; Reduce Transparency draws solid fills and a flat wash; Increase Contrast strengthens secondary text and gives cards a boundary"
+    - "every text colour reaches WCAG AA on every wash stop and on the cards in light and dark; glass labels are held to a modelled veil and measured on the captures"
+    - "the dev prototype route is deleted; before/after captures in light and dark and an orb gif are in docs/design/chat-stage/"
+  tests: [apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/palette.test.ts, apps/mobile/src/lib/stage/shape.test.ts, apps/mobile/e2e/chatStage.spec.ts, tests/docs/test_adr_039.py]
+  sec_row: "mobile"

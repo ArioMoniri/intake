@@ -3304,3 +3304,38 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: section 2 (welcome and onboarding), then verify #740 on the simulator, then section 4 (grouped inset lists) and section 5 (in-tree detent sheets, ADR-038 A3).
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T22:10:00+03:00 · INT-466 · done (PR open, not merged; stacked on #792)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-466):
+  - ADR-039 Accepted with the owner's quote and D23; six bounded items, each pinned by a named test;
+  - the live dialogue on the stage, with Liquid Glass on the control layer only;
+  - RED, haptics, announcement, verbatim text and `siz` unchanged;
+  - AA on every wash stop;
+  - the prototype route deleted;
+  - before and after captures plus the orb gif.
+- Plan:
+  - Research Apple's Liquid Glass guidance first (`docs/design/liquid-glass-research.md`).
+  - Write the ADR and its test, then the pure policy (`lib/stage/orb`, `palette`, `shape`), then the parts, then wire `DialogueIntake`.
+  - Move each guard to the new bounds by name.
+- Tests added (with the near-miss negative for any safety rule):
+  - `orb.test.ts`, `palette.test.ts`, `shape.test.ts`, `e2e/chatStage.spec.ts` and `tests/docs/test_adr_039.py`;
+  - near misses: a moving live orb, a faint label on the veil, an outlined answer card, RED colours in the palette, and a RED-path file importing the stage;
+  - RED runs: ADR test 8 failed; `chatStage.spec` 8 failed / 5 passed; `lib/stage` 10 failed / 12 passed (replayed on the prototype sources).
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 140 files, 2902 tests; `tsc` clean; lint 0 errors;
+  - backlog, docs, smoke, i18n and legal pytest green after staging;
+  - `no_placeholders` clean;
+  - `check-integration` CI-only.
+- Invariants touched and still passing:
+  - 2 and 22: no new copy.
+  - 10: question text is unchanged.
+  - 21: no RED surface is touched; the stage is still and absent on RED, and two new guards pin it.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-039 (Accepted), D23.
+  - Apple's guidance overrides the glass-on-content asks: answer cards, messages and the question stay solid.
+  - The tilt highlight is not done: `expo-sensors` would need a motion-permission string, which goes to legal review.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - The owner and security must decide whether glass is wanted on screens under INT-131 capture protection. The glass did not draw there on the simulator (suspected, not verified).
+  - The veil floor keeps the labels at AA either way. No HB id is minted.
+- Next: section 2 (welcome and onboarding, #793) in the stage language, then section 4 (grouped inset lists) and section 5 (in-tree detent sheets).
+- LOOP_STATUS: CONTINUE

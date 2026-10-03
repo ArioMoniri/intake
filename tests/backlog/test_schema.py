@@ -157,7 +157,8 @@ def test_ids_unique_and_well_formed() -> None:
     # Mobbin, within ADR-033; owner request, GitHub #764).
     # + INT-461 (ADR-038, the owner-ratified amendment to ADR-033, GitHub #786).
     # + INT-462 (native chat: capsule composer, mic, checked chips, GitHub #787).
-    assert len(ids) == 336
+    # + INT-466 (chat stage, ADR-039, GitHub #795).
+    assert len(ids) == 337
     import re
 
     for i in ids:

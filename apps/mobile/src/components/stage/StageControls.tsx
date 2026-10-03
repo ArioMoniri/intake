@@ -1,131 +1,155 @@
 /**
- * The stage's controls (chat redesign prototype): real iOS 26 Liquid Glass on
- * chrome, and solid fills for content.
+ * The chat stage's controls (ADR-039 S3 to S5, INT-466;
+ * docs/design/liquid-glass-research.md).
  *
- * - `StageTopBar`: a glass back button and a glass capsule with the note's
- *   progress.
- * - `StageButton`: a capsule. The prominent one is tinted glass; the plain one
- *   is clear glass.
- * - `GlassComposer`: the capsule composer, with its one trailing disc inside.
- * - `AnswerCard`: a solid answer card that shows a check when selected.
+ * Glass is for the control layer that floats above content, as Apple's
+ * guidance says. Content is never glass.
  *
- * Under Reduce Transparency (`glass === false`) every glass surface is a solid
- * fill from the stage palette, and nothing is see-through.
+ * - `StageGlassGroup`: one GlassContainer for the stage's floating controls,
+ *   so neighbouring glass merges, as the field and its control do in Messages.
+ * - `GlassComposer`: the composer field and its one control, as two glass
+ *   shapes in that group (no glass on glass). Send, the primary action, is
+ *   tinted; the mic and stop are not.
+ * - `StageButton`: a turn action, as a glass capsule. Only the prominent
+ *   (primary) one is tinted.
+ * - `AnswerCard`: an answer, as content: a SOLID card, filled with the accent
+ *   and checked when selected, so selection never rests on colour alone.
+ *
+ * Every glass surface is the regular variant, takes the app's resolved scheme
+ * and is interactive (the system's own press response, ADR-039 S4). Under
+ * Reduce Transparency (`mode !== "liquid"`) it is a solid stage fill instead,
+ * so nothing is see-through.
  */
-import { GlassView } from "expo-glass-effect";
+import { GlassContainer, GlassView } from "expo-glass-effect";
 import { type ReactNode } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
+import { useGlassMode } from "@/components/glassMode";
 import { Icon } from "@/components/Icon";
-import { AppText, useFontScale } from "@/components/Themed";
+import { AppText, useFontScale, useScheme } from "@/components/Themed";
 import { MIN_TAP } from "@/lib/a11y/target";
-import type { StagePalette, StageScheme } from "@/lib/stage/palette";
+import type { StagePalette } from "@/lib/stage/palette";
+import { STAGE_RADIUS, STAGE_SIZE, capsule } from "@/lib/stage/shape";
 import type { SymbolKey } from "@/lib/symbols";
-import { fonts, scaledSize } from "@/lib/theme";
+import { fonts, motion, scaledSize, spacing } from "@/lib/theme";
 
-const ROUNDED = fonts.rounded.ios;
+const ROUNDED = Platform.select(fonts.rounded);
 
-interface Surface {
-  readonly palette: StagePalette;
-  readonly scheme: StageScheme;
-  readonly glass: boolean;
-}
+/** How close two glass shapes come before they merge (GlassContainer spacing). */
+const MERGE_SPACING = spacing.sm;
 
-/** One glass surface, or its solid answer. */
+/** One glass surface, or its solid answer under Reduce Transparency. */
 function Pane({
-  surface,
+  palette,
   tint,
-  interactive = false,
   style,
   children,
 }: {
-  surface: Surface;
+  palette: StagePalette;
   tint?: string;
-  interactive?: boolean;
-  style: object;
+  style: StyleProp<ViewStyle>;
   children?: ReactNode;
 }) {
-  if (!surface.glass) {
+  const mode = useGlassMode();
+  const scheme = useScheme();
+  if (mode !== "liquid") {
     return (
-      <View style={[style, { backgroundColor: tint ?? surface.palette.card }]}>{children}</View>
+      <View
+        style={[
+          style,
+          {
+            backgroundColor: tint ?? palette.card,
+            borderWidth: palette.cardBorder !== null && tint === undefined ? 1 : 0,
+            borderColor: palette.cardBorder ?? "transparent",
+          },
+        ]}
+      >
+        {children}
+      </View>
     );
   }
+  // The label's floor (ADR-039 S3, palette.test.ts): the pane carries the
+  // control veil under its glass, so a label never depends on the glass
+  // having drawn. On a clinical screen iOS draws no Liquid Glass at all:
+  // INT-131's capture protection (expo-screen-capture) moves the window into
+  // a secure layer, where glass has nothing to sample. A white label on
+  // nothing would fail AA; on the veil it passes.
+  const floor = tint ?? veilColor(palette);
   return (
     <GlassView
       glassEffectStyle="regular"
-      colorScheme={surface.scheme}
-      isInteractive={interactive}
+      colorScheme={scheme}
+      isInteractive
       tintColor={tint}
-      style={style}
+      style={[style, { backgroundColor: floor }]}
     >
       {children}
     </GlassView>
   );
 }
 
-export function StageTopBar({
-  surface,
-  onBack,
-  backLabel,
-  status,
-  count,
-}: {
-  surface: Surface;
-  onBack: () => void;
-  backLabel: string;
-  status: string;
-  count: string;
-}) {
-  const { palette } = surface;
+/** The palette's control veil as one colour (#RRGGBBAA). */
+function veilColor(palette: StagePalette): string {
+  const alpha = Math.round(palette.controlVeil.alpha * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `${palette.controlVeil.color}${alpha}`;
+}
+
+/** The stage's floating controls, merged as one glass group. */
+export function StageGlassGroup({ children }: { children: ReactNode }) {
+  const mode = useGlassMode();
+  if (mode !== "liquid") {
+    return <View style={styles.group}>{children}</View>;
+  }
   return (
-    <View style={styles.topBar}>
-      <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack}>
-        <Pane surface={surface} interactive style={styles.round}>
-          <Icon name="chevron.left" size={18} tintColor={palette.ink} />
-        </Pane>
-      </Pressable>
-      <Pane surface={surface} style={styles.statusPill}>
-        <View style={[styles.dot, { backgroundColor: palette.accent }]} />
-        <AppText role="label" style={[styles.rounded, { color: palette.ink, fontWeight: "600" }]}>
-          {status}
-        </AppText>
-        <AppText role="label" style={[styles.rounded, { color: palette.inkSoft }]}>
-          {count}
-        </AppText>
-      </Pane>
-      <View style={styles.round} />
-    </View>
+    <GlassContainer spacing={MERGE_SPACING} style={styles.group}>
+      {children}
+    </GlassContainer>
   );
 }
 
 export function StageButton({
-  surface,
+  palette,
   label,
   onPress,
   prominent = false,
+  disabled = false,
 }: {
-  surface: Surface;
+  palette: StagePalette;
   label: string;
   onPress: () => void;
   prominent?: boolean;
+  disabled?: boolean;
 }) {
-  const { palette } = surface;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.actionTarget, disabled ? { opacity: motion.press.disabledOpacity } : null]}
+    >
       <Pane
-        surface={surface}
-        interactive
+        palette={palette}
         tint={prominent ? palette.cardSelected : undefined}
-        style={styles.button}
+        style={styles.action}
       >
         <AppText
           role="body"
           style={[
             styles.rounded,
-            {
-              fontWeight: "600",
-              color: prominent ? palette.cardInkSelected : palette.ink,
-            },
+            styles.actionLabel,
+            { color: prominent ? palette.cardInkSelected : palette.ink },
           ]}
         >
           {label}
@@ -144,77 +168,104 @@ const CONTROL_SYMBOL: Record<ComposerControl, SymbolKey> = {
 };
 
 export function GlassComposer({
-  surface,
+  palette,
   value,
   onChangeText,
+  onFocus,
+  onBlur,
+  onSubmit,
   prompt,
+  promptHint,
+  focused,
   control,
   controlLabel,
+  controlHint,
+  controlDisabled,
   onControl,
-  focused = false,
 }: {
-  surface: Surface;
+  palette: StagePalette;
   value: string;
   onChangeText: (next: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  onSubmit: () => void;
+  /** The field's name, also drawn as its prompt while it is empty. */
   prompt: string;
+  promptHint: string;
+  focused: boolean;
   control: ComposerControl;
   controlLabel: string;
+  controlHint?: string;
+  controlDisabled: boolean;
   onControl: () => void;
-  focused?: boolean;
 }) {
-  const { palette } = surface;
   const fontScale = useFontScale();
-  const quiet = control === "mic";
+  const glyph = control === "send" ? palette.cardInkSelected : palette.ink;
   return (
-    <Pane
-      surface={surface}
-      interactive
-      style={[
-        styles.composer,
-        focused ? { borderWidth: 2, borderColor: palette.accent } : { borderWidth: 0 },
-      ]}
-    >
-      <View style={styles.fieldWrap}>
+    <View style={styles.composerRow}>
+      <Pane
+        palette={palette}
+        style={[
+          styles.field,
+          // The focus ring: the accent, as INT-433's filled field draws it.
+          { borderWidth: focused ? 2 : 0, borderColor: palette.accent },
+        ]}
+      >
         <TextInput
+          accessibilityLabel={prompt}
+          accessibilityHint={promptHint}
+          // The field applies scaledSize itself, so the OS multiplier must be
+          // off or a 200 % setting becomes 400 % (SC 1.4.4).
+          allowFontScaling={false}
           value={value}
           onChangeText={onChangeText}
-          accessibilityLabel={prompt}
-          allowFontScaling={false}
-          style={[
-            styles.field,
-            { color: palette.ink, fontFamily: ROUNDED, fontSize: scaledSize("body", fontScale) },
-          ]}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          returnKeyType="send"
+          onSubmitEditing={onSubmit}
+          style={[styles.input, { color: palette.ink, fontSize: scaledSize("body", fontScale) }]}
         />
         {value.length === 0 ? (
-          // The empty field's prompt, drawn the way DialogueIntake draws its
-          // own: a line under the field that the field's label already speaks.
-          <View pointerEvents="none" style={styles.promptWrap} importantForAccessibility="no">
+          // The empty field's prompt, drawn over it: the field's own hint prop
+          // is a banned filler token in the app source (invariant 17 scan),
+          // and the field already speaks these words as its name.
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={styles.promptWrap}
+          >
             <AppText role="body" style={[styles.rounded, { color: palette.inkSoft }]}>
               {prompt}
             </AppText>
           </View>
         ) : null}
-      </View>
+      </Pane>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={controlLabel}
+        accessibilityHint={controlHint}
+        accessibilityState={{ disabled: controlDisabled }}
+        disabled={controlDisabled}
         onPress={onControl}
-        style={styles.controlBox}
+        style={[
+          styles.controlTarget,
+          controlDisabled ? { opacity: motion.press.disabledOpacity } : null,
+        ]}
       >
-        <View
-          style={[
-            styles.controlDisc,
-            { backgroundColor: quiet ? `${palette.accent}26` : palette.cardSelected },
-          ]}
+        <Pane
+          palette={palette}
+          tint={control === "send" ? palette.cardSelected : undefined}
+          style={styles.control}
         >
           <Icon
             name={CONTROL_SYMBOL[control]}
-            size={17}
-            tintColor={quiet ? palette.accent : palette.cardInkSelected}
+            size={scaledSize("body", fontScale)}
+            tintColor={glyph}
           />
-        </View>
+        </Pane>
       </Pressable>
-    </Pane>
+    </View>
   );
 }
 
@@ -222,25 +273,32 @@ export function AnswerCard({
   palette,
   label,
   selected,
+  role,
+  hint,
   onPress,
 }: {
   palette: StagePalette;
   label: string;
   selected: boolean;
+  /** A checkbox says "you may pick several"; a single-answer turn is a radio. */
+  role: "radio" | "checkbox";
+  hint: string;
   onPress: () => void;
 }) {
   return (
     <Pressable
-      accessibilityRole="checkbox"
+      accessibilityRole={role}
       accessibilityState={{ checked: selected }}
       accessibilityLabel={label}
+      accessibilityHint={hint}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.card,
         {
           backgroundColor: selected ? palette.cardSelected : palette.card,
           borderWidth: palette.cardBorder !== null && !selected ? 1 : 0,
           borderColor: palette.cardBorder ?? "transparent",
+          opacity: pressed ? motion.press.rowOpacity : 1,
         },
       ]}
     >
@@ -249,7 +307,7 @@ export function AnswerCard({
         style={[
           styles.rounded,
           styles.cardLabel,
-          { fontWeight: "600", color: selected ? palette.cardInkSelected : palette.ink },
+          { color: selected ? palette.cardInkSelected : palette.ink },
         ]}
       >
         {label}
@@ -270,70 +328,57 @@ export function AnswerCard({
 
 const styles = StyleSheet.create({
   rounded: { fontFamily: ROUNDED },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-  },
-  round: {
-    width: MIN_TAP,
-    height: MIN_TAP,
-    borderRadius: MIN_TAP / 2,
+  group: { gap: spacing.sm },
+  actionTarget: { minHeight: MIN_TAP },
+  action: {
+    minHeight: STAGE_SIZE.action,
+    borderRadius: capsule(STAGE_SIZE.action),
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: spacing.lg,
     overflow: "hidden",
   },
-  statusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  actionLabel: { fontWeight: "600", textAlign: "center" },
+  // The field and its control sit side by side, close enough to merge.
+  composerRow: { flexDirection: "row", alignItems: "flex-end", gap: MERGE_SPACING },
+  field: {
+    flex: 1,
+    minHeight: STAGE_SIZE.composer,
+    borderRadius: capsule(STAGE_SIZE.composer),
+    justifyContent: "center",
+    paddingHorizontal: spacing.md + 4,
+    overflow: "hidden",
+  },
+  input: { fontFamily: ROUNDED, paddingVertical: spacing.sm + 2 },
+  promptWrap: { position: "absolute", left: spacing.md + 4, right: spacing.md + 4 },
+  controlTarget: {
+    width: STAGE_SIZE.composer,
+    height: STAGE_SIZE.composer,
     minHeight: MIN_TAP,
-    paddingHorizontal: 16,
-    borderRadius: MIN_TAP / 2,
-    overflow: "hidden",
   },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  button: {
-    minHeight: 54,
-    borderRadius: 27,
+  control: {
+    width: STAGE_SIZE.composer,
+    height: STAGE_SIZE.composer,
+    borderRadius: capsule(STAGE_SIZE.composer),
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
     overflow: "hidden",
-  },
-  composer: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 56,
-    borderRadius: 28,
-    paddingLeft: 20,
-    paddingRight: 6,
-    overflow: "hidden",
-  },
-  fieldWrap: { flex: 1, justifyContent: "center" },
-  field: { paddingVertical: 12 },
-  promptWrap: { position: "absolute", left: 0, right: 0 },
-  controlBox: { width: MIN_TAP, height: MIN_TAP, alignItems: "center", justifyContent: "center" },
-  controlDisc: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
   },
   card: {
-    minHeight: 52,
-    borderRadius: 26,
-    paddingLeft: 18,
-    paddingRight: 14,
-    paddingVertical: 12,
+    minHeight: MIN_TAP,
+    borderRadius: STAGE_RADIUS.card,
+    borderCurve: "continuous",
+    paddingLeft: spacing.md + 2,
+    paddingRight: spacing.sm + 6,
+    paddingVertical: spacing.sm + 4,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
+    gap: spacing.sm + 2,
+    // A wrap item gets no shrink in React Native: bound it so a long option
+    // label wraps inside the card instead of running off-screen (INT-136).
+    maxWidth: "100%",
   },
-  cardLabel: { flexShrink: 1 },
+  cardLabel: { flexShrink: 1, fontWeight: "600" },
   check: {
     width: 22,
     height: 22,

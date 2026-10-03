@@ -17,3 +17,30 @@ export function AmbientBackdrop({ palette }: { palette: StagePalette }) {
     />
   );
 }
+
+/** The edges off iOS: a solid band in the wash stop at that edge. */
+export function StageEdgeFade({
+  palette,
+  height,
+  edge,
+}: {
+  palette: StagePalette;
+  height: number;
+  edge: "top" | "bottom";
+}) {
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        ...(edge === "top" ? { top: 0 } : { bottom: 0 }),
+        height,
+        backgroundColor: edge === "top" ? palette.wash[0] : palette.wash[2],
+      }}
+    />
+  );
+}

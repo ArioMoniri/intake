@@ -193,11 +193,17 @@ describe("friendly empty states, no illustration (owner direction, INT-422)", ()
 });
 
 describe("materials only on the functional layer (spec §0 rule 1)", () => {
-  it("glass and blur are drawn by the tab rail and the bottom bar alone", () => {
+  it("glass and blur are drawn by the tab rail, the bottom bar and the stage's controls alone", () => {
+    // ADR-039 S3 (INT-466): the chat stage's control layer is glass; its
+    // content never is (e2e/chatStage.spec.ts holds that side).
     const glass = [
       ...new Set([...importersOf("expo-blur"), ...offenders(/<GlassView\b|<BlurView\b/)]),
     ].sort();
-    expect(glass).toEqual(["src/components/FloatingTabBar.tsx", "src/components/GlassBar.tsx"]);
+    expect(glass).toEqual([
+      "src/components/FloatingTabBar.tsx",
+      "src/components/GlassBar.tsx",
+      "src/components/stage/StageControls.tsx",
+    ]);
   });
 
   it("each of them has a solid answer for Reduce Transparency", () => {
@@ -207,6 +213,11 @@ describe("materials only on the functional layer (spec §0 rule 1)", () => {
       expect(host, name).toMatch(/mode === "solid"/);
       expect(host, name).toContain("theme.surface");
     }
+    // The stage draws a solid stage fill for anything that is not system glass.
+    const stage = file("src/components/stage/StageControls.tsx");
+    expect(stage).toContain("useGlassMode()");
+    expect(stage).toMatch(/mode !== "liquid"/);
+    expect(stage).toContain("palette.card");
   });
 });
 
@@ -221,13 +232,29 @@ describe("Increase Contrast reaches every surface", () => {
   });
 
   it("no component reads a palette object directly, around the contrast answer", () => {
+    // The theme's palettes are read through useTheme() alone. INT-466: the
+    // chat stage's own palette (lib/stage/palette.ts, ADR-039 S6) is another
+    // object with its own contrast answer, so the scan names the theme's
+    // exports rather than the word.
+    const THEME_PALETTE =
+      /\bimport\s*\{[^}]*\b(?:palette|highContrastPalette|colorsFor)\b[^}]*\}\s*from\s*["'](?:@\/lib\/theme|\.\.?\/(?:\.\.\/)*theme)["']|\btheme\.(?:palette|highContrastPalette)\b/;
     const direct = TREE.filter(
       (f) =>
         f.name !== "src/components/Themed.tsx" &&
         f.name !== "src/lib/theme.ts" &&
-        /\b(?:palette|highContrastPalette|colorsFor)\b/.test(f.source),
+        THEME_PALETTE.test(f.source),
     ).map((f) => f.name);
     expect(direct).toEqual([]);
+    // Near misses: each way of reaching the theme's palette is seen.
+    expect(THEME_PALETTE.test('import { palette } from "@/lib/theme";')).toBe(true);
+    expect(THEME_PALETTE.test('import { spacing, colorsFor } from "../theme";')).toBe(true);
+    expect(THEME_PALETTE.test("const c = theme.palette.light;")).toBe(true);
+    // ...and the stage palette, resolved with its own contrast answer, is not.
+    expect(THEME_PALETTE.test('import { stagePalette } from "@/lib/stage/palette";')).toBe(false);
+    // The stage reads Increase Contrast where it resolves its palette.
+    expect(file("src/components/DialogueIntake.tsx")).toMatch(
+      /stagePalette\(scheme, \{[\s\S]*?increasedContrast,?\s*\}\)/,
+    );
   });
 
   it("only the native adapter asks the OS, and it is reached lazily", () => {

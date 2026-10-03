@@ -42,7 +42,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
 import { AnnouncedRegion, AnnouncedText } from "@/components/Announced";
-import { GlassBar, useGlassBarClearance, withGlassNav } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance, withGlassNav, withStageNav } from "@/components/GlassBar";
 import { useGlassMode } from "@/components/glassMode";
 import { Icon } from "@/components/Icon";
 import { QuestionProgress } from "@/components/QuestionProgress";
@@ -52,12 +52,14 @@ import {
   PrimaryButton,
   Screen,
   useFontScale,
+  useScheme,
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
 import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
+import { stagePalette } from "@/lib/stage/palette";
 import { InstrumentStep } from "@/components/InstrumentStep";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
@@ -98,6 +100,7 @@ const FLOW_EDGES = ["left", "right"] as const;
 export default function TypedIntake() {
   useClinicalScreenPrivacy(); // FLAG_SECURE-class capture blocking (INT-131)
   const headerOptions = useStackHeader();
+  const scheme = useScheme();
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
   const { notes, consents, visits, integrity } = useSession();
   // INT-260: "Ziyarete başlarken" — the patient's own answer to whether a
@@ -163,7 +166,20 @@ export default function TypedIntake() {
   // so iOS 26 gets the platform bar and its scroll-edge effect rather than a
   // full-bar GlassView the question would scroll through.
   const glass = useGlassMode();
-  const navOptions = glassNav ? withGlassNav(headerOptions(""), glass) : headerOptions("");
+  // INT-466 (ADR-039 S3): the dialogue is the chat stage. With Liquid Glass
+  // its bar is the platform's own, transparent over the stage backdrop with
+  // a soft scroll edge; otherwise it is solid in the stage's base colour.
+  // A warning banner keeps the solid bar here too.
+  const stageNav = !showModeChoice && voiceState.phase === "dialogue" && !bannerShown;
+  const stageBase = stagePalette(scheme, {
+    reduceTransparency: true,
+    increasedContrast: false,
+  }).base;
+  const navOptions = glassNav
+    ? withGlassNav(headerOptions(""), glass)
+    : stageNav
+      ? withStageNav(headerOptions(""), glass, stageBase)
+      : headerOptions("");
 
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>

@@ -38,6 +38,12 @@ export interface StagePalette {
   readonly cardBorder: string | null;
   /** The voice orb's angular gradient stops. */
   readonly orb: readonly [string, string, string, string, string];
+  /**
+   * The floor a glass control's label is held to: system regular glass is
+   * modelled as this veil over the wash (palette.test.ts). Under Reduce
+   * Transparency the control is the solid `card` instead.
+   */
+  readonly controlVeil: { readonly color: string; readonly alpha: number };
 }
 
 const LIGHT = {
@@ -53,6 +59,7 @@ const LIGHT = {
   cardInkSelected: "#FFFFFF",
   cardBorder: "#5F6B69",
   orb: ["#0B7366", "#3CB8A6", "#5DAEE6", "#C3EFE6", "#0B7366"],
+  controlVeil: { color: "#FFFFFF", alpha: 0.55 },
 } as const;
 
 const DARK = {
@@ -68,6 +75,7 @@ const DARK = {
   cardInkSelected: "#04201C",
   cardBorder: "#8C9997",
   orb: ["#1F8F80", "#7DDCCB", "#6FB4F0", "#D8F5EF", "#1F8F80"],
+  controlVeil: { color: "#2C2C2E", alpha: 0.55 },
 } as const;
 
 export function stagePalette(scheme: StageScheme, modes: StageModes): StagePalette {
@@ -84,5 +92,6 @@ export function stagePalette(scheme: StageScheme, modes: StageModes): StagePalet
     cardInkSelected: p.cardInkSelected,
     cardBorder: modes.increasedContrast ? p.cardBorder : null,
     orb: p.orb,
+    controlVeil: p.controlVeil,
   };
 }

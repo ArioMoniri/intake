@@ -36,22 +36,29 @@ const DIALOGUE = "src/components/DialogueIntake.tsx";
 const LINES = "src/components/ChatLines.tsx";
 
 describe("materials on chrome, content on solid fills (HIG Materials)", () => {
-  it("the transcript draws no material; the composer and CTAs ride the glass bar", () => {
+  it("the transcript draws no material; the composer and CTAs ride the stage's glass group", () => {
+    // INT-466 (ADR-039 S3): glass is the control layer's, drawn by the
+    // stage controls; the dialogue reads the glass mode only to choose its
+    // palette and its bar, and draws no material itself.
     const dialogue = source(DIALOGUE);
-    expect(dialogue).not.toMatch(/<GlassView\b|<BlurView\b|\buseGlassMode\b|expo-blur/);
-    expect(dialogue).toMatch(/<GlassBar\b[^>]*>[\s\S]*styles\.composerRow[\s\S]*<\/GlassBar>/);
+    expect(dialogue).not.toMatch(/<GlassView\b|<BlurView\b|<GlassContainer\b|expo-blur/);
+    expect(dialogue).toMatch(/<StageGlassGroup>[\s\S]*<GlassComposer\b[\s\S]*<\/StageGlassGroup>/);
     expect(source(LINES)).not.toMatch(/GlassView|BlurView|useGlassMode/);
   });
 
   it("every bubble fill is a solid palette token", () => {
     const dialogue = source(DIALOGUE);
+    for (const dot of dialogue.match(/<StateDot\b[^>]*\/>/g) ?? []) {
+      expect(dot).toBe("<StateDot color={palette.accent} />");
+    }
     const fills = [...dialogue.matchAll(/backgroundColor:\s*([^,}\n]+)/g)].map((m) => m[1].trim());
     expect(fills.length).toBeGreaterThan(3);
     for (const fill of fills) {
       expect(fill).toMatch(
-        // INT-462: a chip takes INT-433's chipChrome, whose two fills are the
-        // palette's surface and primarySoft (lib/controlChrome.ts).
-        /^(?:theme\.(?:surface|surfaceRaised|primarySoft|primary|ink|cta)|[a-z]+ \? theme\.\w+ : theme\.\w+|look\.backgroundColor)$/,
+        // INT-466 (ADR-039 S6): the stage palette's solid tokens; a bubble
+        // never takes a translucent or computed colour.
+        // The state dot's `color` is the accent the dialogue hands it.
+        /^(?:palette\.(?:card|cardSelected|base)|"transparent"|color)$/,
       );
     }
   });

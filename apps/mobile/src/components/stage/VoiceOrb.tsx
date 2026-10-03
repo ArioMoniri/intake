@@ -1,7 +1,8 @@
 /**
- * The stage orb off iOS: a still disc in the orb's middle stop. The living
- * SwiftUI orb is VoiceOrb.ios.tsx; Android and web keep this until the Compose
- * version is drawn.
+ * The stage orb's body off iOS: a still disc in the orb's middle stop. The
+ * SwiftUI body is VoiceOrb.ios.tsx; Android and web keep this until the
+ * Compose version is drawn. PresenceOrb renders it and scales it by the voice
+ * level, as it does on iOS.
  */
 import { View } from "react-native";
 
@@ -12,7 +13,6 @@ interface VoiceOrbProps {
   readonly size: number;
   readonly motion: StageOrbMotion;
   readonly palette: StagePalette;
-  readonly level: number;
   readonly glass: boolean;
 }
 
@@ -25,12 +25,7 @@ export function VoiceOrb({ size, motion, palette }: VoiceOrbProps) {
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: palette.orb[1],
-      }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: palette.orb[1] }}
     />
   );
 }

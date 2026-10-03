@@ -8,6 +8,8 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { colorsFor } from "../theme";
+
 import { stagePalette, type StagePalette } from "./palette";
 
 function channel(c: number): number {
@@ -42,6 +44,27 @@ function every(fn: (p: StagePalette, label: string) => void): void {
   }
 }
 
+/** Every RED colour token, in both schemes and both contrasts. */
+const RED_COLOURS = new Set(
+  SCHEMES.flatMap((scheme) =>
+    (["standard", "high"] as const).flatMap((level) => {
+      const colors = colorsFor(scheme, level);
+      return [colors.emergency, colors.emergencySoft].map((c) => c.toUpperCase());
+    }),
+  ),
+);
+
+/** The RED colours a palette carries anywhere in its values. */
+function redIn(value: unknown): string[] {
+  if (typeof value === "string") {
+    return RED_COLOURS.has(value.toUpperCase()) ? [value.toUpperCase()] : [];
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.values(value).flatMap(redIn);
+  }
+  return [];
+}
+
 describe("stage palette: text on the ambient backdrop", () => {
   it("ink and inkSoft reach AA on the base and on every wash stop", () => {
     every((p, label) => {
@@ -73,6 +96,44 @@ describe("stage palette: text on the ambient backdrop", () => {
   });
 });
 
+/** A veil of `color` at `alpha` over `ground`: the colour a control's label sits on. */
+function over(ground: string, veil: { color: string; alpha: number }): string {
+  const parse = (hex: string) =>
+    [0, 2, 4].map((i) => parseInt(hex.replace("#", "").slice(i, i + 2), 16));
+  const [g, v] = [parse(ground), parse(veil.color)];
+  return `#${g
+    .map((c, i) => Math.round(c * (1 - veil.alpha) + v[i] * veil.alpha))
+    .map((c) => c.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+describe("stage palette: labels on the glass controls (ADR-039 S3)", () => {
+  // System glass is modelled as the palette's control veil over each wash
+  // stop. The model is a floor, not a measurement: the evidence records the
+  // contrast measured on the simulator captures as well.
+  it("a control label reaches AA on the veil over every wash stop", () => {
+    every((p, label) => {
+      for (const ground of [p.base, ...p.wash]) {
+        const fill = over(ground, p.controlVeil);
+        expect(contrast(p.ink, fill), `${label} ink on veil over ${ground}`).toBeGreaterThanOrEqual(
+          4.5,
+        );
+      }
+    });
+  });
+
+  it("the tinted primary action's label reaches AA on its tint", () => {
+    every((p, label) => {
+      expect(contrast(p.cardInkSelected, p.cardSelected), label).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  it("near miss: a faint label on the light veil would fail", () => {
+    const p = stagePalette("light", { reduceTransparency: false, increasedContrast: false });
+    expect(contrast("#B8C2C0", over(p.base, p.controlVeil))).toBeLessThan(4.5);
+  });
+});
+
 describe("stage palette: accessibility settings", () => {
   it("Reduce Transparency flattens the wash to the base and drops the glow", () => {
     for (const scheme of SCHEMES) {
@@ -98,6 +159,18 @@ describe("stage palette: accessibility settings", () => {
       expect(base.cardBorder).toBeNull();
       expect(high.cardBorder).not.toBeNull();
     }
+  });
+
+  it("RED's colours are not in it, in either scheme or contrast (ADR-039 S6, invariant 21)", () => {
+    every((p, label) => {
+      expect(redIn(p), label).toEqual([]);
+    });
+  });
+
+  it("near miss: a stage colour equal to a RED token would be found", () => {
+    const p = stagePalette("light", { reduceTransparency: false, increasedContrast: false });
+    const red = colorsFor("light", "standard").emergency;
+    expect(redIn({ ...p, accent: red.toLowerCase() })).toEqual([red.toUpperCase()]);
   });
 
   it("the dark stage is a night palette, never pure black (Oura-like, not OLED-off)", () => {

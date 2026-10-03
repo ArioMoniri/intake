@@ -592,11 +592,12 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
     const disabled = sites
       .filter((s) => /\bmotion\.press\.disabledOpacity\b/.test(s.value))
       .map((s) => s.name);
-    expect(disabled).toEqual([
-      "src/components/DialogueIntake.tsx",
-      "src/components/Themed.tsx",
-      "src/components/Themed.tsx",
-    ]);
+    expect(disabled).toEqual(["src/components/Themed.tsx", "src/components/Themed.tsx"]);
+    // INT-466: the composer's control and the turn actions moved into the
+    // stage controls, which dim a disabled control with the token too (as a
+    // static style, so the press-callback scan above does not list them).
+    const stage = APP_SOURCE.find((f) => f.name === "src/components/stage/StageControls.tsx");
+    expect(stage?.source.match(/opacity: motion\.press\.disabledOpacity/g)).toHaveLength(2);
   });
 
   it("no Pressable narrows the platform's press-retention default", () => {

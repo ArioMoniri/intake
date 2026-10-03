@@ -188,6 +188,31 @@ export function withGlassNav(options: StackScreenOptions, mode: GlassMode): Stac
   };
 }
 
+/**
+ * The chat stage's bar (ADR-039 S3, INT-466). With Liquid Glass it is the
+ * platform bar with no material of its own: the system draws the back
+ * button and the bar items in its own glass, and a soft top scroll-edge
+ * effect replaces the divider, so the stage's backdrop runs up under it.
+ * Without Liquid Glass (Reduce Transparency, or an iOS before 26) it is a
+ * solid bar in the stage's base colour.
+ */
+export function withStageNav(
+  options: StackScreenOptions,
+  mode: GlassMode,
+  base: string,
+): StackScreenOptions {
+  if (mode !== "liquid") {
+    return { ...options, headerTransparent: false, headerStyle: { backgroundColor: base } };
+  }
+  return {
+    ...options,
+    headerTransparent: true,
+    headerStyle: { backgroundColor: "transparent" },
+    headerShadowVisible: false,
+    scrollEdgeEffects: { top: "soft", bottom: "hidden", left: "hidden", right: "hidden" },
+  };
+}
+
 const styles = StyleSheet.create({
   navEdge: { borderBottomWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   // flexShrink (INT-360): a host that caps its bottom stack — the dialogue,

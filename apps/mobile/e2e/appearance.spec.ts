@@ -155,7 +155,7 @@ describe("T-21 — useFontScale overrides the OS value rather than composing wit
  *
  * May only shrink.
  */
-const OS_SCHEME_EXCEPTIONS = ["src/components/DialogueIntake.tsx"];
+const OS_SCHEME_EXCEPTIONS: string[] = [];
 
 describe("T-22 — the colour scheme has one overridable source", () => {
   it("useColorScheme is imported from react-native only where it is resolved", () => {

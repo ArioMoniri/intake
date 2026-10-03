@@ -34,54 +34,43 @@ const source = (name: string): string => code(readFileSync(join(MOBILE, name), "
 const DIALOGUE = "src/components/DialogueIntake.tsx";
 const INTAKE = "src/app/(tabs)/visits/[visitId]/intake.tsx";
 
-/** The JSX from `<Tag` that opens the first match of `marker`, to its closing tag. */
-function element(text: string, tag: string, marker: RegExp): string {
-  const at = text.search(marker);
-  expect(at, String(marker)).toBeGreaterThanOrEqual(0);
-  const open = text.lastIndexOf(`<${tag}`, at);
-  let depth = 0;
-  const pattern = new RegExp(`<${tag}\\b|</${tag}>`, "g");
-  pattern.lastIndex = open;
-  for (let m = pattern.exec(text); m !== null; m = pattern.exec(text)) {
-    depth += m[0].startsWith("</") ? -1 : 1;
-    if (depth === 0) {
-      return text.slice(open, m.index + m[0].length);
-    }
-  }
-  return text.slice(open);
+const CONTROLS = "src/components/stage/StageControls.tsx";
+
+/** The source of one exported stage control, to the next export. */
+function control(name: string): string {
+  const text = source(CONTROLS);
+  const at = text.indexOf(`export function ${name}`);
+  expect(at, name).toBeGreaterThanOrEqual(0);
+  const next = text.indexOf("\nexport ", at + 1);
+  return next < 0 ? text.slice(at) : text.slice(at, next);
 }
 
-describe("P1/P2: the composer is one capsule on the glass bar", () => {
-  it("the field and the trailing control share the capsule row", () => {
+describe("P1/P2 on the stage (INT-466, ADR-039 S3): the field and its control", () => {
+  it("the composer is the stage's field and its one control, in the stage's glass group", () => {
     const dialogue = source(DIALOGUE);
-    const capsule = element(dialogue, "View", /style=\{\[\s*styles\.composerRow/);
-    expect(capsule).toContain("<TextInput");
-    expect(capsule).toMatch(/styles\.sendButton/);
-    expect(dialogue).toMatch(/<GlassBar\b[^>]*>[\s\S]*styles\.composerRow[\s\S]*<\/GlassBar>/);
+    expect(dialogue).toMatch(/<StageGlassGroup>[\s\S]*<GlassComposer\b[\s\S]*<\/StageGlassGroup>/);
+    const composer = control("GlassComposer");
+    expect(composer.match(/<TextInput\b/g)).toHaveLength(1);
+    expect(composer).toMatch(/styles\.controlTarget/);
   });
 
-  it("the capsule is INT-433's filled field: solid fill, tint ring when focused, no resting outline", () => {
-    const dialogue = source(DIALOGUE);
-    expect(dialogue).toMatch(
-      /filledFieldChrome\(theme, \{ focused: composerFocused, increasedContrast \}\)/,
+  it("the field shows the accent ring while focused, and no outline at rest", () => {
+    expect(control("GlassComposer")).toMatch(
+      /borderWidth: focused \? 2 : 0, borderColor: palette\.accent/,
     );
-    expect(dialogue).toMatch(/composerRow: \{[^}]*borderRadius: radius\.chip/);
-    // The old separate field with its own resting outline is gone.
-    expect(dialogue).not.toMatch(/composerField: \{[^}]*borderWidth: 1/);
+    expect(source(DIALOGUE)).toMatch(/focused=\{composerFocused\}/);
   });
 
-  it("the trailing control is chosen by composerTrailing, and stays one Pressable", () => {
+  it("the trailing control is chosen by composerTrailing, in a 44 pt target box", () => {
     const dialogue = source(DIALOGUE);
     expect(dialogue).toMatch(
       /const trailing = composerTrailing\(\{ draft, phase: turn\.phase \}\)/,
     );
-    const send = dialogue.match(/styles\.sendButton/g) ?? [];
-    expect(send.length).toBeGreaterThanOrEqual(1);
-    // A 44 pt target box of its own (the app's slop is vertical only), with
-    // the 32 pt disc drawn inside it.
-    expect(dialogue).toMatch(/sendButton: \{\s*width: MIN_TAP,\s*height: MIN_TAP,/);
-    expect(dialogue).toMatch(
-      /trailingDisc: \{\s*width: TRAILING_SIZE,\s*height: TRAILING_SIZE,\s*borderRadius: radius\.chip/,
+    expect(dialogue).toMatch(/control=\{trailing\.kind\}/);
+    expect(dialogue).toMatch(/onControl=\{pressTrailing\}/);
+    // The control's own target box (the app's slop is vertical only).
+    expect(source(CONTROLS)).toMatch(
+      /controlTarget: \{\s*width: STAGE_SIZE\.composer,\s*height: STAGE_SIZE\.composer,\s*minHeight: MIN_TAP,/,
     );
   });
 
@@ -132,12 +121,14 @@ describe("P3: the mic opens only on tap, through the session's own paths", () =>
   });
 });
 
-describe("P5: the confirm chips are filled, checked capsules", () => {
-  it("each chip takes chipChrome and draws the check when selected", () => {
+describe("P5: the confirm chips are filled, checked answer cards", () => {
+  it("each chip is the stage's answer card, filled and checked when selected", () => {
     const dialogue = source(DIALOGUE);
-    expect(dialogue).toMatch(/const look = chipChrome\(theme, on\)/);
-    expect(dialogue).toMatch(/look\.check \? \(\s*<Icon\s+name="checkmark"/);
-    expect(dialogue).toContain("backgroundColor: look.backgroundColor");
+    expect(dialogue).toMatch(/<AnswerCard\b[\s\S]*?selected=\{on\}/);
+    const card = control("AnswerCard");
+    expect(card).toMatch(/\{selected \? <Icon name="checkmark"/);
+    expect(card).toContain("backgroundColor: selected ? palette.cardSelected : palette.card");
+    expect(card).toMatch(/accessibilityState=\{\{ checked: selected \}\}/);
     expect(dialogue).not.toMatch(/borderColor: on \? theme\.primary/);
   });
 

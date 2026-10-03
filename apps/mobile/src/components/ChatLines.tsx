@@ -14,16 +14,44 @@
  * question. The bubble's accessible name is composed by the caller from the
  * same strings in the same order.
  */
+import { Platform, StyleSheet } from "react-native";
+
 import { AppText } from "@/components/Themed";
+import { fonts } from "@/lib/theme";
 
 interface AgentQuestionLinesProps {
   /** The delivery composer's lead-in, already resolved; absent when there is none. */
   leadIn?: string | null;
   question: string;
   aside?: string | null;
+  /**
+   * The chat stage (ADR-039, INT-466): the lines sit on the stage backdrop in
+   * its own inks, in SF Pro Rounded, and the question takes the Title 2
+   * `question` role. The words and their order are unchanged.
+   */
+  stage?: { readonly ink: string; readonly inkSoft: string };
 }
 
-export function AgentQuestionLines({ leadIn, question, aside }: AgentQuestionLinesProps) {
+export function AgentQuestionLines({ leadIn, question, aside, stage }: AgentQuestionLinesProps) {
+  if (stage !== undefined) {
+    return (
+      <>
+        {leadIn ? (
+          <AppText role="label" style={[styles.rounded, { color: stage.inkSoft }]}>
+            {leadIn}
+          </AppText>
+        ) : null}
+        <AppText role="question" style={[styles.rounded, styles.question, { color: stage.ink }]}>
+          {question}
+        </AppText>
+        {aside ? (
+          <AppText role="body" style={[styles.rounded, { color: stage.inkSoft }]}>
+            {aside}
+          </AppText>
+        ) : null}
+      </>
+    );
+  }
   return (
     <>
       {leadIn ? (
@@ -40,3 +68,8 @@ export function AgentQuestionLines({ leadIn, question, aside }: AgentQuestionLin
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  rounded: { fontFamily: Platform.select(fonts.rounded) },
+  question: { fontWeight: "600" },
+});

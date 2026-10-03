@@ -270,6 +270,17 @@ describe("the low-literacy overlay is acquired without stigma", () => {
  */
 const OPTION_CHIP_HOSTS = [INTAKE_SCREEN, "src/components/DialogueIntake.tsx"];
 
+/**
+ * INT-466: the dialogue lays its chips out in a wrap row, and each chip is
+ * the stage's answer card (StageControls), so the bound lives there.
+ */
+const CHIP_STYLE_HOST: Record<string, string> = {
+  "src/components/DialogueIntake.tsx": "src/components/stage/StageControls.tsx",
+};
+
+/** The answer card's horizontal chrome: both paddings, the gap and the check. */
+const STAGE_CARD_CHROME = spacing.md + 2 + (spacing.sm + 6) + (spacing.sm + 2) + 22 + 2;
+
 /** The narrowest iPhone still in service, and the phone INT-295 captured on. */
 const PHONE_WIDTHS = [375, 402] as const;
 
@@ -311,6 +322,13 @@ describe("a pack option label is reachable at every APP_STEPS size", () => {
       expect(source, `${host} no longer lays chips out in a wrap row`).toContain(
         'flexWrap: "wrap"',
       );
+      const styleHost = CHIP_STYLE_HOST[host];
+      if (styleHost !== undefined) {
+        const card = /\n\s{2}card:\s*\{[\s\S]*?\n\s{2}\}/.exec(code(read(styleHost)));
+        expect(card, `${styleHost} has no \`card\` style to bound`).not.toBeNull();
+        expect(card![0], styleHost).toContain('maxWidth: "100%"');
+        continue;
+      }
       const chip = /\n\s{2}chip:\s*\{[\s\S]*?\n\s{2}\}/.exec(source);
       expect(chip, `${host} has no \`chip\` style to bound`).not.toBeNull();
       expect(chip![0], host).toContain('maxWidth: "100%"');
@@ -333,6 +351,16 @@ describe("a pack option label is reachable at every APP_STEPS size", () => {
           ),
         );
         expect(CHIP_CHROME + widestGlyph, `${phone}pt @${scale}`).toBeLessThanOrEqual(row);
+        // The stage's answer card sets its label in the body role.
+        const widestBodyGlyph = Math.max(
+          ...OPTION_LABELS.flatMap((label) => [...label]).map((glyph) =>
+            metrics.advance(glyph, scaledSize("body", scale)),
+          ),
+        );
+        expect(
+          STAGE_CARD_CHROME + widestBodyGlyph,
+          `card ${phone}pt @${scale}`,
+        ).toBeLessThanOrEqual(row);
       }
     }
   });

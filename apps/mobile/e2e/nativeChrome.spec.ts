@@ -165,10 +165,21 @@ describe("system glass follows the app, and stays inert", () => {
     }
   });
 
-  it("no GlassView is interactive: its press response scales, and presses are opacity only", () => {
+  it("no GlassView is interactive but the chat stage's controls (ADR-039 S4)", () => {
+    // The stage's composer, its control and the turn actions take the system's
+    // own press response; every other glass stays inert, its presses opacity only.
+    const STAGE_CONTROLS = "src/components/stage/StageControls.tsx";
     for (const { name, tag } of glassViews) {
+      if (name === STAGE_CONTROLS) {
+        continue;
+      }
       expect(tag, name).not.toContain("isInteractive");
     }
+    expect(glassViews.filter((g) => g.tag.includes("isInteractive")).map((g) => g.name)).toEqual([
+      STAGE_CONTROLS,
+    ]);
+    // Near miss: interactive glass anywhere else is seen.
+    expect("<GlassView isInteractive colorScheme={scheme}>").toContain("isInteractive");
   });
 
   it("the kiosk's own screens carry no glass (a translucent rest screen could show the last patient)", () => {
