@@ -261,6 +261,18 @@ const press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 } as const;
 export const motion = { fadeMs: duration.fade, duration, easing, loop, press } as const;
 
 /**
+ * Row press feedback (INT-451, docs/design/interaction-patterns.md §3.1): a
+ * grouped-list row and a switch row show a press by stepping their fill to
+ * this token, the way a UIKit cell highlights and a Material 3 list item
+ * lays its pressed state over the row. The words stay at full ink. Dimming
+ * the whole row to `press.rowOpacity` dimmed the words too, and a sublabel
+ * fell to about 3.1:1 while the finger was down (lib/a11y/rowPress.test.ts).
+ * It is an instant state swap with no duration, so ADR-033's budget does not
+ * apply to it and reduce motion has nothing to collapse.
+ */
+export const rowPressFill: ColorToken = "surfaceRaised";
+
+/**
  * The platform face. `System` is SF Pro on iOS, which picks the Text or
  * Display optical size and its tracking itself; Android has no family by that
  * name and falls back to its own system sans (Roboto). No face is bundled.

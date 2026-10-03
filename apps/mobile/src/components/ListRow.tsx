@@ -17,7 +17,7 @@ import { Icon } from "@/components/Icon";
 import { AppText, Hairline, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import type { SymbolKey } from "@/lib/symbols";
-import { motion, radius, spacing } from "@/lib/theme";
+import { radius, rowPressFill, spacing } from "@/lib/theme";
 
 /** Action name for the row's nested trailing control. */
 const SECONDARY_ACTION = "secondary";
@@ -146,7 +146,7 @@ export function ListRow({
         style={({ pressed }) => [
           styles.row,
           inset ? styles.rowInset : null,
-          { opacity: pressed ? motion.press.rowOpacity : 1 },
+          pressed ? { backgroundColor: theme[rowPressFill] } : null,
         ]}
       >
         {body}

@@ -106,7 +106,7 @@ export function useFontScale(): number {
   return effectiveFontScale(prefs.textStep, os);
 }
 
-type StackScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>["options"]>;
+export type StackScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>["options"]>;
 
 /**
  * The top bar for pushed screens: the iOS inline navigation bar, a centred

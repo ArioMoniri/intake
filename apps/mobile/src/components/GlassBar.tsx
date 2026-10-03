@@ -19,7 +19,7 @@ import { GlassView } from "expo-glass-effect";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useGlassMode } from "@/components/glassMode";
-import { useFontScale, useScheme, useTheme } from "@/components/Themed";
+import { useFontScale, useScheme, useTheme, type StackScreenOptions } from "@/components/Themed";
 import { glassBarClearance } from "@/lib/prefs/appearance";
 import { glassFallback, spacing } from "@/lib/theme";
 
@@ -157,6 +157,25 @@ export function GlassNavBackground() {
       />
     </View>
   );
+}
+
+/**
+ * A pushed screen's navigation bar on glass (INT-451,
+ * docs/design/interaction-patterns.md §3.2): INT-433's material for the typed
+ * question, as one helper for the visit's other pushed screens. The header
+ * turns transparent over `GlassNavBackground`, so it takes the same three
+ * answers as every glass surface, solid included. The host clears the bar by
+ * `useHeaderHeight()`, never a constant, because the bar grows with the title
+ * at large text sizes. The bar is chrome: the system back button and the
+ * title sit on it, and the screen's content only scrolls under it.
+ */
+export function withGlassNav(options: StackScreenOptions): StackScreenOptions {
+  return {
+    ...options,
+    headerTransparent: true,
+    headerStyle: { backgroundColor: "transparent" },
+    headerBackground: () => <GlassNavBackground />,
+  };
 }
 
 const styles = StyleSheet.create({
