@@ -160,9 +160,11 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415; owner request, GitHub #705).
     # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
     # + INT-470 (the INT-448 owner questions resolved: CD-110 under D18, D24 by
     # the owner; GitHub #798).
-    assert len(ids) == 339
+    assert len(ids) == 340
     import re
 
     for i in ids:
