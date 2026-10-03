@@ -314,6 +314,8 @@ def test_backlog_parses_and_is_complete() -> None:
     # only with a stated reason.
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415, owner request, GitHub #705); grows only with a stated reason.
+    # + INT-447 (INT-414's 48 delivery lines verified under owner decision D18,
+    # GitHub #758); grows only with a stated reason.
     # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
     # GitHub #724); grows only with a stated reason.
     # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
@@ -324,7 +326,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-428, GitHub #753); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
     # with a stated reason.
-    assert len(ids) == 342, f"expected 175 blueprint + 167 added issues, got {len(ids)}"
+    assert len(ids) == 343, f"expected 175 blueprint + 168 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
