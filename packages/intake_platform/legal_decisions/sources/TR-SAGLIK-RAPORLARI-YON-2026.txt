@@ -1,6 +1,6 @@
 # source_id: TR-SAGLIK-RAPORLARI-YON-2026
 # instrument: Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361, 18 Mayıs 2026)
-# provisions: m.2, m.4(1)(m), m.6(1)-(2), m.8(5), m.39(1), m.40(1) and (4), m.48(1) and (3), m.50(1), (4), (6) and (8), m.52(5); the Sekizinci and Dokuzuncu Bölüm headings
+# provisions: m.2, m.4(1)(m), m.6(1)-(2), m.8(5), m.39(1), m.40(1) and (4), m.48(1) and (3), m.50(1), (4), (6) and (8), m.52(5)-(7); the Sekizinci and Dokuzuncu Bölüm headings and the opening of m.53
 # gazette: 19/5/2026 sayı 33258 (in force on publication, m.71)
 # url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5
 # url_gazette_pdf: https://www.resmigazete.gov.tr/eskiler/2026/05/20260519-12.pdf
@@ -126,7 +126,20 @@ yapılabilmesi amacıyla mahkeme ve savcılıklarca ivedi olduğu değerlendiril
 doğrudan kamu üniversite hastanelerine gönderilen kişilere düzenlenen adli
 rapor bedelleri, sağlık hizmet sunucusunun bulunduğu ilin il sağlık müdürlüğü
 tarafından karşılanır.
-[...]
+(6) Tedavi amaçlı başvurularda muayene
+bedelinin ilgili kurum tarafından karşılandığı durumlarda rapor bedeli ayrıca
+talep edilemez.
+(7) Mahkemeler veya savcılıklarca
+maluliyet değerlendirmesi, ceza ehliyeti ve hukukî ehliyet tespiti ile kişinin
+işlediği fiilin hukukî anlam ve sonuçlarını algılama ve/veya davranışlarını
+yönlendirme yeteneğinin yeterince gelişip gelişmediğinin değerlendirilmesi,
+vasi tayin raporu, iş kaybı raporu, tarama raporları, yaş tespiti gibi durum
+bildirir sağlık raporu düzenlenmesi amacıyla gönderilen kişilere düzenlenen
+rapor bedelleri; sevk belgesinde Cumhuriyet Başsavcılığı tarafından ödeneceği
+belirtilenler Cumhuriyet Başsavcılığı tarafından, belirtilmeyenler kişi
+tarafından ödenir.
 DOKUZUNCU BÖLÜM
 Raporların Formatı ve Düzenlenmesi
+Raporların formatı ve düzenlenmesi
+MADDE 53- (1) Bu
 [...]

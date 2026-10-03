@@ -3408,7 +3408,18 @@
 - Tests added (with the near-miss negative for any safety rule): 12 new tests in `tests/legal/test_legal_decisions.py`, each beside the shape it admits (59 in all, the loader at full branch coverage); red run recorded in docs/evidence/INT-471.md.
 - Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-471.md "Round 2 gates".
 - Invariants touched and still passing: 4, 6, 17, 18, 20.
-- Decisions / ADRs / `00_STATE.md` rows: D25 reworded (routed to the lane first; stop-and-ask items and owner-named HB rows still go to the owner). files/06 §1 gains SRY-2026 and 5378 + G2025-10. No id minted; follow-ups INT-473 and INT-474 are the orchestrator's.
+- Decisions / ADRs / `00_STATE.md` rows: D25 reworded (routed to the lane first; stop-and-ask items and owner-named HB rows still go to the owner). files/06 §1 gains SRY-2026 and 5378 + G2025-10. No id minted; follow-ups INT-469 (PR #816) and INT-474 are the orchestrator's.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond re-verification. Consent scope per data row is a stop-and-ask item for the owner; a licensed Turkish lawyer countersigns before any real patient.
 - Next: the orchestrator spawns re-verification; agreeing LDs flip to `active` with the verdict recorded.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T08:00:00+03:00 · INT-471 · round 3 (PR #809, legal reviewer's round 2 applied)
+- Goal: apply the independent legal reviewer's round 2 on `8381123b` (2 blocking, 6 should-fix; LD-03 agree).
+- Plan: re-merge #804 at `0fcfee18` (counts 343); tests first for each fix; INT-469 (PR #816) as the adli_tip follow-up; LD-05 updated to #796 at `3e243d16`; snapshot Madde 53 without elision; HHY and TMK m.15 stated as written; LD-04 purpose narrowed; G2025-10; RG 33300 verified and recorded.
+- Tests added (with the near-miss negative for any safety rule): 8 tests (66 in all; the loader at full branch coverage); the verdict test now checks either the pending state or an independent, dated, agreeing verdict.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-471.md "Round 3 gates".
+- Invariants touched and still passing: 4, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none new; files/06 §1 KSVY row records RG 33300.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond re-verification.
+- Next: the orchestrator spawns round 3 of the legal review (a narrow diff check).
 - LOOP_STATUS: WAITING_HUMAN

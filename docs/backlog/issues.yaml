@@ -6704,7 +6704,7 @@
   # output as a recommendation. Stacked on INT-470 (#804) for D24.
   depends_on: [INT-432, INT-470]
   labels: [area:legal]
-  legal: "KVKK-4,KVKK-5,KVKK-6,KVKK-10,AYD-2018,KSVY-5,KSVY-6,KSVY-7,KSVY-13,KSVY-16,HHY-15,HHY-22,HHY-23,HHY-24,TMK-339,SRY-2026,5378"
+  legal: "KVKK-4,KVKK-5,KVKK-6,KVKK-10,AYD-2018,KSVY-5,KSVY-6,KSVY-7,KSVY-13,KSVY-16,HHY-15,HHY-22,HHY-23,HHY-24,TMK-339,SRY-2026,5378,G2025-10"
   status: done
   evidence: docs/evidence/INT-471.md
   acceptance:

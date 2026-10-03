@@ -706,7 +706,7 @@ def test_ld01_keeps_the_report_purpose_item_out_of_adli_tip() -> None:
     assert value["allied_q3_rapor_amaci"]["carried_to_adli_tip"] is False
     assert value["saglik_raporlari_yonetmeligi_governs_adli_rapor"] is True
     assert value["madde_8_5_and_adli_rapor"] == "moot_for_product"
-    # The pack still inherits the slot until INT-473; the decision says so.
+    # The pack still inherits the slot until INT-469 (PR #816); the decision says so.
     assert value["as_built"]["adli_tip_inherits_rapor_amaci"] is True
     # The no-intake-answer rule is a product rule, not a reading of the text.
     assert "intake_answer_into_adli_rapor" not in value
@@ -766,8 +766,105 @@ def test_ld05_holds_the_essential_exception_only_while_a_late_answer_is_honoured
     assert "no_conforming_alternative_for_the_advance" in value
 
 
-def test_every_committed_decision_records_round_one_and_awaits_re_verification() -> None:
+def test_every_committed_decision_is_either_awaiting_review_or_independently_verified() -> None:
+    """Before a verdict is recorded: proposed, pending, review history kept.
+    Once one is: active, agreeing, a reviewer who is not the author, dated,
+    with what was checked or changed in the notes."""
     for decision in load_register().values():
-        assert decision.status is DecisionStatus.PROPOSED, decision.id
-        assert decision.verifier.verdict is VerifierVerdict.PENDING, decision.id
-        assert decision.verifier.notes and "Round 1" in decision.verifier.notes, decision.id
+        verifier = decision.verifier
+        assert verifier.notes and "Round 1" in verifier.notes, decision.id
+        if verifier.verdict is VerifierVerdict.PENDING:
+            assert decision.status is DecisionStatus.PROPOSED, decision.id
+            assert "Round 2" in verifier.notes, decision.id
+            continue
+        assert decision.status is DecisionStatus.ACTIVE, decision.id
+        assert verifier.verdict in {VerifierVerdict.AGREE, VerifierVerdict.AGREE_WITH_CHANGES}
+        assert verifier.role and verifier.role.strip().lower() != decision.author_role.lower()
+        assert verifier.verified_on is not None, decision.id
+
+
+# --- round 3: the reviewer's round 2 -------------------------------------------------------
+
+
+def _text_of(decision_id: str) -> str:
+    yaml_text = (REGISTER_DIR / f"{decision_id}.yaml").read_text(encoding="utf-8")
+    md_text = (DOCS_DIR / f"{decision_id}.md").read_text(encoding="utf-8")
+    return yaml_text + md_text
+
+
+def test_ld01_names_the_adli_tip_follow_up_by_its_own_id() -> None:
+    decision = load_register()["LD-01"]
+    assert "INT-469 (PR #816)" in decision.outcome
+    assert "INT-469" in (decision.fail_closed_while_draft or "")
+    wrong = "INT-" + "473"
+    assert wrong not in _text_of("LD-01")
+    sry_row = next(
+        line
+        for line in (REPO_ROOT / "files" / "06_COMPLIANCE_TR.md")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.startswith("| SRY-2026 |")
+    )
+    assert "INT-469" in sry_row and wrong not in sry_row
+
+
+def test_ld01_quotes_the_ninth_part_opening_at_madde_53() -> None:
+    quotes = [source.quote for source in load_register()["LD-01"].sources]
+    assert any(
+        quote.startswith("DOKUZUNCU BÖLÜM") and quote.rstrip().endswith("MADDE 53-")
+        for quote in quotes
+    )
+
+
+def test_ld05_records_that_796_honours_a_late_answer() -> None:
+    decision = load_register()["LD-05"]
+    assert "As of PR #796 head 3e243d16 (not yet on main) the condition is met" in decision.outcome
+    assert "the condition is not met" not in _text_of("LD-05")
+    assert "3e243d16" in (decision.inference_disclosure or "")
+    assert (decision.fail_closed_while_draft or "").startswith(
+        "BK13 is reported as supported for this timer only while the late answer is honoured"
+    )
+    assert decision.value["classification"] == "essential_exception_conditional"
+
+
+def test_ld02_states_the_carer_texts_and_m15_no_stronger_than_written() -> None:
+    decision = load_register()["LD-02"]
+    quotes = [source.quote for source in decision.sources]
+    assert any(
+        q.startswith("Kanunda gösterilen ayrık durumlar saklı kalmak üzere,") for q in quotes
+    )
+    carers = [s for s in decision.sources if s.supports == "carers.in_law"]
+    assert {s.source_id for s in carers} == {"TR-HHY-1998"}
+    assert any("yakını veya kanuni temsilcisi" in s.quote for s in carers)
+    in_law = decision.value["carers"]["in_law"]
+    assert "as a rule the patient is informed personally" in in_law
+    assert "only on the patient's signed written request" not in _text_of("LD-02")
+    assert "save where the law provides otherwise" in decision.outcome
+
+
+def test_ld04_purposes_stay_within_the_patients_own_care() -> None:
+    items = load_register()["LD-04"].value["items"]
+    for name, item in items.items():
+        assert item["purpose"].startswith("the patient's own diagnosis and care"), name
+        assert "public health" not in item["purpose"], name
+
+
+def test_the_backlog_row_carries_the_genelge_code() -> None:
+    rows = yaml.safe_load(
+        (REPO_ROOT / "docs" / "backlog" / "issues.yaml").read_text(encoding="utf-8")
+    )
+    row = next(row for row in rows if row["id"] == "INT-471")
+    assert "G2025-10" in row["legal"].split(",")
+
+
+def test_the_ksvy_amendment_of_rg_33300_is_recorded_in_files_06() -> None:
+    header = (REGISTER_DIR / "sources" / "TR-KSVY-2019.txt").read_text(encoding="utf-8")
+    assert "4/7/2026 sayı 33300" in header
+    ksvy_row = next(
+        line
+        for line in (REPO_ROOT / "files" / "06_COMPLIANCE_TR.md")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.startswith("| KSVY-5/6/7/13/16 |")
+    )
+    assert "RG 33300" in ksvy_row
