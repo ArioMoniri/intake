@@ -1,5 +1,79 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
+- Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
+- Plan:
+  - Merge main.
+  - Build the staging Keycloak from INT-390's pin plus the jar, checked against pin `91da1232…`.
+  - Switch the live realm's WebAuthn step in `deploy.sh` (an import never re-runs) and re-check it in `smoke.sh`.
+  - Make staff enrol a security key or passkey.
+- Tests added: `tests/infra/test_staging_keycloak_provider.py`. Updated: `test_staging_admin_tier.py` and `test_staging_compose.py`.
+  - Near-misses: a foreign reference or two providers are refused; the password never follows the command; the base URL is http(s) only.
+  - RED: 1 failed (staging flows ≠ dev flows) after the merge.
+  - GREEN: below.
+- Result: docs/evidence/INT-421.md §7.
+  - On a real Keycloak 26.7.4 with the host's flags, the sync refused the host's state, took four steps, settled, and was idempotent.
+  - A WebAuthn login through the synced realm was admitted, and through an unsynced copy refused.
+- Invariants touched and still passing: 6 (ids only; the password on stdin), 14 (every base pinned by digest, the jar pinned by sha256, the licence read raw), 15, 17.
+- Decisions / ADRs / `00_STATE.md` rows: this branch's D18 becomes **D19**, because main's D18 (INT-432) landed first. No new decision. The TOTP alternative is untouched (INT-389, the owner's).
+- Blocked on: nothing. The merge queue deploys after merge. No deploy was made here.
+- Next: the queue's parity-checked deploy; then smoke check 7 on the host.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:20:00Z · INT-421 · doing (admin tier live; PR #723 open, not merged)
+- Goal: continue INT-421 after the owner's `aws login`:
+  - deploy the admin tier;
+  - retire the "deneme hastası" fixture, audited;
+  - re-run smoke;
+  - apply the owner's decision of 2 Oct 2026, *"dont make admin access ip restricted"*.
+- Tests added:
+  - `tests/infra/test_staging_admin_tier.py`: the explicit allow-all, with an empty list as the near miss (admits nobody); the two-factor flow kept; the edge recreated on each deploy, with `wait_healthy caddy` as the near miss.
+- Result:
+  - Release `7d2cc23d` is live with 9 services up. `smoke.sh` passed 19 checks, sbom_digest `sha256:80d9eed4…`.
+  - The fixture was retired (consents 3, patient 1, tenant 1), audited as chain entries 5 to 9, and 0 rows remain.
+  - George answers 404.
+  - Two first-run defects were found and fixed: caddy kept the previous release's Caddyfile, and the caddy wait used a healthcheck caddy does not declare.
+- Decisions / ADRs / `00_STATE.md` rows: **D19** (owner, 2 Oct 2026; numbered D18 until main's INT-432 took that number).
+  - HB-A16's ranges half is closed. Its tenant→deployment map half stays open.
+- Blocked on owner:
+  - HB-A3 (Apple, Google), an Expo token;
+  - an SMS vendor with a DPA;
+  - INT-408 (workers);
+  - Keycloak staff accounts.
+  - Hosted lanes are INT-428.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T12:00:00Z · INT-421 · doing (PR open, not merged; AWS session expired mid-iteration)
+- Goal: acceptance verbatim (GitHub #713):
+  - *"The AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis). The SBOM stamp and smoke/probe results are recorded in the evidence. Nothing but simulated patients reaches us-east-1."*
+  - *"The EAS production profiles build from main with the Önvizit identity and the production API URL. Anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask."*
+  - *"A release checklist in docs/ runs end to end."*
+- Plan: deploy main and fix what stops it; add the admin tier (Keycloak, oauth2-proxy, admin-web) to the host compose; owner directive "no deneme hastası in production"; EAS production profile; the checklist.
+- Tests added (with near-miss controls):
+  - `tests/api/test_dev_fixture_production.py`: no seed outside dev; retirement removes exactly the fixture, audited by id; it refuses in dev and when the tenant holds a session, a second patient or a foreign consent. RED: 3 failed, 11 passed.
+  - `tests/api/test_dev_voice_hardening.py`: the George route is absent on staging, STAGING and test. RED: 3 failed.
+  - `tests/infra/test_staging_admin_tier.py` (35): pins, the realm, the access-token bearer, the unrouted paths, the allow-list key, the cookie-secret form, and the key-set validity near-misses.
+  - `apps/mobile/e2e/releaseConfig.spec.ts` and `src/lib/profile/badge.test.ts`.
+- Result:
+  - Main `7ca881c8` failed closed on the host at migration 0014: there was no pgvector, and the host kept `7d926d73`.
+  - Integration `c155a0d3` (main + the pgvector image) is live. Smoke is green, sbom_digest `sha256:eddaaeb1…`.
+  - The admin-tier deploy (`21097828`) stopped at upload, because the AWS CLI session had expired.
+  - `tests/api` passed 530. `tests/infra` and `tests/backlog` are green, and shellcheck is clean.
+  - Mobile: 2447 vitest tests green, and both production exports built.
+- Invariants touched and still passing: 4, 6, 14, 15, 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: main could not migrate on the host (pgvector); the API seeded the synthetic dev patient on every non-dev boot; the George route was mounted on staging; release builds labelled real accounts "Sentetik deneme hesabı".
+- Blocked on owner:
+  - the AWS re-login;
+  - HB-A3 (Apple, Google), an Expo token;
+  - HB-A16 (console ranges);
+  - an SMS vendor with a DPA;
+  - a decision and an ADR for hosted model lanes (invariant 19);
+  - INT-408 (workers).
+  - The asks are in docs/release/production-checklist.md §6. No HB id is minted here.
+- Next: the owner runs `aws login`; then deploy `21097828` or later, run `dev_fixture_retire` on the host, and record both in docs/evidence/INT-421.md.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
 - **Goal.** The acceptance, verbatim (GitHub #721):
   - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*

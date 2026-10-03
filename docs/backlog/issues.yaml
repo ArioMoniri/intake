@@ -6623,6 +6623,36 @@
     - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
   tests: [tests/voice/test_cast_turkish_voices.py]
   sec_row: "cloud-clipgen"
+- id: INT-421
+  epic: E13-infra
+  phase: P0
+  title: "Production release: full stack from main on the AWS host + EAS store builds"
+  depends_on: [INT-352]
+  labels: [area:infra]
+  status: doing
+  evidence: docs/evidence/INT-421.md
+  # 2 Oct 2026 (PR #723, not merged). These are done:
+  #   - release 7d2cc23d is live on the host with every existing service up (api, postgres+pgvector,
+  #     redis, openbao, minio, caddy, keycloak, oauth2-proxy, admin-web), smoke green (19 checks),
+  #     and the SBOM stamped;
+  #   - the admin console is at https://admin.3-211-2-143.sslip.io behind a Keycloak login with two
+  #     factors, with network access open by owner decision D19;
+  #   - the "deneme hastası" fixture was retired on the host, audited by id;
+  #   - the George route answers 404 on the host;
+  #   - the EAS production profile is in place, and both production exports build.
+  # Gaps:
+  #   - there is no workers process (INT-408);
+  #   - the synthetic-probe runner is dev-tier only;
+  #   - hosted model lanes are INT-428;
+  #   - release sign-in needs SMS + App Attest (HB-A3);
+  #   - eas build needs the owner's EXPO_TOKEN and Apple/Google accounts (HB-A3);
+  #   - the iOS identity arrives with INT-420.
+  acceptance:
+    - "the AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis); the SBOM stamp and smoke/probe results are recorded in the evidence; nothing but simulated patients reaches us-east-1"
+    - "the EAS production profiles build from main with the Önvizit identity and the production API URL; anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask"
+    - "a release checklist in docs/ runs end to end"
+  tests: [tests/infra/test_staging_admin_tier.py, tests/api/test_dev_fixture_production.py, apps/mobile/e2e/releaseConfig.spec.ts]
+  sec_row: "platform"
 - id: INT-474
   epic: E14-legal
   phase: P1

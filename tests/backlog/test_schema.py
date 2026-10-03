@@ -162,9 +162,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
     # + INT-474 (deployment-role gate on the other-subject data categories,
     # from the INT-471 legal lane LD-03/LD-04; GitHub #811).
-    assert len(ids) == 340
+    assert len(ids) == 341
     import re
 
     for i in ids:
