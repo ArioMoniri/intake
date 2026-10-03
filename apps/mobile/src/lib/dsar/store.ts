@@ -94,20 +94,27 @@ export async function loadDsarRequests(accountId: string): Promise<void> {
   commit({ ...state, requests: server, loaded: true, unsent: false });
 }
 
-export async function fileExport(): Promise<void> {
+/*
+ * Each filing resolves `true` only when the controller's own record came back
+ * (INT-340: the screen's success haptic waits for this answer, never for the
+ * press). `false` is the unsent state, already on screen.
+ */
+
+export async function fileExport(): Promise<boolean> {
   const filed = await fileExportRequest();
   if (filed === null) {
     commit({ ...state, unsent: true });
-    return;
+    return false;
   }
   commit({ ...state, requests: merged(state.requests, filed), unsent: false });
+  return true;
 }
 
-export async function fileErasure(): Promise<void> {
+export async function fileErasure(): Promise<boolean> {
   const filing = await fileErasureRequest();
   if (filing === null) {
     commit({ ...state, unsent: true });
-    return;
+    return false;
   }
   commit({
     ...state,
@@ -115,15 +122,17 @@ export async function fileErasure(): Promise<void> {
     unsent: false,
     sharesCancelled: filing.sharesCancelled,
   });
+  return true;
 }
 
-export async function withdrawErasure(id: string): Promise<void> {
+export async function withdrawErasure(id: string): Promise<boolean> {
   const withdrawn = await withdrawErasureRequest(id);
   if (withdrawn === null) {
     // The erasure still stands. Leaving it on screen is the honest state:
     // a withdrawal the server refused is not a withdrawal.
     commit({ ...state, unsent: true });
-    return;
+    return false;
   }
   commit({ ...state, requests: merged(state.requests, withdrawn), unsent: false });
+  return true;
 }

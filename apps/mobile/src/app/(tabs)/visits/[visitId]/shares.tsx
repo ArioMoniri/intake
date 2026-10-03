@@ -48,17 +48,21 @@
  * is the patient's own words about who they are seeing.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
+import { withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, Screen, useStackHeader } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
+import { appHaptics, haptic } from "@/lib/motion/appHaptics";
 import {
   categoryLabelKey,
   formatShareMoment,
@@ -80,6 +84,11 @@ export default function ShareCentre() {
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { links, log, loaded, unreachable, unsent } = useShareCentre();
   const tabBarClearance = useTabBarClearance();
+  // INT-451: the share centre scrolls under the glass nav bar and clears it
+  // by the header's own height.
+  const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   // Armed, not stopped: the first tap on a grant only changes the word, and
   // arming another disarms this one.
   const [armed, setArmed] = useState<string | null>(null);
@@ -93,8 +102,13 @@ export default function ShareCentre() {
 
   return (
     <Screen edges={HEADER_EDGES}>
-      <Stack.Screen options={headerOptions(t("shares.title"))} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+      <Stack.Screen options={withGlassNav(headerOptions(t("shares.title")), glass)} />
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: headerHeight, paddingBottom: tabBarClearance },
+        ]}
+      >
         <AppText role="hero" heading style={styles.heroLine}>
           {t("shares.title")}
         </AppText>
@@ -152,9 +166,18 @@ export default function ShareCentre() {
                     onPress={() => {
                       if (isArmed) {
                         setArmed(null);
-                        void revokeShare(visit, link.id);
+                        // INT-340: felt only when the server's row says stopped.
+                        const action = appHaptics.action();
+                        void revokeShare(visit, link.id).then((confirmed) =>
+                          haptic("success", {
+                            surface: "shareRevoke",
+                            actionId: action,
+                            serverConfirmed: confirmed,
+                          }),
+                        );
                         return;
                       }
+                      haptic("arm", { surface: "shareRevoke" });
                       setArmed(link.id);
                     }}
                   />,

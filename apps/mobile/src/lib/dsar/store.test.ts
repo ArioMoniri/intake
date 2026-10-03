@@ -192,6 +192,22 @@ describe("the working copy", () => {
     expect(dsarSnapshot().requests[0].status).toBe("cancelled");
   });
 
+  it("answers true only when the controller's own record came back (INT-340)", async () => {
+    // The screen's success haptic waits for this answer, never for the tap.
+    mocks.authedFetch.mockResolvedValue(refused(503));
+    expect(await fileExport()).toBe(false);
+    expect(await fileErasure()).toBe(false);
+    expect(await withdrawErasure(ERASURE_ROW.request_id)).toBe(false);
+    mocks.authedFetch.mockResolvedValue(ok(EXPORT_ROW, 201));
+    expect(await fileExport()).toBe(true);
+    mocks.authedFetch.mockResolvedValue(ok({ ...ERASURE_ROW, shares_cancelled: 0 }, 201));
+    expect(await fileErasure()).toBe(true);
+    mocks.authedFetch.mockResolvedValue(
+      ok({ ...ERASURE_ROW, status: "cancelled", completed_at: "2026-09-03T09:00:00Z" }),
+    );
+    expect(await withdrawErasure(ERASURE_ROW.request_id)).toBe(true);
+  });
+
   it("leaves the erasure standing when the withdrawal does not reach the server", async () => {
     mocks.authedFetch.mockResolvedValue(ok({ ...ERASURE_ROW, shares_cancelled: 0 }, 201));
     await fileErasure();

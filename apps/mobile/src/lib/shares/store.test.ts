@@ -208,6 +208,16 @@ describe("revoking", () => {
     expect(sharesSnapshot().links[0].revoked).toBe(true);
   });
 
+  it("answers true only when the server's own row came back (INT-340)", async () => {
+    // The screen's success haptic waits for this answer, never for the tap.
+    serving([LIVE]);
+    await loadShareCentre(VISIT);
+    mocks.authedFetch.mockRejectedValue(new mocks.AuthApiError("network"));
+    expect(await revokeShare(VISIT, LINK)).toBe(false);
+    serving([STOPPED]);
+    expect(await revokeShare(VISIT, LINK)).toBe(true);
+  });
+
   it("is idempotent on the client too: revoking twice leaves one row", async () => {
     serving([LIVE]);
     await loadShareCentre(VISIT);
