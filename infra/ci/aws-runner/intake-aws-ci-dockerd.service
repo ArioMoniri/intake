@@ -1,0 +1,44 @@
+# INT-463 — rootless Docker for the intake-aws-ci runner user. Workflow jobs
+# that need containers (check-integration's compose tier, the osv-scanner
+# container action) talk to this daemon only. The host daemon's socket stays
+# root:docker and the runner user is in no docker group. In-container root maps
+# to the runner user, never to host root, and the daemon sees the same
+# sandboxed filesystem as the runner: /opt is empty apart from the CI tree, and
+# every staging path is inaccessible. It is not enabled at boot: cycle.sh
+# starts it only after the guards have run, so the egress rules are in place
+# before the daemon can make a request.
+[Unit]
+Description=Rootless Docker for the intake-aws-ci Actions runner (INT-463)
+After=network-online.target dlami-nvme.service
+PartOf=intake-aws-ci-runner.service
+Wants=network-online.target
+RequiresMountsFor=/opt/dlami/nvme
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=all
+User=ghrunner
+Group=ghrunner
+Slice=intake-aws-ci.slice
+Environment=HOME=/opt/dlami/nvme/intake-aws-ci/dockerhome
+Environment=XDG_RUNTIME_DIR=/run/intake-aws-ci
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+RuntimeDirectory=intake-aws-ci
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/dockerd-rootless.sh --config-file=/usr/local/lib/intake-aws-ci-runner/daemon.json --data-root=/opt/dlami/nvme/intake-aws-ci/docker
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=5
+TimeoutStartSec=180
+KillMode=mixed
+LimitNOFILE=1048576
+OOMScoreAdjust=500
+ProtectSystem=strict
+ProtectHome=yes
+TemporaryFileSystem=/opt:ro
+BindPaths=/opt/dlami/nvme/intake-aws-ci
+BindPaths=/opt/dlami/nvme/intake-aws-ci/tmp:/tmp
+BindPaths=/opt/dlami/nvme/intake-aws-ci/tmp:/var/tmp
+InaccessiblePaths=-/etc/intake-staging -/etc/intake-aws-ci-runner -/var/lib/intake-ci -/var/lib/docker -/var/lib/containerd -/var/lib/amazon -/var/log/amazon -/var/lib/cloud -/run/containerd
+

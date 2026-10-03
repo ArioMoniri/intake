@@ -1,0 +1,16 @@
+# INT-463 — the resource ceiling for the intake-aws-ci runner and its rootless
+# Docker daemon. The host also serves synthetic staging, so CI gets a quarter of
+# the default CPU and IO weight, at most six of the eight cores, and a hard
+# memory ceiling. Both units also set OOMScoreAdjust=500, so under memory
+# pressure the kernel kills CI before staging.
+[Unit]
+Description=Resource ceiling for the intake-aws-ci Actions runner (INT-463)
+Before=slices.target
+
+[Slice]
+CPUWeight=25
+CPUQuota=600%
+IOWeight=25
+MemoryHigh=14G
+MemoryMax=16G
+TasksMax=16384

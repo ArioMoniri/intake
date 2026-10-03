@@ -318,9 +318,13 @@ def test_backlog_parses_and_is_complete() -> None:
     # GitHub #758); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
     # with a stated reason.
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713);
+    # grows only with a stated reason.
+    # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
+    # 3 Oct 2026, GitHub #790); grows only with a stated reason.
     # + INT-468 (CD-111: the cardiac RED do-not lines and the unanswered location
     # wait under D18, GitHub #805); grows only with a stated reason.
-    assert len(ids) == 340, f"expected 175 blueprint + 165 added issues, got {len(ids)}"
+    assert len(ids) == 342, f"expected 175 blueprint + 167 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
