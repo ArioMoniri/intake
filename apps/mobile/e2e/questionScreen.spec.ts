@@ -163,21 +163,23 @@ describe("Liquid Glass on the chrome, solid fills under the content", () => {
     expect(intake).toMatch(/<GlassBar onHeight=\{setBarHeight\}>\s*<PrimaryButton/);
   });
 
-  it("the nav bar draws the bars' material over the scrolling content", () => {
+  it("the nav bar is the one glass-nav helper over the scrolling content", () => {
     const intake = source(INTAKE);
-    expect(intake).toContain("headerTransparent: true");
-    expect(intake).toContain("headerBackground: () => <GlassNavBackground />");
+    // INT-451 follow-up: the question takes the same helper as the visit's
+    // other pushed screens, so iOS 26 gets the platform bar and its
+    // scroll-edge effect rather than a full-bar GlassView.
+    expect(intake).toMatch(/withGlassNav\(headerOptions\(""\), glass\)/);
+    expect(intake).not.toContain("GlassNavBackground");
     // Content clears the bar by the header's own height, never a constant.
     expect(intake).toContain("useHeaderHeight()");
   });
 
-  it("the nav material asks the one glass policy and has a solid answer", () => {
+  it("the nav background asks the one glass policy and has a solid answer", () => {
     const bars = source(BARS);
     const nav = bars.slice(bars.indexOf("export function GlassNavBackground"));
     expect(nav).toContain("useGlassMode()");
-    expect(nav).toMatch(/mode === "liquid"/);
     expect(nav).toMatch(/mode === "solid"[\s\S]*?backgroundColor: theme\.background/);
-    expect(nav).toContain("colorScheme={scheme}");
+    expect(nav).not.toMatch(/<GlassView\b/);
   });
 
   it("a warning banner keeps the solid bar, so nothing it says sits under glass", () => {

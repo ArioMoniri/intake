@@ -6516,7 +6516,7 @@
   # ADR-037 proposal and does not ship.
   depends_on: [INT-433]
   labels: [area:mobile]
-  status: doing
+  status: done
   evidence: docs/evidence/INT-451.md
   acceptance:
     - "docs/design/interaction-patterns.md records what was adopted, adapted or rejected from kobra.systems, beautifului.dev, kinetics.colorion.co, beui.dev, transitions.dev, astryx.atmeta.com, reverseui.com and Mobbin, with sources cited and each licence verified; no library code is copied"

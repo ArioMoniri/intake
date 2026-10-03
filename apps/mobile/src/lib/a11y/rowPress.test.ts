@@ -16,6 +16,7 @@ import {
   colorsFor,
   motion,
   rowPressFill,
+  switchTrackToken,
   SYSTEM_ROLES,
   type ColorScheme,
   type Contrast,
@@ -91,5 +92,53 @@ describe("a pressed row highlights; its words keep their ink", () => {
     expect(contrast(colors.inkFaint, colors[rowPressFill])).toBeGreaterThanOrEqual(4.5);
     // …but drawn at rowOpacity it measures about 3.1:1 while the finger is down.
     expect(contrast(dimmed, colors.surface)).toBeLessThan(4.5);
+  });
+});
+
+/**
+ * The switch row's own track (INT-451 follow-up, captured on INT451-16e).
+ * The off track is `surfaceRaised`, which is also the pressed row's fill, so
+ * while the finger was down the track vanished into the row and only the knob
+ * was left. A UISwitch's off track is a translucent fill that is always a
+ * step darker than whatever sits behind it; this track does the same with an
+ * opaque token, stepping to `surface` on the pressed fill.
+ */
+describe("a switch row's off track stays visible when the row is pressed", () => {
+  const cases = [
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ] as const;
+
+  it("the track token for each state", () => {
+    expect(switchTrackToken({ checked: false, pressed: false })).toBe("surfaceRaised");
+    expect(switchTrackToken({ checked: false, pressed: true })).toBe("surface");
+    expect(switchTrackToken({ checked: true, pressed: false })).toBe("primary");
+    expect(switchTrackToken({ checked: true, pressed: true })).toBe("primary");
+  });
+
+  it.each(MODES)("%s / %s: the track steps off the row fill in every state", (scheme, mode) => {
+    const colors = colorsFor(scheme, mode);
+    for (const [checked, pressed] of cases) {
+      const row = pressed ? colors[rowPressFill] : colors.surface;
+      const track = colors[switchTrackToken({ checked, pressed })];
+      // The same visible step the pressed row itself must make (1.2:1).
+      expect(contrast(track, row), `${checked}/${pressed}`).toBeGreaterThanOrEqual(1.2);
+    }
+  });
+
+  it.each(MODES)("%s / %s: the knob is a 3:1 graphic on its track (SC 1.4.11)", (scheme, mode) => {
+    const colors = colorsFor(scheme, mode);
+    for (const [checked, pressed] of cases) {
+      const track = colors[switchTrackToken({ checked, pressed })];
+      const knob = checked ? colors.onPrimary : colors.inkFaint;
+      expect(contrast(knob, track), `${checked}/${pressed}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("near miss: the old resting track on the pressed fill is the same colour", () => {
+    const colors = colorsFor("light", "standard");
+    expect(contrast(colors.surfaceRaised, colors[rowPressFill])).toBe(1);
   });
 });

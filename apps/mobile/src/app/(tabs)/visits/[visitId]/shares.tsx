@@ -55,6 +55,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
@@ -86,6 +87,8 @@ export default function ShareCentre() {
   // INT-451: the share centre scrolls under the glass nav bar and clears it
   // by the header's own height.
   const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   // Armed, not stopped: the first tap on a grant only changes the word, and
   // arming another disarms this one.
   const [armed, setArmed] = useState<string | null>(null);
@@ -99,7 +102,7 @@ export default function ShareCentre() {
 
   return (
     <Screen edges={HEADER_EDGES}>
-      <Stack.Screen options={withGlassNav(headerOptions(t("shares.title")))} />
+      <Stack.Screen options={withGlassNav(headerOptions(t("shares.title")), glass)} />
       <ScrollView
         contentContainerStyle={[
           styles.content,

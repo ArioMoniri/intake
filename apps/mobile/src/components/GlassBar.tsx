@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useGlassMode } from "@/components/glassMode";
 import { useFontScale, useScheme, useTheme, type StackScreenOptions } from "@/components/Themed";
+import { navBarChrome, type GlassMode } from "@/lib/a11y/glass";
 import { glassBarClearance } from "@/lib/prefs/appearance";
 import { glassFallback, spacing } from "@/lib/theme";
 
@@ -117,28 +118,23 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
 }
 
 /**
- * The navigation bar's material (INT-433): the same three answers as the
- * bottom bar, drawn behind a transparent native-stack header
- * (`headerBackground`), so the question scrolls under glass at the top and
- * the bottom alike. It holds nothing itself: the system draws the back button
- * over it. Reduce Transparency gets the page ground, which is the bar the
- * screen had before, so the patient who asked for no transparency sees no
- * change at all.
+ * The navigation bar's app-drawn ground (INT-433), for the two modes that
+ * need one: the blur under the `glassFallback` wash (iOS below 26, Android)
+ * and, under Reduce Transparency, the page ground, which is the bar the screen
+ * had before, so the patient who asked for no transparency sees no change.
+ *
+ * It draws no Liquid Glass. On iOS 26 `withGlassNav` attaches nothing here and
+ * the platform bar keeps itself clear, with UIKit's scroll-edge effect under
+ * its items (lib/a11y/glass `navBarChrome`). A full-bar GlassView let content
+ * scrolled under the bar draw through the title and the back chevron
+ * (captured on INT451-16e, iOS 26.1). It holds nothing itself: the system
+ * draws the back button over it.
  */
 export function GlassNavBackground() {
   const theme = useTheme();
   const scheme = useScheme();
   const mode = useGlassMode();
   const fallback = glassFallback(scheme);
-  if (mode === "liquid") {
-    return (
-      <GlassView
-        glassEffectStyle="regular"
-        colorScheme={scheme}
-        style={[StyleSheet.absoluteFill, styles.navEdge, { borderBottomColor: theme.separator }]}
-      />
-    );
-  }
   if (mode === "solid") {
     return <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]} />;
   }
@@ -160,21 +156,35 @@ export function GlassNavBackground() {
 }
 
 /**
- * A pushed screen's navigation bar on glass (INT-451,
- * docs/design/interaction-patterns.md §3.2): INT-433's material for the typed
- * question, as one helper for the visit's other pushed screens. The header
- * turns transparent over `GlassNavBackground`, so it takes the same three
- * answers as every glass surface, solid included. The host clears the bar by
- * `useHeaderHeight()`, never a constant, because the bar grows with the title
- * at large text sizes. The bar is chrome: the system back button and the
- * title sit on it, and the screen's content only scrolls under it.
+ * A pushed screen's navigation bar over scrolling content (INT-451,
+ * docs/design/interaction-patterns.md §3.2), one helper for the typed question
+ * and the visit's other pushed screens. The host passes the live glass mode
+ * (`useGlassMode()`), and `navBarChrome` decides what sits behind the items:
+ *
+ * - iOS 26: the bar's own system chrome material, drawn by UIKit. It frosts
+ *   the content under the title and the back button and follows the bar's
+ *   light or dark style, which app/_layout's navigation theme now sets.
+ * - below iOS 26 and Android: `GlassNavBackground`'s blur and wash.
+ * - Reduce Transparency, or no OS answer yet: the solid page ground.
+ *
+ * UIKit's scroll-edge effects are hidden on every edge: react-native-screens
+ * warns that they overlap a bar blur, and on INT451-16e the effect did not
+ * attach to the screen's scroller anyway.
+ *
+ * The header is transparent in every mode, so the content's top inset is the
+ * same everywhere: the host clears the bar by `useHeaderHeight()`, never a
+ * constant, because the bar grows with the title at large text sizes.
  */
-export function withGlassNav(options: StackScreenOptions): StackScreenOptions {
+export function withGlassNav(options: StackScreenOptions, mode: GlassMode): StackScreenOptions {
+  const chrome = navBarChrome(mode);
   return {
     ...options,
     headerTransparent: true,
     headerStyle: { backgroundColor: "transparent" },
-    headerBackground: () => <GlassNavBackground />,
+    scrollEdgeEffects: { top: "hidden", bottom: "hidden", left: "hidden", right: "hidden" },
+    ...(chrome.background === "systemMaterial"
+      ? { headerBlurEffect: "systemChromeMaterial" as const }
+      : { headerBackground: () => <GlassNavBackground /> }),
   };
 }
 

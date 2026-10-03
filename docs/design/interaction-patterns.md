@@ -97,7 +97,7 @@ Every library on the list is a React DOM library (Framer Motion, CSS or StyleX).
 
 The test holds the label at AAA, every other text at AA and the glyph at 3:1, in all four palettes. Its near-miss case shows the dimmed sublabel at about 3.1:1. The last row of the table is the change the eye sees.
 
-- **The switch row.** The off-state track is `surfaceRaised` too, so while the row is pressed the track's edge merges into the highlight. The knob (`inkFaint`, at least 4.8:1 on the fill) and its position still carry the state.
+- **The switch row.** The off-state track is `surfaceRaised` too, so on the first capture the pressed row swallowed the track and only the knob was left. `switchTrackToken` in `lib/theme.ts` now steps the off track to `surface` while the row is pressed, the way a UISwitch's translucent off track always sits a step off whatever is behind it. `rowPress.test.ts` holds the step (at least 1.2:1 against the row fill, resting and pressed, on and off) and the knob's 3:1 on its track in all four palettes; its near miss is the old track on the pressed fill at exactly 1:1.
 - **Unchanged.** Buttons, segments, the calendar and the dialogue keep the instant opacity step, and `motion.press` is untouched. `e2e/motion.spec.ts`'s MOTION-12 scan no longer lists the two row components, and says why.
 
 ### 3.2 The glass navigation bar on the visit's pushed screens
@@ -111,10 +111,12 @@ INT-433 put the typed question under a glass nav bar. One helper, `withGlassNav`
 
 Each screen clears the bar by `useHeaderHeight()`, never a constant, because the bar grows with the title at large text sizes.
 
-- **Material.** It asks the one policy, `useGlassMode()`, through `GlassNavBackground`:
-  - Liquid Glass on iOS 26;
-  - blur with the tint wash elsewhere;
+- **Material.** Each screen passes the live glass mode (`useGlassMode()`) to `withGlassNav`, and `navBarChrome` in `lib/a11y/glass.ts` decides what sits behind the items:
+  - iOS 26: the bar's own system chrome material, drawn by UIKit (`headerBlurEffect: "systemChromeMaterial"`). It frosts the content passing under the title and back button and follows the bar's light or dark style;
+  - blur with the tint wash elsewhere (`GlassNavBackground`);
   - the solid page ground under Reduce Transparency, or before the OS answers.
+- **Why not Liquid Glass across the bar.** The first captures (§4) showed a full-bar `GlassView` letting scrolled content draw straight through the bar title and the back chevron. A clear bar asking UIKit for its iOS 26 scroll-edge effect did the same in Expo Go, because the effect did not attach to the screen's scroller. The system chrome material was the one answer that separated them in both schemes. Scroll-edge effects are hidden on every edge, as react-native-screens warns they overlap a bar blur.
+- **The dark back chevron (INT-433's report).** The native stack passes its React Navigation theme's `dark` flag to each native bar as its user-interface style. With no theme provided that flag was always false, so on a dark screen every bar was forced light and the iOS 26 back chevron took the light label colour: black on the black page, present and tappable but invisible. A red `headerTintColor` did not change it, which ruled out the tint. `app/_layout.tsx` now wraps the navigators in a theme built from the app's own scheme and tokens (`lib/navigationTheme.ts`), and the status bar follows the same scheme.
 - **Chrome only.** The bar holds the system back button and the title. Content scrolls under it the way it already scrolls under the bottom bar.
 - **Where the bar stays solid:**
   - the review's empty state, which has nothing to scroll;
@@ -131,9 +133,24 @@ Each screen clears the bar by `useHeaderHeight()`, never a constant, because the
 - **Reduce Motion.** Both shipped patterns are motionless, so there is nothing for it to collapse.
 - **Reduce Transparency.** It is answered by the existing `glassMode` policy, where unknown means solid.
 
-## 4. Captures (owner step, not yet taken)
+## 4. Captures
 
-The captures go in `docs/design/interaction-patterns/`. They are not in this PR. A dedicated simulator, `INT451-16e` (iPhone 16e, iOS 26.1), was created, booted, given Expo Go 57.0.9 and set to a 9:41 status bar. That kept the shared iPhone 16e, which the owner was using for the voice build, untouched. Driving the new device needs the owner's grant in the simulator panel, and on 3 Oct 2026 that grant had not been given. Once it is, the agent takes the captures below. To take them by hand instead, serve this branch with `pnpm exec expo start --go --port 8095` in `apps/mobile`, sign in as the synthetic dev account, and capture at the default text size:
+Taken on 3 Oct 2026 on `INT451-16e` (iPhone 16e, iOS 26.1, Expo Go 57.0.9, 9:41 status bar) after the owner granted the device, serving this branch with `pnpm exec expo start --go --port 8095` in `apps/mobile`, signed in as the synthetic dev account Ayşe Yılmaz, at the default text size. The files are in `docs/design/interaction-patterns/`.
+
+The first pass found the defects described in §3.1 and §3.2: content drawing through the glass nav bar, the invisible dark-mode back chevron, and the switch track lost in the pressed row. `found-01-glass-nav-content-collision-light.png` and `found-03-dark-chevron-missing.png` record the first two. The `after-*` files were retaken once all three were fixed. The `before-*` files were served from `origin/int-433-question-screen` (`6a5b6313`): there the bar is solid, so content is clipped at its edge rather than passing under it, and a pressed row dims its words.
+
+| Path | Screen and state |
+|---|---|
+| `before-01-visit-detail-scrolled-light.png` | Visit detail on INT-433: the solid bar |
+| `before-02-appearance-row-pressed-light.png` | Profilim › Görünüm on INT-433 with a switch row held down: the whole row, words included, dimmed |
+| `found-01-glass-nav-content-collision-light.png` | Visit detail with content held under the bar, first pass: the card's date and title draw through the bar title and back chevron |
+| `found-03-dark-chevron-missing.png` | The share centre in dark mode, first pass: no back chevron, though tapping its place goes back |
+| `after-01-visit-detail-scrolled-light.png` | Visit detail with content held under the bar: the system chrome material frosts it |
+| `after-02-appearance-row-pressed-light.png` | Profilim › Görünüm with a switch row held down: the highlight fill, words at full ink, the off track stepped to `surface` |
+| `after-03-share-centre-dark.png` | The share centre in dark mode: a dark bar and a white back chevron |
+| `after-04-visit-detail-reduce-transparency-light.png` | Visit detail with Reduce Transparency on: the solid page-ground bar |
+
+The original capture plan, for reference:
 
 | Path | Screen and state |
 |---|---|

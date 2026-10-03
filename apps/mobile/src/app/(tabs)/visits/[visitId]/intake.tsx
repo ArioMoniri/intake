@@ -42,7 +42,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
 import { AnnouncedRegion, AnnouncedText } from "@/components/Announced";
-import { GlassBar, GlassNavBackground, useGlassBarClearance } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance, withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { Icon } from "@/components/Icon";
 import { QuestionProgress } from "@/components/QuestionProgress";
 import {
@@ -157,14 +158,11 @@ export default function TypedIntake() {
   const headerHeight = useHeaderHeight();
   const bannerShown = integrityCompromised || voiceDiagnostic(voiceProbe, __DEV__) !== null;
   const glassNav = !showModeChoice && voiceState.phase === "steps" && !bannerShown;
-  const navOptions = glassNav
-    ? {
-        ...headerOptions(""),
-        headerTransparent: true,
-        headerStyle: { backgroundColor: "transparent" },
-        headerBackground: () => <GlassNavBackground />,
-      }
-    : headerOptions("");
+  // INT-451 follow-up: the same helper as the visit's other pushed screens,
+  // so iOS 26 gets the platform bar and its scroll-edge effect rather than a
+  // full-bar GlassView the question would scroll through.
+  const glass = useGlassMode();
+  const navOptions = glassNav ? withGlassNav(headerOptions(""), glass) : headerOptions("");
 
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>

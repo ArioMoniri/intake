@@ -48,6 +48,7 @@ import { BiometricGate } from "@/components/BiometricGate";
 import { CarriedFactReview } from "@/components/CarriedFacts";
 import { CsatPrompt } from "@/components/CsatPrompt";
 import { GlassBar, useGlassBarClearance, withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
 import { StatusLadder } from "@/components/StatusLadder";
 import {
@@ -107,6 +108,8 @@ function ReviewAndSend() {
   // by the header's own height. The empty state keeps the solid bar: it has
   // nothing to scroll under it.
   const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { account, notes, updateNote, visits } = useSession();
   // Who is answering the carried-fact question — INT-133's derived
@@ -174,7 +177,7 @@ function ReviewAndSend() {
       {/* Design pass 6: back-only top bar (every Oura flow carries a
           top-left way out — Mobbin 11265937, b67baac0); the serif line in
           the body stays the title, so the bar is untitled. */}
-      <Stack.Screen options={withGlassNav(headerOptions(""))} />
+      <Stack.Screen options={withGlassNav(headerOptions(""), glass)} />
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>

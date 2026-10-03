@@ -21,6 +21,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -70,6 +71,8 @@ export default function NewVisit() {
   // INT-451: the form scrolls under the glass nav bar and clears it by the
   // header's own height.
   const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   const fontScale = useFontScale();
   const { addVisit, consents } = useSession();
   const [form, dispatch] = useReducer(newVisitFormReducer, undefined, emptyNewVisitForm);
@@ -134,7 +137,7 @@ export default function NewVisit() {
 
   return (
     <Screen edges={["left", "right"]}>
-      <Stack.Screen options={withGlassNav(headerOptions(t("visits.new.title")))} />
+      <Stack.Screen options={withGlassNav(headerOptions(t("visits.new.title")), glass)} />
       <ScrollView
         contentContainerStyle={[
           styles.content,

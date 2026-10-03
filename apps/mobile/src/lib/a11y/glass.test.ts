@@ -15,7 +15,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { glassMode, type GlassMode } from "./glass";
+import { glassMode, navBarChrome, type GlassMode } from "./glass";
 
 describe("glassMode", () => {
   const table: [liquidGlass: boolean, reduceTransparency: boolean | null, mode: GlassMode][] = [
@@ -45,5 +45,36 @@ describe("glassMode", () => {
   it("the three modes are the whole vocabulary", () => {
     const seen = new Set(table.map(([, , mode]) => mode));
     expect([...seen].sort()).toEqual(["blur", "liquid", "solid"]);
+  });
+});
+
+/**
+ * The navigation bar over a scrolling screen (INT-451 follow-up, captured on
+ * the INT451-16e simulator, iOS 26.1). A full-bar `GlassView` let the content
+ * that scrolls under the bar draw straight through it: the card's title and
+ * date sat on top of the back chevron and the bar title. A clear bar asking
+ * UIKit for its scroll-edge effect did the same in Expo Go, because the effect
+ * did not attach to the screen's scroller. The bar's own system chrome
+ * material frosted the content in both schemes, so iOS 26 takes that.
+ */
+describe("navBarChrome: the bar over a scroller always separates from it", () => {
+  it("iOS 26 (liquid): the system chrome material, drawn by UIKit", () => {
+    expect(navBarChrome("liquid")).toEqual({ background: "systemMaterial" });
+  });
+
+  it("blur (iOS below 26, Android): the app's blur and wash", () => {
+    expect(navBarChrome("blur")).toEqual({ background: "blur" });
+  });
+
+  it("solid (Reduce Transparency, or no answer yet): the page ground, nothing see-through", () => {
+    expect(navBarChrome("solid")).toEqual({ background: "solid" });
+  });
+
+  it("near miss: no mode leaves the bar clear or paints Liquid Glass across it", () => {
+    const backgrounds = (["liquid", "blur", "solid"] as const).map(
+      (m) => navBarChrome(m).background,
+    );
+    expect(backgrounds).not.toContain("none");
+    expect(backgrounds).not.toContain("glass");
   });
 });
