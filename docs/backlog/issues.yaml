@@ -6566,6 +6566,42 @@
     - "red-flag changes keep invariant 7, with golden tests and near-miss controls"
   tests: [tests/protocols/test_signoff_packet_decisions.py]
   sec_row: "clinical-content"
+- id: INT-414
+  epic: E08-mobile
+  phase: P1
+  title: "Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim"
+  # GitHub #705. Owner request, 27 Sep 2026. Stacked on INT-415, whose delivery
+  # contexts every utterance carries. The new copy is listed for clinician
+  # review under HB-C1 in docs/evidence/INT-414.md and is not signed.
+  depends_on: [INT-415]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-414.md
+  acceptance:
+    - "a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase (opening / first question / mid / sensitive topic / closing), question context (routine, sensitive, instrument, pain, RED-adjacent) and the patient's on-device state (read-only, invariant 11), and never alters the question text"
+    - "every new string is B1 Turkish in the siz register, uses warmth through verb mood (-elim/-alım) and passes PolicyGuard (no diagnosis, treatment or prognosis language; one question per turn); en is the mirror"
+    - "an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr in the composed output (a test over every served pack and instrument), and a RED gets nothing added"
+    - "no numerals reach TTS (invariant 22); no patient words are composed into speech"
+    - "all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md"
+  tests: [apps/mobile/src/lib/dialogue/delivery.test.ts, apps/mobile/src/lib/dialogue/deliveryPlan.test.ts, tests/release/test_delivery_copy.py, tests/release/test_i18n_complete.py, tests/api/test_dev_voice_delivery.py]
+  sec_row: "mobile"
+- id: INT-447
+  epic: E08-mobile
+  phase: P1
+  title: "Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced)"
+  # GitHub #758. Split from INT-432 (#735). Owner decision D18: agent-authored,
+  # independently agent-verified, for simulated-patient testing only; a licensed
+  # physician's review is required before any real patient. The lines are
+  # INT-414's (#726, not yet on main, so not a depends_on edge here).
+  depends_on: [INT-432]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-447.md
+  acceptance:
+    - "a medical-author agent and an independent verifier agent check every INT-414 delivery line against PolicyGuard, B1 and siz, using Turkish health-literacy sources; each line gets a decision record"
+    - "the approval:human-clinical label on #726 is cleared through this process"
+  tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
+  sec_row: "clinical-content"
 - id: INT-450
   epic: E12-admin
   phase: P1

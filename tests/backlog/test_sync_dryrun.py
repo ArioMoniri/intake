@@ -107,9 +107,11 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-378 (WebAuthn session-notes provider, GitHub #621) and INT-389 (its
     # TOTP clause as an owner decision, GitHub #644)
     # + INT-448 (#642 packet items under D18, GitHub #759)
+    # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
+    # + INT-447 (INT-414's delivery lines verified under D18, GitHub #758)
     # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
     # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
-    assert len(actions) == 338
+    assert len(actions) == 340
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

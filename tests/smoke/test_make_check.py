@@ -312,12 +312,16 @@ def test_backlog_parses_and_is_complete() -> None:
     # a stated reason.
     # + INT-448 (the #642 sign-off packet items under D18, GitHub #759); grows
     # only with a stated reason.
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415, owner request, GitHub #705); grows only with a stated reason.
+    # + INT-447 (INT-414's 48 delivery lines verified under owner decision D18,
+    # GitHub #758); grows only with a stated reason.
     # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
     # licence-checked, owner request, GitHub #763); grows only with a stated
     # reason.
     # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
     # chrome only; owner request, GitHub #783); grows only with a stated reason.
-    assert len(ids) == 338, f"expected 175 blueprint + 163 added issues, got {len(ids)}"
+    assert len(ids) == 340, f"expected 175 blueprint + 165 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
