@@ -55,6 +55,9 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. The console's `aaguid` rule is unchanged, and the TOTP choice stays with the owner (INT-389).
 - Blocked on: nothing here. Staff login on the host also needs #723 to load this jar into the staging Keycloak and switch the live realm. That work is in #723, which merges after this PR.
 - Next: #723 with the staging wiring.
+- Update (the vulnerabilities gate):
+  - Fixed: the pom's test classpath pins jackson-core and jackson-databind at 2.21.7 and opentelemetry-api at 1.62.0. The checksums were re-recorded (258), the jar pin is now `91da1232…` (reproduced), and the passkey login was re-recorded on 26.7.4: admitted, stock refused.
+  - Left: GHSA-794g-x443-36f7 on keycloak-services. GitHub bounds it below 26.5.5, but OSV's range is open-ended, and 26.7.5 and 26.8.0 match it too. Its 30-day osv entry is an owner patch; no trivy row, since trivy reports nothing.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-09-27T06:20:00+03:00 · INT-378 · awaiting-human (PR open; clauses 1–2 delivered, clause 3 is the owner's)

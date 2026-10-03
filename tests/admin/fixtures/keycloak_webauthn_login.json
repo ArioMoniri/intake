@@ -6,7 +6,7 @@
   "logins": {
     "intake-webauthn-session-notes": {
       "access_token_claims": {
-        "aaguid": "a94ea3c8-23d7-46c0-b1eb-cdd19490250e",
+        "aaguid": "978c5bc4-615d-4d93-a906-87e8350ba014",
         "acr": "1",
         "allowed-origins": [
           "http://127.0.0.1:3000",
@@ -20,17 +20,17 @@
           "api",
           "account"
         ],
-        "auth_time": 1791043919,
+        "auth_time": 1791048355,
         "azp": "admin-web",
-        "credential_id": "8c-y8SBtIO_nYDoEZud1eFYxykVlsrg_4b0WQiMKM70",
+        "credential_id": "XbjHagu_Nwn5xgS9kKHfwK30GnJtwSUvn3M1WuA2ZKk",
         "email": "int378-staff@intake.invalid",
         "email_verified": true,
-        "exp": 1791044219,
+        "exp": 1791048655,
         "family_name": "Staff",
         "given_name": "Synthetic",
-        "iat": 1791043919,
+        "iat": 1791048355,
         "iss": "http://127.0.0.1:18085/realms/intake-dev",
-        "jti": "onrtac:bf5b07e4-ec77-65af-6cab-c7f5353a3778",
+        "jti": "onrtac:e29e3f4d-2cff-4a37-786c-15eccf5504e2",
         "name": "Synthetic Staff",
         "org": "org-int378",
         "preferred_username": "int378-staff",
@@ -52,19 +52,19 @@
           }
         },
         "scope": "openid profile email",
-        "sid": "eF85e9pdrLkyexhDkQa2oIUo",
-        "sub": "0c171178-30ef-4b1f-94e2-d75aa5d186f1",
-        "tenant": "a97cfceb-695e-4128-aba0-14e03788940f",
+        "sid": "H1IJtVIbMqgwEFQQGq9z8wuX",
+        "sub": "cb3b6a44-f791-4902-aa30-8bf6433e4627",
+        "tenant": "c177e10d-a047-48d7-82f0-167c3256bdb5",
         "typ": "Bearer"
       },
       "console": {
-        "aaguid": "a94ea3c8-23d7-46c0-b1eb-cdd19490250e",
+        "aaguid": "978c5bc4-615d-4d93-a906-87e8350ba014",
         "admitted": true,
-        "credential_id": "8c-y8SBtIO_nYDoEZud1eFYxykVlsrg_4b0WQiMKM70",
+        "credential_id": "XbjHagu_Nwn5xgS9kKHfwK30GnJtwSUvn3M1WuA2ZKk",
         "roles": [
           "tenant_clinical_responsible"
         ],
-        "tenant": "a97cfceb-695e-4128-aba0-14e03788940f"
+        "tenant": "c177e10d-a047-48d7-82f0-167c3256bdb5"
       },
       "realm": "intake-dev"
     },
@@ -83,16 +83,16 @@
           "api",
           "account"
         ],
-        "auth_time": 1791043922,
+        "auth_time": 1791048358,
         "azp": "admin-web",
         "email": "int378-staff@intake.invalid",
         "email_verified": true,
-        "exp": 1791044222,
+        "exp": 1791048659,
         "family_name": "Staff",
         "given_name": "Synthetic",
-        "iat": 1791043922,
+        "iat": 1791048359,
         "iss": "http://127.0.0.1:18085/realms/intake-dev-stock",
-        "jti": "onrtac:5fee8b3b-811b-0996-ed2f-5ebde3d46150",
+        "jti": "onrtac:88cf35b2-c24e-eb38-7fdd-21b8722f5188",
         "name": "Synthetic Staff",
         "org": "org-int378",
         "preferred_username": "int378-staff",
@@ -114,9 +114,9 @@
           }
         },
         "scope": "openid email profile",
-        "sid": "h8NDkIlf_0eG3NPfVI3TVEqq",
-        "sub": "e684fb5e-0473-4d2a-8972-048cf29a235d",
-        "tenant": "a97cfceb-695e-4128-aba0-14e03788940f",
+        "sid": "OB7rsSQ91YxZuXjBpCULrgWD",
+        "sub": "86711591-af89-4cb1-a5af-b9bb959143ab",
+        "tenant": "c177e10d-a047-48d7-82f0-167c3256bdb5",
         "typ": "Bearer"
       },
       "console": {
@@ -127,11 +127,11 @@
       "realm": "intake-dev-stock"
     }
   },
-  "provider_jar_sha256": "896d66982867ae23c3668df8138fde257feb61f9e30ac224d74a80a9e78f86df",
+  "provider_jar_sha256": "91da12328b158bdf7195bd62e510b7aaf47b35b2deb200ff4ec5ffb1b201b694",
   "realm_file_sha256": "d0bf613d09cdd8f79e9070a1984ab5c12807eb4c24e66c7af70f6409a4872f3e",
   "recorded_by": "scripts/keycloak/record_webauthn_login.py (INT-378)",
   "software_authenticator": {
-    "aaguid": "a94ea3c8-23d7-46c0-b1eb-cdd19490250e",
-    "credential_id": "8c-y8SBtIO_nYDoEZud1eFYxykVlsrg_4b0WQiMKM70"
+    "aaguid": "978c5bc4-615d-4d93-a906-87e8350ba014",
+    "credential_id": "XbjHagu_Nwn5xgS9kKHfwK30GnJtwSUvn3M1WuA2ZKk"
   }
 }
