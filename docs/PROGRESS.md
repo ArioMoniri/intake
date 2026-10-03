@@ -3017,3 +3017,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00+03:00 · INT-461 · done (PR open, not merged)
+- Goal: record the owner-ratified amendment to ADR-033 (ADR-038) so the native pass can ship spring-in bubbles, selection haptics on answer chips and the mic, and in-tree detent sheets, each bounded.
+- Plan: ADR-038 with A1–A3 and a bound-to-test table; files/00 §3 row D21 (D18–D20 are claimed by open PRs); docs/index.md entry; a docs test pinning every bound; backlog row and counts.
+- Tests added (with the near-miss negative for any safety rule): `tests/docs/test_adr_038.py` (6). Each bound is a separate needle, so dropping any one of them (the RED exclusion, the Reduce Motion fallback, the no-presented-sheet rule) fails the suite. Red: 6 failed with the ADR absent. Green: 6 passed.
+- Result (`make check` / `make safety` / `make security` summary): `tests/docs`, `tests/backlog` and `tests/smoke` pass, and `no_placeholders` passes after staging. Docs only, no code.
+- Invariants touched and still passing: 21 (RED stays zero-motion and paints above any sheet, A3), 17.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-038 Accepted (owner, 3 Oct 2026, "yes approve 1-3"); D21.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: INT-462 (native chat) implements A1 and A2 test first.
+- LOOP_STATUS: CONTINUE
