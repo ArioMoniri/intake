@@ -24,6 +24,7 @@ dials a network.
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,7 @@ from intake_platform.egress import (
     load_allowlist,
 )
 from intake_platform.model_lanes.keys import ProviderApiKey
+from protocols.dsl import clip_text_hash
 from voice_clips.audio import SynthesisedSpeech
 from voice_clips.delivery import CLIPGEN_VOICE_ID, DeliveryProfile, delivery_profile
 
@@ -298,6 +300,74 @@ def test_a_catalogue_text_is_served_by_elevenlabs_in_its_v4_profile(tmp_path: Pa
     assert body["voice_settings"] == routine.voice_settings.as_request()
     assert request.url.path == f"/v1/text-to-speech/{CLIPGEN_VOICE_ID}"
     assert (tmp_path / "clips" / routine.key).is_dir(), "cache keyed by profile@version"
+    assert body["text"] == "[calm] " + SCRIPTED, "the routine row's tag, on the wire only"
+
+
+@pytest.mark.parametrize(
+    ("context", "prefix"),
+    [
+        ("welcome", "[warmly] "),
+        ("sensitive", "[softly] [reassuring] "),
+        ("acknowledgement", "[gently] "),
+        ("closing", "[warmly] "),
+    ],
+)
+def test_the_named_context_puts_its_own_tags_on_the_wire(
+    tmp_path: Path, context: str, prefix: str
+) -> None:
+    vendor = Vendor()
+    client = router_client(_wiring(tmp_path, vendor))
+    res = client.post(GEORGE_CLIP_PATH, json={"text_tr": SCRIPTED, "delivery_context": context})
+    assert res.status_code == 200
+    (request,) = vendor.requests
+    assert json.loads(request.content)["text"] == prefix + SCRIPTED
+    key = f"delivery.{context}@v4"
+    assert (tmp_path / "clips" / key / clip_text_hash(SCRIPTED)).is_file()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"text_tr": "[warmly] " + SCRIPTED},  # a client's tag inside the text
+        {"text_tr": "[calm] " + SCRIPTED},  # the row's own prefix, sent early
+        {"text_tr": SCRIPTED, "tags": ["[warmly]"]},  # a tag field
+        {"text_tr": SCRIPTED, "wire_prefix": "[warmly] "},
+        {"text_tr": SCRIPTED, "voice_settings": {"stability": 0.1}},
+    ],
+)
+def test_a_client_never_supplies_a_tag_or_a_setting(tmp_path: Path, body: dict[str, Any]) -> None:
+    vendor = Vendor()
+    res = router_client(_wiring(tmp_path, vendor)).post(GEORGE_CLIP_PATH, json=body)
+    assert res.status_code == 422
+    assert vendor.requests == []
+
+
+def test_a_v2_era_clip_on_the_volume_is_never_served(tmp_path: Path) -> None:
+    # a George clip baked under the INT-424 table, at the address v2 used
+    stale = tmp_path / "clips" / "delivery.routine@v2" / clip_text_hash(SCRIPTED)
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"george-v2-era")
+    vendor = Vendor()
+    res = router_client(_wiring(tmp_path, vendor)).post(
+        GEORGE_CLIP_PATH, json={"text_tr": SCRIPTED}
+    )
+    assert res.status_code == 200 and res.headers["x-george-cache"] == "miss"
+    assert res.content != b"george-v2-era" and len(vendor.requests) == 1
+    assert (tmp_path / "clips" / "delivery.routine@v4" / clip_text_hash(SCRIPTED)).is_file()
+
+
+def test_a_v4_clip_on_the_volume_is_served_without_a_dial(tmp_path: Path) -> None:
+    # near miss of the v2 case: the same text at the v4 address is a hit
+    baked = tmp_path / "clips" / "delivery.routine@v4" / clip_text_hash(SCRIPTED)
+    baked.parent.mkdir(parents=True)
+    baked.write_bytes(b"e04-v4")
+    vendor = Vendor()
+    res = router_client(_wiring(tmp_path, vendor)).post(
+        GEORGE_CLIP_PATH, json={"text_tr": SCRIPTED}
+    )
+    assert res.status_code == 200 and res.headers["x-george-cache"] == "hit"
+    assert res.content == b"e04-v4" and vendor.requests == []
+    assert os.listdir(tmp_path / "clips") == ["delivery.routine@v4"]
 
 
 def test_a_hit_dials_nothing_and_costs_nothing(tmp_path: Path) -> None:

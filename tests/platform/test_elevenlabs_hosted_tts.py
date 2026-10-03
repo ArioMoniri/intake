@@ -6,10 +6,18 @@ decides every call exactly as it does on the host. CI never reaches the
 vendor. The vendor host here is a reserved ``.example`` name on a test copy
 of the allow-list: the adapter reads its host off the row, so nothing needs
 the real hostname (``scripts/ci/assert_no_vendor_calls.sh`` scans tests).
+
+Since the cast (INT-449, D20) the lane speaks the owner's pick E04: the cast
+voice on ``eleven_v3`` with the v4 delivery rows, and each tagged context's
+closed-table tags prepended on the wire only. Every refusal reads ``text_tr``
+before any tag exists; the tags come from the served table and from nowhere
+else, so the hosted request is the one the bundled E04 clips were rendered
+with.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -35,14 +43,23 @@ from intake_platform.egress import (
 )
 from intake_platform.model_lanes.keys import KeyVaultUnavailable, ProviderApiKey, ProviderKeyNotSet
 from model_lanes_kit import TEST_KEY
-from voice_clips.delivery import delivery_profile
-from voice_clips.gateway import DeliveryProfileMismatchError, NumeralInScriptError, TtsError
+from voice_clips.delivery import CLIPGEN_VOICE_ID, DeliveryContext, delivery_profile
+from voice_clips.gateway import (
+    DeliveryProfileMismatchError,
+    ElevenLabsClipGenGateway,
+    MarkupInScriptError,
+    NumeralInScriptError,
+    TtsError,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 SHIPPED_ALLOWLIST = REPO / "infra" / "security" / "egress-allowlist.yaml"
 VENDOR_HOST = "tts.vendor.example"
 PUBLIC_TEST_ADDR = "203.0.113.10"
-VOICE = "JBFqnCBsd6RMkjVDRZzb"
+#: The cast voice E04 (D20), the one voice the lane speaks.
+VOICE = CLIPGEN_VOICE_ID
+#: George, the voice before the cast: well formed, and no longer the lane's.
+GEORGE = "JBFqnCBsd6RMkjVDRZzb"
 SCRIPTED = "Şikâyetiniz ne zaman başladı?"
 PCM = b"\x01\x00\x02\x00\x03\x00\x04\x00"
 
@@ -110,11 +127,166 @@ def test_a_catalogue_text_is_one_request_in_the_clip_gen_shape() -> None:
     assert request.headers["xi-api-key"] == TEST_KEY
     body = json.loads(request.content)
     assert body == {
-        "text": SCRIPTED,
+        "text": "[calm] " + SCRIPTED,
         "model_id": "eleven_v3",
         "apply_text_normalization": "off",
         "voice_settings": profile.voice_settings.as_request(),
     }
+
+
+# --- the cast take on the wire (INT-449, D20) ------------------------------------------
+
+#: The closed table as the owner heard E04, spelled out once: a silent edit of
+#: the served table is a failing diff here, not a quiet change on the wire.
+WIRE_TAGS: dict[DeliveryContext, str] = {
+    "welcome": "[warmly] ",
+    "routine": "[calm] ",
+    "sensitive": "[softly] [reassuring] ",
+    "acknowledgement": "[gently] ",
+    "closing": "[warmly] ",
+}
+
+
+def _body(vendor: Vendor) -> dict[str, Any]:
+    (request,) = vendor.requests
+    body: dict[str, Any] = json.loads(request.content)
+    return body
+
+
+@pytest.mark.parametrize("context", sorted(WIRE_TAGS))
+def test_each_tagged_context_sends_its_tags_then_the_script(context: DeliveryContext) -> None:
+    vendor = Vendor()
+    profile = delivery_profile(context)
+    _lane(vendor).synthesise(text_tr=SCRIPTED, voice_id=VOICE, profile=profile)
+    body = _body(vendor)
+    assert body["text"] == WIRE_TAGS[context] + SCRIPTED
+    assert body["text"].endswith(SCRIPTED), "the script itself is verbatim (invariant 10)"
+    assert body["model_id"] == "eleven_v3"
+    assert body["voice_settings"]["stability"] == 0.5, "Natural, as E04 was heard"
+    assert vendor.requests[0].url.path == f"/v1/text-to-speech/{CLIPGEN_VOICE_ID}"
+
+
+def test_an_instrument_item_is_sent_alone_and_robust() -> None:
+    # near miss of the tagged contexts: no tag, the most stable setting
+    vendor = Vendor()
+    _lane(vendor).synthesise(
+        text_tr=SCRIPTED, voice_id=VOICE, profile=delivery_profile("instrument")
+    )
+    body = _body(vendor)
+    assert body["text"] == SCRIPTED
+    assert body["voice_settings"]["stability"] == 1.0
+
+
+def test_red_is_refused_and_would_carry_no_tag() -> None:
+    vendor = Vendor()
+    red = delivery_profile("red")
+    assert red.tags == () and red.wire_prefix == ""
+    with pytest.raises(HostedTtsRefused, match="red_not_on_demand"):
+        _lane(vendor, admits=lambda t: True).synthesise(
+            text_tr=SCRIPTED, voice_id=VOICE, profile=red
+        )
+    assert vendor.requests == []
+
+
+@pytest.mark.parametrize(
+    "smuggled",
+    [
+        "[warmly] " + SCRIPTED,  # a client's own tag
+        "[calm] " + SCRIPTED,  # the routine row's own prefix, sent early
+        SCRIPTED + " [laughs]",
+        '<break strength="strong"/> ' + SCRIPTED,  # SSML with no numeral in it
+    ],
+)
+def test_a_tag_inside_text_tr_is_refused_even_when_catalogued(smuggled: str) -> None:
+    # the catalogue admits everything here, so only the markup gate stands
+    vendor = Vendor()
+    with pytest.raises(MarkupInScriptError):
+        _lane(vendor, admits=lambda t: True).synthesise(
+            text_tr=smuggled, voice_id=VOICE, profile=delivery_profile("routine")
+        )
+    assert vendor.requests == []
+
+
+def test_the_catalogue_is_asked_about_text_tr_never_the_wire_text() -> None:
+    vendor = Vendor()
+    asked: list[str] = []
+
+    def admits(text: str) -> bool:
+        asked.append(text)
+        return text == SCRIPTED
+
+    _lane(vendor, admits=admits).synthesise(
+        text_tr=SCRIPTED, voice_id=VOICE, profile=delivery_profile("sensitive")
+    )
+    assert asked == [SCRIPTED]
+    assert _body(vendor)["text"] == "[softly] [reassuring] " + SCRIPTED
+
+
+def test_a_numeral_in_a_tagged_context_is_refused_before_any_tag_is_added() -> None:
+    vendor = Vendor()
+    with pytest.raises(NumeralInScriptError):
+        _lane(vendor, admits=lambda t: True).synthesise(
+            text_tr="Ağrınız 5 gündür mü?", voice_id=VOICE, profile=delivery_profile("welcome")
+        )
+    assert vendor.requests == []
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"tags": ("[whispers]",)},  # a tag the table never chose
+        {"tags": ()},  # the routine row with its tag dropped
+        {"version": 2},  # the George-era version of the row
+        {"voice_id": GEORGE},
+    ],
+)
+def test_a_profile_that_is_not_the_served_row_is_refused(change: dict[str, Any]) -> None:
+    vendor = Vendor()
+    forged = dataclasses.replace(delivery_profile("routine"), **change)
+    with pytest.raises(HostedTtsRefused, match="hosted_tts_profile_not_served"):
+        _lane(vendor).synthesise(text_tr=SCRIPTED, voice_id=VOICE, profile=forged)
+    assert vendor.requests == []
+
+
+def test_a_retuned_setting_is_not_the_served_row() -> None:
+    vendor = Vendor()
+    routine = delivery_profile("routine")
+    louder = dataclasses.replace(
+        routine, voice_settings=dataclasses.replace(routine.voice_settings, style=0.3)
+    )
+    with pytest.raises(HostedTtsRefused, match="hosted_tts_profile_not_served"):
+        _lane(vendor).synthesise(text_tr=SCRIPTED, voice_id=VOICE, profile=louder)
+    assert vendor.requests == []
+
+
+def test_a_well_formed_voice_that_is_not_the_cast_voice_is_refused() -> None:
+    vendor = Vendor()
+    with pytest.raises(HostedTtsRefused, match="hosted_tts_voice_refused"):
+        _lane(vendor).synthesise(
+            text_tr=SCRIPTED, voice_id=GEORGE, profile=delivery_profile("routine")
+        )
+    assert vendor.requests == []
+
+
+@pytest.mark.parametrize("context", [*sorted(WIRE_TAGS), "instrument"])
+def test_the_hosted_request_is_the_request_the_bundled_clips_were_made_with(
+    context: DeliveryContext,
+) -> None:
+    """Continuity with the bundled E04 set (INT-449): render_cast_clips made it
+    through the ADR-028 offline gateway, so the hosted lane must send that
+    gateway's request, field for field, for the same text, voice and row."""
+    hosted, offline = Vendor(), Vendor()
+    profile = delivery_profile(context)
+    _lane(hosted).synthesise(text_tr=SCRIPTED, voice_id=VOICE, profile=profile)
+    ElevenLabsClipGenGateway(
+        base_url="https://clipgen.vendor.example",
+        api_key=TEST_KEY,
+        transport=httpx.MockTransport(offline),
+    ).synthesise(text_tr=SCRIPTED, voice_id=VOICE, profile=profile)
+    (h,), (o,) = hosted.requests, offline.requests
+    assert json.loads(h.content) == json.loads(o.content)
+    assert h.url.path == o.url.path == f"/v1/text-to-speech/{CLIPGEN_VOICE_ID}"
+    assert dict(h.url.params) == dict(o.url.params) == {"output_format": "pcm_24000"}
 
 
 @pytest.mark.parametrize(
