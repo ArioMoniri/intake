@@ -299,7 +299,8 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     }
 
     const looping = APP_SOURCE.filter((f) => loops(f.source));
-    expect(looping.map((f) => f.name)).toContain("src/components/DialogueIntake.tsx");
+    // INT-336: the orb carries the dialogue's loops; the pulse it replaced is gone.
+    expect(looping.map((f) => f.name)).toContain("src/components/PresenceOrb.tsx");
     const offenders = looping.flatMap((f) =>
       literalDurations(f.source).map((value) => `${f.name}: ${value}`),
     );
@@ -345,9 +346,10 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     const found = APP_SOURCE.flatMap((f) =>
       animatedStyleKeys(f.source).map((k) => ({ ...k, file: f.name })),
     );
-    // The dialogue's pulse drives opacity today; a silent zero would make
+    // The presence orb drives opacity (INT-336); a silent zero would make
     // this vacuous.
     expect(found.length).toBeGreaterThan(0);
+    expect(found.map((k) => k.file)).toContain("src/components/PresenceOrb.tsx");
     const offenders = found
       .filter((k) => !animatable(k.key))
       .map((k) => `${k.file} ${k.site} ${k.key}`);
@@ -604,6 +606,8 @@ const RED_SURFACE_FILES: readonly string[] = [
   "src/lib/livekit/red.ts",
   "src/lib/livekit/session.ts",
   "src/lib/livekit/types.ts",
+  // INT-336: the orb's policy reads a RED's yield (unmount, idle, unchanged).
+  "src/lib/motion/orb.ts",
   "src/lib/motion/red.ts",
 ];
 
@@ -689,5 +693,253 @@ describe("MOTION-4 — the RED path paints first, with no motion", () => {
     // The motion contract that sizes the first paint imports nothing that
     // could make it wait: only the RED types.
     expect(specifiers(file("src/lib/motion/red.ts"))).toEqual(["../livekit/red"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOTION-7 — one presence orb carries the dialogue's state
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-336 (docs/design/motion/motion-verification.md §4 MOTION-7; ADR-033 Q5,
+ * open, so opacity-only). The policy is src/lib/motion/orb.ts and its suite;
+ * these guards hold the wiring: the dialogue draws no spinner and no loop of
+ * its own, the orb's state comes only from the policy, the orb is decoration,
+ * nothing waits on it, and the level is sampled outside every screen and
+ * component. Every name this block needs is declared inside it, so other
+ * blocks appended to this file cannot collide with it.
+ */
+
+describe("MOTION-7 — one presence orb carries the dialogue's state", () => {
+  const DIALOGUE = "src/components/DialogueIntake.tsx";
+  const ORB = "src/components/PresenceOrb.tsx";
+  const POLICY = "src/lib/motion/orb.ts";
+  const SAMPLER = "src/lib/motion/native/useLevelSampler.ts";
+  const SPINNER = ["Activity", "Indicator"].join("");
+
+  /** Every JSX opening `<Name …>` in `source`, with its props text up to the tag's own `>`. */
+  function openings(source: string, name: string): string[] {
+    const text = code(source);
+    return [...text.matchAll(new RegExp(`<${name}\\b`, "g"))].map((m) => {
+      const from = m.index + m[0].length;
+      let depth = 0;
+      let end = from;
+      for (; end < text.length; end += 1) {
+        const ch = text[end];
+        if (ch === "{") depth += 1;
+        else if (ch === "}") depth -= 1;
+        else if (ch === ">" && depth === 0) break;
+      }
+      return text.slice(from, end);
+    });
+  }
+
+  /** The argument count of every call to `callee` in `source`. */
+  function arities(source: string, callee: string): number[] {
+    const text = code(source);
+    return [...text.matchAll(new RegExp(`\\b${callee}\\s*\\(`, "g"))].map((m) => {
+      let depth = 0;
+      let commas = 0;
+      let empty = true;
+      for (let i = m.index + m[0].length; i < text.length; i += 1) {
+        const ch = text[i];
+        if (ch === "(" || ch === "[" || ch === "{") {
+          depth += 1;
+        } else if (ch === ")" || ch === "]" || ch === "}") {
+          if (depth === 0) break;
+          depth -= 1;
+        } else if (depth === 0 && ch === ",") {
+          commas += 1;
+        }
+        if (!/\s/.test(ch)) empty = false;
+      }
+      return empty ? 0 : commas + 1;
+    });
+  }
+
+  it("the dialogue has no ActivityIndicator and no core Animated loop", () => {
+    // Non-vacuity: both shapes are seen when present.
+    expect(new RegExp(`\\b${SPINNER}\\b`).test(`<${SPINNER} size="small" />`)).toBe(true);
+    expect(loops("Animated.loop(Animated.timing(v, t)).start();")).toBe(true);
+
+    const dialogue = code(file(DIALOGUE));
+    expect(dialogue).not.toMatch(new RegExp(`\\b${SPINNER}\\b`));
+    expect(loops(dialogue)).toBe(false);
+    expect(dialogue).not.toMatch(/\bAnimated\s*\.\s*(?:loop|timing|sequence)\b/);
+    // The orb is what it shows instead.
+    expect(openings(file(DIALOGUE), "PresenceOrb")).toHaveLength(1);
+  });
+
+  it("PresenceOrb takes its state only from orbStateFor", () => {
+    const [props] = openings(file(DIALOGUE), "PresenceOrb");
+    expect(props).toMatch(/\bstate=\{\s*orbState\s*\}/);
+    expect(code(file(DIALOGUE))).toMatch(/const\s+orbState\s*=\s*orbStateFor\(/);
+    // The orb itself decides no state: it reads no turn, lane or RED.
+    const orb = code(file(ORB));
+    expect(orb).not.toMatch(/\bturn\b|\bphase\b|\bplaying\b|\bvoiceMuted\b|\bred\b/);
+    expect(orb).toMatch(/\borbVisual\(/);
+    expect(orb).toMatch(/\borbTransition\(/);
+  });
+
+  it("the orb writes no number of its own: periods are motion.loop tokens, durations are policy results", () => {
+    // BK15 and the MOTION-6 scan read `duration:` values; a helper that
+    // returns a literal period would pass both, so the orb is held to the
+    // stronger rule its header states. The numbers left are structural: a
+    // shared value's start (0), a full period halved (2), and withRepeat's
+    // "forever" (-1).
+    const STRUCTURAL = new Set(["0", "2", "-1"]);
+    const numbers = (source: string): string[] =>
+      [...code(source).matchAll(/(?<![\w$.])-?\d+(?:\.\d+)?(?![\w$])/g)].map((m) => m[0]);
+    // Non-vacuity: a literal period in a helper is seen; the structural ones pass.
+    expect(numbers("function half() { return 2000; }")).toEqual(["2000"]);
+    expect(numbers("withRepeat(withTiming(0, b), -1, true); x / 2;")).toEqual(["0", "-1", "2"]);
+
+    const orb = file(ORB);
+    expect(numbers(orb).filter((n) => !STRUCTURAL.has(n))).toEqual([]);
+    for (const kind of ["breathePeriodMs", "speakPeriodMs", "shimmerPeriodMs"]) {
+      expect(code(orb), kind).toMatch(new RegExp(`\\bmotion\\.loop\\.${kind}\\s*/\\s*2\\b`));
+    }
+  });
+
+  it("the orb is hidden from the accessibility tree and is not pressable", () => {
+    const orb = code(file(ORB));
+    expect(orb).toMatch(/\baccessibilityElementsHidden\b/);
+    expect(orb).toMatch(/importantForAccessibility="no-hide-descendants"/);
+    expect(orb).toMatch(/pointerEvents="none"/);
+    expect(orb).not.toMatch(/\bPressable\b|\bTouchable\w*|\bonPress\b|\baccessibilityRole\b/);
+    // It adds no live region, and the dialogue keeps exactly one barge-in
+    // control (e2e/a11y.spec.ts pins both on the dialogue itself).
+    expect(orb).not.toMatch(/\baccessibilityLiveRegion\b|\bannounceForAccessibility\b/);
+  });
+
+  it("the level sampler lives under src/lib, never in a screen or component", () => {
+    const TIMER = /\bset(?:Interval|Timeout)\s*\(/;
+    expect(TIMER.test("const t = setInterval(tick, ms);")).toBe(true);
+    const sampler = code(file(SAMPLER));
+    expect(sampler).toMatch(TIMER);
+    // It writes one shared value and never React state: zero renders per sample.
+    expect(sampler).not.toMatch(/\buseState\b|\buseReducer\b|\bsetState\b|\bdispatch\(/);
+    expect(sampler).toMatch(/\.set\(/);
+    // Its rate is the policy's, never a number of its own.
+    expect(literalDurations(sampler)).toEqual([]);
+    expect(sampler).toMatch(/\bplan\.intervalMs\b/);
+    // Neither the orb nor the dialogue owns a timer.
+    for (const name of [ORB, DIALOGUE]) {
+      expect(code(file(name)), name).not.toMatch(TIMER);
+    }
+  });
+
+  it("nothing waits on the orb: it reports nothing back, and its policy reaches no device module", () => {
+    // Non-vacuity: a completion callback and a callback prop are both seen.
+    expect(arities("v.set(withTiming(1, t, (done) => next()));", "withTiming")).toEqual([3]);
+    expect(arities("v.set(withTiming(1, { duration: d }));", "withTiming")).toEqual([2]);
+    expect("<PresenceOrb state={s} onSettled={go} />").toMatch(/\bon[A-Z]\w*=/);
+
+    // No animation of the orb carries a completion callback, so no turn,
+    // commit or navigation can be chained to one (ADR-033 §2, Proposed: no
+    // app logic waits on an animation). withRepeat's third argument is its
+    // `reverse` flag; a fourth would be the callback.
+    const orb = file(ORB);
+    const timings = arities(orb, "withTiming");
+    expect(timings.length).toBeGreaterThan(0);
+    expect(Math.max(...timings)).toBeLessThanOrEqual(2);
+    const repeats = arities(orb, "withRepeat");
+    expect(repeats.length).toBeGreaterThan(0);
+    expect(Math.max(...repeats)).toBeLessThanOrEqual(3);
+    // The dialogue hands the orb no callback, and the orb's props take none.
+    const [props] = openings(file(DIALOGUE), "PresenceOrb");
+    expect(props).not.toMatch(/\bon[A-Z]\w*=/);
+    expect(code(orb)).not.toMatch(/\bon[A-Z]\w*\??\s*:/);
+
+    // The policy is pure: node-testable, and it reaches Reanimated and the
+    // recorder only through the native adapter the component owns.
+    const reached = specifiers(file(POLICY));
+    expect(reached.length).toBeGreaterThan(0);
+    expect(reached.filter((s) => /native\/|reanimated|^react-native|^expo/.test(s))).toEqual([]);
+    expect(specifiers(file(SAMPLER))).toContain("../orb");
+  });
+});
+// ---------------------------------------------------------------------------
+// MOTION-8 — the dialogue's transients go through the arbiter
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-337 (docs/design/motion/motion-verification.md §4 MOTION-8). The policy
+ * is lib/motion/transients.ts and its suite; these guards hold the wiring:
+ * every entrance in the dialogue is the arbiter's fade and nothing else moves
+ * there, history does not fade in, the selection never reaches the motion
+ * layer, and the one timer that reports a fade's end lives under src/lib.
+ * Every name this block needs is declared inside it.
+ */
+
+describe("MOTION-8 — the dialogue's transients go through the arbiter", () => {
+  const DIALOGUE = "src/components/DialogueIntake.tsx";
+  const HOOK = "src/lib/motion/native/useDialogueMotion.ts";
+
+  /** The value of every `entering={…}` prop in `source`. */
+  function enterings(source: string): string[] {
+    const text = code(source);
+    return [...text.matchAll(/\bentering=\{/g)].map((m) => {
+      const from = m.index + m[0].length;
+      return text.slice(from, expressionEnd(text, from)).trim();
+    });
+  }
+
+  it("the stream skips entering on its initial mount", () => {
+    const dialogue = code(file(DIALOGUE));
+    const config =
+      /<LayoutAnimationConfig\s+skipEntering\s*>([\s\S]*?)<\/LayoutAnimationConfig>/.exec(dialogue);
+    expect(config, "LayoutAnimationConfig skipEntering in the dialogue").not.toBeNull();
+    expect(config![1]).toMatch(/\bstate\.stream\.map\(/);
+  });
+
+  it("every entrance in the dialogue is the arbiter's fade, and nothing else moves there", () => {
+    // Non-vacuity: the reader finds an entrance and its value.
+    expect(enterings("<Animated.View entering={enteringFor(fadeOf(m, id, ctx))} />")).toEqual([
+      "enteringFor(fadeOf(m, id, ctx))",
+    ]);
+    const dialogue = file(DIALOGUE);
+    const found = enterings(dialogue);
+    // The bubbles, a revealed transcript and the confirm chips.
+    expect(found.length).toBeGreaterThanOrEqual(3);
+    expect(found.filter((v) => !/^enteringFor\(\s*fadeOf\(/.test(v))).toEqual([]);
+    // The decisions come from the arbiter's reducer, fed the scene.
+    expect(code(dialogue)).toMatch(/\bconst\s+scene\s*=\s*dialogueScene\(/);
+    expect(code(dialogue)).toMatch(/\buseDialogueMotion\(\s*scene\s*,/);
+    expect(code(dialogue)).not.toMatch(
+      /\b(?:withTiming|withRepeat|withSequence|useAnimatedStyle|useSharedValue)\b|\bAnimated\s*\.\s*(?:timing|loop|sequence)\b/,
+    );
+  });
+
+  it("the selection never reaches the motion layer", () => {
+    const dialogue = code(file(DIALOGUE));
+    const call = /\bdialogueScene\(/.exec(dialogue);
+    expect(call).not.toBeNull();
+    const from = call!.index + call![0].length;
+    // The whole argument list: up to the bracket that closes the call.
+    let depth = 0;
+    let end = from;
+    for (; end < dialogue.length && depth >= 0; end += 1) {
+      if ("([{".includes(dialogue[end])) depth += 1;
+      else if (")]}".includes(dialogue[end])) depth -= 1;
+    }
+    const args = dialogue.slice(from, end);
+    expect(args).toMatch(/\bcomposerFocused\b/);
+    expect(args).not.toMatch(/\bselected\b/);
+  });
+
+  it("a fade's end is reported by a timer under src/lib, never by the animation", () => {
+    const hook = code(file(HOOK));
+    expect(hook).toMatch(/\bsetTimeout\s*\(/);
+    expect(hook).toMatch(/\breleaseDialogueMotion\(/);
+    // The delay is the fade the policy granted, never a number of its own.
+    expect(literalDurations(hook)).toEqual([]);
+    expect(hook).toMatch(/\bconst\s+fadeMs\s*=[^;]*\bfadeOf\(/);
+    expect(hook).toMatch(/\bsetTimeout\(\s*\(\)\s*=>[^;]*?,\s*fadeMs\s*,?\s*\)/);
+    // No animation calls back into JS; the dialogue owns no timer.
+    for (const name of [HOOK, DIALOGUE]) {
+      expect(code(file(name)), name).not.toMatch(/\bwithCallback\b/);
+    }
+    expect(code(file(DIALOGUE))).not.toMatch(/\bset(?:Interval|Timeout)\s*\(/);
   });
 });
