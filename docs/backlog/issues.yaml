@@ -6672,3 +6672,22 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-478
+  epic: E08-mobile
+  phase: P1
+  title: "Screen-capture protection is held until the last protected screen closes, not released by the first"
+  # GitHub #820. Security defect in INT-131's clinical screen privacy, found
+  # while building INT-477 (#817, PR #819), 4 Oct 2026: every protected screen
+  # passed expo-screen-capture the same key, and the library keeps a set of
+  # keys, so the first protected screen to unmount released protection for all.
+  depends_on: [INT-131]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-478.md
+  acceptance:
+    - "OS-level capture protection stays active while any protected screen is mounted or visible; it is released only when the last one goes (per-screen keys or a reference count)"
+    - "tests: open A and B, close A, and protection is still active; near miss: close both and it is released; the same for the app-switcher snapshot blur if it shares the key"
+    - "decide and record whether protection follows focus for tab screens that stay mounted; fail closed (protected) when unsure"
+    - "no change to which screens are protected"
+  tests: [apps/mobile/src/lib/auth/captureLock.test.ts, apps/mobile/e2e/captureLock.spec.ts, apps/mobile/e2e/auth.spec.ts]
+  sec_row: "mobile"
