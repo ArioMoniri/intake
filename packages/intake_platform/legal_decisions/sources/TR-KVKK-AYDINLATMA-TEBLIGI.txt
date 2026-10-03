@@ -1,0 +1,88 @@
+# source_id: TR-KVKK-AYDINLATMA-TEBLIGI
+# instrument: Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ
+# provisions: m.4, m.5, m.6
+# gazette: 10/3/2018 sayı 30356 (amended 28/4/2019 sayı 30758)
+# url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=9&MevzuatNo=24454&MevzuatTertip=5
+# retrieved_on: 2026-10-03
+# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited articles
+---
+Aydınlatma yükümlülüğünün
+kapsamı
+MADDE 4 – (1) Kanunun 10
+uncu maddesine göre; kişisel verilerin elde edilmesi sırasında veri sorumluları
+veya yetkilendirdiği kişilerce, ilgili kişilerin bilgilendirilmesi
+gerekmektedir. Bu yükümlülük yerine getirilirken veri sorumluları veya
+yetkilendirdiği kişilerce yapılacak bilgilendirmenin asgari olarak aşağıdaki
+konuları içermesi gerekmektedir:
+a) Veri sorumlusunun ve varsa
+temsilcisinin kimliği,
+b) Kişisel verilerin hangi amaçla
+işleneceği,
+c) Kişisel verilerin kimlere ve
+hangi amaçla aktarılabileceği,
+ç) Kişisel veri toplamanın
+yöntemi ve hukuki sebebi,
+d) İlgili kişinin Kanunun 11 inci
+maddesinde sayılan diğer hakları.
+Usul ve esaslar
+MADDE 5 – (1) Veri
+sorumlusu ya da yetkilendirdiği kişi tarafından sözlü, yazılı, ses kaydı, çağrı
+merkezi gibi fiziksel veya elektronik ortam kullanılmak suretiyle aydınlatma
+yükümlülüğünün yerine getirilmesi esnasında aşağıda sayılan usul ve esaslara
+uyulması gerekmektedir:
+a) İlgili kişinin açık rızasına
+veya Kanundaki diğer işleme şartlarına bağlı olarak kişisel veri işlendiği her
+durumda aydınlatma yükümlülüğü yerine getirilmelidir.
+b) Kişisel veri işleme amacı
+değiştiğinde, veri işleme faaliyetinden önce bu amaç için aydınlatma
+yükümlülüğü ayrıca yerine getirilmelidir.
+c) (Mülga:RG-28/4/2019-30758)
+ç) Sicile kayıt yükümlülüğünün bulunması
+durumunda, aydınlatma yükümlülüğü çerçevesinde ilgili kişiye verilecek
+bilgiler, Sicile açıklanan bilgilerle uyumlu olmalıdır.
+d) Aydınlatma yükümlülüğünün
+yerine getirilmesi, ilgili kişinin talebine bağlı değildir.
+e) Aydınlatma yükümlülüğünün yerine
+getirildiğinin ispatı veri sorumlusuna aittir.
+f) Kişisel veri işleme
+faaliyetinin açık rıza şartına dayalı olarak gerçekleştirilmesi halinde,
+aydınlatma yükümlülüğü ve açık rızanın alınması işlemlerinin ayrı ayrı yerine
+getirilmesi gerekmektedir.
+g) Aydınlatma yükümlülüğü
+kapsamında açıklanacak kişisel veri işleme amacının belirli, açık ve meşru
+olması gerekir. Aydınlatma yükümlülüğü yerine getirilirken, genel nitelikte ve
+muğlak ifadelere yer verilmemelidir. Gündeme gelmesi muhtemel başka amaçlar için
+kişisel verilerin işlenebileceği kanaatini uyandıran ifadeler
+kullanılmamalıdır.
+ğ) Aydınlatma yükümlülüğü
+kapsamında ilgili kişiye yapılacak bildirimin anlaşılır, açık ve sade bir dil
+kullanılarak gerçekleştirilmesi gerekmektedir.
+h) Kanunun 10 uncu maddesinin
+birinci fıkrasının (ç) bendinde yer alan “hukuki sebep” ten kasıt, aydınlatma
+yükümlülüğü kapsamında kişisel verilerin Kanunun 5 ve 6 ncı maddelerinde
+belirtilen işleme şartlarından hangisine dayanılarak işlendiğidir. Aydınlatma
+yükümlülüğünün yerine getirilmesi esnasında hukuki sebebin açıkça belirtilmesi
+gerekmektedir.
+ı) Aydınlatma yükümlülüğü
+kapsamında, kişisel verilerin aktarılma amacı ve aktarılacak alıcı grupları
+belirtilmelidir.
+i) Aydınlatma yükümlülüğü
+kapsamında kişisel verilerin, tamamen veya kısmen otomatik yollarla ya da veri
+kayıt sisteminin parçası olmak kaydıyla otomatik olmayan yöntemlerden
+hangisiyle elde edildiği açık bir şekilde belirtilmelidir.
+j) Aydınlatma yükümlülüğü yerine
+getirilirken eksik, ilgili kişileri yanıltıcı ve yanlış bilgilere yer
+verilmemelidir.
+Kişisel verilerin ilgili
+kişiden elde edilmemesi halinde aydınlatma yükümlülüğü
+MADDE 6 – (1) Kişisel
+verilerin ilgili kişiden elde edilmemesi halinde;
+a) Kişisel verilerin elde
+edilmesinden itibaren makul bir süre içerisinde,
+b) Kişisel verilerin ilgili kişi
+ile iletişim amacıyla kullanılacak olması durumunda, ilk iletişim kurulması
+esnasında,
+c) Kişisel verilerin aktarılacak
+olması halinde, en geç kişisel verilerin ilk kez aktarımının yapılacağı esnada
+ilgili kişiyi aydınlatma
+yükümlülüğünün yerine getirilmesi gerekir.

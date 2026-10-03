@@ -1,0 +1,103 @@
+# source_id: TR-TMK-4721
+# instrument: 4721 sayılı Türk Medeni Kanunu
+# provisions: m.5, m.9-16, m.335, m.342, m.403, m.448
+# gazette: 8/12/2001 sayı 24607
+# url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=4721&MevzuatTertip=5
+# retrieved_on: 2026-10-03
+# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited articles; [...] marks an omission between excerpts
+---
+C.
+Genel nitelikli hükümler
+Madde
+5 - Bu Kanun ve Borçlar Kanununun genel nitelikli hükümleri, uygun düştüğü
+ölçüde tüm özel hukuk ilişkilerine uygulanır.
+[...]
+Fiil ehliyeti
+1.
+Kapsamı
+Madde
+9 - Fiil ehliyetine sahip olan kimse, kendi fiilleriyle hak edinebilir ve
+borç altına girebilir.
+2.
+Koşulları
+a.
+Genel olarak
+Madde 10 - Ayırt etme gücüne
+sahip ve kısıtlı olmayan her ergin kişinin fiil ehliyeti vardır.
+b.
+Erginlik
+Madde
+11 - Erginlik onsekiz yaşın doldurulmasıyla başlar.
+Evlenme
+kişiyi ergin kılar.
+c.
+Ergin kılınma
+Madde
+12 - Onbeş yaşını dolduran küçük, kendi isteği ve velisinin rızasıyla
+mahkemece ergin kılınabilir.
+d.
+Ayırt etme gücü
+Madde 13- Yaşının küçüklüğü
+yüzünden veya akıl hastalığı, akıl zayıflığı, sarhoşluk ya da bunlara benzer
+sebeplerden biriyle akla uygun biçimde davranma yeteneğinden yoksun olmayan
+herkes, bu Kanuna göre ayırt etme gücüne sahiptir.
+III.
+Fiil ehliyetsizliği
+1.
+Genel olarak
+Madde 14- Ayırt etme gücü
+bulunmayanların, küçüklerin ve kısıtlıların fiil ehliyeti yoktur.
+2.
+Ayırt etme gücünün bulunmaması
+Madde
+15- Kanunda gösterilen ayrık durumlar saklı kalmak üzere, ayırt etme gücü bulunmayan
+kimsenin fiilleri hukukî sonuç doğurmaz.
+3.
+Ayırt etme gücüne sahip küçükler ve kısıtlılar
+Madde
+16- Ayırt etme gücüne sahip küçükler ve kısıtlılar, yasal temsilcilerinin
+rızası olmadıkça, kendi işlemleriyle borç altına giremezler. Karşılıksız kazanmada
+ve kişiye sıkı sıkıya bağlı hakları kullanmada bu rıza gerekli değildir.
+Ayırt
+etme gücüne sahip küçükler ve kısıtlılar haksız fiillerinden sorumludurlar.
+[...]
+VELÂYET
+A.
+Genel olarak
+I.
+Koşullar
+Madde
+335- Ergin olmayan çocuk, ana ve babasının velâyeti altındadır. Yasal sebep
+olmadıkça velâyet ana ve babadan alınamaz.
+Hâkim
+vasi atanmasına gerek görmedikçe, kısıtlanan ergin çocuklar da ana ve babanın
+velâyeti altında kalırlar.
+[...]
+Çocuğun temsil edilmesi
+Madde
+342- Ana ve baba, velâyetleri çerçevesinde üçüncü kişilere karşı çocuklarının
+yasal temsilcisidirler.
+İyiniyetli
+üçüncü kişiler, eşlerden her birinin diğerinin rızasıyla işlem yaptığını
+varsayabilirler.
+Vesayet
+makamlarının iznine bağlı hususlar dışında kısıtlıların temsiline ilişkin hükümler
+velâyetteki temsilde de uygulanır.
+[...]
+Vasi ve kayyım
+Madde
+403- Vasi, vesayet altındaki küçüğün veya kısıtlının kişiliği ve malvarlığı
+ile ilgili bütün menfaatlerini korumak ve hukukî işlemlerde onu temsil etmekle
+yükümlüdür.
+Kayyım,
+belirli işleri görmek veya malvarlığını yönetmek için atanır.
+Bu
+Kanunun vasi hakkındaki hükümleri, aksi belirtilmiş olmadıkça kayyım hakkında
+da uygulanır.
+[...]
+Temsil
+1.
+Genel olarak
+Madde
+448- Vesayet dairelerinin yetkilerine ilişkin hükümler saklı kalmak kaydıyla
+vasi, vesayet altındaki kişiyi bütün hukukî işlemlerinde temsil eder.

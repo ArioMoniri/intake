@@ -544,6 +544,11 @@ value:
       owner_part: >-
         Owner: register a blocker row for TRD and TTD permission to commit verbatim
         snapshots, and record the answer before any is committed.
+      resolved_by: D24
+      owner_answer:
+        answer: "6A"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "TRD and TTD: cite international guidelines only; no verbatim TRD or TTD snapshot is committed."
     - item: "docs/evidence/verification/specialty-wave6-internal-mental.md#L73"
       ref: "wave 6 ruh Q11"
       packets: [ruh_sagligi_ve_hastaliklari]
@@ -590,6 +595,12 @@ value:
       owner_part: >-
         Owner: decide INT-256 decision 13 (family history as a sensitive section) once for
         every wave, and register the blocker row for it.
+      resolved_by: D24
+      owner_answer:
+        answer: "2Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Family history, relatives' health and consanguinity are one sensitive section: text_first, each item with an INT-349 inventory row."
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the INT-349 inventory rows for the family-history section"
     - item: "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L88"
       ref: "wave 7 gebe Q9; perinatoloji Q12"
       packets: [gebe_poliklinigi, perinatoloji]
@@ -640,6 +651,7 @@ value:
         pack's sikayet_suresi does not remove the timing ask from these visits; a base-level
         gate or a visit-type rule is the base owner's (as CD-103 cluster-wave-b.md#L116 and
         CD-100 T17 route it).
+      owner_part_resolved_by: CD-110
     - item: "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L109"
       ref: "wave 7 nukleer Q2, Q3"
       packets: [hematoloji, nefroloji, nukleer_tip]
@@ -691,6 +703,12 @@ value:
         Owner: confirm text_first for ailede_epilepsi (the candidate now carries it) and
         record its INT-349 row {category, purpose, basis, retention, recipients} before
         promotion.
+      resolved_by: D24
+      owner_answer:
+        answer: "2Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Family history, relatives' health and consanguinity are one sensitive section: text_first, each item with an INT-349 inventory row."
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the INT-349 inventory row for ailede_epilepsi"
     - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L90"
       ref: "wave 8 yasli Q9"
       packets: [yasli_sagligi_poliklinigi]
@@ -722,6 +740,7 @@ value:
         pack's sikayet_suresi does not remove the timing ask from these visits; a base-level
         gate or a visit-type rule is the base owner's (as CD-103 cluster-wave-b.md#L116 and
         CD-100 T17 route it).
+      owner_part_resolved_by: CD-110
     - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L95"
       ref: "wave 8 ortodonti (all items)"
       packets: [ortodonti]
@@ -750,6 +769,7 @@ value:
       owner_part: >-
         Owner: choose one airway posture for the dental cluster and its members (ask gated,
         ask ungated, or leave it to base.life_threat).
+      resolved_by: CD-110
     - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L107"
       ref: "wave 8 PolicyGuard false positives (klinik_norofizyoloji)"
       packets: [klinik_norofizyoloji]
@@ -808,6 +828,12 @@ value:
       owner_part: >-
         Owner: apply text_first and an INT-349 row to the twelve listed slots, and choose one
         id for consanguinity (anne_baba_akrabaligi, ebeveyn_akrabaligi, akraba_evliligi).
+      resolved_by: D24
+      owner_answer:
+        answer: "2Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Family history, relatives' health and consanguinity are one sensitive section: text_first, each item with an INT-349 inventory row."
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the INT-349 inventory rows for the twelve slots; the one consanguinity id is chosen when they are written"
     - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L114"
       ref: "wave 8 pedodonti (parent cluster)"
       packets: [cluster_child_health, cluster_dental, pedodonti]
@@ -828,6 +854,12 @@ value:
       owner_part: >-
         Owner: confirm voice delivery for the read-aloud accommodation item, and its INT-349
         row.
+      resolved_by: D24
+      owner_answer:
+        answer: "5Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "The read-aloud accommodation item may be spoken rather than text_first."
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the item's INT-349 inventory row"
     - item: "docs/evidence/verification/specialty-wave9-occupational-public.md#L77"
       ref: "wave 9 spor §0, §2.2"
       packets: [spor_hekimligi]
@@ -872,6 +904,12 @@ value:
       owner_part: >-
         Owner: confirm that D3 covers iş ve meslek Q17 (sick leave) and Q18 (tenure) and
         halk sağlığı Q11 (household TB contact), or narrow it.
+      resolved_by: D24
+      owner_answer:
+        answer: "4Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Occupational clinics may ask sick leave, tenure and household TB contact; Adli Tıp stays out of 'report purpose' until legal review."
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): the inventory rows for sick leave, tenure and household TB contact"
     - item: "docs/evidence/verification/specialty-wave9-occupational-public.md#L94"
       ref: "wave 9 iş ve meslek Q13"
       packets: [is_ve_meslek_hastaliklari]

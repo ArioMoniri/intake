@@ -165,7 +165,11 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
     # order of 3 Oct 2026, GitHub #790).
-    assert len(ids) == 341
+    # + INT-470 (the INT-448 owner questions resolved: CD-110 under D18, D24 by
+    # the owner; GitHub #798).
+    # + INT-471 (the legal decisions register under owner decision D25,
+    # agent-authored and independently agent-reviewed; GitHub #800).
+    assert len(ids) == 343
     import re
 
     for i in ids:

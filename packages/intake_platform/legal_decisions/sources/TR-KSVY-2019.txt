@@ -1,0 +1,25 @@
+# source_id: TR-KSVY-2019
+# instrument: Kişisel Sağlık Verileri Hakkında Yönetmelik
+# provisions: m.2(1) scope; m.6 heading, m.6(1) and the lead-in of m.6(2) with its amendment marker
+# gazette: 21/6/2019 sayı 30808 (amended 3/12/2025 sayı 33096 and 4/7/2026 sayı 33300)
+# amendment_33300: RG 4 Temmuz 2026 sayı 33300 (Kişisel Sağlık Verileri Hakkında Yönetmelikte Değişiklik Yapılmasına Dair Yönetmelik, confirmed on the RG index of that day) changed the Dördüncü Bölüm heading and m.13(2) and added m.13/A, per the mevzuat.gov.tr consolidated markers; it does not touch m.2 or m.6, the articles excerpted here
+# url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=32610&MevzuatTertip=5
+# retrieved_on: 2026-10-03
+# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited articles; [...] marks an omission between excerpts
+---
+Kapsam
+MADDE 2 – (1) Bu Yönetmelik, kişisel
+sağlık verisi işleyen özel hukuk gerçek ve tüzel kişileri ile kamu hukuku tüzel
+kişilerinin, Sağlık Bakanlığı tarafından yürütülmekte olan süreç ve
+uygulamalara ilişkin faaliyetlerini kapsar.
+[...]
+ÜÇÜNCÜ BÖLÜM
+Kişisel Sağlık Verilerine Erişim
+Sağlık personelinin verilere erişimi
+MADDE 6 – (1) Sağlık hizmeti sunumunda
+görevli kişiler; ilgili kişinin sağlık verilerine ancak, verilecek olan sağlık
+hizmetinin gereği ile sınırlı olmak kaydıyla erişebilir.
+(2) (Değişik:RG-3/12/2025-33096) Kişilerin sağlık
+verilerine Kanunun 6 ncı maddesinin üçüncü fıkrasında yer alan işleme
+şartları ile sınırlı olmak üzere ancak;
+[...]

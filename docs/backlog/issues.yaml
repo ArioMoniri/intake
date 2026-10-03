@@ -6602,6 +6602,25 @@
     - "the approval:human-clinical label on #726 is cleared through this process"
   tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
   sec_row: "clinical-content"
+- id: INT-470
+  epic: E03-protocols
+  phase: P1
+  title: "INT-448 follow-up — resolve its owner questions: clinical ones under D18 (CD-110), product and data ones by owner decision D24"
+  # GitHub #798, split from INT-448 (#759). D18 restated 3 Oct 2026: clinical
+  # questions are decided by sourced medical agents with an independent
+  # verifier, never sent back to the owner. D24 records the owner's answer to
+  # the product and data questions; their legal follow-through is INT-471's.
+  depends_on: [INT-448]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-470.md
+  acceptance:
+    - "every listed item gets a sourced decision record (guideline or openEHR, with a verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source"
+    - "the INT-448 test keeps its guarantees: each item is decided exactly once, and a resolved owner_question names the record that resolved it (near miss: a dangling or duplicate resolution fails)"
+    - "red-flag changes keep invariant 7, with golden tests and near-miss controls"
+    - "data-category, consent and legal parts (D3, INT-349, HB-L20, self/proxy ADR) are not decided here"
+  tests: [tests/protocols/test_owner_question_resolutions.py, tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"
 - id: INT-449
   epic: E05-voice
   phase: P1
@@ -6672,3 +6691,26 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-471
+  epic: E14-legal
+  phase: P1
+  title: "Legal lane — sourced legal-author agent + independent legal-reviewer decide legal items (owner decision D25, synthetic/test scope)"
+  # GitHub #800. Owner, 3 Oct 2026: "also set an legal profesional subagetns
+  # to approve legal parts or review them like forensics i give permisison
+  # with this message". Scope: synthetic and test use only; a licensed
+  # Turkish lawyer countersigns before any real patient (files/00_STATE.md
+  # §3 D25). Legal questions go to this lane first; CLAUDE.md's stop-and-ask
+  # items and owner-named HB rows still go to the owner, with the lane's
+  # output as a recommendation. Stacked on INT-470 (#804) for D24.
+  depends_on: [INT-432, INT-470]
+  labels: [area:legal]
+  legal: "KVKK-4,KVKK-5,KVKK-6,KVKK-10,AYD-2018,KSVY-5,KSVY-6,KSVY-7,KSVY-13,KSVY-16,HHY-15,HHY-22,HHY-23,HHY-24,TMK-339,SRY-2026,5378,G2025-10"
+  status: done
+  evidence: docs/evidence/INT-471.md
+  acceptance:
+    - "D25 in files/00_STATE.md §3 records the policy with the owner's quote, the synthetic/test scope and the real-patient countersign gate, and that legal questions are routed to this lane first (CLAUDE.md's stop-and-ask items and owner-named HB rows still go to the owner, with the lane's output as a recommendation)"
+    - "a legal decisions register (LD-NN, the shape of packages/protocols/decisions/CD-NN.yaml) with a typed loader and tests: every decision cites KVKK, its secondary regulations, Ministry of Health regulations or Resmî Gazete texts against a committed verbatim snapshot with retrieved_on; no source means draft with a legal_gap, never an invented answer; each carries the independent legal reviewer's verdict (near-miss: an unsourced or unverified decision fails; a real-patient decision without a licensed lawyer's countersign fails)"
+    - "first decisions LD-01..LD-05: the Adli Tıp report purpose; minors and proxy answers (HB-L20) in synthetic scope; KVKK inventory rows for family history, relatives' health, consanguinity and the hearing-voices item; occupational items (sick leave, tenure, household TB contact); the WCAG 2.2.1 classification of the RED no-answer wait"
+    - "docs/legal/ texts keep their hash binding and strings.yaml stays verbatim"
+  tests: [tests/legal/test_legal_decisions.py]
+  sec_row: "compliance-evidence"

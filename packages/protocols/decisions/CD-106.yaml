@@ -302,6 +302,7 @@ value:
         Cluster-wave-a owner: decide whether fiziksel_tip_ve_rehabilitasyon's ates_var_mi
         rebinds to son_gunlerde_ates so the fever is asked once in that chain, or route it
         to a clinician item.
+      resolved_by: CD-110
     - item: "docs/evidence/verification/sibling-rebinds-582.md#L118"
       ref: "sibling-rebinds §C nefes_yutkunma_guclugu override"
       packets: [agiz_dis_ve_cene_cerrahisi]
@@ -314,6 +315,7 @@ value:
         Owner: when choosing the dental airway posture, decide whether agiz_dis_ve_cene
         cerrahisi and agiz_dis_cene_radyolojisi keep their ungated nefes_yutkunma_guclugu or
         take the cluster's gate.
+      resolved_by: CD-110
 verifier:
   verdict: agree
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
