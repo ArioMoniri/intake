@@ -10,7 +10,9 @@ the one column addition, inventoried on the model (invariant 18).
 Protocol answers go through :func:`write_slot_answer` (INT-349): the slot's
 data category decides the representation, so an answer in any category but
 ``general_health`` is an EncryptedField envelope bound to its session and slot,
-and never plaintext at rest (invariant 14).
+and never plaintext at rest (invariant 14). An answer about another person
+(``household``, ``relatives_health``, ``partner_fertility``) is written only for
+a tenant whose own row makes it a hospital-controller deployment (INT-474).
 
 Every query carries an explicit ``tenant_id`` predicate even though the
 postgres tier enforces the same boundary with RLS — the unit lane (SQLite)
@@ -49,10 +51,13 @@ from intake_platform.db.models import (
 )
 from intake_platform.envelope import EnvelopeCipher
 from intake_platform.visit_lifecycle import LIFECYCLE_SLOT, VisitLifecycle
+from protocols.deployment_role import HOSPITAL_CONTROLLER_ONLY, require_admitted
 from protocols.types import DataCategory
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
+
+from intake_api.deployment_role import tenant_deployment_role
 
 __all__ = [
     "SHARE_TTL",
@@ -425,8 +430,15 @@ async def write_slot_answer(
     """Write (or correct) one protocol answer in the representation its data
     category requires. The category has no default: a caller that does not
     know it cannot write. An unknown category raises before anything is
-    written."""
+    written.
+
+    A category about another person raises ``DeploymentRoleRefused`` before
+    anything is written unless the tenant row is a hospital-controller
+    deployment (INT-474). The role is the tenant's configuration; no parameter
+    here can state it."""
     category = DataCategory(data_category)
+    if category in HOSPITAL_CONTROLLER_ONLY:
+        require_admitted(category, await tenant_deployment_role(session, tenant_id=tenant_id))
     sensitivity = slot_sensitivity(category)
     stored: dict[str, object]
     if sensitivity is SlotSensitivity.PLAIN:

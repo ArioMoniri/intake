@@ -191,9 +191,12 @@ coverage-matrix:
 # a value chosen once by an engineer for every future build. Includes the tr
 # normalisation round-trip gate (CLAUDE.md invariant 22). Refuses on today's
 # tree — every pack is L0 and the life-threat sign-off is empty (HB-C1).
+# DEPLOYMENT_ROLE (hospital_controller|consumer_controller) is optional and has
+# no default that admits: unset, household/relatives_health/partner_fertility
+# slots are refused whatever the data register says (INT-474).
 protocols-compile:
 	@test -n "$(PACK)" && test -n "$(VOICE)" || { echo "usage: make protocols-compile PACK=<pack_id> VOICE=<voice_id>"; exit 2; }
-	uv run protocols compile --pack $(PACK) --voice $(VOICE) $(if $(LOCALE),--locale $(LOCALE))
+	uv run protocols compile --pack $(PACK) --voice $(VOICE) $(if $(LOCALE),--locale $(LOCALE)) $(if $(DEPLOYMENT_ROLE),--deployment-role $(DEPLOYMENT_ROLE))
 
 # INT-060: pre-synthesise the compiled clip manifests for one voice into the
 # MinIO clip cache (files/03 §4.9.1 row 10, keyed sha256(text_tr, voice_id,

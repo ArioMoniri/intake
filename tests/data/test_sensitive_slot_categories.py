@@ -24,12 +24,13 @@ import asyncio
 import json
 import uuid
 from collections.abc import Coroutine
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 from intake_api import store
-from intake_platform.db.models import Base, Slot, SlotSensitivity
+from intake_platform.db.models import Base, KvkkRole, Slot, SlotSensitivity, Tenant
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TamperError
 from protocols.data_register import (
     COUNSEL_FIELDS,
@@ -38,7 +39,16 @@ from protocols.data_register import (
     load_data_register,
 )
 from protocols.types import DataCategory
-from sqlalchemy import JSON, DateTime, DefaultClause, MetaData, create_engine, select, text
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    DefaultClause,
+    MetaData,
+    create_engine,
+    insert,
+    select,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
@@ -73,9 +83,22 @@ def _sqlite_metadata() -> MetaData:
 
 @pytest.fixture
 def db(tmp_path: Path) -> tuple[AsyncEngine, Path]:
+    """TENANT is a hospital-controller deployment (``kvkk_role: processor``),
+    the one deployment in which the store admits every category (INT-474), so
+    the at-rest property below is proven for all eight. The consumer side of
+    that gate is tests/data/test_deployment_role_store_gate.py."""
     path = tmp_path / "slots.db"
     ddl = create_engine(f"sqlite+pysqlite:///{path}")
     _sqlite_metadata().create_all(ddl)
+    with ddl.begin() as conn:
+        conn.execute(
+            insert(Tenant).values(
+                id=TENANT,
+                display_name="Sentetik Hastane",
+                kvkk_role=KvkkRole.PROCESSOR,
+                created_at=datetime(2026, 10, 4, tzinfo=UTC),
+            )
+        )
     ddl.dispose()
     return create_async_engine(f"sqlite+aiosqlite:///{path}", poolclass=NullPool), path
 

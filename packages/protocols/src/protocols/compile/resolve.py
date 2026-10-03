@@ -42,6 +42,7 @@ from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
 from protocols.compile.rule_reads import rule_read_refusals
 from protocols.data_register import NO_REGISTER, DataCategoryRegister
+from protocols.deployment_role import DeploymentRole
 from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
 from protocols.gates import GateRefProblem, SlotNamespace, qualify_gate
 from protocols.licences import LicenceTable
@@ -732,6 +733,7 @@ def resolve_protocol(
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
     data_register: DataCategoryRegister | None = None,
+    deployment_role: DeploymentRole | None = None,
 ) -> ResolvedProtocol:
     """Resolve one pack into the document the emitters project from.
 
@@ -742,6 +744,11 @@ def resolve_protocol(
 
     ``data_register`` is the per-category register (INT-349). Omitted, it has
     no rows, so a slot tagged with anything but ``general_health`` refuses.
+
+    ``deployment_role`` is the deployment this document is resolved for
+    (INT-474). Omitted, no role is declared, so a slot in ``household``,
+    ``relatives_health`` or ``partner_fertility`` refuses whatever its register
+    row says; only :attr:`DeploymentRole.HOSPITAL_CONTROLLER` admits them.
 
     Raises :class:`CompileError` carrying **every** reason it refused.
     """
@@ -899,7 +906,14 @@ def resolve_protocol(
                 )
             path, rm_type, binding_refusals = _binding_refusals(section_id, key, slot, template)
             refusals.extend(binding_refusals)
-            refusals.extend(slot_category_refusals(fhir_link_id(section_id, key), slot, register))
+            refusals.extend(
+                slot_category_refusals(
+                    fhir_link_id(section_id, key),
+                    slot,
+                    register,
+                    deployment_role=deployment_role,
+                )
+            )
             resolved_slots.append(
                 ResolvedSlot(
                     section_id=section_id,
