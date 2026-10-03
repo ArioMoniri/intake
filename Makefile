@@ -38,6 +38,18 @@ check-i18n:
 ci-policy:
 	uv run python -m intake_platform.ci --scan-environment
 
+# INT-426: the gate set on the AWS host instead of GitHub Actions
+# (docs/ci/aws-ci.md). It ships the commit over S3 + SSM, then runs
+# edge-plugin, check-py, check-ts, check-integration, safety and security in
+# an isolated, resource-capped compose project. The verdict is posted as the
+# commit status `aws-ci`. PR or REF is required and has no default: a
+# default would post a verdict on a commit nobody chose.
+.PHONY: ci-aws
+ci-aws:
+	@if [ -n "$(PR)" ] && [ -z "$(REF)" ]; then scripts/ci/aws_ci.sh --pr $(PR); \
+	elif [ -n "$(REF)" ] && [ -z "$(PR)" ]; then scripts/ci/aws_ci.sh --ref $(REF); \
+	else echo "usage: make ci-aws PR=<n> | REF=<40-hex sha>"; exit 2; fi
+
 check-integration:
 	docker compose -f infra/docker-compose.dev.yml --profile clamav --profile export up -d --wait postgres openbao minio clamav hapi ehrbase-db ehrbase
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh

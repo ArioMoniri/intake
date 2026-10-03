@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**332 issues.** By phase: P0 164 · P1 114 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 220 · todo 73 · withdrawn 1.
+**335 issues.** By phase: P0 165 · P1 116 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 223 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -175,6 +175,7 @@
 | INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
 | INT-395 | DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links) | E02-data | INT-037, INT-141, INT-150, INT-393 | area:data, risk:legal | done |
 | INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
+| INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 
 ## P1
 
@@ -294,6 +295,8 @@
 | INT-404 | Triage rule evidence strings render quantities with the locale decimal separator | E03-protocols | INT-386 | area:protocols, risk:clinical | done |
 | INT-415 | ElevenLabs delivery profiles per question context + on-prem TTS wiring guide | E05-voice | INT-326 | area:voice | done |
 | INT-431 | The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest | E10-connectors | INT-320 | area:release, risk:security | done |
+| INT-426 | CI on AWS: gate runner via S3+SSM with commit status, no workflow edits | E13-infra | INT-352 | area:ci | done |
+| INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 
 ## P2
 

@@ -1,0 +1,183 @@
+# INT-432 clinical decision CD-07. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-07
+title: "Confirmation ceiling and what a confirmation may change"
+question: >-
+  How many confirmation steps may one intake session contain; what wins when
+  confirmations and safety questions compete for the turn budget; and what may
+  a patient's "evet" to a confirmation, a backchannel, or "bilmiyorum" change?
+decision: >-
+  Confirmations are capped per session, but the cap itself stays
+  draft_needs_source: no guideline, regulation or archetype states a number, and
+  the fast-mode turn budget the cap would share is itself open (HB-C5). Safety
+  questions are never cut for budget: steps of priority class SAFETY_SCRIPT,
+  GATEKEEPER and RF_PROBE_ARMED (files/13 §9.1), any step that fills a CD-02
+  rule_gate_slots or tense_anchors slot whatever its class (today the engine
+  mints the chest-pain slots as MUST_ASK and their follow-ups as REENTRY), and
+  the positive re-ask of a red-flag question, are exempt from the turn budget and
+  do not count toward the confirmation cap; when the budget runs out, the budget yields, not the safety
+  set. An "evet" to a confirmation never clears a red flag: a red-flag or gate
+  slot reaches ASKED_ABSENT only through a direct answer to its positively
+  phrased scripted question, so where a narrative suggests absence the engine
+  re-asks the positive question ("...var mı?") instead of asking the patient to
+  confirm an absence ("...yok, doğru mu?"). A backchannel (a listener token such
+  as "hı hı", "tamam" or "evet" spoken during system speech, or any token that
+  is not a reply in a confirmation turn) is never a confirmation. "bilmiyorum"
+  maps to UNCLEAR and never to ABSENT. Facts taken from documents are confirmed
+  on the review screen, not in the voice flow, and any non-safety confirmation
+  beyond the cap is shown there unconfirmed rather than silently accepted.
+status: draft_needs_source
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient
+  stress testing only. A licensed physician's review is required before any real
+  patient.
+question_origin: >-
+  INT-428/INT-430 strict medical review (2 Oct 2026), required design change 9
+  (confirmation fatigue) and physician decision 6 (the confirmation ceiling).
+author_role: "emergency medicine operations / clinical informatics physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "First, healthcare professionals should identify any immediately life‑threatening features, including compromise of the airway, breathing or circulation, and decreased level of consciousness."
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: safety_questions_exempt_from_turn_budget
+    caveat: >-
+      Recommendation 1.2.1 orders a clinician's assessment of a febrile child
+      under five. It is cited for the principle that life-threat features are
+      identified first, ahead of anything else, not as a rule written for intake
+      software or for adults.
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "If in doubt, manage as if there are symptoms and/or signs with red flags."
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: confirm_yes_never_clears_red_flag
+    caveat: >-
+      Written for dehydration and shock in gastroenteritis under five. It is
+      cited for the direction in which doubt resolves (towards the red flag),
+      which is why an acquiescent "evet" to a confirmation of absence is
+      treated as doubt and answered with the positive question.
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "--- Do you have headaches? Yes, No, Unknown."
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: bilmiyorum_maps_to
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: 'text = <"Unknown">'
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: bilmiyorum_maps_to
+    note: >-
+      The archetype's "Presence?" element (at0005) carries Unknown (at0027) as a
+      value distinct from No (at0024); "bilmiyorum" is that Unknown, which the
+      engine's answer states name UNCLEAR. The value set also carries Unsure
+      (at0041), the state of a hedged answer, whose Turkish surface forms are
+      sibling decision CD-04's table; CD-04 maps "bilmiyorum" to UNCLEAR too.
+spec_basis:
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.4 The budget governor"
+    quote: "If the budget would still be exhausted, the budget yields — not the safety set."
+    supports: safety_questions_exempt_from_turn_budget
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.4 The budget governor"
+    quote: "Class ≤ 1 is never suppressible."
+    supports: safety_questions_exempt_from_turn_budget
+  - file: services/voice-runtime/src/intake_voice_runtime/clinical_agent/plan.py
+    section: "StepPriority docstring"
+    quote: ":attr:`MUST_ASK` for a clinician-marked slot, :attr:`DETAIL` for"
+    supports: "safety_question_slots (the engine mints only REENTRY, MUST_ASK and DETAIL today, so a class list alone misses the chest-pain slots)"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§4 Ordering rules, Backchannel freely"
+    quote: "70.4 % of consultant interruptions are backchannels"
+    supports: "backchannel_is_confirmation: false (a backchannel is a cooperative listener interruption, not an answer)"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.3 Seven answer states"
+    quote: "the only state that may enter `ros_pertinent`"
+    supports: confirm_yes_never_clears_red_flag
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.2 Three-state answers"
+    quote: "`answer_state_is_three_valued` · `did_not_understand_is_not_a_no`"
+    supports: bilmiyorum_maps_to
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§4 App navigation map, [visitId]/review"
+    quote: "editable cards → consent → send"
+    supports: document_confirmations_on
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§9 Security & technical monitoring per feature, Records row"
+    quote: "uploads scanned; source highlighted for every extracted fact; confirm before use"
+    supports: over_cap_confirmation_handling
+  - file: files/HUMAN_BLOCKERS.md
+    section: "HB-C5"
+    quote: "Resolve the fast-mode turn-budget collision."
+    supports: "why max_confirmations_per_session stays draft_needs_source"
+inference_disclosure: >-
+  Three keys are this author's safe-direction design choices rather than
+  quotations of a source. backchannel_is_confirmation is false because no
+  retrieved guideline defines a confirmation turn: treating a listener token as
+  no answer can only cost a repeated question, while treating it as a
+  confirmation could record a value the patient never gave.
+  rf_positive_reask_counts_toward_cap is false because the re-ask is how
+  confirm_yes_never_clears_red_flag works; counting it against a cap would let
+  the cap suppress a red-flag question, and keeping it out can only add turns.
+  safety_question_slots extends the exempt set by slot rather than by class;
+  that is the author's reading of the CD-02 never-silently-filled list against
+  the classes the engine mints today (plan.py), and it widens the exemption,
+  never narrows it.
+source_gap: >-
+  max_confirmations_per_session: no current guideline, regulation or openEHR
+  archetype states a maximum number of confirmation steps for a
+  patient-completed intake, in Turkish or otherwise. The cap would share the
+  fast-mode turn budget, whose reconciliation is itself an open clinician
+  decision (HB-C5: 16-21 turns of content against an 18-turn budget), so any
+  number written now would be invented. Every other key in this decision is
+  active.
+value:
+  max_confirmations_per_session: "TODO: maximum confirmation steps per session requires clinical sign-off"
+  safety_questions_exempt_from_turn_budget: true
+  confirm_yes_never_clears_red_flag: true
+  backchannel_is_confirmation: false
+  bilmiyorum_maps_to: UNCLEAR
+  document_confirmations_on: review_screen
+  safety_question_classes: [SAFETY_SCRIPT, GATEKEEPER, RF_PROBE_ARMED]
+  safety_question_slots: "any step that fills a CD-02 rule_gate_slots or tense_anchors slot, whatever its class"
+  rf_positive_reask_counts_toward_cap: false
+  over_cap_confirmation_handling: shown_unconfirmed_on_review_screen
+value_status:
+  max_confirmations_per_session: draft_needs_source
+  safety_questions_exempt_from_turn_budget: active
+  confirm_yes_never_clears_red_flag: active
+  backchannel_is_confirmation: active
+  bilmiyorum_maps_to: active
+  document_confirmations_on: active
+  safety_question_classes: active
+  safety_question_slots: active
+  rf_positive_reask_counts_toward_cap: active
+  over_cap_confirmation_handling: active
+fail_closed_while_draft: >-
+  With no cap set, no safety question is ever suppressed (the exemption does not
+  depend on the number), and no confirmation is ever silently accepted: a
+  non-safety confirmation the runtime chooses not to ask is shown unconfirmed on
+  the review screen.
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

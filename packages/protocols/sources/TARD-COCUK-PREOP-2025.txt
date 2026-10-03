@@ -1,0 +1,27 @@
+# guideline_id: TARD-COCUK-PREOP-2025
+# title: Çocuk Hastada Preoperatif Değerlendirme Kılavuzu
+# publisher: Türk Anesteziyoloji ve Reanimasyon Derneği (TARD), Hasta ve Çalışan Güvenliği Bilimsel Kurulu
+# version_or_date: Şubat 2025 (cover); listed on TARD Akademi as 'Hazırlandığı Yıl: 2025'
+# url: https://akademi.tard.org.tr/pdf/kilavuz/cocuklarda-preoperatif-degerlendirme.pdf
+# url_listing: https://akademi.tard.org.tr/?p=kilavuz-detay&bID=47
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; PDF text-extracted with pdftotext (poppler); within each excerpted paragraph or bullet the PDF line wraps are joined with single spaces and bullet glyphs dropped; characters kept as extracted (apostrophes are U+2019)
+# scope: verbatim excerpt of the cover lines, the respiratory-infection risk factor, the preoperative risk-management bullet and the general approach to children with an upper respiratory tract infection; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+TARD HASTA VE ÇALIŞAN GÜVENLİĞİ BİLİMSEL KURULU adına
+Prof. Dr. Şükran GEZE SAATÇİ, Doç. Dr. Gülbin TÖRE ALTUN
+Şubat 2025
+ÇOCUK HASTADA PREOPERATİF DEĞERLENDİRME
+[...]
+SOLUNUM YOLU ENFEKSİYONLARI
+Çocuklar her yıl birden fazla kez solunum yolu enfeksiyonu geçirebilir. Ortalama bir çocuk yılda 3 ila 9 üst solunum yolu enfeksiyonu geçirir ve her biri 7 ila 10 gün sürer. Aktif bir solunum yolu enfeksiyonu, perioperatif solunum komplikasyonları riskini 2 kattan 7 kata çıkarır.21 Bu komplikasyonlar arasında laringospazm, bronkospazm, atelektazi, postekstübasyon krup ve postoperatif pnömoni bulunur.
+[...]
+Şu anda veya son 2 hafta içinde üst solunum yolu enfeksiyonu, COVID-19 dahil
+[...]
+Preoperatif:
+Risk stratifikasyonu, aile ve hasta merkezli karar verme ile anestezi uzmanı ve cerrah arasında elektif cerrahinin devam edip etmeyeceği ya da ertelenip ertelenmeyeceği kararının verilmesi
+[...]
+ÜSYE’li çocuk hastalar için genel yaklaşım 27
+Mevcut veya son zamanlarda üst solunum yolu enfeksiyonu (ÜSYE) geçiren çocuklarda, larengospazm, bronkospazm ve desaturasyon gibi perioperatif solunum komplikasyonları riski 2-3 kat artmaktadır.
+Şiddetli bir ÜSYE (COVID-19 dahil) geçiren, ateş, halsizlik, hışırtı, sekretuar öksürük ve yeşil burun salgıları olan çocuklarda, elektif cerrahinin en az 2 hafta ertelenmesi önerilmektedir.
+Orta ve şiddetli ÜSYE’si olan çocuklarda elektif cerrahinin ertelenme süresi ile ilgili açık kanıta dayalı kılavuzlara ve anesteziye devam edilip edilmeye karar verme sürecini iyileştirecek daha iyi risk prediksiyon skorlarına ihtiyaç vardır.

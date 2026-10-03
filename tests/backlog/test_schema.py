@@ -147,10 +147,16 @@ def test_ids_unique_and_well_formed() -> None:
     # same PR).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status; owner request, GitHub #721).
+    # + INT-407 (the files/02 §2b visit lifecycle — a RED visit cannot silently
+    # move; found by INT-406's PR, whose visit_transition had no caller, #684).
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # agent-authored and independently agent-verified; GitHub #735).
     # + INT-378 (the Keycloak provider that writes the aaguid and credential_id
     # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
     # owner decision, GitHub #644).
-    assert len(ids) == 332
+    assert len(ids) == 335
     import re
 
     for i in ids:

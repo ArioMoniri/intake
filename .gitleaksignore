@@ -27,3 +27,15 @@
 a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:97
 a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:generic-api-key:99
 a68309d5ca17b0ea3face47590d417a7488b1edd:scripts/ci/gate_selftest.sh:curl-auth-user:110
+
+# INT-426. Owner approval, 3 Oct 2026, relayed in the INT-426 session: "ignore
+# the two old token fingerprints".
+# - What it is: a recorded test fixture in the embed sample partner's backend
+#   test, added by commit 2c6a5dcf on 4 Sep 2026. It is shaped like a JWT and
+#   decodes to {"alg":"HS256"}.{"tenant":"dev"}."signature-sample", so there
+#   was never a key and there is nothing to rotate.
+# - Why it needs a row: history is not rewritten, so the full-history scan in
+#   `make security` [1/12] reports it forever. GitHub's range scan never did.
+# - Scope: the two coordinates only.
+2c6a5dcf299b997682602044d14f79d8f9ac35d7:apps/embed-sample-partner/src/partnerBackend.test.ts:jwt:39
+2c6a5dcf299b997682602044d14f79d8f9ac35d7:apps/embed-sample-partner/src/partnerBackend.test.ts:jwt:41
