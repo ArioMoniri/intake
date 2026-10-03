@@ -15,8 +15,8 @@
   - typecheck, ruff and `mypy --strict` are clean.
   - Pins 330 → 331; files/11 regenerated.
 - Invariants touched and still passing: 1, 9 (only a rules-engine RED preempts), 10 (the named rule's own `text_tr`), 17 (generic copy is `draft_needs_source`, nothing invented), 21 (no 112 under ON_SITE).
-- Decisions / ADRs / `00_STATE.md` rows: none. The generic escalation copy is CD-24 in the INT-432 register (agent author plus independent verifier, D18) and is pending.
-- Blocked on: nothing for merge. A change under packages/protocols and packages/clinical-schemas needs CODEOWNER review. CD-24 copy is pending; until then the device shows the RED with no words.
+- Decisions / ADRs / `00_STATE.md` rows: none. The generic escalation copy and its register are CD-24 in the INT-432 register (`docs/clinical/decisions/CD-24.md`, agent author plus independent verifier, D18), which is open. The committed `packages/protocols/generic/generic_red.yaml` is draft_needs_source, so nothing is served and device_functions cannot be enabled (review round 3). The register is ALERT until CD-24 lands, through the `generic_red_register` hook.
+- Blocked on: nothing for merge. Changes under packages/protocols, packages/clinical-schemas and packages/intake_platform need CODEOWNER review. CD-24 is open; until it lands, /v1/triage serves nothing and device_functions stays off.
 - Next: PR `INT-453: …` (Closes #767, Sec-Row triage). Do not merge.
 
 ### 2026-10-03T23:30:00Z · INT-446 · done (PR open, not merged)

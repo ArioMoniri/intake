@@ -156,6 +156,20 @@ const UNWORDED_GENERIC: RedScript = {
   whyTr: null,
 };
 
+/** The register until CD-24 (pending) says otherwise: the most conservative. */
+export const DEFAULT_GENERIC_RED_REGISTER: RedRegister = "ALERT";
+
+const GENERIC_IDS: ReadonlySet<string> = new Set(Object.values(GENERIC_RED_SCRIPT_IDS));
+
+/**
+ * How a generic RED is told. A trigger the server sent as the generic
+ * escalation carries the server's register, which is CD-24's once that lands.
+ * A RED the device could not resolve on its own is told in the default.
+ */
+function genericRegister(trigger: RedTrigger): RedRegister {
+  return GENERIC_IDS.has(trigger.scriptId) ? trigger.register : DEFAULT_GENERIC_RED_REGISTER;
+}
+
 /**
  * The RED a patient sees when the trigger's own script is not on the device
  * (INT-453): never nothing. The register is the most conservative, ALERT. The
@@ -166,7 +180,7 @@ export function genericRed(trigger: RedTrigger, catalog: RedScriptCatalog): RedP
   const script = catalog[GENERIC_RED_SCRIPT_IDS[trigger.location]] ?? UNWORDED_GENERIC;
   return {
     ruleId: trigger.ruleId,
-    register: "ALERT",
+    register: genericRegister(trigger),
     location: trigger.location,
     script,
     show112: trigger.location === "ON_SITE" ? false : script.show112,

@@ -42,7 +42,7 @@ from intake_voice_runtime.ports import WorkState
 from intake_voice_runtime.talker.delivery import DeliveryClass
 from intake_voice_runtime.talker.preemption import BackendResult, Presentation, Priority
 from intake_voice_runtime.talker.red_path import (
-    GENERIC_RED_REGISTER,
+    DEFAULT_GENERIC_RED_REGISTER,
     GENERIC_RED_SCRIPT_IDS,
     MappingRedScriptIndex,
     RedPathViolation,
@@ -51,12 +51,15 @@ from intake_voice_runtime.talker.red_path import (
 )
 from protocols import EK4Level, RedFlagRule
 from protocols.compile import load_life_threat_set
+from protocols.generic_red import generic_red_register, load_generic_red
 from protocols.triage import SlotAnswer, TriageContext, evaluate_triage
 from test_red_preemption import Rig
 
 REPO = Path(__file__).resolve().parents[2]
 SIGNED = REPO / "tests" / "fixtures" / "protocols" / "compile" / "life_threat_signed.yaml"
 CLIENT_RED_TS = REPO / "apps" / "mobile" / "src" / "lib" / "livekit" / "red.ts"
+GENERIC_SENTETIK = REPO / "tests" / "fixtures" / "triage_hop" / "generic_red_sentetik.yaml"
+GENERIC_COMMITTED = REPO / "packages" / "protocols" / "generic" / "generic_red.yaml"
 BASE = load_life_threat_set(SIGNED).rules[0].rule
 
 RULE_A = "rf.sentetik_a"  # sorts first
@@ -202,7 +205,7 @@ def test_an_unaddressable_red_shows_the_generic_red_on_the_device(location: RedL
     assert RedViolation.SCRIPT_UNADDRESSABLE in excinfo.value.violations  # loud
     [message] = sent(rig)  # …and still shown
     assert message.script_id == GENERIC_RED_SCRIPT_IDS[location]
-    assert message.register is GENERIC_RED_REGISTER is RedRegister.ALERT
+    assert message.register is DEFAULT_GENERIC_RED_REGISTER is RedRegister.ALERT
     assert message.location is location  # ON_SITE stays ON_SITE: the device shows no 112
     assert message.rule_id == RULE_A
     assert rig.media.calls == ["cancel"]
@@ -268,3 +271,22 @@ def test_the_device_mirrors_the_generic_red_ids() -> None:
     source = CLIENT_RED_TS.read_text(encoding="utf-8")
     for location, script_id in GENERIC_RED_SCRIPT_IDS.items():
         assert re.search(rf'{location.value}:\s*"{re.escape(script_id)}"', source), location
+    assert re.search(r'DEFAULT_GENERIC_RED_REGISTER: RedRegister = "ALERT"', source)
+
+
+def test_the_generic_register_is_configured_from_cd24() -> None:
+    """CD-24 (pending) decides the generic's register. Until then it is ALERT,
+    and once a servable generic document names one, the path tells it in that
+    register (``generic_red_register`` → ``RedPreemption.generic_register``)."""
+    rule = red(RULE_A, RedRegister.SILENT)
+    triage = evaluate_triage((rule,), FIRING, RedLocation.REMOTE).result
+    landed = load_generic_red(GENERIC_SENTETIK).model_copy(update={"register": RedRegister.CALM})
+    rig = Rig(scripts=MappingRedScriptIndex(entries={}))
+    rig.path.generic_register = generic_red_register(landed)
+    with pytest.raises(RedPathViolation):
+        rig.trigger(preempt(triage))
+    assert [m.register for m in sent(rig)] == [RedRegister.CALM]
+    # Near miss: the committed draft keeps the default, ALERT.
+    default = Rig(scripts=MappingRedScriptIndex(entries={}))
+    assert default.path.generic_register is DEFAULT_GENERIC_RED_REGISTER
+    assert generic_red_register(load_generic_red(GENERIC_COMMITTED)) is RedRegister.ALERT

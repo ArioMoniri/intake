@@ -1,5 +1,19 @@
 {
   "scripts": {
+    "base.generic_red.remote": {
+      "primary": "CALL_112",
+      "show112": true,
+      "actionTr": "Sentetik genel yönerge.",
+      "doNotsTr": [],
+      "whyTr": "Bu bir sentetik test metnidir."
+    },
+    "base.generic_red.on_site": {
+      "primary": "GO_TO_IN_HOUSE_ACIL",
+      "show112": false,
+      "actionTr": "Sentetik yerinde yönerge.",
+      "doNotsTr": [],
+      "whyTr": null
+    },
     "rf.sentetik_yasamsal.remote": {
       "primary": "CALL_112",
       "show112": true,
@@ -16,6 +30,12 @@
     }
   },
   "questions": {
+    "base.generic_red.unknown": {
+      "askTr": "Şu anda hastanede misiniz?",
+      "onYes": "ON_SITE",
+      "onNo": "REMOTE",
+      "onNoAnswer": "REMOTE"
+    },
     "rf.sentetik_yasamsal.unknown": {
       "askTr": "Şu anda hastanede misiniz?",
       "onYes": "ON_SITE",

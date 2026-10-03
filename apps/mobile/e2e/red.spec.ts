@@ -362,11 +362,11 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
   }
 
   it.each([
-    ["REMOTE", "hizli", "2026-09-02", true],
-    ["UNKNOWN", "detayli", "2026-09-02", false],
+    ["REMOTE", "hizli", "2026-09-02"],
+    ["UNKNOWN", "detayli", "2026-09-02"],
   ] as const)(
-    "answer → engine RED (%s) → script missing → generic ALERT root layer, no invented words",
-    async (location, mode, visitDate, call112) => {
+    "answer → engine RED (%s) → script missing → the pre-positioned generic RED, ALERT root layer",
+    async (location, mode, visitDate) => {
       const calls: string[] = [];
       const store = createRedStore();
       const hop = createRedHop({
@@ -395,13 +395,24 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
       });
       expect(derived).toBe(location);
       expect((await hop.onAnswers("visit-drift", lane.note.answers, derived)).kind).toBe("red");
+      // The served catalog carries the generic RED (the INT-453 serve
+      // precondition), so its own words show: verbatim, never invented.
+      if (location === "UNKNOWN") {
+        expect(redScreen(store.getSnapshot())).toMatchObject({
+          kind: "ask",
+          mode: "rootLayer",
+          register: "ALERT",
+          askTr: "Şu anda hastanede misiniz?",
+        });
+        store.answerLocation("notInHospital");
+      }
       expect(redScreen(store.getSnapshot())).toMatchObject({
         kind: "act",
         mode: "rootLayer",
         register: "ALERT",
-        location,
-        actionTr: "",
-        call112,
+        location: "REMOTE",
+        actionTr: "Sentetik genel yönerge.",
+        call112: true,
       });
       // Near miss: with the script present the rule's own words show, not the generic.
       const own = createRedStore();

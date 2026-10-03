@@ -10,7 +10,12 @@ import { describe, expect, it, vi } from "vitest";
 import { createVoiceSession, type AppLifecycle, type VoiceSessionDeps } from "./session";
 import type { VoiceSessionEvent } from "./events";
 import { redAffordances } from "../motion/red";
-import { GENERIC_RED_SCRIPT_IDS, genericRed, type RedScriptCatalog } from "./red";
+import {
+  DEFAULT_GENERIC_RED_REGISTER,
+  GENERIC_RED_SCRIPT_IDS,
+  genericRed,
+  type RedScriptCatalog,
+} from "./red";
 import type { RoomAdapter, RoomCredentials, RuntimeEnvironment, TransportSample } from "./types";
 
 const SESSION_ID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
@@ -511,20 +516,48 @@ describe("RED over the data channel (invariant 21)", () => {
         ruleId: "life_threat.unknown",
         register: "CALM",
         location,
-        scriptId: GENERIC_RED_SCRIPT_IDS[location],
+        scriptId: "life_threat.not.on.this.device",
       });
 
       const red = events.find((e) => e.type === "red");
       if (red?.type !== "red") {
         throw new Error("expected a red event: the patient must be shown a RED");
       }
-      // The most conservative register, the trigger's own location, no invented words.
-      expect(red.presentation.register).toBe("ALERT");
+      // The default register (CD-24 pending), the trigger's own location, no invented words.
+      expect(red.presentation.register).toBe(DEFAULT_GENERIC_RED_REGISTER);
+      expect(DEFAULT_GENERIC_RED_REGISTER).toBe("ALERT");
       expect(red.presentation.location).toBe(location);
       expect(red.presentation.show112).toBe(show112);
       expect(red.presentation.script.actionTr).toBe("");
     },
   );
+
+  it("a server-sent generic RED is told in the server's register (CD-24's once it lands)", () => {
+    const sent = genericRed(
+      {
+        kind: "red_trigger",
+        ruleId: "life_threat.unknown",
+        register: "CALM",
+        location: "REMOTE",
+        scriptId: GENERIC_RED_SCRIPT_IDS.REMOTE,
+      },
+      {},
+    );
+    expect(sent.register).toBe("CALM");
+    // Near miss: the same register on a non-generic script the device could not
+    // resolve is not the generic's register: the default applies.
+    const local = genericRed(
+      {
+        kind: "red_trigger",
+        ruleId: "life_threat.unknown",
+        register: "CALM",
+        location: "REMOTE",
+        scriptId: "life_threat.not.on.this.device",
+      },
+      {},
+    );
+    expect(local.register).toBe("ALERT");
+  });
 
   it("a generic RED under UNKNOWN asks the one location question before any 112 (files/04 §8.1 rule 7)", () => {
     const at = (location: "REMOTE" | "ON_SITE" | "UNKNOWN") =>

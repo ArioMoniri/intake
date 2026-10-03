@@ -20,6 +20,13 @@ from typing import Literal
 from clinical_schemas.triage import RedLocation
 from protocols.compile.life_threat import LifeThreatSet, LifeThreatSetError, load_life_threat_set
 from protocols.dsl import LocationAction, RedFlagRule, UnknownAction
+from protocols.generic_red import (
+    GENERIC_RED_SCRIPT_IDS,
+    GenericRedCopy,
+    GenericRedError,
+    generic_red_refusals,
+    load_generic_red,
+)
 from protocols.types import RuleStatus
 from pydantic import BaseModel, ConfigDict
 
@@ -108,9 +115,16 @@ def _question(action: UnknownAction) -> QuestionOut:
     )
 
 
-def _catalog(version: str, rules: tuple[RedFlagRule, ...]) -> CatalogOut:
+def _catalog(version: str, rules: tuple[RedFlagRule, ...], generic: GenericRedCopy) -> CatalogOut:
     scripts: dict[str, ScriptOut] = {}
     questions: dict[str, QuestionOut] = {}
+    # INT-453: the generic escalation is pre-positioned beside every rule's
+    # scripts, so a RED whose own script cannot be addressed still has words.
+    if generic.action is None:  # unreachable: a servable generic carries its copy
+        raise _Unservable("the generic RED carries no copy")
+    scripts[GENERIC_RED_SCRIPT_IDS[RedLocation.REMOTE]] = _script(generic.action.remote)
+    scripts[GENERIC_RED_SCRIPT_IDS[RedLocation.ON_SITE]] = _script(generic.action.on_site)
+    questions[GENERIC_RED_SCRIPT_IDS[RedLocation.UNKNOWN]] = _question(generic.action.unknown)
     for rule in rules:
         if not rule.level.is_red:
             continue
@@ -133,18 +147,31 @@ def _servable(life_threat: LifeThreatSet) -> None:
         raise _Unservable("a draft_needs_source rule is never served")
 
 
-def load_served_red_rules(path: Path | None) -> ServedRedRules | None:
-    """The served rule set at ``path``, or None (the routes answer 503)."""
-    if path is None:
+def load_served_red_rules(
+    path: Path | None, generic_path: Path | None = None
+) -> ServedRedRules | None:
+    """The served rule set at ``path``, or None (the routes answer 503).
+
+    Serve precondition (INT-453): the generic RED escalation at
+    ``generic_path`` must be servable — present and not ``draft_needs_source``
+    (``protocols.generic_red``). A blank generic can never reach a live tenant,
+    so with it absent or draft nothing is served at all.
+    """
+    if path is None or generic_path is None:
         return None
     try:
+        generic = load_generic_red(generic_path)
+        if generic_red_refusals(generic):
+            raise _Unservable("the generic RED copy is not servable (CD-24)")
         raw = path.read_bytes()
         life_threat = load_life_threat_set(path)
         _servable(life_threat)
         rules = tuple(entry.rule for entry in life_threat.rules)
-        version = hashlib.sha256(raw).hexdigest()
-        return ServedRedRules(version=version, rules=rules, catalog=_catalog(version, rules))
-    except (OSError, LifeThreatSetError, _Unservable):
+        version = hashlib.sha256(raw + generic_path.read_bytes()).hexdigest()
+        return ServedRedRules(
+            version=version, rules=rules, catalog=_catalog(version, rules, generic)
+        )
+    except (OSError, LifeThreatSetError, GenericRedError, _Unservable):
         return None
 
 

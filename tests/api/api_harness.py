@@ -226,6 +226,9 @@ def build_harness(
     # INT-446: the served red-flag rule set. None is the shipped state (no
     # signed set exists, HB-C1), in which /v1/triage answers 503.
     triage_rules_path: Path | None = None,
+    # INT-453: the generic RED document. Default: the committed one, which is
+    # draft_needs_source until CD-24 lands, so nothing is served.
+    triage_generic_red_path: Path | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -268,6 +271,13 @@ def build_harness(
         # default: the REAL committed taxonomy (INT-134) — tests that need
         # the fail-closed path point this at a missing/broken file instead
         triage_rules_path=triage_rules_path,
+        triage_generic_red_path=triage_generic_red_path
+        if triage_generic_red_path is not None
+        else Path(__file__).resolve().parents[2]
+        / "packages"
+        / "protocols"
+        / "generic"
+        / "generic_red.yaml",
         taxonomy_path=taxonomy_path
         if taxonomy_path is not None
         else Path(__file__).resolve().parents[2]

@@ -545,8 +545,19 @@ class TestThePathTouchesNoMediaTransport:
         constructor's parameter set is pinned, so adding one fails here."""
         import dataclasses
 
-        parameters = {field.name for field in dataclasses.fields(RedPreemption) if field.init}
-        assert parameters == {"canceller", "channel", "clinic", "scripts", "clock"}
+        fields = {field.name: field for field in dataclasses.fields(RedPreemption) if field.init}
+        assert set(fields) == {
+            "canceller",
+            "channel",
+            "clinic",
+            "scripts",
+            "clock",
+            "generic_register",
+        }
+        # INT-453's addition is a value, not a port: CD-24's register for the
+        # generic escalation (an enum), defaulting to ALERT.
+        assert fields["generic_register"].type == "RedRegister"
+        assert fields["generic_register"].default is RedRegister.ALERT
 
     def test_at_runtime_the_only_media_call_is_the_cancel(self) -> None:
         rig = Rig()

@@ -1,0 +1,16 @@
+# The generic RED escalation (INT-453): what the device shows when a RED's own
+# pre-positioned script cannot be addressed. The copy and the register are a
+# clinical decision, CD-24 in the INT-432 clinical-decisions register (agent
+# author plus independent verifier, D18), which is OPEN. Until it lands this
+# document is draft_needs_source, so protocols.generic_red refuses it: no RED
+# script catalog is served and device_functions cannot be enabled. A blank
+# generic never reaches a live tenant. Nothing below is clinical content.
+kind: generic_red
+decision: CD-24
+status: draft_needs_source
+register: ALERT
+source_gap: >-
+  Unsupplied: the generic escalation's action_tr, do_nots_tr and why_tr for
+  REMOTE and ON_SITE, the UNKNOWN ask_one_tr (files/04 §8.1 rule 7), and
+  whether the generic is told in ALERT or in the triggering result's own
+  register. All of it is open as CD-24 in docs/clinical/decisions/ (INT-432).

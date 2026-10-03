@@ -1,0 +1,37 @@
+# SENTETİK TEST VERİSİ — INT-453. A servable generic RED document for tests
+# only: every string is invented and carries NO clinical meaning, and the
+# source is the fictional SYN-GUIDE-B of the compiler fixtures. The committed
+# document (packages/protocols/generic/generic_red.yaml) stays
+# draft_needs_source until CD-24 lands. Never served.
+kind: generic_red
+decision: CD-24
+status: active
+register: ALERT
+source:
+  guideline_id: SYN-GUIDE-B
+  guideline_title: "Sentetik kılavuz B"
+  version_or_date: "sürüm bir"
+  url: "https://example.invalid/syn-guide-b"
+  retrieved_on: 2026-08-28
+  quote: "sentetik genel alıntı"
+  quote_snapshot: packages/protocols/sources/SYN-GUIDE-B.txt
+action:
+  REMOTE:
+    primary: CALL_112
+    show_112: true
+    action_tr:
+      tr: "Sentetik genel yönerge."
+    why_tr:
+      tr: "Bu bir sentetik test metnidir."
+  ON_SITE:
+    primary: GO_TO_IN_HOUSE_ACIL
+    show_112: false
+    notify_staff_immediate: true
+    action_tr:
+      tr: "Sentetik yerinde yönerge."
+  UNKNOWN:
+    ask_one_tr:
+      tr: "Şu anda hastanede misiniz?"
+    on_yes: ON_SITE
+    on_no: REMOTE
+    on_no_answer: REMOTE

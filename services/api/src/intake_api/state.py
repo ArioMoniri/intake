@@ -147,7 +147,9 @@ class ApiState:
     def served_red_rules(self) -> ServedRedRules | None:
         """The served rule set, loaded once; ``None`` means fail closed (503)."""
         if not self._red_rules_loaded:
-            self._red_rules = load_served_red_rules(self.settings.triage_rules_path)
+            self._red_rules = load_served_red_rules(
+                self.settings.triage_rules_path, self.settings.triage_generic_red_path
+            )
             self._red_rules_loaded = True
         return self._red_rules
 

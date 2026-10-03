@@ -58,6 +58,7 @@ from typing import Annotated, Literal, Protocol, runtime_checkable
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult, TriageLevel
+from protocols.generic_red import DEFAULT_GENERIC_RED_REGISTER, GENERIC_RED_SCRIPT_IDS
 from pydantic import Field, StringConstraints
 
 from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS
@@ -66,7 +67,7 @@ from intake_voice_runtime.talker.preemption import BackendResult, Priority
 
 __all__ = [
     "E2E_BUDGET_MS",
-    "GENERIC_RED_REGISTER",
+    "DEFAULT_GENERIC_RED_REGISTER",
     "GENERIC_RED_SCRIPT_IDS",
     "ID_SHAPE",
     "REGISTER_DELIVERY",
@@ -309,19 +310,13 @@ class MappingRedScriptIndex:
         return self.entries.get((rule_id, location))
 
 
-#: The generic escalation (INT-453): what the device shows when a RED's own
-#: script cannot be addressed. Its register is the most conservative one and its
-#: location is the result's own, so ON_SITE still carries no 112. The device
-#: mirrors these ids (apps/mobile/src/lib/livekit/red.ts). Its words are
-#: ``draft_needs_source``: no signed generic copy exists and none is invented
-#: here, so until one is compiled the device shows the RED with the
-#: location-correct affordance and no words.
-GENERIC_RED_REGISTER = RedRegister.ALERT
-GENERIC_RED_SCRIPT_IDS: Mapping[RedLocation, str] = {
-    RedLocation.REMOTE: "base.generic_red.remote",
-    RedLocation.ON_SITE: "base.generic_red.on_site",
-    RedLocation.UNKNOWN: "base.generic_red.unknown",
-}
+# The generic escalation (INT-453): what the device shows when a RED's own
+# script cannot be addressed, at the result's own location, so ON_SITE still
+# carries no 112. Ids, copy and register live in ``protocols.generic_red``.
+# The copy and the register are CD-24 (INT-432), which is pending, so the copy
+# is ``draft_needs_source`` and :attr:`RedPreemption.generic_register` defaults
+# to ALERT until CD-24's servable document supplies it
+# (``protocols.generic_red.generic_red_register``).
 
 
 # --- the outcome ---------------------------------------------------------------------------
@@ -378,6 +373,9 @@ class RedPreemption:
     clinic: ClinicNotifier
     scripts: RedScriptIndex
     clock: Clock
+    #: CD-24 (pending): the generic escalation's register. ALERT until a servable
+    #: generic RED document supplies one (protocols.generic_red).
+    generic_register: RedRegister = DEFAULT_GENERIC_RED_REGISTER
     _delivered: dict[str, RedPreemptionOutcome] = field(default_factory=dict, init=False)
 
     async def trigger(
@@ -482,7 +480,7 @@ class RedPreemption:
             violations.append(RedViolation.SCRIPT_UNADDRESSABLE)
             message = RedTriggerMessage(
                 rule_id=rule_id if rule_id is not None else triage.rules[0].id,
-                register=GENERIC_RED_REGISTER,
+                register=self.generic_register,
                 location=location,
                 script_id=GENERIC_RED_SCRIPT_IDS[location],
             )

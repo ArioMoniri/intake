@@ -35,6 +35,8 @@ from intake_api.consent_guard import unguarded_data_routes
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SIGNED = REPO_ROOT / "tests" / "fixtures" / "protocols" / "compile" / "life_threat_signed.yaml"
 GOLDEN = REPO_ROOT / "tests" / "fixtures" / "triage_hop"
+GENERIC = GOLDEN / "generic_red_sentetik.yaml"
+COMMITTED_GENERIC = REPO_ROOT / "packages" / "protocols" / "generic" / "generic_red.yaml"
 
 REFERENCE_TIME = "2026-08-29T10:00:00+03:00"
 FIRING = {"ziyaret.basvuru_nedeni": "sentetik_yasamsal", "sure_dakika": "2026-08-29"}
@@ -56,6 +58,7 @@ def harness(tmp_path: Path) -> Iterator[ApiHarness]:
         tmp_path,
         token_patient=PATIENT_TOKEN,
         token_admin=ADMIN_TOKEN,
+        triage_generic_red_path=GENERIC,
         triage_rules_path=SIGNED,
     )
 
@@ -133,7 +136,11 @@ def test_a_set_authorising_112_on_site_is_refused(tmp_path: Path) -> None:
 
     path = _set(tmp_path, authorise)
     for harness in build_harness(
-        tmp_path, token_patient=PATIENT_TOKEN, token_admin=ADMIN_TOKEN, triage_rules_path=path
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_generic_red_path=GENERIC,
+        triage_rules_path=path,
     ):
         _assert_closed(harness)
 
@@ -154,7 +161,11 @@ def test_winner_is_the_rule_whose_register_and_script_the_engine_chose(tmp_path:
 
     path = _set(tmp_path, twin)
     for harness in build_harness(
-        tmp_path, token_patient=PATIENT_TOKEN, token_admin=ADMIN_TOKEN, triage_rules_path=path
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_generic_red_path=GENERIC,
+        triage_rules_path=path,
     ):
         body = _evaluate(harness, FIRING)
         assert body["ruleId"] == "rf.b_sentetik_silent"
@@ -179,7 +190,11 @@ def _draft(doc: dict[str, Any]) -> None:
 def test_an_unservable_set_fails_closed(tmp_path: Path, edit: Any) -> None:
     path = _set(tmp_path, edit)
     for harness in build_harness(
-        tmp_path, token_patient=PATIENT_TOKEN, token_admin=ADMIN_TOKEN, triage_rules_path=path
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_generic_red_path=GENERIC,
+        triage_rules_path=path,
     ):
         _assert_closed(harness)
 
@@ -187,7 +202,11 @@ def test_an_unservable_set_fails_closed(tmp_path: Path, edit: Any) -> None:
 def test_no_set_and_an_unreadable_set_fail_closed(tmp_path: Path) -> None:
     for path in (None, tmp_path / "absent.yaml"):
         for harness in build_harness(
-            tmp_path, token_patient=PATIENT_TOKEN, token_admin=ADMIN_TOKEN, triage_rules_path=path
+            tmp_path,
+            token_patient=PATIENT_TOKEN,
+            token_admin=ADMIN_TOKEN,
+            triage_generic_red_path=GENERIC,
+            triage_rules_path=path,
         ):
             _assert_closed(harness)
 
@@ -293,7 +312,11 @@ def test_the_simulator_set_fires_on_the_typed_free_note_only(
     free-note question `extra` fires it; a near miss (one differing digit, or
     an undated word) does not."""
     for harness in build_harness(
-        tmp_path, token_patient=PATIENT_TOKEN, token_admin=ADMIN_TOKEN, triage_rules_path=SIM
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_generic_red_path=GENERIC,
+        triage_rules_path=SIM,
     ):
         body = _evaluate(harness, {"extra": answer}, "UNKNOWN")
         if fires:
@@ -301,3 +324,30 @@ def test_the_simulator_set_fires_on_the_typed_free_note_only(
             assert body["scriptId"] == "rf.sentetik_sim.unknown"
         else:
             assert body == {"kind": "triage_level", "level": "GREEN"}
+
+
+@pytest.mark.parametrize("generic", ["committed-draft-cd24", "absent"])
+def test_nothing_is_served_while_the_generic_red_is_draft_or_absent(
+    tmp_path: Path, generic: str
+) -> None:
+    """INT-453 serve precondition: a blank generic RED never reaches a live
+    tenant. The committed document is draft_needs_source until CD-24 lands,
+    so the signed set is not served. The near miss is every other test here:
+    with the servable SENTETİK generic, the very same set serves."""
+    path = COMMITTED_GENERIC if generic == "committed-draft-cd24" else tmp_path / "absent.yaml"
+    for harness in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_generic_red_path=path,
+        triage_rules_path=SIGNED,
+    ):
+        _assert_closed(harness)
+
+
+def test_the_catalog_pre_positions_the_generic_red(harness: ApiHarness) -> None:
+    catalog = harness.client.get("/v1/triage/red-scripts", headers=harness.patient()).json()
+    assert catalog["scripts"]["base.generic_red.remote"]["show112"] is True
+    assert catalog["scripts"]["base.generic_red.on_site"]["show112"] is False
+    unknown = catalog["questions"]["base.generic_red.unknown"]
+    assert unknown["askTr"] == "Şu anda hastanede misiniz?"

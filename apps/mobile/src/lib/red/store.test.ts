@@ -49,10 +49,15 @@ function state(register: RedRegister, location: RedLocation, answer: LocationAns
 const ANSWERS: readonly LocationAnswer[] = ["unanswered", "inHospital", "notInHospital"];
 
 describe("RED screen — every register × location × answer", () => {
-  it("the recorded catalog decodes and every id it holds is a scriptIdFor id", () => {
+  it("the recorded catalog decodes: every rule id is a scriptIdFor id, and the generic RED is pre-positioned", () => {
     expect(CATALOG).not.toBeNull();
     const ids = [...Object.keys(CATALOG.scripts), ...Object.keys(CATALOG.questions)].sort();
-    expect(ids).toEqual(RED_LOCATIONS.map((l) => scriptIdFor(RULE, l)).sort());
+    expect(ids).toEqual(
+      [
+        ...RED_LOCATIONS.map((l) => scriptIdFor(RULE, l)),
+        ...Object.values(GENERIC_RED_SCRIPT_IDS),
+      ].sort(),
+    );
   });
 
   for (const register of RED_REGISTERS) {
