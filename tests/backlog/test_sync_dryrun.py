@@ -101,9 +101,11 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
     # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
     # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
+    # + INT-426 (CI on AWS: gate runner via S3 + SSM, aws-ci commit status, GitHub #721)
+    # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
     # + INT-432 (clinical decisions register under owner decision D18, GitHub #735)
     # + INT-448 (#642 packet items under D18, GitHub #759)
-    assert len(actions) == 332
+    assert len(actions) == 334
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

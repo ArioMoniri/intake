@@ -70,7 +70,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated
 
 from clinical_schemas.previsit_output import (
@@ -231,7 +231,9 @@ async def record_previsit_output(
         visit=visit,
         session_row=session_row,
         body=body,
-        completed_at=datetime.now(UTC),
+        # the API's one clock (INT-407): this instant is also the note's
+        # staleness anchor, so it must be the clock staleness is read against
+        completed_at=state.clock(),
     )
     plaintext = _canonical(document)
     envelope = dict(encrypted_field_to_json(state.cipher.encrypt_field(str(tenant_id), plaintext)))
