@@ -6446,7 +6446,10 @@
   # unstaged for the owner to commit.
   depends_on: [INT-428, INT-018]
   labels: [area:infra, risk:security]
-  status: done
+  # awaiting-human: the vendor rows are the owner's protected commit, and the
+  # deploy to the synthetic host is the owner's/coordinator's step (the agent's
+  # deploy was refused by the permission classifier; docs/evidence/INT-442.md).
+  status: awaiting-human
   evidence: docs/evidence/INT-442.md
   acceptance:
     - "a forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts (the hosted_model_inference rows, rendered from infra/security/egress-allowlist.yaml); INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment, and a process that is not synthetic refuses to boot with it"

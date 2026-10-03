@@ -60,9 +60,12 @@ def _allowlist(**overrides: Any) -> EgressAllowlist:
     }
     fields.update(overrides)
     row = AllowlistEntry(**fields)
+    # a shipped row of the same name (the owner's INT-442 change) is replaced,
+    # so the adapter dials the test host whether or not that row exists
+    others = [e for e in shipped.tiers.dev if e.name != ELEVENLABS_EGRESS_ROW]
     return EgressAllowlist(
         version=shipped.version,
-        tiers=shipped.tiers.model_copy(update={"dev": [*shipped.tiers.dev, row]}),
+        tiers=shipped.tiers.model_copy(update={"dev": [*others, row]}),
     )
 
 
