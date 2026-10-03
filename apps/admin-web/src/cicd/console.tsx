@@ -13,10 +13,11 @@
  * form (there is no deploy controller to command): both buttons are present,
  * disabled, and say why. No `style` attribute anywhere.
  */
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { EmptyRow, NextStep } from "../ui/states";
 import type { ResultCode } from "./actions";
 import { COPY, type CicdCopy, type Lang } from "./copy";
 import type { CicdState } from "./load";
@@ -139,6 +140,14 @@ function Pending({ view, c }: { view: CicdView; c: C }): ReactElement {
           </tr>
         </thead>
         <tbody>
+          {t.actions.length === 0 ? (
+            <EmptyRow
+              columns={6}
+              kind="pending"
+              title={c.empty.pending.title}
+              why={c.empty.pending.why}
+            />
+          ) : null}
           {t.actions.map((row) => (
             <tr key={row.actionId} data-action={row.actionId}>
               <td>
@@ -219,15 +228,7 @@ function ControlForm({
   );
 }
 
-function Refused({
-  lang,
-  c,
-  children,
-}: {
-  lang: Lang;
-  c: C;
-  children: ReactElement;
-}): ReactElement {
+function Refused({ lang, c, children }: { lang: Lang; c: C; children: ReactNode }): ReactElement {
   return (
     <main lang={lang} className="ops" data-page="cicd">
       <h1>{c.title}</h1>
@@ -252,6 +253,7 @@ export function CicdConsole({
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
+        <NextStep state={state} page="cicd" lang={lang} />
       </Refused>
     );
   }
@@ -261,6 +263,7 @@ export function CicdConsole({
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
+        <NextStep state={state} page="cicd" lang={lang} />
       </Refused>
     );
   }

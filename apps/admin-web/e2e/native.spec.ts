@@ -445,7 +445,7 @@ describe("the layer stays inside the CSP and ships text as written", () => {
     );
   });
 
-  it("the layout imports the console's sheets with the layer's three last", () => {
+  it("the layout imports the console's sheets with the layer's four last", () => {
     const layout = readFileSync(join(APP, "layout.tsx"), "utf8");
     const imports = [...layout.matchAll(/^import\s+"([^"]+\.css)";/gm)].map((m) => m[1]);
     expect(imports).toEqual(SHEETS.map((s) => `./${s}`));

@@ -1,0 +1,403 @@
+/* INT-459 follow-up — the patterns mined from the owner's libraries, after the
+   Apple-native layer's tokens, shell and content: the loading skeleton, a
+   threshold, a trend and a legend on the charts, the overview's status strip,
+   a table that folds into cards, and empty lists and refusals that say why.
+   Ported pieces name their MIT source beside the rule (notices in
+   THIRD_PARTY_NOTICES); the rest is rebuilt from ideas, nothing copied. Served
+   from 'self': no import, no remote resource, no inline style; asserted in
+   e2e/patterns.spec.ts, e2e/native.spec.ts and e2e/accessibility.spec.ts. */
+
+/* --- loading: a skeleton of the shell (app/loading.tsx) ---------------------- */
+
+/* Bones in the shape of the sidebar, the top bar, a row of cards and a table.
+   After Astryx's Skeleton (MIT, (c) 2026 Meta Platforms, Inc., c3f64eff): a
+   --skeleton fill resting at a quarter opacity; a one-second wait before any
+   pulse, so a fast page never flickers; then a 0.25 to 1 pulse, staggered
+   100 ms a bone. Astryx steps the pulse in ten frames; here it runs on the
+   smooth spring, the console's only curve for it. The bones hold no figure
+   and no control, so they may move, and they stand still under reduced
+   motion (refresh.css). */
+@keyframes breathe {
+  to {
+    opacity: 1;
+  }
+}
+
+.bone {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--skeleton);
+  opacity: 0.25;
+  animation: breathe 1100ms var(--spring-smooth) infinite alternate;
+  animation-delay: 1000ms;
+}
+
+.bone:nth-child(2) {
+  animation-delay: 1100ms;
+}
+
+.bone:nth-child(3) {
+  animation-delay: 1200ms;
+}
+
+.bone:nth-child(4) {
+  animation-delay: 1300ms;
+}
+
+.bone:nth-child(5) {
+  animation-delay: 1400ms;
+}
+
+.bone-title {
+  width: 55%;
+  height: 14px;
+}
+
+.bone-figure {
+  width: 38%;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.bone-short {
+  width: 62%;
+}
+
+.skeleton-nav {
+  gap: 10px;
+}
+
+.skeleton-nav .bone {
+  height: 24px;
+  margin: 0 10px;
+  border-radius: 10px;
+}
+
+.skeleton-tile {
+  display: grid;
+  gap: 12px;
+  min-height: 148px;
+}
+
+.skeleton-wide {
+  grid-column: 1 / -1;
+}
+
+/* The table's outline, after beUI's SkeletonRows (MIT, (c) 2026 Saurabh
+   Chauhan, aaf32bef): two thirds of a bar per text column, a short bar at the
+   end of the figure's column, one hairline per row. */
+.skeleton-table {
+  width: 100%;
+}
+
+.skeleton-table td {
+  height: 20px;
+  padding: 10px;
+}
+
+.bone-text {
+  width: 66%;
+}
+
+.bone-num {
+  width: 40px;
+  margin-inline-start: auto;
+}
+
+@media (max-width: 1023px) {
+  .skeleton-nav .bone {
+    flex: 1 1 0;
+    height: 40px;
+    margin: 0 4px;
+    border-radius: 999px;
+  }
+}
+
+/* Astryx's fallbacks: increased contrast deepens the bone toward the ink;
+   forced colours strip a painted background, so the bone takes the system's
+   GrayText at full opacity (listed last, so it wins when both apply). Reduced
+   motion stops the pulse, so the bone rests where it can still be seen. */
+@media (prefers-contrast: more) {
+  .bone {
+    background: color-mix(in srgb, var(--skeleton), var(--ink) 30%);
+  }
+}
+
+@media (forced-colors: active) {
+  .bone {
+    background: GrayText;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    opacity: 0.6;
+  }
+}
+
+/* --- charts: a threshold, a trend and a legend ------------------------------- */
+
+/* A printed threshold on a bar's track (after Astryx's referenceLine). */
+.bar-mark {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+/* A trend over a series (after EvilCharts' area fade): the line in the data
+   colour, the area fading from a tenth of it to nothing. */
+.spark-plot {
+  display: block;
+  width: 100%;
+  height: 40px;
+  overflow: visible;
+}
+
+.spark-line {
+  stroke: var(--data);
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.fade-top {
+  stop-color: var(--data);
+  stop-opacity: 0.18;
+}
+
+.fade-bottom {
+  stop-color: var(--data);
+  stop-opacity: 0;
+}
+
+/* The key to a chart's colours (after Astryx's ChartLegend and ChartSwatch):
+   an 8 by 8 chip for a bar series, a 10 by 3 stroke for a line. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 12px;
+  color: var(--muted);
+  list-style: none;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  flex: none;
+  background: var(--data);
+}
+
+.swatch-square {
+  width: 8px;
+  height: 8px;
+  margin-inline: 1px;
+  border-radius: 2px;
+}
+
+.swatch-line {
+  width: 10px;
+  height: 3px;
+  border-radius: 1.5px;
+}
+
+.legend [data-tone="ok"] .swatch {
+  background: var(--ok);
+}
+
+.legend [data-tone="warn"] .swatch {
+  background: var(--warn);
+}
+
+.legend [data-tone="bad"] .swatch {
+  background: var(--bad);
+}
+
+.legend [data-tone="unknown"] .swatch {
+  background: var(--unknown);
+}
+
+/* --- status strip: one cell per component (overview) ------------------------- */
+
+/* Rebuilt from public status pages, nothing copied: a cell per component with
+   its name and health word under it. The state is carried three ways, so no
+   one depends on colour: the word, the fill (solid, hatched, solid red), and
+   an outline with no fill for a component with no reading (skipped, no result
+   or unknown). */
+.status-summary {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(112px, 100%), 1fr));
+  gap: 10px 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.status-strip li {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status-strip code {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.status-cell {
+  display: block;
+  height: 8px;
+  border: 1.5px solid transparent;
+  border-radius: 4px;
+}
+
+.status-cell[data-health="healthy"] {
+  background: var(--ok);
+}
+
+.status-cell[data-health="degraded"] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--warn) 0 3px,
+    color-mix(in srgb, var(--warn), var(--surface) 55%) 3px 6px
+  );
+}
+
+.status-cell[data-health="unhealthy"] {
+  background: var(--bad);
+}
+
+.status-cell[data-health="unread"] {
+  background: none;
+  border-color: var(--unknown);
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  .status-cell {
+    border-color: CanvasText;
+  }
+}
+
+/* --- a table that folds into cards on a narrow card (CI/CD runs) ------------- */
+
+/* Rebuilt from grouped tables, nothing copied. One row group per workflow,
+   headed by its name and counts. Under 40rem of card each run becomes a small
+   card: every value under its column's name (the cell's data-label, with
+   empty alternative text so it is not read twice), and the header row is
+   hidden visually but still read. */
+.fold {
+  container-type: inline-size;
+}
+
+.group-head th {
+  padding-top: 14px;
+  font-size: 12.5px;
+  color: var(--ink);
+  text-align: start;
+  border-bottom: 1px solid var(--line);
+}
+
+.group-head .sub {
+  font-family: var(--font);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+@container (max-width: 40rem) {
+  .fold table,
+  .fold tbody,
+  .fold tr,
+  .fold th,
+  .fold td {
+    display: block;
+  }
+
+  .fold thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .fold tbody tr:not(.group-head) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 14px;
+    padding: 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .fold td {
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  /* The label takes the place of a state cell's dot (refresh.css), so it
+     resets the dot's box; the state's word, in its colour, stays. */
+  .fold td::before {
+    content: attr(data-label) / "";
+    display: block;
+    width: auto;
+    height: auto;
+    margin: 0 0 2px;
+    border-radius: 0;
+    background: none;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+}
+
+/* --- empty lists and refusals that say why ------------------------------------ */
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 18px 16px;
+  text-align: center;
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+
+.empty p {
+  margin: 0;
+}
+
+.empty-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.empty-why {
+  max-width: 52ch;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.empty-row td {
+  padding: 10px 0;
+  border-bottom: 0;
+}
+
+.next-step {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--muted);
+}

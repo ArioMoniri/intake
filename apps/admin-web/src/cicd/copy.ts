@@ -17,6 +17,18 @@ const tr = {
   yes: "evet",
   no: "hayır",
   none: "yok",
+  groups: { runs: "çalıştırma" },
+  charts: { legend: "Renk: sonuç", trend: "süre eğilimi" },
+  empty: {
+    releases: {
+      title: "Henüz sürüm yok",
+      why: "Yayımlanan her sürüm etiketi burada imza durumuyla listelenir.",
+    },
+    pending: {
+      title: "Bekleyen talep yok",
+      why: "İstenen bir ayar değişikliği, ikinci bir yönetici onaylayana dek burada durur.",
+    },
+  },
   reasons: {
     prometheus_unconfigured: "Prometheus adresi yapılandırılmamış",
     prometheus_misconfigured: "Prometheus adresi geçersiz",
@@ -200,6 +212,18 @@ const en: CicdCopy = {
   yes: "yes",
   no: "no",
   none: "none",
+  groups: { runs: "runs" },
+  charts: { legend: "Colour: conclusion", trend: "duration trend" },
+  empty: {
+    releases: {
+      title: "No release yet",
+      why: "Each published release tag is listed here with its signing state.",
+    },
+    pending: {
+      title: "No pending request",
+      why: "A requested settings change waits here until a second admin approves it.",
+    },
+  },
   reasons: {
     prometheus_unconfigured: "Prometheus URL not configured",
     prometheus_misconfigured: "Prometheus URL invalid",

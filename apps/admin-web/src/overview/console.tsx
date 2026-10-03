@@ -13,8 +13,9 @@ import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
-import { BarList, Gauge, toneOf } from "../ui/charts";
-import { percentOf, sharesOf } from "../ui/figure";
+import { BarList, Gauge, toneOf, type BarRow } from "../ui/charts";
+import { figureOf, percentOf, sharesOf } from "../ui/figure";
+import { NextStep } from "../ui/states";
 import { COPY, type Lang, type OverviewCopy } from "./copy";
 import type { OverviewState } from "./load";
 import type { Age, OverviewView, SloView } from "./module";
@@ -28,6 +29,41 @@ function ageText(value: Age | null, c: C): string | null {
 function Health({ value, c }: { value: string | null; c: C }): ReactElement {
   if (value === null) return <span className="cell-unknown">{c.unknown}</span>;
   return <span data-state={value}>{c.health[value] ?? value}</span>;
+}
+
+/**
+ * INT-459 — each lane's two burn rates on one track with the lane's alert
+ * threshold marked (after Astryx's `referenceLine`). Each lane is scaled to
+ * the larger of its threshold and its rates, so the mark always shows; every
+ * bar is the plain data tone, because the condition is stated as the rule it
+ * is, never toned as good or bad (invariant 20).
+ */
+function BurnChart({ t, c }: { t: SloView; c: C }): ReactElement | null {
+  const rows: BarRow[] = t.lanes.flatMap((lane) => {
+    const factor = figureOf(lane.factor)?.value ?? null;
+    const burns = [lane.longBurn, lane.shortBurn].map((b) => figureOf(b)?.value ?? null);
+    const scale = Math.max(factor ?? 0, ...burns.map((b) => b ?? 0));
+    const name = c.slo.lanes[lane.lane] ?? lane.lane;
+    const windows = [lane.longWindow, lane.shortWindow];
+    return [lane.longBurn, lane.shortBurn].map((text, i) => ({
+      key: `${name} · ${windows[i]}`,
+      text,
+      share: burns[i] === null || scale <= 0 ? null : burns[i]! / scale,
+      tone: "data" as const,
+      mark: factor === null || scale <= 0 ? null : factor / scale,
+      markText: lane.factor,
+    }));
+  });
+  return (
+    <div className="viz">
+      <BarList
+        id={`burn-${t.key}`}
+        title={c.slo.burnChart}
+        rows={rows}
+        c={{ unknown: c.unknown, mark: c.slo.thresholdWord }}
+      />
+    </div>
+  );
 }
 
 function SloTile({ t, c }: { t: SloView; c: C }): ReactElement {
@@ -66,6 +102,7 @@ function SloTile({ t, c }: { t: SloView; c: C }): ReactElement {
           </dd>
         </dl>
       </div>
+      <BurnChart t={t} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -217,10 +254,61 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
   );
 }
 
+const HEALTHS = ["healthy", "degraded", "unhealthy"] as const;
+
+/** A health the strip can fill, or `unread` for any other word (skipped, no
+ * result, unknown): a component with no reading to fill a cell with. */
+function stripHealth(health: string): string {
+  return (HEALTHS as readonly string[]).includes(health) ? health : "unread";
+}
+
+/**
+ * INT-459 — the components at a glance, rebuilt from public status pages
+ * (nothing copied): a count by each health word the table prints (the three
+ * readings first, then any other word in the order it appears), then one cell
+ * per component with its name and word under it. Nominal: counts, never a
+ * verdict. A component with no reading is an outlined cell, never filled and
+ * never counted under a reading's word.
+ */
+function ComponentStrip({
+  rows,
+  c,
+}: {
+  rows: OverviewView["dependencies"]["components"]["rows"];
+  c: C;
+}): ReactElement | null {
+  if (rows.length === 0) return null;
+  const words = [...new Set<string>([...HEALTHS, ...rows.map((r) => r.health)])];
+  const counts = words
+    .map((h) => [h, rows.filter((r) => r.health === h).length] as const)
+    .filter(([, n]) => n > 0);
+  return (
+    <>
+      <p className="status-summary">
+        {counts.map(([h, n]) => `${n} ${c.health[h] ?? h}`).join(" · ")}
+      </p>
+      <ul className="status-strip" aria-label={c.deps.strip}>
+        {rows.map((row) => (
+          <li key={row.component} data-health={stripHealth(row.health)}>
+            <span
+              className="status-cell"
+              data-health={stripHealth(row.health)}
+              aria-hidden="true"
+            />
+            <code>{row.component}</code>
+            <span>{c.health[row.health] ?? row.health}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 function Components({ view, c }: { view: OverviewView; c: C }): ReactElement {
   const s = view.dependencies.components;
   return (
     <Tile id="dep_components" title={c.deps.components} state={s.state} reason={s.reason} c={c}>
+      <ComponentStrip rows={s.rows} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -398,6 +486,7 @@ export function OverviewConsole({
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
+        <NextStep state={state} page="overview" lang={lang} />
       </main>
     );
   }
@@ -408,6 +497,7 @@ export function OverviewConsole({
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
+        <NextStep state={state} page="overview" lang={lang} />
       </main>
     );
   }

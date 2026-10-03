@@ -4,9 +4,10 @@
  *
  * Deliberately minimal: the console's own stylesheet, the INT-450 refresh
  * layer over it, and the INT-459 Apple-native layer last (its tokens for both
- * themes, its shell, its content) — bundled and served from `'self'` (the CSP
- * carries no `unsafe-inline`, so no `style` attribute is used anywhere), no
- * client component, no third-party script, font or frame.
+ * themes, its shell, its content, the patterns its follow-up mined) — bundled
+ * and served from `'self'` (the CSP carries no `unsafe-inline`, so no `style`
+ * attribute is used anywhere), no client component, no third-party script,
+ * font or frame.
  */
 import type { Metadata, Viewport } from "next";
 import type { ReactElement, ReactNode } from "react";
@@ -16,6 +17,7 @@ import "./refresh.css";
 import "./native-tokens.css";
 import "./native-shell.css";
 import "./native-content.css";
+import "./native-patterns.css";
 
 export const metadata: Metadata = {
   title: "INTAKE admin",

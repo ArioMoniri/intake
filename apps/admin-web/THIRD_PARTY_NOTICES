@@ -1,16 +1,19 @@
-apps/admin-web — third-party notices (INT-450)
+apps/admin-web — third-party notices (INT-450, INT-459)
 
 The admin console adapts design and code from the works below. Nothing is
 installed from them: each was ported into this package's own server-rendered
 markup (src/ui/charts.tsx) and stylesheet (app/refresh.css), because the
 console's CSP admits no inline style and no client script from elsewhere. The
 licence of each was read from its raw LICENSE blob on 3 Oct 2026; the
-retrieval record (URL, sha256, date) is docs/evidence/INT-450.md.
+retrieval record (URL, sha256, date) is docs/evidence/INT-450.md, and for the
+INT-459 follow-up (pinned source commits) docs/evidence/INT-459.md section 9.
 
 -------------------------------------------------------------------------------
 EvilCharts — https://github.com/legions-developer/evilcharts
 Used in: src/ui/charts.tsx, app/refresh.css (bar gradient, hatched pattern,
-grow-in animation, radial budget gauge)
+grow-in animation, radial budget gauge); INT-459: src/ui/charts.tsx `Spark`
+and app/native-patterns.css (the vertical area fade of `GradientPattern` in
+recharts-area-chart.tsx at ecbd6a5d)
 -------------------------------------------------------------------------------
 MIT License
 
@@ -37,7 +40,9 @@ SOFTWARE.
 -------------------------------------------------------------------------------
 beUI (public library) — https://github.com/starc007/ui-components
 Used in: app/refresh.css (segmented navigation rail after `morphing-tabs`,
-status halo after `animated-badge`)
+status halo after `animated-badge`); INT-459: src/ui/states.tsx
+`SkeletonTable` and app/native-patterns.css (`SkeletonRows` in
+components/motion/table/skeleton-rows.tsx at aaf32bef)
 -------------------------------------------------------------------------------
 MIT License
 
@@ -64,7 +69,11 @@ SOFTWARE.
 -------------------------------------------------------------------------------
 Astryx — https://github.com/facebook/astryx
 Used in: app/refresh.css (radius, elevation and duration scales; the
-data-visualisation blues of the neutral theme)
+data-visualisation blues of the neutral theme); INT-459, at c3f64eff:
+app/native-patterns.css and app/native-tokens.css (`Skeleton`: the
+--skeleton token, its pulse timing and its contrast and forced-colour
+fallbacks), src/ui/charts.tsx (`ChartLegend` and `ChartSwatch` as `Legend`,
+`referenceLine` as the bar threshold mark)
 -------------------------------------------------------------------------------
 MIT License
 

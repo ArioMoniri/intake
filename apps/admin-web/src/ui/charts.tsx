@@ -18,8 +18,15 @@
  *
  * Each chart is one `role="img"` with an accessible name that reads the same
  * figures as the table under it; its parts are decorative.
+ *
+ * INT-459 adds a threshold mark on a bar's track (after Astryx's
+ * `referenceLine`), a trend line with an area fade (after EvilCharts'
+ * `GradientPattern`) and a legend (after Astryx's `ChartLegend`). Each is
+ * credited where it is defined, and the notices are in THIRD_PARTY_NOTICES.
  */
 import type { ReactElement } from "react";
+
+import { figureOf } from "./figure";
 
 /** Semantic tones map to the console's state colours; `data` is a plain quantity. */
 export type Tone = "data" | "ok" | "warn" | "bad" | "unknown";
@@ -34,11 +41,18 @@ export interface BarRow {
   tone: Tone;
   /** A stale reading is drawn hatched and named as stale. */
   stale?: boolean;
+  /** INT-459 — where a printed threshold falls on this row's track, as a
+   * share (clamped to the track); `null` or absent draws no mark. */
+  mark?: number | null;
+  /** The threshold exactly as the page prints it, spoken with the figure. */
+  markText?: string | null;
 }
 
 export interface ChartCopy {
   unknown: string;
   stale?: string;
+  /** The word for a row's threshold (`eşik` / `threshold`). */
+  mark?: string;
 }
 
 const TRACK_W = 240;
@@ -52,7 +66,13 @@ function domId(id: string): string {
 
 function spoken(row: BarRow, c: ChartCopy): string {
   const figure = row.text ?? c.unknown;
-  return row.stale && c.stale ? `${row.key} ${figure} (${c.stale})` : `${row.key} ${figure}`;
+  const said = row.stale && c.stale ? `${row.key} ${figure} (${c.stale})` : `${row.key} ${figure}`;
+  return row.markText && c.mark ? `${said} (${c.mark} ${row.markText})` : said;
+}
+
+/** A coordinate as SVG writes it: at most two decimals, no trailing zeros. */
+function coord(value: number): string {
+  return String(Math.round(value * 100) / 100);
 }
 
 function barWidth(share: number): number {
@@ -145,6 +165,22 @@ export function BarList({
                   fill={row.stale ? `url(#${uid}-hatch)` : `url(#${uid}-${row.tone})`}
                 />
               )}
+              {/* A printed threshold, after Astryx's `referenceLine` (MIT, (c) 2026
+                  Meta Platforms, Inc., c3f64eff): a 1-unit dashed rule. Its
+                  SVG text badge is dropped (it sizes text at 6.5 units a
+                  character, which clips Turkish); the figure is spoken in the
+                  image's label and printed in the table instead. */}
+              {row.mark === null || row.mark === undefined ? null : (
+                <line
+                  className="bar-mark"
+                  x1={coord(clampShare(row.mark) * TRACK_W)}
+                  x2={coord(clampShare(row.mark) * TRACK_W)}
+                  y1="0"
+                  y2={TRACK_H}
+                  vectorEffect="non-scaling-stroke"
+                  strokeDasharray="3 2"
+                />
+              )}
             </svg>
             <span className={row.text === null ? "bar-value cell-unknown" : "bar-value"}>
               {row.text ?? c.unknown}
@@ -213,6 +249,163 @@ export function Gauge({
         <span className="gauge-label">{label}</span>
       </span>
     </div>
+  );
+}
+
+function clampShare(share: number): number {
+  return Math.min(1, Math.max(0, share));
+}
+
+// --- INT-459: a trend line and a legend --------------------------------------
+
+export interface SparkPoint {
+  /** The point's id-shaped label (a run number), oldest first. */
+  key: string;
+  /** The figure exactly as the page prints it, or `null` when unknown. */
+  text: string | null;
+}
+
+const SPARK_W = 240;
+const SPARK_H = 40;
+/** Headroom above the largest figure, so the line's stroke is not clipped. */
+const SPARK_TOP = 2;
+
+/** One run of consecutive known points, as SVG coordinates. */
+type Run = { x: number; y: number }[];
+
+function runsOf(values: readonly (number | null)[], max: number): Run[] {
+  const step = values.length > 1 ? SPARK_W / (values.length - 1) : 0;
+  const runs: Run[] = [];
+  let run: Run = [];
+  values.forEach((value, i) => {
+    if (value === null) {
+      if (run.length > 0) runs.push(run);
+      run = [];
+      return;
+    }
+    run.push({ x: i * step, y: SPARK_H - (value / max) * (SPARK_H - SPARK_TOP) });
+  });
+  if (run.length > 0) runs.push(run);
+  return runs;
+}
+
+function lineOf(run: Run): string {
+  return run.map((p, i) => `${i === 0 ? "M" : "L"}${coord(p.x)} ${coord(p.y)}`).join(" ");
+}
+
+function areaOf(run: Run): string {
+  const first = run[0]!;
+  const last = run[run.length - 1]!;
+  return `${lineOf(run)} L${coord(last.x)} ${SPARK_H} L${coord(first.x)} ${SPARK_H} Z`;
+}
+
+/**
+ * A trend over a series of printed figures, oldest first: a line, and under it
+ * an area that fades from the top down.
+ *
+ * Adapted from EvilCharts (MIT, (c) 2026 Gurbinder) — `recharts-area-chart.tsx`
+ * `GradientPattern` at ecbd6a5d: a vertical `linearGradient` from 0.1 opacity
+ * to none. EvilCharts masks a colour gradient through it; here one gradient
+ * carries both, its stops coloured by class (`app/native-content.css`), so no
+ * `style` and no presentation colour reaches the markup.
+ *
+ * The scale starts at zero. An unknown point breaks the line rather than being
+ * drawn through (invariant 17), and a series whose units disagree, or that
+ * has fewer than two known points, draws nothing at all.
+ */
+export function Spark({
+  id,
+  title,
+  points,
+  c,
+}: {
+  id: string;
+  title: string;
+  points: readonly SparkPoint[];
+  c: ChartCopy;
+}): ReactElement | null {
+  const figures = points.map((p) => figureOf(p.text));
+  const known = figures.filter((f): f is NonNullable<typeof f> => f !== null);
+  if (known.length < 2 || new Set(known.map((f) => f.unit)).size !== 1) return null;
+  const max = Math.max(...known.map((f) => f.value));
+  if (!(max > 0)) return null;
+  const uid = domId(id);
+  const runs = runsOf(
+    figures.map((f) => f?.value ?? null),
+    max,
+  );
+  const label = `${title}: ${points.map((p) => `${p.key} ${p.text ?? c.unknown}`).join(", ")}`;
+  return (
+    <div className="chart spark" data-chart={id} role="img" aria-label={label}>
+      <p className="chart-title">{title}</p>
+      <svg
+        className="spark-plot"
+        viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <linearGradient id={`${uid}-fade`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" className="fade-top" />
+            <stop offset="100%" className="fade-bottom" />
+          </linearGradient>
+        </defs>
+        {runs
+          .filter((run) => run.length > 1)
+          .map((run) => (
+            <path
+              key={`a${run[0]!.x}`}
+              className="spark-area"
+              d={areaOf(run)}
+              fill={`url(#${uid}-fade)`}
+            />
+          ))}
+        <path
+          className="spark-line"
+          d={runs.map(lineOf).join(" ")}
+          fill="none"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+}
+
+export interface LegendItem {
+  label: string;
+  tone: Tone;
+  /** A bar series gets a square chip; a line gets a short stroke. */
+  shape: "square" | "line";
+}
+
+/**
+ * The key to a chart's colours: a list, each label beside a swatch.
+ *
+ * Adapted from Astryx (MIT, (c) 2026 Meta Platforms, Inc.) — `ChartLegend`
+ * and `ChartSwatch` at c3f64eff: an 8 × 8 square chip for a bar series and a
+ * 10 × 3 stroke for a line, the swatch hidden from assistive technology and
+ * the list labelled. Its runtime colour becomes a `data-tone` class, and the
+ * list sits outside the chart's image, whose own label already names every
+ * figure.
+ */
+export function Legend({
+  label,
+  items,
+}: {
+  label: string;
+  items: readonly LegendItem[];
+}): ReactElement | null {
+  if (items.length === 0) return null;
+  return (
+    <ul className="legend" aria-label={label}>
+      {items.map((item) => (
+        <li key={`${item.tone}:${item.label}`} data-tone={item.tone}>
+          <span className={`swatch swatch-${item.shape}`} aria-hidden="true" />
+          {item.label}
+        </li>
+      ))}
+    </ul>
   );
 }
 

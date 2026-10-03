@@ -9,7 +9,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { BarList, Gauge, toneOf, type BarRow } from "./charts";
+import { BarList, Gauge, Legend, Spark, toneOf, type BarRow } from "./charts";
 import { figureOf, percentOf, ratioOf, sharesOf } from "./figure";
 
 const NB = " ";
@@ -146,5 +146,135 @@ describe("toneOf", () => {
     expect(toneOf("cancelled")).toBe("warn");
     expect(toneOf("no_result")).toBe("unknown");
     expect(toneOf(null)).toBe("unknown");
+  });
+});
+
+// --- INT-459 follow-up: ports from Astryx (MIT) and EvilCharts (MIT) ----------
+
+describe("BarList threshold mark (after Astryx `referenceLine`)", () => {
+  const marked: BarRow[] = [
+    {
+      key: "fast · 1h",
+      text: `0.60${NB}×`,
+      share: 0.6 / 14.4,
+      tone: "data",
+      mark: 1,
+      markText: `14.4${NB}×`,
+    },
+    { key: "ticket · 3d", text: `0.30${NB}×`, share: 0.3, tone: "data", mark: 1 / 3.4 },
+  ];
+  const cm = { ...c, mark: "threshold" };
+
+  function markedBars(rows: BarRow[]): string {
+    return renderToStaticMarkup(<BarList id="burn" title="Burn" rows={rows} c={cm} />);
+  }
+
+  it("draws one dashed, non-scaling line per row at the threshold's share of the track", () => {
+    const html = markedBars(marked);
+    const lines = [...html.matchAll(/<line class="bar-mark"[^>]*>/g)].map((m) => m[0]);
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain('x1="240"');
+    expect(lines[0]).toContain('x2="240"');
+    expect(lines[0]).toContain('vector-effect="non-scaling-stroke"');
+    expect(lines[0]).toContain('stroke-dasharray="3 2"');
+    expect(lines[1]).toContain(`x1="${(240 / 3.4).toFixed(2)}"`);
+  });
+
+  it("names the threshold in the image's label when it is printed", () => {
+    expect(markedBars(marked)).toContain(
+      `aria-label="Burn: fast · 1h 0.60${NB}× (threshold 14.4${NB}×), ticket · 3d 0.30${NB}×"`,
+    );
+  });
+
+  it("draws no mark without a share, and clamps one outside the track (near-miss)", () => {
+    const html = markedBars([
+      { key: "a", text: "1", share: 0.5, tone: "data", mark: null },
+      { key: "b", text: "1", share: 0.5, tone: "data", mark: 1.7 },
+    ]);
+    expect(html.match(/class="bar-mark"/g)).toHaveLength(1);
+    expect(html).toContain('x1="240"');
+    expect(html).not.toContain("style=");
+  });
+});
+
+describe("Spark: a trend over printed figures (after EvilCharts' area fade)", () => {
+  const points = [
+    { key: "#801", text: `22${NB}min` },
+    { key: "#806", text: `17${NB}min` },
+    { key: "#809", text: null },
+    { key: "#814", text: `23${NB}min` },
+  ];
+
+  function spark(p = points): string {
+    return renderToStaticMarkup(
+      <Spark id="runs-ci" title="ci · duration" points={p} c={{ unknown: "Unknown" }} />,
+    );
+  }
+
+  it("is one named image that reads every point in order, oldest first", () => {
+    const html = spark();
+    expect(html).toMatch(/^<div class="chart spark" data-chart="runs-ci" role="img"/);
+    expect(html).toContain(
+      `aria-label="ci · duration: #801 22${NB}min, #806 17${NB}min, #809 Unknown, #814 23${NB}min"`,
+    );
+  });
+
+  it("draws a line and an area under it, filled by a vertical fade styled by class", () => {
+    const html = spark();
+    expect(html).toMatch(/<linearGradient id="chart-runs-ci-fade"[^>]*x1="0" y1="0" x2="0" y2="1"/);
+    expect(html).toContain('<stop offset="0%" class="fade-top"></stop>');
+    expect(html).toContain('<stop offset="100%" class="fade-bottom"></stop>');
+    expect(html).not.toMatch(/stop-color|stop-opacity/);
+    expect(html.match(/<path class="spark-area"/g)?.length).toBeGreaterThanOrEqual(1);
+    expect(html).toContain('fill="url(#chart-runs-ci-fade)"');
+    expect(html).toMatch(/<path class="spark-line"[^>]*vector-effect="non-scaling-stroke"/);
+  });
+
+  it("breaks the line at an unknown point rather than drawing through it", () => {
+    const line = /<path class="spark-line" d="([^"]+)"/.exec(spark())![1]!;
+    expect(line.match(/M/g)).toHaveLength(2);
+  });
+
+  it("draws nothing with fewer than two known points, or when units disagree (near-miss)", () => {
+    expect(spark(points.slice(0, 1))).toBe("");
+    expect(spark([points[0]!, { key: "#9", text: `9${NB}s` }])).toBe("");
+    expect(spark([points[0]!, { key: "#9", text: null }, { key: "#10", text: null }])).toBe("");
+  });
+
+  it("starts the scale at zero and never writes a style attribute", () => {
+    const html = spark([
+      { key: "a", text: `10${NB}min` },
+      { key: "b", text: `20${NB}min` },
+    ]);
+    const line = /<path class="spark-line" d="([^"]+)"/.exec(html)![1]!;
+    // 240 × 40 box, 2 units of headroom: 20 min reaches the top, 10 min half way.
+    expect(line).toBe("M0 21 L240 2");
+    expect(html).not.toContain("style=");
+  });
+});
+
+describe("Legend (after Astryx `ChartLegend` and `ChartSwatch`)", () => {
+  it("is a labelled list: a hidden swatch, shaped by mark, beside each label", () => {
+    const html = renderToStaticMarkup(
+      <Legend
+        label="Colour: conclusion"
+        items={[
+          { label: "success", tone: "ok", shape: "square" },
+          { label: "failure", tone: "bad", shape: "square" },
+          { label: "trend", tone: "data", shape: "line" },
+        ]}
+      />,
+    );
+    expect(html).toMatch(/^<ul class="legend" aria-label="Colour: conclusion">/);
+    expect(html.match(/<li/g)).toHaveLength(3);
+    expect(html).toContain(
+      '<li data-tone="ok"><span class="swatch swatch-square" aria-hidden="true"></span>success</li>',
+    );
+    expect(html).toContain('<span class="swatch swatch-line" aria-hidden="true"></span>trend');
+    expect(html).not.toContain("style=");
+  });
+
+  it("renders nothing for no items", () => {
+    expect(renderToStaticMarkup(<Legend label="x" items={[]} />)).toBe("");
   });
 });

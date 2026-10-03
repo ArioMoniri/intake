@@ -60,6 +60,8 @@ const tr = {
     lane: "Hat",
     severity: "Önem",
     factor: "Eşik",
+    burnChart: "Yakma oranı ve eşiği",
+    thresholdWord: "eşik",
     long: "Uzun pencere",
     short: "Kısa pencere",
     condition: "Uyarı koşulu",
@@ -102,6 +104,7 @@ const tr = {
     breakers: { closed: "kapalı", half_open: "yarı açık", open: "açık" } as Record<string, string>,
     apiReadiness: "API hazırlık kontrolleri",
     check: "Kontrol",
+    strip: "Bileşen durumu",
   },
   health: {
     healthy: "sağlıklı",
@@ -166,6 +169,8 @@ const en: OverviewCopy = {
     lane: "Lane",
     severity: "Severity",
     factor: "Factor",
+    burnChart: "Burn rate and its threshold",
+    thresholdWord: "threshold",
     long: "Long window",
     short: "Short window",
     condition: "Alert condition",
@@ -207,6 +212,7 @@ const en: OverviewCopy = {
     breakers: { closed: "closed", half_open: "half open", open: "open" },
     apiReadiness: "API readiness checks",
     check: "Check",
+    strip: "Component status",
   },
   health: {
     healthy: "healthy",

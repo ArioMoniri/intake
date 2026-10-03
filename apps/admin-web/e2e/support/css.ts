@@ -9,11 +9,13 @@ import { join } from "node:path";
 
 export const APP = join(__dirname, "..", "..", "app");
 
-/** The INT-459 Apple-native layer: its tokens, its shell, its content. */
+/** The INT-459 Apple-native layer: its tokens, its shell, its content, and the
+ * patterns its follow-up mined from the owner's libraries. */
 export const NATIVE_SHEETS = [
   "native-tokens.css",
   "native-shell.css",
   "native-content.css",
+  "native-patterns.css",
 ] as const;
 
 /** The console's stylesheets, in the order the layout imports them. */

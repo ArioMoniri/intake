@@ -14,6 +14,7 @@ import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable } from "../ops/tiles";
+import { EmptyState, NextStep } from "../ui/states";
 import { COPY, type AccessCopy, type Lang } from "./copy";
 import type { AccessState } from "./load";
 import type { AccessView } from "./module";
@@ -145,7 +146,7 @@ function Offboardings({ view, c }: { view: AccessView; c: C }): ReactElement {
         <h2 id="tile-offboardings">{o.title}</h2>
       </header>
       {view.offboardings.length === 0 ? (
-        <p>{o.none}</p>
+        <EmptyState kind="offboardings" title={o.none} why={o.noneWhy} />
       ) : (
         <ScrollTable>
           <thead>
@@ -196,6 +197,7 @@ export function AccessConsole({ state, lang }: { state: AccessState; lang: Lang 
         <p className="refusal" {...attribute}>
           {text}
         </p>
+        <NextStep state={state} page="access" lang={lang} />
       </main>
     );
   }

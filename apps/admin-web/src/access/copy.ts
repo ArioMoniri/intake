@@ -75,6 +75,7 @@ const tr = {
     pending: "Onay bekleyen",
     failed: "Başarısız",
     none: "Açık kayıt yok.",
+    noneWhy: "Başlatılan bir hesap kapatma, her adımı tamamlanana dek burada izlenir.",
   },
 };
 
@@ -148,6 +149,7 @@ const en: AccessCopy = {
     pending: "Awaiting confirmation",
     failed: "Failed",
     none: "No open record.",
+    noneWhy: "An offboarding that has started is tracked here until every step completes.",
   },
 };
 

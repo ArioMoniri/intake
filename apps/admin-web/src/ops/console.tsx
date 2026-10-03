@@ -14,6 +14,7 @@ import { ClipCharts, GpuCharts, UsageCharts } from "./charts";
 import { COPY, type Copy, type Lang } from "./copy";
 import type { OpsConsoleState } from "./load";
 import type { OpsView } from "./module";
+import { NextStep } from "../ui/states";
 import { ConsoleNav } from "./nav";
 import { Cell, ScrollTable, Tile } from "./tiles";
 
@@ -396,6 +397,7 @@ export function OpsConsole({ state, lang }: { state: OpsConsoleState; lang: Lang
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
+        <NextStep state={state} page="ops" lang={lang} />
       </main>
     );
   }
@@ -406,6 +408,7 @@ export function OpsConsole({ state, lang }: { state: OpsConsoleState; lang: Lang
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
+        <NextStep state={state} page="ops" lang={lang} />
       </main>
     );
   }
