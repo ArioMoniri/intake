@@ -1,0 +1,44 @@
+# INT-421: the admin console's login gate. Caddy sends admin.<host> here, and
+# oauth2-proxy sends only a signed-in Keycloak session through to admin-web.
+#
+# admin-web admits no one by itself: it forwards `Authorization: Bearer <access
+# token>` to the API's /admin routes, and the API's INT-180 gate checks the
+# issuer, the audience (`api`), the mirrored JWKS, the IP allow-list (HB-A16:
+# empty admits nobody), the role matrix, and the second factor the realm's
+# "staff browser" flow requires. This proxy injects that header from the
+# session's own access token. oauth2-proxy removes any incoming Authorization
+# header before it injects its own, so a browser cannot supply one.
+#
+# The values below come from the container's environment (envsubst). The
+# client secret is host-generated and root-only (init.sh). The login URL is
+# public, because the browser follows it. Code redemption and the key set use
+# the internal network, so the proxy needs no egress.
+server:
+  bindAddress: "0.0.0.0:4180"
+upstreamConfig:
+  upstreams:
+    - id: admin-web
+      path: /
+      uri: http://admin-web:3000
+providers:
+  - id: keycloak
+    provider: oidc
+    clientID: admin-web
+    clientSecret: ${INTAKE_ADMIN_WEB_CLIENT_SECRET}
+    code_challenge_method: S256
+    scope: "openid email"
+    loginURL: https://auth.${STAGING_HOSTNAME}/realms/intake/protocol/openid-connect/auth
+    redeemURL: http://keycloak:8080/realms/intake/protocol/openid-connect/token
+    oidcConfig:
+      issuerURL: https://auth.${STAGING_HOSTNAME}/realms/intake
+      skipDiscovery: true
+      jwksURL: http://keycloak:8080/realms/intake/protocol/openid-connect/certs
+      emailClaim: email
+      userIDClaim: sub
+      audienceClaims: [aud]
+injectRequestHeaders:
+  - name: Authorization
+    values:
+      - claimSource:
+          claim: access_token
+          prefix: "Bearer "
