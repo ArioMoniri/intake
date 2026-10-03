@@ -452,6 +452,58 @@ def test_a_synthetic_tenant_with_a_malformed_signature_fails_closed(tmp_path: Pa
         _assert_closed(harness)
 
 
+def test_a_set_citing_a_test_fixture_snapshot_is_not_served_without_the_flag(
+    tmp_path: Path,
+) -> None:
+    """INT-465 round 3: the SENTETİK snapshot prefix is admitted only behind the
+    explicit flag, which ApiSettings.from_env never sets. Near miss: every other
+    fixture-backed test here passes the flag, and the same set serves."""
+    for harness in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=SIGNED,
+        triage_fixture_sources=False,
+    ):
+        _assert_closed(harness)
+
+
+def test_an_on_site_script_naming_112_is_not_served(tmp_path: Path) -> None:
+    """CD-24's ON_SITE 112 check runs over every RED rule at catalog build, not only
+    the generic. Near miss: 112 in the REMOTE script is served (every test above)."""
+
+    def name_112(doc: dict[str, Any]) -> None:
+        doc["rules"][0]["action"]["ON_SITE"]["action_tr"] = {
+            "tr": "Görevlilere haber verin; 112 arayın."
+        }
+
+    for harness in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=_set(tmp_path, name_112),
+    ):
+        _assert_closed(harness)
+
+
+def test_near_miss_112_in_the_remote_script_is_served(tmp_path: Path) -> None:
+    """Near miss for the ON_SITE 112 check: the same words under REMOTE are served."""
+    words = "Görevlilere haber verin; 112 arayın."
+
+    def remote_112(doc: dict[str, Any]) -> None:
+        doc["rules"][0]["action"]["REMOTE"]["action_tr"] = {"tr": words}
+
+    for harness in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=_set(tmp_path, remote_112),
+    ):
+        response = harness.client.get("/v1/triage/red-scripts", headers=harness.patient())
+        assert response.status_code == 200, response.text
+        assert response.json()["scripts"]["rf.sentetik_yasamsal.remote"]["actionTr"] == words
+
+
 def test_a_synthetic_tenant_refuses_a_changed_byte(tmp_path: Path) -> None:
     tampered = tmp_path / "base.life_threat.yaml"
     tampered.write_bytes(LIFE_THREAT.read_bytes() + b"\n")

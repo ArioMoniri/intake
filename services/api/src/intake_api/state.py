@@ -174,6 +174,7 @@ class ApiState:
                     kind=self.settings.triage_tenant_kind,
                     deployment=self.settings.triage_deployment,
                 ),
+                allow_fixture_snapshots=self.settings.triage_fixture_sources,
             )
             self._red_rules_loaded = True
         return self._red_rules

@@ -72,6 +72,7 @@ __all__ = [
     "generic_red_refusals",
     "generic_red_strings",
     "load_generic_red",
+    "on_site_112_problem",
 ]
 
 #: The clinical-decisions register row that owns the copy and the register policy.
@@ -213,13 +214,22 @@ def _check_entries(scripts: Mapping[RedLocation, GenericRedScript], action: RedF
             raise ValueError(f"no source supports the {location} field(s) {sorted(missing)}")
 
 
-def _check_no_112_on_site(action: RedFlagAction) -> None:
-    """CD-24 ``generic_red_on_site_has_no_112_anywhere``: the text is a carrier too."""
+def on_site_112_problem(action: RedFlagAction) -> str | None:
+    """CD-24 ``generic_red_on_site_has_no_112_anywhere``, for any RED action: the ON_SITE
+    text is a carrier too, as digits or as "yüz on iki", and so is the UNKNOWN question,
+    which is asked before any 112. The catalog build runs it over every RED rule."""
     for field, texts in _texts(action.on_site).items():
         if any(_TWELVE.search(text) for text in texts):
-            raise ValueError(f"the ON_SITE {field} names 112 (CLAUDE.md invariant 21; CD-24)")
+            return f"the ON_SITE {field} names 112 (CLAUDE.md invariant 21; CD-24)"
     if any(_TWELVE.search(text) for text in action.unknown.ask_one_tr.values()):
-        raise ValueError("the UNKNOWN question names 112: it is asked before any 112 (CD-24)")
+        return "the UNKNOWN question names 112: it is asked before any 112 (CD-24)"
+    return None
+
+
+def _check_no_112_on_site(action: RedFlagAction) -> None:
+    problem = on_site_112_problem(action)
+    if problem is not None:
+        raise ValueError(problem)
 
 
 def _check_snapshots(copy: GenericRedCopy, repo_root: Path) -> None:
@@ -237,6 +247,7 @@ def _check_snapshots(copy: GenericRedCopy, repo_root: Path) -> None:
                 quote=source.quote,
                 url=source.url,
                 retrieved_on=source.retrieved_on,
+                version_or_date=source.version_or_date,
                 repo_root=repo_root,
             )
             if problem is not None:

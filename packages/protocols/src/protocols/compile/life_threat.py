@@ -362,7 +362,9 @@ def _split_rule(raw: object, index: int) -> dict[str, Any]:
     return annotations
 
 
-def load_life_threat_set(path: Path, *, data: bytes | None = None) -> LifeThreatSet:
+def load_life_threat_set(
+    path: Path, *, data: bytes | None = None, allow_fixture_snapshots: bool = False
+) -> LifeThreatSet:
     """Load and schema-validate the ``kind: life_threat_set`` document.
 
     A chain pack is refused here for the same reason ``load_pack`` refuses a
@@ -372,6 +374,9 @@ def load_life_threat_set(path: Path, *, data: bytes | None = None) -> LifeThreat
     ``data`` (INT-465) parses bytes the caller already holds instead of
     reading ``path`` again, so a signature checked over those bytes covers
     exactly what is parsed; ``path`` then names the document in errors only.
+
+    ``allow_fixture_snapshots`` (INT-465) admits a source citing a snapshot under
+    tests/fixtures. Only tests and SENTETİK sets pass it; a served set never does.
     """
     try:
         text = path.read_text(encoding="utf-8") if data is None else data.decode("utf-8")
@@ -406,11 +411,13 @@ def load_life_threat_set(path: Path, *, data: bytes | None = None) -> LifeThreat
         loaded = LifeThreatSet.model_validate(payload)
     except ValidationError as exc:
         raise LifeThreatSetError(f"{path}: {exc}") from exc
-    _check_sources_against_snapshots(path, loaded)
+    _check_sources_against_snapshots(path, loaded, allow_fixture_snapshots)
     return loaded
 
 
-def _check_sources_against_snapshots(path: Path, life_threat: LifeThreatSet) -> None:
+def _check_sources_against_snapshots(
+    path: Path, life_threat: LifeThreatSet, allow_fixture_snapshots: bool
+) -> None:
     """INT-465: every cited snapshot agrees with its source block, and every
     ``active`` rule cites one (CLAUDE.md clinical content rules: "against a
     committed verbatim snapshot"). A draft rule may not have one yet: it says
@@ -430,6 +437,8 @@ def _check_sources_against_snapshots(path: Path, life_threat: LifeThreatSet) -> 
             quote=source.quote,
             url=source.url,
             retrieved_on=source.retrieved_on,
+            version_or_date=source.version_or_date,
+            allow_fixture_snapshots=allow_fixture_snapshots,
         )
         if problem is not None:
             raise LifeThreatSetError(f"{path}: {rule.id}: {problem}")

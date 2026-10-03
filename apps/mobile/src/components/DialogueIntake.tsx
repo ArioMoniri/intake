@@ -680,17 +680,20 @@ export function DialogueIntake({
           {/* INT-446: a SILENT RED, where the next turn would be. */}
           <RedInFlow />
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("voiceFirst.typeInstead")}
-            accessibilityHint={t("a11y.dialogue.exitHint")}
-            hitSlop={verticalSlop(18)}
-            onPress={() => void exitToSteps()}
-          >
-            <AppText role="caption" color="inkFaint">
-              {t("voiceFirst.typeInstead")}
-            </AppText>
-          </Pressable>
+          {/* INT-465: no way back into the steps while a RED stands. */}
+          {!stopsDialogue ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("voiceFirst.typeInstead")}
+              accessibilityHint={t("a11y.dialogue.exitHint")}
+              hitSlop={verticalSlop(18)}
+              onPress={() => void exitToSteps()}
+            >
+              <AppText role="caption" color="inkFaint">
+                {t("voiceFirst.typeInstead")}
+              </AppText>
+            </Pressable>
+          ) : null}
         </ScrollView>
 
         <View
@@ -734,72 +737,75 @@ export function DialogueIntake({
               ) : null}
             </ScrollView>
             {/* The persistent composer: typing is always available — voice
-              and text are one conversation, never two modes. */}
-            <View style={styles.composerRow}>
-              <View style={styles.composerFieldWrap}>
-                <TextInput
-                  accessibilityLabel={t("dialogue.typeThisStep")}
-                  accessibilityHint={t("a11y.dialogue.composerHint")}
-                  // The field applies scaledSize itself, so the OS multiplier
-                  // must be off or the patient's 200 % setting becomes 400 %
-                  // and the composer truncates (SC 1.4.4).
-                  allowFontScaling={false}
-                  value={draft}
-                  onChangeText={setDraft}
-                  returnKeyType="send"
-                  onSubmitEditing={send}
-                  style={[
-                    styles.composerField,
+              and text are one conversation, never two modes — until a RED
+              stands (INT-465): then nothing more is committed. */}
+            {!stopsDialogue ? (
+              <View style={styles.composerRow}>
+                <View style={styles.composerFieldWrap}>
+                  <TextInput
+                    accessibilityLabel={t("dialogue.typeThisStep")}
+                    accessibilityHint={t("a11y.dialogue.composerHint")}
+                    // The field applies scaledSize itself, so the OS multiplier
+                    // must be off or the patient's 200 % setting becomes 400 %
+                    // and the composer truncates (SC 1.4.4).
+                    allowFontScaling={false}
+                    value={draft}
+                    onChangeText={setDraft}
+                    returnKeyType="send"
+                    onSubmitEditing={send}
+                    style={[
+                      styles.composerField,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: dark ? "transparent" : theme.border,
+                        color: theme.ink,
+                        fontSize: scaledSize("body", fontScale),
+                      },
+                    ]}
+                  />
+                  {draft.length === 0 ? (
+                    // The field's own hint prop is a banned filler token in the
+                    // app source (invariant 17 scan) — an overlaid caption
+                    // carries the affordance instead.
+                    <View
+                      pointerEvents="none"
+                      // The field already carries this text as its name; read
+                      // again as a sibling it says the same thing twice.
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      style={styles.composerHintWrap}
+                    >
+                      <AppText role="body" color="inkFaint">
+                        {t("dialogue.typeThisStep")}
+                      </AppText>
+                    </View>
+                  ) : null}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("dialogue.send")}
+                  // Icon-only, so the disabled state has no visible word either:
+                  // the disabled opacity is the sighted half and this is the other.
+                  accessibilityState={{ disabled: draft.trim().length === 0 }}
+                  disabled={draft.trim().length === 0}
+                  onPress={send}
+                  style={({ pressed }) => [
+                    styles.sendButton,
                     {
-                      backgroundColor: theme.surface,
-                      borderColor: dark ? "transparent" : theme.border,
-                      color: theme.ink,
-                      fontSize: scaledSize("body", fontScale),
+                      backgroundColor: theme.cta,
+                      opacity:
+                        draft.trim().length === 0
+                          ? motion.press.disabledOpacity
+                          : pressed
+                            ? motion.press.opacity
+                            : 1,
                     },
                   ]}
-                />
-                {draft.length === 0 ? (
-                  // The field's own hint prop is a banned filler token in the
-                  // app source (invariant 17 scan) — an overlaid caption
-                  // carries the affordance instead.
-                  <View
-                    pointerEvents="none"
-                    // The field already carries this text as its name; read
-                    // again as a sibling it says the same thing twice.
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                    style={styles.composerHintWrap}
-                  >
-                    <AppText role="body" color="inkFaint">
-                      {t("dialogue.typeThisStep")}
-                    </AppText>
-                  </View>
-                ) : null}
+                >
+                  <Icon name="arrow.up" size={17} tintColor={theme.onCta} />
+                </Pressable>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("dialogue.send")}
-                // Icon-only, so the disabled state has no visible word either:
-                // the disabled opacity is the sighted half and this is the other.
-                accessibilityState={{ disabled: draft.trim().length === 0 }}
-                disabled={draft.trim().length === 0}
-                onPress={send}
-                style={({ pressed }) => [
-                  styles.sendButton,
-                  {
-                    backgroundColor: theme.cta,
-                    opacity:
-                      draft.trim().length === 0
-                        ? motion.press.disabledOpacity
-                        : pressed
-                          ? motion.press.opacity
-                          : 1,
-                  },
-                ]}
-              >
-                <Icon name="arrow.up" size={17} tintColor={theme.onCta} />
-              </Pressable>
-            </View>
+            ) : null}
           </GlassBar>
         </View>
       </View>

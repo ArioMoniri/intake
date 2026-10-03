@@ -58,6 +58,7 @@ from protocols.generic_red import (
     GenericRedError,
     generic_red_refusals,
     load_generic_red,
+    on_site_112_problem,
 )
 from protocols.red_render import RedRenderError, render_red_text
 from protocols.types import RuleStatus
@@ -104,7 +105,7 @@ class QuestionOut(BaseModel):
     askTr: str  # noqa: N815
     onYes: Literal["ON_SITE", "REMOTE"]  # noqa: N815
     onNo: Literal["ON_SITE", "REMOTE"]  # noqa: N815
-    onNoAnswer: Literal["ON_SITE", "REMOTE"]  # noqa: N815
+    onNoAnswer: Literal["REMOTE"]  # noqa: N815 — never ON_SITE (INT-465; files/04 §8.1 rule 7)
 
 
 class CatalogOut(BaseModel):
@@ -180,6 +181,9 @@ def _catalog(
             continue
         if rule.register is None or rule.action is None:
             raise _Unservable("a RED rule without register or action block")
+        # INT-465: CD-24's ON_SITE 112 check, over every RED rule, not only the generic.
+        if on_site_112_problem(rule.action) is not None:
+            raise _Unservable("an ON_SITE script names 112 (invariant 21)")
         scripts[script_id(rule.id, RedLocation.REMOTE)] = _script(rule.action.remote, tenant)
         # A pack that authorises 112 under ON_SITE never loads (the DSL refuses
         # it), and the device clamps it again in resolveRed (invariant 21).
@@ -244,6 +248,7 @@ def load_served_red_rules(
     signature_path: Path | None = None,
     tenant: TenantRedConfig | None = None,
     trust_registry_path: Path = COMMITTED_TRUST_REGISTRY,
+    allow_fixture_snapshots: bool = False,
 ) -> ServedRedRules | None:
     """The served rule set at ``path``, or None (the routes answer 503).
 
@@ -253,7 +258,9 @@ def load_served_red_rules(
     so with it absent or draft nothing is served at all.
 
     INT-465: ``tenant`` decides the interlock (module docstring). It defaults to
-    a real tenant, which never trusts the test key.
+    a real tenant, which never trusts the test key. ``allow_fixture_snapshots``
+    admits a set citing a tests/fixtures snapshot; ApiSettings.from_env never sets
+    it, so only the test harness can.
     """
     if path is None or generic_path is None:
         return None
@@ -266,7 +273,9 @@ def load_served_red_rules(
         generic = load_generic_red(generic_path, data=generic_raw)
         if generic_red_refusals(generic):
             raise _Unservable("the generic RED copy is not servable (CD-24)")
-        life_threat = load_life_threat_set(path, data=raw)
+        life_threat = load_life_threat_set(
+            path, data=raw, allow_fixture_snapshots=allow_fixture_snapshots
+        )
         rules = _served_rules(
             life_threat, raw, generic_raw, served_for, signature_path, trust_registry_path
         )

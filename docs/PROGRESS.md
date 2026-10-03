@@ -23,9 +23,24 @@
   - Host: key `redset-synthetic-test` v1 (ed25519, exportable false); envelope verified for synthetic, refused for real.
   - Review round (clinical and security reviewer agents): every block's `supports` now matches CD-24, so the generic RED was re-signed (`3bbd3fdd…`). Also fixed: both-order mixed-register goldens with the silent clinic notice, HB-C12b-independent near misses, the G10 tripwire, an explicit `INTAKE_ENV`, read-once parsing, an existing-key check, token renewal before signing, logged refusals, threat-model rows, and malformed-envelope tests.
   - Review round 2 (coordinator, CHANGES REQUIRED): the cardiac why lines were rewritten through **CD-25** (D18, agent author, verifier agreed; HB-C12b stays open); the source fields were fixed and snapshot checks added to `load_life_threat_set`; the device gained a no-answer path (unsigned 30 s wait, Essential-Exception time limit); the generic is never wordless (decoder, store and session refuse); intake stops for `protocol_next` and on the device; the signature is bound to the host; RED clip rows refuse digits. Re-signed once (`c33a737f…`).
+  - Review round 3 (orchestrator, REQUEST_CHANGES), all fixed test-first with near misses:
+    - no question or commit control in any lane while a RED stands, and the navigator is hidden
+      from assistive technology under the root RED layer;
+    - `on_no_answer` is REMOTE only (DSL, API and device decoder);
+    - the generic copy is in the PolicyGuard sweep;
+    - `version_or_date` is checked against the snapshot;
+    - fixture snapshots sit behind an explicit flag;
+    - ON_SITE 112 is checked over every RED rule;
+    - LiveKit RED goes through the RED store;
+    - REMOTE shows 112 as selectable text;
+    - HB-C25 (the unsigned no-answer wait) was added;
+    - a late location answer after the wait is honoured (LD-05, INT-471 #800), and BK13
+      cites it.
+    Recorded, not built: the hop notifies no clinic (INT-406 added to `depends_on`), and the
+    cardiac do-not lines are unsourced. Rule bytes are unchanged, so there was no re-sign.
 - Invariants touched and still passing: 1, 2, 7, 10, 14, 17, 21, 22.
 - Decisions / ADRs / `00_STATE.md` rows: CD-25 (decision register); D23 (owner, 3 Oct 2026, read with D18). D17 and HB-C1 are unchanged, and INT-058 (cosign) is untouched.
-- Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).
+- Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b, HB-C25). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).
 - Next: PR `INT-465: …` (Closes #794, Sec-Row triage), stacked on #773; a protocol CODEOWNER review is required. Do not merge and do not deploy.
 - LOOP_STATUS: DONE
 

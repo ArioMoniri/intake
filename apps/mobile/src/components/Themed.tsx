@@ -183,6 +183,8 @@ interface AppTextProps {
    * element's own name all say the same thing.
    */
   spokenAs?: string;
+  /** The line can be selected and copied (INT-465: the 112 number, files/02 §5.3). */
+  selectable?: boolean;
   children: ReactNode;
 }
 
@@ -193,6 +195,7 @@ export function AppText({
   heading = false,
   live,
   spokenAs,
+  selectable = false,
   children,
 }: AppTextProps) {
   const theme = useTheme();
@@ -220,6 +223,7 @@ export function AppText({
       accessibilityLiveRegion={live}
       accessibilityLabel={spokenAs}
       accessibilityLanguage={SPEECH_LANGUAGE[getLocale()]}
+      selectable={selectable}
       style={flat}
     >
       {children}

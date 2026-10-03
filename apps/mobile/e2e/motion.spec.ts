@@ -49,6 +49,7 @@ import {
   arrowBody,
   firstPaintViolations,
   isRedSurface,
+  propertyArrowBody,
   specifiers,
 } from "./redSurface";
 
@@ -672,21 +673,30 @@ describe("MOTION-4 — the RED path paints first, with no motion", () => {
     ]) {
       expect(WAITS.test(shape), shape).toBe(true);
     }
-    expect(WAITS.test('const p = resolveRed(t, c);\nemit({ type: "red", presentation: p });')).toBe(
-      false,
-    );
+    expect(
+      WAITS.test('deps.redStore.present(t, deps.red);\nemit({ type: "red", trigger: t });'),
+    ).toBe(false);
 
-    // The data-channel handler decodes, resolves and emits in one synchronous
+    // The data-channel handler decodes, hands the trigger to the one RED store
+    // (INT-465: the same store the HTTP hop feeds) and emits, in one synchronous
     // pass: it waits on nothing and calls no media, haptic, route or arbiter.
     const session = file("src/lib/livekit/session.ts");
     const handler = arrowBody(session, "handleData");
     expect(handler, "handleData in src/lib/livekit/session.ts").not.toBeNull();
     expect(handler!).toMatch(/\bdecodeRedTrigger\(/);
-    expect(handler!).toMatch(/\bresolveRed\(/);
+    expect(handler!).toMatch(/\bdeps\s*\.\s*redStore\s*\.\s*present\(/);
     expect(handler!).toMatch(/\bemit\(\s*\{\s*type:\s*"red"/);
     expect(WAITS.test(handler!)).toBe(false);
-    expect(handler!).not.toMatch(/\badapter\s*\.|\bdeps\s*\.\s*(?!redScripts\b)\w+\s*\(/);
+    expect(handler!).not.toMatch(/\badapter\s*\.|\bdeps\s*\.\s*(?!redStore\b)\w+\s*\(/);
     expect(handler!).not.toMatch(/\b(?:arbitrate|hapticFor|router|navigation)\b/);
+
+    // The store's present is the same kind of pass: it records the trigger and
+    // notifies, waiting on nothing; redScreen resolves the script at render.
+    const present = propertyArrowBody(file("src/lib/red/store.ts"), "present");
+    expect(present, "present in src/lib/red/store.ts").not.toBeNull();
+    expect(WAITS.test(present!)).toBe(false);
+    expect(present!).not.toMatch(/\b(?:arbitrate|hapticFor|router|navigation)\b/);
+    expect(code(file("src/lib/red/store.ts"))).toMatch(/\bresolveRed\(/);
 
     // The motion contract that sizes the first paint imports nothing that
     // could make it wait: only the RED types.

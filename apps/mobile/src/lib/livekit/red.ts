@@ -167,12 +167,15 @@ export function genericRedCopy(catalog: RedScriptCatalog): GenericRedCopy | null
  * (INT-453; CD-24): never nothing, and never wordless.
  * - Register: the trigger's own, which is the engine result's (CD-24
  *   carry_engine_register), never a fixed ALERT.
- * - Location: the trigger's own, so ON_SITE carries no 112. UNKNOWN carries the
- *   no-answer branch's script (REMOTE, files/04 §8.1 rule 7), and the location
- *   question still comes first: `redAffordances` mounts no 112 before the answer.
- * - Words: CD-24's generic copy.
+ * - Location: a known one only. Under UNKNOWN the location question comes first
+ *   and carries no script (ask-first, files/04 §8.1 rule 7); the RED store
+ *   resolves the answer before it asks for a presentation (INT-465).
+ * - Words: CD-24's generic copy. ON_SITE carries no 112.
  */
-export function genericRed(trigger: RedTrigger, copy: GenericRedCopy): RedPresentation {
+export function genericRed(
+  trigger: RedTrigger & { readonly location: Exclude<RedLocation, "UNKNOWN"> },
+  copy: GenericRedCopy,
+): RedPresentation {
   const script = trigger.location === "ON_SITE" ? copy.ON_SITE : copy.REMOTE;
   return {
     ruleId: trigger.ruleId,

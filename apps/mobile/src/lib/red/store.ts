@@ -55,7 +55,8 @@ import {
  * question timeout. CD-24 `fail_closed_while_draft` allows the device a wait in
  * the meantime only if it is recorded as unsigned, and fixes that on expiry the
  * branch is always REMOTE, never silence. It is recorded in
- * docs/evidence/INT-465.md. A physician decides the value before any real patient.
+ * docs/evidence/INT-465.md. HUMAN_BLOCKERS HB-C25: the physician of record decides
+ * the value before any real patient.
  */
 export const UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS = 30_000;
 
@@ -67,11 +68,16 @@ export class RedCatalogIncomplete extends Error {
   }
 }
 
+/** Whether a catalog can say CD-24's generic RED: both scripts with words, and its question. */
+export function catalogSaysGenericRed(catalog: PrePositionedRed): boolean {
+  return (
+    genericRedCopy(catalog.scripts) !== null &&
+    catalog.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN] !== undefined
+  );
+}
+
 function assertGenericCopy(catalog: PrePositionedRed): void {
-  if (
-    genericRedCopy(catalog.scripts) === null ||
-    catalog.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN] === undefined
-  ) {
+  if (!catalogSaysGenericRed(catalog)) {
     throw new RedCatalogIncomplete();
   }
 }
@@ -97,10 +103,9 @@ export type RedScreen =
       readonly motion: RedMotion;
     }
   /**
-   * The action, verbatim from the rule's `tr`. A generic RED (INT-453) is the
-   * one case that can still be UNKNOWN: there is no question copy to ask, so
-   * no location action — and no 112 — is offered. Its `actionTr` is empty
-   * until a signed generic script is on the device.
+   * The action, verbatim from the rule's `tr`, or CD-24's generic copy when the
+   * rule's own script is not on the device (INT-453). Always at a known
+   * location: under UNKNOWN the question comes first. Never wordless (INT-465).
    */
   | {
       readonly kind: "act";
@@ -112,10 +117,21 @@ export type RedScreen =
       readonly whyTr: string | null;
       /** Mounted only when the location allows it; never under ON_SITE. */
       readonly call112: boolean;
+      /**
+       * The location question, still open after the unsigned wait took the
+       * no-answer branch, or null (INT-465; LD-05, INT-471 #800). The patient's own
+       * answer, given late, still moves the RED to the answered location, which is
+       * what keeps the wait a WCAG 2.2.1 Essential Exception. Shown after the action
+       * and the 112 control, never in front of them: it never delays 112.
+       */
+      readonly lateAskTr: string | null;
       readonly motion: RedMotion;
     };
 
 const NONE: RedScreen = { kind: "none" };
+
+/** The single national emergency number (files/04 §4.1). Data, not copy. */
+export const EMERGENCY_NUMBER = "112";
 
 /** The screen for one RED state. Pure. */
 export function redScreen(state: RedState | null): RedScreen {
@@ -129,6 +145,7 @@ export function redScreen(state: RedState | null): RedScreen {
   }
   let located: Exclude<RedLocation, "UNKNOWN">;
   let scriptId: string;
+  let lateAskTr: string | null = null;
   if (trigger.location === "UNKNOWN") {
     const question = catalog.questions[trigger.scriptId];
     if (question === undefined) {
@@ -147,13 +164,17 @@ export function redScreen(state: RedState | null): RedScreen {
     // The rule's own branch targets decide where each answer goes.
     located = branchFor(question, answer);
     scriptId = scriptIdFor(trigger.ruleId, located);
+    lateAskTr = answer === "noAnswer" ? question.askTr : null;
   } else {
     located = trigger.location;
     scriptId = trigger.scriptId;
   }
   const presentation = resolveRed({ ...trigger, location: located, scriptId }, catalog.scripts);
   if (presentation === null) {
-    return genericScreen({ ...trigger, location: located }, catalog, answer);
+    return withLateQuestion(
+      genericScreen({ ...trigger, location: located }, catalog, answer),
+      lateAskTr,
+    );
   }
   return {
     kind: "act",
@@ -164,8 +185,18 @@ export function redScreen(state: RedState | null): RedScreen {
     doNotsTr: presentation.script.doNotsTr,
     whyTr: presentation.script.whyTr,
     call112: redAffordances(presentation, answer).call112,
+    lateAskTr,
     motion: RED_MOTION,
   };
+}
+
+/**
+ * A rule whose own question was asked but whose located script is not on the
+ * device falls back to the generic copy at a KNOWN location; the question that
+ * stays open after a no-answer is still the rule's own.
+ */
+function withLateQuestion(screen: RedScreen, lateAskTr: string | null): RedScreen {
+  return screen.kind === "act" && lateAskTr !== null ? { ...screen, lateAskTr } : screen;
 }
 
 /** The branch the rule's own question takes for this answer (files/04 §8.1 rule 7). */
@@ -206,6 +237,7 @@ function genericScreen(
     throw new RedCatalogIncomplete();
   }
   let location: Exclude<RedLocation, "UNKNOWN">;
+  let lateAskTr: string | null = null;
   if (trigger.location === "UNKNOWN") {
     const question = catalog.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN];
     if (question === undefined) {
@@ -222,6 +254,7 @@ function genericScreen(
       };
     }
     location = branchFor(question, answer);
+    lateAskTr = answer === "noAnswer" ? question.askTr : null;
   } else {
     location = trigger.location;
   }
@@ -235,6 +268,7 @@ function genericScreen(
     doNotsTr: presentation.script.doNotsTr,
     whyTr: presentation.script.whyTr,
     call112: redAffordances(presentation, answer).call112,
+    lateAskTr,
     motion: RED_MOTION,
   };
 }
@@ -256,7 +290,11 @@ export interface RedStore {
   subscribe: (listener: () => void) => () => void;
   /** A rules-engine trigger arrived. Escalation only (see the header). */
   present: (trigger: RedTrigger, catalog: PrePositionedRed, elapsedMs?: number | null) => void;
-  /** The patient answered the one location question, or it went unanswered (`noAnswer`). */
+  /**
+   * The patient answered the one location question, or it went unanswered
+   * (`noAnswer`). After `noAnswer` the patient may still answer, and that answer
+   * moves the RED (LD-05); the patient's own answer is final.
+   */
   answerLocation: (answer: Exclude<LocationAnswer, "unanswered">) => void;
 }
 
@@ -291,13 +329,50 @@ export function createRedStore(): RedStore {
       emit();
     },
     answerLocation: (answer) => {
-      if (state === null || state.trigger.location !== "UNKNOWN" || state.answer !== "unanswered") {
-        return; // one question, answered once
+      if (
+        state === null ||
+        state.trigger.location !== "UNKNOWN" ||
+        !acceptsLocationAnswer(state.answer, answer)
+      ) {
+        return; // one question, answered once by the patient
       }
       state = { ...state, answer };
       emit();
     },
   };
+}
+
+/**
+ * Whether the one location question takes this answer now (INT-465; LD-05,
+ * INT-471 #800). An unanswered question takes any answer. After the unsigned
+ * wait took the no-answer branch, the patient's own answer still lands — the
+ * wait decides only what shows while the patient has not answered, never what
+ * their answer is. The patient's answer is final, and a second expiry is not an
+ * answer.
+ */
+export function acceptsLocationAnswer(
+  current: LocationAnswer,
+  next: Exclude<LocationAnswer, "unanswered">,
+): boolean {
+  if (current === "unanswered") {
+    return true;
+  }
+  return current === "noAnswer" && next !== "noAnswer";
+}
+
+/**
+ * Whether the intake may still ask or commit a question (INT-465; CD-24
+ * `generic_red_stops_intake`). False while a RED the patient sees stands, in
+ * every lane: the typed steps, their commit controls and the dialogue's
+ * composer all go. A clinician-only RED leaves the intake live.
+ */
+export function intakeLive(state: RedState | null): boolean {
+  return !redStopsDialogue(state);
+}
+
+/** Whether the root RED layer covers the navigator (ALERT and CALM), for assistive technology. */
+export function redCoversNavigator(screen: RedScreen): boolean {
+  return (screen.kind === "ask" || screen.kind === "act") && screen.mode === "rootLayer";
 }
 
 /**

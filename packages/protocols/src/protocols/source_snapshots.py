@@ -14,7 +14,15 @@ prints. This module is the one check, used by the life-threat loader
 - the quote appears verbatim in the body (NFC and whitespace runs only, as in the
   clinical decisions register);
 - the url is the header's ``url`` or its ``url_annex``;
-- ``retrieved_on`` is the header's ``retrieved_on``.
+- ``retrieved_on`` is the header's ``retrieved_on``;
+- ``version_or_date`` names the same Resmî Gazete issue as the header (the first
+  ``RG <date> sayı|s. <number>``, "s." being the abbreviation of "sayı"; anything
+  after it is commentary), or, where the header names no RG issue, is the header's
+  value word for word.
+
+The ``tests/fixtures/protocols/sources/`` prefix is admitted only when the caller
+passes the explicit ``allow_fixture_snapshots`` flag, which only tests and SENTETİK
+sets pass. A served set therefore cannot cite a test snapshot.
 
 A snapshot is the record of what was retrieved, so a source block that disagrees with
 it is refused rather than repaired.
@@ -22,6 +30,7 @@ it is refused rather than repaired.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from pathlib import Path
 
@@ -32,11 +41,30 @@ from protocols.clinical_decisions import (
     snapshot_header,
 )
 
-__all__ = ["SNAPSHOT_PREFIXES", "REPO_ROOT", "source_snapshot_problem"]
+__all__ = [
+    "FIXTURE_SNAPSHOT_PREFIX",
+    "REPO_ROOT",
+    "SNAPSHOT_PREFIX",
+    "SNAPSHOT_PREFIXES",
+    "source_snapshot_problem",
+]
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-#: Where a committed snapshot may live. The second is for SENTETİK test sets only.
-SNAPSHOT_PREFIXES = ("packages/protocols/sources/", "tests/fixtures/protocols/sources/")
+#: Where a committed snapshot may live.
+SNAPSHOT_PREFIX = "packages/protocols/sources/"
+#: SENTETİK test sets only, behind the explicit flag.
+FIXTURE_SNAPSHOT_PREFIX = "tests/fixtures/protocols/sources/"
+SNAPSHOT_PREFIXES = (SNAPSHOT_PREFIX, FIXTURE_SNAPSHOT_PREFIX)
+_RG_ISSUE = re.compile(r"RG\s+(\d{1,2}/\d{1,2}/\d{4})\s+(?:sayı|s\.)\s*(\d+)")
+
+
+def _same_issue(cited: str, recorded: str) -> bool:
+    """Do two version strings name the same RG issue (or match word for word)?"""
+    recorded_issue = _RG_ISSUE.search(recorded)
+    if recorded_issue is None:
+        return " ".join(cited.split()) == " ".join(recorded.split())
+    cited_issue = _RG_ISSUE.search(cited)
+    return cited_issue is not None and cited_issue.groups() == recorded_issue.groups()
 
 
 def source_snapshot_problem(
@@ -46,11 +74,14 @@ def source_snapshot_problem(
     quote: str,
     url: str,
     retrieved_on: date,
+    version_or_date: str,
     repo_root: Path | None = None,
+    allow_fixture_snapshots: bool = False,
 ) -> str | None:
     """Why this source disagrees with its snapshot, or ``None`` when it agrees."""
-    if not quote_snapshot.startswith(SNAPSHOT_PREFIXES) or ".." in quote_snapshot:
-        return f"snapshot {quote_snapshot!r} is not under {' or '.join(SNAPSHOT_PREFIXES)}"
+    prefixes = SNAPSHOT_PREFIXES if allow_fixture_snapshots else (SNAPSHOT_PREFIX,)
+    if not quote_snapshot.startswith(prefixes) or ".." in quote_snapshot:
+        return f"snapshot {quote_snapshot!r} is not under {' or '.join(prefixes)}"
     path = (repo_root if repo_root is not None else REPO_ROOT) / quote_snapshot
     try:
         text = path.read_text(encoding="utf-8")
@@ -65,4 +96,6 @@ def source_snapshot_problem(
         return f"the url is neither the url nor the url_annex of {quote_snapshot!r}"
     if retrieved_on.isoformat() != header.get("retrieved_on"):
         return f"retrieved_on is not the retrieval date of {quote_snapshot!r}"
+    if not _same_issue(version_or_date, header.get("version_or_date", "")):
+        return f"version_or_date does not name the issue {quote_snapshot!r} records"
     return None

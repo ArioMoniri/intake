@@ -235,6 +235,9 @@ def build_harness(
     triage_signature_path: Path | None = None,
     triage_tenant_kind: str | None = None,
     triage_deployment: str | None = None,
+    # INT-465: the SENTETİK sets cite a tests/fixtures snapshot; the harness opts
+    # in explicitly, and a test passes False to see the served path refuse it.
+    triage_fixture_sources: bool = True,
     # INT-407: the clinic Safety inbox a RED visit's move raises its entry in.
     # None is the unwired state, in which a reschedule or cancel answers 503.
     safety_inbox: Any = None,
@@ -282,6 +285,7 @@ def build_harness(
         triage_rules_path=triage_rules_path,
         triage_signature_path=triage_signature_path,
         triage_deployment=triage_deployment,
+        triage_fixture_sources=triage_fixture_sources,
         triage_tenant_kind=(
             TenantKind.SYNTHETIC
             if triage_tenant_kind == TenantKind.SYNTHETIC.value

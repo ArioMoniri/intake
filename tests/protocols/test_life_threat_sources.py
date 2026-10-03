@@ -80,6 +80,9 @@ def test_the_exemplar_sources_match_the_snapshot_header() -> None:
         lambda e: e.update(quote_snapshot="packages/protocols/sources/NICE-NG232.txt"),
         lambda e: e.update(quote_snapshot="packages/protocols/sources/../sources/TR-EK4-2022.txt"),
         lambda e: e.pop("quote_snapshot"),
+        lambda e: e.update(version_or_date="RG 13/9/2022 s. 31953"),
+        lambda e: e.update(version_or_date="RG 14/9/2022 sayı 31952"),
+        lambda e: e.update(quote_snapshot="tests/fixtures/protocols/sources/SYN-GUIDE-B.txt"),
     ],
     ids=[
         "quote-case",
@@ -90,6 +93,9 @@ def test_the_exemplar_sources_match_the_snapshot_header() -> None:
         "snapshot-other-guideline",
         "snapshot-path-escape",
         "active-without-snapshot",
+        "version-other-number",
+        "version-other-date",
+        "fixture-snapshot-without-the-flag",
     ],
 )
 def test_a_source_that_disagrees_with_its_snapshot_is_refused(tmp_path: Path, edit: Any) -> None:
@@ -104,6 +110,15 @@ def test_the_snapshot_url_and_its_annex_url_are_both_accepted(tmp_path: Path) ->
         "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf",
     ):
         load_life_threat_set(_write(tmp_path, lambda e, url=url: e.update(url=url)))
+
+
+def test_s_dot_and_sayi_are_the_same_gazette_number(tmp_path: Path) -> None:
+    """Near miss for version-other-number: the RG date and number are compared, and
+    "s." is the abbreviation of "sayı"; anything after them is commentary."""
+    for version in ("RG 13/9/2022 sayı 31952", "RG 13/9/2022 s. 31952 (any note)"):
+        load_life_threat_set(
+            _write(tmp_path, lambda e, version=version: e.update(version_or_date=version))
+        )
 
 
 def test_a_quote_wrapped_differently_is_still_verbatim(tmp_path: Path) -> None:
@@ -130,8 +145,11 @@ def test_a_draft_rule_without_a_snapshot_still_loads(tmp_path: Path) -> None:
     load_life_threat_set(path)
 
 
-def test_the_synthetic_fixture_cites_a_committed_synthetic_snapshot() -> None:
-    """The SENTETİK sets cite a snapshot under tests/fixtures, never packages/protocols/sources."""
-    rule = load_life_threat_set(SIGNED_FIXTURE).rules[0].rule
+def test_the_synthetic_fixture_loads_only_behind_the_explicit_flag() -> None:
+    """The SENTETİK sets cite a snapshot under tests/fixtures. That prefix is admitted
+    only with the explicit synthetic-fixture flag, so a served set can never cite one."""
+    with pytest.raises(LifeThreatSetError):
+        load_life_threat_set(SIGNED_FIXTURE)
+    rule = load_life_threat_set(SIGNED_FIXTURE, allow_fixture_snapshots=True).rules[0].rule
     assert rule.source is not None and rule.source.quote_snapshot is not None
     assert rule.source.quote_snapshot.startswith("tests/fixtures/protocols/sources/")

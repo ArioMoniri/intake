@@ -488,10 +488,12 @@ class UnknownAction(FrozenModel):
     on_no: Literal["ON_SITE", "REMOTE"] = Field(
         description="Branch taken on no (files/protocols/base.life_threat.yaml)."
     )
-    on_no_answer: Literal["ON_SITE", "REMOTE"] = Field(
+    on_no_answer: Literal["REMOTE"] = Field(
         description="Safe branch if and only if the question was asked and went "
         "unanswered — never a silent assumption (files/protocols/"
-        "base.life_threat.yaml)."
+        "base.life_threat.yaml). Always REMOTE (INT-465; files/04 §8.1 rule 7; "
+        "CD-24 generic_red_unknown_no_answer_goes_remote): guessing that a patient "
+        "who did not answer is already in the hospital is the unsafe direction."
     )
 
 

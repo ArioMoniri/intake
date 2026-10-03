@@ -503,3 +503,11 @@ foreseeable future, in which case "rollback" becomes "redeploy a previous releas
 **The id is the coordinator's to allocate.** HB-I13 is the nearest existing row (a place to
 run a cluster), but it is about the edge tier; a CD-tier row, or a widening of HB-I13, is a
 coordinator decision, not one an agent mints.
+
+## INT-465 — the unanswered location question has no signed wait
+
+**Raised:** 3 Oct 2026 · **Named human:** physician of record (**Dr Efe Onganer**)
+
+| issue | status | who | the one sentence they must answer | HB id |
+|---|---|---|---|---|
+| INT-465 | awaiting-human (the wait only; the no-answer branch is fixed at REMOTE and the device runs an unsigned engineering value on synthetic tenants) | physician of record (**Dr Efe Onganer**) | How long may an unanswered "Şu anda hastanede misiniz?" stand before the RED takes its REMOTE branch? | HB-C25 |

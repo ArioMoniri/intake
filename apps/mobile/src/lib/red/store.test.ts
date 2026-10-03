@@ -25,7 +25,9 @@ import {
   createRedStore,
   dialogueFrozenAt,
   dialogueShown,
+  intakeLive,
   RedCatalogIncomplete,
+  redCoversNavigator,
   redScreen,
   redStopsDialogue,
   UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS,
@@ -111,6 +113,12 @@ describe("RED screen — every register × location × answer", () => {
           expect(screen.motion).toBe(RED_MOTION);
           // 112: absent under ON_SITE; under REMOTE exactly what the pack authorises.
           expect(screen.call112).toBe(resolved === "REMOTE" && raw.show112);
+          // LD-05: only a no-answer branch keeps the question open, after the action.
+          expect(screen.lateAskTr).toBe(
+            location === "UNKNOWN" && answer === "noAnswer"
+              ? RAW.questions[scriptIdFor(RULE, "UNKNOWN")].askTr
+              : null,
+          );
         });
       }
     }
@@ -273,6 +281,32 @@ describe("RED screen — every register × location × answer", () => {
     expect(Number.isInteger(UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS)).toBe(true);
   });
 
+  it("CD-24 generic_red_stops_intake: no lane may ask or commit a question while a RED stands", () => {
+    for (const location of RED_LOCATIONS) {
+      for (const register of ["ALERT", "CALM", "SILENT"] as const) {
+        expect(intakeLive(state(register, location, "unanswered")), `${register} ${location}`).toBe(
+          false,
+        );
+      }
+      // Near miss: a clinician-only RED keeps the step live.
+      expect(intakeLive(state("DEFERRED_CLINICIAN", location, "unanswered"))).toBe(true);
+    }
+    expect(intakeLive(null)).toBe(true);
+  });
+
+  it("the root RED layer hides the navigator from assistive technology; SILENT and none do not", () => {
+    for (const register of ["ALERT", "CALM"] as const) {
+      expect(redCoversNavigator(redScreen(state(register, "REMOTE", "unanswered")))).toBe(true);
+      expect(redCoversNavigator(redScreen(state(register, "UNKNOWN", "unanswered")))).toBe(true);
+    }
+    // Near misses: SILENT is in the flow, and a clinician-only RED shows nothing.
+    expect(redCoversNavigator(redScreen(state("SILENT", "REMOTE", "unanswered")))).toBe(false);
+    expect(redCoversNavigator(redScreen(state("DEFERRED_CLINICIAN", "REMOTE", "unanswered")))).toBe(
+      false,
+    );
+    expect(redCoversNavigator(redScreen(null))).toBe(false);
+  });
+
   it("CD-24 generic_red_stops_intake: a question that arrives after the RED is not shown", () => {
     const before = ["q1", "a1"];
     const red: RedState = {
@@ -286,16 +320,19 @@ describe("RED screen — every register × location × answer", () => {
     const frozen = dialogueFrozenAt(null, redStopsDialogue(red), before.length);
     expect(frozen).toBe(2);
     const after = [...before, "q2: Ateşiniz var mı?"];
-    expect(dialogueShown(after, dialogueFrozenAt(frozen, redStopsDialogue(red), after.length))).toEqual(
-      before,
-    );
+    expect(
+      dialogueShown(after, dialogueFrozenAt(frozen, redStopsDialogue(red), after.length)),
+    ).toEqual(before);
     // Near miss: with no RED, or a clinician-only one, the question shows.
     expect(dialogueFrozenAt(null, redStopsDialogue(null), after.length)).toBeNull();
     expect(dialogueShown(after, null)).toEqual(after);
-    const deferred: RedState = { ...red, trigger: { ...red.trigger, register: "DEFERRED_CLINICIAN" } };
-    expect(dialogueShown(after, dialogueFrozenAt(null, redStopsDialogue(deferred), after.length))).toEqual(
-      after,
-    );
+    const deferred: RedState = {
+      ...red,
+      trigger: { ...red.trigger, register: "DEFERRED_CLINICIAN" },
+    };
+    expect(
+      dialogueShown(after, dialogueFrozenAt(null, redStopsDialogue(deferred), after.length)),
+    ).toEqual(after);
   });
 });
 
@@ -336,6 +373,87 @@ describe("RED store — escalation only", () => {
     expect(unknown.getSnapshot()?.answer).toBe("notInHospital");
     const screen = redScreen(unknown.getSnapshot());
     expect(screen.kind === "act" && screen.location).toBe("REMOTE");
+  });
+
+  // INT-465 round 3; LD-05 (INT-471, #800). The WCAG 2.2.1 Essential Exception for
+  // the unsigned no-answer wait holds only if the patient's own answer, given after
+  // the wait took the no-answer branch, is honoured. The wait never removes it.
+  describe("a late location answer, after the wait took the no-answer branch (LD-05)", () => {
+    const setups = [
+      [
+        "the rule's own question",
+        (r: RedRegister) => trigger(r, "UNKNOWN"),
+        CATALOG,
+        RAW.questions[scriptIdFor(RULE, "UNKNOWN")].askTr,
+      ],
+      [
+        "the generic question",
+        // A rule whose question is not on the device asks CD-24's generic one.
+        (r: RedRegister) => ({ ...trigger(r, "UNKNOWN"), scriptId: "rf.not.on.device" }),
+        CATALOG,
+        RAW.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN].askTr,
+      ],
+    ] as const;
+
+    for (const [name, make, catalog, askTr] of setups) {
+      for (const register of ["ALERT", "CALM", "SILENT"] as const) {
+        it(`${name}, ${register}: a late "evet" moves the RED to ON_SITE, and 112 goes`, () => {
+          const store = createRedStore();
+          store.present(make(register), catalog);
+          store.answerLocation("noAnswer");
+          expect(redScreen(store.getSnapshot())).toMatchObject({
+            kind: "act",
+            location: "REMOTE",
+            call112: true,
+          });
+          store.answerLocation("inHospital");
+          expect(store.getSnapshot()?.answer).toBe("inHospital");
+          expect(redScreen(store.getSnapshot())).toMatchObject({
+            kind: "act",
+            register,
+            location: "ON_SITE",
+            call112: false, // invariant 21: absent under ON_SITE
+            lateAskTr: null, // answered: the question is closed
+          });
+        });
+
+        it(`${name}, ${register}: a late "hayır" keeps REMOTE with 112`, () => {
+          const store = createRedStore();
+          store.present(make(register), catalog);
+          store.answerLocation("noAnswer");
+          store.answerLocation("notInHospital");
+          expect(store.getSnapshot()?.answer).toBe("notInHospital");
+          expect(redScreen(store.getSnapshot())).toMatchObject({
+            kind: "act",
+            location: "REMOTE",
+            call112: true,
+            lateAskTr: null,
+          });
+        });
+
+        it(`${name}, ${register}: near miss: with no late answer it stays REMOTE with 112, question still open`, () => {
+          const store = createRedStore();
+          store.present(make(register), catalog);
+          store.answerLocation("noAnswer");
+          store.answerLocation("noAnswer"); // a second expiry is not an answer
+          expect(store.getSnapshot()?.answer).toBe("noAnswer");
+          const screen = redScreen(store.getSnapshot());
+          expect(screen).toMatchObject({ kind: "act", location: "REMOTE", call112: true });
+          // The question stays open, after the action and 112 (RedLayer).
+          expect(screen.kind === "act" && screen.lateAskTr).toBe(askTr);
+        });
+      }
+    }
+
+    it("the patient's own answer is final: nothing moves it afterwards", () => {
+      const store = createRedStore();
+      store.present(trigger("ALERT", "UNKNOWN"), CATALOG);
+      store.answerLocation("noAnswer");
+      store.answerLocation("inHospital");
+      store.answerLocation("notInHospital");
+      store.answerLocation("noAnswer");
+      expect(store.getSnapshot()?.answer).toBe("inHospital");
+    });
   });
 });
 

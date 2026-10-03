@@ -1575,7 +1575,7 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
  */
 const ESSENTIAL_TIME_LIMITS: Record<string, string> = {
   "src/lib/red/noAnswerClock.ts":
-    "SC 2.2.1 Essential Exception: a RED's unanswered location question takes the rule's no-answer branch (REMOTE, with the 112 control) after the wait; extending it would hold back emergency guidance from a patient who cannot answer (CD-24 generic_red_unknown_no_answer_goes_remote; INT-465). The wait is an unsigned engineering value until a physician decides it",
+    "SC 2.2.1 Essential Exception: a RED's unanswered location question takes the rule's no-answer branch (REMOTE, with the 112 control) after the wait; extending it would hold back emergency guidance from a patient who cannot answer (CD-24 generic_red_unknown_no_answer_goes_remote; INT-465). The wait is an unsigned engineering value until the physician of record decides it (HUMAN_BLOCKERS HB-C25). The wait takes nothing away: the question stays on screen after it, and the patient's own late answer still moves the RED to the answered location (LD-05, INT-471 #800)",
 };
 
 /** Time limits the patient meets → the warning machine each one's timer is handed to. */
@@ -1668,6 +1668,8 @@ describe("BK13 / SC 2.2.1 — a time limit warns before it acts and can be exten
 
   it("the Essential-Exception register holds the RED no-answer clock and nothing else", () => {
     expect(Object.keys(ESSENTIAL_TIME_LIMITS)).toEqual(["src/lib/red/noAnswerClock.ts"]);
+    // LD-05: the exception rests on the late answer being honoured (store.test.ts).
+    expect(ESSENTIAL_TIME_LIMITS["src/lib/red/noAnswerClock.ts"]).toContain("LD-05");
     for (const reason of Object.values(ESSENTIAL_TIME_LIMITS)) {
       expect(reason.startsWith("SC 2.2.1 Essential Exception:")).toBe(true);
     }

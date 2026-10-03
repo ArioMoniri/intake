@@ -270,6 +270,9 @@ class ApiSettings:
     triage_signature_path: Path | None = None
     triage_tenant_kind: TenantKind = TenantKind.REAL
     triage_deployment: str | None = None
+    # INT-465: admit a served set citing a tests/fixtures snapshot. Test harness
+    # only: from_env never sets it, so no deployment can.
+    triage_fixture_sources: bool = False
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).

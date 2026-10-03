@@ -21,7 +21,7 @@
  * absent, not de-emphasised — and under UNKNOWN it is not rendered until the
  * one location question is answered.
  */
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { AppText, useTheme } from "@/components/Themed";
@@ -32,7 +32,15 @@ import { t } from "@/lib/i18n";
 import type { HopTransport } from "@/lib/red/hop";
 import { deriveRedLocation } from "@/lib/red/location";
 import { startNoAnswerClock } from "@/lib/red/noAnswerClock";
-import { createRedHop, redScreen, redStore, type RedHop, type RedScreen } from "@/lib/red/store";
+import {
+  createRedHop,
+  EMERGENCY_NUMBER,
+  redCoversNavigator,
+  redScreen,
+  redStore,
+  type RedHop,
+  type RedScreen,
+} from "@/lib/red/store";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -109,11 +117,35 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
         {screen.actionTr}
       </AppText>
       {screen.call112 ? (
-        <RedButton
-          label={t("red.call112")}
-          primary={screen.register === "ALERT"}
-          onPress={() => void Linking.openURL("tel:112")}
-        />
+        <View style={styles.list}>
+          {/* files/02 §5.3: the number as large selectable text, and the tel: control. */}
+          <AppText role="title" selectable>
+            {EMERGENCY_NUMBER}
+          </AppText>
+          <RedButton
+            label={t("red.call112")}
+            primary={screen.register === "ALERT"}
+            onPress={() => void Linking.openURL(`tel:${EMERGENCY_NUMBER}`)}
+          />
+        </View>
+      ) : null}
+      {screen.lateAskTr !== null ? (
+        // LD-05 (INT-471 #800): after the no-answer branch the patient may still
+        // answer, and the RED follows the answer. Below the 112 control, so the
+        // wait never delays it.
+        <View style={styles.list}>
+          <AppText>{screen.lateAskTr}</AppText>
+          <View style={styles.row}>
+            <RedButton
+              label={t("red.location.yes")}
+              onPress={() => redStore.answerLocation("inHospital")}
+            />
+            <RedButton
+              label={t("red.location.no")}
+              onPress={() => redStore.answerLocation("notInHospital")}
+            />
+          </View>
+        </View>
       ) : null}
       {screen.doNotsTr.length > 0 ? (
         <View style={styles.list}>
@@ -198,6 +230,26 @@ export function RedLayer() {
   );
 }
 
+/**
+ * The navigator container, hidden from assistive technology while the root RED
+ * layer covers it (INT-465). `accessibilityViewIsModal` on the layer is iOS-only;
+ * Android needs the covered tree marked `no-hide-descendants`, and iOS gets
+ * `accessibilityElementsHidden` as well, so neither screen reader can reach the
+ * question underneath the RED.
+ */
+export function RedCoveredNavigator({ children }: { readonly children: ReactNode }) {
+  const covered = redCoversNavigator(useRedScreen());
+  return (
+    <View
+      style={styles.navigator}
+      importantForAccessibility={covered ? "no-hide-descendants" : "auto"}
+      accessibilityElementsHidden={covered}
+    >
+      {children}
+    </View>
+  );
+}
+
 /** A SILENT RED, in the flow of the session where the next turn would be. */
 export function RedInFlow() {
   const screen = useRedScreen();
@@ -212,6 +264,7 @@ export function RedInFlow() {
 }
 
 const styles = StyleSheet.create({
+  navigator: { flex: 1 },
   scroll: { padding: spacing.screen, paddingTop: spacing.xl, flexGrow: 1 },
   body: { gap: spacing.lg },
   row: { flexDirection: "row", gap: spacing.md },

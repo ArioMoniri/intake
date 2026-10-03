@@ -25,13 +25,9 @@ import { probeVoiceTransport, streamingVoiceSupported } from "./capability";
 import type { VoiceSessionEvent, VoiceSessionListener } from "./events";
 import { emitTurnQuality, noopMetricSink, type MetricSink } from "./metrics";
 import { addSample, closeWindow, openWindow, type QualityWindow } from "./quality";
-import {
-  decodeRedTrigger,
-  genericRed,
-  genericRedCopy,
-  resolveRed,
-  type RedScriptCatalog,
-} from "./red";
+import type { PrePositionedRed } from "../red/hop";
+import { catalogSaysGenericRed, type RedStore } from "../red/store";
+import { decodeRedTrigger } from "./red";
 import { nextReconnect, tokenNeedsRemint } from "./reconnect";
 import type {
   MicrophonePermission,
@@ -61,8 +57,16 @@ export interface VoiceSessionDeps {
   readonly tokens: TokenSource;
   /** Builds the adapter. The real one dynamic-imports LiveKit; tests fake it. */
   readonly createAdapter: () => Promise<RoomAdapter>;
-  /** RED scripts already on the device before the session starts (inv. 21). */
-  readonly redScripts: RedScriptCatalog;
+  /**
+   * Everything a RED can show, on the device before the session starts (inv. 21):
+   * the scripts and the location questions, CD-24's generic entries included.
+   */
+  readonly red: PrePositionedRed;
+  /**
+   * Where a RED goes (INT-465): the same store, screen and ask-first logic the
+   * HTTP hop feeds, so the two lanes cannot render one RED two ways.
+   */
+  readonly redStore: Pick<RedStore, "present">;
   readonly sink?: MetricSink;
   readonly now?: () => number;
   readonly sleep?: (ms: number) => Promise<void>;
@@ -93,7 +97,7 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
   const sleep = deps.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   const jitter = deps.jitter ?? Math.random;
   // INT-465: read once; the catalog is on the device before the session starts.
-  const genericCopy = genericRedCopy(deps.redScripts);
+  const canSayGenericRed = catalogSaysGenericRed(deps.red);
 
   const listeners = new Set<VoiceSessionListener>();
   let phase: SessionPhase = "idle";
@@ -139,15 +143,11 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
       // message kinds belong to INT-091/092 and are ignored here.
       return;
     }
-    // A RED whose script is not on this device is still a RED on screen: the
-    // generic escalation (INT-453), never nothing and never wordless (INT-465:
-    // start() refuses a catalog without the generic copy, so it is here).
-    const presentation =
-      resolveRed(trigger, deps.redScripts) ??
-      (genericCopy === null ? null : genericRed(trigger, genericCopy));
-    if (presentation !== null) {
-      emit({ type: "red", presentation });
-    }
+    // INT-465: the RED store resolves the script, asks first under UNKNOWN, and
+    // shows CD-24's generic copy when the script is not on this device — never
+    // nothing and never wordless (start() refused a catalog without it).
+    deps.redStore.present(trigger, deps.red);
+    emit({ type: "red", trigger });
   };
 
   const handleConnectionChange = (state: "connected" | "reconnecting" | "disconnected") => {
@@ -260,7 +260,7 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
       // 0. INT-465: a session that could not say a generic RED does not begin
       // (CD-24 generic_red_silent_is_never_wordless) — before the microphone,
       // a token or a room.
-      if (genericCopy === null) {
+      if (!canSayGenericRed) {
         fail("red_copy_missing");
         return;
       }

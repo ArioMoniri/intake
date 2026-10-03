@@ -235,6 +235,9 @@ def _on_site_action(text: str) -> Any:
         lambda d: d["scripts"]["REMOTE"]["sources"][0].update(supports="action_tr, ask_one_tr"),
         lambda d: d["scripts"]["REMOTE"]["sources"][0].update(quote="uydurma bir alıntı"),
         lambda d: d["scripts"]["REMOTE"]["sources"][0].update(
+            version_or_date="RG 11/10/2024 sayı 32690"
+        ),
+        lambda d: d["scripts"]["REMOTE"]["sources"][0].update(
             snapshot="packages/protocols/sources/ABSENT-2026.txt"
         ),
         lambda d: d["scripts"]["REMOTE"]["sources"][0].update(
@@ -262,6 +265,7 @@ def _on_site_action(text: str) -> Any:
         "a-field-unsupported",
         "supports-a-field-it-lacks",
         "quote-not-in-snapshot",
+        "version-not-the-snapshots",
         "snapshot-not-committed",
         "snapshot-of-another-guideline",
         "snapshot-outside-sources",

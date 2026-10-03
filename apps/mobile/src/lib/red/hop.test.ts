@@ -51,6 +51,20 @@ describe("CD-24 generic_red_silent_is_never_wordless — the catalog", () => {
     expect(decodeRedCatalog(without(edit))).toBeNull();
   });
 
+  it("refuses the whole catalog when any question sends no answer ON_SITE (near miss: REMOTE decodes)", () => {
+    for (const id of Object.keys(RAW.questions)) {
+      expect(
+        decodeRedCatalog(without((r) => (r.questions[id].onNoAnswer = "ON_SITE"))),
+        id,
+      ).toBeNull();
+    }
+    expect(
+      decodeRedCatalog(
+        without((r) => (r.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN].onNoAnswer = "REMOTE")),
+      ),
+    ).not.toBeNull();
+  });
+
   it("a hop given such a catalog sends no answer, so no RED can arrive wordless", async () => {
     const paths: string[] = [];
     const transport: HopTransport = async (path) => {

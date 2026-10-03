@@ -435,6 +435,31 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
     expect(layer).toMatch(/\{screen\.call112 \?/);
   });
 
+  it("REMOTE shows 112 as large selectable text beside the tel: control (files/02 §5.3)", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    expect(layer).toMatch(/selectable[^>]*>\s*\{EMERGENCY_NUMBER\}/);
+    expect(layer).toMatch(/Linking\.openURL\(`tel:\$\{EMERGENCY_NUMBER\}`\)/);
+  });
+
+  it("after the no-answer branch the question stays answerable, below the action and 112 (LD-05)", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    const call = layer.indexOf("{screen.call112 ?");
+    const late = layer.indexOf("{screen.lateAskTr !== null ?");
+    expect(call).toBeGreaterThan(-1);
+    // After the 112 control, never in front of it: the wait never delays 112.
+    expect(late).toBeGreaterThan(call);
+    expect(layer.slice(late)).toMatch(/redStore\.answerLocation\("inHospital"\)/);
+    expect(layer.slice(late)).toMatch(/redStore\.answerLocation\("notInHospital"\)/);
+  });
+
+  it("the unsigned no-answer wait cites its human blocker, HB-C25", () => {
+    const store = readFileSync(join(SRC, "lib/red/store.ts"), "utf8");
+    const at = store.indexOf("export const UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS");
+    expect(store.slice(Math.max(0, at - 1200), at)).toContain("HB-C25");
+    const a11y = readFileSync(join(__dirname, "a11y.spec.ts"), "utf8");
+    expect(a11y).toMatch(/"src\/lib\/red\/noAnswerClock\.ts":[\s\S]{0,800}HB-C25/);
+  });
+
   it("an unanswered location question starts the no-answer clock (CD-24), owned by no component", () => {
     const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
     expect(layer).toMatch(
@@ -489,5 +514,38 @@ describe("INT-446 — the RED path", () => {
     expect(dialogue).toMatch(/<RedInFlow \/>/);
     const typed = code(readFileSync(join(SRC, "app/(tabs)/visits/[visitId]/intake.tsx"), "utf8"));
     expect(typed).toMatch(/<RedInFlow \/>/);
+  });
+
+  // INT-465 (round 3): a RED stops the intake in every lane, not only the dialogue.
+  it("the typed lane shows no question and no commit control while a RED stands", () => {
+    const typed = code(readFileSync(join(SRC, "app/(tabs)/visits/[visitId]/intake.tsx"), "utf8"));
+    expect(typed).toMatch(/const live = intakeLive\(useSyncExternalStore\(redStore\.subscribe/);
+    expect(typed).toMatch(/\{live \? finishNowBar : null\}/);
+    expect(typed).toMatch(/\{live \? \(\s*<LayoutAnimationConfig skipEntering>/);
+    // Every glass-bar commit control sits behind the same gate.
+    const lines = typed.split("\n");
+    const bars = lines.flatMap((line, i) => (line.includes("<GlassBar") ? [i] : []));
+    expect(bars.length).toBeGreaterThanOrEqual(4);
+    for (const i of bars) {
+      expect(lines[i - 1], `GlassBar at line ${i + 1}`).toMatch(/\{live && /);
+    }
+  });
+
+  it("the dialogue hides its composer and its way back to the steps while a RED stands", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    expect(dialogue).toMatch(
+      /\{!stopsDialogue \? \(\s*<Pressable[^>]*accessibilityLabel=\{t\("voiceFirst\.typeInstead"\)\}/,
+    );
+    expect(dialogue).toMatch(/\{!stopsDialogue \? \(\s*<View style=\{styles\.composerRow\}>/);
+  });
+
+  it("the navigator is hidden from assistive technology under the root RED layer (Android and iOS)", () => {
+    const layout = code(readFileSync(join(SRC, "app/_layout.tsx"), "utf8"));
+    expect(layout).toMatch(/<RedCoveredNavigator>\s*<KioskGate>/);
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    expect(layer).toMatch(
+      /importantForAccessibility=\{covered \? "no-hide-descendants" : "auto"\}/,
+    );
+    expect(layer).toMatch(/accessibilityElementsHidden=\{covered\}/);
   });
 });

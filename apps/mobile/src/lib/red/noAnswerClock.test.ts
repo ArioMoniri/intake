@@ -8,6 +8,7 @@
  * - one millisecond short of the wait, nothing has changed;
  * - an answered question is never overridden by the clock;
  * - a cancelled clock does nothing.
+ * And the patient's own answer, given after the wait, still lands (LD-05).
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -88,6 +89,17 @@ describe("CD-24 generic_red_unknown_no_answer_goes_remote — the clock", () => 
     startNoAnswerClock(store, timers);
     store.answerLocation("inHospital");
     timers.advance(UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS);
+    expect(redScreen(store.getSnapshot())).toMatchObject({ location: "ON_SITE", call112: false });
+  });
+
+  // LD-05 (INT-471, #800): the Essential Exception holds only if a late answer lands.
+  it("an answer given after the wait still lands — ON_SITE, without 112", () => {
+    const store = asked("ALERT");
+    const timers = fakeTimers();
+    startNoAnswerClock(store, timers);
+    timers.advance(UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS);
+    expect(redScreen(store.getSnapshot())).toMatchObject({ location: "REMOTE", call112: true });
+    store.answerLocation("inHospital");
     expect(redScreen(store.getSnapshot())).toMatchObject({ location: "ON_SITE", call112: false });
   });
 

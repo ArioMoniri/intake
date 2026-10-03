@@ -44,8 +44,11 @@ export interface RedLocationQuestion {
   readonly askTr: string;
   readonly onYes: Exclude<RedLocation, "UNKNOWN">;
   readonly onNo: Exclude<RedLocation, "UNKNOWN">;
-  /** The rule's own branch when the question goes unanswered (INT-465; REMOTE in every rule). */
-  readonly onNoAnswer: Exclude<RedLocation, "UNKNOWN">;
+  /**
+   * The rule's own branch when the question goes unanswered. Always REMOTE
+   * (INT-465; files/04 §8.1 rule 7): a catalog that says otherwise is refused whole.
+   */
+  readonly onNoAnswer: "REMOTE";
 }
 
 /** Everything a RED can show, on the device before the RED. */
@@ -177,7 +180,7 @@ function decodeQuestion(value: unknown): RedLocationQuestion | null {
     askTr.length === 0 ||
     !LOCATED.has(onYes) ||
     !LOCATED.has(onNo) ||
-    !LOCATED.has(onNoAnswer)
+    onNoAnswer !== "REMOTE"
   ) {
     return null;
   }
@@ -185,7 +188,7 @@ function decodeQuestion(value: unknown): RedLocationQuestion | null {
     askTr,
     onYes: onYes as RedLocationQuestion["onYes"],
     onNo: onNo as RedLocationQuestion["onNo"],
-    onNoAnswer: onNoAnswer as RedLocationQuestion["onNoAnswer"],
+    onNoAnswer,
   };
 }
 

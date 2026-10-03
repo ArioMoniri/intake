@@ -59,7 +59,7 @@ REPO = Path(__file__).resolve().parents[2]
 SIGNED = REPO / "tests" / "fixtures" / "protocols" / "compile" / "life_threat_signed.yaml"
 CLIENT_RED_TS = REPO / "apps" / "mobile" / "src" / "lib" / "livekit" / "red.ts"
 GENERIC_COMMITTED = REPO / "packages" / "protocols" / "generic" / "generic_red.yaml"
-BASE = load_life_threat_set(SIGNED).rules[0].rule
+BASE = load_life_threat_set(SIGNED, allow_fixture_snapshots=True).rules[0].rule
 
 RULE_A = "rf.sentetik_a"  # sorts first
 RULE_B = "rf.sentetik_b"
