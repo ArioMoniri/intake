@@ -95,6 +95,9 @@ class DoctorLinkView(BaseModel):
     expires_at: datetime
     proxy_reported: bool
     third_party_present: bool
+    # INT-407 — files/02 §2b: on a rescheduled visit the note is stale seven
+    # days after its session; the clinician reading it is told so.
+    note_stale: bool = False
 
 
 class AccessLogEntryOut(BaseModel):

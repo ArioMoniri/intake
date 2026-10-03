@@ -149,9 +149,11 @@ def test_ids_unique_and_well_formed() -> None:
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
     # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
     # commit status; owner request, GitHub #721).
+    # + INT-407 (the files/02 §2b visit lifecycle — a RED visit cannot silently
+    # move; found by INT-406's PR, whose visit_transition had no caller, #684).
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
     # order of 3 Oct 2026, GitHub #790).
-    assert len(ids) == 332
+    assert len(ids) == 333
     import re
 
     for i in ids:

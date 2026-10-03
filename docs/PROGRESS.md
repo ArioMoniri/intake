@@ -19,7 +19,7 @@
   - Red run: 40 failed, 37 passed. After the pool was declared: 39 failed (the 13 jobs × 3 `runs-on` assertions the owner patch fixes) and 113 passed.
   - The patch was checked with `git apply --check` plus a YAML parse on `main` and on #643's branch: 13/13 jobs on intake-aws-ci.
 - Result (`make check` / `make safety` / `make security` summary):
-  - Local: the touched lanes, backlog counts and smoke counts (332), shellcheck, and no_placeholders (staged).
+  - Local: the touched lanes, backlog counts and smoke counts (333, after main added INT-407), shellcheck, and no_placeholders (staged).
   - The full check-py, check-ts, check-integration and security gates run on the PR, on the AWS runner, after the owner commit.
   - Host isolation was measured as ghrunner (docs/evidence/INT-463.md).
 - Invariants touched and still passing:
