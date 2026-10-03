@@ -669,8 +669,7 @@ def test_the_osv_exception_names_one_advisory_and_expires() -> None:
     """INT-429: osv-scanner's view of the same node-forge advisory, same terms."""
     config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
     assert set(config) == {"IgnoredVulns"}, "no package-wide override, no other mute form"
-    (entry,) = config["IgnoredVulns"]
-    assert entry["id"] == "GHSA-86w9-cpqp-85rv"
+    (entry,) = [e for e in config["IgnoredVulns"] if e["id"] == "GHSA-86w9-cpqp-85rv"]
     until = entry.get("ignoreUntil")
     assert isinstance(until, datetime.datetime), "the exception must carry ignoreUntil"
     assert datetime.date(2026, 10, 2) < until.date() <= datetime.date(2026, 11, 1), (
@@ -679,6 +678,36 @@ def test_the_osv_exception_names_one_advisory_and_expires() -> None:
     reason = " ".join(str(entry.get("reason", "")).split())
     for must in ("owner", "node-forge 1.4.0", "expo export", "docs/evidence/INT-429.md"):
         assert must in reason, f"the reason must say {must!r}"
+
+
+# INT-426 follow-up: the two advisories OSV reissued on 2 Oct with no fix.
+OSV_NO_FIX_ROWS = {
+    "GHSA-vfj7-8cjw-p6xm": ("braces 3.0.3", "micromatch 4.0.8", "metro-file-map"),
+    "GHSA-ch52-4w7c-c8xp": ("http-cache-semantics 4.2.0", "@expo/ngrok", "--tunnel"),
+}
+
+
+def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
+    """Each entry names one advisory of one package, says how it is reached,
+    and expires within 30 days of 3 Oct 2026, after which the gate turns red."""
+    config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    entries = {e["id"]: e for e in config["IgnoredVulns"]}
+    assert set(entries) == {"GHSA-86w9-cpqp-85rv", *OSV_NO_FIX_ROWS}, "nothing else is muted"
+    for advisory, musts in OSV_NO_FIX_ROWS.items():
+        entry = entries[advisory]
+        until = entry.get("ignoreUntil")
+        assert isinstance(until, datetime.datetime), f"{advisory} must carry ignoreUntil"
+        assert datetime.date(2026, 10, 3) < until.date() <= datetime.date(2026, 11, 2), (
+            f"{advisory}: 30 days, no more"
+        )
+        reason = " ".join(str(entry.get("reason", "")).split())
+        for must in (
+            "approve for the two osv exceptions",
+            "expo export",
+            "docs/evidence/INT-426.md",
+            *musts,
+        ):
+            assert must in reason, f"{advisory}: the reason must say {must!r}"
 
 
 def test_make_security_actually_loads_the_trivy_ignore_file() -> None:
@@ -877,7 +906,14 @@ OSV_SUPPRESSION_FILES = (
 # (a narrow 30-day exception for just that package). osv-scanner reports the
 # same advisory as GHSA-86w9-cpqp-85rv, and its one entry is in
 # osv-scanner.toml (test_the_osv_exception_names_one_advisory_and_expires).
-MAX_OSV_SUPPRESSIONS = 1
+#
+# The INT-426 follow-up raises the osv pin from 1 to 3, by exactly two, on the
+# owner's approval in chat on 3 Oct 2026: "approve for the two osv exceptions".
+# The two are braces 3.0.3 and http-cache-semantics 4.2.0, which OSV reissued
+# on 2 Oct with no fixed release
+# (test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire). The pin goes
+# back down as each entry expires or is removed.
+MAX_OSV_SUPPRESSIONS = 3
 MAX_TRIVY_SUPPRESSIONS = 2
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
