@@ -1627,6 +1627,12 @@ it or whose tests exercise it.
   `WHEN_UNLOCKED_THIS_DEVICE_ONLY`; the GCM tag fails the open on tamper; a deterministic
   last-writer-wins rule that preserves the losing copy, so no loss is silent; account-scoped
   hydration; visit-id path sanitisation; crypto-shred of the blobs and the DEK on sign-out.
+  **Capture protection is counted (INT-478):** FLAG_SECURE-class protection stays on while
+  any protected screen is mounted and is released only after the last one unmounts, through
+  one lock (`apps/mobile/src/lib/auth/captureLock.ts`). It follows the mount, not the focus,
+  so a tab kept mounted stays protected. Before INT-478 the first protected screen to close
+  released it for all of them. Tests: `apps/mobile/src/lib/auth/captureLock.test.ts` and
+  `apps/mobile/e2e/captureLock.spec.ts`.
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
   design (§9); the crash-free rate covers them (INT-145).

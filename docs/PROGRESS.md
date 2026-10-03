@@ -3341,3 +3341,27 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T01:35:00+03:00 · INT-478 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-478, GitHub #820):
+  - OS-level capture protection stays active while any protected screen is mounted, and is released only when the last one goes;
+  - tests: open A and B, close A, and it is still protected; near miss: close both, and it is released; the same for the app-switcher blur if it shares the key;
+  - decide and record whether protection follows focus, failing closed;
+  - no change to which screens are protected.
+- Plan:
+  - A pure reference-counted lock (`lib/auth/captureLock`): the OS is asked once for the first screen and released once after the last.
+  - The guard acquires it on mount.
+  - Reproduce the defect with a model of expo-screen-capture's own key set.
+- Tests added (with the near-miss negative for any safety rule):
+  - `captureLock.test.ts`. Near misses: closing both releases; the old shared-key guard releases the share centre.
+  - `captureLock.spec.ts`: one lock, one importer, no app-switcher blur, a mount effect, the protected screens unchanged. Near miss: the old per-screen call.
+  - RED run: 2 failed plus an import failure. A mutation (release on every close) was caught by 5 tests.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile 2667 tests, `tsc` clean, lint 0 errors);
+  - the backlog, smoke, docs, release and threat-model Python lanes pass;
+  - `check-integration` is CI-only (no container runtime).
+- Invariants touched and still passing: 6 (the lock holds a count), 21 (no RED file touched), 17.
+- Decisions / ADRs / `00_STATE.md` rows: protection follows the mount, not the focus (fail closed), recorded in docs/evidence/INT-478.md. No ADR and no D-row.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: when #819 (INT-477) is rebased onto this, its `protectScreen` should acquire this lock.
+- LOOP_STATUS: CONTINUE
