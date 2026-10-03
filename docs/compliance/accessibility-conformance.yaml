@@ -328,8 +328,10 @@ wcag:
       wait, the question stays on screen below the action and the 112 control,
       and the patient's own answer still moves the RED to the answered
       location. ON_SITE then shows no 112. The 30 seconds is an unsigned
-      engineering value until the physician of record decides it (HB-C25), and
-      the owner confirms the Essential classification. Kiosk mode's 60-second
+      engineering value until the physician of record decides it (HB-C25). The
+      Essential classification is LD-05's (INT-471, #809; conditional on a late
+      location answer being honoured), and the late-answer tests cited above are
+      the proof of that condition. Kiosk mode's 60-second
       idle wipe is a time limit, and since INT-363
       it meets the criterion's Extend option. After 40 seconds without a touch
       it shows a warning, announces it assertively and moves screen-reader focus
