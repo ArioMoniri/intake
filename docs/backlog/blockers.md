@@ -146,6 +146,7 @@ value is one and a catalogue label where it is not, and never the slot ref — e
 other files/09 §3 promise is kept for those rows. Authoring the label vocabulary
 is clinical copy against the packs' slot definitions.
 | INT-296 | awaiting-human (KVKK category of a second locale; column shipped, registry holds only `tr`) | DPO / Turkish counsel (with the owner) | Under which KVKK category, lawful basis, retention and recipients does `sessions.locale` sit once a second language is offered — given that with `tr` alone the column records the service's own language and states nothing about the patient, but a language choice among several can proxy ethnic origin (m.6 special category)? | HB-L25 |
+| INT-463 | awaiting-human (runner and registrar installed; the admin token in SSM is not a token) | owner | Overwrite the SSM SecureString `/intake/staging/gh_runner_admin_pat` with the raw fine-grained token (this repository only, Administration: read and write): today it holds 16 words of prose, so the host's registrar refuses and the ephemeral runner re-registers only while a one-hour fallback token lasts. | HB-I7 |
 
 ## INT-136 — instruments render verbatim, and nothing renders
 
@@ -422,6 +423,10 @@ and the text is verbatim (inv 10). Three asks are a human's, not an agent's:
 - **(c) The Turkish voice id.** The supplied key is a scoped TTS key with no `voices_read`, so
   the voice library cannot be browsed; the small-run used a stable public multilingual voice.
   *"Which warm Turkish ElevenLabs voice id should the fixed set be built with?"* — owner.
+  **Answered 3 Oct 2026 (INT-449, D20):** the owner picked E04 from the blind casting page
+  ("use E04 voice"): `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, pinned as
+  `voice_clips.delivery.CLIPGEN_VOICE_ID` (docs/voice/casting-2026-10.md). Asks (a) and (b)
+  stay open.
 
 Also open and separate: a **fresh on-hardware on-prem run** over `int319-scripted-tr-v1` waits
 on GPU access (server unreachable this build, `gpu`); a production `make clips VOICE=<elevenlabs-…>`

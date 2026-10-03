@@ -1,0 +1,35 @@
+# guideline_id: TR-ACIL-TEBLIG-2022
+# title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ
+# publisher: T.C. Sağlık Bakanlığı (Resmî Gazete)
+# version_or_date: RG 13/9/2022 sayı 31952; amended RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689 (consolidated text as published on mevzuat.gov.tr)
+# url: https://mevzuat.gov.tr/MevzuatMetin/yonetmelik/9.5.39719.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl (HTTP 200, 14-page PDF); text layer extracted with pdftotext; the publication table at the end with pdftotext -layout; line wraps inside one paragraph or lettered item joined with a single space; no other change; trailing whitespace removed from every line
+# scope: verbatim excerpt of the title, MADDE 2(1), MADDE 4(1) items n and p, MADDE 8(1)-(2) and the publication table; the article text only, not EK-4 (EK-4 is snapshotted separately as TR-EK4-2022); nothing paraphrased or edited; omissions marked [...]
+---
+YATAKLI SAĞLIK TESİSLERİNDE ACİL SERVİS HİZMETLERİNİN
+UYGULAMA USUL VE ESASLARI HAKKINDA TEBLİĞ
+[...]
+Kapsam
+MADDE 2- (1) Bu Tebliğ, ağız ve diş sağlığı hastaneleri ve merkezleri hariç olmak üzere kamu, özel ve üniversitelere ait tüm yataklı sağlık tesisleri ile buralarda görev yapan personeli kapsar.
+[...]
+Tanımlar ve kısaltmalar
+MADDE 4- (1) Bu Tebliğde geçen;
+[...]
+n) (Değişik:RG-11/10/2024-32689) Sağlık personeli: Tabip, hemşire, acil tıp teknikeri, acil tıp teknisyeni, ebe, eczacı, eczane teknikeri, tıbbi protez ve ortez teknisyeni/teknikeri, hemşire yardımcısı, ebe yardımcısı, sağlık bakım teknisyeni, tıbbi sekreter ünvan ve branşındaki personeli,
+[...]
+p) Triyaj: Acil servislere başvuran hastaların, görevli sağlık personeli tarafından hastalıkları ile ilgili şikâyetleri ile belirtilerinin şiddeti ve tıbbi durumlarının aciliyeti gözetilerek, tıbbi önceliklerinin ve yönlendirilecekleri tedavi birimlerinin belirlenmesi işlemini,
+[...]
+ÜÇÜNCÜ BÖLÜM
+Triyaj Uygulaması ve Renk Kodlaması, Muayene ve Refakat Esasları
+Triyaj uygulaması ve renk kodlaması
+MADDE 8- (1) Triyaj işlemi; acil servis yoğunluğuna bağlı olarak hastaların zarar görmesini engellemek, ihtiyaç duydukları tıbbi bakıma gecikmeksizin ulaşmalarını sağlamak amacıyla bu Tebliğin Ek-4’ünde belirtilen hükümler çerçevesinde uygun sayıda personel ile yapılır.
+(2) Triyaj işlemi Ek-4’te belirtilen tablo kullanılarak yapılabileceği gibi uluslararası kabul görmüş başka triyaj yöntemi ile de yapılabilir. Triyaj yapacak personele hizmet içi eğitim verilmiş olmalıdır. Triyaj eğitimleri acil servis sorumlu tabibi tarafından verilir veya verdirilir. Acil servisteki hastalara farklı triyaj sistemi uygulansa dahi veri takibinin doğru şekilde takip edilebilmesi amacıyla uygulanan sistemin skorlarının, Ek-4’te belirtilen renk kodlamasına en yakın olacak şekilde belirtilerek SBYS kaydı sağlanır.
+[...]
+                                  Tebliğin Yayımlandığı Resmî Gazete’nin
+                               Tarihi                                   Sayısı
+                             13/9/2022                                 31952
+                    Tebliğde Değişiklik Yapan Tebliğlerin Yayımlandığı Resmî Gazetelerin
+                               Tarihi                                   Sayısı
+          1.                 13/5/2023                                 32189
+          2.                11/10/2024                                 32689

@@ -299,10 +299,33 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
     # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
     # with a stated reason.
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status, owner request, GitHub #721); grows only with a stated
+    # reason.
+    # + INT-407 (the files/02 §2b visit lifecycle state machine — a RED visit
+    # cannot silently move; found by INT-406's PR as GitHub #684); grows only
+    # with a stated reason.
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # GitHub #735); grows only with a stated reason.
+    # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
+    # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
+    # a stated reason.
+    # + INT-448 (the #642 sign-off packet items under D18, GitHub #759); grows
+    # only with a stated reason.
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415, owner request, GitHub #705); grows only with a stated reason.
+    # + INT-447 (INT-414's 48 delivery lines verified under owner decision D18,
+    # GitHub #758); grows only with a stated reason.
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
+    # with a stated reason.
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713);
+    # grows only with a stated reason.
+    # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
+    # 3 Oct 2026, GitHub #790); grows only with a stated reason.
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785); grows only
     # with a stated reason.
-    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
+    assert len(ids) == 342, f"expected 175 blueprint + 167 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

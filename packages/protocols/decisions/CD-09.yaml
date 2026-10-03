@@ -1,0 +1,243 @@
+# INT-432 clinical decision CD-09. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served. A floor here is
+# a release gate, never a statement about the product (invariant 20).
+kind: clinical_decision
+id: CD-09
+title: "Extraction-sensitivity floor and the golden set for lane and model swaps"
+question: >-
+  What per-rule extraction sensitivity must a lane or model swap reach before
+  it may carry red-flag extraction, by what non-inferiority margin may it trail
+  the lane it replaces on red-flag false negatives, and what golden set must
+  that be measured on?
+decision: >-
+  A lane or model swap is gated twice. The regression gate applies in every
+  deployment: every red-flag extraction golden (one true positive and one
+  near-miss negative per rule), the Turkish negation adversarial set, and the
+  RED goldens with the council on and off (identical results) must pass for the
+  exact provider, model@revision, prompt and decoding parameters being swapped
+  in; a failure stops or reverts the swap. The evidence gate applies only to the
+  PHI path: per-rule extraction sensitivity, measured on a clinician-labelled
+  golden set of real Turkish ASR output from the intended population, must meet
+  the sensitivity floor, and red-flag false negatives must be non-inferior to
+  the current lane within the margin. The floor and the margin stay
+  draft_needs_source: no current guideline or regulation sets either number,
+  and the regulators' own principle is that performance goals are derived from
+  the product's clinical benefits and risks. Until both are set, and until the
+  real-speech golden set exists, no PHI-path swap can pass. Synthetic-patient
+  runs and hosted-lane runs never count as files/04 §8.3 evidence; they may only
+  serve the regression gate. Measured values are recorded in docs/evidence/
+  with a date and a named corpus and are never described as properties of the
+  product.
+status: draft_needs_source
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient
+  stress testing only. A licensed physician's review is required before any real
+  patient.
+question_origin: >-
+  INT-428/INT-430 strict medical review (2 Oct 2026), required design change 12
+  and physician decision 8 (the extraction-sensitivity floor and the golden set
+  required for lane swaps); INT-428/INT-430 AI/ML review, must-have evals (golden
+  set from clinician-labelled real ASR output; non-inferiority on red-flag false
+  negatives with the margin set by the clinical owner; RED goldens identical
+  with the council on or off).
+author_role: "emergency medicine operations / clinical informatics physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-GMLP-2021
+    title: "Good machine learning practice for medical device development: guiding principles"
+    version_or_date: "Published 27 October 2021"
+    url: "https://www.gov.uk/government/publications/good-machine-learning-practice-for-medical-device-development-guiding-principles/good-machine-learning-practice-for-medical-device-development-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "The clinical benefits and risks related to the product are well understood, used to derive clinically meaningful performance goals for testing, and support that the product can safely and effectively achieve its intended use."
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-GMLP-2021.txt
+    supports: "sensitivity_floor and non_inferiority_margin are set by the clinical owner from benefits and risks (source_gap)"
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-GMLP-2021
+    title: "Good machine learning practice for medical device development: guiding principles"
+    version_or_date: "Published 27 October 2021"
+    url: "https://www.gov.uk/government/publications/good-machine-learning-practice-for-medical-device-development-guiding-principles/good-machine-learning-practice-for-medical-device-development-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "Data collection protocols should ensure that the relevant characteristics of the intended patient population (for example, in terms of age, gender, sex, race, and ethnicity), use, and measurement inputs are sufficiently represented in a sample of adequate size in the clinical study and training and test datasets, so that results can be reasonably generalised to the population of interest."
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-GMLP-2021.txt
+    supports: golden_set.real_turkish_asr_output_from_intended_population
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-GMLP-2021
+    title: "Good machine learning practice for medical device development: guiding principles"
+    version_or_date: "Published 27 October 2021"
+    url: "https://www.gov.uk/government/publications/good-machine-learning-practice-for-medical-device-development-guiding-principles/good-machine-learning-practice-for-medical-device-development-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "Accepted, best available methods for developing a reference dataset (that is, a reference standard) ensure that clinically relevant and well characterised data are collected and the limitations of the reference are understood."
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-GMLP-2021.txt
+    supports: golden_set.labelling
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-GMLP-2021
+    title: "Good machine learning practice for medical device development: guiding principles"
+    version_or_date: "Published 27 October 2021"
+    url: "https://www.gov.uk/government/publications/good-machine-learning-practice-for-medical-device-development-guiding-principles/good-machine-learning-practice-for-medical-device-development-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "Training and test datasets are selected and maintained to be appropriately independent of one another."
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-GMLP-2021.txt
+    supports: golden_set.independence
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-GMLP-2021
+    title: "Good machine learning practice for medical device development: guiding principles"
+    version_or_date: "Published 27 October 2021"
+    url: "https://www.gov.uk/government/publications/good-machine-learning-practice-for-medical-device-development-guiding-principles/good-machine-learning-practice-for-medical-device-development-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "Statistically sound test plans are developed and executed to generate clinically relevant device performance information independently of the training data set."
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-GMLP-2021.txt
+    supports: "golden_set.synthetic_runs_count_as_evidence: false; per-rule measurement; swap_gates.evidence_gate.per_rule_minimum_labelled_cases_and_acceptance_statistic (a statistically sound test plan, not one true positive per rule)"
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-GMLP-2021
+    title: "Good machine learning practice for medical device development: guiding principles"
+    version_or_date: "Published 27 October 2021"
+    url: "https://www.gov.uk/government/publications/good-machine-learning-practice-for-medical-device-development-guiding-principles/good-machine-learning-practice-for-medical-device-development-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "sufficiently represented in a sample of adequate size"
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-GMLP-2021.txt
+    supports: "swap_gates.evidence_gate.per_rule_minimum_labelled_cases_and_acceptance_statistic (the per-rule sample must be of adequate size; the size is not given)"
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-PCCP-2023
+    title: "Predetermined change control plans for machine learning-enabled medical devices: guiding principles"
+    version_or_date: "Published 24 October 2023"
+    url: "https://www.gov.uk/government/publications/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "mechanisms to detect and revert or stop implementation of a change that fails to meet specified performance criteria"
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-PCCP-2023.txt
+    supports: swap_gates.failure_action
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-PCCP-2023
+    title: "Predetermined change control plans for machine learning-enabled medical devices: guiding principles"
+    version_or_date: "Published 24 October 2023"
+    url: "https://www.gov.uk/government/publications/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "methods to generate evidence are specified that demonstrate the benefits and risks of the device before and after changes specified in the PCCP are implemented"
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-PCCP-2023.txt
+    supports: "non-inferiority comparison of the candidate lane against the current lane on the same golden set"
+  - kind: guideline
+    guideline_id: FDA-HC-MHRA-PCCP-2023
+    title: "Predetermined change control plans for machine learning-enabled medical devices: guiding principles"
+    version_or_date: "Published 24 October 2023"
+    url: "https://www.gov.uk/government/publications/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles"
+    retrieved_on: 2026-10-03
+    quote: "characterization of data used in development and modifications, demonstrated to reflect the intended population"
+    snapshot: packages/protocols/sources/FDA-HC-MHRA-PCCP-2023.txt
+    supports: golden_set.real_turkish_asr_output_from_intended_population
+spec_basis:
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.3 Safety metrics"
+    quote: "extraction sensitivity and specificity against a Turkish clinical reference standard"
+    supports: golden_set.labelling
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.2 Goldens"
+    quote: "`every_rule_has_a_true_positive_and_a_near_miss_negative`"
+    supports: golden_set.required_components
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.2 Accessibility"
+    quote: "`turkish_negation_adversarial_set`"
+    supports: golden_set.required_components
+  - file: CLAUDE.md
+    section: "invariant 20"
+    quote: "Measurements live in docs/evidence/ with a date and a named corpus, and are described as measurements, never as properties of the product."
+    supports: evidence_recording
+  - file: CLAUDE.md
+    section: "invariant 3"
+    quote: "Raw audio is never written to disk, DB, object store or logs"
+    supports: golden_set.labelling.audio
+  - file: CLAUDE.md
+    section: "invariant 19"
+    quote: "LLM adapters exist as the mock/dev path only and are blocked on the PHI path by the egress allow-list."
+    supports: golden_set.hosted_runs_count_as_evidence
+  - file: files/HUMAN_BLOCKERS.md
+    section: "HB-C10"
+    quote: "A 3–5 h Turkish spontaneous clinical-speech eval set"
+    supports: golden_set.labelling.audio
+source_gap: >-
+  sensitivity_floor, non_inferiority_margin,
+  swap_gates.evidence_gate.per_rule_minimum_labelled_cases_and_acceptance_statistic
+  and golden_set.labelling.labellers_and_adjudication: no current guideline or
+  regulation, Turkish or international, sets a numeric extraction-sensitivity
+  floor, a non-inferiority margin, a minimum labelled sample per rule, an
+  acceptance statistic, or a labeller count for a symptom-extraction
+  component feeding a deterministic triage engine. The FDA/Health Canada/MHRA
+  guiding principles (GMLP 2021 principle 6; PCCP 2023 principle 3) place the
+  derivation of performance goals and acceptance criteria on the manufacturer's
+  clinical benefit-risk analysis, which is a clinical-owner decision. The
+  harmonised successor text (IMDRF/AIML WG/N88 FINAL:2025) was not reachable
+  from this host at retrieval and is not cited. Any number written here would be
+  invented.
+value:
+  sensitivity_floor: "TODO: per-rule red-flag extraction sensitivity floor for a lane or model swap requires clinical sign-off"
+  non_inferiority_margin: "TODO: non-inferiority margin on red-flag extraction false negatives requires clinical sign-off"
+  golden_set:
+    required_components:
+      - id: clinician_labelled_real_asr_output
+        definition: >-
+          Transcripts produced by the pinned ASR from real Turkish clinical
+          speech of the intended population, each red-flag slot labelled by
+          clinicians as PRESENT, ABSENT or UNCLEAR.
+      - id: true_positive_per_rule
+        definition: "At least one labelled true positive for every red-flag rule."
+      - id: near_miss_negative_per_rule
+        definition: "At least one labelled near-miss negative for every red-flag rule."
+      - id: turkish_negation_adversarial_set
+        definition: "The files/04 §8.2 negation, hedging and double-negation set."
+      - id: red_goldens_identical_council_on_off
+        definition: "The RED golden set yields identical results with the council on and off."
+    labelling:
+      reference_standard: clinician_labelled
+      unit: red_flag_slot_answer_state
+      labels: [PRESENT, ABSENT, UNCLEAR]
+      labellers_and_adjudication: "TODO: the clinician labeller count and adjudication rule for the golden set requires clinical sign-off"
+      audio: >-
+        Labels are made on ASR transcripts. Audio is used only from a consented
+        research corpus under its own ethics route (HB-C10); production audio is
+        never retained (invariant 3), so it is never a labelling source.
+    independence: never_used_for_prompt_or_model_tuning
+    bound_to: [provider, model_at_revision, prompt_hash, decoding_parameters]
+    synthetic_runs_count_as_evidence: false
+    hosted_runs_count_as_evidence: false
+  swap_gates:
+    regression_gate:
+      applies_to: every_deployment
+      requires: [true_positive_per_rule, near_miss_negative_per_rule, turkish_negation_adversarial_set, red_goldens_identical_council_on_off]
+    evidence_gate:
+      applies_to: phi_path_only
+      requires: [clinician_labelled_real_asr_output, sensitivity_floor, non_inferiority_margin, per_rule_minimum_labelled_cases_and_acceptance_statistic]
+      per_rule_minimum_labelled_cases_and_acceptance_statistic: "TODO: the per-rule minimum labelled sample and acceptance statistic for the sensitivity floor and non-inferiority margin requires clinical sign-off"
+    failure_action: stop_or_revert_swap
+  evidence_recording: docs_evidence_dated_named_corpus_never_a_product_property
+value_status:
+  sensitivity_floor: draft_needs_source
+  non_inferiority_margin: draft_needs_source
+  golden_set.required_components: active
+  golden_set.labelling.reference_standard: active
+  golden_set.labelling.unit: active
+  golden_set.labelling.labels: active
+  golden_set.labelling.labellers_and_adjudication: draft_needs_source
+  golden_set.labelling.audio: active
+  golden_set.independence: active
+  golden_set.bound_to: active
+  golden_set.synthetic_runs_count_as_evidence: active
+  golden_set.hosted_runs_count_as_evidence: active
+  swap_gates.regression_gate: active
+  swap_gates.evidence_gate.applies_to: active
+  swap_gates.evidence_gate.requires: active
+  swap_gates.evidence_gate.per_rule_minimum_labelled_cases_and_acceptance_statistic: draft_needs_source
+  swap_gates.failure_action: active
+  evidence_recording: active
+fail_closed_while_draft: >-
+  While the floor and margin stay draft, and while the real-speech golden set
+  does not exist (HB-C10), the evidence gate cannot pass, so no lane or model
+  swap reaches the PHI path. The synthetic deployment may still swap lanes for
+  simulated-patient stress testing on the regression gate alone, and those runs
+  are tagged synthetic and refused as files/04 §8.3 evidence.
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

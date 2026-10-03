@@ -74,6 +74,7 @@ from intake_api import (
     record_items,
     satisfaction,
     taxonomy_routes,
+    visit_lifecycle,
     visits,
     visits_acibadem,
 )
@@ -92,7 +93,7 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
+from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings, is_dev_env
 from intake_api.state import ApiState
 
 if TYPE_CHECKING:
@@ -152,6 +153,10 @@ class ApiWiring:
     # None = no row (the shipped state), so /v1/visits/sync answers
     # "unavailable" (fail closed).
     acibadem: AcibademAppointmentsClient | None = None
+    # INT-407: the clinic Safety inbox a RED visit's reschedule or cancel
+    # raises its entry in (files/02 §2b). None = unwired: those two moves
+    # answer 503 rather than happen silently.
+    safety_inbox: SafetyInbox | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -445,6 +450,9 @@ def wiring_from_env() -> ApiWiring:
         embed=_embed_from_settings(settings),
         george=george_wiring_from_env(redis_url=settings.redis_url),
         acibadem=visits_acibadem.acibadem_client_from_registry(settings.clinical_sources_path),
+        # INT-407: the same store the console's queue reads and the voice
+        # runtime writes (INTAKE_SAFETY_INBOX_REDIS_URL)
+        safety_inbox=_safety_inbox_from_env(),
     )
 
 
@@ -462,15 +470,21 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         doctor_link=_doctor_link_service(w.auth),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
+        safety_inbox=w.safety_inbox,
     )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if w.bootstrap:
-            try:
-                await ensure_dev_fixture(w.engine, w.bootstrap_engine)
-            except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
-                logger.warning("dev fixture bootstrap deferred: database not ready")
+            # INT-421 (owner, 27 Sep 2026: "in production don't include deneme
+            # hastası"): the synthetic dev tenant, patient and consents are the
+            # dev environment's only. Anywhere else nothing is seeded, and what
+            # earlier boots left is removed by intake_api.dev_fixture_retire.
+            if w.settings.dev_tier_expected:
+                try:
+                    await ensure_dev_fixture(w.engine, w.bootstrap_engine)
+                except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
+                    logger.warning("dev fixture bootstrap deferred: database not ready")
             if w.auth is not None:
                 try:
                     # INT-131: consumer tenant for real OTP accounts (tenant
@@ -581,6 +595,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
+    app.include_router(visit_lifecycle.router)
     app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
     app.include_router(previsit_output.router)
@@ -601,6 +616,9 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(embed.router)
     # INT-326: the dev George route reaches a paid US vendor, so in production
     # it is not mounted at all (404) — whatever the dev flags or wiring say.
-    if not intake_env_is_prod():
+    # INT-421: the same holds on every non-dev host. The AWS host runs
+    # INTAKE_ENV=staging, and only the dev environment (INT-325's one
+    # definition, is_dev_env) mounts the route.
+    if is_dev_env(os.environ) and not intake_env_is_prod():
         app.include_router(dev_voice.router)
     return app

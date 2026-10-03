@@ -23,6 +23,7 @@
  * primitive. See speechShaping.ts for the shaping contract and
  * docs/evidence/INT-237.md for the measurements.
  */
+import type { DeliveryContext } from "./deliveryContext";
 import { assembleClip, shapeForDelivery } from "./speechShaping";
 
 export const TTS_PORT = 8803;
@@ -284,8 +285,13 @@ export interface ClipFs {
 }
 
 export interface ClipStore {
-  /** Path to the cached clip, synthesizing at most once per session. */
-  ensure(name: string, text: string): Promise<string>;
+  /**
+   * Path to the cached clip, synthesizing at most once per session. `context`
+   * is how the clip is delivered (INT-414/INT-415) and is handed to the
+   * synthesizer untouched; it never changes the words, and a caller that
+   * speaks one text in two contexts names two clips.
+   */
+  ensure(name: string, text: string, context?: DeliveryContext): Promise<string>;
   /** Deletes the whole clip directory (unmount AND session end). */
   clear(): Promise<void>;
 }
@@ -293,7 +299,7 @@ export interface ClipStore {
 export function createClipStore(
   dir: string,
   fs: ClipFs,
-  synth: (text: string) => Promise<Uint8Array>,
+  synth: (text: string, context?: DeliveryContext) => Promise<Uint8Array>,
 ): ClipStore {
   const root = dir.endsWith("/") ? dir : `${dir}/`;
   // Concurrent ensures of one clip share a single synthesis: the session
@@ -302,7 +308,7 @@ export function createClipStore(
   // ensure can retry honestly.
   const running = new Map<string, Promise<string>>();
   return {
-    async ensure(name, text) {
+    async ensure(name, text, context) {
       assertSpeakableTr(text); // defense in depth: no digit reaches synth
       const inFlight = running.get(name);
       if (inFlight !== undefined) {
@@ -313,7 +319,7 @@ export function createClipStore(
         if (await fs.exists(path)) {
           return path;
         }
-        const bytes = await synth(text);
+        const bytes = await synth(text, context);
         await fs.mkdirp(root);
         await fs.writeBase64(path, bytesToBase64(bytes));
         return path;
