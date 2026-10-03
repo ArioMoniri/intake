@@ -1,0 +1,415 @@
+# INT-447 clinical decision CD-23. Agent-authored under owner decision D18
+# (2 Oct 2026, INT-432): simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote
+# below appears verbatim in the named snapshot; spec_basis quotes appear
+# verbatim in the named committed file. Not a pack: nothing here is compiled
+# or served. The Turkish of each line is byte-equal to its catalogue key.
+kind: clinical_decision
+id: CD-23
+title: 'INT-414 delivery lines: topic transitions and closing (rows 33-38, 41-48)'
+question: INT-414 (#726) adds conversational delivery lines around each question. Do the topic transitions
+  (allergies, medicines, health history, daily life, measurements, wrap-up) and the closing lines pass
+  PolicyGuard (no diagnosis, treatment, prognosis, reassurance or minimising), stay B1 plain Turkish in
+  the siz register, ask nothing, carry no numeral, and fit the moment they are said?
+decision: All fourteen pass unchanged. Each topic line names the coming section in everyday words ('sağlık
+  geçmişi', 'günlük yaşam', not 'özgeçmiş' or 'sosyal öykü') and asks nothing. The closing lines thank
+  the patient and say nothing about where the answers go or what happens next. Each line below is its
+  own entry with its six checks, the author's verdict and the verifier's verdict; the Turkish is byte-equal
+  to the catalogue key it names.
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (INT-432): agent sign-off for simulated-patient testing only. A licensed
+  physician''s review is required before any real patient; that requirement is unchanged by this record.'
+question_origin: 'INT-447 (#758), split from INT-432 (#735): the HB-C1 table in docs/evidence/INT-414.md
+  and the approval:human-clinical label on #726.'
+author_role: family medicine physician, patient communication and health literacy (agent; medical author)
+sources:
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Önsöz (foreword), the plan's aims
+  quote: Aynı zamanda sağlık iletişiminde yalın, erişilebilir ve kültürel açıdan hassas içeriklerin geliştirilmesi
+    de planda öncelikli olarak ele alınmıştır.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Activity 2.2.4.2 (Hedef 2)
+  quote: Hasta ve hasta yakınına verilen belge ve formların anlaşılır bir dille yazılması ve güncellenmesi.
+  supports: lines[*].checks.b1_plain_language
+  note: The plan's own activity for documents and forms given to patients; an intake form spoken or shown
+    to the patient is held to it.
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Dünyada ve Ülkemizde Sağlık Okuryazarlığı Düzeyi ve İlişkili Faktörler, Dünyadaki Durum
+  quote: sağlık profesyonellerinin hastalarla güvene dayalı bir ilişki kurma ve ilaçları hakkında sade
+    bir anlatımla bilgi verme suretiyle hastaların sağlık okuryazarlığının artırılabileceği saptanmıştır
+  supports: lines[*].checks.fits_context
+  caveat: Cited for trust and plain explanation as the communication aim; the sentence is about medicines
+    information, and nothing here informs about medicines.
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 kişiden 7’sinin Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: Araştırma sonuçlarına göre Türkiye’de yaklaşık olarak 10 kişiden 7’sinin sağlık okuryazarlığı
+    düzeyi yetersiz veya sınırlı.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 Yaşlıdan 9’unun Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: 65 ve üzeri yaş grubu için elde edilen sonuçlar, 10 yaşlıdan 9’unun sağlık okuryazarlığının yetersiz
+    veya sınırlı olduğunu göstermekte.
+  supports: lines[*].checks.b1_plain_language
+spec_basis:
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 2
+  quote: Patient-facing text passes `PolicyGuard` (no diagnosis/treatment/prognosis language; one question
+    per turn; B1 Turkish).
+  supports: lines[*].checks.policyguard, lines[*].checks.not_a_question
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: lines[*].checks.no_numerals
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: 'Patient copy: ≤ B1 Turkish, empathetic, no medical jargon without explanation, never alarming
+    beyond the triage action.'
+  supports: lines[*].checks.b1_plain_language
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Register is `siz` universally — never `sen`, reachable only by mirroring
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Warmth comes from verb mood (`-elim/-alım`), not the pronoun.
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: conversational delivery may paraphrase the lead-in, never the item.
+  supports: lines[*].checks.fits_context
+- file: files/03_ARCHITECTURE.md
+  section: §4.2 Layer A, Realtime Talker boundary
+  quote: empathic acknowledgement ≤ 5 words; no diagnosis/treatment/prognosis language; one question per
+    turn; B1 Turkish
+  supports: lines[*].checks.fits_context
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 18
+  quote: consent and legal texts render only from `docs/legal/` with hash binding
+  supports: lines[*].note
+value:
+  line_count: 14
+  changed: []
+  checks:
+    policyguard: 'PolicyGuard.filter(text, scripted=False) on the dynamic path: no violation, nothing
+      dropped, no bridge; and by reading, no diagnosis, treatment, prognosis, reassurance or minimising'
+    b1_plain_language: at most two sentences of at most fifteen words, everyday words, no medical jargon
+      (Sağlık Bakanlığı plain-language aim)
+    siz_register: siz throughout; no sen; no doubled-polite imperative; warmth from -elim/-alım and -ebilirsiniz
+    not_a_question: no '?', no mı/mi/mu/mü, no interrogative opening a listener hears as a question
+    no_numerals: no digit in tr or en (invariant 22)
+    fits_context: true to what the product does at that moment, and right for the slot, the delivery context
+      and the lane
+  lines:
+  - row: 33
+    key: dialogue.delivery.topic.allergies.a
+    slot: topic.allergies
+    delivery_context: routine
+    said_when: Entering the allergy questions
+    lane: voice_and_screen
+    tr: Şimdi alerjilerle ilgili sorulara geçelim.
+    en: Now let us move to questions about allergies.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 34
+    key: dialogue.delivery.topic.allergies.b
+    slot: topic.allergies
+    delivery_context: routine
+    said_when: Entering the allergy questions
+    lane: voice_and_screen
+    tr: Sırada alerjilerle ilgili sorular var.
+    en: Next come questions about allergies.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 35
+    key: dialogue.delivery.topic.medications.a
+    slot: topic.medications
+    delivery_context: routine
+    said_when: Entering the medication questions
+    lane: voice_and_screen
+    tr: Şimdi ilaçlarla ilgili sorulara geçelim.
+    en: Now let us move to questions about medicines.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 36
+    key: dialogue.delivery.topic.medications.b
+    slot: topic.medications
+    delivery_context: routine
+    said_when: Entering the medication questions
+    lane: voice_and_screen
+    tr: Sırada ilaçlarla ilgili sorular var.
+    en: Next come questions about medicines.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 37
+    key: dialogue.delivery.topic.pmh.a
+    slot: topic.pmh
+    delivery_context: routine
+    said_when: Entering the health-history questions
+    lane: voice_and_screen
+    tr: Şimdi sağlık geçmişinizle ilgili sorulara geçelim.
+    en: Now let us move to questions about your health history.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 38
+    key: dialogue.delivery.topic.pmh.b
+    slot: topic.pmh
+    delivery_context: routine
+    said_when: Entering the health-history questions
+    lane: voice_and_screen
+    tr: Sırada sağlık geçmişinizle ilgili sorular var.
+    en: Next come questions about your health history.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 41
+    key: dialogue.delivery.topic.social.a
+    slot: topic.social
+    delivery_context: routine
+    said_when: Entering daily-life (social) questions
+    lane: voice_and_screen
+    tr: Şimdi günlük yaşamınızla ilgili sorulara geçelim.
+    en: Now let us move to questions about your daily life.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 42
+    key: dialogue.delivery.topic.social.b
+    slot: topic.social
+    delivery_context: routine
+    said_when: Entering daily-life (social) questions
+    lane: voice_and_screen
+    tr: Sırada günlük yaşamınızla ilgili sorular var.
+    en: Next come questions about your daily life.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'Signposts the section change with the everyday name of the section. No jargon: ''sağlık geçmişi''
+      rather than ''özgeçmiş'', ''günlük yaşam'' rather than ''sosyal öykü''.'
+    verifier_verdict: agree
+  - row: 43
+    key: dialogue.delivery.topic.measurements.a
+    slot: topic.measurements
+    delivery_context: routine
+    said_when: Entering the measurement steps (typed only; display only)
+    lane: display_only
+    tr: Şimdi birkaç ölçümle ilgili bilgi alalım.
+    en: Now let us gather some information about a few measurements.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Signposts the measurement steps. 'birkaç' is a word, not a numeral (invariant 22). Display only.
+    verifier_verdict: agree
+    verifier_note: 'Display only: height and weight are text_only steps, and ''birkaç'' fits the two of
+      them.'
+  - row: 44
+    key: dialogue.delivery.topic.measurements.b
+    slot: topic.measurements
+    delivery_context: routine
+    said_when: Entering the measurement steps (typed only; display only)
+    lane: display_only
+    tr: Sırada ölçümlerle ilgili sorular var.
+    en: Next come questions about measurements.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Signposts the measurement steps with no count. Display only.
+    verifier_verdict: agree
+    verifier_note: The line is fine, but the shared note cites 'birkaç', which this line does not contain
+      (note-only fix).
+  - row: 45
+    key: dialogue.delivery.topic.wrapup.a
+    slot: topic.wrapup
+    delivery_context: routine
+    said_when: Before the closing free-note question
+    lane: voice_and_screen
+    tr: Bitirmeden önce şunu da soralım.
+    en: Before we finish, let us also ask this.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Signals that the end is near before the closing free-note question; promises no count.
+    verifier_verdict: agree
+  - row: 46
+    key: dialogue.delivery.topic.wrapup.b
+    slot: topic.wrapup
+    delivery_context: routine
+    said_when: Before the closing free-note question
+    lane: voice_and_screen
+    tr: Sona yaklaştık.
+    en: We are nearing the end.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Signals that the end is near before the closing free-note question; promises no count.
+    verifier_verdict: agree
+  - row: 47
+    key: dialogue.delivery.closing.a
+    slot: closing
+    delivery_context: closing
+    said_when: Review screen, once every applicable question is answered (display only)
+    lane: display_only
+    tr: Sorularım bu kadar. Zaman ayırdığınız için teşekkür ederim.
+    en: That is all my questions. Thank you for your time.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Thanks the patient for their time. Says nothing about where answers go or what happens next
+      (docs/legal/strings.yaml is not authored yet, HB-L27). Display only.
+    verifier_verdict: agree
+    verifier_note: Rendered only when missingQuestions is empty (review.tsx:179), display only.
+  - row: 48
+    key: dialogue.delivery.closing.b
+    slot: closing
+    delivery_context: closing
+    said_when: Review screen, once every applicable question is answered (display only)
+    lane: display_only
+    tr: Soruların sonuna geldik. Zaman ayırdığınız için teşekkürler.
+    en: We have reached the end of the questions. Thank you for your time.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Thanks the patient for their time. Says nothing about where answers go or what happens next
+      (docs/legal/strings.yaml is not authored yet, HB-L27). Display only.
+    verifier_verdict: agree
+    verifier_note: Rendered only when missingQuestions is empty (review.tsx:179), display only.
+verifier:
+  verdict: agree_with_changes
+  role: independent clinical verifier (agent; internal medicine and Turkish health literacy)
+  verified_on: '2026-10-03'
+  notes: 'Independent verification, 3 Oct 2026: every line agreed; the record-text fixes listed here were
+    applied by the author before commit, and no line verdict changed. All fourteen lines agreed. The closing
+    renders only when the intake is complete, and the measurement lines are display only (DISPLAY_ONLY_SLOTS).
+    Text-only fixes: the row 44 note cites ''birkaç'', which the line does not contain; the rows 47-48
+    ''(no legal string exists, INT-210)'' should name docs/legal/strings.yaml and HB-L27; and the shared
+    source label. The verifier saw only the committed output, the two source snapshots, the repository
+    rules and the INT-414 code, never the author''s reasoning; it re-fetched both sources and found every
+    quote verbatim. Scope D18: simulated-patient stress testing only; a licensed physician''s review is
+    required before any real patient.'

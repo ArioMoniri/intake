@@ -82,7 +82,7 @@ real patient, and the register cannot be read as if it did."""
 _PENDING_TOKEN = "TO" + "DO"
 _GAP_KEYS = ("source_gap", "basis", "when")
 
-_DECISION_ID = r"^CD-\d{2}$"
+_DECISION_ID = r"^CD-\d{2,3}$"
 _ARCHETYPE_ID = r"^openEHR-EHR-[A-Z_]+\.[a-z0-9_]+\.v\d+$"
 _SNAPSHOT_PREFIX = "packages/protocols/sources/"
 

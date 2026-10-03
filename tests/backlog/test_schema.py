@@ -153,12 +153,22 @@ def test_ids_unique_and_well_formed() -> None:
     # move; found by INT-406's PR, whose visit_transition had no caller, #684).
     # + INT-432 (the clinical decisions register under owner decision D18,
     # agent-authored and independently agent-verified; GitHub #735).
+    # + INT-378 (the Keycloak provider that writes the aaguid and credential_id
+    # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
+    # owner decision, GitHub #644).
+    # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
     # script, not rule_ids[0]; found by INT-446, GitHub #767).
     # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
     # both lanes and the pre-positioned RED screen mounted; found by the
     # INT-440 voice end-to-end test, GitHub #756).
-    assert len(ids) == 335
+    assert len(ids) == 342
     import re
 
     for i in ids:
