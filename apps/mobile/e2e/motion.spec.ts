@@ -596,6 +596,11 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
 
 /** Every RED surface file on main. Grow it only with a file that paints or carries RED. */
 const RED_SURFACE_FILES: readonly string[] = [
+  // INT-446: the RED screen and the rules-engine hop that feeds it.
+  "src/components/RedLayer.tsx",
+  "src/lib/red/hop.ts",
+  "src/lib/red/location.ts",
+  "src/lib/red/store.ts",
   "src/lib/livekit/events.ts",
   "src/lib/livekit/index.ts",
   "src/lib/livekit/red.ts",

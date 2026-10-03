@@ -149,7 +149,10 @@ def test_ids_unique_and_well_formed() -> None:
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
     # script, not rule_ids[0]; found by INT-446, GitHub #767).
-    assert len(ids) == 331
+    # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
+    # both lanes and the pre-positioned RED screen mounted; found by the
+    # INT-440 voice end-to-end test, GitHub #756).
+    assert len(ids) == 332
     import re
 
     for i in ids:

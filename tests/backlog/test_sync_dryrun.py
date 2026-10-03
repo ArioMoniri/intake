@@ -102,7 +102,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
     # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
     # + INT-453 (RED path triggers the winning rule's script, found by INT-446, GitHub #767)
-    assert len(actions) == 331
+    # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
+    assert len(actions) == 332
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

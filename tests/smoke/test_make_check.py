@@ -301,7 +301,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
     # script, found by INT-446, GitHub #767); grows only with a stated reason.
-    assert len(ids) == 331, f"expected 175 blueprint + 156 added issues, got {len(ids)}"
+    # + INT-446 (RED end to end in the app — the rules-engine hop on both lanes
+    # and the RED screen mounted, found by INT-440, GitHub #756); grows only
+    # with a stated reason.
+    assert len(ids) == 332, f"expected 175 blueprint + 157 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

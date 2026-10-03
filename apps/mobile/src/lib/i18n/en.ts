@@ -1276,4 +1276,8 @@ export const en: Record<MessageKey, string> = {
     "Are you still there? To protect your information, the session will close shortly.",
   "kiosk.idle.extend": "Continue",
   "kiosk.idle.extendHint": "Keeps the session open.",
+  "red.call112": "Call 112",
+  "red.location.yes": "Yes",
+  "red.location.no": "No",
+  "red.doNots": "Please do not",
 };

@@ -26,6 +26,7 @@ import { useEffect } from "react";
 import { ReduceMotion, ReducedMotionConfig } from "react-native-reanimated";
 
 import { KioskGate } from "@/components/KioskGate";
+import { RedLayer } from "@/components/RedLayer";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { routeClassOf, transitionFor } from "@/lib/motion/transitions";
 import { AppearanceProvider } from "@/lib/prefs/AppearanceProvider";
@@ -103,6 +104,11 @@ export default function RootLayout() {
         <KioskGate>
           <LocalizedStack />
         </KioskGate>
+        {/* INT-446 — the RED root layer, a sibling AFTER the navigator
+            container: ALERT and CALM paint above every screen with no
+            navigation call (lib/motion/red.ts), and the rules-engine hop
+            runs here for every visit's bound answers. */}
+        <RedLayer />
       </SessionProvider>
     </AppearanceProvider>
   );
