@@ -5,11 +5,14 @@ inside the draft_needs_source stub."""
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -399,3 +402,91 @@ def test_the_adli_tip_candidate_is_what_the_generator_emits_from_its_proposal() 
     )
     assert committed == emitted
     assert pack["ops"] == [SUPPRESS_OP]
+
+
+# --- held proposal items never reach a review candidate (CD-105) ---------------
+
+
+def _held_items(md_text: str) -> list[tuple[str | None, str]]:
+    """(slot id or None, question text) of every candidate item a `hold=` keeps out."""
+    held: list[tuple[str | None, str]] = []
+    for seg in re.split(r"\n\*\*Q", "\n" + GEN._question_region(md_text))[1:]:
+        gm = re.search(r"^gen:\s*(.+)$", seg, re.M)
+        qm = re.search(r'>\s*"(.+?)"', seg, re.S)
+        if gm is None or qm is None:
+            continue
+        gen = GEN._parse_gen(gm.group(1))
+        if "hold" in gen:
+            text = re.sub(r"\s+", " ", re.sub(r"\s*\n>\s*", " ", qm.group(1))).strip()
+            held.append((gen.get("slot"), text))
+    return held
+
+
+def _candidate_slots(path: Path) -> dict[str, Any]:
+    pack = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return {key: slot for s in pack["sections"].values() for key, slot in s["slots"].items()}
+
+
+def _proposals_with_candidates() -> list[tuple[str, Path]]:
+    pairs: list[tuple[str, Path]] = []
+    for proposal in sorted(GEN.PROP.glob("*.md")):
+        slug = proposal.stem
+        if slug.startswith("_"):
+            continue
+        if slug.startswith(GEN.CLUSTER_PREFIX):
+            path = GEN.REVIEW_CLUSTER / f"{slug.removeprefix(GEN.CLUSTER_PREFIX)}.yaml"
+        else:
+            path = GEN.REVIEW / f"{slug}.yaml"
+        if path.exists():
+            pairs.append((slug, path))
+    return pairs
+
+
+PROPOSALS_WITH_CANDIDATES = _proposals_with_candidates()
+
+
+@pytest.mark.parametrize(
+    ("slug", "path"), PROPOSALS_WITH_CANDIDATES, ids=[s for s, _ in PROPOSALS_WITH_CANDIDATES]
+)
+def test_no_held_proposal_item_reaches_its_review_candidate(slug: str, path: Path) -> None:
+    slots = _candidate_slots(path)
+    asks = {slot["ask_tr"]["tr"] for slot in slots.values()}
+    for slot_id, text in _held_items((GEN.PROP / f"{slug}.md").read_text(encoding="utf-8")):
+        assert slot_id not in slots, f"{slug}: held slot {slot_id} is in the candidate"
+        assert text not in asks, f"{slug}: held question {text!r} is in the candidate"
+
+
+def test_the_held_item_sweep_covers_the_review_queue() -> None:
+    assert len(PROPOSALS_WITH_CANDIDATES) >= 90
+    assert any(
+        _held_items((GEN.PROP / f"{s}.md").read_text("utf-8")) for s, _ in PROPOSALS_WITH_CANDIDATES
+    )
+
+
+def test_near_miss_the_same_item_unheld_reaches_the_pack_and_held_does_not() -> None:
+    line = "gen: slot=son_adet_tarihi; type=date"
+    held_text = PROPOSAL.replace(line, f"{line}; hold=karar bekleniyor")
+    for text, expected in ((PROPOSAL, True), (held_text, False)):
+        qs, _ = GEN.extract_questions(text)
+        slots = GEN.build_pack(DRAFT, "ornek", qs)["sections"]["sorular"]["slots"]
+        assert ("son_adet_tarihi" in slots) is expected
+    assert _held_items(held_text)[-1] == (
+        "son_adet_tarihi",
+        "Son adetinizin ilk günü hangi tarihti?",
+    )
+    assert ("son_adet_tarihi", "Son adetinizin ilk günü hangi tarihti?") not in _held_items(
+        PROPOSAL
+    )
+
+
+def test_adli_tip_safety_items_held() -> None:
+    """CD-105 (wave 1-3 finding 21): the feeling-safe, companion and
+    neck-compression items each carry a hold line and are absent from the
+    emitted adli_tip pack. Near miss: suregelen_hastalik stays emitted."""
+    held = _held_items((GEN.PROP / "adli_tip.md").read_text(encoding="utf-8"))
+    held_slots = {slot for slot, _ in held if slot is not None}
+    assert held_slots == {"su_an_guvende", "boyun_baski_sonrasi_belirti"}
+    assert any(text.startswith("Randevuya sizinle birlikte") for slot, text in held if slot is None)
+    slots = _candidate_slots(GEN.REVIEW / "adli_tip.yaml")
+    assert not held_slots & set(slots)
+    assert "suregelen_hastalik" in slots and "doktora_onceden_not" in slots

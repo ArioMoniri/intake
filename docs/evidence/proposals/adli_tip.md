@@ -191,6 +191,10 @@ its place: LD-01 leaves the replacement item undecided.
 
 pack: suppress=sorular.rapor_amaci
 
+Also applied 2026-10-04 (INT-469): CD-105 (wave 1-3 finding 21) rejects Q3, Q4 and Q5 pre-visit.
+Q4 already carried a `hold=` line; Q3 and Q5 were marked HOLD in prose only, so the generator emitted
+them. Both now carry a `hold=` line like Q4's, and none of the three reaches the candidate.
+
 **Q1 — Reason for the appointment** · archetype: `EVALUATION.reason_for_encounter.v1` · source: general intake (no clinical threshold)
 > "Bugünkü randevunuzun konusu nedir?"
 CANDIDATE — clinician to approve wording. The typed-only "yazabilirsiniz" is gone (voice-first,
@@ -205,7 +209,7 @@ works in voice; "boş bırakabilirsiniz" was typed-only (finding 28).
 
 **Q3 — Feeling safe now** · archetype: `OBSERVATION.story.v1` (provisional) · source: S1 (Rec 1 first-line support; Rec 3 inquiry)
 > "Şu anda kendinizi güvende hissediyor musunuz?"
-gen: slot=su_an_guvende; type=boolean; delivery=text_first
+gen: slot=su_an_guvende; type=boolean; delivery=text_first; hold=CD-105 rejects it pre-visit — safeguarding enquiry for trained staff in private (NICE PH50), invariant 18
 CANDIDATE — clinician to approve wording. HOLD (finding 21). Also open: S1's non-universal-screening
 caveat is not captured verbatim (§4 gap 3). If the hold is lifted, a "no" answer may at most feed a
 candidate_flag **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT
@@ -220,7 +224,7 @@ conflict is a clinician + legal decision.
 
 **Q5 — Neck-injury / strangulation symptom safety-net** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (IFAS Box B — airway red flags)
 > "Boynunuza baskı uygulanan bir olaydan sonra ses kısıklığı ya da yutkunmada zorlanma fark ettiniz mi?"
-gen: slot=boyun_baski_sonrasi_belirti; type=boolean; delivery=text_first
+gen: slot=boyun_baski_sonrasi_belirti; type=boolean; delivery=text_first; hold=CD-105 rejects it pre-visit — the clinician asks it at the visit (NICE PH50), invariant 18
 CANDIDATE — clinician to approve wording. The reviewer passes the text (IFAS Box B supports voice
 change + dysphagia) but keeps it under finding 21's data decision, so it is held with Q3–Q4. If the
 hold is lifted: candidate_flag **YELLOW_REVIEW (candidate, pending clinician + rules-engine
