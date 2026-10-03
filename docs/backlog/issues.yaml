@@ -6460,11 +6460,13 @@
   # GitHub #762. Owner request, 3 Oct 2026: George is an English voice speaking
   # Turkish; the intonation between words is off and the delivery lacks
   # emotion. ADR-034 keeps eleven_multilingual_v2 unless the owner re-decides;
-  # a v3 pick is the owner's decision, recorded in that ADR. The pick itself is
-  # the owner's (awaiting-human): the pin and the re-render follow it.
+  # a v3 pick is the owner's decision, recorded in that ADR. The owner picked
+  # E04 on 3 Oct 2026 ("use E04 voice"; D20): eleven_v3, render-time tags, the
+  # ADR-034 amendment accepted. The pin is applied; the bundled re-render is run
+  # by the coordinator with the key and recorded in the evidence.
   depends_on: [INT-415]
   labels: [area:voice]
-  status: awaiting-human
+  status: doing
   evidence: docs/evidence/INT-449.md
   acceptance:
     - "native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines; the owner picks from a blind page"

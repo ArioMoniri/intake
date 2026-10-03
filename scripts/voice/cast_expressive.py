@@ -65,7 +65,7 @@ from voice_cast_library import (
     score,
     vendor_client,
 )
-from voice_cast_tags import check_table, tag_prefix
+from voice_cast_tags import TAGS, check_table, tag_prefix
 from voice_clips.delivery import DeliveryContext, DeliveryProfile, ElevenLabsVoiceSettings
 
 #: The round-1 voices the owner's feedback keeps (docs/voice/casting-2026-10.md).
@@ -91,16 +91,19 @@ MAX_VOICES: Final = 6
 
 
 def expressive_profile(context: DeliveryContext, stability: float) -> DeliveryProfile:
-    """``eleven_v3`` at one stability level; the other settings at vendor defaults."""
+    """``eleven_v3`` at one stability level with the context's closed-table tags;
+    the other settings at vendor defaults."""
     settings = ElevenLabsVoiceSettings(
         stability=stability, similarity_boost=0.75, style=0.0, use_speaker_boost=True, speed=1.0
     )
-    return DeliveryProfile(context=context, version=1, model_id=V3, voice_settings=settings)
+    return DeliveryProfile(
+        context=context, version=1, model_id=V3, voice_settings=settings, tags=TAGS[context]
+    )
 
 
-def plan(combo: Combo, line: CatalogueLine) -> tuple[DeliveryProfile, str]:
-    """The v3 profile at the combo's stability, and the context's closed-table tags."""
-    return expressive_profile(line.key, STABILITY[combo.setting]), tag_prefix(line.key)
+def plan(combo: Combo, line: CatalogueLine) -> DeliveryProfile:
+    """The v3 profile at the combo's stability, tags included."""
+    return expressive_profile(line.key, STABILITY[combo.setting])
 
 
 def wire_chars(lines: Sequence[CatalogueLine] = LINES) -> int:

@@ -39,7 +39,7 @@ import secrets
 import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
@@ -68,7 +68,6 @@ from voice_cast_report import (
     rank,
     split_prefix,
 )
-from voice_cast_tags import TagRefused, check_prefix
 from voice_clips.audio import SynthesisedSpeech, wav_bytes, wav_to_speech
 from voice_clips.delivery import (
     DeliveryContext,
@@ -77,7 +76,6 @@ from voice_clips.delivery import (
     delivery_profile,
 )
 from voice_clips.gateway import (
-    ELEVENLABS_MODEL_ID,
     ELEVENLABS_PCM_RATE_HZ,
     ENV_ELEVENLABS_BASE,
     ENV_ELEVENLABS_KEY,
@@ -94,7 +92,9 @@ SPEND_CEILING_USD: Final = 5.0
 #: Planning rate, the high end on record (docs/evidence/INT-424.md); the vendor
 #: bills characters, and the characters actually sent are recorded after.
 USD_PER_1K_CHARS: Final = 0.30
-V2: Final = ELEVENLABS_MODEL_ID
+#: The two casting models. Since INT-449 the served model is v3 (D20); v2 stays
+#: a comparison model here so round 1 can still be reproduced.
+V2: Final = "eleven_multilingual_v2"
 V3: Final = "eleven_v3"
 MAX_SHORTLIST: Final = 10
 INT414_REF: Final = "origin/int-414-conversational-delivery"
@@ -179,14 +179,17 @@ def v3_profile(context: DeliveryContext) -> DeliveryProfile:
 
 
 def profile_for(line: CatalogueLine, model_id: str) -> DeliveryProfile:
-    return delivery_profile(line.key) if model_id == V2 else v3_profile(line.key)
+    """Round 1: v2 under the served row's settings, untagged; v3 at vendor defaults."""
+    if model_id == V2:
+        return replace(delivery_profile(line.key), model_id=V2, tags=())
+    return v3_profile(line.key)
 
 
-def request_body(text_tr: str, profile: DeliveryProfile, prefix: str = "") -> dict[str, Any]:
-    """The ADR-028 gateway's request body, field for field. A round-2 tag prefix
-    (``voice_cast_tags``) exists only here, on the wire, never in ``text_tr``."""
+def request_body(text_tr: str, profile: DeliveryProfile) -> dict[str, Any]:
+    """The ADR-028 gateway's request body, field for field: the profile's
+    closed-table tags in front, on the wire only, never in ``text_tr``."""
     return {
-        "text": prefix + text_tr,
+        "text": profile.wire_prefix + text_tr,
         "model_id": profile.model_id,
         "apply_text_normalization": "off",
         "voice_settings": profile.voice_settings.as_request(),
@@ -199,24 +202,21 @@ def synthesise_aligned(
     text_tr: str,
     voice_id: str,
     profile: DeliveryProfile,
-    prefix: str = "",
 ) -> tuple[SynthesisedSpeech, Alignment | None]:
     assert_speakable_tr(text_tr)
     if _MARKUP.intersection(text_tr):
         raise CastRefused("markup in scripted text (invariant 10)")
     if profile.model_id not in (V2, V3):
         raise CastRefused(f"model {profile.model_id!r} is not a casting model")
-    if prefix and profile.model_id != V3:
-        raise CastRefused("audio tags are a v3 render-time proposal only")
-    try:
-        check_prefix(profile.context, prefix)
-    except TagRefused as exc:
-        raise CastRefused(str(exc)) from None
-    assert_speakable_tr(prefix + text_tr)
+    if profile.tags and profile.model_id != V3:
+        raise CastRefused("audio tags are a v3 delivery only (ADR-034 amendment)")
+    if profile.tags and profile.tags != delivery_profile(profile.context).tags:
+        raise CastRefused(f"tags {profile.tags} are not the served table's for {profile.context}")
+    assert_speakable_tr(profile.wire_prefix + text_tr)
     response = client.post(
         f"/v1/text-to-speech/{voice_id}/with-timestamps",
         params={"output_format": f"pcm_{ELEVENLABS_PCM_RATE_HZ}"},
-        json=request_body(text_tr, profile, prefix),
+        json=request_body(text_tr, profile),
     )
     if response.status_code // 100 != 2:
         code, status = response.status_code, vendor_status(response)
@@ -259,12 +259,12 @@ class Combo:
     setting: str = ""
 
 
-#: How one line of one combination is requested: its profile and its wire prefix.
-Plan = Callable[[Combo, CatalogueLine], tuple[DeliveryProfile, str]]
+#: How one line of one combination is requested: its profile (tags included).
+Plan = Callable[[Combo, CatalogueLine], DeliveryProfile]
 
 
-def default_plan(combo: Combo, line: CatalogueLine) -> tuple[DeliveryProfile, str]:
-    return profile_for(line, combo.model_id), ""
+def default_plan(combo: Combo, line: CatalogueLine) -> DeliveryProfile:
+    return profile_for(line, combo.model_id)
 
 
 def assign_codes(cast: Sequence[Voice], models: Sequence[str]) -> list[Combo]:
@@ -306,8 +306,8 @@ def render(
             if combo.model_id == V3 and (v3_dead or combo.voice.voice_id in v2_failed):
                 combo.errors.append("skipped: v3 refused earlier, or the voice failed on v2")
                 break
-            profile, prefix = plan(combo, line)
-            wire = len(prefix) + len(line.text_tr)
+            profile = plan(combo, line)
+            wire = len(profile.wire_prefix) + len(line.text_tr)
             cost_k = wire * multipliers.get(combo.model_id, 1.0) / 1000
             if (billed_k + cost_k) * USD_PER_1K_CHARS > budget_usd:
                 raise CastRefused("the running spend would pass the budget; stopped")
@@ -319,7 +319,6 @@ def render(
                     text_tr=line.text_tr,
                     voice_id=combo.voice.voice_id,
                     profile=profile,
-                    prefix=prefix,
                 )
             except (CastRefused, httpx.HTTPError) as exc:
                 combo.errors.append(f"{line.key}: {exc}")
@@ -329,7 +328,7 @@ def render(
                 continue
             for folder, name, payload in (
                 ("audio", f"{line.key}.wav", wav_bytes(speech)),
-                ("align", f"{line.key}.json", _align_json(alignment, prefix)),
+                ("align", f"{line.key}.json", _align_json(alignment, profile.wire_prefix)),
             ):
                 (run_dir / folder / combo.code).mkdir(parents=True, exist_ok=True)
                 (run_dir / folder / combo.code / name).write_bytes(payload)

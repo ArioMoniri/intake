@@ -1,83 +1,81 @@
-# ADR-034 amendment proposal: emotion tags at render time only (INT-449)
+# ADR-034 amendment: eleven_v3 and emotion tags at render time only (INT-449)
 
-Status: Proposed (INT-449 round 2, 3 Oct 2026). The owner has not decided. ADR-034 itself is on
-PR #734 and is not on main yet, so this proposal is kept here. When #734 merges, the owner's
-decision on this proposal is copied into ADR-034's text, accepted or rejected. Until then,
-nothing served uses a tag.
+Status: Accepted (owner decision, 3 Oct 2026; D20). The owner, Ario Moniri, picked E04 from the
+INT-449 round-2 blind page in chat on 3 Oct 2026: "use E04 voice". The coordinator relayed the
+pick. E04 is a render-time-tag take on `eleven_v3`, so the pick adopts this amendment. Proposed the
+same day.
+
+ADR-034 itself is on PR #734 and is not on main yet. When #734 merges, this decision is copied
+into ADR-034's text and replaces its option (A) for the clip lane.
 
 ## Context
 
-ADR-034 (Accepted, 3 Oct 2026) keeps `eleven_multilingual_v2` for every context and does not
-adopt audio tags. It lists the conditions a tag would have to meet:
+ADR-034 (Accepted, 3 Oct 2026) kept `eleven_multilingual_v2` for every context and did not adopt
+audio tags. It rejected `eleven_v3` everywhere (its option D) on the premise that v3 has no
+stability control, so RED could not be pinned as the most stable profile. It listed the conditions
+a tag would have to meet: a closed per-profile table, prepended at the wire outside
+`clip_text_hash`, never mid-item (`[pause]` included), never on RED or an instrument, and passing
+the round-trip gate.
 
-- it comes from a closed per-profile table;
-- it is prepended at the wire, outside `clip_text_hash`;
-- it never appears mid-item, `[pause]` included;
-- it never appears on RED or an instrument;
-- it passes the round-trip gate with no extra word and no sound effect.
+INT-449 cast native Turkish voices in two blind rounds. The owner's feedback on round 1 was:
+"ElevenLabs could do better and more emotional". Round 2 auditioned `eleven_v3` with tags under
+exactly ADR-034's conditions. The owner picked E04: "Marcus - Warm, Clear and Professional",
+voice `2PwDxni9MpXdYqgALrBh`, on `eleven_v3` at Natural stability (0.5), tagged.
 
-INT-449 round 1 cast native Turkish voices on v2 and on v3 with no tags. The owner's feedback on
-that round, on 3 Oct 2026, was: "ElevenLabs could do better and more emotional". Round 2
-therefore auditions `eleven_v3` with tags under exactly the conditions above.
+ADR-034's premise does not hold. The vendor's product guide documents three stability levels on v3
+(Creative, Natural, Robust), and INT-449's renders were accepted at 0.0 and 0.5. RED can therefore
+be pinned as the most stable profile on v3, at Robust (1.0).
 
-## Proposal
+## Decision
 
-1. **Closed table.** Tags come only from `scripts/voice/voice_cast_tags.py` `TAGS`, one entry per
-   delivery context:
+1. **One model, one voice.** `eleven_v3` for every context (`ELEVENLABS_MODEL_ID`), in the cast
+   voice `CLIPGEN_VOICE_ID`. Every row of `voice_clips.delivery` is version 4, so no clip made
+   under George or an earlier tuning is replayed.
+2. **Settings as E04 was heard.** Natural stability (0.5), style 0 and the default speed for every
+   tagged context. RED and instrument are Robust (1.0): the most stable profile, never tagged
+   (invariant 21).
+3. **Closed table, on the profile.** Each row carries its tags. `DeliveryProfile` refuses a tag on
+   RED or an instrument, and any tag that is not one lowercase bracketed word, including
+   `[pause]`.
 
-   | Context         | Tags                      |
-   | --------------- | ------------------------- |
-   | welcome         | `[warmly]`                |
-   | routine         | `[calm]`                  |
-   | sensitive       | `[softly]` `[reassuring]` |
-   | acknowledgement | `[gently]`                |
-   | closing         | `[warmly]`                |
-   | RED             | none                      |
-   | instrument      | none                      |
+   | Context         | Tags                      | Stability     |
+   | --------------- | ------------------------- | ------------- |
+   | welcome         | `[warmly]`                | Natural (0.5) |
+   | routine         | `[calm]`                  | Natural (0.5) |
+   | sensitive       | `[softly]` `[reassuring]` | Natural (0.5) |
+   | acknowledgement | `[gently]`                | Natural (0.5) |
+   | closing         | `[warmly]`                | Natural (0.5) |
+   | RED             | none                      | Robust (1.0)  |
+   | instrument      | none                      | Robust (1.0)  |
 
-   `check_table` enforces three rules: the table names the seven contexts, RED and instrument
-   are empty, and every tag is one lowercase bracketed word that is not `[pause]`. Changing the
-   table is a reviewed change with a version bump.
+4. **On the wire only.** The ADR-028 gateway prepends the profile's `wire_prefix` to the request
+   text, and nothing else ever carries a tag:
+   - `text_tr`, the catalogue, the compiled packs and `clip_text_hash` never carry one;
+   - `assert_speakable_tr` refuses any numeral before the wire (invariant 22);
+   - the vendor normaliser stays off;
+   - the words spoken are the script's, verbatim (invariant 10).
 
-2. **On the wire only.** The request layer (`request_body`, `synthesise_aligned`) prepends the
-   context's tags to the request text, and nowhere else:
-   - `text_tr`, the catalogue, the compiled packs and `clip_text_hash` never carry a tag;
-   - `assert_speakable_tr` and the markup gate keep running on the catalogue text, so a tag
-     cannot be authored into a line;
-   - the wire text, tags included, also passes `assert_speakable_tr`;
-   - a prefix that is not the table's own for its context is refused before the wire, and so is
-     any prefix on v2.
+## The gates
 
-   The spoken words are therefore the catalogue's, verbatim (invariant 10).
-
-3. **Measured, not assumed.** Each take records the audio span the vendor's alignment gives the
-   tag characters (`tag_ms`). A tag read as direction covers about 0 ms. A tag that was spoken, or
-   rendered as a sound, covers more, and that take fails the proposal.
-
-## Gates before anything is served
-
-These are ADR-034's gates, unchanged, in its order:
-
-1. the owner's decision on this proposal, recorded in ADR-034;
-2. the model registry row and the vendor-terms blocker for `eleven_v3`;
-3. normaliser-off proven on v3 with a numeral fixture (round 1 shows only that the request is
-   accepted);
-4. this closed table, versioned;
-5. the round-trip ASR gate on the full compiled corpus, with no extra word and no sound effect;
-6. the owner's listening review, which is INT-449 round 2's blind page;
-7. the same-voice check across contexts.
-
-RED stays pre-positioned, untagged and on the most stable profile on any model (invariant 21).
+| ADR-034 gate                                          | State                                                                                                                                                                                                       |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. The owner's decision, recorded                     | Done: this document and D20.                                                                                                                                                                                |
+| 2. Model registry row and vendor-terms blocker        | Open. Hosted providers are declared in `infra/model-lanes/` with INT-428/INT-443, which are not on main. The vendor's commercial-use terms are still INT-319's ask (a) in `docs/backlog/blockers.md`.       |
+| 3. Normaliser-off proven on v3 with a numeral fixture | Open as a vendor proof. Every request carries `apply_text_normalization: "off"`, and v3 accepted it in every INT-449 render. No numeral can reach the wire, because `assert_speakable_tr` refuses it first. |
+| 4. The closed tag table, versioned                    | Done: `voice_clips.delivery`, v4 of every row.                                                                                                                                                              |
+| 5. Round-trip ASR gate on the full compiled corpus    | Open. It has not been run. It is owed before the compiled packs' clips are built on v3.                                                                                                                     |
+| 6. The owner's listening review                       | Done: the round-2 blind page, where E04 was picked.                                                                                                                                                         |
+| 7. Same-voice check across contexts                   | Partly done. E04 was heard across six contexts, all at Natural. RED and instrument at Robust have not been heard; the owner should listen to one RED or instrument take.                                    |
 
 ## Consequences
 
-If accepted:
-
-- `DeliveryProfile` carries a model id and a tag tuple per row;
-- the ADR-028 gateway sends the prefix from the profile and never from the caller;
-- the clip key includes the profile version, so a tag change re-synthesises.
-
-If rejected, the round-2 renders remain an audition and nothing changes.
-
-Either way, this proposal makes no accuracy, quality or naturalness claim (invariant 20). Round
-2's figures are measurements of those takes.
+- `DeliveryProfile` carries `voice_id` and `tags`, and the gateway sends the prefix from the profile,
+  never from the caller.
+- The dev route and the hosted clip lane take the voice and the model from the pins. The hosted lane
+  is INT-443 (#775), which imports `ELEVENLABS_MODEL_ID` and defaults to the dev route's voice.
+  #775 sends `text_tr` without the tag prefix, so it needs a one-line follow-up to send
+  `profile.wire_prefix + text_tr`.
+- INT-424 (#734) and INT-440 (#768) edit the same table or render under George. Whichever lands
+  second takes v4 and the cast voice.
+- This makes no accuracy, quality or naturalness claim (invariant 20). INT-449's figures are
+  measurements of those takes.

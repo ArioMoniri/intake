@@ -3,43 +3,70 @@
 GitHub #762. The owner's feedback on 3 Oct 2026 was that George is an English voice speaking
 Turkish, is "not the best Turkish voice of ElevenLabs", has intonation between words that "is not
 fine", and lacks emotion. This document records how native Turkish candidates were found, rendered
-and measured, and how the owner picks one. The pick is the owner's. Nothing is pinned until it is
-made.
+and measured, and what the owner picked.
 
-## How to pick
+## The pick
 
-1. Open `blind.html` from the run directory, `.cache/voice-cast/20261003T004143Z/`. It sits in the
-   INT-449 worktree and is gitignored. Each row is one voice on one model under a code (`S01` to
-   `S18`), in shuffled order. Every row speaks the same six lines.
-2. Use **Play all** on a row to hear the six lines back to back. Listen for three things. Do the
-   words join within a phrase? Does the pitch carry across word boundaries, or reset at each word?
-   Does the voice sound calm and warm without being theatrical?
-3. Send the code you would keep. You may send a first and a second choice. The control voice is
-   one of the coded rows, so a pick against it is also a blind check of whether the change is
-   worth making.
-4. Do not open `labelled.html` until you have picked. It carries the names and figures.
+On 3 Oct 2026 the owner picked **E04** from the round-2 blind page: "use E04 voice". This is D20 in
+`files/00_STATE.md`, and it accepts the ADR-034 amendment
+`docs/voice/adr-034-amendment-proposal-render-time-tags.md`.
 
-The code key (which code is which voice and model) is not in this document while the pick is
-open. It is in the run's `index.json` and `labelled.html`, and it is added here after the pick.
+| Item     | Value                                                                    |
+| -------- | ------------------------------------------------------------------------ |
+| Voice    | "Marcus - Warm, Clear and Professional" (Ozzano), `2PwDxni9MpXdYqgALrBh` |
+| Model    | `eleven_v3`                                                              |
+| Settings | Natural stability (0.5), style 0, default speed                          |
+| Tags     | the closed per-context table, on the wire only                           |
 
-## What happens after the pick
+E04 ranked fifth of the six rendered round-2 takes on the continuity figures. Its pitch range was
+the widest (21.3 semitones). The owner chose by ear, as the method intended.
 
-- **A v2 code** (`eleven_multilingual_v2`) keeps the model ADR-034 accepted. The prepared change
-  adds `CLIPGEN_VOICE_ID` to `voice_clips.delivery` and a `voice_id` field (the same in every row)
-  to `DeliveryProfile`. It bumps every row's `version`, so no clip made in George's voice is
-  replayed from a cache. The dev route's default voice moves to the pin. A near-miss test refuses
-  a recording made under the George-era version of the same context.
-- **A v3 code** (`eleven_v3`) is a model change. ADR-034 is amended with the owner's decision,
-  and its gates 2 to 7 run before anything is served. Those gates are: the registry row and the
-  vendor-terms blocker; normaliser-off proven with a numeral fixture; the closed tag table (empty
-  if no tags); the round-trip gate; the owner's listening review, which this page is; and the
-  same-voice check. The v3 renders here sent the five-field `voice_settings` and
-  `apply_text_normalization: "off"`, and the vendor accepted both without error. That shows the
-  request is accepted. It does not show the normaliser is off, because none of the six lines
-  carries a numeral.
-- **The bundled set is re-rendered** in the picked voice with `scripts/voice/render_bundled_clips.py`
-  (INT-440). That tool pins its own voice constant, which moves to `CLIPGEN_VOICE_ID` in the same
-  change once INT-440 is on main.
+What the pick changed:
+
+- `voice_clips.delivery` pins `CLIPGEN_VOICE_ID`, `eleven_v3` and the tags, and every row moves to
+  v4. RED and instrument are at Robust (1.0) and never tagged, so RED stays the most stable delivery
+  (invariant 21). E04's RED and instrument lines were heard at Natural, so the owner still owes one
+  listen to a Robust take (amendment gate 7).
+- The dev route speaks in the cast voice. The bundled dialogue set is re-rendered with
+  `scripts/voice/render_cast_clips.py` (see `docs/evidence/INT-449.md`).
+
+**The code key, now that the pick is made.**
+
+Round 1 (`20261003T004143Z`, served v1 settings on v2, vendor defaults on v3, no tags):
+
+- S01 Mine v2
+- S02 Cavit v3
+- S03 Eyüp v2
+- S04 Meloxia v2
+- S05 Eyüp v3
+- S06 Ipek v3
+- S07 Meloxia v3
+- S08 Toprak v3
+- S09 Yunus v2
+- S10 Mine v3
+- S11 Yunus v3
+- S12 Aura v3
+- S13 Ipek v2
+- S14 Toprak v2
+- S15 George v3
+- S16 George v2
+- S17 Cavit v2
+- S18 Aura v2
+
+Round 2 (`20261003T123356Z-r2`, all on v3 with tags; C = Creative 0.0, N = Natural 0.5):
+
+- E01 Mine C
+- E02 Marcus C
+- E03 Toprak N (refused)
+- **E04 Marcus N**
+- E05 Gamze C (refused)
+- E06 Cavit N (refused)
+- E07 Gamze N (refused)
+- E08 Cavit C (refused)
+- E09 Meloxia C
+- E10 Meloxia N
+- E11 Mine N
+- E12 Toprak C (refused)
 
 ## What was compared
 

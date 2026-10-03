@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import dataclasses
 import importlib.util
 import json
 import sys
@@ -21,7 +22,7 @@ from typing import Any
 import httpx
 import numpy as np
 import pytest
-from voice_clips.delivery import delivery_profile
+from voice_clips.delivery import DeliveryProfileError, delivery_profile
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO / "scripts" / "voice"
@@ -102,16 +103,10 @@ def test_a_table_that_breaks_a_rule_is_refused(change: dict[str, tuple[str, ...]
         tags.check_table({**tags.TAGS, **change})
 
 
-def test_a_prefix_must_be_the_tables_own_for_its_context() -> None:
-    tags.check_prefix("welcome", "[warmly] ")
-    tags.check_prefix("red", "")
-    for context, prefix in (
-        ("red", "[calm] "),
-        ("welcome", "[excited] "),
-        ("routine", "[warmly] "),
-    ):
-        with pytest.raises(tags.TagRefused):
-            tags.check_prefix(context, prefix)
+def test_the_casting_table_is_the_served_table() -> None:
+    for context in tags.TAGS:
+        assert tags.TAGS[context] == delivery_profile(context).tags
+        assert tags.tag_prefix(context) == delivery_profile(context).wire_prefix
 
 
 # ── the words stay verbatim ──────────────────────────────────────────────────
@@ -127,8 +122,9 @@ def test_no_tag_is_in_the_catalogue_and_a_tagged_line_is_still_refused() -> None
 def test_the_tag_exists_only_in_the_request_text() -> None:
     line = cast.LINES[0]
     profile = r2.expressive_profile(line.key, 0.0)
-    body = cast.request_body(line.text_tr, profile, tags.tag_prefix(line.key))
-    assert body["text"] == "[warmly] " + line.text_tr
+    body = cast.request_body(line.text_tr, profile)
+    assert body["text"] == "[warmly] " + line.text_tr == tags.tag_prefix(line.key) + line.text_tr
+    assert line.text_tr == cast.LINES[0].text_tr and "[" not in line.text_tr
     assert body["model_id"] == "eleven_v3" and body["apply_text_normalization"] == "off"
     assert body["voice_settings"]["stability"] == 0.0
 
@@ -138,20 +134,27 @@ def _never(request: httpx.Request) -> httpx.Response:
 
 
 @pytest.mark.parametrize(
-    ("context", "prefix", "on_v2"),
-    [("welcome", "[warmly] ", True), ("red", "[calm] ", False), ("welcome", "[sad] ", False)],
+    ("context", "tag_set", "model"),
+    [
+        ("welcome", ("[warmly]",), "eleven_multilingual_v2"),
+        ("welcome", ("[sad]",), "eleven_v3"),
+        ("sensitive", ("[softly]",), "eleven_v3"),
+    ],
 )
 def test_a_tag_off_the_table_or_on_v2_is_refused_before_the_wire(
-    context: str, prefix: str, on_v2: bool
+    context: str, tag_set: tuple[str, ...], model: str
 ) -> None:
-    profile = delivery_profile(context) if on_v2 else r2.expressive_profile(context, 0.5)
+    profile = dataclasses.replace(delivery_profile(context), model_id=model, tags=tag_set)
     with (
         lib.vendor_client("https://vendor.test", KEY, httpx.MockTransport(_never)) as client,
         pytest.raises(cast.CastRefused),
     ):
-        cast.synthesise_aligned(
-            client, text_tr="Teşekkürler.", voice_id="v1", profile=profile, prefix=prefix
-        )
+        cast.synthesise_aligned(client, text_tr="Teşekkürler.", voice_id="v1", profile=profile)
+
+
+def test_a_tag_on_red_cannot_even_be_built() -> None:
+    with pytest.raises(DeliveryProfileError):
+        dataclasses.replace(delivery_profile("red"), tags=("[calm]",))
 
 
 # ── the cast and the spend ───────────────────────────────────────────────────
