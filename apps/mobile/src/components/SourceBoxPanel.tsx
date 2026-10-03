@@ -83,6 +83,7 @@ const styles = StyleSheet.create({
     width: 72,
     aspectRatio: PAGE_ASPECT,
     borderRadius: radius.group / 2,
+    borderCurve: "continuous",
     borderWidth: 1,
     overflow: "hidden",
   },

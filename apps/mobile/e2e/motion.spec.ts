@@ -244,6 +244,10 @@ const SRC_TREE = TREE.filter((f) => f.name.startsWith("src/"));
 
 const FADE_MODULE = "src/lib/motion/fade.ts";
 
+/** ADR-038 A1 (INT-462): the bubble entrance, the one module allowed a spring. */
+const BUBBLE_ENTERING = "src/lib/motion/native/bubbleEntering.ts";
+const SPRING_ALLOWED: readonly string[] = [BUBBLE_ENTERING];
+
 /** Forbidden APIs, spelled from parts so this file never names them whole. */
 const LINEAR = ["Linear", "Transition"].join("");
 const SPRING = ["with", "Spring"].join("");
@@ -299,7 +303,8 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     }
 
     const looping = APP_SOURCE.filter((f) => loops(f.source));
-    expect(looping.map((f) => f.name)).toContain("src/components/DialogueIntake.tsx");
+    // INT-336: the orb carries the dialogue's loops; the pulse it replaced is gone.
+    expect(looping.map((f) => f.name)).toContain("src/components/PresenceOrb.tsx");
     const offenders = looping.flatMap((f) =>
       literalDurations(f.source).map((value) => `${f.name}: ${value}`),
     );
@@ -345,9 +350,10 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     const found = APP_SOURCE.flatMap((f) =>
       animatedStyleKeys(f.source).map((k) => ({ ...k, file: f.name })),
     );
-    // The dialogue's pulse drives opacity today; a silent zero would make
+    // The presence orb drives opacity (INT-336); a silent zero would make
     // this vacuous.
     expect(found.length).toBeGreaterThan(0);
+    expect(found.map((k) => k.file)).toContain("src/components/PresenceOrb.tsx");
     const offenders = found
       .filter((k) => !animatable(k.key))
       .map((k) => `${k.file} ${k.site} ${k.key}`);
@@ -377,9 +383,34 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
 
     expect(SRC_TREE.length).toBeGreaterThan(100);
     const offenders = SRC_TREE.flatMap((f) =>
-      forbiddenApis(f.source).map((name) => `${f.name}: ${name}`),
+      forbiddenApis(f.source)
+        // ADR-038 A1: the bubble entrance is the one module that may spring.
+        .filter((name) => !(name === SPRING && SPRING_ALLOWED.includes(f.name)))
+        .map((name) => `${f.name}: ${name}`),
     );
     expect(offenders).toEqual([]);
+  });
+
+  it("ADR-038 A1: the one spring is the bubble entrance, and every number it uses is the ADR's", () => {
+    expect(SPRING_ALLOWED).toEqual([BUBBLE_ENTERING]);
+    const native = file(BUBBLE_ENTERING);
+    expect(forbiddenApis(native)).toEqual([SPRING]);
+    // The rise and the spring are read from the pure module the ADR pins
+    // (lib/motion/bubbles.test.ts), never written here.
+    expect(code(native)).toMatch(/import \{[^}]*\bBUBBLE_SPRING\b[^}]*\} from "\.\.\/bubbles"/);
+    // Opacity runs from 0 to 1 and the rise settles at 0; any other number
+    // would be a timing or a distance of the module's own.
+    const numbers = [...code(native).matchAll(/(?<![\w.])\d+(?:\.\d+)?(?![\w.])/g)].map(
+      (m) => m[0],
+    );
+    expect(numbers.filter((n) => n !== "0" && n !== "1")).toEqual([]);
+    // Only translateY and opacity move: no scale, no other transform.
+    expect(code(native)).not.toMatch(/\bscale[XY]?\b|\btranslateX\b|\brotate\b/);
+    // Nothing else in src springs: the near miss is any second module.
+    const springing = SRC_TREE.filter((f) => forbiddenApis(f.source).includes(SPRING)).map(
+      (f) => f.name,
+    );
+    expect(springing).toEqual([BUBBLE_ENTERING]);
   });
 
   it("Reanimated CSS transitions take their duration from cssFade", () => {
@@ -421,8 +452,8 @@ const TOKENS = "src/lib/theme.ts";
  * line. This list may only shrink.
  */
 const STATIC_OPACITY: readonly { readonly name: string; readonly value: string }[] = [
-  // The hairline divider's resting tone (`styles.hairline`).
-  { name: "src/components/Themed.tsx", value: "0.9" },
+  // Empty since INT-422: the hairline's resting 0.9 went when it took the
+  // separator token.
 ];
 
 /** A fractional opacity (`0.6`, `.4`). The rest states 0 and 1 are not feedback. */
@@ -543,26 +574,30 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
 
     // The scan found the sites it is about: every press-feedback component on
     // main, and the three disabled controls (both buttons and the composer's
-    // send, whose 0.4 was normalised to the token's 0.5).
+    // send, whose 0.4 was normalised to the token's 0.5). The grouped-list
+    // rows (ListRow, SwitchRow) left this scan in INT-451: they show a press
+    // with the `rowPressFill` highlight instead of a dim, which
+    // e2e/interactionPatterns.spec.ts holds. A row that dims again comes back
+    // here and must read the token.
     expect(sites.length).toBeGreaterThanOrEqual(10);
     expect([...new Set(sites.map((s) => s.name))]).toEqual(
       expect.arrayContaining([
         "src/components/DialogueIntake.tsx",
-        "src/components/ListRow.tsx",
         "src/components/SectionPanel.tsx",
         "src/components/Segmented.tsx",
-        "src/components/SwitchRow.tsx",
         "src/components/Themed.tsx",
+        "src/components/VisitCalendar.tsx",
       ]),
     );
     const disabled = sites
       .filter((s) => /\bmotion\.press\.disabledOpacity\b/.test(s.value))
       .map((s) => s.name);
-    expect(disabled).toEqual([
-      "src/components/DialogueIntake.tsx",
-      "src/components/Themed.tsx",
-      "src/components/Themed.tsx",
-    ]);
+    expect(disabled).toEqual(["src/components/Themed.tsx", "src/components/Themed.tsx"]);
+    // INT-466: the composer's control and the turn actions moved into the
+    // stage controls, which dim a disabled control with the token too (as a
+    // static style, so the press-callback scan above does not list them).
+    const stage = APP_SOURCE.find((f) => f.name === "src/components/stage/StageControls.tsx");
+    expect(stage?.source.match(/opacity: motion\.press\.disabledOpacity/g)).toHaveLength(2);
   });
 
   it("no Pressable narrows the platform's press-retention default", () => {
@@ -604,6 +639,8 @@ const RED_SURFACE_FILES: readonly string[] = [
   "src/lib/livekit/red.ts",
   "src/lib/livekit/session.ts",
   "src/lib/livekit/types.ts",
+  // INT-336: the orb's policy reads a RED's yield (unmount, idle, unchanged).
+  "src/lib/motion/orb.ts",
   "src/lib/motion/red.ts",
 ];
 
@@ -689,5 +726,566 @@ describe("MOTION-4 — the RED path paints first, with no motion", () => {
     // The motion contract that sizes the first paint imports nothing that
     // could make it wait: only the RED types.
     expect(specifiers(file("src/lib/motion/red.ts"))).toEqual(["../livekit/red"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOTION-7 — one presence orb carries the dialogue's state
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-336 (docs/design/motion/motion-verification.md §4 MOTION-7; ADR-033 Q5,
+ * open, so opacity-only). The policy is src/lib/motion/orb.ts and its suite;
+ * these guards hold the wiring: the dialogue draws no spinner and no loop of
+ * its own, the orb's state comes only from the policy, the orb is decoration,
+ * nothing waits on it, and the level is sampled outside every screen and
+ * component. Every name this block needs is declared inside it, so other
+ * blocks appended to this file cannot collide with it.
+ */
+
+describe("MOTION-7 — one presence orb carries the dialogue's state", () => {
+  const DIALOGUE = "src/components/DialogueIntake.tsx";
+  const ORB = "src/components/PresenceOrb.tsx";
+  const POLICY = "src/lib/motion/orb.ts";
+  const SAMPLER = "src/lib/motion/native/useLevelSampler.ts";
+  const SPINNER = ["Activity", "Indicator"].join("");
+
+  /** Every JSX opening `<Name …>` in `source`, with its props text up to the tag's own `>`. */
+  function openings(source: string, name: string): string[] {
+    const text = code(source);
+    return [...text.matchAll(new RegExp(`<${name}\\b`, "g"))].map((m) => {
+      const from = m.index + m[0].length;
+      let depth = 0;
+      let end = from;
+      for (; end < text.length; end += 1) {
+        const ch = text[end];
+        if (ch === "{") depth += 1;
+        else if (ch === "}") depth -= 1;
+        else if (ch === ">" && depth === 0) break;
+      }
+      return text.slice(from, end);
+    });
+  }
+
+  /** The argument count of every call to `callee` in `source`. */
+  function arities(source: string, callee: string): number[] {
+    const text = code(source);
+    return [...text.matchAll(new RegExp(`\\b${callee}\\s*\\(`, "g"))].map((m) => {
+      let depth = 0;
+      let commas = 0;
+      let empty = true;
+      for (let i = m.index + m[0].length; i < text.length; i += 1) {
+        const ch = text[i];
+        if (ch === "(" || ch === "[" || ch === "{") {
+          depth += 1;
+        } else if (ch === ")" || ch === "]" || ch === "}") {
+          if (depth === 0) break;
+          depth -= 1;
+        } else if (depth === 0 && ch === ",") {
+          commas += 1;
+        }
+        if (!/\s/.test(ch)) empty = false;
+      }
+      return empty ? 0 : commas + 1;
+    });
+  }
+
+  it("the dialogue has no ActivityIndicator and no core Animated loop", () => {
+    // Non-vacuity: both shapes are seen when present.
+    expect(new RegExp(`\\b${SPINNER}\\b`).test(`<${SPINNER} size="small" />`)).toBe(true);
+    expect(loops("Animated.loop(Animated.timing(v, t)).start();")).toBe(true);
+
+    const dialogue = code(file(DIALOGUE));
+    expect(dialogue).not.toMatch(new RegExp(`\\b${SPINNER}\\b`));
+    expect(loops(dialogue)).toBe(false);
+    expect(dialogue).not.toMatch(/\bAnimated\s*\.\s*(?:loop|timing|sequence)\b/);
+    // The orb is what it shows instead.
+    expect(openings(file(DIALOGUE), "PresenceOrb")).toHaveLength(1);
+  });
+
+  it("PresenceOrb takes its state only from orbStateFor", () => {
+    const [props] = openings(file(DIALOGUE), "PresenceOrb");
+    expect(props).toMatch(/\bstate=\{\s*orbState\s*\}/);
+    expect(code(file(DIALOGUE))).toMatch(/const\s+orbState\s*=\s*orbStateFor\(/);
+    // The orb itself decides no state: it reads no turn, lane or RED.
+    const orb = code(file(ORB));
+    expect(orb).not.toMatch(/\bturn\b|\bphase\b|\bplaying\b|\bvoiceMuted\b|\bred\b/);
+    expect(orb).toMatch(/\borbVisual\(/);
+    expect(orb).toMatch(/\borbTransition\(/);
+  });
+
+  it("the orb writes no number of its own: periods are motion.loop tokens, durations are policy results", () => {
+    // BK15 and the MOTION-6 scan read `duration:` values; a helper that
+    // returns a literal period would pass both, so the orb is held to the
+    // stronger rule its header states. The numbers left are structural: a
+    // shared value's start (0), a full period halved (2), and withRepeat's
+    // "forever" (-1).
+    const STRUCTURAL = new Set(["0", "2", "-1"]);
+    const numbers = (source: string): string[] =>
+      [...code(source).matchAll(/(?<![\w$.])-?\d+(?:\.\d+)?(?![\w$])/g)].map((m) => m[0]);
+    // Non-vacuity: a literal period in a helper is seen; the structural ones pass.
+    expect(numbers("function half() { return 2000; }")).toEqual(["2000"]);
+    expect(numbers("withRepeat(withTiming(0, b), -1, true); x / 2;")).toEqual(["0", "-1", "2"]);
+
+    const orb = file(ORB);
+    expect(numbers(orb).filter((n) => !STRUCTURAL.has(n))).toEqual([]);
+    for (const kind of ["breathePeriodMs", "speakPeriodMs", "shimmerPeriodMs"]) {
+      expect(code(orb), kind).toMatch(new RegExp(`\\bmotion\\.loop\\.${kind}\\s*/\\s*2\\b`));
+    }
+  });
+
+  it("the orb is hidden from the accessibility tree and is not pressable", () => {
+    const orb = code(file(ORB));
+    expect(orb).toMatch(/\baccessibilityElementsHidden\b/);
+    expect(orb).toMatch(/importantForAccessibility="no-hide-descendants"/);
+    expect(orb).toMatch(/pointerEvents="none"/);
+    expect(orb).not.toMatch(/\bPressable\b|\bTouchable\w*|\bonPress\b|\baccessibilityRole\b/);
+    // It adds no live region, and the dialogue keeps exactly one barge-in
+    // control (e2e/a11y.spec.ts pins both on the dialogue itself).
+    expect(orb).not.toMatch(/\baccessibilityLiveRegion\b|\bannounceForAccessibility\b/);
+  });
+
+  it("the level sampler lives under src/lib, never in a screen or component", () => {
+    const TIMER = /\bset(?:Interval|Timeout)\s*\(/;
+    expect(TIMER.test("const t = setInterval(tick, ms);")).toBe(true);
+    const sampler = code(file(SAMPLER));
+    expect(sampler).toMatch(TIMER);
+    // It writes one shared value and never React state: zero renders per sample.
+    expect(sampler).not.toMatch(/\buseState\b|\buseReducer\b|\bsetState\b|\bdispatch\(/);
+    expect(sampler).toMatch(/\.set\(/);
+    // Its rate is the policy's, never a number of its own.
+    expect(literalDurations(sampler)).toEqual([]);
+    expect(sampler).toMatch(/\bplan\.intervalMs\b/);
+    // Neither the orb nor the dialogue owns a timer.
+    for (const name of [ORB, DIALOGUE]) {
+      expect(code(file(name)), name).not.toMatch(TIMER);
+    }
+  });
+
+  it("nothing waits on the orb: it reports nothing back, and its policy reaches no device module", () => {
+    // Non-vacuity: a completion callback and a callback prop are both seen.
+    expect(arities("v.set(withTiming(1, t, (done) => next()));", "withTiming")).toEqual([3]);
+    expect(arities("v.set(withTiming(1, { duration: d }));", "withTiming")).toEqual([2]);
+    expect("<PresenceOrb state={s} onSettled={go} />").toMatch(/\bon[A-Z]\w*=/);
+
+    // No animation of the orb carries a completion callback, so no turn,
+    // commit or navigation can be chained to one (ADR-033 §2, Proposed: no
+    // app logic waits on an animation). withRepeat's third argument is its
+    // `reverse` flag; a fourth would be the callback.
+    const orb = file(ORB);
+    const timings = arities(orb, "withTiming");
+    expect(timings.length).toBeGreaterThan(0);
+    expect(Math.max(...timings)).toBeLessThanOrEqual(2);
+    const repeats = arities(orb, "withRepeat");
+    expect(repeats.length).toBeGreaterThan(0);
+    expect(Math.max(...repeats)).toBeLessThanOrEqual(3);
+    // The dialogue hands the orb no callback, and the orb's props take none.
+    const [props] = openings(file(DIALOGUE), "PresenceOrb");
+    expect(props).not.toMatch(/\bon[A-Z]\w*=/);
+    expect(code(orb)).not.toMatch(/\bon[A-Z]\w*\??\s*:/);
+
+    // The policy is pure: node-testable, and it reaches Reanimated and the
+    // recorder only through the native adapter the component owns.
+    const reached = specifiers(file(POLICY));
+    expect(reached.length).toBeGreaterThan(0);
+    expect(reached.filter((s) => /native\/|reanimated|^react-native|^expo/.test(s))).toEqual([]);
+    expect(specifiers(file(SAMPLER))).toContain("../orb");
+  });
+});
+// ---------------------------------------------------------------------------
+// MOTION-8 — the dialogue's transients go through the arbiter
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-337 (docs/design/motion/motion-verification.md §4 MOTION-8). The policy
+ * is lib/motion/transients.ts and its suite; these guards hold the wiring:
+ * every entrance in the dialogue is the arbiter's fade and nothing else moves
+ * there, history does not fade in, the selection never reaches the motion
+ * layer, and the one timer that reports a fade's end lives under src/lib.
+ * Every name this block needs is declared inside it.
+ */
+
+describe("MOTION-8 — the dialogue's transients go through the arbiter", () => {
+  const DIALOGUE = "src/components/DialogueIntake.tsx";
+  const HOOK = "src/lib/motion/native/useDialogueMotion.ts";
+
+  /** The value of every `entering={…}` prop in `source`. */
+  function enterings(source: string): string[] {
+    const text = code(source);
+    return [...text.matchAll(/\bentering=\{/g)].map((m) => {
+      const from = m.index + m[0].length;
+      return text.slice(from, expressionEnd(text, from)).trim();
+    });
+  }
+
+  it("the stream skips entering on its initial mount", () => {
+    const dialogue = code(file(DIALOGUE));
+    const config =
+      /<LayoutAnimationConfig\s+skipEntering\s*>([\s\S]*?)<\/LayoutAnimationConfig>/.exec(dialogue);
+    expect(config, "LayoutAnimationConfig skipEntering in the dialogue").not.toBeNull();
+    expect(config![1]).toMatch(/\bstate\.stream\.map\(/);
+  });
+
+  it("every entrance in the dialogue is the arbiter's fade, and nothing else moves there", () => {
+    // Non-vacuity: the reader finds an entrance and its value.
+    expect(enterings("<Animated.View entering={enteringFor(fadeOf(m, id, ctx))} />")).toEqual([
+      "enteringFor(fadeOf(m, id, ctx))",
+    ]);
+    const dialogue = file(DIALOGUE);
+    const found = enterings(dialogue);
+    // The bubbles, a revealed transcript and the confirm chips.
+    expect(found.length).toBeGreaterThanOrEqual(3);
+    // ADR-038 A1 (INT-462): a stream bubble enters through the A1 spring, but
+    // only as the arbiter grants it; everything else is the arbiter's fade.
+    const granted =
+      /^bubbleEntering\(\s*bubbleEntrance\(\{\s*granted: bubbleGranted\(transients, key, reduceMotion\),/;
+    expect(found.filter((v) => granted.test(v))).toHaveLength(1);
+    expect(found.filter((v) => !/^enteringFor\(\s*fadeOf\(/.test(v) && !granted.test(v))).toEqual(
+      [],
+    );
+    // The decisions come from the arbiter's reducer, fed the scene.
+    expect(code(dialogue)).toMatch(/\bconst\s+scene\s*=\s*dialogueScene\(/);
+    expect(code(dialogue)).toMatch(/\buseDialogueMotion\(\s*scene\s*,/);
+    expect(code(dialogue)).not.toMatch(
+      /\b(?:withTiming|withRepeat|withSequence|useAnimatedStyle|useSharedValue)\b|\bAnimated\s*\.\s*(?:timing|loop|sequence)\b/,
+    );
+  });
+
+  it("the selection never reaches the motion layer", () => {
+    const dialogue = code(file(DIALOGUE));
+    const call = /\bdialogueScene\(/.exec(dialogue);
+    expect(call).not.toBeNull();
+    const from = call!.index + call![0].length;
+    // The whole argument list: up to the bracket that closes the call.
+    let depth = 0;
+    let end = from;
+    for (; end < dialogue.length && depth >= 0; end += 1) {
+      if ("([{".includes(dialogue[end])) depth += 1;
+      else if (")]}".includes(dialogue[end])) depth -= 1;
+    }
+    const args = dialogue.slice(from, end);
+    expect(args).toMatch(/\bcomposerFocused\b/);
+    expect(args).not.toMatch(/\bselected\b/);
+  });
+
+  it("a fade's end is reported by a timer under src/lib, never by the animation", () => {
+    const hook = code(file(HOOK));
+    expect(hook).toMatch(/\bsetTimeout\s*\(/);
+    expect(hook).toMatch(/\breleaseDialogueMotion\(/);
+    // The delay is the fade the policy granted, never a number of its own.
+    expect(literalDurations(hook)).toEqual([]);
+    expect(hook).toMatch(/\bconst\s+fadeMs\s*=[^;]*\bfadeOf\(/);
+    expect(hook).toMatch(/\bsetTimeout\(\s*\(\)\s*=>[^;]*?,\s*fadeMs\s*,?\s*\)/);
+    // No animation calls back into JS; the dialogue owns no timer.
+    for (const name of [HOOK, DIALOGUE]) {
+      expect(code(file(name)), name).not.toMatch(/\bwithCallback\b/);
+    }
+    expect(code(file(DIALOGUE))).not.toMatch(/\bset(?:Interval|Timeout)\s*\(/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOTION-11 — haptics (INT-340)
+// ---------------------------------------------------------------------------
+
+/*
+ * docs/design/motion/motion-verification.md §4 MOTION-11 and ADR-033 §6. The
+ * policy itself is proved in src/lib/motion/haptics.test.ts. These guards hold
+ * what only the source and the build config can show: where the native module
+ * is reached from, which Android permission the build refuses, which handlers
+ * ask for a haptic at all, and that every microphone reports itself to the
+ * gate. The module's name is assembled from parts, so no scan here finds it
+ * spelled in this file.
+ */
+
+const HAPTICS_MODULE = ["expo", "haptics"].join("-");
+const HAPTICS_ENGINE = "src/lib/motion/native/hapticsEngine.ts";
+const APP_HAPTICS = "src/lib/motion/appHaptics.ts";
+const VIBRATE = ["android", "permission", "VIBRATE"].join(".");
+const VIBRATION = ["Vibra", "tion"].join("");
+
+/** Every string literal naming the haptics module, split by how it is reached. */
+function hapticsSpecifiers(source: string): { readonly lazy: number; readonly other: number } {
+  const text = code(source);
+  const specifier = new RegExp(`(["'\`])${HAPTICS_MODULE}(?:/[^"'\`]*)?\\1`, "g");
+  let lazy = 0;
+  let other = 0;
+  for (const m of text.matchAll(specifier)) {
+    if (/\bimport\s*\(\s*$/.test(text.slice(0, m.index))) {
+      lazy += 1;
+    } else {
+      other += 1;
+    }
+  }
+  return { lazy, other };
+}
+
+/** Index just past the bracket that closes the one opened at `open`; strings are skipped. */
+function pastClosing(text: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < text.length; i += 1) {
+    const c = text[i];
+    if (c === '"' || c === "'" || c === "`") {
+      for (i += 1; i < text.length && text[i] !== c; i += 1) {
+        if (text[i] === "\\") {
+          i += 1;
+        }
+      }
+    } else if ("([{".includes(c)) {
+      depth += 1;
+    } else if (")]}".includes(c)) {
+      depth -= 1;
+      if (depth === 0) {
+        return i + 1;
+      }
+    }
+  }
+  return text.length;
+}
+
+/** The argument list of every call to `callee(`, from its `(` to its `)`. */
+function callSpansOf(source: string, callee: RegExp): string[] {
+  const text = code(source);
+  return [...text.matchAll(new RegExp(callee.source, "g"))].map((m) => {
+    const open = m.index + m[0].length - 1;
+    return text.slice(open, pastClosing(text, open));
+  });
+}
+
+const HAPTIC_EVENT_NAMES = ["select", "toggleOn", "toggleOff", "arm", "success"];
+
+/** Each haptic a file asks for: the events and surfaces named in its requests. */
+function hapticRequests(source: string): {
+  readonly events: string[];
+  readonly surfaces: string[];
+} {
+  const spans = callSpansOf(source, /(?<![\w.])haptic\s*\(|\bappHaptics\s*\.\s*request\s*\(/);
+  const events = new Set<string>();
+  const surfaces = new Set<string>();
+  for (const span of spans) {
+    for (const m of span.matchAll(/["'](\w+)["']/g)) {
+      if (HAPTIC_EVENT_NAMES.includes(m[1])) {
+        events.add(m[1]);
+      }
+    }
+    for (const m of span.matchAll(/\bsurface\s*:\s*["'](\w+)["']/g)) {
+      surfaces.add(m[1]);
+    }
+  }
+  return { events: [...events].sort(), surfaces: [...surfaces].sort() };
+}
+
+/** The handlers wired by INT-340, each with what it may ask for. This list may only change with a test. */
+const WIRED_HAPTICS: Record<string, { events: string[]; surfaces: string[] }> = {
+  "src/app/(tabs)/me/appearance.tsx": {
+    events: ["select", "toggleOff", "toggleOn"],
+    surfaces: ["settings"],
+  },
+  "src/app/(tabs)/me/data.tsx": { events: ["arm", "success"], surfaces: ["dsar"] },
+  "src/app/(tabs)/visits/[visitId]/issue-link.tsx": {
+    events: ["success"],
+    surfaces: ["shareIssue"],
+  },
+  "src/app/(tabs)/visits/[visitId]/shares.tsx": {
+    events: ["arm", "success"],
+    surfaces: ["shareRevoke"],
+  },
+  "src/app/(tabs)/visits/index.tsx": { events: ["select"], surfaces: ["visits"] },
+  // ADR-038 A2 (INT-462): the selection tick on an answer chip, in both lanes,
+  // and on the composer mic. Instrument options never ask.
+  "src/app/(tabs)/visits/[visitId]/intake.tsx": { events: ["select"], surfaces: ["intakeChip"] },
+  "src/components/DialogueIntake.tsx": {
+    events: ["select"],
+    surfaces: ["dialogueMic", "intakeChip"],
+  },
+};
+
+/** Every recorder in the app, each registered with the gate for as long as it lives. */
+const MICROPHONE_OWNERS = [
+  "src/components/VoiceNote.tsx",
+  "src/lib/dialogue/useDialogueSession.ts",
+];
+
+describe("MOTION-11 — haptics reach the device through one lazy adapter", () => {
+  it("expo-haptics is imported only by the engine adapter, and only via import()", () => {
+    // Non-vacuity: every static shape is caught, both lazy shapes are
+    // accepted, and a comment is not an import.
+    const statics = [
+      `import * as Haptics from "${HAPTICS_MODULE}";`,
+      `import { impactAsync } from '${HAPTICS_MODULE}';`,
+      `import type { AndroidHaptics } from "${HAPTICS_MODULE}";`,
+      `import "${HAPTICS_MODULE}";`,
+      `const h = require("${HAPTICS_MODULE}");`,
+      `export { selectionAsync } from "${HAPTICS_MODULE}";`,
+      `import x from "${HAPTICS_MODULE}/build/Haptics";`,
+    ];
+    for (const sample of statics) {
+      expect(hapticsSpecifiers(sample), sample).toEqual({ lazy: 0, other: 1 });
+    }
+    for (const sample of [
+      `const h = await import("${HAPTICS_MODULE}");`,
+      `type H = typeof import('${HAPTICS_MODULE}');`,
+      `loaded ??= import(\n  "${HAPTICS_MODULE}"\n);`,
+    ]) {
+      expect(hapticsSpecifiers(sample), sample).toEqual({ lazy: 1, other: 0 });
+    }
+    expect(hapticsSpecifiers(`// ${HAPTICS_MODULE} is reached lazily`)).toEqual({
+      lazy: 0,
+      other: 0,
+    });
+
+    // The dependency is real, at the version the Expo SDK pins.
+    const pkg = JSON.parse(readFileSync(join(MOBILE, "package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies[HAPTICS_MODULE]).toMatch(/^~57\.0\.\d+$/);
+
+    // One file names the module, and only inside import().
+    const reaching = TREE.filter((f) => {
+      const { lazy, other } = hapticsSpecifiers(f.source);
+      return lazy + other > 0;
+    }).map((f) => f.name);
+    expect(reaching).toEqual([HAPTICS_ENGINE]);
+    const engine = hapticsSpecifiers(file(HAPTICS_ENGINE));
+    expect(engine.other).toBe(0);
+    expect(engine.lazy).toBeGreaterThanOrEqual(1);
+
+    // The adapter is itself reached only lazily, from the one app gate, so no
+    // node-tested import path pulls react-native in through it.
+    const staticImporters = TREE.filter((f) =>
+      [...code(f.source).matchAll(FROM)].some((m) => /native\/hapticsEngine$/.test(m[2])),
+    ).map((f) => f.name);
+    expect(staticImporters).toEqual([]);
+    expect(code(file(APP_HAPTICS))).toMatch(/import\(\s*["']\.\/native\/hapticsEngine["']\s*\)/);
+
+    // The policy and the gate stay pure: no platform, no adapter, no loader.
+    for (const pure of ["src/lib/motion/haptics.ts", "src/lib/motion/hapticGate.ts"]) {
+      const source = code(file(pure));
+      const specifiers = [...source.matchAll(FROM)].map((m) => m[2]);
+      expect(
+        specifiers.filter((s) => /react-native|native\/|^expo/.test(s)),
+        pure,
+      ).toEqual([]);
+      expect(source, pure).not.toMatch(/\bimport\s*\(|\brequire\s*\(/);
+    }
+  });
+
+  it("the Android build blocks VIBRATE", async () => {
+    const { resolveAppConfig } = await import("../app.config");
+    type Config = import("expo/config").ExpoConfig;
+    const appJson = (JSON.parse(readFileSync(join(MOBILE, "app.json"), "utf8")) as { expo: Config })
+      .expo;
+    const qualified = (p: string): string => (p.includes(".") ? p : `android.permission.${p}`);
+    const profiles = [
+      {},
+      { EAS_BUILD_PROFILE: "development" },
+      { EAS_BUILD_PROFILE: "preview" },
+      { EAS_BUILD_PROFILE: "production" },
+    ];
+    // Non-vacuity: a config that asks for the permission, in either
+    // spelling, and one that already blocks something else.
+    const asking: Config = {
+      ...appJson,
+      android: {
+        ...appJson.android,
+        permissions: [...(appJson.android?.permissions ?? []), "VIBRATE", VIBRATE],
+      },
+    };
+    const otherBlock = ["android", "permission", "READ_CONTACTS"].join(".");
+    const blocking: Config = {
+      ...appJson,
+      android: { ...appJson.android, blockedPermissions: [otherBlock] },
+    };
+    for (const config of [appJson, asking, blocking]) {
+      for (const env of profiles) {
+        const android = resolveAppConfig(config, env).android;
+        const blocked = android?.blockedPermissions ?? [];
+        expect(
+          blocked.filter((p) => qualified(p) === VIBRATE),
+          JSON.stringify(env),
+        ).toHaveLength(1);
+        expect((android?.permissions ?? []).map(qualified)).not.toContain(VIBRATE);
+      }
+    }
+    expect(resolveAppConfig(blocking, {}).android?.blockedPermissions).toContain(otherBlock);
+    // The block removes one permission and adds none: the inventory app.json
+    // declares resolves unchanged.
+    expect(resolveAppConfig(appJson, {}).android?.permissions).toEqual(
+      appJson.android?.permissions,
+    );
+
+    // Without the block the permission would arrive anyway: the haptics
+    // library's own manifest declares it, and the Gradle merge carries it in.
+    const libraryManifest = readFileSync(
+      join(MOBILE, "node_modules", HAPTICS_MODULE, "android", "src", "main", "AndroidManifest.xml"),
+      "utf8",
+    );
+    expect(libraryManifest).toContain(`android:name="${VIBRATE}"`);
+
+    // Nothing in the app needs what the block removes: react-native's own
+    // vibration API requires the permission and would throw without it.
+    const takesVibration = (source: string): boolean =>
+      clausesFrom(code(source), "react-native").some((c) =>
+        new RegExp(`\\b${VIBRATION}\\b`).test(c),
+      );
+    expect(takesVibration(`import { View, ${VIBRATION} } from "react-native";`)).toBe(true);
+    expect(takesVibration(`import { View } from "react-native";`)).toBe(false);
+    expect(APP_SOURCE.filter((f) => takesVibration(f.source)).map((f) => f.name)).toEqual([]);
+  });
+});
+
+describe("MOTION-11 — who asks for a haptic, and who reports the microphone", () => {
+  it("only the wired handlers ask, never a consent, legal, error or instrument surface", () => {
+    // Non-vacuity: both call forms, a conditional event and the surface.
+    expect(
+      hapticRequests(`haptic(next ? "toggleOn" : "toggleOff", { surface: "settings" });`),
+    ).toEqual({ events: ["toggleOff", "toggleOn"], surfaces: ["settings"] });
+    expect(
+      hapticRequests(`void appHaptics.request("arm", { surface: "dsar", actionId: a });`),
+    ).toEqual({ events: ["arm"], surfaces: ["dsar"] });
+    expect(hapticRequests(`const haptic = "select"; hapticFor("success", c);`)).toEqual({
+      events: [],
+      surfaces: [],
+    });
+
+    const asking = Object.fromEntries(
+      APP_SOURCE.map((f) => [f.name, hapticRequests(f.source)] as const).filter(
+        ([, r]) => r.events.length + r.surfaces.length > 0,
+      ),
+    );
+    expect(asking).toEqual(WIRED_HAPTICS);
+
+    // A success states the server's answer; it never asserts one.
+    for (const name of Object.keys(WIRED_HAPTICS)) {
+      const successes = callSpansOf(file(name), /(?<![\w.])haptic\s*\(/).filter((s) =>
+        s.includes('"success"'),
+      );
+      for (const span of successes) {
+        expect(span, name).toMatch(/\bserverConfirmed\s*:/);
+        expect(span, name).not.toMatch(/\bserverConfirmed\s*:\s*true\b/);
+      }
+    }
+  });
+
+  it("every microphone owner reports itself to the haptic gate for as long as it lives", () => {
+    const owners = APP_SOURCE.filter((f) => /\buseAudioRecorder\s*\(/.test(code(f.source))).map(
+      (f) => f.name,
+    );
+    expect(owners).toEqual(MICROPHONE_OWNERS);
+    const registration =
+      /useEffect\(\s*\(\)\s*=>\s*appHaptics\.register\(\{([\s\S]*?)\}\)\s*,\s*(?:\/\/[^\n]*\n\s*)*\[\s*\]\s*,?\s*\)/;
+    for (const name of MICROPHONE_OWNERS) {
+      const found = registration.exec(code(file(name)));
+      expect(found, `${name} registers with the gate in a mount effect`).not.toBeNull();
+      // Read live from the recorder at fire time, never from the route or a turn.
+      expect(found![1], name).toMatch(/\bmicHot\s*:\s*\(\)\s*=>\s*\w+\.isRecording\b/);
+    }
+    const dialogue = registration.exec(code(file("src/lib/dialogue/useDialogueSession.ts")));
+    expect(dialogue![1]).toMatch(/\bvoiceSessionActive\s*:\s*\(\)\s*=>/);
+    // ADR-038 A2: for the gate the dialogue is active while the agent's speech
+    // plays or is prepared (its speaking phase); a silent confirm turn is not.
+    expect(dialogue![1]).toMatch(
+      /\bvoiceSessionActive\s*:\s*\(\)\s*=>\s*!closedRef\.current\s*&&\s*stateRef\.current\.turn\.phase === "speaking"/,
+    );
   });
 });

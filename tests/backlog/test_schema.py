@@ -147,6 +147,17 @@ def test_ids_unique_and_well_formed() -> None:
     # same PR).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
+    # + INT-422 (design system refresh: native Apple feel, restrained palette,
+    # SF Symbols, contrast in three modes; owner request, GitHub #714).
+    # + INT-423 (chat rhythm, Liquid Glass on chrome only, content solid;
+    # owner request, GitHub #718).
+    # + INT-433 (question screen: native progress, filled inputs, capsule
+    # chips, Liquid Glass bars; owner request, GitHub #739).
+    # + INT-451 (interaction patterns from the owner-listed libraries and
+    # Mobbin, within ADR-033; owner request, GitHub #764).
+    # + INT-461 (ADR-038, the owner-ratified amendment to ADR-033, GitHub #786).
+    # + INT-462 (native chat: capsule composer, mic, checked chips, GitHub #787).
+    # + INT-466 (chat stage, ADR-039, GitHub #795).
     # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
     # commit status; owner request, GitHub #721).
     # + INT-407 (the files/02 §2b visit lifecycle — a RED visit cannot silently
@@ -160,7 +171,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415; owner request, GitHub #705).
     # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
-    assert len(ids) == 338
+    assert len(ids) == 345
     import re
 
     for i in ids:

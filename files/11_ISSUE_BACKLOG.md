@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**338 issues.** By phase: P0 166 · P1 118 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 226 · todo 73 · withdrawn 1.
+**345 issues.** By phase: P0 166 · P1 125 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 235 · todo 71 · withdrawn 1.
 
 ## P0
 
@@ -300,6 +300,13 @@
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
+| INT-422 | Design system refresh: native Apple feel, restrained palette, SF Symbols, no AI-generic styling | E08-mobile | INT-412 | area:mobile | done |
+| INT-423 | Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid | E08-mobile | INT-422 | area:mobile | done |
+| INT-433 | Question screen redesign: native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced) | E08-mobile | INT-422, INT-423 | area:mobile | done |
+| INT-451 | Mobile interaction patterns from the owner-listed libraries and Mobbin, within ADR-033 and Liquid Glass | E08-mobile | INT-433 | area:mobile | done |
+| INT-461 | ADR-038: amendment to ADR-033 — spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets under the RED root layer | E00-governance | INT-332 | area:mobile | done |
+| INT-462 | Native chat: a Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips | E08-mobile | INT-433, INT-337, INT-340, INT-461 | area:mobile | done |
+| INT-466 | Chat stage: ADR-039 (owner-approved orb motion, gradient, glass controls, radii, palette) and the live chat on it | E08-mobile | INT-462, INT-461 | area:mobile | done |
 
 ## P2
 
@@ -348,10 +355,10 @@
 | INT-334 | Motion: arbiter and commit windows (pure) | E08-mobile | INT-333 | area:mobile | done |
 | INT-335 | Motion: Reanimated hygiene gates before the first Reanimated consumer | E08-mobile | INT-331 | area:mobile | done |
 | INT-336 | Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners | E08-mobile | INT-332, INT-334, INT-335 | area:mobile, risk:clinical | todo |
-| INT-337 | Motion: dialogue transients wired to the arbiter | E08-mobile | INT-334, INT-335, INT-336 | area:mobile | todo |
+| INT-337 | Motion: dialogue transients wired to the arbiter | E08-mobile | INT-334, INT-335, INT-336 | area:mobile | done |
 | INT-338 | Motion: section sheet — measured fade budget, instant privacy and RED closes | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | todo |
 | INT-339 | Motion: typed lane, fallback and completion | E08-mobile | INT-330, INT-335 | area:mobile | done |
-| INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | todo |
+| INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | done |
 
 ## P3
 

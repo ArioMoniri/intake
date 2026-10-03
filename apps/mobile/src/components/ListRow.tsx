@@ -1,10 +1,11 @@
 /**
- * Grouped list primitives (design pass 5): the Oura settings/contributor
- * anatomy measured off the Mobbin captures — rows of 52+ pt inside ONE
- * rounded group (radius.group, squarer than content cards), 17 pt sans
- * labels, quiet trailing values, a small "›" only on rows that navigate,
- * hairlines between rows (never around them). Group headers are the
- * existing Kicker rendered OUTSIDE the group by the host screen.
+ * Grouped list primitives: the iOS inset grouped list (INT-422,
+ * docs/design/system-refresh.md). Rows of 56 pt inside ONE group on the
+ * surface tone, 12-pt continuous corners, no border and no shadow, Body
+ * labels, a bare tinted SF Symbol leading the row, quiet trailing values, a
+ * small "›" only on rows that navigate, separators between rows (never
+ * around them). Group headers are the Kicker, rendered OUTSIDE the group by
+ * the host screen.
  *
  * Colour never carries meaning alone (02 §8.2): trailing state is always a
  * labelled element, and the chevron is an affordance, not a state.
@@ -13,18 +14,16 @@ import { type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { Icon } from "@/components/Icon";
-import { AppText, Hairline, useScheme, useTheme } from "@/components/Themed";
+import { AppText, Hairline, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import type { SymbolKey } from "@/lib/symbols";
-import { motion, palette, radius, shadow, spacing } from "@/lib/theme";
+import { radius, rowPressFill, spacing } from "@/lib/theme";
 
 /** Action name for the row's nested trailing control. */
 const SECONDARY_ACTION = "secondary";
 
 export function ListGroup({ children, footer }: { children: ReactNode; footer?: string }) {
-  const scheme = useScheme();
-  const theme = palette[scheme];
-  const depth = shadow[scheme];
+  const theme = useTheme();
   const rows: ReactNode[] = [];
   const items = Array.isArray(children) ? children : [children];
   items
@@ -37,21 +36,7 @@ export function ListGroup({ children, footer }: { children: ReactNode; footer?: 
     });
   return (
     <View style={styles.wrap}>
-      <View
-        style={[
-          styles.group,
-          {
-            backgroundColor: theme.surface,
-            borderColor: scheme === "dark" ? "transparent" : theme.border,
-            shadowColor: depth.color,
-            shadowOpacity: depth.opacity,
-            shadowRadius: depth.radius,
-            shadowOffset: { width: 0, height: depth.offsetY },
-          },
-        ]}
-      >
-        {rows}
-      </View>
+      <View style={[styles.group, { backgroundColor: theme.surface }]}>{rows}</View>
       {footer ? (
         <AppText role="caption" color="inkFaint" style={styles.footer}>
           {footer}
@@ -65,7 +50,7 @@ interface ListRowProps {
   label: string;
   /** Quiet caption under the label (dates, notes). */
   sublabel?: string;
-  /** Leading 36 pt tonal icon well (a symbol registry row) — Oura's row anchor. */
+  /** Leading glyph (a symbol registry row), drawn bare in the tint. */
   icon?: SymbolKey;
   /** Trailing element: a value chip, pill group — rendered as-is. */
   trailing?: ReactNode;
@@ -121,8 +106,8 @@ export function ListRow({
   const body = (
     <>
       {icon ? (
-        <View style={[styles.iconWell, { backgroundColor: theme.surfaceRaised }]}>
-          <Icon name={icon} size={17} tintColor={theme.inkSoft} />
+        <View style={styles.iconSlot}>
+          <Icon name={icon} size={22} tintColor={theme.primary} />
         </View>
       ) : null}
       <View style={styles.labels}>
@@ -161,7 +146,7 @@ export function ListRow({
         style={({ pressed }) => [
           styles.row,
           inset ? styles.rowInset : null,
-          { opacity: pressed ? motion.press.rowOpacity : 1 },
+          pressed ? { backgroundColor: theme[rowPressFill] } : null,
         ]}
       >
         {body}
@@ -175,29 +160,24 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   group: {
     borderRadius: radius.group,
-    borderWidth: 1,
+    borderCurve: "continuous",
     overflow: "hidden",
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm + 4,
+    gap: spacing.md,
     minHeight: 56,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.sm,
   },
   labels: { flex: 1, gap: 2 },
   sublabel: { fontVariant: ["tabular-nums"] },
   // Nested child rows shift the whole content column one step right.
   rowInset: { paddingLeft: spacing.md + spacing.lg },
-  // Oura hairlines start at the text column, not the group edge.
+  // Separators start at the content column, not the group edge.
   hairlineInset: { marginLeft: spacing.md },
-  iconWell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  // A fixed column, so labels align down the group whatever the glyph's width.
+  iconSlot: { width: 28, alignItems: "center", justifyContent: "center" },
   footer: { paddingHorizontal: spacing.md },
 });

@@ -101,6 +101,13 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
     # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
     # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
+    # + INT-422 (design system refresh, native Apple feel, GitHub #714)
+    # + INT-423 (chat rhythm and materials, GitHub #718)
+    # + INT-433 (question screen redesign, Mobbin-referenced, GitHub #739)
+    # + INT-451 (interaction patterns within ADR-033, GitHub #764)
+    # + INT-461 (ADR-038, the owner-ratified amendment to ADR-033, GitHub #786)
+    # + INT-462 (native chat: capsule composer, mic, checked chips, GitHub #787)
+    # + INT-466 (chat stage, ADR-039, GitHub #795)
     # + INT-426 (CI on AWS: gate runner via S3 + SSM, aws-ci commit status, GitHub #721)
     # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
     # + INT-432 (clinical decisions register under owner decision D18, GitHub #735)
@@ -109,7 +116,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-448 (#642 packet items under D18, GitHub #759)
     # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
     # + INT-447 (INT-414's delivery lines verified under D18, GitHub #758)
-    assert len(actions) == 338
+    assert len(actions) == 345
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
