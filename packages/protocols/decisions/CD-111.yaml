@@ -1,0 +1,329 @@
+# INT-472 clinical decision CD-111: the do-not lines of the cardiac RED rule
+# (rf.chest_pain_cardiac_features, REMOTE and ON_SITE) and the wait before an unanswered
+# "Şu anda hastanede misiniz?" resolves to REMOTE. Agent-authored under owner decision
+# D18; simulated-patient stress testing only, and a licensed physician's review is
+# required before any real patient. It fills no clinical_signoff (D17) and does not close
+# HB-C1. Every quote below appears verbatim in the named snapshot, and every spec_basis
+# quote verbatim in the named committed file. This is a decision record, not a pack edit:
+# the change applies through files/protocols/base.life_threat.yaml, routed into the
+# INT-465 branch (#796) that already edits the same action block. The rule's gate, tense,
+# level, route, register and location branches are untouched; nothing extends
+# base.life_threat.
+kind: clinical_decision
+id: CD-111
+title: "Cardiac RED do-not lines and the unanswered location wait"
+question: >-
+  Which of the cardiac RED rule's do-not lines are kept, changed or removed, on what
+  current source, and does a blanket "Bir şey yiyip içmeyin." conflict with the care a
+  112 call handler or the acil servis gives? And what wait, if any source states one,
+  applies before an unanswered location question resolves to REMOTE with 112?
+decision: >-
+  REMOTE: "Kendi aracınızla yola çıkmayın." changes to the sourced "Hastaneye kendiniz
+  araba kullanarak gitmeyin."; "Bir şey yiyip içmeyin." is removed; "Tek başınıza
+  kalmayın; yanınızdaki kişiye durumu söyleyin." changes to "Yanınızda biri varsa durumu
+  ona söyleyin ve sizinle kalmasını isteyin.". ON_SITE: "Poliklinik sırasında
+  beklemeyin." and "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden
+  yardım isteyin." are kept; "Bir şey yiyip içmeyin." is removed. The nil-by-mouth line
+  contradicts current care: chest-pain first aid and NICE CG95 give aspirin by mouth
+  while help is awaited, and the 999 call handler gives the advice on what to do. Nothing
+  replaces it: a medicine instruction is the call handler's or the clinician's to give,
+  after an allergy check the device cannot make. The wait: no current source states a
+  number, so it stays draft_needs_source with the invariant-17 literal, and the device's
+  constant stays an unsigned engineering value; the qualitative rule is decided: an
+  unanswered question resolves to REMOTE with 112 shown (silence may be a person who can
+  no longer communicate), a late "evet" switches to ON_SITE, and CD-24's ask-first
+  verdict stands.
+status: active
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off for simulated-patient stress
+  testing only. A licensed physician's review is required before any real patient.
+question_origin: >-
+  INT-472 (GitHub #805), from the INT-465 (#796) clinical re-review of 3 Oct 2026: CD-24
+  kept the generic do-nots and the no-answer wait draft_needs_source, and the served
+  cardiac rule carries the three do-not lines with no source.
+author_role: "emergency medicine and cardiology physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NHS-HEART-ATTACK-2026
+    title: "Heart attack (NHS website, Health A to Z)"
+    version_or_date: "page last reviewed 31 March 2026; next review due 31 March 2029"
+    url: "https://www.nhs.uk/conditions/heart-attack/"
+    retrieved_on: 2026-10-03
+    section: "Immediate action required: Call 999"
+    quote: "Do not drive yourself to A&E."
+    snapshot: packages/protocols/sources/NHS-HEART-ATTACK-2026.txt
+    supports: "REMOTE line 1: the sourced construct is driving oneself"
+    caveat: "Public health information of the national health service, cited beside NICE CG95 and the ERC/RCUK guideline; 999 is the UK number, 112 Türkiye's."
+  - kind: guideline
+    guideline_id: NHS-HEART-ATTACK-2026
+    title: "Heart attack (NHS website, Health A to Z)"
+    version_or_date: "page last reviewed 31 March 2026; next review due 31 March 2029"
+    url: "https://www.nhs.uk/conditions/heart-attack/"
+    retrieved_on: 2026-10-03
+    section: "Immediate action required: Call 999"
+    quote: "The person you speak to at 999 will give you advice about what to do."
+    snapshot: packages/protocols/sources/NHS-HEART-ATTACK-2026.txt
+    supports: "REMOTE lines 1 and 2, medication_line: the call handler gives the advice, so the device does not pre-empt it"
+  - kind: guideline
+    guideline_id: NHS-HEART-ATTACK-2026
+    title: "Heart attack (NHS website, Health A to Z)"
+    version_or_date: "page last reviewed 31 March 2026; next review due 31 March 2029"
+    url: "https://www.nhs.uk/conditions/heart-attack/"
+    retrieved_on: 2026-10-03
+    section: "While you're waiting for medical help"
+    quote: "Take aspirin (300mg) if you have any – do not give aspirin to someone who has an aspirin allergy."
+    snapshot: packages/protocols/sources/NHS-HEART-ATTACK-2026.txt
+    supports: "REMOTE line 2 removed: something is taken by mouth while help is awaited"
+  - kind: guideline
+    guideline_id: NHS-HEART-ATTACK-2026
+    title: "Heart attack (NHS website, Health A to Z)"
+    version_or_date: "page last reviewed 31 March 2026; next review due 31 March 2029"
+    url: "https://www.nhs.uk/conditions/heart-attack/"
+    retrieved_on: 2026-10-03
+    section: "While you're waiting for medical help"
+    quote: "Sit and rest on the floor in a comfortable position, with your knees bent and your back supported."
+    snapshot: packages/protocols/sources/NHS-HEART-ATTACK-2026.txt
+    supports: "REMOTE line 3: rest while waiting, so the line does not send the patient looking for someone"
+  - kind: guideline
+    guideline_id: NHS-HEART-ATTACK-2026
+    title: "Heart attack (NHS website, Health A to Z)"
+    version_or_date: "page last reviewed 31 March 2026; next review due 31 March 2029"
+    url: "https://www.nhs.uk/conditions/heart-attack/"
+    retrieved_on: 2026-10-03
+    section: "While you're waiting for medical help"
+    quote: "Keep checking someone who may be having a heart attack to make sure they're still responding and breathing."
+    snapshot: packages/protocols/sources/NHS-HEART-ATTACK-2026.txt
+    supports: "REMOTE line 3: the person with the patient has a role, so they are told"
+  - kind: guideline
+    guideline_id: RCUK-ERC-FIRST-AID-2025
+    title: "First Aid Guidelines (Resuscitation Council UK, based on the ERC Guidelines 2025 First Aid)"
+    version_or_date: "published 27 October 2025"
+    url: "https://www.resus.org.uk/print/pdf/node/36662"
+    retrieved_on: 2026-10-03
+    section: "Chest pain"
+    quote: "Stay with the person until help arrives."
+    snapshot: packages/protocols/sources/RCUK-ERC-FIRST-AID-2025.txt
+    supports: "REMOTE line 3, ON_SITE line 2: someone stays with the person"
+  - kind: guideline
+    guideline_id: RCUK-ERC-FIRST-AID-2025
+    title: "First Aid Guidelines (Resuscitation Council UK, based on the ERC Guidelines 2025 First Aid)"
+    version_or_date: "published 27 October 2025"
+    url: "https://www.resus.org.uk/print/pdf/node/36662"
+    retrieved_on: 2026-10-03
+    section: "Chest pain"
+    quote: "whilst awaiting emergency assistance (but not to adults with a known aspirin allergy)."
+    snapshot: packages/protocols/sources/RCUK-ERC-FIRST-AID-2025.txt
+    supports: "REMOTE and ON_SITE line removed: aspirin by mouth is given while emergency help is awaited, and only after an allergy check"
+  - kind: guideline
+    guideline_id: RCUK-ERC-FIRST-AID-2025
+    title: "First Aid Guidelines (Resuscitation Council UK, based on the ERC Guidelines 2025 First Aid)"
+    version_or_date: "published 27 October 2025"
+    url: "https://www.resus.org.uk/print/pdf/node/36662"
+    retrieved_on: 2026-10-03
+    section: "Introduction"
+    quote: "First aid is described as a helping behaviour by anyone, for any emergency condition, in any situation, including self-care."
+    snapshot: packages/protocols/sources/RCUK-ERC-FIRST-AID-2025.txt
+    supports: "the chest-pain first aid applies to the patient alone as well"
+  - kind: guideline
+    guideline_id: RCUK-ERC-FIRST-AID-2025
+    title: "First Aid Guidelines (Resuscitation Council UK, based on the ERC Guidelines 2025 First Aid)"
+    version_or_date: "published 27 October 2025"
+    url: "https://www.resus.org.uk/print/pdf/node/36662"
+    retrieved_on: 2026-10-03
+    section: "Cardiac arrest"
+    quote: "If you suspect a cardiac arrest, call 999 and follow the call handler’s instructions"
+    snapshot: packages/protocols/sources/RCUK-ERC-FIRST-AID-2025.txt
+    supports: "medication_line and REMOTE line 3: care after the call is led by the call handler"
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "Clinical guideline CG95; published 24 March 2010; last updated 30 November 2016"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3.2"
+    quote: "Offer people a single loading dose of 300 mg aspirin as soon as possible unless there is clear evidence that they are allergic to it."
+    snapshot: packages/protocols/sources/NICE-CG95-B.txt
+    supports: "REMOTE and ON_SITE line removed: the first treatment of a suspected ACS is taken by mouth, as soon as possible"
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "Clinical guideline CG95; published 24 March 2010; last updated 30 November 2016"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3.2"
+    quote: "If aspirin is given before arrival at hospital, send a written record that it has been given with the person."
+    snapshot: packages/protocols/sources/NICE-CG95-B.txt
+    supports: "REMOTE line removed: oral aspirin before hospital is expected care"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(3))"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "Ayaktan başvurduğu halde hayati tehlikesi olduğu değerlendirilen hastalar için kayıt ve triyaj işlemi yapılmaksızın sağlık personeli eşliğinde uygun görülen alana yönlendirilir."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "ON_SITE line 2 kept: escort to the acil servis (as CD-24's generic ON_SITE)"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kategori 2: Hayatı tehdit etme olasılığı yüksek olan ve 10 dakika içerisinde değerlendirilip tedavi edilmesi gerekli durumlar."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "ON_SITE line 1 kept: a KIRMIZI Kategori 2 patient does not wait in the clinic queue (as CD-24); no_answer_wait: EK-4's only time figure is a treatment target, not a question timeout"
+  - kind: guideline
+    guideline_id: EENA-SILENT-CALLS-2020
+    title: "Emergency Silent, Hang-Up and Abandoned 112 Calls (EENA operations document)"
+    version_or_date: "Version 2.0; PDF dated 25 September 2020"
+    url: "https://eena.org/wp-content/uploads/2020_09_25_SilentCalls_Update.pdf"
+    retrieved_on: 2026-10-03
+    section: "Executive summary"
+    quote: "many cases, such calls may be genuine emergency calls made by people with hearing or speaking impairments, by people who lost consciousness after they initiated the call"
+    snapshot: packages/protocols/sources/EENA-SILENT-CALLS-2020.txt
+    supports: "location_question_rule: silence after an emergency contact is not reassurance"
+  - kind: guideline
+    guideline_id: EENA-SILENT-CALLS-2020
+    title: "Emergency Silent, Hang-Up and Abandoned 112 Calls (EENA operations document)"
+    version_or_date: "Version 2.0; PDF dated 25 September 2020"
+    url: "https://eena.org/wp-content/uploads/2020_09_25_SilentCalls_Update.pdf"
+    retrieved_on: 2026-10-03
+    section: "2.1.1 Silent 112 calls"
+    quote: "the person is no longer able to communicate (e.g. the caller loses consciousness)."
+    snapshot: packages/protocols/sources/EENA-SILENT-CALLS-2020.txt
+    supports: "location_question_rule: no answer resolves to the branch that summons help (REMOTE with 112)"
+spec_basis:
+  - file: packages/protocols/decisions/CD-24.yaml
+    section: "decision, UNKNOWN verdict"
+    quote: "ask first; the 112 affordance appears only after 'hayır' or no answer"
+    supports: "location_question_rule: CD-24's ask-first verdict stands"
+  - file: packages/protocols/decisions/CD-24.yaml
+    section: "fail_closed_while_draft"
+    quote: "on expiry the branch is always REMOTE, never silence"
+    supports: "no_answer_wait.on_expiry"
+  - file: files/protocols/base.life_threat.yaml
+    section: "rf.chest_pain_cardiac_features, UNKNOWN"
+    quote: "the safe default IF AND ONLY IF the question was asked"
+    supports: "location_question_rule"
+  - file: files/protocols/base.life_threat.yaml
+    section: "rf.chest_pain_cardiac_features, ON_SITE"
+    quote: "never suggest an ambulance to someone inside the hospital"
+    supports: "location_question_rule.late_answer: a late 'evet' switches to ON_SITE"
+  - file: CLAUDE.md
+    section: "Non-negotiable invariant 2"
+    quote: "no diagnosis/treatment/prognosis language"
+    supports: "medication_line: the device gives no medicine instruction"
+inference_disclosure: >-
+  The sources fix the constructs: do not drive yourself; the call handler advises what to
+  do; aspirin by mouth while help is awaited, after an allergy check; rest; someone stays
+  with the person; escort to the acil servis; silence may be someone who can no longer
+  communicate. These choices are this author's, made on those sources: narrowing the
+  driving line from "your own vehicle" to driving oneself (the call handler, not the
+  device, decides any other transport); rendering "stay with the person" for the patient
+  as a conditional line, so a patient alone is not given an instruction they cannot keep
+  or sent to look for someone instead of resting; removing the nil-by-mouth line without a
+  replacement; and the late-answer switch. The Turkish wording of the two changed lines is
+  this author's B1 rendering, PolicyGuard-clean.
+fail_closed_while_draft: >-
+  While no_answer_wait is draft, the device's constant (UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS
+  on #796) stays an unsigned engineering value, recorded as such (CD-24); on expiry the
+  branch is REMOTE with 112 shown, never silence, and the clinic notification fires in
+  every case.
+value:
+  rule: rf.chest_pain_cardiac_features
+  rule_source: files/protocols/base.life_threat.yaml
+  do_nots:
+    - location: REMOTE
+      from: "Kendi aracınızla yola çıkmayın."
+      outcome: change
+      to: "Hastaneye kendiniz araba kullanarak gitmeyin."
+      clinical_basis: "The sourced instruction is not to drive yourself to the emergency department; whether a patient is taken by ambulance or another way is the 112 call handler's advice, which the device does not pre-empt with a ban on any private vehicle."
+      sources: [NHS-HEART-ATTACK-2026]
+      status: active
+    - location: REMOTE
+      from: "Bir şey yiyip içmeyin."
+      outcome: remove
+      to: null
+      clinical_basis: "It conflicts with current care: chest-pain first aid has the person chew or dissolve aspirin while emergency help is awaited, NICE gives aspirin by mouth as soon as possible and before hospital, and the call handler gives the advice on what to do. No retrieved source supports nil by mouth for suspected acute coronary syndrome."
+      sources: [RCUK-ERC-FIRST-AID-2025, NICE-CG95, NHS-HEART-ATTACK-2026]
+      status: active
+    - location: REMOTE
+      from: "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
+      outcome: change
+      to: "Yanınızda biri varsa durumu ona söyleyin ve sizinle kalmasını isteyin."
+      clinical_basis: "First aid has someone stay with the person until help arrives and keep checking them, so a companion must know; the patient should sit and rest, so the line is conditional and does not send a patient who is alone to look for someone or give an instruction they cannot keep."
+      sources: [RCUK-ERC-FIRST-AID-2025, NHS-HEART-ATTACK-2026]
+      status: active
+    - location: ON_SITE
+      from: "Poliklinik sırasında beklemeyin."
+      outcome: accept
+      to: "Poliklinik sırasında beklemeyin."
+      clinical_basis: "A KIRMIZI Kategori 2 patient is assessed within ten minutes, so waiting in the clinic queue contradicts EK-4 (as CD-24's generic ON_SITE)."
+      sources: [TR-EK4-2022]
+      status: active
+    - location: ON_SITE
+      from: "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
+      outcome: accept
+      to: "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
+      clinical_basis: "A walk-in patient in danger of life is taken to the acil servis escorted by health personnel, and first aid has someone stay with the person; staff are already notified (notify_staff_immediate)."
+      sources: [TR-EK4-2022, RCUK-ERC-FIRST-AID-2025]
+      status: active
+    - location: ON_SITE
+      from: "Bir şey yiyip içmeyin."
+      outcome: remove
+      to: null
+      clinical_basis: "In the hospital the acil servis gives aspirin by mouth as soon as possible; a blanket nil-by-mouth line could make a patient refuse it, and no retrieved source supports it for suspected acute coronary syndrome."
+      sources: [NICE-CG95, RCUK-ERC-FIRST-AID-2025]
+      status: active
+  decided_lists:
+    REMOTE:
+      - "Hastaneye kendiniz araba kullanarak gitmeyin."
+      - "Yanınızda biri varsa durumu ona söyleyin ve sizinle kalmasını isteyin."
+    ON_SITE:
+      - "Poliklinik sırasında beklemeyin."
+      - "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
+  medication_line:
+    added: false
+    decision: "No aspirin or other medicine line replaces the removed one, in either location. A medicine instruction needs an allergy and contraindication check the device cannot make and is treatment language patient copy may not carry (invariant 2); the 112 call handler, or the acil servis on site, gives it."
+    sources: [NHS-HEART-ATTACK-2026, RCUK-ERC-FIRST-AID-2025]
+    status: active
+  location_question_rule:
+    question: "Şu anda hastanede misiniz?"
+    on_no_answer: REMOTE
+    show_112_on_no_answer: true
+    statement: "An unanswered location question resolves to REMOTE with 112 shown, never to silence and never to ON_SITE: silence after an emergency contact may be a person who can no longer communicate. CD-24's ask-first verdict stands: 112 is not shown during the wait, because showing it first guesses REMOTE."
+    late_answer: "An answer that arrives after expiry still decides the branch: 'evet' switches to ON_SITE (112 withdrawn, staff notified, the ON_SITE script shown); 'hayır' keeps REMOTE."
+    sources: [EENA-SILENT-CALLS-2020]
+    status: active
+  no_answer_wait:
+    applies_to: "rf.chest_pain_cardiac_features UNKNOWN.on_no_answer and scripts.base.generic_red.unknown.on_no_answer (CD-24)"
+    value: "TODO: the wait before an unanswered location question resolves to REMOTE requires clinical sign-off"
+    status: draft_needs_source
+    on_expiry: REMOTE
+    show_112_on_expiry: true
+    source_gap: >-
+      No retrieved current source states how long to wait for an answer before taking the
+      no-answer branch. Searched on 3 Oct 2026: the EENA silent-calls operations document
+      (no timing; it says what silence may mean), NICE CG95 1.2.3, the ERC 2025 first aid
+      guideline as RCUK publishes it, the NHS heart attack page, files/02 §5.3 and files/04
+      §8.1 rule 7 (they fix the branch, not a wait), and EK-4, whose only time figure is a
+      treatment target, not a question timeout. WCAG timing is the legal lane's. Any number
+      here would be invented.
+  application:
+    where: "files/protocols/base.life_threat.yaml, rf.chest_pain_cardiac_features, action.REMOTE.do_nots_tr and action.ON_SITE.do_nots_tr; the lines stand the same on main and on the INT-465 branch (#796), which edits the adjacent why_tr lines, so the change is routed into #796 rather than stacked here"
+    follows: "files/02_PRODUCT_SPEC.md §5.3 worked ON_SITE text drops its nil-by-mouth bullet; tests/fixtures/protocols/int314_tr_content_baseline.json updates the moved entries in file order; tests/voice/test_policyguard_precision.py swaps the two retired lines for the decided texts; any triage golden that dumps do_nots_tr follows the decided lists"
+    not_reached: "The paediatric airway rule's 'Su, yiyecek ya da ilaç vermeyin.' is a different rule and is not decided here."
+    pins: "tests/protocols/test_red_clinical_values.py holds before and after application: each line is its old text or its decided text, never a third"
+value_status:
+  do_nots: active
+  decided_lists: active
+  medication_line: active
+  location_question_rule: active
+  no_answer_wait: draft_needs_source
+  application: active
+source_gap: >-
+  Only no_answer_wait is draft: no retrieved current source states a wait before an
+  unanswered location question resolves to REMOTE (value.no_answer_wait.source_gap).
+verifier:
+  verdict: pending

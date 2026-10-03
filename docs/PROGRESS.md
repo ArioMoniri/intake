@@ -3163,3 +3163,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines, or which do you rewrite?" The 12 revised lines are marked pre-reviewed by the clinical-reviewer agent on 2 Oct 2026; physician sign-off is still open. files/04 §4.2 pre-brief: the sensitive transition lines are not that pre-brief, which is owed separately.
 - Next: the `leadIn` rendering through #728's `ChatLines` waits for #728 to reach main.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T00:30:00+03:00 · INT-472 · done (PR open, verifier verdict pending)
+- Goal: decide, under D18, the cardiac RED rule's three unsourced do-not lines and the wait before an unanswered "Şu anda hastanede misiniz?" resolves to REMOTE.
+- Plan: tests first for the decided lines and the wait (no number without a source); CD-111 against four new verbatim snapshots (NHS heart attack page, RCUK First Aid Guidelines 2025 from ERC 2025, NICE CG95 1.2.3, EENA silent-calls v2.0); decision recorded, application routed into #796 (INT-465), which edits the same action block.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_red_clinical_values.py (a kept or re-worded nil-by-mouth line, an aspirin line, a numeral, diagnosis language, a third wording in the served rule, a plausible unsourced wait, a wait that resolves anywhere but REMOTE with 112 each fail; 20 near-miss cases). Red run: 6 failed, 21 passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-472.md; `make safety` exit 0; the only red test is CD-111's pending verdict, by design.
+- Invariants touched and still passing: 2, 7 and 21 (only do-not copy is decided; gate, level, route, register and all three locations untouched), 17 (the wait is the sanctioned literal), 22.
+- Decisions / ADRs / `00_STATE.md` rows: CD-111 added to the clinical decisions register; none in 00_STATE.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none; the wait value stays draft_needs_source (no source states one).
+- Next: record CD-111's independent verdict; the orchestrator routes the application into #796.
+- LOOP_STATUS: CONTINUE

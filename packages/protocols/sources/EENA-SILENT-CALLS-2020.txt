@@ -1,0 +1,56 @@
+# guideline_id: EENA-SILENT-CALLS-2020
+# title: Emergency Silent, Hang-Up and Abandoned 112 Calls (EENA operations document)
+# publisher: European Emergency Number Association (EENA), Brussels
+# version_or_date: Version 2.0; PDF dated 25 September 2020 (document properties)
+# url: https://eena.org/wp-content/uploads/2020_09_25_SilentCalls_Update.pdf
+# landing_page: https://eena.org/knowledge-hub/documents/emergency-silent-hang-up-and-abandoned-112-calls
+# retrieved_on: 2026-10-03
+# retrieval: curl (HTTP 200, 2537883 bytes, sha256 894aa1a88b8b8bd7dc3c2c12d98f4401e94a8fd1563177a3fa289698ac33902d); text extracted with pdftotext (poppler, reading order, no -layout), page-break form feeds removed; the two-column table of section 2.1.1 extracts column by column, as reproduced
+# scope: verbatim excerpt - title and version, the executive summary's first paragraph, and the 'Silent Emergency Calls' table of section 2.1.1; nothing paraphrased or edited; omissions marked [...]. Cited for what an unanswered emergency contact may mean, never for a timing value: the document states none.
+---
+Emergency Silent,
+Hang-Up and Abandoned
+112 Calls
+
+Emergency Silent, Hang-Up and Abandoned 112 Calls
+Version 2.0
+[...]
+EXECUTIVE SUMMARY
+Dealing with silent, hang-up, and
+abandoned 112 calls can be a real
+challenge for emergency services. In
+many cases, such calls may be genuine
+emergency calls made by people with
+hearing or speaking impairments, by
+people who lost consciousness after they
+initiated the call, or by people who
+cannot speak because they are involved
+in dangerous situations like robberies,
+kidnappings etc.
+Furthermore, hang-up calls may occur in
+cases of network unavailability or in case of
+failure or damage of the device initiating. In
+most of the above situations, calling back is
+not an option for the emergency services,
+because the caller may not be able or willing
+to respond or because calling back is
+impossible.
+[...]
+Silent Emergency Calls
+Type of call
+Hearing/speaking-impaired person
+Situation does not allow caller to speak
+
+Person unconscious or unable to speak
+
+Comments / examples
+The person can be in a real emergency situation
+but is not able to speak and/or hear that the call
+has been answered.
+The caller is in an emergency situation and is
+able to establish a 112 call, but the situation does
+not allow the person to speak (e.g. kidnapping).
+The caller has been able to dial 112 but after
+establishing the call, the person is no longer able
+to communicate (e.g. the caller loses
+consciousness).
