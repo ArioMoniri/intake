@@ -1,0 +1,23 @@
+# guideline_id: NICE-NG133
+# title: Hypertension in pregnancy: diagnosis and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG133; published 25 June 2019; last updated 17 April 2023
+# url: https://www.nice.org.uk/guidance/ng133/chapter/Recommendations
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header and recommendation 1.1.1 (symptoms of pre-eclampsia); nothing paraphrased or edited; omissions marked [...]
+---
+Reference number: NG133
+Published: 25 June 2019
+Last updated: 17 April 2023
+[...]
+1.1 Reducing the risk of hypertensive disorders in pregnancy
+Symptoms of pre-eclampsia
+1.1.1
+Advise pregnant women to see a healthcare professional immediately if they experience symptoms of pre-eclampsia. Symptoms include:
+severe headache
+problems with vision, such as blurring or flashing before the eyes
+severe pain just below the ribs
+vomiting
+sudden swelling of the face, hands or feet.
+See the NICE guideline on antenatal care for advice on risk factors and symptoms of pre-eclampsia. [2010, amended 2019]

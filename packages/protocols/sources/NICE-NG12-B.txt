@@ -1,0 +1,24 @@
+# guideline_id: NICE-NG12
+# title: Suspected cancer: recognition and referral
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG12; published 23 June 2015; last updated 15 April 2026
+# url: https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header and recommendations 1.8.1-1.8.2 (head and neck cancers); nothing paraphrased or edited; omissions marked [...]. A second excerpt of the guideline beside NICE-NG12.txt.
+---
+Reference number: NG12
+Published: 23 June 2015
+Last updated: 15 April 2026
+[...]
+1.8 Head and neck cancers
+Laryngeal cancer
+1.8.1
+Consider a suspected cancer pathway referral for laryngeal cancer in people aged 45 and over with:
+persistent and unexplained hoarseness, or
+an unexplained lump in the neck. [2015]
+Oral cancer
+1.8.2
+Consider a suspected cancer pathway referral for oral cancer in people with either:
+unexplained ulceration in the oral cavity lasting for more than 3 weeks, or
+a persistent and unexplained lump in the neck. [2015]
