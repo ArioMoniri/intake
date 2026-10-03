@@ -22,6 +22,8 @@ docs/evidence/INT-041.md rather than faked here.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from protocols.compile import (
     DOSE_FORM_CHIPS,
@@ -33,6 +35,9 @@ from protocols.compile import (
     parse_turkish_cardinal,
     turkish_cardinal,
 )
+from protocols.compile.emit_clips import rows_from, rule_sources
+from protocols.compile.life_threat import load_life_threat_set
+from protocols.locale_text import DEFAULT_LOCALE as TR
 
 
 @pytest.mark.parametrize(
@@ -197,3 +202,185 @@ def test_a_composite_expansion_that_lost_a_part_does_not_invert() -> None:
     )
     with pytest.raises(TrExpansionError, match="round trip failed"):
         assert_round_trip(tampered)
+
+
+# =============================================================================
+# INT-455 — a numeral carrying an apostrophe suffix ("112'yi").
+#
+# TDK Yazım Kılavuzu, Kesme İşareti: "Sayılara getirilen ekleri ayırmak için
+# konur: 1985’te, 8’inci madde, 2’nci kat; 7,65’lik, 9,65’lik, 657’yle vb."
+# The apostrophe exists only because the number is written in digits; once it
+# is written in words the suffix joins the last word directly — "112'yi" is
+# spoken "yüz on ikiyi". The authored suffix was chosen for the spoken word,
+# so it must still fit that word: a suffix that does not is refused rather than
+# glued on, because the TTS would read the mismatch aloud.
+# =============================================================================
+
+LIFE_THREAT = Path(__file__).resolve().parents[2] / "files" / "protocols" / "base.life_threat.yaml"
+
+
+@pytest.mark.parametrize(
+    ("authored", "spoken"),
+    [
+        ("112'yi", "yüz on ikiyi"),
+        # TDK's own examples, which use U+2019 RIGHT SINGLE QUOTATION MARK.
+        ("1985’te", "bin dokuz yüz seksen beşte"),
+        ("8’inci", "sekizinci"),
+        ("2’nci", "ikinci"),
+        ("657’yle", "altı yüz elli yediyle"),
+        # One per harmony class and junction shape.
+        ("0'a", "sıfıra"),
+        ("5'e", "beşe"),
+        ("6'yı", "altıyı"),
+        ("10'u", "onu"),
+        ("3'ü", "üçü"),
+        ("40'ı", "kırkı"),
+        ("100'de", "yüzde"),
+        ("40'ta", "kırkta"),
+        ("1000'i", "bini"),
+        ("1000000'u", "bir milyonu"),
+        ("50'nin", "ellinin"),
+        ("20'si", "yirmisi"),
+        ("2'şer", "ikişer"),
+        # dört is the only cardinal with a TDK takı ("dört, -dü"): it softens
+        # before a vowel and only before a vowel.
+        ("4'ü", "dördü"),
+        ("14'üncü", "on dördüncü"),
+        ("4'te", "dörtte"),
+        # Every later suffix vowel harmonises with the one before it, except the
+        # invariant -ki (TDK Küçük Ünlü Uyumu), after which harmony restarts.
+        ("40'taki", "kırktaki"),
+        ("1985'teki", "bin dokuz yüz seksen beşteki"),
+        ("40'takiler", "kırktakiler"),
+    ],
+)
+def test_a_suffixed_numeral_joins_its_suffix_to_the_spoken_word(authored: str, spoken: str) -> None:
+    expansion = expand_tr(authored)
+    assert expansion.text == spoken
+    assert_round_trip(expansion)
+
+
+@pytest.mark.parametrize(
+    ("authored", "spoken"),
+    [
+        ("Hemen **112**'yi arayın.", "Hemen **yüz on ikiyi** arayın."),
+        ("Hemen **112'yi** arayın.", "Hemen **yüz on ikiyi** arayın."),
+        ("Hemen **112** arayın.", "Hemen **yüz on iki** arayın."),
+        ("beklemeyin — 112'yi arayın.", "beklemeyin — yüz on ikiyi arayın."),
+        ("(112'yi)", "(yüz on ikiyi)"),
+        # Emphasis may open or close in another token; it is decoration either way.
+        ("**112'yi arayın**", "**yüz on ikiyi arayın**"),
+        ("**Hemen 112**'yi arayın.", "**Hemen yüz on ikiyi** arayın."),
+    ],
+)
+def test_emphasis_and_punctuation_around_a_suffixed_numeral_survive(
+    authored: str, spoken: str
+) -> None:
+    """The emphasis closes after the suffix: in words the suffix is part of
+    the word, and a marker left between "iki" and "yi" would split it."""
+    expansion = expand_tr(authored)
+    assert expansion.text == spoken
+    assert_round_trip(expansion)
+
+
+def test_the_replacement_records_the_bare_token_with_a_straight_apostrophe() -> None:
+    """The emphasis is decoration, like trailing punctuation; the round trip
+    checks the number and its suffix. U+2019 folds to U+0027 inside the token
+    only, so prose apostrophes elsewhere keep their authored bytes."""
+    assert expand_tr("**112**’yi").replacements == expand_tr("112'yi").replacements
+    assert [r.source for r in expand_tr("**112**’yi").replacements] == ["112'yi"]
+    assert expand_tr("Acil Servis’e").text == "Acil Servis’e"
+
+
+@pytest.mark.parametrize(
+    ("near_miss", "why"),
+    [
+        ("112'yu", "harmony: iki takes a front unrounded vowel"),
+        ("112'ı", "harmony, and a vowel-final word needs a buffer consonant"),
+        ("5'a", "harmony: beş is front"),
+        ("112'i", "a vowel-final word needs the y buffer"),
+        ("2'e", "a vowel-final word needs the y buffer"),
+        ("5'yi", "a consonant-final word takes no buffer consonant"),
+        ("5'si", "a consonant-final word takes no buffer consonant"),
+        ("5'nin", "a consonant-final word takes no buffer consonant"),
+        ("5'de", "beş ends voiceless: -te"),
+        ("1985'de", "beş ends voiceless: -te"),
+        ("100'te", "yüz ends voiced: -de"),
+        ("3'ce", "üç ends voiceless: -çe"),
+        ("2'çi", "iki ends in a vowel: -ci"),
+        ("4'u", "harmony: dört takes ü"),
+        ("5'or", "no suffix on a numeral starts with o/ö"),
+        ("112'y", "a suffix with no vowel has no harmony to check"),
+        ("112'YI", "an upper-case suffix is not authored Turkish orthography"),
+        ("112'", "an apostrophe with no suffix"),
+        ("2,5'i", "a decimal with a suffix stays refused"),
+        ("1/2'si", "a fraction with a suffix stays refused"),
+        ("5'min", "a unit symbol after an apostrophe is not a suffix"),
+        ("2'min", "a unit symbol after an apostrophe is not a suffix"),
+        ("5'ex", "x is not a letter of the Turkish alphabet"),
+        ("5'wi", "w is not a letter of the Turkish alphabet"),
+        ("6'yi", "harmony: altı takes ı"),
+        ("10'ı", "harmony: on takes u"),
+        ("40'te", "harmony: kırk is back"),
+        ("3'üncu", "harmony inside the suffix: ü then ü"),
+        ("8'incı", "harmony inside the suffix: i then i"),
+        ("1985'tena", "harmony inside the suffix: e then e"),
+        ("112'yiı", "two vowels in a row"),
+        ("2'ğe", "no Turkish suffix starts with ğ"),
+    ],
+)
+def test_a_suffix_that_does_not_fit_the_spoken_word_fails_closed(near_miss: str, why: str) -> None:
+    """The near-miss negative control for every positive case above. Each of
+    these would otherwise be glued on and read aloud as a non-word."""
+    with pytest.raises(TrExpansionError):
+        expand_tr(near_miss)
+
+
+def test_no_cardinal_word_is_a_prefix_of_another_so_the_suffix_split_is_unique() -> None:
+    """The round-trip gate splits "ikiyi" back into "iki" + "yi" by prefix.
+    That inverse is only well defined if no cardinal word (or the softened
+    "dörd") is a proper prefix of another one."""
+    words = [turkish_cardinal(value) for value in (*range(10), *range(10, 100, 10))]
+    words += ["yüz", "bin", "milyon", "milyar", "dörd"]
+    for word in words:
+        assert not [other for other in words if other != word and other.startswith(word)], word
+
+
+@pytest.mark.parametrize(
+    ("source", "tampered"),
+    [
+        ("112'yi", "yüz on üçü"),  # a different number reads back
+        ("4'te", "dördte"),  # softened before a consonant: not the canonical spelling
+        ("112'yi", "yüz on ikiyu"),  # a disharmonious suffix cannot be re-inflected
+        ("112'yi", "sentetikyi"),  # no cardinal word to split at
+    ],
+)
+def test_a_tampered_suffixed_expansion_does_not_invert(source: str, tampered: str) -> None:
+    from protocols.compile import Expansion, Replacement
+
+    expansion = Expansion(
+        text=tampered, replacements=(Replacement(source=source, expanded=tampered),)
+    )
+    with pytest.raises(TrExpansionError, match="round trip failed"):
+        assert_round_trip(expansion)
+
+
+def test_every_scripted_string_in_the_life_threat_set_compiles_to_a_clip() -> None:
+    """INT-455's headline, against the REAL sibling set rather than the
+    synthetic signed fixture the bundle tests use.
+
+    The set is unsigned (HB-C1), so it cannot go through ``compile_bundle``;
+    instead its rules go through the clip emitter's own walk
+    (``rule_sources``) and ``rows_from``, which is exactly what a served
+    bundle runs. Before INT-455 this produced three ``TR_EXPANSION_FAILED``
+    refusals — the REMOTE action of ``rf.chest_pain_cardiac_features``, the
+    same token in a SARI do-not, and the paediatric airway REMOTE action — so
+    the most time-critical RED script had no clip at all.
+    """
+    rules = [entry.rule for entry in load_life_threat_set(LIFE_THREAT).rules]
+    rows, _prompts, refusals = rows_from(rule_sources(rules, TR), voice="sentetik-ses", locale=TR)
+    assert [(r.code, r.subject) for r in refusals] == []
+    assert rows and all(row.scripted for row in rows)  # invariant 10 rides along
+    spoken = {row.text_tr for row in rows}
+    assert "Hemen **yüz on ikiyi** arayın." in spoken
+    assert not [text for text in spoken if any(ch.isdigit() for ch in text)]

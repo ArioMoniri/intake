@@ -3017,3 +3017,40 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03 · INT-455 · done
+- Goal: `expand_tr` refused a numeral with an apostrophe suffix (`112'yi`, `**112**'yi`). Because of that, the REMOTE ALERT script of `rf.chest_pain_cardiac_features`, "Hemen **112**'yi arayın.", could not compile to a clip. Two sibling strings in `base.life_threat` had the same problem. This was found by INT-432 CD-24 (finding G1); GitHub #778.
+- Plan:
+  - Fix the expander (engineering), not the RED text (clinical content). No authored byte of `base.life_threat.yaml` changes.
+  - TDK Yazım Kılavuzu (Kesme İşareti): the suffix joins the last cardinal word, so `112'yi` becomes *yüz on ikiyi*.
+  - Check that the suffix already fits the spoken word: harmony across the whole suffix (the invariant `-ki` excepted), buffer consonants, d/t and c/ç assimilation, and `dört → dörd-` (the only cardinal with a TDK takı).
+  - Refuse anything else. Treat emphasis as decoration.
+  - Extend the round-trip gate to suffixed forms, so that only the canonical spelling inverts.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_tr_orthography.py`: 24 positives (TDK's own examples included), 7 emphasis/punctuation cases, **32 near-miss negatives**, 4 round-trip tampers, and a prefix-uniqueness check.
+  - The headline test drives the REAL life-threat set through `emit_clips.rule_sources` (extracted, no behaviour change) + `rows_from`. It asserts zero refusals, all rows scripted, and no digit.
+  - RED on main: 28 failed, including the 3 `TR_EXPANSION_FAILED` refusals. GREEN: 107 passed.
+  - The INT-314 baseline moves in exactly 3 `expanded` entries, from refusal to expansion.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` rc=0: 564 triage at 100 %, 18/18 mutations, 1585 voice-runtime, 121 adversarial.
+  - `make check-py` rc=0: 9885 main, protocols+safety 1607 at 97.25 %, mypy clean on 522 files.
+  - `make check-i18n` rc=0.
+  - `no_placeholders` OK after staging.
+  - `check-ts` not run: no TS changed and no node_modules in this worktree; CI runs it. `make security` and `check-integration` are CI-only here.
+- Invariants touched and still passing:
+  - 22 strengthened: every new path yields digit-free text or raises.
+  - 1, 7, 9, 10, 21 untouched: no rule, register, location, route or Talker change, and `scripted=True` is asserted.
+  - 17: no placeholder, skip or xfail.
+  - 20: no claims.
+- Decisions / ADRs / `00_STATE.md` rows: none. Orthography is sourced from TDK (Yazım Kılavuzu, Güncel Türkçe Sözlük takı) in the evidence. `docs/security/threat-model.md` `clinical-content` Tests bullet now names the suite.
+- Reviews:
+  - security-reviewer PASS. L1 (`5'min`) and I2 (alphabet) fixed.
+  - clinical-reviewer: no clinical change, and *yüz on ikiyi arayın* is correct. Its non-clinical items are fixed: suffix-internal harmony, acceptance wording, evidence corrections, and a `scripted` assert.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - None for INT-455.
+  - `base.life_threat` stays L0 pending HB-C1. That signing packet should show the expanded clip text, and the paediatric airway rule also needs a paediatrician.
+- Next: follow-ups filed with reserved ids:
+  - INT-456 (#779): markup and the unresolved `{{tenant.acil_location_tr}}` placeholder reach TTS text.
+  - INT-457 (#780): the ON_SITE 112 gate does not read script text. This is an INT-432/owner decision.
+  - INT-458 (#781): `½` passes the expander, and an over-long digit run crashes rather than refuses.
+- LOOP_STATUS: DONE

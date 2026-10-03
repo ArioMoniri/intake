@@ -6453,3 +6453,25 @@
     - "invariant 49 is enforced by a simulator/runtime test with a fake clock (entry ≤ 60 s; page at SLA + ε; a transition on a RED visit raises an entry), with near-miss controls"
   tests: [tests/safety/test_red_acknowledgement_sla.py, tests/platform/test_safety_inbox.py, tests/admin/test_safety_queue.py, tests/voice/test_safety_inbox_notifier.py]
   sec_row: "triage"
+- id: INT-455
+  epic: E03-protocols
+  phase: P1
+  title: "expand_tr refuses a numeral with an apostrophe suffix (112'yi), so the life-threat RED REMOTE script cannot compile to a clip"
+  # GitHub #778. Found by INT-432 decision CD-24 (finding G1): the REMOTE
+  # action of rf.chest_pain_cardiac_features, "Hemen **112**'yi arayın.", is
+  # refused by the expander, and so are the same token in a SARI do-not and
+  # the paediatric airway REMOTE action. Fixed in the expander, which is
+  # engineering; the authored RED bytes are unchanged. TDK Yazım Kılavuzu,
+  # Kesme İşareti, and the TDK dictionary's takı for "dört" are the sources.
+  depends_on: [INT-041, INT-314]
+  labels: [area:protocols, area:safety]
+  status: done
+  evidence: docs/evidence/INT-455.md
+  acceptance:
+    - "expand_tr expands an integer with an apostrophe suffix (' or ’, optionally inside */** emphasis) by joining the suffix to the last cardinal word without the apostrophe: 112'yi → yüz on ikiyi, **112**'yi → **yüz on ikiyi**; TDK's own examples (1985’te, 8’inci, 2’nci, 657’yle) are test vectors"
+    - "it fails closed when the suffix does not fit the spoken word — disharmonious at the join or inside the suffix (112'yu, 5'a, 3'üncu; the invariant -ki excepted), buffer error (112'i, 5'yi), d/t or c/ç mismatch (5'de, 100'te), a unit symbol written as a suffix (5'min); dört softens to dörd- before a vowel (the only cardinal with a TDK takı); a decimal with a suffix stays refused; emphasis is decoration and may open or close in another token — each with a near-miss test beside its positive"
+    - "the round-trip gate inverts a suffixed expansion to its source token, emphasis and the dörd stem included, and only the canonical spelling inverts"
+    - "a test compiles every scripted string of the REAL files/protocols/base.life_threat.yaml through the clip emitter's own source walk and rows_from with zero refusals; red before the fix"
+    - "the INT-314 spoken-content baseline moves in exactly three entries (refusal → expansion), authored bytes unchanged; make safety green"
+  tests: [tests/protocols/test_tr_orthography.py, tests/protocols/test_migration_is_identity_for_tr.py]
+  sec_row: "clinical-content"

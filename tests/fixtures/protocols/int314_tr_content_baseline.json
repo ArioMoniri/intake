@@ -20,7 +20,7 @@
     ],
     "rules/0/action/REMOTE/action_tr": {
       "authored": "Hemen **112**'yi arayın.",
-      "expanded": "!tr-expansion-refused: TrExpansionError: \"**112**'yi\": no Turkish expansion is defined for this numeric form. files/03 §4.9.6 lists 1/2, 3x1, 140/90 and a period decimal separator as demonstrated normaliser corruptions; author the value as words, or as a tam/yarım/çeyrek dose chip, rather than letting the compiler guess"
+      "expanded": "Hemen **yüz on ikiyi** arayın."
     },
     "rules/0/action/REMOTE/do_nots_tr": [
       {
@@ -57,7 +57,7 @@
     "rules/1/action/REMOTE/do_nots_tr": [
       {
         "authored": "Ağrı artarsa ya da nefes darlığı, terleme başlarsa beklemeyin — 112'yi arayın.",
-        "expanded": "!tr-expansion-refused: TrExpansionError: \"112'yi\": no Turkish expansion is defined for this numeric form. files/03 §4.9.6 lists 1/2, 3x1, 140/90 and a period decimal separator as demonstrated normaliser corruptions; author the value as words, or as a tam/yarım/çeyrek dose chip, rather than letting the compiler guess"
+        "expanded": "Ağrı artarsa ya da nefes darlığı, terleme başlarsa beklemeyin — yüz on ikiyi arayın."
       }
     ],
     "rules/1/action/UNKNOWN/ask_one_tr": {
@@ -92,7 +92,7 @@
     ],
     "rules/2/action/REMOTE/action_tr": {
       "authored": "Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.",
-      "expanded": "!tr-expansion-refused: TrExpansionError: \"**112**'yi\": no Turkish expansion is defined for this numeric form. files/03 §4.9.6 lists 1/2, 3x1, 140/90 and a period decimal separator as demonstrated normaliser corruptions; author the value as words, or as a tam/yarım/çeyrek dose chip, rather than letting the compiler guess"
+      "expanded": "Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **yüz on ikiyi** arayın."
     },
     "rules/2/action/REMOTE/do_nots_tr": [
       {

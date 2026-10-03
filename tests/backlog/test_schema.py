@@ -147,7 +147,9 @@ def test_ids_unique_and_well_formed() -> None:
     # same PR).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
-    assert len(ids) == 330
+    # + INT-455 (expand_tr refused a numeral with an apostrophe suffix, so the
+    # life-threat RED REMOTE script had no clip; found by INT-432 CD-24, #778).
+    assert len(ids) == 331
     import re
 
     for i in ids:
