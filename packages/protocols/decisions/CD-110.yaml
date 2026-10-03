@@ -1,0 +1,718 @@
+# INT-470 clinical decision CD-110: the owner questions INT-448 (CD-100..CD-106) left open
+# because a packet named the owner or the base owner as decider, decided under owner
+# decision D18 as restated on 3 Oct 2026 (clinical and interview-design questions are
+# decided by sourced medical agents with an independent verifier, never sent back to the
+# owner). It covers simulated-patient stress testing only, and a licensed physician's
+# review is required before any real patient. It fills no clinical_signoff, promotes no
+# pack past L0 and does not close HB-C1.
+#
+# The INT-448 rows keep their history: each stays as recorded and gains a pointer here
+# (resolved_by, or owner_part_resolved_by where INT-448 decided the clinical part and
+# left a base-owner part). Every quote below appears verbatim in the named snapshot, and
+# every spec_basis quote appears verbatim in the named committed file. This is not a
+# pack: the lead applies the changes through the proposals and the generators, never by
+# hand-editing a served pack. No red-flag rule, level, route, register or location is
+# created, relaxed or removed here, and nothing extends base.life_threat.
+kind: clinical_decision
+id: CD-110
+title: "INT-448 owner questions decided under D18: history-taking twins, dental airway, report visits, sağlık kurulu Q8, FTR fever"
+question: >-
+  For each INT-448 owner question that is a clinical or interview-design question
+  (GitHub #798), and for the base-owner parts of five rows INT-448 decided clinically,
+  what is the decision, on what current source, and what follow-through is routed away
+  rather than decided?
+decision: >-
+  Eighteen resolutions: thirteen owner questions and five base-owner parts. History
+  taking: the reason for the visit is asked once, by base chief_complaint_text, and the
+  generators stop emitting the fixed basvuru_nedeni (three Q1s that ask a narrower
+  contact fact stay as items); the complaint's timing is asked once, by base onset_date,
+  so the fixed sikayet_suresi and base duration are no longer asked (üreme
+  endokrinolojisi keeps its time-trying-to-conceive item); lmp_date is gated by the
+  population it applies to rather than by the pregnancy answer, in every chain, once a
+  population guard exists (its age bounds stay draft_needs_source); pregnancy_status is
+  confirmed as the gate of record and precedes every item it gates. Dental airway: one
+  posture for every dental chain, asked and gated on tooth or gum pain or face, jaw or
+  sublingual swelling, never on trismus; the ungated re-declarations drop their own item;
+  pedodonti re-declares it for the child on the child's pain or gum swelling. Report-only
+  visits: a base symptom-presence screen gates the symptom-detail history, while
+  onset_date stays asked as the red-flag tense anchor. sağlık kurulu Q8 leaves its
+  proposal, because the chain already asks the cluster's sourced mobility-aid item. The
+  FTR fever twin is resolved by applying CD-101 T68.
+status: active
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026), restated by the owner on 3 Oct 2026 for clinical
+  questions whose packet decider was the owner or the base owner: agent-decided,
+  independently agent-verified, for simulated-patient stress testing only. A licensed
+  physician's review is required before any real patient. The product and data owner
+  questions of INT-448 are answered by owner decision D24 (files/00_STATE.md §3), not
+  here; their legal and data follow-through goes to the legal lane.
+question_origin: >-
+  INT-470 (GitHub #798), split from INT-448 (#759, PR #777): the owner_question rows and
+  base-owner parts of CD-100..CD-106 whose question is clinical or interview design. Trail
+  rows are read at the #642 packet commit 151cf34f.
+author_role: "family medicine and internal medicine, obstetrics and gynaecology, oral and maxillofacial surgery and paediatric dentistry, and physical medicine and rehabilitation physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: CALGARY-CAMBRIDGE-GUIDE
+    title: "Calgary-Cambridge Guide to the Medical Interview - Communication Process"
+    version_or_date: "Kurtz, Silverman and Draper 1998; observation-guide PDF dated 9 May 2003"
+    url: "https://essentialgptrainingbook.com/wp-content/online-resources/ch23/Assessment%20sheet%20-%20calgary%20cambridge.pdf"
+    retrieved_on: 2026-10-03
+    section: "Initiating the session, item 4"
+    quote: "Identifies the patient’s problems or the issues that the patient wishes to address with appropriate opening question"
+    snapshot: packages/protocols/sources/CALGARY-CAMBRIDGE-GUIDE.txt
+    supports: "T2: the reason for the visit is one opening question"
+  - kind: guideline
+    guideline_id: CALGARY-CAMBRIDGE-GUIDE
+    title: "Calgary-Cambridge Guide to the Medical Interview - Communication Process"
+    version_or_date: "Kurtz, Silverman and Draper 1998; observation-guide PDF dated 9 May 2003"
+    url: "https://essentialgptrainingbook.com/wp-content/online-resources/ch23/Assessment%20sheet%20-%20calgary%20cambridge.pdf"
+    retrieved_on: 2026-10-03
+    section: "Initiating the session, item 6"
+    quote: "Confirms list and screens for further problems"
+    snapshot: packages/protocols/sources/CALGARY-CAMBRIDGE-GUIDE.txt
+    supports: "T2: after the opening, the interview screens for further problems rather than re-asking the reason"
+  - kind: guideline
+    guideline_id: CALGARY-CAMBRIDGE-GUIDE
+    title: "Calgary-Cambridge Guide to the Medical Interview - Communication Process"
+    version_or_date: "Kurtz, Silverman and Draper 1998; observation-guide PDF dated 9 May 2003"
+    url: "https://essentialgptrainingbook.com/wp-content/online-resources/ch23/Assessment%20sheet%20-%20calgary%20cambridge.pdf"
+    retrieved_on: 2026-10-03
+    section: "Gathering information, item 16"
+    quote: "Establishes dates and sequence of events"
+    snapshot: packages/protocols/sources/CALGARY-CAMBRIDGE-GUIDE.txt
+    supports: "T3, T17, T92: the timing of the complaint is recorded as a date"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-EVALUATION.reason_for_encounter.v1"
+    revision: "1.0.3"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.290"
+    retrieved_on: 2026-10-03
+    quote: "'Chief complaint' may be used as a valid synonym for 'Presenting problem' in templates."
+    snapshot: packages/protocols/sources/openEHR-EHR-EVALUATION.reason_for_encounter.v1.txt
+    supports: "T2: one presenting-problem record, which base chief_complaint_text holds"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-EVALUATION.reason_for_encounter.v1"
+    revision: "1.0.3"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.290"
+    retrieved_on: 2026-10-03
+    quote: "Examples include: pre-employment medical, routine antenatal visit, women's health check, pre-operative assessment, or annual medical check-up."
+    snapshot: packages/protocols/sources/openEHR-EHR-EVALUATION.reason_for_encounter.v1.txt
+    supports: "T2: the planned operation, the planned vaccine and the conditions before a board are facts about the contact, not the reason restated"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"The duration of this episode of the symptom or sign since initial onset.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2-timing.txt
+    supports: "T3, T17, T92: a duration is time since onset, so the onset date fixes it for an ongoing episode"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "this data element may be calculated, or alternatively, be considered redundant in this scenario"
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2-timing.txt
+    supports: "T3, T17, T92: the duration element is calculable from the timing dates"
+    caveat: "The archetype's comment names onset and resolution dates; for an ongoing complaint the session date stands in for resolution. That reading is this author's."
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "This archetype has been designed to record the positive presence of the symptom or sign as part of history taking"
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+    supports: "cluster-wave-b L116: the symptom history details a symptom that is present"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "as reported by the individual, parent, care-giver or other party"
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+    supports: "cluster-wave-b L104: a parent reports the child's sign, so the ask names the child"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "If the screening questionnaire identifies the presence of a symptom or sign, it is recommended that clinical system record and persist the specific details about the symptom or sign"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: "cluster-wave-b L116, wave 7 L93, wave 8 L94: a presence screen opens the details"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Is there a history of the specific symptom or sign being present?">'
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: "INT-353 L432, sibling-rebinds L61: fever is one presence answer (as CD-101 T68)"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.5"
+    quote: "During clinical assessment of women of reproductive age, be aware that: they may be pregnant, and think about offering a pregnancy test even when symptoms are non-specific"
+    snapshot: packages/protocols/sources/NICE-NG126-B.txt
+    supports: "T1 base part: the last period is asked whatever the pregnancy answer; T4 base part: an unsure answer is treated as possibly pregnant"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.5"
+    quote: "the symptoms and signs of ectopic pregnancy can resemble the common symptoms and signs of other conditions – for example, gastrointestinal conditions or urinary tract infection"
+    snapshot: packages/protocols/sources/NICE-NG126-B.txt
+    supports: "T1 base part: every chain, not only the women's-health chains"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.3"
+    quote: "amenorrhoea or missed period"
+    snapshot: packages/protocols/sources/NICE-NG126-B.txt
+    supports: "T1 base part: a missed period is a common ectopic symptom"
+  - kind: guideline
+    guideline_id: NICE-NG257
+    title: "Fertility problems: assessment and treatment"
+    version_or_date: "NICE guideline NG257; published 31 March 2026 (replaces CG156)"
+    url: "https://www.nice.org.uk/guidance/ng257/chapter/Defining-infertility-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.16.4"
+    quote: "Define infertility in practice as the period of time people have been trying to conceive without success after which formal investigation is justified and possible treatment implemented."
+    snapshot: packages/protocols/sources/NICE-NG257.txt
+    supports: "T3: the time trying to conceive is the clinic-defining interval, a fact other than when a complaint began"
+    caveat: "Cited for the construct only, never for a duration threshold."
+  - kind: guideline
+    guideline_id: SDCEP-MADP-2026
+    title: "Management of Acute Dental Problems, second edition"
+    version_or_date: "second edition published 24 March 2026"
+    url: "https://www.acutedentalproblems.sdcep.org.uk/guidance/management-of-oral-conditions/common-oral-conditions/acute-apical-abscess/"
+    retrieved_on: 2026-10-03
+    section: "Acute apical abscess; acute pericoronitis; acute periodontal conditions - initial management"
+    quote: "Determine if the airway is compromised. Symptoms include: difficulty breathing; high pitched breathing sound (stridor); difficulty swallowing (dysphagia); hoarse or muffled sounding voice (dysphonia)."
+    snapshot: packages/protocols/sources/SDCEP-MADP-2026.txt
+    supports: "dental airway posture: the airway is checked in the initial management of the painful or swollen dental infections"
+  - kind: guideline
+    guideline_id: SDCEP-MADP-2026
+    title: "Management of Acute Dental Problems, second edition"
+    version_or_date: "second edition published 24 March 2026"
+    url: "https://www.acutedentalproblems.sdcep.org.uk/guidance/pathways-to-providers-of-care/swelling-pathway/"
+    retrieved_on: 2026-10-03
+    section: "Swelling pathway"
+    quote: "Many patients present with swelling and pain. Therefore, this pathway links to the pain pathway and includes the steps to determine whether a patient with pain might require emergency medical care."
+    snapshot: packages/protocols/sources/SDCEP-MADP-2026.txt
+    supports: "dental airway posture: pain or swelling is the presentation in which emergency features are sought"
+  - kind: guideline
+    guideline_id: SDCEP-MADP-2026
+    title: "Management of Acute Dental Problems, second edition"
+    version_or_date: "second edition published 24 March 2026"
+    url: "https://www.acutedentalproblems.sdcep.org.uk/guidance/management-of-oral-conditions/common-oral-conditions/acute-apical-abscess/"
+    retrieved_on: 2026-10-03
+    section: "Acute apical abscess - key signs and symptoms"
+    quote: "Swelling of the gingiva (gum), face or neck"
+    snapshot: packages/protocols/sources/SDCEP-MADP-2026.txt
+    supports: "dental airway posture and pedodonti: gum or face swelling is a key sign of the infections whose management checks the airway"
+  - kind: guideline
+    guideline_id: SDCEP-MADP-2026
+    title: "Management of Acute Dental Problems, second edition"
+    version_or_date: "second edition published 24 March 2026"
+    url: "https://www.acutedentalproblems.sdcep.org.uk/guidance/management-of-oral-conditions/common-oral-conditions/acute-pericoronitis-including-erupting-teeth-in-children/"
+    retrieved_on: 2026-10-03
+    section: "Acute pericoronitis (including erupting teeth in children)"
+    quote: "Swelling (swelling of the gingiva around a partially erupted tooth; can extend to facial swelling, especially with lower molar tooth)"
+    snapshot: packages/protocols/sources/SDCEP-MADP-2026.txt
+    supports: "pedodonti: the child's gum swelling is a gate term"
+  - kind: guideline
+    guideline_id: RCEM-LEARNING-DENTAL-2023
+    title: "Dental Emergencies (RCEMLearning reference)"
+    version_or_date: "published 25/09/2023"
+    url: "https://www.rcemlearning.co.uk/reference/dental-emergencies/"
+    retrieved_on: 2026-10-03
+    section: "Ludwig's angina"
+    quote: "The presentation is variable, but typical symptoms include dysphagia, neck pain and tooth pain, while signs include tongue elevation and/or protrusion and neck swelling [11]. Trismus is usually absent unless there is spread into the parapharyngeal space."
+    snapshot: packages/protocols/sources/RCEM-LEARNING-DENTAL-2023.txt
+    supports: "dental airway posture: tooth pain opens the gate, and trismus is never the gate"
+    caveat: "An educational reference of the Royal College, cited beside SDCEP-MADP-2026, not in place of a guideline."
+  - kind: guideline
+    guideline_id: RCEM-LEARNING-DENTAL-2023
+    title: "Dental Emergencies (RCEMLearning reference)"
+    version_or_date: "published 25/09/2023"
+    url: "https://www.rcemlearning.co.uk/reference/dental-emergencies/"
+    retrieved_on: 2026-10-03
+    section: "Examination of the mouth"
+    quote: "Dental infections may be complicated by airway compromise and need urgent anaesthetic intervention."
+    snapshot: packages/protocols/sources/RCEM-LEARNING-DENTAL-2023.txt
+    supports: "dental airway posture: the airway risk is a complication of dental infection"
+  - kind: guideline
+    guideline_id: TR-ERISKIN-ENGELLILIK-2019
+    title: "Erişkinler İçin Engellilik Değerlendirmesi Hakkında Yönetmelik"
+    version_or_date: "Resmî Gazete 20/2/2019, sayı 30692"
+    url: "https://www.aile.gov.tr/eyhgm/mevzuat/ulusal-mevzuat/yonetmelikler/eriskinler-icin-engellilik-degerlendirmesi-hakkinda-yonetmelik/"
+    retrieved_on: 2026-10-03
+    section: "MADDE 8(1)(ı)"
+    quote: "Bireylerden engellilik durumu sürekli olarak tekerlekli sandalye veya sedye kullanımını gerektirecek nitelikte olanlar ile sadece engelliliğine uygun hareket ettirici özel tertibatla taşıt kullanabilecek olanların durumu raporun açıklama kısmına yazılır."
+    snapshot: packages/protocols/sources/TR-ERISKIN-ENGELLILIK-2019.txt
+    supports: "INT-353 L316: the board records mobility-aid use, which the cluster item asks"
+    caveat: "A regulation, cited for which fact a board records, never for a clinical value."
+  - kind: guideline
+    guideline_id: TR-ERISKIN-ENGELLILIK-2019
+    title: "Erişkinler İçin Engellilik Değerlendirmesi Hakkında Yönetmelik"
+    version_or_date: "Resmî Gazete 20/2/2019, sayı 30692"
+    url: "https://www.aile.gov.tr/eyhgm/mevzuat/ulusal-mevzuat/yonetmelikler/eriskinler-icin-engellilik-degerlendirmesi-hakkinda-yonetmelik/"
+    retrieved_on: 2026-10-03
+    section: "MADDE 8(1)(c)"
+    quote: "Engele ilişkin klinik bulgular, ICD kodları, radyolojik tetkikler, laboratuvar bilgileri, tanı, doku, organ ve/veya fonksiyon kaybı ile engel oranı"
+    snapshot: packages/protocols/sources/TR-ERISKIN-ENGELLILIK-2019.txt
+    supports: "cluster-wave-b L116: a report visit can carry clinical findings, so the visit type alone cannot close the symptom history"
+  - kind: guideline
+    guideline_id: NICE-NG59
+    title: "Low back pain and sciatica in over 16s: assessment and management"
+    version_or_date: "NICE guideline NG59; published 30 November 2016; last updated 29 July 2026"
+    url: "https://www.nice.org.uk/guidance/ng59/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "Exclude specific causes of low back pain, for example, cancer, infection, trauma or inflammatory disease such as spondyloarthritis."
+    snapshot: packages/protocols/sources/NICE-NG59.txt
+    supports: "INT-353 L432, sibling-rebinds L61: fever is an input to excluding infection, with no window set (as CD-101 T68)"
+    caveat: "NG59 is cited for low back pain only and never for cauda equina (files/04 §8.2)."
+spec_basis:
+  - file: scripts/dev/gen_specialty_packs.py
+    section: "fixed slots"
+    quote: 'FIXED_SLOTS = frozenset({"basvuru_nedeni", "sikayet_suresi"})'
+    supports: "T2, T3, T92: the generator writes both fixed slots in every candidate"
+  - file: scripts/dev/gen_specialty_packs.py
+    section: "build_pack, the draft branch red-flag stub"
+    quote: '"tense_anchor": "sikayet_suresi"'
+    supports: "T3: the draft stub re-anchors on base onset_date when the fixed slot goes"
+  - file: scripts/dev/gen_specialty_packs.py
+    section: "build_pack, gate check"
+    quote: "readable = FIXED_SLOTS | base_slots | set(sorular)"
+    supports: "cluster-wave-b L104 and L116: a pack gate reads base slots and the pack's own earlier slots"
+  - file: packages/protocols/base/intake.yaml
+    section: "red_flags families"
+    quote: "tense_anchor: onset_date"
+    supports: "T17, T92 and cluster-wave-b L116: onset_date anchors the base red-flag families, so it stays asked"
+  - file: packages/protocols/src/protocols/triage/engine.py
+    section: "_anchor_truth"
+    quote: "return Truth.UNKNOWN  # the anchor was never asked (files/12 §2.4)"
+    supports: "cluster-wave-b L116: an unasked anchor leaves its rule Unknown, so onset_date is never gated"
+  - file: packages/protocols/decisions/CD-01.yaml
+    section: "findings"
+    quote: "hpi.duration is not read by any rule."
+    supports: "T17: removing the duration ask changes no rule"
+  - file: packages/protocols/base/intake.yaml
+    section: "pmh_fh_sh.lmp_date"
+    quote: "ask_if: \"pregnancy_status != 'hayir'\""
+    supports: "T1 base part: the gate that changes"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§4 Ordering rules"
+    quote: "Ruptured ectopic classically presents in a woman who does not know she is pregnant"
+    supports: "T1 base part"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§4 Ordering rules"
+    quote: "retires structured steps"
+    supports: "cluster-wave-b L116: the open turn may answer the presence screen"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.5 GuardExpr"
+    quote: "A closed function whitelist (`age_years`, `sex_at_birth`,"
+    supports: "T1 base part: the population guard's functions"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§14 item 13"
+    quote: "to class-1 gatekeepers with a compiler assertion that each precedes every step whose gate references it"
+    supports: "T4 base part: pregnancy_status precedes every step it gates"
+  - file: services/voice-runtime/src/intake_voice_runtime/clinical_agent/plan.py
+    section: "module docstring, gates"
+    quote: "rather than guessed at, which fails closed"
+    supports: "T1 base part: a gate that reaches for age_years or sex_at_birth is refused today"
+  - file: packages/protocols/src/protocols/compile/resolve.py
+    section: "_merge_chain"
+    quote: "target = sections.setdefault(section_id, _MutableSection())"
+    supports: "T4 base part: base sections are merged before any cluster or branch section"
+  - file: files/12_DSL_V2_AND_RUNTIME_SPEC.md
+    section: "§3.2 Deny-list"
+    quote: "or rewrite an inherited predicate"
+    supports: "T1 base part: no chain-level op can widen base's gate"
+  - file: files/12_DSL_V2_AND_RUNTIME_SPEC.md
+    section: "§3.2 Deny-list"
+    quote: "is a hard compile error regardless of ADR"
+    supports: "cluster-wave-b L116: the base HPI cannot be suppressed by a pack"
+  - file: docs/evidence/proposals/cluster_dental.md
+    section: "Q10"
+    quote: "gen: slot=nefes_yutkunma_guclugu; type=boolean; ask_if=yuz_cene_sisligi == true || dis_agrisi == true"
+    supports: "dental airway posture: the gated line released"
+  - file: docs/evidence/proposals/cluster_dental.md
+    section: "Q2"
+    quote: "Dişinizde ya da diş etinizde ağrı var mı?"
+    supports: "dental airway posture: the pain gate covers gum pain"
+  - file: packages/protocols/decisions/CD-104.yaml
+    section: "item INT-353.md#L315"
+    quote: 'pedodonti: "Çocuğunuz nefes almakta ya da yutkunmakta zorlanıyor mu?"'
+    supports: "cluster-wave-b L104: the accepted proxy text"
+  - file: docs/evidence/proposals/pedodonti.md
+    section: "Q4"
+    quote: "gen: slot=dis_eti_sisligi; type=boolean"
+    supports: "cluster-wave-b L104: the child's gum swelling is declared before the airway item"
+  - file: docs/evidence/proposals/cluster_allied_and_reports.md
+    section: "Q7"
+    quote: "Şu anda sizi rahatsız eden bir sağlık şikâyetiniz var mı?"
+    supports: "cluster-wave-b L116: the verified screen text base adopts"
+  - file: docs/evidence/proposals/cluster_allied_and_reports.md
+    section: "Q11"
+    quote: "Baston, yürüteç ya da tekerlekli sandalye gibi bir araç kullanıyor musunuz?"
+    supports: "INT-353 L316: the item the sağlık kurulu chain already inherits"
+  - file: docs/evidence/proposals/saglik_kurulu.md
+    section: "Q8"
+    quote: "hold=no verbatim source for an assistive-device item (gap 3)"
+    supports: "INT-353 L316: Q8's broader text has no source"
+  - file: packages/protocols/decisions/CD-101.yaml
+    section: "item near-twin-sweep-582.md#L161 (T68)"
+    quote: "Remove fiziksel tıp Q7 (gen: slot=ates_var_mi; type=boolean) from"
+    supports: "INT-353 L432, sibling-rebinds L61: the clinical answer applied"
+inference_disclosure: >-
+  The sources fix the constructs: one opening question, a timing fact recorded as a date,
+  a symptom history that details a present symptom, the airway checked within painful or
+  swollen dental infections, and the facts a disability board records. These choices are
+  this author's, made on those sources: dropping the generators' fixed slots rather than
+  changing base; deriving duration from the onset date; keeping onset_date asked of
+  everyone because it anchors the base red-flag families; gating the rest of the history
+  on one presence screen and mapping hedges to present; the dental gate terms (tooth or
+  gum pain, face, jaw or sublingual swelling; neck swelling is not a separate term because
+  the presentations that bring it bring tooth pain, and the cluster has no acute
+  neck-swelling item); taking the four ungated dental re-declarations to the cluster's
+  gate, which in those L0 candidates stops asking a patient with neither pain nor swelling
+  (a capture-only item no rule reads, so no red-flag rule is relaxed); and the ids of the
+  three re-homed Q1 items and the üreme item. None of it is a clinical number.
+fail_closed_while_draft: >-
+  The lmp_date population guard's age bounds are draft_needs_source. Until they are
+  sourced and the guard grammar exists, base keeps lmp_date's current gate and kadın
+  hastalıkları ve doğum keeps Q2 son_adet_tarihi (CD-100 T1's interim), so no woman in that
+  chain loses the last-period question and nobody outside the population is asked it.
+value:
+  packet_commit: 151cf34f
+  rule: "one fact, one id, one ask: where two slots record the same fact, the parent layer's id stays and the twin goes; where they differ in referent, window or subject, both stay"
+  resolutions:
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L95"
+      ref: T2
+      record: CD-100
+      resolves: owner_question
+      question: "The generator's fixed ziyaret_baglami.basvuru_nedeni re-asks base chief_complaint_text in all 91 chains; which goes?"
+      outcome: change
+      change: >-
+        The generators' fixed slot goes; base chief_complaint_text ("Sizi bugün hekime
+        getiren şeyi kendi sözlerinizle anlatır mısınız? …") is the one reason-for-visit
+        question and the id of record in every chain. (1) scripts/dev/gen_specialty_packs.py
+        and the generate-l0 emitter (protocols.authoring) stop emitting
+        ziyaret_baglami.basvuru_nedeni, so a proposal's Q1 is no longer a slot and the guard
+        that skips a pack whose Q1 is refused or held goes with it. (2) A Q1 that asks a
+        narrower fact about the contact is not a twin and stays as an ordinary proposal
+        item under its own id, asked after the base reason: anesteziyoloji Q1 "Hangi
+        ameliyat ya da işlem için anestezi görüşmesine geldiniz?" · gen:
+        slot=planlanan_islem; type=string; aşı Q1 "Bugün hangi aşıyı yaptırmayı
+        planlıyorsunuz?" · gen: slot=planlanan_asi; type=string; sağlık kurulu Q1 "Kurulda
+        değerlendirilecek sağlık sorunlarınız nedir?" · gen: slot=kurul_saglik_sorunlari;
+        type=string. Every other Q1 at 151cf34f asks the reason for the visit in the pack's
+        own words and is dropped. No Turkish text changes and no rule reads basvuru_nedeni.
+      clinical_basis: "One opening question, then listening and screening for further problems, is the interview's structure; asking the reason twice costs a turn in every chain and splits one presenting-problem record across two ids. A planned operation, a planned vaccine and the conditions a board will assess are facts about the contact, not the reason restated, so they stay."
+      sources: [CALGARY-CAMBRIDGE-GUIDE, openEHR-EHR-EVALUATION.reason_for_encounter.v1]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L96"
+      ref: T3
+      record: CD-100
+      resolves: owner_question
+      question: "The generator's fixed ziyaret_baglami.sikayet_suresi re-asks base duration in all 91 chains; which goes?"
+      outcome: change
+      change: >-
+        The generators' fixed slot goes in every chain: scripts/dev/gen_specialty_packs.py
+        and the generate-l0 emitter stop emitting ziyaret_baglami.sikayet_suresi, and the
+        proposals' pack: duration_ask and duration_follow_up lines are dropped. The
+        complaint's timing is asked once, by base onset_date (T17, near-twin-sweep-582.md#L110).
+        The draft branch red-flag stub the generator writes re-anchors from sikayet_suresi
+        to base onset_date; it stays draft_needs_source and is never compiled. One pack line
+        asks a different fact and stays as an ordinary item: üreme endokrinolojisi ve
+        infertilite "Ne zamandır korunmadan gebe kalmayı deniyorsunuz?" · gen:
+        slot=korunmasiz_deneme_suresi; type=duration; follow_up=Ay ya da yıl olarak
+        yaklaşık söyleyebilir misiniz? The parent-addressed and neutral pack lines ("Bu
+        durumu ne zamandır fark ediyorsunuz?", "Bu konu ne zamandır devam ediyor?", "Bu
+        durumu ne zamandır biliyorsunuz?") go with the slot; how base onset_date is worded
+        for a parent is the proxy mechanism of owner decision D24 (1Y).
+      clinical_basis: "Time since onset is calculated from the onset date for an ongoing episode, so a second duration ask records nothing the date does not. The time trying to conceive is the interval a fertility clinic defines infertility by, a separate fact from when a complaint began."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2, CALGARY-CAMBRIDGE-GUIDE, NICE-NG257]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L110"
+      ref: T17
+      record: CD-100
+      resolves: owner_question
+      question: "Base onset_date and base duration are both must_ask and record when the complaint began (date against duration); keep both?"
+      outcome: change
+      change: >-
+        Keep one. Base onset_date ("Bu şikâyetiniz ne zaman başladı?", a date, the
+        tense_anchor of every base red-flag family) stays asked, must_ask and ungated. Base
+        hpi.duration is no longer asked: the slot and its en mirror keys leave
+        base/intake.yaml, and the note's oldcarts duration is computed from onset_date and
+        the session date while the complaint is ongoing. onset_date's follow-up already
+        accepts a relative answer ("Gün, hafta ya da ay olarak yaklaşık
+        söyleyebilirsiniz."), so a patient who cannot name a date still answers. duration's
+        follow-up probe ("Sürekli mi, yoksa arada bir mi oluyor?") had no slot to store its
+        answer, because duration is type duration, so no recorded fact is lost. No rule
+        reads hpi.duration, so no red-flag rule changes.
+      clinical_basis: "One timing fact, recorded as a date: the date sets the sequence of events the history needs and anchors the red-flag tense guard, and the time since onset follows from it."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2, CALGARY-CAMBRIDGE-GUIDE]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L185"
+      ref: T92
+      record: CD-101
+      resolves: owner_question
+      question: "The generator's fixed ziyaret_baglami.sikayet_suresi ('ne zamandır var', a duration) and base onset_date ('ne zaman başladı', a date) record the same fact in all 91 chains; which goes?"
+      outcome: change
+      change: >-
+        As T3 (near-twin-sweep-582.md#L96): sikayet_suresi goes in every chain and base
+        onset_date is the one timing ask; üreme endokrinolojisi keeps its
+        time-trying-to-conceive item under its own id.
+      clinical_basis: "A duration since onset and an onset date are one fact; the date is the one kept, because the base red-flag families anchor on it."
+      sources: [openEHR-EHR-CLUSTER.symptom_sign.v2]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L94"
+      ref: "T1 (base-owner part)"
+      record: CD-100
+      resolves: owner_part
+      question: "Will base ask lmp_date without its pregnancy_status != 'hayir' gate in the women's-health chains, in every chain, or through a chain-level widening?"
+      outcome: change
+      change: >-
+        In every chain, by base, and not through a chain-level widening (no pack op may
+        rewrite an inherited gate). (1) lmp_date's gate becomes the population the
+        pregnancy questions are for, people of reproductive age whose sex at birth is
+        female, and stops reading the pregnancy answer, so a "hayır" to pregnancy_status no
+        longer closes it; pregnancy_status and lmp_date carry the same population guard.
+        (2) The guard needs the GuardExpr functions sex_at_birth and age_years, which the
+        runtime refuses at build today, and its age bounds are draft_needs_source (below).
+        Until both exist, base keeps today's gate and kadın hastalıkları ve doğum keeps Q2
+        son_adet_tarihi unchanged (CD-100 T1's interim), so no woman in that chain loses the
+        last-period question and nobody outside the population is asked it. (3) When the
+        guard lands, base drops the pregnancy_status != 'hayir' gate in the same change, and
+        CD-100 T1's removal of kadın Q2 follows. No Turkish text and no red-flag rule
+        changes.
+      population_guard:
+        status: draft_needs_source
+        source_gap: >-
+          No committed snapshot states age bounds for asking pregnancy status and the last
+          menstrual period in a general pre-visit intake; NG126 1.4.5 says "women of
+          reproductive age" without bounds.
+        pending_value: "TODO: reproductive-age bounds for the pregnancy_status and lmp_date population guard requires clinical sign-off"
+      clinical_basis: "A woman who does not think she is pregnant may be, a missed period is a common ectopic symptom, and ectopic pregnancy imitates gastrointestinal and urinary conditions that any chain sees, so the last-period date is asked whatever the pregnancy answer and in every chain, of the people it applies to."
+      sources: [NICE-NG126]
+      status: active
+    - item: "docs/evidence/verification/near-twin-sweep-582.md#L97"
+      ref: "T4 (base-owner part)"
+      record: CD-100
+      resolves: owner_part
+      question: "Is base pregnancy_status, with its 'emin değilim' answer, the pregnancy gate of record that branch items may read, and is it asked before every branch item gated on it?"
+      outcome: accept
+      clinical_basis: "Yes to both. pregnancy_status keeps the unsure answer that a boolean drops, an unsure woman is treated as possibly pregnant, and branch items read it, never a branch twin (CD-100 T4). Precedence holds today by construction: the resolver merges base sections before any cluster or branch section, so pmh_fh_sh.pregnancy_status precedes every sorular item. The class-1 gatekeeper assertion of files/13 §14 item 13 is the guarantee that survives a later reorder, and the lead pins it with a test (below); CD-106's removal of the kadın reorder op (reorder-op-582.md#L38) follows once CD-100 T4 is applied."
+      pins: "every slot whose ask_if reads pregnancy_status follows pmh_fh_sh.pregnancy_status in the merged order of every chain (near miss: a slot moved ahead of it fails)"
+      sources: [NICE-NG126]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L103"
+      ref: "cluster-wave-b §A.3 dental Q10"
+      record: CD-103
+      resolves: owner_question
+      question: "Which airway posture does the dental cluster take: ask gated on pain or swelling, ask ungated, or leave it to base.life_threat?"
+      outcome: change
+      change: >-
+        Ask, gated on pain or swelling, as cluster_dental Q10 drafts it. Release Q10 by
+        dropping its hold=: "Nefes almakta ya da yutkunmakta zorlanıyor musunuz?" · gen:
+        slot=nefes_yutkunma_guclugu; type=boolean; ask_if=yuz_cene_sisligi == true ||
+        dis_agrisi == true. It is not gated on trismus. It is not left to base.life_threat,
+        which has no adult airway rule and whose probes carry no ask, so no layer would ask
+        it. The item is a capture-only input: no rule reads it and nothing extends
+        base.life_threat.
+      clinical_basis: "Airway compromise in dental practice is a complication of dental infection, and the guidance checks the airway in the initial management of the painful or swollen presentations (acute apical abscess, pericoronitis, acute periodontal conditions), whose key signs are pain and swelling of the gum, face or neck. Ludwig's angina typically brings tooth pain and usually no trismus, so the gate is pain (tooth or gum) or swelling (face, jaw or under the tongue), never trismus. A recall, orthodontic or prosthetic visit with neither has no odontogenic airway risk to ask about, and breathlessness of any cause stays with base."
+      sources: [SDCEP-MADP-2026, RCEM-LEARNING-DENTAL-2023]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L104"
+      ref: "cluster-wave-b §A.3 dental Q10 in pedodonti"
+      record: CD-103
+      resolves: owner_question
+      question: "If the owner keeps dental Q10, must pedodonti re-declare the airway slot with the proxy text before any under-18 path opens?"
+      outcome: change
+      change: >-
+        Yes. Pedodonti re-declares the item for the child, with CD-104 L315's accepted text
+        and a gate on pedodonti's own child-addressed slots, placed after Q4: "Çocuğunuz
+        nefes almakta ya da yutkunmakta zorlanıyor mu?" · gen: slot=nefes_yutkunma_guclugu;
+        type=boolean; ask_if=dis_agrisi == true || dis_eti_sisligi == true. Pedodonti Q2
+        (dis_agrisi, the child's toothache) and Q4 (dis_eti_sisligi, the child's gum
+        swelling) are declared earlier in the pack, as the generator's gate rule requires;
+        the cluster's self-addressed yuz_cene_sisligi is not read, because in a proxy
+        session it asks the parent about their own face. Latent: pedodonti opens only once
+        the proxy mechanism of owner decision D24 (1Y) exists and an under-18 path opens.
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20, the conditions on which any under-18 path opens"
+      clinical_basis: "The parent reports the child's sign, so the ask names the child; the gate is the child's tooth pain or gum swelling, the key signs of the dental infections (pericoronitis includes erupting teeth in children) whose initial management checks the airway."
+      sources: [SDCEP-MADP-2026, openEHR-EHR-CLUSTER.symptom_sign.v2]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L116"
+      ref: "cluster-wave-b §A.4 allied §0 minimal HPI"
+      record: CD-103
+      resolves: owner_question
+      question: "How can base's must_ask HPI be made conditional for report-only visits, given that suppress_slot on a must_ask slot is a compile error?"
+      outcome: change
+      change: >-
+        A base-level gate on a symptom-presence screen; not a visit-type rule, and not
+        unconditional. (1) Base hpi gains one screen, directly after onset_date:
+        guncel_saglik_sikayeti, type boolean, required and must_ask, ask "Şu anda sizi
+        rahatsız eden bir sağlık şikâyetiniz var mı?" (the verified allied cluster Q7 text),
+        follow-up "Bir belirti ya da rahatsızlık varsa evet, yoksa hayır diyebilirsiniz."
+        (2) location_text, character_text, aggravating_factors, relieving_factors,
+        radiation_text, timing_pattern, severity_nrs, trajectory, prior_similar_episode and
+        treatments_tried stay must_ask and gain ask_if: guncel_saglik_sikayeti == true.
+        (3) onset_date stays asked of everyone and ungated, because it anchors the base
+        red-flag families and a rule whose anchor is never asked stays Unknown;
+        time_last_known_well, every red_flags probe and the chest_pain, associated and
+        trauma sections are untouched, so no rule's inputs change. (4) Answer mapping, a
+        per-slot entry beside CD-04's '*' rows: a hedge ("bilmiyorum", "biraz", "galiba",
+        "pek sayılmaz", "emin değilim") records true, never UNCLEAR and never false; only a
+        plain "hayır" or "yok" closes the history, because an Unknown gate opens nothing.
+        (5) The open turn may answer the screen only as present (a symptom named in
+        chief_complaint_text retires it as true); it never infers absence. (6) The allied
+        cluster's Q7 and is_ve_meslek_hastaliklari's item of the same id leave their
+        proposals, since base asks it and a second slot of that name would make every gate
+        on it ambiguous; is ve meslek's three gated items then read the base slot. Base
+        hpi.duration is gone under T17. In a proxy session the screen is worded for the
+        patient or skipped, like every self-addressed base item (owner decision D24, 1Y).
+      clinical_basis: "The symptom history records a symptom that is present, and a screening answer that finds one opens its details; report, vaccination, counselling and recall visits often have none, and those with one keep the full history. A visit-type rule would close the history for report visits that carry the clinical findings the report must record (an injury before Adli Tıp, a functional loss before a board)."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1, openEHR-EHR-CLUSTER.symptom_sign.v2, TR-ERISKIN-ENGELLILIK-2019]
+      status: active
+    - item: "docs/evidence/INT-353.md#L314"
+      ref: "INT-353 rebind row: agiz_dis_cene_radyolojisi Q8, Q9"
+      record: CD-104
+      resolves: owner_question
+      question: "With the rebinds to yuz_cene_sisligi and nefes_yutkunma_guclugu applied, does the airway item become one question in this chain?"
+      outcome: change
+      change: >-
+        Yes, under the cluster's gate: agiz_dis_cene_radyolojisi drops its own airway item
+        (Q9, rebound to nefes_yutkunma_guclugu by INT-353) from its proposal, so the chain
+        asks the cluster's gated item once, under the one id and text; its Q8
+        yuz_cene_sisligi re-declaration feeds that gate. The single posture is
+        specialty-wave8-geriatric-dental.md#L96.
+      clinical_basis: "One posture for every dental chain: the airway is asked where tooth or gum pain or face, jaw or sublingual swelling is reported."
+      sources: [SDCEP-MADP-2026]
+      status: active
+    - item: "docs/evidence/INT-353.md#L315"
+      ref: "INT-353 rebind row: pedodonti airway re-declare (owner part)"
+      record: CD-104
+      resolves: owner_part
+      question: "Is the dental airway item asked at all, so that pedodonti re-declares it with the accepted proxy text?"
+      outcome: accept
+      clinical_basis: "Yes: it is asked, gated on pain or swelling (cluster-wave-b.md#L103), so pedodonti re-declares it with the accepted text and the child's own gate (cluster-wave-b.md#L104)."
+      sources: [SDCEP-MADP-2026]
+      status: active
+    - item: "docs/evidence/INT-353.md#L316"
+      ref: "INT-353 rebind row: saglik_kurulu Q8 (held)"
+      record: CD-104
+      resolves: owner_question
+      question: "Is saglik_kurulu Q8 released with the cluster's Q11 text, or kept held?"
+      outcome: change
+      change: >-
+        Neither a release nor a hold: Q8 leaves the saglik_kurulu proposal. sağlık kurulu
+        extends cluster.allied_and_reports, so its chain already asks the cluster's verified
+        Q11 "Baston, yürüteç ya da tekerlekli sandalye gibi bir araç kullanıyor musunuz?"
+        (yardimci_arac) and Q12 (yardimci_arac_turu); re-declaring Q8 with the cluster text
+        adds nothing, and Q8's own broader text (hearing aid, prosthesis) has no committed
+        source, so it is not released. A later proposal may add a sourced sensory-aid item
+        under its own id.
+      clinical_basis: "The disability-board regulation names continuous wheelchair or stretcher use as a fact the report records, and the cluster item asks the mobility aid in lay words; the hearing-aid and prosthesis half of Q8 rests on no quoted source."
+      sources: [TR-ERISKIN-ENGELLILIK-2019]
+      status: active
+    - item: "docs/evidence/INT-353.md#L432"
+      ref: "INT-353 review fix NOTE: fiziksel_tip_ve_rehabilitasyon ates_var_mi"
+      record: CD-104
+      resolves: owner_question
+      question: "fiziksel_tip_ve_rehabilitasyon's ates_var_mi is a near twin of cluster medical son_gunlerde_ates, so the fever is asked twice in that chain; who resolves it, and how?"
+      outcome: change
+      change: >-
+        Resolved by applying CD-101 T68's clinical answer (near-twin-sweep-582.md#L161);
+        only the routing is new here. Remove fiziksel tıp Q7 (gen: slot=ates_var_mi;
+        type=boolean) from docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md, and
+        the chain asks the cluster's verified son_gunlerde_ates "Son günlerde ateşiniz oldu
+        mu?" once. Nothing in the candidate reads ates_var_mi. The lead applies it through
+        the proposal and the generator.
+      clinical_basis: "Fever is one presence answer; NG59 1.1.1 requires infection to be excluded in back pain and sets no recall window, so the cluster's verified form is kept (CD-101 T68)."
+      sources: [NICE-NG59, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L93"
+      ref: "wave 7 nukleer_tip; tibbi_genetik (owner part)"
+      record: CD-105
+      resolves: owner_part
+      question: "With the pack's sikayet_suresi omitted, how do preparation and counselling visits avoid the base timing and history asks?"
+      outcome: change
+      change: >-
+        By the base presence gate (cluster-wave-b.md#L116): these visits answer the screen
+        and, with no symptom, skip every symptom-detail item; base duration is no longer
+        asked (T17) and the generators no longer emit sikayet_suresi (T3). One timing ask
+        remains, base onset_date, because the base red-flag families anchor on it; a visit
+        with no complaint answers it that way.
+      clinical_basis: "A presence screen opens the symptom details only when a symptom is present; a scan preparation or counselling visit often has none."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L94"
+      ref: "wave 8 yasli, ortodonti, protetik (owner part)"
+      record: CD-105
+      resolves: owner_part
+      question: "With the pack's sikayet_suresi omitted, how do periodic-review, alignment and recall visits avoid the base timing and history asks?"
+      outcome: change
+      change: >-
+        As specialty-wave7-onc-women-peds.md#L93: the base presence gate closes the
+        symptom details when no symptom is present, base duration is no longer asked and
+        sikayet_suresi is no longer emitted; base onset_date stays as the one timing ask.
+      clinical_basis: "Periodic reviews and recalls are scheduled and often have no symptom to detail."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L96"
+      ref: "wave 8 dental cluster posture"
+      record: CD-105
+      resolves: owner_question
+      question: "Which single airway posture do the dental packs take?"
+      outcome: change
+      change: >-
+        One posture in every dental chain: asked, gated on pain or swelling
+        (cluster-wave-b.md#L103), under the one id nefes_yutkunma_guclugu and the one text.
+        The four packs that re-declare it ungated (dis_hekimligi, endodonti,
+        agiz_dis_ve_cene_cerrahisi, agiz_dis_cene_radyolojisi) drop their own item from
+        their proposals and inherit the cluster's; ortodonti, periodontoloji, protetik and
+        restoratif declare none and inherit it; pedodonti re-declares it for the child
+        (cluster-wave-b.md#L104).
+      clinical_basis: "The airway is checked within painful or swollen dental infections, and one id with one gate keeps the fact asked once and in the same way in every dental chain."
+      sources: [SDCEP-MADP-2026, RCEM-LEARNING-DENTAL-2023]
+      status: active
+    - item: "docs/evidence/verification/sibling-rebinds-582.md#L61"
+      ref: "sibling-rebinds fiziksel_tip_ve_rehabilitasyon ates_var_mi"
+      record: CD-106
+      resolves: owner_question
+      question: "fiziksel_tip_ve_rehabilitasyon's ates_var_mi near-twins cluster medical son_gunlerde_ates, so the fever is asked twice; who resolves it?"
+      outcome: change
+      change: >-
+        As INT-353.md#L432: CD-101 T68 applied; fiziksel tıp Q7 is removed and the chain asks
+        the cluster's son_gunlerde_ates once.
+      clinical_basis: "Fever is one presence answer, asked once in the chain (CD-101 T68)."
+      sources: [NICE-NG59, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/sibling-rebinds-582.md#L118"
+      ref: "sibling-rebinds §C nefes_yutkunma_guclugu override"
+      record: CD-106
+      resolves: owner_question
+      question: "If the owner releases the dental airway item gated, the two ungated re-declarations override the gate in their chains; is that intended?"
+      outcome: change
+      change: >-
+        No. agiz_dis_ve_cene_cerrahisi and agiz_dis_cene_radyolojisi take the cluster's gate
+        by dropping their own airway item (as specialty-wave8-geriatric-dental.md#L96), so no
+        re-declaration overrides it.
+      clinical_basis: "One gate in every dental chain; a patient with tooth or gum pain or face, jaw or sublingual swelling is asked in these chains as in the others."
+      sources: [SDCEP-MADP-2026]
+      status: active
+verifier:
+  verdict: pending

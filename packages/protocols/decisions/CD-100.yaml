@@ -650,6 +650,7 @@ value:
         base ask lmp_date without that gate in the women's-health chains (or in every
         chain), or will base offer a chain-level way to widen it? The clinical
         requirement is that every patient in this chain is asked.
+      owner_part_resolved_by: CD-110
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L95"
       ref: T2
       packets: [_cross-cutting]
@@ -664,6 +665,7 @@ value:
         chief_complaint_text. Should the generator drop the fixed reason slot where
         base already asks it (the reason-dedup requirement, cluster-wave-b §E-7), or
         should base change?
+      resolved_by: CD-110
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L96"
       ref: T3
       packets: [_cross-cutting]
@@ -677,6 +679,7 @@ value:
         the generator's fixed slot ziyaret_baglami.sikayet_suresi and by base
         duration. Should the generator omit the fixed duration slot where base asks
         it (duration=omit, cluster-wave-b §E-4), or should base change?
+      resolved_by: CD-110
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L97"
       ref: T4
       packets: [kadin_hastaliklari_ve_dogum]
@@ -718,6 +721,7 @@ value:
         that it is asked before every branch item gated on it (the gatekeeper
         ordering the base pack records the DSL cannot yet express). Then the INT-353
         reorder op in this candidate can be re-examined.
+      owner_part_resolved_by: CD-110
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L98"
       ref: T5
       packets: [cluster_child_health, cocuk_endokrinolojisi]
@@ -849,6 +853,12 @@ value:
         Does each such branch suppress_slot the cluster's self-addressed slot
         (cluster-wave-b §E-3), or does the DSL select proxy copy? It is latent while
         INT-223 refuses every under-18 path (HB-L20).
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L105"
       ref: T12
       packets: [cematem, cluster_mental_health]
@@ -862,6 +872,12 @@ value:
         self-addressed islevsellik_etkilenimi, or should the DSL select proxy copy, so
         the answerer is not asked about their own work beside the child's daily life?
         Latent under INT-223 (HB-L20).
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L106"
       ref: T13
       packets: [cematem, cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
@@ -875,6 +891,12 @@ value:
         suppress_slot the cluster's self-addressed onceki_ruh_sagligi_destegi (and its
         gated onceden_iyi_gelen), or should the DSL select proxy copy? Latent under
         INT-223 (HB-L20).
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L107"
       ref: T14
       packets: [cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
@@ -887,6 +909,12 @@ value:
         Owner, with the self/proxy ADR: should çocuk ve ergen ruh sağlığı
         suppress_slot the cluster's self-addressed uyku_duzeni_degisikligi, or should
         the DSL select proxy copy? Latent under INT-223 (HB-L20).
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L108"
       ref: T15
       packets: [cluster_mental_health, cocuk_ve_ergen_ruh_sagligi]
@@ -899,6 +927,12 @@ value:
         Owner, with the self/proxy ADR: should çocuk ve ergen ruh sağlığı
         suppress_slot the cluster's self-addressed islevsellik_etkilenimi, or should
         the DSL select proxy copy? Latent under INT-223 (HB-L20).
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (D25, INT-471 #800): HB-L20 minors"
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L109"
       ref: T16
       packets: [agiz_dis_ve_cene_cerrahisi]
@@ -932,6 +966,7 @@ value:
         record the same fact. Should base keep both, or ask one and derive the other?
         Note: onset_date is the tense_anchor of the base red-flag rules, so any change
         keeps a date.
+      resolved_by: CD-110
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L111"
       ref: T18
       packets: [anesteziyoloji]

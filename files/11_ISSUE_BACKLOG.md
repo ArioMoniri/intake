@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**339 issues.** By phase: P0 166 · P1 119 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 227 · todo 73 · withdrawn 1.
+**340 issues.** By phase: P0 166 · P1 120 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 228 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -300,6 +300,7 @@
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
+| INT-470 | INT-448 follow-up — resolve its owner questions: clinical ones under D18 (CD-110), product and data ones by owner decision D24 | E03-protocols | INT-448 | area:protocols, risk:clinical | done |
 | INT-471 | Legal lane — sourced legal-author agent + independent legal-reviewer decide legal items (owner decision D25, synthetic/test scope) | E14-legal | INT-432 | area:legal | done |
 
 ## P2
