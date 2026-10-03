@@ -1,5 +1,23 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-04T00:30:00Z · INT-453 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #767): *"The RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr. A multi-rule test with a near-miss control is included."* and *"`make safety` passes, with triage at 100% branch coverage."* Found by INT-446 (#766).
+- Plan:
+  - Make the engine's winner selection public as `protocols.triage.winning_red_rule`; `evaluate_triage` now uses it.
+  - `MappingRedScriptIndex` carries the pack's rules.
+  - `RedPreemption` asks the engine for the winner. Several fired rules without the pack's rules, a register disagreement, or no RED rule among them are SCRIPT_UNADDRESSABLE: never a guess.
+- Tests added: `tests/voice/test_red_winner.py`, which drives the real engine into the real RED path, and `TestWinningRedRule`. The near miss in each: `rules[0]` is the ALERT rule, and its script must not be sent.
+  - RED (only `rule_ids[0]` restored): 6 failed, 2 passed.
+  - GREEN: 52 voice and 38 engine tests passed.
+- Result: docs/evidence/INT-453.md.
+  - `make safety` exit 0: triage at 100 % branch (567 passed); voice-runtime at 98.65 %, with `red_path.py` at 100 %; the mutation report DETECTED every mutant.
+  - ruff and `mypy --strict` are clean.
+  - Pins 330 → 331; files/11 regenerated.
+- Invariants touched and still passing: 1, 9 (only a rules-engine RED preempts), 10 (the device renders the winner's own `text_tr` through its script id), 17 (unaddressable, never guessed), 21.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing. A change under packages/protocols needs CODEOWNER review.
+- Next: PR `INT-453: …` (Closes #767, Sec-Row triage). Do not merge.
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.

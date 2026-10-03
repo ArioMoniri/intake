@@ -6453,3 +6453,22 @@
     - "invariant 49 is enforced by a simulator/runtime test with a fake clock (entry ≤ 60 s; page at SLA + ε; a transition on a RED visit raises an entry), with near-miss controls"
   tests: [tests/safety/test_red_acknowledgement_sla.py, tests/platform/test_safety_inbox.py, tests/admin/test_safety_queue.py, tests/voice/test_safety_inbox_notifier.py]
   sec_row: "triage"
+- id: INT-453
+  epic: E05-voice
+  phase: P0
+  title: "voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script"
+  # GitHub #767. Found by INT-446 (#766), 3 Oct 2026. RulesTriageResult.rules
+  # is ordered by severity then id; the engine breaks a severity tie on
+  # register restrictiveness, so with several RED rules firing rule_ids[0]
+  # could address another rule's script beside the winner's register. The
+  # engine now names the winner (protocols.triage.winning_red_rule) and the
+  # path asks it over the pack's own rules; anything less is unaddressable.
+  depends_on: [INT-080, INT-093]
+  labels: [area:voice, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-453.md
+  acceptance:
+    - "the RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr; a multi-rule test with a near-miss control is included"
+    - "make safety passes with triage at 100 % branch coverage"
+  tests: [tests/voice/test_red_winner.py, tests/safety/test_triage_engine.py]
+  sec_row: "triage"

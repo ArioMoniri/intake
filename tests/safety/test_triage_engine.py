@@ -35,6 +35,7 @@ from protocols.triage import (
     TriageEngineError,
     TriageEvaluation,
     evaluate_triage,
+    winning_red_rule,
     with_candidates,
 )
 from pydantic import ValidationError
@@ -262,6 +263,34 @@ class TestRegisterSelection:
         for ordering in ((a, b), (b, a)):
             evaluation = _fire_all(*ordering)
             assert evaluation.action is a.action.remote  # type: ignore[union-attr]
+
+
+class TestWinningRedRule:
+    """INT-453: the winner, as a consumer holding the fired rules asks for it.
+    ``result.rules`` is ordered by severity then id — not the winner order."""
+
+    def test_the_winner_is_not_the_first_listed_rule_in_a_register_tie(self) -> None:
+        alert = _red("rf.sentetik_a", RedRegister.ALERT)
+        silent = _red("rf.sentetik_b", RedRegister.SILENT)
+        evaluation = _fire_all(alert, silent)
+        # Near miss: the first listed rule is the ALERT one…
+        assert evaluation.result.rules[0].id == "rf.sentetik_a"
+        # …and the winner, whose register and script the result carries, is not.
+        for ordering in ((alert, silent), (silent, alert)):
+            assert winning_red_rule(ordering) is silent
+        assert evaluation.result.register is silent.register
+        assert evaluation.action is silent.action.remote  # type: ignore[union-attr]
+
+    def test_severity_outranks_register_and_yellow_rules_never_win(self) -> None:
+        silent_k2 = _red("rf.sentetik_a", RedRegister.SILENT, EK4Level.KIRMIZI_K2)
+        alert_k1 = _red("rf.sentetik_b", RedRegister.ALERT, EK4Level.KIRMIZI_K1)
+        yellow = make_rule("rf.sentetik_c", EK4Level.SARI_K1, "c == true")
+        assert winning_red_rule((yellow, silent_k2, alert_k1)) is alert_k1
+
+    def test_no_red_rule_among_them_raises(self) -> None:
+        yellow = make_rule("rf.sentetik_c", EK4Level.SARI_K1, "c == true")
+        with pytest.raises(TriageEngineError, match="no KIRMIZI"):
+            winning_red_rule((yellow,))
 
 
 # ---------------------------------------------------------------------------

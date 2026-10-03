@@ -58,6 +58,8 @@ from typing import Annotated, Literal, Protocol, runtime_checkable
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult, TriageLevel
+from protocols.dsl import RedFlagRule
+from protocols.triage import TriageEngineError, winning_red_rule
 from pydantic import Field, StringConstraints
 
 from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS
@@ -296,15 +298,28 @@ class RedScriptIndex(Protocol):
 
     def script_id_for(self, rule_id: str, location: RedLocation) -> str | None: ...
 
+    def rule_for(self, rule_id: str) -> RedFlagRule | None:
+        """The pack's own rule, so the engine can name the winner (INT-453)."""
+        ...
+
 
 @dataclass(frozen=True)
 class MappingRedScriptIndex:
-    """The index as data. Empty by default, which is the fail-closed state."""
+    """The index as data. Empty by default, which is the fail-closed state.
+
+    ``rules`` is the same pack's red-flag rules by id. A RED where one rule
+    fired needs none of them; a RED where several fired needs every one, so
+    the engine can say whose script it is (INT-453).
+    """
 
     entries: Mapping[tuple[str, RedLocation], str] = field(default_factory=dict)
+    rules: Mapping[str, RedFlagRule] = field(default_factory=dict)
 
     def script_id_for(self, rule_id: str, location: RedLocation) -> str | None:
         return self.entries.get((rule_id, location))
+
+    def rule_for(self, rule_id: str) -> RedFlagRule | None:
+        return self.rules.get(rule_id)
 
 
 # --- the outcome ---------------------------------------------------------------------------
@@ -413,13 +428,15 @@ class RedPreemption:
         script_id: str | None = None
         script_started_at_ms: float | None = None
         if delivery.triggers_device:
-            script_id = self.scripts.script_id_for(rule_ids[0], location)
-            if script_id is None:
+            script_rule = self._script_rule(rule_ids, register)
+            if script_rule is not None:
+                script_id = self.scripts.script_id_for(script_rule, location)
+            if script_rule is None or script_id is None:
                 violations.append(RedViolation.SCRIPT_UNADDRESSABLE)
             else:
                 ack = await self.channel.publish(
                     RedTriggerMessage(
-                        rule_id=rule_ids[0],
+                        rule_id=script_rule,
                         register=register,
                         location=location,
                         script_id=script_id,
@@ -448,6 +465,31 @@ class RedPreemption:
         if violations:
             raise RedPathViolation(outcome)
         return outcome
+
+    def _script_rule(self, rule_ids: tuple[str, ...], register: RedRegister) -> str | None:
+        """Whose pre-positioned script this RED triggers (INT-453).
+
+        ``RulesTriageResult.rules`` is ordered by severity then id, and the
+        engine breaks a severity tie on register restrictiveness — so with
+        several rules firing, ``rule_ids[0]`` can be a rule whose script was
+        never approved for the register on the wire. The engine names the
+        winner from the pack's own rules (``winning_red_rule``), and the
+        winner's register must be the one the result carries; anything less
+        is unaddressable, never a guess. One fired rule is its own winner.
+        """
+        if len(rule_ids) == 1:
+            return rule_ids[0]
+        rules = [self.scripts.rule_for(rule_id) for rule_id in rule_ids]
+        known = [rule for rule in rules if rule is not None]
+        if len(known) != len(rules):
+            return None  # a fired rule this pack does not hold: no basis to choose
+        try:
+            winner = winning_red_rule(known)
+        except TriageEngineError:
+            return None  # the pack holds no RED rule among them: it is not this pack's RED
+        if winner.register is not register:
+            return None  # the pack and the result disagree on whose RED this is
+        return winner.id
 
     @property
     def delivered_work_ids(self) -> tuple[str, ...]:

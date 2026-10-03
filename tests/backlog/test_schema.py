@@ -147,7 +147,9 @@ def test_ids_unique_and_well_formed() -> None:
     # same PR).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
-    assert len(ids) == 330
+    # + INT-453 (the voice-runtime RED path triggers the winning rule's own
+    # script, not rule_ids[0]; found by INT-446, GitHub #767).
+    assert len(ids) == 331
     import re
 
     for i in ids:
