@@ -264,7 +264,15 @@ def _parity_hosts() -> list[str]:
     return sorted({"example.com", "169.254.169.254", *tooling, *lookalikes, *hosted} - {""})
 
 
-@pytest.mark.parametrize("host", _parity_hosts())
+_PARITY_HOSTS = _parity_hosts()
+
+
+# Ids are positions, never hostnames: pytest writes node ids into
+# .pytest_cache, and scripts/ci/assert_no_vendor_calls.sh scans every file
+# outside files/, so an id spelling a vendor host would trip the INT-001 gate.
+@pytest.mark.parametrize(
+    "host", _PARITY_HOSTS, ids=[f"host{i:02d}" for i in range(len(_PARITY_HOSTS))]
+)
 def test_the_proxy_and_the_guard_agree_host_for_host(host: str) -> None:
     """One list, two enforcers: the synthetic proxy admits a host exactly when
     the in-process guard admits it for a hosted-model call on synthetic data.
