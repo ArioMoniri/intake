@@ -93,6 +93,9 @@ jobs:
           trivyignores: .trivyignore.yaml
           severity: CRITICAL,HIGH
           exit-code: "1"
+          # setup-trivy cache entries saved on GitHub-hosted runners restore to
+          # /home/runner/.local/bin, off PATH on the self-hosted runner (exit 127)
+          cache: "false"
       - name: osv-scanner (uv.lock + pnpm-lock.yaml)
         uses: google/osv-scanner-action/osv-scanner-action@6e4298ebc4db23e847df9b2e2de2939d6f066c67 # v2.5.1
         with:
@@ -112,6 +115,9 @@ jobs:
           scan-ref: infra
           severity: CRITICAL,HIGH
           exit-code: "1"
+          # setup-trivy cache entries saved on GitHub-hosted runners restore to
+          # /home/runner/.local/bin, off PATH on the self-hosted runner (exit 127)
+          cache: "false"
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: checkov (infra/)
         run: uvx --python 3.12 checkov@3.3.15 --directory infra --quiet --compact
