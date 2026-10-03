@@ -41,11 +41,11 @@ from protocols.compile.errors import Refusal, RefusalCode
 from protocols.compile.number_expansion import expand_for_locale
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.compile.tr_orthography import TrExpansionError
-from protocols.dsl import ClipManifestEntry, clip_text_hash
+from protocols.dsl import ClipManifestEntry, RedFlagRule, clip_text_hash
 from protocols.locale_text import DEFAULT_LOCALE, entry_for, safe_code
 from protocols.types import Delivery
 
-__all__ = ["ClipRow", "SpeakableText", "clip_manifest", "rows_from"]
+__all__ = ["ClipRow", "SpeakableText", "clip_manifest", "rows_from", "rule_sources"]
 
 
 class ClipRow(FrozenModel):
@@ -138,7 +138,19 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
                 scripted=True,
                 clipped=instrument.id in administered,
             )
-    for rule in (*document.red_flags, *document.life_threat_rules):
+    yield from rule_sources((*document.red_flags, *document.life_threat_rules), locale)
+
+
+def rule_sources(rules: Iterable[RedFlagRule], locale: str) -> Iterator[SpeakableText]:
+    """Every scripted string a red-flag rule can speak, for ``locale``.
+
+    Public so a rule set that is not yet servable — the unsigned
+    ``base.life_threat`` sibling set (HB-C1) — can be run through the same
+    walk and the same expander a served bundle uses (INT-455). A second,
+    hand-written walk in a test would drift from this one the first time a
+    spoken field is added.
+    """
+    for rule in rules:
         action = rule.action
         if action is None:
             continue

@@ -893,6 +893,10 @@ it or whose tests exercise it.
 - **Signals:** pack versions in use and signature failures (§9) land with INT-058/INT-184.
 - **Tests:** golden suite lands with INT-059; compiler validation with INT-040;
   `safety_string_override_guard` with the pack-lifecycle issues.
+  `tests/protocols/test_tr_orthography.py` (INT-455) runs every scripted string of the real
+  `base.life_threat` set through the clip emitter's own walk with zero refusals, so the
+  112 sentence has a clip. It also holds the near-miss controls for a numeral's apostrophe
+  suffix: harmony, buffer, d/t and c/ç, and a unit symbol written as a suffix.
 
 ## `clinical-core` — clinical data model and export tier
 

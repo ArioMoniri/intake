@@ -27,6 +27,17 @@ than over free text, because ordinary Turkish prose contains number words —
 corrupt it. The acoustic half of the gate files/03 §4.9.6 also asks for
 (synthesise → transcribe with an *independent* ASR → diff) needs TTS and ASR
 weights this repository does not carry offline; it belongs to ``make clips``.
+
+**A numeral with an apostrophe suffix** (INT-455). TDK Yazım Kılavuzu, Kesme
+İşareti: *"Sayılara getirilen ekleri ayırmak için konur: 1985’te, 8’inci
+madde, 2’nci kat"*. The apostrophe exists only because the number is
+written in digits; in words the suffix joins the last word, so ``112'yi`` is
+spoken *yüz on ikiyi*. The author picked the suffix for the spoken word, so
+it is checked against that word and refused on a mismatch rather than glued
+on: vowel harmony, the buffer consonant, d/t and c/ç assimilation, and the
+one cardinal TDK's dictionary gives a takı (``dört, -dü``). A decimal with a
+suffix stays refused — its spoken last word is a digit-by-digit reading the
+author may not have meant.
 """
 
 from __future__ import annotations
@@ -224,15 +235,27 @@ _GREEK_MU: Final = "μ"
 _INTEGER_RE: Final = re.compile(r"^\d+$")
 _DECIMAL_RE: Final = re.compile(r"^(\d+),(\d+)$")
 _TOKEN_RE: Final = re.compile(r"[^\s]+")
-# Trailing punctuation that belongs to the sentence, not to the token.
-_TRAILING = ".,;:!?)]}…"
-_LEADING = "([{«“"
+# Trailing punctuation that belongs to the sentence, not to the token. ``*`` is
+# markdown emphasis (``**112**``): decoration, like a bracket.
+_TRAILING = ".,;:!?)]}…*"
+_LEADING = "([{«“*"
+# A numeral with a TDK apostrophe suffix: ``112'yi``, ``1985’te``. Lower-case
+# letters of the Turkish alphabet only (no q, w, x) — anything else after the
+# apostrophe is not a suffix.
+_SUFFIXED_RE: Final = re.compile(
+    r"^(?P<number>\d+)['’](?P<suffix>[abcçdefgğhıijklmnoöprsştuüvyz]+)$"
+)
+# Emphasis closed between the digits and the apostrophe: ``**112**'yi``.
+_INNER_EMPHASIS_RE: Final = re.compile(r"^(?P<number>\d+)(?P<stars>\*+)(?P<rest>['’].*)$")
 
 
 class Replacement(FrozenModel):
     """One token the compiler rewrote, kept so the gate can invert it."""
 
-    source: str = Field(description="The authored token, after unicode folding.")
+    source: str = Field(
+        description="The authored token, after unicode folding (a suffixed numeral's "
+        "U+2019 apostrophe folds to U+0027), without its punctuation or emphasis."
+    )
     expanded: str = Field(description="Its Turkish orthography.")
 
 
@@ -280,12 +303,128 @@ def _expand_number(core: str, token: str) -> str:
         # inverted, so the gate could not check it.
         fraction = " ".join(turkish_cardinal(int(digit)) for digit in decimal.group(2))
         return f"{whole} virgül {fraction}"
+    suffixed = _SUFFIXED_RE.match(core)
+    if suffixed is not None:
+        return _inflect(
+            turkish_cardinal(int(suffixed.group("number"))), suffixed.group("suffix"), token
+        )
     raise TrExpansionError(
         f"{token!r}: no Turkish expansion is defined for this numeric form. "
         "files/03 §4.9.6 lists 1/2, 3x1, 140/90 and a period decimal separator "
         "as demonstrated normaliser corruptions; author the value as words, or "
         "as a tam/yarım/çeyrek dose chip, rather than letting the compiler guess"
     )
+
+
+# --- suffix phonology (INT-455) ----------------------------------------------
+# Orthography, not clinical content: the rules a suffix written after a digit
+# must already satisfy for the word it will be joined to.
+
+_BACK_VOWELS: Final = frozenset("aıou")
+_FRONT_VOWELS: Final = frozenset("eiöü")
+_VOWELS: Final = _BACK_VOWELS | _FRONT_VOWELS
+_ROUNDED_VOWELS: Final = frozenset("ouöü")
+# TDK's "fıstıkçı şahap": after these a suffix's d/c hardens to t/ç.
+_VOICELESS: Final = frozenset("fstkçşhp")
+# Buffer consonants, which only ever follow a vowel-final word: -yi, -nin, -si,
+# -şer. After a consonant they are a misspelling ("beşyi") — and so is the
+# rare -sız/-siz with them, which the author writes in words instead.
+_BUFFERS: Final = frozenset("ynsş")
+# TDK Güncel Türkçe Sözlük gives a takı to exactly one cardinal word:
+# "dört, -dü" (dördü, dördüncü). Every other cardinal keeps its final
+# consonant before a vowel (üçü, kırkı) — queried word by word, INT-455.
+_SOFTENED: Final[Mapping[str, str]] = MappingProxyType({"dört": "dörd"})
+
+
+def _harmonic(previous: str, vowel: str) -> str | None:
+    """The vowel harmony puts in ``vowel``'s slot after ``previous``.
+
+    Two-way (``a``/``e``) and four-way (``ı``/``i``/``u``/``ü``) suffix vowels;
+    ``None`` for ``o``/``ö``, which no suffix on a number harmonises to.
+    """
+    if vowel in "ae":
+        return "a" if previous in _BACK_VOWELS else "e"
+    if vowel in "ıiuü":
+        return {
+            (True, False): "ı",
+            (True, True): "u",
+            (False, False): "i",
+            (False, True): "ü",
+        }[(previous in _BACK_VOWELS, previous in _ROUNDED_VOWELS)]
+    return None
+
+
+def _inflect(words: str, suffix: str, token: str) -> str:
+    """Join ``suffix`` to the last word of ``words``, or refuse a mismatch."""
+    head, _, last = words.rpartition(" ")
+    stem_vowel = next(ch for ch in reversed(last) if ch in _VOWELS)
+    final = last[-1]
+    first = suffix[0]
+
+    def refuse(reason: str) -> TrExpansionError:
+        return TrExpansionError(
+            f"{token!r}: the suffix {suffix!r} does not fit the spoken word {last!r} "
+            f"({reason}). TDK Yazım Kılavuzu: the apostrophe only separates a suffix "
+            "from digits, so the suffix must already be the one the word takes; "
+            "correct it or author the number in words (CLAUDE.md invariant 22)"
+        )
+
+    if suffix in TR_UNITS:
+        # "5'min" would otherwise pass every phonology check and be spoken
+        # "beşmin": a unit symbol is expanded as its own token, never a suffix.
+        raise refuse("a unit symbol, not a suffix")
+    if first == "ğ":
+        raise refuse("no Turkish suffix starts with ğ")
+    if not any(ch in _VOWELS for ch in suffix):
+        raise refuse("a suffix with no vowel")
+    previous = stem_vowel
+    joined = False  # whether a suffix vowel has already been checked against the stem
+    for position, vowel in enumerate(suffix):
+        if vowel not in _VOWELS:
+            continue
+        if position and suffix[position - 1] in _VOWELS:
+            raise refuse("two vowels in a row")
+        if joined and suffix[position - 1] == "k" and vowel == "i":
+            # The -ki of "kırktaki", "1985'teki": TDK Küçük Ünlü Uyumu — "-ki
+            # aitlik eki yalnızca birkaç örnekte küçük ünlü uyumuna uyar". It
+            # does not harmonise, and what follows it harmonises with it.
+            previous = vowel
+            continue
+        expected = _harmonic(previous, vowel)
+        if expected is None:
+            raise refuse("no suffix on a number harmonises to o or ö")
+        if vowel != expected:
+            raise refuse(f"vowel harmony after {previous!r} takes {expected!r}")
+        previous = vowel
+        joined = True
+    if final in _VOWELS and first in _VOWELS:
+        raise refuse("a vowel-final word takes a buffer consonant before a vowel")
+    if final not in _VOWELS and first in _BUFFERS:
+        raise refuse("a consonant-final word takes no buffer consonant")
+    if first in "dt" and first != ("t" if final in _VOICELESS else "d"):
+        raise refuse("d/t assimilation")
+    if first in "cç" and first != ("ç" if final in _VOICELESS else "c"):
+        raise refuse("c/ç assimilation")
+    stem = _SOFTENED.get(last, last) if first in _VOWELS else last
+    return f"{head} {stem}{suffix}" if head else f"{stem}{suffix}"
+
+
+def _split_decoration(core: str, trail: str) -> tuple[str, str]:
+    """Move emphasis closed inside a suffixed numeral to after the suffix.
+
+    ``**112**'yi`` becomes ``**yüz on ikiyi**``: in words the suffix is part
+    of the word, and a marker left between *iki* and *yi* would split it. The
+    apostrophe of a suffixed numeral folds to U+0027 here, inside the token
+    only, so the round trip compares one spelling and prose elsewhere keeps
+    its authored bytes.
+    """
+    inner = _INNER_EMPHASIS_RE.match(core)
+    if inner is not None:
+        core = inner.group("number") + inner.group("rest")
+        trail = inner.group("stars") + trail
+    if _SUFFIXED_RE.match(core) is not None:
+        core = core.replace("’", "'")
+    return core, trail
 
 
 def expand_tr(text: str, *, drugs: Mapping[str, str] | None = None) -> Expansion:
@@ -312,6 +451,7 @@ def expand_tr(text: str, *, drugs: Mapping[str, str] | None = None) -> Expansion
         while core and core[-1] in _TRAILING:
             trail = core[-1] + trail
             core = core[:-1]
+        core, trail = _split_decoration(core, trail)
         expanded = _rewrite(core, token, _drug_table(drugs))
         if expanded is None:
             pieces.append(token)
@@ -374,7 +514,32 @@ def _contract(expanded: str, drugs: Mapping[str, str]) -> str:
         whole, fraction = expanded.split(" virgül ", 1)
         digits = "".join(str(parse_turkish_cardinal(word)) for word in fraction.split())
         return f"{parse_turkish_cardinal(whole)},{digits}"
-    return str(parse_turkish_cardinal(expanded))
+    try:
+        return str(parse_turkish_cardinal(expanded))
+    except TrExpansionError:
+        return _contract_suffixed(expanded)
+
+
+def _contract_suffixed(expanded: str) -> str:
+    """Invert ``yüz on ikiyi`` to ``112'yi``.
+
+    The last word is split at the cardinal word (or softened stem) it starts
+    with — unique, because no cardinal is a prefix of another — and the
+    result is re-inflected, so only the canonical spelling inverts: a wrong
+    stem (``dördte``) or a disharmonious suffix fails here rather than
+    reading back as if it were right.
+    """
+    head, _, last = expanded.rpartition(" ")
+    for stem in _SUFFIX_STEMS:
+        if last.startswith(stem) and len(last) > len(stem):
+            word = _UNSOFTENED.get(stem, stem)
+            number = parse_turkish_cardinal(f"{head} {word}" if head else word)
+            suffix = last[len(stem) :]
+            source = f"{number}'{suffix}"
+            if _inflect(turkish_cardinal(number), suffix, source) != expanded:
+                raise TrExpansionError(f"{expanded!r} is not the canonical spelling")
+            return source
+    raise TrExpansionError(f"{expanded!r}: no cardinal word carries a suffix here")
 
 
 # The unit inverse is one-to-many on purpose ("mL" and "ml" both expand to
@@ -383,6 +548,10 @@ def _contract(expanded: str, drugs: Mapping[str, str]) -> str:
 _UNIT_INVERSE: Final[Mapping[str, str]] = MappingProxyType(
     {expansion: symbol for symbol, expansion in reversed(list(TR_UNITS.items()))}
 )
+_UNSOFTENED: Final[Mapping[str, str]] = MappingProxyType(
+    {stem: word for word, stem in _SOFTENED.items()}
+)
+_SUFFIX_STEMS: Final[tuple[str, ...]] = (*_WORD_VALUES, *_SCALE_VALUES, *_UNSOFTENED)
 
 
 def assert_round_trip(expansion: Expansion, *, drugs: Mapping[str, str] | None = None) -> None:
