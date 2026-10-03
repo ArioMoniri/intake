@@ -25,12 +25,18 @@ The realm and session checks are functions that return violations. Each one is
 run once against the committed realm, which must give none, and once against a
 near-miss mutation, which must give some. A checker that cannot fail proves
 nothing.
+
+Section 5 (INT-391) pins the ``credential_id`` claim to WebAuthn Level 3's
+credential id: unpadded base64url, 16 to 1023 bytes once decoded, one spelling
+per credential. It uses property tests over generated ids.
 """
 
 from __future__ import annotations
 
+import base64
 import copy
 import json
+import logging
 import re
 from collections.abc import Iterator, Mapping
 from pathlib import Path
@@ -46,8 +52,10 @@ from admin_harness import (
     token_for,
 )
 from api_harness import ApiHarness
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from intake_platform.admin import ADMIN_ROLES, AdminRole, AdminWiring, IpAllowList
-from intake_platform.admin.principal import principal_from_claims
+from intake_platform.admin.principal import MalformedClaims, principal_from_claims
 from intake_platform.admin.second_factor import (
     AMR_FIRST_FACTOR,
     AMR_OTP,
@@ -561,3 +569,243 @@ class TestSpecAnchor:
         assert "Session ≤ 8 h" in section
         assert "30-minute idle timeout on any session that can reach PHI" in section
         assert "Phishing-resistant WebAuthn is mandatory" in section
+
+
+# --------------------------------------------------------------------------
+# 5. the credential id shape (INT-391)
+# --------------------------------------------------------------------------
+#
+# WebAuthn Level 3 (https://www.w3.org/TR/webauthn-3/): §4 "Credential ID" is a
+# byte sequence "at most 1023 bytes long", minted either as at least 16 random
+# bytes or as an encrypted credential source; §3 "Base64url Encoding" is the
+# RFC 4648 §5 alphabet with every trailing '=' omitted. The INT-378 provider
+# writes the claim with Keycloak's Base64Url.encode, which is that encoding.
+# RFC 4648 §3.5 has an encoder zero the pad bits, so each credential has one
+# spelling, and four-eyes' "distinct credential" check, a string comparison,
+# compares credentials.
+
+MIN_ID_BYTES = 16
+MAX_ID_BYTES = 1023
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+#: The id in INT-378's recorded Keycloak 26.1.4 login (PR #643), as the
+#: provider wrote it.
+PROVIDER_RECORDED = "Ts__QVS_6yVp0dtvsiJT9E9-WucmxlSxmy_ha1y4phY"
+
+#: Characters outside RFC 4648 §5: the standard alphabet's two, padding,
+#: separators the old id shape allowed, whitespace, and look-alikes.
+OUTSIDE = ["+", "/", "=", ".", ":", "@", "~", "%", " ", "\t", "\n", "\x00", "ı", " ", "Ａ", "٣"]
+
+
+def b64url(raw: bytes) -> str:
+    """§3's Base64url Encoding, written out apart from the console's code."""
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+
+def sample(size: int, lead: int = 0x00) -> bytes:
+    """``size`` bytes starting with ``lead``: 0x00 encodes to 'A', 0xF8 to
+    '-', 0xFC to '_'."""
+    return bytes([lead, *((7 * i + 1) % 256 for i in range(size - 1))])[:size]
+
+
+def with_id(value: object) -> dict[str, Any]:
+    return account("clinical_lead", credential_id=value)
+
+
+def refused(value: object) -> None:
+    with pytest.raises(MalformedClaims):
+        resolve(with_id(value))
+
+
+def webauthn_ids(
+    min_size: int = MIN_ID_BYTES, max_size: int = MAX_ID_BYTES
+) -> st.SearchStrategy[bytes]:
+    return st.binary(min_size=min_size, max_size=max_size)
+
+
+class TestCredentialIdShape:
+    @given(raw=webauthn_ids())
+    @settings(max_examples=300, deadline=None)
+    def test_every_webauthn_credential_id_is_admitted(self, raw: bytes) -> None:
+        value = b64url(raw)
+        assert resolve(with_id(value)).credential_id == value
+
+    @given(first=st.integers(0xF8, 0xFF), rest=webauthn_ids(min_size=15, max_size=1022))
+    @settings(max_examples=200, deadline=None)
+    def test_an_id_starting_with_dash_or_underscore_is_admitted(
+        self, first: int, rest: bytes
+    ) -> None:
+        # the old shape wanted a letter or digit first, so about 2 random ids
+        # in 64 were refused
+        value = b64url(bytes([first]) + rest)
+        assert value[0] in "-_"
+        assert resolve(with_id(value)).credential_id == value
+
+    @pytest.mark.parametrize("lead", [0x00, 0xF8, 0xFC], ids=["A", "dash", "underscore"])
+    @pytest.mark.parametrize("size", [16, 17, 18, 95, 96, 97, 98, 1021, 1022, 1023])
+    def test_the_boundaries_are_admitted(self, size: int, lead: int) -> None:
+        # 96 bytes (128 characters) was the old ceiling; 97 was refused
+        value = b64url(sample(size, lead))
+        assert resolve(with_id(value)).credential_id == value
+
+    def test_the_provider_recorded_id_is_admitted(self) -> None:
+        assert len(base64.urlsafe_b64decode(PROVIDER_RECORDED + "=")) == 32
+        assert resolve(with_id(PROVIDER_RECORDED)).credential_id == PROVIDER_RECORDED
+
+    def test_every_recorded_account_carries_a_webauthn_credential_id(self) -> None:
+        for token, claims in recorded_claims().items():
+            value = claims["credential_id"]
+            raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+            assert b64url(raw) == value, token
+            assert MIN_ID_BYTES <= len(raw) <= MAX_ID_BYTES, token
+
+    @given(raw=webauthn_ids().filter(lambda raw: len(raw) % 3 != 0))
+    @settings(deadline=None)
+    def test_near_miss_padding_is_refused(self, raw: bytes) -> None:
+        padded = base64.urlsafe_b64encode(raw).decode("ascii")
+        assert padded.endswith("=")
+        refused(padded)
+
+    @given(raw=webauthn_ids(), data=st.data())
+    @settings(max_examples=300, deadline=None)
+    def test_near_miss_one_character_outside_base64url_is_refused(
+        self, raw: bytes, data: st.DataObject
+    ) -> None:
+        value = b64url(raw)
+        at = data.draw(st.integers(0, len(value) - 1))
+        refused(value[:at] + data.draw(st.sampled_from(OUTSIDE)) + value[at + 1 :])
+
+    @given(first=st.integers(0xF8, 0xFF), rest=webauthn_ids(min_size=15, max_size=1022))
+    @settings(deadline=None)
+    def test_near_miss_the_standard_alphabet_is_refused(self, first: int, rest: bytes) -> None:
+        # the ids that start with '-' or '_' in §3's alphabet start with '+'
+        # or '/' in RFC 4648 §4's: the same bytes, spelled the other way
+        standard = base64.b64encode(bytes([first]) + rest).decode("ascii").rstrip("=")
+        assert standard[0] in "+/"
+        refused(standard)
+
+    @given(raw=webauthn_ids(min_size=0, max_size=MIN_ID_BYTES - 1))
+    @settings(deadline=None)
+    def test_near_miss_fewer_than_16_bytes_is_refused(self, raw: bytes) -> None:
+        refused(b64url(raw))
+
+    @given(raw=webauthn_ids(min_size=MAX_ID_BYTES + 1, max_size=MAX_ID_BYTES + 96))
+    @settings(max_examples=50, deadline=None)
+    def test_near_miss_more_than_1023_bytes_is_refused(self, raw: bytes) -> None:
+        refused(b64url(raw))
+
+    @pytest.mark.parametrize("size", [0, 15, 1024])
+    @pytest.mark.parametrize("lead", [0x00, 0xFC], ids=["A", "underscore"])
+    def test_near_miss_the_named_sizes_are_refused(self, size: int, lead: int) -> None:
+        refused(b64url(sample(size, lead)))
+
+    @given(raw=webauthn_ids().filter(lambda raw: len(raw) % 3 != 0), data=st.data())
+    @settings(deadline=None)
+    def test_near_miss_a_second_spelling_of_the_same_bytes_is_refused(
+        self, raw: bytes, data: st.DataObject
+    ) -> None:
+        # the last character carries 2 or 4 pad bits; a lenient decoder
+        # ignores them, so setting one spells the same credential again
+        value = b64url(raw)
+        pad_bits = 4 if len(raw) % 3 == 1 else 2
+        flip = data.draw(st.integers(1, 2**pad_bits - 1))
+        twin = value[:-1] + ALPHABET[ALPHABET.index(value[-1]) | flip]
+        assert base64.urlsafe_b64decode(twin + "=" * (-len(twin) % 4)) == raw
+        refused(twin)
+
+    @given(
+        raw=webauthn_ids().filter(lambda raw: len(raw) % 3 == 0),
+        extra=st.sampled_from(ALPHABET),
+    )
+    @settings(deadline=None)
+    def test_near_miss_a_dangling_character_is_refused(self, raw: bytes, extra: str) -> None:
+        # 4n+1 characters decode to no byte sequence at all
+        refused(b64url(raw) + extra)
+
+    @pytest.mark.parametrize("value", [None, 0, 12345, True, b"A" * 22, ["A" * 22], {}], ids=repr)
+    def test_near_miss_a_value_that_is_not_a_string_is_refused(self, value: object) -> None:
+        refused(value)
+
+    def test_near_miss_an_absent_claim_is_refused(self) -> None:
+        claims = with_id(None)
+        del claims["credential_id"]
+        with pytest.raises(MalformedClaims):
+            resolve(claims)
+
+    def test_the_refusal_names_the_claim_and_never_the_value(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        caplog.set_level(logging.DEBUG)
+        value = base64.urlsafe_b64encode(sample(1024, 0xFC)).decode("ascii")
+        with pytest.raises(MalformedClaims) as refusal:
+            resolve(with_id(value))
+        assert "credential_id" in str(refusal.value)
+        for text in (str(refusal.value), repr(refusal.value), caplog.text):
+            assert value[:22] not in text
+
+    @given(uuid=st.uuids())
+    @settings(deadline=None)
+    def test_the_aaguid_the_provider_writes_is_still_admitted(self, uuid: Any) -> None:
+        # INT-378: the provider writes the stored AAGUID as UUID text
+        # (webauthn4j's AAGUID.toString()). INT-391 leaves its shape alone.
+        text = str(uuid)
+        assert resolve(account("clinical_lead", aaguid=text)).authenticator_aaguid == text
+
+
+# --------------------------------------------------------------------------
+# 5b. the credential id shape as the console serves and audits it
+# --------------------------------------------------------------------------
+
+LONGEST_DASH = b64url(sample(MAX_ID_BYTES, 0xF8))
+MALFORMED_IDS: dict[str, object] = {
+    "padded": base64.urlsafe_b64encode(sample(MIN_ID_BYTES, 0xFC)).decode("ascii"),
+    "standard_alphabet": base64.b64encode(sample(MAX_ID_BYTES, 0xFC)).decode("ascii"),
+    "too_long": b64url(sample(MAX_ID_BYTES + 1, 0xF8)),
+    "too_short": b64url(sample(MIN_ID_BYTES - 1, 0xF8)),
+    "not_a_string": 1023,
+}
+ID_ACCOUNTS: dict[str, dict[str, Any]] = {
+    "id:longest_dash": account("clinical_lead", credential_id=LONGEST_DASH),
+    **{
+        f"id:{name}": account("clinical_lead", credential_id=v) for name, v in MALFORMED_IDS.items()
+    },
+}
+
+
+@pytest.fixture()
+def id_harness(tmp_path: Path) -> Iterator[ApiHarness]:
+    wiring = AdminWiring(
+        claims=RecordedClaimsVerifier({**recorded_claims(), **ID_ACCOUNTS}),
+        ip_allowlist=IpAllowList.from_spec(ALLOWED_CIDRS),
+        deployments=dict(TEST_DEPLOYMENTS),
+    )
+    yield from build_admin_harness(tmp_path, admin=wiring)
+
+
+class TestConsoleCredentialId:
+    def test_a_1023_byte_id_starting_with_dash_reaches_the_console(
+        self, id_harness: ApiHarness
+    ) -> None:
+        assert LONGEST_DASH.startswith("-") and len(LONGEST_DASH) == 1364
+        response = whoami(id_harness, "id:longest_dash")
+        assert response.status_code == 200
+        assert response.json()["subject"] == "kc-sub-clinical-lead"
+
+    def test_a_malformed_id_is_one_generic_403_that_never_echoes_it(
+        self, id_harness: ApiHarness, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        caplog.set_level(logging.DEBUG)
+        before = len(tuple(id_harness.audit_store.entries()))
+        answers = {name: whoami(id_harness, f"id:{name}") for name in MALFORMED_IDS}
+        appended = tuple(id_harness.audit_store.entries())[before:]
+        for name, response in answers.items():
+            assert (response.status_code, response.json()) == (403, {"error": "forbidden"}), name
+        assert {entry.actor for entry in appended} == {"admin:unresolved"}
+        audited = " ".join(
+            " ".join((e.actor, e.action, e.resource_ref, e.consent_scope_ref)) for e in appended
+        )
+        for value in MALFORMED_IDS.values():
+            if not isinstance(value, str):
+                continue
+            for text in (caplog.text, audited, *(r.text for r in answers.values())):
+                assert value[:16] not in text

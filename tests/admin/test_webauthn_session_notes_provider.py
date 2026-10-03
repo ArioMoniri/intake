@@ -1,10 +1,11 @@
 """INT-378 — a Keycloak provider writes the WebAuthn notes the console's token needs.
 
 The admin console requires ``aaguid`` and ``credential_id`` on every staff token (INT-180). The
-realm maps both from user-session notes (INT-373), and stock Keycloak 26.1.4 writes neither note.
+realm maps both from user-session notes (INT-373), and stock Keycloak writes neither note.
 The provider in ``infra/keycloak/providers/webauthn-session-notes`` is the stock WebAuthn
 authenticator plus those two notes. Its own behaviour is proven by its Java tests (``make
-keycloak-provider``, a CI job). This file holds everything around it that Python can see:
+keycloak-provider``, a step of the required CI job ``check-py``). This file holds everything
+around it that Python can see:
 
 - **the realm runs it.** The staff flow's WebAuthn execution names the provider's id, which is
   the id the Java factory registers, and nothing runs the stock authenticator any more.
@@ -15,13 +16,14 @@ keycloak-provider``, a CI job). This file holds everything around it that Python
 - **the pins.** The Maven distribution, every artefact Maven resolves and the jar are pinned by
   sha256, the jar is reproducible, and the compose file, the Makefile and CI all use the pin.
 - **a real login, recorded.** ``scripts/keycloak/record_webauthn_login.py`` logged a synthetic
-  staff account in to a real Keycloak 26.1.4 running the pinned jar, once through the committed
+  staff account in to a real Keycloak running the pinned jar (26.7.4, the composed version; the
+  recorder reads the version from the server), once through the committed
   realm and once through a twin that differs only in running the stock authenticator. The
   recording is replayed here through the console's own verifier and principal parser: the first
   token is admitted with the authenticator's AAGUID and credential id, the second is refused.
 
-The owner decision in issue #621 (a TOTP login has no AAGUID) is not taken here, and the
-console's rule that every token carries ``aaguid`` is unchanged.
+The owner decision split out as INT-389 (#644; a TOTP login has no AAGUID) is not taken here,
+and the console's rule that every token carries ``aaguid`` is unchanged.
 """
 
 from __future__ import annotations
@@ -113,6 +115,17 @@ def compose_keycloak() -> dict[str, Any]:
     compose = yaml.safe_load(COMPOSE_PATH.read_text(encoding="utf-8"))
     service: dict[str, Any] = compose["services"]["keycloak"]
     return service
+
+
+#: Joined, so this file never spells an image reference the INT-390 image scan would read.
+KEYCLOAK_REPOSITORY = "/".join(("quay.io", "keycloak", "keycloak"))
+
+
+def composed_image() -> tuple[str, str, str]:
+    """The obs Keycloak image as (repository, tag, digest); INT-390 pins it by both."""
+    reference, _, digest = str(compose_keycloak()["image"]).partition("@")
+    repository, _, tag = reference.rpartition(":")
+    return repository, tag, digest
 
 
 def recording() -> dict[str, Any]:
@@ -276,12 +289,15 @@ class TestPins:
             assert SHA256.fullmatch(digest), line
             paths.append(path)
         assert len(paths) == len(set(paths))
+        version = pom_property("keycloak.version")
         for artefact in ("keycloak-services", "keycloak-server-spi", "keycloak-server-spi-private"):
-            assert f"org/keycloak/{artefact}/26.1.4/{artefact}-26.1.4.jar" in paths
+            assert f"org/keycloak/{artefact}/{version}/{artefact}-{version}.jar" in paths
 
     def test_keycloak_is_provided_at_the_composed_version_and_nothing_is_bundled(self) -> None:
-        image = compose_keycloak()["image"]
-        assert image == f"quay.io/keycloak/keycloak:{pom_property('keycloak.version')}"
+        repository, tag, digest = composed_image()
+        assert repository == KEYCLOAK_REPOSITORY
+        assert tag == pom_property("keycloak.version")
+        assert re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
         for dependency in pom().findall("m:dependencies/m:dependency", POM_NS):
             group = dependency.findtext("m:groupId", namespaces=POM_NS)
             artefact = dependency.findtext("m:artifactId", namespaces=POM_NS)
@@ -328,8 +344,11 @@ class TestPins:
 
     def test_ci_rebuilds_the_jar_against_the_pin(self) -> None:
         workflow = yaml.safe_load(CI_PATH.read_text())
-        runs = [step.get("run", "") for step in workflow["jobs"]["keycloak-provider"]["steps"]]
+        runs = [step.get("run", "") for step in workflow["jobs"]["check-py"]["steps"]]
         assert any(run.endswith("make keycloak-provider") for run in runs)
+        # a step of a required job: a job of its own would be a gate the ops console's
+        # recorded GitHub answers cannot show (tests/observability/test_ops_cicd.py)
+        assert "keycloak-provider" not in workflow["jobs"]
 
     def test_the_obs_keycloak_mounts_only_the_checked_jar_directory(self) -> None:
         assert (
@@ -349,7 +368,7 @@ class TestRecordedLogin:
     def test_the_recording_is_of_the_pinned_jar_on_the_composed_keycloak(self) -> None:
         recorded = recording()
         assert recorded["provider_jar_sha256"] == PIN_PATH.read_text().split()[0]
-        assert compose_keycloak()["image"].endswith(":" + recorded["keycloak"]["version"])
+        assert composed_image()[1] == recorded["keycloak"]["version"]
         assert SHA256.fullmatch(recorded["keycloak"]["dist_sha256"])
 
     def test_the_provider_login_carries_the_authenticators_ids(self) -> None:

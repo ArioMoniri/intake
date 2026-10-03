@@ -79,7 +79,8 @@ REALMS = {
 }
 
 _FORM_ACTION = re.compile(r'<form[^>]*id="{form_id}"[^>]*action="([^"]+)"')
-_JS_FIELD = re.compile(r"(\w+)\s*:\s*'([^']*)'")
+#: The WebAuthn page's parameters, quoted with ' (26.1.4's theme) or " (26.7.4's keycloak.v2).
+_JS_FIELD = re.compile(r"""(\w+)\s*:\s*(?:'([^']*)'|"([^"]*)")""")
 
 
 def b64url(raw: bytes) -> str:
@@ -192,6 +193,14 @@ def admin_token(http: httpx.Client, password: str) -> str:
     return token
 
 
+def server_version(http: httpx.Client, bearer: str) -> str:
+    """The version the running server reports, so a recording names the Keycloak it ran on."""
+    response = http.get("/admin/serverinfo", headers={"Authorization": f"Bearer {bearer}"})
+    response.raise_for_status()
+    version: str = response.json()["systemInfo"]["version"]
+    return version
+
+
 def create_staff_account(
     http: httpx.Client, realm: str, bearer: str, key: SoftwareAuthenticator, tenant: str
 ) -> str:
@@ -298,7 +307,8 @@ def log_in(
         data={"username": USERNAME, "password": password, "credentialId": ""},
     )
     webauthn_page.raise_for_status()
-    fields = dict(_JS_FIELD.findall(webauthn_page.text))
+    found = _JS_FIELD.findall(webauthn_page.text)
+    fields = {name: single or double for name, single, double in found}
     if fields.get("userVerification") != "required":
         raise RuntimeError("the WebAuthn page does not require user verification")
     assertion = key.assert_for(
@@ -360,6 +370,7 @@ def main(argv: list[str] | None = None) -> int:
     logins: dict[str, Any] = {}
     with httpx.Client(base_url=args.base_url, follow_redirects=False, timeout=30) as admin:
         bearer = admin_token(admin, password)
+        version = server_version(admin, bearer)
         for authenticator, realm in REALMS.items():
             staff_password = create_staff_account(admin, realm, bearer, key, tenant)
             with Browser(args.base_url) as http:
@@ -369,7 +380,7 @@ def main(argv: list[str] | None = None) -> int:
                 }
     record: Mapping[str, Any] = {
         "recorded_by": "scripts/keycloak/record_webauthn_login.py (INT-378)",
-        "keycloak": {"version": "26.1.4", "dist_sha256": args.dist_sha256},
+        "keycloak": {"version": version, "dist_sha256": args.dist_sha256},
         "provider_jar_sha256": args.jar_sha256,
         "realm_file_sha256": realm_sha256(),
         "software_authenticator": {

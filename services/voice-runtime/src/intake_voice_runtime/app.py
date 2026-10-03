@@ -23,6 +23,22 @@ have no implementation on this branch, and each is a named check that reports
 - ``room_token`` — ``intake_platform.room_tokens`` mints the LiveKit JWT
   (INT-090), but no HTTP route serves one to a worker (INT-103's finding).
 
+A fourth check arrived with INT-182: ``voice_controls`` — the per-tenant kill
+switch, default profile and canary the session router reads at every session
+start. It has no default either: the store is named by
+``INTAKE_VOICE_CONTROL_REDIS_URL`` in the deployment, and a speech worker that
+cannot read it could not honour the kill switch.
+
+A fifth arrived with INT-406: ``safety_inbox`` — the store every RED's clinic
+inbox entry is written to (``INTAKE_SAFETY_INBOX_REDIS_URL``, the store the
+console's Safety queue reads). Unlike the speech checks it holds on **both**
+profiles: a typed session fires REDs too, and a worker that cannot put a RED
+in front of the clinic must not take a session (files/10 §9.1 invariant 49).
+The process owns one :class:`~intake_platform.safety_inbox.SafetyInboxOutbox`
+(``VoiceRuntimeWiring.outbox``) — every session's clinician route puts there —
+and, with a store wired, the app runs the pump that writes it for as long as it
+serves, and gives the pump its last pass on the way down.
+
 So an unwired process answers ``/healthz`` 200 and ``/readyz`` 503 naming each
 missing binding. That is the shape CLAUDE.md asks for when a dependency is
 absent: build the mechanism, wire the gate, make it fail closed, leave the
@@ -32,13 +48,18 @@ content empty — never a mock on a serving path.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+import threading
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 
 from fastapi import FastAPI
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
+from intake_platform.safety_inbox import PUMP_INTERVAL, SafetyInboxOutbox, SafetyInboxStore
 from intake_platform.security import SecurityHeadersMiddleware
+from intake_platform.voice_control import VoiceControlReader
 
 from intake_voice_runtime.ports import ClipStore, RoomTokenSource, SpeechSynthesizer
 from intake_voice_runtime.profiles import VoiceProfile
@@ -85,6 +106,17 @@ class VoiceRuntimeWiring:
     synthesizer: SpeechSynthesizer | None = None
     room_token_source: RoomTokenSource | None = None
     profile: VoiceProfile = VoiceProfile.RESIDENCY_TR
+    #: INT-182: where the per-tenant kill switch, default profile and canary
+    #: are read at every session start (``INTAKE_VOICE_CONTROL_REDIS_URL``,
+    #: the same store the admin console writes). A speech worker without it
+    #: could not honour the kill switch, so it is not ready.
+    voice_controls: VoiceControlReader | None = None
+    #: INT-406: where the clinician route's entries are written. Every
+    #: profile needs it — the RED path is the same on a keyboard.
+    safety_inbox: SafetyInboxStore | None = None
+    #: The process's one outbox: the worker binds every session's
+    #: ``SafetyInboxNotifier`` to it, and the app pumps it into ``safety_inbox``.
+    outbox: SafetyInboxOutbox = field(default_factory=SafetyInboxOutbox)
 
     @property
     def needs_speech(self) -> bool:
@@ -97,7 +129,30 @@ def create_app(wiring: VoiceRuntimeWiring | None = None) -> FastAPI:
     _setup_observability()
     bound = wiring or VoiceRuntimeWiring()
 
-    app = FastAPI(title="intake-voice-runtime")
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # INT-406: the outbox pump. No store, no pump, and /readyz says so.
+        pump: threading.Thread | None = None
+        if bound.safety_inbox is not None:
+            pump = threading.Thread(
+                target=bound.outbox.pump,
+                args=(bound.safety_inbox,),
+                name="safety-inbox-pump",
+                daemon=True,
+            )
+            pump.start()
+        try:
+            yield
+        finally:
+            if pump is not None:
+                bound.outbox.stop()
+                pump.join(timeout=PUMP_INTERVAL.total_seconds() * 5)
+                left = len(bound.outbox.pending())
+                if left:
+                    # a count only (invariant 6); the entries' age already pages
+                    logger.error("safety inbox entries unwritten at stop", extra={"count": left})
+
+    app = FastAPI(title="intake-voice-runtime", lifespan=lifespan)
     app.state.wiring = bound
     app.add_middleware(SecurityHeadersMiddleware)
     mount_http_metrics(app, SERVICE_NAME)
@@ -114,12 +169,25 @@ def create_app(wiring: VoiceRuntimeWiring | None = None) -> FastAPI:
         # turn-taking and TTS columns — so it needs no room and no token.
         return not bound.needs_speech or bound.room_token_source is not None
 
+    async def voice_controls_ready() -> bool:
+        # INT-182. A typed worker is already the kill switch's target; a
+        # speech worker must be able to read the switch before it may take a
+        # session, or "without a deploy" would silently stop being true.
+        return not bound.needs_speech or bound.voice_controls is not None
+
+    async def safety_inbox_ready() -> bool:
+        # INT-406, invariant 49: no profile is exempt — a typed RED reaches
+        # the clinic through the same inbox as a spoken one.
+        return bound.safety_inbox is not None
+
     mount_health(
         app,
         readiness=[
             ReadinessCheck("clip_store", clip_store_ready),
             ReadinessCheck("speech_synthesizer", synthesizer_ready),
             ReadinessCheck("room_token", room_token_ready),
+            ReadinessCheck("voice_controls", voice_controls_ready),
+            ReadinessCheck("safety_inbox", safety_inbox_ready),
         ],
     )
     return app

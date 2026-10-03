@@ -1,0 +1,139 @@
+{
+  "schema": "intake.admin.cicd.v1",
+  "generated_at": "2026-09-27T06:00:00Z",
+  "reason_classes": [
+    "rollout_expansion",
+    "rollout_rollback",
+    "incident_mitigation",
+    "experiment_start",
+    "experiment_end",
+    "config_correction",
+    "study_enablement"
+  ],
+  "sources": {
+    "prometheus": "unconfigured",
+    "freeze_store": "release_freeze_unconfigured",
+    "slo_files": "ok"
+  },
+  "control_catalogue": [
+    {
+      "control": "freeze_engage",
+      "dangerous_action_id": "admin.cicd.freeze.engage",
+      "route": "POST /admin/cicd/freeze",
+      "tier": 1,
+      "direction": "safe",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "sre_oncall"
+      ],
+      "approver_roles": []
+    },
+    {
+      "control": "freeze_lift",
+      "dangerous_action_id": "admin.cicd.freeze.lift",
+      "route": "POST /admin/cicd/freeze/lift",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "platform_admin",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "platform_owner",
+        "qms_owner"
+      ]
+    }
+  ],
+  "tiles": {
+    "pipelines": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "branch": null,
+      "workflows": []
+    },
+    "gates": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "branch": null,
+      "checks_enforced": null,
+      "required": [],
+      "refs": []
+    },
+    "releases": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "releases": []
+    },
+    "deployments": {
+      "state": "ok",
+      "reason": null,
+      "rows": [
+        {
+          "environment": "dev",
+          "source": "this_api",
+          "git_sha": null,
+          "built_at": null,
+          "sbom_digest": null,
+          "stamped": false
+        }
+      ]
+    },
+    "argo_cd": {
+      "state": "ok",
+      "reason": null,
+      "deployed": false,
+      "basis": "no_argocd_in_infra",
+      "applications": []
+    },
+    "canary": {
+      "state": "ok",
+      "reason": null,
+      "deployed": false,
+      "basis": "no_canary_controller_in_infra"
+    },
+    "freeze": {
+      "state": "unknown",
+      "reason": "release_freeze_unconfigured",
+      "engaged": null,
+      "revision": null,
+      "changed_at": null,
+      "changed_by": null,
+      "approved_by": null,
+      "last_change": null,
+      "reason_class": null
+    },
+    "error_budget": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "exhausted": [],
+      "unmeasured": []
+    },
+    "deploy_gate": {
+      "state": "ok",
+      "reason": null,
+      "allowed": false,
+      "refusals": [
+        "release_freeze_unconfigured"
+      ],
+      "notes": [
+        "error_budget_not_configured"
+      ],
+      "enforcement": [
+        {
+          "point": "infra/staging/deploy.sh",
+          "status": "enforced"
+        },
+        {
+          "point": "argo_cd_sync",
+          "status": "not_deployed"
+        }
+      ]
+    },
+    "pending": {
+      "state": "ok",
+      "reason": null,
+      "actions": []
+    }
+  }
+}

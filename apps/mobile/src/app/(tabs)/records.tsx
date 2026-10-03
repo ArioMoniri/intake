@@ -10,8 +10,8 @@
  * INT-138 adds the other half of the acceptance: a CAMERA capture beside the
  * file picker (one pre-check, one upload path, and the JPEG metadata
  * container stripped on the way), and the READING section — the confirm
- * cards and their provenance boxes, behind the extraction seam that refuses
- * until something publishes a feed.
+ * cards and their provenance boxes, fed by the extraction route and settled
+ * only on the server's acknowledgement.
  */
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -30,10 +30,12 @@ import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/compon
 import { formatVisitDate } from "@/components/VisitCard";
 import { joinParts } from "@/lib/a11y/labels";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import { deviceClock, todayIso } from "@/lib/clock";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
 import {
   ALLOWED_DOCUMENT_TYPES,
   RecordsApiError,
+  apiExtractionSource,
   cameraFile,
   docDisplayName,
   downloadUrl,
@@ -47,7 +49,6 @@ import {
   type RecordDoc,
   type ScanState,
 } from "@/lib/records/api";
-import { noExtractionFeed } from "@/lib/records/extraction";
 import { useSession, type RecordFixture, type VisitFixture } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -139,8 +140,8 @@ type Phase = "loading" | "ready" | "offline";
 function OtpRecords() {
   const router = useRouter();
   const { visits } = useSession();
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const pick = pickUploadVisit(visits, todayIso);
+  // the day Vizitlerim splits on: Istanbul's, not UTC's (INT-409)
+  const pick = pickUploadVisit(visits, todayIso(deviceClock));
 
   const [chosen, setChosen] = useState<VisitFixture | null>(null);
   const selected = chosen ?? (pick.kind === "one" ? pick.visit : null);
@@ -409,7 +410,7 @@ function OtpRecords() {
         <RecordReading
           visitId={serverVisitId}
           docs={docs}
-          source={noExtractionFeed}
+          source={apiExtractionSource}
           onOpenDocument={(doc) => void onOpen(doc)}
         />
       ) : null}

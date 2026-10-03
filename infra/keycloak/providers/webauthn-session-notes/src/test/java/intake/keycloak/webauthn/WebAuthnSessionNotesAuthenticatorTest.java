@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,13 +17,15 @@ import static org.mockito.Mockito.when;
 import com.webauthn4j.util.exception.WebAuthnException;
 import org.junit.jupiter.api.Test;
 import org.keycloak.WebAuthnConstants;
+import org.keycloak.authentication.AuthenticationFlowError;
 import org.keycloak.authentication.FlowStatus;
 import org.keycloak.authentication.authenticators.browser.WebAuthnAuthenticator;
 import org.keycloak.credential.CredentialInput;
+import org.keycloak.models.credential.WebAuthnCredentialModel;
 import org.mockito.InOrder;
 
 /**
- * The authenticator runs Keycloak 26.1.4's own WebAuthnAuthenticator.action unchanged. Only the
+ * The authenticator runs Keycloak 26.7.4's own WebAuthnAuthenticator.action unchanged. Only the
  * assertion check at its core (SubjectCredentialManager.isValid, which webauthn4j backs) is
  * stubbed, so each test decides whether the stock code accepts the assertion; everything the stock
  * action does around it runs for real.
@@ -46,7 +49,7 @@ class WebAuthnSessionNotesAuthenticatorTest {
 
     assertEquals(FlowStatus.SUCCESS, flow.status.value);
     InOrder order = inOrder(flow.context, flow.authSession);
-    order.verify(flow.context).success();
+    order.verify(flow.context).success(WebAuthnCredentialModel.TYPE_TWOFACTOR);
     order.verify(flow.authSession).setUserSessionNote(WebAuthnSessionNotes.AAGUID_NOTE, AAGUID_A);
     order
         .verify(flow.authSession)
@@ -65,7 +68,10 @@ class WebAuthnSessionNotesAuthenticatorTest {
     new WebAuthnSessionNotesAuthenticator(flow.session).action(flow.context);
 
     assertEquals(FlowStatus.FAILED, flow.status.value);
-    verify(flow.context).cancelLogin();
+    // 26.7.4 answers a rejected assertion as an unknown user and no longer cancels the login
+    // (it named which accounts exist); either way the flow fails and no note is written
+    verify(flow.context).failure(eq(AuthenticationFlowError.UNKNOWN_USER), any());
+    verify(flow.context, never()).cancelLogin();
     verify(flow.authSession, never()).setUserSessionNote(anyString(), anyString());
   }
 

@@ -12,19 +12,29 @@ contracts: the four health endpoints and readiness checks come from
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import json
 import logging
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from intake_platform.admin import AdminWiring, IpAllowList
+from intake_platform.admin.access import ConsoleSystemsRefused, IdentityWiring
+from intake_platform.admin.access.config import (
+    ENV_KEYCLOAK_URL,
+    IdentityUnconfigured,
+    identity_from_env,
+)
 from intake_platform.admin.oidc import KeycloakClaimsVerifier, load_jwks
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
@@ -32,8 +42,16 @@ from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKek
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
-from intake_platform.secrets import SecretsProvider
+from intake_platform.release_freeze import release_freeze_store_from_env
+from intake_platform.safety_inbox import (
+    SafetyInbox,
+    mark_inbox_unreadable,
+    safety_inbox_store_from_env,
+    sweep_forever,
+)
+from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
+from intake_platform.voice_control import voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -53,6 +71,7 @@ from intake_api import (
     otp_routes,
     previsit_output,
     profile_routes,
+    record_items,
     satisfaction,
     taxonomy_routes,
     visits,
@@ -318,10 +337,59 @@ def _admin_from_env() -> AdminWiring | None:
         # ids only, and never the path's contents (invariant 6)
         logger.warning("admin console unconfigured: the JWKS mirror is absent or unusable")
         return None
+    try:
+        # INT-182: the store the voice runtime reads the kill switch from.
+        # Unset, the voice controls answer 503 rather than writing somewhere
+        # the runtime is not reading; a malformed URL is the same, loudly.
+        voice_controls = voice_control_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("voice controls unconfigured: the store URL is not a redis URL")
+        voice_controls = None
+    try:
+        # INT-187: the deployment's deploy-freeze record, which deploy.sh's
+        # release gate reads too. Unset or malformed, the freeze controls
+        # answer 503 and the console shows the gate refusing — never "open".
+        release_freeze = release_freeze_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("deploy freeze unconfigured: the store URL is not a redis URL")
+        release_freeze = None
     return AdminWiring(
         claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
+        voice_controls=voice_controls,
+        release_freeze=release_freeze,
+        identity=_identity_from_env(),
+        safety_inbox=_safety_inbox_from_env(),
     )
+
+
+def _safety_inbox_from_env() -> SafetyInbox | None:
+    """INT-406: the clinic Safety inbox, from the store the voice runtime
+    writes. Unset or malformed, the Safety queue answers 503 and the inbox is
+    reported unreadable at boot, which pages (fail closed, never a default
+    address). The SLA is files/02 §8.2's default; no tenant SLA is set here."""
+    try:
+        store = safety_inbox_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("safety inbox unconfigured: the store URL is not a redis URL")
+        return None
+    return SafetyInbox(store=store) if store is not None else None
+
+
+def _identity_from_env() -> IdentityWiring | None:
+    """INT-366: Keycloak and OpenBao admin access for the access review and
+    offboarding. Any fact absent — the Keycloak origin or realm, the OpenBao
+    auth mount, the admin client in OpenBao KV, or a loadable console-systems
+    file — leaves both answering 503 (fail closed). The §2.7 read-only
+    downgrade does not depend on this: it reads the audit chain."""
+    if not os.environ.get(ENV_KEYCLOAK_URL):
+        return None
+    try:
+        return identity_from_env(os.environ, SecretsProvider.from_env())
+    except (SecretsBootError, IdentityUnconfigured, ConsoleSystemsRefused, httpx.HTTPError) as err:
+        # the exception class names what is missing; no value is logged
+        logger.warning("access review unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
@@ -410,7 +478,30 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                     await ensure_consumer_tenant(w.bootstrap_engine or w.engine)
                 except Exception:  # noqa: BLE001 — readiness reports; ids-only log
                     logger.warning("consumer tenant bootstrap deferred: database not ready")
-        yield
+        if w.admin is not None:
+            # INT-366: read the review state off the chain at start, so the
+            # review-age gauge is not +Inf until the first admin request.
+            try:
+                await w.admin.review_ledger.refresh(audit)
+            except Exception:  # noqa: BLE001 — the gauge stays +Inf and pages; ids-only log
+                logger.warning("access review ledger deferred: audit chain not readable")
+        # INT-406, invariant 49: the scheduled checker. Wired, it recomputes
+        # the unacknowledged-RED gauge every sweep interval for as long as the
+        # API serves; unwired, nothing can say whether a RED is waiting, so the
+        # inbox is reported unreadable — which pages — until it is wired.
+        inbox = w.admin.safety_inbox if w.admin is not None else None
+        sweeper: asyncio.Task[None] | None = None
+        if inbox is None:
+            mark_inbox_unreadable()
+        else:
+            sweeper = asyncio.create_task(sweep_forever(inbox, clock=lambda: datetime.now(UTC)))
+        try:
+            yield
+        finally:
+            if sweeper is not None:
+                sweeper.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await sweeper
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state
@@ -496,6 +587,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(doctor_link.router)
     app.include_router(doctor_link.public_router)
     app.include_router(documents.router)
+    app.include_router(record_items.router)
     app.include_router(otp_routes.router)
     app.include_router(consents.router)
     app.include_router(profile_routes.router)

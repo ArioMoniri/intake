@@ -1,12 +1,12 @@
 {
   "keycloak": {
-    "dist_sha256": "db50b1286da510dea3f50d1c4f9128354d57065e805bd4b1bd1b456773b065c9",
-    "version": "26.1.4"
+    "dist_sha256": "04823c336b797a7e18889a44262a7a64e6bf624cbbcc518c85e2622176ff2eee",
+    "version": "26.7.4"
   },
   "logins": {
     "intake-webauthn-session-notes": {
       "access_token_claims": {
-        "aaguid": "41221fa3-129e-4aaf-abd0-99257daf4a88",
+        "aaguid": "a94ea3c8-23d7-46c0-b1eb-cdd19490250e",
         "acr": "1",
         "allowed-origins": [
           "http://127.0.0.1:3000",
@@ -20,17 +20,17 @@
           "api",
           "account"
         ],
-        "auth_time": 1790478248,
+        "auth_time": 1791043919,
         "azp": "admin-web",
-        "credential_id": "Ts__QVS_6yVp0dtvsiJT9E9-WucmxlSxmy_ha1y4phY",
+        "credential_id": "8c-y8SBtIO_nYDoEZud1eFYxykVlsrg_4b0WQiMKM70",
         "email": "int378-staff@intake.invalid",
         "email_verified": true,
-        "exp": 1790478548,
+        "exp": 1791044219,
         "family_name": "Staff",
         "given_name": "Synthetic",
-        "iat": 1790478248,
+        "iat": 1791043919,
         "iss": "http://127.0.0.1:18085/realms/intake-dev",
-        "jti": "31c44c54-7982-49a9-ac78-b8c1b3093ae8",
+        "jti": "onrtac:bf5b07e4-ec77-65af-6cab-c7f5353a3778",
         "name": "Synthetic Staff",
         "org": "org-int378",
         "preferred_username": "int378-staff",
@@ -52,19 +52,19 @@
           }
         },
         "scope": "openid profile email",
-        "sid": "499e4926-425f-4a7a-b0e7-b25888838b1a",
-        "sub": "b0ff0ab2-7942-40f3-89a6-a82387644277",
-        "tenant": "952865f7-0d62-4dda-8439-778b67e16066",
+        "sid": "eF85e9pdrLkyexhDkQa2oIUo",
+        "sub": "0c171178-30ef-4b1f-94e2-d75aa5d186f1",
+        "tenant": "a97cfceb-695e-4128-aba0-14e03788940f",
         "typ": "Bearer"
       },
       "console": {
-        "aaguid": "41221fa3-129e-4aaf-abd0-99257daf4a88",
+        "aaguid": "a94ea3c8-23d7-46c0-b1eb-cdd19490250e",
         "admitted": true,
-        "credential_id": "Ts__QVS_6yVp0dtvsiJT9E9-WucmxlSxmy_ha1y4phY",
+        "credential_id": "8c-y8SBtIO_nYDoEZud1eFYxykVlsrg_4b0WQiMKM70",
         "roles": [
           "tenant_clinical_responsible"
         ],
-        "tenant": "952865f7-0d62-4dda-8439-778b67e16066"
+        "tenant": "a97cfceb-695e-4128-aba0-14e03788940f"
       },
       "realm": "intake-dev"
     },
@@ -83,16 +83,16 @@
           "api",
           "account"
         ],
-        "auth_time": 1790478248,
+        "auth_time": 1791043922,
         "azp": "admin-web",
         "email": "int378-staff@intake.invalid",
         "email_verified": true,
-        "exp": 1790478548,
+        "exp": 1791044222,
         "family_name": "Staff",
         "given_name": "Synthetic",
-        "iat": 1790478248,
+        "iat": 1791043922,
         "iss": "http://127.0.0.1:18085/realms/intake-dev-stock",
-        "jti": "05c80e0e-03bb-4b87-82c8-450682496493",
+        "jti": "onrtac:5fee8b3b-811b-0996-ed2f-5ebde3d46150",
         "name": "Synthetic Staff",
         "org": "org-int378",
         "preferred_username": "int378-staff",
@@ -114,9 +114,9 @@
           }
         },
         "scope": "openid email profile",
-        "sid": "6e00f642-9668-4fd1-9c0c-fb5499ca7b0d",
-        "sub": "21e7c68a-228d-4241-bfa3-ddcff4e4d207",
-        "tenant": "952865f7-0d62-4dda-8439-778b67e16066",
+        "sid": "h8NDkIlf_0eG3NPfVI3TVEqq",
+        "sub": "e684fb5e-0473-4d2a-8972-048cf29a235d",
+        "tenant": "a97cfceb-695e-4128-aba0-14e03788940f",
         "typ": "Bearer"
       },
       "console": {
@@ -127,11 +127,11 @@
       "realm": "intake-dev-stock"
     }
   },
-  "provider_jar_sha256": "1b303dbf8c21cdcb8c29b5b5a0f3064c56e1cb4e15bc48222fd13dc0d9a1a636",
-  "realm_file_sha256": "7b73f8d34ad9245a940f5aa9b6cce1eda9a149977ed362a596d360d411f7cd67",
+  "provider_jar_sha256": "896d66982867ae23c3668df8138fde257feb61f9e30ac224d74a80a9e78f86df",
+  "realm_file_sha256": "d0bf613d09cdd8f79e9070a1984ab5c12807eb4c24e66c7af70f6409a4872f3e",
   "recorded_by": "scripts/keycloak/record_webauthn_login.py (INT-378)",
   "software_authenticator": {
-    "aaguid": "41221fa3-129e-4aaf-abd0-99257daf4a88",
-    "credential_id": "Ts__QVS_6yVp0dtvsiJT9E9-WucmxlSxmy_ha1y4phY"
+    "aaguid": "a94ea3c8-23d7-46c0-b1eb-cdd19490250e",
+    "credential_id": "8c-y8SBtIO_nYDoEZud1eFYxykVlsrg_4b0WQiMKM70"
   }
 }

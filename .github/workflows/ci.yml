@@ -29,6 +29,15 @@ jobs:
       - run: make deid-model
         env:
           GH_TOKEN: ${{ github.token }}
+      # INT-378: rebuild the Keycloak provider from its pinned recipe (mvnw with a
+      # sha256-pinned Maven; a trusted sha256 for every artefact Maven resolves),
+      # run its tests, and hold the jar byte-identical to the committed pin
+      # infra/keycloak/providers/webauthn-session-notes.sha256. The runner's own
+      # preinstalled Temurin 21 builds it, so no action is added. It is a step of
+      # this required job rather than a job of its own: REQUIRED_GATES
+      # (intake_probes.ops_cicd) names the jobs every pull request runs, and the
+      # GitHub answers its tests replay were recorded before this build existed.
+      - run: JAVA_HOME="$JAVA_HOME_21_X64" make keycloak-provider
       - run: make check-py
 
   check-ts:
@@ -52,18 +61,8 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --all-packages
+      - run: make edge-plugin
       - run: make check-integration
-
-  keycloak-provider:
-    # INT-378: rebuild the Keycloak provider from its pinned recipe (mvnw with a
-    # sha256-pinned Maven; a trusted sha256 for every artefact Maven resolves),
-    # run its tests, and hold the jar byte-identical to the committed pin
-    # infra/keycloak/providers/webauthn-session-notes.sha256. The runner's own
-    # preinstalled Temurin 21 builds it, so no action is added.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: JAVA_HOME="$JAVA_HOME_21_X64" make keycloak-provider
 
   gates:
     runs-on: ubuntu-latest

@@ -62,16 +62,27 @@ def test_readyz_fails_closed_while_the_bindings_are_absent(client: TestClient) -
     response = client.get("/readyz")
     assert response.status_code == 503
     checks = response.json()["checks"]
-    assert checks == {"clip_store": "error", "speech_synthesizer": "error", "room_token": "error"}
+    assert checks == {
+        "clip_store": "error",
+        "speech_synthesizer": "error",
+        "room_token": "error",
+        "voice_controls": "error",
+        "safety_inbox": "error",
+    }
 
 
 def test_readyz_passes_once_every_binding_is_wired() -> None:
+    import fakeredis
+    from intake_platform.safety_inbox import RedisSafetyInboxStore
+    from intake_platform.voice_control import RedisVoiceControlStore
     from talker_harness import RecordedClipStore, RecordingSynthesizer
 
     wiring = VoiceRuntimeWiring(
         clip_store=RecordedClipStore(),
         synthesizer=RecordingSynthesizer(),
         room_token_source=lambda session_id: "token",
+        voice_controls=RedisVoiceControlStore(fakeredis.FakeRedis()),
+        safety_inbox=RedisSafetyInboxStore(fakeredis.FakeRedis()),
     )
     client = TestClient(create_app(wiring), raise_server_exceptions=False)
     response = client.get("/readyz")

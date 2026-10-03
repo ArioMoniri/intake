@@ -293,6 +293,54 @@ metrics:
       in the registry's fallback order, or for `typed` (the text lane) when no
       lane was left. Emitted by
       intake_voice_runtime.resilience.failover.FailoverSynthesizer (INT-100).
+  # --- live series (INT-182): the Voice module — session routing, the kill
+  # switch, speech-call errors. files/08 §3 "Voice runtime" asks for
+  # per-profile metrics and a kill switch that works without a deploy; these
+  # make both observable. Not files/08 §4 ids, so no `id` (the INT-100
+  # precedent). Labels are tenant ids, closed enumerations and registry
+  # component names — never a session id or text (inv. 6).
+  - name: voice_session_routes_total
+    type: counter
+    labels: [tenant, profile, reason]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Session starts by tenant, the profile the runtime routed them to
+      (residency_tr / typed) and why: default, canary, kill_switch, or
+      control_unreadable (the control store could not answer, so the session
+      started typed). Emitted by
+      intake_voice_runtime.session_router.VoiceSessionRouter at every start.
+  - name: voice_kill_switch_flips_total
+    type: counter
+    labels: [tenant, outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Live voice sessions the kill switch's poll moved to typed (switched), or
+      left in voice because they have no screen to fall back to (not_armed,
+      counted once per session). Emitted by
+      intake_voice_runtime.session_router.VoiceSessionRouter.poll.
+  - name: voice_control_read_failures_total
+    type: counter
+    labels: [phase, code]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Per-tenant voice control reads that failed, by phase (start: the session
+      went typed; poll: live sessions kept their last-known state) and machine
+      code (voice_control_unreachable / voice_control_malformed). Emitted by
+      intake_voice_runtime.session_router.VoiceSessionRouter.
+  - name: voice_speech_calls_total
+    type: counter
+    labels: [component, kind, outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      ASR and TTS calls that reached a wire, by registry component, kind
+      (asr / tts) and outcome (ok / failed) — the Voice module's error rate
+      is failed over ok + failed. TTS is counted by the INT-100 failover
+      ladder per lane dialled (a lane skipped behind an open breaker dialled
+      nothing); ASR by intake_voice_runtime.adapters.asr.HttpTranscriber.
   # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
   # Wazuh's and Falco's own liveness are probes, not error budgets (the
   # `wazuh-manager`, `wazuh-indexer` and `falco` rows of
@@ -804,6 +852,11 @@ metrics:
     unit: "bool (0/1)"
     status: planned
     description: S2S eval gate status (1 = passing).
+  # INT-406 made these two live and added the two below them: invariant 49
+  # (files/10 §9.1). intake_platform.safety_inbox constructs all four; the API's
+  # scheduled sweep sets the gauge, the console's acknowledgement observes the
+  # histogram, and the voice runtime's outbox and Layer B feed the last two.
+  # Alerted in infra/observability/safety-rules.yaml.
   - name: clinic_red_ack_latency_min
     id: clinic.red_ack_latency_min
     type: histogram
@@ -811,20 +864,44 @@ metrics:
     owner: safety
     unit: "min"
     target: "within tenant SLA (default 4 business hours, files/02 §8)"
-    status: planned
+    status: live
     description: >-
       RED inbox arrival to human acknowledgement; counts the answer, not
-      the alert (files/08 §0c F19).
+      the alert (files/08 §0c F19). Observed by
+      intake_platform.safety_inbox.SafetyInbox.acknowledge.
   - name: clinic_red_unacknowledged_total
     id: clinic.red_unacknowledged_total
     type: gauge
     labels: [tenant, age_band]
     owner: safety
     unit: "count"
-    status: planned
+    status: live
     description: >-
-      REDs nobody has acknowledged yet, by tenant and age band; pages past
-      the tenant SLA.
+      REDs nobody has acknowledged yet, by tenant and age band (within_sla |
+      past_sla against the tenant SLA); pages past the tenant SLA. Recomputed
+      by the scheduled sweep; tenant="inbox_unreadable" at +Inf means the
+      inbox could not be read, which pages too.
+  - name: clinic_red_inbox_pending_age_s
+    type: gauge
+    labels: []
+    owner: safety
+    unit: "s"
+    target: "<= 60 s (files/02 §8.2 RED -> clinic inbox)"
+    status: live
+    description: >-
+      Age of the oldest RED entry recorded on the RED path but not yet written
+      to the shared Safety inbox store; 0 when none waits. Computed at scrape
+      time from the voice runtime's outbox; pages above 60.
+  - name: clinic_red_inbox_route_failures_total
+    type: counter
+    labels: []
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      REDs whose clinician route into the Safety inbox raised before an entry
+      existed. The RED is still delivered; no entry means no clock, so this
+      pages instead.
   # --- files/08 §4 F. Experience & satisfaction
   # INT-240 made these four live: intake_metrics.metrics constructs them and
   # intake_metrics.rollups feeds them. Every value is published for a named
@@ -1472,6 +1549,30 @@ metrics:
       lane (latency|quality) and outcome (planned|refused). `actor` is a staff
       account subject and both other labels are closed enums — never a patient
       and never free text (INT-183).
+  - name: admin_voice_control_changes_total
+    id: admin.voice_control_changes_total
+    type: counter
+    labels: [control, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Voice module control changes (INT-182), by control (kill_switch_engage,
+      kill_switch_release, default_profile, canary) and outcome (requested,
+      applied, unchanged, refused). The alert of the four voice
+      DangerousActions; who acted is on the audit chain, never on a label.
+  - name: admin_deploy_freeze_changes_total
+    id: admin.deploy_freeze_changes_total
+    type: counter
+    labels: [control, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Deploy freeze changes from the CI/CD module (INT-187), by control
+      (freeze_engage, freeze_lift) and outcome (requested, applied, unchanged,
+      refused). The alert of the two deploy-freeze DangerousActions; who acted
+      is on the audit chain and in the freeze record, never on a label.
   - name: admin_break_glass_patient_log_lag_h
     id: admin.break_glass_patient_log_lag_h
     type: gauge
@@ -1575,8 +1676,29 @@ metrics:
     labels: []
     owner: admin
     unit: "days"
-    status: planned
-    description: Age of the last access review (100-day read-only threshold, files/08 §2.7).
+    status: live
+    description: >-
+      Age of the console access review — the older of the last
+      countersignatures of its platform_owner and console_roles sections — in
+      days (files/08 §2.7). Past 100, platform_owner and tenant_admin writes
+      are refused and AccessReviewOverdue pages; +Inf when never
+      countersigned. Computed at scrape time by
+      intake_platform.admin.access.review.ReviewLedger from the audit chain
+      (INT-366).
+  - name: admin_offboarding_total
+    id: admin.offboarding_total
+    type: counter
+    labels: [trigger, complete]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Offboardings run (files/08 §2.4), by trigger (console, dormant — the
+      60-day auto-disable) and whether every system was revoked or confirmed
+      when the run ended (true, false). The alert of the tier-1
+      admin.access.offboard action; OffboardingIncomplete raises a ticket on
+      complete="false". The subject is on the audit chain, never on a label
+      (INT-366).
   - name: admin_audit_seq_gaps_total
     id: admin.audit_seq_gaps_total
     type: counter
@@ -1967,9 +2089,113 @@ metrics:
     owner: platform
     unit: "bool (0/1)"
     description: >-
-      1 when the ops collector's last read of a source (gpu_host, ci) succeeded,
-      0 when it failed — what lets the console tell "failing" from "not
-      configured".
+      1 when the ops collector's last read of a source (gpu_host, ci, cicd)
+      succeeded, 0 when it failed — what lets the console tell "failing" from
+      "not configured".
+  # --- INT-187: the CI/CD console's collector-fed series -----------------------
+  # Emitted by intake_probes.ops_collector from intake_probes.ops_cicd, read
+  # server-side with the same read-only token (OpenBao) and egress guard as the
+  # ops_ci_* series. Any failing GitHub sub-call fails the whole read and clears
+  # every ops_cicd_* child (invariant 17). Labels are ids and closed
+  # vocabularies only: no actor, triggering actor, author, committer, commit
+  # message, display title, PR title or body, release name or user ever becomes
+  # a label (invariant 6).
+  - name: ops_cicd_run
+    type: gauge
+    labels: [workflow, branch, run_number, status, conclusion, head_sha]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 for each of the newest runs (five by default) of every workflow on the
+      watched branch: the workflow file stem, the branch, the run number,
+      GitHub's closed status and conclusion vocabularies ("none" while
+      running) and the head commit sha. No actor, author, commit message or
+      display title becomes a label.
+  - name: ops_cicd_run_duration_seconds
+    type: gauge
+    labels: [workflow, branch, run_number]
+    owner: platform
+    unit: "s"
+    description: >-
+      Whole seconds from a run's start to its last update, for completed runs
+      only — absent, never zero, while a run is still going.
+  - name: ops_cicd_run_updated_seconds
+    type: gauge
+    labels: [workflow, branch, run_number]
+    owner: platform
+    unit: "s (unix time)"
+    description: Unix time each recent run was last updated.
+  - name: ops_cicd_failed_job
+    type: gauge
+    labels: [workflow, branch, run_number, job]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per failing job (failure, timed_out, startup_failure) of a failed run,
+      only when the job name is id-shaped; any other name is counted in
+      ops_cicd_failed_jobs and never exported. No actor or author becomes a
+      label.
+  - name: ops_cicd_failed_jobs
+    type: gauge
+    labels: [workflow, branch, run_number]
+    owner: platform
+    unit: "count"
+    description: >-
+      Every failing job of a failed run, named or not — what lets the console
+      say "+N unnamed". Absent for runs that did not fail.
+  - name: ops_cicd_branch_gate
+    type: gauge
+    labels: [branch, workflow, gate, conclusion]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per required gate (a job ci.yml or security.yml runs on every pull
+      request) on the watched branch's head commit, with the newest check
+      run's conclusion, "pending" while it runs or "missing" when it has no
+      check run. No actor, author or commit message becomes a label.
+  - name: ops_cicd_pr_gate
+    type: gauge
+    labels: [pr, workflow, gate, conclusion]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per required gate on the head commit of each recently updated open pull
+      request (five by default), keyed by the PR number only — the PR title,
+      body, author and labels are never read into a value.
+  - name: ops_cicd_branch_checks_enforced
+    type: gauge
+    labels: [branch]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 when GitHub enforces required status checks on the watched branch
+      (branch protection or a ruleset required_status_checks rule), 0 when it
+      does not — a green gate list GitHub does not enforce is advice, not a
+      gate.
+  - name: ops_cicd_release
+    type: gauge
+    labels: [tag, head_sha]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per published (non-draft) release among the ten newest, with the commit
+      its tag names. The release name, body and author never become labels.
+  - name: ops_cicd_release_published_seconds
+    type: gauge
+    labels: [tag]
+    owner: platform
+    unit: "s (unix time)"
+    description: Unix time each release was published.
+  - name: ops_cicd_release_signing
+    type: gauge
+    labels: [tag, state]
+    owner: platform
+    unit: "bool (0/1)"
+    description: >-
+      1 per release with its signing state: signed, sign_failed, sign_pending
+      or not_signed from security.yml's sign-and-attest job on that tag's
+      commit, or not_applicable for a tag outside the v* pattern that job runs
+      on. No actor or author becomes a label.
   # The offline scripted-clip build (ADR-028; make clips) counts its cache
   # hits and its syntheses on its own registry (voice_clips.metrics) and
   # writes them as a Prometheus textfile; the ops collector re-exports exactly

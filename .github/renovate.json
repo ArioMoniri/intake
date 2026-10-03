@@ -131,7 +131,7 @@
       "groupName": "pre-commit hooks"
     },
     {
-      "description": "The Keycloak provider's Maven build (infra/keycloak/providers/webauthn-session-notes: pom.xml and the wrapper's Maven distribution): one weekly PR for minor and patch updates. The same PR re-records the module's .mvn/checksums and the jar pin, or the keycloak-provider CI job refuses it (docs/runbooks/keycloak-realm.md §3).",
+      "description": "The Keycloak provider's Maven build (infra/keycloak/providers/webauthn-session-notes: pom.xml and the wrapper's Maven distribution): one weekly PR for minor and patch updates. The same PR re-records the module's .mvn/checksums and the jar pin, or the check-py CI job's provider build refuses it (docs/runbooks/keycloak-realm.md §3).",
       "matchManagers": ["maven", "maven-wrapper"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "keycloak provider (maven)"

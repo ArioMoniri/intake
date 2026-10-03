@@ -1,7 +1,7 @@
 # Runbook — the deployed Keycloak realm the admin console trusts
 
 **Owner:** `platform_owner` · **Issues:** INT-373, INT-378 · **Spec:** files/08 §2, §8 rule a, §8.1 ·
-**Threat-model row:** `admin-console` · **Keycloak:** 26.1.4 (the tag `infra/docker-compose.obs.yml` pins)
+**Threat-model row:** `admin-console` · **Keycloak:** 26.7.4 (the tag and digest `infra/docker-compose.obs.yml` pins)
 
 `infra/keycloak/dev-realm.json` is the laptop fixture, and no deployed environment is seeded
 from it. This runbook is what the owner applies by hand to the deployed realm, so that a
@@ -49,7 +49,7 @@ realm's issuer URL, and `INTAKE_ADMIN_OIDC_JWKS_PATH` to the mirrored JWKS.
 
 ## 3. `aaguid` and `credential_id` — the WebAuthn session-notes provider (INT-378)
 
-Stock Keycloak 26.1.4 cannot emit either value. Its WebAuthn authenticator verifies the
+Stock Keycloak (26.1.4 and 26.7.4 alike) cannot emit either value. Its WebAuthn authenticator verifies the
 assertion, then records the credential id only as an **event detail**
 (`public_key_credential_id`), and no stock protocol mapper reads event details. The AAGUID is
 stored on the credential (`WebAuthnCredentialModel`) but copied nowhere at login.
@@ -77,11 +77,11 @@ outside the console's id shape.
 `infra/keycloak/providers/webauthn-session-notes.sha256`:
 
 ```
-1b303dbf8c21cdcb8c29b5b5a0f3064c56e1cb4e15bc48222fd13dc0d9a1a636  intake-webauthn-session-notes-1.0.0.jar
+896d66982867ae23c3668df8138fde257feb61f9e30ac224d74a80a9e78f86df  intake-webauthn-session-notes-1.0.0.jar
 ```
 
 The build is reproducible, so the owner can rebuild from the tagged source and get the same
-bytes. The CI job `keycloak-provider` does exactly that on every PR. A source change changes
+bytes. The required CI job `check-py` does exactly that, as a step, on every PR. A source change changes
 the hash. Update the pin in the same PR, with a new recording (**Proof, recorded**, below).
 
 **Deploy it to the deployed Keycloak.**
@@ -103,7 +103,7 @@ the hash. Update the pin in the same PR, with a new recording (**Proof, recorded
    `credential_id` must be its id in base64url. A TOTP sign-in carries neither (below).
 
 **Proof, recorded.** `scripts/keycloak/record_webauthn_login.py` logs a synthetic staff account
-in to a real Keycloak 26.1.4 twice: once through this realm and once through a twin that runs
+in to a real Keycloak 26.7.4 twice: once through this realm and once through a twin that runs
 the stock `webauthn-authenticator`. It uses a software authenticator and needs no browser.
 `tests/admin/fixtures/keycloak_webauthn_login.json` is its output, which
 `tests/admin/test_webauthn_session_notes_provider.py` replays through the console. The first
@@ -119,7 +119,7 @@ console's rule changes, re-register the key for that staff member, which mints a
 sign in with TOTP instead of WebAuthn. A TOTP login has no AAGUID, so the provider writes
 nothing and the console refuses the token. The choices are (a) require WebAuthn for every
 console role, or (b) require `aaguid` only when `amr` contains `hwk`. The console's rule is
-unchanged until the owner records the choice (issue #621).
+unchanged until the owner records the choice (INT-389, issue #644).
 
 ## 4. Who may write `org` and `tenant` — the user profile
 

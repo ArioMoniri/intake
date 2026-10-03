@@ -47,6 +47,7 @@ from typing import Any
 
 import pytest
 from clinical_schemas.observers import Lane
+from intake_voice_runtime.app import VoiceRuntimeWiring
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.work_queue import BackendAgent
 from intake_voice_runtime.composition import (
@@ -89,6 +90,7 @@ from intake_voice_runtime.typed import (
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
 from protocols.types import Delivery, SlotType
+from red_harness import RecordingClinicNotifier
 from talker_harness import (
     FakeClock,
     InMemoryPatientMemory,
@@ -210,6 +212,7 @@ def voice_stack(
         sink=sink if sink is not None else RecordingSink(clock=ticking),
         memory=InMemoryPatientMemory(),
         tenant_id=TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=surface,
     )
     return stack, ticking, surface
@@ -229,6 +232,7 @@ def typed_stack(
         gateway=ScriptedGateway(ANSWERS),
         memory=InMemoryPatientMemory(),
         tenant_id=TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=screen,
     )
     return stack, ticking, screen
@@ -607,18 +611,33 @@ class TestHowAQuantityIsWritten:
     """Invariant 22's display half: ``useGrouping:false``, one atom."""
 
     def test_no_thousands_group_and_the_unit_cannot_be_split_off(self) -> None:
-        assert render_measure(Decimal("1500"), "mg") == f"1500{NBSP}mg"
-        assert "." not in render_measure(Decimal("1500"), None)
-        assert "," not in render_measure(Decimal("1500"), None)
+        assert render_measure(Decimal("1500"), "mg", locale="tr") == f"1500{NBSP}mg"
+        assert "." not in render_measure(Decimal("1500"), None, locale="tr")
+        assert "," not in render_measure(Decimal("1500"), None, locale="tr")
 
     def test_a_magnitude_never_renders_in_scientific_notation(self) -> None:
-        assert render_measure(Decimal("1E+3"), "mg") == f"1000{NBSP}mg"
+        assert render_measure(Decimal("1E+3"), "mg", locale="tr") == f"1000{NBSP}mg"
+
+    def test_the_decimal_point_is_the_sessions_locales(self) -> None:
+        """INT-386. The rail is written for the patient reading it: a comma in
+        Turkish, a full stop in English, and nothing else changes."""
+        assert render_measure(Decimal("2.5"), "mg", locale="tr") == f"2,5{NBSP}mg"
+        assert render_measure(Decimal("2.5"), "mg", locale="en") == f"2.5{NBSP}mg"
+        assert render_measure(7, "gün", locale="tr") == f"7{NBSP}gün"
+
+    def test_a_full_stop_on_a_turkish_rail_is_the_near_miss(self) -> None:
+        """What the rail wrote before INT-386. A Turkish reader takes ``2.500``
+        as two thousand five hundred; the rail never writes a full stop for
+        one."""
+        rendered = render_measure(Decimal("2.500"), "mg", locale="tr")
+        assert rendered == f"2,500{NBSP}mg"
+        assert "." not in rendered
 
     def test_the_rail_renders_every_bound_numeric_value(self) -> None:
         stack, clock, _ = typed_stack()
         drive(stack, clock, SCRIPT)
         values = {step_id: stack.engine.value_of(step_id) for step_id in STEP_IDS}
-        rail = numeric_rail(values, stack.slot_affordances)
+        rail = numeric_rail(values, stack.slot_affordances, locale="tr")
         assert rail == {step_id: str(index + 1) for index, step_id in enumerate(STEP_IDS)}
 
     def test_the_rail_skips_a_value_that_is_not_a_magnitude(self) -> None:
@@ -627,7 +646,7 @@ class TestHowAQuantityIsWritten:
                 step_id="oyku.notu", slot_type=SlotType.STRING, critical_path=False
             )
         }
-        assert numeric_rail({"oyku.notu": "sentetik"}, facts) == {}
+        assert numeric_rail({"oyku.notu": "sentetik"}, facts, locale="tr") == {}
 
 
 # =====================================================================================
@@ -835,22 +854,34 @@ class TestTheTypedWorkerCanBecomeReady:
     """
 
     def test_a_typed_worker_is_ready_with_no_speech_binding_at_all(self) -> None:
+        """INT-406: the Safety inbox is not a speech binding — a typed RED
+        reaches the clinic through it too — so it is the one wired here."""
         from fastapi.testclient import TestClient  # noqa: PLC0415
-        from intake_voice_runtime.app import VoiceRuntimeWiring, create_app  # noqa: PLC0415
+        from intake_voice_runtime.app import create_app  # noqa: PLC0415
 
-        client = TestClient(create_app(VoiceRuntimeWiring(profile=VoiceProfile.TYPED)))
+        client = TestClient(create_app(_typed_wiring()))
         response = client.get("/readyz")
         assert response.status_code == 200
 
     def test_the_report_still_names_all_three_checks(self) -> None:
         """A readiness report that silently shrinks is one nobody can compare
-        across deployments."""
+        across deployments. INT-182 added a fourth — ``voice_controls``, the
+        kill-switch read a speech worker needs at every session start — and a
+        typed worker names it too, passed, rather than dropping it. INT-406
+        added a fifth, ``safety_inbox``, which every profile needs."""
         from fastapi.testclient import TestClient  # noqa: PLC0415
-        from intake_voice_runtime.app import VoiceRuntimeWiring, create_app  # noqa: PLC0415
+        from intake_voice_runtime.app import create_app  # noqa: PLC0415
 
-        client = TestClient(create_app(VoiceRuntimeWiring(profile=VoiceProfile.TYPED)))
+        client = TestClient(create_app(_typed_wiring()))
         checks = client.get("/readyz").json()["checks"]
-        assert set(checks) == {"clip_store", "speech_synthesizer", "room_token"}
+        assert set(checks) == {
+            "clip_store",
+            "speech_synthesizer",
+            "room_token",
+            "voice_controls",
+            "safety_inbox",
+        }
+        assert set(checks.values()) == {"ok"}
 
     def test_the_voice_worker_still_fails_closed_on_the_same_three(self) -> None:
         from fastapi.testclient import TestClient  # noqa: PLC0415
@@ -858,3 +889,13 @@ class TestTheTypedWorkerCanBecomeReady:
 
         client = TestClient(create_app(VoiceRuntimeWiring()))
         assert client.get("/readyz").status_code == 503
+
+
+def _typed_wiring() -> VoiceRuntimeWiring:
+    """A typed worker with the one binding every profile needs (INT-406)."""
+    import fakeredis  # noqa: PLC0415
+    from intake_platform.safety_inbox import RedisSafetyInboxStore  # noqa: PLC0415
+
+    return VoiceRuntimeWiring(
+        profile=VoiceProfile.TYPED, safety_inbox=RedisSafetyInboxStore(fakeredis.FakeRedis())
+    )

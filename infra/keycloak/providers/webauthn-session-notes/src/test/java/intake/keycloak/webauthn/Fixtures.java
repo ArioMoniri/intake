@@ -18,10 +18,15 @@ import org.keycloak.WebAuthnConstants;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.AuthenticationFlowError;
 import org.keycloak.authentication.FlowStatus;
+import org.keycloak.authentication.authenticators.browser.WebAuthnMetadataService;
 import org.keycloak.credential.CredentialModel;
+import org.keycloak.credential.CredentialProvider;
+import org.keycloak.credential.WebAuthnCredentialProvider;
+import org.keycloak.credential.WebAuthnCredentialProviderFactory;
 import org.keycloak.events.EventBuilder;
 import org.keycloak.forms.login.LoginFormsProvider;
 import org.keycloak.http.HttpRequest;
+import org.keycloak.models.Constants;
 import org.keycloak.models.KeycloakContext;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakUriInfo;
@@ -112,6 +117,8 @@ final class Fixtures {
       when(context.getUser()).thenReturn(user);
       when(context.getStatus()).thenAnswer(invocation -> status.value);
       doAnswer(invocation -> status.value = FlowStatus.SUCCESS).when(context).success();
+      // 26.7.4's stock action names the credential type it succeeded with
+      doAnswer(invocation -> status.value = FlowStatus.SUCCESS).when(context).success(anyString());
       doAnswer(invocation -> status.value = FlowStatus.FAILED)
           .when(context)
           .failure(any(AuthenticationFlowError.class), any());
@@ -146,7 +153,7 @@ final class Fixtures {
       params.putSingle(WebAuthnConstants.USER_HANDLE, "");
       WebAuthnPolicy policy = new WebAuthnPolicy();
       policy.setRpId("kc.example.test");
-      policy.setUserVerificationRequirement(WebAuthnConstants.OPTION_REQUIRED);
+      policy.setUserVerificationRequirement(Constants.WEBAUTHN_POLICY_OPTION_REQUIRED);
       when(realm.getWebAuthnPolicy()).thenReturn(policy);
       KeycloakUriInfo uriInfo = mock(KeycloakUriInfo.class);
       when(uriInfo.getBaseUri()).thenReturn(URI.create("https://kc.example.test/"));
@@ -159,6 +166,11 @@ final class Fixtures {
       KeycloakContext keycloakContext = mock(KeycloakContext.class);
       when(session.getContext()).thenReturn(keycloakContext);
       when(keycloakContext.resolveLocale(user)).thenReturn(Locale.ENGLISH);
+      // 26.7.4's error page lists the user's authenticators with their metadata
+      WebAuthnCredentialProvider credentialProvider = mock(WebAuthnCredentialProvider.class);
+      when(credentialProvider.getMetadataService()).thenReturn(mock(WebAuthnMetadataService.class));
+      when(session.getProvider(CredentialProvider.class, WebAuthnCredentialProviderFactory.PROVIDER_ID))
+          .thenReturn(credentialProvider);
       return this;
     }
   }

@@ -34,6 +34,13 @@ the content empty.
 ``RedPathNotWired`` rather than continuing the intake past a life threat
 (invariant 21). Binding it needs the pre-positioned RED scripts, which are
 compiled clinical content and blocked on HB-C1.
+
+**The clinician route is wired, and it is required** (INT-406, invariant 49).
+The clinic hearing of a RED must not wait on the scripts that tell the
+patient, so ``clinic`` — the :class:`~intake_voice_runtime.talker.red_path.ClinicNotifier`
+into the Safety inbox — is a required argument of both roots and is bound to
+the ``BackendAgent``, which tells it of every rules-engine RED as it settles.
+A session with no route to the clinic cannot be composed.
 """
 
 from __future__ import annotations
@@ -69,6 +76,7 @@ from intake_voice_runtime.ports import (
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.talker.clips import ClipCatalogue
 from intake_voice_runtime.talker.delivery import DeliveryDeadlines
+from intake_voice_runtime.talker.red_path import ClinicNotifier
 from intake_voice_runtime.talker.session import TalkerConfig, TalkerSession
 from intake_voice_runtime.transcript import SessionTranscripts
 from intake_voice_runtime.typed.affordance import SlotFacts, slot_facts
@@ -155,6 +163,7 @@ def build_residency_tr_session(
     sink: AudioSink,
     memory: PatientMemoryStore,
     tenant_id: str,
+    clinic: ClinicNotifier,
     clock: Clock | None = None,
     catalogue: ClipCatalogue | None = None,
     deadlines: DeliveryDeadlines | None = None,
@@ -177,13 +186,14 @@ def build_residency_tr_session(
 
     ``extraction_row`` defaults to files/03 §4.9.1 **row 7** rather than row 9.
     That is a recorded fact about the bridge, not a preference: §4.9.1 row 9
-    pins ``Qwen/Qwen3.6-35B-A3B`` for extraction, no registry row carries it,
-    and the served OpenAI-compatible endpoint on the dev bridge is the row-7
-    Talker model. §4.9.2(a) already notes that consolidating extraction onto
-    the Talker family is *"also an operational win: one model family to
-    version, pin and hash"* — but which row serves extraction in production is
-    a decision for the issue that sizes the GPU tier, and the parameter exists
-    so it is made explicitly rather than inherited from this default.
+    pins ``Qwen/Qwen3.6-35B-A3B`` for extraction, its registry row (INT-124)
+    records it as served by no host, and the served OpenAI-compatible endpoint
+    on the dev bridge is the row-7 Talker model. §4.9.2(a) already notes that
+    consolidating extraction onto the Talker family is *"also an operational
+    win: one model family to version, pin and hash"* — but which row serves
+    extraction in production is a decision for the issue that sizes the GPU
+    tier, and the parameter exists so it is made explicitly rather than
+    inherited from this default.
     """
     return _compose(
         protocol=protocol,
@@ -193,6 +203,7 @@ def build_residency_tr_session(
         gateway=gateway,
         memory=memory,
         tenant_id=tenant_id,
+        clinic=clinic,
         clock=clock,
         deadlines=deadlines,
         rule_ids=rule_ids,
@@ -226,6 +237,7 @@ def build_typed_session(
     screen: ScreenSink,
     memory: PatientMemoryStore,
     tenant_id: str,
+    clinic: ClinicNotifier,
     clock: Clock | None = None,
     deadlines: DeliveryDeadlines | None = None,
     rule_ids: frozenset[str] = frozenset(),
@@ -258,6 +270,7 @@ def build_typed_session(
         gateway=gateway,
         memory=memory,
         tenant_id=tenant_id,
+        clinic=clinic,
         clock=clock,
         deadlines=deadlines,
         rule_ids=rule_ids,
@@ -285,6 +298,7 @@ def _compose(
     gateway: ExtractionGateway,
     memory: PatientMemoryStore,
     tenant_id: str,
+    clinic: ClinicNotifier,
     clock: Clock | None,
     deadlines: DeliveryDeadlines | None,
     rule_ids: frozenset[str],
@@ -328,7 +342,9 @@ def _compose(
     engine = IntakeEngine(
         protocol=protocol, reference_time=reference_time, overlay_facts=overlay_facts
     )
-    agent = BackendAgent(session_id=session_id, engine=engine, rule_ids=rule_ids, clock=ticking)
+    agent = BackendAgent(
+        session_id=session_id, engine=engine, rule_ids=rule_ids, clock=ticking, clinic=clinic
+    )
     transcripts = SessionTranscripts()
     pin = resolve_pin(extraction_row)
     handler = ExtractSlotsHandler(

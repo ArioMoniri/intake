@@ -77,6 +77,11 @@ dev = [
     # acceptance). MPL-2.0 (LICENSE.txt blob verified in
     # docs/evidence/INT-033.md), test-only, never on the PHI path.
     "hypothesis>=6.112",
+    # INT-257 validates the committed openEHR OPT against the official OPT 1.4
+    # XSD set (openEHR ITS-XML Release-1.0.2), which the stdlib cannot do.
+    # BSD-3-Clause (LICENSE.txt blob at tag lxml-6.1.3 verified in
+    # docs/evidence/INT-257.md), test-only, never on the PHI path.
+    "lxml>=6.1",
 ]
 
 [tool.ruff]

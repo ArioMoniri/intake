@@ -84,6 +84,63 @@ BENCHMARK_ACTORS = frozenset(
 COMPLIANCE_READERS = frozenset(
     {AdminRole.COMPLIANCE_OFFICER, AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
 )
+#: INT-366 — files/08 §2.7. The review's signers (`compliance_officer`, and a
+#: tenant's `tenant_clinical_responsible` for its clinician accounts), its
+#: countersigners (`compliance_officer`, `qms_owner`), `auditor` and
+#: `platform_owner` read it; written out as the second opinion against the
+#: wiring's derivation from the registry.
+ACCESS_REVIEW_SIGNERS = frozenset(
+    {AdminRole.COMPLIANCE_OFFICER, AdminRole.TENANT_CLINICAL_RESPONSIBLE}
+)
+ACCESS_REVIEW_COUNTERSIGNERS = frozenset({AdminRole.COMPLIANCE_OFFICER, AdminRole.QMS_OWNER})
+ACCESS_REVIEW_READERS = (
+    ACCESS_REVIEW_SIGNERS
+    | ACCESS_REVIEW_COUNTERSIGNERS
+    | {AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
+)
+#: files/08 §8.2 T1 ("token revoke") and §2.1: `sre_oncall` revokes alone, the
+#: `compliance_officer` acts on the review's findings, `platform_owner` is all.
+OFFBOARDERS = frozenset(
+    {AdminRole.SRE_ONCALL, AdminRole.COMPLIANCE_OFFICER, AdminRole.PLATFORM_OWNER}
+)
+
+#: INT-182 — the Voice module (files/08 §8.2). Tier 1, the safe direction:
+#: one `sre_oncall` or `clinical_lead` (and `platform_owner`, the platform
+#: authority above both — INT-188's precedent). Tier 2, toward voice: requested
+#: by an all-tenant role accountable for the clinical channel, approved by a
+#: second from the same pool or `qms_owner` (device change control).
+VOICE_KILL_SWITCH_ACTORS = frozenset(
+    {AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER}
+)
+VOICE_REQUESTERS = frozenset({AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD})
+VOICE_APPROVERS = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD, AdminRole.QMS_OWNER}
+)
+VOICE_BRIEF_READERS = (
+    VOICE_KILL_SWITCH_ACTORS | VOICE_REQUESTERS | VOICE_APPROVERS | {AdminRole.AUDITOR}
+)
+
+#: INT-187 — the CI/CD module (files/08 §8.2). Tier 1, the safe direction: the
+#: T1 row's `sre_oncall` or `clinical_lead`, and `platform_owner` above both.
+#: Tier 2, lifting a freeze: requested by the infrastructure roles that own a
+#: deploy (`platform_owner`, `platform_admin`), approved by `platform_owner` or
+#: `qms_owner` — a release is IEC 62304 change control (§2.1, §9).
+FREEZE_ACTORS = frozenset({AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER})
+FREEZE_LIFT_REQUESTERS = frozenset({AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN})
+FREEZE_LIFT_APPROVERS = frozenset({AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER})
+FREEZE_BRIEF_READERS = (
+    FREEZE_ACTORS | FREEZE_LIFT_REQUESTERS | FREEZE_LIFT_APPROVERS | {AdminRole.AUDITOR}
+)
+
+#: INT-406 — the Safety queue (files/08 §3: "acknowledge
+#: (`tenant_clinical_responsible`)"). Read by the acknowledger, the all-tenant
+#: clinical lead, the platform owner and the auditor (read-only evidence).
+SAFETY_QUEUE_ACKNOWLEDGERS = frozenset({AdminRole.TENANT_CLINICAL_RESPONSIBLE})
+SAFETY_QUEUE_READERS = SAFETY_QUEUE_ACKNOWLEDGERS | {
+    AdminRole.CLINICAL_LEAD,
+    AdminRole.PLATFORM_OWNER,
+    AdminRole.AUDITOR,
+}
 
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
@@ -101,6 +158,27 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/compliance/audit-search"): COMPLIANCE_READERS,
     ("GET", "/admin/compliance/dsar"): COMPLIANCE_READERS,
     ("GET", "/admin/compliance/evidence-export"): COMPLIANCE_READERS,
+    ("GET", "/admin/voice"): PLATFORM_SCOPE_ROLES,
+    ("POST", "/admin/voice/kill-switch"): VOICE_KILL_SWITCH_ACTORS,
+    ("POST", "/admin/voice/kill-switch/release"): VOICE_REQUESTERS,
+    ("POST", "/admin/voice/kill-switch/release/{action_id}/approve"): VOICE_APPROVERS,
+    ("PUT", "/admin/voice/profile/{tenant}"): VOICE_REQUESTERS,
+    ("POST", "/admin/voice/profile/pending/{action_id}/approve"): VOICE_APPROVERS,
+    ("PUT", "/admin/voice/canary/{tenant}"): VOICE_REQUESTERS,
+    ("POST", "/admin/voice/canary/pending/{action_id}/approve"): VOICE_APPROVERS,
+    ("GET", "/admin/voice/pending/{action_id}"): frozenset(VOICE_BRIEF_READERS),
+    ("GET", "/admin/cicd"): PLATFORM_SCOPE_ROLES,
+    ("POST", "/admin/cicd/freeze"): FREEZE_ACTORS,
+    ("POST", "/admin/cicd/freeze/lift"): FREEZE_LIFT_REQUESTERS,
+    ("POST", "/admin/cicd/freeze/lift/{action_id}/approve"): FREEZE_LIFT_APPROVERS,
+    ("GET", "/admin/cicd/pending/{action_id}"): frozenset(FREEZE_BRIEF_READERS),
+    ("GET", "/admin/access/review"): frozenset(ACCESS_REVIEW_READERS),
+    ("POST", "/admin/access/review/sign"): ACCESS_REVIEW_SIGNERS,
+    ("POST", "/admin/access/review/sign/{action_id}/countersign"): ACCESS_REVIEW_COUNTERSIGNERS,
+    ("POST", "/admin/access/offboard"): OFFBOARDERS,
+    ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
+    ("GET", "/admin/safety-queue"): SAFETY_QUEUE_READERS,
+    ("POST", "/admin/safety-queue/{entry_id}/acknowledge"): SAFETY_QUEUE_ACKNOWLEDGERS,
 }
 
 

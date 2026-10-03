@@ -91,6 +91,7 @@ from typing import Final
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import CandidateFlag, RulesTriageResult, TriageLevel
+from intake_platform.safety_inbox.metrics import CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL
 from pydantic import Field, ValidationError
 
 from intake_voice_runtime.clinical_agent.fsm import EngineError, IntakeEngine
@@ -119,6 +120,7 @@ from intake_voice_runtime.talker.preemption import (
     Priority,
     authorise_preempt,
 )
+from intake_voice_runtime.talker.red_path import REGISTER_DELIVERY, ClinicNotifier, RedNotification
 
 __all__ = [
     "LANE_OF",
@@ -152,6 +154,7 @@ LANE_OF: Final[Mapping[WorkType, WorkLane]] = {
     WorkType.EXTRACT_SLOTS: WorkLane.STATE,
     WorkType.PLAN_FOLLOW_UPS: WorkLane.STATE,
     WorkType.PARSE_DOCUMENT: WorkLane.BACKGROUND,
+    WorkType.RETRIEVE_RECORDS: WorkLane.BACKGROUND,
 }
 
 
@@ -262,6 +265,12 @@ class BackendAgent:
     engine: IntakeEngine
     rule_ids: frozenset[str] = frozenset()
     clock: Clock = field(default_factory=SystemClock)
+    #: INT-406, invariant 49: the clinician route, told of every rules-engine
+    #: RED at the moment it settles — before Layer A drains it, so a session
+    #: that ends on the answer that fired the RED still reaches the clinic.
+    #: ``None`` is the unit-level default only; both composition roots require
+    #: one (``intake_voice_runtime.composition``).
+    clinic: ClinicNotifier | None = None
     _queue_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _engine_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _state_handlers: dict[WorkType, StateHandler] = field(default_factory=dict, init=False)
@@ -629,9 +638,46 @@ class BackendAgent:
             except PreemptRefused as err:
                 self._finish_failed(lane, work_id, err)
                 return
+            self._notify_clinic(result)
         self._settle(lane, work_id, WorkState.COMPLETED, result, error=None)
         if priority is Priority.PREEMPT:
             self._seal()
+
+    def _notify_clinic(self, result: BackendResult) -> None:
+        """Invariant 49: hand an authorised RED to the clinician route.
+
+        Runs after :func:`authorise_preempt`, so only a rules-engine RED from
+        the pinned pack reaches it (invariant 1), and before the result
+        settles, so the route hears of the RED no later than Layer A can. The
+        port has no awaitable member; a route that raises is logged by work
+        id and never costs the RED its delivery — the result settles and the
+        queue seals either way.
+        """
+        if self.clinic is None:
+            return
+        try:
+            triage = result.presentation.triage_update
+            if not isinstance(triage, RulesTriageResult) or (
+                triage.register is None or triage.location is None
+            ):
+                # unreachable past authorise_preempt; counted, never raised here
+                raise TypeError("an authorised RED carries a rules result with both axes")
+            self.clinic.notify(
+                RedNotification(
+                    work_id=result.work_id,
+                    rule_ids=tuple(fire.id for fire in triage.rules),
+                    register=triage.register,
+                    location=triage.location,
+                    evaluated_at_ms=self.clock.now_ms(),
+                    patient_facing=REGISTER_DELIVERY[triage.register].triggers_device,
+                )
+            )
+        except Exception:  # the route must never cost the RED; the failure pages
+            CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL.inc()
+            logger.error(
+                "red clinic route failed",
+                extra={"session_id": self.session_id, "work_id": result.work_id},
+            )
 
     def _finish_failed(self, lane: WorkLane, work_id: str, err: Exception) -> None:
         record = self._records[work_id]

@@ -55,6 +55,9 @@ const NOTICE_KEYS = {
   filled: "visits.new.smsFilled",
   unknown_branch: "visits.new.smsUnknownBranch",
   no_date: "visits.new.smsNoDate",
+  // INT-400: the message's date reads two ways; the date field below is left
+  // empty and the patient writes the date — the app never picks a reading
+  ambiguous_date: "visits.new.smsAmbiguousDate",
   unreadable: "visits.new.smsUnreadable",
 } as const;
 
@@ -130,6 +133,9 @@ export default function NewVisit() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
         keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): each field scrolls clear of the keyboard, which
+        // takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
       >
         <AppText role="caption" color="inkFaint">
           {t("visits.new.hint")}

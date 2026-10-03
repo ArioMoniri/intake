@@ -31,6 +31,13 @@ touches.
   (``intake_api.dev_voice_guard``), otherwise 422 and no dial. The mobile
   client's nominal ``ScriptedTr`` (``apps/mobile/src/lib/dialogue/georgeClip.ts``)
   stays as defence in depth; the server no longer trusts it.
+- *Delivery context, not delivery settings* (INT-415). The body names one of
+  seven contexts (routine by default). The server maps it to its own
+  delivery-profile table (``voice_clips.delivery``), so the device never holds
+  or sends a voice setting. ``red`` is refused, and so is any compiled rule
+  script under any label: RED audio is pre-positioned on the device and never
+  fetched on demand (invariant 21). An instrument item is spoken only in the
+  instrument profile. The profile id and version are part of the cache key.
 - *A per-principal budget* (INT-326) on the INT-012 Redis token bucket; every
   authenticated request costs a token, an empty bucket is 429, an unreachable
   store is 503.
@@ -64,6 +71,12 @@ from intake_platform.security.rate_limit import RateLimitExceeded, TokenBucketLi
 from protocols.dsl import clip_text_hash
 from pydantic import BaseModel, ConfigDict, Field
 from voice_clips.audio import wav_bytes
+from voice_clips.delivery import (
+    DEFAULT_DELIVERY_CONTEXT,
+    DeliveryContext,
+    DeliveryProfile,
+    delivery_profile,
+)
 from voice_clips.gateway import (
     ENV_ELEVENLABS_BASE,
     ENV_ELEVENLABS_KEY,
@@ -121,37 +134,43 @@ router = APIRouter(tags=["dev-voice"])
 
 @dataclass
 class GeorgeClipCache:
-    """A ``sha256(text_tr)``-addressed clip cache over an injected gateway.
+    """A clip cache addressed by delivery profile and ``sha256(text_tr)``, over
+    an injected gateway.
 
-    The address is ``clip_text_hash`` — the exact function the ADR-028 offline
-    manifest keys on — so the same scripted text always maps to the same file
-    and the vendor is dialled AT MOST once per distinct text.
+    The address is ``<profile key>/<clip_text_hash(text_tr)>``. The hash is the
+    exact function the ADR-028 offline manifest keys on, and the profile key
+    (``delivery.<context>@v<version>``, INT-415) keeps one text delivered two
+    ways as two clips. The vendor is dialled AT MOST once per distinct (text,
+    profile), and a retuned profile is a miss rather than a replay of the old
+    tuning.
     """
 
     gateway: TtsGateway
     cache_dir: Path
     voice_id: str = GEORGE_VOICE_ID
 
-    def ensure(self, text_tr: str) -> tuple[bytes, bool]:
+    def ensure(self, text_tr: str, profile: DeliveryProfile) -> tuple[bytes, bool]:
         """Return ``(wav_body, cache_hit)``.
 
         The WAV framing is the sanctioned :func:`voice_clips.audio.wav_bytes`,
         never assembled here — agent-audio encoding lives in the one module
         invariant 3's guard allows it (files/03 §4.2), not ad hoc in a service.
-        The on-disk cache is addressed by ``clip_text_hash(text_tr)`` alone,
-        with no file extension, so this service names no audio artefact.
+        The on-disk cache is addressed by the profile key and
+        ``clip_text_hash(text_tr)``, with no file extension, so this service
+        names no audio artefact.
 
         Raises :class:`NumeralInScriptError` (invariant 22) or another
         :class:`TtsError` (vendor unreachable/refused); the route maps both to a
         refusal that never echoes the key.
         """
         assert_speakable_tr(text_tr)  # invariant 22 — before the vendor, always
-        path = self.cache_dir / clip_text_hash(text_tr)
+        folder = self.cache_dir / profile.key
+        path = folder / clip_text_hash(text_tr)
         if path.is_file():
             return path.read_bytes(), True
-        speech = self.gateway.synthesise(text_tr=text_tr, voice_id=self.voice_id)
+        speech = self.gateway.synthesise(text_tr=text_tr, voice_id=self.voice_id, profile=profile)
         wav = wav_bytes(speech)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        folder.mkdir(parents=True, exist_ok=True)
         path.write_bytes(wav)
         return wav, False
 
@@ -204,21 +223,48 @@ def george_wiring_from_env(redis_url: str = DEFAULT_REDIS_URL) -> GeorgeWiring |
 
 
 class GeorgeClipIn(BaseModel):
-    """The wire body: one scripted question ``text_tr``. ``extra='forbid'`` so no
-    voice id or model can be smuggled in — George is fixed server-side."""
+    """The wire body: one scripted question ``text_tr`` and the delivery
+    context it is spoken in. ``extra='forbid'`` so no voice id, model or voice
+    setting can be smuggled in: George and the delivery-profile table are fixed
+    server-side, and the device names a context, never a setting (INT-415)."""
 
     model_config = ConfigDict(extra="forbid")
 
     text_tr: str = Field(min_length=1, max_length=MAX_SCRIPTED_LEN)
+    delivery_context: DeliveryContext = Field(
+        default=DEFAULT_DELIVERY_CONTEXT,
+        description="How the text is delivered (INT-414/INT-415); never changes the words.",
+    )
 
 
-async def _refusal(wiring: GeorgeWiring, account_id: str, text_tr: str) -> JSONResponse | None:
+def _delivery_refusal(wiring: GeorgeWiring, payload: GeorgeClipIn) -> JSONResponse | None:
+    """INT-415's two delivery doors; ``None`` admits.
+
+    RED is never served on demand. Invariant 21 pre-positions the RED script
+    on the device and triggers it over the data channel, so a RED clip fetched
+    at RED time would be exactly the media round trip the invariant removes.
+    The route refuses the ``red`` label AND any compiled rule script, whatever
+    it is labelled. An instrument item is spoken only in the instrument
+    profile. The text is never echoed (invariant 6).
+    """
+    pinned = wiring.catalogue.pinned_context(payload.text_tr)
+    if "red" in (payload.delivery_context, pinned):
+        return JSONResponse({"error": "red_not_on_demand"}, status_code=422)
+    if pinned is not None and pinned != payload.delivery_context:
+        return JSONResponse({"error": "delivery_context_mismatch"}, status_code=422)
+    return None
+
+
+async def _refusal(
+    wiring: GeorgeWiring, account_id: str, payload: GeorgeClipIn
+) -> JSONResponse | None:
     """The INT-326 doors after authentication, in order; ``None`` admits.
 
     The budget is charged FIRST, so a refused request still costs a token
     (hammering the door with off-catalogue text is not free). No refusal
     echoes the text (invariant 6), and none of them reaches the vendor.
     """
+    text_tr = payload.text_tr
     try:
         # sync Redis client, so the call hops off the event loop (INT-131 precedent)
         await asyncio.to_thread(wiring.budget.consume, "user", account_id)
@@ -239,7 +285,7 @@ async def _refusal(wiring: GeorgeWiring, account_id: str, text_tr: str) -> JSONR
     if not wiring.catalogue.admits(text_tr):
         # not a compiled clip-manifest row: never scripted text, never dialled
         return JSONResponse({"error": "not_in_catalogue"}, status_code=422)
-    return None
+    return _delivery_refusal(wiring, payload)
 
 
 @router.post(GEORGE_CLIP_PATH, dependencies=[dev_voice_scripted()])
@@ -253,11 +299,11 @@ async def george_clip(payload: GeorgeClipIn, request: Request, principal: Princi
         # No dev flag / no key / no catalogue — the mobile treats this as
         # "unavailable" and falls back to the self-hosted TTS (ADR-028 posture).
         return JSONResponse({"error": "george_unconfigured"}, status_code=503)
-    refusal = await _refusal(wiring, account.account_id, payload.text_tr)
+    refusal = await _refusal(wiring, account.account_id, payload)
     if refusal is not None:
         return refusal
     try:
-        wav, hit = wiring.cache.ensure(payload.text_tr)
+        wav, hit = wiring.cache.ensure(payload.text_tr, delivery_profile(payload.delivery_context))
     except NumeralInScriptError:
         # invariant 22: a numeral reached the boundary — refuse, do not normalise
         return JSONResponse({"error": "not_speakable"}, status_code=422)

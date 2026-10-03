@@ -1,9 +1,11 @@
 /**
  * Floating bottom CTA bar (design pass 3, Oura chrome): the screen's one
  * primary action sits on a glass strip pinned to the bottom edge — system
- * Liquid Glass on iOS 26+, real BlurView + tint wash elsewhere — with a top
- * hairline; the body scrolls UNDER it. Glass carries chrome only: the bar
- * holds a button, never body text (02 §8.2).
+ * Liquid Glass on iOS 26+, real BlurView + tint wash elsewhere, the solid
+ * surface under Reduce Transparency (docs/design/apple-native/spec.md §1.1) —
+ * with a top hairline; the body scrolls UNDER it. Glass carries chrome only:
+ * the bar holds a button, never body text (02 §8.2). System glass takes the
+ * app's resolved scheme, so a Görünüm override reaches the material too.
  *
  * Usage contract: the host screen zeroes the Screen padding, moves the
  * gutter onto the ScrollView content, holds the bar's reported height, and
@@ -13,19 +15,13 @@
 import { useCallback, type ReactNode } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import { BlurView } from "expo-blur";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassView } from "expo-glass-effect";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useGlassMode } from "@/components/glassMode";
 import { useFontScale, useScheme, useTheme } from "@/components/Themed";
 import { glassBarClearance } from "@/lib/prefs/appearance";
 import { glassFallback, spacing } from "@/lib/theme";
-
-let liquidGlass = false;
-try {
-  liquidGlass = isLiquidGlassAvailable();
-} catch {
-  liquidGlass = false;
-}
 
 /**
  * Scroll-content bottom padding that keeps the last row reachable (INT-284).
@@ -65,6 +61,7 @@ interface GlassBarProps {
 export function GlassBar({ children, floating = true, onHeight }: GlassBarProps) {
   const theme = useTheme();
   const scheme = useScheme();
+  const mode = useGlassMode();
   const insets = useSafeAreaInsets();
   const fallback = glassFallback(scheme);
   const barStyle = floating ? [styles.bar, styles.floating] : [styles.bar];
@@ -79,15 +76,28 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
       {children}
     </View>
   );
-  if (liquidGlass) {
+  if (mode === "liquid") {
     return (
       <GlassView
         glassEffectStyle="regular"
+        colorScheme={scheme}
         onLayout={report}
         style={[...barStyle, { borderTopColor: theme.border }]}
       >
         {inner}
       </GlassView>
+    );
+  }
+  if (mode === "solid") {
+    // Reduce Transparency (spec §1.1): the surface token under a hairline, so
+    // the CTA sits on the palette whose contrast pairs are pinned.
+    return (
+      <View
+        onLayout={report}
+        style={[...barStyle, { backgroundColor: theme.surface, borderTopColor: theme.border }]}
+      >
+        {inner}
+      </View>
     );
   }
   return (
@@ -107,9 +117,14 @@ export function GlassBar({ children, floating = true, onHeight }: GlassBarProps)
 }
 
 const styles = StyleSheet.create({
+  // flexShrink (INT-360): a host that caps its bottom stack — the dialogue,
+  // whose stack must fit above a landscape keyboard — can take height back
+  // from the bar, and the bar hands it on to a scroller inside it. With no cap
+  // there is nothing to give, and the bar keeps its natural height.
   bar: {
     borderTopWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
+    flexShrink: 1,
   },
   floating: {
     position: "absolute",
@@ -120,5 +135,6 @@ const styles = StyleSheet.create({
   inner: {
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md,
+    flexShrink: 1,
   },
 });

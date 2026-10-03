@@ -486,6 +486,47 @@
         "title": "EvidenceBundle",
         "type": "object"
       },
+      "EvidenceSlot": {
+        "additionalProperties": false,
+        "description": "One slot a fired rule read, and what it carried (INT-404).\n\nThese are the parts of ``triage.rules[].evidence``. A number stays a\nnumber here: the clinical carrier's ``Decimal`` (files/13 §9.5), tagged on\nthe wire like every other ``JsonValue``. It becomes text only on the\nsurface that knows its reader (:mod:`clinical_schemas.rule_evidence`),\nbecause the decimal point is the reader's (CLAUDE.md invariant 22).",
+        "properties": {
+          "slot": {
+            "description": "The dotted slot reference exactly as the rule's when predicate spells it (files/03 §6 atoms).",
+            "minLength": 1,
+            "title": "Slot",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "The slot's declared unit (files/03 §6 ``unit:``), written beside each number as one non-breaking atom (invariant 22). Absent when the slot declares none.",
+            "title": "Unit"
+          },
+          "values": {
+            "description": "The value(s) the slot carried: one, or head + superseded when contested (files/12 §7.3). A number is a number, never text (files/13 §9.5).",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "minItems": 1,
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "slot",
+          "values"
+        ],
+        "title": "EvidenceSlot",
+        "type": "object"
+      },
       "EvidenceStats": {
         "additionalProperties": false,
         "description": "Aggregate evidence behind a proposal. The Architect's thresholds\n(files/09 §4: ≥ 10 patients, ≥ 2 clinics, stable over 2 weeks) are the\nfield constraints — an under-evidenced stats block is unrepresentable.",
@@ -2180,9 +2221,18 @@
         "description": "One fired rules-engine rule (files/04 §5 ``triage.rules[{id,evidence}]``).",
         "properties": {
           "evidence": {
-            "description": "Which slot values satisfied the rule (files/04 §5 triage.rules.evidence).",
+            "description": "Which slot values satisfied the rule (files/04 §5 triage.rules.evidence), as the rules engine recorded it: slot=value pairs with JSON's decimal point, written for no reader in particular. A line a person reads is written from ``evidence_slots`` for that reader (clinical_schemas.rule_evidence; INT-404). A fire that arrived as text alone, such as a FHIR import, is carried as written.",
             "title": "Evidence",
             "type": "string"
+          },
+          "evidence_slots": {
+            "default": [],
+            "description": "The same reading in parts (slot, carried values, declared unit), from which each reader's evidence line is written with that reader's decimal point (CLAUDE.md invariant 22; INT-404). Empty for a fire that arrived as text alone.",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceSlot"
+            },
+            "title": "Evidence Slots",
+            "type": "array"
           },
           "id": {
             "description": "Rule id from packages/protocols/triage (files/04 §5; invariant 1).",

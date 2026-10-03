@@ -1,12 +1,11 @@
 package intake.keycloak.webauthn;
 
-import java.io.IOException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Optional;
 import org.keycloak.WebAuthnConstants;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.FlowStatus;
-import org.keycloak.common.util.Base64;
 import org.keycloak.common.util.Base64Url;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.WebAuthnCredentialModel;
@@ -17,8 +16,8 @@ import org.keycloak.sessions.AuthenticationSessionModel;
  * Writes the two user-session notes the admin console's token needs, after a WebAuthn assertion
  * that Keycloak's own authenticator accepted.
  *
- * <p>Keycloak 26.1.4's {@code WebAuthnAuthenticator.action} verifies the assertion and, on success,
- * records the credential id only as an event detail and calls {@code context.success()}; it writes
+ * <p>Keycloak 26.7.4's {@code WebAuthnAuthenticator.action} verifies the assertion and, on success,
+ * records the credential id only as an event detail and calls {@code context.success(type)}; it writes
  * no note. The notes written here are copied into the user session by {@code
  * TokenManager.attachAuthenticationSession}, and the realm's {@code
  * oidc-usersessionmodel-note-mapper}s emit them as the {@code aaguid} and {@code credential_id}
@@ -47,7 +46,8 @@ public final class WebAuthnSessionNotes {
    * <p>The asserted id is read from the same form parameter, and decoded the same way, as the stock
    * action reads it; the stored id is decoded the way {@code
    * WebAuthnCredentialProvider.getCredentialInputFromCredentialModel} decodes it before {@code
-   * isValid} compares the two.
+   * isValid} compares the two: in 26.7.4, {@code java.util.Base64}'s MIME decoder, with a
+   * malformed value treated as no id.
    */
   public static void recordAfterAction(AuthenticationFlowContext context, String credentialType) {
     if (context.getStatus() != FlowStatus.SUCCESS) {
@@ -101,8 +101,8 @@ public final class WebAuthnSessionNotes {
       return new byte[0];
     }
     try {
-      return Base64.decode(value);
-    } catch (IOException | RuntimeException malformed) {
+      return Base64.getMimeDecoder().decode(value);
+    } catch (IllegalArgumentException malformed) {
       return new byte[0];
     }
   }

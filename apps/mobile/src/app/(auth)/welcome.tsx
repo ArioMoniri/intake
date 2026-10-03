@@ -6,6 +6,13 @@
  * via __DEV__ and renders as quiet pills so the one saturated CTA stays
  * the real sign-in (02 §5.2).
  *
+ * INT-410 (audit F30): compiling the block out was not enough. The seed was
+ * a static import, and Metro keeps a module that is imported statically even
+ * when only dead code reads it, so every synthetic account shipped in the
+ * release bundle. `DevSignIn` now loads the seed with an `import()` inside
+ * `if (__DEV__)`. A release build folds that branch away before Metro collects
+ * dependencies, so the seed module is not in the bundle at all.
+ *
  * INT-284: the screen SCROLLS. It used to centre its column in a `flex: 1`
  * box, which is fine until the column outgrows the box — flexbox centring does
  * not clip, it pushes the overflow out of BOTH ends, past the safe-area inset
@@ -16,17 +23,18 @@
  * centring while it fits and hands the patient the rest when it does not.
  */
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { GlassCard } from "@/components/GlassCard";
 import { Kicker } from "@/components/Kicker";
 import { AppText, PrimaryButton, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { verticalSlop } from "@/lib/a11y/target";
-import { testAccounts } from "@/lib/dev/accounts";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
 import { appLocaleChooser, chooseFromChooser } from "@/lib/locale/chooser";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
+import type { TestAccount } from "@/lib/types/account";
 
 /** An offered locale this app also carries a UI catalogue for. */
 function isCatalogued(code: string): code is Locale {
@@ -86,9 +94,50 @@ function FirstRunLanguage() {
   );
 }
 
-export default function Welcome() {
+/**
+ * The synthetic accounts, for a development build only. The `import()` sits
+ * inside `if (__DEV__)`, so a release build never bundles the seed: it would
+ * render an empty card if it ever rendered this, and it does not.
+ */
+function DevSignIn() {
   const router = useRouter();
   const { signIn } = useSession();
+  const [accounts, setAccounts] = useState<readonly TestAccount[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    if (__DEV__) {
+      void import("@/lib/dev/accounts").then((seed) => {
+        if (mounted) {
+          setAccounts(seed.testAccounts);
+        }
+      });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  return (
+    <GlassCard style={styles.devCard}>
+      <Kicker label={t("welcome.devSignIn")} />
+      {accounts.map((account) => (
+        <SecondaryButton
+          key={account.id}
+          label={account.name}
+          onPress={() => {
+            signIn(account);
+            router.replace("/(tabs)/today");
+          }}
+        />
+      ))}
+      <AppText role="caption" color="inkFaint">
+        {t("welcome.devNote")}
+      </AppText>
+    </GlassCard>
+  );
+}
+
+export default function Welcome() {
+  const router = useRouter();
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -103,24 +152,7 @@ export default function Welcome() {
         <FirstRunLanguage />
         <AppText role="body">{t("welcome.body")}</AppText>
         <PrimaryButton label={t("welcome.phoneCta")} onPress={() => router.push("/(auth)/phone")} />
-        {__DEV__ ? (
-          <GlassCard style={styles.devCard}>
-            <Kicker label={t("welcome.devSignIn")} />
-            {testAccounts.map((account) => (
-              <SecondaryButton
-                key={account.id}
-                label={account.name}
-                onPress={() => {
-                  signIn(account);
-                  router.replace("/(tabs)/today");
-                }}
-              />
-            ))}
-            <AppText role="caption" color="inkFaint">
-              {t("welcome.devNote")}
-            </AppText>
-          </GlassCard>
-        ) : null}
+        {__DEV__ ? <DevSignIn /> : null}
         <AppText role="caption" color="inkFaint" style={styles.disclaimer}>
           {t("app.disclaimer")}
         </AppText>
