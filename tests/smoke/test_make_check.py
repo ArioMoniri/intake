@@ -310,9 +310,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
     # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
     # a stated reason.
+    # + INT-448 (the #642 sign-off packet items under D18, GitHub #759); grows
+    # only with a stated reason.
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713);
     # grows only with a stated reason.
-    assert len(ids) == 336, f"expected 175 blueprint + 161 added issues, got {len(ids)}"
+    assert len(ids) == 337, f"expected 175 blueprint + 162 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
