@@ -183,6 +183,7 @@ sources:
     quote: "many cases, such calls may be genuine emergency calls made by people with hearing or speaking impairments, by people who lost consciousness after they initiated the call"
     snapshot: packages/protocols/sources/EENA-SILENT-CALLS-2020.txt
     supports: "location_question_rule: silence after an emergency contact is not reassurance"
+    caveat: "An operations document of the European Emergency Number Association, cited for what silence after an emergency contact may mean, not as a clinical guideline; it states no timing."
   - kind: guideline
     guideline_id: EENA-SILENT-CALLS-2020
     title: "Emergency Silent, Hang-Up and Abandoned 112 Calls (EENA operations document)"
@@ -193,6 +194,7 @@ sources:
     quote: "the person is no longer able to communicate (e.g. the caller loses consciousness)."
     snapshot: packages/protocols/sources/EENA-SILENT-CALLS-2020.txt
     supports: "location_question_rule: no answer resolves to the branch that summons help (REMOTE with 112)"
+    caveat: "An operations document of the European Emergency Number Association, cited for what silence after an emergency contact may mean, not as a clinical guideline; it states no timing."
 spec_basis:
   - file: packages/protocols/decisions/CD-24.yaml
     section: "decision, UNKNOWN verdict"
