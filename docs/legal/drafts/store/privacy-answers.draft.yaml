@@ -1,0 +1,510 @@
+# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+#
+# INT-482 (GitHub #825) — the App Privacy and Data safety answers, in our own
+# words, one row per data-inventory fact (invariant 18). GENERATED: do not edit.
+# tests/legal/test_store_privacy_answers.py fails when this file differs from
+#   uv run python -m intake_platform.store.answers
+# so regenerate it with that command (output below this header) after any
+# change to a column annotation or an off-schema flow.
+#
+# What the sheet does not do: name a vendor data type. Apple's App Privacy types
+# and Google Play's Data safety categories are applied by
+# intake_platform.store.declaration from a committed snapshot of each form
+# (HB-A12). Read the caveats first; the synthetic-scope one binds every row.
+provenance:
+  issue: INT-482
+  status: pending legal-lane review
+  derived_from: intake_platform.store.facts.data_facts
+  regenerate: uv run python -m intake_platform.store.answers
+caveats:
+- id: synthetic_scope
+  text: Until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11),
+    the production host receives simulated patients only (docs/release/production-checklist.md).
+    These answers describe the product as built. They do not say that real patient data is
+    processed today, and no public release may go live while that scope holds.
+- id: vendor_vocabulary
+  text: No vendor data type is named here. A row becomes an App Privacy type or a Data safety
+    category only through intake_platform.store.declaration and a committed snapshot of the
+    vendor's form (HB-A12).
+- id: seller_identity
+  text: The seller's legal entity, privacy-policy URL and support contact are owed by HB-L21(e);
+    the privacy policy itself is the unsigned gizlilik document (HB-L27).
+product:
+- id: tracking
+  answer: 'none: the app asks for no tracking authorisation and links no tracking-transparency
+    module'
+  sources:
+  - apps/mobile/app.json
+  - apps/mobile/package.json
+- id: advertising
+  answer: 'none: no inventory purpose is advertising or marketing'
+  sources:
+  - packages/intake_platform/src/intake_platform/store/facts.py
+- id: encryption_in_transit
+  answer: 'yes: the production build talks to the API over https only'
+  sources:
+  - apps/mobile/eas.json
+- id: deletion
+  answer: 'yes: the patient requests deletion in the app (Profilim, Verileriniz); the server
+    runs it after a grace period, then crypto-shreds'
+  sources:
+  - apps/mobile/src/lib/dsar/requests.ts
+  - services/api/src/intake_api/dsar/router.py
+- id: health_platform
+  answer: Apple Health and Health Connect data is read only and never written back; it stays
+    on the handset unless the patient adds a summary to the note
+  sources:
+  - apps/mobile/src/lib/health/healthKitConnector.ts
+answers:
+- inventory: flow:document_object
+  category: special_category_health
+  stored: true
+  leaves_device: true
+  shared: on_patient_direction
+  patient_deletion: 'yes'
+  purposes:
+  - hold the patient's own uploaded report so its values can be parsed for the patient to
+    confirm, and shown to a clinician under a share
+  bases:
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  recipients:
+  - the patient (own record) and tenant clinicians via consented share
+  columns: 0
+  open_determinations: []
+- inventory: flow:health_platform_reads
+  category: special_category_health
+  stored: false
+  leaves_device: false
+  shared: none
+  patient_deletion: nothing is stored
+  purposes:
+  - show the patient their own recent activity on the device and let them choose to add a
+    summary to the visit note
+  bases:
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - nothing is written by this flow; once the patient adds a summary to the note the notes.payload
+    row's clock applies (06 §3)
+  recipients:
+  - 'nobody: the data stays on the patient''s own device until the patient adds a summary
+    to the note, from which point the notes.payload row governs'
+  columns: 0
+  open_determinations: []
+- inventory: flow:voice_audio
+  category: special_category_health
+  stored: false
+  leaves_device: true
+  shared: none
+  patient_deletion: nothing is stored
+  purposes:
+  - carry the patient's spoken answers to the transcriber; the audio is a transport for the
+    words, never a record of them
+  bases:
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - never written to disk, database, object store or logs; memory buffers <= 60 s, mlocked,
+    zeroed on every trigger (CLAUDE.md invariant 3)
+  recipients:
+  - internal services only; never leaves the PHI boundary
+  columns: 0
+  open_determinations:
+  - 'HB-L21(a): whether audio that is transmitted for transcription and never written counts
+    as collected on each store''s form'
+- inventory: schema:audit_trail:on_lawful_request
+  category: audit_trail
+  stored: true
+  leaves_device: true
+  shared: on_lawful_request
+  patient_deletion: 'no: kept for the period in retentions'
+  purposes:
+  - ISO instant exactly as hashed (stored as text, never re-serialised)
+  - SHA-256 of the predecessor entry (the chain link)
+  - SHA-256 over this entry's canonical form
+  - chain position; monotonic so a gap alerts on its own
+  - dotted action name (read/share/export/…)
+  - id-shaped acting principal (never a display name)
+  - id-shaped reference to the touched resource
+  - the consent scope the access was checked against (invariant 4)
+  bases:
+  - KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)
+  retentions:
+  - 10 years for hospital tenants; WORM copy; audit is append-only (06 §3)
+  recipients:
+  - supervisory authority or auditor on lawful request; WORM export
+  columns: 8
+  open_determinations: []
+- inventory: schema:consent_record:none
+  category: consent_record
+  stored: true
+  leaves_device: true
+  shared: none
+  patient_deletion: 'no: kept for the period in retentions'
+  purposes:
+  - hard expiry of the share token (≤ 72 h default, 06 §3)
+  - hard expiry, anchored on the visit date + 72 h (files/02 §2b), never on issue time
+  - instant the link was revoked (by the patient, or by the share it hangs off)
+  - instant the patient revoked the share; NULL while live
+  bases:
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - share expiry ≤ 72 h default; grant row retained with the record for audit (06 §3)
+  recipients:
+  - internal services only; never leaves the PHI boundary
+  columns: 4
+  open_determinations: []
+- inventory: schema:consent_record:on_lawful_request
+  category: consent_record
+  stored: true
+  leaves_device: true
+  shared: on_lawful_request
+  patient_deletion: 'no: kept for the period in retentions'
+  purposes:
+  - SHA-256 of the exact docs/legal consent text shown (invariant 18; files/06 §2 text_hash);
+    NULL only on pre-INT-038 dev-tier seed rows, which the guard treats as stale the moment
+    a canonical text exists
+  - 'collection surface — app|kiosk|clinician|admin|web (files/06 §1 KVKK-10: layered aydınlatma
+    per channel; files/06 §2 channel); NULL only on pre-INT-038 dev-tier seed rows'
+  - consent scope id (every clinical read/share checks one — invariant 4)
+  - grant instant (proof of when açık rıza was given)
+  - id of the acceptance-evidence record (files/06 §2 evidence) — an id, never the evidence
+    itself (invariant 6); NULL only on pre-INT-038 dev-tier seed rows
+  - the pseudonymised patient who granted the scope
+  - version of the consent text presented (hash-bound to docs/legal)
+  - withdrawal instant; NULL while the grant stands
+  bases:
+  - KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)
+  retentions:
+  - 10 years for hospital tenants; WORM copy; audit is append-only (06 §3)
+  recipients:
+  - supervisory authority or auditor on lawful request; WORM export
+  columns: 8
+  open_determinations: []
+- inventory: schema:consent_record:on_patient_direction
+  category: consent_record
+  stored: true
+  leaves_device: true
+  shared: on_patient_direction
+  patient_deletion: 'partly: see retentions'
+  purposes:
+  - 'per-field share scope (files/09 §3 guardrails): whether this fact may travel with a shared
+    note'
+  - the note this share grants access to
+  - the share this link grants access to (the section scope lives there)
+  - which note sections the share exposes (section ids only)
+  bases:
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  - share expiry ≤ 72 h default; grant row retained with the record for audit (06 §3)
+  recipients:
+  - tenant clinicians via a consented share (Doctor Link / clinic console)
+  - the patient (own record) and tenant clinicians via consented share
+  columns: 4
+  open_determinations: []
+- inventory: schema:guardianship_link:none
+  category: guardianship_link
+  stored: true
+  leaves_device: true
+  shared: none
+  patient_deletion: 'no: kept for the period in retentions'
+  purposes:
+  - 'RLS boundary: the tenant this link belongs to'
+  - guardian↔minor link key
+  - id of the relationship-evidence record (acknowledgement or desk check) — an id, never
+    the evidence and never the relationship in words
+  - id-shaped ref to the guardian's account; never a name or an identifier
+  - instant a proof standard was satisfied; NULL while no standard exists (policy row guardian_relationship_proof)
+  - instant the link ended (majority reached, representation changed); NULL while live
+  - row creation instant
+  - the pseudonymised minor the link is about
+  bases:
+  - awaiting-human — the KVKK m.5/m.6 ground for a guardian↔minor link is unassigned; counsel
+    names it (policy row guardian_link_basis) before the guardian_link gate opens
+  retentions:
+  - awaiting-human — files/06 §3 holds no guardian-linkage row; counsel sets the period (policy
+    row guardian_link_basis) and the gate stays shut until then
+  recipients:
+  - internal services only while the guardian_link gate is shut; no recipient is defined beyond
+    the PHI boundary until counsel answers
+  columns: 8
+  open_determinations:
+  - 'counsel: the basis is awaiting-human in the inventory'
+  - 'counsel: the retention is awaiting-human in the inventory'
+- inventory: schema:operational_metadata:none
+  category: operational_metadata
+  stored: true
+  leaves_device: true
+  shared: none
+  patient_deletion: 'partly: see retentions'
+  purposes:
+  - 'RLS boundary: the tenant this row belongs to (policies compare it to the app.tenant_id
+    GUC)'
+  - 'RLS namespace: the pseudonymised patient whose confirmed record this vector indexes (policies
+    compare it to the app.patient_id GUC)'
+  - SHA-256 of the 128-bit link token; the token itself is never stored
+  - consent grant key
+  - 'content hash: provenance and tamper evidence for the stored object'
+  - csat free-text row key
+  - data-subject request key
+  - 'decides the value representation from the slot''s protocol data category: plain JSON
+    for general_health, an EncryptedField envelope for every other category (INT-349)'
+  - derived id of the confirmed record item (sha256 of its source box), cited into the note
+    beside the document span
+  - digest of the canonical plaintext document — content identity for the receiver's own de-duplication;
+    a digest of clinical text, not the text
+  - doctor link grant key
+  - end of the patient's quiet window, minutes since local midnight; NULL exactly when the
+    start is NULL (check constraint)
+  - event body — id-shaped values only, no PHI (invariant 6)
+  - event row key
+  - exact pack version for reproducibility and re-triage sweeps
+  - how many openings this grant permits (files/10 §2 view limit)
+  - ingested document key
+  - instant of the most recent overlay mutation
+  - instant the companion acknowledged answering on the patient's behalf; an acknowledgement
+    of ROLE only — never evidence of legal representation (policy row guardian_relationship_proof
+    is awaiting-human)
+  - instant the patient last changed the setting
+  - intake session key
+  - intake session the upload arrived in, when it did
+  - learned fact row key
+  - note share key
+  - notification preference row key
+  - openings spent; incremented by the same guarded UPDATE that admits one
+  - organisation display name (an institution, never a person)
+  - 'overlay version — monotonic, one increment per mutation (files/09 §3: the overlay is
+    versioned)'
+  - owning intake session
+  - patient overlay header key
+  - pre-visit note key
+  - previsit output key
+  - protocol slot value key
+  - 'provenance: 1-based page of the source box'
+  - 'provenance: doc:<documents.id> of the page the item was read from — also the key the
+    retention executor erases by'
+  - 'provenance: end (exclusive) of the item''s characters in the extracted text'
+  - 'provenance: start of the item''s characters in the extracted text'
+  - 'provenance: the source box on the page, normalised [x0, y0, x1, y1]'
+  - pseudonymised patient row key
+  - record index row key
+  - rectification addendum key
+  - row creation instant (retention clocks start here)
+  - session the event refers to, when session-scoped
+  - sniffed media type (upload pipeline, files/10 §4)
+  - source trail (uploader ref, capture channel, scan verdicts) — id-shaped values only
+  - start of the patient's quiet window, minutes since local midnight; NULL means she has
+    said nothing about hours, never that she is happy to be woken
+  - tenant identity key
+  - the completed intake session this output was produced from
+  - the consent purpose the row was written under (scope:documents; invariant 4)
+  - the csat.v1 event row this text belongs to; the FK cascade is what makes the satisfaction
+    clock of 06 §3 reach the text
+  - 'the embedding model''s pin, model_id@revision (invariant 14): a vector is only ever compared
+    with vectors from the same model'
+  - the intake session this note was composed from
+  - the patient has asked to receive no messages; honoured for every class this product sends
+    (files/06 §1 row 6563-İYS)
+  - the pseudonymised patient the document belongs to
+  - the pseudonymised patient the fact was learned about
+  - the pseudonymised patient the note belongs to
+  - the pseudonymised patient this output belongs to — the lookup key a hospital patient number
+    resolves to through the Tokenizer
+  - the pseudonymised patient this session belongs to
+  - the pseudonymised patient who owns this overlay
+  - the pseudonymised patient whose delivery preference this is
+  - the pseudonymised patient whose record the addendum corrects
+  - the session the response rates; the FK cascade is what makes a DSAR erasure reach the
+    text (invariant 4)
+  - the vector's dimension as the model declares it; the migration checks vector_dims(embedding)
+    against it
+  - versioned event name (csat.v1, nps.v1, …)
+  - versioned identity of the stored structure (clinical_schemas.previsit_output); the receiver
+    branches on it
+  - when the intake finished (SLO + retention inputs)
+  - when the voice/typed intake actually began
+  bases:
+  - KVKK m.5/2-c — processing necessary for the service contract
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - 10 years for hospital tenants; WORM copy; audit is append-only (06 §3)
+  - 'life of the patient record, on the 06 §3 record clock: patient-deletable, 30-day grace,
+    then crypto-shred — a delivery preference cannot outlive the account it configures, and
+    an account that is gone has nobody to message'
+  - 'life of the record, on the 06 §3 record clock: patient-deletable, 30-day grace, then
+    crypto-shred — a frozen projection of the note cannot outlive the note. The receiving
+    hospital''s own retention is a DPA clause named per recipient row (infra/previsit_output/recipients.yaml
+    retention_ref), never a period set here'
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  - life of the tenant contract plus statutory retention on the DPA (06 §3)
+  - 'record of a KVKK m.11/m.13 rights exercise: kept with the consent & audit tier, 10 years
+    (06 §3), which also carries the DEST-2017 ≥ 3-year floor for the destruction records among
+    them (06 §1 KVKK-7)'
+  - share expiry ≤ 72 h default; grant row retained with the record for audit (06 §3)
+  - 'telemetry window: 30 d hot / 1 y cold; PHI-free by construction (06 §3)'
+  - 'with account: due the moment the account is deleted, never before; DSAR-erasable (the
+    satisfaction row of 06 §3)'
+  recipients:
+  - internal services only while the recipient registry is empty; the hospital system that
+    will fetch this is defined by an executed DPA and a recorded tier-3 approval (infra/previsit_output/recipients.yaml),
+    neither of which exists
+  - internal services only; never leaves the PHI boundary
+  columns: 96
+  open_determinations: []
+- inventory: schema:operational_metadata:on_lawful_request
+  category: operational_metadata
+  stored: true
+  leaves_device: true
+  shared: on_lawful_request
+  patient_deletion: 'partly: see retentions'
+  purposes:
+  - 'SHA-256 of the exact docs/legal/strings.yaml bytes the answer was issued under (invariant
+    18, the consents.text_hash precedent): a re-issue against moved copy is refused rather
+    than restated; NULL until an export is first rendered and for kinds that render none'
+  - controller/processor flag per deployment (files/06 §1)
+  - 'erasure only: end of the 30-day deletion grace, after which the crypto-shred executes
+    (06 §3); NULL for every other kind'
+  - lifecycle state of the request (received|scheduled|completed|cancelled)
+  - 'statutory response deadline: received_at + 30 days (06 §1 KVKK-11/13)'
+  - the m.11 request this addendum answers
+  - the pseudonymised data subject exercising the right
+  - what is being corrected, as an id-shaped reference (kind:uuid) — validated at the boundary
+    so free text cannot enter a column the tracker and the audit both read (invariant 6)
+  - when the request arrived — the instant the KVKK m.13 clock starts
+  - when the request was answered or executed; NULL while the clock runs
+  - which KVKK m.11 right was exercised (export|delete|rectify)
+  bases:
+  - KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)
+  retentions:
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  - life of the tenant contract plus statutory retention on the DPA (06 §3)
+  - 'record of a KVKK m.11/m.13 rights exercise: kept with the consent & audit tier, 10 years
+    (06 §3), which also carries the DEST-2017 ≥ 3-year floor for the destruction records among
+    them (06 §1 KVKK-7)'
+  recipients:
+  - supervisory authority or auditor on lawful request; WORM export
+  columns: 11
+  open_determinations: []
+- inventory: schema:operational_metadata:on_patient_direction
+  category: operational_metadata
+  stored: true
+  leaves_device: true
+  shared: on_patient_direction
+  patient_deletion: 'partly: see retentions'
+  purposes:
+  - envelope-encrypted recipient label the patient named, rendered only into the watermark
+    of the view that recipient opens
+  - 'which language the patient was actually asked in, so the note, the audit entry and the
+    metric label cannot disagree. Operational rather than special-category WHILE `tr` is the
+    only registered locale: the column is then the service''s own language and states nothing
+    about the patient. A second registered locale changes that — a language choice can proxy
+    ethnic origin (KVKK m.6) — and the category, basis and recipients must be re-decided before
+    one is enabled (HUMAN_BLOCKERS.md HB-L25). Never a free-text language name: the value
+    is a registry code (inv. 6)'
+  bases:
+  - KVKK m.5/2-c — processing necessary for the service contract
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  - share expiry ≤ 72 h default; grant row retained with the record for audit (06 §3)
+  recipients:
+  - tenant clinicians via a consented share (Doctor Link / clinic console)
+  columns: 2
+  open_determinations: []
+- inventory: schema:pseudonymised_identity:none
+  category: pseudonymised_identity
+  stored: true
+  leaves_device: true
+  shared: none
+  patient_deletion: 'yes'
+  purposes:
+  - keyed HMAC pseudonym from the Tokenizer (kid.hex); the raw identifier exists only in identity_vault
+  bases:
+  - KVKK m.5/2-c — processing necessary for the service contract
+  retentions:
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  recipients:
+  - internal services only; never leaves the PHI boundary
+  columns: 1
+  open_determinations: []
+- inventory: schema:special_category_health:none
+  category: special_category_health
+  stored: true
+  leaves_device: true
+  shared: none
+  patient_deletion: 'partly: see retentions'
+  purposes:
+  - the confirmed item's embedding, for retrieval during intake (files/03 §10) — derived from
+    health data, readable only inside the patient's RLS namespace and never by the clinician
+    role
+  - the confirmed item's kind (lab, imaging, medication …) — which note section a citation
+    of it may be filed under
+  - the finished previsit as EncryptedField JSON (field-level envelope encryption; never plaintext
+    at rest)
+  - 'the patient''s satisfaction comment in their own words as EncryptedField JSON (field-level
+    envelope encryption; never plaintext at rest). Health data whatever the survey calls it:
+    free text about a visit carries symptoms'
+  - when the previsit finished (a completed intake is a health fact)
+  bases:
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - 'life of the record, on the 06 §3 record clock: patient-deletable, 30-day grace, then
+    crypto-shred — a frozen projection of the note cannot outlive the note. The receiving
+    hospital''s own retention is a DPA clause named per recipient row (infra/previsit_output/recipients.yaml
+    retention_ref), never a period set here'
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  - 'with account: due the moment the account is deleted, never before; DSAR-erasable (the
+    satisfaction row of 06 §3)'
+  recipients:
+  - internal services only while the recipient registry is empty; the hospital system that
+    will fetch this is defined by an executed DPA and a recorded tier-3 approval (infra/previsit_output/recipients.yaml),
+    neither of which exists
+  - internal services only; never leaves the PHI boundary
+  columns: 5
+  open_determinations: []
+- inventory: schema:special_category_health:on_patient_direction
+  category: special_category_health
+  stored: true
+  leaves_device: true
+  shared: on_patient_direction
+  patient_deletion: 'yes'
+  purposes:
+  - 'a second person was present or answering (files/13 §13): the disclosure confound that
+    forces sensitive sections to text and stops safeguarding'
+  - authored protocol reference the fact answers (files/09 §3 fact key); an id in the shape
+    of slots.slot_id, never patient narrative
+  - clinician-ready pre-visit note as EncryptedField JSON (field-level envelope encryption;
+    never plaintext at rest)
+  - 'confirmed provenance (files/09 §3): the closed three-member vocabulary, which has no
+    unconfirmed value to store'
+  - id of the confirming artefact — the 'where from' every fact must show the patient (files/09
+    §3 guardrails)
+  - object-store reference (bucket/key); document bytes never sit inline in a row
+  - protocol slot name (names the clinical question asked)
+  - session lifecycle state (a completed intake is a health fact)
+  - the correction in the patient's own words as EncryptedField JSON (field-level envelope
+    encryption; never plaintext at rest)
+  - the learned value and its confidence as EncryptedField JSON (field-level envelope encryption;
+    never plaintext at rest)
+  - the slot value; every data category but general_health carries EncryptedField JSON (envelope_json),
+    never plaintext, and is further governed by its row in docs/legal/data-categories.yaml,
+    whose basis, retention and recipients counsel supplies (INT-349)
+  - when the patient or clinician confirmed it; the twelve-month re-confirmation window runs
+    from here (files/09 §3)
+  - which protocol pack ran (reveals the presenting-complaint area)
+  - 'who produced the answers (self / proxy / assisted): a clinician reading the note must
+    know whether the symptoms are reported or observed'
+  bases:
+  - KVKK m.6 — special-category health data under açık rıza per consent scope
+  retentions:
+  - life of the record; patient-deletable, 30-day grace, then crypto-shred (06 §3)
+  recipients:
+  - tenant clinicians via a consented share (Doctor Link / clinic console)
+  - the patient (own record) and tenant clinicians via consented share
+  columns: 14
+  open_determinations: []
+not_declared:
+- flow: crash_diagnostics
+  reason: switched off in the shipped configuration; intake_platform.store.facts.inactive_flow_drift
+    fails the day it is on

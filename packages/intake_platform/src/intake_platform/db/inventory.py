@@ -122,7 +122,7 @@ RET_DSAR = (
 # window is invented here; the blueprint states none and this issue asks for none.
 RET_SATISFACTION = (
     "with account: due the moment the account is deleted, never before; "
-    "DSAR-erasable (06 §3 satisfaction row)"
+    "DSAR-erasable (the satisfaction row of 06 §3)"
 )
 # Owner directive (the previsit OUTPUT store): the frozen hospital-facing copy
 # rides the files/06 §3 RECORD clock, and that is a reading of the matrix

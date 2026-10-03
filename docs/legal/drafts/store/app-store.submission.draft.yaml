@@ -1,0 +1,93 @@
+# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+#
+# INT-482 (GitHub #825) — the App Store answers that are not listing copy: the
+# category, the age-rating questionnaire (EAS `advisory`) and the App Review
+# notes. Prepared 2026-10-04 by a drafting agent for the legal lane.
+#
+# The keys and values are the EAS Metadata schema as the committed reference
+# states it (.claude/skills/eas-app-stores/references/app-store-metadata.md).
+# App Store Connect's live questionnaire may ask questions that schema does not
+# hold; Apple's current wording is not recalled here (HB-A12), and any extra
+# question is answered by the owner from the same sourced facts.
+#
+# Promotion: after the legal-lane review the owner moves this file to
+# docs/legal/store/submission/app-store.yaml in a separate PR and runs
+# `make store-config`. The reviewer contact and the reviewer sign-in are never
+# written here: they go into App Store Connect at submission
+# (app-review-notes.draft.md §2). The privacy-policy link, the support URL and
+# the copyright line stay null until HB-L27 and HB-L21(e) answer them.
+provenance:
+  issue: INT-482
+  store: app-store
+  status: pending legal-lane review
+  prepared_on: "2026-10-04"
+categories:
+  - MEDICAL
+categories_source: "files/02_PRODUCT_SPEC.md — a patient app for the visit to a clinician; the legal lane confirms the category"
+advisory:
+  alcoholTobaccoOrDrugUseOrReferences:
+    answer: INFREQUENT_OR_MILD
+    source: "packages/protocols/base/intake.yaml — the base intake asks whether the patient smokes and whether they drink alcohol; docs/legal/data-categories.yaml adds substance-use questions to two specialty intakes (D3)"
+  contests:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — the app's screens are intake, visits, records, wellbeing and profile; none holds a contest"
+  gamblingSimulated:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — no game or simulated gambling exists"
+  horrorOrFearThemes:
+    answer: NONE
+    source: "CLAUDE.md clinical content rules — patient copy is never alarming beyond the safety action"
+  matureOrSuggestiveThemes:
+    answer: NONE
+    source: "docs/legal/data-categories.yaml — the sexual-health category is clinical symptom questions in one specialty intake, not served until counsel completes its row"
+    note: "The legal lane decides whether clinical sexual-health questions count here."
+  medicalOrTreatmentInformation:
+    answer: INFREQUENT_OR_MILD
+    source: "files/06_COMPLIANCE_TR.md §0.3 and §7 — health questions, the static 112 notice and the non-diagnosis lines; the app gives no treatment advice"
+  profanityOrCrudeHumor:
+    answer: NONE
+    source: "CLAUDE.md clinical content rules — B1 Turkish, siz register, empathetic copy"
+  sexualContentGraphicAndNudity:
+    answer: NONE
+    source: "apps/mobile/src/app/(tabs)/records.tsx — the only images are the patient's own uploaded reports"
+  sexualContentOrNudity:
+    answer: NONE
+    source: "apps/mobile/src/app/(tabs)/records.tsx — the only images are the patient's own uploaded reports"
+  violenceCartoonOrFantasy:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — no cartoon, fantasy or game content exists"
+  violenceRealistic:
+    answer: NONE
+    source: "docs/legal/data-categories.yaml — personal-safety questions in one specialty intake ask about the patient's situation and depict nothing; not served until counsel completes the row"
+    note: "The legal lane decides whether personal-safety questions count here."
+  violenceRealisticProlongedGraphicOrSadistic:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — no such content exists"
+  gambling:
+    answer: false
+    source: "apps/mobile/package.json — no purchase, payment or betting library"
+  unrestrictedWebAccess:
+    answer: false
+    source: "apps/mobile/src/app/(tabs)/records.tsx — the in-app browser opens only the patient's own uploaded document"
+  seventeenPlus:
+    answer: false
+    source: ".claude/skills/eas-app-stores/references/app-store-metadata.md — follows from the answers above, none of which is FREQUENT_OR_INTENSE"
+review_notes: |-
+  Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.
+
+  What the app does not do: it does not diagnose, it does not recommend treatment, and it does not tell the user how urgent a complaint is. It makes no claim about how well it measures anything.
+
+  Emergencies: Önvizit is not an emergency service. The app shows a fixed notice telling the user to call 112, the emergency number in Türkiye, or to go to the nearest emergency department.
+
+  Apple Health: with the user's permission, the app reads step count, resting heart rate and sleep. It only reads and never writes to Apple Health. The data stays on the device unless the user adds a summary to their note, and it is never used for advertising.
+
+  Microphone: used only during a voice intake, to turn the answer into text. Audio is never written to disk, to a database or to logs.
+
+  Camera: used only to photograph the user's own medical report so that it can be uploaded.
+
+  Account deletion: Profile > Your data lets the user request deletion of their account and data.
+
+  Test environment and sign-in: this build connects to a test environment that holds simulated patients only. No real patient data is present. The reviewer account is a simulated patient, and its sign-in details are in the App Review Information section of this submission.
+legal_links: {}
+support_url: null
+copyright: null

@@ -1413,7 +1413,7 @@ class CsatText(Base):
         info=inv(
             CAT_OPERATIONAL,
             "the csat.v1 event row this text belongs to; the FK cascade is "
-            "what makes the 06 §3 satisfaction clock reach the text",
+            "what makes the satisfaction clock of 06 §3 reach the text",
             BASIS_CONTRACT,
             RET_SATISFACTION,
             REC_INTERNAL,

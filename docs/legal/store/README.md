@@ -65,6 +65,31 @@ determination that decides the largest single row of the label: whether
 microphone audio, which is transmitted for transcription and by invariant 3
 never written anywhere, counts as *collected* on each store's form.
 
+## `submission/` — the App Store answers that are not copy (INT-482)
+
+`app-store.yaml` holds the category, the age-rating answers and the App Review
+notes. Each age-rating answer cites the repo file it comes from. The file may
+also hold the privacy-policy link, the support URL and the copyright line, once
+HB-L27 and HB-L21(e) answer them. `intake_platform.store.eas_metadata.load_submission`
+refuses a missing age-rating key, an answer outside the EAS schema, review notes
+that fail either listing gate, and a link that is not https.
+
+Nothing is committed here yet either. The candidates are in
+`docs/legal/drafts/store/`, pending legal-lane review.
+
+## `apps/mobile/store.config.json` — rendered, never written
+
+EAS Metadata pushes that file to App Store Connect, so it counts as a published
+listing and nobody writes it by hand. `make store-config`
+(`scripts/release/render_store_config.py`) builds it from the App Store files in
+`listing/` and from `submission/app-store.yaml`, and from nothing else. Each
+listing passes both gates above and the strict claims scan. A link inside the
+copy is refused. The privacy-policy link binds to the signed `gizlilik` document
+and must name that document's sha256 (invariant 18). `automaticRelease` is pinned
+to `false`. With nothing served the script exits 3 and writes nothing, and
+`tests/legal/test_store_submission_drafts.py` makes sure the file exists only when
+served copy exists to render it from.
+
 ## Where the label comes from
 
 Not from here. The Data safety and App Privacy answers are **derived** from
