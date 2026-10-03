@@ -158,6 +158,14 @@ else
   fail "the API's admin gate is not in its configured, refusing state: ${gate}"
 fi
 
+# 7. INT-378: the live realm's WebAuthn step is the session-notes provider, the
+#    one that puts aaguid and credential_id into a staff token. Read only.
+if staff_flow check >/dev/null 2>&1; then
+  pass "realm ${KEYCLOAK_REALM} runs the WebAuthn session-notes provider with the hwk reference"
+else
+  fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
+fi
+
 if ((failures > 0)); then
   die "smoke: ${failures} check(s) failed"
 fi

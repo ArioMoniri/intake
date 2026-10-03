@@ -67,8 +67,11 @@ When it stops, the previous release keeps serving. Section 1 of docs/evidence/IN
    1. Over SSM, run `docker compose -p intake-staging exec keycloak /opt/keycloak/bin/kcadm.sh`. Log in to `http://localhost:8080` as `intake-bootstrap`. Its password is `KEYCLOAK_ADMIN_PASSWORD` in the host's root-only env file; read it on the host, never in chat.
    2. Create each user with a verified email.
    3. Grant the role from the realm's role list.
-   4. Set the required action `CONFIGURE_TOTP` or `webauthn-register`. The staff browser flow refuses a login without a second factor.
-3. **Network access to the console is open by decision.** The owner decided D18 on 2 Oct 2026: *"dont make admin access ip restricted"*. The API's `/admin` allow-list is the committed `0.0.0.0/0,::/0`. What gates the console is the Keycloak login (password plus a second factor) and the role matrix. Do not narrow the list without a new owner decision.
+   4. Set the required action `webauthn-register`, so each person enrols their own security key or passkey. The staff browser flow refuses a login without a second factor.
+      - The console admits only a WebAuthn login: that token carries `aaguid` and `credential_id` (INT-378).
+      - It refuses a TOTP login until the owner decides INT-389 (#644).
+      - The deploy has already switched the live realm to the provider that writes the two ids (`ensure_staff_webauthn_notes`), and `smoke.sh` check 7 confirms it.
+3. **Network access to the console is open by decision.** The owner decided D19 on 2 Oct 2026: *"dont make admin access ip restricted"*. The API's `/admin` allow-list is the committed `0.0.0.0/0,::/0`. What gates the console is the Keycloak login (password plus a second factor) and the role matrix. Do not narrow the list without a new owner decision.
 
 ## 4. Roll back
 

@@ -5,7 +5,8 @@ login, and the API's INT-180 gate must keep deciding every read. These tests
 pin the configuration that makes that true. Each safety property has a
 near-miss control:
 
-- Keycloak runs `start` with the pinned 26.7.4 image. The staff realm carries
+- Keycloak runs `start` with the pinned 26.7.4 image plus the INT-378 provider
+  jar (tests/infra/test_staging_keycloak_provider.py). The staff realm carries
   no user and no dev password, keeps the INT-365 two-factor browser flow,
   and has a confidential console client whose secret and redirect are
   host-generated values substituted at import.
@@ -14,7 +15,7 @@ near-miss control:
 - Caddy never routes Keycloak's admin console, the master realm or its
   management endpoints.
 - The API's admin gate reads the realm's issuer, the `api` audience and a
-  key-set file. Its IP allow-list is the owner's explicit allow-all (D18,
+  key-set file. Its IP allow-list is the owner's explicit allow-all (D19,
   2 Oct 2026), so the Keycloak login, with its second factor, is the gate.
 - The console image is pinned, non-root, and reaches only the API.
 - lib.sh's cookie secret is 32 bytes in the form oauth2-proxy accepts. The
@@ -45,6 +46,7 @@ REALM = STAGING / "keycloak" / "intake-realm.json"
 DEV_REALM = REPO / "infra" / "keycloak" / "dev-realm.json"
 ALPHA = STAGING / "oauth2-proxy" / "alpha.yaml"
 ADMIN_DOCKERFILE = STAGING / "Dockerfile.admin-web"
+KEYCLOAK_DOCKERFILE = STAGING / "Dockerfile.keycloak"
 ADMIN_DOCKERIGNORE = STAGING / "Dockerfile.admin-web.dockerignore"
 
 #: INT-390's pin, assembled from parts like the other image pins.
@@ -94,10 +96,17 @@ def _bash(script: str, stdin: str = "") -> subprocess.CompletedProcess[str]:
 
 class TestKeycloak:
     def test_runs_the_pinned_image_in_production_mode(self) -> None:
+        # INT-378: built FROM the pin plus the checked provider jar
+        # (tests/infra/test_staging_keycloak_provider.py holds the build)
         keycloak = _service("keycloak")
-        assert keycloak["image"] == KEYCLOAK_IMAGE
+        assert keycloak["image"] == "intake-staging/keycloak:${INTAKE_GIT_SHA:?set by deploy.sh}"
+        assert keycloak["build"]["dockerfile"] == "infra/staging/Dockerfile.keycloak"
+        bases = re.findall(r"^FROM (\S+)", KEYCLOAK_DOCKERFILE.read_text(encoding="utf-8"), re.M)
+        assert bases[-1] == KEYCLOAK_IMAGE
         assert keycloak["command"][0] == "start"
         assert "start-dev" not in json.dumps(keycloak)
+        # an optimized server is never re-augmented, so it would never load the provider
+        assert "--optimized" not in json.dumps(keycloak)
 
     def test_imports_the_realm_under_its_own_name(self) -> None:
         mounts = _service("keycloak")["volumes"]
@@ -228,24 +237,30 @@ class TestEdge:
 
 class TestApiGateAndConsole:
     def test_the_allow_list_is_the_owners_explicit_allow_all(self) -> None:
-        # owner decision D18 (2 Oct 2026): "dont make admin access ip restricted"
+        # owner decision D19 (2 Oct 2026): "dont make admin access ip restricted"
         spec = _env("api")["INTAKE_ADMIN_IP_ALLOWLIST"]
         assert spec == "0.0.0.0/0,::/0"
         allow = IpAllowList.from_spec(spec)
         for peer in ("172.18.0.5", "3.211.2.143", "2001:db8::1"):
             assert allow.permits(peer), peer
-        assert "D18" in COMPOSE.read_text(encoding="utf-8")
+        assert "D19" in COMPOSE.read_text(encoding="utf-8")
 
     def test_near_miss_an_empty_list_would_admit_nobody(self) -> None:
         assert not IpAllowList.from_spec("").permits("172.18.0.5")
 
     def test_the_login_gate_still_demands_a_second_factor(self) -> None:
-        # D18 lifts the network restriction only; the staff flow is unchanged
+        # D19 lifts the network restriction only; the staff flow is unchanged
         flows = {f["alias"]: f for f in _realm()["authenticationFlows"]}
         forms = flows["staff browser forms"]["authenticationExecutions"]
         assert [e["requirement"] for e in forms] == ["REQUIRED", "REQUIRED"]
         second = flows["staff second factor"]["authenticationExecutions"]
-        assert {e["authenticator"] for e in second} == {"webauthn-authenticator", "auth-otp-form"}
+        # INT-378: the WebAuthn alternative is the stock authenticator's subclass that also
+        # writes aaguid and credential_id; a second factor is still required either way
+        assert {e["authenticator"] for e in second} == {
+            "intake-webauthn-session-notes",
+            "auth-otp-form",
+        }
+        assert {e["requirement"] for e in second} == {"ALTERNATIVE"}
 
     def test_the_key_set_is_a_read_only_mirror(self) -> None:
         assert _env("api")["INTAKE_ADMIN_OIDC_JWKS_PATH"] == "/run/intake/keycloak-jwks.json"

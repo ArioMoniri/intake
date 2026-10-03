@@ -94,7 +94,20 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-401 (console rollback split out of INT-187)
     # + INT-409 (Vizitlerim reads today from the device clock, not a pinned date, GitHub #688)
     # + INT-410 (release bundles carry no synthetic seed accounts, audit F30, GitHub #689)
-    assert len(actions) == 327
+    # + INT-404 (triage rule evidence lines in the reader's locale, GitHub #673)
+    # + INT-382 (rule-read slot removal refused in every layer; GitHub #629)
+    # + INT-415 (ElevenLabs delivery profiles + on-prem TTS wiring guide, GitHub #706)
+    # + INT-429 (vulnerabilities gate: dependency upgrades + time-boxed node-forge row, GitHub #727)
+    # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
+    # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
+    # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
+    # + INT-426 (CI on AWS: gate runner via S3 + SSM, aws-ci commit status, GitHub #721)
+    # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
+    # + INT-432 (clinical decisions register under owner decision D18, GitHub #735)
+    # + INT-378 (WebAuthn session-notes provider, GitHub #621) and INT-389 (its
+    # TOTP clause as an owner decision, GitHub #644)
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
+    assert len(actions) == 336
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

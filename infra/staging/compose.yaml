@@ -105,7 +105,7 @@ services:
       INTAKE_ADMIN_OIDC_ISSUER: https://auth.${STAGING_HOSTNAME:?run init.sh}/realms/intake
       INTAKE_ADMIN_OIDC_AUDIENCE: api
       INTAKE_ADMIN_OIDC_JWKS_PATH: /run/intake/keycloak-jwks.json
-      # Owner decision D18 (files/00_STATE.md §3, 2 Oct 2026): "dont make admin
+      # Owner decision D19 (files/00_STATE.md §3, 2 Oct 2026): "dont make admin
       # access ip restricted". This is an explicit allow-all, because an empty
       # list would admit nobody. The gate is the Keycloak login: a password
       # plus a second factor (the INT-365 staff browser flow), checked again
@@ -254,7 +254,18 @@ services:
     # (docs/release/production-checklist.md). The bootstrap admin and the
     # client secret are host-generated, and the master realm and the admin
     # console are not routed publicly (Caddyfile).
-    image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    #
+    # INT-378: the image is INT-390's pin plus the WebAuthn session-notes
+    # provider (Dockerfile.keycloak). The jar is built from source and refused
+    # unless it matches infra/keycloak/providers/webauthn-session-notes.sha256.
+    # Without it no staff token carries aaguid and credential_id, and the API's
+    # admin gate refuses every one. The realm on the host was imported before the
+    # provider existed, and an import never re-runs, so deploy.sh switches the
+    # live realm's WebAuthn step too (ensure_staff_webauthn_notes).
+    image: intake-staging/keycloak:${INTAKE_GIT_SHA:?set by deploy.sh}
+    build:
+      context: ../..
+      dockerfile: infra/staging/Dockerfile.keycloak
     command: ["start", "--import-realm"]
     environment:
       KC_DB: postgres

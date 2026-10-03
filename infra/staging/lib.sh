@@ -86,6 +86,8 @@ COOKIE_SECRET_KEYS=(OAUTH2_PROXY_COOKIE_SECRET)
 # Keycloak answering (intake_platform.admin.oidc).
 KEYCLOAK_DB=keycloak
 KEYCLOAK_REALM=intake
+# compose.yaml's KC_BOOTSTRAP_ADMIN_USERNAME, the master-realm admin the deploy uses
+KEYCLOAK_BOOTSTRAP_ADMIN=intake-bootstrap
 JWKS_FILE="$STATE_DIR/keycloak-jwks.json"
 ATTEST_SMS_RUNBOOK='docs/runbooks/staging.md, section "App Attest and SMS"'
 
@@ -667,6 +669,15 @@ build_admin_web_image() {
   INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web
 }
 
+build_keycloak_image() {
+  # INT-378: INT-390's Keycloak plus the WebAuthn session-notes provider. The
+  # build compiles and tests the provider and refuses a jar that is not
+  # byte-identical to infra/keycloak/providers/webauthn-session-notes.sha256
+  # (Dockerfile.keycloak). It runs before anything restarts, so a refused
+  # build leaves the running tier as it was.
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build keycloak
+}
+
 ensure_keycloak_database() {
   # Keycloak's own role and database, both created only if absent. The role's
   # password is re-applied on every run. The SQL travels on stdin with
@@ -714,6 +725,33 @@ ok = isinstance(keys, list) and any(
 )
 sys.exit(0 if ok else 1)
 '
+}
+
+# The live realm's WebAuthn step (INT-378). Keycloak imports a realm once, so
+# the host's realm still runs the stock webauthn-authenticator, whose tokens
+# carry no aaguid or credential_id and are refused by the API's admin gate.
+# keycloak/staff_flow.py makes the live `staff second factor` subflow match the
+# committed realm. It is idempotent, it fails unless the flow ends in the
+# committed state, and it changes nothing else. The OTP alternative stays: that
+# choice is the owner's (INT-389). It runs in a one-off api container (the
+# Keycloak image has no HTTP client), and the bootstrap admin password travels on
+# stdin, never in an argv, an environment or a log. `check` only reads.
+staff_flow() {
+  local mode=${1:-} value script
+  case $mode in
+  apply) set -- ;;
+  check) set -- --check ;;
+  *) die "usage: staff_flow apply|check" ;;
+  esac
+  value=$(env_get "$ENV_FILE" KEYCLOAK_ADMIN_PASSWORD)
+  [[ $value =~ ^[0-9a-f]{64}$ ]] || die "KEYCLOAK_ADMIN_PASSWORD is not a generated secret: run ./init.sh"
+  script=$(<"$STAGING_DIR/keycloak/staff_flow.py")
+  printf '%s\n' "$value" | compose run --rm --no-deps -T api python -c "$script" \
+    "$@" http://keycloak:8080 "$KEYCLOAK_REALM" "$KEYCLOAK_BOOTSTRAP_ADMIN"
+}
+
+ensure_staff_webauthn_notes() {
+  staff_flow apply || die "the live realm's WebAuthn step is not the session-notes provider; staff sign-in stays refused"
 }
 
 # shellcheck disable=SC2034 # JWKS_CHANGED is read by deploy.sh after its final up

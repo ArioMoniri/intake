@@ -31,8 +31,10 @@
 #   4. Unseals OpenBao and renews the API's periodic token.
 #   5. Migrates, and re-keys any new migration role.
 #   6. INT-421: makes sure Keycloak's database exists, starts Keycloak (which
-#      imports the staff realm on first start), and mirrors the realm's public
-#      key set for the API's admin gate.
+#      imports the staff realm on first start), switches the live realm's
+#      WebAuthn step to the session-notes provider the image carries (INT-378;
+#      an import never re-runs), and mirrors the realm's public key set for the
+#      API's admin gate.
 #   7. Brings the project up on exactly the image the SBOM describes (and the
 #      console image built beside it), and waits for health.
 #   8. Probes /healthz and /readyz over public HTTPS.
@@ -51,6 +53,7 @@ ensure_jwks_file
 stamp_revision
 build_api_image
 build_admin_web_image
+build_keycloak_image
 stamp_sbom
 require_release_not_frozen
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}, SBOM ${INTAKE_SBOM_DIGEST}) to https://${STAGING_HOSTNAME}"
@@ -67,6 +70,7 @@ rotate_role_passwords
 # INT-421: the staff realm, then its key set, before the api starts reading it
 ensure_keycloak_database
 compose up -d --no-build --wait keycloak
+ensure_staff_webauthn_notes
 mirror_keycloak_jwks
 
 # --no-build: the api runs the image build_api_image made and syft described

@@ -222,4 +222,5 @@ def _render(
         expires_at=aware(link.expires_at),
         proxy_reported=visit.proxy_reported,
         third_party_present=visit.third_party_present,
+        note_stale=visit.note_stale(now),
     )

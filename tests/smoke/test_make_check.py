@@ -281,7 +281,38 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-401 (console rollback, split out of INT-187) + INT-410 (release
     # bundles carry no synthetic seed accounts, audit F30, found by INT-179's
     # close-out as GitHub #689); grows only with a stated reason.
-    assert len(ids) == 327, f"expected 175 blueprint + 152 added issues, got {len(ids)}"
+    # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638)
+    # + INT-404 (triage rule evidence lines in the reader's locale, INT-386's
+    # finding, GitHub #673); grows only with a stated reason.
+    # ... + INT-382 (a suppress_slot in any layer that removes a slot a
+    # red-flag rule reads is refused; H-1 of the PR #628 verification).
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
+    # stated reason.
+    # + INT-429 (the vulnerabilities gate: dependency upgrades and a time-boxed
+    # node-forge exception, owner decision, GitHub #727); grows only with a
+    # stated reason.
+    # + INT-431 (the embed sample's JWT fixture is built at runtime, found
+    # merging main into #481, GitHub #733); grows only with a stated reason.
+    # + INT-395 (DSAR erasure and export cover every patient-deletable table,
+    # found by INT-393); grows only with a stated reason.
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
+    # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
+    # with a stated reason.
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status, owner request, GitHub #721); grows only with a stated
+    # reason.
+    # + INT-407 (the files/02 §2b visit lifecycle state machine — a RED visit
+    # cannot silently move; found by INT-406's PR as GitHub #684); grows only
+    # with a stated reason.
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # GitHub #735); grows only with a stated reason.
+    # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
+    # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
+    # a stated reason.
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713);
+    # grows only with a stated reason.
+    assert len(ids) == 336, f"expected 175 blueprint + 161 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

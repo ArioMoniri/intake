@@ -308,6 +308,9 @@ BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build 
 #: INT-421: the console image, built from the same commit, with the same
 #: build-time value (it is not a digest either).
 ADMIN_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web'
+#: INT-378: the staff Keycloak, INT-390's pin plus the checked WebAuthn provider jar, built
+#: from the same commit with the same build-time value.
+KEYCLOAK_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build keycloak'
 
 #: The docker shim's built image and commit, and the SPDX document its syft
 #: prints (the shape syft's spdx-json output takes, trimmed).
@@ -1755,7 +1758,7 @@ class TestSbomStamp:
             for line in _code(path).splitlines()
             if re.search(r"\bcompose build\b", line)
         ]
-        assert builds == [BUILD_STATEMENT, ADMIN_BUILD_STATEMENT]
+        assert builds == [BUILD_STATEMENT, ADMIN_BUILD_STATEMENT, KEYCLOAK_BUILD_STATEMENT]
 
     def test_deploy_runs_exactly_the_image_the_sbom_describes(self) -> None:
         ups = re.findall(r"^compose up .*$", _code(DEPLOY), re.M)
