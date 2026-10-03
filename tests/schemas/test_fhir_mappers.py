@@ -23,6 +23,7 @@ data anywhere.
 from __future__ import annotations
 
 import datetime
+import html
 import json
 import uuid
 from decimal import Decimal
@@ -98,7 +99,8 @@ from clinical_schemas.mappers.r4 import (
 )
 from clinical_schemas.mappers.to_r4 import _scalar_answer
 from clinical_schemas.note import KonusmaOzellikleri, MeasureCode, SelfReportedMeasure
-from clinical_schemas.triage import RedLocation, RedRegister
+from clinical_schemas.rule_evidence import render_rule_evidence
+from clinical_schemas.triage import EvidenceSlot, RedLocation, RedRegister
 
 SUBJECT = "urn:uuid:00000000-0000-4000-8000-000000000001"
 DOC_REF = "doc-0001"
@@ -1196,3 +1198,74 @@ class TestNarrativeQuantitiesUseTheDocumentsDecimalPoint:
             quantity.quantity_atom(Decimal("72.5"), "kg", locale="sentetik-dil")
         assert "sentetik-dil" not in str(caught.value)
         assert quantity.quantity_atom(Decimal("72.5"), None, locale="en") == "72.5"
+
+
+# --- INT-404: a fired rule's evidence is written for the document's reader --------------
+
+
+def _evidence_fire() -> RuleFire:
+    """One rule fire carrying every kind of value its parts can hold. The
+    engine's own text keeps the full stop; the document must not print it."""
+    return RuleFire(
+        id="rf.sentetik_kanit",
+        evidence='a=38.50; b=7; c=0.75; d=true|null; e=["1.5","x"]; f={"k":"0.5"}; g="38.5"',
+        evidence_slots=(
+            EvidenceSlot(slot="a", values=(Decimal("38.50"),), unit="°C"),
+            EvidenceSlot(slot="b", values=(7,), unit="gün"),
+            EvidenceSlot(slot="c", values=(0.75,)),
+            EvidenceSlot(slot="d", values=(True, None)),
+            EvidenceSlot(slot="e", values=([Decimal("1.5"), "x"],)),
+            EvidenceSlot(slot="f", values=({"k": Decimal("0.5")},)),
+            EvidenceSlot(slot="g", values=("38.5",)),
+        ),
+    )
+
+
+def _evidence_note() -> PreVisitNote:
+    return _note(triage=NoteTriage(level=TriageLevel.YELLOW, rules=(_evidence_fire(),)))
+
+
+NBSP = quantity.NBSP
+
+#: The Turkish line: the reader's comma in every number, a NO-BREAK SPACE to
+#: the unit, list and map items separated by ``;``, and the numeric string
+#: ``"38.5"`` carried as the patient's string.
+EVIDENCE_TR = (
+    f'a=38,50{NBSP}°C; b=7{NBSP}gün; c=0,75; d=true|null; e=[1,5;"x"]; f={{"k":0,5}}; g="38.5"'
+)
+
+
+class TestRuleEvidenceIsWrittenForTheDocumentsReader:
+    """``rule <id>: <evidence>`` in the triage narrative, and the
+    RiskAssessment's ``reasonCode.text``, are text for the document's
+    (Turkish) reader."""
+
+    def test_the_triage_narrative_line_carries_the_turkish_comma(self) -> None:
+        wire = to_wire(previsit_note_to_document_bundle(_evidence_note(), patient_id="pt-0001"))
+        div = _section_div(wire, "triage")
+        assert f"<p>{html.escape(f'rule rf.sentetik_kanit: {EVIDENCE_TR}')}</p>" in div
+        for near_miss in ("38.50", "0.75", "1.5", "0.5"):
+            assert near_miss not in div, near_miss
+
+    def test_the_risk_assessment_reason_is_the_same_line(self) -> None:
+        bundle = previsit_note_to_document_bundle(_evidence_note(), patient_id="pt-0001")
+        (assessment,) = [
+            entry.resource for entry in bundle.entry if isinstance(entry.resource, RiskAssessment)
+        ]
+        assert [concept.text for concept in assessment.reason_code or ()] == [EVIDENCE_TR]
+
+    def test_the_english_line_differs_only_by_the_decimal_point(self) -> None:
+        english = render_rule_evidence(_evidence_fire(), locale="en")
+        assert english == (
+            f"a=38.50{NBSP}°C; b=7{NBSP}gün; c=0.75; d=true|null; "
+            'e=[1.5,"x"]; f={"k":0.5}; g="38.5"'
+        )
+
+    def test_a_fire_that_arrived_as_text_is_carried_as_written(self) -> None:
+        text_only = RuleFire(id="rf.sentetik_metin", evidence="slot ates=38.6")
+        assert render_rule_evidence(text_only, locale="tr") == "slot ates=38.6"
+
+    def test_an_unrecorded_locale_is_refused_and_not_echoed(self) -> None:
+        with pytest.raises(quantity.QuantityLocaleUnknown) as caught:
+            render_rule_evidence(_evidence_fire(), locale="sentetik-dil")
+        assert "sentetik-dil" not in str(caught.value)

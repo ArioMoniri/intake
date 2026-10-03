@@ -11,12 +11,17 @@ Retention strings quote the files/06 §3 matrix; bases name their KVKK ground.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TypedDict
 
 __all__ = [
     "INVENTORY_FIELDS",
     "INVENTORY_KEY",
+    "SUBJECT_DATA_CATEGORIES",
+    "SUBJECT_ERASABLE_MARKERS",
     "InventoryAnnotation",
+    "grants_subject_erasure",
+    "holds_subject_data",
     "inv",
 ]
 
@@ -170,3 +175,35 @@ REC_GUARDIAN_INTERNAL = (
     "internal services only while the guardian_link gate is shut; no recipient is defined "
     "beyond the PHI boundary until counsel answers"
 )
+
+# --- what an annotation says about the data subject (INT-395) --------------------------
+#
+# The DSAR erasure and export are checked against these two readings, not
+# against a hand-kept table list (tests/data/test_session_delete_contract.py):
+# a new column annotated with one of these categories or clocks puts its table
+# under the subject's KVKK m.11 access and erasure rights by that fact alone.
+
+#: The categories that describe the data subject rather than the platform. A
+#: column in one of them holds the subject's personal data, so the DSAR export
+#: must answer for its table. Operational metadata and the audit trail are the
+#: two categories that describe how the platform runs.
+SUBJECT_DATA_CATEGORIES = frozenset({CAT_PSEUDONYM, CAT_HEALTH, CAT_CONSENT, CAT_GUARDIANSHIP})
+
+#: The retention wording that gives the subject the erasure verb over a row:
+#: the 06 §3 record clock's "patient-deletable" and the satisfaction row's
+#: "DSAR-erasable". A clock carrying either puts its table on the DSAR erasure.
+SUBJECT_ERASABLE_MARKERS = ("patient-deletable", "DSAR-erasable")
+
+
+def grants_subject_erasure(retention: str) -> bool:
+    """Whether a retention clock lets the data subject have the row erased."""
+    return any(marker in retention for marker in SUBJECT_ERASABLE_MARKERS)
+
+
+def holds_subject_data(annotation: Mapping[str, str]) -> bool:
+    """Whether an annotated column holds the subject's personal data: it is in
+    a subject category, or it sits on a clock the subject can erase (a row the
+    subject may destroy is a row the subject may also see)."""
+    return annotation["category"] in SUBJECT_DATA_CATEGORIES or grants_subject_erasure(
+        annotation["retention"]
+    )

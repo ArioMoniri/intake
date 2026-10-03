@@ -14,6 +14,7 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - Backlog: [issues.yaml](backlog/issues.yaml) · [epics.yaml](backlog/epics.yaml) · [blockers.md](backlog/blockers.md)
 - Evidence: [docs/evidence/](evidence/) — red/green runs per issue
 - Runbooks: [model-server-aws.md](runbooks/model-server-aws.md)
+- Voice: [on-prem-tts-wiring.md](voice/on-prem-tts-wiring.md) — the delivery profiles on the self-hosted `residency_tr` TTS (INT-415)
 
 ## Blueprint (files/ — the source of record, verbatim)
 

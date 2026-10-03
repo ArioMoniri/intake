@@ -61,6 +61,7 @@ from intake_platform.compliance.audit_search import AuditSearchContentRefused
 from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
 from intake_api.admin import access_console, compliance_source, safety_queue, views
+from intake_api.admin.cicd_routes import CICD_HANDLERS
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.models_source import (
     load_models_module,
@@ -397,6 +398,8 @@ _HANDLERS: dict[str, Handler] = {
     "admin.compliance.evidence.export": _compliance_evidence,
     # INT-182 — the Voice module; its handlers live beside their composite.
     **VOICE_HANDLERS,
+    # INT-187 — the CI/CD & releases module, the same shape.
+    **CICD_HANDLERS,
     # INT-366 — Access & identity (files/08 §2.4, §2.7)
     "admin.access.review.read": access_console.review_read,
     "admin.access.review.sign": access_console.review_sign,

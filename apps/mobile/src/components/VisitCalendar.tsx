@@ -25,8 +25,8 @@
  */
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
+import { Icon } from "@/components/Icon";
 import { AppText, Card, useFontScale, useTheme } from "@/components/Themed";
 import { joinParts } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -167,7 +167,7 @@ function NavButton({
         { opacity: pressed ? motion.press.rowOpacity : 1 },
       ]}
     >
-      <SymbolView name={glyph} size={18} tintColor={tint} />
+      <Icon name={glyph} size={18} tintColor={tint} />
     </Pressable>
   );
 }

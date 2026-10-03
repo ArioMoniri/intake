@@ -15,7 +15,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
-from clinical_schemas.common import FrozenModel
+from clinical_schemas.common import FrozenModel, JsonValue
 
 
 class TriageLevel(enum.StrEnum):
@@ -45,6 +45,34 @@ class RedLocation(enum.StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class EvidenceSlot(FrozenModel):
+    """One slot a fired rule read, and what it carried (INT-404).
+
+    These are the parts of ``triage.rules[].evidence``. A number stays a
+    number here: the clinical carrier's ``Decimal`` (files/13 §9.5), tagged on
+    the wire like every other ``JsonValue``. It becomes text only on the
+    surface that knows its reader (:mod:`clinical_schemas.rule_evidence`),
+    because the decimal point is the reader's (CLAUDE.md invariant 22)."""
+
+    slot: str = Field(
+        min_length=1,
+        description="The dotted slot reference exactly as the rule's when predicate "
+        "spells it (files/03 §6 atoms).",
+    )
+    values: tuple[JsonValue, ...] = Field(
+        min_length=1,
+        description="The value(s) the slot carried: one, or head + superseded when "
+        "contested (files/12 §7.3). A number is a number, never text (files/13 §9.5).",
+    )
+    unit: str | None = Field(
+        default=None,
+        min_length=1,
+        description="The slot's declared unit (files/03 §6 ``unit:``), written beside "
+        "each number as one non-breaking atom (invariant 22). Absent when the slot "
+        "declares none.",
+    )
+
+
 class RuleFire(FrozenModel):
     """One fired rules-engine rule (files/04 §5 ``triage.rules[{id,evidence}]``)."""
 
@@ -52,7 +80,19 @@ class RuleFire(FrozenModel):
         description="Rule id from packages/protocols/triage (files/04 §5; invariant 1)."
     )
     evidence: str = Field(
-        description="Which slot values satisfied the rule (files/04 §5 triage.rules.evidence)."
+        description="Which slot values satisfied the rule (files/04 §5 "
+        "triage.rules.evidence), as the rules engine recorded it: slot=value pairs "
+        "with JSON's decimal point, written for no reader in particular. A line a "
+        "person reads is written from ``evidence_slots`` for that reader "
+        "(clinical_schemas.rule_evidence; INT-404). A fire that arrived as text "
+        "alone, such as a FHIR import, is carried as written."
+    )
+    evidence_slots: tuple[EvidenceSlot, ...] = Field(
+        default=(),
+        description="The same reading in parts (slot, carried values, declared "
+        "unit), from which each reader's evidence line is written with that "
+        "reader's decimal point (CLAUDE.md invariant 22; INT-404). Empty for a "
+        "fire that arrived as text alone.",
     )
 
 

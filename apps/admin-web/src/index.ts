@@ -270,6 +270,20 @@ export {
 } from "./voice/module";
 export { loadVoice, resultFrom, type VoiceState } from "./voice/load";
 export { planVoiceAction, submitVoiceAction, type ResultCode } from "./voice/actions";
+// INT-187 — the CI/CD & releases module (files/08 §3): workflow runs, required
+// gates, releases, deploy state, the deploy freeze and the gate it feeds, and
+// the two freeze controls, rendered at `app/cicd/page.tsx`.
+export {
+  CICD_SCHEMA,
+  CicdFreezeIncoherent,
+  CicdGateIncoherent,
+  CicdNotWired,
+  renderCicd,
+  type CicdPayload,
+  type CicdView,
+} from "./cicd/module";
+export { loadCicd, type CicdState } from "./cicd/load";
+export { planCicdAction, submitCicdAction } from "./cicd/actions";
 // INT-366 — the access review (files/08 §2.7, §3 Access & identity): the
 // console review's age and what it makes read-only, each section's reviewer
 // and digest, every staff account and the offboardings still open, rendered

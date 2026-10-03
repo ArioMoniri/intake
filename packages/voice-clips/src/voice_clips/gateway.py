@@ -38,6 +38,14 @@ this seam speaks to — the pinned self-hosted models and the cloud vendor alike
 — has its own normaliser disabled (the cloud request sends
 ``apply_text_normalization: "off"``), so a digit that got this far would be read
 out by the English or the comma-blind branch. Refusing is the only safe answer.
+
+**Every synthesis names its delivery profile** (INT-415,
+:mod:`voice_clips.delivery`). The profile says how the scripted text is
+delivered and never changes the text. The cloud clip-gen request carries the
+profile's ``voice_settings``. The self-hosted ``/synthesize`` contract has no
+delivery controls today, so that adapter sends the text and the voice exactly
+as before; docs/voice/on-prem-tts-wiring.md maps each profile to the controls
+the pinned self-hosted models do have.
 """
 
 from __future__ import annotations
@@ -48,13 +56,16 @@ import os
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Protocol
+from typing import TYPE_CHECKING, Final, Protocol
 
 import httpx
 from protocols.dsl import clip_text_hash
 
 from voice_clips.audio import SynthesisedSpeech, wav_to_speech
 from voice_clips.errors import ClipCacheError
+
+if TYPE_CHECKING:
+    from voice_clips.delivery import DeliveryProfile
 
 __all__ = [
     "DEFAULT_TIMEOUT_S",
@@ -67,6 +78,7 @@ __all__ = [
     "ENV_TTS_RECORDED_DIR",
     "SYNTHESIS_PATH",
     "CloudClipGenNotBudgetedError",
+    "DeliveryProfileMismatchError",
     "ElevenLabsClipGenGateway",
     "HttpTtsGateway",
     "NumeralInScriptError",
@@ -147,10 +159,20 @@ class CloudClipGenNotBudgetedError(TtsNotConfiguredError):
     """The offline cloud clip-gen path was selected with no ``EVAL_BUDGET_USD``."""
 
 
-class TtsGateway(Protocol):
-    """One scripted string in, one synthesis out. Nothing streams here."""
+class DeliveryProfileMismatchError(TtsError):
+    """A delivery profile tuned for another model than the one this gateway pins."""
 
-    def synthesise(self, *, text_tr: str, voice_id: str) -> SynthesisedSpeech: ...
+
+class TtsGateway(Protocol):
+    """One scripted string in, one synthesis out. Nothing streams here.
+
+    ``profile`` is required, with no default: every caller states how the
+    string is delivered (INT-415), so a new call site that forgets is a type
+    error rather than a silently routine clip."""
+
+    def synthesise(
+        self, *, text_tr: str, voice_id: str, profile: DeliveryProfile
+    ) -> SynthesisedSpeech: ...
 
 
 def assert_speakable_tr(text_tr: str) -> None:
@@ -173,13 +195,23 @@ def assert_speakable_tr(text_tr: str) -> None:
 
 @dataclass(frozen=True)
 class HttpTtsGateway:
-    """A self-hosted TTS reached over HTTP; the endpoint comes from config."""
+    """A self-hosted TTS reached over HTTP; the endpoint comes from config.
+
+    The ``/synthesize`` contract is ``{text, voice_id}`` and carries no delivery
+    control, so the profile shapes nothing on this lane and none of the
+    vendor's ``voice_settings`` are sent to it. The pinned self-hosted models
+    expose different controls (VoxCPM2: a leading style instruction and
+    ``cfg_value``; Freya: none), and docs/voice/on-prem-tts-wiring.md is the
+    owner-scoped plan for mapping each profile onto them (INT-415)."""
 
     endpoint: str
     timeout_s: float = DEFAULT_TIMEOUT_S
     transport: httpx.BaseTransport | None = None
 
-    def synthesise(self, *, text_tr: str, voice_id: str) -> SynthesisedSpeech:
+    def synthesise(
+        self, *, text_tr: str, voice_id: str, profile: DeliveryProfile
+    ) -> SynthesisedSpeech:
+        del profile  # no delivery control on this contract (see the class docstring)
         assert_speakable_tr(text_tr)
         url = f"{self.endpoint.rstrip('/')}{SYNTHESIS_PATH}"
         try:
@@ -206,11 +238,19 @@ class RecordedTtsGateway:
     or edited script is a refusal rather than a clip: invariant 10 says the
     scripted turn is spoken verbatim, and a cache is only as verbatim as the
     audio somebody put in it.
+
+    A recording may also name the delivery profile it was made under
+    (``delivery_profile``, INT-415). If it does, it is replayed only for that
+    profile, so a welcome take is never served as a RED clip. A recording that
+    names none is profile-free, which is what a self-hosted take is: that lane
+    has no delivery controls.
     """
 
     root: Path
 
-    def synthesise(self, *, text_tr: str, voice_id: str) -> SynthesisedSpeech:
+    def synthesise(
+        self, *, text_tr: str, voice_id: str, profile: DeliveryProfile
+    ) -> SynthesisedSpeech:
         assert_speakable_tr(text_tr)
         text_hash = clip_text_hash(text_tr)
         path = self.root / f"{text_hash}{RECORDING_SUFFIX}"
@@ -229,6 +269,12 @@ class RecordedTtsGateway:
                 f"recording {text_hash} carries text the manifest does not — a clip is "
                 "the script verbatim (CLAUDE.md invariant 10)"
             )
+        made_under = recorded.get("delivery_profile")
+        if made_under is not None and made_under != profile.key:
+            raise RecordedSpeechMismatchError(
+                f"recording {text_hash} was made under delivery profile {made_under!r}, "
+                f"not {profile.key!r}"
+            )
         return wav_to_speech(base64.b64decode(recorded["body_base64"]))
 
 
@@ -244,6 +290,11 @@ class ElevenLabsClipGenGateway:
     API key is carried in a header this module never logs and never puts in an
     exception (files/10 §2). The base URL is supplied by the caller, never a
     literal here, so no vendor hostname enters the tree.
+
+    The request carries the delivery profile's ``voice_settings`` (INT-415). A
+    profile tuned for another model is refused before the wire: the settings
+    are only meaningful for the model they were tuned on, and changing the
+    pinned model is an ADR, not a profile edit.
     """
 
     base_url: str
@@ -253,8 +304,15 @@ class ElevenLabsClipGenGateway:
     timeout_s: float = 60.0
     transport: httpx.BaseTransport | None = None
 
-    def synthesise(self, *, text_tr: str, voice_id: str) -> SynthesisedSpeech:
+    def synthesise(
+        self, *, text_tr: str, voice_id: str, profile: DeliveryProfile
+    ) -> SynthesisedSpeech:
         assert_speakable_tr(text_tr)
+        if profile.model_id != self.model_id:
+            raise DeliveryProfileMismatchError(
+                f"delivery profile {profile.key} is tuned for model {profile.model_id!r}, "
+                f"and this gateway pins {self.model_id!r}; changing the model needs an ADR"
+            )
         url = f"{self.base_url.rstrip('/')}/v1/text-to-speech/{voice_id}"
         try:
             with httpx.Client(timeout=self.timeout_s, transport=self.transport) as client:
@@ -272,6 +330,8 @@ class ElevenLabsClipGenGateway:
                         # invariant 22: disable the vendor normaliser — the
                         # compiler already expanded every numeral to orthography.
                         "apply_text_normalization": "off",
+                        # INT-415: how the words are delivered, never which words
+                        "voice_settings": profile.voice_settings.as_request(),
                     },
                 )
         except httpx.HTTPError as exc:

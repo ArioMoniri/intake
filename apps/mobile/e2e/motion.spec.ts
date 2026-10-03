@@ -43,6 +43,14 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { animatable, animatedStyleKeys, code, literalDurations, loops } from "./motionSource";
+import {
+  RED_CONTRACT,
+  WAITS,
+  arrowBody,
+  firstPaintViolations,
+  isRedSurface,
+  specifiers,
+} from "./redSurface";
 
 const MOBILE = join(__dirname, "..");
 
@@ -570,5 +578,113 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
 
     const offenders = APP_SOURCE.filter((f) => setsRetention(f.source)).map((f) => f.name);
     expect(offenders).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOTION-4 — the RED path paints first, and nothing on it moves
+// ---------------------------------------------------------------------------
+
+/*
+ * INT-333 (docs/design/motion/motion-verification.md §4 MOTION-4, §3 S-1;
+ * ADR-033 §5, Proposed). The pure contract is src/lib/motion/red.ts and its
+ * suite. What this adds is the source half: every file on the RED path is
+ * named here, and none of them reaches an animation, a haptic, a Modal or the
+ * router. The list is exact, so the RED UI's files (INT-135) are found by the
+ * detector and must be added to it, which puts them under the same scan.
+ */
+
+/** Every RED surface file on main. Grow it only with a file that paints or carries RED. */
+const RED_SURFACE_FILES: readonly string[] = [
+  "src/lib/livekit/events.ts",
+  "src/lib/livekit/index.ts",
+  "src/lib/livekit/red.ts",
+  "src/lib/livekit/session.ts",
+  "src/lib/livekit/types.ts",
+  "src/lib/motion/red.ts",
+];
+
+describe("MOTION-4 — the RED path paints first, with no motion", () => {
+  it("RED surface files are pinned and use no animation API, no expo-haptics, no Modal and no router call on the first-paint path", () => {
+    // Non-vacuity: each route into the RED path is detected…
+    for (const shape of [
+      'import { resolveRed } from "./red";',
+      'import { redFirstPaint } from "@/lib/motion/red";',
+      'import type { RedPresentation } from "@/lib/livekit";',
+      'if (event.type === "red") { show(event.presentation); }',
+      "<View style={{ backgroundColor: colors.light.emergencySoft }} />",
+    ]) {
+      expect(isRedSurface(shape), shape).toBe(true);
+    }
+    expect(isRedSurface('import { fadeSpec } from "./fade";\nconst c = colors.light.ink;')).toBe(
+      false,
+    );
+    // …and each thing a first paint must not touch is caught.
+    const reanimated = ["react-native", "reanimated"].join("-");
+    const haptics = ["expo", "haptics"].join("-");
+    const samples: readonly (readonly [string, string])[] = [
+      [`import { FadeIn } from "${reanimated}";`, "animation API"],
+      ["Animated.timing(v, t).start();", "animation API"],
+      ["<Animated.View entering={enteringFor(s)} />", "animation API"],
+      [`const H = await import("${haptics}");`, "haptics"],
+      ["Haptics.notificationAsync(t);", "haptics"],
+      ["<Modal visible transparent />", "Modal"],
+      ["router.push(`/visits/${id}/emergency`);", "router call"],
+      [`import { useRouter } from "${["expo", "router"].join("-")}";`, "router call"],
+    ];
+    for (const [shape, name] of samples) {
+      expect(firstPaintViolations(shape), shape).toContain(name);
+    }
+    expect(
+      firstPaintViolations("// Animated, Modal and router are named only here\nconst x = 1;"),
+    ).toEqual([]);
+
+    // The pin is exact: a RED file nobody named fails, and so does a name
+    // that no longer carries RED.
+    const contract: readonly string[] = RED_CONTRACT;
+    const found = APP_SOURCE.filter((f) => contract.includes(f.name) || isRedSurface(f.source)).map(
+      (f) => f.name,
+    );
+    expect(found).toEqual([...RED_SURFACE_FILES].sort());
+    for (const name of contract) {
+      expect(RED_SURFACE_FILES).toContain(name);
+    }
+
+    const offenders = RED_SURFACE_FILES.flatMap((name) =>
+      firstPaintViolations(file(name)).map((what) => `${name}: ${what}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("RED render is not awaited on audio, haptics, navigation or the arbiter", () => {
+    // Non-vacuity: every way of waiting is caught, and a plain call is not.
+    for (const shape of [
+      "await adapter.stop();",
+      "void speak(x).then(() => emit(e));",
+      "setTimeout(() => emit(e), 0);",
+      "await sleep(10);",
+      "requestAnimationFrame(() => emit(e));",
+    ]) {
+      expect(WAITS.test(shape), shape).toBe(true);
+    }
+    expect(WAITS.test('const p = resolveRed(t, c);\nemit({ type: "red", presentation: p });')).toBe(
+      false,
+    );
+
+    // The data-channel handler decodes, resolves and emits in one synchronous
+    // pass: it waits on nothing and calls no media, haptic, route or arbiter.
+    const session = file("src/lib/livekit/session.ts");
+    const handler = arrowBody(session, "handleData");
+    expect(handler, "handleData in src/lib/livekit/session.ts").not.toBeNull();
+    expect(handler!).toMatch(/\bdecodeRedTrigger\(/);
+    expect(handler!).toMatch(/\bresolveRed\(/);
+    expect(handler!).toMatch(/\bemit\(\s*\{\s*type:\s*"red"/);
+    expect(WAITS.test(handler!)).toBe(false);
+    expect(handler!).not.toMatch(/\badapter\s*\.|\bdeps\s*\.\s*(?!redScripts\b)\w+\s*\(/);
+    expect(handler!).not.toMatch(/\b(?:arbitrate|hapticFor|router|navigation)\b/);
+
+    // The motion contract that sizes the first paint imports nothing that
+    // could make it wait: only the RED types.
+    expect(specifiers(file("src/lib/motion/red.ts"))).toEqual(["../livekit/red"]);
   });
 });

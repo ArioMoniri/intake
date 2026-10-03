@@ -1,14 +1,16 @@
-"""The ops collector: GPU host, CI and clip-build counts as catalogued series (INT-351).
+"""The ops collector: GPU host, CI, CI/CD and clip-build counts as catalogued series.
 
 The admin ops console (``GET /admin/ops``, rendered by ``apps/admin-web``) reads
-Prometheus and the self-hosting registry and nothing else. Three of its tiles
+Prometheus and the self-hosting registry and nothing else. Several of its tiles
 need facts that live outside both — the GPU a model host sees, the latest CI
-run on ``main``, the last clip build's hits and syntheses — and this module is
-where they are gathered, **server-side, with the collector's own access**:
+run on ``main``, the last clip build's hits and syntheses (INT-351), and the
+CI/CD console's runs, failing jobs, required gates and releases (INT-187) — and
+this module is where they are gathered, **server-side, with the collector's own
+access**:
 
 - ``nvidia-smi`` on the host the collector runs beside (:mod:`.ops_gpu`);
 - a read-only GitHub token read from OpenBao, through the egress guard
-  (:mod:`.ops_ci`; files/10 §4, invariant 14);
+  (:mod:`.ops_ci` and :mod:`.ops_cicd`; files/10 §4, invariant 14);
 - the textfile ``make clips`` writes (:mod:`voice_clips.metrics`), re-exported
   family by family — only the two clip families, nothing else the file holds.
 
@@ -16,10 +18,10 @@ Every family is catalogued in ``observability/metrics_catalog.yaml``
 (invariant 13) and every label is an id (invariant 6).
 
 **Failure clears, it never zeroes (invariant 17).** A host whose query failed
-reads ``ops_gpu_host_up 0`` with no utilisation or memory child; a CI read that
-failed removes every run series. ``ops_collector_source_up{source}`` says which
-source is failing, so the console can tell "the collector is failing" from
-"nothing is configured".
+reads ``ops_gpu_host_up 0`` with no utilisation or memory child; a CI or CI/CD
+read that failed removes every one of its series. ``ops_collector_source_up
+{source}`` says which source is failing, so the console can tell "the collector
+is failing" from "nothing is configured".
 
 **Unconfigured means absent.** No env, no source, no loop: the probes service
 serves its contract exactly as before, and the tiles read *unknown*.
@@ -34,6 +36,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final, Protocol
 
+import httpx
 from intake_platform.egress import (
     DataClass,
     EgressContext,
@@ -49,6 +52,7 @@ from prometheus_client.parser import text_string_to_metric_families
 from prometheus_client.registry import Collector
 
 from intake_probes.ops_ci import GITHUB_API, CiSourceError, GithubActionsSource
+from intake_probes.ops_cicd import CicdSnapshot, GithubCicdSource
 from intake_probes.ops_gpu import GpuSourceError, NvidiaSmiSource, OpsConfigError
 
 __all__ = [
@@ -60,6 +64,7 @@ __all__ = [
     "ENV_GITHUB_TOKEN_PATH",
     "ENV_GPU_HOST_ID",
     "ENV_INTERVAL_S",
+    "OPS_CICD_FAMILIES",
     "OPS_CI_LAST_RUN",
     "OPS_CI_LAST_RUN_UPDATED_SECONDS",
     "OPS_COLLECTOR_SOURCE_UP",
@@ -123,6 +128,65 @@ OPS_COLLECTOR_SOURCE_UP = Gauge(
     "ops_collector_source_up",
     "1 when the ops collector's last read of a source succeeded, 0 when it failed.",
     ["source"],
+)
+
+# --- INT-187: the CI/CD console's families (ids and states only) -----------------
+
+_RUN_KEY: Final = ["workflow", "branch", "run_number"]
+OPS_CICD_RUN = Gauge(
+    "ops_cicd_run",
+    "1 for each recent run per workflow on the watched branch; its state is in the labels.",
+    [*_RUN_KEY, "status", "conclusion", "head_sha"],
+)
+OPS_CICD_RUN_DURATION_SECONDS = Gauge(
+    "ops_cicd_run_duration_seconds", "Start to last update of a completed run.", _RUN_KEY
+)
+OPS_CICD_RUN_UPDATED_SECONDS = Gauge(
+    "ops_cicd_run_updated_seconds", "Unix time a recent run was last updated.", _RUN_KEY
+)
+OPS_CICD_FAILED_JOB = Gauge(
+    "ops_cicd_failed_job", "1 per id-shaped failing job of a failed run.", [*_RUN_KEY, "job"]
+)
+OPS_CICD_FAILED_JOBS = Gauge(
+    "ops_cicd_failed_jobs", "Failing jobs of a failed run, named or not.", _RUN_KEY
+)
+OPS_CICD_BRANCH_GATE = Gauge(
+    "ops_cicd_branch_gate",
+    "1 per required gate on the branch head; its conclusion is in the labels.",
+    ["branch", "workflow", "gate", "conclusion"],
+)
+OPS_CICD_PR_GATE = Gauge(
+    "ops_cicd_pr_gate",
+    "1 per required gate on an open pull request's head; keyed by PR number only.",
+    ["pr", "workflow", "gate", "conclusion"],
+)
+OPS_CICD_BRANCH_CHECKS_ENFORCED = Gauge(
+    "ops_cicd_branch_checks_enforced",
+    "1 when GitHub enforces required status checks on the branch, 0 when not.",
+    ["branch"],
+)
+OPS_CICD_RELEASE = Gauge(
+    "ops_cicd_release", "1 per published release, with its tag's commit.", ["tag", "head_sha"]
+)
+OPS_CICD_RELEASE_PUBLISHED_SECONDS = Gauge(
+    "ops_cicd_release_published_seconds", "Unix time a release was published.", ["tag"]
+)
+OPS_CICD_RELEASE_SIGNING = Gauge(
+    "ops_cicd_release_signing", "1 per release, its signing state in the labels.", ["tag", "state"]
+)
+#: Every CI/CD family: cleared together, so a failed read leaves none of them.
+OPS_CICD_FAMILIES: Final = (
+    OPS_CICD_RUN,
+    OPS_CICD_RUN_DURATION_SECONDS,
+    OPS_CICD_RUN_UPDATED_SECONDS,
+    OPS_CICD_FAILED_JOB,
+    OPS_CICD_FAILED_JOBS,
+    OPS_CICD_BRANCH_GATE,
+    OPS_CICD_PR_GATE,
+    OPS_CICD_BRANCH_CHECKS_ENFORCED,
+    OPS_CICD_RELEASE,
+    OPS_CICD_RELEASE_PUBLISHED_SECONDS,
+    OPS_CICD_RELEASE_SIGNING,
 )
 
 #: The only families the clip textfile may re-export (voice_clips.metrics),
@@ -189,16 +253,58 @@ class ClipTextfileCollector(Collector):
 # --- collection ------------------------------------------------------------------
 
 
+def _clear(families: tuple[Gauge, ...]) -> None:
+    for family in families:
+        family.clear()
+
+
+def _export_cicd(snapshot: CicdSnapshot) -> None:
+    branch = snapshot.branch
+    for run in snapshot.runs:
+        key = {"workflow": run.workflow, "branch": branch, "run_number": str(run.run_number)}
+        OPS_CICD_RUN.labels(
+            **key, status=run.status, conclusion=run.conclusion, head_sha=run.head_sha
+        ).set(1)
+        OPS_CICD_RUN_UPDATED_SECONDS.labels(**key).set(run.updated_at.timestamp())
+        if run.duration_s is not None:
+            OPS_CICD_RUN_DURATION_SECONDS.labels(**key).set(run.duration_s)
+        if run.failed_job_count is not None:
+            OPS_CICD_FAILED_JOBS.labels(**key).set(run.failed_job_count)
+            for job in run.failed_jobs:
+                OPS_CICD_FAILED_JOB.labels(**key, job=job).set(1)
+    for gate in snapshot.branch_gates:
+        OPS_CICD_BRANCH_GATE.labels(
+            branch=branch, workflow=gate.workflow, gate=gate.gate, conclusion=gate.conclusion
+        ).set(1)
+    for pull in snapshot.pulls:
+        for gate in pull.gates:
+            OPS_CICD_PR_GATE.labels(
+                pr=str(pull.number),
+                workflow=gate.workflow,
+                gate=gate.gate,
+                conclusion=gate.conclusion,
+            ).set(1)
+    OPS_CICD_BRANCH_CHECKS_ENFORCED.labels(branch=branch).set(1 if snapshot.checks_enforced else 0)
+    for release in snapshot.releases:
+        OPS_CICD_RELEASE.labels(tag=release.tag, head_sha=release.head_sha).set(1)
+        OPS_CICD_RELEASE_PUBLISHED_SECONDS.labels(tag=release.tag).set(
+            release.published_at.timestamp()
+        )
+        OPS_CICD_RELEASE_SIGNING.labels(tag=release.tag, state=release.signing).set(1)
+
+
 @dataclass
 class OpsCollector:
     gpu_host: NvidiaSmiSource | None = None
     ci: GithubActionsSource | None = None
     clip_textfile: Path | None = None
+    cicd: GithubCicdSource | None = None
     _clip_registered: bool = field(default=False, repr=False)
 
     @property
     def configured(self) -> bool:
-        return any(source is not None for source in (self.gpu_host, self.ci, self.clip_textfile))
+        sources = (self.gpu_host, self.ci, self.clip_textfile, self.cicd)
+        return any(source is not None for source in sources)
 
     def _collect_gpu(self) -> str:
         source = self.gpu_host
@@ -250,6 +356,26 @@ class OpsCollector:
         OPS_COLLECTOR_SOURCE_UP.labels(source="ci").set(1)
         return "ok"
 
+    def _collect_cicd(self) -> str:
+        """Replace every CI/CD series with one snapshot, or leave none of them.
+
+        Read first, then clear: a scrape during the read's several calls sees
+        the last complete snapshot, not a gap. A refusal clears every family.
+        """
+        source = self.cicd
+        if source is None:
+            return "unconfigured"
+        try:
+            snapshot = source.read()
+        except CiSourceError as failure:
+            _clear(OPS_CICD_FAMILIES)
+            OPS_COLLECTOR_SOURCE_UP.labels(source="cicd").set(0)
+            return failure.code
+        _clear(OPS_CICD_FAMILIES)
+        _export_cicd(snapshot)
+        OPS_COLLECTOR_SOURCE_UP.labels(source="cicd").set(1)
+        return "ok"
+
     def register_clip_textfile(self, registry: Any) -> None:
         """Attach the clip re-export to ``registry`` once (the default one in prod)."""
         if self.clip_textfile is None or self._clip_registered:
@@ -259,7 +385,11 @@ class OpsCollector:
 
     def collect_once(self) -> dict[str, str]:
         """One pass over every configured source; what each one answered."""
-        return {"gpu_host": self._collect_gpu(), "ci": self._collect_ci()}
+        return {
+            "gpu_host": self._collect_gpu(),
+            "ci": self._collect_ci(),
+            "cicd": self._collect_cicd(),
+        }
 
 
 async def run_collector(collector: OpsCollector, interval_s: float, stop: asyncio.Event) -> None:
@@ -312,6 +442,19 @@ def _allowlist_path(env: Mapping[str, str]) -> Path:
     return default_allowlist_path()
 
 
+def _github_transport(env: Mapping[str, str]) -> httpx.BaseTransport:
+    policy = EgressPolicy.for_tier(load_allowlist(_allowlist_path(env)), "dev")
+    return guarded_transport(
+        policy,
+        # api.github.com is allow-listed for issue_tracking: repository
+        # metadata read by the same client class as `gh` (LOOP.md). Runs, jobs,
+        # check runs, pulls and releases carry no personal data by
+        # construction (ops_ci and ops_cicd drop actors, authors, titles and
+        # messages before anything is exported).
+        EgressContext(purpose=EgressPurpose.ISSUE_TRACKING, data_class=DataClass.NON_PERSONAL),
+    )
+
+
 def ops_collector_from_env(
     env: Mapping[str, str] | None = None,
     *,
@@ -327,27 +470,19 @@ def ops_collector_from_env(
     gpu = NvidiaSmiSource(host_id=host_id) if host_id else None
 
     ci: GithubActionsSource | None = None
+    cicd: GithubCicdSource | None = None
     if repo or token_path:
         if not (repo and token_path):
             raise OpsConfigError(
                 f"{ENV_GITHUB_REPO} and {ENV_GITHUB_TOKEN_PATH} come together: a CI source "
                 "without its read-only token would read as 'GitHub is down'"
             )
-        policy = EgressPolicy.for_tier(load_allowlist(_allowlist_path(env)), "dev")
-        transport = guarded_transport(
-            policy,
-            # api.github.com is allow-listed for issue_tracking: repository
-            # metadata read by the same client class as `gh` (LOOP.md). A run
-            # list carries no personal data by construction (ops_ci drops the
-            # actor and the commit message before anything is exported).
-            EgressContext(purpose=EgressPurpose.ISSUE_TRACKING, data_class=DataClass.NON_PERSONAL),
-        )
-        ci = GithubActionsSource(
-            repo=repo,
-            token=_token_reader(token_path, secrets),
-            branch=env.get(ENV_GITHUB_BRANCH, "").strip() or "main",
-            api_base=env.get(ENV_GITHUB_API, "").strip() or GITHUB_API,
-            transport=transport,
-        )
+        token = _token_reader(token_path, secrets)
+        branch = env.get(ENV_GITHUB_BRANCH, "").strip() or "main"
+        api_base = env.get(ENV_GITHUB_API, "").strip() or GITHUB_API
+        # INT-187: the CI/CD read rides the same repo, token, branch, API and guard
+        ci = GithubActionsSource(repo, token, branch, api_base, _github_transport(env))
+        cicd = GithubCicdSource(repo, token, branch, api_base, _github_transport(env))
 
-    return OpsCollector(gpu_host=gpu, ci=ci, clip_textfile=Path(textfile) if textfile else None)
+    clips = Path(textfile) if textfile else None
+    return OpsCollector(gpu_host=gpu, ci=ci, clip_textfile=clips, cicd=cicd)
