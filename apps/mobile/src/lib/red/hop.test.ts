@@ -65,6 +65,29 @@ describe("CD-24 generic_red_silent_is_never_wordless — the catalog", () => {
     ).not.toBeNull();
   });
 
+  // Round 5: yes is in the hospital, no is not — the DSL and the catalog say so.
+  it("refuses the whole catalog when any question swaps yes and no (near miss: ON_SITE/REMOTE decodes)", () => {
+    for (const id of Object.keys(RAW.questions)) {
+      expect(
+        decodeRedCatalog(without((r) => (r.questions[id].onYes = "REMOTE"))),
+        `${id} onYes`,
+      ).toBeNull();
+      expect(
+        decodeRedCatalog(without((r) => (r.questions[id].onNo = "ON_SITE"))),
+        `${id} onNo`,
+      ).toBeNull();
+    }
+    expect(
+      decodeRedCatalog(
+        without((r) => {
+          const q = r.questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN];
+          q.onYes = "ON_SITE";
+          q.onNo = "REMOTE";
+        }),
+      ),
+    ).not.toBeNull();
+  });
+
   it("a hop given such a catalog sends no answer, so no RED can arrive wordless", async () => {
     const paths: string[] = [];
     const transport: HopTransport = async (path) => {

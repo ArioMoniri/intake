@@ -815,7 +815,8 @@ export function DialogueIntake({
       </View>
 
       <SectionSheet
-        visible={sheetOpen}
+        visible={sheetOpen && !stopsDialogue}
+        stopped={stopsDialogue}
         model={model}
         onClose={() => setSheetOpen(false)}
         onConfirmRow={confirmRow}

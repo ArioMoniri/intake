@@ -24,14 +24,19 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Iterator
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
 from api_harness import ADMIN_TOKEN, PATIENT_TOKEN, ApiHarness, build_harness
+from clinical_schemas.session import AnswerState
+from clinical_schemas.triage import RedLocation, TriageLevel
 from intake_api.consent_guard import unguarded_data_routes
 from protocols.compile.life_threat import load_life_threat_set
+from protocols.triage import TriageContext, evaluate_triage
+from protocols.triage.context import SlotAnswer
 from protocols.triage.expr import And, BoolRef, Compare, Lit, Or, WhenNode, parse_when
 from protocols.types import RuleStatus
 
@@ -573,19 +578,50 @@ def test_tripwire_no_served_red_rule_can_fire_through_the_hop() -> None:
     assert not requires_bool(parse_when(sentetik.when))
 
 
+#: The served cardiac rule's firing answers, with its `now` tense anchor dated, so
+#: the answer's TYPE is the only thing that can keep it from firing.
+CARDIAC_FIRING: dict[str, bool | str] = {
+    "chest_pain.present": True,
+    "associated.dyspnoea": True,
+    "chest_pain.onset_at": "2026-08-29",
+}
+
+
 def test_tripwire_the_hop_refuses_a_json_boolean_answer(tmp_path: Path) -> None:
     """The schema half of the tripwire above: a JSON boolean is a 422, so the served
     cardiac rule's boolean atoms stay unbindable through the hop (INT-475)."""
-    booleans = {"chest_pain.present": True, "associated.dyspnoea": True}
+    # Positive control: these exact answers, as typed booleans, DO fire the served
+    # cardiac rule in the engine — so the near miss below is held by type alone.
+    served = [
+        entry.rule
+        for entry in load_life_threat_set(LIFE_THREAT).rules
+        if entry.rule.status is RuleStatus.ACTIVE
+    ]
+    context = TriageContext(
+        reference_time=datetime.fromisoformat(REFERENCE_TIME),
+        answers={
+            slot: SlotAnswer(state=AnswerState.ASKED_PRESENT, values=(value,))
+            for slot, value in CARDIAC_FIRING.items()
+        },
+    )
+    fired = evaluate_triage(served, context, RedLocation.ON_SITE).result
+    assert fired.level is TriageLevel.RED
+    assert fired.red_rule_id == CARDIAC
     for harness in _synthetic(tmp_path):
         response = harness.client.post(
             "/v1/triage/evaluate",
             headers=harness.patient(),
-            json={"location": "ON_SITE", "reference_time": REFERENCE_TIME, "answers": booleans},
+            json={
+                "location": "ON_SITE",
+                "reference_time": REFERENCE_TIME,
+                "answers": CARDIAC_FIRING,
+            },
         )
         assert response.status_code == 422, response.text
-        # Near miss: the same answers as strings are accepted, and no RED comes back.
-        strings = {"chest_pain.present": "true", "associated.dyspnoea": "true"}
+        # Near miss: the same three answers as strings, anchor dated, are accepted,
+        # and no RED comes back: "true" is not true.
+        strings = {slot: str(value).lower() for slot, value in CARDIAC_FIRING.items()}
+        assert strings["chest_pain.onset_at"] == "2026-08-29"
         body = _evaluate(harness, strings, "ON_SITE")
         assert body["kind"] == "triage_level", body
 

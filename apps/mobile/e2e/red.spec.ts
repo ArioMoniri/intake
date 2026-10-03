@@ -26,6 +26,7 @@ import {
   type DialogueStreamAction,
   type DialogueStreamState,
 } from "../src/lib/dialogue/stream";
+import { modalAnimation } from "../src/lib/a11y/motion";
 import { emptyNoteState, noteReducer, type NoteState } from "../src/lib/intake/note";
 import type { IntakeQuestion } from "../src/lib/intake/questions";
 import { CATALOG_PATH, type HopTransport } from "../src/lib/red/hop";
@@ -585,6 +586,15 @@ describe("INT-446 — the RED path", () => {
     expect(dialogue).toMatch(
       /if \(stopsDialogue\) \{\s*setSheetOpen\(false\);\s*void session\.leave\(\);/,
     );
+    // Round 5: the sheet is never visible over a RED, not even for the one frame
+    // before the effect runs, and it leaves in 0 ms rather than fading over it.
+    expect(dialogue).toMatch(/<SectionSheet\s+visible=\{sheetOpen && !stopsDialogue\}/);
+    expect(dialogue).toMatch(/<SectionSheet[\s\S]{0,200}stopped=\{stopsDialogue\}/);
+    const sheet = code(readFileSync(join(SRC, "components/SectionPanel.tsx"), "utf8"));
+    expect(sheet).toMatch(/animationType=\{modalAnimation\(reduceMotion \|\| stopped\)\}/);
+    expect(modalAnimation(false || true)).toBe("none");
+    // Near miss: with no RED the sheet keeps the reduce-motion policy's fade.
+    expect(modalAnimation(false || false)).toBe("fade");
     // Near miss: without a RED the strip still opens the sheet.
     const strip = code(readFileSync(join(SRC, "components/SectionPanel.tsx"), "utf8"));
     expect(strip).toMatch(/onPress\?: \(\) => void;/);

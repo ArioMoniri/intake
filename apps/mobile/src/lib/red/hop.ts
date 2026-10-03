@@ -42,8 +42,9 @@ export type HopTransport = (
 /** The UNKNOWN branch: the rule's one question and where each answer goes. */
 export interface RedLocationQuestion {
   readonly askTr: string;
-  readonly onYes: Exclude<RedLocation, "UNKNOWN">;
-  readonly onNo: Exclude<RedLocation, "UNKNOWN">;
+  /** Yes, in the hospital: ON_SITE. No: REMOTE. A catalog that swaps them is refused whole. */
+  readonly onYes: "ON_SITE";
+  readonly onNo: "REMOTE";
   /**
    * The rule's own branch when the question goes unanswered. Always REMOTE
    * (INT-465; files/04 §8.1 rule 7): a catalog that says otherwise is refused whole.
@@ -149,8 +150,6 @@ export async function evaluateBoundAnswers(
   return { kind: "unevaluated" };
 }
 
-const LOCATED: ReadonlySet<unknown> = new Set(["REMOTE", "ON_SITE"]);
-
 function decodeScript(value: unknown): RedScript | null {
   if (!isRecord(value)) {
     return null;
@@ -178,16 +177,16 @@ function decodeQuestion(value: unknown): RedLocationQuestion | null {
   if (
     typeof askTr !== "string" ||
     askTr.length === 0 ||
-    !LOCATED.has(onYes) ||
-    !LOCATED.has(onNo) ||
+    onYes !== "ON_SITE" ||
+    onNo !== "REMOTE" ||
     onNoAnswer !== "REMOTE"
   ) {
     return null;
   }
   return {
     askTr,
-    onYes: onYes as RedLocationQuestion["onYes"],
-    onNo: onNo as RedLocationQuestion["onNo"],
+    onYes,
+    onNo,
     onNoAnswer,
   };
 }

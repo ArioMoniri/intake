@@ -180,13 +180,21 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
 
 interface SectionSheetProps {
   visible: boolean;
+  /** A RED stands (INT-465): the sheet leaves in 0 ms, never fading over the RED. */
+  stopped?: boolean;
   model: SectionPanelModel;
   onClose: () => void;
   onConfirmRow: (questionId: string) => void;
 }
 
 /** The expanded sheet: every section as a grouped-table row. */
-export function SectionSheet({ visible, model, onClose, onConfirmRow }: SectionSheetProps) {
+export function SectionSheet({
+  visible,
+  stopped = false,
+  model,
+  onClose,
+  onConfirmRow,
+}: SectionSheetProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   // INT-360: a Modal is its own window, so the Screen's safe edges do not
@@ -198,7 +206,7 @@ export function SectionSheet({ visible, model, onClose, onConfirmRow }: SectionS
     <Modal
       visible={visible}
       transparent
-      animationType={modalAnimation(reduceMotion)}
+      animationType={modalAnimation(reduceMotion || stopped)}
       // SC 1.3.4 (INT-360): without this list React Native presents the Modal
       // portrait-only on an iPhone, and opening the sheet in landscape would
       // turn the screen under the patient.

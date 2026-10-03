@@ -49,6 +49,12 @@
     - `on_yes`/`on_no` are narrowed;
     - the kiosk/RED-store observation is recorded under INT-476 (#815).
     No rule bytes changed, so there was no re-sign.
+  - Review round 5 (orchestrator, REQUEST_CHANGES), test-first:
+    - the 422 tripwire's near miss now dates the tense anchor, with an engine positive
+      control (booleans fire RED), so type is the only blocker;
+    - HB-C25 asks (vi) about the SILENT focus move on expiry;
+    - the section sheet is never visible over a RED and leaves in 0 ms;
+    - the device decoder types yes ON_SITE and no REMOTE.
 - Invariants touched and still passing: 1, 2, 7, 10, 14, 17, 21, 22.
 - Decisions / ADRs / `00_STATE.md` rows: CD-25 (decision register); D23 (owner, 3 Oct 2026, read with D18). D17 and HB-C1 are unchanged, and INT-058 (cosign) is untouched.
 - Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b, HB-C25). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).
