@@ -105,7 +105,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-423 (chat rhythm and materials, GitHub #718)
     # + INT-433 (question screen redesign, Mobbin-referenced, GitHub #739)
     # + INT-451 (interaction patterns within ADR-033, GitHub #764)
-    assert len(actions) == 334
+    # + INT-461 (ADR-038, the owner-ratified amendment to ADR-033, GitHub #786)
+    # + INT-462 (native chat: capsule composer, mic, checked chips, GitHub #787)
+    assert len(actions) == 336
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

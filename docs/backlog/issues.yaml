@@ -6526,3 +6526,42 @@
     - "before/after simulator captures are in docs/design/interaction-patterns/"
   tests: [apps/mobile/src/lib/a11y/rowPress.test.ts, apps/mobile/e2e/interactionPatterns.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/nativeChrome.spec.ts]
   sec_row: "mobile"
+- id: INT-461
+  epic: E00-governance
+  phase: P1
+  title: "ADR-038: amendment to ADR-033 — spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets under the RED root layer"
+  # GitHub #786. Owner, 3 Oct 2026, in chat: "yes approve 1-3". The native
+  # pass (INT-462 onwards) asked for three things ADR-033 forbids; this ADR
+  # bounds each and the owner ratified them. Merge after #571 (ADR-033).
+  depends_on: [INT-332]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-461.md
+  acceptance:
+    - "docs/adr/ADR-038 records the amendment as Accepted, quotes the owner, and bounds each exception by number, surface and guard: spring-in bubbles never on RED with a 120 ms fade under Reduce Motion; selection haptics on answer chips and the mic through INT-340's gate, never while a voice session is active and never on RED; in-tree detent sheets under the RED root layer, with no UIKit-presented sheet and no zoom transition"
+    - "files/00_STATE.md §3 gains the D-row (next free number) and docs/index.md registers the ADR"
+    - "a docs test pins the status, the owner quote and each bound"
+  tests: [tests/docs/test_adr_038.py]
+  sec_row: "mobile"
+- id: INT-462
+  epic: E08-mobile
+  phase: P1
+  title: "Native chat: a Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips"
+  # GitHub #787. Owner feedback, 3 Oct 2026: the app reads as AI-generated.
+  # Section 1 of the native pass. Spec: docs/design/library-patterns.md
+  # (P1-P5, PR #784). Built on INT-422/423/433/451 (#725, #728, #740, #771)
+  # and INT-336/337/340 (#716, #717, #710), merged into this branch; motion
+  # and haptics under ADR-038 (#788). RED, question text and siz copy kept.
+  depends_on: [INT-433, INT-337, INT-340, INT-461]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-462.md
+  acceptance:
+    - "the composer is one filled capsule on the glass bar (INT-433's field rule: solid fill, tint focus ring, no resting outline, the boundary back under Increase Contrast) with one trailing control inside it; glass stays on chrome, content on solid fills"
+    - "an empty composer shows a mic that opens the microphone only on tap, through the session's barge-in or spoken-correction path, with an accessible name and hint; it swaps to send once text is typed and to stop while listening; RED behaviour is unchanged"
+    - "a new agent bubble the arbiter grants rises 8 pt on the critically damped spring (ADR-038 A1), keeps only the 120 ms fade under Reduce Motion and never moves while a RED shows; typing, listening and transcribing read as static lines beside the presence orb"
+    - "confirm chips are filled capsules (44 pt) whose selected state is tinted and checked, so it is not colour alone"
+    - "selection haptics on answer chips and the mic go through INT-340's gate, never while agent speech plays or the mic is hot, never on RED, never on instrument options (ADR-038 A2)"
+    - "contrast holds in light, dark and Increase Contrast; question text is verbatim; no numeral reaches spoken text; the spoken lane never imports the question module"
+  tests: [apps/mobile/src/lib/dialogue/composer.test.ts, apps/mobile/src/lib/motion/bubbles.test.ts, apps/mobile/src/lib/motion/haptics.test.ts, apps/mobile/e2e/nativeChat.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/chatRhythm.spec.ts]
+  sec_row: "mobile"

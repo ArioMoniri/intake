@@ -155,7 +155,9 @@ def test_ids_unique_and_well_formed() -> None:
     # chips, Liquid Glass bars; owner request, GitHub #739).
     # + INT-451 (interaction patterns from the owner-listed libraries and
     # Mobbin, within ADR-033; owner request, GitHub #764).
-    assert len(ids) == 334
+    # + INT-461 (ADR-038, the owner-ratified amendment to ADR-033, GitHub #786).
+    # + INT-462 (native chat: capsule composer, mic, checked chips, GitHub #787).
+    assert len(ids) == 336
     import re
 
     for i in ids:

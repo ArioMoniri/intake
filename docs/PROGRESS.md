@@ -3256,3 +3256,51 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. Q-37.2 (ClinicalAuthor) stays open, failing closed.
 - Next: INT-462 (native chat), stacked on this branch.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00+03:00 · INT-461 · done (PR open, not merged)
+- Goal: record the owner-ratified amendment to ADR-033 (ADR-038) so the native pass can ship spring-in bubbles, selection haptics on answer chips and the mic, and in-tree detent sheets, each bounded.
+- Plan: ADR-038 with A1–A3 and a bound-to-test table; files/00 §3 row D21 (D18–D20 are claimed by open PRs); docs/index.md entry; a docs test pinning every bound; backlog row and counts.
+- Tests added (with the near-miss negative for any safety rule): `tests/docs/test_adr_038.py` (6). Each bound is a separate needle, so dropping any one of them (the RED exclusion, the Reduce Motion fallback, the no-presented-sheet rule) fails the suite. Red: 6 failed with the ADR absent. Green: 6 passed.
+- Result (`make check` / `make safety` / `make security` summary): `tests/docs`, `tests/backlog` and `tests/smoke` pass, and `no_placeholders` passes after staging. Docs only, no code.
+- Invariants touched and still passing: 21 (RED stays zero-motion and paints above any sheet, A3), 17.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-038 Accepted (owner, 3 Oct 2026, "yes approve 1-3"); D21.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: INT-462 (native chat) implements A1 and A2 test first.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T20:15:00+03:00 · INT-462 · done (PR open, not merged; stacked on #725, #728, #740, #771, #716, #717, #710, #788)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-462):
+  - one filled capsule composer on the glass bar, with one trailing control inside;
+  - an empty-composer mic that opens only on tap, swaps to send and stop, with RED unchanged;
+  - agent bubbles spring in per ADR-038 A1, with a fade under Reduce Motion and no motion on RED;
+  - filled, checked 44 pt capsule chips;
+  - selection haptics on chips and the mic through INT-340's gate per ADR-038 A2;
+  - contrast holds in light, dark and Increase Contrast, with question text verbatim and no numerals spoken.
+- Plan:
+  - Pure rules first (`composerTrailing`, `bubbleEntrance`, the haptic owners), then the wiring in `DialogueIntake`.
+  - Move the field and chip chrome to `lib/controlChrome.ts`, so the spoken lane stays clear of the question module.
+  - Take simulator captures, before and after.
+- Tests added (with the near-miss negative for any safety rule):
+  - `composer.test.ts` and `bubbles.test.ts` (near misses: RED presented, Reduce Motion, an ungranted bubble);
+  - `haptics.test.ts` additions (near misses: instrument options, speaking phase, hot mic, RED);
+  - `e2e/nativeChat.spec.ts`, including "no effect opens the microphone";
+  - `motion.spec.ts` and `chatRhythm.spec.ts` extensions;
+  - RED run: 5 files failed (15 tests, plus 2 import failures).
+  - The follow fix found on the simulator: red 1 failed / 12 passed, then green.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile vitest 136 files, 2856 tests; lint 0 errors);
+  - mobile `tsc` clean;
+  - backlog, docs, smoke, i18n and legal pytest green after staging;
+  - `no_placeholders` clean;
+  - `check-integration` CI-only.
+- Invariants touched and still passing:
+  - 2 and 22: new copy is `siz`, descriptive and numeral-free.
+  - 10: question text is unchanged.
+  - 21: no RED surface touched; the guard asserts no RED token in the dialogue.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - Implements ADR-038 A1 and A2.
+  - A1's text was narrowed on #788 to the agent's bubble, matching INT-337's instant patient render.
+  - No new D-row.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: section 2 (welcome and onboarding), then verify #740 on the simulator, then section 4 (grouped inset lists) and section 5 (in-tree detent sheets, ADR-038 A3).
+- LOOP_STATUS: CONTINUE

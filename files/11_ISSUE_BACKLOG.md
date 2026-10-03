@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**334 issues.** By phase: P0 164 · P1 116 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 225 · todo 71 · withdrawn 1.
+**336 issues.** By phase: P0 164 · P1 118 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 227 · todo 71 · withdrawn 1.
 
 ## P0
 
@@ -296,6 +296,8 @@
 | INT-423 | Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid | E08-mobile | INT-422 | area:mobile | done |
 | INT-433 | Question screen redesign: native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced) | E08-mobile | INT-422, INT-423 | area:mobile | done |
 | INT-451 | Mobile interaction patterns from the owner-listed libraries and Mobbin, within ADR-033 and Liquid Glass | E08-mobile | INT-433 | area:mobile | done |
+| INT-461 | ADR-038: amendment to ADR-033 — spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets under the RED root layer | E00-governance | INT-332 | area:mobile | done |
+| INT-462 | Native chat: a Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips | E08-mobile | INT-433, INT-337, INT-340, INT-461 | area:mobile | done |
 
 ## P2
 

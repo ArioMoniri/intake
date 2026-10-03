@@ -308,7 +308,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-451 (interaction patterns from the owner-listed libraries and
     # Mobbin, within ADR-033; owner request, GitHub #764); grows only with a
     # stated reason.
-    assert len(ids) == 334, f"expected 175 blueprint + 159 added issues, got {len(ids)}"
+    # + INT-461 (ADR-038, the owner-ratified amendment to ADR-033, GitHub #786);
+    # grows only with a stated reason.
+    # + INT-462 (native chat: capsule composer, mic, checked chips, GitHub #787);
+    # grows only with a stated reason.
+    assert len(ids) == 336, f"expected 175 blueprint + 161 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
