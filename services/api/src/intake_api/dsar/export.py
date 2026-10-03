@@ -31,7 +31,6 @@ needs it; two copies of a security control are two copies that can drift.
 from __future__ import annotations
 
 import html
-import json
 import uuid
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -55,12 +54,12 @@ from clinical_schemas.mappers.r4 import (
     Reference,
     to_wire,
 )
-from intake_platform.db.envelope_json import encrypted_field_from_json
 from intake_platform.db.models import SessionStatus, SlotSensitivity
 from intake_platform.envelope import EnvelopeCipher
 from intake_platform.export_safety import sanitise_cell, sanitise_cells
 from intake_platform.legal import LegalStrings
 
+from intake_api.dsar.sections import decrypt_json, previsit_output_lines, record_section_lines
 from intake_api.dsar.store import SubjectRecord
 from intake_api.dsar.strings import DSAR_EXPORT_SECTIONS, section_key
 
@@ -131,17 +130,12 @@ class ExportView:
     section_lines: Mapping[str, tuple[str, ...]]
 
 
-def _decrypt_json(cipher: EnvelopeCipher, tenant_id: uuid.UUID, payload: Mapping[str, Any]) -> Any:
-    field = encrypted_field_from_json(payload)
-    return json.loads(cipher.decrypt_field(str(tenant_id), field).decode("utf-8"))
-
-
 def _note_views(
     record: SubjectRecord, *, cipher: EnvelopeCipher, tenant_id: uuid.UUID
 ) -> tuple[NoteView, ...]:
     views: list[NoteView] = []
     for note in record.notes:
-        body = _decrypt_json(cipher, tenant_id, dict(note.payload))
+        body = decrypt_json(cipher, tenant_id, dict(note.payload))
         sections = tuple(
             NoteSectionView(
                 id=sanitise_cell(str(section.get("id", ""))),
@@ -163,7 +157,7 @@ def _visit_views(
         for slot in record.slots_for(visit.id):
             value: Any = dict(slot.value)
             if slot.sensitivity is SlotSensitivity.SENSITIVE:
-                value = _decrypt_json(cipher, tenant_id, value)
+                value = decrypt_json(cipher, tenant_id, value)
             slots.append((sanitise_cell(slot.slot_id), _sanitise_value(value)))
         views.append(
             VisitView(
@@ -215,82 +209,18 @@ def build_view(
             )
             for visit in visits
         ),
-        "notes": tuple(
-            " · ".join(_cells([f"note:{note.id}", f"visit:{note.session_id}", section.title, line]))
-            for note in notes
-            for section in note.sections
-            for line in section.lines
-        ),
-        "documents": tuple(
-            " · ".join(
-                _cells(
-                    [
-                        f"document:{doc.id}",
-                        doc.media_type,
-                        f"sha256:{doc.sha256}",
-                        _stamp(doc.created_at),
-                    ]
+        "notes": (
+            *(
+                " · ".join(
+                    _cells([f"note:{note.id}", f"visit:{note.session_id}", section.title, line])
                 )
-            )
-            for doc in record.documents
+                for note in notes
+                for section in note.sections
+                for line in section.lines
+            ),
+            *previsit_output_lines(record),
         ),
-        "consents": tuple(
-            " · ".join(
-                _cells(
-                    [
-                        consent.scope,
-                        consent.version,
-                        f"text_hash:{consent.text_hash or ''}",
-                        f"channel:{consent.channel or ''}",
-                        _stamp(consent.granted_at),
-                        f"revoked:{_stamp(consent.revoked_at)}",
-                    ]
-                )
-            )
-            for consent in record.consents
-        ),
-        "shares": tuple(
-            " · ".join(
-                _cells(
-                    [
-                        f"share:{share.id}",
-                        f"note:{share.note_id}",
-                        ",".join(str(item) for item in share.scope_sections.get("section_ids", ())),
-                        f"expires:{_stamp(share.expires_at)}",
-                        f"revoked:{_stamp(share.revoked_at)}",
-                    ]
-                )
-            )
-            for share in record.shares
-        ),
-        "rectifications": tuple(
-            " · ".join(
-                _cells(
-                    [
-                        entry.target_ref,
-                        _stamp(entry.created_at),
-                        str(_decrypt_json(cipher, tenant_id, dict(entry.payload))["correction"]),
-                    ]
-                )
-            )
-            for entry in record.rectifications
-        ),
-        "requests": tuple(
-            " · ".join(
-                _cells(
-                    [
-                        f"dsar-request:{request.id}",
-                        request.kind.value,
-                        request.status.value,
-                        f"received:{_stamp(request.received_at)}",
-                        f"due:{_stamp(request.due_at)}",
-                        f"grace_ends:{_stamp(request.grace_ends_at)}",
-                        f"completed:{_stamp(request.completed_at)}",
-                    ]
-                )
-            )
-            for request in record.requests
-        ),
+        **record_section_lines(record, cipher=cipher, tenant_id=tenant_id),
     }
     return ExportView(
         patient_id=patient_id,

@@ -22,6 +22,9 @@ state the design asks for. INT-366 adds a third: ``identity`` (Keycloak and
 OpenBao admin access) ships unset, so the access review and offboarding answer
 503 until a deployment wires them — while the review ledger, which reads only
 the audit chain, is always there and downgrades until a review is countersigned.
+INT-406 adds a fourth: ``safety_inbox`` ships unset, so the Safety queue answers
+503 — never an empty queue that reads as "nobody is waiting" — and the API
+reports the inbox unreadable, which pages, until a deployment wires the store.
 """
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ from intake_platform.admin.actions import (
     MODEL_LANES_ROUTE_SWITCH,
     MODEL_LANES_SELF_HOSTED_ENGAGE,
     OFFBOARD,
+    SAFETY_QUEUE_ACKNOWLEDGE,
     VOICE_CANARY_SET,
     VOICE_KILL_SWITCH_ENGAGE,
     VOICE_KILL_SWITCH_RELEASE,
@@ -55,6 +59,7 @@ from intake_platform.admin.principal import AdminClaimsVerifier
 from intake_platform.admin.roles import ADMIN_ROLES, ROLE_SPECS, AdminRole, RoleScope
 from intake_platform.model_lanes.wiring import ModelLanesWiring
 from intake_platform.release_freeze import ReleaseFreezeStore
+from intake_platform.safety_inbox import SafetyInbox
 from intake_platform.voice_control import VoiceControlStore
 
 __all__ = ["ADMIN_ROUTES", "AdminRoute", "AdminWiring"]
@@ -126,6 +131,16 @@ _ACCESS_REVIEW_READERS = frozenset(
     ACCESS_REVIEW_SIGN.actor_roles
     | ACCESS_REVIEW_SIGN.approver_roles
     | {AdminRole.AUDITOR, AdminRole.PLATFORM_OWNER}
+)
+
+#: INT-406 — the Safety queue (files/08 §3). The tenant's clinical responsible
+#: answers it; `clinical_lead` (all tenants, clinical) and `platform_owner` read
+#: it; `auditor` reads it as evidence (§2.1). Ids and clocks only — no patient
+#: words — so no role reaches content through it. `sre_oncall` is paged by the
+#: tenant id on the alert and has no reason to hold the entries.
+_SAFETY_QUEUE_READERS = frozenset(
+    SAFETY_QUEUE_ACKNOWLEDGE.actor_roles
+    | {AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER, AdminRole.AUDITOR}
 )
 
 
@@ -416,6 +431,17 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         OFFBOARD.actor_roles,
         OFFBOARD.id,
     ),
+    # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49). The read
+    # is tenant-scoped from the claim; the acknowledgement is tier 1, one key,
+    # the tenant's clinical responsible's alone.
+    AdminRoute("GET", "/admin/safety-queue", "admin.safety_queue.read", _SAFETY_QUEUE_READERS),
+    AdminRoute(
+        "POST",
+        "/admin/safety-queue/{entry_id}/acknowledge",
+        "admin.safety_queue.acknowledge",
+        SAFETY_QUEUE_ACKNOWLEDGE.actor_roles,
+        SAFETY_QUEUE_ACKNOWLEDGE.id,
+    ),
 )
 
 
@@ -444,6 +470,11 @@ class AdminWiring:
     #: INT-366: Keycloak, OpenBao and the other console systems. ``None``
     #: leaves the review and offboarding answering 503 (fail closed).
     identity: IdentityWiring | None = None
+    #: INT-406: the clinic Safety inbox (``INTAKE_SAFETY_INBOX_REDIS_URL``, the
+    #: store the voice runtime writes). ``None`` leaves the Safety queue
+    #: answering 503 and the inbox reported unreadable, which pages.
+    safety_inbox: SafetyInbox | None = None
+
     #: INT-428 (ADR-035): the model-lane control store, the router over it and
     #: the hosted adapters. ``None`` = unconfigured: the model-lane mutations
     #: answer 503 and the module's tiles read unknown (fail closed).

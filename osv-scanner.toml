@@ -1,10 +1,11 @@
 # osv-scanner configuration (INT-429). `make security` step [6/12] and the
 # vulnerabilities job read it from beside pnpm-lock.yaml and uv.lock.
 #
-# One entry, and it expires. tests/ci/test_security_gates.py pins the count at
-# 1, the id, and the expiry. When ignoreUntil passes, osv-scanner reports the
-# advisory again and the gate turns red until node-forge ships a fix or the
-# dependency is gone. Removing the entry sooner is always correct.
+# Three entries, one advisory of one package each, and each one expires.
+# tests/ci/test_security_gates.py pins the count at 3, the ids and the
+# expiries. When an ignoreUntil passes, osv-scanner reports that advisory
+# again, and the gate turns red until a fix ships or the dependency is gone.
+# Removing an entry sooner is always correct.
 
 [[IgnoredVulns]]
 id = "GHSA-86w9-cpqp-85rv"
@@ -24,3 +25,41 @@ reads keychain certificates for `expo run:ios`. Neither runs during \
 `expo export`, no app source imports node-forge, and the production iOS and \
 Android `expo export` bundles carry no node-forge code \
 (docs/evidence/INT-429.md)."""
+
+# INT-426 follow-up, 3 Oct 2026: two advisories that OSV reissued on 2 Oct
+# (records modified at 22:45 UTC), with NO fixed release.
+# - In both cases the affected version is the newest one on npm.
+# - No parent can drop either package. The newest micromatch needs braces
+#   ^3.0.3, and the newest cacheable-request (and so got and @expo/ngrok)
+#   still needs http-cache-semantics ^4.2.0.
+# Each entry names one advisory of one package and expires after 30 days, like
+# the node-forge entry above.
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2026-11-02T00:00:00Z
+reason = """\
+OWNER-APPROVED, TIME-BOXED EXCEPTION for braces 3.0.3 only (owner, in chat, \
+3 Oct 2026: "approve for the two osv exceptions"; CVE-2026-93687, \
+stack-exhaustion denial of service through deeply nested patterns). \
+braces 3.0.3 is in pnpm-lock.yaml only under micromatch 4.0.8, under \
+metro-file-map 0.84.5, which is Metro's build-time file crawler (via metro \
+and @expo/metro, importer apps/mobile). It expands glob patterns written by \
+the repository's own build configuration, never patient input. It is not in \
+either production `expo export` bundle, and no server runtime image installs \
+npm packages: infra/staging/Dockerfile.api is Python only, and no admin-web \
+or clinician-web importer reaches it (docs/evidence/INT-426.md)."""
+
+[[IgnoredVulns]]
+id = "GHSA-ch52-4w7c-c8xp"
+ignoreUntil = 2026-11-02T00:00:00Z
+reason = """\
+OWNER-APPROVED, TIME-BOXED EXCEPTION for http-cache-semantics 4.2.0 only \
+(owner, in chat, 3 Oct 2026: "approve for the two osv exceptions") \
+(CVE-2026-93748, cross-user cached-response disclosure via max-stale). \
+http-cache-semantics 4.2.0 is in pnpm-lock.yaml only under \
+cacheable-request 7.0.4, under got 11.8.6, under @expo/ngrok 4.1.3. That is \
+an apps/mobile devDependency used only by `expo start --tunnel` on a \
+developer machine, and it has no shared cache and no other user. It is not \
+in either production `expo export` bundle, and no server runtime image \
+installs npm packages (docs/evidence/INT-426.md)."""

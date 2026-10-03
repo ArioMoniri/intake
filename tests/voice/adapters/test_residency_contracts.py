@@ -94,6 +94,7 @@ from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, Resolve
 from protocols.dsl import Slot
 from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.types import Delivery, SlotType
+from red_harness import RecordingClinicNotifier
 from talker_harness import (
     FakeClock,
     InMemoryPatientMemory,
@@ -212,6 +213,7 @@ def build_stack(
         sink=sink,
         memory=InMemoryPatientMemory(),
         tenant_id="00000000-0000-4000-8000-000000000001",
+        clinic=RecordingClinicNotifier(),
     )
     stack.session.speculation = speculation
     return stack, clock, resolved, tts, sink
