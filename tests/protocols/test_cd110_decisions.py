@@ -28,6 +28,11 @@ PEDODONTI_AIRWAY_GATE = (
     "dis_agrisi == true || dis_eti_sisligi == true || yuz_cene_sisligi == true"
     " || yuz_cene_darbe == true"
 )
+ATOMS_BOUND_BY = "recorded demographics, two-valued; never a slot lookup"
+EPISODICITY_FOLLOW_UP = (
+    "Hep devam ediyorsa sürekli, tekrarlıyorsa arada bir, bir kez olup bittiyse "
+    "bir kez oldu diyebilirsiniz."
+)
 # The lmp_date gate: the pregnancy answer still opens it, and the population
 # guard is an extra OR term whose two atoms are definite (false when nothing is
 # recorded), so only a recorded male sex at birth or a recorded age outside the
@@ -121,10 +126,12 @@ def lmp_guard_problems(guard: Mapping[str, Any]) -> list[str]:
         problems.append("only a recorded value excludes")
     if guard.get("opens_on") != "pregnancy_status != 'hayir'":
         problems.append("the pregnancy answer still opens lmp_date (an extra OR term)")
+    if guard.get("atoms_bound_by") != ATOMS_BOUND_BY:
+        problems.append(
+            "the atoms are bound as two-valued facts, never read through the slot lookup"
+        )
     gate = str(guard.get("gate_shape", ""))
-    for pregnancy in ("evet", "emin_degilim", None):
-        if pregnancy is None:
-            continue
+    for pregnancy in ("evet", "emin_degilim"):
         values = {
             "pregnancy_status": pregnancy,
             "recorded_male_sex_at_birth": False,
@@ -141,6 +148,14 @@ def lmp_guard_problems(guard: Mapping[str, Any]) -> list[str]:
     }
     if gate and _truth(gate, unknown) is not Truth.TRUE:
         problems.append("a plain no with nothing recorded is asked")
+    no_answer = {"recorded_male_sex_at_birth": False, "recorded_age_outside_bounds": False}
+    if gate and _truth(gate, no_answer) is not Truth.TRUE:
+        problems.append("no pregnancy answer with nothing recorded is asked")
+    excluded = {"recorded_male_sex_at_birth": False, "recorded_age_outside_bounds": True}
+    if gate and _truth(gate, excluded) is Truth.TRUE:
+        problems.append(
+            "no pregnancy answer with a recorded exclusion is skipped, as the text says"
+        )
     return problems
 
 
@@ -161,6 +176,8 @@ def test_lmp_guard_fails_toward_asking_and_leaves_pregnancy_status_alone() -> No
         ({"unknown_opens": False}, "unknown sex"),
         ({"excludes_only": "inferred"}, "recorded value"),
         ({"opens_on": None}, "extra OR term"),
+        ({"atoms_bound_by": None}, "never read through the slot lookup"),
+        ({"atoms_bound_by": "sex_at_birth() == 'male'"}, "never read through the slot lookup"),
         (
             {
                 "gate_shape": "recorded_male_sex_at_birth == false && "
@@ -174,6 +191,26 @@ def test_each_wrong_lmp_guard_fails(overrides: dict[str, Any], expected: str) ->
     guard = dict(_resolution(f"{_NT}94")["population_guard"])
     guard.update(overrides)
     assert any(expected in p for p in lmp_guard_problems(guard))
+
+
+def test_atoms_read_through_the_slot_lookup_would_leave_a_plain_no_unasked() -> None:
+    """Why the binding matters: under the FSM lookup an unbound atom reads None, and
+    the same gate on a plain 'hayir' is Unknown, which opens nothing (fsm.py:224)."""
+    assert _truth(LMP_GATE, {"pregnancy_status": "hayir"}) is Truth.UNKNOWN
+    bound = {
+        "pregnancy_status": "hayir",
+        "recorded_male_sex_at_birth": False,
+        "recorded_age_outside_bounds": False,
+    }
+    assert _truth(LMP_GATE, bound) is Truth.TRUE
+
+
+def test_t1_prerequisites_name_the_two_valued_binding() -> None:
+    t1 = _resolution(f"{_NT}94")
+    assert "never read through the slot lookup" in t1["change"]
+    decision = load_register()["CD-110"]
+    assert "two-valued" in str(decision.fail_closed_while_draft)
+    assert "rather than by the pregnancy answer" not in decision.decision
 
 
 def test_kadin_q2_stays_until_base_asks_every_patient_of_the_chain() -> None:
@@ -194,9 +231,18 @@ def test_derived_duration_needs_an_ongoing_answer() -> None:
     assert item["derive_duration_only_when"] == "surekli"
     assert all(_guard_clean(choice) for choice in item["choices_tr"])
     assert "asked nowhere in base" in t17["change"], "attack length is a recorded gap"
+    assert item["follow_up_tr"] == EPISODICITY_FOLLOW_UP
+    assert "bir kez" in item["follow_up_tr"] and _guard_clean(item["follow_up_tr"])
+    assert "geç" not in item["follow_up_tr"], "the prognosis lexicon matches geçer"
     assert _guard_clean(item["ask_tr"]) and item["ask_tr"].count("?") == 1
     assert "no recorded fact is lost" not in t17["change"]
     assert "files/04" in t17["change"], "files/04 §1 and §5 amended in the same change"
+
+
+def test_the_two_choice_follow_up_steers_an_ended_episode_and_fails() -> None:
+    old = "Hep devam ediyorsa sürekli, gelip geçiyorsa arada bir diyebilirsiniz."
+    assert "bir kez" not in old, "the round-3 follow-up offered no ended-episode answer"
+    assert _resolution(f"{_NT}110")["episodicity_item"]["follow_up_tr"] != old
 
 
 @pytest.mark.parametrize("bad", ["arada_bir", "bir_kez_gecti", "emin_degilim", "sürekli", None])
@@ -244,6 +290,20 @@ def test_a_screen_left_unknown_or_read_as_no_closes_the_history_and_fails(
 ) -> None:
     problems = presence_gate_problems(PRESENCE_GATE, records)
     assert "an unanswered or skipped screen opens it" in problems
+
+
+def presence_skip_problems(screen_skipped: bool, gated_asked: frozenset[str]) -> list[str]:
+    if screen_skipped and gated_asked:
+        return [f"the screen is skipped while {sorted(gated_asked)} are asked"]
+    return []
+
+
+def test_a_skipped_screen_skips_every_item_it_gates() -> None:
+    screen = _resolution(f"{_WB}116")["presence_screen"]
+    assert screen["skipped_only_with_gated_items"] is True
+    assert presence_skip_problems(True, frozenset()) == []
+    assert presence_skip_problems(False, frozenset({"location_text"})) == []
+    assert presence_skip_problems(True, frozenset({"location_text"}))
 
 
 def test_the_round_two_presence_gate_itself_passes_its_controls() -> None:
@@ -294,6 +354,15 @@ def test_trismus_as_an_extra_term_is_allowed_but_never_alone() -> None:
     assert "trismus is the only gate term" in alone
 
 
+def test_no_stale_round_two_position_remains() -> None:
+    decision = load_register()["CD-110"]
+    assert "three-valued episodicity" not in decision.decision
+    assert "four-valued episodicity" in decision.decision
+    assert "injury" in decision.decision.split("pedodonti", 1)[1].split(".", 1)[0]
+    l315 = _resolution("docs/evidence/INT-353.md#L315")
+    assert "injury" in l315["clinical_basis"]
+
+
 def test_the_gum_swelling_reading_is_disclosed_as_the_authors() -> None:
     assert "gum swelling comes with gum pain" in str(load_register()["CD-110"].inference_disclosure)
 
@@ -340,3 +409,5 @@ def test_round_one_is_history_and_the_verdict_waits_for_re_verification() -> Non
     assert len(history[0]["per_resolution"]) == 18
     assert history[1]["round"] == 2 and history[1]["verdict"] == "request_changes"
     assert len(history[1]["per_resolution"]) == 18
+    assert history[2]["round"] == 3 and history[2]["verdict"] == "request_changes"
+    assert len(history[2]["per_resolution"]) == 18

@@ -6601,6 +6601,7 @@
     - "a medical-author agent and an independent verifier agent check every INT-414 delivery line against PolicyGuard, B1 and siz, using Turkish health-literacy sources; each line gets a decision record"
     - "the approval:human-clinical label on #726 is cleared through this process"
   tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
+  sec_row: "clinical-content"
 - id: INT-470
   epic: E03-protocols
   phase: P1

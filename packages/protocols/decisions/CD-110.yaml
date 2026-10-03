@@ -22,26 +22,30 @@ question: >-
   what is the decision, on what current source, and what follow-through is routed away
   rather than decided?
 decision: >-
-  Eighteen resolutions: thirteen owner questions and five base-owner parts (round 2,
-  after the independent verifier's round-1 request for changes). History taking: the
-  reason for the visit is asked once, by base chief_complaint_text, and the generators
-  stop emitting the fixed basvuru_nedeni (three Q1s that ask a narrower contact fact
-  stay as items); the complaint's timing is asked once, by base onset_date, whose
-  follow-up gains years; base duration gives way to a three-valued episodicity item, and
-  a time since onset is printed only for a complaint answered as continuous (üreme keeps
-  its time-trying-to-conceive item, text_first; perinatoloji keeps its time-known item).
-  lmp_date is gated by population rather than by the pregnancy answer, in every chain,
-  and only a recorded male sex at birth or a recorded age outside the bounds skips it
-  (an unknown asks it; the bounds stay draft_needs_source); pregnancy_status is not
-  guarded and is confirmed as the gate of record; kadın Q2 stays until base asks every
+  Eighteen resolutions: thirteen owner questions and five base-owner parts (round 4,
+  after the independent verifier's rounds 1 to 3). History taking: the reason for the
+  visit is asked once, by base chief_complaint_text, and the generators stop emitting the
+  fixed basvuru_nedeni (three Q1s that ask a narrower contact fact stay as items); the
+  complaint's timing is asked once, by base onset_date, whose follow-up gains years; base
+  duration gives way to a four-valued episodicity item ("sürekli", "arada bir", "bir kez
+  oldu, geçti", "emin değilim"), and a time since onset is printed only for a complaint
+  answered as continuous (üreme keeps its time-trying-to-conceive item, text_first;
+  perinatoloji keeps its time-known item). lmp_date's gate is widened, never replaced:
+  today's pregnancy term stays and a population guard is added as an extra OR term, in
+  every chain, so lmp_date is skipped only when a recorded fact excludes (a male sex at
+  birth or an age outside the bounds) and the pregnancy answer is not "evet" or "emin
+  değilim"; an unknown sex or age asks it, the guard's atoms are bound as two-valued facts
+  from recorded demographics, and the bounds stay draft_needs_source; pregnancy_status is
+  not guarded and is confirmed as the gate of record; kadın Q2 stays until base asks every
   patient of that chain. Dental airway: one posture, asked when tooth or gum pain, face,
-  jaw or sublingual swelling or a recent face or jaw injury is reported, never on
-  trismus; a branch may only widen that gate; pedodonti asks for the child on the child's
-  pain, gum swelling or face swelling. Report-only visits: a three-valued base presence
-  screen covering now or recently, asked before onset_date, gates the symptom-detail
-  history, which a later chest-pain yes reopens; onset_date stays asked as the red-flag
-  tense anchor. sağlık kurulu Q8 leaves its proposal; the FTR fever twin applies CD-101
-  T68. Seven new slot ids go to the legal lane for their inventory rows.
+  jaw or sublingual swelling or a recent face or jaw injury is reported, never on trismus
+  alone; a branch may only widen that gate; pedodonti asks for the child on the child's
+  pain, gum swelling, face swelling or recent face or jaw injury. Report-only visits: a
+  three-valued base presence screen covering now or recently, asked before onset_date,
+  gates the symptom-detail history, which an unsure or unanswered screen and a later
+  chest-pain yes open; onset_date stays asked as the red-flag tense anchor. sağlık kurulu
+  Q8 leaves its proposal; the FTR fever twin applies CD-101 T68. Seven new slot ids go to
+  the legal lane for their inventory rows.
 status: active
 scope: simulated_patient_stress_testing
 scope_note: >-
@@ -468,8 +472,10 @@ inference_disclosure: >-
   ahead of a reopened history. None of it is a clinical number.
 fail_closed_while_draft: >-
   The lmp_date population guard's age bounds are draft_needs_source. Until they are
-  sourced and the guard grammar exists (GuardExpr sex_at_birth and age_years, refused at
-  build today), base keeps lmp_date's current gate and kadın hastalıkları ve doğum keeps
+  sourced, the guard grammar exists (GuardExpr sex_at_birth and age_years, refused at
+  build today), and the engine binds the two guard atoms as two-valued facts from the
+  session's recorded demographics (false when nothing is recorded, never read through the
+  slot lookup), base keeps lmp_date's current gate and kadın hastalıkları ve doğum keeps
   Q2 son_adet_tarihi (CD-100 T1's interim), so no woman in that chain loses the
   last-period question; pregnancy_status is asked every session throughout.
 value:
@@ -547,10 +553,11 @@ value:
         şikâyetiniz ne zaman başladı?", a date, the tense_anchor of every base red-flag
         family) stays asked, must_ask and ungated. Base hpi.duration gives way to
         hpi.episodicity, a code slot asked in its place: "Şikâyetiniz sürekli mi, yoksa
-        arada bir mi oluyor?" (the old duration slot's follow-up, now the question), choices
-        sürekli, arada bir, bir kez oldu, geçti, emin değilim (codes surekli, arada_bir,
-        bir_kez_gecti, emin_degilim), follow-up "Hep devam ediyorsa sürekli, gelip
-        geçiyorsa arada bir diyebilirsiniz."; it maps to the archetype's Episodicity
+        arada bir mi oluyor?" (the old duration slot's follow-up, now the question), four
+        choices "sürekli", "arada bir", "bir kez oldu, geçti" and "emin değilim" (codes
+        surekli, arada_bir, bir_kez_gecti, emin_degilim), follow-up "Hep devam ediyorsa
+        sürekli, tekrarlıyorsa arada bir, bir kez olup bittiyse bir kez oldu
+        diyebilirsiniz.", which offers the ended-episode answer; it maps to the archetype's Episodicity
         (surekli is Ongoing, emin_degilim is Indeterminate, bir_kez_gecti is a New episode
         that has ended) and is gated by the presence screen like the other symptom-detail
         items. A single episode that has ended is not "arada bir", which implies
@@ -568,7 +575,7 @@ value:
         ask_tr: "Şikâyetiniz sürekli mi, yoksa arada bir mi oluyor?"
         choices_tr: ["sürekli", "arada bir", "bir kez oldu, geçti", "emin değilim"]
         codes: ["surekli", "arada_bir", "bir_kez_gecti", "emin_degilim"]
-        follow_up_tr: "Hep devam ediyorsa sürekli, gelip geçiyorsa arada bir diyebilirsiniz."
+        follow_up_tr: "Hep devam ediyorsa sürekli, tekrarlıyorsa arada bir, bir kez olup bittiyse bir kez oldu diyebilirsiniz."
         archetype_mapping: "surekli → at0178 Ongoing; emin_degilim → at0177 Indeterminate; bir_kez_gecti → at0176 New, an episode that has ended; arada_bir → not Ongoing (a recurring complaint)"
         derive_duration_only_when: "surekli"
       clinical_basis: "One timing fact, recorded as a date, sets the sequence of events and anchors the red-flag tense guard; a time since onset is the duration of a single continuous episode, so it is printed only for a complaint that is continuous, and whether the complaint comes and goes is recorded rather than lost."
@@ -598,17 +605,23 @@ value:
         rewrite an inherited gate). (1) lmp_date's gate is widened, never replaced: today's
         term pregnancy_status != 'hayir' stays, and a population guard on lmp_date alone is
         added as an extra OR term, so a "hayır" to pregnancy_status no longer closes it by
-        itself. lmp_date is skipped only when pregnancy_status is a plain "hayır" and a
-        recorded sex at birth is male or a recorded age lies outside the age bounds; an
-        unknown sex at birth or age asks it, and an "evet" or "emin değilim" asks it at any
-        recorded age. Gate shape: pregnancy_status != 'hayir' ||
+        itself. lmp_date is skipped only when a recorded fact excludes (a male sex at birth
+        or an age outside the age bounds) and pregnancy_status is not "evet" or "emin
+        değilim" (a plain "hayır" or no answer); an unknown sex at birth or age asks it,
+        and an "evet" or "emin değilim" asks it at any recorded age. Gate shape: pregnancy_status != 'hayir' ||
         (recorded_male_sex_at_birth == false && recorded_age_outside_bounds == false), where
         both atoms are definite and false when nothing is recorded. A gate that would
         evaluate Unknown on missing demographics, and so close the question, is refused. (2) pregnancy_status carries no guard and stays asked in
         every session, as base asks it today (files/13 §4: early, universally). (3) The
-        guard needs the GuardExpr functions sex_at_birth and age_years, which the runtime
-        refuses at build today, and its age bounds are draft_needs_source (below). Until
-        both exist, base keeps today's gate. (4) kadın hastalıkları ve doğum Q2
+        guard has three prerequisites: the GuardExpr functions sex_at_birth and age_years,
+        which the runtime refuses at build today; its age bounds, draft_needs_source
+        (below); and the engine binding the two atoms as two-valued facts from the session's
+        recorded demographics, false when nothing is recorded, never read through the slot
+        lookup (which reads None, so the OR term would be Unknown on a plain "hayır" and
+        open nothing) and never written as a GuardExpr comparison on sex_at_birth() or
+        age_years() (Unknown on a missing value, files/13 §9.5). Until all three exist,
+        base keeps today's gate. The lead's lmp_guard_fails_toward_asking test runs through
+        the engine frontier. (4) kadın hastalıkları ve doğum Q2
         son_adet_tarihi is removed only once base asks lmp_date of every patient in that
         chain whatever the age bound; while an age bound would leave a woman in the chain
         unasked (peri- and postmenopausal women included), Q2 stays. (5) lmp_date gates the
@@ -623,6 +636,7 @@ value:
         opens_on: "pregnancy_status != 'hayir'"
         gate_shape: "pregnancy_status != 'hayir' || (recorded_male_sex_at_birth == false && recorded_age_outside_bounds == false)"
         atoms: "recorded_male_sex_at_birth and recorded_age_outside_bounds are definite: false unless a value is recorded"
+        atoms_bound_by: "recorded demographics, two-valued; never a slot lookup"
         age_bounds:
           status: draft_needs_source
           source_gap: >-
@@ -690,7 +704,12 @@ value:
         dis_eti_sisligi == true || yuz_cene_sisligi == true || yuz_cene_darbe == true. All
         four gate slots are the pack's own, declared earlier and child-addressed, as the
         generator's gate rule requires; a child who cannot name a toothache is still asked
-        on facial or gum swelling or a recent blow to the face or jaw. The cluster's Q15
+        on facial or gum swelling or a recent blow to the face or jaw. In the merged chain
+        every gate slot precedes the airway item: where the merge keeps the re-declared
+        airway item at the cluster's position and appends a pedodonti-only slot
+        (dis_eti_sisligi) after it, the pack carries a reorder op (as INT-353's kadın op)
+        until the files/13 §9.5 ordering check exists, and the lead's
+        dental_airway_one_posture test checks merged order. The cluster's Q15
         (kalici_dis_cikti), gated on yuz_cene_darbe, is self-addressed and is re-addressed
         for the child under owner decision D24 (1Y). Latent: pedodonti opens only once that
         proxy mechanism exists and an under-18 path opens.
@@ -739,8 +758,12 @@ value:
         session the screen is worded for the patient or skipped, like every self-addressed
         base item (owner decision D24, 1Y), and it is skipped only together with every item
         it gates, never alone, so a skipped screen never closes a history that is asked.
-        (7) When chest_pain.present reopens the history, the chest_pain follow-ups, which
-        are red-flag inputs, are asked first and the reopened history after them. (8) The
+        (7) When chest_pain.present reopens the history, the chest_pain, associated and
+        trauma follow-ups, which are red-flag inputs, are asked first and the reopened
+        history after them: the follow-ups take the armed-probe priority class
+        (RF_PROBE_ARMED, ahead of MUST_ASK), so authored section order (hpi before
+        chest_pain) cannot put the history first; the lead's presence_gate test checks
+        the next offered steps through the engine frontier. (8) The
         same change amends files/04 §1: the hpi row adds the screen, and the OLDCARTS items
         are asked unless the screen is "hayır" with no chest-pain yes.
       presence_screen:
@@ -783,7 +806,7 @@ value:
       resolves: owner_part
       question: "Is the dental airway item asked at all, so that pedodonti re-declares it with the accepted proxy text?"
       outcome: accept
-      clinical_basis: "Yes: it is asked (cluster-wave-b.md#L103), so pedodonti re-declares it with the accepted text and the child's own gate on pain, gum swelling or face swelling (cluster-wave-b.md#L104)."
+      clinical_basis: "Yes: it is asked (cluster-wave-b.md#L103), so pedodonti re-declares it with the accepted text and the child's own gate on pain, gum swelling, face swelling or recent face or jaw injury (cluster-wave-b.md#L104)."
       sources: [SDCEP-MADP-2026]
       status: active
     - item: "docs/evidence/INT-353.md#L316"
@@ -959,6 +982,31 @@ value:
         "specialty-wave7-onc-women-peds.md#L93": "agree with note (depends on #L116)"
         "specialty-wave8-geriatric-dental.md#L94": "agree with note (depends on #L116)"
         "specialty-wave8-geriatric-dental.md#L96": "agree with note (pedodonti clause holds once #L104 is fixed)"
+        "sibling-rebinds-582.md#L61": "agree"
+        "sibling-rebinds-582.md#L118": "agree"
+    - round: 3
+      date: 2026-10-04
+      head: 9ebde62b
+      reviewer: "independent D18 clinical verifier (agent)"
+      verdict: request_changes
+      findings: "1 major (the T1 atoms would read None through the slot lookup), 3 minor (missing pregnancy answer; stale round-2 lines; the episodicity follow-up), 4 notes; round 4 addresses each (docs/evidence/INT-470.md, round 4)"
+      per_resolution:
+        "near-twin-sweep-582.md#L95 (T2)": "agree"
+        "near-twin-sweep-582.md#L96 (T3)": "agree"
+        "near-twin-sweep-582.md#L110 (T17)": "agree with note (stale text; follow-up offers the ended episode)"
+        "near-twin-sweep-582.md#L185 (T92)": "agree"
+        "near-twin-sweep-582.md#L94 (T1)": "disagree as written (two-valued atom binding; missing pregnancy answer; stale text)"
+        "near-twin-sweep-582.md#L97 (T4)": "agree"
+        "cluster-wave-b.md#L103": "agree"
+        "cluster-wave-b.md#L104": "agree with note (stale text; merged order)"
+        "cluster-wave-b.md#L116": "agree with note (reopen mechanism; doc drift)"
+        "INT-353.md#L314": "agree"
+        "INT-353.md#L315": "agree with note (basis names injury)"
+        "INT-353.md#L316": "agree"
+        "INT-353.md#L432": "agree"
+        "specialty-wave7-onc-women-peds.md#L93": "agree"
+        "specialty-wave8-geriatric-dental.md#L94": "agree"
+        "specialty-wave8-geriatric-dental.md#L96": "agree"
         "sibling-rebinds-582.md#L61": "agree"
         "sibling-rebinds-582.md#L118": "agree"
 verifier:

@@ -3260,3 +3260,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: re-verification of CD-110 round 3.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T05:00:00+03:00 · INT-470 · round 4 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the verifier's round 3 (1 major: the T1 atoms read through the slot lookup; 3 minor; 4 notes) and restore the INT-447 row's sec_row, which an earlier merge dropped.
+- Plan: tests first in tests/protocols/test_cd110_decisions.py, then CD-110 round 4; backlog rows compared with main's row by row.
+- Tests added (with the near-miss negative for any safety rule): atoms unbound or written as a GuardExpr fail; no pregnancy answer with nothing recorded is asked; the two-choice follow-up fails; stale round-2 text fails; a skipped screen with a gated item asked fails. Red run: 6 failed, 35 passed; green 79 passed.
+- Result: see docs/evidence/INT-470.md (round 4); the only red test is CD-110's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 4.
+- LOOP_STATUS: CONTINUE
