@@ -168,7 +168,9 @@ def test_ids_unique_and_well_formed() -> None:
     # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
     # owner decision, GitHub #644).
     # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
-    assert len(ids) == 343
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    assert len(ids) == 344
     import re
 
     for i in ids:
