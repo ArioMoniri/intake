@@ -62,6 +62,8 @@ import { StatusLadder } from "@/components/StatusLadder";
 import { SwitchRow } from "@/components/SwitchRow";
 import { AppText, PrimaryButton, Screen, useStackHeader } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
+import { closingDelivery } from "@/lib/dialogue/deliveryPlan";
 import { t } from "@/lib/i18n";
 import { buildNote, effectiveStatus } from "@/lib/intake/note";
 import { missingQuestions, packForVisit } from "@/lib/intake/questions";
@@ -159,6 +161,18 @@ function ReviewAndSend() {
   // The ladder rung the note actually stands on (02 §5.1): a fixture already
   // viewed or filed keeps its rung rather than dropping back to "sent".
   const ladderStatus = effectiveStatus(visit?.noteStatus ?? null, note) ?? "sent";
+  // INT-414: the closing — "that is all our questions, thank you" — for an
+  // intake that really is finished: every applicable question answered, not
+  // a clinic checkpoint, not yet sent. Display only; the dialogue's audio is
+  // already torn down when this screen opens (INT-233 audio hygiene).
+  const complete =
+    !checkpointed &&
+    !sent &&
+    missingQuestions(
+      packForVisit(visit?.department, { mode: note.mode, deferred: note.deferred }),
+      note.answers,
+    ).length === 0;
+  const closing = complete ? closingDelivery(visitId ?? "", note.answers.length) : [];
 
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
@@ -179,6 +193,14 @@ function ReviewAndSend() {
           {/* The top bar is deliberately untitled (design pass 6), so this
               serif line is the screen's only title — and therefore the one
               that has to carry the heading semantic (SC 1.3.1, SC 2.4.2). */}
+          {closing.map((utterance) => {
+            const deckKey = asDeliveryKey(utterance.key);
+            return deckKey === null ? null : (
+              <AppText key={utterance.key} role="body" color="inkSoft">
+                {t(deckKey)}
+              </AppText>
+            );
+          })}
           <AppText role="hero" heading>
             {t("review.title")}
           </AppText>

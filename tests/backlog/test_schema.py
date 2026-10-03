@@ -170,7 +170,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-464 (native welcome and sign-in, ADR-039 S7, GitHub #793).
     # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
     # + INT-472 (review and send as grouped inset lists, GitHub #802).
-    assert len(ids) == 345
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    assert len(ids) == 346
     import re
 
     for i in ids:
