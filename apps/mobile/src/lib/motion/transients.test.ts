@@ -394,7 +394,14 @@ describe("MOTION-10 — a typed step change (C16)", () => {
       expect(EXIT.test(code(sample)), sample).toBe(true);
     }
     expect(EXIT.test(code("<Animated.View entering={fade} />"))).toBe(false);
-    expect(APP_SOURCE.filter((f) => EXIT.test(code(f.source))).map((f) => f.name)).toEqual([]);
+    // ADR-038 A3 (INT-473) grants one exit: the detent sheet's dismissal by
+    // the patient settles on A1's spring. Its exit comes from the policy, which
+    // makes a privacy close, a RED close and Reduce Motion instant.
+    const SHEET = "src/components/DetentSheet.tsx";
+    expect(APP_SOURCE.filter((f) => EXIT.test(code(f.source))).map((f) => f.name)).toEqual([SHEET]);
+    expect(code(APP_SOURCE.find((f) => f.name === SHEET)!.source)).toMatch(
+      /exiting=\{sheetExiting\(sheetClose\(closeReason, \{ reduce \}\), height\)\}/,
+    );
 
     // The typed step's body is one element keyed by the question, entering
     // from the plan, under a skipEntering config so the first step arrives

@@ -244,9 +244,11 @@ const SRC_TREE = TREE.filter((f) => f.name.startsWith("src/"));
 
 const FADE_MODULE = "src/lib/motion/fade.ts";
 
-/** ADR-038 A1 (INT-462): the bubble entrance, the one module allowed a spring. */
+/** ADR-038 A1 (INT-462): the bubble entrance, allowed a spring. */
 const BUBBLE_ENTERING = "src/lib/motion/native/bubbleEntering.ts";
-const SPRING_ALLOWED: readonly string[] = [BUBBLE_ENTERING];
+/** ADR-038 A3 (INT-473): the detent sheet, the second module allowed a spring. */
+const SHEET_MOTION = "src/lib/motion/native/sheetMotion.ts";
+const SPRING_ALLOWED: readonly string[] = [BUBBLE_ENTERING, SHEET_MOTION];
 
 /** Forbidden APIs, spelled from parts so this file never names them whole. */
 const LINEAR = ["Linear", "Transition"].join("");
@@ -384,15 +386,16 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     expect(SRC_TREE.length).toBeGreaterThan(100);
     const offenders = SRC_TREE.flatMap((f) =>
       forbiddenApis(f.source)
-        // ADR-038 A1: the bubble entrance is the one module that may spring.
+        // ADR-038 A1 and A3: the bubble entrance and the sheet may spring.
         .filter((name) => !(name === SPRING && SPRING_ALLOWED.includes(f.name)))
         .map((name) => `${f.name}: ${name}`),
     );
     expect(offenders).toEqual([]);
   });
 
-  it("ADR-038 A1: the one spring is the bubble entrance, and every number it uses is the ADR's", () => {
-    expect(SPRING_ALLOWED).toEqual([BUBBLE_ENTERING]);
+  it("ADR-038 A1: the bubble entrance springs, and every number it uses is the ADR's", () => {
+    // The allow-list may only shrink after ADR-038: A1's bubble and A3's sheet.
+    expect(SPRING_ALLOWED).toEqual([BUBBLE_ENTERING, SHEET_MOTION]);
     const native = file(BUBBLE_ENTERING);
     expect(forbiddenApis(native)).toEqual([SPRING]);
     // The rise and the spring are read from the pure module the ADR pins
@@ -406,11 +409,23 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     expect(numbers.filter((n) => n !== "0" && n !== "1")).toEqual([]);
     // Only translateY and opacity move: no scale, no other transform.
     expect(code(native)).not.toMatch(/\bscale[XY]?\b|\btranslateX\b|\brotate\b/);
-    // Nothing else in src springs: the near miss is any second module.
+    // Nothing else in src springs: the near miss is any third module.
     const springing = SRC_TREE.filter((f) => forbiddenApis(f.source).includes(SPRING)).map(
       (f) => f.name,
     );
-    expect(springing).toEqual([BUBBLE_ENTERING]);
+    expect(springing.sort()).toEqual([...SPRING_ALLOWED].sort());
+  });
+
+  it("ADR-038 A3: the sheet's spring is A1's, read from the pure module, with no number of its own", () => {
+    const native = file(SHEET_MOTION);
+    expect(forbiddenApis(native)).toEqual([SPRING]);
+    expect(code(native)).toMatch(/import \{[^}]*\bSHEET_SPRING\b[^}]*\} from "\.\.\/sheet"/);
+    const numbers = [...code(native).matchAll(/(?<![\w.])\d+(?:\.\d+)?(?![\w.])/g)].map(
+      (m) => m[0],
+    );
+    expect(numbers.filter((n) => n !== "0")).toEqual([]);
+    // Only translateY and opacity move: no scale, no other transform.
+    expect(code(native)).not.toMatch(/\bscale[XY]?\b|\btranslateX\b|\brotate\b/);
   });
 
   it("Reanimated CSS transitions take their duration from cssFade", () => {

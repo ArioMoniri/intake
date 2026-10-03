@@ -6757,3 +6757,22 @@
     - "the bottom bar is never see-through: where iOS draws no Liquid Glass it is still a frosted bar; contrast holds in light and dark; AX5 scrolls with nothing clipped; before/after simulator captures are committed"
   tests: [apps/mobile/src/lib/intake/reviewRows.test.ts, apps/mobile/e2e/reviewGrouped.spec.ts, apps/mobile/e2e/review_send.spec.ts]
   sec_row: "mobile"
+- id: INT-473
+  epic: E08-mobile
+  phase: P1
+  title: "In-tree detent sheet (ADR-038 A3) for the dialogue's section sheet: no presented sheet over RED"
+  # GitHub #807. Section 5 of the native pass. The dialogue's section sheet was
+  # a React Native Modal, a window of its own; ADR-038 A3 (accepted, #788)
+  # makes every sheet an in-tree view so the RED root layer always paints above
+  # it. Stacked on INT-472 (#806).
+  depends_on: [INT-472, INT-461]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-473.md
+  acceptance:
+    - "the section sheet is an in-tree DetentSheet, never a Modal, formSheet or modal presentation or portal; e2e/sheets.spec.ts holds that nothing in src presents a window of its own, so a RED root layer after the navigator paints above any open sheet"
+    - "two detents (medium, and large under the screen's own bar) with a grabber; a drag follows the finger, a release settles where the throw points or closes past the threshold; a tap on the grabber moves to the other detent (SC 2.5.7); presenting and settling use A1's critically damped spring; a patient's dismissal settles, a privacy or RED close is instant"
+    - "Reduce Motion: the 120 ms fade on presenting, an instant close, and a release that snaps without a spring; the detents, settle rule and per-reason motion are pure and unit-tested in lib/motion/sheet; the motion guard allows the sheet's one spring module by name"
+    - "the sheet's content and copy are unchanged; focus stays in the sheet and the VoiceOver escape and Android back close it; no new strings; before/after simulator captures in light and dark are committed"
+  tests: [apps/mobile/src/lib/motion/sheet.test.ts, apps/mobile/e2e/sheets.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/a11y.spec.ts]
+  sec_row: "mobile"

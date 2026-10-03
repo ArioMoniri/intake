@@ -172,7 +172,8 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-472 (review and send as grouped inset lists, GitHub #802).
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415; owner request, GitHub #705).
-    assert len(ids) == 346
+    # + INT-473 (in-tree detent sheet, ADR-038 A3, GitHub #807).
+    assert len(ids) == 347
     import re
 
     for i in ids:

@@ -54,7 +54,7 @@
  */
 import { Stack, useNavigation, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -247,7 +247,10 @@ export function DialogueIntake({
   // The note's bar item belongs to the dialogue: when the dialogue hands over
   // to the typed steps, the item goes with it (options outlive the element
   // that set them).
-  useEffect(
+  // A layout effect, like Stack.Screen's own: a passive cleanup would run
+  // after the screen re-applied its options on a fast refresh, and wipe the
+  // item it had just set (INT-473, captured on INT451-16e).
+  useLayoutEffect(
     () => () =>
       navigation.setOptions({ unstable_headerRightItems: undefined, headerRight: undefined }),
     [navigation],
@@ -1001,6 +1004,9 @@ export function DialogueIntake({
       <SectionSheet
         visible={sheetOpen}
         model={model}
+        // ADR-038 A3: the large detent stops under the bar, which on the
+        // stage floats over the dialogue's frame.
+        top={underBar ? headerHeight : 0}
         onClose={() => setSheetOpen(false)}
         onConfirmRow={confirmRow}
       />

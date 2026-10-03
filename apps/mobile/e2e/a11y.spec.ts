@@ -250,7 +250,10 @@ it("the scanner found the surfaces it is supposed to police", () => {
   expect(TSX.length).toBeGreaterThan(20);
   expect(PRESSABLES.length).toBeGreaterThan(20);
   expect(TEXT_INPUTS.length).toBeGreaterThan(5);
-  expect(MODALS.length).toBeGreaterThan(0);
+  // ADR-038 A3 (INT-473): no Modal is left; the sheet is the in-tree
+  // DetentSheet (e2e/sheets.spec.ts forbids every presented window). The
+  // Modal rules below stay, so a Modal that comes back meets them.
+  expect(MODALS).toEqual([]);
 });
 
 /* ------------------------------------------------------------------ */
@@ -547,6 +550,16 @@ describe("BK18 / SC 2.4.3 — a sheet takes focus with it", () => {
   it("a Modal's transition obeys reduce-motion", () => {
     const hardcoded = MODALS.filter((o) => /animationType="/.test(o.props)).map(where);
     expect(hardcoded).toEqual([]);
+  });
+
+  it("the in-tree sheet takes focus with it, and lets the escape gesture out", () => {
+    // INT-473: the sheet is a view, so the flag works where it is set.
+    const sheet = TSX.find((f) => f.name === "src/components/DetentSheet.tsx")!;
+    const flagged = readOpenings(sheet.source, sheet.name, ["Animated.View", "View"]).filter((o) =>
+      hasProp(o.props, "accessibilityViewIsModal"),
+    );
+    expect(flagged.length).toBe(1);
+    expect(hasProp(flagged[0].props, "onAccessibilityEscape")).toBe(true);
   });
 });
 
@@ -1528,14 +1541,28 @@ describe("criteria the app satisfies by not having the feature", () => {
   const ALL = TSX.map((f) => f.source).join("\n");
 
   it("BK12 / SC 2.1.4 — no character key shortcuts exist", () => {
-    expect(ALL).not.toMatch(/onKeyPress|KeyboardEvent|hardwareBackPress/);
+    expect(ALL).not.toMatch(/onKeyPress|KeyboardEvent/);
+    // Android's back button is the platform's own navigation key, not a
+    // character key (SC 2.1.4 covers letters, punctuation, numbers and
+    // symbols). Only the in-tree sheet takes it, to close itself as a Modal's
+    // onRequestClose did (INT-473).
+    const back = TSX.filter((f) => /hardwareBackPress/.test(f.source)).map((f) => f.name);
+    expect(back).toEqual(["src/components/DetentSheet.tsx"]);
   });
 
   it("BK20 / SC 2.5.1 — no path-based or multipoint gesture is required", () => {
     // Scroll and pinch-to-zoom are the platform's own and exempt; what the
     // criterion forbids is an app-authored gesture with no single-pointer
-    // alternative. There is none: every action is a tap.
-    expect(ALL).not.toMatch(/PanResponder|GestureDetector|Swipeable|onGestureEvent/);
+    // alternative. The one drag is the detent sheet's (ADR-038 A3, INT-473),
+    // and each thing it does has a tap: a tap on the grabber moves to the
+    // other detent (SC 2.5.7), and the backdrop and the close control close.
+    const gestures = TSX.filter((f) =>
+      /PanResponder|GestureDetector|Swipeable|onGestureEvent/.test(f.source),
+    ).map((f) => f.name);
+    expect(gestures).toEqual(["src/components/DetentSheet.tsx"]);
+    const sheet = TSX.find((f) => f.name === "src/components/DetentSheet.tsx")!.source;
+    expect(sheet).toMatch(/if \(isTap\(gesture\)\) \{\s*const other = nextDetent\(detent\)/);
+    expect(sheet).toMatch(/<Pressable\b[^>]*onPress=\{close\}/);
     expect(ALL).not.toMatch(/onLongPress/);
   });
 
@@ -2044,7 +2071,8 @@ describe("SC 1.3.4 — the app is not locked to one orientation", () => {
   });
 
   it("every Modal rotates with the device — iOS presents one portrait-only unless told otherwise", () => {
-    expect(MODALS.length).toBeGreaterThan(0);
+    // INT-473 removed the last Modal (ADR-038 A3); the rule holds for any
+    // that comes back, and the in-tree sheet rotates with its screen.
     const fixed = MODALS.filter(
       (o) => propValue(o.props, "supportedOrientations") !== "{ALL_ORIENTATIONS}",
     ).map(where);
@@ -2192,9 +2220,6 @@ const riskId = (f: LandscapeFinding): string => `${f.file} › ${f.subject}`;
  * entry must still match a finding (tested below), so this list can only shrink.
  */
 const LANDSCAPE_SAFE: Record<string, string> = {
-  'src/components/SectionPanel.tsx › maxHeight: "78%"':
-    "a cap, not a height, on a sheet whose rows scroll inside it: in a 320 pt window it " +
-    "shows fewer rows and clips none",
   "src/components/GlassBar.tsx › floating":
     "every host renders the bar inside a Screen that keeps its left and right safe edges " +
     "(FLOW_EDGES), so it spans the inset content box, not the window",

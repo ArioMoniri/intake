@@ -3542,3 +3542,29 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none new.
 - Next: section 5 (in-tree detent sheets under the RED root layer, ADR-038 A3).
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T03:10:00+03:00 · INT-473 · done (PR open, not merged; stacked on #806)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-473):
+  - the section sheet in-tree, never a presented window, so RED paints above it;
+  - two detents with a grabber, a followed drag, a grabber tap, A1's spring, instant privacy and RED closes;
+  - Reduce Motion fallbacks;
+  - pure, tested rules; one named spring module;
+  - copy unchanged; focus kept; escape and back close it; captures.
+- Plan:
+  - Pure rules first (`lib/motion/sheet`), then the spring module, then `DetentSheet`, then `SectionSheet` on it.
+  - Move each Modal-era guard by name, keeping its intent.
+- Tests added (with the near-miss negative for any safety rule):
+  - `sheet.test.ts` (near miss: a small pull snaps back rather than closing);
+  - `sheets.spec.ts` (near misses: every form of a presented sheet is caught);
+  - the motion, a11y, transients and chatStage guards;
+  - RED run: 8 failed / 2 passed plus 1 import failure; grabber tap 2 failed, then green; bar-item cleanup 1 failed, then green.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 149 files, 3081 tests; `tsc` clean; Python gates after staging;
+  - `check-integration` CI-only.
+- Invariants touched and still passing:
+  - 21: no presented window can cover RED; RED closes the sheet instantly.
+  - 2 and 22: no new copy.
+- Decisions / ADRs / `00_STATE.md` rows: implements ADR-038 A3; no new D-row.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: the native pass's five sections are open as stacked PRs (#792 → #797 → #801 → #806 → this). Delete the generated iOS project once the owner has reviewed on device.
+- LOOP_STATUS: CONTINUE

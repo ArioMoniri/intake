@@ -146,6 +146,21 @@ describe("ADR-039 S2: gradients live in the two stage drawing files alone", () =
 });
 
 describe("the native top bar", () => {
+  it("the bar item's cleanup runs in the same phase as Stack.Screen's own options (INT-473)", () => {
+    // expo-router's Stack.Screen applies options in a layout effect. A
+    // passive cleanup runs after it whenever effects are torn down and set up
+    // again (a fast refresh), and then wipes the item the screen just set:
+    // captured on INT451-16e, the count was gone after a reload. In the
+    // layout phase every cleanup runs before every setup.
+    const dialogue = source(DIALOGUE);
+    expect(dialogue).toMatch(
+      /useLayoutEffect\(\s*\(\) => \(\) =>\s*navigation\.setOptions\(\{ unstable_headerRightItems: undefined/,
+    );
+    expect(dialogue).not.toMatch(
+      /useEffect\(\s*\(\) => \(\) =>\s*navigation\.setOptions\(\{ unstable_headerRightItems: undefined/,
+    );
+  });
+
   it("the note's progress is a native bar item: its visible count, and a spoken name that holds it", () => {
     const dialogue = source(DIALOGUE);
     expect(dialogue).toMatch(/unstable_headerRightItems:/);
