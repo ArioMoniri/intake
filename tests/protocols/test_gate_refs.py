@@ -144,8 +144,18 @@ def test_every_bad_reference_is_reported_not_just_the_first() -> None:
 
 
 def test_base_intake_gates_name_one_slot_each() -> None:
-    """The two gates the authored base pack carries resolve, across all of its
-    sections, to exactly the slot their question depends on."""
+    """The gates the authored base pack carries resolve, across all of its
+    sections, to exactly the slot their question depends on. INT-432 (CD-01)
+    adds six: every chest-pain follow-up opens on the one screen, across three
+    sections, and each must resolve to that screen and nothing else."""
+    chest_follow_ups = (
+        "chest_pain.character",
+        "chest_pain.radiation",
+        "chest_pain.onset_at",
+        "associated.diaphoresis",
+        "associated.dyspnoea",
+        "trauma.recent",
+    )
     pack = load_pack(BASE_INTAKE)
     namespace = SlotNamespace(
         (section_id, key) for section_id, section in pack.sections.items() for key in section.slots
@@ -164,6 +174,7 @@ def test_base_intake_gates_name_one_slot_each() -> None:
     assert resolved == {
         "identity_check.proxy_reported": frozenset({"identity_check.subject_role"}),
         "pmh_fh_sh.lmp_date": frozenset({"pmh_fh_sh.pregnancy_status"}),
+        **{step: frozenset({"chest_pain.present"}) for step in chest_follow_ups},
     }
 
 

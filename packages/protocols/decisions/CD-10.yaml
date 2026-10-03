@@ -1,0 +1,254 @@
+# INT-432 clinical decision CD-10 (HB-C3, paediatrics). Agent-authored under
+# owner decision D18 (2 Oct 2026): simulated-patient stress testing only; a
+# licensed physician's review is required before any real patient. Every source
+# quote below appears verbatim in the named snapshot; spec_basis quotes appear
+# verbatim in the named committed file. Not a pack: the review-queue candidates
+# are changed by the lead from the slots list below. No triage level, route,
+# register, location or red-flag rule is created or changed here.
+kind: clinical_decision
+id: CD-10
+title: "One polarity for child_health hydration items; the urine-output question"
+question: >-
+  The cluster question "Çocuğunuz her zamanki kadar çiş yapıyor mu?"
+  (cis_miktari) makes false the alarm direction, unlike every other symptom slot
+  in the pack, while the specialty twins (neonatoloji islak_bez_azalmasi and
+  beslenmede_azalma, cocuk_gastroenterolojisi az_cis, cocuk_nefrolojisi
+  idrar_azalmasi) record the concern as true. Which single polarity do hydration
+  items use across child_health, what is the Turkish question for the
+  urine-output item, and on what source?
+decision: >-
+  Every boolean hydration item in the child_health packs uses
+  true_is_concern: the ask names the abnormal finding and "evet" records that
+  the finding is present. This follows the sources, which state the finding in
+  its abnormal direction ("reduced urine output", "decreased urine output",
+  "İdrar çıkışı ... Azalmış") and, in NICE CG84 1.2.1.1, tell the assessor to
+  ask whether the child "has decreased urine output"; it also matches the
+  openEHR symptom/sign screening model, where "Yes" records that the named
+  symptom or sign is present. The urine-output item becomes az_cis with the ask
+  "Çocuğunuz her zamankinden daha az çiş yapıyor mu?" (B1, siz, one question,
+  no numerals, no double negative; the same text the independent wave 1-3
+  verification prescribed for cocuk_gastroenterolojisi). The id changes with
+  the polarity on purpose: a polarity flip under the old id cis_miktari would
+  silently invert any reader of that id, whereas a removed id fails loudly at
+  compile time. Neonatoloji's nappy item is the same fact for nappy-wearing
+  infants and takes the id az_cis while keeping its own text, so the fact is
+  asked once. Cocuk_nefrolojisi's idrar_azalmasi already follows the convention
+  and asks a narrower construct (marked reduction or near-absence), so it stays
+  a separate item. The feeding and drinking items share the convention but
+  their construct choice is a separate paediatric decision, so they are listed
+  as pending and none of them is renamed across polarities.
+status: active
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient
+  stress testing only. A licensed physician's review is required before any real
+  patient. HB-C3's paediatric rule set is not authored here.
+question_origin: >-
+  HB-C3; docs/evidence/verification/cluster-wave-b.md rows "Q5, Q7" and §F
+  (opposite-polarity twins); docs/evidence/proposals/cluster_child_health.md
+  Q7 and §4 gap 8.
+author_role: "paediatrician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "During remote or face-to-face assessment ask whether the child:"
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "the question form: the assessor asks about the finding"
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "has decreased urine output"
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "polarity_convention and the az_cis construct (yes = decreased output)"
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "the following symptoms may indicate dehydration:"
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "the finding is one parents and carers are told to recognise (1.8.1.1 lists decreased urine output)"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "Recognise that children with any of the following symptoms or signs are in at least an intermediate-risk group for serious illness:"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "reduced urine output is an intermediate-risk feature (1.2.6)"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "reduced urine output"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: polarity_convention
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "Circulation and hydration"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "Table 2 places reduced urine output, poor feeding in infants and dry mucous membranes in one row, the scope of 'hydration items'"
+  - kind: guideline
+    guideline_id: TR-HSGM-AKUT-ISHAL-2023
+    title: "Deprem Bölgesinde Erişkin ve Çocuk Hastalarda Akut İshal Rehberi"
+    version_or_date: "Mart 2023 (Yayım: 2023, Ankara)"
+    url: "https://deprem.saglik.gov.tr/depo/deprem/rehberler/revize/hsgm-deprem-bolgesinde-akut-ishal-rehberi.pdf"
+    retrieved_on: 2026-10-03
+    quote: "Tablo 9. Çocuklarda dehidratasyon derecesinin değerlendirilmesi"
+    snapshot: packages/protocols/sources/TR-HSGM-AKUT-ISHAL-2023.txt
+    supports: "Turkish Ministry source for the same finding in children"
+    caveat: >-
+      Written for acute diarrhoea after the 2023 earthquakes, and Tablo 9 is a
+      clinician's grading table, not a list of parent questions. It is cited for
+      the Turkish clinical term and its direction of concern, not for any grade
+      boundary.
+  - kind: guideline
+    guideline_id: TR-HSGM-AKUT-ISHAL-2023
+    title: "Deprem Bölgesinde Erişkin ve Çocuk Hastalarda Akut İshal Rehberi"
+    version_or_date: "Mart 2023 (Yayım: 2023, Ankara)"
+    url: "https://deprem.saglik.gov.tr/depo/deprem/rehberler/revize/hsgm-deprem-bolgesinde-akut-ishal-rehberi.pdf"
+    retrieved_on: 2026-10-03
+    quote: " İdrar çıkışı         Normal- azalmış         Azalmış                  Minimal"
+    snapshot: packages/protocols/sources/TR-HSGM-AKUT-ISHAL-2023.txt
+    supports: polarity_convention
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Is there a history of the specific symptom or sign being present?">'
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: "true (Yes) records that the named finding is present"
+    note: >-
+      packages/protocols/openehr/previsit_intake.v1.opt names
+      OBSERVATION.symptom_sign.v1 as the candidate root for these slots; which
+      archetype hosts the export is HB-C12 and is not decided here.
+spec_basis:
+  - file: docs/evidence/verification/cluster-wave-b.md
+    section: "A.1, row Q5, Q7"
+    quote: "Polarity: `false` is the alarm direction, unlike every other symptom slot in the pack."
+    supports: question
+  - file: docs/evidence/verification/cluster-wave-b.md
+    section: "F, child_health"
+    quote: "An opposite-polarity twin must not be renamed until the paediatrician fixes one polarity; a rename would invert it."
+    supports: "slots ordering: polarity first, rename second"
+  - file: docs/evidence/verification/specialty-wave1-3.md
+    section: "cocuk_gastroenterolojisi, R Q8 (soru_7) (b)"
+    quote: "(b) \"Çocuğunuz her zamankinden daha az çiş yapıyor mu?\" [boolean]"
+    supports: "slots[*].ask_tr for az_cis (independently verified text)"
+inference_disclosure: >-
+  The sources fix the construct and state it in its abnormal direction; none of
+  them is a data-model standard that mandates a boolean polarity. Choosing
+  true_is_concern for every hydration item, renaming cis_miktari to az_cis, and
+  folding the neonatal nappy item into az_cis are this author's representation
+  decisions made on that basis. The Turkish wording is the author's and repeats
+  a text already verified for cocuk_gastroenterolojisi. NG143 and CG84 are
+  scoped to children under five; the polarity rule does not depend on age, but
+  whether their features apply above five stays the paediatric applicability
+  question recorded in cluster_child_health.md §4 gap 2.
+value:
+  polarity_convention: true_is_concern
+  slots:
+    - pack: cluster.child_health
+      file: packages/protocols/review/cluster/child_health.yaml
+      proposal: docs/evidence/proposals/cluster_child_health.md (Q7)
+      slot: cis_miktari
+      target_slot: az_cis
+      ask_tr: "Çocuğunuz her zamankinden daha az çiş yapıyor mu?"
+      current_ask_tr: "Çocuğunuz her zamanki kadar çiş yapıyor mu?"
+      type: boolean
+      current_polarity: false_is_concern
+      target_polarity: true_is_concern
+      action: rename_and_reword
+      gen_line: "gen: slot=az_cis; type=boolean"
+    - pack: specialty.cocuk_sagligi_ve_hastaliklari
+      file: packages/protocols/review/specialty/cocuk_sagligi_ve_hastaliklari.yaml
+      proposal: docs/evidence/proposals/cocuk_sagligi_ve_hastaliklari.md (gen line slot=cis_miktari)
+      slot: cis_miktari
+      target_slot: az_cis
+      ask_tr: "Çocuğunuz her zamankinden daha az çiş yapıyor mu?"
+      current_ask_tr: "Çocuğunuz her zamanki kadar çiş yapıyor mu?"
+      type: boolean
+      current_polarity: false_is_concern
+      target_polarity: true_is_concern
+      action: rename_and_reword
+      gen_line: "gen: slot=az_cis; type=boolean"
+    - pack: specialty.neonatoloji
+      file: packages/protocols/review/specialty/neonatoloji.yaml
+      proposal: docs/evidence/proposals/neonatoloji.md (gen line slot=islak_bez_azalmasi)
+      slot: islak_bez_azalmasi
+      target_slot: az_cis
+      ask_tr: "Bebeğinizin bezi her zamankinden daha seyrek mi ıslanıyor?"
+      current_ask_tr: "Bebeğinizin bezi her zamankinden daha seyrek mi ıslanıyor?"
+      type: boolean
+      current_polarity: true_is_concern
+      target_polarity: true_is_concern
+      action: rename_keep_text
+      gen_line: "gen: slot=az_cis; type=boolean"
+    - pack: specialty.cocuk_gastroenterolojisi
+      file: packages/protocols/review/specialty/cocuk_gastroenterolojisi.yaml
+      proposal: docs/evidence/proposals/cocuk_gastroenterolojisi.md (Q8)
+      slot: az_cis
+      target_slot: az_cis
+      ask_tr: "Çocuğunuz her zamankinden daha az çiş yapıyor mu?"
+      current_ask_tr: "Çocuğunuz her zamankinden daha az çiş yapıyor mu?"
+      type: boolean
+      current_polarity: true_is_concern
+      target_polarity: true_is_concern
+      action: none
+      gen_line: "gen: slot=az_cis; type=boolean"
+    - pack: specialty.cocuk_nefrolojisi
+      file: packages/protocols/review/specialty/cocuk_nefrolojisi.yaml
+      proposal: docs/evidence/proposals/cocuk_nefrolojisi.md (gen line slot=idrar_azalmasi)
+      slot: idrar_azalmasi
+      target_slot: idrar_azalmasi
+      ask_tr: "Çocuğunuzun idrar miktarı belirgin şekilde azaldı ya da neredeyse hiç idrar yapmıyor mu?"
+      current_ask_tr: "Çocuğunuzun idrar miktarı belirgin şekilde azaldı ya da neredeyse hiç idrar yapmıyor mu?"
+      type: boolean
+      current_polarity: true_is_concern
+      target_polarity: true_is_concern
+      action: keep_distinct_narrower_construct
+      gen_line: "gen: slot=idrar_azalmasi; type=boolean"
+  pending_construct_choice:
+    rule: >-
+      These feeding and drinking items fall under the same convention
+      (NG143 Table 2 puts poor feeding in infants in the circulation and
+      hydration row), but which construct the cluster asks (CH-S1's inability to
+      drink or breastfeed against feeding as usual) is a separate paediatric
+      decision. Until it is made, each keeps its id and text, and none is
+      renamed onto another's id, because a rename across opposite polarities
+      inverts the answer. When the construct is chosen, its ask follows
+      true_is_concern.
+    slots:
+      - {pack: cluster.child_health, slot: beslenme_sivi_alimi, current_polarity: false_is_concern, target_polarity: true_is_concern}
+      - {pack: specialty.cocuk_sagligi_ve_hastaliklari, slot: beslenme_sivi_alimi, current_polarity: false_is_concern, target_polarity: true_is_concern}
+      - {pack: specialty.cocuk_enfeksiyon_hastaliklari, slot: emebiliyor_icebiliyor, current_polarity: false_is_concern, target_polarity: true_is_concern}
+      - {pack: specialty.neonatoloji, slot: beslenmede_azalma, current_polarity: true_is_concern, target_polarity: true_is_concern}
+  already_conforming:
+    - {pack: cluster.child_health, slot: agiz_kuru_goz_cokuk}
+    - {pack: specialty.cocuk_gastroenterolojisi, slot: agiz_kuru_goz_cokuk}
+value_status:
+  polarity_convention: active
+  slots: active
+  pending_construct_choice: active
+  already_conforming: active
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

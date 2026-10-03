@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**333 issues.** By phase: P0 164 · P1 115 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 221 · todo 73 · withdrawn 1.
+**334 issues.** By phase: P0 165 · P1 115 · P2 47 · P3 7. By status: awaiting-human 33 · doing 5 · done 222 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -175,6 +175,7 @@
 | INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
 | INT-395 | DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links) | E02-data | INT-037, INT-141, INT-150, INT-393 | area:data, risk:legal | done |
 | INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
+| INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 
 ## P1
 

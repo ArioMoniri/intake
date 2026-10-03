@@ -151,9 +151,11 @@ def test_ids_unique_and_well_formed() -> None:
     # commit status; owner request, GitHub #721).
     # + INT-407 (the files/02 §2b visit lifecycle — a RED visit cannot silently
     # move; found by INT-406's PR, whose visit_transition had no caller, #684).
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # agent-authored and independently agent-verified; GitHub #735).
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
     # order of 3 Oct 2026, GitHub #790).
-    assert len(ids) == 333
+    assert len(ids) == 334
     import re
 
     for i in ids:
