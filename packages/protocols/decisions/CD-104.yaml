@@ -28,9 +28,11 @@ decision: >-
   redness item to the skin around the eye; the child fever ask becomes "oldu mu" and
   uyandirma_zorlugu stays separate; the child chains keep both feeding constructs, the
   feeding-less item az_beslenme (CD-100 T9) and the WHO danger sign icemez_ememez
-  (CD-103), and neonatoloji's infant item takes az_beslenme; klinik psikoloji's
-  psychotherapy item becomes a detail under the cluster's
-  support item; AMATEM's two-fact item splits into the cluster's functioning item and a
+  (CD-103), and neonatoloji's infant item takes az_beslenme; klinik psikoloji
+  re-declares the cluster's support item (onceki_ruh_sagligi_destegi, cluster text
+  verbatim) before its psychotherapy item, which becomes that item's gated detail, with
+  a per-slot answer mapping (CD-101 T81); AMATEM's two-fact item splits into the
+  cluster's functioning item and a
   health-effect item. Four items are owner questions (ÇEMATEM and Çocuk ve Ergen Ruh
   Sağlığı, the dental radiology airway id, the held sağlık kurulu item, and the FTR fever
   near-twin). Where the owner reverted a rebind on 27 Sep 2026, that decision already
@@ -314,6 +316,18 @@ spec_basis:
     section: "F, child_health"
     quote: "A same-polarity twin takes the cluster id and keeps its own text, so its re-declaration replaces the cluster slot and the fact is asked once."
     supports: "items L287 and L301"
+  - file: scripts/dev/gen_specialty_packs.py
+    section: "build_pack, gate check"
+    quote: "readable = FIXED_SLOTS | base_slots | set(sorular)"
+    supports: "items L306 and L428: a specialty gate reads only base slots and the pack's own earlier slots"
+  - file: packages/protocols/review/cluster/mental_health.yaml
+    section: "sorular.onceki_ruh_sagligi_destegi"
+    quote: "tr: Daha önce ruh sağlığınızla ilgili bir hekimden ya da psikologdan destek aldınız mı?"
+    supports: "items L306 and L428: the cluster text the klinik psikoloji pack re-declares verbatim"
+  - file: packages/protocols/decisions/CD-04.yaml
+    section: "decision"
+    quote: "The mapping is per rule and per slot"
+    supports: "items L306 and L428: per-slot answer mapping on onceki_ruh_sagligi_destegi"
 inference_disclosure: >-
   The sources fix the constructs. Which id carries which fact, keeping two facts apart,
   turning a narrower item into a gated detail, the new slot ids, and the Turkish wording
@@ -461,13 +475,22 @@ value:
       question: "Does klinik psikoloji Q8 (regular sessions with a psychologist or psychiatrist) adopt the cluster's onceki_ruh_sagligi_destegi, or keep its own id?"
       outcome: change
       change: >-
-        Q8 keeps its id and text and becomes a detail of the cluster's support item: "Daha
-        önce bir psikolog ya da psikiyatristle düzenli görüşmeler yaptınız mı?" · gen:
-        slot=onceki_psikoterapi; type=boolean; ask_if=onceki_ruh_sagligi_destegi == true.
-        The chain inherits the cluster's onceki_ruh_sagligi_destegi and its gated
-        onceden_iyi_gelen.
-      clinical_basis: "NICE NG222 asks about any past treatment and the response to it, which is the cluster's broader support item and what opens 'what helped'; regular psychotherapy is a narrower detail, so asking it only after a yes keeps both facts without letting the narrower answer close the broader one."
+        Made generator-valid, as CD-101 T81 (a) to (c). (a) The klinik psikoloji proposal
+        re-declares the cluster's item before Q8, with the cluster text verbatim: "Daha önce
+        ruh sağlığınızla ilgili bir hekimden ya da psikologdan destek aldınız mı?" (gen:
+        slot=onceki_ruh_sagligi_destegi; type=boolean). The same id replaces the cluster
+        slot in place, and the cluster's gated onceden_iyi_gelen still reads it. (b) Q8
+        keeps its id and text and becomes its detail: "Daha önce bir psikolog ya da
+        psikiyatristle düzenli görüşmeler yaptınız mı?" (gen: slot=onceki_psikoterapi;
+        type=boolean; ask_if=onceki_ruh_sagligi_destegi == true). (c) Answer mapping for
+        onceki_ruh_sagligi_destegi in this chain, under CD-04's per-slot rule: a hedged yes
+        ("galiba", "bir ara gitmiştim") is present-qualified and opens the detail.
+        "Hatırlamıyorum" is UNCLEAR, its follow-up is asked once (CD-04), and if it stays
+        UNCLEAR the detail is not asked. That loses only a detail item, never a safety
+        input.
+      clinical_basis: "NICE NG222 asks about any past treatment and the response to it, which is the cluster's broader support item and what opens 'what helped'; regular psychotherapy is a narrower detail, so asking it only after a yes keeps both facts without letting the narrower answer close the broader one. A specialty gate may read only base slots and the pack's own earlier slots, which is why the cluster item is re-declared in the pack."
       sources: [NICE-NG222]
+      spec_basis_ref: ["scripts/dev/gen_specialty_packs.py build_pack", "packages/protocols/review/cluster/mental_health.yaml sorular.onceki_ruh_sagligi_destegi", "packages/protocols/decisions/CD-04.yaml decision"]
       status: active
     - item: "docs/evidence/INT-353.md#L308"
       ref: "INT-353 rebind row: amatem Q6"
@@ -610,10 +633,17 @@ value:
       question: "Does klinik psikoloji Q8 adopt the cluster's support item, given that its narrower answer would open onceden_iyi_gelen?"
       outcome: change
       change: >-
-        As INT-353.md#L306: Q8 keeps onceki_psikoterapi and its text, gated
-        ask_if=onceki_ruh_sagligi_destegi == true; the chain inherits the cluster item.
-      clinical_basis: "The broader any-support item is the NG222 assessment fact and opens 'what helped'; regular psychotherapy is asked as its detail."
+        As INT-353.md#L306, CD-101 T81 (a) to (c): (a) the pack re-declares
+        onceki_ruh_sagligi_destegi before Q8 with the cluster text verbatim ("Daha önce ruh
+        sağlığınızla ilgili bir hekimden ya da psikologdan destek aldınız mı?"; gen:
+        slot=onceki_ruh_sagligi_destegi; type=boolean), replacing the cluster slot in place
+        so that onceden_iyi_gelen still reads it; (b) Q8 keeps onceki_psikoterapi and its
+        text, gated ask_if=onceki_ruh_sagligi_destegi == true; (c) a hedged yes ("galiba",
+        "bir ara gitmiştim") is present-qualified and opens the detail, and "Hatırlamıyorum"
+        is UNCLEAR, its follow-up asked once, the detail not asked if it stays UNCLEAR.
+      clinical_basis: "The broader any-support item is the NG222 assessment fact and opens 'what helped'; regular psychotherapy is asked as its detail, and the pack re-declares the broader item because a specialty gate can read only base slots and the pack's own earlier slots."
       sources: [NICE-NG222]
+      spec_basis_ref: ["scripts/dev/gen_specialty_packs.py build_pack", "packages/protocols/review/cluster/mental_health.yaml sorular.onceki_ruh_sagligi_destegi", "packages/protocols/decisions/CD-04.yaml decision"]
       status: active
     - item: "docs/evidence/INT-353.md#L432"
       ref: "INT-353 review fix NOTE: fiziksel_tip_ve_rehabilitasyon ates_var_mi"
@@ -637,4 +667,7 @@ verifier:
     feeding ruling (az_beslenme as CD-100 T9 decides it, icemez_ememez beside it,
     neonatoloji's infant item takes az_beslenme); L304 (3) leaves buyume_ergenlik_endisesi
     to CD-100 T46; L424's owner part records that no further owner action is needed;
-    NG127 version strings carry their link-only minor changes.
+    NG127 version strings carry their link-only minor changes. Round 2 (via the lead):
+    L306 and L428 adopt CD-101 T81 (a) to (c), because a specialty gate cannot read a
+    cluster slot: klinik psikoloji re-declares onceki_ruh_sagligi_destegi with the cluster
+    text before Q8, Q8 is its gated detail, and the answer mapping is per slot.

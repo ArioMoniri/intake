@@ -1,0 +1,307 @@
+# INT-448 clinical decision CD-106: the sign-off packet items (#642, packet commit
+# 151cf34f) that come from docs/evidence/verification/sibling-rebinds-582.md and
+# reorder-op-582.md. Agent-authored under owner decision D18 (2 Oct 2026). It covers
+# simulated-patient stress testing only, and a licensed physician's review is required
+# before any real patient. Every source quote below appears verbatim in the named
+# snapshot, and every spec_basis quote appears verbatim in the named committed file. This
+# is not a pack: the lead applies the item changes to the review-queue proposals. Where
+# an item was already settled (CD-10, the feeding ruling, CD-100 to CD-105), this decision
+# points to it rather than deciding again. No triage level, route, register, location or
+# red-flag rule is created, relaxed or removed here.
+kind: clinical_decision
+id: CD-106
+title: "#642 packet items: sibling rebinds and reorder op"
+question: >-
+  For each open item that the #642 sign-off packets route from the PR #582 sibling-rebind
+  review and the reorder-op review, what is the clinical decision, on what current source,
+  and which part stays with the owner?
+decision: >-
+  Nine items. Accepted (2): postpartum fever and recent fever are an overlap, and both
+  items stay; the urine-output item follows CD-10. Changed (5): the kadın reorder op
+  loses its reason once CD-100 T4 gates the pregnancy items on base pregnancy_status, so
+  the op is removed and the obstetric alarm items keep their authored early place, and
+  until T4 is applied the op takes the review's move-the-gate-forward correction; one
+  overlap rule covers grunting, fast breathing and chest indrawing against a generic
+  breathing-difficulty ask, and a pregnancy bleed against an out-of-period bleed, with all
+  items kept; klinik psikoloji follows CD-104 L306 (CD-101 T81); göz follows CD-104 L291;
+  of the widened or narrowed rebinds only diyabet's weight-loss window changes, to "son
+  aylarda", and the rest stand as settled. Two items are owner questions (the FTR fever
+  near-twin, and the dental airway override side effect).
+status: active
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient stress
+  testing only. A licensed physician's review is required before any real patient. D18
+  does not reach the owner parts recorded under owner_part.
+question_origin: >-
+  INT-448 (GitHub #759): items of the #642 sign-off packets (docs/signoff/*.md at
+  151cf34f) whose row lives in docs/evidence/verification/sibling-rebinds-582.md or
+  reorder-op-582.md.
+author_role: "obstetrics and gynaecology, paediatrics, psychiatry, ophthalmology and internal medicine physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG133
+    title: "Hypertension in pregnancy: diagnosis and management"
+    version_or_date: "NICE guideline NG133; published 25 June 2019; last updated 17 April 2023; minor changes August 2022, October 2022 and October 2023 (Update information)"
+    url: "https://www.nice.org.uk/guidance/ng133/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "Advise pregnant women to see a healthcare professional immediately if they experience symptoms of pre-eclampsia."
+    snapshot: packages/protocols/sources/NICE-NG133.txt
+    supports: "reorder-op L38: the pre-eclampsia items are alarm inputs that must not be the first cut"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.1"
+    quote: "Refer women who are haemodynamically unstable, or in whom there is significant concern about the degree of pain or bleeding, directly to A&E."
+    snapshot: packages/protocols/sources/NICE-NG126-B.txt
+    supports: "reorder-op L38 and L43: bleeding in pregnancy is an alarm input"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.5"
+    quote: "they may be pregnant, and think about offering a pregnancy test even when symptoms are non-specific"
+    snapshot: packages/protocols/sources/NICE-NG126-B.txt
+    supports: "reorder-op L43: the out-of-period bleeding item stays ungated, because pregnancy can be unknown (as CD-102 cluster-wave-a.md#L117)"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.5"
+    quote: "grunting"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "reorder-op L43"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.5"
+    quote: "moderate or severe chest indrawing"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "reorder-op L43"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "Table 2, red column"
+    quote: "Tachypnoea: respiratory rate more than 60 breaths per minute"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "reorder-op L43: fast breathing is a named feature beside grunting and indrawing"
+    caveat: "Cited for the feature, never for the count, which is a forbidden trigger (files/04 §8.1 rule 1)."
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.6"
+    quote: "reduced urine output"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "reorder-op L44 (as CD-10)"
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.1.1"
+    quote: "has decreased urine output"
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "reorder-op L44 (as CD-10)"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "Use a separate instance of this archetype to distinguish between a questionnaire recording information about a symptom that has been present at any time in the past and information about a symptom within a specified time interval"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: "reorder-op L42 and L43, sibling L57 and L60: the same symptom asked over a different interval or context is a separate record"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-CLUSTER.symptom_sign.v2"
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: 'description = <"Simple body site where the symptom or sign was reported.">'
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+    supports: "sibling L57 (as CD-104 L291)"
+  - kind: guideline
+    guideline_id: NICE-NG222
+    title: "Depression in adults: treatment and management"
+    version_or_date: "NICE guideline NG222; published 29 June 2022; minor changes up to December 2025"
+    url: "https://www.nice.org.uk/guidance/ng222/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.7"
+    quote: "any past experience of, and response to, previous treatments"
+    snapshot: packages/protocols/sources/NICE-NG222.txt
+    supports: "sibling L54 (as CD-104 L306)"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.13.2"
+    quote: "For people aged 60 and over with unexplained weight loss (greater than 5% mean weight loss within a 6-month period)"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "sibling L60: weight loss is judged over months, so the recall frame is 'son aylarda'"
+spec_basis:
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.4 The budget governor"
+    quote: "classes 6–8 are filtered out"
+    supports: "reorder-op L38: late DETAIL items are the first cut when the budget tightens"
+  - file: scripts/dev/gen_specialty_packs.py
+    section: "build_pack, gate check"
+    quote: "readable = FIXED_SLOTS | base_slots | set(sorular)"
+    supports: "sibling L54 (as CD-104 L306)"
+  - file: packages/protocols/decisions/CD-10.yaml
+    section: "value.polarity_convention"
+    quote: "polarity_convention: true_is_concern"
+    supports: "reorder-op L44"
+inference_disclosure: >-
+  The sources fix the constructs and which items are alarm inputs. Removing the reorder op
+  once its reason is gone, the single overlap rule for the sweep, and the diyabet recall
+  frame are this author's choices made on those sources. Keeping overlapping items apart
+  costs a near repeat; merging them would lose a window, a context or a named sign.
+value:
+  packet_commit: 151cf34f
+  items:
+    - item: "docs/evidence/verification/reorder-op-582.md#L38"
+      ref: "reorder-op A-4 (kadın op order)"
+      packets: [kadin_hastaliklari_ve_dogum]
+      deciders: [HB-C1]
+      question: "Should the kadın reorder op keep its order, which moves four obstetric alarm items from early to 18th-21st, or take the move-the-gate-forward correction?"
+      outcome: change
+      change: >-
+        (1) With CD-100 T4 applied, gebelik_durumu leaves the kadın pack and its five
+        readers gate on base pregnancy_status, which base asks before every pack item, so
+        no reader precedes its gate: remove the INT-353 reorder op from the kadın candidate,
+        and the cluster's authored order stands, with gebelikte_kanama,
+        bebek_hareketlerinde_azalma, gebelikte_siddetli_bas_agrisi and
+        gebelikte_gorme_bozuklugu early again. (2) Until T4 is applied (it waits on the base
+        owner's confirmation), the op takes the review's correction: in ask_order, when a
+        reader precedes its gate slot, move the gate slot and its own gate closure to
+        directly before the earliest reader, giving the order the review lists, and the two
+        unit tests' expected orders change with it. Either way no gate or op names a slot
+        that has been removed.
+      clinical_basis: "Bleeding, reduced movements, severe headache and visual disturbance in pregnancy are alarm inputs that NICE sends for immediate or emergency assessment, and the budget governor drops late DETAIL items first, so they keep their early place; what the patient hears today does not change."
+      sources: [NICE-NG133, NICE-NG126]
+      status: active
+    - item: "docs/evidence/verification/reorder-op-582.md#L42"
+      ref: "reorder-op A-8 (gebelik_sonrasi_ates against kadın ates_var_mi)"
+      packets: [cluster_womens_health, kadin_hastaliklari_ve_dogum]
+      deciders: [HB-C1]
+      question: "Is postpartum fever against recent fever a DISTINCT pair, as the sweep called it?"
+      outcome: accept
+      clinical_basis: "Accept the correction: the two are an overlap (same construct, different window and scope), recorded as T100, OVERLAP, LOW, code C, and both items stay, because fever since a pregnancy ended is its own alarm context that a recent-fever answer does not carry; the sweep's counts are the lead's bookkeeping."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/reorder-op-582.md#L43"
+      ref: "reorder-op A-9 (borderline calls)"
+      packets: [cocuk_enfeksiyon_hastaliklari, cocuk_kardiyolojisi, gebe_poliklinigi, kadin_hastaliklari_ve_dogum, neonatoloji]
+      deciders: [HB-C1, HB-C3]
+      question: "Are pregnancy bleeding against out-of-period bleeding, and grunting or fast breathing against a generic breathing-difficulty ask, DISTINCT or OVERLAP?"
+      outcome: change
+      change: >-
+        Add one named rule to the sweep's §D: a specific named sign asked beside a generic
+        ask that would also capture it is OVERLAP, not DISTINCT, and both items stay.
+        (1) gebelikte_kanama against adet_disi_kanama in gebe_poliklinigi and kadın:
+        OVERLAP (HB-C1); both stay, adet_disi_kanama ungated as CD-102 decides. (2) In
+        cocuk_kardiyolojisi, cocuk_enfeksiyon_hastaliklari and neonatoloji, hizli_nefes and
+        inleme against nefes_darligi, nefes_zorlanma or nefes_zorlanmasi: OVERLAP, as chest
+        indrawing already is (T47, T56, T86) (HB-C3); every item stays.
+      clinical_basis: "Grunting, fast breathing and chest indrawing are each named NICE features, and a parent who sees any of them may also answer a general breathing-difficulty question, so they overlap in the same way; a pregnant woman's bleed is also outside her periods, and the pregnancy item is the alarm input, so neither is merged."
+      sources: [NICE-NG143, NICE-NG126, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/reorder-op-582.md#L44"
+      ref: "reorder-op A-10 (sweep T5 cis_miktari)"
+      packets: [cluster_child_health, cocuk_endokrinolojisi]
+      deciders: [HB-C3]
+      question: "How is the non-directional 'as much urine as usual' item fixed?"
+      outcome: accept
+      clinical_basis: "CD-10 decided it: the item is az_cis, 'Çocuğunuz her zamankinden daha az çiş yapıyor mu?', with 'evet' as the alarm, so a polyuric child answers it 'hayır' and cocuk_endokrinolojisi's sik_bol_idrar 'evet' (as CD-100 T5)."
+      sources: [NICE-NG143, NICE-CG84]
+      status: active
+    - item: "docs/evidence/verification/sibling-rebinds-582.md#L54"
+      ref: "sibling-rebinds klinik_psikoloji Q8"
+      packets: [klinik_psikoloji_poliklinigi]
+      deciders: [psychiatrist]
+      question: "With klinik psikoloji Q8 bound to onceki_ruh_sagligi_destegi, the narrower answer opens 'what helped'; how is that fixed?"
+      outcome: change
+      change: >-
+        As CD-104 INT-353.md#L306 (CD-101 T81 (a) to (c)): klinik psikoloji re-declares
+        onceki_ruh_sagligi_destegi before Q8 with the cluster text verbatim, Q8 keeps
+        onceki_psikoterapi gated ask_if=onceki_ruh_sagligi_destegi == true, and the per-slot
+        answer mapping applies.
+      clinical_basis: "Past support of any kind and its response is the assessment fact that opens 'what helped'; regular psychotherapy is its detail, asked after a yes."
+      sources: [NICE-NG222]
+      status: active
+    - item: "docs/evidence/verification/sibling-rebinds-582.md#L57"
+      ref: "sibling-rebinds göz Q2, Q3, Q4, Q5, Q8"
+      packets: [goz_hastaliklari]
+      deciders: [HB-C1, clinician]
+      question: "How do the unassigned göz items pair with the sensory cluster, and what happens to göz Q6 and Q10?"
+      outcome: change
+      change: >-
+        As CD-104 INT-353.md#L291: Q2 adopts the cluster's gorme_degisikligi text; Q3
+        (gecici_ani_gorme_kaybi), Q4 (ucusan_noktalar) and Q5 (isik_cakmasi) stay apart; Q8
+        narrows to the skin around the eye (goz_cevresi_kizariklik). Q6 (curtain or shadow)
+        and Q10 (double vision) have no cluster twin and stay as göz's own items.
+      clinical_basis: "One question per construct: a resolved transient loss, floaters alone, flashes alone and periocular redness are separate facts, and the curtain and double-vision items ask facts the cluster does not."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1, openEHR-EHR-CLUSTER.symptom_sign.v2]
+      status: active
+    - item: "docs/evidence/verification/sibling-rebinds-582.md#L60"
+      ref: "sibling-rebinds widened or narrowed rebinds"
+      packets: [cocuk_enfeksiyon_hastaliklari, cocuk_genetik_hastaliklari, cocuk_metabolizma_hastaliklari, diyabet_poliklinigi, neonatoloji, odyoloji]
+      deciders: [clinician]
+      question: "Do any of the widened or narrowed rebinds need a change?"
+      outcome: change
+      change: >-
+        One change: diyabet_poliklinigi Q5 → "Beslenmenizde bir değişiklik olmadığı hâlde
+        son aylarda kilo verdiniz mi?" · gen: slot=istemsiz_kilo_kaybi; type=boolean. The
+        rest stand: uykulu_tepkisiz with "halsiz" keeps the waking item uyandirma_zorlugu
+        apart (CD-104 L300); the fever texts follow CD-103 cluster-wave-b.md#L79, with
+        neonatoloji's own text; the narrower suregen_tani, the endodontic
+        dis_hassasiyeti, and the broader islem_sonrasi_uzun_kanama and ses_kisikligi keep
+        the cluster's fact; KBB's blockage half is the cluster's isitme_azalmasi_tikaniklik
+        (CD-101 T82).
+      clinical_basis: "Unintentional weight loss is judged over months, so 'son zamanlarda' is too vague a frame for the shared id; the other differences keep the same fact within each pack's scope and lose no alarm input."
+      sources: [NICE-NG12, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/sibling-rebinds-582.md#L61"
+      ref: "sibling-rebinds fiziksel_tip_ve_rehabilitasyon ates_var_mi"
+      packets: [cluster_medical, fiziksel_tip_ve_rehabilitasyon]
+      deciders: [owner]
+      question: "fiziksel_tip_ve_rehabilitasyon's ates_var_mi near-twins cluster medical son_gunlerde_ates, so the fever is asked twice; who resolves it?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; routed to the cluster-wave-a owner, as CD-104 INT-353.md#L432."
+      status: owner_question
+      owner_part: >-
+        Cluster-wave-a owner: decide whether fiziksel_tip_ve_rehabilitasyon's ates_var_mi
+        rebinds to son_gunlerde_ates so the fever is asked once in that chain, or route it
+        to a clinician item.
+    - item: "docs/evidence/verification/sibling-rebinds-582.md#L118"
+      ref: "sibling-rebinds §C nefes_yutkunma_guclugu override"
+      packets: [agiz_dis_ve_cene_cerrahisi]
+      deciders: [owner]
+      question: "If the owner releases the dental airway item gated, the two ungated re-declarations override the gate in their chains; is that intended?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; it follows the owner's dental airway posture (CD-103 cluster-wave-b.md#L103)."
+      status: owner_question
+      owner_part: >-
+        Owner: when choosing the dental airway posture, decide whether agiz_dis_ve_cene
+        cerrahisi and agiz_dis_cene_radyolojisi keep their ungated nefes_yutkunma_guclugu or
+        take the cluster's gate.
+verifier:
+  verdict: pending
