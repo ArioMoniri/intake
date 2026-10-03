@@ -9,7 +9,7 @@ set +x
 # shellcheck source=runner.conf
 . /usr/local/lib/intake-aws-ci-runner/runner.conf
 
-free=$(df -P -BG "$CI_ROOT/work" | awk 'NR==2 { gsub("G", "", $4); print $4 }')
+free=$(df -P -BG "$CI_ROOT/home" | awk 'NR==2 { gsub("G", "", $4); print $4 }')
 echo "intake-aws-ci: job on ${RUNNER_NAME} (AWS host, rootless Docker, user $(id -un)); CI volume ${free} GiB free"
 if [ "$free" -lt "$WATCH_FLOOR_CI_GB" ]; then
   echo "intake-aws-ci: CI volume below ${WATCH_FLOOR_CI_GB} GiB; refusing the job"

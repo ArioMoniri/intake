@@ -35,7 +35,8 @@
   - The owner applied `owner-ci-aws-runners.patch` as 66cc6f91 (security.yml is hook-protected; the classifier refuses workflow edits from an agent).
   - The runner stays ephemeral (INT-206). The host registrar reads the admin token from SSM as root and mints a registration token before every registration; the persistent-runner alternative was refused by the classifier as a security weakening.
   - owner: the SSM SecureString `/intake/staging/gh_runner_admin_pat` holds 16 words of prose, not a token. Overwrite it with the raw fine-grained token, so the host's registrar mints a registration token before every job. HB-I7.
-- Next: read every job's `runner_name` on the PR run and record it in the evidence.
+- Result on #791 (aa07c3b2): 12 of 12 jobs ran on intake-aws-ci-1, re-registering by itself after each (the last ten via the SSM registrar); 11 green. gitleaks found no leaks but failed its SARIF upload because the workspace sat beside $HOME; fixed in-repo (workspace under home), awaiting a host reinstall.
+- Next: `scripts/ci/aws_runner.sh install` once host changes are cleared, then re-run #791.
 - LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)

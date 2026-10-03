@@ -117,7 +117,7 @@ prepare() {
   if ! (cd "$CI_ROOT/runner" && ACTIONS_RUNNER_INPUT_TOKEN="$token" runuser -u "$RUNNER_USER" -- \
     ./config.sh --unattended --ephemeral --replace --disableupdate \
     --url "$REPO_URL" --name "$RUNNER_NAME" --labels "$RUNNER_LABELS" \
-    --work "$CI_ROOT/work" >/dev/null); then
+    --work "$CI_ROOT/home/work" >/dev/null); then
     say "FAIL: GitHub refused the registration (an expired one-hour token, or a revoked admin token)"
     return 1
   fi

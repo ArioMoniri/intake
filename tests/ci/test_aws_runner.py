@@ -361,10 +361,31 @@ def test_the_workspace_lives_on_the_nvme_volume_only() -> None:
     conf = _conf()
     assert conf["CI_ROOT"].startswith(conf["NVME_MOUNT"] + "/")
     job = _unit_lines("intake-aws-ci-job.service")
-    assert f"BindPaths={conf['CI_ROOT']}/work" in job
+    assert f"BindPaths={conf['CI_ROOT']}/home" in job
     # The job's temp directory is a bind of the NVMe tree, never the host's.
     temp = str(Path("/") / "tmp")
     assert f"BindPaths={Path(conf['CI_ROOT']) / 'tmp'}:{temp}" in job
+
+
+def test_the_workspace_sits_under_home_as_on_github_hosted_runners() -> None:
+    """GitHub's runners keep the workspace under $HOME (/home/runner/work), and
+    gitleaks-action uploads its SARIF with $HOME as the artifact root. With the
+    workspace beside home instead of inside it, the gitleaks job found no leaks
+    and still failed ("rootDirectory … is not a parent directory", #791, 3 Oct
+    2026). The runner's --work must be a directory under the job's HOME."""
+    conf = _conf()
+    job_home = next(
+        line.split("HOME=", 1)[1]
+        for line in _unit_lines("intake-aws-ci-job.service")
+        if line.startswith("Environment=HOME=")
+    )
+    cycle = _code(_script("cycle.sh"))
+    work = cycle.split("--work ", 1)[1].split()[0].strip('"')
+    assert work.replace("$CI_ROOT", conf["CI_ROOT"]).startswith(job_home + "/"), (work, job_home)
+    env_home = cycle.split("HOME=", 1)[1].splitlines()[0]
+    assert env_home.replace("$CI_ROOT", conf["CI_ROOT"]) == job_home
+    started = _code(_script("job-started.sh"))
+    assert '"$CI_ROOT/home"' in started
 
 
 # --- the disk guard --------------------------------------------------------------------

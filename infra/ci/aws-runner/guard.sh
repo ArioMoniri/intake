@@ -54,7 +54,8 @@ guard_layout() {
   # runner group may list the CI root; nobody else may.
   install -d -m 0750 -o root -g "$RUNNER_USER" "$CI_ROOT"
   local d
-  for d in runner work home tmp docker dockerhome; do
+  # The workspace is $CI_ROOT/home/work, under HOME as on GitHub's runners.
+  for d in runner home tmp docker dockerhome; do
     install -d -m 0700 -o "$RUNNER_USER" -g "$RUNNER_USER" "$CI_ROOT/$d"
   done
 }
