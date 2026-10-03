@@ -26,6 +26,124 @@
     }
   },
   "packages/protocols/base/intake.yaml": {
+    "sections/associated/slots/diaphoresis/ask_tr": {
+      "authored": "Bu ağrı ya da rahatsızlık sırasında çok terlediniz mi?",
+      "expanded": "Bu ağrı ya da rahatsızlık sırasında çok terlediniz mi?"
+    },
+    "sections/associated/slots/diaphoresis/follow_up_tr": {
+      "authored": "Ağrı olduğu sırada normalden çok daha fazla terleme oldu mu?",
+      "expanded": "Ağrı olduğu sırada normalden çok daha fazla terleme oldu mu?"
+    },
+    "sections/associated/slots/dyspnoea/ask_tr": {
+      "authored": "Bu ağrı ya da rahatsızlık sırasında nefes almakta zorlandınız mı?",
+      "expanded": "Bu ağrı ya da rahatsızlık sırasında nefes almakta zorlandınız mı?"
+    },
+    "sections/associated/slots/dyspnoea/follow_up_tr": {
+      "authored": "Ağrı sırasında nefesiniz daraldı mı?",
+      "expanded": "Ağrı sırasında nefesiniz daraldı mı?"
+    },
+    "sections/chest_pain/slots/character/ask_tr": {
+      "authored": "Göğsünüzdeki bu his en çok hangisine benziyor: baskı, sıkışma, ağırlık, yanma ya da başka bir his?",
+      "expanded": "Göğsünüzdeki bu his en çok hangisine benziyor: baskı, sıkışma, ağırlık, yanma ya da başka bir his?"
+    },
+    "sections/chest_pain/slots/character/choices_tr": [
+      {
+        "authored": "baskı",
+        "expanded": "baskı"
+      },
+      {
+        "authored": "sıkışma",
+        "expanded": "sıkışma"
+      },
+      {
+        "authored": "ağırlık",
+        "expanded": "ağırlık"
+      },
+      {
+        "authored": "yanma",
+        "expanded": "yanma"
+      },
+      {
+        "authored": "başka bir his",
+        "expanded": "başka bir his"
+      }
+    ],
+    "sections/chest_pain/slots/character/follow_up_tr": {
+      "authored": "Baskı, sıkışma, ağırlık, yanma ya da başka bir his diyebilirsiniz; hangisi size daha yakın?",
+      "expanded": "Baskı, sıkışma, ağırlık, yanma ya da başka bir his diyebilirsiniz; hangisi size daha yakın?"
+    },
+    "sections/chest_pain/slots/onset_at/ask_tr": {
+      "authored": "Göğsünüzdeki bu ağrı ya da rahatsızlık en son ne zaman oldu?",
+      "expanded": "Göğsünüzdeki bu ağrı ya da rahatsızlık en son ne zaman oldu?"
+    },
+    "sections/chest_pain/slots/onset_at/choices_tr": [
+      {
+        "authored": "şu anda var",
+        "expanded": "şu anda var"
+      },
+      {
+        "authored": "son on iki saat içinde",
+        "expanded": "son on iki saat içinde"
+      },
+      {
+        "authored": "on iki saatten önce ama son üç gün içinde",
+        "expanded": "on iki saatten önce ama son üç gün içinde"
+      },
+      {
+        "authored": "üç günden daha önce",
+        "expanded": "üç günden daha önce"
+      }
+    ],
+    "sections/chest_pain/slots/onset_at/follow_up_tr": {
+      "authored": "Şu anda var, son on iki saat içinde, on iki saatten önce ama son üç gün içinde ya da üç günden daha önce diyebilirsiniz; hangisi doğru?",
+      "expanded": "Şu anda var, son on iki saat içinde, on iki saatten önce ama son üç gün içinde ya da üç günden daha önce diyebilirsiniz; hangisi doğru?"
+    },
+    "sections/chest_pain/slots/present/ask_tr": {
+      "authored": "Göğsünüzde şu anda ya da yakın zamanda ağrı veya rahatsızlık oldu mu?",
+      "expanded": "Göğsünüzde şu anda ya da yakın zamanda ağrı veya rahatsızlık oldu mu?"
+    },
+    "sections/chest_pain/slots/present/follow_up_tr": {
+      "authored": "Göğsünüzde herhangi bir ağrı ya da rahatsızlık hissettiniz mi?",
+      "expanded": "Göğsünüzde herhangi bir ağrı ya da rahatsızlık hissettiniz mi?"
+    },
+    "sections/chest_pain/slots/radiation/ask_tr": {
+      "authored": "Bu ağrı ya da rahatsızlık kolunuza, çenenize, sırtınıza, boynunuza, omzunuza ya da başka bir yere yayılıyor mu?",
+      "expanded": "Bu ağrı ya da rahatsızlık kolunuza, çenenize, sırtınıza, boynunuza, omzunuza ya da başka bir yere yayılıyor mu?"
+    },
+    "sections/chest_pain/slots/radiation/choices_tr": [
+      {
+        "authored": "kol",
+        "expanded": "kol"
+      },
+      {
+        "authored": "çene",
+        "expanded": "çene"
+      },
+      {
+        "authored": "sırt",
+        "expanded": "sırt"
+      },
+      {
+        "authored": "boyun",
+        "expanded": "boyun"
+      },
+      {
+        "authored": "omuz",
+        "expanded": "omuz"
+      },
+      {
+        "authored": "başka bir yer",
+        "expanded": "başka bir yer"
+      },
+      {
+        "authored": "yok",
+        "expanded": "yok"
+      }
+    ],
+    "sections/chest_pain/slots/radiation/follow_up_tr": {
+      "authored": "Yayılmıyorsa yok diyebilirsiniz; yayılıyorsa nerelere yayıldığını söyler misiniz?",
+      "expanded": "Yayılmıyorsa yok diyebilirsiniz; yayılıyorsa nerelere yayıldığını söyler misiniz?"
+    },
     "sections/expectations_wrapup/slots/anything_else/ask_tr": {
       "authored": "Eklemek istediğiniz başka bir şey var mı?",
       "expanded": "Eklemek istediğiniz başka bir şey var mı?"
@@ -441,6 +559,14 @@
     "sections/reason_for_visit/slots/patient_goals/follow_up_tr": {
       "authored": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?",
       "expanded": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
+    },
+    "sections/trauma/slots/recent/ask_tr": {
+      "authored": "Bu ağrı ya da rahatsızlık başlamadan önce göğsünüz bir darbe ya da kaza sonucu yaralandı mı?",
+      "expanded": "Bu ağrı ya da rahatsızlık başlamadan önce göğsünüz bir darbe ya da kaza sonucu yaralandı mı?"
+    },
+    "sections/trauma/slots/recent/follow_up_tr": {
+      "authored": "Düşme, çarpma ya da kaza gibi bir nedenle göğsünüze bir şey oldu mu?",
+      "expanded": "Düşme, çarpma ya da kaza gibi bir nedenle göğsünüze bir şey oldu mu?"
     }
   },
   "packages/protocols/specialty/adli_tip.yaml": {

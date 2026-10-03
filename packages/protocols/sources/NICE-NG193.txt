@@ -1,0 +1,31 @@
+# guideline_id: NICE-NG193
+# title: Chronic pain (primary and secondary) in over 16s: assessment of all chronic pain and management of chronic primary pain
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG193; published 07 April 2021; minor changes October 2021, January 2022 and April 2022 (Update information)
+# url: https://www.nice.org.uk/guidance/ng193/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng193/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header and recommendation 1.1.8, then the Update information list; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Chronic pain (primary and secondary) in over 16s: assessment of all chronic pain and management of chronic primary pain
+NICE guideline
+Reference number: NG193
+Published:
+07 April 2021
+[...]
+Talking about pain – how this affects life and how life affects pain
+1.1.8
+Ask the person to describe how chronic pain affects their life, and that of their family, carers and significant others, and how aspects of their life may affect their chronic pain. This might include:
+lifestyle and day-to-day activities, including work and sleep disturbance
+physical and psychological wellbeing
+stressful life events, including previous or current physical or emotional trauma
+current or past history of substance misuse
+social interaction and relationships
+difficulties with employment, housing, income and other social concerns.
+[...]
+Update information
+Minor changes since publication
+April 2022: We added links to NICE's guideline on medicines associated with dependence or withdrawal symptoms in the section on pharmacological management of chronic primary pain.
+January 2022: Minor changes to redirect NICE Pathways links.
+October 2021: We added a link to NICE's shared decision making guideline in recommendation 1.1.2.

@@ -1,5 +1,82 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
+- **Goal.** The acceptance, verbatim (GitHub #721):
+  - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*
+  - *"the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"*
+  - *"workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"*
+- **Plan.**
+  - The laptop does the git bundle and the harness `git archive`, uploads both to S3 with presigned URLs, then runs SSM AWS-RunShellScript.
+  - The host runs the compose project `intake-ci-<run id>` with three services: `prep`, `dind` (privileged, loopback API) and `runner` (uid 10001). Each service is capped on CPU, memory and pids, weighted at a quarter of the default `cpu_shares`, and has `oom_score_adj` 500. Two flock slots.
+  - The runner redacts the log (secret shapes plus `intake_platform.ci.find_identifiers`), scans it with gitleaks and `phi_scan.sh`, and uploads it only if both pass.
+  - The result is posted as the commit status `aws-ci` through `gh api`.
+- **Tests added.**
+  - `tests/ci/test_aws_ci.py`, 57 tests. They cover: arguments; the fork guard; the run id; the SSM bootstrap and upload commands; the SigV4 presigner against AWS's documented example; the status payload, including a harness error and a withheld log; redaction, with a checksum-valid TCKN computed at run time; and the static isolation and pin checks.
+  - `tests/ci/test_gitleaks_pin_compat.py`, 3 tests.
+  - RED: a collection error with the module absent, then `1 failed` for the harness-error status, `4 failed, 53 passed` for the probe mode, and `1 failed, 2 passed` for the gitleaks table.
+- **Result.**
+  - **Locally:** `tests/ci tests/backlog tests/smoke` pass; ruff, format and shellcheck are clean; `no_placeholders` is OK.
+  - **aws-ci on main (2ff595ef):** check-py, check-ts, check-integration, safety and edge-plugin are green. check-integration's 17 GitHub errors are gone, because `make edge-plugin` runs first. Security is red at gitleaks over the full history: 6 findings under the pinned 8.24.3. The cause: `.gitleaks.toml` used `[[allowlists]]`, which 8.24.3 ignores (fixed). The other 2 findings are an old fake JWT fixture, cleared by two fingerprints on the owner's approval of 3 Oct 2026.
+  - **aws-ci on PR #730:** the same picture. Its expo-export probe found 0 node-forge modules in either production bundle.
+  - **Each run took 47 minutes on the host.** The cost per run is in docs/ci/aws-ci.md.
+- **Invariants touched and still passing:** 6 (the log is redacted and scanned before upload), 14 (every gate runs, at the pinned scanner versions) and 15 (the live stack's capacity is protected by caps, weights and OOM order).
+- **Decisions.**
+  - The owner approved the two gitleaks fingerprints ("ignore the two old token fingerprints", relayed 3 Oct 2026). No ADR.
+  - The permission system refused to stage the gate files (`.gitleaks.toml`, `.gitleaksignore`, `tests/ci/test_gitleaks_pin_compat.py`, and the pin rows in `tests/ci/test_security_gates.py`), so the owner commits them.
+- **Blocked on:** none for the runner. Each PR's own verdict is its `aws-ci` commit status.
+- **Next:**
+  - Owner: make `aws-ci` required, and disable or keep Actions (docs/ci/aws-ci.md, "Owner steps").
+  - At the next workflow edit, raise CI's gitleaks pin to ≥ 8.25; this is the owner's change.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T17:30:00Z · INT-378 · done (PR #643 updated, not merged)
+- Goal: owner priority, 3 Oct 2026: the admin panel must work at all times, so staff login must. This PR is the provider that login needs. Acceptance clauses 1 and 2 (GitHub #621), unchanged.
+- Plan:
+  - Merge main. Main has INT-390's Keycloak 26.7.4.
+  - Rebuild the provider against 26.7.4 and re-record the live login on 26.7.4.
+  - Split clause 3 into INT-389 (#644), so the PR can say `Closes #621`.
+- Tests added or changed:
+  - Java:
+    - the stock rejection now asserts 26.7.4's `UNKNOWN_USER` failure, in place of `cancelLogin`;
+    - `success(type)`;
+    - the metadata-service fixture.
+    - RED: 3 errors and 1 failure against 26.7.4. GREEN: 29 of 29. Mutation: the decoder swap is caught.
+  - Python:
+    - the pins are held by version and tag;
+    - the CI build is held as a step of `check-py`;
+    - the recording replayed is the 26.7.4 one.
+    - RED: 3 failed. GREEN: 2024 in the affected lanes.
+- Result:
+  - Main merged: 8 conflicts, no markers left.
+  - The jar pin is `896d6698…`, reproduced from an empty repository under another time zone.
+  - The live login on Keycloak 26.7.4: the provider is admitted and the stock authenticator refused.
+  - Evidence: docs/evidence/INT-378.md, "Update, 2026-10-03".
+- Invariants touched and still passing: 6, 14 (each Maven artefact and the jar pinned by sha256; the distribution checked against Central), 16, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The console's `aaguid` rule is unchanged, and the TOTP choice stays with the owner (INT-389).
+- Blocked on: nothing here. Staff login on the host also needs #723 to load this jar into the staging Keycloak and switch the live realm. That work is in #723, which merges after this PR.
+- Next: #723 with the staging wiring.
+- Update (the vulnerabilities gate):
+  - Fixed: the pom's test classpath pins jackson-core and jackson-databind at 2.21.7 and opentelemetry-api at 1.62.0. The checksums were re-recorded (258), the jar pin is now `91da1232…` (reproduced), and the passkey login was re-recorded on 26.7.4: admitted, stock refused.
+  - Left: GHSA-794g-x443-36f7 on keycloak-services. GitHub bounds it below 26.5.5, but OSV's range is open-ended, and 26.7.5 and 26.8.0 match it too. Its 30-day osv entry is an owner patch; no trivy row, since trivy reports nothing.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T06:20:00+03:00 · INT-378 · awaiting-human (PR open; clauses 1–2 delivered, clause 3 is the owner's)
+- Goal: acceptance verbatim (GitHub #621). Clause 1: *"a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes … built reproducibly and pinned by sha256"*. Clause 2: *"a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"*. Clause 3 is the owner's TOTP decision.
+- Plan:
+  - `infra/keycloak/providers/webauthn-session-notes`: a subclass of Keycloak 26.1.4's `WebAuthnAuthenticator`. After `super.action` returns SUCCESS (`DefaultAuthenticationFlow.processAction` reads the status only after `action` returns), it writes the asserted credential's stored AAGUID and its base64url id as the two notes the INT-373 mappers read.
+  - The Maven wrapper's distribution is sha256-pinned. Maven Resolver trusted checksums cover all 263 resolved artefacts. Keycloak is `provided`, never bundled. The jar is reproducible in UTC and pinned.
+  - Wiring: the realm's staff flow; `make keycloak-provider` (build, test, check the pin, then stage); `obs` mounts `providers/deploy`; CI job `keycloak-provider`; Renovate's maven managers.
+- Tests added:
+  - Java, 29: the note logic, the stock `action` run for real with only `isValid` stubbed, and the factory. RED: 30 `cannot find symbol` errors. GREEN: 29 passed. Mutations: 8/8 killed.
+  - Python, 25 (`tests/admin/test_webauthn_session_notes_provider.py`): wiring, pins, the recorded login and the runbook. RED: 14 failed and 11 passed against the pre-change tree. GREEN: 25 passed.
+- Result:
+  - A real Keycloak 26.1.4 (the distribution on the JVM, no container) ran the pinned jar. A software-authenticator login through the committed realm was **admitted** by the console, carrying the key's AAGUID and credential id. The same login through a stock-authenticator twin was **refused** (`MalformedClaims: aaguid`). The recording is replayed by the tests.
+  - The first start found that INT-365's realm cannot be imported: a flow description exceeded NVARCHAR(255). It is fixed here and test-held.
+- Invariants touched and still passing: 6 (ids only, nothing logged), 14 (sha256 pins on Maven, every artefact and the jar; licence verified from the raw LICENSE at the tag; no gate skipped), 17 (no placeholder or skip).
+- Decisions / ADRs / `00_STATE.md` rows: none. The verifier's `aaguid` rule is unchanged.
+- Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
+- Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619; #598 landed on main during the iteration. After merge, the owner deploys the provider (runbook §3).
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
@@ -3103,6 +3180,97 @@
   - No new metric.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00+03:00 · INT-432 · done (PR #757 open, not merged)
+- Goal: the clinical decisions register under owner decision D18 ("agent-only sign-off anyway"), scoped to simulated-patient stress testing; a licensed physician's review is required before any real patient. Acceptance quoted in docs/evidence/INT-432.md.
+- Plan:
+  - Three medical-author agents (EM/IM; EM operations / informatics + paediatrics; the INT-427 specialties) write CD-01..CD-18 from current guidelines and openEHR CKM against verbatim snapshots in packages/protocols/sources/.
+  - An independent verifier agent, seeing only output and sources, re-fetches every source and returns verdicts; authors revise until all agree.
+  - The lead builds the typed loader, applies the decisions (HB-C6 slots, HB-C3 polarity), and wires the tests.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py.
+  - Extended: test_base_intake_pack.py (three life-threat read sections), test_gate_refs.py (six new gates).
+  - Near misses: LT-01-N fires nothing; LT-02-N lands KIRMIZI_K2; neck-only radiation fires neither arm while neck-and-arm (CONTESTED) fires K2; a reworded quote is refused; the inverted hydration wording is gone from the whole review queue.
+  - Red run: 2 failed (empty register) and 15 failed (KeyError 'chest_pain.present').
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations).
+  - Protocols lane 98.10 % (1560 passed); tests/protocols + tests/engine 1280 passed; ruff, format and mypy clean; no_placeholders OK after staging.
+  - `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 2, 5 (tr first, en mirror), 7 (the life-threat set is untouched; slots declared under the names its rules read), 10, 17 (every unsourced value is the sanctioned literal under a draft entry), 20 (no performance figure anywhere), 21, 22 (no digits in patient copy).
+- Decisions / ADRs / `00_STATE.md` rows: D18 in files/00_STATE.md §3 and the changelog; files/04 §1 records the three read sections. D17 stands; no clinical_signoff field is filled; HB-C1 is not closed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): one owner question, not a clinical one — does D3's occupational-exposure approval cover göğüs hastalıkları Q10/Q10a (CD-11 owner_question; V-GH-2)? text_first and not-servable stay meanwhile.
+- Next: apply the CD-11..CD-18 `apply_after_737_merges` changes once PR #737 merges. The rest is split by the coordinator: INT-447 (#758, INT-414's 48 lines) and INT-448 (#759, the #642 packet items).
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T23:30:00+03:00 · INT-448 · done (PR open, not merged)
+- Goal: every #642 sign-off packet item (197) gets a sourced decision and an independent verdict under owner decision D18 (simulated-patient stress testing; a licensed physician's review is required before any real patient).
+- Plan: parse the packets at 151cf34f into a committed item fixture; two medical-author agents write CD-100..CD-106 against verbatim snapshots; the independent verifier re-fetches every source and returns verdicts; authors revise until all agree. Owner-decider parts stay owner questions.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_signoff_packet_decisions.py (an item decided twice, missing or misfiled fails; an owner-only item decided by an agent fails). Red run: 8 failed.
+- Result (`make check` / `make safety` / `make security` summary): `make safety` exit 0 (triage 100 %, 18/18 mutations); protocols lane 97.39 %; 1366 passed across protocols/engine/backlog/smoke; ruff, format, mypy clean; no_placeholders OK. `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 2, 7 (no rule gate slot left unaskable; nothing removed or relaxed), 17, 20, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new; the feeding construct left open by CD-10 is closed by CD-100 T9/T48 and CD-103 L75 (both items kept, ungated).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): 31 owner questions recorded per item in CD-100..CD-106 (generator fixed slots vs base, self/proxy wording under HB-L20, D3 categories); none blocks the merge.
+- Next: apply the packet decisions through the proposals and the generator once #642 merges.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:00:00Z · INT-414 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-414, GitHub #705): a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase, question context and the patient's on-device state (read-only), and never alters the question text; every new string is B1 Turkish in the siz register, warm through verb mood, passes PolicyGuard, with an en mirror; an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr and a RED gets nothing added; no numerals reach TTS and no patient words are composed into speech; all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md.
+- Plan:
+  - `delivery.ts` composes `lead_in | transition | acknowledgement | question`, deterministic by an FNV-1a hash of the session seed and turn index.
+  - `deliveryDeck.ts` maps slot to keys and context, with no strings; `deliveryPlan.ts` folds the composer over a sitting.
+  - The typed lane renders the line above the unconditional question heading; the voice lane speaks the planned utterances in order and drops a lead-in whose clip is not ready.
+  - Each utterance carries its INT-415 delivery context through the clip store to the George route; the route allow-list holds the 42 spoken lines verbatim.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `delivery.test.ts`, `deliveryPlan.test.ts`, `tests/release/test_delivery_copy.py`, `tests/api/test_dev_voice_delivery.py`.
+  - Extended: `tests/api/test_dev_voice_hardening.py`; the existing `tests/release/test_i18n_complete.py` sweep covers every new key.
+  - Near misses: a question one trailing space off, a RED script with one decoration, a delivery line turned into a question, an outcome reassurance in an acknowledgement, an allow-list one character off.
+  - RED run: module absent, then 4 failures, then 5 context-threading failures; 10 of 10 mutants killed.
+- Result (`make check` / `make safety` / `make security` summary), merged with main at 79ba5659:
+  - `pnpm -r typecheck`, `make check-ts` (mobile 2482 passed), `make check-i18n` (191 passed), `make check-py` (9786 passed; every coverage floor met), `make safety` (triage 100 %, 18 of 18 mutations detected), `tests/backlog` + `tests/smoke`, and `no_placeholders` all exit 0.
+  - `check-integration` is CI-only; `make security` is the CI gate set (no dependency, model or egress added).
+  - Conflicts with main were only the generated and counted backlog files; the pinned counts are 327 and files/11 is re-rendered.
+- Invariants touched and still passing: 2, 3, 5, 10, 11, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none. No id minted; the spoken "tekrar" repeat command is an owner decision recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines in docs/evidence/INT-414.md, or which do you rewrite?" The lines are engineer-authored and unsigned. Owner asks, not HB rows: which docs/legal/strings.yaml string may the opening use to say answers go to the doctor (INT-210), and a listening review of the contexts on George.
+- Next: PR `INT-414: Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim` (Closes #705, Sec-Row mobile), left unmerged for review.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T20:40:00Z · INT-414 · done (PR open, not merged; clinical-reviewer pre-review applied)
+- Goal: the clinical-reviewer agent pre-reviewed PR #726 and asked for copy and code changes; acceptance is unchanged (docs/backlog/issues.yaml INT-414).
+- Plan:
+  - Copy: eleven lines reworded and three polished in `tr.ts`, `en.ts` and the server allow-list, after confirming in `stream.ts` that a silent turn's question always returns in the manual steps.
+  - Code: `questionContextOf` can return `red` from a pack declaration (`redAdjacent`) and the turn after it gets no acknowledgement or cadence line; the instrument check moves above the repair branch; a lead-in dropped for want of a clip is dropped from the transcript as well as the voice.
+- Tests added (with the near-miss negative for any safety rule):
+  - `delivery.test.ts`, `deliveryPlan.test.ts` (20 failed before the change), `stream.test.ts`, plus the existing `tests/release/test_delivery_copy.py` allow-list check (1 failed before the mirror followed).
+  - Near misses: the same stretch after a routine step is warmed on some seeds, so the after-RED assertion is not vacuous; a re-asked first instrument item gets the introduction, not a repair line; every ready/stalled pattern of three lines keeps voice and screen equal.
+- Result (`make check` / `make safety` / `make security` summary): typecheck, `make check-ts` (mobile 2499 passed), `make check-i18n` (191), ruff, mypy, the affected pytest lanes, `make safety` (18 of 18) and `no_placeholders` exit 0. The whole-tree `make check-py` was not repeated.
+- Invariants touched and still passing: 2, 10, 11, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines, or which do you rewrite?" The 12 revised lines are marked pre-reviewed by the clinical-reviewer agent on 2 Oct 2026; physician sign-off is still open. files/04 §4.2 pre-brief: the sensitive transition lines are not that pre-brief, which is owed separately.
+- Next: the `leadIn` rendering through #728's `ChatLines` waits for #728 to reach main.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T22:00:00+03:00 · INT-447 · done (PR open, not merged)
+- Goal: verify INT-414's 48 delivery lines (#726) under owner decision D18 (INT-432). That means a medical-author pass and an independent verifier pass, sourced to Sağlık Bakanlığı health-literacy material, with a decision record per line, so the approval:human-clinical label on #726 can come off. Scope is simulated-patient testing only; a licensed physician reviews before any real patient.
+- Plan:
+  - Author pass by a family-medicine and health-literacy agent: six checks per line (PolicyGuard, B1, siz, not a question, no numerals, fits context).
+  - Independent verifier pass: sees only the records, the snapshots, the rules and the INT-414 code.
+  - Records CD-19..CD-23 in INT-432's format (numbers agreed with the INT-432 lead).
+  - Line fixes go on #726's branch.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_delivery_line_decisions.py.
+  - Near misses refused by the same checker: a line turned into a question, an outcome reassurance, a numeral, an interrogative opening (the line CD-22 replaced), an over-long acknowledgement, an over-long sentence, the sen register.
+  - Red run: a collection error with no records (KeyError 'CD-19'), then 2 failed while the verifier verdicts were pending.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations).
+  - tests/protocols + backlog + smoke: 1161 passed. On #726: release lane and mobile vitest (2499) green after the line fix.
+  - check-integration and `make security` are CI-only here.
+- Verdict: 48/48 lines pass; one reworded (sensitiveLead.b, CD-22), pushed to #726 as 8fc8442c.
+- Invariants touched and still passing: 2 (PolicyGuard, one question per turn, B1), 5 (tr first, en mirror), 10 (no question or instrument item touched), 17 (no pending token; nothing draft), 18 (no line says where answers go), 20 (no performance figure), 22 (no digits in any line).
+- Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
+- Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-02T22:30:00+03:00 · INT-422 · done (PR open, not merged)

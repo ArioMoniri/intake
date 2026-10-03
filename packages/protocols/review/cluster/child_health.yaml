@@ -71,11 +71,11 @@ sections:
         ask_tr:
           tr: Çocuğunuz ağızdan aldığı her şeyi kusuyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
-      cis_miktari:
+      az_cis:
         type: boolean
         required: false
         ask_tr:
-          tr: Çocuğunuz her zamanki kadar çiş yapıyor mu?
+          tr: Çocuğunuz her zamankinden daha az çiş yapıyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_child_health.md'
       agiz_kuru_goz_cokuk:
         type: boolean

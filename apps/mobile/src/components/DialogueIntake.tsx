@@ -42,7 +42,7 @@
  */
 import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -82,6 +82,8 @@ import {
 } from "@/lib/dialogue/rhythm";
 import { FOCUS_RING, chipChrome, filledFieldChrome } from "@/lib/controlChrome";
 import { composerTrailing } from "@/lib/dialogue/composer";
+import type { Utterance } from "@/lib/dialogue/delivery";
+import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
 import { questionAsideTr } from "@/lib/dialogue/speech";
 import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
@@ -178,6 +180,9 @@ export function DialogueIntake({
   const session = useDialogueSession({
     questions,
     packName,
+    // The visit id seeds the delivery variation (INT-414): an id, never PHI,
+    // so one visit always replays the same words.
+    sessionSeed: visitId ?? "",
     onDone: () => router.replace(`/(tabs)/visits/${visitId}/review`),
     onFailed: (leftovers) => onFailed(toPrefill(leftovers)),
     onHandoff: (leftovers) => {
@@ -427,6 +432,39 @@ export function DialogueIntake({
     return [{ maxWidth: measure, marginTop: placement?.grouped ? GROUPED_MARGIN : 0 }, tail];
   };
 
+  /**
+   * One conversational delivery line (INT-414) — a welcome, lead-in,
+   * transition or acknowledgement — as its own quiet bubble ahead of the
+   * question it introduces, never inside it: the question bubble below stays
+   * the scripted question alone (invariant 10), exactly as INT-293 kept its
+   * repair line apart. The words are the plan's own key, rendered from the
+   * catalogue in the reader's locale; the clip says the Turkish.
+   */
+  const renderDeliveryBubble = (utterance: Utterance, key: string) => {
+    const deckKey = asDeliveryKey(utterance.key);
+    if (deckKey === null) {
+      return null;
+    }
+    return (
+      <View
+        key={key}
+        accessible
+        accessibilityLabel={spoken(t("a11y.speaker.agent"), t(deckKey))}
+        style={[
+          styles.bubble,
+          styles.agentBubble,
+          { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
+          // INT-423's measure; it sits outside the rhythm's turn list, so no tail.
+          { maxWidth: measure },
+        ]}
+      >
+        <AppText role="caption" color="inkSoft">
+          {t(deckKey)}
+        </AppText>
+      </View>
+    );
+  };
+
   const renderAgentBubble = (entry: StreamEntry, index: number) => {
     const live = index === liveAgentIndex;
     const bubbleStyle = [
@@ -529,32 +567,30 @@ export function DialogueIntake({
   };
 
   const renderEntry = (entry: StreamEntry, index: number, key: string) => {
-    if (entry.kind === "agent_question" || entry.kind === "agent_confirm") {
+    if (entry.kind === "agent_question") {
+      // INT-414: what is said around the question, then the question.
+      const lines = (session.delivery.get(index) ?? []).filter((u) => u.kind !== "question");
+      if (lines.length === 0) {
+        return renderAgentBubble(entry, index);
+      }
+      return (
+        <Fragment key={`t-${index}`}>
+          {lines.map((utterance, at) => renderDeliveryBubble(utterance, `d-${index}-${at}`))}
+          {renderAgentBubble(entry, index)}
+        </Fragment>
+      );
+    }
+    if (entry.kind === "agent_confirm") {
       return renderAgentBubble(entry, index);
     }
     // INT-293: the words the patient gave for the previous question mapped to
     // nothing — here or at the extractor — so the agent asks it once more and
-    // says why first. Its own quiet bubble rather than a line inside the
-    // question's: the question that follows is spoken verbatim from the pack
-    // (invariant 10), and this sentence is not part of it.
+    // says why first. INT-414 moved that sentence into the delivery plan of
+    // the re-asked question, where it is now SPOKEN as well as shown (it used
+    // to be shown only), still as its own quiet bubble ahead of the verbatim
+    // question. Rendering it here as well would say it twice.
     if (entry.kind === "agent_unclear") {
-      return (
-        <View
-          key={`u-${index}`}
-          accessible
-          accessibilityLabel={spoken(t("a11y.speaker.agent"), t("dialogue.notUnderstood"))}
-          style={[
-            styles.bubble,
-            styles.agentBubble,
-            { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
-            ...shape(index),
-          ]}
-        >
-          <AppText role="caption" color="inkSoft">
-            {t("dialogue.notUnderstood")}
-          </AppText>
-        </View>
-      );
+      return null;
     }
     // Patient turns, keyed by work id. A transcribing bubble is the
     // in-place stand-in the ASR text will replace (never a takeover). The

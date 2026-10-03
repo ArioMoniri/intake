@@ -1,0 +1,20 @@
+# guideline_id: TR-SGGM-TSOY-2020
+# title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+# publisher: T.C. Sağlık Bakanlığı, Sağlığın Geliştirilmesi Genel Müdürlüğü (SGGM)
+# version_or_date: SGGM announcement of the Türkiye Sağlık Okuryazarlığı Düzeyi ve İlişkili Faktörleri Araştırması (TSOY-32); page dated 20 Aralık 2020
+# url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+# retrieved_on: 2026-10-03
+# retrieval: HTTP GET with a browser user agent; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces
+# scope: verbatim excerpt of the page title and date, the lead paragraph, the findings on the national level and on the 65-and-over group, and the closing definition; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+20 Aralık 2020
+[...]
+Hastalığınızın belirtilerini biliyor, ilaçları doğru kullanabiliyor, gıda ambalajlarını ve termometreyi okuyabiliyor musunuz? “Türkiye Sağlık Okuryazarlığı Düzeyi ve İlişkili Faktörleri Araştırması”na göre Türkiye’de yaklaşık olarak 10 kişiden 7’sinin sağlık okuryazarlığı düzeyi düşük.
+[...]
+10 kişiden 7’sinin Sağlık Okuryazarlığı Düzeyi Düşük
+Araştırma, Türkiye genelini temsil eden 6 bin 228 hane üzerinden yürütüldü. Araştırmaya katılanların TSOY-32 ile saptanan sağlık okuryazarlığı düzeyine bakıldığında; %30,9’u yetersiz, %38’i sorunlu-sınırlı, %23,4’ü yeterli, %7,7’si ise mükemmel. Araştırma sonuçlarına göre Türkiye’de yaklaşık olarak 10 kişiden 7’sinin sağlık okuryazarlığı düzeyi yetersiz veya sınırlı.
+10 Yaşlıdan 9’unun Sağlık Okuryazarlığı Düzeyi Düşük
+Yaş grupları arasında da sağlık okuryazarlığı düzeyi bakımından anlamlı fark bulunmakta. Sağlık okuryazarlığı yetersiz olanların sıklığı 18-24 yaş grubundaki en düşük değer %14’ten ilerleyen yaş gruplarıyla birlikte artarak 65 ve üzeri yaş grubunda %65,5’e; yetersiz veya sorunlu-sınırlı olanların sıklığı ise 18-24 yaş grubundan %51,8’den 65 ve üzeri yaş grubunda %90,4’e kadar yükselmekte. 65 ve üzeri yaş grubu için elde edilen sonuçlar, 10 yaşlıdan 9’unun sağlık okuryazarlığının yetersiz veya sınırlı olduğunu göstermekte.
+[...]
+Sağlık okuryazarlığı; bireylerin sağlıkla ilgili bilgilere ulaşması, bu bilgileri anlaması ve bu bilgileri sağlıkla ilgili kararlarında kullanabilmesi için gerekli olan zihinsel ve sosyal becerileri olarak tanımlanmaktadır.

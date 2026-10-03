@@ -63,9 +63,13 @@ describe("turns group, and the tail is a group's last bubble alone", () => {
     expect(dialogue).toContain("placeTurns(");
     expect(dialogue).toContain("bubbleMaxWidth(");
     expect(dialogue).toContain("sideOf");
-    // Every bubble takes its shape from the placement: the agent's three
-    // kinds, the two patient states and the open-mic turn.
-    expect(dialogue.match(/\.\.\.shape\(/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
+    // Every bubble takes its shape from the placement: the agent's question
+    // and confirm turns, the two patient states and the open-mic turn. INT-414
+    // moved the "not understood" line into the delivery plan, so it is no
+    // longer a stream bubble of its own.
+    expect(dialogue.match(/\.\.\.shape\(/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    // A delivery line (INT-414) sits outside the turn list: the measure, no tail.
+    expect(dialogue).toMatch(/renderDeliveryBubble[\s\S]*?\{ maxWidth: measure \}/);
   });
 
   it("the tail corner lives in the tail styles alone, never on every bubble", () => {

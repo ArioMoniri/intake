@@ -1,0 +1,18 @@
+# guideline_id: openEHR-EHR-EVALUATION.problem_diagnosis.v1
+# title: Problem/Diagnosis (openEHR Clinical Knowledge Manager archetype)
+# publisher: openEHR Foundation (CKM cid 1013.1.169, lifecycle PUBLISHED)
+# version_or_date: revision 1.7.4; build_uid f19a7678-9018-4081-ad5e-51935bd99fa9; MD5-CAM-1.0.1 3784CDA20920BF84035159DDC43A4D62
+# url: https://ckm.openehr.org/ckm/archetypes/1013.1.169
+# url_adl: https://ckm.openehr.org/ckm/rest/v1/archetypes/1013.1.169/adl
+# retrieved_on: 2026-10-03
+# retrieval: curl of the CKM REST ADL export (ADL 1.4, utf-8, BOM and CR stripped); CKM REST search metadata reports revision 1.7.4 as revisionLatestPublished
+# scope: verbatim ADL lines - archetype id, the first line of the English purpose description, lifecycle and revision lines; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+archetype (adl_version=1.4; uid=cc3a20b3-8928-4c2a-babd-fe9e28987be7)
+	openEHR-EHR-EVALUATION.problem_diagnosis.v1
+[...]
+			purpose = <"For recording details about a single, identified health problem or diagnosis. 
+[...]
+	lifecycle_state = <"published">
+[...]
+		["revision"] = <"1.7.4">
