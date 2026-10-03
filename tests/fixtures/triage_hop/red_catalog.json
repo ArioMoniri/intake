@@ -1,0 +1,26 @@
+{
+  "scripts": {
+    "rf.sentetik_yasamsal.remote": {
+      "primary": "CALL_112",
+      "show112": true,
+      "actionTr": "Hemen yardım isteyin.",
+      "doNotsTr": ["Yalnız kalmayın."],
+      "whyTr": "Bu bir sentetik test metnidir."
+    },
+    "rf.sentetik_yasamsal.on_site": {
+      "primary": "GO_TO_IN_HOUSE_ACIL",
+      "show112": false,
+      "actionTr": "Görevlilere haber verin.",
+      "doNotsTr": [],
+      "whyTr": "Bu bir sentetik test metnidir."
+    }
+  },
+  "questions": {
+    "rf.sentetik_yasamsal.unknown": {
+      "askTr": "Şu anda hastanede misiniz?",
+      "onYes": "ON_SITE",
+      "onNo": "REMOTE",
+      "onNoAnswer": "REMOTE"
+    }
+  }
+}

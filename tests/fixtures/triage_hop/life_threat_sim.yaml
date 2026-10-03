@@ -1,0 +1,75 @@
+# SENTETİK TEST VERİSİ — INT-446 simulator fixture. The signed SENTETİK
+# life-threat set of tests/fixtures/protocols/compile/life_threat_signed.yaml,
+# re-keyed to a slot the app can bind from a typed answer: the core pack's
+# free-note question `extra`. The trigger value is a synthetic date string so
+# the one slot is both the gate and its own tense anchor (files/12 §2.4: a
+# tense-qualified rule never fires on an undated answer). Every id, gate and
+# Turkish string is invented for tests and carries NO clinical meaning; the
+# sign-off names a fictional reviewer. Used only by the INT-446 simulator run
+# (docs/evidence/INT-446.md) and tests/api/test_triage_hop.py. Never served.
+kind: life_threat_set
+pack_id: base.life_threat
+version: 0.1.0-sentetik-sim
+schema_version: 2
+maturity: L1
+status: clinically-reviewed-synthetic
+language: tr
+created: 2026-10-03
+supersedes: []
+served: true
+clinical_signoff:
+  reviewer_name: "Sentetik Hekim"
+  reviewer_licence_no: "SYN-0001"
+  reviewer_specialty: "Sentetik uzmanlık"
+  signed_commit: "0000000000000000000000000000000000000000"
+  signed_on: 2026-10-03
+  paediatric_reviewer_name: null
+rules:
+  - id: rf.sentetik_sim
+    label_tr: "Sentetik simülatör kuralı"
+    age_band: adult
+    gate: "extra == '2026-01-01'"
+    tense: ever
+    tense_anchor: extra
+    level: KIRMIZI_K1
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    evidence:
+      guideline_id: SYN-GUIDE-B
+      guideline_title: "Sentetik kılavuz B"
+      version_or_date: "sürüm bir"
+      url: "https://example.invalid/syn-guide-b"
+      retrieved_on: 2026-08-28
+      quote: "sentetik yaşamsal alıntı"
+      quote_snapshot: packages/protocols/sources/SYN-GUIDE-B.txt
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr:
+          tr: "Hemen yardım isteyin."
+        do_nots_tr:
+          tr:
+            - "Yalnız kalmayın."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr:
+          tr: "Görevlilere haber verin."
+        why_tr:
+          tr: "Bu bir sentetik test metnidir."
+      UNKNOWN:
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
+    inference_disclosure: >-
+      The synthetic gate above is this fixture's own and belongs to no
+      guideline (files/04 §8.1 rule 2).

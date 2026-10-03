@@ -6406,3 +6406,23 @@
     - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
   tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
   sec_row: "connectors"
+- id: INT-446
+  epic: E08-mobile
+  phase: P0
+  title: "RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted"
+  # GitHub #756. Found by the INT-440 voice end-to-end test, 3 Oct 2026: no
+  # screen mounted livekit/red.ts and no lane called the rules engine, so a
+  # RED could not fire anywhere in the app. The hop is services/api
+  # /v1/triage (packages/protocols evaluate_triage, never a mobile copy of a
+  # rule); the screen is components/RedLayer.tsx. No signed rule set exists
+  # (HB-C1), so the shipped state is 503 and no RED — the mechanism is proved
+  # over the committed signed SENTETİK fixture (docs/evidence/INT-446.md).
+  depends_on: [INT-080, INT-103, INT-333]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-446.md
+  acceptance:
+    - "every bound answer on the typed and voice lanes passes through the deterministic rules engine (invariant 1); a RED result mounts the pre-positioned RED screen and script with no media transport (invariant 21); its register and location are honoured, and on ON_SITE the 112 affordance is absent"
+    - "an end-to-end test proves a red-flag answer reaches the RED screen on both lanes, with a near-miss control that does not; the answer-to-RED time is measured"
+  tests: [tests/api/test_triage_hop.py, apps/mobile/e2e/red.spec.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**328 issues.** By phase: P0 162 · P1 112 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 217 · todo 73 · withdrawn 1.
+**329 issues.** By phase: P0 163 · P1 112 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 218 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -173,6 +173,7 @@
 | INT-390 | Keycloak upgraded to a patched release, and the committed realm imports on it | E12-admin | INT-023, INT-365 | area:admin, risk:security | done |
 | INT-382 | The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads | E03-protocols | INT-258 | area:protocols, risk:clinical | done |
 | INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
+| INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
 
 ## P1
 

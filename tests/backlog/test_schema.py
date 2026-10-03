@@ -142,7 +142,10 @@ def test_ids_unique_and_well_formed() -> None:
     # time-boxed node-forge exception; owner decision, GitHub #727).
     # + INT-431 (the embed sample's JWT fixture is built at runtime so no
     # token-shaped literal sits at rest; found merging main into #481, #733).
-    assert len(ids) == 328
+    # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
+    # both lanes and the pre-positioned RED screen mounted; found by the
+    # INT-440 voice end-to-end test, GitHub #756).
+    assert len(ids) == 329
     import re
 
     for i in ids:
