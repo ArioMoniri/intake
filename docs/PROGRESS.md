@@ -29,6 +29,54 @@
   - At the next workflow edit, raise CI's gitleaks pin to ≥ 8.25; this is the owner's change.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-03T17:30:00Z · INT-378 · done (PR #643 updated, not merged)
+- Goal: owner priority, 3 Oct 2026: the admin panel must work at all times, so staff login must. This PR is the provider that login needs. Acceptance clauses 1 and 2 (GitHub #621), unchanged.
+- Plan:
+  - Merge main. Main has INT-390's Keycloak 26.7.4.
+  - Rebuild the provider against 26.7.4 and re-record the live login on 26.7.4.
+  - Split clause 3 into INT-389 (#644), so the PR can say `Closes #621`.
+- Tests added or changed:
+  - Java:
+    - the stock rejection now asserts 26.7.4's `UNKNOWN_USER` failure, in place of `cancelLogin`;
+    - `success(type)`;
+    - the metadata-service fixture.
+    - RED: 3 errors and 1 failure against 26.7.4. GREEN: 29 of 29. Mutation: the decoder swap is caught.
+  - Python:
+    - the pins are held by version and tag;
+    - the CI build is held as a step of `check-py`;
+    - the recording replayed is the 26.7.4 one.
+    - RED: 3 failed. GREEN: 2024 in the affected lanes.
+- Result:
+  - Main merged: 8 conflicts, no markers left.
+  - The jar pin is `896d6698…`, reproduced from an empty repository under another time zone.
+  - The live login on Keycloak 26.7.4: the provider is admitted and the stock authenticator refused.
+  - Evidence: docs/evidence/INT-378.md, "Update, 2026-10-03".
+- Invariants touched and still passing: 6, 14 (each Maven artefact and the jar pinned by sha256; the distribution checked against Central), 16, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The console's `aaguid` rule is unchanged, and the TOTP choice stays with the owner (INT-389).
+- Blocked on: nothing here. Staff login on the host also needs #723 to load this jar into the staging Keycloak and switch the live realm. That work is in #723, which merges after this PR.
+- Next: #723 with the staging wiring.
+- Update (the vulnerabilities gate):
+  - Fixed: the pom's test classpath pins jackson-core and jackson-databind at 2.21.7 and opentelemetry-api at 1.62.0. The checksums were re-recorded (258), the jar pin is now `91da1232…` (reproduced), and the passkey login was re-recorded on 26.7.4: admitted, stock refused.
+  - Left: GHSA-794g-x443-36f7 on keycloak-services. GitHub bounds it below 26.5.5, but OSV's range is open-ended, and 26.7.5 and 26.8.0 match it too. Its 30-day osv entry is an owner patch; no trivy row, since trivy reports nothing.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T06:20:00+03:00 · INT-378 · awaiting-human (PR open; clauses 1–2 delivered, clause 3 is the owner's)
+- Goal: acceptance verbatim (GitHub #621). Clause 1: *"a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes … built reproducibly and pinned by sha256"*. Clause 2: *"a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"*. Clause 3 is the owner's TOTP decision.
+- Plan:
+  - `infra/keycloak/providers/webauthn-session-notes`: a subclass of Keycloak 26.1.4's `WebAuthnAuthenticator`. After `super.action` returns SUCCESS (`DefaultAuthenticationFlow.processAction` reads the status only after `action` returns), it writes the asserted credential's stored AAGUID and its base64url id as the two notes the INT-373 mappers read.
+  - The Maven wrapper's distribution is sha256-pinned. Maven Resolver trusted checksums cover all 263 resolved artefacts. Keycloak is `provided`, never bundled. The jar is reproducible in UTC and pinned.
+  - Wiring: the realm's staff flow; `make keycloak-provider` (build, test, check the pin, then stage); `obs` mounts `providers/deploy`; CI job `keycloak-provider`; Renovate's maven managers.
+- Tests added:
+  - Java, 29: the note logic, the stock `action` run for real with only `isValid` stubbed, and the factory. RED: 30 `cannot find symbol` errors. GREEN: 29 passed. Mutations: 8/8 killed.
+  - Python, 25 (`tests/admin/test_webauthn_session_notes_provider.py`): wiring, pins, the recorded login and the runbook. RED: 14 failed and 11 passed against the pre-change tree. GREEN: 25 passed.
+- Result:
+  - A real Keycloak 26.1.4 (the distribution on the JVM, no container) ran the pinned jar. A software-authenticator login through the committed realm was **admitted** by the console, carrying the key's AAGUID and credential id. The same login through a stock-authenticator twin was **refused** (`MalformedClaims: aaguid`). The recording is replayed by the tests.
+  - The first start found that INT-365's realm cannot be imported: a flow description exceeded NVARCHAR(255). It is fixed here and test-held.
+- Invariants touched and still passing: 6 (ids only, nothing logged), 14 (sha256 pins on Maven, every artefact and the jar; licence verified from the raw LICENSE at the tag; no gate skipped), 17 (no placeholder or skip).
+- Decisions / ADRs / `00_STATE.md` rows: none. The verifier's `aaguid` rule is unchanged.
+- Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
+- Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619; #598 landed on main during the iteration. After merge, the owner deploys the provider (runbook §3).
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.

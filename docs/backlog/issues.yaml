@@ -5919,6 +5919,43 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-378
+  epic: E12-admin
+  phase: P1
+  title: "Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims"
+  depends_on: [INT-373, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-378.md
+  # GitHub #621. Found by INT-373 (PR #619). Delivered: the provider
+  # (infra/keycloak/providers/webauthn-session-notes, pinned jar, built
+  # against the composed Keycloak 26.7.4) and a recorded real Keycloak login
+  # the console admits, with the stock authenticator's login refused as the
+  # control. The issue's third clause, the owner's TOTP decision, is split
+  # out as INT-389 (GitHub #644) and stays awaiting-human; the console's
+  # aaguid rule is unchanged until it is recorded.
+  acceptance:
+    - "a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes, which the #619 mappers put into the token; its licence is verified, and it is built reproducibly and pinned by sha256 (invariant 14)"
+    - "a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"
+  tests: [tests/admin/test_webauthn_session_notes_provider.py]
+  sec_row: "admin-console"
+- id: INT-389
+  epic: E12-admin
+  phase: P1
+  title: "Owner decision: second factor for console roles outside the patient-content set (TOTP vs aaguid)"
+  depends_on: [INT-378, INT-365]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  # GitHub #644. Split out of INT-378 (#621 clause 3) so the provider PR (#643)
+  # can close its engineering part. INT-365 admits TOTP for the roles that
+  # never reach patient content, but a TOTP login carries no AAGUID and the
+  # console requires one, so today every TOTP sign-in is refused (fail closed).
+  # The owner chooses; no agent may.
+  acceptance:
+    - "owner decision (awaiting-human): INT-365 admits TOTP for roles outside the patient-content set, but a TOTP login has no AAGUID and the console requires one. Either (a) require WebAuthn for every console role, or (b) require `aaguid` only when `amr` contains `hwk`. The implementation follows the recorded choice."
+    - "the decision is recorded (who, when); the verifier follows it; tests for both TOTP and WebAuthn logins per role class, with a near-miss control"
+  tests: [tests/admin/test_staff_second_factor.py]
+  sec_row: "admin-console"
 - id: INT-377
   epic: E12-admin
   phase: P1
