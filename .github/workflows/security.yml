@@ -30,6 +30,11 @@
 #     OpenAPI schema to fuzz offline; wired with the api issue.
 #   - eslint-plugin-security: workspace eslint already runs in ci.yml
 #     check-ts; the plugin needs a lockfile change racing parallel branches.
+# INT-463 — every job runs on the ephemeral intake-aws-ci runner on the AWS
+# host (owner order, 3 Oct 2026: no GitHub-hosted minutes). Same tools, same
+# pins, same gates; only the machine changes. The osv-scanner container action
+# runs on the runner user's rootless Docker. tests/ci/test_aws_runner.py pins
+# every runs-on.
 name: security
 
 on:
@@ -48,7 +53,7 @@ jobs:
       pull-requests: read
     # full history (fetch-depth 0): a secret buried three commits back still
     # fails. Free for user-owned repos; an org move needs GITLEAKS_LICENSE.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,7 +68,7 @@ jobs:
   sast:
     # semgrep p/ci (metrics off) + bandit — same pins as `make security`.
     # setuptools<81: semgrep 1.86 imports pkg_resources (.pre-commit-config).
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -77,7 +82,7 @@ jobs:
 
   vulnerabilities:
     # trivy fs + osv-scanner over the lockfiles; both fail on critical/high
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: trivy fs (lockfiles, fail on CRITICAL,HIGH)
@@ -97,7 +102,7 @@ jobs:
 
   iac:
     # trivy config + checkov over infra/ (compose today; terraform/k8s later)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: trivy config (IaC, fail on CRITICAL,HIGH)
@@ -114,7 +119,7 @@ jobs:
   licenses:
     # allow-list gate over the installed dependency trees (AGPL flagged);
     # scripts/ci/check_licenses.py documents its coverage limits
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -132,7 +137,7 @@ jobs:
 
   sbom:
     # sbom (syft, spdx-json) attached to every run as an artifact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: syft SBOM (spdx-json artifact)
@@ -147,7 +152,7 @@ jobs:
     # PHI-pattern scan of fixtures and docs (scripts/ci/phi_scan.sh):
     # checksum-valid TCKN, TR mobile, TR IBAN — reports locations only,
     # never content (invariant 6)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/ci/phi_scan.sh
@@ -155,7 +160,7 @@ jobs:
   claims-scan:
     # invariant 20: no accuracy claims in regulatory/legal/store copy
     # (scripts/ci/claims_scan.sh)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/ci/claims_scan.sh
@@ -167,7 +172,7 @@ jobs:
     # image digest here; when protocol-pack bundles exist, sign-blob each
     # bundle exactly like the SBOM below and attest it the same way.
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     needs: [gitleaks, sast, vulnerabilities, iac, licenses, sbom, phi-scan, claims-scan]
     permissions:
       contents: read
