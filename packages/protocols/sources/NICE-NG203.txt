@@ -1,0 +1,32 @@
+# guideline_id: NICE-NG203
+# title: Chronic kidney disease: assessment and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG203; published 25 August 2021; last updated 24 November 2021; link-only minor changes November 2023, September 2024 and August 2025 (Update information)
+# url: https://www.nice.org.uk/guidance/ng203/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng203/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header, recommendation 1.5.5 (Referral criteria) and the minor-change entries of the Update information chapter; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG203
+Published:
+25 August 2021
+Last updated:
+24 November 2021
+[...]
+Referral criteria
+1.5.5
+Refer adults with CKD for specialist assessment (taking into account their wishes and comorbidities) if they have any of the following:
+a 5-year risk of needing renal replacement therapy of greater than 5% (measured using the 4-variable Kidney Failure Risk Equation)
+an ACR of 70 mg/mmol or more, unless known to be caused by diabetes and already appropriately treated (see recommendations 1.6.6 to 1.6.9)
+an ACR of more than 30 mg/mmol (ACR category A3), together with haematuria
+a sustained decrease in eGFR of 25% or more and a change in eGFR category within 12 months
+a sustained decrease in eGFR of 15 ml/min/1.73 m2 or more per year
+hypertension that remains poorly controlled (above the person's individual target) despite the use of at least 4 antihypertensive medicines at therapeutic doses (see also NICE's guideline on hypertension in adults)
+known or suspected rare or genetic causes of CKD
+suspected renal artery stenosis. [2021]
+[...]
+Minor changes after publication
+August 2025: We added links to relevant technology appraisal guidance in the sections on pharmacotherapy and managing anaemia.
+September 2024: We added links to relevant technology appraisal guidance in the sections on pharmacotherapy and managing anaemia.
+November 2023: We added a link to NICE's guideline on hypertension to recommendation 1.6.4.

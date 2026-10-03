@@ -48,12 +48,19 @@ BASE_INTAKE = PACKS_ROOT / "base" / "intake.yaml"
 BASE_INTAKE_EN = PACKS_ROOT / "base" / "intake.en.yaml"
 GOLDENS = Path(__file__).resolve().parent / "goldens" / "base" / "red_flag_families.yaml"
 
-# files/04 §1, the eight rows of the `base.intake` table, in its order.
+# files/04 §1, the eight rows of the `base.intake` table, in its order, with the
+# three base.life_threat read-sections INT-432 added after `red_flags` (CD-01,
+# HB-C6). They are not new 04 §1 rows of the questionnaire's own design: they
+# exist because the two active life-threat rules read `chest_pain.*`,
+# `associated.*` and `trauma.*`, and a sibling set nothing may extend can only be
+# made to fire by declaring the slots it reads (files/12 §1).
+LIFE_THREAT_READ_SECTIONS: tuple[str, ...] = ("chest_pain", "associated", "trauma")
 SECTIONS_04_S1: tuple[str, ...] = (
     "identity_check",
     "reason_for_visit",
     "hpi",
     "red_flags",
+    *LIFE_THREAT_READ_SECTIONS,
     "meds_allergies",
     "pmh_fh_sh",
     "screening",
@@ -186,7 +193,8 @@ def test_pack_is_the_base_layer_root_and_is_not_servable(pack: ProtocolPack) -> 
 
 
 def test_every_section_of_04_s1_is_present_and_no_others(pack: ProtocolPack) -> None:
-    """files/04 §1 enumerates eight sections. Use exactly those, add none."""
+    """files/04 §1 enumerates eight sections plus the three life-threat read
+    sections (INT-432). Use exactly those, add none."""
     assert tuple(pack.sections) == SECTIONS_04_S1
 
 

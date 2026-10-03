@@ -5919,6 +5919,43 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-378
+  epic: E12-admin
+  phase: P1
+  title: "Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims"
+  depends_on: [INT-373, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-378.md
+  # GitHub #621. Found by INT-373 (PR #619). Delivered: the provider
+  # (infra/keycloak/providers/webauthn-session-notes, pinned jar, built
+  # against the composed Keycloak 26.7.4) and a recorded real Keycloak login
+  # the console admits, with the stock authenticator's login refused as the
+  # control. The issue's third clause, the owner's TOTP decision, is split
+  # out as INT-389 (GitHub #644) and stays awaiting-human; the console's
+  # aaguid rule is unchanged until it is recorded.
+  acceptance:
+    - "a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes, which the #619 mappers put into the token; its licence is verified, and it is built reproducibly and pinned by sha256 (invariant 14)"
+    - "a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"
+  tests: [tests/admin/test_webauthn_session_notes_provider.py]
+  sec_row: "admin-console"
+- id: INT-389
+  epic: E12-admin
+  phase: P1
+  title: "Owner decision: second factor for console roles outside the patient-content set (TOTP vs aaguid)"
+  depends_on: [INT-378, INT-365]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  # GitHub #644. Split out of INT-378 (#621 clause 3) so the provider PR (#643)
+  # can close its engineering part. INT-365 admits TOTP for the roles that
+  # never reach patient content, but a TOTP login carries no AAGUID and the
+  # console requires one, so today every TOTP sign-in is refused (fail closed).
+  # The owner chooses; no agent may.
+  acceptance:
+    - "owner decision (awaiting-human): INT-365 admits TOTP for roles outside the patient-content set, but a TOTP login has no AAGUID and the console requires one. Either (a) require WebAuthn for every console role, or (b) require `aaguid` only when `amr` contains `hwk`. The implementation follows the recorded choice."
+    - "the decision is recorded (who, when); the verifier follows it; tests for both TOTP and WebAuthn logins per role class, with a near-miss control"
+  tests: [tests/admin/test_staff_second_factor.py]
+  sec_row: "admin-console"
 - id: INT-377
   epic: E12-admin
   phase: P1
@@ -6246,10 +6283,12 @@
   title: "The on-device MHRS SMS parser refuses an ambiguous date, as the server does"
   depends_on: [INT-122]
   labels: [area:mobile, risk:clinical]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-400.md
   acceptance:
     - "the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"
   tests: [apps/mobile/src/lib/taxonomy/mhrsSms.test.ts, tests/records/test_mhrs.py]
+  sec_row: "mobile"
 - id: INT-409
   epic: E08-mobile
   phase: P1
@@ -6404,6 +6443,235 @@
     - "the test asserts the same behaviour as before; gitleaks finds nothing in the file"
   tests: [apps/embed-sample-partner/src/partnerBackend.test.ts]
   sec_row: "connectors"
+- id: INT-395
+  epic: E02-data
+  phase: P0
+  title: "DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links)"
+  depends_on: [INT-037, INT-141, INT-150, INT-393]
+  labels: [area:data, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-395.md
+  # Found by INT-393 (GitHub #654; INT-393 evidence §11): no path erased
+  # notification_preferences although its retention annotation says
+  # patient-deletable, and the DSAR export did not list Doctor Links. Mechanism:
+  # a completeness contract derived from the inventory annotations (subject-
+  # erasable clock => erased; subject-data category or erasable clock =>
+  # exported), the erasure and the export reading one subject sweep, and a
+  # grant preflight that refuses, typed and audited, when the role lacks a
+  # privilege the run needs. app_rw lacks three (notification_preferences and
+  # patient_overlays DELETE, events.session_id UPDATE); granting them is the
+  # owner's INT-394 decision (GitHub #650), recorded, not taken, here.
+  acceptance:
+    - "a completeness contract, derived from the data-inventory annotations (invariant 18): every table annotated patient-deletable is erased by DSAR erasure, and every table holding the patient's personal data appears in the DSAR export; a near-miss control where a planted annotated table missing from either path fails"
+    - "notification_preferences is erased (and the grant needed recorded against INT-394's role decision); the export lists Doctor Links (ids, created, expiry, recipient kind — never the recipient's contact in clear unless the export spec says so)"
+  tests: [tests/legal/test_dsar_flows.py, tests/data/test_session_delete_contract.py, tests/integration/test_session_erasure.py]
+  legal: "KVKK-7,KVKK-11,DEST-2017"
+  sec_row: "data-at-rest"
+- id: INT-406
+  epic: E09-clinician
+  phase: P0
+  title: "RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49)"
+  # GitHub #681. Found by INT-020 (PR #680): files/10 §9's RED acknowledgement
+  # row and invariant 49 `red_acknowledgement_sla_guard` (files/10 §9.1) had no
+  # owning backlog row; the id was allocated by the coordinator. The SLA is
+  # files/02 §8.2's ("default 4 business hours"), counted in wall-clock hours
+  # because no business calendar is recorded — never later than the
+  # business-hours reading. No triage rule, level or RED semantic is touched:
+  # the inbox consumes the rules-engine RED at Layer B's settle.
+  depends_on: [INT-025, INT-080, INT-092, INT-093, INT-180]
+  labels: [area:clinician, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-406.md
+  acceptance:
+    - "every RED (rules-engine RED only, invariant 1) produces a clinic inbox entry within 60 s, whatever connector is present; the acknowledgement clock starts at the entry; `tenant_clinical_responsible` acknowledges (audited, ids only)"
+    - "unacknowledged past the SLA pages the on-call route; the SLA value comes from 02 §8 or is owner-set (never invented; fail closed to paging immediately if unset)"
+    - "a 02 §2b reschedule or cancel on a RED visit raises an entry, regardless of connector presence"
+    - "`clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` are emitted, catalogued and alerted (runbook linked)"
+    - "invariant 49 is enforced by a simulator/runtime test with a fake clock (entry ≤ 60 s; page at SLA + ε; a transition on a RED visit raises an entry), with near-miss controls"
+  tests: [tests/safety/test_red_acknowledgement_sla.py, tests/platform/test_safety_inbox.py, tests/admin/test_safety_queue.py, tests/voice/test_safety_inbox_notifier.py]
+  sec_row: "triage"
+- id: INT-426
+  epic: E13-infra
+  phase: P1
+  title: "CI on AWS: gate runner via S3+SSM with commit status, no workflow edits"
+  # GitHub #721. Owner request, 2 Oct 2026: run the CI gates on the AWS host to
+  # avoid GitHub Actions billing and flakiness. Switching Actions off is an
+  # owner step (docs/ci/aws-ci.md); no workflow file is edited here.
+  depends_on: [INT-352]
+  labels: [area:ci]
+  status: done
+  evidence: docs/evidence/INT-426.md
+  acceptance:
+    - "make ci-aws PR=<n> (or a script under scripts/ci/) ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set (make edge-plugin, check-py, check-ts, check-integration, safety, security) in an isolated compose project with resource limits, so the live stack is not starved"
+    - "the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"
+    - "workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"
+  tests: [tests/ci/test_aws_ci.py]
+  sec_row: "cicd"
+- id: INT-407
+  epic: E02-data
+  phase: P1
+  title: "Visit lifecycle state machine (02 §2b): a RED visit cannot silently move"
+  # GitHub #684. Found by INT-406 (PR #683): files/02 §2b's lifecycle had no
+  # backlog row and nothing moved a visit, so `SafetyInbox.visit_transition`
+  # had no caller; the id was allocated by the coordinator. Built on #683's
+  # branch (it records the RED's register on the inbox entry). The T-24h
+  # confirm stays unsent (INT-358, and no reviewed body); the delta-session
+  # offer stays behind a safety flag until its copy is clinically reviewed; the
+  # machine refuses `missed` without an owner-set grace (files/02 names none).
+  depends_on: [INT-197, INT-150, INT-306, INT-406]
+  labels: [area:api, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-407.md
+  acceptance:
+    - "the visit states `planned → confirmed → checked_in → attended`, `cancelled`, `rescheduled` (new datetime → planned), `missed` (datetime + grace, no check-in), as a typed state machine; invalid transitions are refused; every transition is audited by id"
+    - "a `rescheduled` or `cancelled` transition on a visit carrying an unresolved RED raises a clinic inbox entry (INT-406), regardless of connector presence, and re-shows the crisis signposting in the register the original RED used (the existing RED script, verbatim)"
+    - "on `cancelled`: shared notes are auto-revoked, and the clinician inbox entry is withdrawn; on `rescheduled`: the note is marked stale 7 days after its session, and a delta session is offered (existing copy only; any new string goes to clinical review)"
+    - "Doctor Link expiry is pinned to `visit_datetime + 72 h`, never `issue_time + 72 h`"
+    - "`checked_in` doubt (a geofence outside the building, a QR scanned by someone other than the patient) yields `UNKNOWN` location, never ON_SITE (invariant 21)"
+    - "the T-24h confirm message is queued as a transactional message and stays unsent while no SMS vendor is configured (INT-358); it is never sent by a fake"
+  tests: [tests/api/test_visit_lifecycle.py, tests/safety/test_red_visit_transition.py, tests/platform/test_visit_lifecycle_machine.py]
+  sec_row: "visits"
+- id: INT-432
+  epic: E03-protocols
+  phase: P0
+  title: "Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18)"
+  # GitHub #735. Owner decision, 2 Oct 2026: "agent-only sign-off anyway".
+  # Scope: simulated-patient stress testing only; a licensed physician's
+  # review is required before any real patient (files/00_STATE.md §3 D18).
+  depends_on: [INT-353]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-432.md
+  acceptance:
+    - "a clinical decisions register (docs/clinical/decisions/, with machine-readable packages/protocols/decisions/) resolves the open decisions from the INT-428/430 reviews, INT-414, INT-427, HB-C3 and HB-C6, and the #642 packets; each entry carries the decision, its source (guideline id, version, date, url, retrieved_on against a committed verbatim snapshot under packages/protocols/sources/, or an openEHR CKM archetype id and revision), the authoring agent role and the independent verifier's verdict"
+    - "no value without a source: anything unsupported stays draft_needs_source with the invariant-17 sanctioned literal and is reported, never invented; a typed loader refuses a quote that is not verbatim in its snapshot"
+    - "red-flag changes keep invariant 7, with golden tests and near-miss negative controls, and make safety passes"
+    - "the decision is recorded in files/00_STATE.md §3, scoped to simulated-patient stress testing, with the note that a licensed physician's review is required before any real patient"
+  tests: [tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py]
+  sec_row: "clinical-content"
+- id: INT-448
+  epic: E03-protocols
+  phase: P0
+  title: "Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines"
+  # GitHub #759, split from INT-432 (#735). Owner decision D18 scope:
+  # simulated-patient stress testing; a licensed physician's review is
+  # required before any real patient. Owner-decider parts are recorded as
+  # owner questions, never decided by an agent.
+  depends_on: [INT-432]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-448.md
+  acceptance:
+    - "every #642 packet item gets a sourced decision record (guideline or openEHR, with a verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source"
+    - "red-flag changes keep invariant 7, with golden tests and near-miss controls"
+  tests: [tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"
+- id: INT-414
+  epic: E08-mobile
+  phase: P1
+  title: "Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim"
+  # GitHub #705. Owner request, 27 Sep 2026. Stacked on INT-415, whose delivery
+  # contexts every utterance carries. The new copy is listed for clinician
+  # review under HB-C1 in docs/evidence/INT-414.md and is not signed.
+  depends_on: [INT-415]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-414.md
+  acceptance:
+    - "a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase (opening / first question / mid / sensitive topic / closing), question context (routine, sensitive, instrument, pain, RED-adjacent) and the patient's on-device state (read-only, invariant 11), and never alters the question text"
+    - "every new string is B1 Turkish in the siz register, uses warmth through verb mood (-elim/-alım) and passes PolicyGuard (no diagnosis, treatment or prognosis language; one question per turn); en is the mirror"
+    - "an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr in the composed output (a test over every served pack and instrument), and a RED gets nothing added"
+    - "no numerals reach TTS (invariant 22); no patient words are composed into speech"
+    - "all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md"
+  tests: [apps/mobile/src/lib/dialogue/delivery.test.ts, apps/mobile/src/lib/dialogue/deliveryPlan.test.ts, tests/release/test_delivery_copy.py, tests/release/test_i18n_complete.py, tests/api/test_dev_voice_delivery.py]
+  sec_row: "mobile"
+- id: INT-447
+  epic: E08-mobile
+  phase: P1
+  title: "Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced)"
+  # GitHub #758. Split from INT-432 (#735). Owner decision D18: agent-authored,
+  # independently agent-verified, for simulated-patient testing only; a licensed
+  # physician's review is required before any real patient. The lines are
+  # INT-414's (#726, not yet on main, so not a depends_on edge here).
+  depends_on: [INT-432]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-447.md
+  acceptance:
+    - "a medical-author agent and an independent verifier agent check every INT-414 delivery line against PolicyGuard, B1 and siz, using Turkish health-literacy sources; each line gets a decision record"
+    - "the approval:human-clinical label on #726 is cleared through this process"
+  tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
+  sec_row: "clinical-content"
+- id: INT-449
+  epic: E05-voice
+  phase: P1
+  title: "Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation"
+  # GitHub #762. Owner request, 3 Oct 2026: George is an English voice speaking
+  # Turkish; the intonation between words is off and the delivery lacks
+  # emotion. ADR-034 keeps eleven_multilingual_v2 unless the owner re-decides;
+  # a v3 pick is the owner's decision, recorded in that ADR. The owner picked
+  # E04 on 3 Oct 2026 ("use E04 voice"; D20): eleven_v3, render-time tags, the
+  # ADR-034 amendment accepted. The pin is applied and the bundled set was
+  # re-rendered in E04 (226/226, evidence). Copying the gitignored clips into
+  # the app is INT-440's dev-build step (#768).
+  depends_on: [INT-415]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-449.md
+  acceptance:
+    - "native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines; the owner picks from a blind page"
+    - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
+  tests: [tests/voice/test_cast_turkish_voices.py]
+  sec_row: "cloud-clipgen"
+- id: INT-421
+  epic: E13-infra
+  phase: P0
+  title: "Production release: full stack from main on the AWS host + EAS store builds"
+  depends_on: [INT-352]
+  labels: [area:infra]
+  status: doing
+  evidence: docs/evidence/INT-421.md
+  # 2 Oct 2026 (PR #723, not merged). These are done:
+  #   - release 7d2cc23d is live on the host with every existing service up (api, postgres+pgvector,
+  #     redis, openbao, minio, caddy, keycloak, oauth2-proxy, admin-web), smoke green (19 checks),
+  #     and the SBOM stamped;
+  #   - the admin console is at https://admin.3-211-2-143.sslip.io behind a Keycloak login with two
+  #     factors, with network access open by owner decision D19;
+  #   - the "deneme hastası" fixture was retired on the host, audited by id;
+  #   - the George route answers 404 on the host;
+  #   - the EAS production profile is in place, and both production exports build.
+  # Gaps:
+  #   - there is no workers process (INT-408);
+  #   - the synthetic-probe runner is dev-tier only;
+  #   - hosted model lanes are INT-428;
+  #   - release sign-in needs SMS + App Attest (HB-A3);
+  #   - eas build needs the owner's EXPO_TOKEN and Apple/Google accounts (HB-A3);
+  #   - the iOS identity arrives with INT-420.
+  acceptance:
+    - "the AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis); the SBOM stamp and smoke/probe results are recorded in the evidence; nothing but simulated patients reaches us-east-1"
+    - "the EAS production profiles build from main with the Önvizit identity and the production API URL; anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask"
+    - "a release checklist in docs/ runs end to end"
+  tests: [tests/infra/test_staging_admin_tier.py, tests/api/test_dev_fixture_production.py, apps/mobile/e2e/releaseConfig.spec.ts]
+  sec_row: "platform"
+- id: INT-463
+  epic: E13-infra
+  phase: P1
+  title: "All CI jobs on the AWS self-hosted runner"
+  # GitHub #790. Owner order, 3 Oct 2026: every GitHub Actions run executes on
+  # the AWS host, not on GitHub-hosted runners (billing). The runner is
+  # installed from infra/ci/aws-runner. The workflow edits are an owner patch:
+  # security.yml is hook-protected and the session classifier refused the
+  # ci.yml staging, so the owner applies both files to the PR branch.
+  depends_on: [INT-206, INT-426]
+  labels: [area:ci, approval:human-infra]
+  status: awaiting-human
+  evidence: docs/evidence/INT-463.md
+  acceptance:
+    - "a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; it is ephemeral and re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker is available to that user only as rootless Docker, for workflow service and container actions"
+    - "every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts that no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml"
+    - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
+  tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
+  sec_row: "cicd"
 - id: INT-430
   epic: E05-voice
   phase: P0

@@ -1,0 +1,86 @@
+# guideline_id: NICE-NG12
+# title: Suspected cancer: recognition and referral
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG12; published 23 June 2015; last updated 15 April 2026
+# url: https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+# url_terms: https://www.nice.org.uk/guidance/ng12/chapter/Terms-used-in-this-guideline
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header, recommendations 1.1.1, 1.2.1, 1.6.4, 1.10.1, 1.10.6, 1.10.8 and 1.13.2, and four definitions from Terms used in this guideline (Suspected cancer pathway referral, Unexplained, Urgent, Very urgent); nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG12
+Published:
+23 June 2015
+Last updated:
+15 April 2026
+[...]
+Lung cancer
+1.1.1
+Refer people using a suspected cancer pathway referral for lung cancer if they:
+have chest X‑ray findings that suggest lung cancer, or
+are aged 40 and over with unexplained haemoptysis. [2015]
+[...]
+1.2 Upper gastrointestinal tract cancers
+Oesophageal cancer
+1.2.1
+Refer people using a suspected cancer pathway referral for oesophageal cancer if they:
+have dysphagia, or
+are aged 55 and over, with weight loss, and they have any of the following:
+upper abdominal pain
+reflux
+dyspepsia. [2015, amended 2025]
+[...]
+Bladder cancer
+1.6.4
+Refer people using a suspected cancer pathway referral for bladder cancer if they are:
+aged 45 and over and have:
+unexplained visible haematuria without urinary tract infection, or
+visible haematuria that persists or recurs after successful treatment of urinary tract infection, or
+aged 60 and over and have unexplained non‑visible haematuria and either dysuria or a raised white cell count on a blood test. [2015]
+[...]
+1.10 Haematological cancers
+Leukaemia in adults
+1.10.1
+Consider a very urgent full blood count to assess for leukaemia in adults with any of the following:
+pallor
+persistent fatigue
+unexplained fever
+unexplained persistent or recurrent infection
+generalised lymphadenopathy
+unexplained bruising
+unexplained bleeding
+unexplained petechiae
+hepatosplenomegaly. [2015]
+[...]
+Non-Hodgkin lymphoma
+Separate recommendations have been made for adults and for children and young people to reflect that there are different referral pathways. In practice, young people (aged 16 to 24) may be referred using either pathway depending on their age and local arrangements.
+Adults
+1.10.6
+Consider a suspected cancer pathway referral for non‑Hodgkin lymphoma in adults presenting with unexplained lymphadenopathy or splenomegaly. When considering referral, take into account any associated symptoms, particularly fever, night sweats, shortness of breath, pruritus or weight loss. [2015]
+[...]
+Hodgkin lymphoma
+Separate recommendations have been made for adults and for children and young people to reflect that there are different referral pathways. In practice, young people (aged 16 to 24) may be referred using either pathway depending on their age and local arrangements.
+Adults
+1.10.8
+Consider a suspected cancer pathway referral for Hodgkin lymphoma in adults presenting with unexplained lymphadenopathy. When considering referral, take into account any associated symptoms, particularly fever, night sweats, shortness of breath, pruritus, weight loss or alcohol‑induced lymph node pain. [2015]
+[...]
+1.13 Non-site-specific symptoms
+Some symptoms or symptom combinations may be features of several different cancers. For some of these symptoms, the risk for each individual cancer may be low but the total risk of cancer of any type may be higher. This section includes recommendations for these symptoms.
+Symptoms of concern in children and young people
+1.13.1
+Take into account the insight and knowledge of parents and carers when considering making a referral for suspected cancer in a child or young person. Consider referral for children if their parent or carer has persistent concern or anxiety about the child's symptoms, even if the symptoms are most likely to have a benign cause. [2015]
+Symptoms of concern in adults
+1.13.2
+For people aged 60 and over with unexplained weight loss (greater than 5% mean weight loss within a 6-month period), which is a symptom of several cancers including colorectal, gastro‑oesophageal, lung, prostate, pancreatic and urological cancer:
+carry out an assessment for additional symptoms, signs or findings that may help to clarify which cancer is most likely, and
+offer urgent investigation, or a suspected cancer pathway referral, or a non-specific symptoms pathway referral. [2026]
+[...]
+Suspected cancer pathway referral
+Person to receive a diagnosis or ruling out of cancer within 28 days of being referred urgently by their GP for suspected cancer. For further details, see NHS England's webpage on operational management, administration and performance – faster diagnosis framework.
+Unexplained
+Symptoms or signs that have not led to a diagnosis being made by the healthcare professional in primary care after initial assessment (including history, examination and any primary care investigations).
+[...]
+Urgent
+To happen or be done before 2 weeks.
+Very urgent
+To happen within 48 hours.

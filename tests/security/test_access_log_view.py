@@ -189,6 +189,11 @@ def test_an_unresolvable_actor_is_unknown_not_omitted() -> None:
         ("dsar.delete.previsit_output", AccessCategory.DATA_REQUEST),
         ("dsar.delete.doctor_link", AccessCategory.DATA_REQUEST),
         ("dsar.delete.share", AccessCategory.DATA_REQUEST),
+        # INT-395: the preference row, and a run refused for a missing grant.
+        # Neither may read as a preference change: the erasure is a request.
+        ("dsar.delete.notification_preference", AccessCategory.DATA_REQUEST),
+        ("dsar.delete.blocked", AccessCategory.DATA_REQUEST),
+        ("dsar.delete.blocked.missing_grant", AccessCategory.DATA_REQUEST),
         ("dsar.delete.cancel", AccessCategory.DATA_REQUEST),
         ("dsar.rectify", AccessCategory.DATA_REQUEST),
         ("api.experience.wait_times.export", AccessCategory.DATA_REQUEST),

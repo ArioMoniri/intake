@@ -918,6 +918,11 @@ metrics:
     unit: "bool (0/1)"
     status: planned
     description: S2S eval gate status (1 = passing).
+  # INT-406 made these two live and added the two below them: invariant 49
+  # (files/10 §9.1). intake_platform.safety_inbox constructs all four; the API's
+  # scheduled sweep sets the gauge, the console's acknowledgement observes the
+  # histogram, and the voice runtime's outbox and Layer B feed the last two.
+  # Alerted in infra/observability/safety-rules.yaml.
   - name: clinic_red_ack_latency_min
     id: clinic.red_ack_latency_min
     type: histogram
@@ -925,20 +930,44 @@ metrics:
     owner: safety
     unit: "min"
     target: "within tenant SLA (default 4 business hours, files/02 §8)"
-    status: planned
+    status: live
     description: >-
       RED inbox arrival to human acknowledgement; counts the answer, not
-      the alert (files/08 §0c F19).
+      the alert (files/08 §0c F19). Observed by
+      intake_platform.safety_inbox.SafetyInbox.acknowledge.
   - name: clinic_red_unacknowledged_total
     id: clinic.red_unacknowledged_total
     type: gauge
     labels: [tenant, age_band]
     owner: safety
     unit: "count"
-    status: planned
+    status: live
     description: >-
-      REDs nobody has acknowledged yet, by tenant and age band; pages past
-      the tenant SLA.
+      REDs nobody has acknowledged yet, by tenant and age band (within_sla |
+      past_sla against the tenant SLA); pages past the tenant SLA. Recomputed
+      by the scheduled sweep; tenant="inbox_unreadable" at +Inf means the
+      inbox could not be read, which pages too.
+  - name: clinic_red_inbox_pending_age_s
+    type: gauge
+    labels: []
+    owner: safety
+    unit: "s"
+    target: "<= 60 s (files/02 §8.2 RED -> clinic inbox)"
+    status: live
+    description: >-
+      Age of the oldest RED entry recorded on the RED path but not yet written
+      to the shared Safety inbox store; 0 when none waits. Computed at scrape
+      time from the voice runtime's outbox; pages above 60.
+  - name: clinic_red_inbox_route_failures_total
+    type: counter
+    labels: []
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      REDs whose clinician route into the Safety inbox raised before an entry
+      existed. The RED is still delivered; no entry means no clock, so this
+      pages instead.
   # --- files/08 §4 F. Experience & satisfaction
   # INT-240 made these four live: intake_metrics.metrics constructs them and
   # intake_metrics.rollups feeds them. Every value is published for a named

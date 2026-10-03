@@ -104,6 +104,10 @@ export const tr = {
   "visits.new.smsFilled": "Randevu bilgileriniz dolduruldu. Lütfen kontrol edin.",
   "visits.new.smsUnknownBranch": "Poliklinik adını tanıyamadık. Listeden siz seçin.",
   "visits.new.smsNoDate": "Mesajda tarih bulamadık. Tarihi siz ekleyin.",
+  // INT-400: the date reads as two days, or two dates are printed; the field
+  // is left empty and the patient writes the date (no reading is guessed)
+  "visits.new.smsAmbiguousDate":
+    "Mesajdaki tarihten randevunuzun hangi gün olduğunu kesin anlayamadık. Tarihi aşağıya siz yazın.",
   "visits.new.smsUnreadable": "Bu mesajı okuyamadık. Bilgileri elle girebilirsiniz.",
   "visits.new.ocrUnavailable": "Görüntüden okuma henüz açık değil. Mesajı metin olarak yapıştırın.",
   // Vizit türleri — files/09 §1
@@ -1211,6 +1215,75 @@ export const tr = {
   "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
+
+  // --- INT-414 · conversational delivery ------------------------------------
+  // The words AROUND a question, never inside it: the welcome, lead-ins, topic
+  // transitions, acknowledgements and the closing (lib/dialogue/delivery.ts).
+  // Rules every line here keeps, and delivery.test.ts plus
+  // tests/release/test_delivery_copy.py hold: siz register, B1, warmth from
+  // the -elim/-alım mood; no question and no mı/mi/mu/mü, because the question
+  // that follows is the turn's one question; no numeral; no diagnosis,
+  // treatment, prognosis or reassurance; nothing about where answers go
+  // (docs/legal/strings.yaml does not exist) and no "tekrar" command (the dev
+  // dialogue has none). For clinician review under HB-C1 — the table is in
+  // docs/evidence/INT-414.md; nothing here is signed.
+  "dialogue.delivery.welcome.a": "Hoş geldiniz. Muayenenizden önce size bazı sorular soracağım.",
+  "dialogue.delivery.welcome.b":
+    "Merhaba, hoş geldiniz. Muayeneden önce birlikte bazı sorular üzerinden geçelim.",
+  "dialogue.delivery.welcome.c":
+    "Hoş geldiniz. Muayenenize hazırlık için size bazı sorular sormak istiyorum.",
+  "dialogue.delivery.orientVoice.a":
+    "Soruları ekranda da görebilirsiniz. Dilerseniz yazarak da yanıt verebilirsiniz.",
+  "dialogue.delivery.orientVoice.b":
+    "Ben konuşurken araya girebilirsiniz. Sorular ekranda yazılı olarak da durur.",
+  "dialogue.delivery.orientTyped.a": "Soruları kendi hızınızda yanıtlayabilirsiniz.",
+  "dialogue.delivery.orientTyped.b": "Acele etmeden, kendi hızınızda ilerleyebilirsiniz.",
+  "dialogue.delivery.resume.a": "Kaldığımız yerden devam edelim.",
+  "dialogue.delivery.resume.b": "Kaldığımız yerden sürdürelim.",
+  "dialogue.delivery.lead.a": "Devam edelim.",
+  "dialogue.delivery.lead.b": "Sıradaki soruya geçelim.",
+  "dialogue.delivery.lead.c": "Şimdi şunu soralım.",
+  "dialogue.delivery.lead.d": "Bir de şunu öğrenmek istiyorum.",
+  "dialogue.delivery.thanks.a": "Teşekkürler.",
+  "dialogue.delivery.thanks.b": "Teşekkür ederim.",
+  "dialogue.delivery.thanks.c": "Not aldım, teşekkürler.",
+  "dialogue.delivery.hesitant.a": "Anlıyorum, devam edelim.",
+  "dialogue.delivery.hesitant.b": "Peki, bu şekilde not aldım.",
+  "dialogue.delivery.revised.a": "Düzeltmeniz için teşekkürler.",
+  "dialogue.delivery.revised.b": "Düzelttiğinizi not aldım.",
+  // The silence lines are said after a turn with no words, in front of the
+  // NEXT question. The skipped one always returns in the manual steps
+  // (stream.ts: asked, unanswered, hand-over), so they may say so.
+  "dialogue.delivery.silence.a": "Önceki soruya sonra ekrandan dönebilirsiniz.",
+  "dialogue.delivery.silence.b": "Önceki soruyu daha sonra ekranda yanıtlayabilirsiniz.",
+  "dialogue.delivery.repair.b": "Yanıtınızı tam anlayamadım. Soruyu bir kez daha soralım.",
+  "dialogue.delivery.pain.a": "Ağrınızı biraz daha iyi anlamak istiyorum.",
+  "dialogue.delivery.pain.b": "Ağrınızla ilgili birkaç ayrıntı soralım.",
+  "dialogue.delivery.instrument.a":
+    "Sıradaki sorular standart bir ankete ait. Bu yüzden her zaman aynı şekilde sorulur.",
+  "dialogue.delivery.instrument.b": "Şimdi herkese aynı biçimde sorulan bir ankete geçelim.",
+  "dialogue.delivery.sensitive.a":
+    "Sıradaki konu biraz daha özel. Acele etmeden yanıtlayabilirsiniz.",
+  "dialogue.delivery.sensitive.b": "Şimdi biraz daha kişisel bir konuya geçelim.",
+  "dialogue.delivery.sensitiveLead.a": "Yavaş yavaş devam edelim.",
+  "dialogue.delivery.sensitiveLead.b": "Size rahat gelen şekilde yanıtlayabilirsiniz.",
+  "dialogue.delivery.topic.allergies.a": "Şimdi alerjilerle ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.allergies.b": "Sırada alerjilerle ilgili sorular var.",
+  "dialogue.delivery.topic.medications.a": "Şimdi ilaçlarla ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.medications.b": "Sırada ilaçlarla ilgili sorular var.",
+  "dialogue.delivery.topic.pmh.a": "Şimdi sağlık geçmişinizle ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.pmh.b": "Sırada sağlık geçmişinizle ilgili sorular var.",
+  "dialogue.delivery.topic.family.a":
+    "Şimdi ailenizin sağlık geçmişine geçelim. Acele etmeden yanıtlayabilirsiniz.",
+  "dialogue.delivery.topic.family.b": "Sıradaki sorular ailenizin sağlık geçmişiyle ilgili.",
+  "dialogue.delivery.topic.social.a": "Şimdi günlük yaşamınızla ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.social.b": "Sırada günlük yaşamınızla ilgili sorular var.",
+  "dialogue.delivery.topic.measurements.a": "Şimdi birkaç ölçümle ilgili bilgi alalım.",
+  "dialogue.delivery.topic.measurements.b": "Sırada ölçümlerle ilgili sorular var.",
+  "dialogue.delivery.topic.wrapup.a": "Bitirmeden önce şunu da soralım.",
+  "dialogue.delivery.topic.wrapup.b": "Sona yaklaştık.",
+  "dialogue.delivery.closing.a": "Sorularım bu kadar. Zaman ayırdığınız için teşekkür ederim.",
+  "dialogue.delivery.closing.b": "Soruların sonuna geldik. Zaman ayırdığınız için teşekkürler.",
 
   // --- INT-137 · Gönder'den önceki paylaşım özeti (02 §5.4: ne, kiminle, ne
   // zamana kadar). Süre bir sayaç değil, bir dayanak: 02 §2 Doctor Link

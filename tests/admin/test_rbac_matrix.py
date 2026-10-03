@@ -132,6 +132,16 @@ FREEZE_BRIEF_READERS = (
     FREEZE_ACTORS | FREEZE_LIFT_REQUESTERS | FREEZE_LIFT_APPROVERS | {AdminRole.AUDITOR}
 )
 
+#: INT-406 — the Safety queue (files/08 §3: "acknowledge
+#: (`tenant_clinical_responsible`)"). Read by the acknowledger, the all-tenant
+#: clinical lead, the platform owner and the auditor (read-only evidence).
+SAFETY_QUEUE_ACKNOWLEDGERS = frozenset({AdminRole.TENANT_CLINICAL_RESPONSIBLE})
+SAFETY_QUEUE_READERS = SAFETY_QUEUE_ACKNOWLEDGERS | {
+    AdminRole.CLINICAL_LEAD,
+    AdminRole.PLATFORM_OWNER,
+    AdminRole.AUDITOR,
+}
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
@@ -167,6 +177,8 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("POST", "/admin/access/review/sign/{action_id}/countersign"): ACCESS_REVIEW_COUNTERSIGNERS,
     ("POST", "/admin/access/offboard"): OFFBOARDERS,
     ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
+    ("GET", "/admin/safety-queue"): SAFETY_QUEUE_READERS,
+    ("POST", "/admin/safety-queue/{entry_id}/acknowledge"): SAFETY_QUEUE_ACKNOWLEDGERS,
 }
 
 
