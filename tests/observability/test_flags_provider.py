@@ -38,6 +38,8 @@ SAFETY_FLAGS = (
     "guardian_link",
     # INT-141: the İYS flag lock on marketing-class messages (inv. 18).
     "commercial_messaging",
+    # INT-407: the delta-session offer, shut until its copy is reviewed.
+    "delta_session_offer",
 )
 CTX_SENTINEL = "Ahmet Yilmaz 05321234567"  # must never appear in a log line
 FLAGS_LOGGER = "intake_platform.flags"

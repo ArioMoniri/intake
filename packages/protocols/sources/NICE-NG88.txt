@@ -1,0 +1,25 @@
+# guideline_id: NICE-NG88
+# title: Heavy menstrual bleeding: assessment and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG88; published 14 March 2018; last updated 07 July 2026 (Update information)
+# url: https://www.nice.org.uk/guidance/ng88/chapter/Recommendations ; https://www.nice.org.uk/guidance/ng88/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header, recommendations 1.2.1-1.2.2 and one Update information entry; nothing paraphrased or edited; omissions marked [...]
+---
+Reference number: NG88
+Published: 14 March 2018
+Last updated: 07 July 2026
+[...]
+1.2 History, physical examination and laboratory tests
+History
+1.2.1
+Take a history from the woman that covers:
+the nature of the bleeding
+related symptoms, such as persistent intermenstrual bleeding, pelvic pain and/or pressure symptoms, that might suggest uterine cavity abnormality, histological abnormality, adenomyosis or fibroids
+impact on her quality of life
+other factors that may affect treatment options (such as comorbidities or previous treatment for HMB). [2007, amended 2018]
+1.2.2
+Take into account the range and natural variability in menstrual cycles and blood loss when diagnosing HMB, and discuss this variation with the woman. If the woman feels that she does not fall within the normal ranges, discuss care options. [2007]
+[...]
+July 2026: We have removed recommendation 1.2.8 that stated not to routinely test for serum ferritin in the section on laboratory tests. Based on feedback from stakeholders, we reviewed this recommendation from 2007. After revisiting the evidence behind it, we concluded that a recommendation against serum ferritin testing in women with heavy menstrual bleeding is not justified because of the risk of iron deficiency in this population.

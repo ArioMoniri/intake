@@ -223,8 +223,9 @@ gen: slot=beslenme_sivi_alimi; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q14 — Urine output** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER hydration ("Reduced urine output")
-> "Çocuğunuz her zamanki kadar çiş yapıyor mu?"
-gen: slot=cis_miktari; type=boolean
+> "Çocuğunuz her zamankinden daha az çiş yapıyor mu?"
+gen: slot=az_cis; type=boolean
+INT-432 decision CD-10: `true` is the concern; renamed from `cis_miktari` (the old question made `false` the alarm direction).
 CANDIDATE — clinician to approve wording. The earlier "bezini" wording was dropped.
 
 **Q15 — Limb / joint swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 AMBER "Other" ("Swelling of a limb or joint")

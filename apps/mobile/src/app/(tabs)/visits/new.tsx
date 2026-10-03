@@ -55,6 +55,9 @@ const NOTICE_KEYS = {
   filled: "visits.new.smsFilled",
   unknown_branch: "visits.new.smsUnknownBranch",
   no_date: "visits.new.smsNoDate",
+  // INT-400: the message's date reads two ways; the date field below is left
+  // empty and the patient writes the date — the app never picks a reading
+  ambiguous_date: "visits.new.smsAmbiguousDate",
   unreadable: "visits.new.smsUnreadable",
 } as const;
 

@@ -1,0 +1,313 @@
+# INT-432 clinical decision CD-13. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-13
+title: "Placement of the INT-427 red-flag proposals: base.life_threat, base universal families or the department stub"
+question: >-
+  HB-C1 placement: where does each red-flag proposal row in the seven INT-427
+  verification documents (göğüs hastalıkları, beyin ve sinir cerrahisi, hematoloji,
+  nefroloji, fiziksel tıp ve rehabilitasyon, göğüs cerrahisi, anesteziyoloji) live?
+  Universal time-critical patterns such as cauda equina, thunderclap headache and a
+  focal neurological deficit go to base.life_threat; the rest go to the department's
+  own draft_needs_source stub.
+decision: >-
+  Placement follows files/04 §8: patients do not present according to their booking,
+  so a time-critical pattern that any patient can present with must be evaluated on
+  every session. Four placements apply.
+  (1) base.life_threat takes a pattern whose source sets an emergency, immediate or
+  same-day action and whose presentation does not depend on the booked branch. The
+  HB-C2 author writes it in files/protocols/base.life_threat.yaml itself; it is never
+  reached through extends: or an overlay op. Its trigger slots must be declared at
+  base level, because a department slot does not exist in a session booked elsewhere.
+  The department items stay gate inputs and are rebound to the base id once it
+  exists.
+  (2) A universal but non-emergency arm that matches a family already declared in
+  base.intake's universal red_flags (files/04 §3) merges into that family:
+  rf.new_neuro_deficit_subacute and rf.weight_loss_unintentional.
+  (3) A referral signal whose source sets an urgent or routine referral (a NICE NG12
+  pathway, a specialist referral, a very urgent blood count) stays in the department's
+  own draft_needs_source stub.
+  (4) A pattern whose time-criticality no retrieved source establishes stays in the
+  department stub as draft_needs_source. It moves to base.life_threat only when a
+  source states an emergency or same-day action for a trigger a layperson can report.
+  Applying this: cauda equina (beyin ve sinir cerrahisi row 1 and fiziksel tıp row 1,
+  one rule), thunderclap headache (bvsc row 3), sudden focal deficit (bvsc row 4,
+  sudden arm), head injury on anticoagulant or antiplatelet treatment (bvsc row 2,
+  CD-12), metastatic spinal cord compression (bvsc row 6, and fiziksel tıp row 3's
+  known-cancer arm), massive haemoptysis (göğüs cerrahisi row 1) and acute chest pain
+  or breathlessness (göğüs cerrahisi row 3) go to base.life_threat. The subacute
+  deficit arms (bvsc row 4, fiziksel tıp row 4) go to rf.new_neuro_deficit_subacute,
+  and hematoloji row 4's weight-loss arm goes to rf.weight_loss_unintentional
+  (CD-14). Every NG12-pathway, specialist-referral and lab-anchored row stays in its
+  department stub. Spinal infection, fracture, raised-pressure headache and reduced
+  urine stay in their department stubs as draft_needs_source until sourced as
+  time-critical.
+  One source-currency finding is recorded. The Scottish quick reference guide of
+  January 2019, cited as GH-S7 and H-S4, was replaced by the Scottish Referral
+  Guidelines for Suspected Cancer 2025 (published 6 August 2025). Every row that
+  cites it must be re-sourced before it can be signed.
+status: active
+scope: simulated_patient_stress_testing
+author_role: "emergency medicine physician with neurosurgery, haematology, nephrology, pulmonology, physical medicine and rehabilitation and thoracic surgery input (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG234
+    title: "Spinal metastases and metastatic spinal cord compression"
+    version_or_date: "NICE guideline NG234; published 06 September 2023; minor changes up to March 2026"
+    url: "https://www.nice.org.uk/guidance/ng234/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.2"
+    quote: "Immediately contact the MSCC coordinator if a person with a past or current diagnosis of cancer presents with the symptoms or signs of cord compression listed in box 1. Treat this as an oncological emergency."
+    snapshot: packages/protocols/sources/NICE-NG234.txt
+    supports: "placements bvsc-6 and ftr-3 (known-cancer arm): base.life_threat"
+  - kind: guideline
+    guideline_id: NICE-NG234
+    title: "Spinal metastases and metastatic spinal cord compression"
+    version_or_date: "NICE guideline NG234; published 06 September 2023; minor changes up to March 2026"
+    url: "https://www.nice.org.uk/guidance/ng234/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.3"
+    quote: "Seek advice through the MSCC coordinator (within 24 hours) if a person with a past or current diagnosis of cancer presents with pain with the characteristics suggesting spinal metastases listed in box 1."
+    snapshot: packages/protocols/sources/NICE-NG234.txt
+    supports: "placement ftr-3 (known-cancer arm): same-day action, base.life_threat family"
+  - kind: guideline
+    guideline_id: NICE-NG234
+    title: "Spinal metastases and metastatic spinal cord compression"
+    version_or_date: "NICE guideline NG234; published 06 September 2023; minor changes up to March 2026"
+    url: "https://www.nice.org.uk/guidance/ng234/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.5"
+    quote: "If a person without a past or current diagnosis of cancer has any of the pain characteristics listed in box 1 and cancer is suspected, refer them for urgent oncology assessment (see also the NICE guideline on suspected cancer)."
+    snapshot: packages/protocols/sources/NICE-NG234.txt
+    supports: "placement ftr-3 (no known cancer arm): department stub"
+  - kind: guideline
+    guideline_id: NICE-NG232
+    title: "Head injury: assessment and early management"
+    version_or_date: "NICE guideline NG232; published 18 May 2023; minor changes since publication up to March 2025"
+    url: "https://www.nice.org.uk/guidance/ng232/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.3"
+    quote: "Remote advice services (for example, NHS 111) should refer people who have sustained a head injury to a hospital emergency department if there are any of these risk factors"
+    snapshot: packages/protocols/sources/NICE-NG232.txt
+    supports: "placement bvsc-2: base.life_threat"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Terms-used-in-this-guideline"
+    retrieved_on: 2026-10-03
+    section: "Terms used in this guideline: Suspected cancer pathway referral"
+    quote: "Person to receive a diagnosis or ruling out of cancer within 28 days of being referred urgently by their GP for suspected cancer."
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "placement rule 3: an NG12 pathway is a referral, not a time-critical action"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Terms-used-in-this-guideline"
+    retrieved_on: 2026-10-03
+    section: "Terms used in this guideline: Very urgent"
+    quote: "To happen within 48 hours."
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "placement hm-2 and hm-A1: very urgent blood count, department stub"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "are aged 40 and over with unexplained haemoptysis. [2015]"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "placements gh-2, gh-A1, gc-2: department stub"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.2.1"
+    quote: "Refer people using a suspected cancer pathway referral for oesophageal cancer if they:"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "placement gc-4: department stub"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.6.4"
+    quote: "unexplained visible haematuria without urinary tract infection, or"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "placement nf-A1: department stub"
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.10.1"
+    quote: "Consider a very urgent full blood count to assess for leukaemia in adults with any of the following:"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: "placements hm-2 and hm-A1: department stub"
+  - kind: guideline
+    guideline_id: NICE-NG245
+    title: "Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)"
+    version_or_date: "NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; section 1.4 unchanged)"
+    url: "https://www.nice.org.uk/guidance/ng245/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.4.2"
+    quote: "Refer people with suspected occupational asthma to an occupational asthma specialist."
+    snapshot: packages/protocols/sources/NICE-NG245.txt
+    supports: "placement gh-4: department stub"
+  - kind: guideline
+    guideline_id: NICE-NG148
+    title: "Acute kidney injury: prevention, detection and management"
+    version_or_date: "NICE guideline NG148; published 18 December 2019; last updated 16 October 2024"
+    url: "https://www.nice.org.uk/guidance/ng148/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.1"
+    quote: "a fall in urine output to less than 0.5 ml/kg/hour for more than 6 hours in adults and more than 8 hours in children and young people"
+    snapshot: packages/protocols/sources/NICE-NG148.txt
+    supports: "placement nf-1: the source criterion is a measured hourly output, not a layperson-reportable trigger"
+  - kind: guideline
+    guideline_id: NICE-NG59
+    title: "Low back pain and sciatica in over 16s: assessment and management"
+    version_or_date: "NICE guideline NG59; published 30 November 2016; last updated 29 July 2026"
+    url: "https://www.nice.org.uk/guidance/ng59/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.1"
+    quote: "Exclude specific causes of low back pain, for example, cancer, infection, trauma or inflammatory disease such as spondyloarthritis."
+    snapshot: packages/protocols/sources/NICE-NG59.txt
+    supports: "placements ftr-2 and ftr-5: exclusion is required, but no urgency is set"
+    caveat: "NG59 is cited for low back pain only and never for cauda equina (files/04 §8.2)."
+  - kind: guideline
+    guideline_id: SCOT-SRG-2025
+    title: "Scottish Referral Guidelines for Suspected Cancer 2025"
+    version_or_date: "Published 6 August 2025; ISBN 9781836915263; errata 13/04/2026"
+    url: "https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/pages/3/"
+    retrieved_on: 2026-10-03
+    section: "Purpose and development of the Guidelines"
+    quote: "The Scottish Referral Guidelines (SRGs) for Suspected Cancer were first published in 2002 and subsequently revised in 2007, 2014, and 2019. In 2023, the Scottish Government commissioned the Centre for Sustainable Delivery (CfSD) to conduct a full clinical review and update of the SRGs according to current evidence and clinical consensus."
+    snapshot: packages/protocols/sources/SCOT-SRG-2025.txt
+    supports: source_currency_findings
+spec_basis:
+  - file: CLAUDE.md
+    section: "Non-negotiable invariants, 7"
+    quote: "`base.life_threat` is a sibling set outside the inheritance chain and nothing may extend it."
+    supports: rules.base_life_threat.never_by_extension
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8, The problem this fixes"
+    quote: "and patients do not present according to their booking"
+    supports: rules.base_life_threat
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8, The fix is structural"
+    quote: "sibling rule set evaluated on every session regardless of branch"
+    supports: rules.base_life_threat
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8, The fix is structural"
+    quote: "the deny-list makes it unreachable from any pack operation — so composition is monotone by construction"
+    supports: rules.base_life_threat.never_by_extension
+  - file: files/protocols/base.life_threat.yaml
+    section: "header, kind: life_threat_set"
+    quote: "Nothing may extend it."
+    supports: rules.base_life_threat.never_by_extension
+  - file: files/HUMAN_BLOCKERS.md
+    section: "HB-C2"
+    quote: "Named as missing: cauda equina, testicular torsion, limb ischaemia, acute angle-closure, neutropenic fever, GCA, `rf.sah_ottawa`, `rf.meningitis_pattern`, `rf.ectopic_possible`, `rf.thunderclap_headache`, `rf.sepsis_like`"
+    supports: "placements bvsc-1, ftr-1, bvsc-3"
+  - file: files/protocols/base.life_threat.yaml
+    section: "remaining_adult_rules, known_named_gaps"
+    quote: "rf.stroke_fast, rf.dyspnoea_rest, rf.anaphylaxis, rf.severe_bleeding,"
+    supports: "placements bvsc-4 (sudden arm), gc-1, gc-3"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.2 Reachability gates"
+    quote: "`every_RED_rule_is_reachable_from_every_branch` · `must_cover_ids_all_present` · `no_rule_references_an_undeclared_slot`"
+    supports: rules.base_life_threat.trigger_slots_declared_at_base
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§3 Universal red-flag rules"
+    quote: "rf.new_neuro_deficit_subacute | progressive weakness/numbness over days"
+    supports: "rules.base_universal_family; placements bvsc-4 and ftr-4 (subacute arm)"
+  - file: packages/protocols/base/intake.yaml
+    section: "red_flags"
+    quote: "id: rf.weight_loss_unintentional"
+    supports: "rules.base_universal_family; placement hm-4 (weight-loss arm)"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§3 Universal red-flag rules"
+    quote: "rf.severe_bleeding | large-volume bleeding, melena with dizziness"
+    supports: "placements gc-1, gh-A1 and hm-A1 (heavy bleeding stays base)"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.1 rule 1"
+    quote: "Every trigger must be answerable by a layperson"
+    supports: "rules.unsourced_time_criticality; placement nf-1"
+value:
+  rules:
+    base_life_threat:
+      when: "the source sets an emergency, immediate or same-day action AND the presentation does not depend on the booked branch"
+      authored_in: files/protocols/base.life_threat.yaml
+      author: "HB-C2 clinician author"
+      never_by_extension: "never through extends:, an overlay op or a department pack"
+      trigger_slots_declared_at_base: "a base.life_threat rule reads base.intake slots or base probes only; the department items stay gate inputs and are rebound to the base id once it exists"
+    base_universal_family:
+      when: "a universal, non-emergency arm that matches a family already declared in base.intake red_flags (files/04 §3)"
+      families: [rf.new_neuro_deficit_subacute, rf.weight_loss_unintentional]
+      effect: "the department arm merges into the base family; the department authors no copy"
+    department_stub:
+      when: "the source sets an urgent or routine referral (an NG12 pathway, a specialist referral or a very urgent blood count), or the anchor needs a laboratory value"
+      authored_in: "the department's own draft_needs_source stub"
+    unsourced_time_criticality:
+      when: "no retrieved source sets an emergency or same-day action for a layperson-reportable trigger"
+      placement: department_stub
+      status: draft_needs_source
+      moves_to: "base.life_threat once such a source is snapshotted"
+  placements:
+    - {key: gh-1, proposal: gogus_hastaliklari, proposed_id: rf.gogus_hastaliklari_uzayan_oksuruk, placement: department_stub, basis: "persistent-cough referral (tuberculosis or lung-cancer work-up); no emergency action", note: "GH-S7 is the superseded 2019 Scottish guide; re-source"}
+    - {key: gh-2, proposal: gogus_hastaliklari, proposed_id: rf.gogus_hastaliklari_tekrarlayan_balgamda_kan, placement: department_stub, basis: "NG12 1.1.1 suspected cancer pathway", note: "GH-S7 superseded; heavy haemoptysis stays rf.severe_bleeding (base)"}
+    - {key: gh-3, proposal: gogus_hastaliklari, proposed_id: rf.gogus_hastaliklari_balgam_degisikligi, placement: department_stub, status: draft_needs_source, basis: "NG114 1.1.2 is a treatment criterion, not a referral or triage criterion"}
+    - {key: gh-4, proposal: gogus_hastaliklari, proposed_id: rf.gogus_hastaliklari_mesleki_bilesen, placement: department_stub, basis: "NG245 1.4.2 specialist referral (CD-11)"}
+    - {key: gh-A1, proposal: gogus_hastaliklari, proposed_id: rf.gogus_hastaliklari_balgamda_kan, placement: department_stub, basis: "NG12 1.1.1 suspected cancer pathway", note: "heavy haemoptysis stays rf.severe_bleeding (base)"}
+    - {key: bvsc-1, proposal: beyin_ve_sinir_cerrahisi, proposed_id: rf.beyin_ve_sinir_cerrahisi_kauda_ekina, placement: base_life_threat, family: rf.cauda_equina, basis: "HB-C2 names cauda equina; one rule shared with ftr-1", note: "files/04 §8.2: cite GIRFT March 2026, never NG59"}
+    - {key: bvsc-2, proposal: beyin_ve_sinir_cerrahisi, proposed_id: rf.beyin_ve_sinir_cerrahisi_bas_darbesi_antikoagulan, placement: base_life_threat, family: "new head-injury family (id assigned by the HB-C2 author)", basis: "NG232 1.2.3 and 1.2.4 send to the emergency department; base_intake_additions names head-injury rules as consumers of the base anticoagulant_use slot (CD-12)"}
+    - {key: bvsc-3, proposal: beyin_ve_sinir_cerrahisi, proposed_id: rf.beyin_ve_sinir_cerrahisi_ani_siddetli_bas_agrisi, placement: base_life_threat, family: rf.thunderclap_headache, basis: "HB-C2 names rf.thunderclap_headache; base.intake already declares probe rf_thunderclap_headache"}
+    - {key: bvsc-4, proposal: beyin_ve_sinir_cerrahisi, proposed_id: rf.beyin_ve_sinir_cerrahisi_yeni_fokal_defisit, placement: split, arms: [{arm: "sudden onset", placement: base_life_threat, family: rf.stroke_fast}, {arm: "progressive over days", placement: base_universal_family, family: rf.new_neuro_deficit_subacute}], basis: "files/04 §3 separates the two by tense"}
+    - {key: bvsc-5, proposal: beyin_ve_sinir_cerrahisi, proposed_id: rf.beyin_ve_sinir_cerrahisi_artan_bas_agrisi_kusma, placement: department_stub, status: draft_needs_source, basis: "unsourced time-criticality: SNNOOP10 is a review article, not a guideline, and no retrieved guideline sets an action for progressive headache with vomiting", moves_to: base_life_threat}
+    - {key: bvsc-6, proposal: beyin_ve_sinir_cerrahisi, proposed_id: rf.beyin_ve_sinir_cerrahisi_spinal_metastaz_basisi, placement: base_life_threat, family: "new metastatic spinal cord compression family (id assigned by the HB-C2 author)", basis: "NG234 1.3.2 'Treat this as an oncological emergency'; a patient with cancer and cord-compression symptoms can book any branch", note: "needs a base-level known-cancer slot (CD-15)"}
+    - {key: hm-1, proposal: hematoloji, proposed_id: rf.hematoloji_kalici_buyuyen_sislik, placement: department_stub, basis: "suspected-cancer referral via local pathways; no emergency action", note: "H-S4 is the superseded 2019 Scottish guide; re-source on SCOT-SRG-2025"}
+    - {key: hm-2, proposal: hematoloji, proposed_id: rf.hematoloji_yaygin_sislik, placement: department_stub, basis: "NG12 1.10.1 very urgent full blood count (within 48 hours)"}
+    - {key: hm-3, proposal: hematoloji, proposed_id: rf.hematoloji_sislik_eslik_belirtileri, placement: department_stub, basis: "NG12 1.10.6 and 1.10.8 suspected cancer pathway (CD-14)"}
+    - {key: hm-4, proposal: hematoloji, proposed_id: rf.hematoloji_b_belirtileri, placement: split, arms: [{arm: "weight loss", placement: base_universal_family, family: rf.weight_loss_unintentional}, {arm: "drenching night sweats", placement: department_stub}], basis: "CD-14"}
+    - {key: hm-A1, proposal: hematoloji, proposed_id: rf.hematoloji_aciklanamayan_morarma_kanama, placement: department_stub, basis: "NG12 1.10.1 very urgent full blood count", note: "heavy bleeding stays rf.severe_bleeding (base)"}
+    - {key: nf-1, proposal: nefroloji, proposed_id: rf.nefroloji_yeni_idrar_azalmasi, placement: department_stub, status: draft_needs_source, basis: "unsourced time-criticality: NG148 detects oliguria by a measured hourly output per kilogram, which files/04 §8.1 rule 1 forbids as a trigger; no source gives a layperson-reportable emergency criterion", moves_to: base_life_threat}
+    - {key: nf-2, proposal: nefroloji, proposed_id: rf.nefroloji_tekrarlayan_renk_degisikligi, placement: department_stub, basis: "persistent-haematuria referral criterion (N-S1 Tablo 3)"}
+    - {key: nf-3, proposal: nefroloji, proposed_id: rf.nefroloji_tekrarlayan_tas, placement: department_stub, basis: "referral criterion (N-S1 Tablo 3); the patient is already in nephrology"}
+    - {key: nf-4, proposal: nefroloji, proposed_id: rf.nefroloji_sislik_kilo_kopuk, placement: department_stub, status: draft_needs_source, basis: "no source states an action for the combination (CD-14)"}
+    - {key: nf-A1, proposal: nefroloji, proposed_id: rf.nefroloji_gorunur_renk_degisikligi, placement: department_stub, basis: "NG12 1.6.4 suspected cancer pathway"}
+    - {key: ftr-1, proposal: fiziksel_tip_ve_rehabilitasyon, proposed_id: rf.fiziksel_tip_ve_rehabilitasyon_kauda_ekina, placement: base_life_threat, family: rf.cauda_equina, basis: "same rule as bvsc-1; the department authors no copy"}
+    - {key: ftr-2, proposal: fiziksel_tip_ve_rehabilitasyon, proposed_id: rf.fiziksel_tip_ve_rehabilitasyon_spinal_enfeksiyon, placement: department_stub, status: draft_needs_source, basis: "unsourced time-criticality: NG59 1.1.1 requires infection to be excluded but sets no urgency", moves_to: base_life_threat}
+    - {key: ftr-3, proposal: fiziksel_tip_ve_rehabilitasyon, proposed_id: rf.fiziksel_tip_ve_rehabilitasyon_malignite_suphesi, placement: split, arms: [{arm: "known cancer with spinal pain features", placement: base_life_threat, family: "metastatic spinal cord compression family (as bvsc-6)", basis: "NG234 1.3.3 within 24 hours"}, {arm: "no known cancer (weight loss with night pain)", placement: department_stub, basis: "NG234 1.3.5 urgent oncology assessment"}]}
+    - {key: ftr-4, proposal: fiziksel_tip_ve_rehabilitasyon, proposed_id: rf.fiziksel_tip_ve_rehabilitasyon_ilerleyici_norolojik_kayip, placement: split, arms: [{arm: "bilateral progressive leg deficit", placement: base_life_threat, family: rf.cauda_equina}, {arm: "progressive deficit over days, otherwise", placement: base_universal_family, family: rf.new_neuro_deficit_subacute}]}
+    - {key: ftr-5, proposal: fiziksel_tip_ve_rehabilitasyon, proposed_id: rf.fiziksel_tip_ve_rehabilitasyon_kirik_suphesi, placement: department_stub, status: draft_needs_source, basis: "unsourced time-criticality: NG59 1.1.1 names trauma among causes to exclude but sets no urgency", moves_to: base_life_threat}
+    - {key: gc-1, proposal: gogus_cerrahisi, proposed_id: rf.gogus_cerrahisi_yogun_hemoptizi, placement: base_life_threat, family: rf.severe_bleeding, basis: "named base gap; the department authors no copy"}
+    - {key: gc-2, proposal: gogus_cerrahisi, proposed_id: rf.gogus_cerrahisi_aciklanamayan_hemoptizi, placement: department_stub, basis: "NG12 1.1.1 suspected cancer pathway", note: "TOR-S8 is secondary; cite NICE-NG12 primary"}
+    - {key: gc-3, proposal: gogus_cerrahisi, proposed_id: rf.gogus_cerrahisi_ani_gogus_agrisi_nefes_darligi, placement: base_life_threat, family: "rf.chest_pain_acute / rf.dyspnoea_rest", basis: "existing base families; no department rule and no department slot"}
+    - {key: gc-4, proposal: gogus_cerrahisi, proposed_id: rf.gogus_cerrahisi_disfaji, placement: department_stub, basis: "NG12 1.2.1 suspected cancer pathway", note: "TOR-S8 is secondary; cite NICE-NG12 primary"}
+    - {key: an, proposal: anesteziyoloji, proposed_id: none, placement: none, basis: "no red-flag row is proposed; the recent-infection item is a planning fact (CD-18)"}
+  source_currency_findings:
+    - cited_as: "GH-S7 (gogus_hastaliklari) and H-S4 (hematoloji): SCOT-USC-QRG-2019-01, Scottish quick reference guide, January 2019"
+      status: superseded
+      replaced_by: "SCOT-SRG-2025, Scottish Referral Guidelines for Suspected Cancer 2025, published 6 August 2025"
+      affects: [gh-1, gh-2, gh-A1, hm-1]
+      action: "re-source each affected row on SCOT-SRG-2025 or NICE-NG12 before signature"
+      note: "hm-4 cited H-S3 (THD Lenfoma) at be5b21b8; H-S4 was only the INT-427 verifier's suggested re-anchor for it (V-HM-1), and CD-14 does not use it"
+value_status:
+  rules: active
+  placements: active
+  source_currency_findings: active
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

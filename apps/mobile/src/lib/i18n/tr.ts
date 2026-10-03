@@ -104,6 +104,10 @@ export const tr = {
   "visits.new.smsFilled": "Randevu bilgileriniz dolduruldu. Lütfen kontrol edin.",
   "visits.new.smsUnknownBranch": "Poliklinik adını tanıyamadık. Listeden siz seçin.",
   "visits.new.smsNoDate": "Mesajda tarih bulamadık. Tarihi siz ekleyin.",
+  // INT-400: the date reads as two days, or two dates are printed; the field
+  // is left empty and the patient writes the date (no reading is guessed)
+  "visits.new.smsAmbiguousDate":
+    "Mesajdaki tarihten randevunuzun hangi gün olduğunu kesin anlayamadık. Tarihi aşağıya siz yazın.",
   "visits.new.smsUnreadable": "Bu mesajı okuyamadık. Bilgileri elle girebilirsiniz.",
   "visits.new.ocrUnavailable": "Görüntüden okuma henüz açık değil. Mesajı metin olarak yapıştırın.",
   // Vizit türleri — files/09 §1

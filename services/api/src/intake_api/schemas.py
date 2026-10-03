@@ -31,7 +31,7 @@ import re
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Annotated, Literal, get_args
+from typing import Annotated, Literal, Protocol, get_args
 
 from clinical_schemas.visit_time import (
     ATTRIBUTED_SOURCES,
@@ -47,6 +47,7 @@ from intake_platform.profiles import (
     SubjectRole,
     resolve_attribution,
 )
+from intake_platform.visit_lifecycle import RedResurface
 from protocols.department_routing import DepartmentMatch, map_department
 from protocols.taxonomy import Taxonomy, UnknownBranchError
 from protocols.types import VisitType
@@ -70,9 +71,17 @@ __all__ = [
     "SectionId",
     "VisitCreate",
     "VisitOut",
+    "VisitStateOut",
     "resolved_attribution",
+    "validated_date",
     "validated_new_visit",
+    "validated_visit_time",
 ]
+
+#: INT-407 — the six states a visit rests in (``rescheduled`` lands in
+#: ``planned``), mirrored from ``intake_platform.visit_lifecycle.RESTING_STATES``
+#: and held equal to it by tests/api/test_visit_lifecycle.py.
+VisitStateOut = Literal["planned", "confirmed", "checked_in", "attended", "cancelled", "missed"]
 
 # The full section vocabulary the app's ``buildNote`` emits, in note order
 # (INT-304). ONE declaration: ``SECTION_IDS`` derives from this ``Literal`` via
@@ -151,6 +160,9 @@ class NoteOut(BaseModel):
     # reported one before they read a word of it.
     proxy_reported: bool = False
     third_party_present: bool = False
+    # INT-407 — files/02 §2b: on a rescheduled visit the note is stale seven
+    # days after its session, and whoever reads it is told so.
+    stale: bool = False
 
 
 class AttributionIn(BaseModel):
@@ -226,6 +238,20 @@ class VisitOut(BaseModel):
     # able to tell "self-reported" from "not recorded".
     proxy_reported: bool = False
     third_party_present: bool = False
+    # INT-407 — the files/02 §2b lifecycle, server-authoritative: the device
+    # renders this state, it never derives one.
+    state: VisitStateOut = "planned"
+    # whether the check-in's evidence was certain; ``None`` before a check-in.
+    # A doubtful check-in yields UNKNOWN, never ON_SITE (invariant 21).
+    check_in_certain: bool | None = None
+    # on a rescheduled visit, seven days after the note's session
+    note_stale: bool = False
+    # the delta session the stale note earns, behind DELTA_SESSION_OFFER_FLAG
+    # until its copy is reviewed
+    delta_session_offered: bool = False
+    # the §2b re-show of a RED on a visit that moved: pointers at the
+    # pre-positioned scripts, in the register each RED was told in
+    red_resurface: list[RedResurface] = Field(default_factory=list)
 
 
 class ProfileOut(BaseModel):
@@ -293,7 +319,7 @@ def resolved_attribution(declared: AttributionIn | None) -> AttributionDecision:
     return decision
 
 
-def _validated_date(raw: str | None) -> str | None:
+def validated_date(raw: str | None) -> str | None:
     date = (raw or "").strip()
     if not date:
         return None
@@ -306,7 +332,18 @@ def _validated_date(raw: str | None) -> str | None:
     return date
 
 
-def _validated_visit_time(payload: VisitCreate, *, date: str | None) -> VisitTime | None:
+class _TimedPayload(Protocol):
+    """The INT-306 time fields, as both a create and a reschedule carry them."""
+
+    @property
+    def time(self) -> str | None: ...
+    @property
+    def time_source(self) -> str | None: ...
+    @property
+    def time_source_ref(self) -> str | None: ...
+
+
+def validated_visit_time(payload: _TimedPayload, *, date: str | None) -> VisitTime | None:
     """INT-306 — the appointment's hour, or nothing, and never a default.
 
     Seven reason codes, kept apart rather than collapsed into one ``bad_time``,
@@ -386,8 +423,8 @@ def validated_new_visit(payload: VisitCreate, taxonomy: Taxonomy | None) -> NewV
     branch_id = (payload.branch_id or "").strip()
     department = (payload.department or "").strip()
     visit_type = _validated_visit_type(payload.visit_type)
-    date = _validated_date(payload.date)
-    time = _validated_visit_time(payload, date=date)
+    date = validated_date(payload.date)
+    time = validated_visit_time(payload, date=date)
     if not hospital:
         raise visit_invalid("missing_fields")
     if branch_id and department:

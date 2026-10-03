@@ -14,8 +14,9 @@ checks documented there.
 The safety list is `intake_platform.flags.SAFETY_FLAG_DEFAULTS` — the single
 source of truth shared by the read facade and the write governor:
 `device_functions`, `s2s`, `learning_apply`, `satisfaction_prompts`,
-`guardian_link`, `commercial_messaging`. Every one reads `False` and cannot be
-defaulted open.
+`guardian_link`, `commercial_messaging`, `delta_session_offer` (INT-407: the
+files/02 §2b delta-session offer, shut until its copy is clinically reviewed).
+Every one reads `False` and cannot be defaulted open.
 
 Two invariants bound these flags:
 
