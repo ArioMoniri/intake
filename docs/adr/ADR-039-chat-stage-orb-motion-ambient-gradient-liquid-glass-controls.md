@@ -10,7 +10,7 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 
 ## Decision
 
-**The dialogue screen, "the chat stage", gains six bounded exceptions. Each is still under Reduce Motion, solid under Reduce Transparency and absent on RED, and each is pinned by a named test. Every other screen keeps the existing rules.**
+**The dialogue screen, "the chat stage", gains six bounded exceptions. Each is still under Reduce Motion, solid under Reduce Transparency and absent on RED, and each is pinned by a named test. S7 carries the stage, still, to welcome and sign-in. Every other screen keeps the existing rules.**
 
 ### S1 — The voice orb moves (amends ADR-033 §1)
 
@@ -57,6 +57,16 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 - Increase Contrast strengthens the secondary ink and gives cards a boundary. Reduce Transparency flattens the wash.
 - RED's colours are not in it, and no RED surface reads it.
 
+### S7 — Welcome and sign-in, still (INT-464)
+
+- The owner's "yes to all" also covered section 2 of the native pass in the same visual language: welcome, phone entry and OTP entry (INT-464, GitHub #793). Those three screens take the stage's still backdrop (S2), its palette (S6), its radii (S5) and glass on their actions (S3), with these bounds.
+- **Nothing moves.** The OTP step is a gate (ADR-033 §4), and the flow adds no motion. The welcome mark is the stage orb drawn still (`stillOrb()`): no turn, no breath, no voice level. The auth stack keeps its 120 ms fade.
+- **Inert glass.** The actions are stage buttons with `interactive={false}`: glass without the system press response, and the press shows only the instant opacity step. S4's interactive glass stays the dialogue's.
+- **Fields are content.** The phone field and the six OTP registers are filled with the stage card through `stageFieldChrome`: no resting outline, a 2 pt accent ring while focused, and a boundary under Increase Contrast. The phone field is a capsule; the registers keep 12 pt continuous corners, because six capsules read as dots.
+- **The bar stays solid.** Phone and OTP entry keep a solid native bar, so nothing on a gate scrolls under a material (INT-451). It is painted in the wash's first stop, where the backdrop starts below it, and shows only the back chevron; the step title is the static large title, a heading in the content.
+- **The development accounts** are a grouped inset list on the stage card, in development builds only.
+- **Untouched.** The consent screen renders hash-bound legal text and keeps its own look. No copy changes: every visible line is an existing key.
+
 ## Unchanged
 
 - RED is a root layer above the stage with zero motion (invariant 21; ADR-033 §5). The stage paints under it, and the orb is still while it shows.
@@ -76,6 +86,7 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 | S4 interactive glass only in the stage controls | `apps/mobile/e2e/nativeChrome.spec.ts` |
 | S5 radii | `apps/mobile/e2e/designSystem.spec.ts` |
 | S6 AA on every stop, Increase Contrast, Reduce Transparency | `apps/mobile/src/lib/stage/palette.test.ts` |
+| S7 still, inert glass, filled fields, solid bar, consent untouched | `apps/mobile/e2e/authStage.spec.ts`, `apps/mobile/src/lib/stage/field.test.ts`, `apps/mobile/src/lib/stage/nav.test.ts` and `apps/mobile/src/lib/stage/orb.test.ts` |
 | This ADR's status, quote and bounds | `tests/docs/test_adr_039.py` |
 
 ## Consequences

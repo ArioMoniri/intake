@@ -109,6 +109,37 @@ def test_s4_to_s6_are_bounded() -> None:
         assert needle in s6, f"S6 lost {needle!r}"
 
 
+def test_s7_welcome_and_sign_in_are_bounded() -> None:
+    """INT-464 (GitHub #793): the stage, still, on welcome and sign-in."""
+    text = _adr()
+    decision = _section(text, "## Decision")
+    assert "S7" in decision.split("### S1")[0], "the decision line must name S7's reach"
+    s7 = _section(text, "### S7")
+    for needle in (
+        "INT-464",
+        "#793",
+        OWNER_QUOTE,
+        "welcome",
+        "phone entry",
+        "OTP",
+        "still",
+        "`stillOrb()`",
+        "gate",
+        "`interactive={false}`",
+        "`stageFieldChrome`",
+        "no resting outline",
+        "Increase Contrast",
+        "solid native bar",
+        "back chevron",
+        "grouped inset list",
+        "consent screen",
+        "No copy changes",
+    ):
+        assert needle in s7, f"S7 lost {needle!r}"
+    table = _section(text, "## Where each bound is enforced")
+    assert "authStage.spec.ts" in table and "field.test.ts" in table
+
+
 def test_unchanged_list_holds_the_invariants() -> None:
     unchanged = _section(_adr(), "## Unchanged")
     for needle in ("RED", "haptic", "announce", "verbatim", "siz"):

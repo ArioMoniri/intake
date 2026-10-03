@@ -3437,3 +3437,32 @@
   - The veil floor keeps the labels at AA either way. No HB id is minted.
 - Next: section 2 (welcome and onboarding, #793) in the stage language, then section 4 (grouped inset lists) and section 5 (in-tree detent sheets).
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T23:40:00+03:00 · INT-464 · done (PR open, not merged; stacked on #797)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-464):
+  - ADR-039 S7 bounds welcome, phone and OTP entry on the stage: nothing moves, a still mark, inert glass, filled fields, a solid bar, consent untouched;
+  - welcome uses the iOS setup layout with a bottom tray and a dev grouped inset list;
+  - phone and OTP have a back-chevron-only bar, a large-title heading in the content, and filled fields that stand apart from the whole wash;
+  - no copy changes, AX5 scrolls, AA measured, before and after light and dark.
+- Plan:
+  - Write the ADR S7 and its test first, then the pure parts (`field`, `nav`, `stillOrb`), then the palette hook and the inert `StageButton`, then the three screens.
+  - Capture before and after, measure, fix what the captures show.
+- Tests added (with the near-miss negative for any safety rule):
+  - `field.test.ts`, `nav.test.ts`, `authStage.spec.ts`, the `orb.test.ts` and `palette.test.ts` additions, and `test_adr_039.py` S7;
+  - near misses: a live orb moves; a field without Increase Contrast has no boundary; the dark card sits inside the wash range;
+  - RED run: 22 failed / 37 passed plus 2 import failures; ADR 1 failed; field fill red 4 failed, then green.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 143 files, 2942 tests; `tsc` clean; lint 0 errors;
+  - Python gates after staging;
+  - `check-integration` CI-only.
+- Invariants touched and still passing:
+  - 2 and 22: no copy changed.
+  - 18: consent is untouched.
+  - 21: no RED surface is touched.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-039 S7 under the same owner approval; the D23 row notes it.
+  - #793's first-draft "no gradient" is superseded; the row and the issue body are rewritten to S7.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - None new. The glass and capture-protection decision from #797 now has supporting evidence: glass draws on these unprotected screens.
+- Next: section 4 (review and summary as grouped inset lists), then section 5 (in-tree detent sheets, ADR-038 A3).
+- LOOP_STATUS: CONTINUE

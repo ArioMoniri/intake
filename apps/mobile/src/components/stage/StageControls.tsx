@@ -16,9 +16,11 @@
  *   and checked when selected, so selection never rests on colour alone.
  *
  * Every glass surface is the regular variant, takes the app's resolved scheme
- * and is interactive (the system's own press response, ADR-039 S4). Under
- * Reduce Transparency (`mode !== "liquid"`) it is a solid stage fill instead,
- * so nothing is see-through.
+ * and is interactive (the system's own press response, ADR-039 S4). The
+ * sign-in screens pass `interactive={false}` (ADR-039 S7): they add no
+ * motion, so their glass is inert and a press shows only the opacity step.
+ * Under Reduce Transparency (`mode !== "liquid"`) every surface is a solid
+ * stage fill instead, so nothing is see-through.
  */
 import { GlassContainer, GlassView } from "expo-glass-effect";
 import { type ReactNode } from "react";
@@ -50,11 +52,14 @@ const MERGE_SPACING = spacing.sm;
 function Pane({
   palette,
   tint,
+  interactive = true,
   style,
   children,
 }: {
   palette: StagePalette;
   tint?: string;
+  /** False on the sign-in screens: glass without the system press response. */
+  interactive?: boolean;
   style: StyleProp<ViewStyle>;
   children?: ReactNode;
 }) {
@@ -87,7 +92,7 @@ function Pane({
     <GlassView
       glassEffectStyle="regular"
       colorScheme={scheme}
-      isInteractive
+      isInteractive={interactive}
       tintColor={tint}
       style={[style, { backgroundColor: floor }]}
     >
@@ -123,12 +128,15 @@ export function StageButton({
   onPress,
   prominent = false,
   disabled = false,
+  interactive = true,
 }: {
   palette: StagePalette;
   label: string;
   onPress: () => void;
   prominent?: boolean;
   disabled?: boolean;
+  /** ADR-039 S7: false where a screen adds no motion (the sign-in flow). */
+  interactive?: boolean;
 }) {
   return (
     <Pressable
@@ -137,11 +145,22 @@ export function StageButton({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.actionTarget, disabled ? { opacity: motion.press.disabledOpacity } : null]}
+      // Inert glass has no press response of its own, so the press is the
+      // instant opacity step (ADR-037 P1's second cue); interactive glass
+      // answers the finger itself.
+      style={({ pressed }) => [
+        styles.actionTarget,
+        disabled
+          ? { opacity: motion.press.disabledOpacity }
+          : pressed && !interactive
+            ? { opacity: motion.press.opacity }
+            : null,
+      ]}
     >
       <Pane
         palette={palette}
         tint={prominent ? palette.cardSelected : undefined}
+        interactive={interactive}
         style={styles.action}
       >
         <AppText

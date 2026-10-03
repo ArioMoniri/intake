@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import { ORB_STATES } from "@/lib/motion/orb";
 
-import { STAGE_ORB_BOUNDS, levelScale, stageOrbMotion } from "./orb";
+import { STAGE_ORB_BOUNDS, levelScale, stageOrbMotion, stillOrb } from "./orb";
 
 const LIVE = { reduce: false, redPresented: false } as const;
 const MOVING = ["speaking", "listening", "thinking"] as const;
@@ -112,5 +112,23 @@ describe("levelScale: the voice level as the orb's scale", () => {
 
   it("a zero gain never scales", () => {
     expect(levelScale(1, 0)).toBe(1);
+  });
+});
+
+describe("stillOrb: the welcome mark (ADR-039 S7, INT-464)", () => {
+  it("is visible and moves in no way: no turn, no breath, no voice level", () => {
+    const mark = stillOrb();
+    expect(mark.visible).toBe(true);
+    expect(mark.rotationPeriodS).toBeNull();
+    expect(mark.breathe).toBeNull();
+    expect(mark.levelGain).toBe(0);
+  });
+
+  it("keeps the resting glow, so the mark is the same orb the dialogue shows at rest", () => {
+    expect(stillOrb().glowOpacity).toBe(stageOrbMotion("idle", LIVE).glowOpacity);
+  });
+
+  it("near miss: a live listening orb would move, so the mark is not drawn from a live state", () => {
+    expect(stageOrbMotion("listening", LIVE).rotationPeriodS).not.toBeNull();
   });
 });

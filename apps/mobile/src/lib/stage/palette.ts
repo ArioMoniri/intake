@@ -36,6 +36,11 @@ export interface StagePalette {
   readonly cardInkSelected: string;
   /** A card's boundary, under Increase Contrast only. */
   readonly cardBorder: string | null;
+  /**
+   * A text field's fill (ADR-039 S7). A field has no resting outline, so its
+   * fill must stand apart from the wash; the dark answer card does not.
+   */
+  readonly field: string;
   /** The voice orb's angular gradient stops. */
   readonly orb: readonly [string, string, string, string, string];
   /**
@@ -58,6 +63,7 @@ const LIGHT = {
   cardSelected: "#0B7366",
   cardInkSelected: "#FFFFFF",
   cardBorder: "#5F6B69",
+  field: "#FFFFFF",
   orb: ["#0B7366", "#3CB8A6", "#5DAEE6", "#C3EFE6", "#0B7366"],
   controlVeil: { color: "#FFFFFF", alpha: 0.55 },
 } as const;
@@ -74,6 +80,7 @@ const DARK = {
   cardSelected: "#7DDCCB",
   cardInkSelected: "#04201C",
   cardBorder: "#8C9997",
+  field: "#2C4244",
   orb: ["#1F8F80", "#7DDCCB", "#6FB4F0", "#D8F5EF", "#1F8F80"],
   controlVeil: { color: "#2C2C2E", alpha: 0.55 },
 } as const;
@@ -91,6 +98,7 @@ export function stagePalette(scheme: StageScheme, modes: StageModes): StagePalet
     cardSelected: p.cardSelected,
     cardInkSelected: p.cardInkSelected,
     cardBorder: modes.increasedContrast ? p.cardBorder : null,
+    field: p.field,
     orb: p.orb,
     controlVeil: p.controlVeil,
   };

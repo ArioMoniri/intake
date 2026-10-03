@@ -22,7 +22,19 @@ import { radius, rowPressFill, spacing } from "@/lib/theme";
 /** Action name for the row's nested trailing control. */
 const SECONDARY_ACTION = "secondary";
 
-export function ListGroup({ children, footer }: { children: ReactNode; footer?: string }) {
+export function ListGroup({
+  children,
+  footer,
+  surface,
+}: {
+  children: ReactNode;
+  footer?: string;
+  /**
+   * The group's fill on a stage screen (ADR-039 S7): the stage card, so the
+   * list sits on the stage palette rather than the system grouped ground.
+   */
+  surface?: string;
+}) {
   const theme = useTheme();
   const rows: ReactNode[] = [];
   const items = Array.isArray(children) ? children : [children];
@@ -36,7 +48,7 @@ export function ListGroup({ children, footer }: { children: ReactNode; footer?: 
     });
   return (
     <View style={styles.wrap}>
-      <View style={[styles.group, { backgroundColor: theme.surface }]}>{rows}</View>
+      <View style={[styles.group, { backgroundColor: surface ?? theme.surface }]}>{rows}</View>
       {footer ? (
         <AppText role="caption" color="inkFaint" style={styles.footer}>
           {footer}

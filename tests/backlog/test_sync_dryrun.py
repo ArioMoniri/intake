@@ -113,7 +113,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-432 (clinical decisions register under owner decision D18, GitHub #735)
     # + INT-378 (WebAuthn session-notes provider, GitHub #621) and INT-389 (its
     # TOTP clause as an owner decision, GitHub #644)
-    assert len(actions) == 342
+    # + INT-464 (native welcome and sign-in, ADR-039 S7, GitHub #793)
+    assert len(actions) == 343
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -83,6 +83,15 @@ export function stageOrbMotion(state: OrbState, context: StageOrbContext): Stage
 }
 
 /**
+ * The welcome mark (ADR-039 S7, INT-464): the same orb the dialogue shows at
+ * rest, drawn still. The sign-in screens add no motion, and there is no turn
+ * to show before a visit, so the mark never takes a live state.
+ */
+export function stillOrb(): StageOrbMotion {
+  return { visible: true, ...STILL, glowOpacity: LIVE.idle.glowOpacity };
+}
+
+/**
  * The voice level (0 to 1, from INT-336's sampler) as the orb's scale. It is
  * a worklet: it runs on the UI thread inside the orb's animated style, so a
  * level sample re-renders nothing.

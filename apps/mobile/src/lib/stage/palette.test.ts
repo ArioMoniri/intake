@@ -173,6 +173,25 @@ describe("stage palette: accessibility settings", () => {
     expect(redIn({ ...p, accent: red.toLowerCase() })).toEqual([red.toUpperCase()]);
   });
 
+  it("the sign-in screens' error line (theme amber) reaches AA on every wash stop (ADR-039 S7)", () => {
+    for (const scheme of SCHEMES) {
+      for (const level of ["standard", "high"] as const) {
+        const amber = colorsFor(scheme, level).amber;
+        every((p, label) => {
+          if (!label.startsWith(scheme)) {
+            return;
+          }
+          for (const ground of [p.base, ...p.wash]) {
+            expect(
+              contrast(amber, ground),
+              `${label} ${level} amber on ${ground}`,
+            ).toBeGreaterThanOrEqual(4.5);
+          }
+        });
+      }
+    }
+  });
+
   it("the dark stage is a night palette, never pure black (Oura-like, not OLED-off)", () => {
     const dark = stagePalette("dark", { reduceTransparency: false, increasedContrast: false });
     expect(dark.base.toUpperCase()).not.toBe("#000000");

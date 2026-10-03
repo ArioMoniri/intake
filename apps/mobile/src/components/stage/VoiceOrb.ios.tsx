@@ -41,6 +41,9 @@ const FOREVER = 100_000;
 /** The counter-turning layer turns this much slower than the front one. */
 const COUNTER_TURN = 1.6;
 
+/** The glow's blur radius, in points. */
+const GLOW_BLUR = 18;
+
 interface VoiceOrbProps {
   readonly size: number;
   readonly motion: StageOrbMotion;
@@ -71,7 +74,11 @@ function OrbBody({ size, motion, palette, glass }: VoiceOrbProps) {
   if (!motion.visible) {
     return null;
   }
-  const box = size * 1.8;
+  // The glow is drawn inside a host with room around it for its blur: a blur
+  // that reaches the host's edge is cut off there, and the cut shows as a
+  // straight line in the wash (INT-464, found on the welcome capture).
+  const glowBox = size * 1.8;
+  const box = glowBox + GLOW_BLUR * 4;
   const breatheScale = breath && motion.breathe !== null ? motion.breathe.scale : 1;
   const spin =
     motion.rotationPeriodS === null
@@ -119,7 +126,15 @@ function OrbBody({ size, motion, palette, glass }: VoiceOrbProps) {
       // size, so the dock keeps the room the orb shows rather than its glow.
       style={{ width: box, height: box, margin: -(box - size) / 2 }}
     >
-      <Host style={{ width: box, height: box }} onLayoutContent={() => setAppeared(true)}>
+      {/* `ignoreSafeArea`: the host's frame runs past the sphere for the
+          glow, and where it overlaps a safe-area inset (the status bar above
+          the welcome mark, the home indicator below the dialogue's dock)
+          SwiftUI would otherwise push the drawing off the sphere's centre. */}
+      <Host
+        style={{ width: box, height: box }}
+        ignoreSafeArea="all"
+        onLayoutContent={() => setAppeared(true)}
+      >
         <ZStack modifiers={[scaleEffect(breatheScale), ...breathe]}>
           {palette.glow !== null ? (
             <Circle
@@ -129,10 +144,10 @@ function OrbBody({ size, motion, palette, glass }: VoiceOrbProps) {
                   colors: [palette.glow, `${palette.glow}00`],
                   center: { x: 0.5, y: 0.5 },
                   startRadius: 0,
-                  endRadius: box / 2,
+                  endRadius: glowBox / 2,
                 }),
-                frame({ width: box, height: box }),
-                blur(18),
+                frame({ width: glowBox, height: glowBox }),
+                blur(GLOW_BLUR),
                 opacity(motion.glowOpacity),
               ]}
             />

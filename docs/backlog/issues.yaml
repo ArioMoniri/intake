@@ -6682,3 +6682,23 @@
     - "the dev prototype route is deleted; before/after captures in light and dark and an orb gif are in docs/design/chat-stage/"
   tests: [apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/palette.test.ts, apps/mobile/src/lib/stage/shape.test.ts, apps/mobile/e2e/chatStage.spec.ts, tests/docs/test_adr_039.py]
   sec_row: "mobile"
+- id: INT-464
+  epic: E08-mobile
+  phase: P1
+  title: "Native welcome and sign-in in the stage language: iOS setup layout, still mark, filled fields, static large titles"
+  # GitHub #793. Section 2 of the native pass (owner, 3 Oct 2026: the app read
+  # as AI-generated). The owner's "yes to all" on INT-466 took this section
+  # into the chat stage's visual language, so ADR-039 S7 replaces the first
+  # draft's "no gradient": the still stage backdrop, the stage orb drawn still
+  # as the mark, glass only on the actions and inert. Stacked on INT-466 (#797).
+  depends_on: [INT-466, INT-433]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-464.md
+  acceptance:
+    - "ADR-039 S7 bounds welcome, phone entry and OTP entry on the stage: nothing moves (the OTP step is a gate), the welcome mark is the stage orb drawn still, the actions are inert glass, the fields are filled stage fields, the bar stays solid, the consent screen is untouched; each bound is pinned by a named test"
+    - "welcome uses the iOS setup layout: the still mark, the static large title (a heading) and the tagline over the still stage backdrop; the phone sign-in and the disclaimer in a tray at the bottom; the development accounts as a grouped inset list, development builds only"
+    - "phone and OTP entry keep a solid native bar with only the back chevron; the step title is a static large-title heading in the content; each field is a filled stage field with no card around it, no resting outline, the accent ring while focused and a boundary under Increase Contrast, and it stands apart from the whole wash"
+    - "no copy changes, every visible line is an existing key; Dynamic Type at AX5 scrolls with nothing clipped; every label measured on the captures reaches AA in light and dark; before/after captures in light and dark are committed"
+  tests: [apps/mobile/e2e/authStage.spec.ts, apps/mobile/src/lib/stage/field.test.ts, apps/mobile/src/lib/stage/nav.test.ts, apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/palette.test.ts, tests/docs/test_adr_039.py]
+  sec_row: "mobile"
