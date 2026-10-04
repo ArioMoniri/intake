@@ -491,12 +491,18 @@ def test_the_late_answer_cites_the_product_spec() -> None:
     assert "offered, and answering it re-derives location as `ON_SITE`" in quotes
 
 
-def test_round_one_is_history_and_the_verdict_waits() -> None:
+def test_rounds_one_and_two_are_history_and_the_final_verdict_is_agree() -> None:
     decision = _decision()
-    assert decision.verifier.verdict.value == "pending"
+    assert decision.verifier.verdict.value == "agree"
+    assert decision.verifier.role == "independent D18 clinical verifier (agent)"
+    assert str(decision.verifier.verified_on) == "2026-10-04"
     round_one = decision.value["verification_history"][0]
     assert round_one["round"] == 1 and round_one["verdict"] == "request_changes"
     assert len(round_one["per_item"]) == 11
     round_two = decision.value["verification_history"][1]
     assert round_two["round"] == 2 and round_two["verdict"] == "request_changes"
     assert len(round_two["per_item"]) == 11
+    final = decision.value["verification_history"][2]
+    assert final["round"] == 3 and final["verdict"] == "agree"
+    assert final["per_item"].keys() == round_two["per_item"].keys()
+    assert all(v.startswith("agree") for v in final["per_item"].values())

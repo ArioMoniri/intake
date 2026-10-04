@@ -356,10 +356,28 @@ value:
         "ON_SITE 'Tek başınıza gitmeyin — …' accept": "agree"
         "ON_SITE nil-by-mouth remove": "agree"
         "no medicine line": "agree"
-        "no answer → REMOTE with 112": "agree (CD-24 near miss and served show_112 added)"
+        "no answer → REMOTE with 112": "agree (optional: CD-24 near miss; served show_112)"
         "late answer switch": "agree with note (LD-05 once on main)"
         "wait draft": "agree"
-        "applied through #796": "agree with note (the pin now checks original or decided per location, in the same state)"
+        "applied through #796": "agree with note (pin: original or decided per location, same state)"
+    - round: 3
+      date: 2026-10-04
+      head: aaa5c63c
+      reviewer: "independent D18 clinical verifier (agent)"
+      verdict: agree
+      findings: "approve; two evidence wording notes (the NICE CG95 clause) and an optional round-2 rewording, fixed in the verdict commit"
+      per_item:
+        "REMOTE line 1 change": "agree with note ('kendiniz' and the proxy reading are for the physician of record, physician_review items 2 and 3)"
+        "REMOTE nil-by-mouth remove": "agree (NICE credited only for what it states)"
+        "REMOTE line 3 change": "agree with note (a proxy-addressed version is physician_review item 3; no wording change)"
+        "ON_SITE 'Poliklinik sırasında beklemeyin.' accept": "agree"
+        "ON_SITE 'Tek başınıza gitmeyin — …' accept": "agree"
+        "ON_SITE nil-by-mouth remove": "agree"
+        "no medicine line": "agree"
+        "no answer → REMOTE with 112": "agree"
+        "late answer switch": "agree with note (cite LD-05 once it is on main)"
+        "wait draft": "agree"
+        "applied through #796": "agree with note (#796 applies both locations' decided lists together and in record order, with goldens, near-miss controls and make safety; the pin rejects any partial, removal-only or reordered application; the row stays doing until then)"
 value_status:
   do_nots: active
   decided_lists: active
@@ -371,4 +389,7 @@ source_gap: >-
   Only no_answer_wait is draft: no retrieved current source states a wait before an
   unanswered location question resolves to REMOTE (value.no_answer_wait.source_gap).
 verifier:
-  verdict: pending
+  verdict: agree
+  role: "independent D18 clinical verifier (agent)"
+  verified_on: 2026-10-04
+  notes: "Round 1 request_changes (4ef263d7); round 2 request_changes (f99e0da8, nothing clinical blocked); round 3 agree (aaa5c63c). Quotes checked against the committed snapshots. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
