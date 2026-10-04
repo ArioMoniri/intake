@@ -360,5 +360,23 @@ def test_the_checklist_links_every_artefact_and_names_the_owner_asks() -> None:
         "HB-L21",
         "HB-L27",
         "INT-117",
+        # The legal lane's round on #828: the reviewer sign-in path, and voice
+        # gated behind __DEV__ in a release build while the copy promises it.
+        "INT-485",
+        "INT-440",
+        "voiceEligible",
     ):
         assert needle in section, needle
+
+
+def test_the_review_guide_gates_submission_on_release_voice_and_reviewer_sign_in() -> None:
+    """The listing and the notes describe voice intake, and a release build
+    has none today; App Review needs a way in. Both are §1 conditions, owned."""
+    guide = (DRAFTS / "app-review-notes.draft.md").read_text(encoding="utf-8")
+    first = guide.split("## 1", 1)[1].split("\n## ", 1)[0]
+    assert "voiceEligible" in first and "INT-440 (#768)" in first and "INT-454 (#769)" in first
+    assert "INT-485 (#829)" in first
+    intake = REPO / "apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx"
+    gated = re.search(r"voiceEligible =\s*__DEV__", intake.read_text(encoding="utf-8"))
+    # Both ways: the guide says voice is dev-only exactly while the code says so.
+    assert bool(gated) == ("Today `voiceEligible` requires" in first)

@@ -14,22 +14,23 @@ missing item is a reason to wait. It is not something to describe around.
 
 | # | what must hold | owed by |
 |---|---|---|
-| 1 | The app shows the fixed 112 notice at its static points. Its text is the files/06 §7 static safety line, rendered from the signed `docs/legal/strings.yaml`. The notes and the listing say that the app shows it. Today the app does not. | INT-117 (static 112 text at fixed points), HB-L27 (the fixed strings) |
+| 1 | The app shows the fixed 112 notice at its static points. Its text is the files/06 §7 static safety line, rendered from `docs/legal/strings.yaml` once counsel has written and signed it. The notes and the listing say that the app shows it. Today the app does not. | INT-117 (static 112 text at fixed points), HB-L27 (the fixed strings) |
 | 2 | A signed privacy policy (`gizlilik`) and the URL it is served at. The privacy link binds to its sha256 (`intake_platform.store.eas_metadata.bind_legal_link`). | HB-L27, HB-L21(e) |
 | 3 | The seller's legal entity, the support contact and the KVKK contact. | HB-L21(e) |
 | 4 | Whether microphone audio counts as *collected* on each store's form. This answer fills the voice row of `privacy-answers.draft.yaml`. | HB-L21(a) |
 | 5 | The app is called Önvizit in the binary, not only on the store. | INT-420 (PR #729) |
 | 6 | Phone sign-in works on the production host: an SMS vendor with a signed DPA, and the App Attest team id. | owner (docs/release/production-checklist.md §6) |
-| 7 | A way for a reviewer to sign in (§2). | owner decision, then an engineering issue |
-| 8 | Release stays manual, and the public release waits. The production host receives simulated patients only until an in-country host or counsel's cross-border decision exists. Use TestFlight internal testing and the Play internal track until then. `store.config.json` pins `automaticRelease: false`. | HB-I5, HB-L11 |
+| 7 | A way for a reviewer to sign in (§2). | INT-485 (#829), then the owner creates the account |
+| 8 | Voice intake can be reached in a release build. It must go through the streaming path (`apps/mobile/src/lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx`, line 115), and `createLiveVoiceSession` has no caller. The listing and the notes describe voice, so they wait for it. | INT-440 (#768), INT-454 (#769) |
+| 9 | Release stays manual, and the public release waits. The production host receives simulated patients only until an in-country host or counsel's cross-border decision exists. Use TestFlight internal testing and the Play internal track until then. `store.config.json` pins `automaticRelease: false`. | HB-I5, HB-L11 |
 
 ## 2 · The reviewer account
 
 **Facts.** Sign-in is by phone number and a one-time code sent by SMS (INT-131). A release build has no
 other way in: the development sign-in is compiled out (`apps/mobile/src/app/(auth)/welcome.tsx`).
 An App Review or Play reviewer cannot receive a code sent to a phone they do not hold. So no
-reviewer sign-in exists today. Adding one changes authentication on the production host. That
-needs its own issue and the security reviewer. This draft does not add one.
+reviewer sign-in exists today. Adding one changes authentication on the production host, so it
+has its own issue, INT-485 (#829), and goes to the security reviewer. This draft does not add one.
 
 **Once that path exists, the owner creates the account:**
 
@@ -51,8 +52,8 @@ needs its own issue and the security reviewer. This draft does not add one.
   shadow. INT-117 is the issue that makes this a tested property.
 - **A fixed notice** at static points tells the user to call 112 or go to the nearest emergency
   department. It is the files/06 §7 static safety line, verbatim. It is a legal fixed string, so
-  it renders only from `docs/legal/strings.yaml` with its hash. That file is unsigned (HB-L27), and
-  today no screen shows the line (§1 item 1).
+  it renders only from `docs/legal/strings.yaml` with its hash. That file does not exist yet:
+  counsel writes and signs it (HB-L27). Today no screen shows the line (§1 item 1).
 - **The RED screen** (a pre-positioned script, triggered over the data channel; the 112 control
   never mounts on site; invariant 21) belongs to `device_functions` on. That needs a CE certificate
   or an approved clinical investigation. It is not part of a store build, and the notes do not

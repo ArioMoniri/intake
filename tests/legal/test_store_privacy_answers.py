@@ -36,6 +36,13 @@ from typing import Any
 
 import pytest
 import yaml
+from intake_platform.db import models
+from intake_platform.db.inventory import (
+    BASIS_CONTRACT,
+    CAT_DIRECT_IDENTIFIER,
+    CAT_PSEUDONYM,
+    INVENTORY_KEY,
+)
 from intake_platform.legal import claims
 from intake_platform.store import answers
 from intake_platform.store import facts as facts_mod
@@ -99,6 +106,33 @@ def test_the_voice_row_leaves_the_audio_determination_open() -> None:
     assert voice["stored"] is False
     assert voice["leaves_device"] is True
     assert any(item.startswith("HB-L21(a)") for item in voice["open_determinations"])
+
+
+def test_the_sign_in_phone_number_is_a_fact_although_no_column_holds_it() -> None:
+    """The legal lane's finding on #828. Release builds sign in by phone and an
+    SMS code; the raw number goes to the SMS vendor and only a keyed pseudonym
+    is stored (invariant 14). A label derived from the schema alone would omit
+    the one direct identifier that leaves the PHI boundary."""
+    schema_categories = {
+        column.info[INVENTORY_KEY]["category"]
+        for table in models.Base.metadata.tables.values()
+        for column in table.columns
+    }
+    assert CAT_DIRECT_IDENTIFIER not in schema_categories
+    phone = [f for f in facts_mod.data_facts() if f.fact_id == "flow:phone_sign_in"]
+    assert len(phone) == 1
+    fact = phone[0]
+    assert (fact.persisted, fact.origin) == (False, "flow")
+    assert fact.category == CAT_DIRECT_IDENTIFIER
+    assert fact.category != CAT_PSEUDONYM, "the raw number is not a pseudonym"
+    assert fact.sharing is facts_mod.Sharing.TO_PROCESSOR
+    assert fact.bases == (BASIS_CONTRACT,)
+    otp = (REPO / "services/api/src/intake_api/otp.py").read_text(encoding="utf-8")
+    assert "delivery.send(phone_e164=phone" in otp, "the raw number reaches the adapter"
+    row = {r["inventory"]: r for r in answers.answer_sheet()["answers"]}["flow:phone_sign_in"]
+    assert row["leaves_device"] is True and row["stored"] is False
+    assert any(item.startswith("INT-358") for item in row["open_determinations"])
+    assert any("retention is awaiting-human" in item for item in row["open_determinations"])
 
 
 def test_on_device_health_reads_never_leave_the_device_until_added() -> None:

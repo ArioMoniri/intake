@@ -57,6 +57,12 @@ OPEN_DETERMINATIONS: Final[Mapping[str, tuple[str, ...]]] = {
         "HB-L21(a): whether audio that is transmitted for transcription and never "
         "written counts as collected on each store's form",
     ),
+    "flow:phone_sign_in": (
+        "INT-358: the SMS vendor, its DPA and the KVKK m.9 cross-border decision; until "
+        "the owner records them no vendor is admitted and phone sign-in answers 503",
+        "counsel: whether a phone number used to sign in to a health intake app is "
+        "health data under KVKK m.6 (question 16 of the INT-358 counsel brief)",
+    ),
 }
 
 _AWAITING = "awaiting-human"

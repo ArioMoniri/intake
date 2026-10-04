@@ -43,7 +43,7 @@ advisory:
     note: "The legal lane decides whether clinical sexual-health questions count here."
   medicalOrTreatmentInformation:
     answer: INFREQUENT_OR_MILD
-    source: "files/06_COMPLIANCE_TR.md §0.3 and §7 — health questions, the static 112 notice and the non-diagnosis lines; the app gives no treatment advice"
+    source: "files/06_COMPLIANCE_TR.md §0.3 and §7 — health questions and the non-diagnosis lines; the app gives no treatment advice"
   profanityOrCrudeHumor:
     answer: NONE
     source: "CLAUDE.md clinical content rules — B1 Turkish, siz register, empathetic copy"

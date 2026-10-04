@@ -38,7 +38,9 @@ from typing import Final
 from intake_platform.db import models
 from intake_platform.db.inventory import (
     BASIS_AWAITING_HUMAN_DIAGNOSTICS,
+    BASIS_CONTRACT,
     BASIS_HEALTH_CONSENT,
+    CAT_DIRECT_IDENTIFIER,
     CAT_HEALTH,
     CAT_OPERATIONAL,
     INVENTORY_KEY,
@@ -49,6 +51,7 @@ from intake_platform.db.inventory import (
     REC_INTERNAL,
     REC_ON_DEVICE,
     REC_PATIENT_CLINICIAN,
+    REC_SMS_VENDOR_UNDER_DPA,
     RET_RECORD,
     InventoryAnnotation,
     inv,
@@ -82,6 +85,10 @@ class Sharing(StrEnum):
     NONE = "none"
     ON_PATIENT_DIRECTION = "on_patient_direction"
     ON_LAWFUL_REQUEST = "on_lawful_request"
+    #: INT-482: a processor acting for us under a DPA (the SMS vendor that
+    #: delivers the sign-in code). Whether a form counts that as sharing is the
+    #: form's own definition, decided by its snapshot (HB-A12).
+    TO_PROCESSOR = "to_processor"
 
 
 class UnclassifiedRecipientError(ValueError):
@@ -108,6 +115,7 @@ RECIPIENT_SHARING: Final[Mapping[str, Sharing]] = MappingProxyType(
         REC_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
         REC_PATIENT_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
         REC_AUDITOR: Sharing.ON_LAWFUL_REQUEST,
+        REC_SMS_VENDOR_UNDER_DPA: Sharing.TO_PROCESSOR,
     }
 )
 
@@ -217,10 +225,37 @@ _CRASH_DIAGNOSTICS = OffSchemaFlow(
     "no default endpoint (files/10 §3-§4, INT-145)",
 )
 
+_PHONE_SIGN_IN = OffSchemaFlow(
+    flow_id="phone_sign_in",
+    what="the mobile number the patient enters to receive the one-time sign-in code",
+    annotation=inv(
+        CAT_DIRECT_IDENTIFIER,
+        "deliver the one-time sign-in code; the account is keyed by a keyed pseudonym "
+        "of the number, never by the number itself",
+        BASIS_CONTRACT,
+        "never written to an app table, a log line or a Redis key (invariant 14); the "
+        "SMS vendor's own retention is a DPA clause — awaiting-human (INT-358)",
+        REC_SMS_VENDOR_UNDER_DPA,
+    )[INVENTORY_KEY],
+    persisted=False,
+    active=True,
+    source_path="services/api/src/intake_api/otp.py",
+    source="the OTP tier normalises the number, keys the patient by its Tokenizer "
+    "pseudonym and hands the raw number only to the delivery adapter "
+    "(intake_api.otp_twilio), which is wired only once the vendor's DPA and the "
+    "cross-border decision exist; until then the tier answers 503",
+)
+
 OFF_SCHEMA_FLOWS: Final[Mapping[str, OffSchemaFlow]] = MappingProxyType(
     {
         flow.flow_id: flow
-        for flow in (_VOICE_AUDIO, _HEALTH_PLATFORM_READS, _DOCUMENT_OBJECT, _CRASH_DIAGNOSTICS)
+        for flow in (
+            _VOICE_AUDIO,
+            _HEALTH_PLATFORM_READS,
+            _DOCUMENT_OBJECT,
+            _CRASH_DIAGNOSTICS,
+            _PHONE_SIGN_IN,
+        )
     }
 )
 

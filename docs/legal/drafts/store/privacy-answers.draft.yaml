@@ -92,6 +92,31 @@ answers:
     to the note, from which point the notes.payload row governs'
   columns: 0
   open_determinations: []
+- inventory: flow:phone_sign_in
+  category: direct_identifier
+  stored: false
+  leaves_device: true
+  shared: to_processor
+  patient_deletion: nothing is stored
+  purposes:
+  - deliver the one-time sign-in code; the account is keyed by a keyed pseudonym of the number,
+    never by the number itself
+  bases:
+  - KVKK m.5/2-c — processing necessary for the service contract
+  retentions:
+  - never written to an app table, a log line or a Redis key (invariant 14); the SMS vendor's
+    own retention is a DPA clause — awaiting-human (INT-358)
+  recipients:
+  - the SMS delivery vendor, as a processor under a DPA, solely to deliver the one-time sign-in
+    code; no vendor is admitted until the owner records its DPA and the cross-border decision
+    (INT-358)
+  columns: 0
+  open_determinations:
+  - 'INT-358: the SMS vendor, its DPA and the KVKK m.9 cross-border decision; until the owner
+    records them no vendor is admitted and phone sign-in answers 503'
+  - 'counsel: whether a phone number used to sign in to a health intake app is health data
+    under KVKK m.6 (question 16 of the INT-358 counsel brief)'
+  - 'counsel: the retention is awaiting-human in the inventory'
 - inventory: flow:voice_audio
   category: special_category_health
   stored: false

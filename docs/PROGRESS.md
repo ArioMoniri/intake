@@ -28,7 +28,10 @@
   - publishing: HB-L21 (a)(b)(c)(e), HB-L27, HB-A12, HB-I5 and HB-L11;
   - submission: INT-117's static 112 notice, and a reviewer sign-in path (needs an issue and a security review);
   - the owner asks: Expo, App Store Connect, Play Console, the rename after #729.
-- Next: the orchestrator's legal-reviewer on the PR; promotion is a separate owner PR.
+- Legal-lane round 1 (REQUEST_CHANGES) is fixed:
+  - the sign-in phone number is now an off-schema flow (`direct_identifier`, sent to the SMS processor under INT-358);
+  - release-reachable voice (INT-440/INT-454) and the reviewer sign-in path (INT-485) are §1 conditions before submission.
+- Next: the legal-reviewer's re-review on #828. Promotion is a separate owner PR.
 - LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)

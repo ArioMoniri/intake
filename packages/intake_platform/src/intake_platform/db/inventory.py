@@ -72,6 +72,12 @@ CAT_AUDIT = "audit_trail"
 # people, not a consent row and not a health fact — it gets its own category
 # so the VERBİS export never files it under either.
 CAT_GUARDIANSHIP = "guardianship_link"
+# INT-482: the sign-in phone number. No column holds it: the patient row is
+# keyed by the Tokenizer pseudonym of the number (invariant 14). But the raw
+# number is handed to the SMS vendor to deliver the one-time code, so it is a
+# direct identifier that leaves the PHI boundary, and it gets its own category
+# rather than borrowing pseudonymised_identity, which it is not.
+CAT_DIRECT_IDENTIFIER = "direct_identifier"
 
 # --- lawful bases (KVKK m.5/m.6) ------------------------------------------------------
 
@@ -171,6 +177,14 @@ REC_HOSPITAL_SYSTEM_AWAITING_HUMAN = (
     "that will fetch this is defined by an executed DPA and a recorded tier-3 approval "
     "(infra/previsit_output/recipients.yaml), neither of which exists"
 )
+# INT-482: the processor that delivers the one-time sign-in code. No vendor is
+# admitted today: the egress allow-list has no row, and INT-358 (the DPA and the
+# KVKK m.9 cross-border decision) is awaiting-human, so the OTP tier answers 503.
+REC_SMS_VENDOR_UNDER_DPA = (
+    "the SMS delivery vendor, as a processor under a DPA, solely to deliver the "
+    "one-time sign-in code; no vendor is admitted until the owner records its DPA and "
+    "the cross-border decision (INT-358)"
+)
 REC_GUARDIAN_INTERNAL = (
     "internal services only while the guardian_link gate is shut; no recipient is defined "
     "beyond the PHI boundary until counsel answers"
@@ -187,7 +201,9 @@ REC_GUARDIAN_INTERNAL = (
 #: column in one of them holds the subject's personal data, so the DSAR export
 #: must answer for its table. Operational metadata and the audit trail are the
 #: two categories that describe how the platform runs.
-SUBJECT_DATA_CATEGORIES = frozenset({CAT_PSEUDONYM, CAT_HEALTH, CAT_CONSENT, CAT_GUARDIANSHIP})
+SUBJECT_DATA_CATEGORIES = frozenset(
+    {CAT_PSEUDONYM, CAT_HEALTH, CAT_CONSENT, CAT_GUARDIANSHIP, CAT_DIRECT_IDENTIFIER}
+)
 
 #: The retention wording that gives the subject the erasure verb over a row:
 #: the 06 §3 record clock's "patient-deletable" and the satisfaction row's

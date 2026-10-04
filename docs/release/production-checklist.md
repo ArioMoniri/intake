@@ -114,7 +114,8 @@ These run from `apps/mobile`, using `eas.json`'s `production` profile.
    - **Then:** `eas metadata:push`, run from `apps/mobile` and only after `eas submit` has uploaded a binary.
    - **Before you submit for review,** each item in `app-review-notes.draft.md` §1 must hold. Two of them matter most:
      - INT-117 must render the static 112 notice from the signed fixed strings (HB-L27). The notes say the app shows it, and today it does not.
-     - A reviewer must be able to sign in. Phone sign-in cannot reach a reviewer.
+     - A reviewer must be able to sign in. Phone sign-in cannot reach a reviewer, and INT-485 (#829) builds the reviewer path.
+     - Voice intake must be reachable in a release build through the streaming path (`lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`intake.tsx`, line 115). Owed by INT-440 (#768) and INT-454 (#769). The listing describes voice, so it waits for this.
    - **Still open:** HB-L21 (a) audio as collected, (b) the Play Health apps policy, (c) the IARC answers, (e) the seller's identity. Also HB-L27 (the signed `gizlilik` and fixed strings) and HB-A12 (the vendor snapshots).
    - **Synthetic scope.** The host receives simulated patients only (HB-I5, HB-L11). Builds go to TestFlight internal testing and the Play internal track. No public release goes live while that scope holds.
    - **Screenshots** come from INT-425 (PR #738, open) and are not copied here. Once #738 merges, the INT-482 tests run its captions through the same gates as the listing.
