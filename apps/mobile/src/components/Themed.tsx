@@ -26,6 +26,7 @@ import {
 import { Stack } from "expo-router";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
+import { PressScale, type PressHandlers } from "@/components/PressScale";
 import { useIncreasedContrast } from "@/lib/a11y/prefs";
 import { getLocale } from "@/lib/i18n";
 import { CTA_MIN_HEIGHT, effectiveFontScale, resolveScheme } from "@/lib/prefs/appearance";
@@ -304,14 +305,25 @@ interface ButtonProps {
   ref?: Ref<View>;
 }
 
+interface PrimaryButtonProps extends ButtonProps {
+  /** ADR-037 P1: give 0.97 under the finger (never consent, a gate or RED). */
+  pressScale?: boolean;
+}
+
 /**
  * The ONE focal action a screen gets: the tinted, filled button (SwiftUI's
  * `.borderedProminent`, UIKit's filled configuration) at full width, with a
  * 12-pt continuous corner. The accent is spent here, once per screen.
+ *
+ * INT-492: a call site may opt in to ADR-037 P1's press scale
+ * (`pressScale`), and only the typed steps' actions and the send do, under
+ * the `progressMicro` flag. Without the opt-in the button is the bare
+ * Pressable it always was.
  */
-export function PrimaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
+export function PrimaryButton(props: PrimaryButtonProps) {
+  const { label, onPress, disabled = false, hint, ref, pressScale = false } = props;
   const theme = useTheme();
-  return (
+  const render = (press?: PressHandlers) => (
     <Pressable
       ref={ref}
       accessibilityRole="button"
@@ -322,6 +334,8 @@ export function PrimaryButton({ label, onPress, disabled = false, hint, ref }: B
       // (SC 1.4.1 — the disabled opacity is the sighted half of this signal).
       accessibilityState={{ disabled }}
       onPress={onPress}
+      onPressIn={press?.onPressIn}
+      onPressOut={press?.onPressOut}
       disabled={disabled}
       style={({ pressed }) => [
         styles.primaryButton,
@@ -336,6 +350,7 @@ export function PrimaryButton({ label, onPress, disabled = false, hint, ref }: B
       </AppText>
     </Pressable>
   );
+  return pressScale ? <PressScale>{render}</PressScale> : render();
 }
 
 /**

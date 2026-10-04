@@ -3590,3 +3590,25 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: the native pass's five sections are open as stacked PRs (#792 → #797 → #801 → #806 → this). Delete the generated iOS project once the owner has reviewed on device.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T05:10:00+03:00 · INT-492 · done (PR open, not merged; stacked on #808)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-492, GitHub #839):
+  - "every component page of spaceui.one (primary) and the relevant pages of kobra.systems, astryx.atmeta.com, beautifului.dev, evilcharts.com and beui.dev are mined, with Mobbin for progress and stepper patterns; each licence is read from its raw file and recorded with its sha256; no code is copied from a source that is not MIT, and none is copied at all (every pattern is rebuilt natively)"
+  - "behind a build flag that is off by default, the typed screen's Soru N / M becomes a solid segmented capsule: one segment per section of the flow, as wide as its share, so the filled length is the old bar's fraction; the count is one non-breaking atom, never grouped, display-only, and refused by the TTS guard; the screen reader hears the same one worded value in both looks, never a digit or a frame, with no live region"
+  - "behind the same flag: answer chips reserve their check slot so a tap never reflows them; the step's action and the send give 0.97 under the finger (ADR-037 P1, the app's one spring, never on consent, a gate, RED or an instrument); the loading wait sits in a capsule and shows a still glyph under Reduce Motion; nothing animates on a step change except the question's existing fade"
+  - "the rolling number is approval needed: it exists only behind its own flag, which no release build honours, rolls only a forward step of one, and is static under Reduce Motion and on RED"
+  - "flag off: the screens are unchanged, pixel for pixel on the simulator; the capsule is solid on the capture-protected intake (INT-477); RED, verbatim question text and copy are unchanged; no new strings"
+  - "a component to screen map with source URLs is in docs/design/library-patterns.md; light and dark simulator captures and gifs are recorded"
+- Plan:
+  - Three designer subagents: spaceui.one (every page, the raw licence), the other five sites (licences, rendered timings, kobra by its rendered page only), Mobbin (progress, chips, submit, section change, empty and loading).
+  - Pure rules first (flags, capsule, motion policy, chip slot), then the wiring, each flagged site keeping today's expression on its off branch.
+- Tests added (with the near-miss negative for any safety rule):
+  - `src/lib/flags.test.ts`, `src/lib/intake/progressCapsule.test.ts`, `src/lib/motion/micro.test.ts`, `src/lib/controlChrome.test.ts`, `e2e/progressMicro.spec.ts`; `e2e/motion.spec.ts` gains P1's guard and the third spring module.
+  - Near misses: a near flag spelling stays off; the roll flag in a release build is dropped; Reduce Motion and RED each flipped alone; a digit-by-digit value is not the value; back, jump, first frame and a grown total never roll; today's chip reflows.
+  - RED: 6 files, 27 failed. GREEN: 154 files, 3163 tests.
+- Result: mobile vitest green; `pnpm -r typecheck` Done; lint 0 errors; backlog and smoke tests pass; `no_placeholders` OK on the staged tree. On the simulator, flag off is pixel-identical to the base branch at the same question; the roll, the press and Reduce Motion's static swap are captured frame by frame.
+- Invariants touched and still passing: 2, 5 (no new copy), 10 (question text verbatim), 17, 21 (no RED surface touched; every new motion off on RED), 22 (the count is display-only, refused by the TTS guard, never grouped, one atom, unreachable from the spoken lane).
+- Decisions / ADRs / `00_STATE.md` rows: none new. ADR-037 P1 (ratified) ships for the first time, on three actions under the flag, with the guard change its table names. The rolling number, glass on the capsule, a tweened fill, a press scale on intake chips and auto-advance are listed for the owner (library-patterns §7.3); none is on by default.
+- Blocked on: nothing. Approval needed from the owner for the roll (an ADR-033 amendment), and the ClinicalAuthor's Q-37.2 for any press on intake chips.
+- Next: merge after #808; the owner turns `progressMicro` on for a build with `INTAKE_FLAGS=progressMicro`.
+- LOOP_STATUS: CONTINUE

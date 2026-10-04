@@ -174,7 +174,9 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-415; owner request, GitHub #705).
     # + INT-473 (in-tree detent sheet, ADR-038 A3, GitHub #807).
     # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
-    assert len(ids) == 348
+    # + INT-492 (question progress and micro-interactions behind a flag,
+    # GitHub #839).
+    assert len(ids) == 349
     import re
 
     for i in ids:

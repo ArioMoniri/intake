@@ -119,7 +119,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
     # + INT-473 (in-tree detent sheet, ADR-038 A3, GitHub #807)
     # + INT-447 (INT-414's delivery lines verified under D18, GitHub #758)
-    assert len(actions) == 348
+    # + INT-492 (question progress and micro-interactions behind a flag, GitHub #839)
+    assert len(actions) == 349
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

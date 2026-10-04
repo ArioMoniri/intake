@@ -6793,3 +6793,26 @@
     - "the sheet's content and copy are unchanged; focus stays in the sheet and the VoiceOver escape and Android back close it; no new strings; before/after simulator captures in light and dark are committed"
   tests: [apps/mobile/src/lib/motion/sheet.test.ts, apps/mobile/e2e/sheets.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/a11y.spec.ts]
   sec_row: "mobile"
+- id: INT-492
+  epic: E08-mobile
+  phase: P1
+  title: "Question progress and micro-interactions behind a flag: a segmented capsule with the count, a reserved chip check, the press response, a still loading glyph"
+  # GitHub #839. Owner, 4 Oct 2026: "explore this w subagents of designer for
+  # the blob and question count and other parts", with spaceui.one as the
+  # primary reference (INT-491 is the orb). Built behind the progressMicro
+  # flag, off by default; the rolling number is beyond ADR-033 and ships only
+  # behind its own development-only flag, listed for the owner. Stacked on
+  # INT-473 (#808).
+  depends_on: [INT-473, INT-331]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-492.md
+  acceptance:
+    - "every component page of spaceui.one (primary) and the relevant pages of kobra.systems, astryx.atmeta.com, beautifului.dev, evilcharts.com and beui.dev are mined, with Mobbin for progress and stepper patterns; each licence is read from its raw file and recorded with its sha256; no code is copied from a source that is not MIT, and none is copied at all (every pattern is rebuilt natively)"
+    - "behind a build flag that is off by default, the typed screen's Soru N / M becomes a solid segmented capsule: one segment per section of the flow, as wide as its share, so the filled length is the old bar's fraction; the count is one non-breaking atom, never grouped, display-only, and refused by the TTS guard; the screen reader hears the same one worded value in both looks, never a digit or a frame, with no live region"
+    - "behind the same flag: answer chips reserve their check slot so a tap never reflows them; the step's action and the send give 0.97 under the finger (ADR-037 P1, the app's one spring, never on consent, a gate, RED or an instrument); the loading wait sits in a capsule and shows a still glyph under Reduce Motion; nothing animates on a step change except the question's existing fade"
+    - "the rolling number is approval needed: it exists only behind its own flag, which no release build honours, rolls only a forward step of one, and is static under Reduce Motion and on RED"
+    - "flag off: the screens are unchanged, pixel for pixel on the simulator; the capsule is solid on the capture-protected intake (INT-477); RED, verbatim question text and copy are unchanged; no new strings"
+    - "a component to screen map with source URLs is in docs/design/library-patterns.md; light and dark simulator captures and gifs are recorded"
+  tests: [apps/mobile/src/lib/flags.test.ts, apps/mobile/src/lib/intake/progressCapsule.test.ts, apps/mobile/src/lib/motion/micro.test.ts, apps/mobile/src/lib/controlChrome.test.ts, apps/mobile/e2e/progressMicro.spec.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "mobile"

@@ -64,6 +64,7 @@ import { AppText, PrimaryButton, Screen, useStackHeader } from "@/components/The
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { closingDelivery } from "@/lib/dialogue/deliveryPlan";
+import { flags } from "@/lib/featureFlags";
 import { t } from "@/lib/i18n";
 import { buildNote, effectiveStatus } from "@/lib/intake/note";
 import { missingQuestions, packForVisit } from "@/lib/intake/questions";
@@ -373,6 +374,8 @@ function ReviewAndSend() {
                   updateNote(visitId, { type: "send" });
                 }
               }}
+              // INT-492 (flag): ADR-037 P1's press; the commit is unchanged.
+              pressScale={flags.progressMicro}
             />
           </GlassBar>
         )}

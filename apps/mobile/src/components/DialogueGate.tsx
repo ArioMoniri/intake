@@ -25,14 +25,18 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "reac
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnnouncedRegion } from "@/components/Announced";
+import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
-import { AppText, useTheme } from "@/components/Themed";
+import { AppText, useFontScale, useTheme } from "@/components/Themed";
+import { useReducedMotion } from "@/lib/a11y/prefs";
 import { verticalSlop } from "@/lib/a11y/target";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
+import { flags } from "@/lib/featureFlags";
 import { t } from "@/lib/i18n";
 import type { VoiceIntakeAction } from "@/lib/intake/voiceFirst";
+import { loadingIndicator } from "@/lib/motion/micro";
 import { probeAsrReachability } from "@/lib/voice";
-import { spacing } from "@/lib/theme";
+import { radius, scaledSize, spacing } from "@/lib/theme";
 
 interface DialogueGateProps {
   dispatch: (action: VoiceIntakeAction) => void;
@@ -46,6 +50,11 @@ interface DialogueGateProps {
 
 export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
   const theme = useTheme();
+  const fontScale = useFontScale();
+  // INT-492 (flag): the wait sits in a filled capsule, and under Reduce
+  // Motion it shows a still glyph, so nothing on the screen moves.
+  const reduceMotion = useReducedMotion();
+  const waiting = loadingIndicator({ micro: flags.progressMicro, reduce: reduceMotion });
   // INT-284: the gate reserved `GLASS_BAR_CLEARANCE` for a bar it does not
   // render — intake.tsx shows the gate, the dialogue OR the typed steps, and
   // only the latter two carry a bar, so that was padding with no referent.
@@ -89,9 +98,17 @@ export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
         tone="status"
         merged
         message={t("voiceFirst.checking")}
-        style={styles.statusRow}
+        style={
+          flags.progressMicro
+            ? [styles.statusRow, styles.statusCapsule, { backgroundColor: theme.surface }]
+            : styles.statusRow
+        }
       >
-        <ActivityIndicator color={theme.primary} />
+        {waiting === "still" ? (
+          <Icon name="ellipsis" size={scaledSize("label", fontScale)} tintColor={theme.primary} />
+        ) : (
+          <ActivityIndicator color={theme.primary} />
+        )}
         <AppText role="label" color="inkSoft">
           {t("voiceFirst.checking")}
         </AppText>
@@ -129,6 +146,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     marginTop: spacing.sm,
+  },
+  // INT-492 (flag): the wait as a filled capsule, sized to its words.
+  statusCapsule: {
+    alignSelf: "flex-start",
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.chip,
+    borderCurve: "continuous",
   },
   typedRow: { marginTop: spacing.md },
 });

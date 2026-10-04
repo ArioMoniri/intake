@@ -51,3 +51,35 @@ export function chipChrome(colors: ThemeColors, selected: boolean): ChipChrome {
     ? { backgroundColor: colors.primarySoft, textColor: "primary", check: true }
     : { backgroundColor: colors.surface, textColor: "ink", check: false };
 }
+
+/**
+ * The check slot's diameter (INT-492): wide enough for a 12 pt check, the
+ * size the chat stage's answer cards draw (components/stage/StageControls).
+ */
+export const CHIP_SLOT = 20;
+
+/** The ring around an empty slot, and the stage cards' ring width. */
+export const CHIP_RING = 1.5;
+
+export interface ChipSlot {
+  readonly size: number;
+  /** The selected slot's disc. */
+  readonly fill: string | null;
+  /** The empty slot's ring. */
+  readonly ring: string | null;
+  /** The check drawn on the disc. */
+  readonly check: string | null;
+}
+
+/**
+ * The redesign's check slot (INT-492, behind `progressMicro`): reserved in
+ * both states, so selecting a chip never widens it and never reflows the
+ * chips after it. Empty, a ring in the control boundary colour; selected, a
+ * disc in the tint with the check on it. It appears instantly: a selection
+ * indicator never fades in (ADR-033 §4).
+ */
+export function chipSlot(colors: ThemeColors, selected: boolean): ChipSlot {
+  return selected
+    ? { size: CHIP_SLOT, fill: colors.primary, ring: null, check: colors.onPrimary }
+    : { size: CHIP_SLOT, fill: null, ring: colors.border, check: null };
+}

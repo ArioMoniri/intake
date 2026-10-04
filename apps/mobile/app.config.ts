@@ -19,11 +19,19 @@
  *   does not grow. Expo writes the block as `tools:node="remove"`, which wins
  *   over any library's declaration in the manifest merge, and drops the
  *   permission from `android.permissions` if app.json ever asks for it.
+ * - INT-492: `extra.flags` is the build's feature flags, and its ONLY source
+ *   is the build variable `INTAKE_FLAGS` (a comma-separated list of names).
+ *   Unset, it is empty and every flag is off; app.json cannot switch one on.
+ *   lib/flags.ts reads it, and refuses an approval-needed flag outside a
+ *   development build.
  */
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 /** The EAS variable the owner sets for a store build (public, not a secret). */
 export const API_BASE_ENV = "EXPO_PUBLIC_API_BASE_URL";
+
+/** The build variable that turns feature flags on (INT-492); unset, all are off. */
+export const FLAGS_ENV = "INTAKE_FLAGS";
 
 /** EAS Build sets this to the eas.json profile being built. */
 const PROFILE_ENV = "EAS_BUILD_PROFILE";
@@ -93,6 +101,7 @@ export function resolveAppConfig(config: ExpoConfig, env: Env): ExpoConfig {
     extra.ttsLanes = uniqueBy(extra.ttsLanes as unknown[], laneKey);
   }
   extra.apiBaseUrl = (env[API_BASE_ENV] ?? "").trim();
+  extra.flags = (env[FLAGS_ENV] ?? "").trim();
 
   const resolved: ExpoConfig = {
     ...config,

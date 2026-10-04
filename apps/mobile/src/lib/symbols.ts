@@ -67,6 +67,8 @@ export const SYMBOLS = {
   bell: { ios: "bell", android: "notifications" },
   "textformat.size": { ios: "textformat.size", android: "format_size" },
   eye: { ios: "eye", android: "visibility" },
+  // INT-492: the still stand-in for a spinner under Reduce Motion.
+  ellipsis: { ios: "ellipsis", android: "more_horiz" },
 } as const satisfies Record<string, SymbolEntry>;
 
 export type SymbolKey = keyof typeof SYMBOLS;

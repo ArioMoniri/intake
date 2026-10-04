@@ -248,7 +248,14 @@ const FADE_MODULE = "src/lib/motion/fade.ts";
 const BUBBLE_ENTERING = "src/lib/motion/native/bubbleEntering.ts";
 /** ADR-038 A3 (INT-473): the detent sheet, the second module allowed a spring. */
 const SHEET_MOTION = "src/lib/motion/native/sheetMotion.ts";
-const SPRING_ALLOWED: readonly string[] = [BUBBLE_ENTERING, SHEET_MOTION];
+/**
+ * ADR-037 P1 (INT-492): the press scale, the third. ADR-037's guard table
+ * names this change ("admits that one module, and a new guard pins its
+ * numbers"), and ADR-038's consequences count P1's press module among the
+ * springs it expected.
+ */
+const PRESS_SCALE_NATIVE = "src/lib/motion/native/pressScale.ts";
+const SPRING_ALLOWED: readonly string[] = [BUBBLE_ENTERING, SHEET_MOTION, PRESS_SCALE_NATIVE];
 
 /** Forbidden APIs, spelled from parts so this file never names them whole. */
 const LINEAR = ["Linear", "Transition"].join("");
@@ -394,8 +401,9 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
   });
 
   it("ADR-038 A1: the bubble entrance springs, and every number it uses is the ADR's", () => {
-    // The allow-list may only shrink after ADR-038: A1's bubble and A3's sheet.
-    expect(SPRING_ALLOWED).toEqual([BUBBLE_ENTERING, SHEET_MOTION]);
+    // The allow-list may only shrink after ADR-037 P1 and ADR-038: A1's
+    // bubble, A3's sheet and P1's press scale (INT-492).
+    expect(SPRING_ALLOWED).toEqual([BUBBLE_ENTERING, SHEET_MOTION, PRESS_SCALE_NATIVE]);
     const native = file(BUBBLE_ENTERING);
     expect(forbiddenApis(native)).toEqual([SPRING]);
     // The rise and the spring are read from the pure module the ADR pins
@@ -426,6 +434,26 @@ describe("MOTION-6 — Reanimated hygiene gates", () => {
     expect(numbers.filter((n) => n !== "0")).toEqual([]);
     // Only translateY and opacity move: no scale, no other transform.
     expect(code(native)).not.toMatch(/\bscale[XY]?\b|\btranslateX\b|\brotate\b/);
+  });
+
+  it("ADR-037 P1: the press scale springs on A1's spring, to 0.97, with no number of its own", () => {
+    const native = file(PRESS_SCALE_NATIVE);
+    expect(forbiddenApis(native)).toEqual([SPRING]);
+    // The target and the spring come from the pure module the ADR pins
+    // (lib/motion/micro.test.ts); the only number here is the rest scale.
+    expect(code(native)).toMatch(
+      /import (?:type )?\{[^}]*\bPressScale\b[^}]*\} from "\.\.\/micro"/,
+    );
+    const numbers = [...code(native).matchAll(/(?<![\w.])\d+(?:\.\d+)?(?![\w.])/g)].map(
+      (m) => m[0],
+    );
+    expect(numbers.filter((n) => n !== "1")).toEqual([]);
+    // Only the scale moves: no translate, no rotation, no opacity tween (the
+    // press keeps its instant opacity step from motion.press).
+    expect(code(native)).not.toMatch(/\btranslate[XY]\b|\brotate\b|\bopacity\b/);
+    const micro = code(file("src/lib/motion/micro.ts"));
+    expect(micro).toMatch(/PRESS_SPRING = BUBBLE_SPRING/);
+    expect(micro).toMatch(/PRESS_SCALE = 0\.97/);
   });
 
   it("Reanimated CSS transitions take their duration from cssFade", () => {
