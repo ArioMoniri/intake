@@ -924,13 +924,21 @@ def test_a_guidance_snapshot_carries_the_cited_edition(root: Path) -> None:
 def test_ld06_decides_what_the_admin_analytics_may_hold() -> None:
     decision = load_register()["LD-06"]
     assert decision.scope is Scope.SYNTHETIC_TEST_ONLY
-    assert decision.status is DecisionStatus.PROPOSED
+    assert decision.status is DecisionStatus.ACTIVE
+    assert decision.verifier.verdict is VerifierVerdict.AGREE_WITH_CHANGES
+    assert decision.verifier.notes and "B1 applied" in decision.verifier.notes
     value = decision.value
     assert value["improvement"]["rides_the_care_purpose"] is False
     assert value["improvement"]["anonymised_aggregates_need_a_ground_or_consent"] is False
     assert value["improvement"]["hospital_deployment_needs_controller_authorisation"] is True
     assert value["research"]["anonymised_aggregates_need_consent"] is False
-    assert value["research"]["record_level"]["separate_purpose"] is True
+    record_level = value["research"]["record_level"]
+    assert record_level["separate_purpose"] is True
+    # A floor, not a finding that it suffices: HB-L26 stays with counsel.
+    assert record_level["never_without_acik_riza"] is True
+    assert "ground" not in record_level
+    assert "HB-L26" in decision.outcome and "HB-L26" in (decision.legal_gap or "")
+    assert "subject to HB-L26" in value["consent_scope"]["owner_recommendation"]
     assert value["admin_analytics"]["may_hold"] == "anonymised_aggregates_only"
     assert value["admin_analytics"]["pseudonymised_rows"] == "personal_data_never_admin_analytics"
 
@@ -940,7 +948,12 @@ def test_ld06_leaves_the_legal_cell_size_and_the_retention_periods_draft() -> No
 
     decision = load_register()["LD-06"]
     drafted = set(draft_paths(decision))
-    assert {"cell_size.legal_minimum", "retention.aggregates", "retention.raw_telemetry"} <= drafted
+    assert {
+        "cell_size.legal_minimum",
+        "retention.aggregates",
+        "retention.raw_telemetry",
+        "research.record_level.acik_riza_suffices",
+    } <= drafted
     assert decision.value["cell_size"]["product_floor_subjects"] == K_ANONYMITY_FLOOR
     assert decision.value["retention"]["periodic_destruction_max_months"] == 6
 

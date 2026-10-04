@@ -17,4 +17,4 @@ Machine-readable entries: `packages/intake_platform/legal_decisions/LD-NN.yaml`,
 | [LD-03](LD-03.md) | KVKK inventory rows: family history, relatives' health and consanguinity; the hearing-voices item (Q16) | `active` | agree | none |
 | [LD-04](LD-04.md) | Occupational items: work-related sick leave, job tenure and household tuberculosis contact — category and basis | `active` | agree_with_changes | none |
 | [LD-05](LD-05.md) | WCAG 2.2 SC 2.2.1: classification of the RED no-answer wait | `active` | agree_with_changes | none |
-| [LD-06](LD-06.md) | Admin metrics and telemetry for research and improvement: purpose, anonymisation, cell size, retention | `proposed` | pending | none |
+| [LD-06](LD-06.md) | Admin metrics and telemetry for research and improvement: purpose, anonymisation, cell size, retention | `active` | agree_with_changes | none |

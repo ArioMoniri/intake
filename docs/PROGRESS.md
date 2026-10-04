@@ -3434,3 +3434,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner — consent scope (one recommendation in LD-06), the analytics retention periods and the DPA's controller-authorisation term are stop-and-ask items; HB-L26 stays with counsel.
 - Next: the legal reviewer's verdict on LD-06; then step 2, the build within it.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T12:00:00+03:00 · INT-484 · doing (step 1, LD-06 active after the legal review; build is step 2)
+- Goal: apply the legal reviewer's blocker B1 on LD-06 (record-level research ground is HB-L26) with S1, S3, S4 and S7, and record the final verdict.
+- Plan: tests first (the draft key and the floor pinned); the generator split `ground` into `never_without_acik_riza` and the draft `acik_riza_suffices`; outcome (b), the legal gap and the recommendation restate HB-L26 in full.
+- Tests added (with the near-miss negative for any safety rule): the LD-06 tests now pin the draft key, the floor, the HB-L26 references and the recorded verdict (71 in all).
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-484.md "Final verdict".
+- Invariants touched and still passing: 4, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none; LD-06 active (agree_with_changes) for synthetic and test use.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner's consent-scope answer; HB-L26 (counsel).
+- Next: step 2, the aggregate analytics build within LD-06; S2, S5, S6, S8–S10 go to INT-480 (#823).
+- LOOP_STATUS: WAITING_HUMAN
