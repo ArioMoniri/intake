@@ -6672,3 +6672,21 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-486
+  epic: E12-admin
+  phase: P1
+  title: "ops_prom label check uses fullmatch, so a trailing newline is refused (invariant 6)"
+  # GitHub #831. PromSession.fetch held every label value to ID_LABEL or
+  # BRANCH_LABEL with re.match, and re's `$` also matches before a final
+  # newline, so "api\n" was painted on the ops, reliability, CI/CD and voice
+  # consoles instead of turning the tile unknown. The probe emitters carry the
+  # same pattern and are INT-487 (#832).
+  depends_on: [INT-351]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-486.md
+  acceptance:
+    - "every label-shape check in services/api/src/intake_api/admin/ (ops_prom.PromSession) uses fullmatch, so a label value with a trailing newline is not id-shaped"
+    - "a near-miss test in tests/admin/test_ops_console.py: an id label 'api\\n' and a ref label 'main\\n' turn their tile unknown with label_not_id_shaped, while 'api' and 'main' are painted"
+  tests: [tests/admin/test_ops_console.py, tests/observability/test_ops_cicd.py]
+  sec_row: "admin-console"

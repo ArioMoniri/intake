@@ -176,7 +176,7 @@ class PromSession:
                 raise TileUnknown("unexpected_label")
             for name, value in sample.labels.items():
                 pattern = BRANCH_LABEL if name in _REF_LABELS else ID_LABEL
-                if not pattern.match(value):
+                if not pattern.fullmatch(value):
                     raise TileUnknown("label_not_id_shaped")
         return samples
 

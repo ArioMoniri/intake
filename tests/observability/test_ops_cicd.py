@@ -454,7 +454,7 @@ class TestExport:
         for name, labels in _samples():  # the API's PromSession shapes (ops_prom)
             for label, value in labels.items():
                 pattern = BRANCH_LABEL if label in ("branch", "tag") else ID_LABEL
-                assert pattern.match(value), (name, label, value)
+                assert pattern.fullmatch(value), (name, label, value)
 
     def test_free_text_and_people_never_reach_the_snapshot_or_a_label(self) -> None:
         github = FakeGitHub()
