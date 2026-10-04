@@ -1,4 +1,4 @@
-# ADR-040 · A staff Grafana over Prometheus only, on the synthetic staging host
+# ADR-041 · A staff Grafana over Prometheus only, on the synthetic staging host
 
 Status: Accepted (owner request, 4 Oct 2026; INT-481)
 

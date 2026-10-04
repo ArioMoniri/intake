@@ -33,7 +33,7 @@
 # Invariant 6: Prometheus keeps only the reviewed label keys at ingestion
 # (observability/prometheus.yml), and Grafana's only datasource is Prometheus.
 # No Loki, no Tempo, no Langfuse: nothing PHI-bearing is reachable from the
-# staff Grafana (files/08 §0b F1, invariant 48; ADR-040).
+# staff Grafana (files/08 §0b F1, invariant 48; ADR-041).
 #
 # Sizing: the host is a g6.2xlarge, 8 vCPU and 30 GiB, shared with staging and
 # the CI runner slots (docs/ci/aws-ci.md). This tier is capped at 1.4 GiB of

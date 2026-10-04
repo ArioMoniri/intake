@@ -6678,7 +6678,7 @@
   title: "Staff observability stack: Grafana-class dashboards and alerts for the admin panel (AWS host)"
   # GitHub #824. Owner request, 4 Oct 2026: "have grafana or related better
   # options or more detailed things for the admin panel and all telemetrics
-  # measurements". ADR-040 and D27 narrow files/08 §0b F1 for a Grafana that
+  # measurements". ADR-041 and D27 narrow files/08 §0b F1 for a Grafana that
   # reads Prometheus only. Two panels the issue names have no series on main:
   # the council's verifier outcomes are INT-430's council_* families (#741),
   # and spend in USD against the 80 USD cap is INT-439's model_spend_month_usd

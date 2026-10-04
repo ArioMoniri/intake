@@ -329,7 +329,7 @@ it or whose tests exercise it.
 - **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
   (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
   test_slo_coverage.py (INT-021).
-- **Controls added by INT-481 (4 Oct 2026, staging telemetry tier and staff Grafana, ADR-040):**
+- **Controls added by INT-481 (4 Oct 2026, staging telemetry tier and staff Grafana, ADR-041):**
   the [I] label threat is closed at ingestion, not only at the catalogue. One reviewed list of
   label keys (`intake_platform.observability.labels`) is held against the catalogue, every
   rule file and every dashboard. It refuses any key that names a person, a session or a

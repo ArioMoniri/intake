@@ -17,7 +17,7 @@
   - `promtool`, `amtool`, `blackbox_exporter` and the pinned oauth2-proxy accept every config; `promtool test rules` passes.
   - shellcheck, no_placeholders, phi_scan and claims_scan are clean. `make check-py`: see the evidence.
 - Invariants touched and still passing: 6 (labelkeep at ingestion; no email in the Grafana or gate logs; ids-only alerts), 13 (`emitter` on every catalogued family; each exporter job keeps exactly its families), 14 (digest pins; host-generated secrets on stdin), 15 (coverage `tier` entry with probe rows), 17 (*unknown* is a state; no figure is invented), 48 (Grafana reads Prometheus only, on its own origin, linked not framed).
-- Decisions / ADRs / `00_STATE.md` rows: ADR-040 and **D27** narrow files/08 §0b F1 for a staff Grafana over Prometheus only. D27 is numbered past D21 and D23–D26, which are taken on open branches.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-041 and **D27** narrow files/08 §0b F1 for a staff Grafana over Prometheus only. D27 is numbered past D21 and D23–D26, which are taken on open branches.
 - Blocked on (owner):
   - `owner-481-prometheus-console.patch` lights the console's Prometheus tiles, and with them the INT-187 error-budget freeze. One sentence: "May an exhausted 28-day SLO budget refuse staging deploys?"
   - The CI collector needs a read-only GitHub token, an OpenBao path, and an egress route to `api.github.com`, which is a hook-protected allow-list change.

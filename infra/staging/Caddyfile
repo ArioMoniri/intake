@@ -37,7 +37,7 @@ admin.{$STAGING_HOSTNAME} {
 # INT-481: the staff Grafana (compose.obs.yaml). Its own origin, never the
 # console's, and its own login gate: every request goes through
 # oauth2-proxy-grafana, which admits a signed-in Keycloak staff session holding
-# an ops-console role. Grafana reads Prometheus only (ADR-040).
+# an ops-console role. Grafana reads Prometheus only (ADR-041).
 grafana.{$STAGING_HOSTNAME} {
 	header {
 		X-Intake-Environment "staging-synthetic-only"
