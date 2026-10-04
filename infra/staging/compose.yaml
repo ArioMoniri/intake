@@ -328,6 +328,11 @@ services:
       OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
       # the console's liveness answer (files/08 §6) is the one unauthenticated path
       OAUTH2_PROXY_SKIP_AUTH_ROUTES: GET=^/healthz$$
+      # INT-485, invariant 6: the request and auth logs name the signed-in staff
+      # email and the client IP on every console request, so neither is
+      # written; start-up and error lines still are.
+      OAUTH2_PROXY_REQUEST_LOGGING: "false"
+      OAUTH2_PROXY_AUTH_LOGGING: "false"
     volumes:
       - ./oauth2-proxy/alpha.yaml:/etc/oauth2-proxy/alpha.yaml:ro
     networks: [edge]

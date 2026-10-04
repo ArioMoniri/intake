@@ -6672,3 +6672,20 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-485
+  epic: E13-infra
+  phase: P0
+  title: "Admin oauth2-proxy logs no staff email or client IP (invariant 6)"
+  # GitHub #830. INT-421's admin login gate kept oauth2-proxy's default request
+  # and auth logs, which name the signed-in email and the client IP on every
+  # console request, so the host's json-file logs held staff identities. The
+  # same two switches INT-481 sets on oauth2-proxy-grafana turn both off.
+  depends_on: [INT-421]
+  labels: [area:infra]
+  status: done
+  evidence: docs/evidence/INT-485.md
+  acceptance:
+    - "the admin oauth2-proxy service in infra/staging/compose.yaml sets OAUTH2_PROXY_REQUEST_LOGGING and OAUTH2_PROXY_AUTH_LOGGING to \"false\", with a comment saying why, the same as INT-481's oauth2-proxy-grafana; start-up and error lines are still written"
+    - "tests/infra/test_staging_admin_tier.py::TestLoginGate pins both, with a near-miss that the default (both absent), either one alone, or either set to \"true\" fails the same check; the red and green runs are recorded in docs/evidence/INT-485.md; nothing is deployed from the PR"
+  tests: [tests/infra/test_staging_admin_tier.py]
+  sec_row: "admin-console"
