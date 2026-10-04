@@ -301,12 +301,17 @@ class NoteGapReason(enum.StrEnum):
     * ``unresolved_precondition`` — the step was obliged but its gate never
       resolved. See the module note in :mod:`intake_voice_runtime.note` for
       why the note keeps this category at all.
+    * ``not_asked_proxy`` — INT-483, ADR-040: someone answered for the patient
+      and the pack skips this item in a proxy session (owner decision D24
+      answer 1Y). Nobody was asked and nobody said no, so it is none of the
+      other four — and never a negative.
     """
 
     DEFERRED_ENVIRONMENT = "deferred_environment"
     DECLINED = "declined"
     SESSION_ENDED = "session_ended"
     UNRESOLVED_PRECONDITION = "unresolved_precondition"
+    NOT_ASKED_PROXY = "not_asked_proxy"
 
 
 @dataclass(frozen=True, slots=True)
@@ -320,6 +325,13 @@ class NoteGap:
     section: str
     reason: NoteGapReason
     unit: str = field(default="")
+
+    @classmethod
+    def not_asked_proxy(cls, step_id: str) -> NoteGap:
+        """The gap a proxy-skipped step leaves (ADR-040), from its
+        ``<section>.<slot>`` step id — the engine's ``proxy_skipped``."""
+        section, _, unit = step_id.partition(".")
+        return cls(section=section, reason=NoteGapReason.NOT_ASKED_PROXY, unit=unit)
 
     @property
     def code(self) -> str:

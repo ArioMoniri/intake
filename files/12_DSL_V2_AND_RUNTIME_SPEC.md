@@ -95,6 +95,13 @@ class ObservationKind(StrEnum):
 
 `reporter` is a **per-field** attribute, not a session-level flag: *a companion observes, the patient experiences.* A model validator rejects `reporter != SELF ∧ observation_kind == SYMPTOM` outright.
 
+**What a proxy is asked is a slot attribute too** (INT-483, `docs/adr/ADR-040-subject-aware-addressing-for-proxy-sessions.md`; owner decision D24 answer 1Y). Each slot declares:
+
+- `addressee: patient | speaker`, where `patient` is the default;
+- a `proxy` block that either rewords the slot in its own verbatim `ask_tr` / `follow_up_tr` / `confirm_tr`, or sets `skip: true`.
+
+The compiler refuses a proxy-path document while any patient-addressed askable slot of the chain has no `proxy` block. A red-flag probe is never skipped and never addressed to the speaker. A skipped step is recorded `NOT_ASKED_PROXY`, never `ASKED_ABSENT`. The op set of §3.1 is unchanged.
+
 **Instrument scoring is gated by an unforgeable attestation token.** `score_instrument()` requires a `SelfReportAttestation`, constructible only by `attest_self_report()`, which raises if any item's reporter is not `SELF`. When attestation fails the engine emits `InstrumentNotScored` — never a number — and the FHIR projection carries `dataAbsentReason` with no `valueInteger`. This closes the case where a daughter answering PHQ-2 for her father produced `phq2: 0`, which a clinician reads as *screened, negative*.
 
 ### 2.3 `CLINICIAN_ONLY` — a third channel, enforced by the type system

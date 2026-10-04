@@ -22,6 +22,7 @@ from typing import Any
 from clinical_schemas.common import FrozenModel, Sha256
 from pydantic import Field
 
+from protocols.addressing import Addressing
 from protocols.bindings import OperationalTemplate
 from protocols.compile.emit_clips import ClipRow, clip_manifest
 from protocols.compile.emit_code import pydantic_module, typescript_module
@@ -59,6 +60,11 @@ class CompiledBundle(FrozenModel):
     )
     resolved_protocol_hash: Sha256 = Field(
         description="Pinned per session (files/03 §6; files/12 §8)."
+    )
+    addressing: Addressing = Field(
+        default=Addressing.SELF,
+        description="The session this bundle speaks to (ADR-040). A proxy bundle is a "
+        "separate artefact with its own hash, written beside the self bundle.",
     )
     opt_template_id: str = Field(description="files/12 §8 questionnaire_definition.")
     opt_sha256: Sha256 = Field(description="files/12 §8.1 test_opt_is_pinned.")
@@ -102,10 +108,13 @@ def compile_bundle(
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
     data_register: DataCategoryRegister | None = None,
+    addressing: Addressing = Addressing.SELF,
 ) -> CompiledBundle:
     """Resolve, project, and hash. Raises :class:`CompileError` on any refusal.
 
-    ``data_register`` gates tagged slots (INT-349); omitted, it has no rows."""
+    ``data_register`` gates tagged slots (INT-349); omitted, it has no rows.
+    ``addressing`` selects the self or the proxy bundle (ADR-040); the proxy
+    bundle is refused while any self-addressed slot lacks proxy handling."""
     document = resolve_protocol(
         pack_id=pack_id,
         registry=registry,
@@ -115,6 +124,7 @@ def compile_bundle(
         licences=licences,
         locale=locale,
         data_register=data_register,
+        addressing=addressing,
     )
     clips, prompts, clip_refusals = clip_manifest(document, voice, locale=locale)
     doc, fhir_refusals = questionnaire(document, prompts)
@@ -147,29 +157,34 @@ def compile_bundle(
             }
         ),
     }
-    artifacts[MANIFEST] = _dump(
-        {
-            "pack_id": document.pack_id,
-            "version": document.version,
-            "chain": list(document.chain),
-            "overlays": list(document.overlays),
-            "voice": voice,
-            "locale": locale,
-            "resolved_protocol_hash": document.resolved_protocol_hash,
-            "opt_template_id": template.template_id,
-            "opt_sha256": template.sha256,
-            "artifacts": {
-                name: hashlib.sha256(content.encode("utf-8")).hexdigest()
-                for name, content in sorted(artifacts.items())
-            },
-        }
-    )
+    manifest: dict[str, Any] = {
+        "pack_id": document.pack_id,
+        "version": document.version,
+        "chain": list(document.chain),
+        "overlays": list(document.overlays),
+        "voice": voice,
+        "locale": locale,
+        "resolved_protocol_hash": document.resolved_protocol_hash,
+        "opt_template_id": template.template_id,
+        "opt_sha256": template.sha256,
+        "artifacts": {
+            name: hashlib.sha256(content.encode("utf-8")).hexdigest()
+            for name, content in sorted(artifacts.items())
+        },
+    }
+    if addressing is Addressing.PROXY:
+        # ADR-040. Only the proxy manifest says so, which keeps every self
+        # bundle byte-identical to the INT-297 baseline; the field on the
+        # CompiledBundle is explicit either way.
+        manifest["addressing"] = addressing.value
+    artifacts[MANIFEST] = _dump(manifest)
     return CompiledBundle(
         pack_id=document.pack_id,
         version=document.version,
         voice=voice,
         locale=locale,
         resolved_protocol_hash=document.resolved_protocol_hash,
+        addressing=addressing,
         opt_template_id=template.template_id,
         opt_sha256=template.sha256,
         clip_manifest=clips,
@@ -178,8 +193,12 @@ def compile_bundle(
 
 
 def write_bundle(bundle: CompiledBundle, dist_root: Path) -> tuple[Path, ...]:
-    """Write every artefact under ``<dist_root>/<pack_id>/``, sorted."""
+    """Write every artefact under ``<dist_root>/<pack_id>/``, sorted; a proxy
+    bundle under ``<dist_root>/<pack_id>/proxy/`` so neither overwrites the
+    other (ADR-040)."""
     target = dist_root / bundle.pack_id
+    if bundle.addressing is Addressing.PROXY:
+        target = target / Addressing.PROXY.value
     target.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for name, content in sorted(bundle.artifacts.items()):

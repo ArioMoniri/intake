@@ -1,5 +1,37 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-04T12:00:00Z · INT-483 · done (PR open, label approval:human-clinical)
+- Goal: owner decision D24 answer 1Y. In a proxy session every self-addressed question is reworded for the patient or skipped, and the child and carer paths stay closed until that mechanism exists. Legal bounds come from LD-02 (INT-471).
+- Plan:
+  - write ADR-040;
+  - add DSL `addressee` and `proxy` (reword with verbatim text, or `skip: true`);
+  - add the compiler gate `compile/proxy_path.py` and the proxy projection;
+  - add the engine's `addressing` and the eighth answer state `NOT_ASKED_PROXY`;
+  - add the note gap `not_asked_proxy`;
+  - leave the content empty: no proxy copy, and no reword-or-skip choice.
+- Tests added: `tests/protocols/test_proxy_addressing.py`, `tests/engine/test_proxy_addressing_runtime.py`, `tests/legal/test_proxy_addressing_minor_defaults.py`, plus the `NOT_ASKED_PROXY` row in `tests/safety/test_triage_when.py`.
+  - Near misses:
+    - one unhandled must-ask item refuses, and with all handled the pack compiles;
+    - a red-flag probe marked skip refuses, and the same skip on a slot no rule reads compiles;
+    - a speaker-addressed probe refuses;
+    - a subject-role gate on a probe refuses on the proxy path and compiles on the self path;
+    - a skipped gate slot refuses, and with its dependent also skipped it compiles;
+    - the runtime speaks proxy text and self text from documents resolved for each, and refuses a mismatched role;
+    - under-18 subjects are refused for every role, while the day of majority proceeds.
+  - RED: 25 failed in the compiler tests, 9 errors in the runtime tests, 25 failed in the note goldens, and a collection error in the safety suite.
+  - GREEN: docs/evidence/INT-483.md.
+- Result (docs/evidence/INT-483.md, §Gates):
+  - `make check-py`: every lane green; protocols 97.51 %, voice-runtime 98.65 %.
+  - `make safety`: triage 100 % branch, 18/18 mutations detected.
+  - `make check-ts`: green.
+  - placeholder, PHI and claims gates, sec-row linkage and evidence check: OK.
+  - A clinical-reviewer agent found four defects. Three are fixed (role required at composition; transitive and speaker-slot gate reach; override-stale rewording). The fourth, the RED action location question in a proxy session, is recorded under HB-C9.
+- Invariants touched and still passing: 1, 2, 7, 10, 13, 17, 18, 22. Each is listed with how it holds in the evidence.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-040, Accepted. No new owner decision, so no 00_STATE row; D24 is INT-470's.
+- Blocked on: nothing. The content is a D18 clinical decision record. Before it lands, the profile-layer carer route (INT-133 `proxy_report`) is for the files/06 §6 owner (LD-02 `carers.conflict_for_06_owner`).
+- Next: the D18 record that rewords or skips each item. The content PR then drops the CD-01 stop-gap and adds the English mirror keys.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:

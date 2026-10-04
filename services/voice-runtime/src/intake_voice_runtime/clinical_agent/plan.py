@@ -124,6 +124,11 @@ class EngineStep(FrozenModel):
     choices_tr: tuple[str, ...] = Field(default=(), description="Spoken options (files/04 §1).")
     ask_if: str | None = Field(default=None, description="Gate expression (files/03 §5-6).")
     skip_if: str | None = Field(default=None, description="Retire expression (files/03 §5).")
+    proxy_skipped: bool = Field(
+        default=False,
+        description="Skipped in this proxy session by the pack (ADR-040): the engine "
+        "records it NOT_ASKED_PROXY and never offers it.",
+    )
 
     @property
     def sort_key(self) -> tuple[int, int, str]:
@@ -259,6 +264,7 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
                     choices_tr=tuple(choices),
                     ask_if=slot.ask_if,
                     skip_if=slot.skip_if,
+                    proxy_skipped=resolved.proxy_skipped,
                 )
             )
     return IntakePlan(steps=tuple(steps), ask_gates=ask_gates, skip_gates=skip_gates)

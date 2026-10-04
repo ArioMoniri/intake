@@ -112,7 +112,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-449 (Turkish voice casting, owner request, GitHub #762)
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
-    assert len(actions) == 341
+    # + INT-483 (ADR-040 self/proxy addressing, owner D24 answer 1Y, GitHub #826)
+    assert len(actions) == 342
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -6672,3 +6672,24 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-483
+  epic: E03-protocols
+  phase: P1
+  title: "Self/proxy answering: ADR-040 and the subject_role addressing mechanism (owner D24 answer 1Y)"
+  # GitHub #826. Owner decision D24, answer 1Y (3 Oct 2026): in a proxy
+  # session every self-addressed question is reworded for the patient or
+  # skipped, and the child and carer paths stay closed until that mechanism
+  # exists. Legal bounds: LD-02 (INT-471). The mechanism ships with every
+  # proxy path closed; the per-item reword-or-skip choices and every proxy
+  # sentence are a D18 clinical decision record, not this issue.
+  depends_on: [INT-448, INT-223]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-483.md
+  acceptance:
+    - "ADR-040 (docs/adr) records the decision, the mechanism and what stays closed; cites D24, LD-02, and the CD-110/CD-103/CD-104 items that depend on it (T11-T15, cluster-wave-b #L77 #L105 #L117, INT-353 #L310, pedodonti/ortodonti/Evde Sağlık)"
+    - "DSL + compiler: a subject_role-aware addressing for slots (proxy text or skip-in-proxy), with the compiler refusing to serve a pack on a proxy path while any self-addressed must-ask item lacks proxy handling (fail closed); base self-addressed must_ask items handled the same way"
+    - "the per-item reword-vs-skip choices are clinical (D18) and come in a separate CD record; this issue builds the mechanism and leaves content empty (no invented proxy copy)"
+    - "tests with near misses; make safety green; INT-223 defaults unrelaxed (under-18 paths stay closed)"
+  tests: [tests/protocols/test_proxy_addressing.py, tests/engine/test_proxy_addressing_runtime.py, tests/legal/test_proxy_addressing_minor_defaults.py]
+  sec_row: "clinical-content"

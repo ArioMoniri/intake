@@ -7,7 +7,7 @@ protocol_hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 model: synthetic-note-model@rev0
 prompt_version: note-v0
 legal_strings_version: synthetic-int084
-legal_strings_sha256: 80fff4853f231a90d871fa68405f67dcd89023d22d49af38bed33dbb3b46ddd9
+legal_strings_sha256: e17f115b6e9d6f7f5ab50af941ee37efb88ca6b8a48ba1c25b51dd71ef5be76d
 
 Triyaj
   level: GREEN
@@ -74,6 +74,7 @@ Eksikler
   family_social · fh_father — eksik: hasta paylaşmak istemedi
   ros_pertinent · ros_gi — eksik: görüşme tamamlanmadan bitti
   pmh · pmh_surgery_detail — eksik: ön koşulu belirsiz kaldı, sorulamadı
+  pmh_fh_sh · smoking_status — eksik: yakını yanıtladı, bu soru sorulmadı
 
 Kaynaklar
   [f01] utterance:work-1:0-16

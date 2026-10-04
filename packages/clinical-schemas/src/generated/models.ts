@@ -8,7 +8,7 @@ export interface AllergyItem {
   "severity"?: string;
 }
 
-export type AnswerState = "NOT_ASKED" | "ASKED_PENDING" | "ASKED_PRESENT" | "ASKED_ABSENT" | "UNCLEAR" | "DECLINED" | "CONTESTED";
+export type AnswerState = "NOT_ASKED" | "ASKED_PENDING" | "ASKED_PRESENT" | "ASKED_ABSENT" | "UNCLEAR" | "DECLINED" | "CONTESTED" | "NOT_ASKED_PROXY";
 
 export interface AuditV1 {
   "schema_id"?: "intake.clinical.audit.v1";

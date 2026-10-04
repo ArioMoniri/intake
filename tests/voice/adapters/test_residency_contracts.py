@@ -90,6 +90,7 @@ from intake_voice_runtime.transcript import (
     SessionTranscripts,
     TranscriptNotHeld,
 )
+from protocols.addressing import Addressing
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
 from protocols.locale_text import DEFAULT_LOCALE as TR
@@ -202,6 +203,7 @@ def build_stack(
     sink = RecordingSink(clock=clock)
     stack = build_residency_tr_session(
         protocol=_protocol(),
+        addressing=Addressing.SELF,
         reference_time=NOW,
         session_id=SESSION,
         voice_id=VOICE_ID,

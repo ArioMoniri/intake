@@ -87,6 +87,7 @@ from intake_voice_runtime.typed import (
     render_measure,
     typed_prompt,
 )
+from protocols.addressing import Addressing
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
 from protocols.types import Delivery, SlotType
@@ -201,6 +202,7 @@ def voice_stack(
     surface = screen or RecordingScreen()
     stack = build_residency_tr_session(
         protocol=protocol or _protocol(),
+        addressing=Addressing.SELF,
         reference_time=NOW,
         session_id=SESSION,
         voice_id=VOICE_ID,
@@ -225,6 +227,7 @@ def typed_stack(
     screen = RecordingScreen()
     stack = build_typed_session(
         protocol=protocol or _protocol(),
+        addressing=Addressing.SELF,
         reference_time=NOW,
         session_id=SESSION,
         protocol_hash=HASH,

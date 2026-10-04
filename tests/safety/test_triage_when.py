@@ -141,6 +141,9 @@ class TestKleene:
             AnswerState.ASKED_PENDING,
             AnswerState.UNCLEAR,
             AnswerState.DECLINED,
+            # INT-483 / ADR-040: an item skipped in a proxy session is not a
+            # negative. A rule reading it is never satisfied by its absence.
+            AnswerState.NOT_ASKED_PROXY,
         ],
     )
     def test_valueless_states_are_unknown(self, state: AnswerState) -> None:

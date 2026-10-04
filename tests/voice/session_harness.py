@@ -24,6 +24,7 @@ from intake_voice_runtime.composition import (
 )
 from intake_voice_runtime.extraction.gateway import Completion, ExtractionCall
 from intake_voice_runtime.profiles import VoiceProfile
+from protocols.addressing import Addressing
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
 from protocols.types import Delivery, SlotType
@@ -130,6 +131,7 @@ def builders(
     def voice() -> SessionStack:
         return build_residency_tr_session(
             protocol=protocol(),
+            addressing=Addressing.SELF,
             reference_time=NOW,
             session_id=session_id,
             voice_id=VOICE_ID,
@@ -148,6 +150,7 @@ def builders(
     def typed() -> SessionStack:
         return build_typed_session(
             protocol=protocol(),
+            addressing=Addressing.SELF,
             reference_time=NOW,
             session_id=session_id,
             protocol_hash=HASH,

@@ -248,7 +248,7 @@
               ]
             },
             "text": {
-              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>screening:deferred_environment:phq2</p><p>family_social:declined:fh_father</p><p>ros_pertinent:session_ended:ros_gi</p><p>pmh:unresolved_precondition:pmh_surgery_detail</p></div>",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>screening:deferred_environment:phq2</p><p>family_social:declined:fh_father</p><p>ros_pertinent:session_ended:ros_gi</p><p>pmh:unresolved_precondition:pmh_surgery_detail</p><p>pmh_fh_sh:not_asked_proxy:smoking_status</p></div>",
               "status": "generated"
             },
             "title": "data_gaps"

@@ -231,6 +231,11 @@ def questionnaire(
     for section in document.sections:
         items: list[dict[str, Any]] = []
         for slot in section.slots:
+            if slot.proxy_skipped:
+                # ADR-040: the proxy Questionnaire does not ask a skipped item. The
+                # compiler has refused any gate that reads one, so no enableWhen
+                # can point at an item left out here.
+                continue
             item, item_refusals = _item(slot, texts.get(slot.fhir_link_id, ""), links)
             refusals.extend(item_refusals)
             items.append(item)

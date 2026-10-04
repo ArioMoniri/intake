@@ -50,6 +50,12 @@ def _slot_maps(slot: Slot) -> Iterator[Mapping[str, object] | None]:
     yield slot.confirm_tr
     yield slot.follow_up_tr
     yield slot.choices_tr
+    if slot.proxy is not None:
+        # INT-483 / ADR-040: what a proxy hears is a speakable field like any
+        # other, so it joins the intersection rather than getting a fallback.
+        yield slot.proxy.ask_tr
+        yield slot.proxy.confirm_tr
+        yield slot.proxy.follow_up_tr
 
 
 def _instrument_maps(instrument: Instrument) -> Iterator[Mapping[str, object] | None]:

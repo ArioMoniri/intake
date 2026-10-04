@@ -69,6 +69,7 @@ from intake_voice_runtime.extraction.gateway import (  # noqa: E402
 )
 from intake_voice_runtime.ports import PatientRecord  # noqa: E402
 from intake_voice_runtime.profiles import VoiceProfile  # noqa: E402
+from protocols.addressing import Addressing  # noqa: E402
 from protocols.compile.resolve import (  # noqa: E402
     ResolvedProtocol,
     ResolvedSection,
@@ -285,6 +286,7 @@ def _run_turn(lanes: Lanes, *, voice_id: str) -> tuple[TurnTerms, str, str]:
 
     stack = build_residency_tr_session(
         protocol=_synthetic_protocol(),
+        addressing=Addressing.SELF,
         reference_time=datetime.now(UTC),
         session_id="11111111-2222-4333-8444-555555555555",
         voice_id=voice_id,

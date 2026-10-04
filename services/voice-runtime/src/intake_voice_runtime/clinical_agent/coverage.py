@@ -20,7 +20,9 @@ put the metric in tension with consent. A contested slot counts because both
 values reach the note (files/13 §11.2) — the question was asked and answered
 twice, which is a coverage success and a reconciliation failure.
 
-**Not covered** — ``NOT_ASKED``, ``ASKED_PENDING``, ``UNCLEAR``.
+**Not covered** — ``NOT_ASKED``, ``ASKED_PENDING``, ``UNCLEAR``, and
+``NOT_ASKED_PROXY`` (ADR-040): an item the pack skips in a proxy session was
+not asked by design, so it is a gap the clinician sees, never a covered item.
 ``ASKED_PENDING`` is the one that matters: under ask-ahead a step is asked
 long before anything binds, and files/13 §11.3 lets that answer be
 *discarded* if a later extraction invalidates the step. Counting a pending

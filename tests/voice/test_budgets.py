@@ -61,6 +61,7 @@ from intake_voice_runtime.metering import (
 from intake_voice_runtime.metrics import VOICE_TTS_CHARS
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.talker.clips import ClipCatalogue, ClipRef
+from protocols.addressing import Addressing
 from protocols.dsl import clip_text_hash
 from pydantic import ValidationError
 from red_harness import RecordingClinicNotifier
@@ -659,6 +660,7 @@ def test_a_voice_session_spends_characters_and_a_typed_session_spends_none() -> 
     voice_clock = FakeClock()
     voice = build_residency_tr_session(
         protocol=parity._protocol(),
+        addressing=Addressing.SELF,
         reference_time=parity.NOW,
         session_id=parity.SESSION,
         voice_id=VOICE_ID,
@@ -679,6 +681,7 @@ def test_a_voice_session_spends_characters_and_a_typed_session_spends_none() -> 
     typed_clock = FakeClock()
     typed = build_typed_session(
         protocol=parity._protocol(),
+        addressing=Addressing.SELF,
         reference_time=parity.NOW,
         session_id=parity.SESSION,
         protocol_hash=parity.HASH,
@@ -705,6 +708,7 @@ def test_both_profiles_spend_the_same_tokens_on_the_same_answers() -> None:
     voice_clock = FakeClock()
     voice = build_residency_tr_session(
         protocol=parity._protocol(),
+        addressing=Addressing.SELF,
         reference_time=parity.NOW,
         session_id=parity.SESSION,
         voice_id=VOICE_ID,
@@ -725,6 +729,7 @@ def test_both_profiles_spend_the_same_tokens_on_the_same_answers() -> None:
     typed_clock = FakeClock()
     typed = build_typed_session(
         protocol=parity._protocol(),
+        addressing=Addressing.SELF,
         reference_time=parity.NOW,
         session_id=parity.SESSION,
         protocol_hash=parity.HASH,
@@ -748,6 +753,7 @@ def test_a_session_composed_without_a_meter_is_unchanged() -> None:
     clock = FakeClock()
     stack = build_typed_session(
         protocol=parity._protocol(),
+        addressing=Addressing.SELF,
         reference_time=parity.NOW,
         session_id=parity.SESSION,
         protocol_hash=parity.HASH,

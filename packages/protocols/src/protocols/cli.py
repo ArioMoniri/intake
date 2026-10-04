@@ -36,6 +36,7 @@ from pathlib import Path
 
 import yaml
 
+from protocols.addressing import Addressing
 from protocols.authoring import AuthoringError, generate_all, generate_l0
 from protocols.bindings import OPT_PATH, OptError, load_opt
 from protocols.compile import (
@@ -216,6 +217,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         dest="overlays",
         help="overlay pack id to apply; repeatable",
     )
+    com.add_argument(
+        "--addressing",
+        choices=[member.value for member in Addressing],
+        default=Addressing.SELF.value,
+        help="the session the bundle speaks to (ADR-040; default: %(default)s). The "
+        "proxy bundle is refused while any self-addressed slot of the chain has no "
+        "proxy handling, and is written under <out>/<pack>/proxy/.",
+    )
     com.add_argument("--out", type=Path, default=DIST_ROOT)
     args = parser.parse_args(argv)
     if args.command == "compile":
@@ -253,6 +262,7 @@ def _compile_command(args: argparse.Namespace) -> int:
             locale=args.locale,
             overlays=tuple(args.overlays),
             data_register=data_register,
+            addressing=Addressing(args.addressing),
         )
     except CompileError as exc:
         print(f"compile: refused to emit {args.pack} ({len(exc.refusals)} reasons)")
