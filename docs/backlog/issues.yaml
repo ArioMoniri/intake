@@ -6672,3 +6672,32 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-481
+  epic: E01-platform
+  phase: P1
+  title: "Staff observability stack: Grafana-class dashboards and alerts for the admin panel (AWS host)"
+  # GitHub #824. Owner request, 4 Oct 2026: "have grafana or related better
+  # options or more detailed things for the admin panel and all telemetrics
+  # measurements". ADR-040 and D27 narrow files/08 §0b F1 for a Grafana that
+  # reads Prometheus only. Two panels the issue names have no series on main:
+  # the council's verifier outcomes are INT-430's council_* families (#741),
+  # and spend in USD against the 80 USD cap is INT-439's model_spend_month_usd
+  # (#761). The ElevenLabs 100 USD cap is checked before each offline render
+  # (scripts/voice/render_cast_clips.py) and metered by no series. Those
+  # panels are added to intake_platform.ops_dashboards when their families
+  # are catalogued; until then the spend panel shows the cost-budget alerts.
+  # The console's Prometheus tiles, and with them the INT-187 error-budget
+  # freeze, are an owner patch (owner-481-prometheus-console). The CI
+  # collector's GitHub read waits on a read-only token, an egress route and an
+  # OpenBao path, all owner decisions.
+  depends_on: [INT-021, INT-345, INT-421]
+  labels: [area:observability]
+  status: done
+  evidence: docs/evidence/INT-481.md
+  acceptance:
+    - "the survey of what exists and one recommended stack with licences read from the raw LICENSE blob (sha256 recorded) are in the evidence; the stack runs on the AWS host only, sized to its RAM and disk next to staging and the CI runners, with retention capped in time and size and images pinned by digest in the self-hosting registry"
+    - "Grafana is staff-only behind Keycloak, its own oauth2-proxy and Caddy, reads Prometheus only, and is linked (never framed) from the admin panel; alerts surface in the admin panel through GET /admin/alerts, ids only"
+    - "provisioned, drift-gated dashboards cover API and voice latency against the docs/slo SLOs with error budgets, synthetic probes, model-lane usage and the budget alerts, triage outcomes in aggregate, the CI runner, host CPU/RAM/disk and deploy markers"
+    - "a test scans every label key in the catalogue, the rule files, the dashboards and the staging scrape jobs against one closed allow-list and refuses person, session, device, free-text and unreviewed identifier keys (invariant 6); every new series is catalogued (invariant 13)"
+  tests: [tests/observability/test_metric_labels.py, tests/observability/test_ops_dashboards.py, tests/infra/test_staging_obs_tier.py, tests/admin/test_alerts_console.py, apps/admin-web/e2e/alerts.spec.ts]
+  sec_row: "monitoring-contract"
