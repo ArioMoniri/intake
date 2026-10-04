@@ -84,6 +84,9 @@ _NAME_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
 #: Prometheus ``name`` is that id with dots turned into underscores.
 _SPEC_ID_RE = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*$")
 _SERVICE_RE = re.compile(r"^[a-z][a-z0-9-]*$")
+_EMITTER_RE = re.compile(
+    r"^(?:code|prometheus|exporter:[a-z0-9][a-z0-9._-]*|textfile:[A-Za-z0-9_][A-Za-z0-9_./-]*)$"
+)
 _WINDOW_RE = re.compile(r"^([0-9]+)([smhd])$")
 _WINDOW_UNIT_S = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 #: A metric reference is an identifier immediately followed by a label
@@ -138,6 +141,14 @@ class MetricDef(BaseModel):
     id: str | None = None
     target: str | None = None
     status: Literal["live", "planned"] = "live"
+    #: INT-481: what emits a live entry. ``code`` (the default) is a
+    #: prometheus_client family constructed under packages/ or services/, held
+    #: by the static scan. ``prometheus`` is Prometheus's own series about a
+    #: scrape or itself; ``exporter:<registry component>`` is a pinned
+    #: third-party exporter; ``textfile:<repo path>`` is a script that writes a
+    #: node-exporter textfile. For the last three the staging scrape job must
+    #: keep the family by name (tests/infra/test_staging_obs_tier.py).
+    emitter: str = "code"
 
     @property
     def spec_id(self) -> str:
@@ -180,6 +191,16 @@ class MetricDef(BaseModel):
                 "(dots become underscores, nothing else changes)"
             )
         return self
+
+    @field_validator("emitter")
+    @classmethod
+    def _emitter_shape(cls, value: str) -> str:
+        if _EMITTER_RE.match(value) is None:
+            raise ValueError(
+                f"not an emitter (code | prometheus | exporter:<component> | textfile:<path>): "
+                f"{value!r}"
+            )
+        return value
 
     @field_validator("labels")
     @classmethod
