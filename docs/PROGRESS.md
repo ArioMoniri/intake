@@ -30,7 +30,7 @@
   - the owner asks: Expo, App Store Connect, Play Console, the rename after #729.
 - Legal-lane round 1 (REQUEST_CHANGES) is fixed:
   - the sign-in phone number is now an off-schema flow (`direct_identifier`, sent to the SMS processor under INT-358);
-  - release-reachable voice (INT-440/INT-454) and the reviewer sign-in path (INT-485) are §1 conditions before submission.
+  - release-reachable voice (INT-440/INT-454) and the reviewer sign-in path (INT-488) are §1 conditions before submission.
 - Next: the legal-reviewer's re-review on #828. Promotion is a separate owner PR.
 - LOOP_STATUS: WAITING_HUMAN
 

@@ -20,8 +20,8 @@ missing item is a reason to wait. It is not something to describe around.
 | 4 | Whether microphone audio counts as *collected* on each store's form. This answer fills the voice row of `privacy-answers.draft.yaml`. | HB-L21(a) |
 | 5 | The app is called Önvizit in the binary, not only on the store. | INT-420 (PR #729) |
 | 6 | Phone sign-in works on the production host: an SMS vendor with a signed DPA, and the App Attest team id. | owner (docs/release/production-checklist.md §6) |
-| 7 | A way for a reviewer to sign in (§2). | INT-485 (#829), then the owner creates the account |
-| 8 | Voice intake can be reached in a release build. It must go through the streaming path (`apps/mobile/src/lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx`, line 115), and `createLiveVoiceSession` has no caller. The listing and the notes describe voice, so they wait for it. | INT-440 (#768), INT-454 (#769) |
+| 7 | A way for a reviewer to sign in (§2). | INT-488 (#829), then the owner creates the account |
+| 8 | Voice intake can be reached in a release build. It must go through the streaming path (`apps/mobile/src/lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx`), and `createLiveVoiceSession` has no caller. The listing and the notes describe voice, so they wait for it. | INT-440 (#768), INT-454 (#769) |
 | 9 | Release stays manual, and the public release waits. The production host receives simulated patients only until an in-country host or counsel's cross-border decision exists. Use TestFlight internal testing and the Play internal track until then. `store.config.json` pins `automaticRelease: false`. | HB-I5, HB-L11 |
 
 ## 2 · The reviewer account
@@ -30,7 +30,7 @@ missing item is a reason to wait. It is not something to describe around.
 other way in: the development sign-in is compiled out (`apps/mobile/src/app/(auth)/welcome.tsx`).
 An App Review or Play reviewer cannot receive a code sent to a phone they do not hold. So no
 reviewer sign-in exists today. Adding one changes authentication on the production host, so it
-has its own issue, INT-485 (#829), and goes to the security reviewer. This draft does not add one.
+has its own issue, INT-488 (#829), and goes to the security reviewer. This draft does not add one.
 
 **Once that path exists, the owner creates the account:**
 

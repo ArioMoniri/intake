@@ -44,7 +44,7 @@ health_apps_owner: "HB-L21(b): whether Google Play's Health apps policy applies 
 health_apps_facts:
   - fact: "The app reads steps, resting heart rate and sleep from Health Connect, read only."
     source: "apps/mobile/app.json"
-  - fact: "The two device functions (automated urgency direction, automated instrument interpretation) default off (flags.py, device_functions: False); the gate test that proves it is INT-117."
+  - fact: "The two device functions (automated urgency direction, automated instrument interpretation) default off (flags.py, device_functions: False); INT-117 (open) adds the CE-record gate test."
     source: "packages/intake_platform/src/intake_platform/flags.py"
   - fact: "The patient can request deletion of their account and data in the app."
     source: "apps/mobile/src/lib/dsar/requests.ts"
