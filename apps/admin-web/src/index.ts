@@ -299,3 +299,15 @@ export {
   type AccessView,
 } from "./access/module";
 export { loadAccessReview, type AccessState } from "./access/load";
+// INT-481 — the Alerts page: Alertmanager's current alerts counted by severity
+// and listed by id, and a plain link to the staff Grafana, rendered at
+// `app/alerts/page.tsx`.
+export {
+  ALERTS_SCHEMA,
+  AlertsCountsIncoherent,
+  AlertsShapeRefused,
+  renderAlerts,
+  type AlertsPayload,
+  type AlertsView,
+} from "./alerts/module";
+export { grafanaFromEnv, loadAlerts, type AlertsState } from "./alerts/load";

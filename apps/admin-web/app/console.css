@@ -254,3 +254,21 @@ code {
   border-left: 3px solid var(--bad);
   border-radius: 8px;
 }
+
+/* INT-481 — the Alerts page: the list spans the grid; labels read as chips. */
+.tile[data-tile="alerts"] {
+  grid-column: 1 / -1;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+}
