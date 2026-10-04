@@ -6793,3 +6793,23 @@
     - "the sheet's content and copy are unchanged; focus stays in the sheet and the VoiceOver escape and Android back close it; no new strings; before/after simulator captures in light and dark are committed"
   tests: [apps/mobile/src/lib/motion/sheet.test.ts, apps/mobile/e2e/sheets.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/a11y.spec.ts]
   sec_row: "mobile"
+- id: INT-491
+  epic: E08-mobile
+  phase: P1
+  title: "Orb variants behind a flag: a fluid blob, a particle field and a refined glass lens, inside ADR-039 S1's bounds"
+  # GitHub #838. Owner request, 4 Oct 2026: explore the blob, the question
+  # count and the other parts against spaceui.one and the motion libraries.
+  # Three bodies for the stage orb, chosen by a build-time flag that is off by
+  # default and never reaches a production build; the sphere is unchanged.
+  # Stacked on INT-473 (#808).
+  depends_on: [INT-328, INT-131]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-491.md
+  acceptance:
+    - "every component page of spaceui.one, and the orb, particle, glass and counter pages of kinetics, beUI, transitions.dev, reverseui and kobra, are mined with each licence read from its raw blob and its sha256 recorded; the Siri, ChatGPT and Gemini voice orbs and Mobbin voice screens are surveyed; nothing is copied, every variant is rebuilt in SwiftUI with no new dependency"
+    - "three variants (blob, field, lens) map listening, speaking and thinking to motion through the ADR-039 S1 policy: breath at most 1.06x, swell at most +10 % while listening, no breath under 1.2 s, no turn under 3 s, every part inside the orb's circle, every part turning one way; still in idle, rest and retry, under Reduce Motion and under any RED"
+    - "the flag is EXPO_PUBLIC_ORB_VARIANT through extra.orbVariant, read once; unset, empty or unknown is the sphere, whose body is pinned byte for byte; the production profile never carries a variant; no variant draws glass on a solid surface (Reduce Transparency, capture-protected screens); RED and the verbatim question text are untouched"
+    - "light and dark captures and a state-cycle gif per variant; a component-to-screen map with source URLs in docs/design/library-patterns.md section 6, with every motion beyond the bounds listed for the owner as approval needed"
+  tests: [apps/mobile/src/lib/stage/orbVariants.test.ts, apps/mobile/e2e/orbVariants.spec.ts, apps/mobile/e2e/releaseConfig.spec.ts, apps/mobile/e2e/chatStage.spec.ts]
+  sec_row: "mobile"

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Spec, with what INT-462 delivered recorded in §4 and the full component map in §5 |
+| Status | Spec, with what INT-462 delivered recorded in §4, the full component map in §5, and the orb variants and their sources (INT-491) in §6 |
 | Written | 3 Oct 2026, alongside INT-459 (the admin-web redesign, PR #784) |
 | Screen | The voice and typed dialogue, `apps/mobile/src/components/DialogueIntake.tsx` on `main` |
 | Builds on | `docs/design/mobile-ui.md` ("Voice chat surface"), `docs/design/apple-native/spec.md`. Open PRs #725, #728, #740 and #771 add `system-refresh.md`, `chat-rhythm.md`, `question-screen.md` and `interaction-patterns.md`, which surveys the same library list app-wide |
@@ -193,3 +193,71 @@ All eight are React DOM, and no code was copied. The constants this pass cites c
   - [Perplexity, Options](https://mobbin.com/screens/d7220e78-7231-4822-ab69-169c863deff9);
   - [Wallet, Add Bank Account](https://mobbin.com/screens/2b370d35-bf84-48ee-b33a-2ecfdceea552);
   - [Zip, OTP](https://mobbin.com/screens/f5fb7422-1a89-46b8-9fe5-eb7d6fc2fbea).
+
+## 6. The voice orb and the question count: spaceui.one and the motion libraries (INT-491, 4 Oct 2026)
+
+The owner asked, on 4 Oct 2026, for the blob, the question count and the other parts to be explored against [spaceui.one](https://www.spaceui.one/), together with kobra and the other motion sites. Three designer agents read every spaceui.one component page (88), the motion libraries' orb, particle, glass, loader and counter pages, the Siri, ChatGPT and Gemini voice orbs, and Mobbin's voice screens. This section records what they found, what INT-491 built, and what stays with the owner.
+
+**Nothing was copied.** Every variant is drawn from scratch in SwiftUI through `@expo/ui`, in `apps/mobile/src/components/stage/VoiceOrb.ios.tsx` (with its plain parts in `VoiceOrbParts.tsx`), from a pure plan in `apps/mobile/src/lib/stage/orbVariants.ts`. The libraries are web code (WebGPU, WebGL, SVG filters, Motion), so only their anatomy and numbers informed the work. No dependency was added.
+
+### 6.1 Licences, read from the raw blob on 4 Oct 2026
+
+| Source | Raw licence | sha256 | Verdict |
+|---|---|---|---|
+| [spaceui.one](https://www.spaceui.one/) | [usespaceui/ui LICENSE @ e2d8d404](https://raw.githubusercontent.com/usespaceui/ui/e2d8d404713c0d9d4752fc489d8e614aa2604415/LICENSE) | `f95e7503f0e8842209b16f15a134b618d629da5037f8ce6b1730c5a55c83fb55` | MIT, © 2026 Space UI, for `src/registry/**` at that commit. Pro items and the 21 free components whose source is not in the repo are anatomy only. **Bloop** names its palettes after ChatGPT's voices, so its provenance is unclear: anatomy only until legal clears it |
+| [beui.dev](https://beui.dev) | [starc007/ui-components LICENSE](https://raw.githubusercontent.com/starc007/ui-components/main/LICENSE) | `9e27b491d5691a1bd95708e79de23beb2962f33fe6c1ee31ab639f43009a0b20` | MIT. beUI Pro is not covered |
+| [evilcharts.com](https://evilcharts.com) | [legions-developer/evilcharts LICENSE](https://raw.githubusercontent.com/legions-developer/evilcharts/main/LICENSE) | `7b6baf25f6caa0de061a2c99a47205d6651cdefc6e636910bc51bb3853ed056e` | MIT |
+| [astryx.atmeta.com](https://astryx.atmeta.com) | [facebook/astryx LICENSE](https://raw.githubusercontent.com/facebook/astryx/main/LICENSE) | `a6855be541fc8f446acd1bc4f2f8efce1ace6dce71dba32fcd8da553ee54b473` | MIT |
+| [beautifului.dev](https://beautifului.dev/license) | No repository; the licence is a page | page text `e273df457a1fb6cedf6690b03f7bf70023dcccd094ff46910ac55a378345b26e` | MIT on the page only. Rebuild, unless legal accepts a page snapshot as the record |
+| [transitions.dev](https://transitions.dev) | [Jakubantalik/transitions.dev LICENSE](https://raw.githubusercontent.com/Jakubantalik/transitions.dev/main/LICENSE) | `1de543e30f7d9f3abc1f65d5ec90e8b1b24ae03a29e77dacdd4d3219892c21e0` | Custom, not SPDX. Numbers only |
+| [kinetics.colorion.co](https://kinetics.colorion.co) | `ckissi/kinetics` has no LICENSE (404) | — | Unlicensed; the footer's "MIT" is not a licence. Numbers only |
+| [reverseui.com](https://reverseui.com/pricing) | None published | — | Proprietary. Anatomy only |
+| [kobra.systems](https://kobra.systems/terms) | Terms forbid feeding its source to a model | — | Proprietary. Anatomy only, and its source never goes into an agent |
+
+### 6.2 The three variants (built, behind a flag, default off)
+
+`EXPO_PUBLIC_ORB_VARIANT` = `blob`, `field` or `lens` in a development or preview build (`app.config.ts` → `extra.orbVariant` → `lib/stage/expoOrbVariant.ts`). Unset, empty or unknown is the ADR-039 sphere, drawn byte-for-byte as before. The production profile never carries a variant. Each variant takes its plan from the S1 motion, so it is still in idle, rest and retry, under Reduce Motion and while a RED shows. It keeps S1's numbers: breath ≤ 1.06×, swell ≤ +10 % (listening only), no breath under 1.2 s, no turn under 3 s. Every part stays inside the orb's circle, and every part turns the same way, so no two parts repeat their pattern faster than 0.15 Hz. Under Reduce Transparency and on a capture-protected screen (INT-477), no variant draws glass.
+
+| Variant | What it is | Listening · speaking · thinking | Sources that informed it |
+|---|---|---|---|
+| `blob`, a fluid blob | The sphere's turning colours, cut to a shape that flows: a core and four lobes, melted by a blur and a soft threshold, read as the mask's alpha | Lobes orbit at 10–18 s, breath 1.04× at 2.4 s, voice swell · lobes orbit at 7–12.6 s and swell out and back with the 1.06× breath at 1.2 s · lobes orbit at 3–5.4 s, no breath | spaceui [Bloop](https://www.spaceui.one/components/bloop) and [Gooey Experiments](https://www.spaceui.one/components/gooey-experiments); beUI [Voice Orb](https://beui.dev/components/agents/voice-orb) and the liquid recipe; ChatGPT's [voice sphere](https://mobbin.com/screens/64be7109-fd45-4292-9010-c6ad15a88d6d); kinetics Liquid Blob |
+| `field`, a particle field | 46 points on four face-on rings round a soft nucleus; the inner rings turn a little faster, so the field shears into a slow vortex | Rings turn at 10–14.5 s, breath, voice swell · 7–10.2 s, breath · 3–4.4 s | spaceui [Thinking](https://www.spaceui.one/components/thinking) ("orbits" and "ring" modes); reverseui [Particle Vortex](https://reverseui.com/components/particle-vortex) and [Speedy Circles](https://reverseui.com/components/speedy-circles); [Perplexity's particle sphere](https://mobbin.com/screens/4d791135-61ef-4369-a598-cf6f6898a9dd); [Oura's sparkle ring](https://mobbin.com/screens/bc347c89-5f60-4d84-bdc7-a747dff863fb) |
+| `lens`, a refined glass lens | A deep sphere lit from the top left, a darker rim, a rim light low on the right and a fainter, slower one, a crisp edge, and the clear Liquid Glass lens | The rim lights travel round the rim at 10 s and 16 s, breath, voice swell · 7 s and 11.2 s, breath · 3 s and 4.8 s | spaceui [Smooth](https://www.spaceui.one/components/smooth) and [Silk Gradient](https://www.spaceui.one/components/silk-gradient); kinetics Caustic Glass and Specular Orbit; [ElevenReader's glass sphere](https://mobbin.com/screens/d9a14bbf-8a4a-4536-ab0a-92a16d67fd6b); WWDC25 *Meet Liquid Glass* |
+
+Captures (iOS 26.1 simulator, a temporary harness that draws the real `VoiceOrb` over the real `AmbientBackdrop` at 180 pt; the dialogue draws it at 84–116 pt): light and dark stills, solid-surface stills and a 21 s state-cycle gif per variant, in the owner's drafts folder `issue-drafts/design-491/` (listed in `docs/evidence/INT-491.md`).
+
+### 6.3 Component → screen map
+
+| Our screen | Component (source, licence) | What it would bring | Verdict |
+|---|---|---|---|
+| Voice orb, listening | spaceui [Thinking "wave"](https://www.spaceui.one/components/thinking) (MIT); beUI [Voice Orb](https://beui.dev/components/agents/voice-orb) (MIT); Siri iOS 27 pulse | A level-driven swell | Built: the swell is S1's, capped at +10 % |
+| Voice orb, speaking | ChatGPT voice sphere, Gemini Live, LiveKit `BarVisualizer` | The orb follows the agent's own audio | **Approval needed** (S1 allows the level while listening only). Built instead: S1's fixed 1.2 s breath, and the blob's lobes swell with it |
+| Voice orb, thinking | spaceui [Thinking "ring"](https://www.spaceui.one/components/thinking), [Loading](https://www.spaceui.one/components/loading) (MIT); reverseui Speedy Circles | A faster turn | Built: S1's 3 s turn. spaceui's globe scan (0.64 s) and LiveKit's 150 ms chase are rejected as flashing |
+| Voice orb, idle | spaceui Bloop's 1.4 s alpha pulse; ChatGPT's resting drift | Motion at rest | Rejected: idle is still (S1) |
+| Voice orb, between states | spaceui Bloop's one-shape morph (circle → satellites → bars) | A morph from one state to the next | **Approval needed**: S1 has no state transition, and the SDF morph needs Skia, a new native dependency |
+| Question count, bar item | kobra [question-card](https://kobra.systems/components/question-card) ring (paid; anatomy only); [CVS "Symptoms 1 of 4"](https://mobbin.com/screens/68a2e444-41e7-4588-8418-59a2e7198c6b) | A 14–16 pt progress ring beside "N / M bölüm" in the native bar | Proposed: a still ring, no tween |
+| Question count, typed screen | spaceui [Progress](https://www.spaceui.one/primitives/progress) (MIT); Astryx [ProgressBar](https://astryx.atmeta.com/components/ProgressBar) (MIT); [Paired "Question 1 of 9"](https://mobbin.com/screens/6c908304-509f-4ed7-beb3-390ed6f18c99); [Shop Gift Sense segments](https://mobbin.com/screens/cb89a5d0-72bb-444c-9260-46dab8246476) | A thin or segmented bar | Proposed: segments up to about 24 questions, a continuous bar above; the fill steps, no width tween (ADR-033) |
+| Question count, the number | spaceui [Fluid Countdown](https://www.spaceui.one/components/fluid-countdown) (NumberFlow); beUI Number Ticker and Adaptive Stepper (MIT); transitions.dev number pop-in | A digit roll when the count changes | **Approval needed**: a translate, and a numeral in motion (ADR-033, invariant 22). The count stays a static label |
+| Composer | spaceui [Morphing Command Bar](https://www.spaceui.one/components/morphing-command-bar) (source not in the repo) | The send button buds out of the capsule | **Approval needed**: a gooey morph and a translate; P3's instant swap stays |
+| Answer chips | spaceui [Interest Picker](https://www.spaceui.one/components/interest-picker), [Interactive Checklist](https://www.spaceui.one/components/interactive-checklist) | Springy ticks, a shake | Rejected: 8–11 % overshoot and a shake; ADR-038 A2's tick and ADR-037's 0.97 press stay |
+| Sheets | spaceui [Drawer](https://www.spaceui.one/primitives/drawer) (MIT) | 450 ms curve, a nested scale step | Already covered by ADR-038 A3's critically damped sheet |
+| Glass controls | spaceui [Glass Button](https://www.spaceui.one/components/glass-button), [Frost Blurred](https://www.spaceui.one/components/frost-blurred) | Hover blur, stacked blur | Not needed: the system's own Liquid Glass (ADR-039 S3) |
+| Welcome backdrop | spaceui [Bubble](https://www.spaceui.one/components/bubble), [Gradient](https://www.spaceui.one/components/gradient), [Cloud](https://www.spaceui.one/components/cloud) | A moving background | Rejected: S7 keeps welcome still |
+
+### 6.4 For the owner
+
+**Approval needed before any of these ship** (each goes beyond ADR-039 or ADR-033 as written):
+
+1. **Picking a variant.** S1 describes the sphere. Choosing `blob`, `field` or `lens` for patients needs the owner's pick and an ADR-039 amendment; until then the production build cannot carry one.
+2. **Speaking that follows the agent's voice** (ChatGPT, Gemini Live, LiveKit). S1 allows the level while listening only.
+3. **Glow beyond the orb's circle**: Siri's edge glow, Gemini's overlay edge, the Claude and Gemini Live washes.
+4. **A voice swell above +10 %**: spaceui Bloop's +13 %, ElevenLabs' +20 %, reverseui Glowing Orb's 1.10–1.19.
+5. **Motion at rest**: Bloop's 1.4 s pulse, ChatGPT's drift.
+6. **A per-state tint** (Claude and Perplexity colour whose turn it is): a new stage palette entry under S6.
+7. **A morph between states**, and any noise-driven shape (Bloop, the beUI shader): needs Skia, a new native dependency, after a licence-auditor pass.
+8. **Travelling entrances**: Siri iOS 27 coming down from the Dynamic Island, Gemini's pill rising.
+9. **A rolling question count**, and the composer's gooey send button.
+
+**A finding on the shipped sphere.** Its two layers turn against each other, so the pattern they make repeats every 6.2 s while listening (0.16 Hz) and every 4.3 s while speaking (0.23 Hz), in the band ADR-039 cites from Apple. The variants avoid it by turning every part one way. Changing the sphere is an S1 change, so INT-491 leaves it as it is and pins it.
+
+**An open point.** WCAG 2.2.2 covers automatic motion longer than 5 s. A long answer keeps the listening turn running; Reduce Motion stops it, as it does for the sphere.

@@ -19,11 +19,19 @@
  *   does not grow. Expo writes the block as `tools:node="remove"`, which wins
  *   over any library's declaration in the manifest merge, and drops the
  *   permission from `android.permissions` if app.json ever asks for it.
+ * - INT-491: `extra.orbVariant` is the orb variant flag, and its ONLY source
+ *   is `EXPO_PUBLIC_ORB_VARIANT`. Empty means off: the ADR-039 sphere. The
+ *   production profile never carries a variant, so none reaches a store build
+ *   before the owner picks one and the ADR records it. The app parses the
+ *   value with lib/stage/orbVariants.ts, where anything unknown is off.
  */
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 /** The EAS variable the owner sets for a store build (public, not a secret). */
 export const API_BASE_ENV = "EXPO_PUBLIC_API_BASE_URL";
+
+/** The orb variant a development or preview build draws (INT-491). */
+export const ORB_VARIANT_ENV = "EXPO_PUBLIC_ORB_VARIANT";
 
 /** EAS Build sets this to the eas.json profile being built. */
 const PROFILE_ENV = "EAS_BUILD_PROFILE";
@@ -93,13 +101,15 @@ export function resolveAppConfig(config: ExpoConfig, env: Env): ExpoConfig {
     extra.ttsLanes = uniqueBy(extra.ttsLanes as unknown[], laneKey);
   }
   extra.apiBaseUrl = (env[API_BASE_ENV] ?? "").trim();
+  const production = env[PROFILE_ENV] === PRODUCTION_PROFILE;
+  extra.orbVariant = production ? "" : (env[ORB_VARIANT_ENV] ?? "").trim();
 
   const resolved: ExpoConfig = {
     ...config,
     extra,
     android: withBlockedPermissions(config.android),
   };
-  if (env[PROFILE_ENV] === PRODUCTION_PROFILE && config.ios !== undefined) {
+  if (production && config.ios !== undefined) {
     resolved.ios = withoutLocalNetwork(config.ios);
   }
   return resolved;

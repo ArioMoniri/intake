@@ -110,6 +110,7 @@ import { useDialogueMotion } from "@/lib/motion/native/useDialogueMotion";
 import { orbStateFor } from "@/lib/motion/orb";
 import { WORK, dialogueScene, fadeOf, nodeKey, revealId } from "@/lib/motion/transients";
 import { useSession } from "@/lib/session";
+import { ORB_VARIANT } from "@/lib/stage/expoOrbVariant";
 import { stageOrbMotion } from "@/lib/stage/orb";
 import { stagePalette, type StagePalette } from "@/lib/stage/palette";
 import { STAGE_RADIUS, stageOrbSize } from "@/lib/stage/shape";
@@ -935,6 +936,7 @@ export function DialogueIntake({
                 motion: stageMotion,
                 palette,
                 glass: glassMode === "liquid",
+                variant: ORB_VARIANT,
               }}
             />
           </View>

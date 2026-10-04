@@ -3590,3 +3590,29 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: the native pass's five sections are open as stacked PRs (#792 → #797 → #801 → #806 → this). Delete the generated iOS project once the owner has reviewed on device.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-04T04:40:00+03:00 · INT-491 · done (PR open, not merged; stacked on #808)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-491):
+  - mine spaceui.one and the motion libraries, licences from the raw blob, nothing copied;
+  - three orb variants (blob, field, lens) inside ADR-039 S1's bounds, still under Reduce Motion and RED;
+  - behind a build-time flag, off by default, never in production; the sphere unchanged; no glass on a solid surface;
+  - captures per variant and a component → screen map with URLs; beyond-bounds motion listed for the owner.
+- Plan:
+  - Three designer agents (spaceui.one; the motion libraries; Siri, ChatGPT, Gemini and Mobbin), in parallel and read-only.
+  - Tests first, then the pure plan, the flag and the SwiftUI bodies; tune on the simulator; document.
+- Tests added (with the near-miss negative for any safety rule):
+  - `orbVariants.test.ts` (near misses: the flag on, no RED, listening moves; counter-turning layers would beat near 0.2 Hz);
+  - `orbVariants.spec.ts` (the sphere's body pinned by sha256; one flag reader; plan-only periods; lens glass only under the plan);
+  - `releaseConfig.spec.ts` (near miss: the same variable outside production is honoured);
+  - RED run: 13 failed / 18 passed plus 1 import failure.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile 151 files, 3120 tests); `make check-i18n` 192 passed; backlog, smoke and docs tests 114 passed;
+  - the rest of `check-py` and `check-integration` left to CI.
+- Invariants touched and still passing:
+  - 9 (spirit): the orb awaits nothing and reports nothing.
+  - 21: RED makes every variant still; no RED file reads the stage.
+  - 2, 10 and 22: no new copy, question text untouched, no numerals.
+- Decisions / ADRs / `00_STATE.md` rows: works inside ADR-039 S1; no new D-row. Picking a variant for patients needs the owner and an ADR-039 amendment.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. The owner's approval list is `library-patterns.md` §6.4.
+- Next: the owner reviews the gifs and picks a variant, or none.
+- LOOP_STATUS: WAITING_HUMAN

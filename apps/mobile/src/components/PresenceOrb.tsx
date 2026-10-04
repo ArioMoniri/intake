@@ -30,6 +30,11 @@
  * renders nothing. The work ring keeps its fade. Nothing else changes: the
  * state is still `orbStateFor`'s, the orb is still decoration, and it still
  * reports nothing back.
+ *
+ * INT-491: the stage also names the body's variant (lib/stage/orbVariants),
+ * which the build's flag chose. The orb only hands it on: the variant draws
+ * from the same S1 motion and the same level scale, so every bound and every
+ * still state above holds for it too. Off, it is the sphere.
  */
 import { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
@@ -57,6 +62,7 @@ import {
   type OrbState,
 } from "@/lib/motion/orb";
 import { levelScale, type StageOrbMotion } from "@/lib/stage/orb";
+import type { OrbVariant } from "@/lib/stage/orbVariants";
 import type { StagePalette } from "@/lib/stage/palette";
 import { motion, radius, scaledControl } from "@/lib/theme";
 
@@ -87,6 +93,8 @@ interface PresenceOrbProps {
     readonly motion: StageOrbMotion;
     readonly palette: StagePalette;
     readonly glass: boolean;
+    /** The body the build's flag chose (INT-491); `classic` is the sphere. */
+    readonly variant: OrbVariant;
   };
 }
 
@@ -181,6 +189,7 @@ export function PresenceOrb({ state, working, workFades, readLevel, stage }: Pre
             motion={stage.motion}
             palette={stage.palette}
             glass={stage.glass}
+            variant={stage.variant}
           />
         </Animated.View>
         <Animated.View

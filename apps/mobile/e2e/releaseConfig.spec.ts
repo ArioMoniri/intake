@@ -12,6 +12,11 @@
  * - F29: `extra.asrHosts` / `extra.ttsLanes` are sets in all but type; a
  *   duplicate only doubles the dev probe walk, so the resolved config holds
  *   each entry once, in first-seen order.
+ * - INT-491: the orb variant flag is build-time config too. `app.config.ts`
+ *   copies `EXPO_PUBLIC_ORB_VARIANT` into `extra.orbVariant`, it is empty
+ *   (the ADR-039 sphere) unless someone sets it, and the production profile
+ *   never carries one: no variant reaches a store build until the owner picks
+ *   one and the ADR says so.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -19,7 +24,7 @@ import { join } from "node:path";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import appConfig, { API_BASE_ENV, resolveAppConfig } from "../app.config";
+import appConfig, { API_BASE_ENV, ORB_VARIANT_ENV, resolveAppConfig } from "../app.config";
 
 const ROOT = join(__dirname, "..");
 
@@ -134,5 +139,44 @@ describe("F29 · the dev host and TTS lane lists hold each entry once", () => {
       { id: "voxcpm2", port: 8805 },
       { id: "freya", port: 8803 },
     ]);
+  });
+});
+
+describe("INT-491 · the orb variant flag is off by default and never ships to production", () => {
+  it("names the variable a development build sets", () => {
+    expect(ORB_VARIANT_ENV).toBe("EXPO_PUBLIC_ORB_VARIANT");
+  });
+
+  it("is empty when unset: the app draws the ADR-039 sphere", () => {
+    expect(resolveAppConfig(appJson(), {}).extra?.orbVariant).toBe("");
+    expect(JSON.stringify(appJson())).not.toContain("orbVariant");
+  });
+
+  it("copies the variable into extra.orbVariant for a development or preview build", () => {
+    expect(
+      resolveAppConfig(appJson(), { EXPO_PUBLIC_ORB_VARIANT: " blob " }).extra?.orbVariant,
+    ).toBe("blob");
+    expect(
+      resolveAppConfig(appJson(), { EAS_BUILD_PROFILE: "preview", EXPO_PUBLIC_ORB_VARIANT: "lens" })
+        .extra?.orbVariant,
+    ).toBe("lens");
+  });
+
+  it("the production profile never carries a variant, whatever the environment or app.json says", () => {
+    expect(
+      resolveAppConfig(appJson(), { ...PRODUCTION, EXPO_PUBLIC_ORB_VARIANT: "field" }).extra
+        ?.orbVariant,
+    ).toBe("");
+    const smuggled = { ...appJson(), extra: { ...appJson().extra, orbVariant: "blob" } };
+    expect(resolveAppConfig(smuggled, PRODUCTION).extra?.orbVariant).toBe("");
+    // Near miss: the same environment outside production is honoured.
+    expect(
+      resolveAppConfig(appJson(), { EXPO_PUBLIC_ORB_VARIANT: "field" }).extra?.orbVariant,
+    ).toBe("field");
+  });
+
+  it("the environment is the only source: app.json cannot switch a variant on", () => {
+    const smuggled = { ...appJson(), extra: { ...appJson().extra, orbVariant: "blob" } };
+    expect(resolveAppConfig(smuggled, {}).extra?.orbVariant).toBe("");
   });
 });
