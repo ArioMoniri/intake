@@ -54,6 +54,7 @@ from intake_api.dev_voice_guard import (
     ENV_GEORGE_CLIP_DIST,
     intake_env_is_prod,
     load_scripted_catalogue,
+    with_delivery_lines,
 )
 from protocols.dsl import clip_text_hash
 from voice_clips import ManifestTamperedError
@@ -340,8 +341,36 @@ def test_prod_does_not_mount_the_route_even_with_a_wiring(
     assert gateway.calls == 0
 
 
+@pytest.fixture(params=["staging", "STAGING", "test"])
+def non_dev_harness(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[ApiHarness]:
+    monkeypatch.setenv("INTAKE_ENV", request.param)
+    yield from build_harness(tmp_path, token_patient=PATIENT_TOKEN, token_admin=ADMIN_TOKEN)
+
+
+def test_no_non_dev_environment_mounts_the_route(
+    non_dev_harness: ApiHarness, tmp_path: Path
+) -> None:
+    # INT-421: the production host runs INTAKE_ENV=staging (synthetic patients
+    # only), and the route to the paid US vendor is absent there too, not
+    # merely 503. Only the dev environment (INT-325's is_dev_env) mounts it.
+    gateway = CountingGateway()
+    _mount(
+        non_dev_harness,
+        george_wiring_for(gateway, tmp_path / "c", catalogue=catalogue_of(_SCRIPTED)),
+    )
+    assert _george_routes(non_dev_harness) == []
+    res = non_dev_harness.client.post(
+        GEORGE_CLIP_PATH, json={"text_tr": _SCRIPTED}, headers=_patient_headers()
+    )
+    assert res.status_code == 404
+    assert gateway.calls == 0
+
+
 def test_dev_mounts_the_route(harness: ApiHarness) -> None:
-    # positive control for the prod test above: same app factory, dev env
+    # positive control for the prod and non-dev tests above: same app
+    # factory, dev env
     assert _george_routes(harness) == [f"POST {GEORGE_CLIP_PATH}"]
 
 
@@ -385,7 +414,8 @@ def test_dev_with_every_flag_and_a_compiled_catalogue_builds_the_wiring(
     monkeypatch.delenv("INTAKE_ENV", raising=False)
     wiring = george_wiring_from_env()
     assert wiring is not None
-    assert wiring.catalogue == load_scripted_catalogue(dist)
+    # INT-414: every compiled row, widened by the fixed delivery lines only.
+    assert wiring.catalogue == with_delivery_lines(load_scripted_catalogue(dist))
 
 
 def test_no_compiled_catalogue_leaves_the_lane_unconfigured(

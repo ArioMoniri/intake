@@ -602,6 +602,9 @@ const RED_SURFACE_FILES: readonly string[] = [
   "src/lib/red/hop.ts",
   "src/lib/red/location.ts",
   "src/lib/red/store.ts",
+  // INT-414: the delivery composer hands a RED script through bare, in the
+  // `red` delivery context — it is on the RED path, so it is held here too.
+  "src/lib/dialogue/delivery.ts",
   "src/lib/livekit/events.ts",
   "src/lib/livekit/index.ts",
   "src/lib/livekit/red.ts",

@@ -132,17 +132,22 @@ it or whose tests exercise it.
 - **Assets:** workflow definitions, runner credentials, build artefacts, SBOMs, signing
   identity, the gate set itself.
 - **Trust boundaries:** GitHub-hosted runners ↔ repo ↔ registries; PR author ↔ required
-  checks. INT-206 adds the self-hosted TR-DC pool as a *declared* boundary
-  (`infra/ci/runners.yaml`) — and the pool list is empty, so today the boundary is the
-  GitHub-hosted one. HB-I7 (spend) and HB-L11 (physical residency is not legal residency)
-  own that — **not HB-I5, which is GPU supply and does not bind a CPU CI runner** — and no
-  facility, provider or label is invented to close the gap.
+  checks. INT-206 makes every self-hosted pool a *declared* boundary
+  (`infra/ci/runners.yaml`). **INT-463 declares the one pool that exists, `intake-aws-ci`**:
+  an ephemeral runner on the AWS us-east-1 host that also serves synthetic staging (owner
+  order, 3 Oct 2026). Every Actions job runs there, so the boundary is now job code ↔ the
+  staging host. The TR-DC pool is still undeclared. HB-I7 (spend) and HB-L11 (physical
+  residency is not legal residency) own it — **not HB-I5, which is GPU supply and does not
+  bind a CPU CI runner** — and no TR facility, provider or label is invented to close the gap.
 - **Threats (STRIDE/LINDDUN):** [T] a repointed action tag or poisoned artefact (ci.yml pins
   actions to commit SHAs for exactly this reason); [E] workflow permission escalation;
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
   an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [I/E] **a job on `intake-aws-ci` reaching staging** — its files, the OpenBao tokens, the
+  staging containers, the instance role through the metadata service, or the host Docker
+  socket — or **leaving state for the next job**;
   [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
   is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
   update** past review and the licence gate.
@@ -1858,6 +1863,21 @@ it or whose tests exercise it.
     26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
     closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
     `tests/admin/test_realm_claim_mappers.py`.
+  - **Controls added by INT-378 (the WebAuthn provider writes the two notes):** the staff flow
+    runs `intake-webauthn-session-notes`, which is Keycloak's own WebAuthn authenticator
+    unchanged. Only after that authenticator returns SUCCESS does it write the asserted
+    credential's stored AAGUID and its base64url id as the two notes, so neither value can
+    come from anything but a verified assertion ([S] against a forged actor block). Any other
+    outcome writes nothing, and the token is refused. The values are identifiers, never
+    personal data, and nothing is logged (inv 6). Supply chain (inv 14): Keycloak is compiled
+    against and not bundled. The Maven distribution is pinned by sha256, and so is every
+    artefact Maven resolves (the build fails on a missing or different hash). The jar is
+    reproducible and pinned (`infra/keycloak/providers/webauthn-session-notes.sha256`), and
+    the required CI job `check-py` rebuilds it against the pin. The committed realm also now
+    imports: Keycloak keeps a flow description in NVARCHAR(255), and a longer one had failed
+    the import. Tests: the provider's Java suite (`make keycloak-provider`) and
+    `tests/admin/test_webauthn_session_notes_provider.py`, which replays a recorded real
+    Keycloak login (26.7.4, the composed version). Open: the owner's TOTP decision (INT-389, #644).
   - **Controls added by INT-366 (quarterly access review, one-action offboarding, 60-day
     auto-disable; files/08 §2.4, §2.7):** against [E] access that outlives its need and a
     departure that leaves one identity store open. `GET /admin/access/review` is generated
@@ -1918,11 +1938,11 @@ it or whose tests exercise it.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
-  the same file, with property tests over generated ids (INT-391).
-  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the realm-import column
+  the same file, with property tests over generated ids (INT-391); the realm-import column
   limits, the image digest and the import file name in
-  `tests/infra/test_keycloak_realm_import.py` (INT-390).
-  the same file, with property tests over generated ids (INT-391). Break-glass (INT-180):
+  `tests/infra/test_keycloak_realm_import.py` (INT-390); the WebAuthn session-notes
+  provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
+  (INT-378). Break-glass (INT-180):
   the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
   `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both
   break-glass routes in `tests/admin/test_admin_audit.py`; only break-glass roles carrying the

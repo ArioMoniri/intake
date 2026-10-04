@@ -20,9 +20,11 @@
  *  2. **Patient words never reach the vendor.** {@link fetchGeorgeClip} and
  *     {@link georgePreferringSynth} accept only a nominal {@link ScriptedTr},
  *     which is producible solely from an `IntakeQuestion` via the catalog
- *     composer (speech.ts). A plain `string` — a patient answer — is not
- *     assignable, and {@link requireScriptedTr} refuses at runtime any string
- *     that is not exactly a question's scripted composition. Patient words are
+ *     composer (speech.ts) or, for a conversational delivery line (INT-414),
+ *     from its deck key alone ({@link scriptedDeliveryTr}). A plain `string` —
+ *     a patient answer — is not assignable, and {@link requireScriptedTr} and
+ *     {@link requireScriptedDeliveryTr} refuse at runtime any string that is not
+ *     exactly a question's scripted composition or a deck line. Patient words are
  *     DISPLAYED, never synthesized (the invariant 2/10 posture speech.ts
  *     already documents); this makes that a checked fact on the George path.
  *
@@ -31,6 +33,7 @@
  */
 import type { IntakeQuestion } from "../intake/questions";
 import { DEFAULT_DELIVERY_CONTEXT, type DeliveryContext } from "./deliveryContext";
+import { deliveryTextTr, isDeliveryKey, type DeliveryKey } from "./deliveryDeck";
 import { questionSpeechTr } from "./speech";
 import { assertSpeakableTr } from "./tts";
 
@@ -70,6 +73,32 @@ export function scriptedQuestionTr(question: IntakeQuestion): ScriptedTr {
  */
 export function requireScriptedTr(candidate: string, question: IntakeQuestion): ScriptedTr {
   if (candidate !== questionSpeechTr(question)) {
+    throw new Error("george_not_scripted");
+  }
+  assertSpeakableTr(candidate);
+  return candidate as ScriptedTr;
+}
+
+/**
+ * Mint a {@link ScriptedTr} for one conversational delivery line (INT-414): a
+ * welcome, lead-in, transition or acknowledgement. The ONLY input is a deck
+ * key, so the text is always the catalogue's `tr` string for that key — there
+ * is no parameter a patient's words could arrive through. A string that is
+ * not a deck key is refused at runtime too, for callers outside the type
+ * system.
+ */
+export function scriptedDeliveryTr(key: DeliveryKey): ScriptedTr {
+  if (!isDeliveryKey(key)) {
+    throw new Error("george_not_scripted");
+  }
+  const text = deliveryTextTr(key);
+  assertSpeakableTr(text); // invariant 22 — never a numeral to a TTS
+  return text as ScriptedTr;
+}
+
+/** Runtime guard: `candidate` must be exactly `key`'s catalogue line. */
+export function requireScriptedDeliveryTr(candidate: string, key: DeliveryKey): ScriptedTr {
+  if (!isDeliveryKey(key) || candidate !== deliveryTextTr(key)) {
     throw new Error("george_not_scripted");
   }
   assertSpeakableTr(candidate);
