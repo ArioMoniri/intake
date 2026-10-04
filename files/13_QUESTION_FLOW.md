@@ -276,6 +276,8 @@ Three properties fall out, each a CI test:
 
 `NOT_ASKED` · `ASKED_PENDING` (ask-ahead bookkeeping) · `ASKED_PRESENT` · `ASKED_ABSENT` — **the only state that may enter `ros_pertinent`** · `UNCLEAR` · `DECLINED` · **`CONTESTED`** (new — two irreconcilable answers; *both* appear in the note).
 
+**An eighth state, `NOT_ASKED_PROXY`** (INT-483, `docs/adr/ADR-040-subject-aware-addressing-for-proxy-sessions.md`; owner decision D24 answer 1Y). Someone answers for the patient, and the pack marks the item skipped in a proxy session. The state is never offered and binds nothing. It carries no value, so every gate and rule reads it as Unknown. It counts against must-ask coverage, and the note shows it as the gap `not_asked_proxy`, never as a negative.
+
 ### 9.4 The budget governor — and which way it yields
 
 Let `R = |{must_ask steps still unasked whose gate is TRUE or UNKNOWN}|`. When `turns_remaining ≤ R`, classes 6–8 are filtered out and the UI shows *"birkaç kısa soru kaldı"*. **Class ≤ 1 is never suppressible.**

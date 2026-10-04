@@ -258,6 +258,7 @@ def _full_note() -> ComposedNote:
                 reason=NoteGapReason.UNRESOLVED_PRECONDITION,
                 unit="pmh_surgery_detail",
             ),
+            NoteGap.not_asked_proxy("pmh_fh_sh.smoking_status"),
         ),
     )
 
@@ -512,12 +513,15 @@ class TestAttribution:
 
 
 class TestGapsDoNotCollapse:
-    def test_the_reason_set_is_closed_and_has_four_members(self) -> None:
+    def test_the_reason_set_is_closed_and_has_five_members(self) -> None:
+        # INT-483 / ADR-040 adds the fifth: an item the pack skips in a proxy
+        # session was not asked by design, which is none of the other four.
         assert [reason.value for reason in NoteGapReason] == [
             "deferred_environment",
             "declined",
             "session_ended",
             "unresolved_precondition",
+            "not_asked_proxy",
         ]
 
     def test_a_gap_carries_a_reason_code_and_never_free_text(self) -> None:
@@ -535,9 +539,10 @@ class TestGapsDoNotCollapse:
             "family_social:declined:fh_father",
             "ros_pertinent:session_ended:ros_gi",
             "pmh:unresolved_precondition:pmh_surgery_detail",
+            "pmh_fh_sh:not_asked_proxy:smoking_status",
         )
 
-    def test_the_four_reasons_render_to_four_different_markers(self, copy: NoteCopy) -> None:
+    def test_the_five_reasons_render_to_five_different_markers(self, copy: NoteCopy) -> None:
         markers = [copy.gap(reason) for reason in NoteGapReason]
         assert len(markers) == len(set(markers))
         soap = render_soap(_full_note(), copy)

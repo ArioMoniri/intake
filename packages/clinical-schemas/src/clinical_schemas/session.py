@@ -23,8 +23,17 @@ from clinical_schemas.triage import RulesTriageResult
 
 
 class AnswerState(enum.StrEnum):
-    """The seven answer states of files/13 §9.3. ASKED_ABSENT is the only
-    state that may enter ``ros_pertinent``; CONTESTED keeps both answers."""
+    """The seven answer states of files/13 §9.3, plus the one ADR-040 adds.
+    ASKED_ABSENT is the only state that may enter ``ros_pertinent``;
+    CONTESTED keeps both answers.
+
+    ``NOT_ASKED_PROXY`` (INT-483, ADR-040; owner decision D24 answer 1Y): the
+    pack marks the item skipped in a proxy session and this session is one. It
+    is a state of its own rather than ``NOT_ASKED`` so that it can never be
+    offered, and rather than ``ASKED_ABSENT`` because nobody said no. Like
+    ``NOT_ASKED`` it carries no value and reads Unknown to every gate and rule
+    (files/12 §1.1).
+    """
 
     NOT_ASKED = "NOT_ASKED"
     ASKED_PENDING = "ASKED_PENDING"
@@ -33,6 +42,7 @@ class AnswerState(enum.StrEnum):
     UNCLEAR = "UNCLEAR"
     DECLINED = "DECLINED"
     CONTESTED = "CONTESTED"
+    NOT_ASKED_PROXY = "NOT_ASKED_PROXY"
 
 
 class SessionStatus(enum.StrEnum):

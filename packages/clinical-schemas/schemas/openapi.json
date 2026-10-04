@@ -30,7 +30,7 @@
         "type": "object"
       },
       "AnswerState": {
-        "description": "The seven answer states of files/13 §9.3. ASKED_ABSENT is the only\nstate that may enter ``ros_pertinent``; CONTESTED keeps both answers.",
+        "description": "The seven answer states of files/13 §9.3, plus the one ADR-040 adds.\nASKED_ABSENT is the only state that may enter ``ros_pertinent``;\nCONTESTED keeps both answers.\n\n``NOT_ASKED_PROXY`` (INT-483, ADR-040; owner decision D24 answer 1Y): the\npack marks the item skipped in a proxy session and this session is one. It\nis a state of its own rather than ``NOT_ASKED`` so that it can never be\noffered, and rather than ``ASKED_ABSENT`` because nobody said no. Like\n``NOT_ASKED`` it carries no value and reads Unknown to every gate and rule\n(files/12 §1.1).",
         "enum": [
           "NOT_ASKED",
           "ASKED_PENDING",
@@ -38,7 +38,8 @@
           "ASKED_ABSENT",
           "UNCLEAR",
           "DECLINED",
-          "CONTESTED"
+          "CONTESTED",
+          "NOT_ASKED_PROXY"
         ],
         "title": "AnswerState",
         "type": "string"

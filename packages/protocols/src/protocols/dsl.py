@@ -27,6 +27,7 @@ from typing import Annotated, Literal
 from clinical_schemas.common import FrozenModel, Ref, Sha256
 from pydantic import Field, StringConstraints, model_validator
 
+from protocols.addressing import Addressee, ProxyAddressing
 from protocols.locale_text import (
     DEFAULT_LOCALE,
     LocaleChoices,
@@ -199,6 +200,20 @@ class Slot(FrozenModel):
     delivery: Delivery | None = Field(
         default=None, description="voice|text_first|text_only (files/13 §13)."
     )
+    addressee: Addressee = Field(
+        default=Addressee.PATIENT,
+        description="Whom the authored text speaks to (ADR-040). ``patient`` — the "
+        "default, and the fail-closed reading of silence — needs proxy handling "
+        "before a proxy path compiles; ``speaker`` reads correctly in either session "
+        "and is never allowed on a red-flag probe.",
+    )
+    proxy: ProxyAddressing | None = Field(
+        default=None,
+        description="What a patient-addressed slot does in a proxy session: reworded "
+        "with its own verbatim text, or skipped (ADR-040; owner decision D24 answer 1Y). "
+        "Which of the two, and every proxy sentence, is a clinical decision record's "
+        "to make (D18).",
+    )
     data_category: DataCategory = Field(
         default=DataCategory.GENERAL_HEALTH,
         description="What kind of personal data the answer is, from the closed "
@@ -225,6 +240,23 @@ class Slot(FrozenModel):
             raise ValueError("a quantity slot requires a unit (files/03 §6)")
         if self.type is SlotType.CODE and self.valueset is None:
             raise ValueError("a code slot requires a valueset (files/03 §6; files/13 §9.5)")
+        return self
+
+    @model_validator(mode="after")
+    def _speaker_has_no_proxy_form(self) -> Slot:
+        """ADR-040: a speaker-addressed slot reads the same in either session.
+
+        Whether a rewording speaks every text its self form speaks is a pack
+        finding (``PROXY_TEXT_MISMATCH``) and a proxy-path refusal on the
+        merged slot (``PROXY_TEXT_INCOMPLETE``), not a schema error: a hospital
+        ``override_text`` can add a spoken field after the slot was authored,
+        and the merged slot must still be representable so the compiler can
+        name the gap rather than crash on it."""
+        if self.proxy is not None and self.addressee is Addressee.SPEAKER:
+            raise ValueError(
+                "a speaker-addressed slot reads the same in either session and carries "
+                "no proxy block (ADR-040)"
+            )
         return self
 
 

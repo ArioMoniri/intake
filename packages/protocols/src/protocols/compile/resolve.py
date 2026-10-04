@@ -32,6 +32,7 @@ from typing import Any
 from clinical_schemas.common import FrozenModel, Sha256
 from pydantic import Field
 
+from protocols.addressing import Addressing
 from protocols.bindings import OperationalTemplate, fhir_link_id
 from protocols.compile.data_categories import (
     category_relaxation_refusals,
@@ -40,7 +41,13 @@ from protocols.compile.data_categories import (
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
-from protocols.compile.rule_reads import rule_read_refusals
+from protocols.compile.proxy_path import (
+    AddressedSlot,
+    addressing_refusals,
+    proxy_form,
+    slot_origins,
+)
+from protocols.compile.rule_reads import pointer_slot_names, rule_read_refusals
 from protocols.data_register import NO_REGISTER, DataCategoryRegister
 from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
 from protocols.gates import GateRefProblem, SlotNamespace, qualify_gate
@@ -107,6 +114,12 @@ class ResolvedSlot(FrozenModel):
     openehr_deferred_reason: str | None = Field(
         default=None, description="Why no path is declared (files/12 §8)."
     )
+    proxy_skipped: bool = Field(
+        default=False,
+        description="True only in a document resolved for the proxy path, for a slot "
+        "the pack marks skipped there: never spoken, recorded NOT_ASKED_PROXY "
+        "(ADR-040; owner decision D24 answer 1Y).",
+    )
 
 
 class ResolvedSection(FrozenModel):
@@ -141,6 +154,13 @@ class ResolvedProtocol(FrozenModel):
         "and there is nowhere for a second one to leak in (INT-297).",
     )
     title_tr: str | None = Field(default=None, description="Turkish title (files/03 §6).")
+    addressing: Addressing = Field(
+        default=Addressing.SELF,
+        description="Which session this document speaks to (ADR-040). A proxy document "
+        "exists only when every self-addressed slot of the chain is reworded or "
+        "skipped; its slots carry the proxy text, so the pinned hash covers exactly "
+        "what a proxy hears.",
+    )
     chain: tuple[str, ...] = Field(description="Resolution order, root first (files/03 §6).")
     overlays: tuple[str, ...] = Field(default=(), description="Applied overlay pack ids.")
     sections: tuple[ResolvedSection, ...] = Field(default=(), description="Ordered sections.")
@@ -732,6 +752,7 @@ def resolve_protocol(
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
     data_register: DataCategoryRegister | None = None,
+    addressing: Addressing = Addressing.SELF,
 ) -> ResolvedProtocol:
     """Resolve one pack into the document the emitters project from.
 
@@ -742,6 +763,10 @@ def resolve_protocol(
 
     ``data_register`` is the per-category register (INT-349). Omitted, it has
     no rows, so a slot tagged with anything but ``general_health`` refuses.
+
+    ``addressing`` is the session the document speaks to (ADR-040). The proxy
+    path is refused while any self-addressed slot of the chain lacks proxy
+    handling, and resolves to a document whose slots carry the proxy text.
 
     Raises :class:`CompileError` carrying **every** reason it refused.
     """
@@ -924,6 +949,31 @@ def resolve_protocol(
         )
     refusals.extend(_gate_ref_refusals(sections))
     if merged:
+        origins = slot_origins(applied)
+        refusals.extend(
+            addressing_refusals(
+                slots=[
+                    AddressedSlot(
+                        section_id=section.id,
+                        key=slot.key,
+                        slot=slot.slot,
+                        origin=origins[(section.id, slot.key)],
+                    )
+                    for section in sections
+                    for slot in section.slots
+                ],
+                rules=[*composition.rules, *(entry.rule for entry in life_threat.rules)],
+                addressing=addressing,
+                instrument_sections=[(section.id, section.questionnaires) for section in sections],
+                overridden=[
+                    name
+                    for pack, _, op in live_entries
+                    if isinstance(op, OverrideTextOp)
+                    for name in pointer_slot_names(op.pointer.rsplit("/", 1)[0])
+                    if "." in name
+                ],
+            )
+        )
         refusals.extend(
             rule_read_refusals(
                 pack_rules=composition.rules,
@@ -944,11 +994,14 @@ def resolve_protocol(
     instruments = tuple(
         sorted({i.id: i for pack in applied for i in pack.instruments}.values(), key=lambda i: i.id)
     )
+    if addressing is Addressing.PROXY:
+        sections = _proxy_sections(sections)
     document = ResolvedProtocol(
         pack_id=target.id,
         version=target.version,
         locale=locale,
         title_tr=target.title_tr,
+        addressing=addressing,
         chain=tuple(pack.id for pack in chain),
         overlays=composition.overlays,
         sections=tuple(sections),
@@ -963,6 +1016,21 @@ def resolve_protocol(
     payload.pop("resolved_protocol_hash")
     digest = hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
     return document.model_copy(update={"resolved_protocol_hash": digest})
+
+
+def _proxy_sections(sections: Sequence[ResolvedSection]) -> list[ResolvedSection]:
+    """The document a proxy session runs (ADR-040): every slot as a proxy hears
+    it — reworded slots carry the pack's own proxy text, skipped slots are
+    marked. Projected after every refusal has been collected, so a refused
+    document is never projected at all."""
+    projected: list[ResolvedSection] = []
+    for section in sections:
+        slots: list[ResolvedSlot] = []
+        for resolved in section.slots:
+            slot, skipped = proxy_form(resolved.slot)
+            slots.append(resolved.model_copy(update={"slot": slot, "proxy_skipped": skipped}))
+        projected.append(section.model_copy(update={"slots": tuple(slots)}))
+    return projected
 
 
 def _first_paraphrase(packs: Sequence[ProtocolPack], locale: str) -> bool:

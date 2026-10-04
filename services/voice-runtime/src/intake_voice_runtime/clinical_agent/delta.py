@@ -111,6 +111,10 @@ def decide_delta(
         step = by_id.get(fact.key)
         if step is None:
             continue  # a fact no step in this protocol reads changes nothing
+        if step.proxy_skipped:
+            # ADR-040: a step this proxy session never asks is never confirmed
+            # either — a confirm is a question, put to the same proxy
+            continue
         if fact_needs_reconfirmation(fact, now):
             withheld.append(fact.key)
             continue

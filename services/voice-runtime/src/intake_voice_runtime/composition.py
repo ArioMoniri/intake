@@ -50,6 +50,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from clinical_schemas.overlay import PatientOverlay
+from protocols.addressing import Addressing
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.dsl import Slot
 
@@ -153,6 +154,7 @@ ResidencyStack = SessionStack
 def build_residency_tr_session(
     *,
     protocol: ResolvedProtocol,
+    addressing: Addressing,
     reference_time: datetime,
     session_id: str,
     voice_id: str,
@@ -176,6 +178,11 @@ def build_residency_tr_session(
 ) -> SessionStack:
     """Compose one ``residency_tr`` session and close the three joints.
 
+    ``addressing`` is the session's subject role (ADR-040): ``self`` when the
+    patient answers, ``proxy`` when someone answers for them (INT-133's
+    ``proxy_report``). It is required and has no default, and the engine
+    refuses a ``protocol`` resolved for the other role.
+
     ``screen`` is optional and is what makes this session a **kill-switch
     target** (INT-096): without one, ``fall_back_to_typed`` refuses, because a
     session that took the audio away with nowhere to put the remaining
@@ -197,6 +204,7 @@ def build_residency_tr_session(
     """
     return _compose(
         protocol=protocol,
+        addressing=addressing,
         reference_time=reference_time,
         session_id=session_id,
         protocol_hash=protocol_hash,
@@ -230,6 +238,7 @@ def build_residency_tr_session(
 def build_typed_session(
     *,
     protocol: ResolvedProtocol,
+    addressing: Addressing,
     reference_time: datetime,
     session_id: str,
     protocol_hash: str,
@@ -264,6 +273,7 @@ def build_typed_session(
     """
     return _compose(
         protocol=protocol,
+        addressing=addressing,
         reference_time=reference_time,
         session_id=session_id,
         protocol_hash=protocol_hash,
@@ -292,6 +302,7 @@ def build_typed_session(
 def _compose(
     *,
     protocol: ResolvedProtocol,
+    addressing: Addressing,
     reference_time: datetime,
     session_id: str,
     protocol_hash: str,
@@ -339,8 +350,14 @@ def _compose(
         gateway = MeteredExtractionGateway(inner=gateway, meter=meter)
         if synthesizer is not None:
             synthesizer = MeteredSpeechSynthesizer(inner=synthesizer, meter=meter)
+    # ADR-040: the session's subject role is stated by whoever composes the
+    # session, never defaulted, and the engine refuses a document resolved for
+    # the other role — so a proxy session cannot silently run self wording.
     engine = IntakeEngine(
-        protocol=protocol, reference_time=reference_time, overlay_facts=overlay_facts
+        protocol=protocol,
+        reference_time=reference_time,
+        overlay_facts=overlay_facts,
+        addressing=addressing,
     )
     agent = BackendAgent(
         session_id=session_id, engine=engine, rule_ids=rule_ids, clock=ticking, clinic=clinic

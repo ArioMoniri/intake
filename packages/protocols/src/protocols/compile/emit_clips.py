@@ -96,6 +96,10 @@ def _sources(document: ResolvedProtocol) -> Iterator[SpeakableText]:
         if section_clipped:
             speakable_sections.add(section.id)
         for slot in section.slots:
+            if slot.proxy_skipped:
+                # ADR-040: a proxy session never speaks a skipped slot, so its
+                # bundle carries no clip and no prompt for it
+                continue
             clipped = section_clipped and slot.delivery is not Delivery.TEXT_ONLY
             scripted = not section.allow_paraphrase
             if slot.slot.ask_tr is not None:

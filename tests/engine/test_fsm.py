@@ -246,15 +246,19 @@ class TestNoLlmInside:
 
     def test_the_engine_has_no_seam_a_model_could_be_handed_through(self) -> None:
         # A port parameter is how a model gets in. The engine takes the
-        # resolved document, the session clock and the patient's confirmed
-        # facts — three values, no callables, no adapters.
+        # resolved document, the session clock, the patient's confirmed facts
+        # and (INT-483, ADR-040) the session's addressing — four values, no
+        # callables, no adapters. The addressing is a closed enum checked
+        # against the document, never a way to supply text.
         params = inspect.signature(IntakeEngine.__init__).parameters
         assert set(params) == {
             "self",
             "protocol",
             "reference_time",
             "overlay_facts",
+            "addressing",
         }
+        assert params["addressing"].annotation in {"Addressing | None"}
 
     def test_apply_extraction_takes_values_not_a_model(self) -> None:
         params = inspect.signature(IntakeEngine.apply_extraction).parameters

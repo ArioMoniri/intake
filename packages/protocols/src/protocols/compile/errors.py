@@ -84,6 +84,19 @@ class RefusalCode(enum.StrEnum):
     GATE_REF_AMBIGUOUS = "GATE_REF_AMBIGUOUS"
     GATE_REF_UNKNOWN = "GATE_REF_UNKNOWN"
 
+    # --- subject-aware addressing (INT-483; ADR-040; owner decision D24 answer 1Y)
+    # on every path: a pack that says a red-flag probe may go unasked in a proxy
+    # session, or may take the speaker's own answer, is wrong wherever it compiles
+    PROXY_SKIPS_RED_FLAG_PROBE = "PROXY_SKIPS_RED_FLAG_PROBE"
+    RED_FLAG_PROBE_SPEAKER_ADDRESSED = "RED_FLAG_PROBE_SPEAKER_ADDRESSED"
+    # on the proxy path only: the path stays closed until every item is handled
+    PROXY_ADDRESSING_MISSING = "PROXY_ADDRESSING_MISSING"
+    PROXY_TEXT_INCOMPLETE = "PROXY_TEXT_INCOMPLETE"
+    PROXY_SKIP_CLOSES_GATE = "PROXY_SKIP_CLOSES_GATE"
+    RED_FLAG_PROBE_GATED_ON_SUBJECT_ROLE = "RED_FLAG_PROBE_GATED_ON_SUBJECT_ROLE"
+    PROXY_ADMINISTERS_INSTRUMENT = "PROXY_ADMINISTERS_INSTRUMENT"
+    PROXY_GATED_ON_SUBJECT_ROLE = "PROXY_GATED_ON_SUBJECT_ROLE"
+
 
 class Refusal(FrozenModel):
     """One reason the compiler will not emit."""

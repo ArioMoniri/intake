@@ -165,6 +165,14 @@ def _patient_facing(pack: ProtocolPack) -> Iterator[tuple[str, str]]:
         if slot.choices_tr is not None:
             for index, choice in enumerate(entry_for(slot.choices_tr, TR)):
                 yield f"{section_id}.{key}.choices_tr[{index}]", choice
+        # INT-483 / ADR-040: the proxy form is patient-facing copy like any other,
+        # so the register, numeral, one-question and English-mirror tests reach it
+        # the day a clinical decision record puts it in the pack.
+        if slot.proxy is not None:
+            for field in ("ask_tr", "confirm_tr", "follow_up_tr"):
+                value = getattr(slot.proxy, field)
+                if value is not None:
+                    yield f"{section_id}.{key}.proxy.{field}", entry_for(value, TR)
 
 
 def _tr_keys(pack: ProtocolPack) -> dict[str, str]:

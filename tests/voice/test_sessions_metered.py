@@ -20,6 +20,7 @@ from intake_voice_runtime.metering import SessionLedger, SessionMeter, TurnLabel
 from intake_voice_runtime.metrics import VOICE_SESSIONS_METERED
 from intake_voice_runtime.profiles import VoiceProfile
 from prometheus_client import REGISTRY
+from protocols.addressing import Addressing
 from red_harness import RecordingClinicNotifier
 from talker_harness import VOICE_ID, FakeClock, RecordedClipStore, RecordingSynthesizer
 
@@ -45,6 +46,7 @@ def _meter(profile: VoiceProfile) -> SessionMeter:
 def _typed(meter: SessionMeter | None) -> None:
     build_typed_session(
         protocol=parity._protocol(),
+        addressing=Addressing.SELF,
         reference_time=parity.NOW,
         session_id=parity.SESSION,
         protocol_hash=parity.HASH,
@@ -70,6 +72,7 @@ def test_a_voice_session_is_counted_under_its_own_profile() -> None:
     clock = FakeClock()
     build_residency_tr_session(
         protocol=parity._protocol(),
+        addressing=Addressing.SELF,
         reference_time=parity.NOW,
         session_id=parity.SESSION,
         voice_id=VOICE_ID,

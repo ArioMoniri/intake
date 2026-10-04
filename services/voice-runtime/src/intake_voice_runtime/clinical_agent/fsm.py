@@ -42,6 +42,7 @@ from decimal import Decimal
 from clinical_schemas.common import JsonValue
 from clinical_schemas.overlay import PatientOverlay
 from clinical_schemas.session import AnswerState
+from protocols.addressing import Addressing
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.triage.context import canonical_scalar
 from protocols.triage.expr import Truth
@@ -106,14 +107,32 @@ class IntakeEngine:
         protocol: ResolvedProtocol,
         reference_time: datetime,
         overlay_facts: PatientOverlay | None = None,
+        addressing: Addressing | None = None,
     ) -> None:
+        # ADR-040: the session's subject role selects the document, and the
+        # document is the only place proxy text exists. A session that names a
+        # role the document was not resolved for is refused before any question:
+        # a proxy is never put the patient's own second-person questions, and
+        # no self session runs on proxy wording.
+        if addressing is not None and addressing is not protocol.addressing:
+            raise EngineError(
+                f"a {addressing.value} session cannot run on a document resolved for "
+                f"the {protocol.addressing.value} path — resolve the pack for the "
+                "session's subject role; the proxy path exists only once every "
+                "self-addressed item is reworded or skipped (ADR-040; owner decision "
+                "D24 answer 1Y)"
+            )
+        self._addressing = protocol.addressing
         self._plan = build_plan(protocol)
         self._by_id = self._plan.by_id
         self._reference_time = reference_time
         self._delta = decide_delta(plan=self._plan, overlay_facts=overlay_facts, now=reference_time)
         self._prefills = {prefill.slot_ref: prefill for prefill in self._delta.prefills}
         self._states: dict[str, AnswerState] = {
-            step.step_id: AnswerState.NOT_ASKED for step in self._plan.steps
+            step.step_id: (
+                AnswerState.NOT_ASKED_PROXY if step.proxy_skipped else AnswerState.NOT_ASKED
+            )
+            for step in self._plan.steps
         }
         self._values: dict[str, JsonValue] = {}
         self._invalidated: list[str] = []
@@ -129,6 +148,21 @@ class IntakeEngine:
     def reference_time(self) -> datetime:
         """The session's ``now``, stamped once (files/13 §9.2). No wall clock."""
         return self._reference_time
+
+    @property
+    def addressing(self) -> Addressing:
+        """The session this engine speaks to (ADR-040)."""
+        return self._addressing
+
+    @property
+    def proxy_skipped(self) -> tuple[str, ...]:
+        """Steps the pack skips in this proxy session, in plan order: never
+        offered, never bound, and each one a note gap ``not_asked_proxy``."""
+        return tuple(
+            step.step_id
+            for step in self._plan.steps
+            if self._states[step.step_id] is AnswerState.NOT_ASKED_PROXY
+        )
 
     @property
     def delta(self) -> DeltaDecision:

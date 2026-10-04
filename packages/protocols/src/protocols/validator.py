@@ -43,6 +43,7 @@ from decimal import Decimal
 from clinical_schemas.common import FrozenModel
 from pydantic import Field
 
+from protocols.addressing import proxy_text_mismatches
 from protocols.dsl import RedFlagRule, Slot
 from protocols.licences import InstrumentLicence, LicenceTable, instrument_licence
 from protocols.loader import PackRegistry
@@ -96,6 +97,7 @@ class FindingCode(enum.StrEnum):
     ATTR_LOOSENED = "ATTR_LOOSENED"
     PLACEHOLDER_FORM = "PLACEHOLDER_FORM"
     PLACEHOLDER_OUTSIDE_DRAFT = "PLACEHOLDER_OUTSIDE_DRAFT"
+    PROXY_TEXT_MISMATCH = "PROXY_TEXT_MISMATCH"
 
 
 class Finding(FrozenModel):
@@ -365,15 +367,20 @@ def _each_locale(subject: str, field: Mapping[str, str] | None) -> list[tuple[st
 
 def _tr_texts(pack: ProtocolPack) -> list[tuple[str, str]]:
     """Every patient-facing string the Talker could speak or show, in every
-    locale the pack carries: slot voice fields (files/04 §1), instrument item
-    text (invariant 10), rule action scripts (files/protocols/
-    base.life_threat.yaml) and override_text payloads. label_tr is
-    clinician-facing and excluded."""
+    locale the pack carries: slot voice fields (files/04 §1) and their proxy
+    forms (ADR-040), instrument item text (invariant 10), rule action scripts
+    (files/protocols/base.life_threat.yaml) and override_text payloads.
+    label_tr is clinician-facing and excluded."""
     texts: list[tuple[str, str]] = []
     for subject, slot in _pack_slots(pack):
         texts.extend(_each_locale(subject, slot.ask_tr))
         texts.extend(_each_locale(subject, slot.follow_up_tr))
         texts.extend(_each_locale(subject, slot.confirm_tr))
+        if slot.proxy is not None:
+            # ADR-040: what a proxy hears is spoken like any other question
+            texts.extend(_each_locale(subject, slot.proxy.ask_tr))
+            texts.extend(_each_locale(subject, slot.proxy.follow_up_tr))
+            texts.extend(_each_locale(subject, slot.proxy.confirm_tr))
         for code, choices in sorted((slot.choices_tr or {}).items()):
             texts.extend((f"{subject}@{code}", choice) for choice in choices)
     for instrument in pack.instruments:
@@ -469,6 +476,35 @@ def _voice_findings(pack: ProtocolPack) -> list[Finding]:
         for subject, text in _tr_texts(pack)
         if any(ch.isdigit() for ch in text)
     )
+    findings.extend(_proxy_text_findings(pack))
+    return findings
+
+
+def _proxy_text_findings(pack: ProtocolPack) -> list[Finding]:
+    """ADR-040: a rewording speaks exactly the texts its self form speaks — a
+    second-person follow-up after a reworded question is the same defect one
+    turn later, and a proxy text with no self counterpart is never reached."""
+    findings: list[Finding] = []
+    for subject, slot in _pack_slots(pack):
+        if slot.proxy is None:
+            continue
+        mismatched = proxy_text_mismatches(
+            slot.proxy,
+            ask_tr=slot.ask_tr,
+            confirm_tr=slot.confirm_tr,
+            follow_up_tr=slot.follow_up_tr,
+        )
+        if mismatched:
+            findings.append(
+                _finding(
+                    FindingCode.PROXY_TEXT_MISMATCH,
+                    pack.id,
+                    subject,
+                    "a proxy rewording speaks exactly the texts its self form speaks, "
+                    "so nothing second-person reaches a proxy and no proxy text is "
+                    f"unreachable (ADR-040; CLAUDE.md invariant 10): {', '.join(mismatched)}",
+                )
+            )
     return findings
 
 
