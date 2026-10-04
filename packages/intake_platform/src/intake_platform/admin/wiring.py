@@ -162,6 +162,10 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
     # The same kind of read as /admin/ops — platform facts, ids only — so the
     # same platform-scope set and no DangerousAction.
     AdminRoute("GET", "/admin/reliability", "admin.reliability.read", _PLATFORM_SCOPE_ROLES),
+    # INT-481 — the alerts feed (files/08 §3): what Alertmanager holds, read
+    # server-side (files/08 §0b F1), ids only. A platform fact like /admin/ops,
+    # so the same platform-scope set and no DangerousAction.
+    AdminRoute("GET", "/admin/alerts", "admin.alerts.read", _PLATFORM_SCOPE_ROLES),
     AdminRoute(
         "POST",
         "/admin/models/{component}/benchmark",

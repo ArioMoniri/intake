@@ -61,6 +61,7 @@ from intake_platform.compliance.audit_search import AuditSearchContentRefused
 from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
 from intake_api.admin import access_console, compliance_source, safety_queue, views
+from intake_api.admin.alerts_console import load_alerts_console
 from intake_api.admin.cicd_routes import CICD_HANDLERS
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.models_source import (
@@ -243,6 +244,14 @@ async def _reliability(
     return await run_in_threadpool(load_reliability_console, datetime.now(UTC))
 
 
+async def _alerts(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole
+) -> dict[str, Any]:
+    # INT-481. Alertmanager, server-side: one fixed read, and nothing in the
+    # request reaches it (files/08 §0b F1). Synchronous httpx, off the loop.
+    return await run_in_threadpool(load_alerts_console, datetime.now(UTC))
+
+
 #: The closed body shape of a benchmark trigger. Anything else is refused
 #: rather than ignored: invariant 6 says no patient data reaches this surface,
 #: and a field the server silently drops is a field nobody notices carrying
@@ -387,6 +396,7 @@ _HANDLERS: dict[str, Handler] = {
     "admin.models.read": _models,
     "admin.ops.read": _ops,
     "admin.reliability.read": _reliability,
+    "admin.alerts.read": _alerts,
     "admin.models.benchmark": _models_benchmark,
     "admin.break_glass.open": _break_glass_open,
     "admin.break_glass.brief.read": _break_glass_brief,
