@@ -1,5 +1,24 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-04T05:30:00Z · INT-486 · done (PR open, not merged)
+- Goal: `PromSession.fetch` in `ops_prom.py` held label values to `ID_LABEL`/`BRANCH_LABEL` with `re.match`. Python's `$` also matches before a final newline, so `"api\n"` was painted on the ops, reliability, CI/CD and voice consoles instead of turning the tile `unknown` with `label_not_id_shaped`.
+  - Acceptance (verbatim): "every label-shape check in services/api/src/intake_api/admin/ (ops_prom.PromSession) uses fullmatch, so a label value with a trailing newline is not id-shaped"; "a near-miss test in tests/admin/test_ops_console.py: an id label 'api\n' and a ref label 'main\n' turn their tile unknown with label_not_id_shaped, while 'api' and 'main' are painted".
+- Plan: write two near-miss tests and record the red run; switch the check to `fullmatch`; check the mirror assertion in `tests/observability/test_ops_cicd.py` the same way.
+- Tests added: `tests/admin/test_ops_console.py::TestPhiAndFloor`, two tests.
+  - Id label: `"api"` is painted (the near-miss control); `"api\n"` turns the tile unknown.
+  - Ref label: `"main"` is painted; `"main\n"` turns the tile unknown.
+  - RED: 2 failed, each at the trailing-newline assertion.
+  - GREEN: tests/admin 1125 passed.
+- Result (docs/evidence/INT-486.md):
+  - `make check-py` and `make check-i18n` exit 0. No TypeScript changed.
+  - `make safety` exits 0, with 18/18 mutations detected.
+  - `make security`: steps 2–12 green. Step 1, the full-history gitleaks scan, reports 5 findings, all from commits already on main (local gitleaks 8.30.1 against CI's pinned v2.3.9 action). The diff scan is clean.
+- Invariants touched and still passing: 6 (label values reaching a console are id-shaped), 16 (Sec-Row `admin-console`), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The id came from the orchestrator (INT-486, GitHub #831).
+- Blocked on: nothing.
+- Next: INT-487 (#832), the same `fullmatch` fix in the probe emitters (`ops_ci.py`, `ops_cicd.py`, `ops_gpu.py`), in its own branch and PR.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:

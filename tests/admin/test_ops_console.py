@@ -337,6 +337,32 @@ class TestPhiAndFloor:
         assert usage["lanes"] == []
         assert "Ayşe" not in json.dumps(_console(_prom({"work_requests": leaked})))
 
+    def test_an_id_label_with_a_trailing_newline_is_not_id_shaped(self) -> None:
+        # re's `$` also matches before a final "\n": the shape check must hold
+        # the whole value, and the clean value beside it is the near-miss control
+        clean = _console(_prom({"adapter_failures": _vector(({"adapter": "api"}, "2"))}))
+        lanes = clean["tiles"]["model_usage"]["lanes"]
+        assert clean["tiles"]["model_usage"]["state"] == "ok"
+        assert {"kind": "adapter", "lane": "api"}.items() <= lanes[-1].items()
+        tail = _vector(({"adapter": "api\n"}, "2"))
+        usage = _console(_prom({"adapter_failures": tail}))["tiles"]["model_usage"]
+        assert (usage["state"], usage["reason"]) == ("unknown", "label_not_id_shaped")
+        assert usage["lanes"] == []
+
+    def test_a_ref_label_with_a_trailing_newline_is_not_ref_shaped(self) -> None:
+        def ci(branch: str) -> dict[str, Any]:
+            run = {**RESPONSES["ci_runs"]["data"]["result"][0]["metric"], "branch": branch}
+            return {
+                "ci_runs": _vector((run, "1")),
+                "ci_updated": _vector(({"workflow": "ci", "branch": branch}, "1790435205")),
+            }
+
+        clean = _console(_prom(ci("main")))["tiles"]["cicd"]
+        assert (clean["state"], clean["branch"]) == ("ok", "main")
+        cicd = _console(_prom(ci("main\n")))["tiles"]["cicd"]
+        assert (cicd["state"], cicd["reason"]) == ("unknown", "label_not_id_shaped")
+        assert (cicd["branch"], cicd["workflows"]) == (None, [])
+
     def test_an_unexpected_label_turns_the_tile_unknown(self) -> None:
         # a series re-sliced by a label the query did not ask for is a cohort
         # the tile was never designed to show (files/08 §0c F9)

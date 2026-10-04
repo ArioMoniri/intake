@@ -322,7 +322,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
-    assert len(ids) == 341, f"expected 175 blueprint + 166 added issues, got {len(ids)}"
+    # + INT-486 (the ops_prom label check uses fullmatch, so a trailing newline
+    # is not id-shaped; invariant 6, GitHub #831); grows only with a stated
+    # reason.
+    assert len(ids) == 342, f"expected 175 blueprint + 167 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
