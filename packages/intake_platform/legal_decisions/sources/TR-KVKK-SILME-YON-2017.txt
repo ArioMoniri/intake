@@ -1,0 +1,72 @@
+# source_id: TR-KVKK-SILME-YON-2017
+# instrument: Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik
+# provisions: m.4(1)(c) and (ğ), m.5, m.10, m.11
+# gazette: 28/10/2017 sayı 30224 (amended 28/4/2019 sayı 30758; in force 1/1/2018)
+# url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=24038&MevzuatTertip=5
+# retrieved_on: 2026-10-04
+# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited articles; [...] marks an omission between excerpts
+---
+Tanımlar
+MADDE 4 – (1)
+[...]
+c) İmha: Kişisel
+verilerin silinmesi, yok edilmesi veya anonim hale getirilmesini,
+[...]
+ğ) Periyodik imha:
+Kanunda yer alan kişisel verilerin işlenme şartlarının tamamının ortadan
+kalkması durumunda kişisel verileri saklama ve imha politikasında
+belirtilen ve tekrar eden aralıklarla resen gerçekleştirilecek silme, yok
+etme veya anonim hale getirme işlemini,
+[...]
+Kişisel veri
+saklama ve imha politikasına ilişkin esaslar
+MADDE 5 – (1)
+Kanunun 16 ncı maddesi gereğince Veri Sorumluları Siciline kayıt olmakla
+yükümlü olan veri sorumluları, kişisel veri işleme envanterine uygun olarak
+kişisel veri saklama ve imha politikası hazırlamakla yükümlüdür.
+(2) Kişisel veri
+saklama ve imha politikası hazırlanmış olması; kişisel verilerin Kanuna ve
+Yönetmeliğe uygun biçimde saklandığı, silindiği, yok edildiği veya anonim
+hale getirildiği anlamına gelmez.
+(3) Kişisel veri
+saklama ve imha politikası hazırlama yükümlülüğü altında bulunmayan veri
+sorumlularının, Kanun ve bu Yönetmelik uyarınca kişisel verileri saklama,
+silme, yok etme veya anonim hale getirme yükümlülükleri devam eder.
+[...]
+Kişisel
+verilerin anonim hale getirilmesi
+MADDE 10 – (1)
+Kişisel verilerin anonim hale getirilmesi, kişisel verilerin başka
+verilerle eşleştirilse dahi hiçbir surette kimliği belirli veya
+belirlenebilir bir gerçek kişiyle ilişkilendirilemeyecek hale
+getirilmesidir.
+(2) Kişisel
+verilerin anonim hale getirilmiş olması için; kişisel verilerin, veri
+sorumlusu, alıcı veya alıcı grupları tarafından geri döndürme ve verilerin
+başka verilerle eşleştirilmesi gibi kayıt ortamı ve ilgili faaliyet alanı
+açısından uygun tekniklerin kullanılması yoluyla dahi kimliği belirli veya
+belirlenebilir bir gerçek kişiyle ilişkilendirilemez hale getirilmesi
+gerekir.
+(3) Veri sorumlusu,
+kişisel verilerin anonim hale getirilmesiyle ilgili gerekli her türlü
+teknik ve idari tedbirleri almakla yükümlüdür.
+Kişisel
+verileri resen silme, yok etme veya anonim hale getirme süreleri
+MADDE 11
+– (1) Kişisel veri saklama ve imha politikası hazırlamış olan veri
+sorumlusu, kişisel verileri silme, yok etme veya anonim hale getirme
+yükümlülüğünün ortaya çıktığı tarihi takip eden ilk periyodik imha
+işleminde, kişisel verileri siler, yok eder veya anonim hale getirir.
+(2) Periyodik
+imhanın gerçekleştirileceği zaman aralığı, veri sorumlusu tarafından
+kişisel veri saklama ve imha politikasında belirlenir. Bu süre her halde
+altı ayı geçemez.
+(3) Kişisel veri
+saklama ve imha politikası hazırlama yükümlülüğü olmayan veri sorumlusu,
+kişisel verileri silme, yok etme veya anonim hale getirme yükümlülüğünün
+ortaya çıktığı tarihi takip eden üç ay içinde, kişisel verileri siler, yok
+eder veya anonim hale getirir.
+(4) Kurul,
+telafisi güç veya imkansız zararların doğması ve açıkça hukuka aykırılık
+olması halinde, bu maddede belirlenen süreleri kısaltabilir.
+[...]

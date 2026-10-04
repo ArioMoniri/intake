@@ -114,7 +114,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-470 (INT-448 owner questions resolved by CD-110 and D24, GitHub #798)
     # + INT-471 (legal decisions register under owner decision D25, GitHub #800)
-    assert len(actions) == 343
+    # + INT-484 (LD-06 and the admin analytics it governs, GitHub #827)
+    assert len(actions) == 344
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

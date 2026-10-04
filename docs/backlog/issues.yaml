@@ -6714,3 +6714,22 @@
     - "docs/legal/ texts keep their hash binding and strings.yaml stays verbatim"
   tests: [tests/legal/test_legal_decisions.py]
   sec_row: "compliance-evidence"
+- id: INT-484
+  epic: E12-admin
+  phase: P1
+  title: "Research and improvement analytics in the admin panel — LD-06 first, then aggregate de-identified question and user metrics"
+  # GitHub #827. Owner request, 4 Oct 2026: "the admin should have metrics and
+  # telemetry of users and questions as legal agent allows for research and
+  # enhancement purposes". Step 1 is the legal decision LD-06 (INT-471's
+  # register, D25 synthetic/test scope); step 2 builds within its verdict.
+  depends_on: [INT-471, INT-171]
+  labels: [area:legal, area:observability]
+  legal: "KVKK-4,KVKK-6,KVKK-7,DEST-2017,KSVY-16"
+  status: doing
+  evidence: docs/evidence/INT-484.md
+  acceptance:
+    - "step 1 — LD-06 in the INT-471 legal register decides, sourced: whether improvement analytics ride the existing service purpose; whether research use is a separate purpose needing explicit consent; anonymised versus pseudonymised data in the admin analytics; the minimum cell size before a count shows; retention — anything without a source stays draft with a legal_gap, and anything touching consent scope goes to the owner as one recommendation"
+    - "step 2 — aggregate, de-identified analytics per question and protocol version (completion and drop-off, time-to-answer, repeat and clarify rate, typed versus voice share, ASR quality bands, share of sessions reaching RED / YELLOW / GREEN, device and locale) and user funnels (invited, started, finished, shared), small cells suppressed, built within the LD-06 verdict"
+    - "no free text, no PHI or identifiers, no per-patient drill-down (invariant 6, label-set scan test); every metric in metrics_catalog.yaml (invariant 15); feeds services/learning Loop-2 proposal evidence only (invariant 12)"
+  tests: [tests/legal/test_legal_decisions.py]
+  sec_row: "compliance-evidence"

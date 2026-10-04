@@ -169,7 +169,9 @@ def test_ids_unique_and_well_formed() -> None:
     # the owner; GitHub #798).
     # + INT-471 (the legal decisions register under owner decision D25,
     # agent-authored and independently agent-reviewed; GitHub #800).
-    assert len(ids) == 343
+    # + INT-484 (LD-06: admin research and improvement analytics, step 1 of
+    # GitHub #827; the build is step 2).
+    assert len(ids) == 344
     import re
 
     for i in ids:

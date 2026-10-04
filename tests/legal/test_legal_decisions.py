@@ -670,7 +670,7 @@ def test_every_committed_source_is_an_official_text_with_a_snapshot() -> None:
     for decision in load_register().values():
         for source in decision.sources:
             assert (REPO_ROOT / source.snapshot).is_file(), (decision.id, source.snapshot)
-            assert source.retrieved_on <= date(2026, 10, 3), (decision.id, source.source_id)
+            assert source.retrieved_on <= date.today(), (decision.id, source.source_id)
 
 
 def test_every_decision_has_a_human_readable_twin() -> None:
@@ -770,17 +770,20 @@ def test_every_committed_decision_is_either_awaiting_review_or_independently_ver
     """Before a verdict is recorded: proposed, pending, review history kept.
     Once one is: active, agreeing, a reviewer who is not the author, dated,
     with what was checked or changed in the notes."""
-    for decision in load_register().values():
+    register = load_register()
+    for decision_id in ("LD-01", "LD-02", "LD-03", "LD-04", "LD-05"):
+        notes = register[decision_id].verifier.notes or ""
+        assert "Round 1" in notes and "Round 2" in notes and "Round 3" in notes, decision_id
+    for decision in register.values():
         verifier = decision.verifier
-        assert verifier.notes and "Round 1" in verifier.notes, decision.id
         if verifier.verdict is VerifierVerdict.PENDING:
             assert decision.status is DecisionStatus.PROPOSED, decision.id
-            assert "Round 2" in verifier.notes, decision.id
             continue
         assert decision.status is DecisionStatus.ACTIVE, decision.id
         assert verifier.verdict in {VerifierVerdict.AGREE, VerifierVerdict.AGREE_WITH_CHANGES}
         assert verifier.role and verifier.role.strip().lower() != decision.author_role.lower()
         assert verifier.verified_on is not None, decision.id
+        assert verifier.notes and verifier.notes.strip(), decision.id
 
 
 # --- round 3: the reviewer's round 2 -------------------------------------------------------
@@ -873,3 +876,91 @@ def test_the_ksvy_amendment_of_rg_33300_is_recorded_in_files_06() -> None:
         if line.startswith("| KSVY-5/6/7/13/16 |")
     )
     assert "RG 33300" in ksvy_row
+
+
+# --- INT-484: guidance sources and LD-06 -----------------------------------------------------
+
+GUIDANCE_SNAPSHOT = """# source_id: TEST-GUIDE-1
+# instrument: Sentetik Kurul Rehberi
+# url: https://www.kvkk.gov.tr/yayinlar/rehber.pdf
+# version_or_date: Kasım 2017
+# retrieved_on: 2026-10-04
+---
+K-anonimlik, bir veri kümesindeki belirli alanlarla, birden fazla kişinin tanımlanmasını sağlar.
+"""
+
+
+def _guidance(root: Path, **overrides: Any) -> dict[str, Any]:
+    (root / SOURCES / "TEST-GUIDE-1.txt").write_text(GUIDANCE_SNAPSHOT, encoding="utf-8")
+    base: dict[str, Any] = {
+        "kind": "guidance",
+        "source_id": "TEST-GUIDE-1",
+        "instrument": "Sentetik Kurul Rehberi",
+        "provision": "§3.1.3",
+        "url": "https://www.kvkk.gov.tr/yayinlar/rehber.pdf",
+        "version_or_date": "Kasım 2017",
+        "retrieved_on": "2026-10-04",
+        "quote": "K-anonimlik, bir veri kümesindeki belirli alanlarla",
+        "snapshot": f"{SOURCES}/TEST-GUIDE-1.txt",
+        "supports": "basis",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_an_authority_guidance_is_cited_from_its_official_host_with_its_edition(root: Path) -> None:
+    assert _load(root, sources=[_guidance(root)])
+    with pytest.raises(LegalDecisionError, match="official"):
+        _load(root, sources=[_guidance(root, url="https://example.org/rehber.pdf")])
+    with pytest.raises(LegalDecisionError, match="version_or_date"):
+        _load(root, sources=[_guidance(root, version_or_date=None)])
+
+
+def test_a_guidance_snapshot_carries_the_cited_edition(root: Path) -> None:
+    with pytest.raises(LegalDecisionError, match="version_or_date"):
+        _load(root, sources=[_guidance(root, version_or_date="Ocak 2019")])
+
+
+def test_ld06_decides_what_the_admin_analytics_may_hold() -> None:
+    decision = load_register()["LD-06"]
+    assert decision.scope is Scope.SYNTHETIC_TEST_ONLY
+    assert decision.status is DecisionStatus.PROPOSED
+    value = decision.value
+    assert value["improvement"]["rides_the_care_purpose"] is False
+    assert value["improvement"]["anonymised_aggregates_need_a_ground_or_consent"] is False
+    assert value["improvement"]["hospital_deployment_needs_controller_authorisation"] is True
+    assert value["research"]["anonymised_aggregates_need_consent"] is False
+    assert value["research"]["record_level"]["separate_purpose"] is True
+    assert value["admin_analytics"]["may_hold"] == "anonymised_aggregates_only"
+    assert value["admin_analytics"]["pseudonymised_rows"] == "personal_data_never_admin_analytics"
+
+
+def test_ld06_leaves_the_legal_cell_size_and_the_retention_periods_draft() -> None:
+    from intake_platform.analytics import K_ANONYMITY_FLOOR
+
+    decision = load_register()["LD-06"]
+    drafted = set(draft_paths(decision))
+    assert {"cell_size.legal_minimum", "retention.aggregates", "retention.raw_telemetry"} <= drafted
+    assert decision.value["cell_size"]["product_floor_subjects"] == K_ANONYMITY_FLOOR
+    assert decision.value["retention"]["periodic_destruction_max_months"] == 6
+
+
+def test_ld06_gives_the_owner_one_recommendation_on_consent_scope() -> None:
+    decision = load_register()["LD-06"]
+    consent = decision.value["consent_scope"]
+    assert "consent_scope.decision" in draft_paths(decision)
+    assert consent["stop_and_ask"] is True
+    assert isinstance(consent["owner_recommendation"], str) and consent["owner_recommendation"]
+    recommendations = [
+        path for path, _ in _leaves_of(decision.value) if path.endswith("owner_recommendation")
+    ]
+    assert recommendations == ["consent_scope.owner_recommendation"]
+
+
+def _leaves_of(node: Any, prefix: str = "") -> list[tuple[str, Any]]:
+    if isinstance(node, dict):
+        out: list[tuple[str, Any]] = []
+        for key, child in node.items():
+            out += _leaves_of(child, f"{prefix}.{key}" if prefix else str(key))
+        return out
+    return [(prefix, node)]

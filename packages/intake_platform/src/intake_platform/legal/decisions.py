@@ -17,8 +17,9 @@ decision that does not hold its own provenance:
 
 - every source is an official text — legislation from mevzuat.gov.tr,
   resmigazete.gov.tr, kvkk.gov.tr, saglik.gov.tr or aile.gov.tr with its
-  Resmî Gazete date and number, or a standard from its publisher with its
-  version — and its ``quote`` appears **verbatim** in a committed snapshot
+  Resmî Gazete date and number, an authority's guidance from the same hosts
+  with its edition, or a standard from its publisher with its version — and
+  its ``quote`` appears **verbatim** in a committed snapshot
   whose header declares the same ``source_id`` and ``retrieved_on``
   (Unicode NFC and runs of whitespace are the only normalisation);
 - no answer without a source: ``proposed`` and ``active`` need at least one
@@ -206,9 +207,14 @@ class Gazette(FrozenModel):
 
 
 class LegalSource(FrozenModel):
-    """An official text, quoted against a committed snapshot."""
+    """An official text, quoted against a committed snapshot.
 
-    kind: Literal["legislation", "standard"] = Field(description="Source kind.")
+    ``legislation`` is a gazetted instrument; ``guidance`` is an authority's own
+    published guidance (a Kurul guide) — the same official hosts, an edition in
+    place of a Resmî Gazete number, and never binding on its own; ``standard`` is
+    a standard a Turkish rule incorporates, from its publisher."""
+
+    kind: Literal["legislation", "guidance", "standard"] = Field(description="Source kind.")
     source_id: str = Field(pattern=_SOURCE_ID, description="Stable id the snapshot declares.")
     instrument: str = Field(min_length=1, description="Name and number of the instrument.")
     provision: str = Field(min_length=1, description="Article, paragraph or criterion cited.")
@@ -226,7 +232,7 @@ class LegalSource(FrozenModel):
 
     @model_validator(mode="after")
     def _an_official_text(self) -> LegalSource:
-        hosts = OFFICIAL_LEGISLATION_HOSTS if self.kind == "legislation" else STANDARD_HOSTS
+        hosts = STANDARD_HOSTS if self.kind == "standard" else OFFICIAL_LEGISLATION_HOSTS
         if not _host_in(self.url, hosts):
             raise ValueError(
                 f"{self.source_id}: {self.url} is not an official publisher's host "
@@ -236,8 +242,10 @@ class LegalSource(FrozenModel):
             raise ValueError(
                 f"{self.source_id}: legislation names its Resmî Gazete date and number"
             )
-        if self.kind == "standard" and not (self.version_or_date and self.version_or_date.strip()):
-            raise ValueError(f"{self.source_id}: a standard names its version_or_date")
+        if self.kind != "legislation" and not (
+            self.version_or_date and self.version_or_date.strip()
+        ):
+            raise ValueError(f"{self.source_id}: a {self.kind} names its version_or_date")
         if len(self.quote.split()) < _MIN_QUOTE_WORDS:
             raise ValueError(
                 f"{self.source_id}: a quote of fewer than four words proves nothing: {self.quote!r}"
@@ -588,7 +596,7 @@ def _check_header(decision_id: str, source: LegalSource, header: Mapping[str, st
                 f"{decision_id}: snapshot {snapshot!r} declares gazette "
                 f"{header.get('gazette')!r}, the source cites {cited[0]} sayı {cited[1]}"
             )
-    if source.kind == "standard" and header.get("version_or_date") != source.version_or_date:
+    if source.kind != "legislation" and header.get("version_or_date") != source.version_or_date:
         raise LegalDecisionError(
             f"{decision_id}: snapshot {snapshot!r} declares version_or_date "
             f"{header.get('version_or_date')!r}, the source cites {source.version_or_date!r}"

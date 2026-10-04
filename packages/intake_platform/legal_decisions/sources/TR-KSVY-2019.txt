@@ -1,6 +1,6 @@
 # source_id: TR-KSVY-2019
 # instrument: Kişisel Sağlık Verileri Hakkında Yönetmelik
-# provisions: m.2(1) scope; m.6 heading, m.6(1) and the lead-in of m.6(2) with its amendment marker
+# provisions: m.2(1) scope; m.6 heading, m.6(1) and the lead-in of m.6(2) with its amendment marker; the Beşinci Bölüm heading and m.16
 # gazette: 21/6/2019 sayı 30808 (amended 3/12/2025 sayı 33096 and 4/7/2026 sayı 33300)
 # amendment_33300: RG 4 Temmuz 2026 sayı 33300 (Kişisel Sağlık Verileri Hakkında Yönetmelikte Değişiklik Yapılmasına Dair Yönetmelik, confirmed on the RG index of that day) changed the Dördüncü Bölüm heading and m.13(2) and added m.13/A, per the mevzuat.gov.tr consolidated markers; it does not touch m.2 or m.6, the articles excerpted here
 # url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=32610&MevzuatTertip=5
@@ -22,4 +22,17 @@ hizmetinin gereği ile sınırlı olmak kaydıyla erişebilir.
 (2) (Değişik:RG-3/12/2025-33096) Kişilerin sağlık
 verilerine Kanunun 6 ncı maddesinin üçüncü fıkrasında yer alan işleme
 şartları ile sınırlı olmak üzere ancak;
+[...]
+BEŞİNCİ BÖLÜM
+Bilimsel Amaçlarla İşleme ve Açık
+Sağlık Verisi
+Bilimsel amaçlarla işleme
+MADDE 16 – (1) Kanunun 28 inci maddesinin
+birinci fıkrasının (b) bendi kapsamında veri sorumlusu tarafından anonim hâle
+getirilen kişisel sağlık verileri ile bilimsel çalışma yapılabilir.
+(2) Kanunun 28 inci maddesinin birinci fıkrasının (c)
+bendi kapsamında kişisel sağlık verileri, ilgili kişilerin özel hayatın
+gizliliğini veya kişilik haklarını ihlâl etmemek ya da suç teşkil etmemek
+kaydıyla alınacak teknik ve idari tedbirler çerçevesinde, bilimsel amaçlarla
+işlenebilir.
 [...]

@@ -3423,3 +3423,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond re-verification.
 - Next: the orchestrator spawns round 3 of the legal review (a narrow diff check).
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T10:00:00+03:00 · INT-484 · doing (step 1, LD-06, PR open; verdict pending)
+- Goal: the owner's request for admin metrics and telemetry "as legal agent allows for research and enhancement purposes" (GitHub #827) — step 1 is LD-06 in the INT-471 legal register, synthetic and test scope.
+- Plan: tests first; a `guidance` source kind for the Kurum's guide; snapshots of the Silme/Yok Etme/Anonim Hale Getirme Yönetmeliği and the Kurul guide, KVKK m.7 and KSVY m.16 added; LD-06 decides (a)–(e) or leaves them draft.
+- Tests added (with the near-miss negative for any safety rule): 5 (71 in all; the loader at full branch coverage); guidance off an official host or without its edition is refused beside the shape that loads; LD-06's product floor is pinned to INT-171's constant.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-484.md.
+- Invariants touched and still passing: 4, 6, 12, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none; LD-06 is a legal-register entry under D25.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner — consent scope (one recommendation in LD-06), the analytics retention periods and the DPA's controller-authorisation term are stop-and-ask items; HB-L26 stays with counsel.
+- Next: the legal reviewer's verdict on LD-06; then step 2, the build within it.
+- LOOP_STATUS: WAITING_HUMAN

@@ -1,0 +1,56 @@
+# source_id: TR-KVKK-ANONIM-REHBER-2017
+# instrument: Kişisel Verileri Koruma Kurumu, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Rehberi
+# provisions: §3 (anonymisation; the methods, 3.1), §3.1.3 (statistical methods strengthening anonymisation; a. K-Anonimlik)
+# version_or_date: Kasım 2017, Ankara (ISBN 978-975-19-6807-4)
+# url: https://www.kvkk.gov.tr/yayinlar/K%C4%B0%C5%9E%C4%B0SEL%20VER%C4%B0LER%C4%B0N%20S%C4%B0L%C4%B0NMES%C4%B0,%20YOK%20ED%C4%B0LMES%C4%B0%20VEYA%20ANON%C4%B0M%20HALE%20GET%C4%B0R%C4%B0LMES%C4%B0%20REHBER%C4%B0.pdf
+# retrieved_on: 2026-10-04
+# transcription: the Kurum's PDF (57 pages, text layer) extracted with pdftotext -layout; leading indentation and page numbers removed, line breaks as printed; only the cited passages. Guidance of the Kurum, not a gazetted instrument. [...] marks an omission between excerpts
+---
+Kişisel verilerin anonim hale getirilmesi, kişisel verilerin başka verilerle eşleştirilse dahi hiçbir
+surette kimliği belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemeyecek hale getirilmesidir.
+Kişisel verilerin anonim hale getirilmiş olması için; kişisel verilerin, veri sorumlusu veya alıcı grupları
+tarafından geri döndürülmesi ve/veya verilerin başka verilerle eşleştirilmesi gibi kayıt ortamı ve ilgili
+faaliyet alanı açısından uygun tekniklerin kullanılması yoluyla dahi kimliği belirli veya belirlenebilir
+bir gerçek kişiyle ilişkilendirilemez hale getirilmesi gerekir.
+Veri sorumlusu, kişisel verilerin anonim hale getirilmesi için gerekli her türlü teknik ve idari
+tedbirleri almakla yükümlüdür. Kişisel verilerin anonim hale getirilmesi, kişisel veri saklama ve
+imha politikasında belirtilen esaslara uygun olarak aşağıdaki yöntemlerle gerçekleştirilir.
+
+[...]
+3.1. Kişisel Verilerin Anonim Hale Getirilmesi Yöntemleri
+Anonim hale getirme, bir veri kümesindeki tüm doğrudan ve/veya dolaylı tanımlayıcıların çıkartılarak
+ya da değiştirilerek, ilgili kişinin kimliğinin saptanabilmesinin engellenmesi veya bir grup veya
+kalabalık içinde ayırt edilebilir olma özelliğini, bir gerçek kişiyle ilişkilendirilemeyecek şekilde
+kaybetmesidir.
+Bu özelliklerin engellenmesi veya kaybedilmesi sonucunda belli bir kişiye işaret etmeyen veriler,
+anonim hale getirilmiş veri sayılır. Diğer bir ifadeyle anonim hale getirilmiş veriler bu işlem yapılmadan
+önce gerçek bir kişiyi tespit eden bilgiyken bu işlemden sonra ilgili kişi ile ilişkilendirilemeyecek hale
+gelmiştir ve kişiyle bağlantısı kopartılmıştır.
+Anonim hale getirmedeki amaç, veri ile bu verinin tanımladığı kişi arasındaki bağın kopartılmasıdır.
+Kişisel verinin tutulduğu veri kayıt sistemindeki kayıtlara uygulanan otomatik olan veya olmayan
+gruplama, maskeleme, türetme, genelleştirme, rastgele hale getirme gibi yöntemlerle yürütülen
+bağ koparma işlemlerinin hepsine anonim hale getirme yöntemleri adı verilir. Bu yöntemlerin
+uygulanması sonucunda elde edilen verilerin belirli bir kişiyi tanımlayamaz olması gerekmektedir.
+[...]
+3.1.3.  Anonim Hale Getirmeyi Kuvvetlendirici İstatistik
+Yöntemler
+Anonim hale getirilmiş veri kümelerinde kayıtlardaki bazı değerlerin tekil senaryolarla bir araya
+gelmesi sonucunda, kayıtlardaki kişilerin kimliklerinin tespit edilmesi veya kişisel verilerine dair
+varsayımların türetilebilmesi ihtimali ortaya çıkabilmektedir.
+Bu sebeple anonim hale getirilmiş veri kümelerinde çeşitli istatistiksel yöntemler kullanılarak
+veri kümesi içindeki kayıtların tekilliğini minimuma indirerek anonimlik güçlendirilebilmektedir.
+Bu yöntemlerdeki temel amaç, anonimliğin bozulması riskini en aza indirirken, veri kümesinden
+sağlanacak faydayı da belli bir seviyede tutabilmektir.
+a. K-Anonimlik
+Anonim hale getirilmiş veri kümelerinde, dolaylı tanımlayıcıların doğru kombinasyonlarla bir
+araya gelmesi halinde kayıtlardaki kişilerin kimliklerinin saptanabilir olması veya belirli bir kişiye
+dair bilgilerin rahatlıkla tahmin edilebilir duruma gelmesi anonim hale getirme süreçlerine dair
+olan güveni sarsmıştır. Buna istinaden çeşitli istatistiksel yöntemlerle anonim hale getirilmiş veri
+kümelerinin daha güvenilir duruma getirilmesi gerekmiştir.
+K-anonimlik, bir veri kümesindeki belirli alanlarla, birden fazla kişinin tanımlanmasını sağlayarak,
+belli kombinasyonlarda tekil özellikler gösteren kişilere özgü bilgilerin açığa çıkmasını engellemek
+için geliştirilmiştir. Bir veri kümesindeki değişkenlerden bazılarının bir araya getirilerek oluşturulan
+kombinasyonlara ait birden fazla kayıt bulunması halinde, bu kombinasyona denk gelen kişilerin
+kimliklerinin saptanabilmesi olasılığı azalmaktadır. Örneğin; Tablo 3.16’da ad-soyad, doğum tarihi,
+cinsiyet, hastalık ve posta kodu gibi değişkenler vardır.
+[...]

@@ -326,7 +326,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # owner decision D24, GitHub #798); grows only with a stated reason.
     # + INT-471 (the legal decisions register under owner decision D25, GitHub
     # #800); grows only with a stated reason.
-    assert len(ids) == 343, f"expected 175 blueprint + 168 added issues, got {len(ids)}"
+    # + INT-484 (LD-06 and the admin analytics it governs, GitHub #827); grows
+    # only with a stated reason.
+    assert len(ids) == 344, f"expected 175 blueprint + 169 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
