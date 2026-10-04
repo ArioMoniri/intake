@@ -1,5 +1,36 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-04T12:00:00Z · INT-482 · done (PR open; legal-lane review pending)
+- Goal: GitHub #825. Prepare the store listings for Önvizit:
+  - the EAS `store.config.json` in Turkish and English;
+  - the Play text from the same source;
+  - App Privacy and Data safety answers derived from the inventory;
+  - health-app review notes and the age rating;
+  - the checklist §5 links and the owner asks.
+- Plan:
+  - The copy and the answers are drafts for the legal lane in `docs/legal/drafts/store/`, because HB-L21 keeps publishing blocked.
+  - `store.config.json` is rendered only from served, hash-bound copy (`intake_platform.store.eas_metadata`, `make store-config`).
+  - The privacy answers are a derivation (`intake_platform.store.answers`).
+- Tests added: `tests/legal/test_store_listing_drafts.py`, `test_store_submission_drafts.py`, `test_store_privacy_answers.py`.
+  - Near misses: a planted link, triage, `sen`, a prose imperative, a hand-edited answer, an invented inventory row and a broken age rating are all refused. 8 of 8 mutations were killed.
+  - RED: 2 collection errors (missing modules), then 4 failures.
+  - GREEN: 67, and `tests/legal` 600.
+- Result: ruff; `mypy --strict` over 533 files; check-py's coverage run with 10658 passed at 95.76 %; `no_placeholders`, the claims scan and the PHI scan OK (docs/evidence/INT-482.md §4).
+- Invariants touched and still passing:
+  - 2 (PolicyGuard over the Turkish copy);
+  - 6 and 14 (no credential in a draft);
+  - 17;
+  - 18 (legal links bind to signed bytes; the inventory is the label source);
+  - 20 (Python and shell claims scans).
+  - Two inventory strings were reworded, because "06 §3 satisfaction" tripped the satisfaction pattern.
+- Decisions / ADRs / `00_STATE.md` rows: none new. HB-L21's row now notes that the drafts exist and are not served.
+- Blocked on:
+  - publishing: HB-L21 (a)(b)(c)(e), HB-L27, HB-A12, HB-I5 and HB-L11;
+  - submission: INT-117's static 112 notice, and a reviewer sign-in path (needs an issue and a security review);
+  - the owner asks: Expo, App Store Connect, Play Console, the rename after #729.
+- Next: the orchestrator's legal-reviewer on the PR; promotion is a separate owner PR.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:
