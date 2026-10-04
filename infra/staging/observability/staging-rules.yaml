@@ -1,0 +1,98 @@
+# INT-481 — the staging host's own alerts (compose.obs.yaml; files/10 §6).
+#
+# SYNTHETIC PATIENTS ONLY (HB-I5, HB-L11). These read only series this host's
+# Prometheus scrapes (infra/staging/observability/prometheus.yml), every one of
+# them catalogued as live in observability/metrics_catalog.yaml, and every
+# alert links its heading in docs/runbooks/staging-observability.md
+# (tests/infra/test_staging_obs_tier.py runs intake_platform.alert_rules over
+# this file).
+#
+# Labels are ids only (invariant 6): `severity`, and `component`, the probed
+# endpoint's or the scrape job's id. Annotations name the alert and its
+# runbook; they never quote a value from a series.
+#
+# Thresholds:
+# - 25 GB free is the CI runner's own start guard on this host
+#   (docs/ci/aws-ci.md: "The host refuses to start a run with less than 25 GB
+#   free"), so below it every CI job is refused.
+# - 5 % free, 10 % memory available and 80 % of the storage cap are the
+#   platform team's engineering bounds for this one host; they may tighten,
+#   never silently loosen.
+groups:
+  - name: staging-host
+    rules:
+      - alert: HostDiskBelowCiGuard
+        expr: node_filesystem_avail_bytes < 25e9
+        for: 10m
+        labels:
+          severity: ticket
+          component: host
+        annotations:
+          summary: the staging host's root disk is below the CI runner's 25 GB start guard
+          runbook: docs/runbooks/staging-observability.md#hostdiskbelowciguard
+      - alert: HostDiskNearlyFull
+        expr: node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.05
+        for: 5m
+        labels:
+          severity: page
+          component: host
+        annotations:
+          summary: the staging host's root disk has less than 5 % free
+          runbook: docs/runbooks/staging-observability.md#hostdisknearlyfull
+      - alert: HostMemoryLow
+        expr: node_memory_memavailable_bytes / node_memory_memtotal_bytes < 0.10
+        for: 10m
+        labels:
+          severity: ticket
+          component: host
+        annotations:
+          summary: the staging host has less than 10 % of its memory available
+          runbook: docs/runbooks/staging-observability.md#hostmemorylow
+  - name: staging-probes
+    rules:
+      - alert: SyntheticProbeFailing
+        expr: probe_success == 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: a staging service's own health endpoint has failed its synthetic probe for 5 minutes
+          runbook: docs/runbooks/staging-observability.md#syntheticprobefailing
+      - alert: SyntheticProbeUnmeasured
+        expr: up{job="blackbox"} == 0
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: the blackbox exporter did not answer, so a synthetic probe is unmeasured
+          runbook: docs/runbooks/staging-observability.md#syntheticprobeunmeasured
+      - alert: ScrapeTargetDown
+        expr: label_replace(up{job!="blackbox"} == 0, "component", "$1", "job", "(.+)")
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Prometheus cannot scrape a staging target
+          runbook: docs/runbooks/staging-observability.md#scrapetargetdown
+  - name: staging-telemetry
+    rules:
+      - alert: PrometheusStorageNearCap
+        expr: >-
+          prometheus_tsdb_storage_blocks_bytes
+          / (prometheus_tsdb_retention_limit_bytes > 0) > 0.8
+        for: 30m
+        labels:
+          severity: ticket
+          component: prometheus
+        annotations:
+          summary: Prometheus has used 80 % of its size cap; the oldest data is about to be dropped
+          runbook: docs/runbooks/staging-observability.md#prometheusstoragenearcap
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: ticket
+          component: prometheus
+        annotations:
+          summary: Prometheus is running on a configuration it could not reload
+          runbook: docs/runbooks/staging-observability.md#prometheusconfigreloadfailed

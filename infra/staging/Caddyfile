@@ -34,6 +34,18 @@ admin.{$STAGING_HOSTNAME} {
 	reverse_proxy oauth2-proxy:4180
 }
 
+# INT-481: the staff Grafana (compose.obs.yaml). Its own origin, never the
+# console's, and its own login gate: every request goes through
+# oauth2-proxy-grafana, which admits a signed-in Keycloak staff session holding
+# an ops-console role. Grafana reads Prometheus only (ADR-040).
+grafana.{$STAGING_HOSTNAME} {
+	header {
+		X-Intake-Environment "staging-synthetic-only"
+		-Server
+	}
+	reverse_proxy oauth2-proxy-grafana:4180
+}
+
 # INT-421: Keycloak, for the staff realm's login pages and OIDC endpoints only.
 # Its admin console and the master realm are not routed: the operator works
 # with kcadm.sh inside the container, over SSM. The management port (9000:

@@ -1,0 +1,17 @@
+# INT-481 — the blackbox exporter's one module (compose.obs.yaml).
+#
+# SYNTHETIC PATIENTS ONLY (HB-I5, HB-L11). The exporter sits on the internal
+# networks only and probes each staging service's own health endpoint over
+# plain HTTP inside the host (the targets are in prometheus.yml's `blackbox`
+# job). A probe sends no credential, no cookie and no header of its own, and
+# follows no redirect: a 3xx is a failure, not a hop somewhere else.
+modules:
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      follow_redirects: false
+      fail_if_ssl: false

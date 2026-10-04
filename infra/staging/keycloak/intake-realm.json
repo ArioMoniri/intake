@@ -328,6 +328,30 @@
       ],
       "clientAuthenticatorType": "client-secret",
       "secret": "${INTAKE_ADMIN_WEB_CLIENT_SECRET}"
+    },
+    {
+      "clientId": "grafana",
+      "name": "Önvizit staff Grafana (behind oauth2-proxy-grafana, confidential, metrics only)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://grafana.${STAGING_HOSTNAME}/oauth2/callback"
+      ],
+      "webOrigins": [
+        "https://grafana.${STAGING_HOSTNAME}"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://grafana.${STAGING_HOSTNAME}/"
+      },
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${INTAKE_GRAFANA_CLIENT_SECRET}"
     }
   ],
   "components": {

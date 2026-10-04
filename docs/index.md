@@ -13,7 +13,7 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [PROGRESS.md](PROGRESS.md) — one entry per iteration
 - Backlog: [issues.yaml](backlog/issues.yaml) · [epics.yaml](backlog/epics.yaml) · [blockers.md](backlog/blockers.md)
 - Evidence: [docs/evidence/](evidence/) — red/green runs per issue
-- Runbooks: [model-server-aws.md](runbooks/model-server-aws.md)
+- Runbooks: [model-server-aws.md](runbooks/model-server-aws.md) · [staging-observability.md](runbooks/staging-observability.md) — the staging host's telemetry tier and staff Grafana (INT-481)
 - Voice: [on-prem-tts-wiring.md](voice/on-prem-tts-wiring.md) — the delivery profiles on the self-hosted `residency_tr` TTS (INT-415)
 
 ## Blueprint (files/ — the source of record, verbatim)
@@ -66,3 +66,4 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-026 Connector destinations: a second list, one engine](adr/ADR-026-connector-destinations-second-list-one-engine.md)
 - [ADR-027 SMART backend services: a second auth mode, a second host](adr/ADR-027-smart-second-auth-mode-second-host.md)
 - [ADR-029 Embeddable white-label handshake](adr/ADR-029-embeddable-white-label-handshake.md)
+- [ADR-040 A staff Grafana over Prometheus only, on the synthetic staging host](adr/ADR-040-staff-grafana-over-prometheus-only.md)

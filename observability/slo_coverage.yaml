@@ -86,6 +86,20 @@ subjects:
     slo: docs/slo/langfuse.yaml
     probes: [langfuse, langfuse-clickhouse]
 
+  # INT-481: the staging host's telemetry tier (infra/staging/compose.obs.yaml).
+  - subject: telemetry
+    kind: tier
+    probes: [prometheus, alertmanager, node-exporter, blackbox-exporter, grafana]
+    exempt:
+      slo: >-
+        The tier measures the services; it serves no request of its own. Its
+        failures alert on the same host it watches: SyntheticProbeFailing for
+        each component's health endpoint, ScrapeTargetDown, and the storage
+        and reload alerts in infra/staging/observability/staging-rules.yaml,
+        every one with a runbook heading in
+        docs/runbooks/staging-observability.md. files/10 §6 sets no objective
+        for the telemetry tier itself, and none is invented here.
+
   # --- apps ------------------------------------------------------------------------
 
   - subject: admin-web

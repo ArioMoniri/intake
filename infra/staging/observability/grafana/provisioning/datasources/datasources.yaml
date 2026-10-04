@@ -1,0 +1,30 @@
+# INT-481 — the staff Grafana's ONE datasource (compose.obs.yaml).
+#
+# Prometheus only. files/08 §0b F1 is about PHI-bearing stores reached from a
+# browser: Loki and Tempo carry PHI-path log lines and spans, Langfuse carries
+# prompts. None of them is a datasource here, and
+# tests/infra/test_staging_obs_tier.py fails if any datasource but this one
+# appears. Prometheus holds ids and enumerations only: its scrape jobs keep the
+# reviewed label allow-list and nothing else (invariant 6).
+#
+# The uid is the one every committed dashboard names
+# (intake_platform.slo_dashboards.DATASOURCE). Not editable from the UI.
+apiVersion: 1
+
+deleteDatasources:
+  - name: Loki
+    orgId: 1
+  - name: Tempo
+    orgId: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 30s
+      httpMethod: POST

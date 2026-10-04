@@ -20,6 +20,12 @@
 #      Then OpenBao is restarted, which leaves it sealed, and unsealed, and
 #      the record must decrypt again. A process-local KEK fails the first
 #      step. A KEK that is not on persistent storage fails the second.
+#   6-7. INT-421/INT-378: the admin tier and the live realm's WebAuthn step.
+#   8. INT-481: the telemetry tier. The staff Grafana sends an anonymous
+#      caller to Keycloak, the telemetry services are ready, every scrape
+#      target and synthetic probe is up, this deploy's marker is stored, the
+#      API's alerts route refuses an anonymous caller, and the realm has the
+#      committed grafana client.
 set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -164,6 +170,55 @@ if staff_flow check >/dev/null 2>&1; then
   pass "realm ${KEYCLOAK_REALM} runs the WebAuthn session-notes provider with the hwk reference"
 else
   fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
+fi
+
+# 8. INT-481: the telemetry tier. The staff Grafana is its own origin behind its
+#    own login gate, and sends an anonymous caller to the Keycloak login. Each
+#    telemetry service answers inside the host. Prometheus scrapes every target
+#    and every synthetic probe passes, and it has stored this deploy's
+#    `completed` marker. The API's alerts route refuses an anonymous caller. The
+#    live realm's grafana client is in its committed shape. Read only.
+grafana_host="grafana.${STAGING_HOSTNAME}"
+redirect=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' --proto '=https' --max-time 10 \
+  "https://${grafana_host}/" || true)
+if [[ $redirect =~ ^30[23]\ https://${auth_host//./\\.}/realms/intake/ ]]; then
+  pass "https://${grafana_host}/ sends an anonymous caller to the Keycloak login"
+else
+  fail "https://${grafana_host}/ did not send an anonymous caller to Keycloak (${redirect})"
+fi
+if curl -sS -o /dev/null -D - --proto '=https' --max-time 10 "https://${grafana_host}/" |
+  tr -d '\r' | grep -qi '^x-intake-environment: staging-synthetic-only$'; then
+  pass "https://${grafana_host}/ carries the staging header"
+else
+  fail "https://${grafana_host}/ is missing the staging header"
+fi
+if compose exec -T prometheus wget -q -O /dev/null http://127.0.0.1:9090/-/ready &&
+  compose exec -T alertmanager wget -q -O /dev/null http://127.0.0.1:9093/-/ready &&
+  compose exec -T grafana curl -fsS -o /dev/null http://127.0.0.1:3000/api/health; then
+  pass "prometheus, alertmanager and grafana are ready inside the host"
+else
+  fail "a telemetry service is not ready inside the host"
+fi
+if wait_prom_value 'min(up)' 1 && wait_prom_value 'min(probe_success)' 1; then
+  pass "Prometheus scrapes every target and every synthetic probe passes"
+else
+  fail "a scrape target is down or a synthetic probe fails (Grafana: Staging overview)"
+fi
+if wait_prom_value "count(deploy_event_timestamp_seconds{stage=\"completed\",head_sha=\"${INTAKE_GIT_SHA}\"})" 1; then
+  pass "Prometheus holds the completed deploy marker for ${INTAKE_GIT_SHA}"
+else
+  fail "Prometheus holds no completed deploy marker for ${INTAKE_GIT_SHA}"
+fi
+gate=$(curl -sS -w ' %{http_code}' --proto '=https' --max-time 10 "https://${STAGING_HOSTNAME}/admin/alerts" || true)
+if [[ $gate =~ (source_ip_refused|unauthorized).*\ (401|403)$ ]]; then
+  pass "the API's alerts route refuses an anonymous caller (${gate##* })"
+else
+  fail "the API's alerts route is not in its configured, refusing state: ${gate}"
+fi
+if grafana_client check >/dev/null 2>&1; then
+  pass "realm ${KEYCLOAK_REALM} has the committed grafana client"
+else
+  fail "realm ${KEYCLOAK_REALM}: the grafana client is absent or drifted (staff Grafana sign-in is refused)"
 fi
 
 if ((failures > 0)); then

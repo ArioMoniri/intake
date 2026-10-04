@@ -1,6 +1,6 @@
 {
   "schema": "intake.admin.reliability.v1",
-  "generated_at": "2026-09-27T02:04:19Z",
+  "generated_at": "2026-10-04T00:55:57Z",
   "sources": {
     "prometheus": "ok",
     "slo_files": "ok",
@@ -360,8 +360,8 @@
         "self_hosted_now": true,
         "budget_ms": 500,
         "status": "unhealthy",
-        "latency_ms": 74.48995811864734,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 134.46545787155628,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -372,8 +372,8 @@
         "self_hosted_now": true,
         "budget_ms": 200,
         "status": "unhealthy",
-        "latency_ms": 2.055500168353319,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 1.8388750031590462,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -384,8 +384,8 @@
         "self_hosted_now": true,
         "budget_ms": 1000,
         "status": "unhealthy",
-        "latency_ms": 0.3287908621132374,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.46187499538064003,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -396,8 +396,8 @@
         "self_hosted_now": true,
         "budget_ms": 3000,
         "status": "unhealthy",
-        "latency_ms": 0.20891614258289337,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.1937076449394226,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -409,7 +409,7 @@
         "budget_ms": 5000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -420,8 +420,8 @@
         "self_hosted_now": true,
         "budget_ms": 500,
         "status": "unhealthy",
-        "latency_ms": 0.12204190716147423,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.23629097267985344,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -433,7 +433,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -445,7 +445,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -457,7 +457,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -469,7 +469,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -481,7 +481,7 @@
         "budget_ms": 5000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -493,7 +493,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -504,8 +504,8 @@
         "self_hosted_now": false,
         "budget_ms": 200,
         "status": "unhealthy",
-        "latency_ms": 0.022834166884422302,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.027624890208244324,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -515,9 +515,9 @@
         "phi_path": false,
         "self_hosted_now": false,
         "budget_ms": 2000,
-        "status": "skipped",
-        "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "status": "unhealthy",
+        "latency_ms": 0.008916947990655899,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -529,7 +529,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -541,7 +541,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -553,7 +553,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -565,7 +565,7 @@
         "budget_ms": 4000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -577,7 +577,7 @@
         "budget_ms": 3000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -589,7 +589,7 @@
         "budget_ms": 3000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -601,7 +601,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -611,9 +611,9 @@
         "phi_path": true,
         "self_hosted_now": true,
         "budget_ms": 200,
-        "status": "healthy",
-        "latency_ms": 0.20350003615021706,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "status": "unhealthy",
+        "latency_ms": 0.00783335417509079,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -625,7 +625,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -637,7 +637,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -649,7 +649,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -661,7 +661,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -673,7 +673,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       },
@@ -685,7 +685,67 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-03T23:55:57Z",
+        "age_s": 3600,
+        "stale": true
+      },
+      {
+        "component": "prometheus",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": true,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-10-03T23:55:57Z",
+        "age_s": 3600,
+        "stale": true
+      },
+      {
+        "component": "alertmanager",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": true,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-10-03T23:55:57Z",
+        "age_s": 3600,
+        "stale": true
+      },
+      {
+        "component": "node-exporter",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": true,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-10-03T23:55:57Z",
+        "age_s": 3600,
+        "stale": true
+      },
+      {
+        "component": "blackbox-exporter",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": true,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-10-03T23:55:57Z",
+        "age_s": 3600,
+        "stale": true
+      },
+      {
+        "component": "grafana",
+        "probe": "http_health",
+        "phi_path": false,
+        "self_hosted_now": true,
+        "budget_ms": 2000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-10-03T23:55:57Z",
         "age_s": 3600,
         "stale": true
       }
@@ -797,6 +857,56 @@
           "fallback_kind": "in_process",
           "fallback": null,
           "fallback_health": "unknown"
+        },
+        {
+          "component": "prometheus",
+          "probe": "http_health",
+          "health": "unknown",
+          "health_reason": "sweep_stale",
+          "checked_at": null,
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "alertmanager",
+          "probe": "http_health",
+          "health": "unknown",
+          "health_reason": "sweep_stale",
+          "checked_at": null,
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "node-exporter",
+          "probe": "http_health",
+          "health": "unknown",
+          "health_reason": "sweep_stale",
+          "checked_at": null,
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "blackbox-exporter",
+          "probe": "http_health",
+          "health": "unknown",
+          "health_reason": "sweep_stale",
+          "checked_at": null,
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
+        },
+        {
+          "component": "grafana",
+          "probe": "http_health",
+          "health": "unknown",
+          "health_reason": "sweep_stale",
+          "checked_at": null,
+          "fallback_kind": "none",
+          "fallback": null,
+          "fallback_health": null
         }
       ]
     },

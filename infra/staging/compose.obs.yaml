@@ -1,0 +1,311 @@
+# INT-481: the staging host's observability tier. lib.sh's compose() passes
+# this file after compose.yaml, so it is the same project (intake-staging), on
+# the same host, behind the same Caddy and the same Keycloak.
+#
+# SYNTHETIC PATIENTS ONLY. The AWS host is in us-east-1 (HB-I5, HB-L11).
+#
+# What runs here, and why (docs/evidence/INT-481.md has the survey and the
+# sizing):
+#   prometheus            metrics store and rule engine. Apache-2.0.
+#   alertmanager          alert state, read by the API's /admin/alerts.
+#                         Apache-2.0. Its one receiver sends nothing anywhere.
+#   node-exporter         host CPU, memory, root disk and load, plus the deploy
+#                         markers deploy.sh writes as a textfile. Apache-2.0.
+#   blackbox-exporter     synthetic probes of every service's own health
+#                         endpoint, inside the host. Apache-2.0.
+#   grafana               the staff dashboards. AGPL-3.0-only, run unmodified
+#                         from the upstream image and never distributed or
+#                         offered to anyone but this deployment's staff.
+#   oauth2-proxy-grafana  Grafana's login gate: a staff Keycloak session with
+#                         an ops-console role, on its own client and origin.
+# Licences were read from each project's raw LICENSE blob at the tag's commit;
+# observability/registry.yaml records the blob URL and its sha256.
+#
+# Exposure: nothing publishes a port. Every network here is internal, so no
+# service in this file can reach the internet: no plugin download, no update
+# check, no news feed, no external snapshot, no gravatar. Caddy routes
+# grafana.<host> to oauth2-proxy-grafana only. Grafana sits on `obs` (to read
+# Prometheus) and `grafana-edge`, which only its login gate shares, so nothing
+# else can reach it or forge its auth header. The API reaches Alertmanager on
+# `edge`; Prometheus and the blackbox exporter reach the services on `edge`.
+# Neither Prometheus nor anything here joins `backend`, the data network.
+#
+# Invariant 6: Prometheus keeps only the reviewed label keys at ingestion
+# (observability/prometheus.yml), and Grafana's only datasource is Prometheus.
+# No Loki, no Tempo, no Langfuse: nothing PHI-bearing is reachable from the
+# staff Grafana (files/08 §0b F1, invariant 48; ADR-040).
+#
+# Sizing: the host is a g6.2xlarge, 8 vCPU and 30 GiB, shared with staging and
+# the CI runner slots (docs/ci/aws-ci.md). This tier is capped at 1.4 GiB of
+# memory in total and Prometheus at 30 days or 4 GB on disk, whichever comes
+# first. 30 days because the INT-190 cost budgets are evaluated over a rolling
+# 30-day window (files/06 §3 keeps telemetry 30 days hot).
+#
+# Images are pinned by the multi-arch index digest, resolved from Docker Hub's
+# v2 API on 4 Oct 2026. Secrets are the host-generated, root-only env file's
+# (init.sh), with no default.
+name: intake-staging
+
+x-obs-logging: &obs-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-obs-hardening: &obs-hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  logging: *obs-logging
+
+services:
+  prometheus:
+    <<: *obs-hardening
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=4GB
+      - --web.listen-address=:9090
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../observability/prometheus-rules.yaml:/etc/prometheus/rules/prometheus-rules.yaml:ro
+      - ../observability/cost-rules.yaml:/etc/prometheus/rules/cost-rules.yaml:ro
+      - ../observability/security-rules.yaml:/etc/prometheus/rules/security-rules.yaml:ro
+      - ../observability/safety-rules.yaml:/etc/prometheus/rules/safety-rules.yaml:ro
+      - ./observability/staging-rules.yaml:/etc/prometheus/rules/staging-rules.yaml:ro
+      - prometheus-data:/prometheus
+    networks: [obs, edge]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 512
+
+  alertmanager:
+    <<: *obs-hardening
+    image: prom/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --data.retention=120h
+      - --cluster.listen-address=
+      - --web.listen-address=:9093
+    volumes:
+      - ./observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks: [obs, edge]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9093/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    mem_limit: 96m
+    cpus: 0.25
+    pids_limit: 128
+
+  node-exporter:
+    <<: *obs-hardening
+    image: prom/node-exporter:v1.12.1@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
+    # Host figures without host networking or the host's PID namespace: the
+    # host's /proc and /sys and its root, read-only. Only the five collectors
+    # below run, and the filesystem collector sees the root filesystem only.
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+      - --collector.disable-defaults
+      - --collector.cpu
+      - --collector.meminfo
+      - --collector.loadavg
+      - --collector.filesystem
+      - --collector.filesystem.mount-points-exclude=^/.+
+      - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rootfs|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tmpfs|tracefs)$
+      - --collector.textfile
+      - --collector.textfile.directory=/textfile
+      - --web.listen-address=:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+      # deploy.sh's markers (lib.sh write_deploy_marker): a commit sha and a
+      # timestamp, nothing secret, in a root-owned 0755 directory
+      - /var/lib/intake-obs/textfile:/textfile:ro
+    networks: [obs]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9100/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 64
+
+  blackbox-exporter:
+    <<: *obs-hardening
+    image: prom/blackbox-exporter:v0.28.0@sha256:e753ff9f3fc458d02cca5eddab5a77e1c175eee484a8925ac7d524f04366c2fc
+    # The image sets no USER, so it would run as root; its HTTP probes need no
+    # privilege at all.
+    user: "65534:65534"
+    command:
+      - --config.file=/etc/blackbox/blackbox.yml
+      - --web.listen-address=:9115
+    volumes:
+      - ./observability/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    networks: [obs, edge]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9115/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 64
+
+  grafana:
+    <<: *obs-hardening
+    image: grafana/grafana:13.2.3@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572
+    environment:
+      GF_SERVER_ROOT_URL: https://grafana.${STAGING_HOSTNAME:?run init.sh}/
+      GF_SERVER_HTTP_PORT: "3000"
+      GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY:?run init.sh}
+      # No admin account is ever created: the dashboards and the datasource
+      # are provisioned from files, and no person administers this Grafana.
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_COOKIE_SAMESITE: strict
+      GF_SECURITY_ALLOW_EMBEDDING: "false"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_SECURITY_CONTENT_SECURITY_POLICY: "true"
+      # Identity is the Keycloak session oauth2-proxy-grafana checked; there is
+      # no Grafana password, no sign-up, no anonymous access and no API key.
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: X-Forwarded-Email
+      GF_AUTH_PROXY_HEADER_PROPERTY: email
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN: "false"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_AUTH_BASIC_ENABLED: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_AUTH_SIGNOUT_REDIRECT_URL: https://grafana.${STAGING_HOSTNAME:?run init.sh}/oauth2/sign_out
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_ORG_CREATE: "false"
+      GF_USERS_AUTO_ASSIGN_ORG: "true"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Viewer
+      GF_USERS_VIEWERS_CAN_EDIT: "false"
+      # Viewers read the provisioned panels; nobody writes ad-hoc queries.
+      GF_EXPLORE_ENABLED: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "false"
+      GF_PUBLIC_DASHBOARDS_ENABLED: "false"
+      GF_SNAPSHOTS_ENABLED: "false"
+      GF_SNAPSHOTS_EXTERNAL_ENABLED: "false"
+      # No egress of any kind, and nothing that would try.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_ANALYTICS_FEEDBACK_LINKS_ENABLED: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_PLUGINS_PUBLIC_KEY_RETRIEVAL_DISABLED: "true"
+      # Grafana's own internals are not scraped; no /metrics to expose.
+      GF_METRICS_ENABLED: "false"
+      # Invariant 6: error level only, so no login line with an email reaches
+      # the host's container log.
+      GF_LOG_MODE: console
+      GF_LOG_LEVEL: error
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/ops/staging-overview.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/etc/grafana/dashboards/slo:ro
+      - ../observability/grafana/ops-dashboards:/etc/grafana/dashboards/ops:ro
+      - grafana-data:/var/lib/grafana
+    # the root filesystem is read-only; Grafana's data, plugins and sessions
+    # live on grafana-data, and it logs to the console only
+    tmpfs: [/tmp, /var/log/grafana]
+    networks: [obs, grafana-edge]
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 256
+
+  oauth2-proxy-grafana:
+    <<: *obs-hardening
+    # The admin console's pin (compose.yaml, INT-421): MIT, read from the raw
+    # LICENSE blob at tag v7.15.4.
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.4@sha256:b1b2021fe8f4004573e8d690dec6c7bb29cc44364572cf8510a05bf3a0ae2ded
+    command: ["--alpha-config=/etc/oauth2-proxy/alpha.yaml"]
+    environment:
+      INTAKE_GRAFANA_CLIENT_SECRET: ${INTAKE_GRAFANA_CLIENT_SECRET:?run init.sh}
+      STAGING_HOSTNAME: ${STAGING_HOSTNAME:?run init.sh}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_GRAFANA_COOKIE_SECRET:?run init.sh}
+      OAUTH2_PROXY_COOKIE_NAME: _intake_grafana
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_SAMESITE: lax
+      # Short sessions (files/10 §2), re-checked against Keycloak every five
+      # minutes, so a disabled staff account loses Grafana within one refresh.
+      OAUTH2_PROXY_COOKIE_EXPIRE: 8h
+      OAUTH2_PROXY_COOKIE_REFRESH: 5m
+      OAUTH2_PROXY_REDIRECT_URL: https://grafana.${STAGING_HOSTNAME:?run init.sh}/oauth2/callback
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_REVERSE_PROXY: "true"
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      # Invariant 6: the request and auth logs name the signed-in email, so
+      # neither is written; start-up and error lines still are.
+      OAUTH2_PROXY_REQUEST_LOGGING: "false"
+      OAUTH2_PROXY_AUTH_LOGGING: "false"
+    volumes:
+      - ./oauth2-proxy/grafana.yaml:/etc/oauth2-proxy/alpha.yaml:ro
+    networks: [edge, grafana-edge]
+    depends_on:
+      grafana:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 64
+
+  # --- what this tier adds to compose.yaml's services ---------------------------------
+
+  api:
+    environment:
+      # GET /admin/alerts reads Alertmanager over the internal edge network.
+      INTAKE_OPS_ALERTMANAGER_URL: http://alertmanager:9093
+
+  admin-web:
+    environment:
+      # The Alerts page links the staff Grafana. A plain link, never a frame:
+      # the console's CSP keeps frame-src 'none' (files/08 §0b F1).
+      INTAKE_ADMIN_GRAFANA_URL: https://grafana.${STAGING_HOSTNAME:?run init.sh}/
+
+  keycloak:
+    environment:
+      # read by the realm import's ${...} substitution (the `grafana` client),
+      # and only there; a live realm gets the client from deploy.sh
+      INTAKE_GRAFANA_CLIENT_SECRET: ${INTAKE_GRAFANA_CLIENT_SECRET:?run init.sh}
+
+networks:
+  obs:
+    internal: true
+  grafana-edge:
+    internal: true
+
+volumes:
+  prometheus-data: {}
+  alertmanager-data: {}
+  grafana-data: {}

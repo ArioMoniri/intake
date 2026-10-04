@@ -224,7 +224,11 @@ OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS, *SMS_KEYS}
 
 #: INT-421: generated as base64url of 32 bytes (oauth2-proxy's key form),
 #: not gen_secret's 64 hex.
-COOKIE_SECRET_KEYS = {"OAUTH2_PROXY_COOKIE_SECRET"}
+COOKIE_SECRET_KEYS = {
+    "OAUTH2_PROXY_COOKIE_SECRET",
+    # INT-481: the staff Grafana's login gate
+    "OAUTH2_PROXY_GRAFANA_COOKIE_SECRET",
+}
 COOKIE_SECRET_FORM = re.compile(r"[A-Za-z0-9_-]{43}")
 
 #: The phone-tokenization key: without it the OTP tier answers 503.
