@@ -3,10 +3,12 @@
 # ONE POOL IS DECLARED, AND IT IS NOT THE TR-DC POOL.
 #
 # INT-463: on 3 Oct 2026 the owner ordered every GitHub Actions run onto the
-# AWS host (billing). intake-aws-ci is that pool: an ephemeral runner on EC2
+# AWS host (billing). intake-aws-ci is that pool: ephemeral runners on EC2
 # i-0e489e48739f5de98 in us-east-1, the host that serves synthetic staging only.
-# It is installed from infra/ci/aws-runner. Every field below was read from the
-# host and the GitHub API, not invented. It answers the spend half of HB-I7 for
+# They are installed from infra/ci/aws-runner: INT-467 makes them a pool of
+# POOL_INSTANCES runners (intake-aws-ci-1..3), each with its own user, rootless
+# daemon, egress chain and network namespace. Every field below was read from
+# the host and the GitHub API, not invented. It answers the spend half of HB-I7 for
 # a pool outside Türkiye. It does not answer the TR-DC residency claim in
 # files/06 §5, which stays open under the rows below. That is safe only because
 # no PHI is ever in CI (phi_path: false, and the six-surface policy enforces it).
