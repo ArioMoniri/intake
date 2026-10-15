@@ -222,7 +222,7 @@ components:
     # infra/ci/runners.yaml therefore declares zero pools and the probe reports
     # those rows rather than a result. Flips true when a pool is declared and beats.
     self_hosted_now: false
-    host: "infra/ci/runners.yaml — zero pools declared (HB-I7 spend, HB-L11 residency claim; NOT HB-I5, which is GPU). CI runs on GitHub-hosted runners meanwhile, which files/08 §6 records as the fallback precisely because no PHI is ever in CI"
+    host: "infra/ci/runners.yaml — one pool, intake-aws-ci: the ephemeral runner on the AWS us-east-1 staging host (INT-463, owner order of 3 Oct 2026), not in Türkiye. The TR-DC pool stays undeclared (HB-I7 spend, HB-L11 residency claim; NOT HB-I5, which is GPU). No collector reads the runner status into the sweep yet, so the probe reports a missing heartbeat. No PHI is ever in CI"
     license: "GitHub Actions Runner — MIT (the runner agent); the hosted service is a vendor product, which is why the self-hosted pool is the target state"
     probe: runner_heartbeat
     budget_ms: 2000

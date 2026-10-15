@@ -114,6 +114,58 @@ else
   fail "could not encrypt the synthetic record"
 fi
 
+# 6. INT-421: the admin tier. The realm is served under its public issuer.
+#    Keycloak's admin console and the master realm are not routed. The
+#    console's /healthz answers with a CSP. Every other console page needs a
+#    Keycloak login. The API's admin gate is configured, and it refuses a
+#    caller with no bearer from an unlisted source.
+admin_host="admin.${STAGING_HOSTNAME}"
+auth_host="auth.${STAGING_HOSTNAME}"
+issuer=$(curl -fsS --proto '=https' --max-time 10 \
+  "https://${auth_host}/realms/intake/.well-known/openid-configuration" |
+  python3 -c 'import json, sys; print(json.load(sys.stdin).get("issuer", ""))' 2>/dev/null || true)
+if [[ $issuer == "https://${auth_host}/realms/intake" ]]; then
+  pass "realm intake is served under issuer ${issuer}"
+else
+  fail "realm intake: issuer '${issuer}' is not https://${auth_host}/realms/intake"
+fi
+for path in /admin/ /realms/master/.well-known/openid-configuration; do
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --proto '=https' --max-time 10 "https://${auth_host}${path}" || true)
+  if [[ $code == 404 ]]; then
+    pass "https://${auth_host}${path} is not routed (404)"
+  else
+    fail "https://${auth_host}${path} answered ${code:-nothing}, not 404"
+  fi
+done
+headers=$(curl -sS -o /dev/null -D - --proto '=https' --max-time 10 "https://${admin_host}/healthz" | tr -d '\r' || true)
+if [[ $headers =~ ^HTTP/[0-9.]+\ 200 ]] && grep -qi '^content-security-policy: ' <<<"$headers" &&
+  ! grep -i '^content-security-policy: ' <<<"$headers" | grep -q "unsafe-"; then
+  pass "https://${admin_host}/healthz -> 200 with a CSP and no unsafe-*"
+else
+  fail "https://${admin_host}/healthz: no 200, or no strict CSP"
+fi
+redirect=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' --proto '=https' --max-time 10 \
+  "https://${admin_host}/ops" || true)
+if [[ $redirect =~ ^30[23]\ https://${auth_host//./\\.}/realms/intake/ ]]; then
+  pass "https://${admin_host}/ops sends an anonymous caller to the Keycloak login"
+else
+  fail "https://${admin_host}/ops did not send an anonymous caller to Keycloak (${redirect})"
+fi
+gate=$(curl -sS -w ' %{http_code}' --proto '=https' --max-time 10 "https://${STAGING_HOSTNAME}/admin/ops" || true)
+if [[ $gate =~ (source_ip_refused|unauthorized).*\ (401|403)$ ]]; then
+  pass "the API's admin gate is configured and refuses an anonymous caller (${gate##* })"
+else
+  fail "the API's admin gate is not in its configured, refusing state: ${gate}"
+fi
+
+# 7. INT-378: the live realm's WebAuthn step is the session-notes provider, the
+#    one that puts aaguid and credential_id into a staff token. Read only.
+if staff_flow check >/dev/null 2>&1; then
+  pass "realm ${KEYCLOAK_REALM} runs the WebAuthn session-notes provider with the hwk reference"
+else
+  fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
+fi
+
 if ((failures > 0)); then
   die "smoke: ${failures} check(s) failed"
 fi

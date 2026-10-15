@@ -45,6 +45,7 @@ env_set "$ENV_FILE" STAGING_HOSTNAME "$host"
 generate_missing_secrets
 
 load_env
+ensure_jwks_file
 stamp_revision
 build_api_image
 stamp_sbom

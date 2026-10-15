@@ -1,5 +1,117 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
+- Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
+- Plan:
+  - Merge main.
+  - Build the staging Keycloak from INT-390's pin plus the jar, checked against pin `91da1232…`.
+  - Switch the live realm's WebAuthn step in `deploy.sh` (an import never re-runs) and re-check it in `smoke.sh`.
+  - Make staff enrol a security key or passkey.
+- Tests added: `tests/infra/test_staging_keycloak_provider.py`. Updated: `test_staging_admin_tier.py` and `test_staging_compose.py`.
+  - Near-misses: a foreign reference or two providers are refused; the password never follows the command; the base URL is http(s) only.
+  - RED: 1 failed (staging flows ≠ dev flows) after the merge.
+  - GREEN: below.
+- Result: docs/evidence/INT-421.md §7.
+  - On a real Keycloak 26.7.4 with the host's flags, the sync refused the host's state, took four steps, settled, and was idempotent.
+  - A WebAuthn login through the synced realm was admitted, and through an unsynced copy refused.
+- Invariants touched and still passing: 6 (ids only; the password on stdin), 14 (every base pinned by digest, the jar pinned by sha256, the licence read raw), 15, 17.
+- Decisions / ADRs / `00_STATE.md` rows: this branch's D18 becomes **D19**, because main's D18 (INT-432) landed first. No new decision. The TOTP alternative is untouched (INT-389, the owner's).
+- Blocked on: nothing. The merge queue deploys after merge. No deploy was made here.
+- Next: the queue's parity-checked deploy; then smoke check 7 on the host.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:20:00Z · INT-421 · doing (admin tier live; PR #723 open, not merged)
+- Goal: continue INT-421 after the owner's `aws login`:
+  - deploy the admin tier;
+  - retire the "deneme hastası" fixture, audited;
+  - re-run smoke;
+  - apply the owner's decision of 2 Oct 2026, *"dont make admin access ip restricted"*.
+- Tests added:
+  - `tests/infra/test_staging_admin_tier.py`: the explicit allow-all, with an empty list as the near miss (admits nobody); the two-factor flow kept; the edge recreated on each deploy, with `wait_healthy caddy` as the near miss.
+- Result:
+  - Release `7d2cc23d` is live with 9 services up. `smoke.sh` passed 19 checks, sbom_digest `sha256:80d9eed4…`.
+  - The fixture was retired (consents 3, patient 1, tenant 1), audited as chain entries 5 to 9, and 0 rows remain.
+  - George answers 404.
+  - Two first-run defects were found and fixed: caddy kept the previous release's Caddyfile, and the caddy wait used a healthcheck caddy does not declare.
+- Decisions / ADRs / `00_STATE.md` rows: **D19** (owner, 2 Oct 2026; numbered D18 until main's INT-432 took that number).
+  - HB-A16's ranges half is closed. Its tenant→deployment map half stays open.
+- Blocked on owner:
+  - HB-A3 (Apple, Google), an Expo token;
+  - an SMS vendor with a DPA;
+  - INT-408 (workers);
+  - Keycloak staff accounts.
+  - Hosted lanes are INT-428.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T12:00:00Z · INT-421 · doing (PR open, not merged; AWS session expired mid-iteration)
+- Goal: acceptance verbatim (GitHub #713):
+  - *"The AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis). The SBOM stamp and smoke/probe results are recorded in the evidence. Nothing but simulated patients reaches us-east-1."*
+  - *"The EAS production profiles build from main with the Önvizit identity and the production API URL. Anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask."*
+  - *"A release checklist in docs/ runs end to end."*
+- Plan: deploy main and fix what stops it; add the admin tier (Keycloak, oauth2-proxy, admin-web) to the host compose; owner directive "no deneme hastası in production"; EAS production profile; the checklist.
+- Tests added (with near-miss controls):
+  - `tests/api/test_dev_fixture_production.py`: no seed outside dev; retirement removes exactly the fixture, audited by id; it refuses in dev and when the tenant holds a session, a second patient or a foreign consent. RED: 3 failed, 11 passed.
+  - `tests/api/test_dev_voice_hardening.py`: the George route is absent on staging, STAGING and test. RED: 3 failed.
+  - `tests/infra/test_staging_admin_tier.py` (35): pins, the realm, the access-token bearer, the unrouted paths, the allow-list key, the cookie-secret form, and the key-set validity near-misses.
+  - `apps/mobile/e2e/releaseConfig.spec.ts` and `src/lib/profile/badge.test.ts`.
+- Result:
+  - Main `7ca881c8` failed closed on the host at migration 0014: there was no pgvector, and the host kept `7d926d73`.
+  - Integration `c155a0d3` (main + the pgvector image) is live. Smoke is green, sbom_digest `sha256:eddaaeb1…`.
+  - The admin-tier deploy (`21097828`) stopped at upload, because the AWS CLI session had expired.
+  - `tests/api` passed 530. `tests/infra` and `tests/backlog` are green, and shellcheck is clean.
+  - Mobile: 2447 vitest tests green, and both production exports built.
+- Invariants touched and still passing: 4, 6, 14, 15, 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: main could not migrate on the host (pgvector); the API seeded the synthetic dev patient on every non-dev boot; the George route was mounted on staging; release builds labelled real accounts "Sentetik deneme hesabı".
+- Blocked on owner:
+  - the AWS re-login;
+  - HB-A3 (Apple, Google), an Expo token;
+  - HB-A16 (console ranges);
+  - an SMS vendor with a DPA;
+  - a decision and an ADR for hosted model lanes (invariant 19);
+  - INT-408 (workers).
+  - The asks are in docs/release/production-checklist.md §6. No HB id is minted here.
+- Next: the owner runs `aws login`; then deploy `21097828` or later, run `dev_fixture_retire` on the host, and record both in docs/evidence/INT-421.md.
+
+### 2026-10-03T17:00:00Z · INT-463 · awaiting-human (PR open, not merged; the owner's workflow commit 66cc6f91 is on it)
+- Goal: the acceptance, verbatim (GitHub #790):
+  - a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; ephemeral, re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker for that user is rootless only.
+  - every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml.
+  - on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner.
+- Plan:
+  - Install the runner over SSM from `infra/ci/aws-runner`:
+    - a root, unsandboxed supervisor (`cycle.sh`) runs the guards, registers with `--ephemeral`, runs one job in the sandboxed `intake-aws-ci-job.service`, then wipes;
+    - rootless Docker runs in its own sandboxed unit;
+    - everything sits on the instance-store NVMe, under a resource slice.
+  - Declare the pool.
+  - Write the test.
+  - Hand the workflow change to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/ci/test_aws_runner.py`, with a hosted-name near-miss control.
+  - `tests/infra/test_ci_no_phi.py` is updated for the declared pool. The TR-DC label still fails closed, and a declared pool with no collected heartbeat reports Failed, not healthy.
+  - Red run: 40 failed, 37 passed. After the pool was declared: 39 failed (the 13 jobs × 3 `runs-on` assertions the owner patch fixes) and 113 passed.
+  - The patch was checked with `git apply --check` plus a YAML parse on `main` and on #643's branch: 13/13 jobs on intake-aws-ci.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local: the touched lanes, backlog counts and smoke counts (334, after main added INT-407 and INT-432), shellcheck, and no_placeholders (staged).
+  - The full check-py, check-ts, check-integration and security gates run on the PR, on the AWS runner, after the owner commit.
+  - Host isolation was measured as ghrunner (docs/evidence/INT-463.md).
+- Invariants touched and still passing:
+  - 6: no PHI in CI. The pool is phi_path false, and the six-surface policy is unchanged.
+  - 13: the ci-runners probe now reports a missing heartbeat rather than Skipped.
+  - 14: every gate still runs, with the same tools and pins; only the machine changes.
+  - 17.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - The owner's order of 3 Oct 2026 answers HB-I7's spend for a non-TR pool. The note is on HB-I7.
+  - The TR-DC pool stays open (HB-L11).
+  - No ADR was minted: no invariant is relaxed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - The owner applied `owner-ci-aws-runners.patch` as 66cc6f91 (security.yml is hook-protected; the classifier refuses workflow edits from an agent).
+  - The runner stays ephemeral (INT-206). The host registrar reads the admin token from SSM as root and mints a registration token before every registration; the persistent-runner alternative was refused by the classifier as a security weakening.
+  - owner: the SSM SecureString `/intake/staging/gh_runner_admin_pat` holds 16 words of prose, not a token. Overwrite it with the raw fine-grained token, so the host's registrar mints a registration token before every job. HB-I7.
+- Result on #791 (aa07c3b2): 12 of 12 jobs ran on intake-aws-ci-1, re-registering by itself after each (the last ten via the SSM registrar); 11 green. gitleaks found no leaks but failed its SARIF upload because the workspace sat beside $HOME; fixed in-repo (workspace under home), awaiting a host reinstall.
+- Next: `scripts/ci/aws_runner.sh install` once host changes are cleared, then re-run #791.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
 - **Goal.** The acceptance, verbatim (GitHub #721):
   - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*
@@ -76,6 +188,50 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. The verifier's `aaguid` rule is unchanged.
 - Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
 - Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619; #598 landed on main during the iteration. After merge, the owner deploys the provider (runbook §3).
+
+### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
+- Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
+- Plan:
+  - D20 records the pick, and the ADR-034 render-time-tags amendment is Accepted.
+  - `voice_clips.delivery` pins `CLIPGEN_VOICE_ID` `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, with every row at v4.
+  - Tagged contexts sit at Natural stability. RED and instrument sit at Robust and are never tagged.
+  - The gateway prepends the profile's tags on the wire only, and the dev route speaks E04.
+  - `render_cast_clips.py` re-renders INT-440's set behind a quota check and spend gates.
+- Tests added: E04 table tests; tag rules (a tag on RED or instrument refused, `[pause]` and malformed tags refused); a request test that the text is the tags plus the verbatim line, with no tag on RED or instrument; a numeral refused with a tag in front; and 15 re-render tests (quota short or unreadable, stop on refusal, resume).
+  - Near miss: a George-era `@v1` recording is refused.
+  - RED: an ImportError, plus 9 clip-gen failures.
+  - GREEN: voice-clips lane 1,190 (99.74 %); voice-runtime lane 1,676 (98.65 %); API voice tests 60; backlog, smoke and docs 94; ruff and the check-py `mypy --strict` set clean; text gates OK.
+- Result:
+  - The coordinator ran the render: 226 of 226 lines, 16,963 characters, about 5.09 USD at the planning rate.
+  - Every address is the set's own hash, and no RED or instrument clip is present.
+  - Clips are in `.cache/bundled-clips-e04/`. Copying them into the app is INT-440's gitignored dev-build step (#768).
+- Invariants touched and still passing: 10 (tags never in `text_tr`), 19 (offline lane), 20, 21 (RED is the most stable and untagged), 22 (numerals refused before the wire).
+- Decisions / ADRs / `00_STATE.md` rows: D20, and the ADR-034 amendment Accepted.
+  - Open amendment gates: 2 (registry row and vendor terms), 3 (vendor numeral fixture), 5 (round-trip ASR) and 7 (a Robust RED or instrument take to listen to).
+- Blocked on: nothing for INT-449. INT-319's ask (a), the vendor's commercial-use terms, stays open.
+- Next: #768 copies the clips and switches its renderer to the pin after #772. #775 sends `wire_prefix`. #734 and #768 conflict on `delivery.py`, and whichever lands second takes v4.
+- LOOP_STATUS: DONE
+
+### 2026-10-03T01:30:00Z · INT-449 · awaiting-human (PR open, the owner's pick)
+- Goal: acceptance verbatim (GitHub #762): *"Native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines. The owner picks from a blind page."* and *"The chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered. Intonation continuity between words is measured."*
+- Plan:
+  - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
+  - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
+  - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
+- Tests added: `tests/voice/test_cast_turkish_voices.py` (33).
+  - Near-miss controls: a line one word off its source refuses the whole run; a George-era `@v1` recording is refused once the pin lands (in the prepared change).
+  - RED: collection error with the modules absent, then 5 failures (a property called as a method; a verified accent overriding the voice's own).
+  - GREEN: 33 passed.
+- Result: docs/evidence/INT-449.md and docs/voice/casting-2026-10.md.
+  - The coordinator ran the render: 6,516 characters, 1.95 USD at the planning rate, all 108 takes aligned.
+  - Cavit ranks first on both models; Mine (v3) and Toprak (v2) follow among the native voices.
+  - George on v2 ranks third, so the continuity figures do not hear accent and the owner's blind ear decides.
+  - Pins 330 → 331; files/11 regenerated. The check-py lanes touched are green; `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 10 (catalogue text only, verbatim against its source, markup refused), 19 (offline lane only, ADR-028), 20 (measurements of these takes, not properties), 22 (`assert_speakable_tr` before the wire; normaliser off).
+- Decisions / ADRs / `00_STATE.md` rows: none taken. A v3 pick is a model change recorded as the owner's decision in ADR-034 (PR #734).
+- Blocked on: the owner's pick of a blind code (Ario Moniri: *"Which coded row should the clip set be built with?"*). This answers docs/backlog/blockers.md INT-319 ask (c); ask (a), the vendor's commercial-use terms, stays open.
+- Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
@@ -3273,6 +3429,23 @@
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)
+- Goal: a pool of three ephemeral intake-aws-ci runners (GitHub #799), each with exactly runner 1's isolation. Acceptance quoted in docs/backlog/issues.yaml and docs/evidence/INT-467.md.
+- Plan:
+  - Measure the proposed netns design on the host first, with runner 2's own identity, leaving runner 1 untouched.
+  - Write the tests: re-pin the INT-463 contract onto unit templates, and pin the pool contract in a new file.
+  - Implement: an identity per instance, templated units, the job in its daemon's detached network namespace with port driver none, peer ACLs, a drain-first installer with the single-runner migration, and the isolation probe.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/ci/test_aws_runner_pool.py (37 tests). Re-pinned: tests/ci/test_aws_runner.py.
+  - Near misses: instance values 0, 4, 01, a, "1 2", "1;true", ../1 and the empty string are refused; a runner's own CI root and run directory are never in its denied set.
+  - Red run: 49 failed, 73 passed. Green: 122 passed; 9 of 9 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local lanes only (no Docker on the laptop): the runner tests 122 passed; all of tests/ci with test_ci_no_phi 362 passed (after Renovate learned the probe image's digest pin); tests/backlog and smoke 74 passed; shellcheck, ruff 0.16.4, prettier and no_placeholders (staged) clean.
+  - The full gates run on the PR in CI.
+- Invariants touched and still passing: 14 (no credential read or printed; the registrar is unchanged), 16 (Sec-Row cicd), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The nsenter-into-the-userns variant was measured and not taken (uid 0, CapEff 000001ffffffffff); systemd NetworkNamespacePath keeps the job's own uid with CapEff 0.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — run (or allow a session to run) `scripts/ci/aws_runner.sh install` from this branch, so the pool replaces the single runner; this session's permission classifier refused it (HB-I7). Also apply the `.github/renovate.json` owner patch (issue-drafts/owner-int467-renovate-probe-image.patch), which the classifier refused to stage; until then check-py fails on the digest-reachability test.
+- Next: after the install, `scripts/ci/aws_runner.sh probe` for the per-runner isolation, then two overlapping check-integration runs; record both in docs/evidence/INT-467.md.
 ### 2026-10-02T22:30:00+03:00 · INT-422 · done (PR open, not merged)
 - Goal: acceptance verbatim (docs/backlog/issues.yaml INT-422):
   - theme tokens revised to one restrained accent with Apple system semantics, Dynamic Type, an 8-pt grid, 12-pt continuous corners and materials on chrome only, with no gradient, glow, shadow or illustration;

@@ -84,7 +84,13 @@ The build is reproducible, so the owner can rebuild from the tagged source and g
 bytes. The required CI job `check-py` does exactly that, as a step, on every PR. A source change changes
 the hash. Update the pin in the same PR, with a new recording (**Proof, recorded**, below).
 
-**Deploy it to the deployed Keycloak.**
+**Deploy it to the deployed Keycloak.** On the staging host this is automatic (INT-421):
+- `infra/staging/Dockerfile.keycloak` builds the jar and refuses one that is not the pin (step 1).
+- The jar goes into the image (steps 2 and 3); compose runs `start`, which re-augments.
+- `deploy.sh` runs `ensure_staff_webauthn_notes` (`infra/staging/keycloak/staff_flow.py`) for step 4 on the live realm.
+- `smoke.sh` check 7 re-reads the flow.
+
+By hand, on any other Keycloak:
 
 1. Run `make keycloak-provider` on the commit being deployed. It prints
    `intake-webauthn-session-notes-1.0.0.jar: OK` only when the jar matches the pin.
