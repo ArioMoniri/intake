@@ -3445,3 +3445,14 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner's consent-scope answer; HB-L26 (counsel).
 - Next: step 2, the aggregate analytics build within LD-06; S2, S5, S6, S8–S10 go to INT-480 (#823).
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T12:00:00+03:00 · INT-484 · doing (step 1: LD-06 consent scope answered by the owner, D28)
+- Goal: record the owner's 16 Oct answer adopting LD-06's consent-scope recommendation (D28) and pin it.
+- Plan: tests first; a loader rule that keeps a recommendation's decision draft until an owner answer quoted from files/00_STATE.md settles it; LD-06 records the answer; D28 row and changelog line.
+- Tests added (with the near-miss negative for any safety rule): 8 (79 in the legal suite); near miss: LD-06 with the answer removed is refused.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-484.md "D28".
+- Invariants touched and still passing: 4, 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: D28 (owner, 16 Oct 2026).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the retention periods (owner, recommendation comes with the build); HB-L26 (counsel).
+- Next: step 2, the aggregate analytics build within LD-06 and D28.
+- LOOP_STATUS: CONTINUE

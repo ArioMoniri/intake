@@ -339,6 +339,114 @@ def test_a_spec_basis_quote_must_be_verbatim_in_a_committed_file(root: Path) -> 
         _load(root, spec_basis=[dict(basis, file="../outside.md")])
 
 
+# --- a recommendation to the owner stays one until the owner answers it -------------
+
+OWNER_REPLY = "zeta LD9Y"
+LANE_SENTENCE = {
+    "file": "files/00_STATE.md",
+    "section": "§3 D25",
+    "quote": "Legal questions go to this lane.",
+    "supports": "owner_recommendation",
+}
+
+
+def _owner_answer(**overrides: Any) -> dict[str, Any]:
+    answer: dict[str, Any] = {
+        "owner_decision": "D99",
+        "outcome": "accepted",
+        "quote": OWNER_REPLY,
+        "answered_on": "2026-10-16",
+        "channel": "orchestrator → main conversation → owner in chat",
+        "reading": "LD9Y adopts the recommendation as written.",
+    }
+    answer.update(overrides)
+    return answer
+
+
+def _owner_record(root: Path, **overrides: Any) -> dict[str, Any]:
+    """The owner's reply as its files/00_STATE.md §3 row quotes it."""
+    state = root / "files" / "00_STATE.md"
+    row = f'| **D99** | Owner, in chat: *"{OWNER_REPLY}"*. |\n'
+    if row not in state.read_text(encoding="utf-8"):
+        state.write_text(state.read_text(encoding="utf-8") + row, encoding="utf-8")
+    record = {
+        "file": "files/00_STATE.md",
+        "section": "§3 D99",
+        "quote": OWNER_REPLY,
+        "supports": "owner_answer",
+    }
+    record.update(overrides)
+    return record
+
+
+def _recommending(
+    root: Path,
+    *,
+    answer: dict[str, Any] | None = None,
+    decision_draft: bool,
+    record: dict[str, Any] | None = None,
+    decided: str = "accepted: the owner adopted owner_recommendation",
+) -> Any:
+    value: dict[str, Any] = {
+        "basis": "acik_riza",
+        "owner_recommendation": "Keep the panel to anonymised aggregates.",
+        "decision": decided,
+    }
+    spec = [LANE_SENTENCE, dict(LANE_SENTENCE, supports="decision")]
+    if answer is not None:
+        value["owner_answer"] = answer
+        spec.append(record if record is not None else _owner_record(root))
+    extra: dict[str, Any] = {}
+    if decision_draft:
+        extra = {"value_status": {"decision": "draft"}, "legal_gap": "The owner decides."}
+    return _load(root, value=value, spec_basis=spec, **extra)
+
+
+def test_an_unanswered_recommendation_stays_a_recommendation(root: Path) -> None:
+    pending = _recommending(root, decision_draft=True, decided="not decided (the owner decides)")
+    assert "decision" in draft_paths(pending)
+    with pytest.raises(LegalDecisionError, match="stays a recommendation"):
+        _recommending(root, decision_draft=False)
+
+
+def test_the_owners_answer_settles_the_decision_beside_the_recommendation(root: Path) -> None:
+    answered = _recommending(root, answer=_owner_answer(), decision_draft=False)
+    assert "decision" not in draft_paths(answered)
+    assert answered.value["owner_answer"]["quote"] == OWNER_REPLY
+    with pytest.raises(LegalDecisionError, match="not draft"):
+        _recommending(root, answer=_owner_answer(), decision_draft=True)
+
+
+def test_the_owners_reply_is_quoted_from_its_state_row(root: Path) -> None:
+    lane_only = dict(LANE_SENTENCE, supports="owner_answer")
+    for record in (
+        lane_only,
+        _owner_record(root, section="§3 D98"),
+        _owner_record(root, file="CLAUDE.md"),
+    ):
+        if record["file"] == "CLAUDE.md":
+            (root / "CLAUDE.md").write_text(f"{OWNER_REPLY}\n", encoding="utf-8")
+        with pytest.raises(LegalDecisionError, match="files/00_STATE.md"):
+            _recommending(root, answer=_owner_answer(), decision_draft=False, record=record)
+
+
+def test_an_owner_answer_names_its_row_date_channel_and_reading(root: Path) -> None:
+    for broken in (
+        _owner_answer(owner_decision="LD-06"),
+        _owner_answer(channel=""),
+        _owner_answer(outcome="maybe"),
+        {key: v for key, v in _owner_answer().items() if key != "answered_on"},
+    ):
+        with pytest.raises(LegalDecisionError, match="owner_answer"):
+            _recommending(root, answer=broken, decision_draft=False)
+
+
+def test_a_recommendation_needs_a_decision_beside_it(root: Path) -> None:
+    value = {"basis": "acik_riza", "owner_recommendation": "Keep the panel aggregate."}
+    with pytest.raises(LegalDecisionError, match="no 'decision'"):
+        _load(root, value=value, spec_basis=[LANE_SENTENCE])
+
+
 # --- no active decision without the reviewer's verdict ------------------------------
 
 
@@ -961,13 +1069,61 @@ def test_ld06_leaves_the_legal_cell_size_and_the_retention_periods_draft() -> No
 def test_ld06_gives_the_owner_one_recommendation_on_consent_scope() -> None:
     decision = load_register()["LD-06"]
     consent = decision.value["consent_scope"]
-    assert "consent_scope.decision" in draft_paths(decision)
     assert consent["stop_and_ask"] is True
     assert isinstance(consent["owner_recommendation"], str) and consent["owner_recommendation"]
     recommendations = [
         path for path, _ in _leaves_of(decision.value) if path.endswith("owner_recommendation")
     ]
     assert recommendations == ["consent_scope.owner_recommendation"]
+
+
+# files/00_STATE.md D28: the owner's reply of 16 Oct 2026, verbatim; LD6Y is LD-06's token.
+D28_REPLY = "orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y"
+D28_CHANNEL = "orchestrator → main conversation → owner in chat"
+
+
+def test_ld06_records_the_owners_acceptance_of_its_consent_scope_recommendation() -> None:
+    decision = load_register()["LD-06"]
+    answer = decision.value["consent_scope"]["owner_answer"]
+    assert answer["owner_decision"] == "D28"
+    assert answer["outcome"] == "accepted"
+    assert answer["quote"] == D28_REPLY
+    assert answer["answered_on"] == date(2026, 10, 16)
+    assert answer["channel"] == D28_CHANNEL
+    assert "LD6Y" in answer["reading"]
+    assert "consent_scope.decision" not in draft_paths(decision)
+    accepted = value_for(decision, "consent_scope.decision", Audience.SYNTHETIC_TEST)
+    assert accepted.startswith("accepted") and "D28" in accepted
+    # The answer settles consent scope only: retention stays draft, and no real patient.
+    for still_draft in ("retention.aggregates", "retention.raw_telemetry"):
+        with pytest.raises(LegalClearanceError, match="draft"):
+            value_for(decision, still_draft, Audience.SYNTHETIC_TEST)
+    with pytest.raises(LegalClearanceError, match="countersigned"):
+        value_for(decision, "consent_scope.decision", Audience.REAL_PATIENT)
+    assert "D28" in decision.outcome and "consent-scope" not in (decision.legal_gap or "")
+
+
+def test_d28_carries_the_owners_reply_verbatim_in_00_state() -> None:
+    state = (REPO_ROOT / "files" / "00_STATE.md").read_text(encoding="utf-8")
+    row = re.search(r"^\| \*\*D28\*\* \|.*$", state, re.MULTILINE)
+    assert row is not None
+    assert f'*"{D28_REPLY}"*' in row.group(0)
+    assert "LD-06" in row.group(0) and D28_CHANNEL.split(" in chat")[0] in row.group(0)
+    assert re.search(r"^\| 16 Oct 2026 \| \*\*D28 ", state, re.MULTILINE)
+
+
+def test_ld06_without_the_owners_answer_stays_a_recommendation(tmp_path: Path) -> None:
+    """The near miss on the committed document: drop the answer and the loader
+    refuses a settled decision beside an unanswered recommendation."""
+    raw = yaml.safe_load((REGISTER_DIR / "LD-06.yaml").read_text(encoding="utf-8"))
+    del raw["value"]["consent_scope"]["owner_answer"]
+    raw["spec_basis"] = [
+        b for b in raw["spec_basis"] if b["supports"] != "consent_scope.owner_answer"
+    ]
+    path = tmp_path / "LD-06.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(LegalDecisionError, match="stays a recommendation"):
+        load_decision(path, repo_root=REPO_ROOT)
 
 
 def _leaves_of(node: Any, prefix: str = "") -> list[tuple[str, Any]]:

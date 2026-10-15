@@ -28,6 +28,10 @@ decision that does not hold its own provenance:
   supported by one of them; ``draft`` carries a ``legal_gap`` sentence saying
   what is missing and which source would settle it, and so does any key
   ``value_status`` marks ``draft``; a leaf that says "not decided" is draft;
+- a recommendation to the owner settles nothing until the owner answers it:
+  the ``decision`` beside an ``owner_recommendation`` stays draft until an
+  ``owner_answer`` names its files/00_STATE.md §3 row and a spec sentence
+  quotes the reply verbatim from that row;
 - the snapshot agrees with the citation: same ``source_id``, ``url``,
   ``retrieved_on`` and Resmî Gazete date and number (or standard version),
   and a quote of at least four words;
@@ -139,6 +143,10 @@ _MIN_QUOTE_WORDS = 4
 _QUESTION_TARGET = "question"
 _WILDCARD = "*"
 _OPEN_MARKER = "not decided"
+_RECOMMENDATION = "owner_recommendation"
+_ANSWER = "owner_answer"
+_DECIDED = "decision"
+_OWNER_RECORD = "files/00_STATE.md"
 
 
 class LegalDecisionError(ValueError):
@@ -279,6 +287,19 @@ class Verifier(FrozenModel):
         ):
             raise ValueError("a non-pending verdict names the reviewer role and verified_on")
         return self
+
+
+class OwnerAnswer(FrozenModel):
+    """The owner's answer to this lane's recommendation on a stop-and-ask item
+    (D25). It sits beside the ``owner_recommendation`` it answers, and the
+    reply is quoted verbatim from its files/00_STATE.md §3 row."""
+
+    owner_decision: str = Field(pattern=r"^D\d+$", description="The files/00_STATE.md §3 row.")
+    outcome: Literal["accepted", "rejected"] = Field(description="What the owner did with it.")
+    quote: str = Field(min_length=1, description="The owner's reply, verbatim.")
+    answered_on: date = Field(description="The day the owner answered.")
+    channel: str = Field(min_length=1, description="How the reply reached this lane.")
+    reading: str = Field(min_length=1, description="How the reply is read here.")
 
 
 def _blank(value: object) -> bool:
@@ -564,6 +585,60 @@ def _check_supports(decision: LegalDecision) -> None:
             )
 
 
+def _recommendations(node: Mapping[str, Any], prefix: str = "") -> Iterator[tuple[str, Any]]:
+    """Every mapping of ``value`` that carries an owner_recommendation, with the
+    dotted prefix its sibling keys take (empty at the top, else ending in '.')."""
+    if _RECOMMENDATION in node:
+        yield prefix, node
+    for key, child in node.items():
+        if isinstance(child, Mapping):
+            yield from _recommendations(child, f"{prefix}{key}.")
+
+
+def _check_owner_answers(decision: LegalDecision) -> None:
+    """A recommendation to the owner settles nothing until the owner answers
+    it: until then the ``decision`` beside it is draft; once answered, the
+    answer names its files/00_STATE.md row, quotes the reply from it, and the
+    ``decision`` holds the answer."""
+    drafted = draft_paths(decision)
+    for prefix, node in _recommendations(decision.value):
+        decided = f"{prefix}{_DECIDED}"
+        if _DECIDED not in node:
+            raise LegalDecisionError(
+                f"{decision.id}: {prefix}{_RECOMMENDATION} has no {_DECIDED!r} beside it "
+                "to hold the owner's answer"
+            )
+        raw = node.get(_ANSWER)
+        if raw is None:
+            if decided not in drafted:
+                raise LegalDecisionError(
+                    f"{decision.id}: the owner has not answered {prefix}{_RECOMMENDATION}, so "
+                    f"{decided!r} is draft: an unanswered recommendation stays a recommendation"
+                )
+            continue
+        try:
+            answer = OwnerAnswer.model_validate(raw)
+        except ValidationError as exc:
+            raise LegalDecisionError(f"{decision.id}: {prefix}{_ANSWER}: {exc}") from exc
+        if decided in drafted:
+            raise LegalDecisionError(
+                f"{decision.id}: the owner answered ({answer.owner_decision}), so {decided!r} "
+                "holds the answer and is not draft"
+            )
+        row = re.compile(rf"\b{answer.owner_decision}\b")
+        if not any(
+            basis.file == _OWNER_RECORD
+            and row.search(basis.section)
+            and _normalise(answer.quote) in _normalise(basis.quote)
+            and _names(basis.supports, f"{prefix}{_ANSWER}.quote")
+            for basis in decision.spec_basis
+        ):
+            raise LegalDecisionError(
+                f"{decision.id}: the owner's reply is quoted verbatim from its {_OWNER_RECORD} "
+                f"row {answer.owner_decision} in a spec sentence supporting {prefix}{_ANSWER}"
+            )
+
+
 def _gazette_in(header: Mapping[str, str]) -> tuple[date, int] | None:
     match = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4}) sayı (\d+)\b", header.get("gazette", ""))
     if match is None:
@@ -665,6 +740,7 @@ def load_decision(path: Path, *, repo_root: Path | None = None) -> LegalDecision
         raise LegalDecisionError(f"{path.name}: file name and id {decision.id!r} disagree")
     _check_value_status(decision)
     _check_supports(decision)
+    _check_owner_answers(decision)
     for source in decision.sources:
         _check_snapshot(decision.id, source, root)
     _check_spec_basis(decision, root)

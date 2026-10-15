@@ -43,7 +43,8 @@ outcome: '(a) Improving the service is a purpose of its own, not the patient''s 
   months (m.11(2)). Anonymised aggregates are not personal data, so the Law''s retention rules do not
   bind them. The retention periods themselves — for aggregates and for raw telemetry — are not decided.
   Stop-and-ask: consent scope, the retention periods and the DPA''s controller-authorisation term are
-  the owner''s under CLAUDE.md; this lane gives one recommendation, on consent scope.'
+  the owner''s under CLAUDE.md; this lane gave one recommendation, on consent scope, and the owner accepted
+  it as written on 16 Oct 2026 (D28). The retention periods and the DPA term stay open.'
 legal_basis: KVKK 6698 m.3(1)(a), (b), (ğ); m.4(2)(c)-(ç); m.6(3)(a), (e); m.7(1); m.28(1)(b); Kişisel
   Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik m.5(1), m.10(1)-(2),
   m.11(2); the Kurum's anonymisation guide (Kasım 2017) §3.1 and §3.1.3; KSVY m.16(1)-(2).
@@ -417,7 +418,7 @@ sources:
     alınacak teknik ve idari tedbirler çerçevesinde, bilimsel amaçlarla işlenebilir.
   supports: research.record_level.m28_1_c_route
   caveat: Cited for why the route is open (HB-L26), not for an answer.
-legal_gap: 'Seven parts are not answered by any retrieved text. The legal minimum cell size: no Turkish
+legal_gap: 'Six parts are not answered by any retrieved text. The legal minimum cell size: no Turkish
   text sets a number, and the Kurum''s guide names the method without a k; a Kurul decision on aggregate
   health statistics, or counsel''s opinion for the panel''s actual dimensions, would settle whether the
   product floor of ten is enough. The retention periods for the aggregates and for raw telemetry: a data-retention
@@ -428,7 +429,7 @@ legal_gap: 'Seven parts are not answered by any retrieved text. The legal minimu
   scientific work on data the controller has anonymised (KVKK m.28(1)(b)), or m.16(2), scientific processing
   under KVKK m.28(1)(c) so long as it does not violate privacy or personality rights or constitute a crime
   — whether it may ride either at all, and whether açık rıza is even an available basis or m.28 displaces
-  it; counsel. The consent-scope decision itself: the owner''s, on this lane''s one recommendation.'
+  it; counsel.'
 value:
   improvement:
     rides_the_care_purpose: false
@@ -489,15 +490,25 @@ value:
       opt-out
     opt_out_is_not_acik_riza: 'an opt-out is not açık rıza: açık rıza is consent declared by free will
       on a specific subject after information'
-    decision: not decided (the owner decides on this lane's recommendation)
+    decision: 'accepted: the owner adopted owner_recommendation as written (D28, 16 Oct 2026); consent
+      scope is settled for synthetic and test use'
     owner_recommendation: 'Keep the admin panel to anonymised aggregates only (KVKK m.28(1)(b); Yönetmelik
       m.10) and add no consent purpose for it; the learning:service_improvement opt-out may stay as a
       courtesy but is not the legal ground. Anything record-level or pseudonymised is used only under
       opt-in açık rıza and never under an opt-out, subject to HB-L26: for research, the existing research
       purpose; for improvement, a consent whose text names that purpose, because açık rıza is given on
       a specific subject and consents are unbundled.'
-  stop_and_ask_items: consent scope (this recommendation), the retention periods, and the controller-authorisation
-    term in the hospital DPA
+    owner_answer:
+      owner_decision: D28
+      outcome: accepted
+      quote: orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y
+      answered_on: 2026-10-16
+      channel: orchestrator → main conversation → owner in chat
+      reading: 'LD6Y adopts LD-06''s consent-scope recommendation as written. The reply''s other tokens
+        answer questions outside LD-06 and are not read here. The answer came after the reviewer''s verdict
+        and changes no legal value: it settles consent_scope.decision only.'
+  stop_and_ask_items: consent scope (this lane's recommendation, accepted by the owner under D28), the
+    retention periods, and the controller-authorisation term in the hospital DPA
 value_status:
   improvement.controller_authorisation_wording: draft
   research.record_level.m28_1_c_route: draft
@@ -505,7 +516,6 @@ value_status:
   cell_size.legal_minimum: draft
   retention.aggregates: draft
   retention.raw_telemetry: draft
-  consent_scope.decision: draft
 spec_basis:
 - file: files/06_COMPLIANCE_TR.md
   section: §1 ETİK
@@ -576,6 +586,14 @@ spec_basis:
   section: §0.1 Two data-protection roles, by deployment
   quote: the hospital is controller; INTAKE is
   supports: improvement.hospital_deployment_needs_controller_authorisation
+- file: files/00_STATE.md
+  section: §3 D28
+  quote: orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y
+  supports: consent_scope.owner_answer
+- file: files/00_STATE.md
+  section: §3 D28
+  quote: LD6Y adopts LD-06's consent-scope recommendation as written
+  supports: consent_scope.decision
 fail_closed_while_draft: Nothing reaches the admin panel but aggregates that pass the existing k-anonymity
   gate at its product floor of ten distinct people, all-or-nothing within each view (across views, step
   2 adds fixed period buckets, no free-form filters and a cross-view check); no record-level, pseudonymised,
