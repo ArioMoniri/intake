@@ -1,0 +1,22 @@
+# INT-463, INT-467 — the supervisor of runner %i of the intake-aws-ci pool. It
+# runs as root, unsandboxed, because the guards must see the real file system:
+# the staging paths they deny, the NVMe mount, the root disk, the firewall and
+# the runner's network namespace. cycle.sh %i loops: guards and an ephemeral
+# registration, one job in the sandboxed intake-aws-ci-job@%i.service, then the
+# wipe of this runner's workspace and containers. No job code ever runs here.
+[Unit]
+Description=Supervisor of ephemeral intake-aws-ci Actions runner %i (INT-463, INT-467)
+After=network-online.target dlami-nvme.service docker.service
+Wants=network-online.target
+RequiresMountsFor=/opt/dlami/nvme
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/intake-aws-ci-runner/bin/cycle.sh %i
+Restart=always
+RestartSec=30
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

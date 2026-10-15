@@ -163,9 +163,12 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
+    # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
+    # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
+    # three, each with its own user, daemon and network namespace, GitHub #799).
     # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
     # the expressive-model ADR proposal; owner request, GitHub #719).
-    assert len(ids) == 341
+    assert len(ids) == 343
     import re
 
     for i in ids:
