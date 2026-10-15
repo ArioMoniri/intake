@@ -148,7 +148,11 @@ it or whose tests exercise it.
   an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
   [I/E] **a job on `intake-aws-ci` reaching staging** — its files, the OpenBao tokens, the
   staging containers, the instance role through the metadata service, or the host Docker
-  socket — or **leaving state for the next job**;
+  socket — or **leaving state for the next job**; [I/T/D] **a job on one runner of the pool
+  reaching another runner's job** — its tree, its Docker daemon and containers, or a port
+  its containers publish — or **one runner's post-job wipe destroying another's live job**
+  (INT-467: a user, daemon, egress chain and network namespace per runner; port driver
+  `none`, so no published port reaches the host);
   [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
   is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
   update** past review and the licence gate.
