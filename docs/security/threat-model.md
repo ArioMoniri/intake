@@ -133,17 +133,26 @@ it or whose tests exercise it.
 - **Assets:** workflow definitions, runner credentials, build artefacts, SBOMs, signing
   identity, the gate set itself.
 - **Trust boundaries:** GitHub-hosted runners ↔ repo ↔ registries; PR author ↔ required
-  checks. INT-206 adds the self-hosted TR-DC pool as a *declared* boundary
-  (`infra/ci/runners.yaml`) — and the pool list is empty, so today the boundary is the
-  GitHub-hosted one. HB-I7 (spend) and HB-L11 (physical residency is not legal residency)
-  own that — **not HB-I5, which is GPU supply and does not bind a CPU CI runner** — and no
-  facility, provider or label is invented to close the gap.
+  checks. INT-206 makes every self-hosted pool a *declared* boundary
+  (`infra/ci/runners.yaml`). **INT-463 declares the one pool that exists, `intake-aws-ci`**:
+  an ephemeral runner on the AWS us-east-1 host that also serves synthetic staging (owner
+  order, 3 Oct 2026). Every Actions job runs there, so the boundary is now job code ↔ the
+  staging host. The TR-DC pool is still undeclared. HB-I7 (spend) and HB-L11 (physical
+  residency is not legal residency) own it — **not HB-I5, which is GPU supply and does not
+  bind a CPU CI runner** — and no TR facility, provider or label is invented to close the gap.
 - **Threats (STRIDE/LINDDUN):** [T] a repointed action tag or poisoned artefact (ci.yml pins
   actions to commit SHAs for exactly this reason); [E] workflow permission escalation;
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
   an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [I/E] **a job on `intake-aws-ci` reaching staging** — its files, the OpenBao tokens, the
+  staging containers, the instance role through the metadata service, or the host Docker
+  socket — or **leaving state for the next job**; [I/T/D] **a job on one runner of the pool
+  reaching another runner's job** — its tree, its Docker daemon and containers, or a port
+  its containers publish — or **one runner's post-job wipe destroying another's live job**
+  (INT-467: a user, daemon, egress chain and network namespace per runner; port driver
+  `none`, so no published port reaches the host);
   [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
   is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
   update** past review and the licence gate.
