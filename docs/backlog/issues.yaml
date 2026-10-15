@@ -6693,3 +6693,23 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-467
+  epic: E13-infra
+  phase: P1
+  title: "A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is"
+  # GitHub #799. Follow-up to INT-463 (#790, PR #791): one runner serializes
+  # every PR's 13 jobs. Two runners on one user and one rootless daemon are not
+  # isolated: each post-job wipe removes the other's containers, and
+  # check-integration's fixed host-loopback ports collide across PRs. The pool
+  # is built and tested; the host install waits for the owner (blockers.md).
+  depends_on: [INT-463]
+  labels: [area:ci, approval:human-infra]
+  status: awaiting-human
+  evidence: docs/evidence/INT-467.md
+  acceptance:
+    - "three ephemeral runners intake-aws-ci-1..3 run on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, from templated units intake-aws-ci-{runner,job,dockerd,diskwatch}@N; each has its own unprivileged user ghrunnerN with a subordinate id range that overlaps no other, its own CI root on the NVMe volume, rootless Docker daemon and owner-match egress chain, all under the one intake-aws-ci.slice ceiling; the root registrar mints a registration token before every registration of every runner"
+    - "each runner's job runs in its rootless daemon's network namespace, as its own uid; rootlesskit's port driver is none, so a published container port never reaches the host loopback and two concurrent check-integration jobs with the fixed ports do not collide; a runner's post-job wipe touches only its own daemon, processes and tree"
+    - "each runner's isolation is measured as INT-463's was, as that runner's user inside its job sandbox: staging files, the OpenBao tokens, the host Docker socket, the metadata service, staging containers, host-local listeners and root-disk writes blocked; every other runner's tree, Docker socket and published ports blocked; DNS, public HTTPS, rootless Docker and its own published port reachable (evidence)"
+    - "tests/ci/test_aws_runner.py pins the pool contract (every INT-463 isolation assertion, per instance, plus the netns and peer isolation); on the PR, jobs are picked up by more than one runner and two check-integration jobs run concurrently on two runners and pass (evidence)"
+  tests: [tests/ci/test_aws_runner.py, tests/ci/test_aws_runner_pool.py]
+  sec_row: "cicd"

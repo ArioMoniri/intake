@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# INT-463 — operate the intake-aws-ci GitHub Actions runner on the AWS host
-# from the laptop. Needs a live `aws` session (only the owner runs `aws login`)
-# and an authenticated `gh`.
+# INT-463, INT-467 — operate the intake-aws-ci runner pool on the AWS host from
+# the laptop. Needs a live `aws` session (only the owner runs `aws login`) and
+# an authenticated `gh`.
 #
 #   scripts/ci/aws_runner.sh install [--ref <rev>]
 #       ships infra/ci/aws-runner at <rev> (default HEAD) to the host as a
 #       sha256-pinned archive over S3 + a presigned URL, and runs install.sh
-#       as root over SSM
+#       as root over SSM. It drains every runner first: each stops once it
+#       holds no job, so the command can take as long as the longest job.
 #   scripts/ci/aws_runner.sh token
 #       mints a one-hour registration token with gh and hands it to the host.
-#       Only a fallback: the host's registrar mints a fresh one before every
+#       Only a fallback: each runner's registrar mints a fresh one before every
 #       registration from the owner's admin token in SSM
 #       (/intake/staging/gh_runner_admin_pat), which never leaves the host.
 #   scripts/ci/aws_runner.sh status
-#       unit states, the GitHub registration and df; no credential
+#       each runner's unit states, the GitHub registrations and df; no credential
+#   scripts/ci/aws_runner.sh probe [N ...]
+#       the isolation probe (probe.sh) on every runner, or on runners N:
+#       each one, as its user inside its job sandbox, against staging, the
+#       host and the other runners. Run it while the pool is idle.
 #
 # A credential never appears on a command line, in an SSM command, in a log or
 # in the repository. It travels from a pipe into SSM Parameter Store as a
@@ -108,7 +113,7 @@ trap 'rm -rf \"\$work\"' EXIT
 curl -fsS -o \"\$work/r.tar.gz\" '$url'
 echo '$sha  '\"\$work/r.tar.gz\" | sha256sum -c --quiet
 tar -xzf \"\$work/r.tar.gz\" -C \"\$work\"
-bash \"\$work/infra/ci/aws-runner/install.sh\"" 1800
+bash \"\$work/infra/ci/aws-runner/install.sh\"" 3600
 }
 
 cmd_token() {
@@ -117,18 +122,38 @@ cmd_token() {
 }
 
 cmd_status() {
-  ssm_run "systemctl is-active intake-aws-ci-dockerd.service intake-aws-ci-runner.service intake-aws-ci-diskwatch.timer || true
-journalctl -u intake-aws-ci-runner.service -n 15 --no-pager -o cat | grep -E '^intake-aws-ci|Listening|Running job|completed with result' || true
-df -h / /opt/dlami/nvme" 120 || true
+  # shellcheck disable=SC2016  # expands on the host, from the host's runner.conf
+  ssm_run '. /usr/local/lib/intake-aws-ci-runner/runner.conf
+for n in $POOL_INSTANCES; do
+  echo "runner $n: $(systemctl is-active intake-aws-ci-runner@$n.service intake-aws-ci-dockerd@$n.service intake-aws-ci-diskwatch@$n.timer | tr "\n" " ")"
+done
+journalctl -u "intake-aws-ci-runner@*" -n 30 --no-pager -o cat | grep -E "^intake-aws-ci|Listening|Running job|completed with result" || true
+df -h / /opt/dlami/nvme' 120 || true
   gh api "repos/$REPO_SLUG/actions/runners" --jq '.runners[] | [.name, .status, (.busy|tostring), ([.labels[].name]|join(","))] | @tsv'
+}
+
+instances_arg() {
+  # The runner numbers on the command line, each checked; none means every runner.
+  local n
+  for n in "$@"; do
+    [[ "$n" =~ ^[1-9]$ ]] || die "'$n' is not a runner number"
+  done
+  printf '%s' "$*"
+}
+
+cmd_probe() {
+  local instances
+  instances=$(instances_arg "$@")
+  ssm_run "$LIB_DIR/bin/probe.sh $instances" 900
 }
 
 case "${1:-}" in
   install) cmd_install "${@:2}" ;;
   token) cmd_token ;;
   status) cmd_status ;;
+  probe) cmd_probe "${@:2}" ;;
   *)
-    sed -n '2,20p' "$0" >&2
+    sed -n '2,25p' "$0" >&2
     exit 2
     ;;
 esac

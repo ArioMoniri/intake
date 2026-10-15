@@ -3383,3 +3383,22 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
 - Next: merge #813 when the merge queue reaches it; the row stays doing until #796 applies the decided lists.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)
+- Goal: a pool of three ephemeral intake-aws-ci runners (GitHub #799), each with exactly runner 1's isolation. Acceptance quoted in docs/backlog/issues.yaml and docs/evidence/INT-467.md.
+- Plan:
+  - Measure the proposed netns design on the host first, with runner 2's own identity, leaving runner 1 untouched.
+  - Write the tests: re-pin the INT-463 contract onto unit templates, and pin the pool contract in a new file.
+  - Implement: an identity per instance, templated units, the job in its daemon's detached network namespace with port driver none, peer ACLs, a drain-first installer with the single-runner migration, and the isolation probe.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/ci/test_aws_runner_pool.py (37 tests). Re-pinned: tests/ci/test_aws_runner.py.
+  - Near misses: instance values 0, 4, 01, a, "1 2", "1;true", ../1 and the empty string are refused; a runner's own CI root and run directory are never in its denied set.
+  - Red run: 49 failed, 73 passed. Green: 122 passed; 9 of 9 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local lanes only (no Docker on the laptop): the runner tests 122 passed; all of tests/ci with test_ci_no_phi 362 passed (after Renovate learned the probe image's digest pin); tests/backlog and smoke 74 passed; shellcheck, ruff 0.16.4, prettier and no_placeholders (staged) clean.
+  - The full gates run on the PR in CI.
+- Invariants touched and still passing: 14 (no credential read or printed; the registrar is unchanged), 16 (Sec-Row cicd), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The nsenter-into-the-userns variant was measured and not taken (uid 0, CapEff 000001ffffffffff); systemd NetworkNamespacePath keeps the job's own uid with CapEff 0.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — run (or allow a session to run) `scripts/ci/aws_runner.sh install` from this branch, so the pool replaces the single runner; this session's permission classifier refused it (HB-I7). Also apply the `.github/renovate.json` owner patch (issue-drafts/owner-int467-renovate-probe-image.patch), which the classifier refused to stage; until then check-py fails on the digest-reachability test.
+- Next: after the install, `scripts/ci/aws_runner.sh probe` for the per-runner isolation, then two overlapping check-integration runs; record both in docs/evidence/INT-467.md.
+- LOOP_STATUS: WAITING_HUMAN
