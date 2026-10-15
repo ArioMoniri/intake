@@ -1,0 +1,53 @@
+# guideline_id: CALGARY-CAMBRIDGE-GUIDE
+# title: Calgary-Cambridge Guide to the Medical Interview - Communication Process (observation guide)
+# publisher: Kurtz SM, Silverman JD, Draper J (Teaching and Learning Communication Skills in Medicine; Skills for Communicating with Patients, Radcliffe Medical Press, Oxford); observation-guide PDF authored by Jonathan Silverman
+# version_or_date: Kurtz, Silverman and Draper 1998 (the guide's own reference list); PDF dated 9 May 2003 (document properties); hosted as the chapter 23 online resource of the Essential GP Training Book
+# url: https://essentialgptrainingbook.com/wp-content/online-resources/ch23/Assessment%20sheet%20-%20calgary%20cambridge.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl (HTTP 200, 30061 bytes, sha256 30e5d8031bf398f425acd357e5783d2c342b0e2b2be09691bd1327cfff61c81a); text extracted with pdftotext (poppler, reading order, no -layout); the PDF's own copyright line is kept
+# scope: verbatim excerpt - the copyright line, the title, the "Initiating the session" items 1-7, the "Gathering information" items 8-16, and the guide's reference list; nothing paraphrased or edited; omissions marked [...]. Cited for interview structure (one opening question, dates and sequence of events), never for a clinical value.
+---
+©All content is copyright by original owners
+On any reprints please include references as shown on the last page of the guide
+CALGARY - CAMBRIDGE GUIDE TO THE MEDICAL INTERVIEW – COMMUNICATION PROCESS
+INITIATING THE SESSION
+Establishing initial rapport
+1. Greets patient and obtains patient’s name
+2. Introduces self, role and nature of interview; obtains consent if necessary
+3. Demonstrates respect and interest, attends to patient’s physical comfort
+Identifying the reason(s) for the consultation
+4. Identifies the patient’s problems or the issues that the patient wishes to address
+with appropriate opening question (e.g. “What problems brought you to the
+hospital?” or “What would you like to discuss today?” or “What questions did you
+hope to get answered today?”)
+5. Listens attentively to the patient’s opening statement, without interrupting or
+directing patient’s response
+6. Confirms list and screens for further problems (e.g. “so that’s headaches and
+tiredness; anything else……?”)
+7. Negotiates agenda taking both patient’s and physician’s needs into account
+GATHERING INFORMATION
+Exploration of patient’s problems
+8. Encourages patient to tell the story of the problem(s) from when first started
+to the present in own words (clarifying reason for presenting now)
+9. Uses open and closed questioning technique, appropriately moving from open
+to closed
+10. Listens attentively, allowing patient to complete statements without
+interruption and leaving space for patient to think before answering or go on after
+pausing
+11. Facilitates patient's responses verbally and non–verbally e.g. use of
+encouragement, silence, repetition, paraphrasing, interpretation
+12. Picks up verbal and non–verbal cues (body language, speech, facial
+expression, affect); checks out and acknowledges as appropriate
+13.Clarifies patient’s statements that are unclear or need amplification (e.g.
+“Could you explain what you mean by light headed")
+14. Periodically summarises to verify own understanding of what the patient has
+said; invites patient to correct interpretation or provide further information.
+15. Uses concise, easily understood questions and comments, avoids or
+adequately explains jargon
+16. Establishes dates and sequence of events
+[...]
+References:
+Kurtz SM, Silverman JD, Draper J (1998) Teaching and Learning Communication
+Skills in Medicine. Radcliffe Medical Press (Oxford)
+Silverman JD, Kurtz SM, Draper J (1998) Skills for Communicating with Patients.
+Radcliffe Medical Press (Oxford)

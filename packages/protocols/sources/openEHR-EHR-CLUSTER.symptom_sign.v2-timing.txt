@@ -1,0 +1,59 @@
+# guideline_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+# title: Symptom/Sign (openEHR Clinical Knowledge Manager archetype)
+# publisher: openEHR Foundation (CKM cid 1013.1.6769, lifecycle PUBLISHED)
+# version_or_date: revision 2.1.4 (the ADL's own revision line, reproduced below)
+# url: https://ckm.openehr.org/ckm/archetypes/1013.1.6769
+# url_adl: https://ckm.openehr.org/ckm/rest/v1/archetypes/1013.1.6769/adl
+# retrieved_on: 2026-10-03
+# retrieval: curl of the CKM REST ADL export (ADL 1.4, utf-8, CR stripped)
+# scope: verbatim ADL lines - archetype id, the revision line, the constraints on ELEMENT[at0152] 'Episode onset' and ELEMENT[at0028] 'Episode duration', and the English term definitions of at0028, at0152 and at0161; nothing paraphrased or edited; omissions marked [...]. A third excerpt of the archetype beside openEHR-EHR-CLUSTER.symptom_sign.v2.txt and -B.txt.
+---
+archetype (adl_version=1.4; uid=88c7d677-fa69-498f-aec2-976c53d15a6f)
+	openEHR-EHR-CLUSTER.symptom_sign.v2
+[...]
+		["revision"] = <"2.1.4">
+[...]
+			ELEMENT[at0152] occurrences matches {0..1} matches {    -- Episode onset
+				value matches {
+					DV_DATE_TIME matches {*}
+					DV_INTERVAL<DV_DATE_TIME> matches {*}
+				}
+			}
+[...]
+			ELEMENT[at0028] occurrences matches {0..1} matches {    -- Episode duration
+				value matches {
+					DV_DURATION matches {
+						value matches {|>=PT0S|}
+					}
+					DV_INTERVAL<DV_DURATION> matches {
+						lower matches {
+							DV_DURATION matches {
+								value matches {|>=PT0S|}
+							}
+						}
+						upper matches {
+							DV_DURATION matches {
+								value matches {|>=PT0S|}
+							}
+						}
+					}
+					DV_TEXT matches {*}
+				}
+[...]
+				["at0028"] = <
+					text = <"Episode duration">
+					description = <"The duration of this episode of the symptom or sign since initial onset.">
+					comment = <"If 'Date/time of onset' and 'Date/time of resolution' are used in systems, this data element may be calculated, or alternatively, be considered redundant in this scenario. The text data type is used for recording preset duration intervals such as '0-7 days, 1-2 weeks, 2 weeks or more'.">
+				>
+[...]
+				["at0152"] = <
+					text = <"Episode onset">
+					description = <"The onset for this episode of the symptom or sign.">
+					comment = <"While partial dates are permitted, the exact date and time of onset can be recorded, if appropriate. If this symptom or sign is experienced for the first time or is a re-occurrence, this date is used to represent the onset of this episode. If this symptom or sign is ongoing, this data element may be redundant if it has been recorded previously.">
+				>
+[...]
+				["at0161"] = <
+					text = <"Resolution date/time">
+					description = <"The timing of the cessation of this episode of the symptom or sign.">
+					comment = <"If 'Date/time of onset' and 'Duration' are used in systems, this data element may be calculated, or alternatively, considered redundant. While partial dates are permitted, the exact date and time of resolution can be recorded, if appropriate.">
+				>

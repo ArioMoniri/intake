@@ -501,6 +501,8 @@ value:
         Owner: close D3's open items (field encryption, slot tagging, counsel's
         per-category basis) and the INT-349 inventory row for every text_first item in the
         four wave A clusters before any of them is served.
+      routed_to: "the legal lane (INT-471, GitHub #800)"
+      routing_note: "No owner answer covers this item (none of D24's six answers is about it); it is routed, not resolved. Invariant 18 already bars serving any item before its inventory row exists; the INT-349 rows and D3's open items for every text_first item are INT-471's."
     - item: "docs/evidence/verification/cluster-wave-a.md#L243"
       ref: "cluster-wave-a §F medical rebinds (ic_hastaliklari Q3, Q4, Q5)"
       packets: [cluster_medical, ic_hastaliklari]

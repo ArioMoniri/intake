@@ -323,7 +323,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
-    assert len(ids) == 342, f"expected 175 blueprint + 167 added issues, got {len(ids)}"
+    # + INT-470 (the INT-448 owner questions resolved by CD-110 under D18 and by
+    # owner decision D24, GitHub #798); grows only with a stated reason.
+    assert len(ids) == 343, f"expected 175 blueprint + 168 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

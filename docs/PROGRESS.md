@@ -3340,6 +3340,59 @@
 - Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
+### 2026-10-03T23:59:00+03:00 · INT-470 · done (PR open, verifier verdict pending)
+- Goal: resolve every owner question INT-448 left open: the clinical ones under D18 as restated on 3 Oct 2026 (sourced medical agents, independent verifier, never back to the owner), the product and data ones by the owner's own answer (D24).
+- Plan: tests first for a two-way resolution pointer (row → resolver, resolver → row); CD-110 decides the 13 clinical owner questions and 5 base-owner parts against seven new verbatim snapshots (Calgary-Cambridge, openEHR reason_for_encounter and symptom_sign timing, NICE NG257, SDCEP MADP 2026, RCEM Learning, the TR adult disability regulation); D24 records the owner's reply "1Y 2Y 3Y 4Y 5Y 6A" in files/00_STATE.md and on 18 rows, with legal follow-through routed to INT-471.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_owner_question_resolutions.py (a dangling or duplicate resolution, a resolution of an item decided elsewhere, a missing back-pointer, an owner quote the state file lacks, an erased question and a part handed back to the owner each fail; 13 near-miss cases). Red run: 5 failed, 15 passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-470.md; `test_every_decision_carries_an_independent_verdict` fails on CD-110 until the independent verdict is recorded, by design.
+- Invariants touched and still passing: 2 (new copy PolicyGuard-clean), 7 (no rule or tense anchor changes in this PR; nothing extends base.life_threat; the lmp_date guard is a red-flag gate-input change when applied, with goldens and make safety — corrected in round 2), 17 (one nested draft_needs_source value with the sanctioned literal), 18 (legal parts routed, not decided), 22.
+- Decisions / ADRs / `00_STATE.md` rows: D24 (owner, 3 Oct 2026) added to §3 with a changelog line; CD-110 added to the clinical decisions register.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for this issue; the lmp_date population guard's age bounds stay draft_needs_source (no source), and the legal parts go to INT-471.
+- Next: record the independent verifier's verdict on CD-110; then apply CD-110 through the proposals and the generators once #642 merges.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T01:30:00+03:00 · INT-470 · round 2 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the independent verifier's round 1 on #804 (request_changes: 1 blocker, 9 major, 5 minor).
+- Plan: tests first for each finding (tests/protocols/test_cd110_decisions.py, and routing and legal-part checks in test_owner_question_resolutions.py), then CD-110 round 2, the D25 pointers replaced by INT-471, cluster-wave-a #L128 routed rather than resolved (D24 17 items), the six owner questions committed verbatim with channel and date.
+- Tests added (with the near-miss negative for any safety rule): gate semantics evaluated with protocols.triage.expr (unsure and chest-pain reopen open the history; a child's face swelling alone opens the airway item; trismus never alone); lmp guard fails toward asking; duration never derived from an episodic or unknown answer; legal parts naming a missing decision fail. Red run: 18 failed, 34 passed.
+- Result: see docs/evidence/INT-470.md (round 2 and green run); the only red test is CD-110's pending verdict, by design.
+- Invariants touched and still passing: 2, 7 (lmp_date guard flagged as a red-flag gate input for its application), 17, 18 (seven new slot ids routed for inventory rows), 22.
+- Decisions / ADRs / `00_STATE.md` rows: D24 row narrowed to 17 items with the channel and the 1Y/3Y notes.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 2, then resume INT-472.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T03:30:00+03:00 · INT-470 · round 3 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the verifier's round 2 on #804 (3 major, all "fail toward not asking", 3 minor, 3 notes).
+- Plan: tests first in tests/protocols/test_cd110_decisions.py, then CD-110 round 3.
+- Tests added (with the near-miss negative for any safety rule): the lmp gate evaluated as a truth table (an evet or emin değilim at a recorded age outside the bounds is asked); the pedodonti gate's injury term; an unanswered or skipped presence screen opens the history; trismus never the only term. Red run: 7 failed, 27 passed; green 72 passed.
+- Result: see docs/evidence/INT-470.md (round 3); the only red test is CD-110's pending verdict.
+- Invariants touched and still passing: 2, 7 (every gate change widens: the lmp guard is an extra OR term), 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 3.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T05:00:00+03:00 · INT-470 · round 4 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the verifier's round 3 (1 major: the T1 atoms read through the slot lookup; 3 minor; 4 notes) and restore the INT-447 row's sec_row, which an earlier merge dropped.
+- Plan: tests first in tests/protocols/test_cd110_decisions.py, then CD-110 round 4; backlog rows compared with main's row by row.
+- Tests added (with the near-miss negative for any safety rule): atoms unbound or written as a GuardExpr fail; no pregnancy answer with nothing recorded is asked; the two-choice follow-up fails; stale round-2 text fails; a skipped screen with a gated item asked fails. Red run: 6 failed, 35 passed; green 79 passed.
+- Result: see docs/evidence/INT-470.md (round 4); the only red test is CD-110's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 4.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T07:00:00+03:00 · INT-470 · final verdict (PR #804, CD-110 agree)
+- Goal: record the independent verifier's round-4 verdict (agree, no blocker) and fix its one minor and two notes in the verdict commit.
+- Plan: tests first (the #L104 reorder op moves the gate slot forward, never the airway item later; the verdict test asserts agree with round 4 in the history), then CD-110, the md twin and the evidence.
+- Tests added (with the near-miss negative for any safety rule): `test_pedodonti_moves_the_gate_slot_forward_never_the_airway_item_later` (the removed INT-353 kadın op wording fails); the lead's `dental_airway_one_posture` near miss gains "an op that moves the airway item after dis_eti_sisligi fails". Red run: 2 failed, 40 passed; green 113 passed.
+- Result: CD-110 verifier agree (independent D18 clinical verifier (agent), 2026-10-04); `make safety` exit 0; protocols, safety, backlog and smoke lanes 1829 passed, 0 failed; see docs/evidence/INT-470.md (Final verdict).
+- Invariants touched and still passing: 2, 7, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: merge #804 when the merge queue reaches it.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)
