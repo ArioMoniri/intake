@@ -1,9 +1,0 @@
-# INT-463 — the disk watchdog. If either the CI volume or the root disk falls
-# to its floor (runner.conf) while a job runs, the job is stopped. The runner
-# then stays offline until prepare.sh's disk guard passes again.
-[Unit]
-Description=Disk watchdog for the intake-aws-ci Actions runner (INT-463)
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/lib/intake-aws-ci-runner/bin/guard.sh watch

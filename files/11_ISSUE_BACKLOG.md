@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**342 issues.** By phase: P0 167 · P1 121 · P2 47 · P3 7. By status: awaiting-human 34 · doing 6 · done 228 · todo 73 · withdrawn 1.
+**343 issues.** By phase: P0 167 · P1 122 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 228 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -304,6 +304,7 @@
 | INT-470 | INT-448 follow-up — resolve its owner questions: clinical ones under D18 (CD-110), product and data ones by owner decision D24 | E03-protocols | INT-448 | area:protocols, risk:clinical | done |
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
+| INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 
 ## P2
 
