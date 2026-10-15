@@ -320,12 +320,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713);
     # grows only with a stated reason.
+    # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
+    # 3 Oct 2026, GitHub #790); grows only with a stated reason.
+    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
     # script, found by INT-446, GitHub #767); grows only with a stated reason.
     # + INT-446 (RED end to end in the app — the rules-engine hop on both lanes
     # and the RED screen mounted, found by INT-440, GitHub #756); grows only
     # with a stated reason.
-    assert len(ids) == 342, f"expected 175 blueprint + 167 added issues, got {len(ids)}"
+    assert len(ids) == 344, f"expected 175 blueprint + 169 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
