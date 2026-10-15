@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**342 issues.** By phase: P0 167 · P1 121 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 227 · todo 73 · withdrawn 1.
+**343 issues.** By phase: P0 168 · P1 121 · P2 47 · P3 7. By status: awaiting-human 35 · doing 7 · done 227 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -177,6 +177,7 @@
 | INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
 | INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 | INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
+| INT-468 | RED clinical values under D18 — the cardiac do-not lines and the unanswered location wait (CD-111) | E03-protocols | INT-432 | area:protocols, risk:clinical | doing |
 | INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | INT-352 | area:infra | doing |
 
 ## P1

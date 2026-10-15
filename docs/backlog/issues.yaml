@@ -6602,6 +6602,27 @@
     - "the approval:human-clinical label on #726 is cleared through this process"
   tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
   sec_row: "clinical-content"
+- id: INT-468
+  epic: E03-protocols
+  phase: P0
+  title: "RED clinical values under D18 — the cardiac do-not lines and the unanswered location wait (CD-111)"
+  # GitHub #805 (renumbered from INT-472, which #802 holds), from the INT-465
+  # (#796) clinical re-review, 3 Oct 2026. The decision is recorded here; its
+  # application to rf.chest_pain_cardiac_features is routed into INT-465's
+  # branch (#796), which edits the same action block. The row depends on
+  # INT-432 (the register and CD-24) because INT-465 is not yet on main; it
+  # also waits on INT-465 (#796) for the application and its goldens, and it
+  # stays doing until CD-111's independent verdict lands.
+  depends_on: [INT-432]
+  labels: [area:protocols, risk:clinical]
+  status: doing
+  evidence: docs/evidence/INT-468.md
+  acceptance:
+    - "a decision record (CD-111) gives each a sourced outcome (guideline or openEHR, verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source with the invariant-17 literal, never a plausible number"
+    - "any wording change to a red-flag rule keeps invariant 7 and 21, with golden tests and near-miss controls, and applies through the protocol source, not by hand in a served pack"
+    - "scope: simulated-patient stress testing (D18); the physician-of-record gate for real patients is unchanged"
+  tests: [tests/protocols/test_red_clinical_values.py]
+  sec_row: "clinical-content"
 - id: INT-449
   epic: E05-voice
   phase: P1

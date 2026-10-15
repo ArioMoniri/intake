@@ -3340,6 +3340,48 @@
 - Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
+### 2026-10-04T00:30:00+03:00 · INT-468 (renumbered from INT-472) · doing (PR open, verifier verdict pending)
+- Goal: decide, under D18, the cardiac RED rule's three unsourced do-not lines and the wait before an unanswered "Şu anda hastanede misiniz?" resolves to REMOTE.
+- Plan: tests first for the decided lines and the wait (no number without a source); CD-111 against four new verbatim snapshots (NHS heart attack page, RCUK First Aid Guidelines 2025 from ERC 2025, NICE CG95 1.2.3, EENA silent-calls v2.0); decision recorded, application routed into #796 (INT-465), which edits the same action block.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_red_clinical_values.py (a kept or re-worded nil-by-mouth line, an aspirin line, a numeral, diagnosis language, a third wording in the served rule, a plausible unsourced wait, a wait that resolves anywhere but REMOTE with 112 each fail; 20 near-miss cases). Red run: 6 failed, 21 passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-468.md; `make safety` exit 0; the only red test is CD-111's pending verdict, by design.
+- Invariants touched and still passing: 2, 7 and 21 (only do-not copy is decided; gate, level, route, register and all three locations untouched), 17 (the wait is the sanctioned literal), 22.
+- Decisions / ADRs / `00_STATE.md` rows: CD-111 added to the clinical decisions register; none in 00_STATE.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none; the wait value stays draft_needs_source (no source states one).
+- Next: record CD-111's independent verdict; the orchestrator routes the application into #796.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T02:30:00+03:00 · INT-468 (renumbered from INT-472) · round 2 (verifier verdict pending re-verification)
+- Goal: renumber the issue (#805 is INT-468; INT-472 is #802's) and answer CD-111's round-1 request for changes (1 blocking, 3 medium, 5 low, 2 notes).
+- Plan: tests first for each finding in tests/protocols/test_red_clinical_values.py, then CD-111 round 2; new branch int-468-red-clinical-values and a new PR, #812 closed.
+- Tests added (with the near-miss negative for any safety rule): every decided do-not line must be a -mAyIn prohibition (the round-1 line 3 fails); the location rule equals the served rule and CD-24 (4 near misses); a partial application keeping a removed line fails; by-mouth near misses widened, and "için"/"içinde" no longer flagged. Red run: 7 failed, 40 passed; green 47 passed.
+- Result: see docs/evidence/INT-468.md; the only red test is CD-111's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none; the row is doing until the verdict lands and waits on INT-465 (#796) for the application.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-111; the orchestrator routes the application into #796.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T05:30:00+03:00 · INT-468 · round 3 (PR #813, verifier verdict pending re-verification)
+- Goal: answer CD-111's round 2 (nothing clinical blocks: INT-447's sec_row restored, NICE clause, stale NHS supports, a removal-only partial application, four notes).
+- Plan: tests first in tests/protocols/test_red_clinical_values.py, then CD-111 round 3.
+- Tests added (with the near-miss negative for any safety rule): the pin checks each location is its original or decided list in the same state (removal-only and one-location near misses); CD-24 at ON_SITE fails; served REMOTE shows 112; three more by-mouth forms. Red run: 4 failed, 53 passed; green 57 passed.
+- Result: see docs/evidence/INT-468.md (round 3); the only red test is CD-111's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-111; the application rides #796.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T07:30:00+03:00 · INT-468 · final verdict (PR #813, CD-111 agree)
+- Goal: record the independent verifier's round-3 verdict (approve) and fix its wording notes in the verdict commit.
+- Plan: test first (the verdict test asserts agree with round 3 in the history), then CD-111, the md twin and the evidence.
+- Tests added (with the near-miss negative for any safety rule): the verdict test now requires agree, the role and the date, and a round 3 whose per-item keys match round 2's and are all agree. Red run: 1 failed, 56 passed; green 90 passed.
+- Result: CD-111 verifier agree (independent D18 clinical verifier (agent), 2026-10-04); `make safety` exit 0; protocols, safety, backlog and smoke lanes 1816 passed, 0 failed; see docs/evidence/INT-468.md (Final verdict).
+- Invariants touched and still passing: 2, 7, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: merge #813 when the merge queue reaches it; the row stays doing until #796 applies the decided lists.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)
