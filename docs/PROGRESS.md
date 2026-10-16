@@ -3,17 +3,19 @@
 ### 2026-10-16T18:00:00+03:00 · INT-538 · done (PR open, not merged, not run against the host)
 - Goal: GitHub #906. The owner gets one laptop command that creates a staff user in realm `intake` on the synthetic host: first themselves (`platform_owner`), then the second approver (`qms_owner`). It replaces the manual steps of `docs/runbooks/second-admin.md` (INT-460).
 - Plan:
-  - `scripts/ops/staff_user.sh` prompts and validates. It puts the temporary password into an SSM SecureString through a 0600 request file, and sends `infra/staging/staff_user_host.sh` base64-wrapped over SSM with no secret in the command.
-  - On the host, the script reads the bootstrap password locally and logs kcadm in on stdin with a throwaway `--config`. It refuses an existing username or email, and resolves the org. It creates the user with `webauthn-register` + `UPDATE_PASSWORD`, grants the role, and sets the temporary password from SSM. A failed step rolls back.
+  - `scripts/ops/staff_user.sh` prompts and validates.
+  - A read-only probe over SSM asks whether a `platform_owner` exists. Only when none does is the user (who must then be the `platform_owner`) asked, once, for the organisation id, a slug.
+  - The temporary password goes into an SSM SecureString through a 0600 request file. `infra/staging/staff_user_host.sh` goes base64-wrapped over SSM with no secret in the command.
+  - On the host, the script names the IAM statement to add if the instance role may not read the staff_tmp parameters. It reads the bootstrap password locally and logs kcadm in on stdin with a throwaway `--config`.
+  - It refuses an existing username or email, inherits the owner's org (refusing a differing one), creates the user with `webauthn-register` + `UPDATE_PASSWORD`, grants the role, and sets the temporary password from SSM. A failed step rolls back.
   - The command prints `created` and the reveal-once command.
+  - Round 2 (orchestrator review) replaced round 1's realm-config route for the first org with the probe and the prompt.
 - Tests added (with the near-miss negative for any safety rule):
-  - `tests/infra/test_staff_user.py`, 71 tests, end to end against fake `aws`/`docker`/`openssl`.
-  - 20 input near misses send nothing, and the host re-checks each argument.
-  - No secret appears in any argv, the command or the output.
-  - The kcadm config is deleted on every path.
-  - Refusals and rollbacks.
-  - 9 mutations; M9 found an untested branch, now tested.
-  - Red: 66 failed. Green: 71 passed; 86 with INT-460's runbook pins.
+  - `tests/infra/test_staff_user.py` (63, laptop flows end to end) and `tests/infra/test_staff_user_host.py` (33, host half and the scripts as files), against fake `aws`/`docker`/`openssl`.
+  - 20 input near misses and 12 org-slug near misses make nothing, and slugs at the edges are accepted.
+  - The org rule holds both ways. The IAM refusal line is pinned. No secret appears in any argv, the command or the output. The kcadm config is deleted on every path.
+  - 13 of 13 mutations were caught.
+  - Red: round 1, 66 failed; round 2 against the round-1 scripts, 53 failed. Green: 96 passed; 111 with INT-460's runbook pins.
 - Result (`make check` / `make safety` / `make security` summary):
   - ruff check and format clean; shellcheck clean.
   - tests/backlog, tests/smoke and tests/security green, with counts at 356.
@@ -24,10 +26,10 @@
   - 6 (no email or credential in any output);
   - 14 (secrets never in argv, logs or the SSM command; nothing committed);
   - 16 (Sec-Row `platform`, threat row updated).
-- Decisions / ADRs / `00_STATE.md` rows: none. The org for the first staff user is not invented. It is read from the realm config's `attributes."intake.first_staff_org"`, which is empty, so the first run refuses until the owner names it.
-- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner, "what is the org id of the organisation that runs the synthetic host?". This is part of #906 and has no HB id; no id was minted.
-- Next: merge. Then the owner names the org in the realm config, deploys, and runs the command twice.
-- LOOP_STATUS: WAITING_HUMAN
+- Decisions / ADRs / `00_STATE.md` rows: none. No org value is defined anywhere, so the owner types it once, on the very first run. No org is invented.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The instance role's read of `/intake/staging/staff_tmp/*` was verified by the orchestrator from the host on 16 Oct 2026 (`ParameterNotFound`, not `AccessDenied`).
+- Next: merge. Then the owner runs the command twice, typing the org id on the first run.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
 - Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).

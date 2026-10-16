@@ -1,15 +1,17 @@
 """INT-538: the world tests/infra/test_staff_user.py runs scripts/ops/staff_user.sh in.
 
 ``world()`` lays out a temporary directory with the fakes of ``staff_user_fakes.py`` on
-``PATH``, a realm, a parameter store, the host's env file and the realm config, and returns the
-environment both halves run with. ``World`` reads back what the fakes recorded.
+``PATH``, a realm, a parameter store and the host's env file, and returns the environment both
+halves run with. ``World`` reads back what the fakes recorded.
 """
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
+import re
 import shlex
 import stat
 import subprocess
@@ -26,12 +28,14 @@ FAKES = Path(__file__).resolve().parent / "staff_user_fakes.py"
 #: Test-only values, valid for nothing. Derived, so no literal secret sits in the tree.
 TEMP_PASSWORD = hashlib.sha256(b"INT-538 temporary password, test only").hexdigest()
 BOOTSTRAP = hashlib.sha256(b"INT-538 bootstrap admin password, test only").hexdigest()
-FIRST_ORG = "org:int538-test"
+#: the slug typed for the very first user, and an existing platform_owner's org
+FIRST_ORG = "int538-test"
 OWNER_ORG = "org:int538-owner"
 USERNAME = "ada.owner"
 EMAIL = "ada.owner@example.org"
 PARAM = f"/intake/staging/staff_tmp/{USERNAME}"
 PROMPTS = "username: email: role (platform_owner|qms_owner): "
+ORG_PROMPT = "organisation id: "
 REVEAL = (
     f"aws ssm get-parameter --region us-east-1 --name {PARAM} --with-decryption"
     f" --query Parameter.Value --output text"
@@ -39,6 +43,11 @@ REVEAL = (
 )
 #: The laptop half runs under /bin/bash: macOS ships bash 3.2 there, Linux a current one.
 BASH = "/bin/bash"
+RUNBOOK = REPO / "docs" / "runbooks" / "second-admin.md"
+COMMAND_SHAPE = re.compile(
+    r"^bash -c \"\$\(printf %s '([A-Za-z0-9+/=]+)' \| base64 -d\)\" staff_user_host"
+    r"((?: '[^']*')+)$"
+)
 
 
 @dataclass
@@ -80,7 +89,6 @@ def world(
     tmp_path: Path,
     *,
     users: list[dict[str, Any]] | None = None,
-    first_org: str | None = None,
     params: dict[str, dict[str, str]] | None = None,
     env_password: str | None = BOOTSTRAP,
     fail: str | None = None,
@@ -111,11 +119,6 @@ def world(
     if env_password is not None:
         lines.append(f"KEYCLOAK_ADMIN_PASSWORD={env_password}")
     env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    realm_config = tmp_path / "intake-realm.json"
-    config: dict[str, Any] = {"realm": "intake"}
-    if first_org is not None:
-        config["attributes"] = {"intake.first_staff_org": first_org}
-    realm_config.write_text(json.dumps(config), encoding="utf-8")
     laptop_tmp = tmp_path / "laptop-tmp"
     laptop_tmp.mkdir()
     env = {
@@ -125,7 +128,6 @@ def world(
         "FAKE_STATE": str(state),
         "FAKE_OPENSSL_VALUE": TEMP_PASSWORD,
         "INTAKE_STAGING_ENV_FILE": str(env_file),
-        "INTAKE_STAFF_REALM_FILE": str(realm_config),
         **extra_env,
     }
     return World(root=tmp_path, env=env)
@@ -142,8 +144,26 @@ def run_laptop(world: World, answers: str, *args: str) -> subprocess.CompletedPr
     )
 
 
-def answers(username: str = USERNAME, email: str = EMAIL, role: str = "platform_owner") -> str:
-    return f"{username}\n{email}\n{role}\n"
+def run_host(world: World, *args: str) -> subprocess.CompletedProcess[str]:
+    """The host half alone, as SSM would run it, against the same fakes."""
+    return subprocess.run(
+        ["bash", str(HOST_SCRIPT), *args],
+        env=world.env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def answers(
+    username: str = USERNAME,
+    email: str = EMAIL,
+    role: str = "platform_owner",
+    org: str | None = FIRST_ORG,
+) -> str:
+    """The typed answers; the org line only matters when no platform_owner exists."""
+    typed = f"{username}\n{email}\n{role}\n"
+    return typed if org is None else f"{typed}{org}\n"
 
 
 def owner(
@@ -170,9 +190,39 @@ def assert_no_secret_escaped(world: World, result: subprocess.CompletedProcess[s
     assert list(Path(world.env["TMPDIR"]).iterdir()) == []
 
 
-def assert_kcadm_config_deleted(world: World) -> None:
+def seeded(tmp_path: Path, **kwargs: Any) -> World:
+    """A world where the laptop already put the temporary password (for host-only runs)."""
+    return world(
+        tmp_path, params={PARAM: {"Type": "SecureString", "Value": TEMP_PASSWORD}}, **kwargs
+    )
+
+
+def host_commands(world: World) -> list[list[str]]:
+    """Each send-command's host arguments, after checking it is the committed script."""
+    commands = []
+    for record in world.invocations().values():
+        assert record["document"] == "AWS-RunShellScript"
+        assert record["instance"] == "i-0e489e48739f5de98"
+        assert set(record["parameters"]) == {"commands"}
+        (command,) = record["parameters"]["commands"]
+        match = COMMAND_SHAPE.fullmatch(command)
+        assert match, command
+        assert base64.b64decode(match.group(1)) == HOST_SCRIPT.read_bytes()
+        commands.append(shlex.split(match.group(2)))
+    return commands
+
+
+def assert_nothing_generated(world: World) -> None:
+    assert world.calls("openssl") == [], "no temporary password was made"
+    assert world.params() == {}
+    assert len(world.invocations()) <= 1, "at most the probe ran"
+
+
+def assert_kcadm_config_deleted(world: World, sessions: int = 1) -> None:
+    """Every kcadm session made a fresh directory, and every one of them is gone."""
     assert world.container_tmp() == [], "the throwaway kcadm config is gone"
     docker = [c["argv"] for c in world.calls("docker")]
     made = [argv[-1] for argv in docker if "mkdir" in argv]
     removed = [argv[-1] for argv in docker if "rm" in argv]
-    assert len(made) == 1 and removed == made
+    assert len(made) == sessions == len(set(made))
+    assert removed == made

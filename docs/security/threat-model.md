@@ -131,12 +131,16 @@ it or whose tests exercise it.
   goes from openssl into an SSM SecureString through a 0600 request file, the bootstrap password
   stays on the host and reaches kcadm on stdin, kcadm's throwaway `--config` is deleted on every
   outcome, the send-command carries no secret, and output is `created` plus the reveal-once
-  command. Only `platform_owner` and `qms_owner` are offered; the org is the platform_owner's or
-  the realm config's, never invented; a failed step rolls the user back.
+  command. Only `platform_owner` and `qms_owner` are offered. A read-only probe decides the org:
+  a new user joins the platform_owner's org and a differing org is refused; only the very first
+  user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
+  role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
+  step rolls the user back.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
   console and INT-205 in the SIEM.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
-  tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py.
+  tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
+  tests/infra/test_staff_user_host.py.
 
 ## `cicd` — pipeline, artefacts and gate integrity
 

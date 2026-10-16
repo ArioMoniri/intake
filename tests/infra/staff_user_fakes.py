@@ -13,8 +13,10 @@ lives in ``$FAKE_STATE``:
 - ``invocations.json``: every send-command, with its parameters, status, stdout and stderr.
 
 ``send-command`` runs the command text with ``sh``, as AWS-RunShellScript does, with the same
-``PATH``, so the host half meets the same fakes. ``$FAKE_HOST`` set to a status instead skips the
-run and reports that status with no output (a host that never answers, or fails silently).
+``PATH``, so the host half meets the same fakes. ``$FAKE_HOST`` is a comma list, one entry per
+send-command in order (the last repeats): ``run``, or a status reported with no output and no
+run (a host that never answers, or fails silently). ``$FAKE_ROLE_DENY`` makes the instance role's
+reads under the staff_tmp path fail as an IAM denial does.
 """
 
 from __future__ import annotations
@@ -33,6 +35,15 @@ KCADM = "/opt/keycloak/bin/kcadm.sh"
 #: kcadm options that take a value; -s and -q may repeat.
 VALUED = {"--config", "-r", "--fields", "--format", "--uid", "--rolename", "-f", "-s", "-q"}
 FLAGS = {"--noquotes", "-i", "-n"}
+STAFF_TMP = "/intake/staging/staff_tmp/"
+#: AWS's documentation account id and an invented role name: an IAM denial's shape, not a real one.
+ROLE_ARN = "arn:aws:sts::123456789012:assumed-role/intake-staging-host"
+PARAM_ARN = "arn:aws:ssm:us-east-1:123456789012:parameter"
+
+
+def _host_status(index: int) -> str:
+    plan = os.environ.get("FAKE_HOST", "run").split(",")
+    return plan[min(index, len(plan) - 1)]
 
 
 def _load(name: str, default: Any) -> Any:
@@ -98,14 +109,26 @@ def aws(argv: list[str]) -> None:
         print('{"Version": 1, "Tier": "Standard"}')
     elif verb == "get-parameter":
         name = _opt(argv, "--name") or ""
+        if os.environ.get("FAKE_ROLE_DENY") and name.startswith(STAFF_TMP):
+            _fail(
+                "An error occurred (AccessDeniedException) when calling the GetParameter "
+                f"operation: User: {ROLE_ARN}/i-0e489e48739f5de98 is not authorized to perform: "
+                f"ssm:GetParameter on resource: {PARAM_ARN}{name} because no identity-based "
+                "policy allows the ssm:GetParameter action",
+                254,
+            )
         if name not in params:
             _fail(
                 "An error occurred (ParameterNotFound) when calling the GetParameter operation:",
                 254,
             )
-        if "--with-decryption" not in argv or _opt(argv, "--query") != "Parameter.Value":
-            _fail("fake aws: get-parameter is only faked with decryption and the value query", 252)
-        print(params[name]["Value"])
+        query = _opt(argv, "--query")
+        if query == "Parameter.Name" and "--with-decryption" not in argv:
+            print(name)
+        elif query == "Parameter.Value" and "--with-decryption" in argv:
+            print(params[name]["Value"])
+        else:
+            _fail("fake aws: get-parameter is faked for the name, or the decrypted value", 252)
     elif verb == "delete-parameter":
         name = _opt(argv, "--name") or ""
         if name not in params:
@@ -122,7 +145,7 @@ def aws(argv: list[str]) -> None:
             "instance": _opt(argv, "--instance-ids"),
             "document": _opt(argv, "--document-name"),
             "parameters": body,
-            "status": os.environ.get("FAKE_HOST", "run"),
+            "status": _host_status(len(invocations)),
             "stdout": "",
             "stderr": "",
         }
