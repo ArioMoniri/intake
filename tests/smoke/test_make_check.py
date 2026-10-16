@@ -322,6 +322,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
+    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
     # + INT-468 (CD-111: the cardiac RED do-not lines and the unanswered location
     # wait under D18, GitHub #805); grows only with a stated reason.
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
@@ -334,7 +335,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # only with a stated reason.
     # + INT-494 (CD-111 applied to the served cardiac RED rule, and the synthetic
     # rule set re-signed, GitHub #844); grows only with a stated reason.
-    assert len(ids) == 346, f"expected 175 blueprint + 171 added issues, got {len(ids)}"
+    assert len(ids) == 347, f"expected 175 blueprint + 172 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

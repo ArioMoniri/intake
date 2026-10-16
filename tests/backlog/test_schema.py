@@ -164,7 +164,8 @@ def test_ids_unique_and_well_formed() -> None:
     # request, GitHub #762).
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
-    # order of 3 Oct 2026, GitHub #790).
+    # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
+    # three, each with its own user, daemon and network namespace, GitHub #799).
     # + INT-468 (CD-111: the cardiac RED do-not lines and the unanswered
     # location wait under D18; GitHub #805).
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
@@ -176,7 +177,7 @@ def test_ids_unique_and_well_formed() -> None:
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
     # + INT-494 (CD-111 applied to the served cardiac RED rule, and the synthetic
     # rule set re-signed; GitHub #844).
-    assert len(ids) == 346
+    assert len(ids) == 347
     import re
 
     for i in ids:
