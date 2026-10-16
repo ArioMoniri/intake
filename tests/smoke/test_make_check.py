@@ -376,10 +376,16 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-428, GitHub #753); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
     # with a stated reason.
+    # + INT-540 (the onset anchor always resolves — CD-04's UNCLEAR states, a
+    # defined clarification_needed, the session's close — so K2 cannot stay
+    # silent, GitHub #913); grows only with a stated reason.
+    # + INT-531 (a RED evaluated between turns reaches the patient within the
+    # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
+    # stated reason.
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358, GitHub #895); grows only with a
     # stated reason.
-    assert len(ids) == 363, f"expected 175 blueprint + 188 added issues, got {len(ids)}"
+    assert len(ids) == 365, f"expected 175 blueprint + 190 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
