@@ -7193,6 +7193,6 @@
     - "the synthetic index loads only when INTAKE_DEPLOYMENT_DATA_CLASS=synthetic is baked into the image; a non-synthetic boot refuses it (test); real tenants still refuse every id until counsel signs (G3)"
     - "a grant on the synthetic host binds the synthetic text's hash (test); claims scan (invariant 20) and PHI scan pass on the texts; patient copy ≤ B1, siz register"
     - "a licensed Turkish lawyer's countersign is still required before any real patient"
-  tests: [tests/legal/test_synthetic_legal_index.py, tests/api/test_synthetic_consent_grant.py]
+  tests: [tests/legal/test_synthetic_legal_index.py, tests/legal/test_synthetic_vendor_tripwire.py, tests/api/test_synthetic_consent_grant.py]
   legal: "KVKK-4/5/6,KVKK-10,AYD-2018"
   sec_row: "consent"
