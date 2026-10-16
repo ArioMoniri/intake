@@ -17,13 +17,18 @@ of the oldest waiting entry is exported as ``clinic_red_inbox_pending_age_s``,
 computed when Prometheus scrapes (not when the pump last ran, so a dead pump
 cannot freeze it at zero), and ``RedInboxEntryLate`` pages above 60 s.
 
-**Nothing is dropped.** A failed write keeps the entry, in order. Shutting
+**Nothing is dropped.** A failed write keeps the entry, in order — whatever
+the store raised (INT-475: a fault other than ``SafetyInboxUnavailable`` used
+to end the pump and lose the batch it had taken, with nothing paging). Shutting
 the pump down drains first (:meth:`wait_until_empty`), and an entry the store
-already holds is not written twice (the store's ``add`` is idempotent).
+already holds is not written twice (the store's ``add`` is idempotent). An
+entry a pass has taken but not yet written is still waiting: it counts in
+:meth:`pending`, in the age that pages, and in :meth:`wait_until_empty`.
 """
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -35,6 +40,8 @@ from intake_platform.safety_inbox.model import InboxEntry
 from intake_platform.safety_inbox.store import SafetyInboxStore, SafetyInboxUnavailable
 
 __all__ = ["PUMP_INTERVAL", "FlushReport", "SafetyInboxOutbox"]
+
+logger = logging.getLogger("intake_platform.safety_inbox")
 
 #: The retry cadence while the store refuses. An engineering bound, not a
 #: clinical value: one attempt a second puts a recovered store's write within
@@ -58,6 +65,8 @@ class SafetyInboxOutbox:
     def __init__(self, clock: Callable[[], datetime] = _utc_now) -> None:
         self._clock = clock
         self._pending: list[InboxEntry] = []
+        #: The batch a flush has taken and is writing (INT-475).
+        self._in_flight: list[InboxEntry] = []
         self._lock = threading.Lock()
         self._changed = threading.Condition(self._lock)
         self._wake = threading.Event()
@@ -72,20 +81,23 @@ class SafetyInboxOutbox:
         self._wake.set()
 
     def pending(self) -> tuple[InboxEntry, ...]:
+        """Every entry not yet in the store, in order — the one being written too."""
         with self._lock:
-            return tuple(self._pending)
+            return (*self._in_flight, *self._pending)
 
     def oldest_pending_age_s(self) -> float:
         with self._lock:
-            if not self._pending:
+            waiting = self._in_flight + self._pending
+            if not waiting:
                 return 0.0
-            oldest = min(entry.created_at for entry in self._pending)
+            oldest = min(entry.created_at for entry in waiting)
         return max(0.0, (self._clock() - oldest).total_seconds())
 
     def flush(self, store: SafetyInboxStore) -> FlushReport:
         """Write every waiting entry; keep, in order, any the store refused."""
         with self._lock:
             batch, self._pending = self._pending, []
+            self._in_flight = batch
         written: list[str] = []
         kept: list[InboxEntry] = []
         for entry in batch:
@@ -98,9 +110,15 @@ class SafetyInboxOutbox:
             except SafetyInboxUnavailable:
                 kept.append(entry)
                 continue
+            except Exception as fault:  # noqa: BLE001 - any fault keeps the entry and the pump
+                # the type only (invariant 6); the entry's age pages if it persists
+                logger.error("safety inbox write failed", extra={"error": type(fault).__name__})
+                kept.append(entry)
+                continue
             written.append(entry.entry_id)
         with self._changed:
             self._pending = kept + self._pending
+            self._in_flight = []
             self._changed.notify_all()
         return FlushReport(
             written=tuple(written),
@@ -128,4 +146,6 @@ class SafetyInboxOutbox:
     def wait_until_empty(self, timeout: float) -> bool:
         """True once nothing waits; False if the timeout passed first."""
         with self._changed:
-            return self._changed.wait_for(lambda: not self._pending, timeout=timeout)
+            return self._changed.wait_for(
+                lambda: not self._pending and not self._in_flight, timeout=timeout
+            )

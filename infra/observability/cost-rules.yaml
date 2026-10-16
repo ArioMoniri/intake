@@ -101,3 +101,25 @@ groups:
       summary: cost budget aws-month has no limit configured
       description: aws spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
       runbook: docs/runbooks/cost-budgets.md#budget-not-configured
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: openai-day
+      scope: openai
+      period: day
+    annotations:
+      summary: cost budget openai-day has no limit configured
+      description: openai spend over the last 1d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured
+  - alert: CostBudgetNotConfigured
+    expr: vector(1)
+    labels:
+      severity: ticket
+      budget_id: openai-month
+      scope: openai
+      period: month
+    annotations:
+      summary: cost budget openai-month has no limit configured
+      description: openai spend over the last 30d is not watched until limit.usd is set, with its source and as_of date, in infra/costs/unit-prices.yaml (HB-O8)
+      runbook: docs/runbooks/cost-budgets.md#budget-not-configured

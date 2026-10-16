@@ -102,7 +102,9 @@ export type SessionFailure =
   | "platform_unsupported"
   | "token_unavailable"
   | "connect_failed"
-  | "reconnect_exhausted";
+  | "reconnect_exhausted"
+  /** INT-465: the catalog cannot say CD-24's generic RED, so the session does not begin. */
+  | "red_copy_missing";
 
 // --- per-turn network quality (the acceptance's RTT/jitter/loss) -------------
 

@@ -15,6 +15,16 @@ on:
 permissions:
   contents: read
 
+# INT-524 — a new push to a pull request cancels that pull request's older
+# run, queued or in progress, so the intake-aws-ci pool builds only current
+# heads. A push run (main, and security.yml's v* tags) is never cancelled:
+# cancel-in-progress is false outside pull_request, and the sha plus the ref
+# give each push run a group of its own, so no later run can replace it while
+# it waits for a runner. tests/ci/test_workflow_concurrency.py pins this block.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check-py:
     runs-on: [self-hosted, linux, intake-aws-ci]
