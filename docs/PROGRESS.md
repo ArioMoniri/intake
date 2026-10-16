@@ -1,5 +1,34 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T18:00:00+03:00 · INT-538 · done (PR open, not merged, not run against the host)
+- Goal: GitHub #906. The owner gets one laptop command that creates a staff user in realm `intake` on the synthetic host: first themselves (`platform_owner`), then the second approver (`qms_owner`). It replaces the manual steps of `docs/runbooks/second-admin.md` (INT-460).
+- Plan:
+  - `scripts/ops/staff_user.sh` prompts and validates. It puts the temporary password into an SSM SecureString through a 0600 request file, and sends `infra/staging/staff_user_host.sh` base64-wrapped over SSM with no secret in the command.
+  - On the host, the script reads the bootstrap password locally and logs kcadm in on stdin with a throwaway `--config`. It refuses an existing username or email, and resolves the org. It creates the user with `webauthn-register` + `UPDATE_PASSWORD`, grants the role, and sets the temporary password from SSM. A failed step rolls back.
+  - The command prints `created` and the reveal-once command.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staff_user.py`, 71 tests, end to end against fake `aws`/`docker`/`openssl`.
+  - 20 input near misses send nothing, and the host re-checks each argument.
+  - No secret appears in any argv, the command or the output.
+  - The kcadm config is deleted on every path.
+  - Refusals and rollbacks.
+  - 9 mutations; M9 found an untested branch, now tested.
+  - Red: 66 failed. Green: 71 passed; 86 with INT-460's runbook pins.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean; shellcheck clean.
+  - tests/backlog, tests/smoke and tests/security green, with counts at 356.
+  - files/11 regenerated.
+  - no_placeholders, evidence_check and sec_row linkage OK.
+  - The full fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing:
+  - 6 (no email or credential in any output);
+  - 14 (secrets never in argv, logs or the SSM command; nothing committed);
+  - 16 (Sec-Row `platform`, threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none. The org for the first staff user is not invented. It is read from the realm config's `attributes."intake.first_staff_org"`, which is empty, so the first run refuses until the owner names it.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner, "what is the org id of the organisation that runs the synthetic host?". This is part of #906 and has no HB id; no id was minted.
+- Next: merge. Then the owner names the org in the realm config, deploys, and runs the command twice.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
 - Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).
 - Plan:

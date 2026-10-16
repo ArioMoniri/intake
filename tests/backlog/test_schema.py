@@ -196,7 +196,9 @@ def test_ids_unique_and_well_formed() -> None:
     # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
     # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
     # invariant 6, GitHub #830).
-    assert len(ids) == 355
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host; owner order, GitHub #906).
+    assert len(ids) == 356
     import re
 
     for i in ids:

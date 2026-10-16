@@ -6967,3 +6967,26 @@
     - "tests/infra/test_staging_admin_tier.py::TestLoginGate pins both, with a near-miss that the default (both absent), either one alone, or either set to \"true\" fails the same check; the red and green runs are recorded in docs/evidence/INT-485.md; nothing is deployed from the PR"
   tests: [tests/infra/test_staging_admin_tier.py]
   sec_row: "admin-console"
+- id: INT-538
+  epic: E13-infra
+  phase: P1
+  title: "One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required"
+  # GitHub #906. Owner order, 16 Oct 2026, after the staging deploy (main
+  # f7f6b6ee): the realm `intake` has no users, and agents never create
+  # accounts. The owner runs scripts/ops/staff_user.sh from the laptop, first
+  # for themselves (platform_owner), then for the second approver (qms_owner).
+  # It replaces the manual steps of docs/runbooks/second-admin.md (INT-460),
+  # which stay as the fallback. No org value for the first staff user is
+  # defined in the realm config or a runbook, so that run refuses until the
+  # owner names one at attributes."intake.first_staff_org" in the realm config.
+  depends_on: [INT-460]
+  labels: [area:infra]
+  status: done
+  evidence: docs/evidence/INT-538.md
+  acceptance:
+    - "scripts/ops/staff_user.sh prompts for username, email and role; only platform_owner or qms_owner is accepted; each answer is validated and an empty one refused before any call; near misses (role typo, bad email, empty or unsafe username) send nothing"
+    - "the temporary password goes from openssl straight into the SSM SecureString /intake/staging/staff_tmp/<username> through a 0600 request file, never in an argv, output or history, and a waiting one is never overwritten; the send-command carries infra/staging/staff_user_host.sh base64-wrapped plus the username, email, role, parameter name and region, and no secret"
+    - "on the host: KEYCLOAK_ADMIN_PASSWORD is read from /etc/intake-staging/.env and reaches kcadm on stdin; kcadm logs in with a throwaway --config that is deleted on every outcome; an existing username or email is refused; the org is the platform_owner's, or for the first user the realm config's, and is never invented; the user is enabled, emailVerified, with requiredActions webauthn-register and UPDATE_PASSWORD, the role, and the temporary password read from SSM on the host (temporary=true); a failed step rolls the user back"
+    - "the laptop prints only created (or the refusal reason) and the one aws command that reveals the temporary password once and deletes the parameter; docs/runbooks/second-admin.md points to the command and keeps the manual steps as fallback; tests drive both scripts end to end with fake aws, docker and openssl"
+  tests: [tests/infra/test_staff_user.py, tests/admin/test_second_admin_runbook.py]
+  sec_row: "platform"
