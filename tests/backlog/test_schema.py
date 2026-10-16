@@ -183,7 +183,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-501 (http-cache-semantics lifted out of its advisory before its
     # osv exception expires, GitHub #853) and INT-508 (node-forge and braces
     # have no upstream fix: renew or replace before 1 Nov 2026, GitHub #865).
-    assert len(ids) == 350
+    # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
+    # the expressive-model ADR proposal; owner request, GitHub #719).
+    assert len(ids) == 351
     import re
 
     for i in ids:

@@ -168,6 +168,19 @@ def test_vendor_error_is_502_and_never_echoes_the_key(tmp_path: Path) -> None:
 # (d) the numeral/invariant-22 guard REFUSES text before the vendor -------------
 
 
+@pytest.mark.parametrize("text_tr", ["[whispers] Merhaba.", "Merhaba. <break/>"])
+def test_markup_bearing_text_is_refused_before_the_vendor(tmp_path: Path, text_tr: str) -> None:
+    """INT-424: an audio tag or SSML is refused with the same 422 as a numeral,
+    before the catalogue door and before any dial."""
+    gateway = CountingGateway()
+    client = _client(_wiring(gateway, tmp_path))
+    res = client.post(GEORGE_CLIP_PATH, json={"text_tr": text_tr})
+    assert res.status_code == 422
+    assert res.json()["error"] == "not_speakable"
+    assert gateway.calls == 0
+    assert not list(tmp_path.iterdir())
+
+
 def test_numeral_bearing_text_is_refused_before_the_vendor(tmp_path: Path) -> None:
     gateway = CountingGateway()
     client = _client(_wiring(gateway, tmp_path))
