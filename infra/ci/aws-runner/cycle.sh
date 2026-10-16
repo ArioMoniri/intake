@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# INT-463 — the ExecStart of intake-aws-ci-runner.service. Runs as root and is
-# not sandboxed, so it sees the real file system that the guards must check.
-# Each pass of the loop is one ephemeral runner, and one job:
+# INT-463, INT-467 — the ExecStart of intake-aws-ci-runner@N.service, for runner
+# N of the pool (cycle.sh N). Runs as root and is not sandboxed, so it sees the
+# real file system that the guards must check. Each pass of the loop is one
+# ephemeral registration, and one job:
 #
 #   prepare  the guards (layout, disk, access, net); a fresh runner tree from
 #            the root-owned, sha256-verified distribution; an empty workspace,
-#            home and temp; rootless Docker answering as the runner user; and
-#            registration with --ephemeral. The registration token reaches
+#            home and temp; the runner's rootless Docker answering as its user;
+#            its detached network namespace attached for the job and proved
+#            (guard.sh netns); and registration with --ephemeral. The
+#            registration token reaches
 #            config.sh in ACTIONS_RUNNER_INPUT_TOKEN, never on a command line,
 #            and it is never printed. Its source, in order:
 #              the registrar   a fresh registration token minted for this pass
@@ -15,13 +18,14 @@
 #              SECRET_DIR/registration-token
 #                              a one-hour registration token from
 #                              scripts/ci/aws_runner.sh token, the fallback
-#   run      `systemctl start --wait intake-aws-ci-job.service`: the runner
-#            process, as ghrunner, inside that unit's sandbox. It takes exactly
-#            one job and exits.
-#   cleanup  every container, volume, network and build cache of the rootless
-#            daemon; any image whose tags are not backed by a registry digest
-#            of the same repository; every stray process of the runner user;
-#            the runner tree, workspace, home and temp. Then the disk guard.
+#   run      `systemctl start --wait intake-aws-ci-job@N.service`: the runner
+#            process, as ghrunnerN, inside that unit's sandbox and network
+#            namespace. It takes exactly one job and exits.
+#   cleanup  every container, volume, network and build cache of this runner's
+#            rootless daemon; any image whose tags are not backed by a registry
+#            digest of the same repository; every stray process of this
+#            runner's user; its runner tree, workspace, home and temp. Then the
+#            disk guard. No other runner's daemon, process or file is touched.
 # A refused prepare waits RETRY_S and tries again: the runner stays offline
 # rather than take a job in a state the guards rejected.
 set -uo pipefail
@@ -31,7 +35,7 @@ set +x
 . /usr/local/lib/intake-aws-ci-runner/bin/guard.sh
 set +e
 
-JOB_UNIT=intake-aws-ci-job.service
+instance_env "${1:-}" || exit 2
 RETRY_S=30
 
 registrar_token() {
@@ -107,6 +111,7 @@ prepare() {
   chown -R "$RUNNER_USER:$RUNNER_USER" "$CI_ROOT/runner"
   write_runner_env
   wait_for_docker || return 1
+  guard_netns || return 1
 
   local token
   if ! token=$(registration_token); then
@@ -122,7 +127,7 @@ prepare() {
     return 1
   fi
   unset token
-  say "registered $RUNNER_NAME: ephemeral, labels self-hosted, Linux, X64, $RUNNER_LABELS"
+  say "registered $RUNNER_NAME: ephemeral, labels self-hosted, Linux, X64, $RUNNER_LABELS; job namespace $NETNS"
 }
 
 drop_unverifiable_images() {
@@ -176,7 +181,7 @@ cleanup() {
   say "cleanup done: containers, volumes, workspace, home, temp and runner tree removed"
 }
 
-say "supervisor started"
+say "supervisor of $RUNNER_NAME started"
 while :; do
   if prepare; then
     started=$(date +%s)

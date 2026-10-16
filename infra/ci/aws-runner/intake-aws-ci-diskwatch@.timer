@@ -1,0 +1,11 @@
+# INT-463, INT-467 — runs the disk watchdog of runner %i every minute.
+[Unit]
+Description=Disk watchdog for intake-aws-ci Actions runner %i, every minute (INT-463, INT-467)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
