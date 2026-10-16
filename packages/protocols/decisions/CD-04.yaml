@@ -1,0 +1,218 @@
+kind: clinical_decision
+id: CD-04
+title: "Turkish hedge to answer-state table"
+question: "When the answer to a scripted red-flag question is hedged, qualified, double-negated or 'bilmiyorum', which answer state does it take, per rule, given that it may never become ASKED_ABSENT?"
+decision: "A hedged or qualified answer to a scripted rule question is UNCLEAR or PRESENT_QUALIFIED, never ASKED_ABSENT; only a plain negative ('hayır', 'yok', 'olmadı') to the scripted question itself is ASKED_ABSENT, and the matcher tests every entry below before it tests a plain negative, so 'yok gibi' never reads as 'yok'. PRESENT_QUALIFIED is not an eighth answer state: it is ASKED_PRESENT carrying the qualifier as an annotation, so it evaluates as present for the rule and the qualifier is carried into the note. UNCLEAR reads Unknown and triggers the slot's follow_up_tr once; an UNCLEAR on any CD-01 feature slot that survives the follow-up raises a labelled CD-08 clinic-inbox item (kind chest_pain_arms_unresolved), pinned to the note and never dropped, because under three-valued logic it can leave both chest-pain arms silent. The CKM screening archetype's presence value set (Yes / No / Unknown / Unsure) is the basis for keeping 'bilmiyorum' and every hedge out of No. For chest pain the NICE CG95 definition (pain or discomfort) makes a qualified pain or a discomfort present, and NICE CG95 1.2.1.1 and 1.2.1.7 make a pain that has passed still clinically present, to be dated by the anchor question (CD-05). The mapping is per rule and per slot: 'biraz' affirms breathlessness, which NICE names without a qualifier. On associated.diaphoresis NICE names marked sweating, so 'biraz' does not match the guideline feature, yet it is still PRESENT_QUALIFIED (qualifier mild_not_marked): as UNCLEAR it would leave both arms silent when no other feature is present, while a plain 'hayır' fires SARI_K1, so admitting a little sweating would be treated as less acute than denying it. That monotonicity argument is this author's (inference_disclosure), not NICE's. Two of the three files/04 §8.2 adversarial strings concern syncope and bleeding probes that no active rule reads; they take the UNCLEAR floor (which still arms the probe, CD-03) and whether they should be PRESENT_QUALIFIED stays draft_needs_source. An unmatched hedge is UNCLEAR."
+status: active
+scope: simulated_patient_stress_testing
+author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
+inference_disclosure: "The Turkish surface readings (double negation, hedges, 'biraz') are this author's linguistic operationalisation. Mapping 'biraz terledim' to PRESENT_QUALIFIED although NICE names marked sweating is the author's monotonicity choice: an answer that admits some of a feature must never evaluate as less acute than a plain denial of it. Raising a clinic-inbox item for an unresolved UNCLEAR is a fail-closed design choice, not a clinical source."
+spec_basis:
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.3 Seven answer states"
+    quote: "`NOT_ASKED` · `ASKED_PENDING` (ask-ahead bookkeeping) · `ASKED_PRESENT`"
+    supports: "present_qualified_is"
+  - file: files/protocols/base.life_threat.yaml
+    section: "RULE SCHEMA, gate"
+    quote: "`T ∨ U = T`, everything else with U is U."
+    supports: "unresolved_after_follow_up (an UNCLEAR feature can leave both arms Unknown)"
+  - file: CLAUDE.md
+    section: "How we work"
+    quote: "build the mechanism, wire the gate, make it fail closed, leave the content empty."
+    supports: "unresolved_after_follow_up"
+sources:
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "at0027,    -- Unknown"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "at0041]    -- Unsure"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "The term 'chest pain' is used throughout the guideline to mean chest pain or discomfort."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "they are currently pain free, but had chest pain in the last 12 hours"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "chest pain associated with nausea and vomiting, marked sweating, breathlessness, or particularly a combination of these"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "with recurrent chest pain occurring frequently and with little or no exertion"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+value:
+  plain_negative_to_scripted_question: ASKED_ABSENT
+  present_qualified_is: "ASKED_PRESENT carrying the qualifier as an annotation; not an eighth AnswerState"
+  unresolved_after_follow_up:
+    applies_to: [chest_pain.present, chest_pain.character, chest_pain.radiation, chest_pain.onset_at, associated.diaphoresis, associated.dyspnoea, trauma.recent]
+    trigger: "the slot is still UNCLEAR after its follow_up_tr has been asked once"
+    action: clinic_inbox_item
+    decision_ref: CD-08
+    kind: chest_pain_arms_unresolved
+    never_dropped: true
+    pinned_to_note: true
+    note: "for chest_pain.onset_at the anchor is also resolved by CD-05's more-acute rule; the inbox item still records that the patient could not date the episode"
+  match_order: "hedge entries first (longest surface first), plain negatives last"
+  present_qualified_evaluates_as: present
+  unclear_evaluates_as: unknown
+  # The decision's "triggers the slot's follow_up_tr once", machine-readable
+  # (INT-540): how many times an UNCLEAR answer's follow_up_tr is asked before
+  # the slot stays UNCLEAR. A restatement, not a new value.
+  unclear_follow_up_tr_asks: 1
+  entries:
+    - surface_tr: "ağrım yok değil hani"
+      gloss_en: "it is not that I have no pain, you know (double negation affirms the pain)"
+      answer_state: PRESENT_QUALIFIED
+      qualifier: double_negation
+      slots: [chest_pain.present]
+      rules: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+      status: active
+      sources: [NICE-CG95, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "bayılmadım ama bayılacak gibi oldum"
+      gloss_en: "I did not faint, but I felt as if I would"
+      answer_state: UNCLEAR
+      qualifier: near_faint
+      slots: ["*"]
+      slot_note: "whichever syncope probe was asked; no active rule reads one today"
+      rules: ["*"]
+      status: draft_needs_source
+      present_qualified_upgrade: "TODO: whether a near-faint answer counts as present for a syncope probe requires clinical sign-off"
+      source_gap: "No retrieved current guideline states whether a reported near-faint satisfies a syncope trigger. The NICE CG109 recommendations page carries no definition of it, and the ESC syncope guideline text was not retrievable by this author. The UNCLEAR floor is sourced (CKM presence value set: Unknown and Unsure are distinct from No) and arms the probe (CD-03); the upgrade to PRESENT_QUALIFIED is not."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "kanama yoktu, sadece siyahtı"
+      gloss_en: "there was no bleeding, it was just black (black stool reported as not-bleeding)"
+      answer_state: UNCLEAR
+      qualifier: black_stool_denied_as_bleeding
+      slots: ["*"]
+      slot_note: "whichever bleeding probe was asked; no active rule reads one today"
+      rules: ["*"]
+      status: draft_needs_source
+      present_qualified_upgrade: "TODO: whether black stool described this way counts as present for a bleeding probe requires clinical sign-off"
+      source_gap: "No retrieved current guideline snapshot defines black stool as a bleeding finding for a layperson-answerable bleeding trigger (EK-4 lists no melaena entry; the NICE CG141 recommendations page does not define it). The UNCLEAR floor is sourced (CKM presence value set) and arms the probe (CD-03); the upgrade to PRESENT_QUALIFIED is not."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "bilmiyorum"
+      gloss_en: "I do not know"
+      answer_state: UNCLEAR
+      qualifier: unknown
+      slots: ["*"]
+      rules: ["*"]
+      status: active
+      note: "for a tense anchor the answer is recorded UNCLEAR and the anchor is resolved by CD-05's more-acute rule"
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "emin değilim"
+      gloss_en: "I am not sure"
+      answer_state: UNCLEAR
+      qualifier: unsure
+      slots: ["*"]
+      rules: ["*"]
+      status: active
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "sanmıyorum"
+      gloss_en: "I do not think so (hedged negative)"
+      answer_state: UNCLEAR
+      qualifier: hedged_negative
+      slots: ["*"]
+      rules: ["*"]
+      status: active
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "pek sayılmaz"
+      gloss_en: "not really, hardly counts (hedged negative)"
+      answer_state: UNCLEAR
+      qualifier: hedged_negative
+      slots: ["*"]
+      rules: ["*"]
+      status: active
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "yok gibi"
+      gloss_en: "sort of none, as if there is none (hedged negative)"
+      answer_state: UNCLEAR
+      qualifier: hedged_negative
+      slots: ["*"]
+      rules: ["*"]
+      status: active
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+    - surface_tr: "şu an yok ama vardı"
+      gloss_en: "none now, but there was (resolved episode)"
+      answer_state: PRESENT_QUALIFIED
+      qualifier: resolved
+      slots: [chest_pain.present]
+      rules: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+      status: active
+      note: "also 'geçti' (it has passed); the anchor question (CD-05) then dates the last episode"
+      sources: [NICE-CG95]
+    - surface_tr: "ağrı değil de bir sıkıntı var"
+      gloss_en: "it is not pain, it is a discomfort / oppression"
+      answer_state: PRESENT_QUALIFIED
+      qualifier: discomfort_not_pain
+      slots: [chest_pain.present]
+      rules: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+      status: active
+      sources: [NICE-CG95]
+    - surface_tr: "arada bir oluyor"
+      gloss_en: "it happens now and then (intermittent)"
+      answer_state: PRESENT_QUALIFIED
+      qualifier: intermittent
+      slots: [chest_pain.present]
+      rules: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+      status: active
+      sources: [NICE-CG95]
+    - surface_tr: "eskiden vardı"
+      gloss_en: "I used to have it (past episode)"
+      answer_state: PRESENT_QUALIFIED
+      qualifier: past
+      slots: [chest_pain.present]
+      rules: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+      status: active
+      note: "present for the gate; the anchor question (CD-05) decides whether any tense window is met"
+      sources: [NICE-CG95]
+    - surface_tr: "biraz"
+      gloss_en: "a little (as in 'biraz nefesim daralıyor')"
+      answer_state: PRESENT_QUALIFIED
+      qualifier: mild
+      slots: [associated.dyspnoea]
+      rules: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+      status: active
+      note: "NICE names breathlessness without a severity qualifier; consistent with golden LT-02-N, which expects 'biraz nefesim daralıyor' to land in the K2 arm"
+      sources: [NICE-CG95]
+    - surface_tr: "biraz"
+      gloss_en: "a little (as in 'biraz terledim')"
+      answer_state: PRESENT_QUALIFIED
+      qualifier: mild_not_marked
+      slots: [associated.diaphoresis]
+      rules: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+      status: active
+      note: "NICE names marked sweating, so 'a little' is below the guideline feature; it is still PRESENT_QUALIFIED so that admitting some sweating never evaluates as less acute than 'hayır' (which fires SARI_K1). The qualifier mild_not_marked is carried into the note (inference_disclosure)."
+      sources: [NICE-CG95]
+  unmatched_hedge: UNCLEAR
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

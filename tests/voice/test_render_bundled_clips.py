@@ -18,8 +18,15 @@ import httpx
 import numpy as np
 import pytest
 from protocols.dsl import clip_text_hash
-from voice_clips.delivery import DELIVERY_PROFILES, MAX_STYLE
-from voice_clips.gateway import ElevenLabsClipGenGateway, HttpTtsGateway, NumeralInScriptError
+from voice_clips.delivery import CLIPGEN_VOICE_ID, DELIVERY_PROFILES
+from voice_clips.gateway import (
+    ELEVENLABS_MODEL_ID,
+    ElevenLabsClipGenGateway,
+    HttpTtsGateway,
+    MarkupInScriptError,
+    NumeralInScriptError,
+    wire_text,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts" / "voice" / "render_bundled_clips.py"
@@ -60,36 +67,24 @@ def _line(text: str, context: str = "routine") -> Any:
     return rbc.ClipLine(context=context, text_tr=text)
 
 
-def test_the_committed_set_loads_with_a_v3_row_for_every_context_it_uses() -> None:
+def test_the_committed_set_loads_and_uses_only_bundled_contexts() -> None:
     lines = rbc.load_clip_set()
     assert lines
-    assert {line.context for line in lines} <= set(rbc.V3_EXPRESSIVE)
+    assert {line.context for line in lines} <= rbc.BUNDLED_CONTEXTS
 
 
-def test_the_v3_expressive_table_is_the_owner_request_and_leaves_red_and_instrument_alone() -> None:
-    assert dict(rbc.V3_EXPRESSIVE) == {
-        "welcome": (0.32, 0.40, 0.97),
-        "acknowledgement": (0.38, 0.35, 1.00),
-        "routine": (0.40, 0.30, 0.98),
-        "sensitive": (0.50, 0.20, 0.92),
-        "closing": (0.35, 0.40, 0.96),
-    }
-    assert "red" not in rbc.V3_EXPRESSIVE and "instrument" not in rbc.V3_EXPRESSIVE
-    # The style ceiling was lifted from 0.3 to 0.4 for exactly this table (owner
-    # request, 3 Oct 2026); pinned so a further lift is a reviewed change.
-    assert MAX_STYLE == 0.4
-    assert max(style for _, style, _ in rbc.V3_EXPRESSIVE.values()) == MAX_STYLE
+def test_bundled_clips_render_under_the_served_table_and_never_red_or_instrument() -> None:
+    # D20: the cast voice E04 on eleven_v3, v4 of every row, replaced the
+    # George "v3 expressive" proposal; the bundled set renders what is served.
+    assert rbc.BUNDLED_CONTEXTS == {"welcome", "acknowledgement", "routine", "sensitive", "closing"}
+    for context in rbc.BUNDLED_CONTEXTS:
+        profile = rbc.bundled_profile(context)
+        assert profile is DELIVERY_PROFILES[context]
+        assert profile.voice_id == CLIPGEN_VOICE_ID
+        assert profile.model_id == ELEVENLABS_MODEL_ID
     for context in ("red", "instrument"):
-        assert DELIVERY_PROFILES[context].voice_settings.style == 0.0  # untouched
-    welcome = rbc.v3_profile("welcome")
-    assert welcome.key == "delivery.welcome@v3"
-    assert welcome.voice_settings.as_request() == {
-        "stability": 0.32,
-        "similarity_boost": 0.75,
-        "style": 0.40,
-        "use_speaker_boost": True,
-        "speed": 0.97,
-    }
+        with pytest.raises(rbc.RenderRefused):
+            rbc.bundled_profile(context)
 
 
 def test_plan_reports_chars_and_estimate_and_dials_nothing(tmp_path: Path) -> None:
@@ -112,15 +107,21 @@ def test_live_renders_each_line_under_its_context_profile_into_its_context_dir(
     for line in lines:
         clip = tmp_path / f"{line.context}/{clip_text_hash(line.text_tr)}.wav"
         assert clip.read_bytes()[:4] == b"RIFF"
-    assert [call["text"] for call in calls] == [line.text_tr for line in lines]
-    assert all(call["model_id"] == "eleven_multilingual_v2" for call in calls)
+    served = [DELIVERY_PROFILES[line.context] for line in lines]
+    # the tags ride on the wire only; the words are the script's, verbatim
+    assert [call["text"] for call in calls] == [
+        wire_text(line.text_tr, profile) for line, profile in zip(lines, served, strict=True)
+    ]
+    assert all(call["text"].endswith(line.text_tr) for call, line in zip(calls, lines, strict=True))
+    assert all(call["model_id"] == ELEVENLABS_MODEL_ID for call in calls)
     assert all(call["apply_text_normalization"] == "off" for call in calls)
-    assert calls[0]["voice_settings"]["style"] == 0.40  # welcome
-    assert calls[1]["voice_settings"]["style"] == 0.30  # routine
+    assert [call["voice_settings"] for call in calls] == [
+        profile.voice_settings.as_request() for profile in served
+    ]
     rows = {row["address"]: row for row in index["clips"]}
-    assert rows[lines[0].address]["profile"] == "delivery.welcome@v3"
+    assert rows[lines[0].address]["profile"] == DELIVERY_PROFILES["welcome"].key
     assert all(row["lead_silence_ms"] < 200 for row in rows.values())  # dead air trimmed
-    assert json.loads((tmp_path / "index.json").read_text())["voice_id"] == rbc.GEORGE_VOICE_ID
+    assert json.loads((tmp_path / "index.json").read_text())["voice_id"] == CLIPGEN_VOICE_ID
 
 
 def test_a_rerun_spends_only_on_what_is_missing(tmp_path: Path) -> None:
@@ -128,7 +129,10 @@ def test_a_rerun_spends_only_on_what_is_missing(tmp_path: Path) -> None:
     first, second = _line("Sizi bugün hekime getiren nedir?"), _line("Teşekkürler.", "closing")
     rbc.render([first], tmp_path, _gateway(calls), budget_usd=1.0)
     rbc.render([first, second], tmp_path, _gateway(calls), budget_usd=1.0)
-    assert [call["text"] for call in calls] == [first.text_tr, second.text_tr]
+    assert [call["text"] for call in calls] == [
+        wire_text(first.text_tr, DELIVERY_PROFILES["routine"]),
+        wire_text(second.text_tr, DELIVERY_PROFILES["closing"]),
+    ]
     index = json.loads((tmp_path / "index.json").read_text())
     assert {row["address"] for row in index["clips"]} == {first.address, second.address}
 
@@ -173,7 +177,8 @@ def test_a_numeral_or_markup_refuses_the_whole_set(tmp_path: Path) -> None:
         rbc.load_clip_set(
             _write_set(tmp_path, [{"context": "routine", "text_tr": "Ağrı 3 gündür mü?"}])
         )
-    with pytest.raises(rbc.RenderRefused):
+    # main's gate (INT-424) refuses markup before this tool's own backstop
+    with pytest.raises(MarkupInScriptError):
         rbc.load_clip_set(
             _write_set(tmp_path, [{"context": "routine", "text_tr": "Ağrı [whispers] nerede?"}])
         )

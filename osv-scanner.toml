@@ -1,15 +1,24 @@
 # osv-scanner configuration (INT-429). `make security` step [6/12] and the
 # vulnerabilities job read it from beside pnpm-lock.yaml and uv.lock.
 #
-# One entry, and it expires. tests/ci/test_security_gates.py pins the count at
-# 1, the id, and the expiry. When ignoreUntil passes, osv-scanner reports the
-# advisory again and the gate turns red until node-forge ships a fix or the
-# dependency is gone. Removing the entry sooner is always correct.
+# Two entries, one advisory of one package each, and each one expires.
+# tests/ci/test_security_gates.py pins the ids and the expiries, and counts
+# them with the keycloak provider's own entry (pin 3). When an ignoreUntil
+# passes, osv-scanner reports that advisory again, and the gate turns red
+# until a fix ships or the dependency is gone.
+# Removing an entry sooner is always correct.
+#
+# INT-508: the owner renewed both entries once, to 31 Dec 2026, because
+# neither package had a fixed release on 16 Oct 2026 (docs/evidence/INT-501.md).
 
 [[IgnoredVulns]]
 id = "GHSA-86w9-cpqp-85rv"
-ignoreUntil = 2026-11-01T00:00:00Z
+ignoreUntil = 2026-12-31T00:00:00Z
 reason = """\
+RENEWED ONCE, by the owner's own commit of owner-508-renew-exceptions.patch \
+(INT-508), from 1 Nov to 31 Dec 2026: node-forge 1.4.0 is still the newest \
+release, its fix (digitalbazaar/forge#1152) is unmerged, and every @expo/cli \
+through 58.1.9 depends on node-forge (docs/evidence/INT-501.md). \
 OWNER-APPROVED, TIME-BOXED EXCEPTION for node-forge 1.4.0 only. The owner \
 approved a narrow 30-day exception for just that package on 2 Oct 2026 \
 (owner, in chat, 2 Oct 2026: "i approve node-forge ignore"; commit authorised in chat: "commit the node-forge exception files"). This is the advisory trivy reports as \
@@ -24,3 +33,33 @@ reads keychain certificates for `expo run:ios`. Neither runs during \
 `expo export`, no app source imports node-forge, and the production iOS and \
 Android `expo export` bundles carry no node-forge code \
 (docs/evidence/INT-429.md)."""
+
+# INT-426 follow-up, 3 Oct 2026: an advisory that OSV reissued on 2 Oct
+# (record modified at 22:45 UTC), with NO fixed release. The affected braces
+# is the newest one on npm, and the newest micromatch needs braces ^3.0.3.
+# The entry names one advisory of one package and expires after 30 days, like
+# the node-forge entry above. Its sibling for http-cache-semantics 4.2.0 went
+# in INT-501: 4.3.0 is outside that record's range, and a pnpm.overrides
+# floor holds it there. The id is not named here: tests/ci/test_security_gates.py
+# refuses any suppression file that names a cleared advisory.
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2026-12-31T00:00:00Z
+reason = """\
+RENEWED ONCE, by the owner's own commit of owner-508-renew-exceptions.patch \
+(INT-508), from 2 Nov to 31 Dec 2026: braces 3.0.3 and micromatch 4.0.8 are \
+still the newest releases, the fix pull requests on micromatch/braces are \
+unmerged, and every metro-file-map through 0.87.1 needs micromatch \
+(docs/evidence/INT-501.md). \
+OWNER-APPROVED, TIME-BOXED EXCEPTION for braces 3.0.3 only (owner, in chat, \
+3 Oct 2026: "approve for the two osv exceptions"; CVE-2026-93687, \
+stack-exhaustion denial of service through deeply nested patterns). \
+braces 3.0.3 is in pnpm-lock.yaml only under micromatch 4.0.8, under \
+metro-file-map 0.84.5, which is Metro's build-time file crawler (via metro \
+and @expo/metro, importer apps/mobile), and under @expo/metro-file-map \
+57.0.2, Expo's copy of it. It expands glob patterns written by \
+the repository's own build configuration, never patient input. It is not in \
+either production `expo export` bundle, and no server runtime image installs \
+npm packages: infra/staging/Dockerfile.api is Python only, and no admin-web \
+or clinician-web importer reaches it (docs/evidence/INT-426.md)."""

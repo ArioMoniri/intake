@@ -14,15 +14,31 @@ kinds and instants. So that is the whole field set:
   the kind and the source (the RED's content-addressed ``work_id``, or the
   transition's id), so a re-derived RED — files/03 §4.6 invariant 6 — lands on
   the entry already there instead of opening a second clock for one event.
-- **Three kinds, and only these.** ``red`` is the RED itself. The two others
-  are files/02 §2b's rule that *"``rescheduled`` or ``cancelled`` on a RED
-  visit raises a clinic inbox entry regardless of connector presence"*: each
-  is its own entry with its own clock, because the moved visit is new news to
-  the clinic even when the RED was answered.
+- **Four kinds, and only these.** ``red`` is the RED itself. Two are files/02
+  §2b's rule that *"``rescheduled`` or ``cancelled`` on a RED visit raises a
+  clinic inbox entry regardless of connector presence"*: each is its own entry
+  with its own clock, because the moved visit is new news to the clinic even
+  when the RED was answered. ``red_on_site`` is the staff notification of
+  files/02 §5.3 Axis 3 and files/04 §8.1 rule 7 (INT-475): under ``ON_SITE``
+  *"the clinic inbox entry is the primary channel"* and fires automatically,
+  because a qualified human is fifty metres away. It names the RED by its
+  ``work_id``, so there is one per RED, and it carries its own clock: the
+  patient being in the building is new news even when the RED was answered.
+  It is the one record of the RED location axis (ids and the kind only), and
+  it does not index the visit — files/02 §2b reads a visit's REDs, and this is
+  not one.
 - **The clock is ``created_at``.** It is stamped where the entry is made — on
   the RED path, in-process — and nothing later moves it: a store that was
   down when the RED fired writes the entry late, but the clinic's clock still
   started at the RED.
+- **A RED entry records the register it was told in** (INT-407). files/02 §2b
+  re-shows the crisis signposting *"in the register the original RED used"*
+  when a RED visit moves, and this entry is the only server-side record of a
+  RED — so the register rides on it, a closed enum and never words. It is
+  optional only because an entry written before INT-407 has none; a reader
+  that finds none withholds the re-show rather than choose a register, since a
+  default register *"would be chosen once, by an engineer, for all future
+  rules"* (files/02 §5.3). The transition kinds carry none.
 """
 
 from __future__ import annotations
@@ -30,12 +46,16 @@ from __future__ import annotations
 import enum
 import hashlib
 import re
+import warnings
 from datetime import datetime, timedelta
 from typing import Annotated, Final, Literal, Self
 
+from clinical_schemas.triage import RedRegister
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
+    "ID_SHAPE",
+    "RULE_ID_SHAPE",
     "AlreadyAcknowledged",
     "EntryKind",
     "InboxEntry",
@@ -50,11 +70,14 @@ __all__ = [
 #: The tenant shape the voice control store keys on (INT-182), so one tenant id
 #: is valid in both stores or in neither.
 _TENANT: Final = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,63}$")
-#: Session, visit, work and transition ids: UUIDs and content digests.
-_ID: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+#: Session, visit, work and transition ids: UUIDs and content digests. Public
+#: so a route that takes an id for an entry (INT-475) refuses what the entry would.
+ID_SHAPE: Final = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+_ID: Final = re.compile(ID_SHAPE)
 #: ``ID_SHAPE`` of the RED trigger (intake_voice_runtime.talker.red_path),
 #: which every rules-engine rule id (``rf.<segments>``) already satisfies.
-_RULE: Final = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
+RULE_ID_SHAPE: Final = r"^[a-z0-9][a-z0-9._-]{0,127}$"
+_RULE: Final = re.compile(RULE_ID_SHAPE)
 #: A console subject, the id shape the audit chain accepts (files/08 §8.1).
 _SUBJECT: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$")
 _ENTRY: Final = re.compile(r"^sx_[0-9a-f]{32}$")
@@ -113,6 +136,8 @@ class EntryKind(enum.StrEnum):
     RED = "red"
     VISIT_RESCHEDULED = "visit_rescheduled"
     VISIT_CANCELLED = "visit_cancelled"
+    #: INT-475: the RED's patient is on site; staff are notified (files/04 §8.1 rule 7).
+    RED_ON_SITE = "red_on_site"
 
 
 class VisitTransition(enum.StrEnum):
@@ -146,6 +171,17 @@ def _aware(value: datetime, name: str) -> datetime:
     return value
 
 
+# The blueprint names the RED axis field `register` (CLAUDE.md invariant 21;
+# files/02 §5.3); pydantic warns because ABCMeta exposes a classmethod of the
+# same name. The blueprint name wins — suppress exactly that warning, as
+# clinical_schemas.triage does for its own.
+warnings.filterwarnings(
+    "ignore",
+    message='Field name "register" in "InboxEntry" shadows an attribute in parent',
+    category=UserWarning,
+)
+
+
 class InboxEntry(BaseModel):
     """Immutable; acknowledging returns a new entry."""
 
@@ -163,12 +199,16 @@ class InboxEntry(BaseModel):
     created_at: datetime
     acknowledged_at: datetime | None = None
     acknowledged_by: _Subject | None = None
+    #: INT-407: how the RED was told (files/02 §5.3 Axis 2), for the §2b re-show.
+    register: RedRegister | None = None
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
         _aware(self.created_at, "created_at")
         if self.entry_id != entry_id_for(self.tenant_id, self.kind, self.source_ref):
             raise ValueError("entry_id is derived from tenant, kind and source, never chosen")
+        if self.register is not None and self.kind is not EntryKind.RED:
+            raise ValueError("only a RED entry records a register; a transition was told nothing")
         if (self.acknowledged_at is None) != (self.acknowledged_by is None):
             raise ValueError("an acknowledgement names both who and when, or neither")
         if self.acknowledged_at is not None:
@@ -187,6 +227,7 @@ class InboxEntry(BaseModel):
         work_id: str,
         rule_ids: tuple[str, ...],
         at: datetime,
+        register: RedRegister | None = None,
     ) -> InboxEntry:
         return cls(
             entry_id=entry_id_for(tenant_id, EntryKind.RED, work_id),
@@ -194,6 +235,32 @@ class InboxEntry(BaseModel):
             session_id=session_id,
             visit_id=visit_id,
             kind=EntryKind.RED,
+            rule_ids=rule_ids,
+            source_ref=work_id,
+            created_at=at,
+            register=register,
+        )
+
+    @classmethod
+    def for_on_site(
+        cls,
+        *,
+        tenant_id: str,
+        session_id: str,
+        visit_id: str,
+        work_id: str,
+        rule_ids: tuple[str, ...],
+        at: datetime,
+    ) -> InboxEntry:
+        """The staff notification for the RED ``work_id`` names: its patient is on
+        site. Derived from the same ``work_id`` as the RED's own entry, so a
+        second ON_SITE for one RED lands on the first."""
+        return cls(
+            entry_id=entry_id_for(tenant_id, EntryKind.RED_ON_SITE, work_id),
+            tenant_id=tenant_id,
+            session_id=session_id,
+            visit_id=visit_id,
+            kind=EntryKind.RED_ON_SITE,
             rule_ids=rule_ids,
             source_ref=work_id,
             created_at=at,

@@ -1,0 +1,1602 @@
+{
+  "version": 1,
+  "locale": "tr",
+  "source": "apps/mobile/src/lib/dialogue/scriptedCatalogue.ts (speech.ts over the intake question catalogue)",
+  "rows": [
+    {
+      "subject": "confirm.allergy_detail",
+      "text_tr": "Söyledikleriniz ekrana yazıldı. Kontrol edip onaylayın.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.allergy_kind.food",
+      "text_tr": "Sizi şöyle anladık: Besin. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.allergy_kind.latex",
+      "text_tr": "Sizi şöyle anladık: Lateks. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.allergy_kind.medicine",
+      "text_tr": "Sizi şöyle anladık: İlaç. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.allergy_kind.pollen_dust",
+      "text_tr": "Sizi şöyle anladık: Polen ya da toz. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.allergy_kind.sting",
+      "text_tr": "Sizi şöyle anladık: Arı sokması. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.allergy_reaction.rash",
+      "text_tr": "Sizi şöyle anladık: Döküntü ya da kaşıntı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.allergy_reaction.swelling",
+      "text_tr": "Sizi şöyle anladık: Şişme. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.associated.ankle_swelling",
+      "text_tr": "Sizi şöyle anladık: Ayak bileklerinde şişlik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.associated.dizziness",
+      "text_tr": "Sizi şöyle anladık: Baş dönmesi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.associated.nausea",
+      "text_tr": "Sizi şöyle anladık: Bulantı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.associated.palpitations",
+      "text_tr": "Sizi şöyle anladık: Çarpıntı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.associated.sweating",
+      "text_tr": "Sizi şöyle anladık: Terleme. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.a_neg",
+      "text_tr": "Sizi şöyle anladık: A Rh negatif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.a_pos",
+      "text_tr": "Sizi şöyle anladık: A Rh pozitif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.ab_neg",
+      "text_tr": "Sizi şöyle anladık: AB Rh negatif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.ab_pos",
+      "text_tr": "Sizi şöyle anladık: AB Rh pozitif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.b_neg",
+      "text_tr": "Sizi şöyle anladık: B Rh negatif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.b_pos",
+      "text_tr": "Sizi şöyle anladık: B Rh pozitif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.o_neg",
+      "text_tr": "Sizi şöyle anladık: Sıfır Rh negatif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.o_pos",
+      "text_tr": "Sizi şöyle anladık: Sıfır Rh pozitif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.blood_group.unknown",
+      "text_tr": "Sizi şöyle anladık: Bilmiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.breath_lying.nothing",
+      "text_tr": "Sizi şöyle anladık: Özel bir şey yapmıyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.breath_lying.pillow",
+      "text_tr": "Sizi şöyle anladık: Yastığı yükseltiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.breath_lying.sit_up",
+      "text_tr": "Sizi şöyle anladık: Oturuyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.breath_timing.exertion",
+      "text_tr": "Sizi şöyle anladık: Hareket ya da eforla. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.breath_timing.lying",
+      "text_tr": "Sizi şöyle anladık: Yatar pozisyonda artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.breath_timing.rest",
+      "text_tr": "Sizi şöyle anladık: Dinlenirken de oluyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.cardio_palpitation.fast_regular",
+      "text_tr": "Sizi şöyle anladık: Hızlı ve düzenli. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.cardio_palpitation.irregular",
+      "text_tr": "Sizi şöyle anladık: Düzensiz. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.cardio_palpitation.skipped",
+      "text_tr": "Sizi şöyle anladık: Arada atlıyor gibi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint",
+      "text_tr": "Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.cough",
+      "text_tr": "Sizi şöyle anladık: Öksürük. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.dyspnoea",
+      "text_tr": "Sizi şöyle anladık: Nefes darlığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.fatigue",
+      "text_tr": "Sizi şöyle anladık: Halsizlik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.fever",
+      "text_tr": "Sizi şöyle anladık: Ateş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.headache",
+      "text_tr": "Sizi şöyle anladık: Baş ağrısı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.other",
+      "text_tr": "Sizi şöyle anladık: Diğer. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.pain",
+      "text_tr": "Sizi şöyle anladık: Ağrı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.complaint.stomach",
+      "text_tr": "Sizi şöyle anladık: Mide şikâyeti. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_assoc.joint_pain",
+      "text_tr": "Sizi şöyle anladık: Eklem ağrısı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_assoc.nail_change",
+      "text_tr": "Sizi şöyle anladık: Tırnaklarda değişiklik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_character.blisters",
+      "text_tr": "Sizi şöyle anladık: İçi su dolu kabarcıklar. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_character.flaking",
+      "text_tr": "Sizi şöyle anladık: Pullanma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_character.itchy",
+      "text_tr": "Sizi şöyle anladık: Kaşıntı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_character.painful",
+      "text_tr": "Sizi şöyle anladık: Ağrı ya da hassasiyet. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_character.raised",
+      "text_tr": "Sizi şöyle anladık: Kabarıklık. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_course.same",
+      "text_tr": "Sizi şöyle anladık: Aynı kalıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_course.spreading",
+      "text_tr": "Sizi şöyle anladık: Yayılıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_fever_order.dont_remember",
+      "text_tr": "Sizi şöyle anladık: Hatırlamıyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_fever_order.fever_first",
+      "text_tr": "Sizi şöyle anladık: Önce ateş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_fever_order.same_time",
+      "text_tr": "Sizi şöyle anladık: Aynı zamanda. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_fever_order.skin_first",
+      "text_tr": "Sizi şöyle anladık: Önce cilt şikâyeti. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_itch_sleep.no",
+      "text_tr": "Sizi şöyle anladık: Hayır. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_itch_sleep.sometimes",
+      "text_tr": "Sizi şöyle anladık: Bazen. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_itch_sleep.yes",
+      "text_tr": "Sizi şöyle anladık: Evet. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_itch_when.heat",
+      "text_tr": "Sizi şöyle anladık: Sıcakta artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_itch_when.night",
+      "text_tr": "Sizi şöyle anladık: Gece artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_itch_when.no_pattern",
+      "text_tr": "Sizi şöyle anladık: Belirli bir düzeni yok. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_itch_when.sweat",
+      "text_tr": "Sizi şöyle anladık: Terleyince artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_location.arms",
+      "text_tr": "Sizi şöyle anladık: Kollar. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_location.face",
+      "text_tr": "Sizi şöyle anladık: Yüz. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_location.hands_feet",
+      "text_tr": "Sizi şöyle anladık: Eller ya da ayaklar. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_location.legs",
+      "text_tr": "Sizi şöyle anladık: Bacaklar. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_location.scalp",
+      "text_tr": "Sizi şöyle anladık: Saçlı deri. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_location.trunk",
+      "text_tr": "Sizi şöyle anladık: Gövde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_location.widespread",
+      "text_tr": "Sizi şöyle anladık: Yaygın, birden çok bölgede. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_trigger.new_product",
+      "text_tr": "Sizi şöyle anladık: Yeni bir ürün ya da ilaç sonrası başladı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.derm_trigger.sun",
+      "text_tr": "Sizi şöyle anladık: Güneşe çıkınca artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.disability.hearing",
+      "text_tr": "Sizi şöyle anladık: İşitme engeli. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.disability.intellectual",
+      "text_tr": "Sizi şöyle anladık: Zihinsel engel. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.disability.physical",
+      "text_tr": "Sizi şöyle anladık: Bedensel engel. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.disability.vision",
+      "text_tr": "Sizi şöyle anladık: Görme engeli. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration.days",
+      "text_tr": "Sizi şöyle anladık: Birkaç gündür. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration.month",
+      "text_tr": "Sizi şöyle anladık: Bir aydan uzun süredir. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration.today",
+      "text_tr": "Sizi şöyle anladık: Bugün başladı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration.week",
+      "text_tr": "Sizi şöyle anladık: Bir haftadan uzun süredir. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration_course.comes_goes",
+      "text_tr": "Sizi şöyle anladık: Gelip gidiyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration_course.decreasing",
+      "text_tr": "Sizi şöyle anladık: Azalıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration_course.increasing",
+      "text_tr": "Sizi şöyle anladık: Artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.duration_course.same",
+      "text_tr": "Sizi şöyle anladık: Aynı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_assoc.congestion",
+      "text_tr": "Sizi şöyle anladık: Burun tıkanıklığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_assoc.hearing",
+      "text_tr": "Sizi şöyle anladık: İşitmede azalma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_assoc.hoarseness",
+      "text_tr": "Sizi şöyle anladık: Ses kısıklığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_assoc.sore_throat",
+      "text_tr": "Sizi şöyle anladık: Boğaz ağrısı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_assoc.tinnitus",
+      "text_tr": "Sizi şöyle anladık: Çınlama. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_pain_where.ear",
+      "text_tr": "Sizi şöyle anladık: Kulakta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_pain_where.face",
+      "text_tr": "Sizi şöyle anladık: Yüzde ve alında. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_pain_where.jaw",
+      "text_tr": "Sizi şöyle anladık: Çenede. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_pain_where.throat",
+      "text_tr": "Sizi şöyle anladık: Boğazda. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_swallow.no_change",
+      "text_tr": "Sizi şöyle anladık: Bir değişiklik olmuyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_swallow.pain_more",
+      "text_tr": "Sizi şöyle anladık: Ağrı artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_swallow.stuck",
+      "text_tr": "Sizi şöyle anladık: Takılma hissi oluyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_swallow.voice",
+      "text_tr": "Sizi şöyle anladık: Sesim değişiyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_trigger.cold_air",
+      "text_tr": "Sizi şöyle anladık: Soğuk havada artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ent_trigger.swallow",
+      "text_tr": "Sizi şöyle anladık: Yutkununca artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_assoc.discharge",
+      "text_tr": "Sizi şöyle anladık: Çapaklanma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_character.burning",
+      "text_tr": "Sizi şöyle anladık: Yanma hissi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_character.gritty",
+      "text_tr": "Sizi şöyle anladık: Batma, kum kaçmış hissi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_character.watering",
+      "text_tr": "Sizi şöyle anladık: Sulanma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_headache_link.eye_first",
+      "text_tr": "Sizi şöyle anladık: Önce göz şikâyeti. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_headache_link.headache_first",
+      "text_tr": "Sizi şöyle anladık: Önce baş ağrısı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_headache_link.separately",
+      "text_tr": "Sizi şöyle anladık: Ayrı ayrı oluyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_headache_link.together",
+      "text_tr": "Sizi şöyle anladık: Birlikte oluyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_vision.blurry",
+      "text_tr": "Sizi şöyle anladık: Bulanık görme. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_vision.double",
+      "text_tr": "Sizi şöyle anladık: Çift görme. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_vision.floaters",
+      "text_tr": "Sizi şöyle anladık: Uçuşan nokta ya da çizgiler. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.eye_vision.halos",
+      "text_tr": "Sizi şöyle anladık: Işıkların çevresinde halkalar. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.fh_who.brother",
+      "text_tr": "Sizi şöyle anladık: Erkek kardeş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.fh_who.child",
+      "text_tr": "Sizi şöyle anladık: Çocuk. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.fh_who.father",
+      "text_tr": "Sizi şöyle anladık: Baba. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.fh_who.grandparent",
+      "text_tr": "Sizi şöyle anladık: Büyükanne ya da büyükbaba. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.fh_who.mother",
+      "text_tr": "Sizi şöyle anladık: Anne. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.fh_who.sister",
+      "text_tr": "Sizi şöyle anladık: Kız kardeş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_assoc.appetite_loss",
+      "text_tr": "Sizi şöyle anladık: İştahta azalma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_assoc.heartburn",
+      "text_tr": "Sizi şöyle anladık: Göğse doğru yanma ya da ekşime. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_assoc.vomiting",
+      "text_tr": "Sizi şöyle anladık: Kusma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_bowel.alternating",
+      "text_tr": "Sizi şöyle anladık: Bazen kabızlık bazen ishal. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_bowel.constipation",
+      "text_tr": "Sizi şöyle anladık: Kabızlık. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_bowel.diarrhea",
+      "text_tr": "Sizi şöyle anladık: İshal. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_character.bloating",
+      "text_tr": "Sizi şöyle anladık: Şişkinlik, dolgunluk hissi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_character.cramping",
+      "text_tr": "Sizi şöyle anladık: Kramp şeklinde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_location.left",
+      "text_tr": "Sizi şöyle anladık: Sol tarafta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_location.lower",
+      "text_tr": "Sizi şöyle anladık: Karnın alt kısmında. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_location.navel",
+      "text_tr": "Sizi şöyle anladık: Göbek çevresinde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_location.right",
+      "text_tr": "Sizi şöyle anladık: Sağ tarafta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_location.upper",
+      "text_tr": "Sizi şöyle anladık: Karnın üst kısmında. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_location.whole",
+      "text_tr": "Sizi şöyle anladık: Tüm karında. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_meal.after_meal",
+      "text_tr": "Sizi şöyle anladık: Yemekten sonra artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_meal.eased_by_meal",
+      "text_tr": "Sizi şöyle anladık: Yemek yiyince azalıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gastro_meal.hungry",
+      "text_tr": "Sizi şöyle anladık: Aç kalınca artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_assoc.bleeding_change",
+      "text_tr": "Sizi şöyle anladık: Âdet dışı kanama. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_assoc.cycle_change",
+      "text_tr": "Sizi şöyle anladık: Âdet düzeninde değişiklik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_assoc.discharge_change",
+      "text_tr": "Sizi şöyle anladık: Akıntıda değişiklik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_cycle.before_period",
+      "text_tr": "Sizi şöyle anladık: Âdetten önceki günlerde artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_cycle.during_period",
+      "text_tr": "Sizi şöyle anladık: Âdet sırasında artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_cycle.no_period",
+      "text_tr": "Sizi şöyle anladık: Âdet görmüyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_cycle.no_relation",
+      "text_tr": "Sizi şöyle anladık: Âdetle ilişkisi yok. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_pain_where.groin",
+      "text_tr": "Sizi şöyle anladık: Kasıkta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.gyn_pain_where.low_back",
+      "text_tr": "Sizi şöyle anladık: Belde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_assoc.balance",
+      "text_tr": "Sizi şöyle anladık: Dengede güçlük. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_assoc.light",
+      "text_tr": "Sizi şöyle anladık: Işığa hassasiyet. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_assoc.numbness",
+      "text_tr": "Sizi şöyle anladık: Uyuşma, karıncalanma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_assoc.sound",
+      "text_tr": "Sizi şöyle anladık: Sese hassasiyet. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_assoc.vision",
+      "text_tr": "Sizi şöyle anladık: Görmede değişiklik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_character.electric",
+      "text_tr": "Sizi şöyle anladık: Elektrik çarpması gibi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_character.throbbing",
+      "text_tr": "Sizi şöyle anladık: Zonklama şeklinde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_course.attacks",
+      "text_tr": "Sizi şöyle anladık: Ataklar hâlinde geliyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_course.constant",
+      "text_tr": "Sizi şöyle anladık: Sürekli var. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_course.varies",
+      "text_tr": "Sizi şöyle anladık: Gün içinde artıp azalıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_head_same.always_same",
+      "text_tr": "Sizi şöyle anladık: Hep aynı tarafta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_head_same.changes",
+      "text_tr": "Sizi şöyle anladık: Taraf değişiyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_head_side.both_sides",
+      "text_tr": "Sizi şöyle anladık: İki tarafta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_head_side.forehead_eye",
+      "text_tr": "Sizi şöyle anladık: Alın ve göz çevresinde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_head_side.from_neck",
+      "text_tr": "Sizi şöyle anladık: Enseden başlıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_head_side.one_side",
+      "text_tr": "Sizi şöyle anladık: Tek tarafta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_numb_where.several",
+      "text_tr": "Sizi şöyle anladık: Birden çok yerde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_trigger.light_noise",
+      "text_tr": "Sizi şöyle anladık: Işık ya da gürültüyle artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_trigger.movement",
+      "text_tr": "Sizi şöyle anladık: Hareketle artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.neuro_trigger.sleepless",
+      "text_tr": "Sizi şöyle anladık: Uykusuz kalınca artıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.onset.gradual",
+      "text_tr": "Sizi şöyle anladık: Yavaş yavaş gelişti. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.onset.sudden",
+      "text_tr": "Sizi şöyle anladık: Aniden başladı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.onset_today_when.afternoon",
+      "text_tr": "Sizi şöyle anladık: Öğleden sonra. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.onset_today_when.evening",
+      "text_tr": "Sizi şöyle anladık: Akşam. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.onset_today_when.morning",
+      "text_tr": "Sizi şöyle anladık: Sabah. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.onset_today_when.night",
+      "text_tr": "Sizi şöyle anladık: Gece. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.onset_today_when.not_sure",
+      "text_tr": "Sizi şöyle anladık: Emin değilim. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_assoc.limited_motion",
+      "text_tr": "Sizi şöyle anladık: Hareketlerde kısıtlılık. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_assoc.redness",
+      "text_tr": "Sizi şöyle anladık: Kızarıklık. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_assoc.swelling",
+      "text_tr": "Sizi şöyle anladık: Şişlik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_fall_how.height",
+      "text_tr": "Sizi şöyle anladık: Yüksek bir yerden. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_fall_how.slipped",
+      "text_tr": "Sizi şöyle anladık: Kayarak ya da takılarak. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_fall_how.sport",
+      "text_tr": "Sizi şöyle anladık: Spor yaparken. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_fall_how.stairs",
+      "text_tr": "Sizi şöyle anladık: Merdivende. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_mechanism.fall",
+      "text_tr": "Sizi şöyle anladık: Bir düşme ya da darbe sonrası. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_mechanism.no_event",
+      "text_tr": "Sizi şöyle anladık: Kendiliğinden, yavaş yavaş. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_mechanism.strain",
+      "text_tr": "Sizi şöyle anladık: Ağır kaldırma ya da zorlanma sonrası. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_region.foot_ankle",
+      "text_tr": "Sizi şöyle anladık: Ayak ya da ayak bileği. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_region.hand_wrist",
+      "text_tr": "Sizi şöyle anladık: El ya da el bileği. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_region.hip",
+      "text_tr": "Sizi şöyle anladık: Kalça. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_region.knee",
+      "text_tr": "Sizi şöyle anladık: Diz. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_region.low_back",
+      "text_tr": "Sizi şöyle anladık: Bel. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_region.neck",
+      "text_tr": "Sizi şöyle anladık: Boyun. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_region.shoulder",
+      "text_tr": "Sizi şöyle anladık: Omuz. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_spread.arm",
+      "text_tr": "Sizi şöyle anladık: Kola yayılıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_spread.leg",
+      "text_tr": "Sizi şöyle anladık: Bacağa yayılıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_spread.no_spread",
+      "text_tr": "Sizi şöyle anladık: Yayılmıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_spread_feel.both",
+      "text_tr": "Sizi şöyle anladık: İkisi de. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_spread_feel.none",
+      "text_tr": "Sizi şöyle anladık: Yok. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_spread_feel.numb",
+      "text_tr": "Sizi şöyle anladık: Uyuşma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_spread_feel.tingling",
+      "text_tr": "Sizi şöyle anladık: Karıncalanma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_trigger.morning_stiff",
+      "text_tr": "Sizi şöyle anladık: Sabahları tutukluk oluyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_trigger.night_pain",
+      "text_tr": "Sizi şöyle anladık: Gece uykudan uyandırıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.ortho_trigger.rest_eases",
+      "text_tr": "Sizi şöyle anladık: Dinlenince azalıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pain_character.burning",
+      "text_tr": "Sizi şöyle anladık: Yanma gibi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pain_character.dull",
+      "text_tr": "Sizi şöyle anladık: Künt, belli belirsiz. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pain_character.pressure",
+      "text_tr": "Sizi şöyle anladık: Baskı, sıkışma gibi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pain_character.stabbing",
+      "text_tr": "Sizi şöyle anladık: Batma, saplanma gibi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.asthma_copd",
+      "text_tr": "Sizi şöyle anladık: Astım ya da KOAH. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.blood",
+      "text_tr": "Sizi şöyle anladık: Kan hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.blood_pressure",
+      "text_tr": "Sizi şöyle anladık: Yüksek tansiyon. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.cancer",
+      "text_tr": "Sizi şöyle anladık: Kanser. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.diabetes",
+      "text_tr": "Sizi şöyle anladık: Şeker hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.heart",
+      "text_tr": "Sizi şöyle anladık: Kalp-damar hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.kidney",
+      "text_tr": "Sizi şöyle anladık: Böbrek hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pmh_conditions.thyroid",
+      "text_tr": "Sizi şöyle anladık: Tiroit hastalığı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pulmo_assoc.night_sweats",
+      "text_tr": "Sizi şöyle anladık: Gece terlemesi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pulmo_assoc.phlegm_color",
+      "text_tr": "Sizi şöyle anladık: Balgam renginde değişiklik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pulmo_assoc.weight_loss",
+      "text_tr": "Sizi şöyle anladık: Son dönemde istemeden kilo verme. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pulmo_character.dry_cough",
+      "text_tr": "Sizi şöyle anladık: Kuru öksürük. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pulmo_character.painful_breath",
+      "text_tr": "Sizi şöyle anladık: Nefes alırken batma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pulmo_character.phlegm_cough",
+      "text_tr": "Sizi şöyle anladık: Balgamlı öksürük. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.pulmo_character.wheeze",
+      "text_tr": "Sizi şöyle anladık: Hırıltı ya da ıslık sesi. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.radiation.back",
+      "text_tr": "Sizi şöyle anladık: Sırta yayılıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.radiation.jaw_neck",
+      "text_tr": "Sizi şöyle anladık: Çeneye ya da boyna yayılıyor. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.severity.mild",
+      "text_tr": "Sizi şöyle anladık: Hafif. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.severity.moderate",
+      "text_tr": "Sizi şöyle anladık: Orta. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.severity.severe",
+      "text_tr": "Sizi şöyle anladık: Şiddetli. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.side.both",
+      "text_tr": "Sizi şöyle anladık: İki taraf. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.side.left",
+      "text_tr": "Sizi şöyle anladık: Sol. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.side.right",
+      "text_tr": "Sizi şöyle anladık: Sağ. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking.daily",
+      "text_tr": "Sizi şöyle anladık: Her gün düzenli içiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking.former",
+      "text_tr": "Sizi şöyle anladık: Kullandım, bıraktım. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking.never",
+      "text_tr": "Sizi şöyle anladık: Hiç kullanmadım. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking.not_stated",
+      "text_tr": "Sizi şöyle anladık: Belirtmek istemiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking.occasional",
+      "text_tr": "Sizi şöyle anladık: Ara sıra içiyorum. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking_quit_when.few_years",
+      "text_tr": "Sizi şöyle anladık: Son birkaç yıl içinde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking_quit_when.long_ago",
+      "text_tr": "Sizi şöyle anladık: Daha önce. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.smoking_quit_when.this_year",
+      "text_tr": "Sizi şöyle anladık: Bu yıl içinde. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.time_of_day.all_day",
+      "text_tr": "Sizi şöyle anladık: Gün boyu benzer. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.time_of_day.morning",
+      "text_tr": "Sizi şöyle anladık: Sabahları daha belirgin. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.trigger.meals",
+      "text_tr": "Sizi şöyle anladık: Yemekle ilişkili. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.uro_assoc.flank_pain",
+      "text_tr": "Sizi şöyle anladık: Yan tarafta ya da belde ağrı. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.uro_assoc.urine_color",
+      "text_tr": "Sizi şöyle anladık: İdrar renginde değişiklik. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.uro_urination.frequent",
+      "text_tr": "Sizi şöyle anladık: Sık idrara çıkma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.uro_urination.leakage",
+      "text_tr": "Sizi şöyle anladık: İdrar kaçırma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.uro_urination.night",
+      "text_tr": "Sizi şöyle anladık: Gece idrara kalkma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.uro_urination.urine_burning",
+      "text_tr": "Sizi şöyle anladık: İdrar yaparken yanma. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "confirm.uro_urination.weak_stream",
+      "text_tr": "Sizi şöyle anladık: İdrarı başlatmada güçlük ya da zayıf akış. Doğruysa onaylayın; isterseniz düzeltmeyi söyleyin.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.alcohol",
+      "text_tr": "Alkol kullanıyor musunuz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.allergy_detail",
+      "text_tr": "Alerjinizin adını kendi sözlerinizle yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.allergy_kind",
+      "text_tr": "Alerjiniz neye karşı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.allergy_known",
+      "text_tr": "Bilinen bir ilaç ya da madde alerjiniz var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.allergy_reaction",
+      "text_tr": "Alerjiniz olduğunda neler oluyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.associated",
+      "text_tr": "Şikâyetinize eşlik eden başka bir şey var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.blood_group",
+      "text_tr": "Kan grubunuz nedir?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.breath_lying",
+      "text_tr": "Uzanınca rahatlamak için ne yapıyorsunuz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.breath_timing",
+      "text_tr": "Nefes darlığınız ne zaman oluyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.cardio_palpitation",
+      "text_tr": "Çarpıntınızı nasıl tarif edersiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.complaint",
+      "text_tr": "Sizi bugün hekime getiren nedir?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.derm_character",
+      "text_tr": "Şikâyetli bölgede neler oluyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.derm_fever_order",
+      "text_tr": "Ateş ile cilt şikâyetinizden hangisi önce başladı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.derm_itch_sleep",
+      "text_tr": "Kaşıntı uykunuzu bölüyor mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.derm_itch_when",
+      "text_tr": "Kaşıntı ne zaman artıyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.derm_location",
+      "text_tr": "Cilt şikâyetiniz vücudunuzun neresinde?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.disability",
+      "text_tr": "Engellilik durumunuz var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.duration",
+      "text_tr": "Bu şikâyetiniz ne zamandır var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.duration_course",
+      "text_tr": "Başladığından bu yana nasıl gidiyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ent_hear_side",
+      "text_tr": "İşitmedeki azalma hangi kulakta?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ent_pain_where",
+      "text_tr": "Ağrınız en çok nerede?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ent_swallow",
+      "text_tr": "Yutkunurken ne oluyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.extra",
+      "text_tr": "Eklemek istediğiniz bir şey var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.eye_character",
+      "text_tr": "Gözünüzde nasıl bir rahatsızlık var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.eye_headache_link",
+      "text_tr": "Baş ağrınız ile göz şikâyetiniz birlikte mi oluyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.eye_pain_move",
+      "text_tr": "Ağrı gözünüzü hareket ettirince değişiyor mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.eye_vision",
+      "text_tr": "Görmenizde bir değişiklik oldu mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fever_pattern",
+      "text_tr": "Ateşiniz en çok ne zaman yükseliyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fh_brother_conditions",
+      "text_tr": "Erkek kardeşinizde bunlardan hangileri var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fh_detail",
+      "text_tr": "Ailenizdeki hastalığın adını yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fh_father_conditions",
+      "text_tr": "Babanızda bunlardan hangileri var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fh_known",
+      "text_tr": "Ailenizde bilinen bir hastalık var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fh_mother_conditions",
+      "text_tr": "Annenizde bunlardan hangileri var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fh_sister_conditions",
+      "text_tr": "Kız kardeşinizde bunlardan hangileri var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.fh_who",
+      "text_tr": "Ailenizde kimlerde var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.gastro_bowel",
+      "text_tr": "Tuvalet alışkanlığınızda değişiklik var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.gastro_bowel_relief",
+      "text_tr": "Tuvalete çıkınca şikâyetiniz değişiyor mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.gastro_location",
+      "text_tr": "Şikâyetiniz karnınızın neresinde?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.gastro_meal",
+      "text_tr": "Şikâyetinizin yemekle ilişkisi var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.gyn_cycle",
+      "text_tr": "Şikâyetinizin âdet döneminizle ilişkisi var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.injury_detail",
+      "text_tr": "Yaralanmayı kendi sözlerinizle yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.injury_history",
+      "text_tr": "Daha önce bir yaralanma geçirdiniz mi?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.meds_otc",
+      "text_tr": "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.meds_otc_detail",
+      "text_tr": "Bu ürünlerin adını yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.meds_other",
+      "text_tr": "Burada görünmeyen bir ilaç kullanıyor musunuz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.meds_other_detail",
+      "text_tr": "İlacın adını kendi sözlerinizle yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.neuro_course",
+      "text_tr": "Şikâyetiniz zaman içinde nasıl değişiyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.neuro_head_same",
+      "text_tr": "Ağrı her seferinde aynı tarafta mı oluyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.neuro_head_side",
+      "text_tr": "Baş ağrınız başınızın neresinde?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.neuro_numb_where",
+      "text_tr": "Uyuşma en çok nerede oluyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.occupation",
+      "text_tr": "Ne iş yapıyorsunuz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.onset",
+      "text_tr": "Nasıl başladı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.onset_today_when",
+      "text_tr": "Bugün ne zaman başladı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ortho_fall_how",
+      "text_tr": "Nasıl düştünüz ya da darbe aldınız?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ortho_mechanism",
+      "text_tr": "Şikâyetiniz nasıl ortaya çıktı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ortho_region",
+      "text_tr": "Şikâyetiniz en çok hangi bölgede?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ortho_spread",
+      "text_tr": "Ağrı kolunuza ya da bacağınıza yayılıyor mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.ortho_spread_feel",
+      "text_tr": "Yayıldığı yerde başka bir his var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pain_character",
+      "text_tr": "Ağrınızı nasıl tarif edersiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pain_present",
+      "text_tr": "Şu anda ağrınız var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pmh_conditions",
+      "text_tr": "Bunlardan hangileri sizde var?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pmh_known",
+      "text_tr": "Doktorunuzun size söylediği bir hastalık var mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pmh_other_detail",
+      "text_tr": "Bu hastalığın adını kendi sözlerinizle yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pmh_recent_change",
+      "text_tr": "Son görüşmenizden bu yana yeni bir gelişme oldu mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pmh_recent_detail",
+      "text_tr": "Ne olduğunu kendi sözlerinizle yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pmh_surgery",
+      "text_tr": "Daha önce ameliyat oldunuz mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pmh_surgery_detail",
+      "text_tr": "Hangi ameliyatı olduğunuzu yazabilir misiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.pulmo_character",
+      "text_tr": "Öksürük ya da nefes şikâyetinizi nasıl tarif edersiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.radiation",
+      "text_tr": "Ağrı ya da baskı hissi başka bir yere yayılıyor mu?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.radiation_side",
+      "text_tr": "Yayılma hangi tarafta?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.severity",
+      "text_tr": "Şiddetini nasıl tarif edersiniz?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.side",
+      "text_tr": "Hangi tarafta?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.smoking",
+      "text_tr": "Sigara kullanımınızı hangisi en iyi anlatıyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.smoking_quit_when",
+      "text_tr": "Sigarayı ne zaman bıraktınız?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.substance",
+      "text_tr": "İlaç dışında herhangi bir madde kullanıyor musunuz? Seçenekler: Hayır, Evet veya Belirtmek istemiyorum.",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.time_of_day",
+      "text_tr": "Şikâyetiniz günün hangi vaktinde daha belirgin?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.transfusion",
+      "text_tr": "Daha önce kan ya da kan ürünü aldınız mı?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.trigger",
+      "text_tr": "Şikâyetiniz ne zaman artıyor?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.uro_flank_side",
+      "text_tr": "Yan ya da bel ağrısı hangi tarafta?",
+      "delivery_context": "routine"
+    },
+    {
+      "subject": "question.uro_urination",
+      "text_tr": "İdrar yaparken bir değişiklik fark ediyor musunuz?",
+      "delivery_context": "routine"
+    }
+  ]
+}

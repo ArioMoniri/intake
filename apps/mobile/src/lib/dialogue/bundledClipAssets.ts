@@ -1,3 +1,6 @@
+// Metro's `require.context` typing. It is referenced here because the generated
+// expo-env.d.ts is gitignored, and so it is absent in CI and in a fresh worktree.
+/// <reference types="expo/types" />
 /**
  * The bundled clips Metro found at build time (INT-440). Expo-bound: Metro's
  * `require.context` resolves `apps/mobile/assets/clips/<context>/<hash>.wav`

@@ -1,4 +1,4 @@
-"""INT-440: render the dev dialogue's scripted lines once, offline, in George's voice.
+"""INT-440: render the dev dialogue's scripted lines once, offline, in the cast voice.
 
 The owner hears the dev dialogue as "robotic and laggy": every question is
 synthesised on the turn, on a lane that is often not George. This tool is the
@@ -9,11 +9,12 @@ gateway, and writes one WAV per (context, line) into the app's gitignored clip
 directory, ``<out>/<context>/<clip_text_hash>.wav``, where Metro bundles it and
 the dialogue plays it with no synthesis on the turn.
 
-**The delivery is the owner's "v3 expressive" proposal** (:data:`V3_EXPRESSIVE`,
-3 Oct 2026): more style and less stability than the served INT-415/INT-424
-table, per context, because the owner asked for audible emotion. RED and
-instrument lines are never in this set (their profiles stay at style 0 and are
-not touched here). The served table is not changed by this tool.
+**The delivery is the served table** (``voice_clips.delivery``, D20): the cast
+voice E04 (``CLIPGEN_VOICE_ID``) on ``eleven_v3``, version 4 of every row, with
+the row's closed-table tags added on the wire only (``text_tr`` stays
+verbatim, invariant 10). The owner's earlier "v3 expressive" George proposal
+(3 Oct 2026) was superseded the same day by D20 and is not rendered. RED and
+instrument lines are never in this set (:data:`BUNDLED_CONTEXTS`).
 
 **Nothing but the committed catalogue reaches the vendor.** Every entry must
 pass ``assert_speakable_tr`` (invariant 22), carry no markup (invariant 10) and
@@ -28,7 +29,7 @@ the same profile is skipped, so a re-run spends only on what is missing.
 
 **The key never leaves the environment.** ``tts_gateway_from_env`` reads it;
 this tool never prints, logs or stores it, and refuses any gateway that is not
-the ADR-028 offline adapter (a self-hosted endpoint is not George).
+the ADR-028 offline adapter (a self-hosted endpoint is not the cast voice).
 
 The owner's one line, from the repository root, is in docs/evidence/INT-440.md
 (it sources ``~/.intake-secrets.env``, sets ``EVAL_BUDGET_USD=10`` and passes
@@ -41,19 +42,19 @@ import argparse
 import json
 import os
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from types import MappingProxyType
 from typing import Final
 
 from protocols.dsl import clip_text_hash
 from voice_clips.audio import SynthesisedSpeech, silence_edges_ms, trim_silence, wav_bytes
 from voice_clips.delivery import (
+    CLIPGEN_VOICE_ID,
     DeliveryContext,
     DeliveryProfile,
-    ElevenLabsVoiceSettings,
+    delivery_profile,
 )
 from voice_clips.gateway import (
     ELEVENLABS_MODEL_ID,
@@ -69,8 +70,6 @@ CLIP_SET: Final = REPO / "apps" / "mobile" / "src" / "lib" / "dialogue" / "bundl
 DEFAULT_OUT: Final = REPO / "apps" / "mobile" / "assets" / "clips"
 INDEX: Final = "index.json"
 
-#: George, the voice ADR-028 pins (``intake_api.dev_voice.GEORGE_VOICE_ID``).
-GEORGE_VOICE_ID: Final = "JBFqnCBsd6RMkjVDRZzb"
 #: The owner's ceiling for this render (3 Oct 2026), below the CLAUDE.md 20 USD gate.
 SPEND_CEILING_USD: Final = 10.0
 #: Planning rate, the high end on record (docs/evidence/INT-424.md): the vendor
@@ -80,19 +79,11 @@ USD_PER_1K_CHARS: Final = 0.30
 CLIP_SUFFIX: Final = ".wav"
 _MARKUP: Final = frozenset("<>[]")
 
-#: The owner-requested "v3 expressive" proposal (3 Oct 2026, INT-440):
-#: (stability, style, speed) per context, similarity 0.75 and speaker boost on
-#: for every row, on ``eleven_multilingual_v2``. A proposal rendered for the
-#: owner's ear, not the served table (voice_clips.delivery, INT-424).
-V3_VERSION: Final = 3
-V3_EXPRESSIVE: Final[Mapping[DeliveryContext, tuple[float, float, float]]] = MappingProxyType(
-    {
-        "welcome": (0.32, 0.40, 0.97),
-        "acknowledgement": (0.38, 0.35, 1.00),
-        "routine": (0.40, 0.30, 0.98),
-        "sensitive": (0.50, 0.20, 0.92),
-        "closing": (0.35, 0.40, 0.96),
-    }
+#: The contexts this set may carry. RED scripts and instrument items are never
+#: bundled here: their delivery is the Robust, untagged row and their clips come
+#: from the compiled manifest (invariants 10 and 21).
+BUNDLED_CONTEXTS: Final[frozenset[DeliveryContext]] = frozenset(
+    {"welcome", "acknowledgement", "routine", "sensitive", "closing"}
 )
 
 
@@ -111,24 +102,11 @@ class ClipLine:
         return f"{self.context}/{clip_text_hash(self.text_tr)}"
 
 
-def v3_profile(context: DeliveryContext) -> DeliveryProfile:
-    """The v3 expressive profile for a context this set may render."""
-    try:
-        stability, style, speed = V3_EXPRESSIVE[context]
-    except KeyError:
-        raise RenderRefused(f"no v3 expressive row for context {context!r}") from None
-    return DeliveryProfile(
-        context=context,
-        version=V3_VERSION,
-        model_id=ELEVENLABS_MODEL_ID,
-        voice_settings=ElevenLabsVoiceSettings(
-            stability=stability,
-            similarity_boost=0.75,
-            style=style,
-            use_speaker_boost=True,
-            speed=speed,
-        ),
-    )
+def bundled_profile(context: DeliveryContext) -> DeliveryProfile:
+    """The served profile (D20) for a context this set may render."""
+    if context not in BUNDLED_CONTEXTS:
+        raise RenderRefused(f"context {context!r} is never rendered from this set")
+    return delivery_profile(context)
 
 
 def load_clip_set(path: Path = CLIP_SET) -> list[ClipLine]:
@@ -139,7 +117,7 @@ def load_clip_set(path: Path = CLIP_SET) -> list[ClipLine]:
     lines: list[ClipLine] = []
     for at, entry in enumerate(raw):
         context, text_tr = entry["context"], entry["text_tr"]
-        if context not in V3_EXPRESSIVE:
+        if context not in BUNDLED_CONTEXTS:
             raise RenderRefused(f"entry {at} asks for context {context!r}")
         assert_speakable_tr(text_tr)  # invariant 22
         if _MARKUP.intersection(text_tr):
@@ -170,7 +148,7 @@ def pending(lines: Sequence[ClipLine], out_dir: Path) -> list[ClipLine]:
         line
         for line in lines
         if not (out_dir / f"{line.address}{CLIP_SUFFIX}").exists()
-        or done.get(line.address) != v3_profile(line.context).key
+        or done.get(line.address) != bundled_profile(line.context).key
     ]
 
 
@@ -220,8 +198,10 @@ def render(
     ]
     sent = 0
     for line in todo:
-        profile = v3_profile(line.context)
-        speech = gateway.synthesise(text_tr=line.text_tr, voice_id=GEORGE_VOICE_ID, profile=profile)
+        profile = bundled_profile(line.context)
+        speech = gateway.synthesise(
+            text_tr=line.text_tr, voice_id=profile.voice_id, profile=profile
+        )
         sent += len(line.text_tr)
         trimmed = trim_silence(speech)
         lead, trail = silence_edges_ms(trimmed)
@@ -249,7 +229,7 @@ def render(
     index = {
         "rendered_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "model_id": ELEVENLABS_MODEL_ID,
-        "voice_id": GEORGE_VOICE_ID,
+        "voice_id": CLIPGEN_VOICE_ID,
         "chars_sent": sent,
         "estimate_usd": estimate_usd(sent),
         "clips": rows,

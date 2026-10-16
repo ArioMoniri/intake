@@ -1,0 +1,17 @@
+# guideline_id: TARD-ERISKIN-NKC-PREOP-2025
+# title: Elektif Non-Kardiyak Cerrahi (NKC) Geçirecek Erişkinlerin Pre-Operatif Değerlendirme Kılavuzu
+# publisher: Türk Anesteziyoloji ve Reanimasyon Derneği (TARD), Hasta ve Çalışan Güvenliği Bilimsel Kurulu
+# version_or_date: Şubat 2025 (cover); listed on TARD Akademi as 'Hazırlandığı Yıl: 2025'
+# url: https://akademi.tard.org.tr/pdf/kilavuz/elektif-non-kardiyak-cerrahi-preoperatif-degerlendirme.pdf
+# url_listing: https://akademi.tard.org.tr/?p=kilavuz-detay&bID=48
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; PDF text-extracted with pdftotext (poppler); within each excerpted paragraph the PDF line wraps (including the one-word-per-line justification run) are joined with single spaces; characters kept as extracted
+# scope: verbatim excerpt of the cover lines and the opening scope paragraph; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+TARD HASTA VE ÇALIŞAN GÜVENLIĞI BILIMSEL KURULU adına
+Prof. Dr. Berrin GÜNAYDIN, Doç. Dr. Derya ARSLAN YURTLU, Prof. Dr. Dilşen ÖRNEK
+Şubat 2025
+Elektif non-kardiyak cerrahi (NKC) geçirecek erişkinlerin preoperatif değerlendirme kılavuzu: TARD Hasta ve Çalışan Güvenliği
+Bilimsel Kurulu tarafından düzenlenmiş önerilerin özeti
+[...]
+TARD- Hasta ve Çalışan Güvenliği Bilimsel kurulu olarak 03.06.2024 tarihinde gerçekleştirilen toplantıda yapılan iş bölümünde elektif nonkardiak cerrahi (NKC) geçirecek erişkin hastaların preoperatif değerlendirme kılavuzu, TARD Akademide yayınlanmak üzere hazırlanmıştır. Mevcut kılavuz NKC geçiren yetişkin hastanın preoperatif değerlendirmesine ilişkin 2018 ESAIC kılavuzunun özetinin ESAIC tarafından 2023 yılında yüksek kaliteli, kanıta dayalı bilgilerle güncellenmiş önerileri/tavsiyeleri, 2022 ESC’nin ESAIC tarafından desteklenen NKC’de preoperatif kardiyak değerlendirme ve NICE kılavuzundaki preoperatif yapılacak test önerilerinin özetini içermektedir.

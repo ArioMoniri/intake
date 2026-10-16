@@ -1,0 +1,33 @@
+# guideline_id: NICE-NG18
+# title: Diabetes (type 1 and type 2) in children and young people: diagnosis and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG18; published 01 August 2015; last updated 11 May 2023; minor change March 2026 (recommendation 1.1.1 updated to highlight checking for diabetic ketoacidosis) (Update information)
+# url: https://www.nice.org.uk/guidance/ng18/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng18/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header and recommendation 1.1.1 (first list), then the first Update information entry and the March 2026 minor change; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Diabetes (type 1 and type 2) in children and young people: diagnosis and management
+NICE guideline
+Reference number: NG18
+Published:
+01 August 2015
+Last updated:
+11 May 2023
+[...]
+1.1 Diagnosis
+1.1.1
+Be aware that:
+signs of type 1 diabetes in children and young people include:
+hyperglycaemia (random plasma glucose more than 11 mmol/litre)
+polyuria
+polydipsia
+weight loss
+excessive tiredness
+[...]
+Update information
+May 2023: We have reviewed the evidence on glucose-lowering agents for managing blood glucose levels in children and young people with type 2 diabetes. We have amended or made new recommendations in the sections on:
+[...]
+Minor changes since publication
+March 2026: We updated recommendation 1.1.1 to highlight the importance of checking for diabetic ketoacidosis.

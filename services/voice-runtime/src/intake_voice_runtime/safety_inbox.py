@@ -13,8 +13,19 @@ it, and each property of the port survives:
   or hospital system sits between the RED and the entry — "regardless of
   connector presence" (files/02 §8.2) holds by construction.
 - **Ids only** (invariant 6). The notification carries ids and closed axes and
-  the entry keeps the ids; the register and location are the patient surface's
-  business and the clinician queue does not need them to answer.
+  the entry keeps the ids plus the register — a closed enum the clinician
+  queue does not show, recorded because files/02 §2b re-shows a RED "in the
+  register the original RED used" when its visit moves (INT-407). The RED
+  entry keeps no location: a §2b re-show re-derives it for wherever the
+  patient then stands.
+- **ON_SITE notifies staff in the same put** (INT-475; files/02 §5.3 Axis 3,
+  files/04 §8.1 rule 7). Under ``ON_SITE`` the clinic notification is the
+  primary channel and fires automatically, so a RED determined there puts its
+  ``red_on_site`` entry beside the RED's own. Every register: the DSL requires
+  ``notify_staff_immediate`` on every KIRMIZI rule's ON_SITE action
+  (``protocols.dsl``), so there is no RED whose on-site action spares staff.
+  A RED determined at ``UNKNOWN`` notifies no staff here; the patient's answer
+  to the one location question does, through the API (``intake_api.red_notify``).
 - **Bound per session, checked at binding.** The tenant, session and visit are
   the session's; a mis-shaped one raises here, when the session is composed,
   rather than at the RED.
@@ -31,6 +42,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from clinical_schemas.triage import RedLocation
 from intake_platform.safety_inbox import InboxEntry, SafetyInboxOutbox
 from intake_platform.safety_inbox.model import require_id, require_tenant_id
 
@@ -59,6 +71,7 @@ class SafetyInboxNotifier:
         require_id(self.visit_id)
 
     def notify(self, notification: RedNotification) -> None:
+        at = self.wall_clock()
         self.outbox.put(
             InboxEntry.for_red(
                 tenant_id=self.tenant_id,
@@ -66,6 +79,21 @@ class SafetyInboxNotifier:
                 visit_id=self.visit_id,
                 work_id=notification.work_id,
                 rule_ids=notification.rule_ids,
-                at=self.wall_clock(),
+                at=at,
+                # INT-407: the register rides on the one server-side record of
+                # the RED, so a later files/02 §2b re-show is told the same way
+                register=notification.register,
             )
         )
+        if notification.location is RedLocation.ON_SITE:
+            # INT-475: the staff notification, in the same action as the RED
+            self.outbox.put(
+                InboxEntry.for_on_site(
+                    tenant_id=self.tenant_id,
+                    session_id=self.session_id,
+                    visit_id=self.visit_id,
+                    work_id=notification.work_id,
+                    rule_ids=notification.rule_ids,
+                    at=at,
+                )
+            )
