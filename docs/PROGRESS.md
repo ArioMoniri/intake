@@ -4027,3 +4027,117 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-03T23:59:00+03:00 · INT-470 · done (PR open, verifier verdict pending)
+- Goal: resolve every owner question INT-448 left open: the clinical ones under D18 as restated on 3 Oct 2026 (sourced medical agents, independent verifier, never back to the owner), the product and data ones by the owner's own answer (D24).
+- Plan: tests first for a two-way resolution pointer (row → resolver, resolver → row); CD-110 decides the 13 clinical owner questions and 5 base-owner parts against seven new verbatim snapshots (Calgary-Cambridge, openEHR reason_for_encounter and symptom_sign timing, NICE NG257, SDCEP MADP 2026, RCEM Learning, the TR adult disability regulation); D24 records the owner's reply "1Y 2Y 3Y 4Y 5Y 6A" in files/00_STATE.md and on 18 rows, with legal follow-through routed to INT-471.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_owner_question_resolutions.py (a dangling or duplicate resolution, a resolution of an item decided elsewhere, a missing back-pointer, an owner quote the state file lacks, an erased question and a part handed back to the owner each fail; 13 near-miss cases). Red run: 5 failed, 15 passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-470.md; `test_every_decision_carries_an_independent_verdict` fails on CD-110 until the independent verdict is recorded, by design.
+- Invariants touched and still passing: 2 (new copy PolicyGuard-clean), 7 (no rule, rule input or tense anchor changes; nothing extends base.life_threat), 17 (one nested draft_needs_source value with the sanctioned literal), 18 (legal parts routed, not decided), 22.
+- Decisions / ADRs / `00_STATE.md` rows: D24 (owner, 3 Oct 2026) added to §3 with a changelog line; CD-110 added to the clinical decisions register.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for this issue; the lmp_date population guard's age bounds stay draft_needs_source (no source), and the legal parts go to INT-471.
+- Next: record the independent verifier's verdict on CD-110; then apply CD-110 through the proposals and the generators once #642 merges.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T01:30:00+03:00 · INT-470 · round 2 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the independent verifier's round 1 on #804 (request_changes: 1 blocker, 9 major, 5 minor).
+- Plan: tests first for each finding (tests/protocols/test_cd110_decisions.py, and routing and legal-part checks in test_owner_question_resolutions.py), then CD-110 round 2, the D25 pointers replaced by INT-471, cluster-wave-a #L128 routed rather than resolved (D24 17 items), the six owner questions committed verbatim with channel and date.
+- Tests added (with the near-miss negative for any safety rule): gate semantics evaluated with protocols.triage.expr (unsure and chest-pain reopen open the history; a child's face swelling alone opens the airway item; trismus never alone); lmp guard fails toward asking; duration never derived from an episodic or unknown answer; legal parts naming a missing decision fail. Red run: 18 failed, 34 passed.
+- Result: see docs/evidence/INT-470.md (round 2 and green run); the only red test is CD-110's pending verdict, by design.
+- Invariants touched and still passing: 2, 7 (lmp_date guard flagged as a red-flag gate input for its application), 17, 18 (seven new slot ids routed for inventory rows), 22.
+- Decisions / ADRs / `00_STATE.md` rows: D24 row narrowed to 17 items with the channel and the 1Y/3Y notes.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 2, then resume INT-472.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T03:30:00+03:00 · INT-470 · round 3 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the verifier's round 2 on #804 (3 major, all "fail toward not asking", 3 minor, 3 notes).
+- Plan: tests first in tests/protocols/test_cd110_decisions.py, then CD-110 round 3.
+- Tests added (with the near-miss negative for any safety rule): the lmp gate evaluated as a truth table (an evet or emin değilim at a recorded age outside the bounds is asked); the pedodonti gate's injury term; an unanswered or skipped presence screen opens the history; trismus never the only term. Red run: 7 failed, 27 passed; green 72 passed.
+- Result: see docs/evidence/INT-470.md (round 3); the only red test is CD-110's pending verdict.
+- Invariants touched and still passing: 2, 7 (every gate change widens: the lmp guard is an extra OR term), 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 3.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T05:00:00+03:00 · INT-470 · round 4 (PR #804, verifier verdict pending re-verification)
+- Goal: answer the verifier's round 3 (1 major: the T1 atoms read through the slot lookup; 3 minor; 4 notes) and restore the INT-447 row's sec_row, which an earlier merge dropped.
+- Plan: tests first in tests/protocols/test_cd110_decisions.py, then CD-110 round 4; backlog rows compared with main's row by row.
+- Tests added (with the near-miss negative for any safety rule): atoms unbound or written as a GuardExpr fail; no pregnancy answer with nothing recorded is asked; the two-choice follow-up fails; stale round-2 text fails; a skipped screen with a gated item asked fails. Red run: 6 failed, 35 passed; green 79 passed.
+- Result: see docs/evidence/INT-470.md (round 4); the only red test is CD-110's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-110 round 4.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00Z · INT-471 · done (PR open; LD-01..LD-05 proposed, awaiting the legal reviewer)
+- Goal: owner decision D25 (3 Oct 2026) — a sourced legal-author agent decides and a separate legal-reviewer agent verifies legal items, for synthetic and test use only; a licensed Turkish lawyer countersigns before any real patient; legal questions go to this lane, never to the owner (docs/backlog/issues.yaml INT-471).
+- Plan:
+  - `intake_platform.legal.decisions`: the LD register loader, mirroring the CD loader, with a real-patient countersign gate shaped like the physician's (D17, HB-C1).
+  - Verbatim snapshots of only the cited articles (KVKK, Aydınlatma Tebliği, TMK, Hasta Hakları Yönetmeliği, KSVY, Sağlık Raporları Yönetmeliği, Genelge 2025/10, WCAG 2.2) under `packages/intake_platform/legal_decisions/sources/`.
+  - LD-01..LD-05 with prose twins in `docs/legal/decisions/`; D25 in files/00_STATE.md §3 and §8.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_legal_decisions.py` (46): a non-verbatim quote, an unofficial or look-alike host, legislation without its Resmî Gazete, an unsourced non-draft decision, a draft without a legal_gap, any pending token, an active decision without the reviewer's verdict, a verified decision left proposed, a real-patient decision without the full countersign, and a countersign outside docs/evidence/ — each beside the near miss that loads; every committed LD refuses real-patient clearance.
+  - Red run: module absent, then 10 register tests failing while the 35 loader tests passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-471.md "Gates".
+- Invariants touched and still passing: 4, 6, 17 (no literal widened; the gate and its allow-list untouched), 18 (no hash-bound text changed, no counsel field filled), 20.
+- Decisions / ADRs / `00_STATE.md` rows: D25 (new). No HB id minted.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond the reviewer's verdict. Before any real patient, a licensed Turkish lawyer must countersign each LD; HB-L20 stays open for that lawyer.
+- Next: the orchestrator relays the legal reviewer's verdicts; each agreeing LD flips to `active`. Finding for PR #796: the RED location question must stay answerable after the wait (LD-05).
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T02:00:00+03:00 · INT-471 · done (PR #809 open, round 2 of the legal review applied)
+- Goal: apply every blocking and should-fix finding of the independent legal reviewer's round 1 on `017439e0` (REQUEST_CHANGES; agree_with_changes on LD-01..LD-05).
+- Plan: stack on #804 for D24; tighten the loader (per-value provenance, header/citation agreement, four-word quotes, "not decided" is draft, independent reviewer, full countersign checks); restructure LD-01..LD-05; re-base the Sağlık Raporları snapshot on the mevzuat.gov.tr text layer; snapshot TMK m.5, TBK m.92 and KSVY m.2; reword D25 to "this lane first".
+- Tests added (with the near-miss negative for any safety rule): 12 new tests in `tests/legal/test_legal_decisions.py`, each beside the shape it admits (59 in all, the loader at full branch coverage); red run recorded in docs/evidence/INT-471.md.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-471.md "Round 2 gates".
+- Invariants touched and still passing: 4, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: D25 reworded (routed to the lane first; stop-and-ask items and owner-named HB rows still go to the owner). files/06 §1 gains SRY-2026 and 5378 + G2025-10. No id minted; follow-ups INT-469 (PR #816) and INT-474 are the orchestrator's.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond re-verification. Consent scope per data row is a stop-and-ask item for the owner; a licensed Turkish lawyer countersigns before any real patient.
+- Next: the orchestrator spawns re-verification; agreeing LDs flip to `active` with the verdict recorded.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T08:00:00+03:00 · INT-471 · round 3 (PR #809, legal reviewer's round 2 applied)
+- Goal: apply the independent legal reviewer's round 2 on `8381123b` (2 blocking, 6 should-fix; LD-03 agree).
+- Plan: re-merge #804 at `0fcfee18` (counts 343); tests first for each fix; INT-469 (PR #816) as the adli_tip follow-up; LD-05 updated to #796 at `3e243d16`; snapshot Madde 53 without elision; HHY and TMK m.15 stated as written; LD-04 purpose narrowed; G2025-10; RG 33300 verified and recorded.
+- Tests added (with the near-miss negative for any safety rule): 8 tests (66 in all; the loader at full branch coverage); the verdict test now checks either the pending state or an independent, dated, agreeing verdict.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-471.md "Round 3 gates".
+- Invariants touched and still passing: 4, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none new; files/06 §1 KSVY row records RG 33300.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for synthetic use beyond re-verification.
+- Next: the orchestrator spawns round 3 of the legal review (a narrow diff check).
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T10:00:00+03:00 · INT-484 · doing (step 1, LD-06, PR open; verdict pending)
+- Goal: the owner's request for admin metrics and telemetry "as legal agent allows for research and enhancement purposes" (GitHub #827) — step 1 is LD-06 in the INT-471 legal register, synthetic and test scope.
+- Plan: tests first; a `guidance` source kind for the Kurum's guide; snapshots of the Silme/Yok Etme/Anonim Hale Getirme Yönetmeliği and the Kurul guide, KVKK m.7 and KSVY m.16 added; LD-06 decides (a)–(e) or leaves them draft.
+- Tests added (with the near-miss negative for any safety rule): 5 (71 in all; the loader at full branch coverage); guidance off an official host or without its edition is refused beside the shape that loads; LD-06's product floor is pinned to INT-171's constant.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-484.md.
+- Invariants touched and still passing: 4, 6, 12, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none; LD-06 is a legal-register entry under D25.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner — consent scope (one recommendation in LD-06), the analytics retention periods and the DPA's controller-authorisation term are stop-and-ask items; HB-L26 stays with counsel.
+- Next: the legal reviewer's verdict on LD-06; then step 2, the build within it.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-04T12:00:00+03:00 · INT-484 · doing (step 1, LD-06 active after the legal review; build is step 2)
+- Goal: apply the legal reviewer's blocker B1 on LD-06 (record-level research ground is HB-L26) with S1, S3, S4 and S7, and record the final verdict.
+- Plan: tests first (the draft key and the floor pinned); the generator split `ground` into `never_without_acik_riza` and the draft `acik_riza_suffices`; outcome (b), the legal gap and the recommendation restate HB-L26 in full.
+- Tests added (with the near-miss negative for any safety rule): the LD-06 tests now pin the draft key, the floor, the HB-L26 references and the recorded verdict (71 in all).
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-484.md "Final verdict".
+- Invariants touched and still passing: 4, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none; LD-06 active (agree_with_changes) for synthetic and test use.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner's consent-scope answer; HB-L26 (counsel).
+- Next: step 2, the aggregate analytics build within LD-06; S2, S5, S6, S8–S10 go to INT-480 (#823).
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T12:00:00+03:00 · INT-484 · doing (step 1: LD-06 consent scope answered by the owner, D28)
+- Goal: record the owner's 16 Oct answer adopting LD-06's consent-scope recommendation (D28) and pin it.
+- Plan: tests first; a loader rule that keeps a recommendation's decision draft until an owner answer quoted from files/00_STATE.md settles it; LD-06 records the answer; D28 row and changelog line.
+- Tests added (with the near-miss negative for any safety rule): 8 (79 in the legal suite); near miss: LD-06 with the answer removed is refused.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-484.md "D28".
+- Invariants touched and still passing: 4, 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: D28 (owner, 16 Oct 2026).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the retention periods (owner, recommendation comes with the build); HB-L26 (counsel).
+- Next: step 2, the aggregate analytics build within LD-06 and D28.
+- LOOP_STATUS: CONTINUE

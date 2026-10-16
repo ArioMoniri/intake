@@ -1,0 +1,125 @@
+# source_id: TR-HHY-1998
+# instrument: Hasta Hakları Yönetmeliği
+# provisions: m.4, m.18, m.24
+# gazette: 1/8/1998 sayı 23420 (m.4, m.18 and m.24 as amended 8/5/2014 sayı 28994)
+# url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=4847&MevzuatTertip=5
+# retrieved_on: 2026-10-03
+# transcription: mevzuat.gov.tr consolidated text, HTML tags removed, line breaks as served; only the cited articles
+---
+Tanımlar
+Madde
+4-
+Bu Yönetmelik'te geçen deyimlerden;
+a)
+Bakanlık: Sağlık Bakanlığı'nı,
+b)
+Hasta: Sağlık hizmetlerinden faydalanma ihtiyacı bulunan kimseyi,
+c)
+Personel: Hizmetin, resmi veya özel sağlık kurumlarında ve kuruluşlarında veya
+serbest olarak sunulmasına bakılmaksızın, sağlık hizmetinin verilmesine iştirak
+eden bütün sağlık meslekleri mensuplarını ve sağlık meslekleri mensubu olmasa
+bile sağlık hizmetinin verilmesine sorumlu olarak iştirak eden kimseleri,
+d) (Değişik:RG-8/5/2014-28994)
+Sağlık kurum ve kuruluşu: Sağlık hizmeti verilen kamu veya özel bütün kurum
+ve kuruluşları ile tababet icra edilen bütün yerleri,
+e)
+Hasta hakları: Sağlık hizmetlerinden faydalanma ihtiyacı bulunan fertlerin,
+sırf insan olmaları sebebiyle sahip bulundukları ve T.C. Anayasası,
+milletlerarası andlaşmalar, kanunlar ve diğer mevzuat ile teminat altına
+alınmış bulunan haklarını,
+f) (Ek:RG-8/5/2014-28994)
+Yeterlik: Yaşının küçüklüğü yüzünden veya akıl hastalığı, akıl zayıflığı,
+sarhoşluk ya da bunlara benzer sebeplerden biriyle akla uygun biçimde davranma
+yeteneğinden yoksun olmayan onay verenin önerilen tıbbi müdahalede
+karşılaşabileceği ya da reddettiğinde doğabilecek sonuçları makul bir şekilde
+anlama ve değerlendirme yeteneğine sahip olma halini,
+g) (Ek:RG-8/5/2014-28994)
+Tıbbi müdahale: Tıp mesleğini icraya yetkili kişiler tarafından uygulanan,
+sağlığı koruma, hastalıkların teşhis ve tedavisi için ilgili meslekî
+yükümlülükler ve standartlara uygun olarak tıbbın sınırları içinde
+gerçekleştirilen fizikî ve ruhî girişimi,
+ğ) (Ek:RG-8/5/2014-28994)
+Bilgilendirme: Yapılması planlanan her türlü tıbbi müdahale öncesinde
+müdahaleyi gerçekleştirecek sağlık meslek mensubu tarafından kişiye gerekli bilginin
+verilmesini,
+h) (Ek:RG-8/5/2014-28994)
+Rıza: Kişinin tıbbi müdahaleyi serbest iradesiyle ve bilgilendirilmiş
+olarak kabul etmesini,
+ifade
+eder.
+
+Bilgi
+Vermenin Usulü
+Madde
+18- (Değişik:RG-8/5/2014-28994)
+Bilgi,
+mümkün olduğunca sade şekilde, tereddüt ve şüpheye yer verilmeden, hastanın
+sosyal ve kültürel düzeyine uygun olarak anlayabileceği şekilde verilir.
+Hasta,
+tıbbi müdahaleyi gerçekleştirecek sağlık meslek mensubu tarafından tıbbi
+müdahale konusunda sözlü olarak bilgilendirilir. Bilgilendirme ve tıbbi
+müdahaleyi yapacak sağlık meslek mensubunun farklı olmasını zorunlu kılan
+durumlarda, bu duruma ilişkin hastaya açıklama yapılmak suretiyle bilgilendirme
+yeterliliğine sahip başka bir sağlık meslek mensubu tarafından bilgilendirme
+yapılabilir.
+Hastanın
+kendisinin bilgilendirilmesi esastır. Hastanın kendisi yerine bir başkasının
+bilgilendirilmesini talep etmesi halinde, bu talep kişinin imzası ile yazılı
+olarak kayıt altına alınmak kaydıyla sadece bilgilendirilmesi istenilen
+kişilere bilgi verilir.
+Hasta,
+aynı şikayeti ile ilgili olarak bir başka hekimden de sağlık durumu hakkında
+ikinci bir görüş almayı talep edebilir.
+Acil
+durumlar dışında, bilgilendirme hastaya makul süre tanınarak yapılır.
+Bilgilendirme
+uygun ortamda ve hastanın mahremiyeti korunarak yapılır.
+Hastanın
+talebi halinde yapılacak işlemin bedeline ilişkin bilgiler sağlık hizmet
+sunucusunun ilgili birimleri tarafından verilir.
+
+Hastanın
+Rızası ve İzin
+Madde
+24- (Değişik:RG-8/5/2014-28994)
+Tıbbi
+müdahalelerde hastanın rızası gerekir. Hasta küçük veya mahcur ise velisinden
+veya vasisinden izin alınır. Hastanın, velisinin veya vasisinin olmadığı veya
+hazır bulunamadığı veya hastanın ifade gücünün olmadığı hallerde, bu şart
+aranmaz.
+Kanuni
+temsilcinin rızasının yeterli olduğu hallerde dahi, anlatılanları
+anlayabilecekleri ölçüde, küçük veya kısıtlı olan hastanın dinlenmesi suretiyle
+mümkün olduğu kadar bilgilendirme sürecine ve tedavisi ile ilgili
+alınacak kararlara katılımı sağlanır.
+Sağlık
+kurum ve kuruluşları tarafından engellilerin durumuna uygun bilgilendirme
+yapılmasına ve rıza alınmasına yönelik gerekli tedbirler alınır.
+Kanuni
+temsilci tarafından rıza verilmeyen hallerde, müdahalede bulunmak tıbben gerekli
+ise, velayet ve vesayet altındaki hastaya tıbbi müdahalede bulunulabilmesi;
+Türk Medeni Kanununun 346 ncı ve 487 inci maddeleri uyarınca mahkeme kararına
+bağlıdır.
+Tıbbi
+müdahale sırasında isteğini açıklayabilecek durumda bulunmayan bir hastanın, tıbbî
+müdahale ile ilgili olarak önceden açıklamış olduğu istekleri göz önüne alınır.
+Yeterliğin
+zaman zaman kaybedildiği tekrarlayıcı hastalıklarda, hastadan yeterliği olduğu
+dönemde onu kaybettiği dönemlere ilişkin yapılacak tıbbi müdahale için rıza
+vermesi istenebilir.
+Hastanın
+rızasının alınamadığı hayati tehlikesinin bulunduğu ve bilincinin kapalı olduğu
+acil durumlar ile hastanın bir organının kaybına veya fonksiyonunu ifa edemez
+hale gelmesine yol açacak durumun varlığı halinde, hastaya tıbbi müdahalede
+bulunmak rızaya bağlı değildir. Bu durumda hastaya gerekli tıbbi müdahale
+yapılarak durum kayıt altına alınır. Ancak bu durumda, mümkünse hastanın orada
+bulunan yakını veya kanuni temsilcisi; mümkün olmadığı takdirde de tıbbi
+müdahale sonrasında hastanın yakını veya kanuni temsilcisi bilgilendirilir.
+Ancak hastanın bilinci açıldıktan sonraki tıbbi müdahaleler için hastanın
+yeterliği ve ifade edebilme gücüne bağlı olarak rıza işlemlerine başvurulur.
+Sağlık
+kurum ve kuruluşlarında yatarak tedavisi tamamlanan hastaya, genel sağlık
+durumu, ilaçları, kontrol tarihleri diyet ve sonrasında neler yapması gerektiği
+gibi bilgileri içeren taburcu sonrası tedavi planı sağlık meslek mensubu
+tarafından sözel olarak anlatılır. Daha sonra bu tedavi planının yer aldığı epikrizin
+bir nüshası hastaya verilir.

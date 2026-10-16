@@ -642,10 +642,17 @@ it or whose tests exercise it.
 - **Trust boundaries:** claimed control ↔ recorded evidence; evidence exports ↔ PHI.
 - **Threats (STRIDE/LINDDUN):** [R] a control asserted with no record behind it; [Nc] a DPIA
   stale after a vendor or consent-text change; [I] evidence exports carrying patient content
-  instead of ids.
+  instead of ids; [R] a legal answer an agent asserted with no official text behind it, or one
+  that reaches a real patient without a licensed lawyer (D25).
 - **Controls (files/10):** §10 — evidence accumulates automatically from the console; §8 —
   DPIA delta check when vendors or consent texts change; CLAUDE.md invariant 18 — every new
-  data field carries its inventory annotation.
+  data field carries its inventory annotation. D25 (INT-471): the legal decisions register
+  (`intake_platform.legal.decisions`) admits a decision only when each quote is verbatim in a
+  committed snapshot of an official text whose header carries the cited url and gazette, and
+  every answered value names the source that supports it; it keeps an unsourced answer `draft`
+  and absent, needs an independent reviewer's verdict for `active`, and refuses every decision
+  for a real patient until a licensed Turkish lawyer's countersign is complete (full commit,
+  dated after the verdict, recorded in an evidence file that exists); it fills no counsel field.
 - **Signals:** access-review age and drill status (§7) land with INT-189. INT-215 binds each
   KVKK 2018/10 measure to a catalogued metric or a registered probe, and a control with no
   live signal must own that absence as a gap rather than read as done.
@@ -654,6 +661,11 @@ it or whose tests exercise it.
   measures: every measure quoted verbatim from a committed snapshot of RG 30353, every cited
   path, test id and signal resolving, every gap naming an owner, and the auditor packet
   (`make evidence-2018-10`) exported through the invariant-47 guard.
+  `tests/legal/test_legal_decisions.py` (INT-471) answers the D25 [R]: a non-verbatim quote,
+  an unofficial host, a header that disagrees with the citation, an unsupported answer, an
+  answer that says "not decided", an active decision without an independent verdict and a
+  real-patient decision without a complete countersign each fail beside the near miss that
+  loads, and no committed decision clears for a real patient.
 
 ---
 

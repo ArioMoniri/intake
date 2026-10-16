@@ -519,6 +519,12 @@ value:
         two branches exclude the self-addressed cluster slots (suppress_slot on each in their
         L1 packs, and no routing to cluster.mental_health before then), and how that sits
         with invariant 13, before INT-223 opens any under-18 path.
+      resolved_by: D24
+      owner_answer:
+        answer: "1Y"
+        quote: "1Y 2Y 3Y 4Y 5Y 6A"
+        reading: "Proxy answers: every self-addressed question is reworded for the patient (\"Çocuğunuz…\") or skipped in a proxy (parent or carer) session; child and carer paths stay closed until that mechanism exists."
+      legal_part: "routed to the legal lane (INT-471, GitHub #800): HB-L20 minors and counsel's conditions for any under-18 path"
     - item: "docs/evidence/INT-353.md#L314"
       ref: "INT-353 rebind row: agiz_dis_cene_radyolojisi Q8, Q9"
       packets: [agiz_dis_cene_radyolojisi]
@@ -530,6 +536,7 @@ value:
       owner_part: >-
         Owner: the dental airway posture (wave 8 decision 1) decides whether the cluster's
         nefes_yutkunma_guclugu is asked; this pack's applied id then makes it one question.
+      resolved_by: CD-110
     - item: "docs/evidence/INT-353.md#L315"
       ref: "INT-353 rebind row: pedodonti airway re-declare"
       packets: [cluster_dental, pedodonti]
@@ -545,6 +552,7 @@ value:
       owner_part: >-
         Owner: decide whether the dental airway item is asked at all (wave 8 decision 1);
         pedodonti re-declares it with this text only if it is.
+      owner_part_resolved_by: CD-110
     - item: "docs/evidence/INT-353.md#L316"
       ref: "INT-353 rebind row: saglik_kurulu Q8 (held)"
       packets: [cluster_allied_and_reports, saglik_kurulu]
@@ -556,6 +564,7 @@ value:
       owner_part: >-
         Owner: release saglik_kurulu Q8 with the cluster's verified Q11 text
         (yardimci_arac), or keep it held.
+      resolved_by: CD-110
     - item: "docs/evidence/INT-353.md#L422"
       ref: "INT-353 review fix D-1: ic Q4 → son_gunlerde_ates"
       packets: [ic_hastaliklari]
@@ -658,6 +667,7 @@ value:
         ("Son zamanlarda ateşiniz oldu mu?") rebinds to the cluster's son_gunlerde_ates
         ("Son günlerde ateşiniz oldu mu?") so that the fever is asked once in that chain, or
         route it to a clinician item.
+      resolved_by: CD-110
 verifier:
   verdict: agree
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"

@@ -223,7 +223,13 @@ def test_ids_unique_and_well_formed() -> None:
     # clinical review, GitHub #913).
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget; INT-521 residual 1, GitHub #898).
-    assert len(ids) == 364
+    # + INT-470 (the INT-448 owner questions resolved: CD-110 under D18, D24 by
+    # the owner; GitHub #798).
+    # + INT-471 (the legal decisions register under owner decision D25,
+    # agent-authored and independently agent-reviewed; GitHub #800).
+    # + INT-484 (LD-06: admin research and improvement analytics, step 1 of
+    # GitHub #827; the build is step 2).
+    assert len(ids) == 367
     import re
 
     for i in ids:

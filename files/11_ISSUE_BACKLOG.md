@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**364 issues.** By phase: P0 180 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 244 · todo 74 · withdrawn 1.
+**367 issues.** By phase: P0 180 · P1 133 · P2 47 · P3 7. By status: awaiting-human 38 · doing 8 · done 246 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -314,6 +314,7 @@
 | INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
+| INT-470 | INT-448 follow-up — resolve its owner questions: clinical ones under D18 (CD-110), product and data ones by owner decision D24 | E03-protocols | INT-448 | area:protocols, risk:clinical | done |
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
@@ -326,6 +327,8 @@
 | INT-538 | One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required | E13-infra | INT-460 | area:infra | done |
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
+| INT-471 | Legal lane — sourced legal-author agent + independent legal-reviewer decide legal items (owner decision D25, synthetic/test scope) | E14-legal | INT-432, INT-470 | area:legal | done |
+| INT-484 | Research and improvement analytics in the admin panel — LD-06 first, then aggregate de-identified question and user metrics | E12-admin | INT-471, INT-171 | area:legal, area:observability | doing |
 
 ## P2
 

@@ -1,0 +1,22 @@
+# guideline_id: NICE-NG257
+# title: Fertility problems: assessment and treatment
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG257; published 31 March 2026 (replaces CG156)
+# url: https://www.nice.org.uk/guidance/ng257/chapter/Defining-infertility-and-initial-assessment
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200; sha256 of the HTML a13bd1a5cbd21210982c69d7e7e38377c494bbc3972ef07207113761b40d4e53); HTML (utf-8) text-extracted with a block-level parser: scripts and styles dropped, tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed, non-breaking spaces rendered as plain spaces, blank lines dropped
+# scope: verbatim excerpt of the page header and recommendations 1.16.1 and 1.16.4; nothing paraphrased or edited; omissions marked [...]. Cited for the construct (time trying to conceive), never for a duration threshold.
+---
+Fertility problems: assessment and treatment
+NICE guideline
+Reference number: NG257
+Published:
+31 March 2026
+[...]
+Defining infertility and initial assessment
+1.16 How infertility is defined and assessed
+1.16.1
+Offer an initial assessment for people who are concerned about delays in conception. Ask about lifestyle and sexual history to identify people who are less likely to conceive. [2004]
+[...]
+1.16.4
+Define infertility in practice as the period of time people have been trying to conceive without success after which formal investigation is justified and possible treatment implemented. [2013]

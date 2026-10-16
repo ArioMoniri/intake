@@ -382,7 +382,13 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
     # stated reason.
-    assert len(ids) == 364, f"expected 175 blueprint + 189 added issues, got {len(ids)}"
+    # + INT-470 (the INT-448 owner questions resolved by CD-110 under D18 and by
+    # owner decision D24, GitHub #798); grows only with a stated reason.
+    # + INT-471 (the legal decisions register under owner decision D25, GitHub
+    # #800); grows only with a stated reason.
+    # + INT-484 (LD-06 and the admin analytics it governs, GitHub #827); grows
+    # only with a stated reason.
+    assert len(ids) == 367, f"expected 175 blueprint + 192 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

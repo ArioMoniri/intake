@@ -1,0 +1,31 @@
+# source_id: W3C-WCAG22
+# instrument: Web Content Accessibility Guidelines (WCAG) 2.2
+# provisions: Success Criterion 2.2.1 Timing Adjustable; glossary entry "essential"
+# version_or_date: W3C Recommendation 12 December 2024
+# url: https://www.w3.org/TR/2024/REC-WCAG22-20241212/
+# retrieved_on: 2026-10-03
+# transcription: fetched https://www.w3.org/TR/WCAG22/ (which served the 12 December 2024 Recommendation); HTML tags removed, line breaks as served; only the cited criterion and glossary entry. Copyright © W3C, reproduced as a short excerpt under the W3C Document License.
+---
+Success Criterion 2.2.1 Timing Adjustable
+(Level A)
+For each time limit that is set by the content, at least one of the following is true:
+Turn off
+The user is allowed to turn off the time limit before encountering it; or
+Adjust
+The user is allowed to adjust the time limit before encountering it over a wide range
+that is at least ten times the length of the default setting; or
+Extend
+The user is warned before time expires and given at least 20 seconds to extend the
+time limit with a simple action (for example, "press the space bar"), and the user
+is allowed to extend the time limit at least ten times; or
+Real-time Exception
+The time limit is a required part of a real-time event (for example, an auction),
+and no alternative to the time limit is possible; or
+Essential Exception
+The time limit is essential and extending it would invalidate the activity; or
+20 Hour Exception
+The time limit is longer than 20 hours.
+[...]
+essential
+if removed, would fundamentally change the information or functionality of the content,
+and information and functionality cannot be achieved in another way that would conform

@@ -1,0 +1,174 @@
+kind: legal_decision
+id: LD-01
+title: "Adli Tıp: the report-purpose item, and whether the Sağlık Raporları Yönetmeliği governs forensic reports"
+question: "The allied-and-reports cluster carries Q3, the report purpose (rapor_amaci), to seven allied branches including Adli Tıp. May it be carried to Adli Tıp, where the purpose is forensic? Does the Sağlık Raporları Yönetmeliği (the cluster's source AL-S1) govern forensic reports at all, and does its Madde 8(5) bar on stating a report's purpose reach Adli Tıp?"
+outcome: "The Sağlık Raporları Yönetmeliği governs forensic reports issued by health service providers. It covers every public and private provider (Madde 2(1)), and its Eighth Part, Adli Hekimlik Hizmetleri, runs from Madde 39 until the Ninth Part opens at Madde 53 and regulates how adli raporlar are drawn up. It is not the only governing text: for an examination connected with a crime, Madde 40(1) sends the examination and the report to 5271 sayılı Ceza Muhakemesi Kanunu and its implementing rules. The report-purpose item is not carried to Adli Tıp. As a rule (esastır), a forensic examination and report are made on the proper request of a competent official authority (Madde 40(4)), and the report must answer the questions that authority asked (Madde 50(4)); the purpose of an adli rapor is therefore set by the requesting authority, in its request. The report rests wholly on the examining physician's own findings, consultations and test results (Madde 50(1)), and no report is drawn up on another person's statement (Madde 48(1)); neither provision bars the examined person's own account. Madde 52(5) bars referring a person to a private health service provider for an adli rapor. Whether Madde 8(5) reaches an adli rapor is moot for the product: Madde 8(5) is written for health reports in general, the content of an adli rapor is set by Madde 50, and the product sends no intake answer into an adli rapor (a product rule, stricter than the text; see the inference disclosure). The companion-invitation item held in the adli tıp pack stays held: as a rule, the physician and the person examined are alone during a forensic examination (Madde 48(3)). As built today, the Adli Tıp pack still inherits rapor_amaci — the branch taxonomy routes adli_tip to the allied_and_reports cluster, the adli_tip pack extends that cluster, and the cluster declares the slot — and only the pack's unserved L0 status (HB-C1) keeps it from a patient. Removing it from the resolved adli_tip pack is follow-up INT-469 (PR #816), with sağlık kurulu keeping it as the near miss; this decision changes no pack. What an Adli Tıp pre-visit intake may ask in place of Q3 is not decided here."
+legal_basis: "Sağlık Raporları Yönetmeliği (RG 19/5/2026, 33258) Madde 2(1), 39(1), 40(1), 40(4), 48(1), 48(3), 50(1), 50(4), 52(5) and the Dokuzuncu Bölüm heading; Madde 8(5) read against Madde 50."
+status: active
+scope: synthetic_test_only
+scope_note: "Owner decision D25 (3 Oct 2026): agent-decided and agent-verified legal items, for synthetic and test use only. A licensed Turkish lawyer countersigns before any real patient."
+question_origin: "docs/evidence/verification/cluster-wave-b.md §A.4 (row Q3, line 115): the legal-reviewer is asked whether AL-S1 governs forensic reports and whether the Madde 8(5) export bar covers Adli Tıp. The owner's D24 answer 4Y keeps Adli Tıp out of the report-purpose item until this review."
+author_role: "Turkish health-law and forensic-medicine-procedure lawyer (agent)"
+inference_disclosure: "Two readings here are this author's, not the text's. First, that the purpose of an adli rapor is the requesting authority's: Madde 40(4) and 50(4) together point there, but neither says a person may not state a purpose. Second, the product rule that no pre-visit intake answer, a purpose included, ever enters an adli rapor: the text bars only a report drawn up on another person's statement (Madde 48(1)) and makes the physician's own findings the report's basis (Madde 50(1)); it does not bar the examined person's own account, so the product rule is stricter than the law. Applying Madde 48(3), which governs the forensic examination itself, to a pre-visit companion-invitation item is also this author's extension. Whether a private-hospital tenant should run a forensic pre-visit intake at all is not decided; Madde 52(5) is cited only for referrals made to obtain an adli rapor."
+sources:
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 2(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Bu Yönetmelik, resmi ve özel tüm sağlık hizmeti sunucularını, özel hukuk tüzel kişileri ve gerçek kişileri kapsar."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: saglik_raporlari_yonetmeligi_governs_adli_rapor
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 39(1) and the Sekizinci Bölüm heading"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "SEKİZİNCİ BÖLÜM Adli Hekimlik Hizmetleri Adli raporların düzenlenmesi ve formatı MADDE 39- (1) Sağlık kuruluşlarınca yürütülen adli hekimlik hizmetleri; travmaya bağlı adli vakaların değerlendirilmesi ve bunlara ait adli raporların düzenlenmesi ile adli ölü muayenesi ve otopsi işlemleridir."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: governing_part
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "the Dokuzuncu Bölüm heading"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "DOKUZUNCU BÖLÜM Raporların Formatı ve Düzenlenmesi Raporların formatı ve düzenlenmesi MADDE 53-"
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: governing_part
+    note: "The snapshot carries Madde 52(5)-(7), the Ninth Part heading and the opening of Madde 53 with no elision between them, so Madde 52 is the last article of the Eighth Part."
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 40(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Bir suça ilişkin olarak şüpheli veya sanık ile mağdur ve diğer kişilerin beden muayenesi, bu kişilerin vücudundan örnek alınması ve muayene sonucunda rapor tanzimi, 5271 sayılı Kanun ve bu Kanuna istinaden çıkarılan ilgili mevzuata göre yapılır."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: also_governed_by
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 40(4)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Adli muayene ve sonucunda rapor tanzimi işleminin, yetkili bir resmî makamın usulünce talebi üzerine yapılması esastır."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: allied_q3_rapor_amaci
+    caveat: "'esastır': the rule, not an exception-free command."
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 50(4)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Adli makamlar tarafından sorulan sorular muhakkak cevaplandırılır."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: allied_q3_rapor_amaci
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 50(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Adli raporlar, bütünüyle muayeneyi yapan hekimin tespit ettiği objektif bulgulara, konsültasyonlara ve tetkik sonuçlarının incelenmesi ile meslekî bilgileri ışığında yapacağı değerlendirmelere dayanılarak, tarafsız bir şekilde düzenlenmelidir."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: what_an_adli_rapor_rests_on
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 48(1)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Adli vaka olarak sevk edilen kişi, hekim tarafından bizzat görülerek muayene edilir. Başkasının ifadesine dayanılarak rapor tanzim edilmez."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: what_an_adli_rapor_rests_on
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 52(5)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Özel sağlık hizmet sunucularına adli rapor düzenlenmesi amacıyla sevk yapılamaz."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: private_provider_referral_for_adli_rapor
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 8(5)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Sağlık raporları kural olarak sadece sağlık durumunu yansıtır. Raporun hangi amaçla alındığı, mevzuatta o amaç için özel bir sağlık kriteri yoksa veya Bakanlık izni mevcut değilse, rapora eklenemez."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: madde_8_5_and_adli_rapor
+  - kind: legislation
+    source_id: TR-SAGLIK-RAPORLARI-YON-2026
+    instrument: "Sağlık Raporları Yönetmeliği (Cumhurbaşkanı Kararı sayı 11361)"
+    provision: "Madde 48(3)"
+    url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=21&MevzuatNo=11361&MevzuatTertip=5"
+    gazette: {published_on: 2026-05-19, number: 33258}
+    retrieved_on: 2026-10-03
+    quote: "Muayenenin diğer kişilerin göremeyeceği ve duyamayacağı bir ortamda yapılması, muayene esnasında hekim ile muayene edilen kişinin yalnız kalmaları ve muayenenin hekim-hasta ilişkileri çerçevesinde gerçekleştirilmesi esastır."
+    snapshot: packages/intake_platform/legal_decisions/sources/TR-SAGLIK-RAPORLARI-YON-2026.txt
+    supports: adli_tip_companion_invitation_item
+legal_gap: "No retrieved text says what a patient-facing pre-visit question for a forensic visit may ask in place of the report purpose. Settling it needs the 2659 sayılı Adli Tıp Kurumu Kanunu and its implementing regulation and the examination articles of 5271 sayılı Ceza Muhakemesi Kanunu, none of which is snapshotted here."
+value:
+  saglik_raporlari_yonetmeligi_governs_adli_rapor: true
+  governing_part: "Sekizinci Bölüm (Adli Hekimlik Hizmetleri), from Madde 39; the Dokuzuncu Bölüm opens at Madde 53"
+  also_governed_by: "5271 sayılı Ceza Muhakemesi Kanunu and its implementing rules, for an examination connected with a crime"
+  allied_q3_rapor_amaci:
+    carried_to_adli_tip: false
+    reason: "as a rule an adli rapor is made on an authority's request and answers that authority's questions, so its purpose is the authority's"
+  what_an_adli_rapor_rests_on: "the examining physician's own findings, consultations and test results; never another person's statement"
+  private_provider_referral_for_adli_rapor: barred
+  madde_8_5_and_adli_rapor: moot_for_product
+  adli_tip_companion_invitation_item: stays_held
+  as_built:
+    adli_tip_inherits_rapor_amaci: true
+    kept_unserved_by: "the adli_tip pack's L0 status, awaiting physician sign-off (HB-C1)"
+  adli_tip_replacement_item: "none decided"
+value_status:
+  adli_tip_replacement_item: draft
+spec_basis:
+  - file: docs/evidence/verification/cluster-wave-b.md
+    section: "§A.4 cluster_allied_and_reports, row Q3"
+    quote: "The legal-reviewer confirms two things: whether AL-S1 governs forensic reports at all, and that the export bar (Madde 8(5)) covers Adli Tıp."
+    supports: question
+  - file: files/00_STATE.md
+    section: "§3 D24, answer 4Y"
+    quote: 'Adli Tıp stays out of "report purpose" until legal review'
+    supports: question
+  - file: docs/evidence/verification/owner-decisions-2026-09-26.md
+    section: "D3: what the approval covers, and what it does not"
+    quote: "adli_tip Q4 (companion invitation), because it conflicts with the IFAS advice to see the patient alone. This is a clinician and legal decision."
+    supports: adli_tip_companion_invitation_item
+  - file: packages/protocols/taxonomy/branches.yaml
+    section: "cluster allied_and_reports"
+    quote: '- {id: adli_tip, name_tr: "Adli Tıp", cluster: allied_and_reports, visit_types: [report]}'
+    supports: as_built.adli_tip_inherits_rapor_amaci
+  - file: packages/protocols/review/cluster/allied_and_reports.yaml
+    section: "rapor_amaci"
+    quote: "Bu raporun hangi amaçla istendiğini kısaca söyler misiniz?"
+    supports: as_built.adli_tip_inherits_rapor_amaci
+  - file: packages/protocols/review/specialty/adli_tip.yaml
+    section: "header"
+    quote: "status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable"
+    supports: as_built.kept_unserved_by
+fail_closed_while_draft: "Adli Tıp is asked nothing in place of Q3 and the companion-invitation item stays held. The adli_tip pack itself still inherits rapor_amaci until follow-up INT-469 (PR #816) removes it; until then only the pack's unserved L0 status keeps the item from a patient."
+verifier:
+  verdict: agree_with_changes
+  role: "legal-reviewer agent"
+  verified_on: 2026-10-04
+  notes: "Round 1 (independent legal reviewer, 3 Oct 2026, head 017439e0): agree_with_changes — outcome sound; changes per findings 1 (8(5) key renamed to the decided proposition), 3 (48(1), 50(1) and 'esastır' stated as written; the no-intake-answer rule moved to the inference disclosure as a product rule; the Eighth Part bounded by the Dokuzuncu Bölüm heading), 4 (as-built inheritance stated; follow-up INT-469, PR #816) and 5 (snapshot re-based on the mevzuat.gov.tr text layer). Applied in round 2; status stays proposed until re-verification. Round 2 (independent legal reviewer, 4 Oct 2026, head 8381123b): agree_with_changes — changes per findings 1 (the follow-up is INT-469, PR #816) and 3 (the snapshot now carries Madde 52(5)-(7), the Ninth Part heading and the opening of Madde 53 with no elision, and the quote ends at 'MADDE 53-'). Applied in round 3. Status stays proposed until re-verification. Round 3 (head 927578cc): findings 1 and 3 applied. The follow-up is INT-469 (PR #816) throughout and no INT-473 remains. The snapshot runs Madde 52(5)-(7), the Dokuzuncu Bölüm heading and 'MADDE 53- (1) Bu' with no elision, and the quote ends at 'MADDE 53-'. The outcome is sound and stated as written ('esastır'; 48(1), 50(1), 50(4), 52(5)); the no-intake-answer rule is a product rule. Synthetic and test use only; what Adli Tıp may ask in place of Q3 stays draft."

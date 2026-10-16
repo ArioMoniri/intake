@@ -1,0 +1,610 @@
+kind: legal_decision
+id: LD-06
+title: 'Admin metrics and telemetry for research and improvement: purpose, anonymisation, cell size, retention'
+question: 'The owner asks for admin metrics and telemetry about users and questions, for research and
+  enhancement, as far as the law allows. In scope: aggregate, de-identified metrics per question and protocol
+  version — completion and drop-off, time-to-answer, repeat and clarify rate, typed versus voice share,
+  ASR quality bands, the share of sessions reaching RED, YELLOW or GREEN, device and locale — and user
+  funnels invited, started, finished, shared; small cells suppressed; no free text, no identifiers, no
+  per-patient drill-down. (a) Do improvement analytics fall under the existing service purpose? (b) Is
+  research use a separate purpose that needs explicit consent? (c) Anonymised or pseudonymised: what may
+  the admin analytics hold? (d) What minimum cell size must a count reach before it shows? (e) How long
+  may the data be kept?'
+outcome: '(a) Improving the service is a purpose of its own, not the patient''s care, so it does not ride
+  the care purpose (KVKK m.4(2)(c)-(ç)). It needs no ground and no consent of its own as long as only
+  anonymised aggregates come out: the Law does not apply to personal data processed for research, planning
+  and statistics by being anonymised (m.28(1)(b)), and anonymised data cannot be associated with an identified
+  or identifiable person even when matched with other data (m.3(1)(b)). Anonymisation is the condition:
+  a figure that is not anonymous loses this route. In the hospital deployment the vendor processes on
+  the hospital''s authority and on its behalf (m.3(1)(ğ)), so producing aggregates for the vendor''s own
+  improvement needs the hospital''s authorisation in the DPA; the hospital itself may analyse its own
+  service for planning and management under m.6(3)(e), where that is necessary. (b) Research on anonymised
+  aggregates follows the same route (m.28(1)(b)); the Ministry''s own regulation allows scientific work
+  on health data the controller has anonymised (KSVY m.16(1)). Research on record-level or pseudonymised
+  data is a separate purpose (m.4(2)(c)) on special-category data. The product never does it without the
+  patient''s açık rıza under the existing research purpose (m.6(3)(a); files/06''s research rule) — a
+  floor, not a finding that açık rıza is enough. HB-L26 stays with counsel in full: which limb of KSVY
+  m.16 a consented, pseudonymised research export rides — m.16(1), scientific work on data the controller
+  has anonymised (KVKK m.28(1)(b)), or m.16(2), scientific processing under KVKK m.28(1)(c) so long as
+  it does not violate privacy or personality rights or constitute a crime — whether it may ride either
+  at all, and whether açık rıza is even an available basis or m.28 displaces it. None of it reaches the
+  admin panel. (c) The admin analytics hold anonymised aggregates only. Anonymisation means no one can
+  be identified even by reversal or by matching with other data, by the controller or any recipient (Yönetmelik
+  m.10(1)-(2)); a keyed or hashed per-person or per-session row can be reversed by whoever holds the key,
+  so pseudonymised rows remain personal data — health data — and are never admin analytics. Following
+  the Kurum''s guide, indirect identifiers count too, and every combination of dimensions the panel can
+  show is a cell of its own. (d) No retrieved text sets a number. The legal test is the outcome in Yönetmelik
+  m.10(2); the Kurum''s guide names k-anonymity as a method that strengthens anonymisation without fixing
+  a k. The product floor of ten distinct people per cell (files/06 §8; the INT-171 gate), counted per
+  person and all-or-nothing within each view, is a product rule; whether it is enough for a given set
+  of dimensions is not decided. (e) The session data the aggregates are computed from are deleted, destroyed
+  or anonymised once the reason to process them ends (m.7(1)); a controller that must register with VERBİS
+  keeps a retention and destruction policy (Yönetmelik m.5(1)) and destroys at intervals of at most six
+  months (m.11(2)). Anonymised aggregates are not personal data, so the Law''s retention rules do not
+  bind them. The retention periods themselves — for aggregates and for raw telemetry — are not decided.
+  Stop-and-ask: consent scope, the retention periods and the DPA''s controller-authorisation term are
+  the owner''s under CLAUDE.md; this lane gave one recommendation, on consent scope, and the owner accepted
+  it as written on 16 Oct 2026 (D28). The retention periods and the DPA term stay open.'
+legal_basis: KVKK 6698 m.3(1)(a), (b), (ğ); m.4(2)(c)-(ç); m.6(3)(a), (e); m.7(1); m.28(1)(b); Kişisel
+  Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik m.5(1), m.10(1)-(2),
+  m.11(2); the Kurum's anonymisation guide (Kasım 2017) §3.1 and §3.1.3; KSVY m.16(1)-(2).
+status: active
+scope: synthetic_test_only
+scope_note: 'Owner decision D25 (3 Oct 2026): agent-decided and agent-verified legal items, for synthetic
+  and test use only. A licensed Turkish lawyer countersigns before any real patient.'
+question_origin: 'INT-484 (GitHub #827). Owner request, 4 Oct 2026, in chat: “the admin should have metrics
+  and telemetry of users and questions as legal agent allows for research and enhancement purposes”. Step
+  1 of INT-484 is this decision; the build is step 2.'
+author_role: Turkish data-protection (KVKK) and health-data research law lawyer (agent)
+inference_disclosure: Three readings are this author's. First, m.28(1)(b) is read as two limbs — official
+  statistics, and processing for research, planning and statistics by anonymisation — and product-improvement
+  statistics as 'planlama ve istatistik'; the Kurul's later practice should be checked by counsel. Second,
+  that a processor needs the controller's authorisation to compute aggregates for its own purposes is
+  this author's reading of m.3(1)(ğ) ('onun adına'); the anonymising step is itself processing of the
+  controller's data. Third, that an opt-out is not açık rıza follows from m.3(1)(a)'s 'özgür iradeyle
+  açıklanan'. KSVY m.2(1) limits that regulation to processes the Ministry runs, so its m.16 is cited
+  for how the Ministry reads m.28 for health data, not as binding a vendor. The Kurum's guide illustrates
+  k-anonymity with small groups in its examples; examples are not a threshold.
+sources:
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.4(2)(c)-(ç)
+  quote: c) Belirli, açık ve meşru amaçlar için işlenme. ç) İşlendikleri amaçla bağlantılı, sınırlı ve
+    ölçülü olma.
+  supports: improvement.rides_the_care_purpose
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.4(2)(c)-(ç)
+  quote: c) Belirli, açık ve meşru amaçlar için işlenme. ç) İşlendikleri amaçla bağlantılı, sınırlı ve
+    ölçülü olma.
+  supports: research.record_level.separate_purpose
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.28(1)(b)
+  quote: Kişisel verilerin resmi istatistik ile anonim hâle getirilmek suretiyle araştırma, planlama ve
+    istatistik gibi amaçlarla işlenmesi.
+  supports: improvement.anonymised_aggregates_need_a_ground_or_consent
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.28(1)(b)
+  quote: Kişisel verilerin resmi istatistik ile anonim hâle getirilmek suretiyle araştırma, planlama ve
+    istatistik gibi amaçlarla işlenmesi.
+  supports: research.anonymised_aggregates_need_consent
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.28(1)(b)
+  quote: Kişisel verilerin resmi istatistik ile anonim hâle getirilmek suretiyle araştırma, planlama ve
+    istatistik gibi amaçlarla işlenmesi.
+  supports: consent_scope.owner_recommendation
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.3(1)(b)
+  quote: 'Anonim hâle getirme: Kişisel verilerin, başka verilerle eşleştirilerek dahi hiçbir surette kimliği
+    belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemeyecek hâle getirilmesini,'
+  supports: improvement.anonymisation_is_the_condition
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.3(1)(b)
+  quote: 'Anonim hâle getirme: Kişisel verilerin, başka verilerle eşleştirilerek dahi hiçbir surette kimliği
+    belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemeyecek hâle getirilmesini,'
+  supports: admin_analytics.may_hold
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.3(1)(b)
+  quote: 'Anonim hâle getirme: Kişisel verilerin, başka verilerle eşleştirilerek dahi hiçbir surette kimliği
+    belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemeyecek hâle getirilmesini,'
+  supports: research.record_level.in_admin_analytics
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.3(1)(b)
+  quote: 'Anonim hâle getirme: Kişisel verilerin, başka verilerle eşleştirilerek dahi hiçbir surette kimliği
+    belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemeyecek hâle getirilmesini,'
+  supports: retention.anonymised_aggregates_are_not_personal_data
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.3(1)(ğ)
+  quote: 'Veri işleyen: Veri sorumlusunun verdiği yetkiye dayanarak onun adına kişisel verileri işleyen
+    gerçek veya tüzel kişiyi,'
+  supports: improvement.hospital_deployment_needs_controller_authorisation
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.6(3)(e) (as amended by 7499 sayılı Kanun)
+  quote: Sır saklama yükümlülüğü altında bulunan kişiler veya yetkili kurum ve kuruluşlarca, kamu sağlığının
+    korunması, koruyucu hekimlik, tıbbi teşhis, tedavi ve bakım hizmetlerinin yürütülmesi ile sağlık hizmetlerinin
+    planlanması, yönetimi ve finansmanı amacıyla gerekli olması,
+  supports: improvement.hospital_own_service_planning
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.6(3)(a) (as amended by 7499 sayılı Kanun)
+  quote: Özel nitelikli kişisel verilerin işlenmesi yasaktır. Ancak bu verilerin işlenmesi; a) İlgili
+    kişinin açık rızasının olması,
+  supports: research.record_level.never_without_acik_riza
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.3(1)(a)
+  quote: 'Açık rıza: Belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan
+    rızayı,'
+  supports: consent_scope.owner_recommendation
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.3(1)(a)
+  quote: 'Açık rıza: Belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan
+    rızayı,'
+  supports: consent_scope.opt_out_is_not_acik_riza
+- kind: legislation
+  source_id: TR-KVKK-6698
+  instrument: 6698 sayılı Kişisel Verilerin Korunması Kanunu
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=1&MevzuatNo=6698&MevzuatTertip=5
+  gazette:
+    published_on: 2016-04-07
+    number: 29677
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-6698.txt
+  provision: m.7(1)
+  quote: işlenmesini gerektiren sebeplerin ortadan kalkması hâlinde kişisel veriler resen veya ilgili
+    kişinin talebi üzerine veri sorumlusu tarafından silinir, yok edilir veya anonim hâle getirilir.
+  supports: retention.personal_inputs
+- kind: legislation
+  source_id: TR-KVKK-SILME-YON-2017
+  instrument: Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=24038&MevzuatTertip=5
+  gazette:
+    published_on: 2017-10-28
+    number: 30224
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-SILME-YON-2017.txt
+  provision: m.10(1)
+  quote: Kişisel verilerin anonim hale getirilmesi, kişisel verilerin başka verilerle eşleştirilse dahi
+    hiçbir surette kimliği belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemeyecek hale
+    getirilmesidir.
+  supports: admin_analytics.may_hold
+- kind: legislation
+  source_id: TR-KVKK-SILME-YON-2017
+  instrument: Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=24038&MevzuatTertip=5
+  gazette:
+    published_on: 2017-10-28
+    number: 30224
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-SILME-YON-2017.txt
+  provision: m.10(2)
+  quote: kişisel verilerin, veri sorumlusu, alıcı veya alıcı grupları tarafından geri döndürme ve verilerin
+    başka verilerle eşleştirilmesi gibi kayıt ortamı ve ilgili faaliyet alanı açısından uygun tekniklerin
+    kullanılması yoluyla dahi kimliği belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemez
+    hale getirilmesi gerekir.
+  supports: admin_analytics.pseudonymised_rows
+- kind: legislation
+  source_id: TR-KVKK-SILME-YON-2017
+  instrument: Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=24038&MevzuatTertip=5
+  gazette:
+    published_on: 2017-10-28
+    number: 30224
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-SILME-YON-2017.txt
+  provision: m.10(2)
+  quote: kişisel verilerin, veri sorumlusu, alıcı veya alıcı grupları tarafından geri döndürme ve verilerin
+    başka verilerle eşleştirilmesi gibi kayıt ortamı ve ilgili faaliyet alanı açısından uygun tekniklerin
+    kullanılması yoluyla dahi kimliği belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemez
+    hale getirilmesi gerekir.
+  supports: cell_size.legal_test
+- kind: legislation
+  source_id: TR-KVKK-SILME-YON-2017
+  instrument: Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=24038&MevzuatTertip=5
+  gazette:
+    published_on: 2017-10-28
+    number: 30224
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-SILME-YON-2017.txt
+  provision: m.10(2)
+  quote: kişisel verilerin, veri sorumlusu, alıcı veya alıcı grupları tarafından geri döndürme ve verilerin
+    başka verilerle eşleştirilmesi gibi kayıt ortamı ve ilgili faaliyet alanı açısından uygun tekniklerin
+    kullanılması yoluyla dahi kimliği belirli veya belirlenebilir bir gerçek kişiyle ilişkilendirilemez
+    hale getirilmesi gerekir.
+  supports: admin_analytics.conditions.no_identifiers_free_text_or_drill_down
+- kind: legislation
+  source_id: TR-KVKK-SILME-YON-2017
+  instrument: Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=24038&MevzuatTertip=5
+  gazette:
+    published_on: 2017-10-28
+    number: 30224
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-SILME-YON-2017.txt
+  provision: m.11(2)
+  quote: Periyodik imhanın gerçekleştirileceği zaman aralığı, veri sorumlusu tarafından kişisel veri saklama
+    ve imha politikasında belirlenir. Bu süre her halde altı ayı geçemez.
+  supports: retention.periodic_destruction_max_months
+- kind: legislation
+  source_id: TR-KVKK-SILME-YON-2017
+  instrument: Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=24038&MevzuatTertip=5
+  gazette:
+    published_on: 2017-10-28
+    number: 30224
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-SILME-YON-2017.txt
+  provision: m.5(1)
+  quote: Kanunun 16 ncı maddesi gereğince Veri Sorumluları Siciline kayıt olmakla yükümlü olan veri sorumluları,
+    kişisel veri işleme envanterine uygun olarak kişisel veri saklama ve imha politikası hazırlamakla
+    yükümlüdür.
+  supports: retention.policy_required
+- kind: guidance
+  source_id: TR-KVKK-ANONIM-REHBER-2017
+  instrument: Kişisel Verileri Koruma Kurumu, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale
+    Getirilmesi Rehberi
+  url: https://www.kvkk.gov.tr/yayinlar/K%C4%B0%C5%9E%C4%B0SEL%20VER%C4%B0LER%C4%B0N%20S%C4%B0L%C4%B0NMES%C4%B0,%20YOK%20ED%C4%B0LMES%C4%B0%20VEYA%20ANON%C4%B0M%20HALE%20GET%C4%B0R%C4%B0LMES%C4%B0%20REHBER%C4%B0.pdf
+  version_or_date: Kasım 2017, Ankara (ISBN 978-975-19-6807-4)
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-ANONIM-REHBER-2017.txt
+  provision: §3.1
+  quote: Anonim hale getirme, bir veri kümesindeki tüm doğrudan ve/veya dolaylı tanımlayıcıların çıkartılarak
+    ya da değiştirilerek, ilgili kişinin kimliğinin saptanabilmesinin engellenmesi
+  supports: admin_analytics.conditions.no_identifiers_free_text_or_drill_down
+  caveat: The Kurum's guidance, not a gazetted instrument; cited for how the Kurum reads Yönetmelik m.10.
+- kind: guidance
+  source_id: TR-KVKK-ANONIM-REHBER-2017
+  instrument: Kişisel Verileri Koruma Kurumu, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale
+    Getirilmesi Rehberi
+  url: https://www.kvkk.gov.tr/yayinlar/K%C4%B0%C5%9E%C4%B0SEL%20VER%C4%B0LER%C4%B0N%20S%C4%B0L%C4%B0NMES%C4%B0,%20YOK%20ED%C4%B0LMES%C4%B0%20VEYA%20ANON%C4%B0M%20HALE%20GET%C4%B0R%C4%B0LMES%C4%B0%20REHBER%C4%B0.pdf
+  version_or_date: Kasım 2017, Ankara (ISBN 978-975-19-6807-4)
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-ANONIM-REHBER-2017.txt
+  provision: §3.1.3 a. K-Anonimlik
+  quote: Bir veri kümesindeki değişkenlerden bazılarının bir araya getirilerek oluşturulan kombinasyonlara
+    ait birden fazla kayıt bulunması halinde, bu kombinasyona denk gelen kişilerin kimliklerinin saptanabilmesi
+    olasılığı azalmaktadır.
+  supports: admin_analytics.conditions.every_combination_is_a_cell
+  caveat: The Kurum's guidance, not a gazetted instrument; cited for how the Kurum reads Yönetmelik m.10.
+- kind: guidance
+  source_id: TR-KVKK-ANONIM-REHBER-2017
+  instrument: Kişisel Verileri Koruma Kurumu, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale
+    Getirilmesi Rehberi
+  url: https://www.kvkk.gov.tr/yayinlar/K%C4%B0%C5%9E%C4%B0SEL%20VER%C4%B0LER%C4%B0N%20S%C4%B0L%C4%B0NMES%C4%B0,%20YOK%20ED%C4%B0LMES%C4%B0%20VEYA%20ANON%C4%B0M%20HALE%20GET%C4%B0R%C4%B0LMES%C4%B0%20REHBER%C4%B0.pdf
+  version_or_date: Kasım 2017, Ankara (ISBN 978-975-19-6807-4)
+  retrieved_on: 2026-10-04
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KVKK-ANONIM-REHBER-2017.txt
+  provision: §3.1.3
+  quote: Bu sebeple anonim hale getirilmiş veri kümelerinde çeşitli istatistiksel yöntemler kullanılarak
+    veri kümesi içindeki kayıtların tekilliğini minimuma indirerek anonimlik güçlendirilebilmektedir.
+  supports: cell_size.k_anonymity_named_by_the_kurum
+  caveat: The Kurum's guidance, not a gazetted instrument; cited for how the Kurum reads Yönetmelik m.10.
+- kind: legislation
+  source_id: TR-KSVY-2019
+  instrument: Kişisel Sağlık Verileri Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=32610&MevzuatTertip=5
+  gazette:
+    published_on: 2019-06-21
+    number: 30808
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KSVY-2019.txt
+  provision: m.16(1)
+  quote: Kanunun 28 inci maddesinin birinci fıkrasının (b) bendi kapsamında veri sorumlusu tarafından
+    anonim hâle getirilen kişisel sağlık verileri ile bilimsel çalışma yapılabilir.
+  supports: research.anonymised_aggregates_need_consent
+  caveat: KSVY m.2(1) limits the regulation to processes the Ministry of Health runs; cited for how the
+    Ministry reads KVKK m.28(1)(b) for health data.
+- kind: legislation
+  source_id: TR-KSVY-2019
+  instrument: Kişisel Sağlık Verileri Hakkında Yönetmelik
+  url: https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=32610&MevzuatTertip=5
+  gazette:
+    published_on: 2019-06-21
+    number: 30808
+  retrieved_on: 2026-10-03
+  snapshot: packages/intake_platform/legal_decisions/sources/TR-KSVY-2019.txt
+  provision: m.16(2)
+  quote: Kanunun 28 inci maddesinin birinci fıkrasının (c) bendi kapsamında kişisel sağlık verileri, ilgili
+    kişilerin özel hayatın gizliliğini veya kişilik haklarını ihlâl etmemek ya da suç teşkil etmemek kaydıyla
+    alınacak teknik ve idari tedbirler çerçevesinde, bilimsel amaçlarla işlenebilir.
+  supports: research.record_level.m28_1_c_route
+  caveat: Cited for why the route is open (HB-L26), not for an answer.
+legal_gap: 'Six parts are not answered by any retrieved text. The legal minimum cell size: no Turkish
+  text sets a number, and the Kurum''s guide names the method without a k; a Kurul decision on aggregate
+  health statistics, or counsel''s opinion for the panel''s actual dimensions, would settle whether the
+  product floor of ten is enough. The retention periods for the aggregates and for raw telemetry: a data-retention
+  decision for the owner, settled in the controller''s retention and destruction policy (Yönetmelik m.5-6).
+  The DPA wording that authorises aggregates for the vendor''s own improvement: a vendor-contract term
+  for the owner and counsel. The record-level research route and whether açık rıza suffices for it — two
+  parts, both HB-L26: which limb of KSVY m.16 a consented, pseudonymised research export rides — m.16(1),
+  scientific work on data the controller has anonymised (KVKK m.28(1)(b)), or m.16(2), scientific processing
+  under KVKK m.28(1)(c) so long as it does not violate privacy or personality rights or constitute a crime
+  — whether it may ride either at all, and whether açık rıza is even an available basis or m.28 displaces
+  it; counsel.'
+value:
+  improvement:
+    rides_the_care_purpose: false
+    anonymised_aggregates_need_a_ground_or_consent: false
+    anonymisation_is_the_condition: the aggregates must be anonymous in the sense of KVKK m.3(1)(b) and
+      Yönetmelik m.10; data that are not anonymous lose the m.28(1)(b) route and need a ground of their
+      own
+    hospital_deployment_needs_controller_authorisation: true
+    controller_authorisation_wording: not decided (a vendor-contract term)
+    hospital_own_service_planning: the hospital, as controller, may analyse its own service for planning
+      and management under m.6(3)(e), where that is necessary (gerekli olması); that ground is the hospital's,
+      not the vendor's
+  research:
+    anonymised_aggregates_need_consent: false
+    record_level:
+      separate_purpose: true
+      never_without_acik_riza: true
+      floor_not_sufficiency: the product never uses record-level data for research without the patient's
+        açık rıza under the existing research purpose and an ethics approval; this is a floor, not a finding
+        that açık rıza suffices
+      acik_riza_suffices: not decided (HB-L26)
+      in_admin_analytics: false
+      m28_1_c_route: not decided (HB-L26)
+  admin_analytics:
+    may_hold: anonymised_aggregates_only
+    pseudonymised_rows: personal_data_never_admin_analytics
+    conditions:
+      no_identifiers_free_text_or_drill_down: no identifier, direct or indirect, no free text, no join
+        key and no per-patient or per-session drill-down
+      every_combination_is_a_cell: every combination of dimensions the panel can show (question, protocol
+        version, device, locale, tenant, period) is a cell and passes the threshold on its own
+      subjects_not_rows: a cell counts distinct people, not rows or sessions
+      whole_views_only: within a view, all its cells show or none do, so no cell of that view can be recovered
+        by subtraction from the others
+      across_views: a withheld cell can still be recovered by subtraction from a wider aggregate over
+        the same population, so step 2 needs fixed, non-overlapping period buckets, no free-form filters
+        and a check across views
+  cell_size:
+    legal_minimum: not decided
+    legal_test: no one can be identified from the shown figures, even by reversal or by matching with
+      other data, by the controller or by any recipient
+    k_anonymity_named_by_the_kurum: the Kurum's guide names k-anonymity among the statistical methods
+      that strengthen anonymisation
+    product_floor_subjects: 10
+  retention:
+    personal_inputs: the session data the aggregates are computed from are deleted, destroyed or anonymised
+      once the reason to process them ends
+    policy_required: a retention and destruction policy is required, because the controller must register
+      with VERBİS
+    periodic_destruction_max_months: 6
+    anonymised_aggregates_are_not_personal_data: true
+    aggregates: not decided
+    raw_telemetry_current_spec: 'files/06 §3: 30 days hot, 1 year cold, PHI-free by construction'
+    raw_telemetry: not decided
+  consent_scope:
+    stop_and_ask: true
+    current_spec: files/06 §2 lists learning:service_improvement as de-identified aggregates under an
+      opt-out
+    opt_out_is_not_acik_riza: 'an opt-out is not açık rıza: açık rıza is consent declared by free will
+      on a specific subject after information'
+    decision: 'accepted: the owner adopted owner_recommendation as written (D28, 16 Oct 2026); consent
+      scope is settled for synthetic and test use'
+    owner_recommendation: 'Keep the admin panel to anonymised aggregates only (KVKK m.28(1)(b); Yönetmelik
+      m.10) and add no consent purpose for it; the learning:service_improvement opt-out may stay as a
+      courtesy but is not the legal ground. Anything record-level or pseudonymised is used only under
+      opt-in açık rıza and never under an opt-out, subject to HB-L26: for research, the existing research
+      purpose; for improvement, a consent whose text names that purpose, because açık rıza is given on
+      a specific subject and consents are unbundled.'
+    owner_answer:
+      owner_decision: D28
+      outcome: accepted
+      quote: orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y
+      answered_on: 2026-10-16
+      channel: orchestrator → main conversation → owner in chat
+      reading: 'LD6Y adopts LD-06''s consent-scope recommendation as written. The reply''s other tokens
+        answer questions outside LD-06 and are not read here. The answer came after the reviewer''s verdict
+        and changes no legal value: it settles consent_scope.decision only.'
+  stop_and_ask_items: consent scope (this lane's recommendation, accepted by the owner under D28), the
+    retention periods, and the controller-authorisation term in the hospital DPA
+value_status:
+  improvement.controller_authorisation_wording: draft
+  research.record_level.m28_1_c_route: draft
+  research.record_level.acik_riza_suffices: draft
+  cell_size.legal_minimum: draft
+  retention.aggregates: draft
+  retention.raw_telemetry: draft
+spec_basis:
+- file: files/06_COMPLIANCE_TR.md
+  section: §1 ETİK
+  quote: All research consented (`research`) or anonymised per KSVY-16
+  supports: research.record_level.never_without_acik_riza
+- file: files/06_COMPLIANCE_TR.md
+  section: §1 ETİK
+  quote: All research consented (`research`) or anonymised per KSVY-16
+  supports: research.record_level.floor_not_sufficiency
+- file: files/06_COMPLIANCE_TR.md
+  section: §2 Consent architecture
+  quote: no pre-ticked boxes, no bundling, no service-conditioning
+  supports: consent_scope.owner_recommendation
+- file: packages/intake_platform/src/intake_platform/analytics/k_anonymity.py
+  section: module docstring
+  quote: together with any wider aggregate over the same population, recovers the missing cell by subtraction.
+  supports: admin_analytics.conditions.across_views
+- file: files/06_COMPLIANCE_TR.md
+  section: §8 Learning loops
+  quote: Loop 2 = de-identified service-improvement aggregates (opt-out, k ≥ 10)
+  supports: cell_size.product_floor_subjects
+- file: packages/intake_platform/src/intake_platform/analytics/k_anonymity.py
+  section: K_ANONYMITY_FLOOR
+  quote: K_ANONYMITY_FLOOR = 10
+  supports: cell_size.product_floor_subjects
+- file: packages/intake_platform/src/intake_platform/analytics/k_anonymity.py
+  section: module docstring, property 1
+  quote: A chronic patient with forty follow-ups is one person wearing forty rows, and the floor is applied
+    to the person.
+  supports: admin_analytics.conditions.subjects_not_rows
+- file: packages/intake_platform/src/intake_platform/analytics/k_anonymity.py
+  section: module docstring
+  quote: So the artefact is atomic — the whole view materialises or none of it does.
+  supports: admin_analytics.conditions.whole_views_only
+- file: files/00_STATE.md
+  section: §2, KSVY m.16 row
+  quote: A keyed HMAC pseudonym is re-derivable by whoever holds the key, so it is personal data
+  supports: admin_analytics.pseudonymised_rows
+- file: files/00_STATE.md
+  section: §2, KSVY m.16 row
+  quote: Whether açık rıza is even an available basis here, or whether m.28 displaces it, is HB-L26 (counsel)
+  supports: research.record_level.acik_riza_suffices
+- file: files/06_COMPLIANCE_TR.md
+  section: §8 Learning loops
+  quote: anything publishable or voice-model-training = `research` + ethics + KSVY-16 anonymisation
+  supports: research.record_level.never_without_acik_riza
+- file: files/06_COMPLIANCE_TR.md
+  section: §2 Consent architecture
+  quote: '`learning:service_improvement` (de-identified aggregates; opt-out costs no feature)'
+  supports: consent_scope.current_spec
+- file: files/06_COMPLIANCE_TR.md
+  section: §1 KVKK-16v
+  quote: VERBİS registration is mandatory regardless of size
+  supports: retention.policy_required
+- file: files/06_COMPLIANCE_TR.md
+  section: §3 Retention matrix
+  quote: 'Telemetry: 30 d hot / 1 y cold, PHI-free by construction.'
+  supports: retention.raw_telemetry_current_spec
+- file: CLAUDE.md
+  section: When to stop and ask the human
+  quote: Anything touching consent texts, red-flag rule semantics, data retention, vendor contracts
+  supports: consent_scope.stop_and_ask
+- file: CLAUDE.md
+  section: When to stop and ask the human
+  quote: Anything touching consent texts, red-flag rule semantics, data retention, vendor contracts
+  supports: stop_and_ask_items
+- file: files/06_COMPLIANCE_TR.md
+  section: §0.1 Two data-protection roles, by deployment
+  quote: the hospital is controller; INTAKE is
+  supports: improvement.hospital_deployment_needs_controller_authorisation
+- file: files/00_STATE.md
+  section: §3 D28
+  quote: orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y
+  supports: consent_scope.owner_answer
+- file: files/00_STATE.md
+  section: §3 D28
+  quote: LD6Y adopts LD-06's consent-scope recommendation as written
+  supports: consent_scope.decision
+fail_closed_while_draft: Nothing reaches the admin panel but aggregates that pass the existing k-anonymity
+  gate at its product floor of ten distinct people, all-or-nothing within each view (across views, step
+  2 adds fixed period buckets, no free-form filters and a cross-view check); no record-level, pseudonymised,
+  per-session or per-patient view is built; in the hospital deployment no aggregate is computed for the
+  vendor's own use until the DPA authorises it; retention periods stay as files/06 §3 states them until
+  the owner decides; and the build half of INT-484 waits for this decision's verdict.
+verifier:
+  verdict: agree_with_changes
+  role: legal-reviewer agent
+  verified_on: 2026-10-04
+  notes: 'B1 applied: record-level research ground split/drafted under HB-L26 (açık rıza availability
+    and m.28 displacement stay with counsel), outcome (b), legal_gap and recommendation restate HB-L26
+    in full, draft key pinned by test. Quotes verbatim; RG data correct; m.28(1)(b) reading disclosed;
+    S1-S10 follow-ups.'

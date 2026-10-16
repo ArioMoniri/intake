@@ -1064,6 +1064,7 @@ value:
         Should the generator omit the fixed slot where base asks the onset (with
         CD-100 T3's duration=omit question), or should base change? onset_date is the
         tense anchor of the base red-flag rules, so a date must stay.
+      resolved_by: CD-110
     - item: "docs/evidence/verification/near-twin-sweep-582.md#L186"
       ref: T93
       packets: [agiz_dis_cene_radyolojisi]
