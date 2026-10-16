@@ -254,3 +254,65 @@ code {
   border-left: 3px solid var(--bad);
   border-radius: 8px;
 }
+
+/* INT-490 — the Analytics page: a withheld table is marked, never painted;
+   bars are native <meter> elements, so nothing is styled by attribute. */
+.tile-withheld {
+  border-top-color: var(--unknown);
+}
+
+.tile[data-tile="release"],
+.tile[data-tile="not_collected"] {
+  grid-column: 1 / -1;
+}
+
+.tile[data-tile^="funnel:"] {
+  grid-column: span 2;
+}
+
+@media (max-width: 760px) {
+  .tile[data-tile^="funnel:"] {
+    grid-column: 1 / -1;
+  }
+}
+
+.lt-k {
+  font-family: var(--mono);
+  color: var(--unknown);
+}
+
+.period-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.share meter {
+  width: 96px;
+  vertical-align: middle;
+}
+
+.band-sub {
+  margin: 20px 0 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.question h4 {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+td.wrap {
+  white-space: normal;
+}
+
+.empty {
+  margin-top: 16px;
+  color: var(--muted);
+}
