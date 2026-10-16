@@ -16,6 +16,7 @@ members = [
     "intake-api",
     "intake-clinical-schemas",
     "intake-connectors",
+    "intake-hosted-lanes",
     "intake-learning",
     "intake-metrics",
     "intake-platform",
@@ -971,6 +972,27 @@ requires-dist = [
 ]
 
 [[package]]
+name = "intake-hosted-lanes"
+version = "0.1.0"
+source = { editable = "packages/hosted-lanes" }
+dependencies = [
+    { name = "httpx" },
+    { name = "intake-platform" },
+    { name = "intake-voice-clips" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "intake-voice-clips", editable = "packages/voice-clips" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
+
+[[package]]
 name = "intake-learning"
 version = "0.1.0"
 source = { editable = "services/learning" }
@@ -1116,6 +1138,7 @@ source = { editable = "packages/voice-clips" }
 dependencies = [
     { name = "httpx" },
     { name = "intake-clinical-schemas" },
+    { name = "intake-platform" },
     { name = "intake-protocols" },
     { name = "minio" },
     { name = "numpy" },
@@ -1128,6 +1151,7 @@ dependencies = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "intake-clinical-schemas", editable = "packages/clinical-schemas" },
+    { name = "intake-platform", editable = "packages/intake_platform" },
     { name = "intake-protocols", editable = "packages/protocols" },
     { name = "minio", specifier = ">=7.2.9" },
     { name = "numpy", specifier = ">=1.26" },

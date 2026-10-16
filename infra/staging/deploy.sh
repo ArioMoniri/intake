@@ -28,7 +28,8 @@
 #   3. Runs the release gate in that image (INT-187). It stops here, before
 #      anything restarts, if deploys are frozen from the console, an SLO's
 #      error budget is exhausted, or the freeze cannot be read.
-#   4. Unseals OpenBao and renews the API's periodic token.
+#   4. Unseals OpenBao, renews the API's periodic token, and loads any
+#      hosted-provider key held in SSM Parameter Store into OpenBao (INT-428).
 #   5. Migrates, and re-keys any new migration role.
 #   6. INT-421: makes sure Keycloak's database exists, starts Keycloak (which
 #      imports the staff realm on first start), switches the live realm's
@@ -70,6 +71,13 @@ compose up -d postgres redis openbao
 wait_for_openbao
 unseal_openbao
 renew_api_token
+# INT-428 (ADR-035): any hosted-provider key held in SSM Parameter Store
+# (/intake/staging/<provider>_api_key) is re-loaded into OpenBao, so the
+# terminal route, the deploy and the console read one record. Prints set /
+# not set and the last four characters only.
+for provider in openai elevenlabs; do
+  "$STAGING_DIR/load_provider_key.sh" --if-present "$provider"
+done
 
 wait_healthy postgres
 run_migrations

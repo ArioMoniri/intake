@@ -83,7 +83,9 @@ body {
 .tile[data-tile="probe_matrix"],
 .tile[data-tile="dep_components"],
 .tile[data-tile="pipelines"],
-.tile[data-tile="gates"] {
+.tile[data-tile="gates"],
+.tile[data-tile="lanes"],
+.tile[data-tile="usage"] {
   grid-column: 1 / -1;
 }
 

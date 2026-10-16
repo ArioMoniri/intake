@@ -21,7 +21,9 @@
 #      the record must decrypt again. A process-local KEK fails the first
 #      step. A KEK that is not on persistent storage fails the second.
 #   6-7. INT-421/INT-378: the admin tier and the live realm's WebAuthn step.
-#   8. INT-481: the telemetry tier. The staff Grafana sends an anonymous
+#   8. INT-442/INT-443: the API's egress through the forward proxy, and one
+#      scripted clip through the hosted lane.
+#   9. INT-481: the telemetry tier. The staff Grafana sends an anonymous
 #      caller to Keycloak, the telemetry services are ready, every scrape
 #      target and synthetic probe is up, this deploy's marker is stored, the
 #      API's alerts route refuses an anonymous caller, and the realm has the
@@ -172,7 +174,29 @@ else
   fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
 fi
 
-# 8. INT-481: the telemetry tier. The staff Grafana is its own origin behind its
+# 8. INT-442: the API's egress, from the API's own network position — no
+#    direct route out, an unlisted host and the metadata address refused by
+#    the forward proxy, and every hosted-model allow-list row tunnelled
+if out=$(compose exec -T api python infra/staging/egress_probe.py proxy 2>&1); then
+  pass "$(printf '%s' "$out" | tr '\n' ';')"
+else
+  fail "$(printf '%s' "$out" | tr '\n' ';')"
+fi
+
+# 7. INT-443: one scripted question clip through the George route's own
+#    wiring, inside the api container; it names the lane that spoke it
+#    (elevenlabs, or self_hosted after a vendor failure) and never the text.
+#    An unconfigured lane (no allow-list row yet) is reported, not failed:
+#    the row is the owner's protected change.
+if out=$(compose exec -T api python -m intake_api.george_prebake probe 2>&1); then
+  pass "$out"
+elif [[ $out == *unconfigured* ]]; then
+  pass "clip lane not serving yet: $out"
+else
+  fail "$out"
+fi
+
+# 9. INT-481: the telemetry tier. The staff Grafana is its own origin behind its
 #    own login gate, and sends an anonymous caller to the Keycloak login. Each
 #    telemetry service answers inside the host. Prometheus scrapes every target
 #    and every synthetic probe passes, and it has stored this deploy's

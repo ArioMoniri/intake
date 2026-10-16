@@ -284,6 +284,21 @@ export {
 } from "./cicd/module";
 export { loadCicd, type CicdState } from "./cicd/load";
 export { planCicdAction, submitCicdAction } from "./cicd/actions";
+// INT-428 — the Model lanes module (files/08 §3; ADR-035): which backend serves
+// the llm, asr and tts lanes and each configured role, latency and cost per
+// route and provider, the model options, the hosted providers' keys, and the
+// tier-1 switches and tier-2 requests, rendered at `app/model-lanes/page.tsx`.
+export {
+  MODEL_LANES_SCHEMA,
+  ModelLanesIncoherent,
+  ModelLanesSecretLeaked,
+  ModelLanesShapeRefused,
+  renderModelLanes,
+  type ModelLanesPayload,
+  type ModelLanesView,
+} from "./model-lanes/module";
+export { loadModelLanes, type ModelLanesState } from "./model-lanes/load";
+export { planModelLanesAction, submitModelLanesAction } from "./model-lanes/actions";
 // INT-366 — the access review (files/08 §2.7, §3 Access & identity): the
 // console review's age and what it makes read-only, each section's reviewer
 // and digest, every staff account and the offboardings still open, rendered

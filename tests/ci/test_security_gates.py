@@ -649,6 +649,9 @@ def test_the_node_forge_exception_is_scoped_and_expires() -> None:
     exactly that package version. It states how the package is reached and
     what the evidence is, and it expires within 30 days of the decision. After
     that date trivy reports the finding again and the gate turns red.
+
+    INT-508 renewed it once, to 31 Dec 2026, by the owner's own commit: no
+    node-forge release had cleared it by 16 Oct 2026.
     """
     rows = yaml.safe_load(TRIVYIGNORE.read_text(encoding="utf-8"))["vulnerabilities"]
     forge = [r for r in rows if r.get("id") == "CVE-2026-85393"]
@@ -657,11 +660,18 @@ def test_the_node_forge_exception_is_scoped_and_expires() -> None:
     assert row["purls"] == ["pkg:npm/node-forge@1.4.0"], "scoped to the one version, nothing wider"
     expiry = row.get("expired_at")
     assert isinstance(expiry, datetime.date), "the exception must carry trivy's expired_at"
-    assert datetime.date(2026, 10, 2) < expiry <= datetime.date(2026, 11, 1), (
-        "30 days from the decision, no more"
+    assert datetime.date(2026, 10, 16) < expiry <= datetime.date(2026, 12, 31), (
+        "renewed once (INT-508), to 31 Dec 2026 at the latest"
     )
     statement = " ".join(str(row.get("statement", "")).split())
-    for must in ("owner", "expo export", "@expo/cli", "docs/evidence/INT-429.md"):
+    for must in (
+        "owner",
+        "expo export",
+        "@expo/cli",
+        "docs/evidence/INT-429.md",
+        "owner-508-renew-exceptions.patch",
+        "digitalbazaar/forge#1152",
+    ):
         assert must in statement, f"the statement must say {must!r}"
 
 
@@ -672,18 +682,32 @@ def test_the_osv_exception_names_one_advisory_and_expires() -> None:
     (entry,) = [e for e in config["IgnoredVulns"] if e["id"] == "GHSA-86w9-cpqp-85rv"]
     until = entry.get("ignoreUntil")
     assert isinstance(until, datetime.datetime), "the exception must carry ignoreUntil"
-    assert datetime.date(2026, 10, 2) < until.date() <= datetime.date(2026, 11, 1), (
-        "30 days, no more"
+    assert datetime.date(2026, 10, 16) < until.date() <= datetime.date(2026, 12, 31), (
+        "renewed once (INT-508), to 31 Dec 2026 at the latest"
     )
     reason = " ".join(str(entry.get("reason", "")).split())
-    for must in ("owner", "node-forge 1.4.0", "expo export", "docs/evidence/INT-429.md"):
+    for must in (
+        "owner",
+        "node-forge 1.4.0",
+        "expo export",
+        "docs/evidence/INT-429.md",
+        "owner-508-renew-exceptions.patch",
+        "digitalbazaar/forge#1152",
+    ):
         assert must in reason, f"the reason must say {must!r}"
 
 
-# INT-426 follow-up: the two advisories OSV reissued on 2 Oct with no fix.
+# INT-426 follow-up: the advisory OSV reissued on 2 Oct with no fix. Its sibling,
+# http-cache-semantics 4.2.0 (GHSA-ch52-4w7c-c8xp), went in INT-501 once 4.3.0
+# cleared it by version; ADVISORY_IDS keeps it from coming back as a mute.
 OSV_NO_FIX_ROWS = {
-    "GHSA-vfj7-8cjw-p6xm": ("braces 3.0.3", "micromatch 4.0.8", "metro-file-map"),
-    "GHSA-ch52-4w7c-c8xp": ("http-cache-semantics 4.2.0", "@expo/ngrok", "--tunnel"),
+    "GHSA-vfj7-8cjw-p6xm": (
+        "braces 3.0.3",
+        "micromatch 4.0.8",
+        "metro-file-map",
+        "micromatch/braces",
+        "owner-508-renew-exceptions.patch",
+    ),
 }
 
 # INT-378: the one OSV record keycloak-services 26.7.4 still matches. Its range is open,
@@ -695,7 +719,8 @@ OSV_KEYCLOAK_CONFIG = REPO / "infra/keycloak/providers/webauthn-session-notes/os
 
 def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
     """Each entry names one advisory of one package, says how it is reached,
-    and expires within 30 days of 3 Oct 2026, after which the gate turns red."""
+    and expires within 30 days of 3 Oct 2026, after which the gate turns red.
+    INT-508 renewed the braces entry once, to 31 Dec 2026."""
     config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
     entries = {e["id"]: e for e in config["IgnoredVulns"]}
     assert set(entries) == {"GHSA-86w9-cpqp-85rv", *OSV_NO_FIX_ROWS}, "nothing else is muted"
@@ -703,8 +728,8 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
         entry = entries[advisory]
         until = entry.get("ignoreUntil")
         assert isinstance(until, datetime.datetime), f"{advisory} must carry ignoreUntil"
-        assert datetime.date(2026, 10, 3) < until.date() <= datetime.date(2026, 11, 2), (
-            f"{advisory}: 30 days, no more"
+        assert datetime.date(2026, 10, 16) < until.date() <= datetime.date(2026, 12, 31), (
+            f"{advisory}: renewed once (INT-508), to 31 Dec 2026 at the latest"
         )
         reason = " ".join(str(entry.get("reason", "")).split())
         for must in (
@@ -714,6 +739,26 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
             *musts,
         ):
             assert must in reason, f"{advisory}: the reason must say {must!r}"
+
+
+def test_the_braces_trivy_row_is_scoped_and_expires_with_its_osv_entry() -> None:
+    """INT-508: trivy's view of the braces advisory, renewed with the osv entry."""
+    rows = yaml.safe_load(TRIVYIGNORE.read_text(encoding="utf-8"))["vulnerabilities"]
+    (row,) = [r for r in rows if r.get("id") == "CVE-2026-93687"]
+    assert row["purls"] == ["pkg:npm/braces@3.0.3"], "scoped to the one version"
+    expiry = row.get("expired_at")
+    assert isinstance(expiry, datetime.date), "the row must carry trivy's expired_at"
+    config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    (entry,) = [e for e in config["IgnoredVulns"] if e["id"] == "GHSA-vfj7-8cjw-p6xm"]
+    assert expiry == entry["ignoreUntil"].date(), "trivy and osv expire together"
+    statement = " ".join(str(row.get("statement", "")).split())
+    for must in (
+        "owner-508-renew-exceptions.patch",
+        "micromatch/braces",
+        "expo export",
+        "docs/evidence/INT-426.md",
+    ):
+        assert must in statement, f"the statement must say {must!r}"
 
 
 def test_the_keycloak_osv_exception_is_bounded_reasoned_and_expires() -> None:
@@ -888,6 +933,11 @@ LOCKFILE = REPO / "pnpm-lock.yaml"
 # main 3afc5a29 on 16 Oct 2026, each with a fixed release. shell-quote,
 # compression and source-map-js are transitive, so root pnpm.overrides floors
 # raise them; next is admin-web's own direct pin (docs/evidence/INT-500.md).
+#
+# INT-501 adds http-cache-semantics. Its osv-scanner exception (GHSA-ch52-4w7c-c8xp)
+# expires on 2 Nov 2026. The record's range ends at last_affected 4.2.0, and 4.3.0
+# shipped on 4 Oct, so a root override floor lifts the one transitive copy
+# (@expo/ngrok > got > cacheable-request) out of it (docs/evidence/INT-501.md).
 FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "vitest": (4, 1, 11),  # GHSA-5xrq-8626-4rwp (3.2.6), GHSA-82fw-gwwq-j7x9 (4.1.11)
     "@vitest/mocker": (4, 1, 11),  # GHSA-82fw-gwwq-j7x9
@@ -899,6 +949,7 @@ FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "compression": (1, 8, 2),  # GHSA-vc2v-76pw-4v95 (CVE-2026-87776)
     "source-map-js": (1, 2, 2),  # GHSA-68fv-2mgg-jv7q (CVE-2026-93749)
     "next": (16, 3, 8),  # CVE-2026-94483 and six more GHSA records, all fixed in 16.3.8
+    "http-cache-semantics": (4, 3, 0),  # GHSA-ch52-4w7c-c8xp (CVE-2026-93748), through 4.2.0
 }
 
 # INT-500: the one uv.lock advisory osv-scanner 2.5.1 reported beside the four
@@ -937,6 +988,9 @@ ADVISORY_IDS = (
     "GHSA-mcj8-r9mp-w47p",
     "PYSEC-2026-4243",
     "GHSA-5639-2j2p-m4mx",
+    # INT-501: cleared by http-cache-semantics 4.3.0, never to return as a mute
+    "GHSA-ch52-4w7c-c8xp",
+    "CVE-2026-93748",
 )
 
 # Every suppression mechanism the two lockfile/filesystem scanners in
@@ -997,11 +1051,18 @@ OSV_SUPPRESSION_FILES = (
 # - It expires on 2 Nov 2026
 #   (test_the_keycloak_osv_exception_is_bounded_reasoned_and_expires).
 # - The trivy pin does not move, because trivy reports nothing for that pom.
-MAX_OSV_SUPPRESSIONS = 4
+#
+# INT-501 lowers it from 4 to 3. http-cache-semantics resolves to 4.3.0, outside
+# GHSA-ch52-4w7c-c8xp's range, so its entry is gone (owner-501-remove-exceptions).
+MAX_OSV_SUPPRESSIONS = 3
 # The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
 # the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
 # owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
 # entry, and the pin goes back down when it does.
+#
+# INT-508 renews the node-forge and braces rows (trivy and osv) once, to
+# 2026-12-31, by the owner's commit of owner-508-renew-exceptions.patch. No row
+# is added, so neither pin moves.
 MAX_TRIVY_SUPPRESSIONS = 3
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
@@ -1116,7 +1177,35 @@ OVERRIDE_FLOORS = {
     "shell-quote@<1.11.0": "^1.11.0",
     "compression@<1.8.2": "^1.8.2",
     "source-map-js@<1.2.2": "^1.2.2",
+    "http-cache-semantics@<4.3.0": "^4.3.0",  # INT-501
 }
+
+
+def _override_reaches_its_fix(selector: str, floor: str) -> bool:
+    """The selector's upper bound and the floor are both the package's fixed version.
+
+    A selector bounded lower (`<4.2.0`) leaves the last vulnerable release
+    unrewritten; a floor below the fix rewrites it to another vulnerable one.
+    """
+    name, _, bound = selector.rpartition("@")
+    fixed = FIXED_VERSIONS[name]
+    return (
+        bound.startswith("<")
+        and _parse_version(bound[1:]) == fixed
+        and _parse_version(floor.lstrip("^")) == fixed
+    )
+
+
+def test_every_override_floor_is_its_fixed_version() -> None:
+    """INT-501: each override lifts exactly the advisory's range, no lower."""
+    for selector, floor in OVERRIDE_FLOORS.items():
+        assert _override_reaches_its_fix(selector, floor), f"{selector} -> {floor}"
+
+
+def test_near_miss_an_override_one_release_short_is_caught() -> None:
+    assert not _override_reaches_its_fix("http-cache-semantics@<4.2.0", "^4.3.0")
+    assert not _override_reaches_its_fix("http-cache-semantics@<4.3.0", "^4.2.0")
+    assert _override_reaches_its_fix("http-cache-semantics@<4.3.0", "^4.3.0")
 
 
 def test_the_transitive_floors_are_overrides_and_next_is_pinned_directly() -> None:
