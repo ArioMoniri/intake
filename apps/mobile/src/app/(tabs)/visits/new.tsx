@@ -155,7 +155,12 @@ export default function NewVisit() {
     router.replace(`/(tabs)/visits/${visit.id}`);
   };
 
-  if (coreRefused) {
+  if (coreRefused && !gate.open) {
+    // A moved text is asked for again, never as if it were the first time;
+    // with no text served (a real tenant until counsel signs), nothing
+    // invites the patient to read one — the button opens the consent's own
+    // page, which says the text is being prepared.
+    const noText = gate.reason === "no_text";
     return (
       <Screen edges={["left", "right"]}>
         <Stack.Screen options={headerOptions(t("visits.new.title"))} />
@@ -165,13 +170,16 @@ export default function NewVisit() {
             icon="checkmark.shield"
             kickerKey="visits.new.core.kicker"
             titleKey="visits.new.core.title"
-            // a moved text is asked for again, never as if it were the first time
             bodyKey={
-              !gate.open && gate.stale ? "visits.new.core.staleBody" : "visits.new.core.body"
+              gate.reason === "stale"
+                ? "visits.new.core.staleBody"
+                : noText
+                  ? "visits.new.core.pendingBody"
+                  : "visits.new.core.body"
             }
           />
           <PrimaryButton
-            label={t("visits.new.core.cta")}
+            label={t(noText ? "visits.new.core.pendingCta" : "visits.new.core.cta")}
             onPress={() => router.push(`/(tabs)/me/consents/${purposeParam("core")}`)}
           />
         </ScrollView>

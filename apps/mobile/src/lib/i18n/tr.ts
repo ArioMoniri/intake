@@ -118,7 +118,10 @@ export const tr = {
     "Bu izin olmadan ön görüşme yapılamaz. İzin metnini okuyup karar verebilirsiniz. İzni istediğiniz an geri çekebilirsiniz.",
   "visits.new.core.staleBody":
     "Temel hizmet izninin metni güncellendi. Vizit eklemek için yeni metni okuyup yeniden onay vermeniz gerekir.",
+  "visits.new.core.pendingBody":
+    "Bu izin olmadan ön görüşme yapılamaz. İzin metni henüz hazırlanıyor. Metin yayımlanınca okuyup karar verebilirsiniz.",
   "visits.new.core.cta": "İzin metnini okuyun",
+  "visits.new.core.pendingCta": "İzin sayfasına gidin",
   // Vizit türleri — files/09 §1
   "visits.type.first": "İlk başvuru",
   "visits.type.followup": "Kontrol",
@@ -773,7 +776,8 @@ export const tr = {
   "consent.learning.service": "Hizmeti iyileştirme",
   "consent.satisfaction": "Memnuniyet soruları",
   "consent.research": "Araştırma",
-  "consent.who.core": "Anlattıklarınızı yalnızca siz ve onay verdiğiniz hekim görür.",
+  "consent.who.core":
+    "Notunuzu siz görürsünüz. Hekiminiz, yalnızca siz paylaşırsanız görür. Acil bir işarette klinik personeli, paylaşım beklemeden kısa bir uyarı görür.",
   "consent.who.voice":
     "Sesiniz yalnızca görüşme sırasında işlenir; kayıt saklanmaz. Veriler Türkiye'deki sunucularda kalır.",
   "consent.who.laneAffect":

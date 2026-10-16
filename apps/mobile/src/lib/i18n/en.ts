@@ -113,7 +113,10 @@ export const en: Record<MessageKey, string> = {
     "Without this permission the pre-visit interview cannot take place. You can read the permission text and decide. You can withdraw the permission at any moment.",
   "visits.new.core.staleBody":
     "The text of the core service permission was updated. To add a visit, you need to read the new text and approve again.",
+  "visits.new.core.pendingBody":
+    "Without this permission the pre-visit interview cannot take place. The permission text is still being prepared. Once it is published, you can read it and decide.",
   "visits.new.core.cta": "Read the permission text",
+  "visits.new.core.pendingCta": "Go to the permission page",
   "visits.type.first": "First visit",
   "visits.type.followup": "Follow-up",
   "visits.type.preop": "Before surgery",
@@ -746,7 +749,8 @@ export const en: Record<MessageKey, string> = {
   "consent.learning.service": "Improving the service",
   "consent.satisfaction": "Satisfaction questions",
   "consent.research": "Research",
-  "consent.who.core": "Only you and the doctor you approve see what you share.",
+  "consent.who.core":
+    "You see your note. Your doctor sees it only if you share it. On an emergency sign, clinic staff see a short alert without waiting for a share.",
   "consent.who.voice":
     "Your voice is processed only during the session; no recording is kept. Data stays on servers in Türkiye.",
   "consent.who.laneAffect":

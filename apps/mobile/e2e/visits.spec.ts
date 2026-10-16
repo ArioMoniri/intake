@@ -12,6 +12,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { tr } from "../src/lib/i18n/tr";
+
 const SRC = join(__dirname, "..", "src");
 const APP = join(SRC, "app");
 
@@ -139,13 +141,27 @@ describe("visit start needs the core consent, and leads to it (INT-537)", () => 
       "visits.new.core.title",
       "visits.new.core.body",
       "visits.new.core.staleBody",
+      "visits.new.core.pendingBody",
       "visits.new.core.cta",
+      "visits.new.core.pendingCta",
     ]) {
       expect(source).toContain(`"${key}"`);
       expect(read(SRC, "lib", "i18n", "tr.ts")).toContain(`"${key}"`);
       expect(read(SRC, "lib", "i18n", "en.ts")).toContain(`"${key}"`);
     }
     expect(source).toContain('router.push(`/(tabs)/me/consents/${purposeParam("core")}`)');
+  });
+
+  it("with no core text served, the screen never invites the patient to read one", () => {
+    // a real tenant serves no text until counsel signs (HB-L27): the body
+    // and the button say the text is on its way instead (legal review round 2)
+    const source = screen();
+    expect(source).toContain('gate.reason === "no_text"');
+    // the pending pair says the text is being prepared; the button does not
+    // promise a text to read
+    expect(tr["visits.new.core.pendingBody"]).toContain("hazırlanıyor");
+    expect(tr["visits.new.core.pendingCta"]).not.toMatch(/metn|okuyun/i);
+    expect(tr["visits.new.core.cta"]).toContain("okuyun");
   });
 
   it("the gate asks for core and for nothing optional (files/02 §7)", () => {

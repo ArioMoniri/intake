@@ -17,7 +17,9 @@
  *   one of them (INT-537): the server registry makes it açık rıza and visits
  *   and notes require it, so it is granted against its text like the rest —
  *   asked in context, at the first visit — and withdrawn in one tap.
- *   Optional purposes never gate it, and it gates nothing optional.
+ *   No optional purpose is needed to grant it or to use the service it
+ *   covers. Withdrawing it closes every other purpose with it (the server
+ *   cascade, which the core text states); re-granting it re-opens none.
  * - `optout` — the two learning purposes: on by default under their stated
  *   non-consent bases, with an opt-out switch and honest basis copy.
  */
@@ -68,8 +70,9 @@ export const PURPOSES: readonly PurposeDef[] = [
     defaultGranted: false,
     parent: null,
     // The server's dependents_of("core"): a withdrawn service consent leaves
-    // nothing to ride on, so every other purpose's explicit grant falls with
-    // it (consent/registry.py). The core text says so to the patient.
+    // nothing to ride on, so every other purpose falls with it — explicit
+    // grants revoked, default-on ones opted out (consent/service.py). The
+    // core text says so to the patient.
     cascadeChildren: [
       "voice",
       "wellbeing",

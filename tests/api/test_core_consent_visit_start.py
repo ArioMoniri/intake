@@ -16,8 +16,10 @@ on, with the committed synthetic texts (INT-529) — the way the app does:
 3. the grant binds that hash, is audited, and the audit carries ids only
    (invariants 4 and 6);
 4. with core, a visit starts and its note saves;
-5. withdrawing core stops new visits and the note at once; a re-grant against
-   the same text restores them.
+5. withdrawing core stops new visits and the note at once, and closes every
+   other purpose as the core text says — the two default-on learning
+   purposes by a written opt-out, audited as a cascade (legal review B1); a
+   re-grant against the same text restores visits and re-opens nothing else.
 
 A real-tenant boot serves no core text, so the grant fails closed and visit
 start stays refused — the near-miss that keeps the synthetic texts from being
@@ -106,20 +108,24 @@ def _wipe_consents(harness: ApiHarness) -> None:
     run(_wipe())
 
 
-def _core_rows(harness: ApiHarness) -> list[Consent]:
+def _scope_rows(harness: ApiHarness, scope: str) -> list[Consent]:
     async def _read() -> list[Consent]:
         async with AsyncSession(harness.engine) as session:
             result = await session.scalars(
                 select(Consent).where(
                     Consent.tenant_id == DEV_TENANT_ID,
                     Consent.patient_id == DEV_PATIENT_ID,
-                    Consent.scope == "core",
+                    Consent.scope == scope,
                 )
             )
             return list(result.all())
 
     rows: list[Consent] = run(_read())
     return rows
+
+
+def _core_rows(harness: ApiHarness) -> list[Consent]:
+    return _scope_rows(harness, "core")
 
 
 def _snapshot(harness: ApiHarness) -> dict[str, list[dict[str, object]]]:
@@ -286,44 +292,94 @@ def test_withdrawing_core_stops_new_visits_and_the_note_at_once(synthetic: ApiHa
     assert actions.count("api.visit.create") == 1
 
 
-def test_a_core_withdrawal_takes_the_other_grants_with_it(synthetic: ApiHarness) -> None:
-    """The synthetic core text says so ("Bütün öteki izinleriniz ... da
-    kapanır"); the app's ledger mirrors exactly this cascade."""
-    _grant_core(synthetic)
-    snapshot = _snapshot(synthetic)
-    (documents,) = [row for row in snapshot["texts"] if row["purpose"] == "documents"]
-    granted = synthetic.client.post(
+DEFAULT_ON = ("learning:personal", "learning:service_improvement")
+
+
+def _grant_served(harness: ApiHarness, scope: str) -> None:
+    (text,) = [row for row in _snapshot(harness)["texts"] if row["purpose"] == scope]
+    response = harness.client.post(
         "/v1/consents/grant",
-        json={
-            "scope": "documents",
-            "version": documents["version"],
-            "text_hash": documents["text_hash"],
-        },
-        headers=synthetic.patient(),
+        json={"scope": scope, "version": text["version"], "text_hash": text["text_hash"]},
+        headers=harness.patient(),
     )
-    assert granted.status_code == 201, granted.text
-    withdrawn = synthetic.client.post(
-        "/v1/consents/withdraw", json={"scope": "core"}, headers=synthetic.patient()
+    assert response.status_code == 201, response.text
+
+
+def _reasons(harness: ApiHarness) -> dict[object, object]:
+    return {row["scope"]: row["reason"] for row in _snapshot(harness)["scopes"]}
+
+
+def _withdraw(harness: ApiHarness, scope: str) -> list[str]:
+    response = harness.client.post(
+        "/v1/consents/withdraw", json={"scope": scope}, headers=harness.patient()
     )
-    assert withdrawn.status_code == 200
-    assert withdrawn.json()["withdrawn_scopes"] == ["core", "documents"]
-    reasons = {row["scope"]: row["reason"] for row in _snapshot(synthetic)["scopes"]}
-    assert reasons["documents"] == "withdrawn"
-    # near miss: an undecided default-on purpose has no row to revoke
-    assert reasons["learning:personal"] == "default_on"
+    assert response.status_code == 200, response.text
+    withdrawn: list[str] = response.json()["withdrawn_scopes"]
+    return withdrawn
+
+
+def test_a_core_withdrawal_takes_every_other_purpose_with_it(synthetic: ApiHarness) -> None:
+    """The synthetic core text says so: "Bütün öteki izinleriniz ve açık
+    paylaşım bağlantılarınız da kapanır". That covers the two default-on
+    learning purposes too, which have no row to revoke: the cascade writes
+    their opt-out, audited as a cascade like every other dependent."""
+    _grant_core(synthetic)
+    _grant_served(synthetic, "documents")
+    assert _withdraw(synthetic, "core") == ["core", "documents", *DEFAULT_ON]
+
+    reasons = _reasons(synthetic)
+    for scope in ("core", "documents", *DEFAULT_ON):
+        assert reasons[scope] == "withdrawn", scope
+    for scope in DEFAULT_ON:
+        (row,) = _scope_rows(synthetic, scope)
+        assert row.version == "opt-out"
+        assert row.revoked_at is not None and row.granted_at == row.revoked_at
+
+    entries = synthetic.audit_store.entries()
+    cascaded = {e.consent_scope_ref for e in entries if e.action == "consent.cascade"}
+    assert {"scope:documents", *(f"scope:{scope}" for scope in DEFAULT_ON)} <= cascaded
+    assert verify_entries(entries).ok
+
+
+def test_withdrawing_voice_leaves_the_learning_purposes_standing(synthetic: ApiHarness) -> None:
+    """Near miss: only core reaches the default-on purposes. Voice drags its
+    own lane and nothing else, so learning stays default_on with no row."""
+    _grant_core(synthetic)
+    _grant_served(synthetic, "voice")
+    _grant_served(synthetic, "lane:affect")
+    assert _withdraw(synthetic, "voice") == ["lane:affect", "voice"]
+    reasons = _reasons(synthetic)
+    for scope in DEFAULT_ON:
+        assert reasons[scope] == "default_on", scope
+        assert _scope_rows(synthetic, scope) == []
+    assert reasons["core"] == "granted"
 
 
 def test_a_regrant_after_withdrawal_starts_visits_again(synthetic: ApiHarness) -> None:
     _grant_core(synthetic)
-    synthetic.client.post(
-        "/v1/consents/withdraw", json={"scope": "core"}, headers=synthetic.patient()
-    )
+    _withdraw(synthetic, "core")
     assert _start_visit(synthetic)[0] == 403
     _grant_core(synthetic)
     status, body = _start_visit(synthetic)
     assert status == 201, body
     live = [row for row in _core_rows(synthetic) if row.revoked_at is None]
     assert len(live) == 1
+    # a re-grant of core re-enables nothing it took down: the learning
+    # opt-outs stand until the patient changes them
+    reasons = _reasons(synthetic)
+    for scope in DEFAULT_ON:
+        assert reasons[scope] == "withdrawn", scope
+
+
+def test_a_second_core_withdrawal_writes_no_second_opt_out(synthetic: ApiHarness) -> None:
+    """Near miss: the opt-out is written only where a default-on purpose has
+    no row. One already recorded is a decision, and it is not written again."""
+    _grant_core(synthetic)
+    _withdraw(synthetic, "core")
+    _grant_core(synthetic)
+    assert _withdraw(synthetic, "core") == ["core"]
+    for scope in DEFAULT_ON:
+        assert len(_scope_rows(synthetic, scope)) == 1, scope
 
 
 def test_a_grant_against_a_text_the_app_did_not_show_starts_nothing(

@@ -8,6 +8,9 @@
  * - the gate opens on an honoured core grant and on nothing else;
  * - a core grant whose text moved is stale: the gate stays shut and says so,
  *   so the screen can ask for the new text rather than the first one;
+ * - with no core text served at all (a real tenant until counsel signs) it is
+ *   shut for that reason, so the screen never invites the patient to read a
+ *   text that does not exist (legal review round 2);
  * - the optional purposes never open or shut it (files/02 §7);
  * - a core withdrawal shuts it at once.
  *
@@ -39,13 +42,12 @@ const text = (version: string, fill: string): TextEntry => ({
   },
 });
 
-/** Every optional purpose granted against a loaded text — core untouched. */
+/** Every optional purpose granted against a loaded text — core's text
+ * loaded too, but core never granted. */
 function everythingButCore(): LedgerState {
   let state = freshLedger();
   for (const def of PURPOSES) {
-    if (def.id !== "core") {
-      state = applyTexts(state, { [def.id]: text("v1", "9") });
-    }
+    state = applyTexts(state, { [def.id]: text("v1", "9") });
   }
   for (const def of PURPOSES) {
     if (def.id !== "core") {
@@ -56,20 +58,27 @@ function everythingButCore(): LedgerState {
 }
 
 describe("coreGate — the one consent a visit needs (INT-537)", () => {
-  it("a fresh account has no core consent: the gate is shut, not stale", () => {
-    expect(coreGate(freshLedger())).toEqual({ open: false, stale: false });
+  it("with no core text served (a real tenant today), the gate is shut and says so", () => {
+    // the screen must not invite the patient to read a text that does not
+    // exist: docs/legal/documents.yaml declares nothing until counsel signs
+    expect(coreGate(freshLedger())).toEqual({ open: false, reason: "no_text" });
+  });
+
+  it("with the core text served and no grant, the gate is shut for want of a decision", () => {
+    const state = applyTexts(freshLedger(), { core: text("v1", "c") });
+    expect(coreGate(state)).toEqual({ open: false, reason: "absent" });
   });
 
   it("a loaded text alone opens nothing: only the patient's grant does", () => {
     const state = applyTexts(freshLedger(), { core: text("v1", "c") });
-    expect(coreGate(state)).toEqual({ open: false, stale: false });
+    expect(coreGate(state)).toEqual({ open: false, reason: "absent" });
     expect(coreGate(grant(state, "core", NOW).state)).toEqual({ open: true });
   });
 
   it("a core grant whose text moved is stale: shut, and the screen is told why", () => {
     const granted = grant(applyTexts(freshLedger(), { core: text("v1", "c") }), "core", NOW).state;
     const bumped = applyTexts(granted, { core: text("v2", "e") });
-    expect(coreGate(bumped)).toEqual({ open: false, stale: true });
+    expect(coreGate(bumped)).toEqual({ open: false, reason: "stale" });
     expect(coreGate(grant(bumped, "core", NOW).state)).toEqual({ open: true });
   });
 
@@ -77,7 +86,7 @@ describe("coreGate — the one consent a visit needs (INT-537)", () => {
     const state = applyServerScopes(freshLedger(), [
       { scope: "core", reason: "stale", version: "v1", textHash: "c".repeat(64) },
     ]);
-    expect(coreGate(state)).toEqual({ open: false, stale: true });
+    expect(coreGate(state)).toEqual({ open: false, reason: "stale" });
   });
 
   it("a dev-seeded core grant is honoured until a text exists, then re-asked", () => {
@@ -91,12 +100,12 @@ describe("coreGate — the one consent a visit needs (INT-537)", () => {
     expect(coreGate(seeded)).toEqual({ open: true });
     expect(coreGate(applyTexts(seeded, { core: text("v1", "c") }))).toEqual({
       open: false,
-      stale: true,
+      reason: "stale",
     });
   });
 
   it("every optional purpose granted still leaves the gate shut without core", () => {
-    expect(coreGate(everythingButCore())).toEqual({ open: false, stale: false });
+    expect(coreGate(everythingButCore())).toEqual({ open: false, reason: "absent" });
   });
 
   it("core alone opens it: no optional purpose is asked for (files/02 §7)", () => {
@@ -112,6 +121,9 @@ describe("coreGate — the one consent a visit needs (INT-537)", () => {
 
   it("withdrawing core shuts it at once", () => {
     const granted = grant(applyTexts(freshLedger(), { core: text("v1", "c") }), "core", NOW).state;
-    expect(coreGate(withdraw(granted, "core", NOW).state)).toEqual({ open: false, stale: false });
+    expect(coreGate(withdraw(granted, "core", NOW).state)).toEqual({
+      open: false,
+      reason: "absent",
+    });
   });
 });

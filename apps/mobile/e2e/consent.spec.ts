@@ -124,7 +124,13 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     const granted = grant(texted, "core", "2026-10-16T00:00:00Z");
     expect(granted.flipped).toEqual(["core"]);
     expect(granted.state.records.core.boundHash).toBe("c".repeat(64));
-    expect(withdraw(granted.state, "core", "2026-10-16T00:01:00Z").flipped).toEqual(["core"]);
+    // withdrawn in one tap, closing the default-on learning purposes with it
+    // (legal review B1: the core text says every other permission closes)
+    expect(withdraw(granted.state, "core", "2026-10-16T00:01:00Z").flipped).toEqual([
+      "core",
+      "learning:personal",
+      "learning:service_improvement",
+    ]);
   });
 
   it("core withdrawal cascades to every other purpose — the server's dependents_of(core)", () => {
@@ -149,6 +155,20 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     ]) {
       expect(read(file), file).not.toContain('"info"');
     }
+  });
+
+  it("the core who-sees-what row says what the core text says (INT-537 legal review B2)", () => {
+    // the bound text: the doctor sees the note only on a share, and on an
+    // emergency sign clinic staff see a short alert without waiting for one
+    expect(tr["consent.who.core"]).toBe(
+      "Notunuzu siz görürsünüz. Hekiminiz, yalnızca siz paylaşırsanız görür. " +
+        "Acil bir işarette klinik personeli, paylaşım beklemeden kısa bir uyarı görür.",
+    );
+    expect(en["consent.who.core"]).toBe(
+      "You see your note. Your doctor sees it only if you share it. " +
+        "On an emergency sign, clinic staff see a short alert without waiting for a share.",
+    );
+    expect(tr["consent.who.core"]).not.toContain("yalnızca siz ve onay verdiğiniz hekim");
   });
 
   it("the consent screens mirror a core change into the session like any other", () => {

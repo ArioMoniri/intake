@@ -9,7 +9,8 @@
  *   text existed (dev seeds, hash null) is `unbound` and honoured until the
  *   first text lands, at which instant it goes stale (the text IS the bump);
  * - withdraw: instant, cascading in the same pass (voice → lane:affect;
- *   lane:linguistic deliberately survives; core → every explicit grant),
+ *   lane:linguistic deliberately survives; core → every other purpose,
+ *   the default-on learning ones included),
  *   one queued op for the root — the server re-derives the cascade itself;
  * - queue: ops that could not reach the server yet stay here, in memory, in
  *   order. Nothing is persisted to disk: the server ledger is the source of
@@ -290,22 +291,16 @@ export function grant(state: LedgerState, id: PurposeId, atIso: string): ChangeR
  * Exactly one op is queued — the root — because the server re-derives the
  * cascade itself (mirroring it here would let the two drift).
  *
- * The server's cascade revokes ROWS. A default-on child nobody decided has no
- * row, so the server leaves it default_on; the local cascade spares it too,
- * rather than showing a state the next snapshot would undo (INT-537: core's
- * cascade reaches the two learning purposes).
+ * Core's cascade reaches the two default-on learning purposes too: the server
+ * writes each one's opt-out (INT-537, legal review B1), because the core text
+ * tells the patient every other permission closes with it.
  */
 export function withdraw(state: LedgerState, id: PurposeId, atIso: string): ChangeResult {
   const def = purposeDef(id);
   if (def === null) {
     return { state, flipped: [] };
   }
-  const undecidedDefault = (scope: PurposeId) =>
-    state.records[scope].defaultOn && state.records[scope].granted;
-  const touched: PurposeId[] = [
-    id,
-    ...def.cascadeChildren.filter((child) => !undecidedDefault(child)),
-  ];
+  const touched: PurposeId[] = [id, ...def.cascadeChildren];
   const flipped = touched.filter((scope) => state.records[scope].granted);
   if (flipped.length === 0 && !state.records[id].defaultOn) {
     return { state, flipped: [] }; // already explicitly off — nothing to do
