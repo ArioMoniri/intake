@@ -17,6 +17,12 @@ whose set is not committed is refused too.
 
 The registry loader passes over this document the way it passes over the
 English mirror: its ``kind`` is not ``pack`` (files/12 §1).
+
+INT-518: a set is committed for **every** code slot ``base.intake`` declares,
+because extraction binds a code slot only to a member, and a slot with no set
+could never be answered. The runtime reads the table through
+:func:`load_committed_valuesets`, which finds the file from this package rather
+than from the working directory.
 """
 
 from __future__ import annotations
@@ -29,16 +35,23 @@ from clinical_schemas.common import FrozenModel
 from pydantic import Field, StringConstraints, ValidationError, field_validator
 
 __all__ = [
+    "COMMITTED_VALUESETS",
     "NO_VALUESETS",
     "VALUESETS_PATH",
     "ValueSet",
     "ValueSetError",
     "ValueSetTable",
+    "load_committed_valuesets",
     "load_valuesets",
 ]
 
 VALUESETS_PATH: Final[Path] = Path("packages/protocols/base/valuesets.yaml")
 """Repo-root relative, like the CLI's other defaults."""
+
+COMMITTED_VALUESETS: Final[Path] = Path(__file__).resolve().parents[2] / "base" / "valuesets.yaml"
+"""The same file, found from this package: the runtime that reads it (INT-518)
+is not started from the repository root, so a working-directory path would be
+a table that is sometimes missing."""
 
 ValueSetId = Annotated[str, StringConstraints(pattern=r"^vs\.[a-z][a-z0-9_]*$")]
 Member = Annotated[str, StringConstraints(min_length=1)]
@@ -83,6 +96,11 @@ class ValueSetTable(FrozenModel):
         found = self.valuesets.get(valueset_id)
         return None if found is None else found.members
 
+    def member_map(self) -> dict[str, tuple[str, ...]]:
+        """Every committed set's members by id: the shape extraction constrains
+        a code slot with (``intake_voice_runtime.extraction``)."""
+        return {valueset_id: found.members for valueset_id, found in self.valuesets.items()}
+
 
 NO_VALUESETS: Final[ValueSetTable] = ValueSetTable(kind="valueset_table")
 """What the compiler reads when it is handed no table: nothing is committed,
@@ -99,3 +117,8 @@ def load_valuesets(path: Path) -> ValueSetTable:
         return ValueSetTable.model_validate(raw)
     except ValidationError as exc:
         raise ValueSetError(f"{path}: {exc.error_count()} validation error(s)\n{exc}") from exc
+
+
+def load_committed_valuesets() -> ValueSetTable:
+    """The committed table (:data:`COMMITTED_VALUESETS`), read fail closed."""
+    return load_valuesets(COMMITTED_VALUESETS)

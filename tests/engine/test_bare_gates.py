@@ -33,6 +33,7 @@ from protocols.dsl import Slot
 from protocols.loader import load_pack
 from protocols.triage.expr import Truth
 from protocols.types import Delivery, SlotType
+from protocols.valuesets import load_committed_valuesets
 
 NOW = datetime.datetime(2026, 9, 26, 9, 0, tzinfo=datetime.UTC)
 HASH = "0" * 64
@@ -315,7 +316,11 @@ def _base_intake() -> ResolvedProtocol:
 
 
 def _base_engine() -> IntakeEngine:
-    return IntakeEngine(protocol=_base_intake(), reference_time=NOW)
+    """Built against the committed value sets: the plan build re-checks every
+    gate on a code slot against them and refuses without them (INT-518)."""
+    return IntakeEngine(
+        protocol=_base_intake(), reference_time=NOW, valuesets=load_committed_valuesets()
+    )
 
 
 def _choices(step_id: str) -> tuple[str, ...]:

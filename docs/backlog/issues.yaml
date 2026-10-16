@@ -6983,3 +6983,27 @@
     - "A test asserts that every `ask_if`/`skip_if` literal compared against a code slot in base.intake is one of that slot's `choices_tr`. Near-miss controls: a prefix of a choice (`'kendim'`) and an ASCII-folded choice are refused."
     - "Engine tests drive a real IntakeEngine with the authored choice strings. \"kendim için\" keeps `proxy_reported` closed, and every pregnancy_status answer, \"hayır\" included, opens `lmp_date`. `test_base_intake_gates_name_one_slot_each` stays green."
   sec_row: "clinical-content"
+- id: INT-518
+  epic: E03-protocols
+  phase: P0
+  title: "Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind"
+  # GitHub #884, from the INT-441 clinical review (16 Oct 2026). The
+  # composition root handed extraction `dict(valuesets or {})` and no
+  # production caller passed a table. Every Work declaring a code slot was
+  # refused, and the slot then stayed awaiting, so every later Work was refused
+  # too: a session bound nothing after its first question. chest_pain.character
+  # and chest_pain.radiation, the code inputs of the two active life-threat
+  # rules, never bound. Stacked on INT-441 (#750), which commits the first
+  # three sets and the compiler check; this row's sets complete the table.
+  depends_on: [INT-083, INT-432]
+  labels: [area:protocols]
+  status: done
+  evidence: docs/evidence/INT-518.md
+  acceptance:
+    - "Composition loads the committed table (load_valuesets(VALUESETS_PATH)) and passes it to extraction; a test pins that production composition passes a non-empty table."
+    - "Commit value sets for every base code slot (chest_pain_character, chest_pain_radiation, timing_pattern, trajectory, anticoagulant_use, smoking_status, alcohol_use, plus INT-441's three), copied byte-for-byte from each slot's choices_tr (no clinical re-decision)."
+    - "A test that every code slot read by any red-flag rule (base.life_threat + base.intake rf.*) can bind from an authored choice; near miss: a slot with no committed set fails."
+    - "Plan build re-checks gate values against the table (the compiler is not the only gate)."
+    - "make safety green; runtime-sim green; invariants 1, 7, 9, 21."
+  tests: [tests/voice/test_extraction_valuesets.py, tests/engine/test_plan_valuesets.py, tests/protocols/test_base_intake_valuesets.py]
+  sec_row: "clinical-core"

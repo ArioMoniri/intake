@@ -196,7 +196,10 @@ def test_ids_unique_and_well_formed() -> None:
     # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
     # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
     # invariant 6, GitHub #830).
-    assert len(ids) == 356
+    # + INT-518 (live extraction gets the committed value table, so the code
+    # slots the active life-threat rules read can bind; from the INT-441
+    # clinical review, GitHub #884).
+    assert len(ids) == 357
     import re
 
     for i in ids:

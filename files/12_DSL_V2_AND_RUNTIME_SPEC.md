@@ -29,7 +29,7 @@ packages/protocols/
   base/life_threat.yaml        # kind: life_threat_set. No `extends:`. Nothing may extend it.
   base/intake.yaml             # the chain root
   base/ek4_mapping.yaml        # EK4Level -> Disposition, with its own source: block
-  base/valuesets.yaml          # kind: valueset_table. The members a code slot can carry; a gate compares only against these (INT-441)
+  base/valuesets.yaml          # kind: valueset_table. The members a code slot can carry; a gate compares only against these (INT-441), and extraction binds only these, so every code slot has a set (INT-518)
   sources/<guideline_id>.txt   # committed verbatim snapshot of every cited passage
   cluster/ specialty/ visit_type/ overlay/ hospital/
   openehr/previsit_intake.v1.opt   # hand-authored, committed, sha-pinned

@@ -23,6 +23,21 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
 
+### 2026-10-16T13:30:00Z · INT-518 · done (committed locally, not pushed; stacked on INT-441)
+- Goal: composition handed extraction `dict(valuesets or {})` and no production caller passed a table. The first question's Work (`subject_role`, a code slot) was refused, the slot stayed awaiting, and every later Work declared it and was refused too: a live session bound nothing after question one. `chest_pain.character` and `chest_pain.radiation`, the code inputs of the two active life-threat rules, never bound.
+  - Acceptance (verbatim, GitHub #884): composition loads the committed table and a test pins it; value sets for every base code slot, copied byte for byte from `choices_tr`; every code slot a red-flag rule reads binds from an authored choice, near miss a slot with no set; plan build re-checks gate values; `make safety` and runtime-sim green.
+- Plan: tests first (voice end to end, engine plan build, committed sets); then seven value sets; `load_committed_valuesets()` found from the package; both roots default to it; the handler refuses an unbound code slot at composition; `build_plan` runs `gate_value_refusals`; refusals before the INT-190 session count.
+- Tests added: `tests/voice/test_extraction_valuesets.py`, `tests/engine/test_plan_valuesets.py`, `tests/protocols/test_base_intake_valuesets.py`; one near miss in `test_sessions_metered.py`; `test_fsm.py` engine-seam pin lists `valuesets` (a frozen data model); `test_bare_gates._base_engine()` passes the committed table.
+  - RED: on `469c6195` the same assertions give 25 failed; end to end, all five Works `failed`, nothing bound, triage GREEN for "baskı" and for "kol".
+  - GREEN: 158 passed in the seven touched suites; end to end, all Works `completed`, K2 RED (`ALERT`, REMOTE) on character alone and on radiation alone; near misses bind and stay quiet. 12/12 single-change mutations caught.
+- Result (docs/evidence/INT-518.md): `make safety` exits 0 (triage 100 %, 18/18, voice-runtime 98.65 %); runtime-sim exits 0 on every runnable scenario, both profiles and parity; protocols 97.48 %; full suite green after the two environment reruns.
+- Invariants touched and still passing: 1 (level from `protocols.triage` only), 7 (no rule touched), 9 (Talker untouched; refusals at composition), 21 (RED resolves register and location), 5/10 (no Turkish string changed), 17 (missing set refuses, never defaults).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-518 row added (`area:protocols`, depends on INT-083 and INT-432, `clinical-core`); the three pins go from 344 to 345; files/11 regenerated.
+- Blocked on: nothing for this row. Residuals for the orchestrator (evidence §Residuals): no production module calls `evaluate_triage` in session; `chest_pain.onset_at` (the K2 tense anchor) has no CD-05 choice-to-date resolution in the runtime; `live_smoke.py` omits the required `clinic`.
+- Next: orchestrator's word to push and open the PR (body ready).
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T11:00:00Z · INT-441 · done (committed locally, not pushed; part of INT-489 item 1)
 - Goal: `base.intake` gated `proxy_reported` on `subject_role != 'kendim'` and `lmp_date` on `pregnancy_status != 'hayir'`. Neither literal is an answer the slot offers, so the first opened for a patient answering "kendim için" and the second could never close. No value set was committed, so nothing showed it.
   - Acceptance (verbatim, GitHub #750): each gate compares against a value its slot can carry; `proxy_reported` opens only on "yakınım adına"; `lmp_date` keeps its behaviour with authored literals; both project to `enableWhen`; a literal test with near misses `'kendim'` and an ASCII-folded choice; engine tests with the authored strings.
