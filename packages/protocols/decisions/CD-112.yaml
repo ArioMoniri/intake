@@ -1,0 +1,354 @@
+# INT-519 clinical decision CD-112 (GitHub #885), items 1 to 3. Agent-authored under
+# owner decision D18 (2 Oct 2026). It covers simulated-patient stress testing only, and
+# a licensed physician's review is required before any real patient. Every source quote
+# below appears verbatim in the named snapshot, and every spec_basis quote appears
+# verbatim in the named committed file. This is not a pack: it decides three gate
+# literals that INT-441 (GitHub #750) found and left to the D18 lane, and the lead
+# applies them in an engineering change (docs/evidence/INT-519.md lists it). No triage
+# level, route, register, location or red-flag rule is created, relaxed or removed here,
+# and no rule reads any of the gated items.
+kind: clinical_decision
+id: CD-112
+title: "Review-queue cluster gate literals: self-report, immunosuppression and pregnancy gates"
+question: >-
+  INT-441 found three gates in the review-queue cluster packs that compare a base code
+  slot against a string no authored answer holds. cluster.mental_health gates
+  diger_madde_kullanimi and baskalarinin_duymadigi_sesler on subject_role == 'kendim',
+  which never opens. cluster.medical gates bagisiklik_tedavisinde_enfeksiyon on
+  immunosuppression != 'hayir', and cluster.womens_health gates gebelik_dogrulandi on
+  pregnancy_status != 'hayir'; both open after every answer, a plain "hayır" included.
+  For each gate: which authored literal says what the gate is for, which way does the
+  change move who is asked, and how is a hedged answer to the gating slot recorded so
+  that the gate does not read Unknown? (INT-519 items 1, 2 and 3.)
+decision: >-
+  Item 1. The two mental-health items are self-report history. They are asked only when
+  the patient answers for themselves. They are never put, as worded, to a relative in a
+  proxy session: the second-person question would file the speaker's own substance use
+  or experiences in the patient's record, and NICE CG178 1.1.4.2 makes how information
+  about the service user is shared with carers something negotiated with the service
+  user, which a pre-visit app cannot do. The self-report literal is
+  subject_role == 'kendim için', the authored self choice of vs.subject_role. The change
+  applies only once ADR-040 (PR #833, INT-483) has landed. Until then the gate stays as
+  it is: it opens for nobody, and the INT-441 value-set check refuses it before the
+  cluster can be promoted. It is held so that the items cannot open before the proxy
+  path that guarantees a relative never hears them. ADR-040's proxy compiler refuses a
+  patient-addressed slot whose gate reads the subject role (PROXY_GATED_ON_SUBJECT_ROLE),
+  so on landing the self-report reading is carried by proxy: {skip: true} on both slots
+  and the subject-role gate is dropped. The self document asks them; the proxy document
+  records them NOT_ASKED_PROXY and shows the gap. Any subject-role gate kept anywhere
+  for these items reads 'kendim için'. Item 2. bagisiklik_tedavisinde_enfeksiyon asks
+  about infection during immunosuppressive treatment, so its gate is
+  immunosuppression != 'hayır'. It opens on "evet" and on "bilmiyorum" and closes on a
+  plain "hayır", which denies the treatment the question presupposes. On
+  pmh_fh_sh.immunosuppression, "bilmiyorum", every CD-04 hedge that reads on any slot
+  and any unmatched hedge record the authored "bilmiyorum" choice, never UNCLEAR and
+  never "hayır", and so does an answer that still fits no choice after the slot's
+  follow-up, labelled as mapped. Only a plain negative to the question itself is
+  "hayır". UNCLEAR would
+  make the gate Unknown, and an Unknown gate opens nothing (files/13 §9.2). A sepsis rule
+  that reads the slot would also read Unknown. Yet NICE NG253 1.2.1 lists impaired immune
+  function because of illness or medical treatment among the factors that may increase
+  the risk of sepsis or of sepsis not being identified promptly, and 1.1.4 asks for extra
+  care where the history is hard to take. On this slot the mapping is read before CD-04's
+  '*' entries, the same per-slot precedence CD-100 T4(c) set for pregnancy_status. Item
+  3. gebelik_dogrulandi, and the five items CD-100 T4(b) moves onto the same gate, open
+  on pregnancy_status != 'hayır', which is CD-100 T4's decided reading in the authored
+  literal. "evet" and "emin değilim" open them (NICE NG126 1.4.5); a plain "hayır"
+  closes them. Hedges stay CD-100 T4(c)'s: they record "emin değilim". Safety direction.
+  Items 2 and 3 ask fewer patients than the gates do today, because 'hayir' matches no
+  answer and so they open after a plain "hayır" too. The patients no longer asked are
+  exactly those whose answer denies the question's premise, and no rule reads either
+  gated item. The safety net for an unknown pregnancy is the last menstrual period,
+  which base asks after every pregnancy answer (CD-100 round 4). Against the intent
+  recorded when the gates were written (the proposals and CD-100 T4), nothing is
+  narrowed. Once it applies, item 1 asks more patients than today, because the items
+  never open today, and it never asks a relative.
+status: active
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient stress
+  testing only. A licensed physician's review is required before any real patient. The
+  three clusters are review-queue L0 packs, not servable, so no patient meets any gate
+  here before HB-C1 is signed. Who may answer for a minor is the legal lane's (HB-L20,
+  INT-223), not decided here.
+question_origin: >-
+  docs/evidence/INT-441.md "For the D18 lane (not decided here)" (the table of four
+  cluster gates); INT-519 (GitHub #885) items 1, 2 and 3, with the INT-441 clinical
+  reviewer's recommendations, which were inputs and not decisions.
+author_role: "internal medicine, emergency medicine, obstetrics and gynaecology and psychiatry physician (agent)"
+inference_disclosure: >-
+  Item 1: that a relative who hears a second-person question answers about themselves is
+  ADR-040's structural reading (the ADR is on PR #833, not yet on main), not a clinical
+  source. NICE CG178 covers adults with psychosis or schizophrenia; it is cited for the
+  direction that what a carer is told or asked about the service user is negotiated
+  with the service user and involves the carer "if appropriate", not as a pre-visit
+  source. Skipping both items in a proxy session, rather than rewording them for the
+  relative, is this author's conservative choice: collateral history of substance use
+  or hallucinatory experiences belongs to the clinician. Holding the change until #833
+  lands is sequencing, not a clinical source. Item 2: recording every hedge on
+  immunosuppression as the authored "bilmiyorum" choice is this author's
+  operationalisation, the same as CD-100 T4(c) for pregnancy_status. Extending it to an
+  answer still unresolved after the follow-up is also this author's: the patient has not
+  said yes or no, "bilmiyorum" is the authored record of exactly that, and the label
+  keeps the record honest about how it got there. NICE NG253 1.1.4
+  gives language and communication challenges as its examples of a history that is hard
+  to take. It is cited for the direction NICE takes when the history is uncertain. NG253
+  covers people aged 16 or over. In a child chain the mapping keeps the same direction on
+  the strength of the CKM presence value set alone (Unknown is not No); NICE NG254
+  (under 16s) was not retrieved, and nothing here extrapolates an adult threshold to a
+  child. Item 3: as CD-100 T4.
+sources:
+  - kind: guideline
+    guideline_id: NICE-CG178
+    title: "Psychosis and schizophrenia in adults: prevention and management"
+    version_or_date: "Clinical guideline CG178; published 12 February 2014; last updated 04 September 2026"
+    url: "https://www.nice.org.uk/guidance/cg178/chapter/Recommendations"
+    retrieved_on: 2026-10-16
+    section: "1.1.4.2"
+    quote: "As early as possible negotiate with service users and carers about how information about the service user will be shared."
+    snapshot: packages/protocols/sources/NICE-CG178.txt
+    supports: "gates[0]: a proxy is not asked about the patient's substance use or experiences by the app"
+    caveat: "Scope: adults with psychosis or schizophrenia. Cited for the direction of information sharing with carers, not as a pre-visit source."
+  - kind: guideline
+    guideline_id: NICE-CG178
+    title: "Psychosis and schizophrenia in adults: prevention and management"
+    version_or_date: "Clinical guideline CG178; published 12 February 2014; last updated 04 September 2026"
+    url: "https://www.nice.org.uk/guidance/cg178/chapter/Recommendations"
+    retrieved_on: 2026-10-16
+    section: "1.3.3.1"
+    quote: "psychiatric (mental health problems, risk of harm to self or others, alcohol consumption and prescribed and non-prescribed drug history)"
+    snapshot: packages/protocols/sources/NICE-CG178.txt
+    supports: "gates[0]: non-prescribed drug history is the service user's own assessment domain"
+    caveat: "Scope: adults with psychosis or schizophrenia in secondary care."
+  - kind: guideline
+    guideline_id: NICE-CG178
+    title: "Psychosis and schizophrenia in adults: prevention and management"
+    version_or_date: "Clinical guideline CG178; published 12 February 2014; last updated 04 September 2026"
+    url: "https://www.nice.org.uk/guidance/cg178/chapter/Recommendations"
+    retrieved_on: 2026-10-16
+    section: "1.3.6.7"
+    quote: "Discuss the use of alcohol, tobacco, prescription and non-prescription medication and illicit drugs with the service user, and carer if appropriate."
+    snapshot: packages/protocols/sources/NICE-CG178.txt
+    supports: "gates[0]: the carer is involved only if appropriate, a clinician's judgement"
+  - kind: guideline
+    guideline_id: NICE-NG253
+    title: "Suspected sepsis in people aged 16 or over: recognition, assessment and early management"
+    version_or_date: "NICE guideline NG253; published 19 November 2025; last updated 23 September 2026"
+    url: "https://www.nice.org.uk/guidance/ng253/chapter/Could-this-be-sepsis"
+    retrieved_on: 2026-10-16
+    section: "1.2.1"
+    quote: "Take into account the factors that may increase the risk of developing sepsis or sepsis not being identified promptly."
+    snapshot: packages/protocols/sources/NICE-NG253.txt
+    supports: "gates[1]: the immunosuppression answer is a sepsis risk input, so it must not read Unknown"
+    caveat: "People aged 16 or over."
+  - kind: guideline
+    guideline_id: NICE-NG253
+    title: "Suspected sepsis in people aged 16 or over: recognition, assessment and early management"
+    version_or_date: "NICE guideline NG253; published 19 November 2025; last updated 23 September 2026"
+    url: "https://www.nice.org.uk/guidance/ng253/chapter/Could-this-be-sepsis"
+    retrieved_on: 2026-10-16
+    section: "1.2.1"
+    quote: "impaired immune function because of illness or medical treatment"
+    snapshot: packages/protocols/sources/NICE-NG253.txt
+    supports: "gates[1]"
+    caveat: "People aged 16 or over."
+  - kind: guideline
+    guideline_id: NICE-NG253
+    title: "Suspected sepsis in people aged 16 or over: recognition, assessment and early management"
+    version_or_date: "NICE guideline NG253; published 19 November 2025; last updated 23 September 2026"
+    url: "https://www.nice.org.uk/guidance/ng253/chapter/Could-this-be-sepsis"
+    retrieved_on: 2026-10-16
+    section: "1.1.10"
+    quote: "are receiving or have received immunosuppressant treatment for reasons unrelated to cancer"
+    snapshot: packages/protocols/sources/NICE-NG253.txt
+    supports: "gates[1]: the population the gated item asks (gate opens on evet)"
+    caveat: "People aged 16 or over."
+  - kind: guideline
+    guideline_id: NICE-NG253
+    title: "Suspected sepsis in people aged 16 or over: recognition, assessment and early management"
+    version_or_date: "NICE guideline NG253; published 19 November 2025; last updated 23 September 2026"
+    url: "https://www.nice.org.uk/guidance/ng253/chapter/Could-this-be-sepsis"
+    retrieved_on: 2026-10-16
+    section: "1.1.4"
+    quote: "Assess people who might have sepsis with extra care if there is difficulty in taking their history"
+    snapshot: packages/protocols/sources/NICE-NG253.txt
+    supports: "gates[1].hedge_mapping: an uncertain answer keeps the gate open"
+    caveat: "Its examples are language and communication challenges; cited for the direction under an uncertain history (inference_disclosure)."
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "at0027,    -- Unknown"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: "gates[1].hedge_mapping: Unknown is a definite answer, distinct from No"
+  - kind: guideline
+    guideline_id: NICE-NG126
+    title: "Ectopic pregnancy and miscarriage: diagnosis and initial management"
+    version_or_date: "NICE guideline NG126; published 17 April 2019; last updated 17 June 2026"
+    url: "https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment"
+    retrieved_on: 2026-10-03
+    section: "1.4.5"
+    quote: "they may be pregnant, and think about offering a pregnancy test even when symptoms are non-specific and"
+    snapshot: packages/protocols/sources/NICE-NG126.txt
+    supports: "gates[2]: 'emin değilim' opens the pregnancy items"
+spec_basis:
+  - file: packages/protocols/base/valuesets.yaml
+    section: "vs.subject_role"
+    quote: 'members: ["kendim için", "yakınım adına"]'
+    supports: "gates[0].literal"
+  - file: packages/protocols/base/valuesets.yaml
+    section: "vs.immunosuppression"
+    quote: 'members: ["evet", "hayır", "bilmiyorum"]'
+    supports: "gates[1].literal and gates[1].hedge_mapping.records_choice"
+  - file: packages/protocols/base/valuesets.yaml
+    section: "vs.pregnancy_status"
+    quote: 'members: ["evet", "hayır", "emin değilim"]'
+    supports: "gates[2].literal"
+  - file: docs/evidence/proposals/cluster_mental_health.md
+    section: "§0 Posture, Sensitive items"
+    quote: "a relative answering in a proxy session is never asked about their own substance use or experiences"
+    supports: "gates[0].reading (the intent when the gate was written)"
+  - file: docs/evidence/proposals/cluster_medical.md
+    section: "Q15"
+    quote: 'gate opens on "evet" and on "bilmiyorum" alike, because it fails open toward asking.'
+    supports: "gates[1].gate_decided (the intent when the gate was written)"
+  - file: docs/evidence/proposals/cluster_womens_health.md
+    section: "Q2"
+    quote: 'opens on "evet" and "emin değilim"'
+    supports: "gates[2].gate_decided (the intent when the gate was written)"
+  - file: packages/protocols/decisions/CD-100.yaml
+    section: "value.items T4 change (b)"
+    quote: "the gate the cluster's gebelik_dogrulandi already reads."
+    supports: "gates[2].also_applies_to"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.2 The frontier"
+    quote: "UNKNOWN does NOT open a gate"
+    supports: "gates[1].hedge_mapping: why a hedge must not read UNCLEAR on a gating slot"
+  - file: docs/evidence/INT-441.md
+    section: "For the D18 lane (not decided here)"
+    quote: "never opens: the substance-use question is never asked"
+    supports: "gates[0].opens_today"
+value:
+  value_sets: packages/protocols/base/valuesets.yaml
+  literal_rule: "a gate literal is a member of its slot's committed value set, compared byte for byte (INT-441); a prefix, a case change or an ASCII folding is not a member"
+  gates:
+    - item: 1
+      issue_item: "INT-519 item 1 (GitHub #885)"
+      pack: cluster.mental_health
+      file: packages/protocols/review/cluster/mental_health.yaml
+      slots: [sorular.diger_madde_kullanimi, sorular.baskalarinin_duymadigi_sesler]
+      valueset: vs.subject_role
+      gate_today: "subject_role == 'kendim'"
+      opens_today: never
+      reading: self_report_only
+      gate_decided: "subject_role == 'kendim için'"
+      literal: "kendim için"
+      proxy_session: not_asked
+      applies_when: "ADR-040 (PR #833, INT-483; branch int-483-self-proxy at d5943fd7) has landed on main"
+      until_applied: "no change: the gate stays as it is, opens for nobody, and the INT-441 value-set check refuses it before the cluster can be promoted"
+      encoding_once_applied:
+        gate: none
+        proxy: {skip: true}
+      encoding_note: >-
+        ADR-040's proxy compiler refuses a patient-addressed slot whose gate reads the
+        subject role (PROXY_GATED_ON_SUBJECT_ROLE), and the self document serves only
+        sessions whose role is 'kendim için'. So the gate is dropped and the proxy skip
+        carries the reading: asked in the self document, NOT_ASKED_PROXY with a note gap
+        in the proxy document. A subject-role gate kept anywhere for these items reads
+        gate_decided.
+      safety_direction: >-
+        More patients than today once applied (the items never open today); never a
+        relative. Neither item is a red-flag probe, and no rule reads either.
+      not_decided_here: >-
+        A proxy rewording of either item (collateral history stays the clinician's), the
+        held Q17 and Q18 of the proposal, and any under-18 path (HB-L20, INT-223).
+      sources: [NICE-CG178]
+      status: active
+    - item: 2
+      issue_item: "INT-519 item 2 (GitHub #885)"
+      pack: cluster.medical
+      file: packages/protocols/review/cluster/medical.yaml
+      slots: [sorular.bagisiklik_tedavisinde_enfeksiyon]
+      valueset: vs.immunosuppression
+      gate_today: "immunosuppression != 'hayir'"
+      opens_today: "after every answer, 'hayır' included"
+      gate_decided: "immunosuppression != 'hayır'"
+      literal: "hayır"
+      opens_on: ["evet", "bilmiyorum"]
+      closes_on: ["hayır"]
+      hedge_mapping:
+        slot: pmh_fh_sh.immunosuppression
+        records_choice: "bilmiyorum"
+        reads: "'bilmiyorum', every CD-04 entry that reads on '*', and any unmatched hedge"
+        never: [UNCLEAR, "hayır"]
+        plain_negative_only: "hayır"
+        plain_negative_is: "a plain negative to the scripted question itself (CD-04: 'hayır', 'yok', 'olmadı')"
+        precedence: "on this slot the mapping is read before CD-04's '*' entries (as CD-100 T4(c) for pregnancy_status)"
+        unresolved_after_follow_up: "an answer that still fits no choice after the slot's follow_up_tr also records 'bilmiyorum', labelled mapped_from_unresolved, so once the question has been asked the gate never reads Unknown"
+        record_label_by_source:
+          hedge: mapped_from_hedge
+          unresolved: mapped_from_unresolved
+        rule_reading: "a rule that reads this slot as a risk factor reads it as != 'hayır', so 'bilmiyorum' counts with 'evet'; the rule itself still needs its own source and sign-off (HB-C1)"
+      safety_direction: >-
+        Fewer patients than today: a plain "hayır" no longer opens the item, and that
+        answer denies the treatment the item presupposes. No rule reads the item. The
+        hedge mapping widens: a hedge opens the item instead of closing it as UNCLEAR
+        would.
+      sources: [NICE-NG253, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: 3
+      issue_item: "INT-519 item 3 (GitHub #885)"
+      pack: cluster.womens_health
+      file: packages/protocols/review/cluster/womens_health.yaml
+      slots: [sorular.gebelik_dogrulandi]
+      valueset: vs.pregnancy_status
+      gate_today: "pregnancy_status != 'hayir'"
+      opens_today: "after every answer, 'hayır' included; it gates Q3 to Q9 of the cluster through gebelik_dogrulandi"
+      gate_decided: "pregnancy_status != 'hayır'"
+      literal: "hayır"
+      opens_on: ["evet", "emin değilim"]
+      closes_on: ["hayır"]
+      hedges: "CD-100 T4(c): 'bilmiyorum' and every hedge record 'emin değilim', never UNCLEAR, never 'hayır'"
+      also_applies_to:
+        record: CD-100
+        ref: "T4 (b)"
+        gate: "pregnancy_status != 'hayır'"
+        slots: [gebelikte_kanama, gebelikte_siddetli_bas_agrisi, gebelikte_gorme_bozuklugu, bebek_hareketlerinde_azalma, gebelikte_su_gelmesi]
+      safety_direction: >-
+        Fewer patients than today: a plain "hayır" no longer opens gebelik_dogrulandi or
+        the items behind it. That is CD-100 T4's decided reading. The last menstrual
+        period, asked after every pregnancy answer (CD-100 round 4), keeps a possible
+        pregnancy on record for a woman who answers "hayır". No rule reads the gated
+        items.
+      sources: [NICE-NG126]
+      status: active
+  verification_history:
+    - round: 1
+      date: 2026-10-16
+      head: 9034f8b9
+      reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+      verdict: agree
+      findings: >-
+        No blocker. Both new snapshots were checked against the live NICE pages fetched
+        on 2026-10-16: every body line of NICE-CG178.txt is verbatim, and every body
+        line of NICE-NG253.txt carries the same words, with the page headers' dates as
+        recorded (NG253 last updated 23 September 2026, CG178 04 September 2026). Every
+        quote CD-112 cites is verbatim on the live page and in its snapshot. Each decided
+        literal is a member of its committed value set, and the replaced one is not. No
+        triage rule reads any gated item or immunosuppression (rf.sepsis_like is draft),
+        no pack changed in this round, and the three clusters stay review-queue L0.
+        Two notes, neither a change to the decision: one on item 1 (per_gate) and one on
+        the snapshot. In three NG253 lines that no decision quotes (the 1.2.1
+        cross-reference and two Update information entries) the extraction put a space
+        before punctuation where an inline tag ended; the words are unchanged, and the
+        committed NICE-CG95 snapshot follows the same convention.
+      per_gate:
+        "1 (cluster.mental_health)": "agree with note. Self-report only, held until ADR-040 (#833, d5943fd7, which defines PROXY_GATED_ON_SUBJECT_ROLE and proxy skip: true) lands; CG178 1.1.4.2 and 1.3.6.7 support the direction, with the adult-psychosis caveat recorded. Note for the lead: specialty ruh_sagligi_ve_hastaliklari carries an ungated diger_madde_kullanimi with the same wording; ADR-040's proxy compiler forces a proxy text or a skip there, and this reading points to the skip. That pack is outside this record's three gates"
+        "2 (cluster.medical)": "agree. NG253 1.2.1 lists impaired immune function from illness or treatment as a sepsis risk factor, so an uncertain answer must not read Unknown; mapping hedges to 'bilmiyorum' opens the item and counts with 'evet' for any rule (rule_reading). NG253 is for people aged 16 or over, and no adult threshold reaches a child"
+        "3 (cluster.womens_health)": "agree. CD-100 T4's decided reading in the authored literal; a woman who answers 'hayır' is still asked the LMP and the ungated bleeding and lower-abdominal-pain items (NG126 1.4.3, 1.4.5)"
+verifier:
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+  verified_on: 2026-10-16
+  notes: "Round 1 (2026-10-16, head 9034f8b9) agree, no blocker. Both new snapshots (NICE NG253, NICE CG178) compared line by line with the live NICE pages; every cited quote is verbatim on the live page and in its snapshot; each decided literal is a member of its committed value set. Notes on item 1 (the specialty substance-use twin) and on the NG253 snapshot's extraction spacing, neither a change (value.verification_history). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

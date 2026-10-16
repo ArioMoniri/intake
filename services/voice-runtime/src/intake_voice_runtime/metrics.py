@@ -206,10 +206,14 @@ PREEMPT_RED_VIOLATIONS_TOTAL = Counter(
 #: than a violation or a refusal), ``cancelled`` (the event loop cancelled a
 #: delivery before it finished) or ``exit`` (the watch itself ended other than
 #: by being cancelled). The first two are retried, and raised, on the next turn.
-#: Any increase means a RED may not have reached the patient.
+#: INT-545 adds ``unreached``: the session ended with a RED of the first two
+#: kinds still undelivered, so no next turn will retry it; the clinician route
+#: is told the device was not reached. Any increase means a RED may not have
+#: reached the patient.
 RED_WATCH_FAILURES_TOTAL = Counter(
     "red_watch_failures_total",
-    "Between-turn RED watch failures: a pushed RED undelivered, or the watch ended, by kind.",
+    "Between-turn RED watch failures: a pushed RED undelivered, the watch ended, or a "
+    "session ended with a RED never delivered, by kind.",
     ["kind"],
 )
 

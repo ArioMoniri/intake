@@ -33,7 +33,11 @@ it, and each property of the port survives:
 The same notifier may be bound to both of the RED path's clinician routes —
 Layer B's, at the determination, and the preemption path's — because the
 entry id is derived from the RED's content-addressed ``work_id``: the second
-notification lands on the first entry.
+notification lands on the first entry. So does a third, the one that says the
+device was not reached (INT-545, ``RedNotification.delivery``): the entry
+records neither the delivery nor ``patient_facing`` nor ``silent_generic``, so
+that statement is carried by the notification and counted on
+``red_watch_failures_total{kind="unreached"}``, not stored on the entry.
 
 :class:`ClinicItemNotifier` (INT-547) is the production
 :class:`~intake_voice_runtime.clinical_agent.clinic_items.ClinicItemRoute`:
