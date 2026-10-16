@@ -10,6 +10,14 @@
  * provider stays node-importable and holds no plaintext draft itself. A draft
  * is typed/structured text only — raw audio never touches this path
  * (invariant 3) — and sign-out crypto-shreds every draft and its key.
+ *
+ * INT-510 makes the send real. The session holds the local→server visit id
+ * map (`serverVisits`, ids only) and resolves every `/v1/visits/*` call
+ * through it (`resolveServerVisit`), and it runs the outbox: a note whose
+ * send is in flight is PUT to the server (./intake/noteSendClient, lazily
+ * loaded), and only the server's 200 marks it sent. A queued send rides the
+ * same sealed draft mirror and is retried; an outcome that lands after a
+ * sign-out, wipe or kiosk switch is dropped (`sendGeneration`).
  */
 import {
   createContext,
@@ -17,6 +25,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -26,7 +35,13 @@ import { setLocale, type Locale } from "./i18n";
 import { offerableAppLocales } from "./i18n/locale";
 import type { CarriedFact } from "./intake/carriedFacts";
 import { emptyNoteState, noteReducer, type NoteAction, type NoteState } from "./intake/note";
+import { useNoteOutbox } from "./intake/useNoteOutbox";
 import { kioskSuppressesPersistence } from "./kiosk";
+import {
+  rememberServerVisit,
+  type ServerVisitMap,
+  type SessionServerVisitResolver,
+} from "./serverVisits";
 import type { ConsentState, RecordFixture, TestAccount, VisitFixture } from "./types/account";
 import { buildLocalVisit, type NewVisitInput } from "./visits";
 
@@ -95,6 +110,14 @@ export interface Session {
   notes: Record<string, NoteState>;
   updateNote: (visitId: string, action: NoteAction) => void;
   /**
+   * INT-510: the server's id for a local visit, through the session's map —
+   * the only way any screen reaches `/v1/visits/*`. `create` makes the server
+   * visit when it is missing (an upload or a send); without it the lookup is
+   * read-only and resolves to null. Throws `RecordsApiError` like the records
+   * resolver it wraps, so "unreachable" is never mistaken for "none".
+   */
+  resolveServerVisit: SessionServerVisitResolver;
+  /**
    * Kiosk mode (INT-143): a shared clinic device. While active, no draft is
    * persisted (the offline store is bypassed and its blobs crypto-shredded),
    * and the session is wiped between patients. Entering and leaving are gated
@@ -131,6 +154,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // INT-143 — kiosk mode. Off by default; KioskGate flips it on only after the
   // clinic PIN verifies against the MDM-provisioned hash.
   const [kioskActive, setKioskActiveState] = useState(false);
+  // INT-510 — the local→server visit id map (ids only, memory only) and the
+  // generation every reset bumps, so a late outcome from the previous patient
+  // is dropped rather than applied.
+  const serverVisits = useRef<ServerVisitMap>({});
+  const sendGeneration = useRef(0);
+  const visitsRef = useRef<VisitFixture[]>([]);
 
   useEffect(() => {
     // lazy: the probe touches expo-device; loading it only when the
@@ -207,6 +236,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [notes, accountId, kioskActive]);
 
   const signIn = useCallback((next: TestAccount) => {
+    serverVisits.current = {};
+    sendGeneration.current += 1;
     setAccount({ ...next, kind: "dev" });
     setConsents({ ...next.consents });
     setExtraVisits([]);
@@ -217,6 +248,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInOtp = useCallback((patientId: string, maskedPhone: string) => {
+    serverVisits.current = {};
+    sendGeneration.current += 1;
     setAccount({
       kind: "otp",
       id: patientId,
@@ -237,6 +270,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
+    serverVisits.current = {};
+    sendGeneration.current += 1;
     setAccount(null);
     setConsents(null);
     setExtraVisits([]);
@@ -276,6 +311,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // crypto-shred the offline drafts (reusing INT-142's shred). Fire-and-forget
   // like the offline mirror; nothing here logs an id or a value (invariant 6).
   const wipeSession = useCallback(() => {
+    serverVisits.current = {};
+    sendGeneration.current += 1;
     setNotes({});
     setExtraVisits([]);
     void import("./intake/offline/sessionDrafts")
@@ -291,6 +328,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const setKioskActive = useCallback((on: boolean) => {
     setKioskActiveState(on);
     if (on) {
+      serverVisits.current = {};
+      sendGeneration.current += 1;
       setNotes({});
       void import("./intake/offline/sessionDrafts")
         .then((offline) => offline.shredDrafts())
@@ -315,6 +354,37 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     () => (account ? [...apiVisits, ...account.visits, ...extraVisits] : []),
     [account, apiVisits, extraVisits],
   );
+  // The latest list for the stable resolver below; a child screen's effect can
+  // run before any effect here could sync it.
+  visitsRef.current = visits;
+
+  // INT-510 — the one resolver every `/v1/visits/…` caller goes through. The
+  // map answers first; otherwise the records resolver (lazy: it reads picked
+  // files through a native module) finds — or with `create`, makes — the
+  // server visit, and the answer is remembered for this sign-in only.
+  const resolveServerVisit = useCallback(
+    async (visitId: string, { create }: { create: boolean }): Promise<string | null> => {
+      const known = serverVisits.current[visitId];
+      if (known !== undefined) {
+        return known;
+      }
+      const visit = visitsRef.current.find((v) => v.id === visitId);
+      if (visit === undefined) {
+        return null;
+      }
+      const generation = sendGeneration.current;
+      const records = await import("./records/api");
+      const id = await records.ensureServerVisit(visit, { create });
+      if (id !== null && generation === sendGeneration.current) {
+        serverVisits.current = rememberServerVisit(serverVisits.current, visitId, id);
+      }
+      return id;
+    },
+    [],
+  );
+
+  // INT-510 — the outbox over the same map and generation (./intake/useNoteOutbox).
+  useNoteOutbox({ account, notes, setNotes, visitsRef, serverVisits, sendGeneration });
 
   const value = useMemo(
     () => ({
@@ -331,6 +401,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       addVisit,
       notes,
       updateNote,
+      resolveServerVisit,
       kioskActive,
       setKioskActive,
       wipeSession,
@@ -349,6 +420,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       addVisit,
       notes,
       updateNote,
+      resolveServerVisit,
       kioskActive,
       setKioskActive,
       wipeSession,

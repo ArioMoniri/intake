@@ -27,6 +27,9 @@
  * the control was proved non-vacuous by inserting a `disabled` prop, watching
  * it fail, and reverting.
  *
+ * **INT-510: the tap starts a send; the server's 200 finishes it** (the
+ * session's outbox PUTs it). Until then the delivery line words where it stands.
+ *
  * **The Doctor Link QR is deliberately absent, and INT-150 is why.** The
  * token, its OTP, expiry, view limit, revoke, watermark and access log are
  * INT-150's acceptance, and INT-150 is still `todo`; no redemption route
@@ -66,6 +69,7 @@ import { closingDelivery } from "@/lib/dialogue/deliveryPlan";
 import { t } from "@/lib/i18n";
 import type { CarriedFactKind } from "@/lib/intake/carriedFacts";
 import { buildNote, effectiveStatus } from "@/lib/intake/note";
+import { deliveryLine } from "@/lib/intake/noteSend";
 import { missingQuestions, packForVisit } from "@/lib/intake/questions";
 import { shareSummary } from "@/lib/intake/share";
 import { useCompanionOutcome } from "@/lib/profile/store";
@@ -142,7 +146,9 @@ function ReviewAndSend() {
     note.deferred,
     note.factReview,
   );
+  // INT-510: `sent` is the server's word (a 200 on the outbox's PUT), not the tap's.
   const sent = note.status === "sent";
+  const delivery = deliveryLine(note.delivery);
   // Eksik list for the checkpointed partial (02 §34): applicable and
   // unanswered only — a gate-skipped question is skipped, not missing.
   const visit = visits.find((v) => v.id === visitId);
@@ -410,6 +416,16 @@ function ReviewAndSend() {
               </AppText>
               <AppText role="body">{t("review.consent.untilValue")}</AppText>
             </Card>
+          )}
+          {/* INT-510: in flight, queued or refused — worded, never swallowed.
+              It reads the note; this screen still reaches no network. */}
+          {sent || delivery === null ? null : (
+            <AnnouncedText
+              tone={delivery.tone === "error" ? "error" : "status"}
+              role="body"
+              color={delivery.tone === "error" ? "amber" : "inkSoft"}
+              message={t(delivery.key)}
+            />
           )}
           {sent ? (
             <>

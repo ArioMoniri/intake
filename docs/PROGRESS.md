@@ -3409,3 +3409,38 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-16T04:50:00Z · INT-510 · done (PR open)
+- Goal: the patient's send reaches the clinic (GitHub #872, from the INT-498 audit F07/F08/F11). Acceptance quoted in docs/backlog/issues.yaml: PUT the built note to the server visit with `status: "sent"` and only the scoped-on sections; resolve the server visit first; one local→server id map in the session for every `/v1/visits/*` call; "sent" only on a 200; a refused consent worded; an offline send queued in the INT-142 sealed store.
+- Plan:
+  - Tests first, on both sides of one shared body (`tests/fixtures/note_send/app_note_put.json`).
+  - Split Gönder into start-a-send and the server's `delivered`, and run the PUT from a session outbox behind a lazy import.
+  - Route the share centre, Doctor Link and records through the session's resolver.
+- Tests added (with the near-miss negative for any safety rule):
+  - Mobile: `noteSend.test.ts`, `noteSendClient.test.ts`, the INT-510 blocks in `shares/issue.test.ts` and `shares/store.test.ts`, and `e2e/sendReachesClinic.spec.ts`. `note.test.ts` and `flows.spec.ts` are updated where they pinned the old tap-means-sent rule.
+  - API: `tests/api/test_note_send.py`.
+  - Near misses: the local id `v-local-1` is refused at PUT, issue and list (422) and creates nothing; a UUID the server never issued gets 404; a 200 that says draft is not "sent"; the withheld section's content is absent from the body.
+  - RED: mobile 28 failed / 82 passed; API 3 failed / 8 passed. The 8 passes are the server's existing consent and audit path, so that half is verified, not rebuilt.
+  - GREEN: below.
+- Result: docs/evidence/INT-510.md.
+  - `make check-ts`: exit 0 (mobile 2737 tests).
+  - `make check-i18n`: 192 passed.
+  - tests/api + tests/clinician: 652 passed.
+  - ruff and mypy clean.
+  - no_placeholders OK after staging.
+  - Two mutations killed.
+  - check-py's whole-tree coverage run and check-integration run in CI.
+- Invariants touched and still passing:
+  - 4: the server checks and audits; the phone words the answer.
+  - 5, 6: ids only, the map in memory.
+  - 14, 17, 2: copy is statements, siz, PolicyGuard-clean.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+  - A withheld section's content no longer leaves the phone.
+  - The server reads withholding from `scopes` (`NoteBody.withheld_section_ids`), so INT-304's record survives the smaller body.
+  - Pins 344 → 345; files/11 regenerated.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new. No app session can complete a send today, and each one says why:
+  - the synthetic dev session has no server identity, so it sends nothing;
+  - an OTP patient holds no consent until HB-L27's texts exist, so the send is refused with the worded consent line.
+  - The server path is proved with the dev tier's seeded patient in tests/api/test_note_send.py.
+- Next: PR `INT-510: the patient's send reaches the clinic` (Closes #872, Sec-Row review-send).
+- LOOP_STATUS: CONTINUE

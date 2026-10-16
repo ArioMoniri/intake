@@ -45,6 +45,18 @@ vi.mock("@/lib/auth/api", () => ({
 const VISIT = "8c1a0b22-0000-4000-8000-0000000000aa";
 const LINK = "3f1d6f3e-0000-4000-8000-000000000001";
 
+/**
+ * INT-510: the screen holds the LOCAL visit id; the server knows the visit by
+ * its own id. The session's map is the only bridge, so every test goes through
+ * one — and `v-local-1` reaching the wire is the defect, asserted below.
+ */
+const LOCAL = "v-local-1";
+const SERVER_IDS: Record<string, string> = {
+  [LOCAL]: VISIT,
+  "v-local-2": "0000ffff-0000-4000-8000-0000000000bb",
+};
+const toServer = async (visitId: string): Promise<string | null> => SERVER_IDS[visitId] ?? null;
+
 const LIVE = {
   link_id: LINK,
   recipient: "Kardiyoloji",
@@ -121,7 +133,7 @@ afterEach(() => {
 describe("loading the share centre", () => {
   it("shows the grants and the log the server returned", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     const state = sharesSnapshot();
     expect(state.loaded).toBe(true);
     expect(state.links.map((l) => l.id)).toEqual([LINK]);
@@ -131,7 +143,7 @@ describe("loading the share centre", () => {
 
   it("claims nothing when the server cannot be reached", async () => {
     mocks.authedFetch.mockRejectedValue(new mocks.AuthApiError("network"));
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     const state = sharesSnapshot();
     // Not "no shares" — "we do not know". An empty list drawn from a failed
     // read would tell a patient nobody has access to their record.
@@ -142,9 +154,9 @@ describe("loading the share centre", () => {
 
   it("reads a different visit's centre from scratch rather than merging", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     serving([]);
-    await loadShareCentre("0000ffff-0000-4000-8000-0000000000bb");
+    await loadShareCentre("v-local-2", toServer);
     expect(sharesSnapshot().links).toEqual([]);
   });
 });
@@ -152,7 +164,7 @@ describe("loading the share centre", () => {
 describe("revoking", () => {
   it("takes the row the server returned, and shows nothing before it", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     let resolveRevoke: ((value: Response) => void) | null = null;
     mocks.authedFetch.mockImplementation(
       (path: string) =>
@@ -164,7 +176,7 @@ describe("revoking", () => {
           resolve(ok([STOPPED]));
         }),
     );
-    const pending = revokeShare(VISIT, LINK);
+    const pending = revokeShare(LOCAL, LINK);
     // The optimistic write this test exists to forbid: while the call is in
     // flight the grant is still shown exactly as the server last described
     // it. A screen that says "stopped" before the row does is a screen that
@@ -177,9 +189,9 @@ describe("revoking", () => {
 
   it("adds no round trip of its own between the tap and the new row", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     mocks.authedFetch.mockClear();
-    await revokeShare(VISIT, LINK);
+    await revokeShare(LOCAL, LINK);
     // One call. A re-list afterwards would be a second network wait between
     // the patient's tap and the screen telling them it worked, and the
     // revoke response already IS the authoritative row.
@@ -189,30 +201,30 @@ describe("revoking", () => {
 
   it("says the request did not land rather than showing a share as stopped", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     mocks.authedFetch.mockRejectedValue(new mocks.AuthApiError("network"));
-    await revokeShare(VISIT, LINK);
+    await revokeShare(LOCAL, LINK);
     expect(sharesSnapshot().links[0].revoked).toBe(false);
     expect(sharesSnapshot().unsent).toBe(true);
   });
 
   it("clears the unsent flag once a revocation does land", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     mocks.authedFetch.mockRejectedValue(new mocks.AuthApiError("network"));
-    await revokeShare(VISIT, LINK);
+    await revokeShare(LOCAL, LINK);
     expect(sharesSnapshot().unsent).toBe(true);
     serving([STOPPED]);
-    await revokeShare(VISIT, LINK);
+    await revokeShare(LOCAL, LINK);
     expect(sharesSnapshot().unsent).toBe(false);
     expect(sharesSnapshot().links[0].revoked).toBe(true);
   });
 
   it("is idempotent on the client too: revoking twice leaves one row", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
-    await revokeShare(VISIT, LINK);
-    await revokeShare(VISIT, LINK);
+    await loadShareCentre(LOCAL, toServer);
+    await revokeShare(LOCAL, LINK);
+    await revokeShare(LOCAL, LINK);
     expect(sharesSnapshot().links).toHaveLength(1);
     expect(sharesSnapshot().links[0].revoked).toBe(true);
   });
@@ -221,18 +233,18 @@ describe("revoking", () => {
 describe("a withdrawal of the share purpose cannot lock the revoke path", () => {
   it("still lists, still revokes and still reads the log", async () => {
     refusesTheSharePurpose();
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     expect(sharesSnapshot().links).toHaveLength(1);
     expect(sharesSnapshot().log).toHaveLength(1);
-    await revokeShare(VISIT, LINK);
+    await revokeShare(LOCAL, LINK);
     expect(sharesSnapshot().links[0].revoked).toBe(true);
     expect(sharesSnapshot().unsent).toBe(false);
   });
 
   it("never asks the server for anything the share purpose gates", async () => {
     refusesTheSharePurpose();
-    await loadShareCentre(VISIT);
-    await revokeShare(VISIT, LINK);
+    await loadShareCentre(LOCAL, toServer);
+    await revokeShare(LOCAL, LINK);
     for (const [path, init] of mocks.authedFetch.mock.calls) {
       const method = (init as RequestInit | undefined)?.method ?? "GET";
       expect(path, "the OTP mint enforces share:previsit_note").not.toContain("/otp");
@@ -244,10 +256,50 @@ describe("a withdrawal of the share purpose cannot lock the revoke path", () => 
   });
 });
 
+describe("INT-510 — every call is made against the server's visit id", () => {
+  it("lists, reads the log and revokes over the mapped server id, never the local one", async () => {
+    serving([LIVE]);
+    await loadShareCentre(LOCAL, toServer);
+    await revokeShare(LOCAL, LINK);
+    const paths = mocks.authedFetch.mock.calls.map(([path]) => String(path));
+    expect(paths.length).toBe(3);
+    for (const path of paths) {
+      expect(path).toContain(`/v1/visits/${VISIT}/`);
+      expect(path, "the local id reached the server").not.toContain(LOCAL);
+    }
+  });
+
+  it("a visit the server has never seen has no grants — said without asking", async () => {
+    serving([LIVE]);
+    await loadShareCentre("v-local-9", toServer);
+    const state = sharesSnapshot();
+    expect(state.loaded).toBe(true);
+    expect(state.unreachable).toBe(false);
+    expect(state.links).toEqual([]);
+    expect(mocks.authedFetch).not.toHaveBeenCalled();
+  });
+
+  it("a lookup that could not reach the server claims nothing", async () => {
+    serving([LIVE]);
+    await loadShareCentre(LOCAL, async () => {
+      throw new mocks.AuthApiError("network");
+    });
+    expect(sharesSnapshot().unreachable).toBe(true);
+    expect(sharesSnapshot().loaded).toBe(false);
+  });
+
+  it("a revoke for a visit whose server id was never resolved does not land, and says so", async () => {
+    serving([LIVE]);
+    await revokeShare("v-local-9", LINK);
+    expect(sharesSnapshot().unsent).toBe(true);
+    expect(mocks.authedFetch).not.toHaveBeenCalled();
+  });
+});
+
 describe("nothing survives the session", () => {
   it("drops the whole working copy on reset — another patient's grants are not ours", async () => {
     serving([LIVE]);
-    await loadShareCentre(VISIT);
+    await loadShareCentre(LOCAL, toServer);
     resetShares();
     const state = sharesSnapshot();
     expect(state.links).toEqual([]);

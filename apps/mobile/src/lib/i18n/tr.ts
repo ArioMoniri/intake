@@ -1295,6 +1295,16 @@ export const tr = {
   "review.consent.recipient": "Kime gidiyor",
   "review.consent.until": "Ne zamana kadar",
   "review.consent.untilValue": "Paylaşım, randevunuzun saatinden üç gün sonra sona erer.",
+  // --- INT-510 · gönderimin durumu. "Gönderildi" yalnızca sunucu notu aldığını
+  // söyleyince görünür; o ana kadar bu satırlar ne olduğunu söyler, bir şey istemez.
+  "review.delivery.sending": "Notunuz gönderiliyor.",
+  "review.delivery.queued":
+    "Notunuz henüz gönderilmedi. Bağlantı gelince kendiliğinden gönderilecek.",
+  "review.delivery.consent": "Notunuz gönderilmedi. Paylaşım için izniniz kayıtlı değil.",
+  "review.delivery.notAllowed": "Notunuz gönderilmedi. Bu hesaptan şu anda paylaşım yapılamıyor.",
+  "review.delivery.empty": "Notunuz gönderilmedi. Paylaşılacak bölüm seçili değil.",
+  "review.delivery.synthetic": "Deneme hesabındasınız; not bir hekime gönderilmez.",
+  "review.delivery.failed": "Notunuz gönderilmedi. Bir sorun oluştu; yeniden gönderebilirsiniz.",
   // --- INT-137 · gönderimden sonra sorulan memnuniyet sorusu. 06 §2
   // `satisfaction` izni yoksa kart hiç görünmez ve hiçbir şey toplanmaz.
   // Ölçek rakamla değil sözcükle sorulur (invariant 22).

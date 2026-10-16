@@ -1,0 +1,20 @@
+{
+  "sections": [
+    {
+      "id": "chief_complaint",
+      "title": "Başvuru nedeni",
+      "lines": ["Ağrı"]
+    },
+    {
+      "id": "hpi",
+      "title": "Şikâyet öyküsü",
+      "lines": ["Süre: Birkaç gündür"]
+    }
+  ],
+  "scopes": {
+    "chief_complaint": true,
+    "hpi": true,
+    "pmh": false
+  },
+  "status": "sent"
+}

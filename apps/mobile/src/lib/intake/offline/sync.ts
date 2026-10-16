@@ -9,11 +9,16 @@
  * (e2e/offline.spec.ts).
  *
  * The transport speaks to INT-197's /v1/visits/{id}/note when it exists and
- * is reachable; today no note-sync client ships (the server note carries no
+ * is reachable; no DRAFT-sync client ships (the server note carries no
  * version and the raw answer-draft has no server home yet — INT-137 evidence),
  * so a production transport reports unreachable and the draft stays local and
  * sealed. That is the fail-closed state, not a gap: the CONFLICT RULE this
  * issue owns is complete and tested regardless.
+ *
+ * The SEND does ship (INT-510, ../noteSend + ../useNoteOutbox): Gönder PUTs
+ * the built note with `status: "sent"` to the server visit, and a send that
+ * cannot reach the server waits in this same sealed store as part of the note
+ * (`delivery: queued`) — it never marks the note sent early.
  */
 import { loadDraft, persistConflictCopy, persistDraft, type DraftBackend } from "./draftStore";
 import { reconcile, type DraftRecord, type SyncOutcome } from "./reconcile";

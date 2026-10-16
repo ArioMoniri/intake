@@ -50,7 +50,12 @@ import {
 } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t, type MessageKey } from "@/lib/i18n";
-import { issueDoctorLink, type IssueFailure, type IssuedCredential } from "@/lib/shares/issue";
+import { useSession } from "@/lib/session";
+import {
+  issueDoctorLinkForVisit,
+  type IssueFailure,
+  type IssuedCredential,
+} from "@/lib/shares/issue";
 import { formatShareMoment } from "@/lib/shares/links";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
@@ -76,6 +81,7 @@ export default function IssueDoctorLink() {
   const tabBarClearance = useTabBarClearance();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const visit = visitId ?? "";
+  const { resolveServerVisit } = useSession();
 
   const [recipient, setRecipient] = useState("");
   const [busy, setBusy] = useState(false);
@@ -86,7 +92,11 @@ export default function IssueDoctorLink() {
   const create = async () => {
     setBusy(true);
     setError(null);
-    const result = await issueDoctorLink(visit, recipient);
+    // INT-510: the route param is the LOCAL visit id; the grant is issued on
+    // the visit the server knows, found through the session's map.
+    const result = await issueDoctorLinkForVisit(visit, recipient, (id) =>
+      resolveServerVisit(id, { create: false }),
+    );
     setBusy(false);
     if (result.ok) {
       setCredential(result.credential);

@@ -132,6 +132,9 @@ describe("attachHealth — device health summary into the note draft (INT-208)",
     state = noteReducer(state, { type: "scope", sectionId: "device_health", shared: false });
     expect(sentSections(state, ayse).find((s) => s.id === "device_health")).toBeUndefined();
     state = noteReducer(state, { type: "send" });
+    // INT-510: Gönder starts the send; "sent" is the server's word, not the tap's
+    expect(state.delivery).toEqual({ phase: "sending" });
+    state = noteReducer(state, { type: "delivered" });
     expect(state.status).toBe("sent");
   });
 

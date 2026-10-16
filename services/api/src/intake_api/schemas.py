@@ -140,10 +140,16 @@ class NoteBody(BaseModel):
     def withheld_section_ids(self) -> list[str]:
         """The sections the patient scoped OFF — recorded affirmatively so the
         withholding is a fact in the share consent scope, not merely an absence
-        (INT-304, invariant 4). ``shared`` and ``withheld`` partition the note's
-        sections, so a section is served only when it is explicitly in the
-        grant (fail-closed)."""
-        return [s.id for s in self.sections if not self.scopes.get(s.id, True)]
+        (INT-304, invariant 4).
+
+        Read from ``scopes``, not from ``sections``, in note order. Since INT-510
+        the app sends only the sections the patient left ON — a withheld
+        section's content never leaves the phone — and names each withheld id
+        as ``scopes[id] = False``. Reading ``sections`` would record that choice
+        as nothing at all. A section that does travel with its scope off (the
+        INT-304 body shape) is withheld exactly as before, and a section is
+        still served only when it is explicitly in the grant (fail-closed)."""
+        return [sid for sid in SECTION_IDS if self.scopes.get(sid) is False]
 
 
 class NotePut(NoteBody):

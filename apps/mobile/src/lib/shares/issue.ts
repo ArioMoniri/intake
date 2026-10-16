@@ -28,6 +28,7 @@
  * payload in the body, exactly as the server's own contract requires.
  */
 import { authedFetch } from "@/lib/auth/api";
+import type { ServerVisitResolver } from "@/lib/serverVisits";
 
 /** The one bundle a screen may render, and only while it is mounted. */
 export interface IssuedCredential {
@@ -206,4 +207,34 @@ export async function issueDoctorLink(visitId: string, rawRecipient: string): Pr
     // A DPoP/session error or a dropped connection — never a credential.
     return { ok: false, reason: "unreachable" };
   }
+}
+
+/**
+ * INT-510 — issue against the visit the SERVER knows. The screen holds a local
+ * visit id (its route param); the server only ever issued its own. Before
+ * INT-510 the local id went straight into the path and every issue was refused.
+ *
+ * The recipient is checked first, so a bad label costs no lookup. A visit the
+ * server has no row for is a note that was never sent — the same true sentence
+ * the server's own `note_not_shared` gets — and it is said without a request.
+ * A lookup that could not reach the server is "unreachable", never "not shared".
+ */
+export async function issueDoctorLinkForVisit(
+  visitId: string,
+  rawRecipient: string,
+  resolve: ServerVisitResolver,
+): Promise<IssueResult> {
+  if (validateRecipient(rawRecipient) === null) {
+    return { ok: false, reason: "recipient_invalid" };
+  }
+  let serverVisitId: string | null;
+  try {
+    serverVisitId = await resolve(visitId);
+  } catch {
+    return { ok: false, reason: "unreachable" };
+  }
+  if (serverVisitId === null) {
+    return { ok: false, reason: "not_shared" };
+  }
+  return issueDoctorLink(serverVisitId, rawRecipient);
 }

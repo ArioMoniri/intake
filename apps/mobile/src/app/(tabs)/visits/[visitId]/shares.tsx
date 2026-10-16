@@ -59,6 +59,7 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, Screen, useStackHeader } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
+import { useSession } from "@/lib/session";
 import {
   categoryLabelKey,
   formatShareMoment,
@@ -84,12 +85,14 @@ export default function ShareCentre() {
   // arming another disarms this one.
   const [armed, setArmed] = useState<string | null>(null);
   const visit = visitId ?? "";
+  // INT-510: grants live under the server's visit id, never this route param.
+  const { resolveServerVisit } = useSession();
 
   useEffect(() => {
     if (visit !== "") {
-      void loadShareCentre(visit);
+      void loadShareCentre(visit, (id) => resolveServerVisit(id, { create: false }));
     }
-  }, [visit]);
+  }, [visit, resolveServerVisit]);
 
   return (
     <Screen edges={HEADER_EDGES}>
