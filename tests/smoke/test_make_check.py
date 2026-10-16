@@ -324,7 +324,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
     # + INT-482 (store listing readiness as Önvizit, GitHub #825); grows only
     # with a stated reason.
-    assert len(ids) == 342, f"expected 175 blueprint + 167 added issues, got {len(ids)}"
+    # + INT-496 (Google Play deferred by the owner, GitHub #847); grows only with
+    # a stated reason.
+    assert len(ids) == 343, f"expected 175 blueprint + 168 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

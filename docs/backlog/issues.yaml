@@ -6696,3 +6696,20 @@
   tests: [tests/legal/test_store_listing_drafts.py, tests/legal/test_store_submission_drafts.py, tests/legal/test_store_privacy_answers.py]
   legal: "STORE"
   sec_row: "mobile"
+- id: INT-496
+  epic: E08-mobile
+  phase: P2
+  title: "Google Play listing: deferred by the owner; reminder of everything Play will need"
+  # GitHub #847. Owner, 16 Oct 2026: "dont do google for now". No Play
+  # submission is built; docs/store/google-play-later.md lists every item with
+  # the repo file or blocker that owns it (service account, graphics, Data
+  # safety from INT-482's derivation, IARC, phone screenshots, listing copy).
+  depends_on: [INT-482]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-496.md
+  acceptance:
+    - "docs/store/google-play-later.md lists what Play will need: service-account JSON, feature graphic, data-safety form (from INT-482's derivation), content rating (IARC), phone screenshots, listing copy, and reuse of the iOS assets (INT-495); no Play submission is built"
+  tests: [tests/legal/test_google_play_later.py]
+  legal: "STORE"
+  sec_row: "mobile"

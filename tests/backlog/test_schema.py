@@ -167,7 +167,9 @@ def test_ids_unique_and_well_formed() -> None:
     # order of 3 Oct 2026, GitHub #790).
     # + INT-482 (store listing readiness as Önvizit: listing drafts, the EAS
     # render and the privacy answers for the legal lane; GitHub #825).
-    assert len(ids) == 342
+    # + INT-496 (Google Play deferred by the owner; the list of what Play will
+    # need, GitHub #847).
+    assert len(ids) == 343
     import re
 
     for i in ids:

@@ -113,7 +113,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-482 (store listing readiness as Önvizit, GitHub #825)
-    assert len(actions) == 342
+    # + INT-496 (Google Play deferred by the owner, GitHub #847)
+    assert len(actions) == 343
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -1,5 +1,19 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T10:00:00Z · INT-496 · done (PR stacked on #828)
+- Goal: GitHub #847. The owner says "dont do google for now", so record everything Play will need and build no Play submission.
+- Plan: write `docs/store/google-play-later.md`, with each item pointing at its repo file or blocker. Quote Play's figures with their help page and retrieval date.
+- Tests added: `tests/legal/test_google_play_later.py`.
+  - It checks that every item #847 asks for is named, that every cited path exists, and that every vendor figure is dated.
+  - It also checks there is no claim and that no Play key file is tracked.
+  - RED: 4 failed. GREEN: 4 passed.
+- Result: the backlog, smoke and docs suites pass (counts 343, files/11 regenerated). `no_placeholders`, the claims scan and the PHI scan are OK.
+- Invariants touched and still passing: 17 and 20.
+- Decisions / ADRs / `00_STATE.md` rows: none. The deferral is the owner's, recorded in #847.
+- Blocked on: Play itself waits on the owner (account, service account) and on HB-L21 (b)(c).
+- Next: INT-495.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-04T12:00:00Z · INT-482 · done (PR open; legal-lane review pending)
 - Goal: GitHub #825. Prepare the store listings for Önvizit:
   - the EAS `store.config.json` in Turkish and English;
