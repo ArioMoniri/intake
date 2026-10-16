@@ -153,7 +153,7 @@ def test_markup_is_refused_before_the_wire(text_tr: str) -> None:
         _gateway(handler).synthesise(text_tr=text_tr, voice_id="el-tr-voice", profile=ROUTINE)
 
 
-# --- the one composer of the wire text (INT-449, D20) -----------------------
+# --- the one composer of the wire text (INT-443 with INT-449, D20) -----------
 
 
 @pytest.mark.parametrize(

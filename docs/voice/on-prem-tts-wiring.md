@@ -94,7 +94,7 @@ clinical values, and the owner's listening review decides them. Write instructio
 as every README example is. Whether a Turkish instruction works better is itself a listening-test
 question.
 
-| context           | ElevenLabs v2 (live today) stability / style / speed | VoxCPM2 style instruction (candidate)       | VoxCPM2 `cfg_value` | Freya   |
+| context           | ElevenLabs v2 (INT-424) stability / style / speed    | VoxCPM2 style instruction (candidate)       | VoxCPM2 `cfg_value` | Freya   |
 | ----------------- | ---------------------------------------------------- | ------------------------------------------- | ------------------- | ------- |
 | `welcome`         | 0.38 / 0.30 / 0.98                                   | `(warm, friendly, unhurried)`               | 2.0                 | neutral |
 | `routine`         | 0.55 / 0.05 / 1.00                                   | `(calm, neutral, clear)`                    | 2.0                 | neutral |
@@ -104,8 +104,16 @@ question.
 | `red`             | 0.90 / 0.00 / 0.92                                   | `(steady, clear, calm)`                     | 2.0                 | neutral |
 | `closing`         | 0.42 / 0.20 / 0.97                                   | `(warm, friendly)`                          | 2.0                 | neutral |
 
-Every ElevenLabs row also carries `similarity_boost` 0.75 and `use_speaker_boost` true, on
-`eleven_multilingual_v2`. The rows are profile version 2 (INT-424), so every key is
+**Superseded on the ElevenLabs lane by v4 (INT-449, owner decision D20, 3 Oct 2026).** The
+served rows are now the cast take E04: the voice `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, stability
+0.5 (Natural), style 0 and speed 1.0 for the tagged contexts — welcome `[warmly]`, routine
+`[calm]`, sensitive `[softly] [reassuring]`, acknowledgement `[gently]`, closing `[warmly]` — and
+stability 1.0 (Robust) with no tag for RED and instrument. The tags ride on the wire only; every key
+is `delivery.<context>@v4`. The v2 column above stays as the record the VoxCPM2 candidates were
+written against.
+
+Every v2 ElevenLabs row also carried `similarity_boost` 0.75 and `use_speaker_boost` true, on
+`eleven_multilingual_v2`. Those rows were profile version 2 (INT-424), so their keys were
 `delivery.<context>@v2`. The v1 values (INT-415), the candidates each v2 row was picked from, and
 the listening notes are in `docs/evidence/INT-424.md`. §8 (the sample render) says how to render and review them.
 
@@ -126,7 +134,8 @@ control we use, and only where invariant 10 allows it:
   numeral (invariant 22), and an audio tag is a word the protocol did not author (invariant 10).
   `assert_speakable_tr` refuses `<`, `>`, `[` and `]` (`MarkupInScriptError`), and the dev route
   answers 422 `not_speakable`. Expressive models and tags are ADR-034 (Accepted 3 Oct 2026: stay on
-  `eleven_multilingual_v2`).
+  `eleven_multilingual_v2`; amended the same day by D20: `eleven_v3` with the closed-table tags
+  prepended on the wire only, never inside `text_tr`).
 - **No numerals.** A lead-in passes the same `assert_speakable_tr` gate as an item.
 
 Rules for the instruction strings:

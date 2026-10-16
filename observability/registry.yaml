@@ -598,7 +598,7 @@ components:
   - component: egress-proxy
     self_hostable: true
     self_hosted_now: false
-    host: "infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py"
+    host: "infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py. INT-442: the same image, digest-pinned, is the synthetic AWS host's forward proxy (infra/staging/compose.yaml, service `egress-proxy`, config infra/staging/egress/squid.conf: hosted_model_inference rows only), booted there and probed by infra/staging/egress_probe.py"
     license: "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see licence_note; the blob alone would read GPL-2.0-only)"
     # No HTTP health endpoint: squid answers a proxy request or nothing, and a
     # forward proxy that returns 200 to an unauthenticated GET would be a
@@ -630,7 +630,11 @@ components:
       config file of our own, which is data, not a derivative work. Re-read
       the blob AND a source header on every version bump: a project that
       states its "+" only in headers can drop it in a header sweep without
-      touching COPYING at all.
+      touching COPYING at all. INT-442, 2026-10-03: the 6.6-24.04_edge tag
+      ships squid 6.14 (the running binary's own banner on the synthetic
+      host); re-read at tag SQUID_6_14 (commit
+      a8c54a8f23f0dc41025097caab73ec445f49b78f): COPYING is byte-identical
+      (same sha256) and src/main.cc carries the same GPLv2+ header.
 
   # INT-203 — the edge (files/10 §4 `Edge:`). Two components, one policy:
   # infra/security/edge/edge-policy.yaml renders Traefik's static and dynamic

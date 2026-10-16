@@ -41,11 +41,13 @@ from protocols.locale_text import entry_for
 from protocols.pack import ProtocolPack
 from protocols.types import Delivery, EK4Level, Maturity, PackLayer, RuleStatus
 from protocols.validator import PLACEHOLDER_SIGNOFF_RE, pack_compilable, validate_packs
+from protocols.valuesets import load_valuesets
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKS_ROOT = REPO_ROOT / "packages" / "protocols"
 BASE_INTAKE = PACKS_ROOT / "base" / "intake.yaml"
 BASE_INTAKE_EN = PACKS_ROOT / "base" / "intake.en.yaml"
+BASE_VALUESETS = PACKS_ROOT / "base" / "valuesets.yaml"
 GOLDENS = Path(__file__).resolve().parent / "goldens" / "base" / "red_flag_families.yaml"
 
 # files/04 §1, the eight rows of the `base.intake` table, in its order, with the
@@ -307,7 +309,11 @@ def _refuse(
 ) -> dict[RefusalCode, list[str]]:
     with pytest.raises(CompileError) as excinfo:
         resolve_protocol(
-            pack_id=pack_id, registry=registry, life_threat=life_threat, template=template
+            pack_id=pack_id,
+            registry=registry,
+            life_threat=life_threat,
+            template=template,
+            valuesets=load_valuesets(BASE_VALUESETS),
         )
     grouped: dict[RefusalCode, list[str]] = {}
     for refusal in excinfo.value.refusals:
@@ -321,8 +327,10 @@ def test_the_compiler_refuses_this_pack_and_the_reasons_are_the_human_blockers(
     """The success condition of INT-043 is a refusal. With a fully SIGNED
     life-threat set the only reasons left are this pack's own: it is L0, and
     all thirteen families are unsourced drafts. Nothing else — no binding
-    gap, no numeral, no unresolvable gate — which is what makes the refusal
-    list a to-do list for one physician rather than a bug list."""
+    gap, no numeral, no unresolvable gate, no gate on a value its slot cannot
+    carry (INT-441: compiled with the committed value sets, as the CLI does) —
+    which is what makes the refusal list a to-do list for one physician rather
+    than a bug list."""
     grouped = _refuse("base.intake", base_registry, life_threat, template)
     assert set(grouped) == {RefusalCode.PACK_NOT_SERVABLE, RefusalCode.DRAFT_RULE_NOT_SERVED}
     assert grouped[RefusalCode.PACK_NOT_SERVABLE] == ["base.intake"]

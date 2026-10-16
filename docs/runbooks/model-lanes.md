@@ -38,6 +38,12 @@ The alert for every action below is `admin_model_lane_changes_total`, labelled b
 - **The provider's egress row**
   - Lives in `infra/security/egress-allowlist.yaml`, which is hook-protected.
   - Without the row, every hosted lane reads `hosted_egress_not_listed`.
+- **The synthetic host's route out** (INT-442)
+  - The API's networks are all internal. Its one way out is the `egress-proxy` service in `infra/staging/compose.yaml`, a default-deny squid named by `INTAKE_EGRESS_PROXY_URL=http://egress-proxy:3128`.
+  - The proxy's config, `infra/staging/egress/squid.conf`, is rendered from the allow-list's `hosted_model_inference` rows and nothing else (`make egress-conf`). With no such row it admits nothing. The build proxy (`infra/security/squid/squid.conf`) never admits those rows.
+  - The variable belongs to the synthetic deployment alone. The API refuses to boot when it is set anywhere else (`EgressProxyRefused`), and nothing but the staging compose sets it.
+  - Every deploy proves it live: `smoke.sh` step 6 runs `infra/staging/egress_probe.py proxy` in the api container. It checks that there is no direct route, that an unlisted host and the metadata address get the proxy's 403, and that every hosted row is tunnelled.
+  - Adding a provider is one protected change: the allow-list row, the removal of its purpose from the "awaiting the owner" test set, the regenerated `infra/staging/egress/squid.conf`, and the INT-001 vendor-gate exception for exactly those two files and that host.
 
 ## Stopping hosted lanes (narrowing: one key)
 
@@ -97,6 +103,21 @@ The ceremonies:
 | `hosted_disabled` / `kill_switch_engaged` | a kill switch is engaged | release it only by its ceremony |
 | `model_identity_mismatch` | a backend answered as another model | the lane is quarantined for the cooldown; check what is deployed behind it |
 | `session_*` | a session's frozen model stopped being admissible | the session falls to typed mode; the next session resolves afresh |
+
+## The hosted clip lane: ElevenLabs on the synthetic host (INT-443)
+
+ElevenLabs is the synthetic host's default TTS for scripted clips. The mobile dev build reaches it through the George route (`POST /dev/voice/george-clip`, DPoP/OTP patient only), which the synthetic image mounts because the compose declares `INTAKE_HOSTED_TTS=elevenlabs`.
+
+- **It serves once two human-made things exist:**
+  - the key, at `secret/model-lanes/providers/elevenlabs`. `deploy.sh` loads it from SSM `/intake/staging/elevenlabs_api_key`.
+  - the `elevenlabs-api` allow-list row. Without it the route answers 503 `george_unconfigured`.
+- **What it admits.** The compiled manifests plus the app's catalogue, `apps/mobile/src/lib/dialogue/scriptedCatalogue.tr.json`. That file is generated; regenerate it with `pnpm --filter mobile exec vitest run -u src/lib/dialogue/scriptedCatalogue.test.ts`. RED is never served.
+- **The cache** is the `george-clips` volume, keyed by `delivery.<context>@v<version>` and the text hash. Pre-bake it from the api container:
+  - `docker compose … exec api python -m intake_api.george_prebake plan` dials nothing. It prints the rows, the cached count and the characters still to send.
+  - `… apply --max-characters N` refuses when the misses would send more than `N` characters. The vendor bills per character.
+  - `… probe` speaks one question clip and names its lane. This is `smoke.sh` step 7.
+- **Lanes.** Each clip says which lane spoke it, in `X-Clip-Lane`, `api_clip_lane_total{lane,cache}` and the cache path (`self_hosted/…` for a fallback). A vendor failure falls back to the self-hosted TTS only when both `INTAKE_TTS_ENDPOINT` and `INTAKE_HOSTED_TTS_FALLBACK_VOICE` are set. A refusal never falls back.
+- **Budget.** A cache miss or a refusal spends one token; a hit is free. The bucket holds 60 tokens and refills at 0.5 per second.
 
 ## Reverting ADR-035
 

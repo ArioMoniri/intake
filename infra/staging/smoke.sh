@@ -166,6 +166,28 @@ else
   fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
 fi
 
+# 8. INT-442: the API's egress, from the API's own network position — no
+#    direct route out, an unlisted host and the metadata address refused by
+#    the forward proxy, and every hosted-model allow-list row tunnelled
+if out=$(compose exec -T api python infra/staging/egress_probe.py proxy 2>&1); then
+  pass "$(printf '%s' "$out" | tr '\n' ';')"
+else
+  fail "$(printf '%s' "$out" | tr '\n' ';')"
+fi
+
+# 7. INT-443: one scripted question clip through the George route's own
+#    wiring, inside the api container; it names the lane that spoke it
+#    (elevenlabs, or self_hosted after a vendor failure) and never the text.
+#    An unconfigured lane (no allow-list row yet) is reported, not failed:
+#    the row is the owner's protected change.
+if out=$(compose exec -T api python -m intake_api.george_prebake probe 2>&1); then
+  pass "$out"
+elif [[ $out == *unconfigured* ]]; then
+  pass "clip lane not serving yet: $out"
+else
+  fail "$out"
+fi
+
 if ((failures > 0)); then
   die "smoke: ${failures} check(s) failed"
 fi
