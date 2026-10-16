@@ -14,11 +14,14 @@
  * (files/03 §4.9.2(f)), and a fake reader would be worse than none.
  */
 import { Stack, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
+import { withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -65,6 +68,11 @@ export default function NewVisit() {
   const router = useRouter();
   const theme = useTheme();
   const headerOptions = useStackHeader();
+  // INT-451: the form scrolls under the glass nav bar and clears it by the
+  // header's own height.
+  const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   const fontScale = useFontScale();
   const { addVisit, consents } = useSession();
   const [form, dispatch] = useReducer(newVisitFormReducer, undefined, emptyNewVisitForm);
@@ -129,9 +137,12 @@ export default function NewVisit() {
 
   return (
     <Screen edges={["left", "right"]}>
-      <Stack.Screen options={headerOptions(t("visits.new.title"))} />
+      <Stack.Screen options={withGlassNav(headerOptions(t("visits.new.title")), glass)} />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: headerHeight, paddingBottom: useTabBarClearance() },
+        ]}
         keyboardShouldPersistTaps="handled"
         // SC 1.3.4 (INT-360): each field scrolls clear of the keyboard, which
         // takes about half of a landscape window.

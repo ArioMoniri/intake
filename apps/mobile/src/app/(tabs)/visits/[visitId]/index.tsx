@@ -4,10 +4,13 @@
  * conversation/orb surface is INT-132+; this screen frames it.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { ScrollView, StyleSheet } from "react-native";
 
 import { AnnouncedText, useNews } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
+import { withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { StatusLadder } from "@/components/StatusLadder";
@@ -36,6 +39,11 @@ export default function VisitDetail() {
   const { visits, notes } = useSession();
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
+  // INT-451: the bar is glass and the visit scrolls under it, so the content
+  // clears it by the header's own height.
+  const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   const visit = visits.find((v) => v.id === visitId) ?? null;
   const status = visit === null ? null : effectiveStatus(visit.noteStatus, notes[visit.id]);
   // INT-397 (SC 4.1.3): the note is sent from the review screen, which is in
@@ -59,8 +67,13 @@ export default function VisitDetail() {
       {/* Oura framing (design pass 5): every pushed screen carries the
           centred-title bar with the "‹" affordance — nothing before this
           pass offered a visible way back. */}
-      <Stack.Screen options={headerOptions(visit.department)} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+      <Stack.Screen options={withGlassNav(headerOptions(visit.department), glass)} />
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: headerHeight + spacing.md, paddingBottom: tabBarClearance },
+        ]}
+      >
         <VisitCard visit={visit} statusOverride={status} />
         {visit.visitType !== null ? (
           <Card style={styles.ladderCard}>
@@ -132,6 +145,6 @@ export default function VisitDetail() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingTop: spacing.md },
+  content: { gap: spacing.lg },
   ladderCard: { gap: spacing.md },
 });

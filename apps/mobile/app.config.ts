@@ -16,6 +16,12 @@
  *   front of a patient. Every other profile keeps what app.json declares.
  * - F29: `extra.asrHosts` and `extra.ttsLanes` are sets in all but type; each
  *   entry is kept once, in first-seen order.
+ * - INT-340: every Android build blocks VIBRATE. The haptics library declares
+ *   it in its own manifest, but the app plays haptics on Android only through
+ *   View.performHapticFeedback, which needs no permission, so the inventory
+ *   does not grow. Expo writes the block as `tools:node="remove"`, which wins
+ *   over any library's declaration in the manifest merge, and drops the
+ *   permission from `android.permissions` if app.json ever asks for it.
  * - INT-421: the production profile carries no dev-only lane. `extra.asrHosts`
  *   and `extra.ttsLanes` are the LAN and loopback hosts of the `__DEV__` voice
  *   lanes, so they resolve to empty lists there, and the release config names
@@ -30,6 +36,8 @@ export const API_BASE_ENV = "EXPO_PUBLIC_API_BASE_URL";
 const PROFILE_ENV = "EAS_BUILD_PROFILE";
 const PRODUCTION_PROFILE = "production";
 const LOCAL_NETWORK_PLIST_KEYS = ["NSLocalNetworkUsageDescription", "NSBonjourServices"];
+/** Android permissions no build may carry, whoever declares them. */
+const BLOCKED_ANDROID_PERMISSIONS = ["android.permission.VIBRATE"];
 
 type Env = Readonly<Record<string, string | undefined>>;
 
@@ -64,6 +72,24 @@ function withoutLocalNetwork(ios: ExpoConfig["ios"]): ExpoConfig["ios"] {
   return { ...ios, infoPlist };
 }
 
+/** Expo's own spelling rule: a bare name is an `android.permission.` one. */
+function qualifiedPermission(permission: string): string {
+  return permission.includes(".") ? permission : `android.permission.${permission}`;
+}
+
+function withBlockedPermissions(android: ExpoConfig["android"]): ExpoConfig["android"] {
+  const blocked = uniqueBy(
+    [...(android?.blockedPermissions ?? []), ...BLOCKED_ANDROID_PERMISSIONS],
+    qualifiedPermission,
+  );
+  const refused = new Set(blocked.map(qualifiedPermission));
+  const resolved = { ...android, blockedPermissions: blocked };
+  if (android?.permissions !== undefined) {
+    resolved.permissions = android.permissions.filter((p) => !refused.has(qualifiedPermission(p)));
+  }
+  return resolved;
+}
+
 /** The resolved config for one environment. Pure, so the rules are testable. */
 export function resolveAppConfig(config: ExpoConfig, env: Env): ExpoConfig {
   const production = env[PROFILE_ENV] === PRODUCTION_PROFILE;
@@ -81,7 +107,11 @@ export function resolveAppConfig(config: ExpoConfig, env: Env): ExpoConfig {
   }
   extra.apiBaseUrl = (env[API_BASE_ENV] ?? "").trim();
 
-  const resolved: ExpoConfig = { ...config, extra };
+  const resolved: ExpoConfig = {
+    ...config,
+    extra,
+    android: withBlockedPermissions(config.android),
+  };
   if (production && config.ios !== undefined) {
     resolved.ios = withoutLocalNetwork(config.ios);
   }

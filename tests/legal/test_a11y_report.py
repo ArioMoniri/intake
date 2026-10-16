@@ -351,21 +351,26 @@ def test_a_fixed_criterion_left_below_supports_is_refused(
 def test_a_done_issue_needs_a_recorded_reason_the_near_miss_control(
     source: dict[str, Any], backlog: dict[str, dict[str, Any]]
 ) -> None:
-    row = _row(source, "1.4.3")
+    # INT-422 closed 1.4.3, the row this control used to ride on, and no row
+    # below Supports cites an open issue today. So the fixture is built: the
+    # 3.1.1 row, which is below Supports, made to lean on INT-144.
+    pending = copy.deepcopy(source)
+    row = _row(pending, "3.1.1")
+    row["remarks"] = f"{row.get('remarks', '')} INT-144 tracks the gap.".strip()
     assert row["status"] in R.BELOW and "INT-144" in R.issues_of(row, backlog)
     assert backlog["INT-144"]["status"] != "done"
-    # The row as committed: its issue is open, so nothing is asked of it.
-    assert not any("1.4.3" in p for p in R.validate(source, backlog=backlog))
+    # The row with its issue open: nothing is asked of it.
+    assert not any("3.1.1" in p for p in R.validate(pending, backlog=backlog))
     # The same row once its issue is done: refused without a reason ...
     closed = _with_status(backlog, "INT-144", "done")
-    assert any("1.4.3" in p and "INT-144" in p for p in R.validate(source, backlog=closed))
-    blank = copy.deepcopy(source)
-    _row(blank, "1.4.3")["still_open_because"] = "  "
-    assert any("1.4.3" in p and "INT-144" in p for p in R.validate(blank, backlog=closed))
+    assert any("3.1.1" in p and "INT-144" in p for p in R.validate(pending, backlog=closed))
+    blank = copy.deepcopy(pending)
+    _row(blank, "3.1.1")["still_open_because"] = "  "
+    assert any("3.1.1" in p and "INT-144" in p for p in R.validate(blank, backlog=closed))
     # ... and accepted with one.
-    reasoned = copy.deepcopy(source)
-    _row(reasoned, "1.4.3")["still_open_because"] = "The palette decision is still open."
-    assert not any("1.4.3" in p for p in R.validate(reasoned, backlog=closed))
+    reasoned = copy.deepcopy(pending)
+    _row(reasoned, "3.1.1")["still_open_because"] = "The platform gap is still open."
+    assert not any("3.1.1" in p for p in R.validate(reasoned, backlog=closed))
 
 
 def test_a_reason_is_refused_where_nothing_is_still_open(
@@ -455,14 +460,16 @@ def test_contrast_findings_match_the_palette_they_measure(source: dict[str, Any]
             assert failing, f"{sc} says {status} but every listed pair now passes"
 
 
-def test_a_palette_fix_forces_the_report_to_be_reassessed(source: dict[str, Any]) -> None:
-    fixed = copy.deepcopy(R.theme_palette())
-    for scheme in fixed.values():
-        scheme.update(inkFaint="#5F5B50", success="#14683D", border="#8C8676")
-        scheme.update(background="#FFFFFF", surface="#FFFFFF", surfaceRaised="#FFFFFF")
-        scheme.update(successSoft="#FFFFFF")
-    problems = R.validate(source, palette=fixed)
-    assert any("1.4.3" in p and "every listed pair" in p for p in problems)
+def test_a_palette_change_forces_the_report_to_be_reassessed(source: dict[str, Any]) -> None:
+    # INT-422's palette closed 1.4.3, so the row says Supports. Putting the
+    # pre-INT-422 light `inkFaint` and paper ground back must reopen it: the
+    # report cannot keep saying Supports over a pair that fails.
+    regressed = copy.deepcopy(R.theme_palette())
+    regressed["light"].update(inkFaint="#8A867A", background="#FAF8F4")
+    problems = R.validate(source, palette=regressed)
+    assert any("1.4.3" in p and "says Supports" in p for p in problems)
+    # And the near miss: the committed palette raises nothing.
+    assert not [p for p in R.validate(source) if "1.4.3" in p]
 
 
 def test_the_contrast_arithmetic_is_wcag_relative_luminance() -> None:

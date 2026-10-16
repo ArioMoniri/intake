@@ -41,6 +41,7 @@ import { describe, expect, it } from "vitest";
 
 import { readFontMetrics } from "./fontMetrics";
 import { en } from "@/lib/i18n/en";
+import { capsuleCount } from "@/lib/intake/progressCapsule";
 import { tr } from "@/lib/i18n/tr";
 import { scaledSize, spacing } from "@/lib/theme";
 
@@ -272,15 +273,19 @@ describe("the dialogue gate", () => {
 
 describe("the review card header", () => {
   it("wraps rather than pushing its controls off the screen", () => {
-    // Measured at 2.0 on an iPhone 16 Pro: the section header is a
+    // Measured at 2.0 on an iPhone 16 Pro: the section header was a
     // `space-between` row holding a Kicker and the scope chips, and RN
     // flex children do not shrink by default — so "Paylaşılıyor" and the
     // "Düzenleyin" Pressable ran off the right edge, clipped and untappable.
     // The consent state of a section is not optional reading.
+    //
+    // INT-472: the header holds no control any more. The share control is a
+    // SwitchRow, which turns into a column above the large-text scale
+    // (appearance.spec T-17), and the edit is a full-width ListRow.
     const review = file("src/app/(tabs)/visits/[visitId]/review.tsx");
-    const header = review.match(/sectionHeader: \{([^}]*)\}/);
-    expect(header, "sectionHeader is not declared the way this test reads it").not.toBeNull();
-    expect(header![1]).toContain('flexWrap: "wrap"');
+    expect(review).not.toMatch(/sectionHeader|scopeChip/);
+    expect(review).toMatch(/<SwitchRow\b/);
+    expect(file("src/components/SwitchRow.tsx")).toMatch(/stacked \? styles\.rowStacked/);
   });
 });
 
@@ -395,53 +400,67 @@ describe("a row that pins an item to the far end can break a line", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/* 7 · The progress row: decoration yields, the fact does not          */
-/*     (INT-295)                                                       */
+/* 7 · The progress line never leaves the screen (INT-295, INT-433)    */
 /* ------------------------------------------------------------------ */
 
 /**
- * The second control INT-293 found off the right edge, on the same screen and
- * at the same default text size: "N soru yanıtlandı".
+ * INT-295 found "N soru yanıtlandı" pushed off the right edge by a rail of
+ * one dot per applicable question, at the DEFAULT text size. INT-433 removed
+ * the rail: the bar is one capsule as wide as the content, and the
+ * "Soru N / M" line sits UNDER it with the full width to itself, so nothing
+ * on its row competes for room.
  *
- * The dots are decoration and are hidden from assistive technology; the
- * counter beside them is the only place the progress is stated as a fact
- * (SC 1.4.1). But the dots are one per applicable question — a Detaylı flow
- * reached about thirty of them — and at 8 pt plus a 4 pt gap that rail is
- * wider than the content box on its own, whatever the text is doing. In a
- * plain row it pushed the counter out of the screen.
+ * The line is still asserted from both ends: it is stacked rather than set
+ * beside the bar, and it fits the narrowest phone at the largest step, in
+ * either catalogue, measured in the shipped face rather than assumed.
  *
- * So the row is asserted from both ends: the decoration must be able to give
- * room back (wrap and shrink), and the counter must never need more room than
- * the narrowest phone has at the largest step, in either catalogue — measured
- * in the shipped face rather than assumed.
+ * INT-492 (owner, 16 Oct 2026) puts the count inside a segmented capsule,
+ * beside the segments at the everyday sizes and under them at the large
+ * ones. Both layouts are measured against the capsule's inner width.
  */
-describe("the progress counter is never pushed off the row", () => {
+describe("the progress line is never pushed off the screen", () => {
   const metrics = readFontMetrics(
     join(MOBILE, "node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf"),
   );
-  const intake = file("src/app/(tabs)/visits/[visitId]/intake.tsx");
+  const progress = file("src/components/QuestionProgress.tsx");
 
-  it("hands the room back from the decoration, not from the fact", () => {
-    const dots = /progressRail: \{([\s\S]*?)\n {2}\}/.exec(intake);
-    expect(dots, "the dot rail no longer owns a box of its own").not.toBeNull();
-    expect(dots![1]).toContain('flexWrap: "wrap"');
-    expect(dots![1]).toContain("flexShrink: 1");
-    expect(intake).toContain("progressCount: { flexShrink: 0");
+  it("moves the count under the segments at the large steps, so neither is squeezed", () => {
+    // INT-492: the count sits beside the segments in a capsule at the
+    // everyday sizes and under them from STACK_AT up.
+    expect(progress).toMatch(/const STACK_AT = 1\.35;/);
+    expect(progress).toMatch(/stacked \? styles\.capsuleStacked : null/);
+    const stacked = /\n\s{2}capsuleStacked:\s*\{([\s\S]*?)\n\s{2}\}/.exec(progress);
+    expect(stacked, "the stacked capsule").not.toBeNull();
+    expect(stacked![1]).toContain('flexDirection: "column"');
+    // The segments take the width the count leaves, and never wrap.
+    expect(progress).toMatch(/segments:\s*\{[^}]*flexGrow: 1[^}]*flexDirection: "row"/s);
   });
 
   it("fits the narrowest phone at the largest step, in both catalogues", () => {
     // Tabular figures (`fontVariant`) give every digit one advance, so a
-    // two-digit count is the widest a flow of this length can print.
+    // two-digit position over a two-digit total is the widest a flow prints.
     const tooWide: string[] = [];
     for (const [locale, catalogue] of [
       ["tr", tr],
       ["en", en],
     ] as const) {
-      const line = `99 ${catalogue["intake.progress.answered"]}`;
-      const width = metrics.advance(line, scaledSize("caption", 2.0));
-      const available = 375 - 2 * spacing.screen;
-      if (width > available) {
-        tooWide.push(`${locale}: ${width.toFixed(1)} pt against ${available} pt`);
+      const line = capsuleCount(
+        { position: 99, total: 99, fraction: 1, mayGrow: false },
+        catalogue["intake.progress.question"],
+      );
+      // Inside the capsule: the screen margins and the capsule's own padding.
+      const inner = 375 - 2 * spacing.screen - 2 * spacing.md;
+      // Stacked (2.0): the count has the capsule's whole inner width.
+      const stacked = metrics.advance(line, scaledSize("caption", 2.0));
+      if (stacked > inner) {
+        tooWide.push(`${locale} stacked: ${stacked.toFixed(1)} pt against ${inner} pt`);
+      }
+      // Side by side, just under STACK_AT: the count, the gap and six
+      // narrowest segments with their gaps.
+      const beside =
+        metrics.advance(line, scaledSize("caption", 1.34)) + spacing.sm + 6 * 8 + 5 * 3;
+      if (beside > inner) {
+        tooWide.push(`${locale} beside: ${beside.toFixed(1)} pt against ${inner} pt`);
       }
     }
     expect(tooWide).toEqual([]);

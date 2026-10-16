@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**364 issues.** By phase: P0 180 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 244 · todo 74 · withdrawn 1.
+**375 issues.** By phase: P0 180 · P1 141 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 257 · todo 72 · withdrawn 1.
 
 ## P0
 
@@ -326,6 +326,17 @@
 | INT-538 | One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required | E13-infra | INT-460 | area:infra | done |
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
+| INT-422 | Design system refresh: native Apple feel, restrained palette, SF Symbols, no AI-generic styling | E08-mobile | INT-412 | area:mobile | done |
+| INT-423 | Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid | E08-mobile | INT-422 | area:mobile | done |
+| INT-433 | Question screen redesign: native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced) | E08-mobile | INT-422, INT-423 | area:mobile | done |
+| INT-451 | Mobile interaction patterns from the owner-listed libraries and Mobbin, within ADR-033 and Liquid Glass | E08-mobile | INT-433 | area:mobile | done |
+| INT-461 | ADR-038: amendment to ADR-033 — spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets under the RED root layer | E00-governance | INT-332 | area:mobile | done |
+| INT-462 | Native chat: a Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips | E08-mobile | INT-433, INT-337, INT-340, INT-461 | area:mobile | done |
+| INT-466 | Chat stage: ADR-039 (owner-approved orb motion, gradient, glass controls, radii, palette) and the live chat on it | E08-mobile | INT-462, INT-461 | area:mobile | done |
+| INT-464 | Native welcome and sign-in in the stage language: iOS setup layout, still mark, filled fields, static large titles | E08-mobile | INT-466, INT-433 | area:mobile | done |
+| INT-472 | Review and send as iOS grouped inset lists: section rows, share switch rows, a metadata summary | E08-mobile | INT-464, INT-137 | area:mobile | done |
+| INT-473 | In-tree detent sheet (ADR-038 A3) for the dialogue's section sheet: no presented sheet over RED | E08-mobile | INT-472, INT-461 | area:mobile | done |
+| INT-492 | Question progress and micro-interactions: a segmented capsule with the count, a reserved chip check, the press response, a still loading glyph | E08-mobile | INT-473, INT-331 | area:mobile | done |
 
 ## P2
 
@@ -374,10 +385,10 @@
 | INT-334 | Motion: arbiter and commit windows (pure) | E08-mobile | INT-333 | area:mobile | done |
 | INT-335 | Motion: Reanimated hygiene gates before the first Reanimated consumer | E08-mobile | INT-331 | area:mobile | done |
 | INT-336 | Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners | E08-mobile | INT-332, INT-334, INT-335 | area:mobile, risk:clinical | todo |
-| INT-337 | Motion: dialogue transients wired to the arbiter | E08-mobile | INT-334, INT-335, INT-336 | area:mobile | todo |
+| INT-337 | Motion: dialogue transients wired to the arbiter | E08-mobile | INT-334, INT-335, INT-336 | area:mobile | done |
 | INT-338 | Motion: section sheet — measured fade budget, instant privacy and RED closes | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | todo |
 | INT-339 | Motion: typed lane, fallback and completion | E08-mobile | INT-330, INT-335 | area:mobile | done |
-| INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | todo |
+| INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | done |
 
 ## P3
 

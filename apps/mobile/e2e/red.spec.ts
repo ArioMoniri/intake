@@ -26,9 +26,9 @@ import {
   type DialogueStreamAction,
   type DialogueStreamState,
 } from "../src/lib/dialogue/stream";
-import { modalAnimation } from "../src/lib/a11y/motion";
 import { emptyNoteState, noteReducer, type NoteState } from "../src/lib/intake/note";
 import type { IntakeQuestion } from "../src/lib/intake/questions";
+import { sheetClose } from "../src/lib/motion/sheet";
 import { CATALOG_PATH, type HopTransport } from "../src/lib/red/hop";
 import { deriveRedLocation } from "../src/lib/red/location";
 import {
@@ -622,8 +622,12 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
 
   it("CD-24 generic_red_stops_intake: the dialogue shows nothing that arrives after the RED", () => {
     const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
-    expect(dialogue).toMatch(/dialogueShown\(state\.stream,\s*frozenAt\)\.map\(renderEntry\)/);
-    expect(dialogue).not.toMatch(/\{state\.stream\.map\(renderEntry\)\}/);
+    // The stage renders each shown entry through renderEntry inside its
+    // spring-in wrapper (INT-462); no unfrozen stream reaches the render.
+    expect(dialogue).toMatch(
+      /dialogueShown\(state\.stream,\s*frozenAt\)\.map\(\(entry, index\) => \{[\s\S]{0,1200}?renderEntry\(entry, index, key\)/,
+    );
+    expect(dialogue).not.toMatch(/\{state\.stream\.map\(/);
     for (const phase of ["listening", "settling", "confirming"]) {
       expect(dialogue).not.toMatch(new RegExp(`\\{turn\\.phase === "${phase}" \\?`));
     }
@@ -700,7 +704,7 @@ describe("INT-446 — the RED path", () => {
     expect(dialogue).toMatch(
       /\{!stopsDialogue \? \(\s*<Pressable[^>]*accessibilityLabel=\{t\("voiceFirst\.typeInstead"\)\}/,
     );
-    expect(dialogue).toMatch(/\{!stopsDialogue \? \(\s*<View style=\{styles\.composerRow\}>/);
+    expect(dialogue).toMatch(/\{!stopsDialogue \? \(\s*<GlassComposer\b/);
   });
 
   it("the section sheet cannot open or commit while a RED stands (round 4)", () => {
@@ -709,6 +713,11 @@ describe("INT-446 — the RED path", () => {
     expect(dialogue).toMatch(
       /<SectionStrip[\s\S]{0,160}onPress=\{stopsDialogue \? undefined : \(\) => setSheetOpen\(true\)\}/,
     );
+    // …nor does the iOS bar item (ADR-039 S3, INT-466)…
+    expect(dialogue).toMatch(
+      /onPress: \(\) => \{\s*if \(!stopsDialogue\) \{\s*setSheetOpen\(true\);\s*\}\s*\}/,
+    );
+    expect(dialogue.match(/setSheetOpen\(true\)/g)).toHaveLength(2);
     // …a row confirm writes nothing…
     const confirm = dialogue.indexOf("const confirmRow = (questionId: string) => {");
     expect(confirm).toBeGreaterThan(-1);
@@ -722,10 +731,12 @@ describe("INT-446 — the RED path", () => {
     expect(dialogue).toMatch(/<SectionSheet\s+visible=\{sheetOpen && !stopsDialogue\}/);
     expect(dialogue).toMatch(/<SectionSheet[\s\S]{0,200}stopped=\{stopsDialogue\}/);
     const sheet = code(readFileSync(join(SRC, "components/SectionPanel.tsx"), "utf8"));
-    expect(sheet).toMatch(/animationType=\{modalAnimation\(reduceMotion \|\| stopped\)\}/);
-    expect(modalAnimation(false || true)).toBe("none");
-    // Near miss: with no RED the sheet keeps the reduce-motion policy's fade.
-    expect(modalAnimation(false || false)).toBe("fade");
+    // The sheet is the in-tree detent sheet (ADR-038 A3, INT-473): a RED
+    // close is instant at every setting (lib/motion/sheet).
+    expect(sheet).toMatch(/closeReason=\{stopped \? "red" : "patient"\}/);
+    expect(sheetClose("red", { reduce: false })).toBe("instant");
+    // Near miss: with no RED the patient's own close settles on the spring.
+    expect(sheetClose("patient", { reduce: false })).toBe("spring");
     // Near miss: without a RED the strip still opens the sheet.
     const strip = code(readFileSync(join(SRC, "components/SectionPanel.tsx"), "utf8"));
     expect(strip).toMatch(/onPress\?: \(\) => void;/);

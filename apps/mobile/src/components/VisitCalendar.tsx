@@ -42,7 +42,7 @@ import {
 } from "@/lib/calendar";
 import { getLocale, t } from "@/lib/i18n";
 import { isLargeText } from "@/lib/prefs/appearance";
-import { motion, radius, spacing, tracking, type ThemeColors } from "@/lib/theme";
+import { motion, radius, spacing, type ThemeColors } from "@/lib/theme";
 
 interface VisitCalendarProps {
   /** The visits to mark; a dateless visit marks no day (lib/calendar.ts). */
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   grid: { gap: spacing.xs, marginTop: spacing.sm },
   weekRow: { flexDirection: "row" },
   headerCell: { flex: 1, alignItems: "center", paddingVertical: spacing.xs },
-  headerText: { letterSpacing: tracking.kicker },
+  headerText: { fontWeight: "600" },
   cell: {
     flex: 1,
     alignItems: "center",
@@ -325,6 +325,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     minHeight: 56,
     borderRadius: radius.group,
+    borderCurve: "continuous",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     gap: spacing.sm,

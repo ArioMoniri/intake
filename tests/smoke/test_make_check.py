@@ -299,6 +299,21 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
     # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
     # with a stated reason.
+    # + INT-422 (design system refresh: native Apple feel, restrained palette,
+    # SF Symbols; owner request, GitHub #714)
+    # + INT-423 (chat rhythm, glass on chrome only, content solid; owner
+    # request, GitHub #718)
+    # + INT-433 (question screen redesign, Mobbin-referenced; owner request,
+    # GitHub #739); grows only with a stated reason.
+    # + INT-451 (interaction patterns from the owner-listed libraries and
+    # Mobbin, within ADR-033; owner request, GitHub #764); grows only with a
+    # stated reason.
+    # + INT-461 (ADR-038, the owner-ratified amendment to ADR-033, GitHub #786);
+    # grows only with a stated reason.
+    # + INT-462 (native chat: capsule composer, mic, checked chips, GitHub #787);
+    # grows only with a stated reason.
+    # + INT-466 (chat stage, ADR-039, GitHub #795);
+    # grows only with a stated reason.
     # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
     # commit status, owner request, GitHub #721); grows only with a stated
     # reason.
@@ -314,6 +329,12 @@ def test_backlog_parses_and_is_complete() -> None:
     # only with a stated reason.
     # + INT-414 (conversational delivery around verbatim questions, stacked on
     # INT-415, owner request, GitHub #705); grows only with a stated reason.
+    # + INT-464 (native welcome and sign-in, ADR-039 S7, GitHub #793);
+    # grows only with a stated reason.
+    # + INT-472 (review and send as grouped inset lists, GitHub #802);
+    # grows only with a stated reason.
+    # + INT-473 (in-tree detent sheet, ADR-038 A3, GitHub #807);
+    # grows only with a stated reason.
     # + INT-447 (INT-414's 48 delivery lines verified under owner decision D18,
     # GitHub #758); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
@@ -382,7 +403,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
     # stated reason.
-    assert len(ids) == 364, f"expected 175 blueprint + 189 added issues, got {len(ids)}"
+    # + INT-492 (question progress and micro-interactions behind a flag,
+    # GitHub #839); grows only with a stated reason.
+    assert len(ids) == 375, f"expected 175 blueprint + 200 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

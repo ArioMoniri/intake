@@ -1,12 +1,18 @@
 /**
  * Typed intake shell (INT-179): ONE question per screen (Alan pacing) —
  * chips multi-select (CVS grid), single-select cards, then free text.
- * Progress is dots + numerals; answers land in the session note state, so
- * leaving and returning resumes at the first unanswered question.
+ * Progress is a thin bar and a "Soru N / M" line (INT-433); answers land in
+ * the session note state, so leaving and returning resumes at the first
+ * unanswered question.
  * Fixture questions only — the compiled protocol set (INT-096) replaces them.
  * Design pass 3: the step's one CTA sits on a floating glass bar (Oura
  * chrome) and the question body scrolls under it; single-select steps have
  * no CTA and no bar.
+ * INT-433 (owner review, 2 Oct 2026): the native pass. Filled fields with a
+ * focus ring, filled capsule chips with a checked state, and Liquid Glass on
+ * both bars: the nav bar draws the bottom bar's material, the content stays
+ * on solid fills, and Reduce Transparency is solid (docs/design/
+ * question-screen.md).
  *
  * Voice entry (INT-199 → INT-239): a FRESH intake (not edit mode, no
  * answers) with dev-lane voice available goes STRAIGHT into the spoken
@@ -30,12 +36,15 @@
  * (02 §34) — into the partial-note review.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useReducer, useState, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
 import { AnnouncedRegion, AnnouncedText } from "@/components/Announced";
-import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance, withGlassNav, withStageNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
+import { QuestionProgress } from "@/components/QuestionProgress";
 import {
   AppText,
   Card,
@@ -46,9 +55,11 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
+import { ChipSlot } from "@/components/ChipSlot";
 import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
+import { stagePalette } from "@/lib/stage/palette";
 import { InstrumentStep } from "@/components/InstrumentStep";
 import { RedInFlow } from "@/components/RedLayer";
 import { VoiceNote } from "@/components/VoiceNote";
@@ -56,10 +67,11 @@ import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { typedStepDelivery } from "@/lib/dialogue/deliveryPlan";
 import { joinParts } from "@/lib/a11y/labels";
-import { useReducedMotion } from "@/lib/a11y/prefs";
+import { useIncreasedContrast, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
+import { voiceDiagnostic } from "@/lib/dev/voiceDiagnostic";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
 import { intakeLive, redStore } from "@/lib/red/store";
@@ -72,12 +84,14 @@ import {
   spokenPack,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
+import { chipChrome, filledFieldChrome, questionPosition } from "@/lib/intake/questionScreen";
 import {
   initialVoiceIntakeState,
   resolveAnswer,
   voiceIntakeReducer,
   type PrefillMap,
 } from "@/lib/intake/voiceFirst";
+import { haptic } from "@/lib/motion/appHaptics";
 import { enteringFor } from "@/lib/motion/native/reanimated";
 import { typedFallback, typedStep } from "@/lib/motion/transients";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
@@ -90,6 +104,7 @@ const FLOW_EDGES = ["left", "right"] as const;
 export default function TypedIntake() {
   useClinicalScreenPrivacy(); // FLAG_SECURE-class capture blocking (INT-131)
   const headerOptions = useStackHeader();
+  const scheme = useScheme();
   const { visitId, q } = useLocalSearchParams<{ visitId: string; q?: string }>();
   const { notes, consents, visits, integrity } = useSession();
   // INT-260: "Ziyarete başlarken" — the patient's own answer to whether a
@@ -144,13 +159,39 @@ export default function TypedIntake() {
   const showModeChoice =
     !editing && (note?.answers.length ?? 0) === 0 && !(note?.modeChosen ?? false);
 
+  // INT-433: the glass nav bar belongs to the typed steps. The question
+  // scrolls under it and clears it by the header's own height. A warning
+  // banner above the steps keeps the solid bar, so nothing it says can sit
+  // under glass; the dialogue and the mode choice keep it too.
+  const headerHeight = useHeaderHeight();
+  const bannerShown = integrityCompromised || voiceDiagnostic(voiceProbe, __DEV__) !== null;
+  const glassNav = !showModeChoice && voiceState.phase === "steps" && !bannerShown;
+  // INT-451 follow-up: the same helper as the visit's other pushed screens,
+  // so iOS 26 gets the platform bar and its scroll-edge effect rather than a
+  // full-bar GlassView the question would scroll through.
+  const glass = useGlassMode();
+  // INT-466 (ADR-039 S3): the dialogue is the chat stage. With Liquid Glass
+  // its bar is the platform's own, transparent over the stage backdrop with
+  // a soft scroll edge; otherwise it is solid in the stage's base colour.
+  // A warning banner keeps the solid bar here too.
+  const stageNav = !showModeChoice && voiceState.phase === "dialogue" && !bannerShown;
+  const stageBase = stagePalette(scheme, {
+    reduceTransparency: true,
+    increasedContrast: false,
+  }).base;
+  const navOptions = glassNav
+    ? withGlassNav(headerOptions(""), glass)
+    : stageNav
+      ? withStageNav(headerOptions(""), glass, stageBase)
+      : headerOptions("");
+
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
       {/* Design pass 6: every Oura full-screen flow carries a top-left way
           out (Mobbin 11265937, 96fb49c7); ours had none. Back-only bar —
           the serif question line stays the screen's title, so the bar
           itself is untitled (the resilience-sheet anatomy, b67baac0). */}
-      <Stack.Screen options={headerOptions("")} />
+      <Stack.Screen options={navOptions} />
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       {integrityCompromised ? (
@@ -185,6 +226,7 @@ export default function TypedIntake() {
                 intakeQuestions={intakeQuestions}
                 prefill={voiceState.prefill}
                 voiceFailed={voiceState.failed}
+                topInset={glassNav ? headerHeight : 0}
               />
             </Animated.View>
           ) : voiceState.phase === "dialogue" ? (
@@ -231,7 +273,7 @@ function ModeChoice({ visitId }: { visitId: string | undefined }) {
   };
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <AppText role="hero" heading>
+      <AppText role="question" heading>
         {t("intake.mode.q")}
       </AppText>
       <View style={styles.optionColumn}>
@@ -274,13 +316,25 @@ interface StepFlowProps {
   prefill: PrefillMap;
   /** True when a voice attempt fell back here — say so once, honestly. */
   voiceFailed: boolean;
+  /** The glass nav bar's height when the content scrolls under it, else 0. */
+  topInset: number;
 }
 
-function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }: StepFlowProps) {
+function StepFlow({
+  visitId,
+  requestedQ,
+  intakeQuestions,
+  prefill,
+  voiceFailed,
+  topInset,
+}: StepFlowProps) {
   const router = useRouter();
   const theme = useTheme();
-  const dark = useScheme() === "dark";
   const fontScale = useFontScale();
+  const increasedContrast = useIncreasedContrast() === "high";
+  // The answer field's focus ring (INT-433); one field is on screen at a time.
+  const [fieldFocused, setFieldFocused] = useState(false);
+  const underNav = topInset > 0 ? { paddingTop: spacing.screen + topInset } : null;
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];
   const reduceMotion = useReducedMotion();
@@ -306,7 +360,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // unanswered APPLICABLE question. The `?? intakeQuestions[0]` only keeps the
   // type total and is unreachable: questions.test.ts pins that every shipped
   // pack has something applicable before a single answer is given.
-  const answeredIds = new Set(answers.map((a) => a.questionId));
   const requested = requestedQ ? intakeQuestions.find((x) => x.id === requestedQ) : undefined;
   const initialQuestion =
     resumeQuestion(intakeQuestions, answers, requestedQ) ?? intakeQuestions[0];
@@ -372,10 +425,6 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // so a step change removes the old body in the commit that mounts the next
   // one, and only the next one fades in. No frame holds two questions.
   const step = typedStep(question.id, { reduce: reduceMotion });
-  const stepIndex = Math.max(
-    applicable.findIndex((x) => x.id === question.id),
-    0,
-  );
   // The suggestion for THIS question (saved answers always win over it).
   const suggestion = answers.some((a) => a.questionId === question.id)
     ? undefined
@@ -484,11 +533,12 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   if (live && detayli && privacy === "unchecked" && !editing) {
     return (
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, underNav]}
+        scrollIndicatorInsets={{ top: topInset }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <AppText role="hero" heading>
+        <AppText role="question" heading>
           {t("intake.privacy.q")}
         </AppText>
         <AppText role="body" color="inkSoft">
@@ -548,8 +598,10 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       <ScrollView
         contentContainerStyle={[
           styles.content,
+          underNav,
           floatingCta ? { paddingBottom: barClearance } : null,
         ]}
+        scrollIndicatorInsets={{ top: topInset }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         // SC 1.3.4 (INT-360): the answer field scrolls clear of the keyboard,
@@ -565,42 +617,10 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             {t("intake.privacy.deferredInfo")}
           </AppText>
         ) : null}
-        <View style={styles.progressRow}>
-          {/* SC 1.4.1: per-question progress exists here ONLY as a hue, and
-              a hue is not a fact. The dots are hidden as the decoration
-              they are and the counter beside them carries the state.
-
-              INT-295: the dots own a box that WRAPS and SHRINKS, and the
-              counter does neither. A Detaylı flow reaches about thirty dots,
-              which at 8 pt plus a 4 pt gap is longer than the content width
-              on its own — so the row used to push the counter off the right
-              edge at the DEFAULT text size, and the fact went with it. The
-              decoration yields the room now; the fact keeps it. */}
-          <View style={styles.progressRail}>
-            {applicable.map((item, i) => (
-              <View
-                key={item.id}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                style={[
-                  styles.progressDot,
-                  {
-                    backgroundColor:
-                      answeredIds.has(item.id) || i === stepIndex ? theme.primary : theme.border,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-          <AppText role="caption" color="inkFaint" style={styles.progressCount}>
-            {answeredCount} {t("intake.progress.answered")}
-          </AppText>
-        </View>
-        {flowCanGrow ? (
-          <AppText role="caption" color="inkFaint">
-            {t("intake.progress.grows")}
-          </AppText>
-        ) : null}
+        <QuestionProgress
+          position={questionPosition(applicable, question.id, flowCanGrow)}
+          flow={applicable}
+        />
         {/* INT-339 (MOTION-10, C16): the question, and only the question.
             The progress above and the glass-bar CTA below swap instantly
             with the step (C9), and the first step arrives with its container
@@ -639,7 +659,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                   onSelect={(optionId) => commit([optionId])}
                 />
               ) : (
-                <AppText role="hero" heading>
+                <AppText role="question" heading>
                   {t(question.titleKey)}
                 </AppText>
               )}
@@ -649,11 +669,11 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             with the control it describes (the same rule INT-261 applied to
             the spoken turn). */}
               {instrumentStep ? null : openAsk ? (
-                <AppText role="body" color="inkSoft">
+                <AppText role="caption" color="inkSoft">
                   {t("intake.open.hint")}
                 </AppText>
               ) : question.hintKey ? (
-                <AppText role="body" color="inkSoft">
+                <AppText role="caption" color="inkSoft">
                   {t(question.hintKey)}
                 </AppText>
               ) : null}
@@ -686,15 +706,13 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                     allowFontScaling={false}
                     value={text}
                     onChangeText={setText}
+                    onFocus={() => setFieldFocused(true)}
+                    onBlur={() => setFieldFocused(false)}
                     multiline
                     style={[
                       styles.textField,
-                      {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        color: theme.ink,
-                        fontSize: scaledSize("body", fontScale),
-                      },
+                      filledFieldChrome(theme, { focused: fieldFocused, increasedContrast }),
+                      { color: theme.ink, fontSize: scaledSize("body", fontScale) },
                     ]}
                   />
                   {__DEV__ && consents?.voice === true ? (
@@ -721,6 +739,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                 <View style={styles.chipWrap}>
                   {question.options!.map((o) => {
                     const on = selected.includes(o.id);
+                    // INT-433: a filled capsule; selected is tinted AND checked,
+                    // so the state is never carried by the hue alone (SC 1.4.1).
+                    const look = chipChrome(theme, on);
                     return (
                       <Pressable
                         key={o.id}
@@ -728,18 +749,18 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                         accessibilityLabel={t(o.labelKey)}
                         accessibilityHint={t("a11y.selectHint")}
                         accessibilityState={{ checked: on }}
-                        onPress={() => toggleChip(o.id)}
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: on ? theme.primarySoft : theme.surface,
-                            // Oura chips are filled, borderless in dark (tonal
-                            // separation); light keeps the hairline (pass 4).
-                            borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
-                          },
-                        ]}
+                        onPress={() => {
+                          toggleChip(o.id);
+                          // ADR-038 A2 (INT-462): every option ticks the same;
+                          // a validated instrument's options never reach here.
+                          haptic("select", { surface: "intakeChip", valueChanged: true });
+                        }}
+                        style={[styles.chip, { backgroundColor: look.backgroundColor }]}
                       >
-                        <AppText role="label" color={on ? "primary" : "ink"}>
+                        {/* INT-492: the check slot is reserved in both
+                          states, so a tap never reflows the chips. */}
+                        <ChipSlot selected={on} />
+                        <AppText role="label" color={look.textColor} style={styles.chipLabel}>
                           {t(o.labelKey)}
                         </AppText>
                       </Pressable>
@@ -822,15 +843,13 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                     allowFontScaling={false}
                     value={text}
                     onChangeText={setText}
+                    onFocus={() => setFieldFocused(true)}
+                    onBlur={() => setFieldFocused(false)}
                     multiline
                     style={[
                       styles.textField,
-                      {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        color: theme.ink,
-                        fontSize: scaledSize("body", fontScale),
-                      },
+                      filledFieldChrome(theme, { focused: fieldFocused, increasedContrast }),
+                      { color: theme.ink, fontSize: scaledSize("body", fontScale) },
                     ]}
                   />
                   {__DEV__ && consents?.voice === true ? (
@@ -855,6 +874,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
+            pressScale
             // INT-286: on an open step, words are an answer — the CTA opens
             // on either, so a patient who described it in a sentence is not
             // held at the screen until they also tap a chip.
@@ -867,6 +887,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
+            pressScale
             // A card tap commits on its own (above); this bar exists for the
             // answer given only in words. Disabled until there are some, so
             // it can never record an empty answer by being tapped through.
@@ -879,6 +900,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
+            pressScale
             onPress={() => commit(text.trim().length > 0 ? [text.trim()] : [])}
           />
         </GlassBar>
@@ -887,6 +909,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
+            pressScale
             // Disabled until the control has been MOVED: where a stepper
             // opens is an affordance, not an answer, and tapping through
             // must not be able to record one.
@@ -933,7 +956,7 @@ function MeasureStepper({
       accessibilityRole="button"
       accessibilityLabel={a11y}
       onPress={() => move(delta)}
-      style={[styles.stepButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      style={[styles.stepButton, { backgroundColor: theme.surface }]}
     >
       <AppText role="label" color="ink">
         {label}
@@ -981,26 +1004,12 @@ const styles = StyleSheet.create({
   // The Card inside is far taller than the floor; declaring it keeps the
   // SC 2.5.8 guarantee a property of the control rather than of its content.
   cardTarget: { minHeight: MIN_TAP },
-  progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-  // The decoration is the part that gives way: it wraps onto a second line
-  // and shrinks, so the counter beside it never has to leave the screen.
-  progressRail: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: spacing.xs,
-    flexShrink: 1,
-  },
-  progressDot: { width: 8, height: 8, borderRadius: radius.chip },
-  // Tabular figures so the counter doesn't reflow step to step (design
-  // pass 6 microtypography — Oura's numeric rows are tabular).
-  // Never shrinks: the count is the fact, and it fits the narrowest phone at
-  // the largest step in both catalogues (asserted in e2e/overflow.spec.ts).
-  progressCount: { flexShrink: 0, fontVariant: ["tabular-nums"] },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     borderRadius: radius.chip,
-    borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     minHeight: MIN_TAP,
@@ -1013,6 +1022,8 @@ const styles = StyleSheet.create({
     // value, so 1.0 says nothing about what it can ask for).
     maxWidth: "100%",
   },
+  // The label wraps inside the capsule rather than pushing the check out.
+  chipLabel: { flexShrink: 1 },
   optionColumn: { gap: spacing.sm },
   // The "Bitirdim" checkpoint (INT-321): a quiet chip aligned to the top-right
   // of the flow — a control the patient reaches for rarely, never the loudest
@@ -1031,15 +1042,15 @@ const styles = StyleSheet.create({
   measureValue: { flex: 1, alignItems: "center" },
   stepButton: {
     borderRadius: radius.control,
-    borderWidth: 1,
     minWidth: MIN_TAP,
     minHeight: MIN_TAP,
     alignItems: "center",
     justifyContent: "center",
   },
+  // The filled field (INT-433): its fill, ring and width come from
+  // filledFieldChrome, which holds one border width in every state.
   textField: {
     borderRadius: radius.control,
-    borderWidth: 1,
     minHeight: 120,
     padding: spacing.md,
     textAlignVertical: "top",

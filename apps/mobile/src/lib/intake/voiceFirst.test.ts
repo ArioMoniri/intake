@@ -161,7 +161,8 @@ describe("intake entry copy (tr source of truth + en mirror, invariant 5)", () =
     "voiceFirst.suggested",
     "voiceFirst.failed",
     "dialogue.voiceMuted",
-    "intake.progress.answered",
+    "intake.progress.question",
+    "intake.progress.of",
     "intake.progress.grows",
   ] as const satisfies readonly MessageKey[];
 

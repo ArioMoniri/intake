@@ -148,7 +148,7 @@ function RailPill({ children }: { children: ReactNode }) {
         style={[
           styles.pill,
           styles.pillEdge,
-          { backgroundColor: theme.surface, borderColor: theme.border },
+          { backgroundColor: theme.surface, borderColor: theme.separator },
         ]}
       >
         {children}
@@ -277,7 +277,7 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
                   // accent (pass 4 measurement) — brightness + weight carry the
                   // state, and the label is present at every scale below 1.6
                   // (02 §8.2); above it, the well carries the state instead.
-                  tintColor={active ? theme.ink : theme.inkFaint}
+                  tintColor={active ? theme.primary : theme.inkFaint}
                   // HIG tab bars: the selected tab draws the filled variant, a
                   // shape cue that holds without colour (BK8 / SC 1.4.1).
                   selected={active}
@@ -286,7 +286,7 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
               {collapsed ? null : (
                 <AppText
                   role="micro"
-                  color={active ? "ink" : "inkFaint"}
+                  color={active ? "primary" : "inkFaint"}
                   style={active ? styles.activeLabel : undefined}
                 >
                   {t(meta.labelKey)}

@@ -1,5 +1,10 @@
 # Vizite mobile UI — design decisions (INT-130)
 
+> **Superseded visual register (INT-422).** The palette, type, radii, depth
+> and "Oura register" choices below are replaced by
+> [system-refresh.md](system-refresh.md). The accessibility floors, the
+> Turkish rules and the motion budget recorded here still stand.
+
 The binding sources are 02 §4 (navigation map), §5 (screen specs and the
 calm-visual rules), §6 (reference study queries) and §8 (accessibility
 floors). This file records the concrete choices the shell makes inside those

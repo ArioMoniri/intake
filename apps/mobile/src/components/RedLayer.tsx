@@ -317,6 +317,7 @@ const styles = StyleSheet.create({
     minWidth: MIN_TAP * 2,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.control,
+    borderCurve: "continuous",
     alignItems: "center",
     justifyContent: "center",
   },
