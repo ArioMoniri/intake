@@ -574,6 +574,15 @@ describe("RED over the data channel (invariant 21)", () => {
     });
   });
 
+  // INT-475: the voice lane's RED names its session, so the patient's answer to
+  // the location question reaches the server for this session (a session is a
+  // visit row, INT-197: the room is `intake-<visit uuid>`).
+  it("a RED over the data channel keeps the session it arrived on", async () => {
+    const { adapter, store } = await started();
+    adapter.pushData(trigger("UNKNOWN"));
+    expect(store.getSnapshot()?.origin).toEqual({ sessionId: SESSION_ID, visitId: SESSION_ID });
+  });
+
   it("a clinician-only RED changes nothing on the patient's screen (near miss)", async () => {
     const { adapter, store } = await started();
     adapter.pushData(trigger("REMOTE", "DEFERRED_CLINICIAN"));

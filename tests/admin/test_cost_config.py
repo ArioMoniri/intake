@@ -105,7 +105,8 @@ class TestTheCommittedConfig:
     def test_every_vendor_has_a_day_and_a_month_budget(self) -> None:
         config = load_cost_config(CONFIG_PATH)
         vendors = {c.vendor for c in config.components if c.vendor is not None}
-        assert vendors == {"self-hosted", "elevenlabs", "aws"}
+        # INT-428 / ADR-035 adds the hosted model lanes' vendor, synthetic only
+        assert vendors == {"self-hosted", "elevenlabs", "aws", "openai"}
         for vendor in vendors:
             periods = {b.period.value for b in config.budgets if b.vendor == vendor}
             assert periods == {"day", "month"}

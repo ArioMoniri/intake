@@ -619,6 +619,19 @@ class TestNonDevBoot:
     def test_intake_env_is_staging(self) -> None:
         assert _environment(_service("api"))["INTAKE_ENV"] == STAGING_ENV
 
+    def test_the_api_is_handed_the_safety_inbox_store(self) -> None:
+        """INT-475: the host serves the red rule set, so a hop RED must reach the
+        clinic Safety inbox — the API is given the store, on the Redis it already
+        uses, built from the generated password. Unset, every hop RED pages
+        RedInboxRouteFailed and an on-site answer is refused."""
+        from intake_platform.safety_inbox import ENV_SAFETY_INBOX_REDIS_URL
+
+        env = _environment(_service("api"))
+        assert "INTAKE_API_TRIAGE_RULES" in env, "the precondition: this host serves REDs"
+        value = env[ENV_SAFETY_INBOX_REDIS_URL]
+        assert value == "redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0"
+        assert value == env["INTAKE_REDIS_URL"]
+
     def test_the_kek_mode_is_transit(self) -> None:
         modes = set(get_args(KekMode))
         assert PROCESS_LOCAL_KEK in modes, "the negative control names a real mode"
@@ -694,11 +707,21 @@ class TestOpenBao:
             r'path\s+"([^"]+)"\s*\{\s*capabilities\s*=\s*\[([^\]]*)\]\s*\}', _text(API_POLICY)
         )
         assert blocks
+        # INT-428 (ADR-035): the one grant outside transit/ is the hosted-lane
+        # provider keys, and exactly these two paths with these capabilities
+        model_lanes = {
+            "secret/data/model-lanes/*": {"create", "update", "read"},
+            "secret/metadata/model-lanes/*": {"read", "list", "delete"},
+        }
         for path, caps in blocks:
+            granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}
+            if path in model_lanes:
+                assert granted == model_lanes[path], (path, granted)
+                continue
             assert path.startswith("transit/"), path
             assert f"/{prefix}-" in path, path
-            granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}
             assert granted <= {"create", "update", "read"}, (path, granted)
+        assert {path for path, _ in blocks} >= set(model_lanes)
 
     def test_init_enables_transit_and_creates_the_probe_kek(self) -> None:
         probe = _load_probe()

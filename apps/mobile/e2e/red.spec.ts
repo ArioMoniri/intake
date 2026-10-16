@@ -31,6 +31,11 @@ import { emptyNoteState, noteReducer, type NoteState } from "../src/lib/intake/n
 import type { IntakeQuestion } from "../src/lib/intake/questions";
 import { CATALOG_PATH, type HopTransport } from "../src/lib/red/hop";
 import { deriveRedLocation } from "../src/lib/red/location";
+import {
+  createLocationReporter,
+  LOCATION_PATH,
+  subscribeLocationReports,
+} from "../src/lib/red/locationReport";
 import { createRedHop, createRedStore, redScreen, type RedStore } from "../src/lib/red/store";
 import { code } from "./motionSource";
 import { specifiers } from "./redSurface";
@@ -38,13 +43,19 @@ import { specifiers } from "./redSurface";
 const MOBILE = join(__dirname, "..");
 const FIXTURES = join(MOBILE, "..", "..", "tests", "fixtures", "triage_hop");
 const CATALOG_BYTES = new Uint8Array(readFileSync(join(FIXTURES, "red_catalog.json")));
-const EXCHANGES = (
-  JSON.parse(readFileSync(join(FIXTURES, "exchanges.json"), "utf8")) as {
-    exchanges: { name: string; request: unknown; response: unknown }[];
-  }
-).exchanges;
+const RECORDED = JSON.parse(readFileSync(join(FIXTURES, "exchanges.json"), "utf8")) as {
+  exchanges: { name: string; request: unknown; response: unknown }[];
+  locationAnswers: { name: string; request: unknown; status: number; response: unknown }[];
+};
+const EXCHANGES = RECORDED.exchanges;
+/** INT-475: the visit the recorded exchanges name (a visit is a session row, INT-197). */
+const VISIT = "visit-e2e";
 
-/** The recorded engine: a request it has a recording for gets that answer. */
+/**
+ * The recorded engine: a request it has a recording for gets that answer. The
+ * location route's recordings (INT-475) are pinned to the real route by
+ * tests/api/test_red_notify.py, as the evaluate ones are by test_triage_hop.py.
+ */
 function recordedEngine(calls: string[]): HopTransport {
   return async (path, body) => {
     if (path === CATALOG_PATH) {
@@ -52,12 +63,18 @@ function recordedEngine(calls: string[]): HopTransport {
       return { status: 200, bytes: CATALOG_BYTES };
     }
     const request: unknown = JSON.parse(body ?? "null");
-    const hit = EXCHANGES.find((e) => isDeepStrictEqual(e.request, request));
+    const hit: { name: string; status?: number; response: unknown } | undefined =
+      path === LOCATION_PATH
+        ? RECORDED.locationAnswers.find((e) => isDeepStrictEqual(e.request, request))
+        : EXCHANGES.find((e) => isDeepStrictEqual(e.request, request));
     calls.push(hit?.name ?? "unrecorded");
     if (hit === undefined) {
       return { status: 404, bytes: new Uint8Array() };
     }
-    return { status: 200, bytes: new TextEncoder().encode(JSON.stringify(hit.response)) };
+    return {
+      status: hit.status ?? 200,
+      bytes: new TextEncoder().encode(JSON.stringify(hit.response)),
+    };
   };
 }
 
@@ -158,7 +175,7 @@ function harness() {
         today: TODAY,
         kiosk: false,
       });
-      return hop.onAnswers("visit-e2e", lane.note.answers, location);
+      return hop.onAnswers(VISIT, lane.note.answers, location);
     },
   };
 }
@@ -295,6 +312,115 @@ describe("INT-446 — a red-flag answer reaches the RED screen on the typed lane
   });
 });
 
+describe("INT-475 — the patient's location answer reaches the server", () => {
+  /** The typed lane at UNKNOWN (Detaylı): a RED that asks first, with the reporter on. */
+  async function asked() {
+    const calls: string[] = [];
+    const store = createRedStore();
+    const transport = recordedEngine(calls);
+    subscribeLocationReports(
+      store,
+      createLocationReporter({ transport, sleep: async () => undefined }),
+    );
+    const hop = createRedHop({ transport, store, now: () => 0, clock: () => REFERENCE });
+    let lane = fresh("detayli");
+    lane = {
+      ...lane,
+      note: noteReducer(
+        noteReducer(lane.note, {
+          type: "answer",
+          questionId: "ziyaret.basvuru_nedeni",
+          values: ["sentetik_yasamsal"],
+        }),
+        { type: "answer", questionId: "sure_dakika", values: ["2026-08-29"] },
+      ),
+    };
+    const location = deriveRedLocation({
+      mode: "detayli",
+      visitDate: LATER,
+      today: TODAY,
+      kiosk: false,
+    });
+    expect(location).toBe("UNKNOWN");
+    expect((await hop.onAnswers(VISIT, lane.note.answers, location)).kind).toBe("red");
+    return { calls, store };
+  }
+
+  const flush = async () => {
+    for (let i = 0; i < 20; i += 1) {
+      await Promise.resolve();
+    }
+  };
+
+  it("evet: the RED moves to ON_SITE on the screen, and the answer is posted — the route notifies staff", async () => {
+    const { calls, store } = await asked();
+    expect(calls).toEqual(["catalog", "red_unknown"]);
+    store.answerLocation("inHospital");
+    // The screen does not wait for the server: ON_SITE, no 112, at once.
+    expect(redScreen(store.getSnapshot())).toMatchObject({
+      kind: "act",
+      location: "ON_SITE",
+      actionTr: "Görevlilere haber verin.",
+      call112: false,
+    });
+    await flush();
+    // The recorded answer: 202, staffNotified — the route's own output.
+    expect(calls).toEqual(["catalog", "red_unknown", "answer_on_site"]);
+  });
+
+  it("a late evet after the no-answer branch (LD-05) is posted then, once", async () => {
+    const { calls, store } = await asked();
+    store.answerLocation("noAnswer");
+    await flush();
+    expect(redScreen(store.getSnapshot())).toMatchObject({ location: "REMOTE", call112: true });
+    expect(calls).toEqual(["catalog", "red_unknown"]); // the wait is not an answer
+    store.answerLocation("inHospital");
+    store.answerLocation("inHospital");
+    await flush();
+    expect(redScreen(store.getSnapshot())).toMatchObject({ location: "ON_SITE", call112: false });
+    expect(calls).toEqual(["catalog", "red_unknown", "answer_on_site"]);
+  });
+
+  it("near miss: hayır is posted as REMOTE, which notifies no staff", async () => {
+    const { calls, store } = await asked();
+    store.answerLocation("notInHospital");
+    await flush();
+    expect(calls).toEqual(["catalog", "red_unknown", "answer_remote"]);
+  });
+
+  it("near miss: a RED that arrived at a known location asks nothing and posts nothing", async () => {
+    const h = harness();
+    const calls: string[] = [];
+    subscribeLocationReports(
+      h.store,
+      createLocationReporter({ transport: recordedEngine(calls), sleep: async () => undefined }),
+    );
+    const lane = fresh("hizli");
+    lane.note = noteReducer(
+      noteReducer(lane.note, {
+        type: "answer",
+        questionId: "ziyaret.basvuru_nedeni",
+        values: ["sentetik_yasamsal"],
+      }),
+      { type: "answer", questionId: "sure_dakika", values: ["2026-08-29"] },
+    );
+    expect((await h.commit(lane, LATER)).kind).toBe("red");
+    h.store.answerLocation("inHospital");
+    await flush();
+    expect(calls).toEqual([]);
+  });
+
+  it("RedLayer reports through the same store, subscribed once, with nothing on the screen awaiting it", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    expect(layer).toMatch(
+      /useEffect\(\s*\(\)\s*=>\s*subscribeLocationReports\(redStore, createLocationReporter\(\{ transport \}\)\),\s*\[\],?\s*\)/,
+    );
+    expect(layer).toMatch(/useLocationReports\(\);/);
+    // Nothing the layer renders reads a result of the report.
+    expect(layer).not.toMatch(/staffNotified/);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // The RED path touches no media transport, and the layer is mounted at root.
 // ---------------------------------------------------------------------------
@@ -395,7 +521,7 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
         kiosk: false,
       });
       expect(derived).toBe(location);
-      expect((await hop.onAnswers("visit-drift", lane.note.answers, derived)).kind).toBe("red");
+      expect((await hop.onAnswers(VISIT, lane.note.answers, derived)).kind).toBe("red");
       // The served catalog carries the generic RED (the INT-453 serve
       // precondition), so its own words show: verbatim, never invented.
       if (location === "UNKNOWN") {
@@ -423,7 +549,7 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
         store: own,
         now: () => 0,
         clock: () => REFERENCE,
-      }).onAnswers("visit-own", lane.note.answers, derived);
+      }).onAnswers(VISIT, lane.note.answers, derived);
       expect(redScreen(own.getSnapshot()).kind).toBe(location === "UNKNOWN" ? "ask" : "act");
       expect(JSON.stringify(redScreen(own.getSnapshot()))).not.toContain('"actionTr":""');
     },
@@ -506,7 +632,12 @@ describe("INT-453 — a RED with a missing script shows the generic RED on the d
 
 describe("INT-446 — the RED path", () => {
   it("decode → store → screen reaches no media, audio or haptic module", () => {
-    for (const entry of ["lib/red/store.ts", "lib/red/hop.ts", "lib/red/location.ts"]) {
+    for (const entry of [
+      "lib/red/store.ts",
+      "lib/red/hop.ts",
+      "lib/red/location.ts",
+      "lib/red/locationReport.ts",
+    ]) {
       const reached = [...reachedPackages(join(SRC, entry))];
       expect(
         reached.filter((p) => MEDIA.test(p)),

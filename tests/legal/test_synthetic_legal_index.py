@@ -474,6 +474,41 @@ def test_lane_texts_state_the_five_files06_items_in_order(document_id: str) -> N
     assert positions == sorted(positions)
 
 
+#: The sentences that are true only while no hosted model lane can be reached.
+#: ADR-035 (INT-428) lets the synthetic deployment switch speech recognition,
+#: extraction and speech output to a hosted provider, and it fails closed until
+#: that provider's egress row is listed. When the owner lists one, the texts
+#: below must name the provider (legal name and country) in the same change —
+#: files/06 §2.1's consent/vendor parity — which re-binds their hashes.
+_NO_VENDOR_SENTENCES = {
+    "acik_riza.voice": "Sesiniz hiçbir dış şirkete gönderilmez.",
+    "acik_riza.core": "yalnızca hizmeti çalıştıran kendi sistemlerimizde işlenir.",
+    "acik_riza.documents": "yalnızca hizmeti çalıştıran kendi sistemlerimizde işlenir.",
+}
+
+
+def test_no_vendor_sentences_hold_only_while_no_hosted_lane_is_listed() -> None:
+    allowlist = yaml.safe_load(
+        (REPO / "infra" / "security" / "egress-allowlist.yaml").read_text(encoding="utf-8")
+    )
+    providers = yaml.safe_load(
+        (REPO / "infra" / "model-lanes" / "providers.yaml").read_text(encoding="utf-8")
+    )
+    hosted_rows = {provider["egress_row"] for provider in providers["providers"]}
+    listed = [
+        row["name"]
+        for rows in allowlist["tiers"].values()
+        for row in rows or []
+        if row.get("name") in hosted_rows or row.get("purpose_id") == "hosted_model_inference"
+    ]
+    for document_id, sentence in _NO_VENDOR_SENTENCES.items():
+        assert sentence in _index().entry(document_id).body, document_id
+    assert listed == [], (
+        f"hosted lane egress rows {listed} are listed: name the provider in "
+        f"{sorted(_NO_VENDOR_SENTENCES)} (files/06 §2.1) and re-sign the synthetic index"
+    )
+
+
 def test_the_affect_text_says_what_files06_2_1_requires() -> None:
     body = _index().entry("acik_riza.lane.affect").body
     assert "sesinizin tonundan" in body

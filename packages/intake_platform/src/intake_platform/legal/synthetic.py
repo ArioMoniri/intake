@@ -13,7 +13,7 @@ that second index, and it is built so the two can never be confused:
   never from the index, so an index row cannot point outside the tree.
 - **A declared data class.** ``INTAKE_DEPLOYMENT_DATA_CLASS`` is read as
   ``synthetic`` only for that exact literal; everything else is ``real_phi``
-  (the same reading ADR-035's guard uses). :class:`SyntheticLegalIndex` refuses
+  (ADR-035's own reader, reused). :class:`SyntheticLegalIndex` refuses
   to exist for any class but synthetic, and the index file must declare
   ``data_class: synthetic`` itself.
 - **Hash binding as INT-210 does it.** Each row carries ``{version, sha256}``;
@@ -31,7 +31,6 @@ Messages carry paths and ids only, never copy (invariant 6).
 
 from __future__ import annotations
 
-import enum
 import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -60,6 +59,9 @@ from intake_platform.legal.documents import (
     UnknownLegalDocumentError,
     required_document,
 )
+from intake_platform.model_lanes.guard import ENV_DEPLOYMENT_DATA_CLASS
+from intake_platform.model_lanes.guard import deployment_data_class as deployment_data_class
+from intake_platform.model_lanes.model import TenantDataClass
 
 __all__ = [
     "DATA_CLASS_ENV",
@@ -80,8 +82,13 @@ __all__ = [
     "within_synthetic_legal_tree",
 ]
 
-#: The declaration the synthetic image bakes (infra/staging/Dockerfile.api).
-DATA_CLASS_ENV: Final[str] = "INTAKE_DEPLOYMENT_DATA_CLASS"
+#: The declaration the synthetic image bakes (infra/staging/Dockerfile.api). One
+#: reader for the whole deployment: ADR-035's guard (INT-428) reads the same
+#: variable, so hosted lanes and synthetic legal texts can never disagree.
+DATA_CLASS_ENV: Final[str] = ENV_DEPLOYMENT_DATA_CLASS
+#: What a deployment holds — ADR-035's ``TenantDataClass``, under the name this
+#: module's callers use.
+DeploymentDataClass = TenantDataClass
 SYNTHETIC_LEGAL_ROOT: Final[Path] = Path("docs/legal/synthetic")
 SYNTHETIC_CONSENTS_ROOT: Final[Path] = SYNTHETIC_LEGAL_ROOT / "consents"
 _INDEX_FILENAME: Final[str] = "documents.yaml"
@@ -90,13 +97,6 @@ _GROUNDS: Final = ("retention", "recipients", "categories", "bases")
 _CLAIM_GROUPS: Final[tuple[str, ...]] = next(
     tree.groups for tree in SCANNED_TREES if tree.path == "docs/legal"
 )
-
-
-class DeploymentDataClass(enum.StrEnum):
-    """What a deployment holds. Values match ADR-035's ``TenantDataClass``."""
-
-    SYNTHETIC = "synthetic"
-    REAL_PHI = "real_phi"
 
 
 class SyntheticLegalTreeRefusedError(LegalDocumentError):
@@ -140,13 +140,6 @@ class SyntheticLegalText:
     text_hash: str
     path: Path
     body: str
-
-
-def deployment_data_class(environ: Mapping[str, str]) -> DeploymentDataClass:
-    """``synthetic`` only for the exact literal; everything else is real PHI."""
-    if environ.get(DATA_CLASS_ENV, "") == DeploymentDataClass.SYNTHETIC.value:
-        return DeploymentDataClass.SYNTHETIC
-    return DeploymentDataClass.REAL_PHI
 
 
 def synthetic_document_ids() -> tuple[str, ...]:

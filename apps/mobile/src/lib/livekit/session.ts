@@ -146,7 +146,12 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
     // INT-465: the RED store resolves the script, asks first under UNKNOWN, and
     // shows CD-24's generic copy when the script is not on this device — never
     // nothing and never wordless (start() refused a catalog without it).
-    deps.redStore.present(trigger, deps.red);
+    // INT-475: the RED names this session, which is its visit's row (INT-197),
+    // so the patient's location answer reaches the server for it.
+    deps.redStore.present(trigger, deps.red, {
+      sessionId: deps.sessionId,
+      visitId: deps.sessionId,
+    });
     emit({ type: "red", trigger });
   };
 

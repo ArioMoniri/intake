@@ -46,7 +46,17 @@ RUN if [ -z "$GIT_SHA" ] || [ "$GIT_SHA" = "dev" ] || [ -z "$BUILT_AT" ] || [ "$
       --home-dir /nonexistent --shell /usr/sbin/nologin intake
 # root-owned and therefore read-only to the service user
 COPY --from=builder /app /app
+# INT-428 (ADR-035; AI/ML review): this is the SYNTHETIC deployment's image.
+# It alone carries the hosted-lane adapters (packages/hosted-lanes, put on the
+# path here rather than installed into the API's closure) and it bakes the
+# data class, so no operator env can declare it anything else. A PHI image
+# carries neither line, and no package on its closure imports the adapters.
+# INT-529: the same baked class makes the API load the synthetic legal index
+# (docs/legal/synthetic, every text marked "sentetik test metni") and refuse
+# the real tree; a real_phi image refuses the synthetic one.
 ENV PATH=/app/.venv/bin:$PATH \
+    PYTHONPATH=/app/packages/hosted-lanes/src \
+    INTAKE_DEPLOYMENT_DATA_CLASS=synthetic \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     INTAKE_GIT_SHA=${GIT_SHA} \
@@ -55,12 +65,6 @@ LABEL org.opencontainers.image.title="intake-api staging (synthetic patients onl
       org.opencontainers.image.revision=${GIT_SHA} \
       org.opencontainers.image.created=${BUILT_AT}
 WORKDIR /app
-# INT-529: this image is the synthetic deployment's, so it bakes the data
-# class. The API then loads the synthetic legal index (docs/legal/synthetic,
-# every text marked "sentetik test metni") and refuses the real tree; any
-# other image is real_phi and refuses the synthetic one. compose.yaml never
-# sets this variable, so no operator environment can declare it.
-ENV INTAKE_DEPLOYMENT_DATA_CLASS=synthetic
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \

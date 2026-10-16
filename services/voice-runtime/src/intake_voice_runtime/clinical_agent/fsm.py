@@ -46,6 +46,7 @@ from protocols.compile.resolve import ResolvedProtocol
 from protocols.triage.context import canonical_scalar
 from protocols.triage.expr import Truth
 
+from intake_voice_runtime.clinical_agent.appends import AppendOutcome, VerificationKind
 from intake_voice_runtime.clinical_agent.coverage import MustAskCoverage
 from intake_voice_runtime.clinical_agent.coverage import must_ask_coverage as _compute_coverage
 from intake_voice_runtime.clinical_agent.delta import DeltaDecision, decide_delta
@@ -53,7 +54,13 @@ from intake_voice_runtime.clinical_agent.plan import EngineStep, StepPriority, b
 from intake_voice_runtime.ports import EngineSnapshot
 from intake_voice_runtime.steps import NextStep, Step, StepKind
 
-__all__ = ["MAX_CLARIFICATION_ATTEMPTS", "EngineError", "IntakeEngine"]
+__all__ = [
+    "MAX_CLARIFICATION_ATTEMPTS",
+    "AppendOutcome",
+    "EngineError",
+    "IntakeEngine",
+    "VerificationKind",
+]
 
 MAX_CLARIFICATION_ATTEMPTS = 2
 """files/13 §11.1: *"bounded at 2 attempts … There is no third attempt: an
@@ -67,11 +74,20 @@ class EngineError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class _ReEntry:
-    """One queued class-3 clarification (files/13 §9.1, §11.1)."""
+    """One queued class-3 re-entry (files/13 §9.1, §11.1).
+
+    ``rebinds`` marks a verification re-entry (ADR-036): its answer is a
+    direct answer to a scripted question, so it binds to the origin even
+    though the origin was already answered — the one route by which a
+    contested direct answer is replaced, and it is the patient's own.
+    """
 
     step_id: str
     origin: str
     text_tr: str
+    kind: StepKind = StepKind.FOLLOW_UP
+    choices_tr: tuple[str, ...] = ()
+    rebinds: bool = False
 
 
 def _same_value(left: JsonValue, right: JsonValue) -> bool:
@@ -121,6 +137,7 @@ class IntakeEngine:
         self._clarify_attempts: dict[str, int] = {}
         self._reentries: dict[str, _ReEntry] = {}
         self._asked_reentries: set[str] = set()
+        self._revisions: dict[str, int] = {}
         self._version = 0
 
     # --- reads -------------------------------------------------------------
@@ -189,6 +206,19 @@ class IntakeEngine:
         """The bound value, or ``None`` where nothing is bound."""
         return self._values.get(step_id)
 
+    def slot_revision(self, step_id: str) -> int:
+        """How many times this slot's state or value has changed (ADR-036 CAS)."""
+        self.state_of(step_id)
+        return self._revisions.get(step_id, 0)
+
+    def gate_open(self, step_id: str) -> bool:
+        """Whether the step's gate is TRUE and no ``skip_if`` has retired it."""
+        self.state_of(step_id)
+        lookup = self._lookup
+        return self._plan.gate_truth(step_id, lookup) is Truth.TRUE and not self._plan.retired(
+            step_id, lookup
+        )
+
     def frontier(self) -> tuple[Step, ...]:
         """The offered steps, sorted ``(priority_class, order, id)``.
 
@@ -210,8 +240,9 @@ class IntakeEngine:
                     (int(StepPriority.REENTRY), index, reentry.step_id),
                     Step(
                         step_id=reentry.step_id,
-                        kind=StepKind.FOLLOW_UP,
+                        kind=reentry.kind,
                         text_tr=reentry.text_tr,
+                        choices_tr=reentry.choices_tr,
                     ),
                 )
             )
@@ -261,7 +292,51 @@ class IntakeEngine:
             self._asked_reentries.add(step_id)
         else:
             self._states[step_id] = AnswerState.ASKED_PENDING
+            self._touch(step_id)
         self._version += 1
+
+    def append_verification(
+        self, step_id: str, kind: VerificationKind, expected_revision: int
+    ) -> AppendOutcome:
+        """Append one scripted re-entry for an answered slot — compare-and-swap.
+
+        ADR-036: the council verifier may *append* a scripted step and do
+        nothing else. The append lands only if the slot is still at the
+        revision the verifier read; a patient who corrected the answer in the
+        meantime wins, and the stale verdict is dropped. The text is the
+        slot's own — ``ask_tr`` for a re-ask of the positive question,
+        ``confirm_tr`` for a numeric confirm-back — so nothing improvised is
+        spoken (invariant 10). Appends share the two-attempt bound of
+        files/13 §11.1 with clarifications.
+        """
+        if self.slot_revision(step_id) != expected_revision:
+            return AppendOutcome.STALE_REVISION
+        if self._states[step_id] not in (AnswerState.ASKED_PRESENT, AnswerState.ASKED_ABSENT):
+            return AppendOutcome.NOT_ANSWERED
+        if any(entry.origin == step_id for entry in self._reentries.values()):
+            return AppendOutcome.ALREADY_QUEUED
+        attempts = self._clarify_attempts.get(step_id, 0)
+        if attempts >= MAX_CLARIFICATION_ATTEMPTS:
+            return AppendOutcome.EXHAUSTED
+        step = self._by_id[step_id]
+        if kind is VerificationKind.REASK:
+            text, step_kind, choices = step.ask_tr, step.full_kind, step.choices_tr
+        elif step.confirm_tr is not None:
+            text, step_kind, choices = step.confirm_tr, StepKind.CONFIRM, ()
+        else:
+            return AppendOutcome.NO_SCRIPT
+        self._clarify_attempts[step_id] = attempts + 1
+        reentry_id = f"{step_id}/verify/{attempts + 1}"
+        self._reentries[reentry_id] = _ReEntry(
+            step_id=reentry_id,
+            origin=step_id,
+            text_tr=text,
+            kind=step_kind,
+            choices_tr=choices,
+            rebinds=True,
+        )
+        self._version += 1
+        return AppendOutcome.APPENDED
 
     def apply_extraction(
         self,
@@ -275,6 +350,8 @@ class IntakeEngine:
         re-entries; either way the answer binds to the origin slot.
         """
         origin = self._origin_of(step_id)
+        reentry = self._reentries.get(step_id)
+        rebinds = reentry is not None and reentry.rebinds
         self._version += 1
         if origin in self._invalidated:
             # files/13 §11.3: discard the answer rather than storing it, and
@@ -282,10 +359,14 @@ class IntakeEngine:
             self._drop_reentry(step_id)
             return
         if clarification_needed:
-            self._clarify(origin, consumed=step_id)
+            self._clarify(origin, consumed=step_id, rebinds=rebinds)
             return
         self._drop_reentry(step_id)
-        self._bind(slot_updates)
+        if rebinds and origin in slot_updates:
+            self._states[origin] = AnswerState.ASKED_PENDING
+            self._bind({origin: slot_updates[origin]})
+        else:
+            self._bind(slot_updates)
         self._sweep_invalidated()
 
     # --- internals ---------------------------------------------------------
@@ -333,7 +414,7 @@ class IntakeEngine:
         if self._reentries.pop(step_id, None) is not None:
             self._asked_reentries.discard(step_id)
 
-    def _clarify(self, origin: str, *, consumed: str) -> None:
+    def _clarify(self, origin: str, *, consumed: str, rebinds: bool = False) -> None:
         """Queue a class-3 re-entry, or record the gap (files/13 §11.1)."""
         self._drop_reentry(consumed)
         step = self._by_id[origin]
@@ -347,11 +428,12 @@ class IntakeEngine:
         self._clarify_attempts[origin] = attempts
         reentry_id = f"{origin}/clarify/{attempts}"
         self._reentries[reentry_id] = _ReEntry(
-            step_id=reentry_id, origin=origin, text_tr=step.follow_up_tr
+            step_id=reentry_id, origin=origin, text_tr=step.follow_up_tr, rebinds=rebinds
         )
 
     def _give_up(self, origin: str) -> None:
         self._states[origin] = AnswerState.UNCLEAR
+        self._touch(origin)
         if origin not in self._data_gaps:
             self._data_gaps.append(origin)
         self._drop_origin_reentries(origin)
@@ -370,11 +452,13 @@ class IntakeEngine:
                 # is not the slot's own question, so a contradicting answer
                 # re-opens the full ask instead of binding to the confirm
                 self._states[ref] = AnswerState.NOT_ASKED
+                self._touch(ref)
                 continue
             self._values[ref] = value
             self._states[ref] = (
                 AnswerState.ASKED_ABSENT if value is False else AnswerState.ASKED_PRESENT
             )
+            self._touch(ref)
 
     def _sweep_invalidated(self) -> None:
         """files/13 §11.3: a pending step whose gate just closed is dropped."""
@@ -391,3 +475,7 @@ class IntakeEngine:
             self._values.pop(step_id, None)
             self._invalidated.append(step_id)
             self._drop_origin_reentries(step_id)
+            self._touch(step_id)
+
+    def _touch(self, step_id: str) -> None:
+        self._revisions[step_id] = self._revisions.get(step_id, 0) + 1

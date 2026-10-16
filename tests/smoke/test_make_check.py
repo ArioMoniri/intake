@@ -339,10 +339,23 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-524 (a pull request's superseded CI runs are cancelled, so the
     # runner pool builds only current heads, GitHub #890); grows only with a
     # stated reason.
+    # + INT-501 (http-cache-semantics lifted before its osv exception expires,
+    # GitHub #853) and INT-508 (node-forge and braces: no upstream fix, split
+    # from INT-501, GitHub #865); grows only with a stated reason.
+    # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
+    # proposal, owner request, GitHub #719); grows only with a stated reason.
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews, owner request, GitHub #732); grows
+    # only with a stated reason.
+    # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
+    # GitHub #724); grows only with a stated reason.
+    # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
+    # location answer reaches the server, INT-465 finding 6, GitHub #814);
+    # grows only with a stated reason.
     # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
     # loaded only on the synthetic host, GitHub #896); grows only with a stated
     # reason.
-    assert len(ids) == 349, f"expected 175 blueprint + 174 added issues, got {len(ids)}"
+    assert len(ids) == 355, f"expected 175 blueprint + 180 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

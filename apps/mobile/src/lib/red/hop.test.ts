@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { GENERIC_RED_SCRIPT_IDS } from "../livekit/red";
-import { decodeRedCatalog, type HopTransport } from "./hop";
+import { decodeRedCatalog, triageRequest, type HopTransport } from "./hop";
 import { createRedHop, createRedStore } from "./store";
 
 const FIXTURES = join(__dirname, "..", "..", "..", "..", "..", "tests", "fixtures", "triage_hop");
@@ -86,6 +86,43 @@ describe("CD-24 generic_red_silent_is_never_wordless — the catalog", () => {
         }),
       ),
     ).not.toBeNull();
+  });
+
+  it("INT-475: the request names the session and the visit, and a RED keeps them", async () => {
+    const bodies: unknown[] = [];
+    const transport: HopTransport = async (path, body) => {
+      if (body === null) {
+        return { status: 200, bytes: bytes(RAW) };
+      }
+      bodies.push(JSON.parse(body));
+      return {
+        status: 200,
+        bytes: bytes({
+          kind: "red_trigger",
+          ruleId: "rf.sentetik_yasamsal",
+          register: "ALERT",
+          location: "UNKNOWN",
+          scriptId: "rf.sentetik_yasamsal.unknown",
+        }),
+      };
+    };
+    const store = createRedStore();
+    const hop = createRedHop({
+      transport,
+      store,
+      now: () => 0,
+      clock: () => new Date("2026-10-03T07:00:00.000Z"),
+    });
+    await hop.onAnswers("v-local-3", [{ questionId: "extra", values: ["x"] }], "UNKNOWN");
+    // On the device a visit is a session row (INT-197): one id, sent twice.
+    expect(bodies).toEqual([
+      expect.objectContaining({ session_id: "v-local-3", visit_id: "v-local-3" }),
+    ]);
+    expect(store.getSnapshot()?.origin).toEqual({ sessionId: "v-local-3", visitId: "v-local-3" });
+    // Near miss: the ids are the visit's own — another visit's answers name another.
+    expect(
+      triageRequest([], "REMOTE", new Date(0), { sessionId: "v-2", visitId: "v-2" }),
+    ).toMatchObject({ session_id: "v-2", visit_id: "v-2" });
   });
 
   it("a hop given such a catalog sends no answer, so no RED can arrive wordless", async () => {
