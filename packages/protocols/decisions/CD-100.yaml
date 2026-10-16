@@ -542,8 +542,8 @@ sources:
 spec_basis:
   - file: packages/protocols/base/intake.yaml
     section: "pmh_fh_sh.lmp_date"
-    quote: "ask_if: \"pregnancy_status != 'hayir'\""
-    supports: "T1: base asks the LMP only when pregnancy is possible"
+    quote: "ask_if: \"pregnancy_status == 'evet' || pregnancy_status == 'hayır' || pregnancy_status == 'emin değilim'\""
+    supports: "T1: base gates the LMP on pregnancy_status. Since INT-441 the gate names the three authored answers, so every answer opens it; the 'hayir' literal it replaced matched no answer and had the same effect, so base never asked the LMP only when pregnancy was possible"
   - file: packages/protocols/base/intake.yaml
     section: "pmh_fh_sh.pregnancy_status"
     quote: 'tr: ["evet", "hayır", "emin değilim"]'

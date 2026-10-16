@@ -14,7 +14,7 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - Backlog: [issues.yaml](backlog/issues.yaml) · [epics.yaml](backlog/epics.yaml) · [blockers.md](backlog/blockers.md)
 - Evidence: [docs/evidence/](evidence/) — red/green runs per issue
 - Runbooks: [model-server-aws.md](runbooks/model-server-aws.md)
-- Voice: [on-prem-tts-wiring.md](voice/on-prem-tts-wiring.md) — the delivery profiles on the self-hosted `residency_tr` TTS (INT-415)
+- Voice: [on-prem-tts-wiring.md](voice/on-prem-tts-wiring.md) — the delivery profiles on the self-hosted `residency_tr` TTS (INT-415; v2, text-side pacing and the owner's sample render, INT-424); [ADR-034 Expressive TTS models and audio tags](adr/ADR-034-expressive-tts-models-and-audio-tags.md) *(accepted by the owner, 2026-10-03: stay on eleven_multilingual_v2; INT-424)*
 
 ## Blueprint (files/ — the source of record, verbatim)
 
@@ -66,6 +66,8 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-026 Connector destinations: a second list, one engine](adr/ADR-026-connector-destinations-second-list-one-engine.md)
 - [ADR-027 SMART backend services: a second auth mode, a second host](adr/ADR-027-smart-second-auth-mode-second-host.md)
 - [ADR-029 Embeddable white-label handshake](adr/ADR-029-embeddable-white-label-handshake.md)
+- [ADR-035 Hosted model lanes for the synthetic deployment until the GPU lanes are healthy](adr/ADR-035-hosted-model-lanes-for-the-synthetic-deployment.md)
+- [ADR-036 The council is a verifier, and the deterministic engine decides](adr/ADR-036-the-council-is-a-verifier-the-engine-decides.md) *(accepted by the owner, 3 Oct 2026)*
 - [ADR-037 Amendment to ADR-033: press response and native glass](adr/ADR-037-motion-amendment-press-and-glass-response.md) *(ratified by the owner, 3 Oct 2026; INT-451)*
 - [ADR-038 Amendment to ADR-033: spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets](adr/ADR-038-motion-amendment-bubbles-selection-haptics-in-tree-sheets.md) *(ratified by the owner, 3 Oct 2026; INT-461)*
 - [ADR-039 The chat stage: orb motion, ambient gradient, Liquid Glass controls, larger radii, stage palette](adr/ADR-039-chat-stage-orb-motion-ambient-gradient-liquid-glass-controls.md) *(ratified by the owner, 3 Oct 2026; INT-466)*

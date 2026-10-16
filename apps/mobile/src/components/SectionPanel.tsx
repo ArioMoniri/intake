@@ -45,7 +45,8 @@ function valueText(row: SectionRow): string {
 interface SectionStripProps {
   filled: number;
   total: number;
-  onPress: () => void;
+  /** Opens the sheet; absent while a RED stands (INT-465), so the strip opens nothing. */
+  onPress?: () => void;
 }
 
 /** The collapsed strip: quiet chrome on the dialogue's glass bar. */
@@ -64,6 +65,8 @@ export function SectionStrip({ filled, total, onPress }: SectionStripProps) {
       // the SC 2.5.8 floor without pushing the composer off the screen.
       hitSlop={verticalSlop(36)}
       onPress={onPress}
+      disabled={onPress === undefined}
+      accessibilityState={{ disabled: onPress === undefined }}
       style={({ pressed }) => [styles.strip, { opacity: pressed ? motion.press.rowOpacity : 1 }]}
     >
       <View style={[styles.stripDot, { backgroundColor: theme.primary }]} />
@@ -177,6 +180,8 @@ function SectionRowView({ row, onConfirm }: SectionRowViewProps) {
 
 interface SectionSheetProps {
   visible: boolean;
+  /** A RED stands (INT-465): the sheet leaves in 0 ms, never fading over the RED. */
+  stopped?: boolean;
   model: SectionPanelModel;
   /** Where the screen's own bar ends inside the dialogue's frame. */
   top: number;
@@ -185,7 +190,14 @@ interface SectionSheetProps {
 }
 
 /** The expanded sheet: every section as a grouped-table row. */
-export function SectionSheet({ visible, model, top, onClose, onConfirmRow }: SectionSheetProps) {
+export function SectionSheet({
+  visible,
+  stopped = false,
+  model,
+  top,
+  onClose,
+  onConfirmRow,
+}: SectionSheetProps) {
   return (
     <DetentSheet
       visible={visible}
@@ -193,6 +205,9 @@ export function SectionSheet({ visible, model, top, onClose, onConfirmRow }: Sec
       onClose={onClose}
       closeLabel={t("dialogue.close")}
       closeHint={t("a11y.closeHint")}
+      // INT-465: under a standing RED the sheet leaves instantly at every
+      // setting (lib/motion/sheet), never fading over the RED.
+      closeReason={stopped ? "red" : "patient"}
       header={
         <View style={styles.sheetHeader}>
           <AppText role="title" heading>

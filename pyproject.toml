@@ -31,6 +31,10 @@ members = [
     "services/metrics",
     "services/learning",
     "packages/connectors",
+    # INT-428 / ADR-035: hosted provider adapters. A workspace member so CI
+    # tests them; shipped ONLY in the synthetic deployment's image, and no
+    # PHI-closure package depends on it (tests/platform/test_model_lane_deployment.py).
+    "packages/hosted-lanes",
 ]
 
 [tool.uv.sources]
@@ -44,6 +48,7 @@ intake-voice-clips = { workspace = true }
 intake-metrics = { workspace = true }
 intake-learning = { workspace = true }
 intake-connectors = { workspace = true }
+intake-hosted-lanes = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
 # macOS falls back to PyPI, which is CPU-only there anyway.
 torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]

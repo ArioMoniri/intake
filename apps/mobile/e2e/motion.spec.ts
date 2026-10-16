@@ -49,6 +49,7 @@ import {
   arrowBody,
   firstPaintViolations,
   isRedSurface,
+  propertyArrowBody,
   specifiers,
 } from "./redSurface";
 
@@ -677,6 +678,11 @@ const RED_SURFACE_FILES: readonly string[] = [
   // INT-414: the delivery composer hands a RED script through bare, in the
   // `red` delivery context — it is on the RED path, so it is held here too.
   "src/lib/dialogue/delivery.ts",
+  // INT-446: the RED screen and the rules-engine hop that feeds it.
+  "src/components/RedLayer.tsx",
+  "src/lib/red/hop.ts",
+  "src/lib/red/location.ts",
+  "src/lib/red/store.ts",
   "src/lib/livekit/events.ts",
   "src/lib/livekit/index.ts",
   "src/lib/livekit/red.ts",
@@ -750,21 +756,30 @@ describe("MOTION-4 — the RED path paints first, with no motion", () => {
     ]) {
       expect(WAITS.test(shape), shape).toBe(true);
     }
-    expect(WAITS.test('const p = resolveRed(t, c);\nemit({ type: "red", presentation: p });')).toBe(
-      false,
-    );
+    expect(
+      WAITS.test('deps.redStore.present(t, deps.red);\nemit({ type: "red", trigger: t });'),
+    ).toBe(false);
 
-    // The data-channel handler decodes, resolves and emits in one synchronous
+    // The data-channel handler decodes, hands the trigger to the one RED store
+    // (INT-465: the same store the HTTP hop feeds) and emits, in one synchronous
     // pass: it waits on nothing and calls no media, haptic, route or arbiter.
     const session = file("src/lib/livekit/session.ts");
     const handler = arrowBody(session, "handleData");
     expect(handler, "handleData in src/lib/livekit/session.ts").not.toBeNull();
     expect(handler!).toMatch(/\bdecodeRedTrigger\(/);
-    expect(handler!).toMatch(/\bresolveRed\(/);
+    expect(handler!).toMatch(/\bdeps\s*\.\s*redStore\s*\.\s*present\(/);
     expect(handler!).toMatch(/\bemit\(\s*\{\s*type:\s*"red"/);
     expect(WAITS.test(handler!)).toBe(false);
-    expect(handler!).not.toMatch(/\badapter\s*\.|\bdeps\s*\.\s*(?!redScripts\b)\w+\s*\(/);
+    expect(handler!).not.toMatch(/\badapter\s*\.|\bdeps\s*\.\s*(?!redStore\b)\w+\s*\(/);
     expect(handler!).not.toMatch(/\b(?:arbitrate|hapticFor|router|navigation)\b/);
+
+    // The store's present is the same kind of pass: it records the trigger and
+    // notifies, waiting on nothing; redScreen resolves the script at render.
+    const present = propertyArrowBody(file("src/lib/red/store.ts"), "present");
+    expect(present, "present in src/lib/red/store.ts").not.toBeNull();
+    expect(WAITS.test(present!)).toBe(false);
+    expect(present!).not.toMatch(/\b(?:arbitrate|hapticFor|router|navigation)\b/);
+    expect(code(file("src/lib/red/store.ts"))).toMatch(/\bresolveRed\(/);
 
     // The motion contract that sizes the first paint imports nothing that
     // could make it wait: only the RED types.
@@ -966,7 +981,10 @@ describe("MOTION-8 — the dialogue's transients go through the arbiter", () => 
     const config =
       /<LayoutAnimationConfig\s+skipEntering\s*>([\s\S]*?)<\/LayoutAnimationConfig>/.exec(dialogue);
     expect(config, "LayoutAnimationConfig skipEntering in the dialogue").not.toBeNull();
-    expect(config![1]).toMatch(/\bstate\.stream\.map\(/);
+    // INT-465: the stream is the frozen one under a RED (dialogueShown).
+    expect(config![1]).toMatch(
+      /\b(?:state\.stream|dialogueShown\(state\.stream,\s*frozenAt\))\.map\(/,
+    );
   });
 
   it("every entrance in the dialogue is the arbiter's fade, and nothing else moves there", () => {

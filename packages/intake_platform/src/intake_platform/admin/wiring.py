@@ -40,6 +40,11 @@ from intake_platform.admin.actions import (
     DEPLOY_FREEZE_ENGAGE,
     DEPLOY_FREEZE_LIFT,
     MODEL_BENCHMARK_RUN,
+    MODEL_LANES_HOSTED_DISABLE,
+    MODEL_LANES_HOSTED_RELEASE,
+    MODEL_LANES_KEY_SET,
+    MODEL_LANES_ROUTE_SWITCH,
+    MODEL_LANES_SELF_HOSTED_ENGAGE,
     OFFBOARD,
     SAFETY_QUEUE_ACKNOWLEDGE,
     VOICE_CANARY_SET,
@@ -52,6 +57,7 @@ from intake_platform.admin.four_eyes import FourEyesService
 from intake_platform.admin.ip_allowlist import IpAllowList
 from intake_platform.admin.principal import AdminClaimsVerifier
 from intake_platform.admin.roles import ADMIN_ROLES, ROLE_SPECS, AdminRole, RoleScope
+from intake_platform.model_lanes.wiring import ModelLanesWiring
 from intake_platform.release_freeze import ReleaseFreezeStore
 from intake_platform.safety_inbox import SafetyInbox
 from intake_platform.voice_control import VoiceControlStore
@@ -105,6 +111,15 @@ _FREEZE_BRIEF_READERS = (
     DEPLOY_FREEZE_ENGAGE.actor_roles
     | DEPLOY_FREEZE_LIFT.actor_roles
     | DEPLOY_FREEZE_LIFT.approver_roles
+    | {AdminRole.AUDITOR}
+)
+
+#: INT-428. A model-lane ceremony's brief is read by whoever may take a lane
+#: action or stand as its second key, and by `auditor` — the voice shape.
+_LANES_BRIEF_READERS = (
+    MODEL_LANES_HOSTED_DISABLE.actor_roles
+    | MODEL_LANES_ROUTE_SWITCH.actor_roles
+    | MODEL_LANES_ROUTE_SWITCH.approver_roles
     | {AdminRole.AUDITOR}
 )
 
@@ -319,6 +334,74 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         "admin.cicd.pending.brief.read",
         frozenset(_FREEZE_BRIEF_READERS),
     ),
+    # INT-428 — the Model lanes module (ADR-035). The read is platform facts,
+    # ids only. Toward self-hosting is tier 1 (disable every hosted lane; the
+    # one-click switch to GPU); toward a hosted provider is a tier-2 ceremony
+    # (a route switch, a provider key, releasing the hosted kill switch), each
+    # approved on its own route so the audit row names what it approved.
+    AdminRoute("GET", "/admin/model-lanes", "admin.model_lanes.read", _PLATFORM_SCOPE_ROLES),
+    AdminRoute(
+        "POST",
+        "/admin/model-lanes/hosted/disable",
+        "admin.model_lanes.hosted.disable",
+        MODEL_LANES_HOSTED_DISABLE.actor_roles,
+        MODEL_LANES_HOSTED_DISABLE.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/model-lanes/self-hosted",
+        "admin.model_lanes.self_hosted.engage",
+        MODEL_LANES_SELF_HOSTED_ENGAGE.actor_roles,
+        MODEL_LANES_SELF_HOSTED_ENGAGE.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/model-lanes/hosted/release",
+        "admin.model_lanes.hosted.release",
+        MODEL_LANES_HOSTED_RELEASE.actor_roles,
+        MODEL_LANES_HOSTED_RELEASE.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/model-lanes/hosted/release/{action_id}/approve",
+        "admin.model_lanes.hosted.release.approve",
+        MODEL_LANES_HOSTED_RELEASE.approver_roles,
+        MODEL_LANES_HOSTED_RELEASE.id,
+    ),
+    AdminRoute(
+        "PUT",
+        "/admin/model-lanes/route/{role}",
+        "admin.model_lanes.route.switch",
+        MODEL_LANES_ROUTE_SWITCH.actor_roles,
+        MODEL_LANES_ROUTE_SWITCH.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/model-lanes/route/pending/{action_id}/approve",
+        "admin.model_lanes.route.switch.approve",
+        MODEL_LANES_ROUTE_SWITCH.approver_roles,
+        MODEL_LANES_ROUTE_SWITCH.id,
+    ),
+    AdminRoute(
+        "PUT",
+        "/admin/model-lanes/keys/{provider}",
+        "admin.model_lanes.key.set",
+        MODEL_LANES_KEY_SET.actor_roles,
+        MODEL_LANES_KEY_SET.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/model-lanes/keys/pending/{action_id}/approve",
+        "admin.model_lanes.key.set.approve",
+        MODEL_LANES_KEY_SET.approver_roles,
+        MODEL_LANES_KEY_SET.id,
+    ),
+    AdminRoute(
+        "GET",
+        "/admin/model-lanes/pending/{action_id}",
+        "admin.model_lanes.pending.brief.read",
+        frozenset(_LANES_BRIEF_READERS),
+    ),
     # INT-366 — Access & identity (files/08 §2.4, §2.7, §3). `GET
     # /admin/access/review` is §8's route; the sign/countersign pair is the
     # tier-2 ceremony that lifts the read-only downgrade; offboarding and the
@@ -391,3 +474,8 @@ class AdminWiring:
     #: store the voice runtime writes). ``None`` leaves the Safety queue
     #: answering 503 and the inbox reported unreadable, which pages.
     safety_inbox: SafetyInbox | None = None
+
+    #: INT-428 (ADR-035): the model-lane control store, the router over it and
+    #: the hosted adapters. ``None`` = unconfigured: the model-lane mutations
+    #: answer 503 and the module's tiles read unknown (fail closed).
+    model_lanes: ModelLanesWiring | None = None

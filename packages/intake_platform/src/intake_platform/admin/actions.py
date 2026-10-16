@@ -37,6 +37,12 @@ __all__ = [
     "DEPLOY_FREEZE_ENGAGE",
     "DEPLOY_FREEZE_LIFT",
     "MODEL_BENCHMARK_RUN",
+    "MODEL_LANES_CEREMONIES",
+    "MODEL_LANES_HOSTED_DISABLE",
+    "MODEL_LANES_HOSTED_RELEASE",
+    "MODEL_LANES_KEY_SET",
+    "MODEL_LANES_ROUTE_SWITCH",
+    "MODEL_LANES_SELF_HOSTED_ENGAGE",
     "OFFBOARD",
     "SAFETY_FLAG_ENABLE",
     "SAFETY_QUEUE_ACKNOWLEDGE",
@@ -332,6 +338,102 @@ DEPLOY_FREEZE_LIFT = DangerousAction(
 #: The CI/CD action that opens a four-eyes ceremony.
 CICD_CEREMONIES: tuple[DangerousAction, ...] = (DEPLOY_FREEZE_LIFT,)
 
+# --- INT-428: the Model lanes module (ADR-035) --------------------------------------
+#
+# Which backend serves the llm, asr and tts lanes: the self-hosted GPU lane,
+# a hosted provider (synthetic tenants only, ADR-035) or the mock lane. The
+# asymmetry is files/08 §8.2's, read off invariant 19: toward self-hosting is
+# the safe direction (less egress, less vendor reach), so disabling every
+# hosted lane and the one-click "switch to GPU" are tier 1 — one key, no
+# approver. Toward a hosted provider is the dangerous direction: a route
+# switch, setting a provider key and releasing the hosted kill switch are
+# tier 2, two humans on distinct authenticators.
+#
+# Requesters are the infrastructure roles (`platform_owner`, `platform_admin`,
+# files/08 §2.1); the second key is `platform_owner`, `qms_owner` (IEC 62304
+# change control) or `compliance_officer` — a hosted lane is a cross-border
+# transfer question first. `sre_oncall` and `clinical_lead` may take the safe
+# direction alone, as on the voice kill switch.
+
+_LANES_REQUESTERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN}
+)
+_LANES_APPROVERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER, AdminRole.COMPLIANCE_OFFICER}
+)
+_LANES_SAFE_ACTORS: frozenset[AdminRole] = frozenset(
+    {
+        AdminRole.SRE_ONCALL,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.PLATFORM_ADMIN,
+    }
+)
+_LANES_RUNBOOK = "docs/runbooks/model-lanes.md"
+_LANES_ALERT = "admin.model_lane_changes_total"
+
+MODEL_LANES_HOSTED_DISABLE = DangerousAction(
+    id="admin.model_lanes.hosted.disable",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=_LANES_SAFE_ACTORS,
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_SELF_HOSTED_ENGAGE = DangerousAction(
+    id="admin.model_lanes.self_hosted.engage",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=_LANES_SAFE_ACTORS,
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_HOSTED_RELEASE = DangerousAction(
+    id="admin.model_lanes.hosted.release",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_LANES_REQUESTERS,
+    approver_roles=_LANES_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_ROUTE_SWITCH = DangerousAction(
+    id="admin.model_lanes.route.switch",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_LANES_REQUESTERS,
+    approver_roles=_LANES_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_KEY_SET = DangerousAction(
+    id="admin.model_lanes.key.set",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_LANES_REQUESTERS,
+    approver_roles=_LANES_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+#: The model-lane actions that open a four-eyes ceremony.
+MODEL_LANES_CEREMONIES: tuple[DangerousAction, ...] = (
+    MODEL_LANES_HOSTED_RELEASE,
+    MODEL_LANES_ROUTE_SWITCH,
+    MODEL_LANES_KEY_SET,
+)
+
 #: files/08 §2.7 and §3 Access & identity ("generate and countersign the
 #: quarterly review"), INT-366. A countersigned review is what lifts the §2.7
 #: read-only downgrade from `platform_owner` and `tenant_admin`, so signing it
@@ -404,6 +506,11 @@ DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     ACCESS_REVIEW_SIGN.id: ACCESS_REVIEW_SIGN,
     OFFBOARD.id: OFFBOARD,
     SAFETY_QUEUE_ACKNOWLEDGE.id: SAFETY_QUEUE_ACKNOWLEDGE,
+    MODEL_LANES_HOSTED_DISABLE.id: MODEL_LANES_HOSTED_DISABLE,
+    MODEL_LANES_SELF_HOSTED_ENGAGE.id: MODEL_LANES_SELF_HOSTED_ENGAGE,
+    MODEL_LANES_HOSTED_RELEASE.id: MODEL_LANES_HOSTED_RELEASE,
+    MODEL_LANES_ROUTE_SWITCH.id: MODEL_LANES_ROUTE_SWITCH,
+    MODEL_LANES_KEY_SET.id: MODEL_LANES_KEY_SET,
 }
 
 
