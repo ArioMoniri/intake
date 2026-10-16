@@ -33,6 +33,7 @@ from protocols.dsl import Slot
 from protocols.loader import load_pack
 from protocols.triage.expr import Truth
 from protocols.types import Delivery, SlotType
+from protocols.valuesets import load_committed_valuesets
 
 NOW = datetime.datetime(2026, 9, 26, 9, 0, tzinfo=datetime.UTC)
 HASH = "0" * 64
@@ -315,39 +316,68 @@ def _base_intake() -> ResolvedProtocol:
 
 
 def _base_engine() -> IntakeEngine:
-    return IntakeEngine(protocol=_base_intake(), reference_time=NOW)
+    """Built against the committed value sets: the plan build re-checks every
+    gate on a code slot against them and refuses without them (INT-518)."""
+    return IntakeEngine(
+        protocol=_base_intake(), reference_time=NOW, valuesets=load_committed_valuesets()
+    )
+
+
+def _choices(step_id: str) -> tuple[str, ...]:
+    """The authored ``tr`` choices of a base.intake code slot — the only values
+    the slot carries, so the only values these tests answer with (INT-441).
+    The tests before INT-441 answered ``"yakinim"``, ``"kendim"`` and
+    ``"hayir"``, which no patient can give, and so passed over the defect."""
+    section_id, key = step_id.split(".")
+    choices = load_pack(BASE_INTAKE).sections[section_id].slots[key].choices_tr
+    assert choices is not None
+    return choices["tr"]
 
 
 class TestBaseIntakeProxyReported:
-    """``identity_check.proxy_reported`` — ``ask_if: "subject_role != 'kendim'"``."""
+    """``identity_check.proxy_reported`` — ``ask_if: "subject_role == 'yakınım adına'"``
+    (INT-441). It used to compare against ``'kendim'``, which no answer equals, so
+    a patient answering for themselves was asked whether they speak for someone
+    else."""
+
+    def test_the_answers_driven_here_are_the_authored_choices(self) -> None:
+        assert _choices("identity_check.subject_role") == ("kendim için", "yakınım adına")
 
     def test_closed_while_subject_role_is_unanswered(self) -> None:
         assert "identity_check.proxy_reported" not in _offered(_base_engine())
 
     def test_opens_when_the_session_is_on_someone_elses_behalf(self) -> None:
         engine = _base_engine()
-        _answer(engine, "identity_check.subject_role", "yakinim")
+        _answer(engine, "identity_check.subject_role", "yakınım adına")
         assert "identity_check.proxy_reported" in _offered(engine)
 
     def test_stays_closed_when_the_patient_speaks_for_themselves(self) -> None:
         engine = _base_engine()
-        _answer(engine, "identity_check.subject_role", "kendim")
+        _answer(engine, "identity_check.subject_role", "kendim için")
+        assert "identity_check.proxy_reported" not in _offered(engine)
+
+    def test_stays_closed_while_the_role_is_unclear(self) -> None:
+        """files/13 §9.5: an UNCLEAR answer reads Unknown and opens no gate."""
+        engine = _base_engine()
+        engine.mark_asked("identity_check.subject_role")
+        engine.apply_extraction("identity_check.subject_role", {}, clarification_needed=True)
         assert "identity_check.proxy_reported" not in _offered(engine)
 
 
 class TestBaseIntakeLmpDate:
-    """``pmh_fh_sh.lmp_date`` — ``ask_if: "pregnancy_status != 'hayir'"``."""
+    """``pmh_fh_sh.lmp_date`` — asked once ``pregnancy_status`` is answered, with any
+    authored answer (INT-441 keeps the behaviour the unreachable ``'hayir'``
+    literal produced; whether "hayır" may skip the LMP is HB-C6's to decide)."""
 
     def test_closed_while_pregnancy_status_is_unanswered(self) -> None:
         assert "pmh_fh_sh.lmp_date" not in _offered(_base_engine())
 
-    @pytest.mark.parametrize("status", ["evet", "emin_degilim"])
-    def test_opens_when_pregnancy_status_is_not_hayir(self, status: str) -> None:
+    @pytest.mark.parametrize("status", ["evet", "hayır", "emin değilim"])
+    def test_every_authored_answer_opens_it(self, status: str) -> None:
+        assert status in _choices("pmh_fh_sh.pregnancy_status")
         engine = _base_engine()
         _answer(engine, "pmh_fh_sh.pregnancy_status", status)
         assert "pmh_fh_sh.lmp_date" in _offered(engine)
 
-    def test_stays_closed_when_pregnancy_status_is_hayir(self) -> None:
-        engine = _base_engine()
-        _answer(engine, "pmh_fh_sh.pregnancy_status", "hayir")
-        assert "pmh_fh_sh.lmp_date" not in _offered(engine)
+    def test_the_cases_above_are_every_authored_answer(self) -> None:
+        assert _choices("pmh_fh_sh.pregnancy_status") == ("evet", "hayır", "emin değilim")

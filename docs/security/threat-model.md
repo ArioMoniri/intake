@@ -57,6 +57,7 @@ acknowledgement) turned out to have no section carrying them.
 | Visit creation / SMS screenshot OCR | `visits` | `OCR` |
 | Voice intake (runtime) | `intake-voice`, `voice-runtime` | `DTLS-SRTP` |
 | Typed intake | `intake-typed` | `input limits` |
+| Council verifier (`llm-boundary`; INT-430, ADR-036) | `llm-boundary` | `INT-430 (ADR-036): the council verifier` |
 | Triage RED / YELLOW | `triage` | `set me green` |
 | Wellbeing screening & observer lanes | `wellbeing`, `observer-lanes` | `biometric drift` |
 | Records upload & ingestion | `records` | `ClamAV` |
@@ -100,6 +101,7 @@ it or whose tests exercise it.
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
 | `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/hosted-lanes` | `llm-boundary`, `cloud-boundary` | the hosted model-lane adapters, shipped in the synthetic deployment's image only (ADR-035) |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
 | `packages/voice-clips` | `protocol-registry`, `cloud-clipgen`, `voice-runtime` | the clip cache, its build and the agent-audio framing |
@@ -118,14 +120,27 @@ it or whose tests exercise it.
 - **Assets:** source tree, Makefile entry points, compose dev tier, developer credentials.
 - **Trust boundaries:** developer workstation ↔ repo ↔ package registries ↔ container images.
 - **Threats (STRIDE/LINDDUN):** [T] malicious dependency or lockfile drift entering the tree;
-  [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change.
+  [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change;
+  [I] **an operator script putting a secret where others read it** (INT-538's staff-user
+  command: a temporary password or the Keycloak bootstrap password in an argv, the SSM command
+  history, a log or the terminal); [E] **a staff account created with the wrong role or org**.
 - **Controls (files/10):** §8 pre-commit set (gitleaks, Semgrep+Bandit, dependency review,
   Renovate with lockfiles); CLAUDE.md invariant 14 (gates never skipped); Makefile as the only
-  entry point so gates cannot be sidestepped by ad-hoc commands.
+  entry point so gates cannot be sidestepped by ad-hoc commands. **INT-538**
+  (`scripts/ops/staff_user.sh` with `infra/staging/staff_user_host.sh`): the temporary password
+  goes from openssl into an SSM SecureString through a 0600 request file, the bootstrap password
+  stays on the host and reaches kcadm on stdin, kcadm's throwaway `--config` is deleted on every
+  outcome, the send-command carries no secret, and output is `created` plus the reveal-once
+  command. Only `platform_owner` and `qms_owner` are offered. A read-only probe decides the org:
+  a new user joins the platform_owner's org and a differing org is refused; only the very first
+  user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
+  role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
+  step rolls the user back.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
   console and INT-205 in the SIEM.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
-  tests/ci/test_coverage_floors.py.
+  tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
+  tests/infra/test_staff_user_host.py.
 
 ## `cicd` — pipeline, artefacts and gate integrity
 
@@ -862,6 +877,12 @@ it or whose tests exercise it.
   INT-406, with `clinic_red_inbox_pending_age_s` and `clinic_red_inbox_route_failures_total`
   for the 60 s half; the last three page through `infra/observability/safety-rules.yaml`
   (`docs/runbooks/red-acknowledgement.md`), and the latency histogram is the measurement.
+- **Generic RED and the synthetic serve path (INT-465, D23 with D18).** The generic escalation
+  is CD-24's copy, active, with per-location sources checked against committed snapshots and no
+  112 in any ON_SITE carrier; RED text is rendered (markers removed, tenant segment resolved or
+  dropped) before any screen or TTS. On the synthetic host only, a test-key signature stands in
+  for the physician sign-off (HB-C1 unchanged for every real tenant); draft rules are never
+  served. Tests: `tests/safety/test_generic_red_goldens.py`, `tests/protocols/test_generic_red.py`.
 - **Tests:** golden suite with near-miss negatives and mutation tests land with INT-059;
   preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is owned by
   INT-406: `tests/safety/test_red_acknowledgement_sla.py` (fake clocks: entry ≤ 60 s with no
@@ -983,6 +1004,31 @@ it or whose tests exercise it.
   never bound to an invented `atNNNN` (files/HUMAN_BLOCKERS.md HB-C12).
   `tests/platform/test_ehrbase_client.py` pins [I]: no clinical text reaches a log line or an
   exception message.
+- **RED notification records (INT-475).** The app's triage hop and the patient's on-site
+  location answer now write clinic Safety-inbox entries (a `red` entry per hop RED; a
+  `red_on_site` staff notification under ON_SITE, files/04 §8.1 rule 7) through the INT-406
+  outbox and store. [I] a clinical value or answer reaching the entry, an audit row or a log:
+  control — every field is an id, a closed enum or an instant (`InboxEntry`, `extra="forbid"`
+  request models, a 422 that echoes no value), pinned by `tests/api/test_red_notify.py`. [I] an
+  identifier inside a device id (a synced hospital visit's id carries the hospital patient
+  number): a server-minted UUID is kept as it is, any other id only as its keyed pseudonym, and
+  with no tokenization key not at all — the RED is then counted and audited as unrouted, never
+  stored raw (invariant 14; `red_notify.stored_ref`). [T] a patient raising entries for another
+  tenant: the tenant is the principal's, never a request field, and the location route is
+  patient-only (`require_patient`) under the core consent scope; it answers only a KIRMIZI rule
+  of the served set. [T] residual, recorded: the session and visit ids are the device's (a device-local
+  visit has no server row to check against), so a patient who knew another patient's server
+  visit id in the same tenant could file a RED against it; that visit's files/02 §2b move would
+  then raise an inbox entry and re-show a RED pointer to its owner. A server visit id is a
+  random UUID the patient is never shown another's of, so this needs a leaked id; it adds
+  alerts and never removes one. [D] the RED
+  never waits on the store or the audit chain: the entry is an outbox append, the hop's audit
+  rows follow the answer, and a failed route or append is counted
+  (`clinic_red_inbox_route_failures_total`, which pages; `clinic_red_notification_unaudited_total`).
+  Every share is audited by id (`api.triage.red_notified`, `api.triage.red_on_site_notified`,
+  `api.triage.red_unrouted`, `api.triage.red_location.{on_site,remote}`). Tests:
+  `tests/api/test_red_notify.py`, `tests/platform/test_safety_inbox.py`,
+  `tests/voice/test_safety_inbox_notifier.py`, `apps/mobile/src/lib/red/locationReport.test.ts`.
 
 ## `protocol-registry` — signed bundles and the clip cache
 
@@ -1000,6 +1046,19 @@ it or whose tests exercise it.
   INT-058/INT-184.
 - **Tests:** load-time signature verification lands with INT-058; quarantine drill with the
   pack-lifecycle issues.
+- **Synthetic-only test key (INT-465, D23).** [S/E] a test signature trusted where a real
+  patient may be. Control: the red rule set of the synthetic AWS host is signed by an ed25519
+  key held non-exportable in OpenBao Transit there, used only through a sign-only token; the
+  public half is the only key in `packages/protocols/signing/trusted_keys.yaml`, whose one scope
+  is `synthetic_test`. `intake_platform.red_signature.admitted_scopes` is an allow-list keyed on
+  the synthetic tenant kind alone and runs before any cryptography, and the API refuses to boot
+  with a synthetic tenant unless `INTAKE_ENV` is explicitly `dev` or `staging`. The signature
+  binds the exact bytes parsed (each document read once), the served rule list and the one host
+  it is for (`deployment`, which a synthetic tenant config must name). This is not
+  the production path (cosign, INT-058, untouched). Signal: a refusal logs its id-shaped code
+  (`intake_api.triage_rules`). Tests: `tests/protocols/test_red_signature.py` (every
+  non-synthetic tenant config rejects the key), `tests/api/test_triage_tenant_kind.py`,
+  `tests/api/test_triage_hop.py`, `tests/infra/test_red_signing_infra.py`.
 
 ## `llm-boundary` — model calls behind gateways
 
@@ -1043,6 +1102,75 @@ it or whose tests exercise it.
   taking exactly the same virtual time as an unmetered one on the fake clock (invariant
   9), and the price book refusing rather than returning a zero. The adversarial suite
   RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
+- **INT-430 (ADR-036): the council verifier.** The owner asked for an agent council of
+  self-hosted or API models. Two binding challenger reviews reduced it to a verifier, and
+  this row now covers it. The verifier runs only after the primary single-pass extraction
+  has bound the answer, so RED never waits on it.
+  - **Scope.** It reads red-flag and numeric slots only. Tense anchors, `text_only`
+    safeguarding slots, identity slots and instrument items are unreachable by type.
+  - **What a member returns.** A closed schema: a verbatim evidence span for every reading,
+    a Turkish hedge enum, and no confidence field.
+  - **What it can do.** Adjudication is asymmetric. It may only *append* the slot's own
+    scripted re-ask or confirm-back, compare-and-swapped on the slot revision. It never
+    clears, skips, reorders or overwrites, and its candidate flags are add-only at
+    YELLOW_REVIEW and go to the clinician alone.
+  - **Excessive agency (LLM06)** is closed by that action set.
+  - **Prompt injection (LLM01).** Every transcript crosses the INT-083 fence, and readings
+    for any slot outside scope are dropped before adjudication.
+  - **Unbounded consumption (LLM10).** Each verification is an *elective* charge, refused
+    while HB-O8 is open. A process-wide admission gate sheds a verification when saturated,
+    and stragglers abstain at a deadline set on the injected clock.
+  - **Disclosure (LLM02).**
+    - Every proposal is logged as an event of ids and closed codes.
+    - Spans use the closed `LlmSpan` field set (`kind=verification`).
+    - Each session carries its own `cache_salt` for the shared prefix cache.
+    - A hosted member is unrepresentable on a real-PHI deployment, and an unset data class
+      reads as real PHI.
+  - **Signals:** `council_member_latency_ms`, `council_member_agreement_total`,
+    `council_verifications_total`, `council_actions_total` and
+    `council_readings_dropped_total`, all catalogued `live`.
+  - **Tests:** the `tests/voice/test_council_*.py` suites, each must-have with a near-miss
+    control. They cover a 30 s stall measured on the fake clock, the injection corpus, the
+    Turkish negation set, permutation determinism, CAS on a mid-flight correction, replay
+    with refusal of a wrong-lane recording, and the span PHI scan.
+
+- **INT-428 — hosted model lanes (ADR-035).** The owner's decision of 2 Oct 2026 puts a hosted
+  provider behind the `llm`, `asr` and `tts` lanes until the GPU lanes are healthy, narrowed by the
+  binding medical and AI/ML reviews:
+  - **Threats.** [I/Nc] patient speech or text egressing to a vendor; [S] an address that answers
+    passing for a self-hosted model (a loopback tunnel); [T] a silent model or snapshot swap; [E] a
+    console switch widening egress on one key; [Dd] a key echoed.
+  - **Controls.**
+    - The hosted adapters are a separate package that only the synthetic deployment's image
+      carries. No PHI-closure package imports or depends on it, and a real-PHI hosted lane cannot
+      be constructed (`HostedPermit`, `ModelAssignment`). There is no DPA branch and no mock route.
+    - The data class is declared by the image, bound by the first write and immutable.
+    - Only attested registry models are served (pinned, plus `jurisdiction: TR` and `phi_path` for
+      PHI), proven by an identity probe. A per-call model check quarantines on mismatch.
+    - Hosted models are dated snapshots only.
+    - A swap on `llm`/`asr` is gated on green red-flag extraction goldens and the negation set for
+      that exact version.
+    - Assignments are frozen per session.
+    - Widening is four eyes, approvals are bound to a `config_hash`, and narrowing is one key.
+    - Keys live in OpenBao only and are never echoed.
+    - Egress uses purpose `hosted_model_inference` on a `phi_allowed: false` row that a human
+      applies.
+    - Refusals, truncations and empty outputs collapse to one outcome (`hosted_lane_no_answer`).
+    - Instructions and data stay in separate roles under a strict schema, every numeral is refused
+      before any TTS, and RED/YELLOW stay with the rules engine.
+  - **Signals.** `model_lane_calls_total`, `model_lane_latency_seconds`,
+    `model_lane_refused_total{reason}`, `model_lane_fallback_total`, the token, audio-second and
+    character usage series, and `admin_model_lane_changes_total`.
+  - **Tests.** `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment,shims}.py`
+    and `tests/admin/test_model_lanes_routes.py`:
+    - `mock_hosted_unrepresentable_for_phi_tenant`, `synthetic_flag_immutable`,
+      `model_pin_frozen_in_session` and `lane_swap_requires_green_rf_extraction_goldens`, each
+      with a near miss;
+    - the adapters against recorded fixtures behind the real egress guard;
+    - the key never echoed.
+  - **Open and split out.** Guarded transport for the self-hosted extraction clients, the
+    `/identity` endpoint on the GPU servers, a drift canary, recording keys carrying
+    model@revision, and a schema-keyword lint.
 
 ## `cloud-boundary` — what may leave, and in what form
 
@@ -1127,6 +1255,19 @@ it or whose tests exercise it.
     the catalogue pins it server-side (invariant 21).
   - An instrument item is served only as `instrument`.
   - The profile id and version are part of every clip key.
+
+  **Render-time tags** (INT-449, D20; on the hosted lane INT-443). [T] A tag is words the
+  protocol did not author, so a tag from anywhere but the table would change what is said:
+  - The tags are a closed per-context table in `voice_clips.delivery` (one lowercase word in
+    brackets, never `[pause]`); RED and instrument rows can carry none, by construction.
+  - `voice_clips.gateway.wire_text` is the one composer: `text_tr` passes the numeral and
+    markup gate first, so a tag inside the script is refused; then the row's tags go in front;
+    then the composed text is checked for a numeral again. Both ElevenLabs paths use it, so the
+    hosted request is field for field the request the bundled clips were rendered with.
+  - The hosted lane refuses a profile that is not exactly the served row (tags, settings,
+    version, voice) and a voice id that is not the row's, before the wire.
+  - The cast moved every row to v4, so a v2-era (George) clip is another address and is never
+    served or counted as cached.
 - **Signals:** build-time tool, so its runtime evidence is a NEGATIVE — the per-session egress
   socket count for TTS stays zero (shared with `cloud-boundary`/`observer-lanes`) and the clip
   cache serves the fixed set (`voice.clip_cache_hit_ratio` high, no runtime synth for scripted
@@ -1140,7 +1281,11 @@ it or whose tests exercise it.
   tests/api/test_dev_voice_hardening.py (the dev route's four doors, each proven with the vendor
   fake at zero calls, near-miss catalogue controls included); tests/voice/
   test_delivery_profiles.py and tests/api/test_dev_voice_george.py (INT-415: the profile table,
-  `voice_settings` in the body, the RED and instrument pins, the profile in the cache key). The live
+  `voice_settings` in the body, the RED and instrument pins, the profile in the cache key);
+  tests/platform/test_elevenlabs_hosted_tts.py and tests/api/test_hosted_clip_lane.py (INT-443
+  with D20: each tagged context's tags on the wire and none for instrument or RED, a tag inside
+  `text_tr` refused even when catalogued, a forged row or another voice refused, the hosted
+  request equal to the offline one, a v2-era clip never served). The live
   small-run validation (7 Turkish questions, 229 characters) is recorded in
   docs/evidence/INT-319.md with its date and named corpus, described as a measurement (invariant
   20).
@@ -1929,6 +2074,12 @@ it or whose tests exercise it.
     the file name 26.7.4's directory import requires. **Known limit:** three OSV records
     still match 26.7.4 through open-ended ranges whose GitHub source bounds them below it
     (docs/evidence/INT-390.md); a scanner that reads the Keycloak artefacts reports them.
+  - **Controls added by INT-485 (the console's login gate writes no staff identity):**
+    against [L] staff identities in the host's container logs. oauth2-proxy's request and
+    auth logs are on by default, and each line names the signed-in email and the client IP,
+    so every console request wrote both into the json-file logs (inv. 6). The admin
+    `oauth2-proxy` service turns both off, the same as INT-481's Grafana gate; start-up and
+    error lines are still written.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -1939,8 +2090,9 @@ it or whose tests exercise it.
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
   the same file, with property tests over generated ids (INT-391); the realm-import column
   limits, the image digest and the import file name in
-  `tests/infra/test_keycloak_realm_import.py` (INT-390); the WebAuthn session-notes
-  provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
+  `tests/infra/test_keycloak_realm_import.py` (INT-390); the login gate's logs off, with the
+  default as a near-miss, in `tests/infra/test_staging_admin_tier.py` (INT-485); the
+  WebAuthn session-notes provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
   (INT-378). Break-glass (INT-180):
   the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
   `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both

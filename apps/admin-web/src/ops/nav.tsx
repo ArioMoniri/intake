@@ -1,15 +1,17 @@
 /**
  * The link between the rendered console pages (INT-181): the overview, the
- * ops console, the Voice module (INT-182), the access review (INT-366) and the
- * CI/CD module (INT-187) and the Analytics page (INT-490). Plain links, server-rendered, the language carried
- * along; the current page is marked, not linked. `tr` is the source of truth
+ * ops console, the Voice module (INT-182), the access review (INT-366), the
+ * CI/CD module (INT-187), the Model lanes module (INT-428) and the Analytics
+ * page (INT-490). Plain links, server-rendered, the language carried along;
+ * the current page is marked, not linked. `tr` is the source of truth
  * (invariant 5).
  */
 import type { ReactElement } from "react";
 
 import type { Lang } from "./copy";
 
-export type ConsolePage = "overview" | "ops" | "voice" | "access" | "cicd" | "analytics";
+export type ConsolePage =
+  "overview" | "ops" | "voice" | "access" | "cicd" | "model-lanes" | "analytics";
 
 const LABELS: Record<Lang, { label: string; pages: Record<ConsolePage, string> }> = {
   tr: {
@@ -20,6 +22,7 @@ const LABELS: Record<Lang, { label: string; pages: Record<ConsolePage, string> }
       voice: "Ses",
       access: "Erişim",
       cicd: "CI/CD",
+      "model-lanes": "Model hatları",
       analytics: "Analitik",
     },
   },
@@ -31,12 +34,21 @@ const LABELS: Record<Lang, { label: string; pages: Record<ConsolePage, string> }
       voice: "Voice",
       access: "Access",
       cicd: "CI/CD",
+      "model-lanes": "Model lanes",
       analytics: "Analytics",
     },
   },
 };
 
-const ORDER: readonly ConsolePage[] = ["overview", "ops", "voice", "access", "cicd", "analytics"];
+const ORDER: readonly ConsolePage[] = [
+  "overview",
+  "ops",
+  "voice",
+  "access",
+  "cicd",
+  "model-lanes",
+  "analytics",
+];
 
 export function ConsoleNav({ current, lang }: { current: ConsolePage; lang: Lang }): ReactElement {
   const copy = LABELS[lang];

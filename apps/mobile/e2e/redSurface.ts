@@ -29,7 +29,7 @@ export const RED_CONTRACT = ["src/lib/livekit/red.ts", "src/lib/motion/red.ts"] 
 
 const RED_MODULE = /(?:^|\/)red$/;
 const RED_NAMES =
-  /\b(?:RedPresentation|redFirstPaint|redPresentationMode|redAffordances|resolveRed|decodeRedTrigger)\b/;
+  /\b(?:RedPresentation|RedTrigger|redFirstPaint|redPresentationMode|redAffordances|resolveRed|decodeRedTrigger)\b/;
 const RED_EVENT = /\btype\s*===\s*["']red["']|\bcase\s+["']red["']\s*:/;
 const RED_COLOUR = new RegExp(`\\.\\s*${["emer", "gency"].join("")}(?:Soft)?\\b`);
 
@@ -92,10 +92,23 @@ export function firstPaintViolations(source: string): string[] {
 
 /** The body of `const <name> = (…) => { … };` in `source`, or null. */
 export function arrowBody(source: string, name: string): string | null {
-  const text = code(source);
-  const head = new RegExp(`const\\s+${name}\\s*=\\s*(async\\s*)?\\([^)]*\\)\\s*=>\\s*\\{`).exec(
-    text,
+  return bodyAfter(
+    code(source),
+    new RegExp(`const\\s+${name}\\s*=\\s*(async\\s*)?\\([^)]*\\)\\s*=>\\s*\\{`),
   );
+}
+
+/** The body of the object property `<name>: (…) => { … }` in `source`, or null. */
+export function propertyArrowBody(source: string, name: string): string | null {
+  return bodyAfter(
+    code(source),
+    new RegExp(`\\b${name}\\s*:\\s*(async\\s*)?\\([^)]*\\)\\s*=>\\s*\\{`),
+  );
+}
+
+/** The brace-matched block whose opening brace ends the first `head` match. */
+function bodyAfter(text: string, pattern: RegExp): string | null {
+  const head = pattern.exec(text);
   if (head === null) {
     return null;
   }

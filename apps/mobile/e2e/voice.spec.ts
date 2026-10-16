@@ -17,8 +17,10 @@ import { en } from "../src/lib/i18n/en";
 import { tr } from "../src/lib/i18n/tr";
 import { DIALOGUE_WIRING, toDialogueStreamAction } from "../src/lib/livekit/events";
 import { EMITTED_METRIC_IDS } from "../src/lib/livekit/metrics";
+import { GENERIC_RED_SCRIPT_IDS } from "../src/lib/livekit/red";
 import { createVoiceSession } from "../src/lib/livekit/session";
 import type { RoomAdapter, TransportSample } from "../src/lib/livekit/types";
+import { createRedStore } from "../src/lib/red/store";
 
 const MOBILE = join(__dirname, "..");
 const REPO = join(MOBILE, "..", "..");
@@ -148,7 +150,34 @@ describe("invariant 3: nothing on the audio path persists", () => {
           }),
         },
         createAdapter: async () => adapter,
-        redScripts: {},
+        // INT-465: a session that cannot say CD-24's generic RED does not start.
+        red: {
+          scripts: {
+            [GENERIC_RED_SCRIPT_IDS.REMOTE]: {
+              primary: "CALL_112",
+              show112: true,
+              actionTr: "Sentetik genel yönerge.",
+              doNotsTr: [],
+              whyTr: null,
+            },
+            [GENERIC_RED_SCRIPT_IDS.ON_SITE]: {
+              primary: "GO_TO_IN_HOUSE_ACIL",
+              show112: false,
+              actionTr: "Sentetik yerinde yönerge.",
+              doNotsTr: [],
+              whyTr: null,
+            },
+          },
+          questions: {
+            [GENERIC_RED_SCRIPT_IDS.UNKNOWN]: {
+              askTr: "Şu anda hastanede misiniz?",
+              onYes: "ON_SITE",
+              onNo: "REMOTE",
+              onNoAnswer: "REMOTE",
+            },
+          },
+        },
+        redStore: createRedStore(),
         sleep: async () => undefined,
         jitter: () => 0.5,
       });
@@ -407,7 +436,6 @@ describe("dialogue seam", () => {
         },
       }),
     ).toBeNull();
-    expect(toDialogueStreamAction({ type: "red_unrenderable", ruleId: "x" })).toBeNull();
   });
 
   it("documents the wiring line the coordinator adds", () => {
