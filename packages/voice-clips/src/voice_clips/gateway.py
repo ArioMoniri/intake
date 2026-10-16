@@ -251,9 +251,9 @@ def wire_text(text_tr: str, profile: DeliveryProfile) -> str:
     delivery table only: a caller names a context, never a tag. RED and
     instrument rows carry none, so their wire text is the script alone.
 
-    The offline clip-gen gateway (ADR-028, which rendered the bundled set)
-    composes through here, and so does any later lane that speaks a row, so
-    two lanes can never send different words for the same row.
+    The offline clip-gen gateway (ADR-028, which rendered the bundled set) and
+    the hosted lane (INT-443) both compose through here, so the two can never
+    send different words for the same row.
     """
     assert_speakable_tr(text_tr)
     text = profile.wire_prefix + text_tr

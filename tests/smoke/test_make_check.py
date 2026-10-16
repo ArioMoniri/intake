@@ -366,7 +366,17 @@ def test_backlog_parses_and_is_complete() -> None:
     # host, owner order, GitHub #906); grows only with a stated reason.
     # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
     # GitHub #752); grows only with a stated reason.
-    assert len(ids) == 361, f"expected 175 blueprint + 186 added issues, got {len(ids)}"
+    # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
+    # GitHub #724); grows only with a stated reason.
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
+    # GitHub #752); grows only with a stated reason.
+    # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
+    # proposal, owner request, GitHub #719); grows only with a stated reason.
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
+    # INT-428, GitHub #753); grows only with a stated reason.
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
+    # with a stated reason.
+    assert len(ids) == 362, f"expected 175 blueprint + 187 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

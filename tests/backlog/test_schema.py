@@ -207,7 +207,18 @@ def test_ids_unique_and_well_formed() -> None:
     # host; owner order, GitHub #906).
     # + INT-442 (the synthetic AWS host's egress forward proxy, split from
     # INT-428, GitHub #752).
-    assert len(ids) == 361
+    # + INT-428 (hosted model lanes for the synthetic deployment, switchable
+    # from the admin panel with a GPU switch-over; owner decision, ADR-035,
+    # GitHub #724).
+    # + INT-442 (the synthetic AWS host's egress forward proxy, split from
+    # INT-428, GitHub #752).
+    # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
+    # the expressive-model ADR proposal; owner request, GitHub #719).
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
+    # INT-428, GitHub #753).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    assert len(ids) == 362
     import re
 
     for i in ids:

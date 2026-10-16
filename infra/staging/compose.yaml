@@ -93,6 +93,12 @@ services:
       # deployment that is not synthetic. It is never set in the PHI
       # deployment (tests/infra/test_staging_egress.py pins that).
       INTAKE_EGRESS_PROXY_URL: http://egress-proxy:3128
+      # INT-443 (ADR-035): ElevenLabs is this synthetic host's default TTS for
+      # scripted clips. Honoured only because the image bakes the synthetic
+      # data class; the vendor is reached only once its allow-list row exists
+      # and its key is in OpenBao (secret/model-lanes/providers/elevenlabs).
+      INTAKE_HOSTED_TTS: elevenlabs
+      INTAKE_HOSTED_TTS_CACHE_DIR: /var/lib/intake/george-clips
       # The object store: the minio service below, over the internal backend
       # network. The API creates its buckets itself on first use, the audit
       # bucket with object lock, so nothing here pre-creates one.
@@ -149,6 +155,9 @@ services:
     volumes:
       # written by deploy.sh (mirror_keycloak_jwks) before the api starts
       - /etc/intake-staging/keycloak-jwks.json:/run/intake/keycloak-jwks.json:ro
+      # INT-443: the George clip cache survives redeploys, so a pre-baked clip
+      # is served without a vendor call for as long as its profile version stands
+      - george-clips:/var/lib/intake/george-clips
     depends_on:
       postgres:
         condition: service_healthy
@@ -490,3 +499,4 @@ volumes:
   minio-data: {}
   caddy-data: {}
   caddy-config: {}
+  george-clips: {}
