@@ -126,7 +126,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
     # + INT-475 (hop RED to the Safety inbox; location answer to the server, GitHub #814)
     # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
-    assert len(actions) == 355
+    # + INT-537 (the app grants the core consent visits and notes need, GitHub #904)
+    assert len(actions) == 356
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

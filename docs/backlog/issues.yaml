@@ -6975,3 +6975,26 @@
   tests: [tests/legal/test_synthetic_legal_index.py, tests/api/test_synthetic_consent_grant.py]
   legal: "KVKK-4/5/6,KVKK-10,AYD-2018"
   sec_row: "consent"
+- id: INT-537
+  epic: E08-mobile
+  phase: P1
+  title: "The app grants the core consent that visits and notes require"
+  # GitHub #904, from the INT-529 (#896) legal-author finding F2, 16 Oct 2026.
+  # The server registry makes core açık rıza and every visit and note route
+  # declares it, but purposes.ts showed core as information (ui: "info") and
+  # the ledger never made it grantable, so a signed-in account could not
+  # start a visit on the synthetic host. Stacked on INT-529 (#911), whose
+  # synthetic core text is what the app renders there. The server side was
+  # already complete; the API tests here pin it end to end.
+  depends_on: [INT-529, INT-132, INT-232]
+  labels: [area:mobile, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-537.md
+  acceptance:
+    - "the consent flow offers core exactly like the other açık rıza purposes: rendered only from docs/legal through the API with hash binding (on the synthetic host the synthetic core text with its marker), granted against the version and hash shown, audited server-side, ids only (invariants 4, 6, 18)"
+    - "without core, visit start refuses with a clear B1 Turkish message whose one action opens the core text; with core, a visit starts and its note saves (API end to end on the synthetic stack configuration, app source pins)"
+    - "core is withdrawn from İzinleriniz in one tap, cascading as the server does; a withdrawal stops new visits and notes at once, and a re-grant restores them (tested)"
+    - "new copy is tr first with an en mirror; the i18n, register, B1 and PolicyGuard gates stay green with no new recorded finding; no accuracy claim; no demo content in release paths"
+  tests: [apps/mobile/src/lib/consent/gate.test.ts, apps/mobile/src/lib/consent/ledger.test.ts, apps/mobile/src/lib/consent/store.test.ts, apps/mobile/e2e/consent.spec.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/src/lib/records/api.test.ts, apps/mobile/src/lib/records/screen.test.ts, tests/api/test_core_consent_visit_start.py]
+  legal: "KVKK-5,KVKK-6"
+  sec_row: "consent"

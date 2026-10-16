@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**355 issues.** By phase: P0 173 · P1 128 · P2 47 · P3 7. By status: awaiting-human 37 · doing 7 · done 236 · todo 74 · withdrawn 1.
+**356 issues.** By phase: P0 173 · P1 129 · P2 47 · P3 7. By status: awaiting-human 37 · doing 7 · done 237 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -317,6 +317,7 @@
 | INT-424 | ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal | E05-voice | INT-415 | area:voice | done |
 | INT-475 | RED staff notification on the typed hop and the device's location answer reach the server | E09-clinician | INT-432 | area:api, risk:clinical | done |
 | INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
+| INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
 
 ## P2
 

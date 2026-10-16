@@ -1,5 +1,32 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T21:00:00Z · INT-537 · done (PR stacked on #911; legal-reviewer pass to follow)
+- Goal: a signed-in account can start a visit end to end on the synthetic host. The server makes `core` açık rıza, and every visit and note route requires it. The app showed `core` as information and could not grant it (INT-529 finding F2).
+- Plan:
+  - Offer `core` through the existing İzinleriniz flow, like every açık rıza purpose. It is granted against its loaded text with version and hash, and withdrawn in one tap with the server's cascade.
+  - Gate the new-visit screen on the ledger's `core` answer. The refusal is B1 copy with one action, which opens the core text.
+  - Pin the server side end to end on the synthetic stack configuration.
+- Tests added:
+  - `gate.test.ts`: 8 tests.
+  - `ledger.test.ts`: 4 tests. Near miss: an undecided default-on purpose survives a core withdrawal, as the server leaves it.
+  - `store.test.ts`: 3 tests. `consent.spec`: 3 tests, plus 1 rewritten. `visits.spec`: 4 tests. `records/api.test`: 2 tests. `records/screen.test`: 2 tests.
+  - `tests/api/test_core_consent_visit_start.py`: 9 tests. Near misses: a wrong hash, and a real tenant with no text.
+  - RED: 19 failed, plus `gate.test.ts` failing to load.
+  - The API pin passed on its first run, because the server already enforced everything. Its mutation (the core guard removed from visit create) was caught: 5 failed.
+  - App mutation (the cascade spares nothing): 3 failed.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2838 tests pass, lint has 0 errors, typecheck is clean.
+  - `make check-i18n`: 192 passed, with no new recorded finding.
+  - i18n, legal and touched API suites: 853 passed.
+  - Backlog and smoke: green. Placeholder, PHI and claims scans: clean.
+  - Details are in `docs/evidence/INT-537.md`.
+- Invariants touched and still passing: 4 (grant and withdraw audited, chain verified), 5 (tr first, two orphans deleted), 6 (ids only in refusals and audit), 18 (text from docs/legal with hash; no text, no grant), 20 (no figures).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Findings G1–G3 are in the evidence file. G1: `consent.who.core` still undersells the core text (INT-536). G2: the session mirror is never reconciled after a restart (pre-existing). G3: the learning purposes under a core withdrawal.
+- Next: the legal-reviewer pass; this PR merges after #911.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T14:30:00Z · INT-529 · awaiting-human (7 of 16 synthetic texts built; committed locally, not pushed)
 - Goal: the owner's yes of 16 Oct 2026 (INT-498 P6), as the legal-author half of D25. The legal lane writes texts for synthetic tenants only, so the synthetic host can exercise voice, documents and sharing. The real-tenant index stays empty until counsel signs (HB-L27, G3).
 - Plan:
