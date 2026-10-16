@@ -9,7 +9,9 @@ over ``fakeredis``. Every id is synthetic.
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
+import threading
 from datetime import UTC, datetime, timedelta
 
 import fakeredis
@@ -151,6 +153,57 @@ class TestTheEntry:
         assert VisitTransition.CANCELLED.kind is EntryKind.VISIT_CANCELLED
 
 
+def _on_site(*, work_id: str = "w_red", at: datetime = T0) -> InboxEntry:
+    return InboxEntry.for_on_site(
+        tenant_id=TENANT,
+        session_id=SESSION,
+        visit_id=SESSION,
+        work_id=work_id,
+        rule_ids=(RULE,),
+        at=at,
+    )
+
+
+class TestTheOnSiteStaffNotification:
+    """INT-475: files/02 §5.3 Axis 3 and files/04 §8.1 rule 7 — under ON_SITE the
+    clinic notification is the primary channel and fires automatically. It is its
+    own entry kind with its own clock, one per RED, carrying ids only."""
+
+    def test_one_per_red_and_never_the_red_entry_itself(self) -> None:
+        entry = _on_site()
+        assert entry.kind is EntryKind.RED_ON_SITE
+        assert entry.source_ref == "w_red"
+        assert entry.entry_id == entry_id_for(TENANT, EntryKind.RED_ON_SITE, "w_red")
+        # Near miss: the RED entry of the same RED is a different entry.
+        assert entry.entry_id != _red().entry_id
+        assert entry.entry_id != _on_site(work_id="w_other").entry_id
+
+    def test_it_records_no_register_and_no_prose(self) -> None:
+        with pytest.raises(ValidationError, match="register"):
+            InboxEntry.model_validate({**_on_site().model_dump(), "register": "ALERT"})
+        with pytest.raises((ValidationError, ValueError)):
+            InboxEntry.for_on_site(
+                tenant_id=TENANT,
+                session_id=SESSION,
+                visit_id="hastanın adı",
+                work_id="w_red",
+                rule_ids=(RULE,),
+                at=T0,
+            )
+
+    def test_the_store_keeps_one_and_it_does_not_index_the_visit(self) -> None:
+        store = _store()
+        red = store.add(_red())
+        first = store.add(_on_site(at=T0))
+        assert store.add(_on_site(at=T0 + timedelta(minutes=1))) == first
+        assert {entry.kind for entry in store.open_entries()} == {
+            EntryKind.RED,
+            EntryKind.RED_ON_SITE,
+        }
+        # files/02 §2b reads the visit's REDs; the staff notification is not one
+        assert store.red_entries_for_visit(TENANT, SESSION) == (red,)
+
+
 class TestThePolicy:
     def test_band_and_deadline(self) -> None:
         policy = AckSlaPolicy()
@@ -287,6 +340,64 @@ class TestTheOutbox:
         assert outbox.wait_until_empty(timeout=0.0)
         outbox.put(_red())
         assert not outbox.wait_until_empty(timeout=0.0)
+
+    def test_an_entry_being_written_is_still_waiting(self) -> None:
+        """INT-475: a flush takes the batch out before it writes; until the write
+        lands the entry is still waiting — it counts in ``pending``, in the age that
+        pages, and ``wait_until_empty`` does not return early (a drain on shutdown
+        would otherwise stop with the write half done)."""
+        entered, release = threading.Event(), threading.Event()
+
+        class SlowStore:
+            def __init__(self) -> None:
+                self.inner = _store()
+
+            def add(self, entry: InboxEntry) -> InboxEntry:
+                entered.set()
+                assert release.wait(timeout=5.0)
+                return self.inner.add(entry)
+
+        clock_at = [T0]
+        outbox = SafetyInboxOutbox(clock=lambda: clock_at[0])
+        entry = _red()
+        outbox.put(entry)
+        slow = SlowStore()
+        writer = threading.Thread(target=outbox.flush, args=(slow,))
+        writer.start()
+        assert entered.wait(timeout=5.0)
+        clock_at[0] = T0 + timedelta(seconds=7)
+        assert outbox.pending() == (entry,)
+        assert outbox.oldest_pending_age_s() == 7.0
+        assert not outbox.wait_until_empty(timeout=0.05)
+        release.set()
+        assert outbox.wait_until_empty(timeout=5.0)
+        writer.join(timeout=5.0)
+        assert slow.inner.open_entries() == (entry,)
+        assert outbox.pending() == ()
+
+    def test_an_unexpected_store_fault_keeps_the_entry_and_the_pump_alive(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """INT-475: only ``SafetyInboxUnavailable`` was kept before; any other fault
+        killed the pump and dropped the batch it had taken, with nothing paging."""
+
+        class FaultyStore:
+            def add(self, entry: InboxEntry) -> InboxEntry:
+                raise RuntimeError("sentetik store arızası")
+
+        outbox = SafetyInboxOutbox(clock=lambda: T0)
+        entry = _red()
+        outbox.put(entry)
+        with caplog.at_level(logging.ERROR):
+            report = outbox.flush(FaultyStore())  # type: ignore[arg-type]
+        assert report.written == ()
+        assert outbox.pending() == (entry,)
+        assert "safety inbox write failed" in caplog.text
+        assert "sentetik store arızası" not in caplog.text
+        # Near miss: the next pass with a working store writes it.
+        store = _store()
+        assert outbox.flush(store).written == (entry.entry_id,)
+        assert store.open_entries() == (entry,)
 
 
 class TestTheInbox:

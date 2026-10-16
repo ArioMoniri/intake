@@ -17,7 +17,7 @@ from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
 from intake_platform.previsit_output import RecipientRegistry, load_recipients
 from intake_platform.red_tenant import TenantRedConfig
-from intake_platform.safety_inbox import SafetyInbox
+from intake_platform.safety_inbox import SafetyInbox, SafetyInboxOutbox
 from intake_platform.tokenization import Tokenizer
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -98,6 +98,11 @@ class ApiState:
     # None = unwired, so those two moves answer 503 rather than happen
     # silently; every other move needs no inbox.
     safety_inbox: SafetyInbox | None = None
+    # INT-475: the RED path's outbox (INT-406's, the one the voice runtime puts
+    # into). The triage hop's RED and the on-site staff notification are put
+    # here — an append, never a network wait — and the app's pump writes them
+    # to ``safety_inbox``'s store. None exactly when ``safety_inbox`` is None.
+    red_outbox: SafetyInboxOutbox | None = None
     # INT-407: the wall clock the lifecycle stamps transitions with and reads
     # staleness against — one clock, injectable, so a test advances time
     # instead of sleeping (docs/TDD.md rule 6).

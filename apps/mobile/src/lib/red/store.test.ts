@@ -19,6 +19,7 @@ import {
   scriptIdFor,
   triageRequest,
   type PrePositionedRed,
+  type RedOrigin,
 } from "./hop";
 import { deriveRedLocation } from "./location";
 import {
@@ -44,6 +45,8 @@ const RAW = JSON.parse(new TextDecoder().decode(CATALOG_BYTES)) as {
   questions: Record<string, { askTr: string }>;
 };
 const RULE = "rf.sentetik_yasamsal";
+/** INT-475: the session and visit a RED belongs to (on the device, one id). */
+const ORIGIN: RedOrigin = { sessionId: "visit-1", visitId: "visit-1" };
 
 function trigger(register: RedRegister, location: RedLocation): RedTrigger {
   return {
@@ -56,7 +59,13 @@ function trigger(register: RedRegister, location: RedLocation): RedTrigger {
 }
 
 function state(register: RedRegister, location: RedLocation, answer: LocationAnswer): RedState {
-  return { trigger: trigger(register, location), catalog: CATALOG, answer, elapsedMs: null };
+  return {
+    trigger: trigger(register, location),
+    catalog: CATALOG,
+    answer,
+    elapsedMs: null,
+    origin: ORIGIN,
+  };
 }
 
 const ANSWERS: readonly LocationAnswer[] = [
@@ -164,7 +173,11 @@ describe("RED screen — every register × location × answer", () => {
     for (const location of RED_LOCATIONS) {
       it(`generic RED: ${register} × ${location} keeps its register, location and affordance`, () => {
         const store = createRedStore();
-        store.present({ ...trigger(register, location), scriptId: "rf.not.on.device" }, generic);
+        store.present(
+          { ...trigger(register, location), scriptId: "rf.not.on.device" },
+          generic,
+          ORIGIN,
+        );
         const mode = MODE[register];
         if (location === "UNKNOWN") {
           // CD-24's verdict: ask first; no 112 before the answer.
@@ -220,16 +233,26 @@ describe("RED screen — every register × location × answer", () => {
       for (const location of RED_LOCATIONS) {
         const store = createRedStore();
         const missing = { ...trigger("SILENT", location), scriptId: "rf.not.on.device" };
-        expect(() => store.present(missing, catalog)).toThrow(RedCatalogIncomplete);
+        expect(() => store.present(missing, catalog, ORIGIN)).toThrow(RedCatalogIncomplete);
         expect(store.getSnapshot()).toBeNull();
-        const bare: RedState = { trigger: missing, catalog, answer: "noAnswer", elapsedMs: null };
+        const bare: RedState = {
+          trigger: missing,
+          catalog,
+          answer: "noAnswer",
+          elapsedMs: null,
+          origin: ORIGIN,
+        };
         expect(() => redScreen(bare)).toThrow(RedCatalogIncomplete);
       }
     }
     // Near miss: with CD-24's copy the same SILENT generic shows words, in the flow.
     for (const location of ["REMOTE", "ON_SITE"] as const) {
       const store = createRedStore();
-      store.present({ ...trigger("SILENT", location), scriptId: "rf.not.on.device" }, generic);
+      store.present(
+        { ...trigger("SILENT", location), scriptId: "rf.not.on.device" },
+        generic,
+        ORIGIN,
+      );
       const screen = redScreen(store.getSnapshot());
       expect(screen.kind === "act" && screen.mode).toBe("inFlow");
       expect(screen.kind === "act" && screen.actionTr.length > 0).toBe(true);
@@ -239,7 +262,11 @@ describe("RED screen — every register × location × answer", () => {
   it("CD-24 generic_red_unknown_asks_before_112: the question first, no 112 control", () => {
     for (const register of ["ALERT", "CALM", "SILENT"] as const) {
       const store = createRedStore();
-      store.present({ ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" }, generic);
+      store.present(
+        { ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" },
+        generic,
+        ORIGIN,
+      );
       const screen = redScreen(store.getSnapshot());
       expect(screen.kind).toBe("ask");
       expect("call112" in screen).toBe(false);
@@ -249,7 +276,11 @@ describe("RED screen — every register × location × answer", () => {
   it("CD-24 generic_red_unknown_no_answer_goes_remote: no answer drives the store to REMOTE with 112", () => {
     for (const register of ["ALERT", "CALM", "SILENT"] as const) {
       const store = createRedStore();
-      store.present({ ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" }, generic);
+      store.present(
+        { ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" },
+        generic,
+        ORIGIN,
+      );
       store.answerLocation("noAnswer");
       expect(redScreen(store.getSnapshot())).toMatchObject({
         kind: "act",
@@ -260,7 +291,11 @@ describe("RED screen — every register × location × answer", () => {
       });
       // Near miss: "evet" goes ON_SITE, which has words and no 112.
       const yes = createRedStore();
-      yes.present({ ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" }, generic);
+      yes.present(
+        { ...trigger(register, "UNKNOWN"), scriptId: "rf.not.on.device" },
+        generic,
+        ORIGIN,
+      );
       yes.answerLocation("inHospital");
       expect(redScreen(yes.getSnapshot())).toMatchObject({
         kind: "act",
@@ -271,7 +306,7 @@ describe("RED screen — every register × location × answer", () => {
     }
     // The rule's own question takes its own on_no_answer branch, too.
     const own = createRedStore();
-    own.present(trigger("ALERT", "UNKNOWN"), CATALOG);
+    own.present(trigger("ALERT", "UNKNOWN"), CATALOG, ORIGIN);
     own.answerLocation("noAnswer");
     const screen = redScreen(own.getSnapshot());
     expect(screen.kind === "act" && [screen.location, screen.call112]).toEqual(["REMOTE", true]);
@@ -316,6 +351,7 @@ describe("RED screen — every register × location × answer", () => {
       catalog: generic,
       answer: "unanswered",
       elapsedMs: null,
+      origin: ORIGIN,
     };
     // The RED lands while the stream has two entries; the agent's next question
     // arrives after it.
@@ -345,31 +381,42 @@ describe("RED store — escalation only", () => {
     store.subscribe(() => {
       emitted += 1;
     });
-    store.present(trigger("CALM", "REMOTE"), CATALOG, 5);
-    store.present(trigger("ALERT", "REMOTE"), CATALOG, 1);
+    store.present(trigger("CALM", "REMOTE"), CATALOG, ORIGIN, 5);
+    store.present(trigger("ALERT", "REMOTE"), CATALOG, ORIGIN, 1);
     expect(store.getSnapshot()?.trigger.register).toBe("CALM");
     expect(store.getSnapshot()?.elapsedMs).toBe(5);
     expect(emitted).toBe(1);
   });
 
+  it("INT-475: a RED keeps the session and visit it came from, so its answer can name them", () => {
+    const store = createRedStore();
+    store.present(trigger("ALERT", "UNKNOWN"), CATALOG, ORIGIN);
+    expect(store.getSnapshot()?.origin).toEqual(ORIGIN);
+    // Near miss: a second RED that changes nothing leaves the first one's origin.
+    store.present(trigger("CALM", "UNKNOWN"), CATALOG, { sessionId: "v-2", visitId: "v-2" });
+    expect(store.getSnapshot()?.origin).toEqual(ORIGIN);
+    store.answerLocation("inHospital");
+    expect(store.getSnapshot()?.origin).toEqual(ORIGIN);
+  });
+
   it("a clinician-only RED yields to one the patient must see, and not the reverse", () => {
     const store = createRedStore();
-    store.present(trigger("DEFERRED_CLINICIAN", "REMOTE"), CATALOG);
-    store.present(trigger("DEFERRED_CLINICIAN", "ON_SITE"), CATALOG);
+    store.present(trigger("DEFERRED_CLINICIAN", "REMOTE"), CATALOG, ORIGIN);
+    store.present(trigger("DEFERRED_CLINICIAN", "ON_SITE"), CATALOG, ORIGIN);
     expect(store.getSnapshot()?.trigger.location).toBe("REMOTE");
-    store.present(trigger("SILENT", "REMOTE"), CATALOG);
+    store.present(trigger("SILENT", "REMOTE"), CATALOG, ORIGIN);
     expect(store.getSnapshot()?.trigger.register).toBe("SILENT");
-    store.present(trigger("DEFERRED_CLINICIAN", "REMOTE"), CATALOG);
+    store.present(trigger("DEFERRED_CLINICIAN", "REMOTE"), CATALOG, ORIGIN);
     expect(store.getSnapshot()?.trigger.register).toBe("SILENT");
   });
 
   it("the location question is answered once, and only under UNKNOWN", () => {
     const store = createRedStore();
-    store.present(trigger("ALERT", "REMOTE"), CATALOG);
+    store.present(trigger("ALERT", "REMOTE"), CATALOG, ORIGIN);
     store.answerLocation("inHospital");
     expect(store.getSnapshot()?.answer).toBe("unanswered"); // near miss: REMOTE is known
     const unknown = createRedStore();
-    unknown.present(trigger("ALERT", "UNKNOWN"), CATALOG);
+    unknown.present(trigger("ALERT", "UNKNOWN"), CATALOG, ORIGIN);
     unknown.answerLocation("notInHospital");
     unknown.answerLocation("inHospital");
     expect(unknown.getSnapshot()?.answer).toBe("notInHospital");
@@ -401,7 +448,7 @@ describe("RED store — escalation only", () => {
       for (const register of ["ALERT", "CALM", "SILENT"] as const) {
         it(`${name}, ${register}: a late "evet" moves the RED to ON_SITE, and 112 goes`, () => {
           const store = createRedStore();
-          store.present(make(register), catalog);
+          store.present(make(register), catalog, ORIGIN);
           store.answerLocation("noAnswer");
           expect(redScreen(store.getSnapshot())).toMatchObject({
             kind: "act",
@@ -421,7 +468,7 @@ describe("RED store — escalation only", () => {
 
         it(`${name}, ${register}: a late "hayır" keeps REMOTE with 112`, () => {
           const store = createRedStore();
-          store.present(make(register), catalog);
+          store.present(make(register), catalog, ORIGIN);
           store.answerLocation("noAnswer");
           store.answerLocation("notInHospital");
           expect(store.getSnapshot()?.answer).toBe("notInHospital");
@@ -435,7 +482,7 @@ describe("RED store — escalation only", () => {
 
         it(`${name}, ${register}: near miss: with no late answer it stays REMOTE with 112, question still open`, () => {
           const store = createRedStore();
-          store.present(make(register), catalog);
+          store.present(make(register), catalog, ORIGIN);
           store.answerLocation("noAnswer");
           store.answerLocation("noAnswer"); // a second expiry is not an answer
           expect(store.getSnapshot()?.answer).toBe("noAnswer");
@@ -451,7 +498,7 @@ describe("RED store — escalation only", () => {
     // instruction already given, so the screen reader's focus follows the change.
     it("a late answer moves the screen reader's focus to the new words; an identical re-render does not", () => {
       const store = createRedStore();
-      store.present(trigger("ALERT", "UNKNOWN"), CATALOG);
+      store.present(trigger("ALERT", "UNKNOWN"), CATALOG, ORIGIN);
       const asked = redFocusKey(redScreen(store.getSnapshot()));
       expect(movesRedFocus(null, asked)).toBe(false); // first paint: never
       store.answerLocation("noAnswer");
@@ -468,7 +515,7 @@ describe("RED store — escalation only", () => {
 
     it("the patient's own answer is final: nothing moves it afterwards", () => {
       const store = createRedStore();
-      store.present(trigger("ALERT", "UNKNOWN"), CATALOG);
+      store.present(trigger("ALERT", "UNKNOWN"), CATALOG, ORIGIN);
       store.answerLocation("noAnswer");
       store.answerLocation("inHospital");
       store.answerLocation("notInHospital");
@@ -486,8 +533,10 @@ describe("the hop's request and decoding", () => {
   ];
 
   it("sends bound values only — never the patient's words — and drops an empty answer", () => {
-    const request = triageRequest(answers, "REMOTE", new Date("2026-08-29T07:00:00.000Z"));
+    const request = triageRequest(answers, "REMOTE", new Date("2026-08-29T07:00:00.000Z"), ORIGIN);
     expect(request).toEqual({
+      session_id: "visit-1",
+      visit_id: "visit-1",
       location: "REMOTE",
       reference_time: "2026-08-29T07:00:00.000Z",
       answers: { complaint: ["pain", "fever"], extra: "serbest metin" },
@@ -502,7 +551,7 @@ describe("the hop's request and decoding", () => {
         status,
         bytes: new TextEncoder().encode(JSON.stringify(body)),
       });
-    const request = triageRequest(answers, "REMOTE", new Date(0));
+    const request = triageRequest(answers, "REMOTE", new Date(0), ORIGIN);
     const noRegister = {
       kind: "red_trigger",
       ruleId: RULE,

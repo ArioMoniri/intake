@@ -619,6 +619,19 @@ class TestNonDevBoot:
     def test_intake_env_is_staging(self) -> None:
         assert _environment(_service("api"))["INTAKE_ENV"] == STAGING_ENV
 
+    def test_the_api_is_handed_the_safety_inbox_store(self) -> None:
+        """INT-475: the host serves the red rule set, so a hop RED must reach the
+        clinic Safety inbox — the API is given the store, on the Redis it already
+        uses, built from the generated password. Unset, every hop RED pages
+        RedInboxRouteFailed and an on-site answer is refused."""
+        from intake_platform.safety_inbox import ENV_SAFETY_INBOX_REDIS_URL
+
+        env = _environment(_service("api"))
+        assert "INTAKE_API_TRIAGE_RULES" in env, "the precondition: this host serves REDs"
+        value = env[ENV_SAFETY_INBOX_REDIS_URL]
+        assert value == "redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0"
+        assert value == env["INTAKE_REDIS_URL"]
+
     def test_the_kek_mode_is_transit(self) -> None:
         modes = set(get_args(KekMode))
         assert PROCESS_LOCAL_KEK in modes, "the negative control names a real mode"

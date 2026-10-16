@@ -957,7 +957,9 @@ metrics:
     description: >-
       Age of the oldest RED entry recorded on the RED path but not yet written
       to the shared Safety inbox store; 0 when none waits. Computed at scrape
-      time from the voice runtime's outbox; pages above 60.
+      time from the process's outbox — the voice runtime's, and since INT-475
+      the API's, which holds the triage hop's REDs and the on-site staff
+      notifications; pages above 60.
   - name: clinic_red_inbox_route_failures_total
     type: counter
     labels: []
@@ -966,8 +968,24 @@ metrics:
     status: live
     description: >-
       REDs whose clinician route into the Safety inbox raised before an entry
-      existed. The RED is still delivered; no entry means no clock, so this
-      pages instead.
+      existed — Layer B's, and since INT-475 the API triage hop's and the
+      on-site location answer's (an unwired inbox included). The RED is still
+      delivered; no entry means no clock, so this pages instead.
+  # INT-475: the API puts the hop's RED and the on-site staff notification
+  # first and appends their audit rows (invariant 4) after; an append that
+  # fails is counted here rather than holding back a notification.
+  - name: clinic_red_notification_unaudited_total
+    type: counter
+    labels: []
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      Audit appends that failed for a RED's clinic route on the API — a RED
+      or on-site staff notification raised in the Safety inbox, or a RED that
+      could not be routed (api.triage.red_unrouted). The notification went
+      ahead; on the location-answer route the device retries until the row
+      lands. Constructed by intake_platform.safety_inbox.metrics.
   # --- files/08 §4 F. Experience & satisfaction
   # INT-240 made these four live: intake_metrics.metrics constructs them and
   # intake_metrics.rollups feeds them. Every value is published for a named

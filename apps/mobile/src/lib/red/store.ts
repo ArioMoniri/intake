@@ -44,6 +44,7 @@ import {
   type HopTransport,
   type PrePositionedRed,
   type RedLocationQuestion,
+  type RedOrigin,
 } from "./hop";
 
 /**
@@ -88,6 +89,11 @@ export interface RedState {
   readonly answer: LocationAnswer;
   /** Answer bound → RED presented, in ms, when the hop measured it. */
   readonly elapsedMs: number | null;
+  /**
+   * The session and visit the RED came from (INT-475), so the patient's answer to
+   * the location question reaches the server for them (lib/red/locationReport.ts).
+   */
+  readonly origin: RedOrigin;
 }
 
 /** What the screen shows for the current RED. */
@@ -288,8 +294,16 @@ export function redStopsDialogue(state: RedState | null): boolean {
 export interface RedStore {
   getSnapshot: () => RedState | null;
   subscribe: (listener: () => void) => () => void;
-  /** A rules-engine trigger arrived. Escalation only (see the header). */
-  present: (trigger: RedTrigger, catalog: PrePositionedRed, elapsedMs?: number | null) => void;
+  /**
+   * A rules-engine trigger arrived, from the session and visit `origin` names.
+   * Escalation only (see the header).
+   */
+  present: (
+    trigger: RedTrigger,
+    catalog: PrePositionedRed,
+    origin: RedOrigin,
+    elapsedMs?: number | null,
+  ) => void;
   /**
    * The patient answered the one location question, or it went unanswered
    * (`noAnswer`). After `noAnswer` the patient may still answer, and that answer
@@ -314,14 +328,14 @@ export function createRedStore(): RedStore {
         listeners.delete(listener);
       };
     },
-    present: (trigger, catalog, elapsedMs = null) => {
+    present: (trigger, catalog, origin, elapsedMs = null) => {
       // INT-465: a catalog that cannot say the generic RED fails at every
       // location (CD-24 generic_red_silent_is_never_wordless).
       assertGenericCopy(catalog);
       if (redStopsDialogue(state)) {
         return; // a RED the patient sees stays until they act on it
       }
-      const next: RedState = { trigger, catalog, answer: "unanswered", elapsedMs };
+      const next: RedState = { trigger, catalog, answer: "unanswered", elapsedMs, origin };
       if (state !== null && !redStopsDialogue(next)) {
         return; // the first one stands: the second shows the patient nothing new
       }
@@ -460,7 +474,9 @@ export function createRedHop({ transport, store, now, clock }: RedHopOptions): R
         reference = clock();
         referenceTime.set(visitId, reference);
       }
-      const request = triageRequest(answers, location, reference);
+      // INT-197: on the device a visit is a session row, so one id names both.
+      const origin: RedOrigin = { sessionId: visitId, visitId };
+      const request = triageRequest(answers, location, reference, origin);
       if (Object.keys(request.answers).length === 0) {
         return { kind: "unevaluated" };
       }
@@ -479,7 +495,7 @@ export function createRedHop({ transport, store, now, clock }: RedHopOptions): R
         lastKey.delete(visitId);
       }
       if (outcome.kind === "red" && catalog !== null) {
-        store.present(outcome.trigger, catalog, now() - startedAt);
+        store.present(outcome.trigger, catalog, origin, now() - startedAt);
       }
       return outcome;
     },

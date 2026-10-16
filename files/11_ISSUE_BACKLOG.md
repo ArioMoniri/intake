@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**353 issues.** By phase: P0 173 · P1 126 · P2 47 · P3 7. By status: awaiting-human 36 · doing 7 · done 235 · todo 74 · withdrawn 1.
+**354 issues.** By phase: P0 173 · P1 127 · P2 47 · P3 7. By status: awaiting-human 36 · doing 7 · done 236 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -315,6 +315,7 @@
 | INT-501 | http-cache-semantics lifted to 4.3.0, so its time-boxed osv exception can go before it expires | E13-infra | INT-500 | area:security | done |
 | INT-508 | node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents before 1 Nov 2026 | E13-infra | INT-500 | area:security | todo |
 | INT-424 | ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal | E05-voice | INT-415 | area:voice | done |
+| INT-475 | RED staff notification on the typed hop and the device's location answer reach the server | E09-clinician | INT-432 | area:api, risk:clinical | done |
 
 ## P2
 

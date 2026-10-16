@@ -191,7 +191,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-428 (hosted model lanes for the synthetic deployment, switchable
     # from the admin panel with a GPU switch-over; owner decision, ADR-035,
     # GitHub #724).
-    assert len(ids) == 353
+    # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
+    # location answer reaches the server, so ON_SITE notifies staff; found by
+    # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
+    assert len(ids) == 354
     import re
 
     for i in ids:

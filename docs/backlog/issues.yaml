@@ -6785,7 +6785,8 @@
   # "Görevlilere haber verildi." holds on every lane (finding 6 in
   # docs/evidence/INT-465.md). Until then the round-4 tripwire tests in
   # tests/api/test_triage_hop.py prove no served RED rule can fire through the
-  # hop. INT-476 (GitHub #815) owns the kiosk-wipe / RED-store finding.
+  # hop; INT-475 closes finding 6 and retires the requires_bool tripwire.
+  # INT-476 (GitHub #815) owns the kiosk-wipe / RED-store finding.
   depends_on: [INT-432, INT-446, INT-453]
   labels: [area:protocols, risk:clinical, risk:security]
   status: done
@@ -6926,3 +6927,26 @@
     - "tests: the routing table, mock_hosted_unrepresentable_for_phi_tenant, lane_swap_requires_green_rf_extraction_goldens, model_pin_frozen_in_session, synthetic_flag_immutable (each with a near miss), the deployment split, the key never echoed, the four-eyes switch and its audit chain, fallback, and the adapters against recorded fixtures; no live provider call"
   tests: [tests/platform/test_model_lane_routing.py, tests/platform/test_model_lane_resolver.py, tests/platform/test_model_lane_hosted_adapter.py, tests/platform/test_model_lane_deployment.py, tests/voice/test_model_lane_shims.py, tests/admin/test_model_lanes_routes.py, tests/infra/test_put_provider_key.py]
   sec_row: "llm-boundary"
+- id: INT-475
+  epic: E09-clinician
+  phase: P1
+  title: "RED staff notification on the typed hop and the device's location answer reach the server"
+  # GitHub #814. Found by the #796 (INT-465) clinical reviews, 4 Oct 2026: the
+  # ON_SITE copy "Görevlilere haber verildi." was true on the voice lane only
+  # (INT-465 finding 6). Stacked on INT-465 (PR #796, not yet on main), so
+  # depends_on names INT-432, the dependency on main; INT-465 merges first.
+  # The hop's RED and the patient's location answer reach the clinic through
+  # the INT-406 Safety-inbox path (one outbox, one store), with a red_on_site
+  # entry kind for the staff notification. Retires the INT-465 requires_bool
+  # tripwire; the 422 test stays as finding 1's plain pin.
+  depends_on: [INT-432]
+  labels: [area:api, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-475.md
+  acceptance:
+    - "The hop's RED branch raises the Safety-inbox entry with tenant, session, visit and work ids only (no PHI), exactly once per RED; near miss: GREEN/YELLOW raise none."
+    - "The device sends the location answer (on time or late) to the server; ON_SITE fires the staff notification; REMOTE does not; a late ON_SITE answer after REMOTE fires it then. Ids only."
+    - "The INT-465 tripwire tests (every active RED rule requires a boolean answer the hop cannot carry) are retired in the same PR, and finding 6 in docs/evidence/INT-465.md closes."
+    - "Consent scope checked and the notification audited (invariant 4); no PHI in logs (invariant 6)."
+  tests: [tests/api/test_red_notify.py, tests/api/test_triage_hop.py, tests/platform/test_safety_inbox.py, tests/voice/test_safety_inbox_notifier.py, tests/infra/test_staging_compose.py, apps/mobile/src/lib/red/locationReport.test.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/src/lib/red/hop.test.ts, apps/mobile/e2e/red.spec.ts]
+  sec_row: "clinical-core"
