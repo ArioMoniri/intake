@@ -7030,3 +7030,27 @@
     - "make safety, runtime-sim (both profiles, PARITY=1) green."
   tests: [tests/voice/test_live_triage.py]
   sec_row: "clinical-core"
+- id: INT-522
+  epic: E03-protocols
+  phase: P0
+  title: "chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live"
+  # GitHub #888, from INT-518 (#884), 16 Oct 2026. chest_pain.onset_at is the
+  # tense anchor of rf.chest_pain_cardiac_features (KIRMIZI_K2) and its SARI
+  # sibling: a date slot answered by four closed choices. CD-05 decided how
+  # each choice resolves to a day; nothing built it. Extraction offered the
+  # model a format: date field with no reference date and told it not to
+  # infer one, so a spoken choice bound nothing, the anchor read Unknown and
+  # K2 could not fire from a conversation. INT-518's and INT-521's tests
+  # passed only because their recorded completion carried an ISO date.
+  # Stacked on INT-521 (#910), INT-518 and INT-441.
+  depends_on: [INT-518, INT-521]
+  labels: [area:protocols]
+  status: done
+  evidence: docs/evidence/INT-522.md
+  acceptance:
+    - "Build CD-05's decided choice-to-date resolution exactly as CD-05 states it (each authored onset choice to its day; no clinical re-decision); anything CD-05 leaves open stays the invariant-17 literal under draft_needs_source and goes to the D18 lane."
+    - "The session reference date comes from the runtime's injected clock (fake-clock tested), never inferred by the model; the model only picks the authored choice (schema-constrained, invariant 14)."
+    - "Tests: every authored onset choice resolves to its CD-05 day; hedged answers stay Unknown and the rule's Unknown branch behaves as authored; boundary near misses one unit either side; end to end over committed base.intake + base.life_threat on both profiles, a spoken onset choice (no recorded ISO date) plus a cardiac character fires K2 at the rule's register and location, and a choice outside the window does not."
+    - "make safety and runtime-sim (both profiles, PARITY=1) green; protocols coverage >= 95 %, voice-runtime >= 90 %; goldens updated with a near-miss negative control."
+  tests: [tests/protocols/test_anchor_choices.py, tests/voice/test_onset_anchor.py, tests/safety/test_triage_goldens.py]
+  sec_row: "clinical-core"

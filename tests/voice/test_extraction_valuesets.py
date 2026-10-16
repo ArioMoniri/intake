@@ -83,7 +83,6 @@ BASE_INTAKE = REPO_ROOT / "packages" / "protocols" / "base" / "intake.yaml"
 LIFE_THREAT = REPO_ROOT / "files" / "protocols" / "base.life_threat.yaml"
 
 NOW = datetime(2026, 10, 16, 9, 0, tzinfo=UTC)
-TODAY = NOW.date().isoformat()
 HASH = "e" * 64
 SESSION = "51800000-0000-4000-8000-000000000518"
 TENANT = "00000000-0000-4000-8000-000000000001"
@@ -412,13 +411,19 @@ def _triage(stack: SessionStack) -> TriageEvaluation:
     return evaluate_triage(_active_life_threat_rules(), context, RedLocation.REMOTE)
 
 
+#: The onset is answered as the patient answers it: the authored choice for
+#: "Şu anda var.", never a date (INT-522). The runtime binds CD-05's day for
+#: it against the session's reference time; a recorded ISO date is refused.
+ONSET_CHOICE = "şu anda var"
+
+
 def _model_answers(character: str, radiation: str) -> dict[str, JsonValue]:
     return {
         "identity_check.subject_role": "kendim için",
         "chest_pain.present": True,
         CHARACTER: character,
         RADIATION: radiation,
-        "chest_pain.onset_at": TODAY,
+        "chest_pain.onset_at": ONSET_CHOICE,
     }
 
 

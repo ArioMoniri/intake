@@ -64,6 +64,7 @@ from intake_voice_runtime.extraction.schema import (
     TOP_LEVEL_KEYS,
     UNIT_KEY,
     VALUE_KEY,
+    date_choices,
 )
 
 __all__ = ["parse_extraction"]
@@ -143,6 +144,12 @@ def _coerce(
     if slot.type is SlotType.DATE:
         if not isinstance(raw, str):
             return FlagReason.WRONG_TYPE
+        choices = date_choices(slot)
+        if choices:
+            # INT-522: a closed-choice date binds only an authored choice. A day
+            # the model wrote itself is outside the set it was offered — it was
+            # given no reference date to compute one from — and is refused.
+            return raw if raw in choices else FlagReason.VALUESET_VIOLATION
         return raw if _ISO_DATE.match(raw) else FlagReason.WRONG_TYPE
     return raw if isinstance(raw, str) else FlagReason.WRONG_TYPE
 
