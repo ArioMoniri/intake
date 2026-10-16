@@ -1,5 +1,21 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T09:00:00Z · INT-416 · done (PR open, not merged)
+- Goal: `TriageContext(units={"<slot>": ""})` built without error. `evaluate_triage` then raised `ValidationError` on a firing KIRMIZI rule instead of returning RED, because `EvidenceSlot.unit` is `min_length=1`. No production caller passes `units` yet.
+  - Acceptance (verbatim, GitHub #707): units values are `Annotated[str, Field(min_length=1)]`; a safety test proves the refusal at construction and the near miss still returning RED; `make safety` green with triage at 100 % branch.
+- Plan: tests first in the numeric-carrier suite; then the one-line type change in `protocols/triage/context.py`.
+- Tests added: `tests/safety/test_numeric_carrier.py::TestAMalformedUnitMapIsRefusedWhenTheContextIsBuilt` (7 tests).
+  - Near misses: a well-formed unit (`°C`), a one-character unit and an absent unit all still return RED.
+  - RED: 4 failed on main `be6c09c1` (3 refusals did not raise; the schema had no `minLength`).
+  - GREEN: 120 passed in the two triage evidence suites; 1099 in `tests/protocols`.
+- Result (docs/evidence/INT-416.md): `make safety` exits 0, triage branch coverage 100 %, 18/18 mutations detected.
+- Invariants touched and still passing: 1 (a RED evaluation cannot raise on a unit map), 22 (number and unit still travel as one atom).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: PR #867 (INT-452) adds the INT-416 row, so this PR adds none. The row's status flips when #867 and this PR have both landed.
+- Blocked on: nothing.
+- Next: INT-441.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:
