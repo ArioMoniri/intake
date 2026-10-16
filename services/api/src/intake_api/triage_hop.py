@@ -37,8 +37,16 @@ owner decision of 3 Oct 2026; ``intake_platform.red_signature``), and a real
 tenant refuses that key.
 
 Consent: the evaluation processes the patient's intake answers, so both routes
-run under the core intake scope. Nothing is stored, nothing is logged — not a
-slot, not a value, not a rule id (invariant 6).
+run under the core intake scope. No answer is stored and nothing is logged —
+not a slot, not a value, not a rule id (invariant 6).
+
+The clinic hears the RED (INT-475; files/02 §5.3, files/04 §8.1 rule 7). The
+request names the session and the visit — ids only; on the device a visit is a
+session row (INT-197) — and the RED branch puts the clinic Safety-inbox entry,
+and at ON_SITE the staff notification, through ``red_notify.raise_red``: the
+INT-406 path the voice runtime uses, an outbox append that never delays the
+answer. The audit rows are written after the answer is sent. GREEN and YELLOW
+raise nothing.
 """
 
 from __future__ import annotations
@@ -48,7 +56,7 @@ from typing import Annotated, Literal
 from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, RedRegister, TriageLevel
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from protocols.dsl import RedFlagRule
 from protocols.triage import TriageContext, TriageEvaluation, evaluate_triage
 from protocols.triage.context import SlotAnswer
@@ -57,6 +65,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstrai
 from intake_api.auth import Principal
 from intake_api.consent_guard import require_scopes
 from intake_api.errors import triage_unconfigured
+from intake_api.red_notify import InboxRef, audit_raised, raise_red
 from intake_api.state import State
 from intake_api.triage_rules import CatalogOut, ServedRedRules, resolved_action, script_id
 
@@ -78,6 +87,16 @@ BoundValue = BoundText | Annotated[list[BoundText], Field(max_length=64)]
 class EvaluateIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    session_id: InboxRef | None = Field(
+        default=None,
+        description="The session a RED's clinic entry names (INT-475). On the device a "
+        "visit is a session row (INT-197), so the app sends the visit id here too. "
+        "Optional only so an app build from before INT-475 still gets its RED: with no "
+        "ids the clinic route cannot name the RED, which is counted and audited.",
+    )
+    visit_id: InboxRef | None = Field(
+        default=None, description="The visit a RED's clinic entry names (INT-475)."
+    )
     location: RedLocation = Field(
         description="files/02 §5.3 Axis 3, derived by the device from the visit "
         "lifecycle; required, no default (invariant 21)."
@@ -171,7 +190,7 @@ async def red_scripts(state: State, principal: Principal) -> CatalogOut:
     dependencies=[require_scopes(CORE_SCOPE)],
 )
 async def evaluate(
-    payload: EvaluateIn, state: State, principal: Principal
+    payload: EvaluateIn, state: State, principal: Principal, background: BackgroundTasks
 ) -> RedTriggerOut | LevelOut:
     """Run the served rules over the bound answers (invariant 1)."""
     served = _served(state)
@@ -182,6 +201,19 @@ async def evaluate(
         if register is None or location is None:  # unreachable: RulesTriageResult validates
             raise triage_unconfigured()
         winner = _winner(served.rules, evaluation, register, location)
+        # INT-475: the clinic first (an append, never a wait), then the answer;
+        # the audit rows once the answer is out (invariant 21: RED paints first)
+        notes = raise_red(
+            state,
+            tenant_id=str(principal.tenant_id),
+            session_id=payload.session_id,
+            visit_id=payload.visit_id,
+            winner=winner,
+            rule_ids=tuple(fire.id for fire in result.rules),
+            register=register,
+            location=location,
+        )
+        background.add_task(audit_raised, state, principal.account_id, notes)
         return RedTriggerOut(
             ruleId=winner,
             register=register,

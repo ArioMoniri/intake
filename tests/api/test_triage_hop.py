@@ -37,7 +37,6 @@ from intake_api.consent_guard import unguarded_data_routes
 from protocols.compile.life_threat import load_life_threat_set
 from protocols.triage import TriageContext, evaluate_triage
 from protocols.triage.context import SlotAnswer
-from protocols.triage.expr import And, BoolRef, Compare, Lit, Or, WhenNode, parse_when
 from protocols.types import RuleStatus
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -48,6 +47,12 @@ GENERIC = REPO_ROOT / "packages" / "protocols" / "generic" / "generic_red.yaml"
 
 REFERENCE_TIME = "2026-08-29T10:00:00+03:00"
 FIRING = {"ziyaret.basvuru_nedeni": "sentetik_yasamsal", "sure_dakika": "2026-08-29"}
+#: INT-475: the session and visit the RED's clinic entry names. On the device a
+#: visit is a session row (INT-197), so the app sends one id for both.
+IDS = {
+    "session_id": "11111111-2222-4333-8444-555555555555",
+    "visit_id": "11111111-2222-4333-8444-555555555555",
+}
 RED_BUDGET_MS = 300.0
 
 
@@ -75,7 +80,7 @@ def _evaluate(harness: ApiHarness, answers: dict[str, Any], location: str = "REM
     response = harness.client.post(
         "/v1/triage/evaluate",
         headers=harness.patient(),
-        json={"location": location, "reference_time": REFERENCE_TIME, "answers": answers},
+        json={**IDS, "location": location, "reference_time": REFERENCE_TIME, "answers": answers},
     )
     assert response.status_code == 200, response.text
     return response.json()
@@ -224,7 +229,7 @@ def _assert_closed(harness: ApiHarness) -> None:
     evaluated = harness.client.post(
         "/v1/triage/evaluate",
         headers=harness.patient(),
-        json={"location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": FIRING},
+        json={**IDS, "location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": FIRING},
     )
     for response in (catalog, evaluated):
         assert response.status_code == 503
@@ -234,7 +239,7 @@ def _assert_closed(harness: ApiHarness) -> None:
 def test_authentication_and_consent_apply(harness: ApiHarness) -> None:
     bare = harness.client.post(
         "/v1/triage/evaluate",
-        json={"location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": FIRING},
+        json={**IDS, "location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": FIRING},
     )
     assert bare.status_code == 401
     assert harness.client.get("/v1/triage/red-scripts").status_code == 401
@@ -243,7 +248,7 @@ def test_authentication_and_consent_apply(harness: ApiHarness) -> None:
     revoked = harness.client.post(
         "/v1/triage/evaluate",
         headers=harness.patient(),
-        json={"location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": FIRING},
+        json={**IDS, "location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": FIRING},
     )
     assert revoked.status_code == 403
 
@@ -265,7 +270,10 @@ def test_authentication_and_consent_apply(harness: ApiHarness) -> None:
     ],
 )
 def test_input_is_validated_at_the_boundary(harness: ApiHarness, body: dict[str, Any]) -> None:
-    response = harness.client.post("/v1/triage/evaluate", headers=harness.patient(), json=body)
+    # INT-475: with the ids present, each refusal is the one the case names.
+    response = harness.client.post(
+        "/v1/triage/evaluate", headers=harness.patient(), json={**IDS, **body}
+    )
     assert response.status_code == 422
 
 
@@ -512,72 +520,6 @@ def test_near_miss_112_in_the_remote_script_is_served(tmp_path: Path) -> None:
         assert response.json()["scripts"]["rf.sentetik_yasamsal.remote"]["actionTr"] == words
 
 
-def requires_bool(node: WhenNode) -> bool:
-    """Whether ``node`` can only come out TRUE with a boolean answer bound.
-
-    The hop carries strings and lists of strings only (``EvaluateIn.answers``), and a
-    string compared with a boolean is UNKNOWN, never TRUE (protocols.triage.expr
-    ``_equal``). So a boolean atom, or a comparison against a boolean literal, can
-    never be TRUE through the hop; an AND fails if any part needs a boolean; an OR
-    only if every part does. A NOT is counted as fireable, the cautious reading.
-    """
-    if isinstance(node, BoolRef):
-        return True
-    if isinstance(node, Compare):
-        return any(
-            isinstance(side, Lit) and isinstance(side.value, bool)
-            for side in (node.left, node.right)
-        )
-    if isinstance(node, And):
-        return any(requires_bool(item) for item in node.items)
-    if isinstance(node, Or):
-        return all(requires_bool(item) for item in node.items)
-    return False
-
-
-@pytest.mark.parametrize(
-    ("when", "needs_bool"),
-    [
-        ("a.b", True),
-        ("a.b == true", True),
-        ("a.b == 'x'", False),
-        ("a.b == true && c.d == 'x'", True),
-        ("a.b == true || c.d == 'x'", False),
-        ("a.b == true || c.d == false", True),
-        ("!(a.b == 'x')", False),
-        ("a.b in {'x', 'y'}", False),
-    ],
-)
-def test_the_tripwire_reads_the_grammar(when: str, needs_bool: bool) -> None:
-    assert requires_bool(parse_when(when)) is needs_bool
-
-
-def test_tripwire_no_served_red_rule_can_fire_through_the_hop() -> None:
-    """INT-465 finding 6; INT-475 (GitHub #814) owns the fix.
-
-    The ON_SITE RED says "Görevlilere haber verildi." and the hop notifies no clinic.
-    That copy may stand on the synthetic host only while no served RED rule can reach a
-    patient through the hop: every active KIRMIZI rule in base.life_threat needs a
-    boolean answer, which the hop cannot carry. When this test or the schema pin below
-    fails, a RED can reach a patient through the hop, and finding 6 closes in the same
-    PR (INT-475: the hop raises the Safety-inbox entry and the device's location answer
-    reaches the server).
-    """
-    served = load_life_threat_set(LIFE_THREAT)
-    reds = [
-        entry.rule
-        for entry in served.rules
-        if entry.rule.status is RuleStatus.ACTIVE and entry.rule.level.value.startswith("KIRMIZI")
-    ]
-    assert [rule.id for rule in reds] == [CARDIAC]
-    for rule in reds:
-        assert requires_bool(parse_when(rule.when)), rule.id
-    # Near miss: the SENTETİK rule fires through the hop from a string answer
-    # (test_red_answer_returns_the_data_channel_packet), and the tripwire says so.
-    sentetik = load_life_threat_set(SIGNED, allow_fixture_snapshots=True).rules[0].rule
-    assert not requires_bool(parse_when(sentetik.when))
-
-
 #: The served cardiac rule's firing answers, with its `now` tense anchor dated, so
 #: the answer's TYPE is the only thing that can keep it from firing.
 CARDIAC_FIRING: dict[str, bool | str] = {
@@ -587,9 +529,19 @@ CARDIAC_FIRING: dict[str, bool | str] = {
 }
 
 
-def test_tripwire_the_hop_refuses_a_json_boolean_answer(tmp_path: Path) -> None:
-    """The schema half of the tripwire above: a JSON boolean is a 422, so the served
-    cardiac rule's boolean atoms stay unbindable through the hop (INT-475)."""
+def test_the_hop_carries_strings_only_so_the_served_cardiac_rule_cannot_fire_yet(
+    tmp_path: Path,
+) -> None:
+    """INT-465 finding 1, still open: the hop carries strings, and the served cardiac
+    rule gates on booleans. A JSON boolean is a 422.
+
+    No longer a tripwire. Round 4 made it one, with a `requires_bool` grammar check,
+    because the ON_SITE copy "Görevlilere haber verildi." was untrue on the hop lane
+    (finding 6). INT-475 makes it true: a hop RED raises the clinic Safety-inbox
+    entry and an on-site answer notifies staff (tests/api/test_red_notify.py), so
+    the `requires_bool` tripwire is retired. This pin stays only to keep finding 1
+    honest, and it changes with the issue that gives the hop typed values.
+    """
     # Positive control: these exact answers, as typed booleans, DO fire the served
     # cardiac rule in the engine — so the near miss below is held by type alone.
     served = [
@@ -612,6 +564,7 @@ def test_tripwire_the_hop_refuses_a_json_boolean_answer(tmp_path: Path) -> None:
             "/v1/triage/evaluate",
             headers=harness.patient(),
             json={
+                **IDS,
                 "location": "ON_SITE",
                 "reference_time": REFERENCE_TIME,
                 "answers": CARDIAC_FIRING,
