@@ -6821,6 +6821,31 @@
     - ".github/** is owner-only: the workflow change ships as an owner patch with a commit-message file, and the test, evidence and backlog row are committed on the issue branch; scripts/ci/security_workflow.yml no longer exists, and tests/ci/test_security_gates.py passes with the patch applied"
   tests: [tests/ci/test_workflow_concurrency.py]
   sec_row: "cicd"
+- id: INT-544
+  epic: E13-infra
+  phase: P0
+  title: "A pull request clears CI in under 20 minutes on the intake-aws-ci pool: cache seed, sharded check-py, path-scoped lanes, queued main runs collapse"
+  # GitHub #919, owner order 16-17 Oct 2026. Ten runs measured: a pull
+  # request took 52-79 min. check-py ran 37 min (median) on one runner, the
+  # whole suite once and then eight directory subsets again; every other job
+  # ran under 3 min and queued behind it, and the repository's Actions cache
+  # sat at 10.5 GB of its 10 GB limit. The workflow half is the owner's
+  # commit on this branch (patch owner-544-ci-speed); it replaces INT-524's
+  # per-sha main group, so an intermediate main commit whose queued run was
+  # replaced gets no run (the owner's call, stated in the evidence).
+  depends_on: [INT-467, INT-524]
+  labels: [area:ci, approval:human-infra]
+  status: done
+  evidence: docs/evidence/INT-544.md
+  acceptance:
+    - "per-job queued and running times of the last ten completed ci and security runs on intake-aws-ci are tabled in docs/evidence/INT-544.md, with the critical path named; the after times are recorded from this pull request's own runs once the owner's patch is on it"
+    - "each runner keeps a cache seed of the uv cache, the pnpm store and the deid asset in its own CI root, root-owned and bound read-only into its jobs; its registrar (cycle.sh) rebuilds it between jobs, in the job's own sandbox, from lockfiles and manifests the owner stages (aws_runner.sh seed); uv, pnpm and the asset are pinned by sha256, a manifest pins every file, a job restores only parts that match it (ci_seed.sh) and otherwise uses the network; no secret or PHI is in a seed"
+    - "check-py runs as three check-py-shard jobs split by recorded seconds, with every floored source measured in every shard; the required check-py job fails when a shard failed and enforces every floor of make check-py (invariant 8) on the combined coverage; the triage floor keeps its own tests/safety run; tests/ci/test_py_shards.py pins the floors to the Makefile's lines"
+    - "check-ts and check-integration skip their steps when a pull request's diff cannot affect them and still report success; check-py, gates and every security.yml job run on every diff; tests/ci/test_lanes.py tests the mapping on real git repositories and the workflows' conditions, with near misses"
+    - "ci.yml and security.yml group runs by workflow and ref: a pull request cancels its superseded run, a running main run is never cancelled, a newer main push replaces only the one waiting, and a v* tag keeps a group of its own (tests/ci/test_workflow_concurrency.py)"
+    - "aws_runner.sh headroom reads host CPU, memory, IO pressure and disk without changing anything, and the evidence states what it must show before runners 4-6 are added and the exact owner commands that add them"
+  tests: [tests/ci/test_py_shards.py, tests/ci/test_lanes.py, tests/ci/test_ci_seed.py, tests/ci/test_aws_runner_seed.py, tests/ci/test_workflow_concurrency.py]
+  sec_row: "cicd"
 - id: INT-501
   epic: E13-infra
   phase: P1

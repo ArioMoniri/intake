@@ -218,7 +218,9 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-428, GitHub #753).
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
-    assert len(ids) == 362
+    # + INT-544 (a pull request clears CI in under 20 minutes on the
+    # intake-aws-ci pool; owner order, GitHub #919).
+    assert len(ids) == 363
     import re
 
     for i in ids:

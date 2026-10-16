@@ -376,7 +376,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-428, GitHub #753); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
     # with a stated reason.
-    assert len(ids) == 362, f"expected 175 blueprint + 187 added issues, got {len(ids)}"
+    # + INT-544 (a pull request clears CI in under 20 minutes on the
+    # intake-aws-ci pool, owner order, GitHub #919); grows only with a stated
+    # reason.
+    assert len(ids) == 363, f"expected 175 blueprint + 188 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

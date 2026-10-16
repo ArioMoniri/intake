@@ -1,5 +1,39 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T16:55:00Z · INT-544 · done (PR open; owner patch and host install pending)
+- Goal: a pull request clears CI in under 20 minutes on the intake-aws-ci pool (GitHub #919, P0, Sec-Row cicd). The acceptance is quoted verbatim in docs/evidence/INT-544.md.
+- Plan:
+  - Measure ten ci and ten security runs per job (queued and running) and name the critical path.
+  - Shard check-py three ways and enforce every floor on the combined coverage.
+  - Add a conservative path filter with a tested mapping.
+  - Add a per-runner cache seed: built by the registrar between jobs and read-only to jobs.
+  - Collapse queued main runs.
+  - Write the owner's headroom and runners 4-6 commands.
+  - Ship the workflow half as an owner patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - tests/ci/test_py_shards.py: floors pinned to the Makefile's check-py lines; the triage lane word for word; partition, determinism and balance; median weight for unrecorded files. Two shards that each miss a branch combine to 100 %. Near misses: a combined miss, a missing shard, a shard with failures.
+  - tests/ci/test_lanes.py: the mapping; decisions on real merge commits (a move out of a workspace still runs check-ts). Every lane step runs unless its lane is exactly false. Near misses: `== 'true'`, an unconditional step, a shallow checkout, a conditional decision, a job-level `if`. Security jobs and gates carry no condition.
+  - tests/ci/test_ci_seed.py: restore, no seed, a changed file, an added file, a forged manifest, an unpinned deid asset, an unknown part.
+  - tests/ci/test_aws_runner_seed.py: sha256 pins; the build in the job sandbox; the refresh order in prepare. Root refuses absolute or escaping links, pipes and setuid. Bundles hold only lockfiles; the inputs are denied to every runner; headroom only reads.
+  - tests/ci/test_workflow_concurrency.py: the workflow-plus-ref group, with INT-524's per-sha group kept as a near miss.
+  - Red run: 2 collection errors, then 28 failed and 149 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - With the owner patch applied, on origin/main 33047ed1: three shards, 12117 passed. check-py-combine: every floor met (94.74 / 97.53 / 97.62 / 99.51 / 95.23 / 98.27 / 98.19 / 99.39; triage 100.00 in its own lane). check-py-static: clean.
+  - safety: triage 612 passed at 100.00 %, mutations 18/18 detected, voice-runtime 2185 passed at 98.27 %, adversarial and nightly plan 121 passed.
+  - security: hooks, bandit, checkov (258/0), trivy config, shellcheck, no_placeholders, phi_scan, claims_scan and vendor calls are clean. check-jsonschema and actionlint pass on the patched workflows.
+  - check-integration is CI-only (HB-I1).
+- Invariants touched and still passing:
+  - 6: no PHI in the artefacts; dist/check-py is declared.
+  - 8: floors unchanged; the triage floor keeps its own run.
+  - 14: no gate skipped; actions SHA-pinned.
+  - 17: no placeholders.
+- Decisions / ADRs / `00_STATE.md` rows: none taken here. Two are left to the owner: the main-run collapse trade-off (evidence §5) and runners 4-6 (evidence §6). Seven floors now count every test's execution, not only their own directories'; the numbers are unchanged and the measurement is in evidence §2.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner, standing .github/** ownership, so no new HB id:
+  - apply and commit issue-drafts/owner-544-ci-speed.patch with its .msg on this branch;
+  - after merge, run `scripts/ci/aws_runner.sh install`, then `seed`, then `probe`.
+- Next: record the after times from this PR's own runs once the owner commit is on it. Proposed follow-up: fold the eight sub-minute security jobs into fewer jobs, which would save about 10 runner-minutes per pull request.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-16T13:45:00Z · INT-522 · done (committed locally, not pushed; stacked on #910 INT-521, INT-518, INT-441)
 - Goal: `chest_pain.onset_at`, the tense anchor of K2 and its SARI sibling, is a date answered by four closed choices. Extraction offered `format: date`, gave no reference date and forbade inference, so a spoken choice bound nothing, the anchor read Unknown and K2 could not fire live. INT-518/521 passed only on a recorded ISO date.
   - Acceptance (GitHub #888): build CD-05's choice-to-date resolution exactly; the reference date from the injected runtime clock, never the model; each choice to its CD-05 window, hedged answers Unknown, near misses; `make safety` and runtime-sim green.
