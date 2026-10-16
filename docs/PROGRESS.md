@@ -3522,4 +3522,41 @@
 - Decisions / ADRs / `00_STATE.md` rows: the group carries the ref beyond the issue's key, so that security.yml's v* tag runs cannot replace or join main's group (evidence §The block).
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — apply and commit issue-drafts/owner-524-concurrency.patch with its .msg on this branch, then push; standing .github/** ownership, so no new HB id.
 - Next: after the owner commit is pushed, open the PR from .scratch/pr-524.md and check that a superseded run shows `cancelled` on its run history.
+
+### 2026-10-16T06:40:00+03:00 · INT-501 · done (PR open; owner patch pending)
+- Goal: before the time-boxed node-forge, braces and http-cache-semantics scanner exceptions expire (1–2 Nov 2026), upgrade each package so its exception is no longer needed (GitHub #853).
+- Plan:
+  - Reproduce the vulnerabilities job with CI's scanners: trivy 0.70.0 from the sha256-verified release tarball, and osv-scanner 2.5.1. Run them with and without the three exceptions.
+  - Check npm, the OSV API and the upstream repositories for a release that clears each advisory.
+  - Pin the floor first, upgrade by override, and hand the exception removal to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - In tests/ci/test_security_gates.py, FIXED_VERSIONS and OVERRIDE_FLOORS gain http-cache-semantics 4.3.0.
+  - New test_every_override_floor_is_its_fixed_version.
+  - Near miss: a selector `<4.2.0` or a floor `^4.2.0` is refused.
+  - Red run: 2 failed, 10 passed. Green run: 12 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Scanners with all three exceptions removed:
+    - main: trivy reports 2 HIGH (braces, node-forge); osv reports 3 (adds http-cache-semantics).
+    - PR: both scanners report only braces and node-forge.
+  - With the owner-501 patch applied, both scanners exit 0. With the owner-508 renewal also applied, both still exit 0.
+  - pnpm -r typecheck and lint: 0 errors.
+  - vitest: mobile 2650, admin-web 327, clinical-schemas 6, embed-sdk 14, embed-sample-partner 9.
+  - admin-web next build: green.
+  - Licence gate: 971 node packages and 94 Python distributions, OK.
+  - tests/ci: 292 passed. tests/backlog and smoke: 74 passed.
+  - no_placeholders, phi-scan and claims-scan (staged): OK.
+  - check-integration, safety and the full security fan-out run in CI.
+- Invariants touched and still passing:
+  - 14: no gate weakened, and no exception added or extended by this PR.
+  - 16: Sec-Row is cicd.
+  - 17: no fork or git-ref override is forced for the two packages with no fix.
+  - 19: licence read from the raw blob (BSD-2-Clause).
+- Decisions / ADRs / `00_STATE.md` rows:
+  - Split on the orchestrator's decision: node-forge and braces go to INT-508 (GitHub #865, todo). On 16 Oct neither had a release that clears its advisory: digitalbazaar/forge#1152 and the micromatch/braces fix PRs are unmerged.
+  - http-cache-semantics 4.3.0 clears GHSA-ch52 by the record's range (last_affected 4.2.0), not by a max-stale code change. The maintainer disputes the report. This is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner, routine: apply issue-drafts/owner-501-remove-exceptions.patch, which drops the http-cache-semantics osv entry and lowers the osv pin from 4 to 3. The exception files are owner-only.
+  - Owner decision for INT-508: apply issue-drafts/owner-508-renew-exceptions.patch, which renews node-forge and braces to 31 Dec 2026, or accept a red vulnerabilities gate from 1 Nov.
+  - No HUMAN_BLOCKERS id was minted.
+- Next: merge once CI is green. The owner patches follow. INT-508 rechecks upstream weekly.
 - LOOP_STATUS: WAITING_HUMAN

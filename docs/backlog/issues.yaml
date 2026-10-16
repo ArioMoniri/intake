@@ -6820,3 +6820,44 @@
     - ".github/** is owner-only: the workflow change ships as an owner patch with a commit-message file, and the test, evidence and backlog row are committed on the issue branch; scripts/ci/security_workflow.yml no longer exists, and tests/ci/test_security_gates.py passes with the patch applied"
   tests: [tests/ci/test_workflow_concurrency.py]
   sec_row: "cicd"
+- id: INT-501
+  epic: E13-infra
+  phase: P1
+  title: "http-cache-semantics lifted to 4.3.0, so its time-boxed osv exception can go before it expires"
+  # GitHub #853. Three time-boxed scanner exceptions (node-forge, braces,
+  # http-cache-semantics) expire on 1-2 Nov 2026. On 16 Oct 2026 only
+  # http-cache-semantics had a release outside its advisory's range (4.3.0).
+  # node-forge and braces still had none, so they were split to INT-508 on the
+  # orchestrator's decision. Removing the exception entry is owner-only, so it
+  # ships as issue-drafts/owner-501-remove-exceptions.patch.
+  depends_on: [INT-500]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-501.md
+  acceptance:
+    - "http-cache-semantics is raised by a root pnpm.overrides floor to 4.3.0, outside GHSA-ch52-4w7c-c8xp (last_affected 4.2.0); tests/ci/test_security_gates.py pins the floor and checks that each override selector ends at its fixed version, with a near miss one release short"
+    - "trivy 0.70.0 and osv-scanner 2.5.1, run with the vulnerabilities job's own invocations, pass on the PR tree, and still pass with the http-cache-semantics exception removed; the runs with all three exceptions removed are recorded in evidence, before and after"
+    - "the owner patch that removes the http-cache-semantics osv entry lowers the osv pin from 4 to 3 and adds the advisory to the no-suppression sweep, passes git apply --check against the PR branch, and keeps tests/ci/test_security_gates.py green when applied"
+    - "the mobile, admin-web and package vitest suites, pnpm -r typecheck and lint, and admin-web's next build pass; the licence gate passes for the changed package"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
+- id: INT-508
+  epic: E13-infra
+  phase: P1
+  title: "node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents before 1 Nov 2026"
+  # GitHub #865, split from INT-501 (#853). On 16 Oct 2026 node-forge 1.4.0
+  # and braces 3.0.3 were the newest releases. Their fixes were unmerged pull
+  # requests (digitalbazaar/forge#1152; micromatch/braces #78-#88). Every
+  # @expo/cli through 58.1.9 depends on node-forge, and every metro-file-map
+  # through 0.87.1 needs micromatch, so no override or bump clears either
+  # (docs/evidence/INT-501.md). The renewal is an owner decision:
+  # issue-drafts/owner-508-renew-exceptions.patch.
+  depends_on: [INT-500]
+  labels: [area:security]
+  status: todo
+  acceptance:
+    - "either an upstream release clears the advisory and is adopted (override or bump plus a pin test, the INT-500 pattern) and the exception goes, or the owner renews the time-boxed node-forge and braces exceptions with a new expiry and a reachability note, by the owner's own commit"
+    - "trivy 0.70.0 and osv-scanner 2.5.1 pass on main after 2 Nov 2026"
+    - "the upstream state is rechecked weekly until resolved"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"

@@ -180,7 +180,10 @@ def test_ids_unique_and_well_formed() -> None:
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
     # + INT-524 (a pull request's superseded CI runs are cancelled, so the
     # runner pool builds only current heads; GitHub #890).
-    assert len(ids) == 348
+    # + INT-501 (http-cache-semantics lifted out of its advisory before its
+    # osv exception expires, GitHub #853) and INT-508 (node-forge and braces
+    # have no upstream fix: renew or replace before 1 Nov 2026, GitHub #865).
+    assert len(ids) == 350
     import re
 
     for i in ids:

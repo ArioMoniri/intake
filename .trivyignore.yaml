@@ -39,14 +39,22 @@ vulnerabilities:
       - "pkg:npm/node-forge@1.4.0"
     # Time-boxed. trivy stops honouring this row after this date, so the
     # vulnerabilities gate turns red again unless node-forge has shipped a fix
-    # by then or the dependency is gone (INT-429).
-    expired_at: 2026-11-01
+    # by then or the dependency is gone (INT-429). Renewed once, to 31 Dec
+    # 2026, by the owner's commit of owner-508-renew-exceptions.patch (INT-508).
+    expired_at: 2026-12-31
     statement: >
       OWNER-APPROVED, TIME-BOXED EXCEPTION, not a quiet acceptance. The owner
       approved it on 2 Oct 2026 ("i approve node-forge ignore", relayed in the
       INT-429 session). CVE-2026-85393 is an RSA PKCS#1 v1.5 signature
       forgery in node-forge, and trivy lists no fixed version: 1.4.0 is the
       newest release on npm.
+
+      RENEWED ONCE, by the owner's own commit of owner-508-renew-exceptions.patch
+      (INT-508, GitHub #865), from 1 Nov to 31 Dec 2026. On 16 Oct 2026
+      node-forge 1.4.0 was still the newest release on npm, its fix
+      (digitalbazaar/forge#1152) was open and unmerged, and every @expo/cli
+      release through 58.1.9 still depended on node-forge
+      (docs/evidence/INT-501.md).
 
       How it is reached: node-forge 1.4.0 is in pnpm-lock.yaml only as a
       dependency of @expo/cli 57.0.19 and @expo/code-signing-certificates
@@ -59,14 +67,17 @@ vulnerabilities:
       production iOS and Android `expo export` bundles carry no node-forge
       code; the measured check is recorded in docs/evidence/INT-429.md.
 
-      This row expires after 30 days. Removing it sooner is always correct.
+      This row expires on 31 Dec 2026. Removing it sooner is always correct:
+      it goes when a node-forge release clears the advisory or @expo/cli
+      stops depending on node-forge.
 
   - id: CVE-2026-93687
     purls:
       - "pkg:npm/braces@3.0.3"
     # Time-boxed, same expiry as the matching osv-scanner.toml entry
     # (GHSA-vfj7-8cjw-p6xm). trivy stops honouring this row after this date.
-    expired_at: 2026-11-02
+    # Renewed once, to 31 Dec 2026, with that entry (INT-508).
+    expired_at: 2026-12-31
     statement: >
       OWNER-APPROVED, TIME-BOXED EXCEPTION, not a quiet acceptance. The owner
       approved it in chat on 3 Oct 2026 ("approve for the two osv
@@ -75,9 +86,17 @@ vulnerabilities:
       through deeply nested patterns. No fixed release exists, and the
       newest micromatch still needs ^3.0.3.
 
+      RENEWED ONCE, by the owner's own commit of owner-508-renew-exceptions.patch
+      (INT-508, GitHub #865), from 2 Nov to 31 Dec 2026. On 16 Oct 2026 braces
+      3.0.3 and micromatch 4.0.8 were still the newest releases, five fix pull
+      requests on micromatch/braces (#78, #79, #82, #87, #88) were open and
+      unmerged, and every metro-file-map through 0.87.1 still required
+      micromatch (docs/evidence/INT-501.md).
+
       How it is reached: braces 3.0.3 is in pnpm-lock.yaml only under
-      micromatch 4.0.8, under metro-file-map 0.84.5, Metro's build-time file
-      crawler. It expands glob patterns from the repository's own build
+      micromatch 4.0.8, under metro-file-map 0.84.5 (Metro's build-time file
+      crawler) and @expo/metro-file-map 57.0.2 (Expo's copy of it).
+      It expands glob patterns from the repository's own build
       configuration, never patient input. It is not in either production
       `expo export` bundle, and no server runtime image installs npm packages
       (docs/evidence/INT-426.md). Removing this row sooner is always correct.

@@ -339,7 +339,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-524 (a pull request's superseded CI runs are cancelled, so the
     # runner pool builds only current heads, GitHub #890); grows only with a
     # stated reason.
-    assert len(ids) == 348, f"expected 175 blueprint + 173 added issues, got {len(ids)}"
+    # + INT-501 (http-cache-semantics lifted before its osv exception expires,
+    # GitHub #853) and INT-508 (node-forge and braces: no upstream fix, split
+    # from INT-501, GitHub #865); grows only with a stated reason.
+    assert len(ids) == 350, f"expected 175 blueprint + 175 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
