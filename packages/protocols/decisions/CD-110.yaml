@@ -372,8 +372,8 @@ spec_basis:
     supports: "T17: removing the duration ask changes no rule"
   - file: packages/protocols/base/intake.yaml
     section: "pmh_fh_sh.lmp_date"
-    quote: "ask_if: \"pregnancy_status != 'hayir'\""
-    supports: "T1 base part: the gate that changes"
+    quote: "ask_if: \"pregnancy_status == 'evet' || pregnancy_status == 'hayır' || pregnancy_status == 'emin değilim'\""
+    supports: "T1 base part: the gate that changes. Since INT-441 it names the three authored answers, so every answer opens it, as the 'hayir' literal it replaced (which matched no answer) did"
   - file: files/13_QUESTION_FLOW.md
     section: "§4 Ordering rules"
     quote: "Ruptured ectopic classically presents in a woman who does not know she is pregnant"

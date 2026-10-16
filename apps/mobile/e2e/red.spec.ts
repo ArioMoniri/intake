@@ -1,0 +1,744 @@
+/**
+ * INT-446 — a red-flag answer reaches the RED screen, end to end, on both
+ * lanes; a near miss does not (CLAUDE.md invariants 1, 10, 21).
+ *
+ * The chain under test is the app's own, module for module: the dialogue
+ * reducer (spoken utterance or typed composer) or the typed StepFlow commit →
+ * the session note's `answer` action (the one place every bound answer lands)
+ * → the rules-engine hop → the decoder → the RED store → the RED screen
+ * model RedLayer renders. The engine's side is the recorded exchange file
+ * tests/fixtures/triage_hop/exchanges.json, which tests/api/test_triage_hop.py
+ * pins to the real `/v1/triage/evaluate` route over the signed SENTETİK set —
+ * so what the device is tested against is what the engine really answers,
+ * and the device holds no rule of its own.
+ *
+ * What a node test cannot show — the layer's pixels — is the simulator
+ * screenshot recorded in docs/evidence/INT-446.md.
+ */
+import { readFileSync, existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
+import { describe, expect, it } from "vitest";
+
+import {
+  dialogueStreamReducer,
+  initialDialogueStreamState,
+  type DialogueStreamAction,
+  type DialogueStreamState,
+} from "../src/lib/dialogue/stream";
+import { modalAnimation } from "../src/lib/a11y/motion";
+import { emptyNoteState, noteReducer, type NoteState } from "../src/lib/intake/note";
+import type { IntakeQuestion } from "../src/lib/intake/questions";
+import { CATALOG_PATH, type HopTransport } from "../src/lib/red/hop";
+import { deriveRedLocation } from "../src/lib/red/location";
+import {
+  createLocationReporter,
+  LOCATION_PATH,
+  subscribeLocationReports,
+} from "../src/lib/red/locationReport";
+import { createRedHop, createRedStore, redScreen, type RedStore } from "../src/lib/red/store";
+import { code } from "./motionSource";
+import { specifiers } from "./redSurface";
+
+const MOBILE = join(__dirname, "..");
+const FIXTURES = join(MOBILE, "..", "..", "tests", "fixtures", "triage_hop");
+const CATALOG_BYTES = new Uint8Array(readFileSync(join(FIXTURES, "red_catalog.json")));
+const RECORDED = JSON.parse(readFileSync(join(FIXTURES, "exchanges.json"), "utf8")) as {
+  exchanges: { name: string; request: unknown; response: unknown }[];
+  locationAnswers: { name: string; request: unknown; status: number; response: unknown }[];
+};
+const EXCHANGES = RECORDED.exchanges;
+/** INT-475: the visit the recorded exchanges name (a visit is a session row, INT-197). */
+const VISIT = "visit-e2e";
+
+/**
+ * The recorded engine: a request it has a recording for gets that answer. The
+ * location route's recordings (INT-475) are pinned to the real route by
+ * tests/api/test_red_notify.py, as the evaluate ones are by test_triage_hop.py.
+ */
+function recordedEngine(calls: string[]): HopTransport {
+  return async (path, body) => {
+    if (path === CATALOG_PATH) {
+      calls.push("catalog");
+      return { status: 200, bytes: CATALOG_BYTES };
+    }
+    const request: unknown = JSON.parse(body ?? "null");
+    const hit: { name: string; status?: number; response: unknown } | undefined =
+      path === LOCATION_PATH
+        ? RECORDED.locationAnswers.find((e) => isDeepStrictEqual(e.request, request))
+        : EXCHANGES.find((e) => isDeepStrictEqual(e.request, request));
+    calls.push(hit?.name ?? "unrecorded");
+    if (hit === undefined) {
+      return { status: 404, bytes: new Uint8Array() };
+    }
+    return {
+      status: hit.status ?? 200,
+      bytes: new TextEncoder().encode(JSON.stringify(hit.response)),
+    };
+  };
+}
+
+// The SENTETİK set's two slots, asked as open questions — exactly the shape a
+// compiled pack's slot takes in the dialogue and the StepFlow.
+const PACK: IntakeQuestion[] = [
+  { id: "ziyaret.basvuru_nedeni", kind: "text", titleKey: "intake.q.extra" },
+  { id: "sure_dakika", kind: "text", titleKey: "intake.q.extra" },
+];
+const REFERENCE = new Date("2026-08-29T07:00:00.000Z");
+const TODAY = "2026-08-29";
+
+interface Lane {
+  note: NoteState;
+  dialogue: DialogueStreamState;
+}
+
+function dispatch(lane: Lane, action: DialogueStreamAction): void {
+  lane.dialogue = dialogueStreamReducer(PACK, lane.dialogue, action);
+}
+
+/**
+ * What DialogueIntake does when the patient confirms: the note gets the
+ * candidate's values, then the reducer is told. Whichever surface holds the
+ * suggestion — the live confirm card or a panel row — the values are the same.
+ */
+function confirm(lane: Lane, questionId: string): void {
+  if (lane.dialogue.turn.phase === "speaking" && lane.dialogue.turn.intent === "confirm") {
+    dispatch(lane, { type: "speech_done" }); // the confirm line is read back first
+  }
+  const { turn } = lane.dialogue;
+  if (turn.phase === "confirming" && PACK[turn.step]?.id === questionId) {
+    const values = [...turn.candidate.values];
+    lane.note = noteReducer(lane.note, { type: "answer", questionId, values });
+    dispatch(lane, { type: "confirm", values });
+    return;
+  }
+  const pending = lane.dialogue.pending[questionId];
+  expect(pending, `a suggestion for ${questionId}`).toBeDefined();
+  lane.note = noteReducer(lane.note, { type: "answer", questionId, values: [...pending.values] });
+  dispatch(lane, { type: "confirm_pending", questionId });
+}
+
+/** One spoken answer: the mic closes, ASR returns, the extract settles. */
+function speak(lane: Lane, workId: number, questionId: string, transcript: string): void {
+  if (lane.dialogue.turn.phase === "speaking") {
+    dispatch(lane, { type: "speech_done" });
+  }
+  expect(lane.dialogue.turn.phase).toBe("listening");
+  dispatch(lane, { type: "utterance", workId });
+  dispatch(lane, { type: "transcript_ready", workId, text: transcript });
+  // A text step's answer is the transcript verbatim (useDialogueSession runExtract).
+  dispatch(lane, {
+    type: "extract_settled",
+    workId,
+    candidates: { [questionId]: { values: [transcript], quote: transcript } },
+  });
+  confirm(lane, questionId);
+}
+
+/** One typed composer message: the same conversation minus the ASR hop. */
+function type(lane: Lane, workId: number, questionId: string, text: string): void {
+  dispatch(lane, { type: "typed", workId, text });
+  dispatch(lane, {
+    type: "extract_settled",
+    workId,
+    candidates: { [questionId]: { values: [text], quote: text } },
+  });
+  confirm(lane, questionId);
+}
+
+function fresh(mode: "hizli" | "detayli"): Lane {
+  const note = noteReducer(emptyNoteState(), { type: "mode", mode });
+  return { note, dialogue: initialDialogueStreamState(PACK) };
+}
+
+function harness() {
+  const calls: string[] = [];
+  const store = createRedStore();
+  let clock = 0;
+  const hop = createRedHop({
+    transport: recordedEngine(calls),
+    store,
+    now: () => clock,
+    clock: () => REFERENCE,
+  });
+  return {
+    calls,
+    store,
+    tick: (ms: number) => {
+      clock += ms;
+    },
+    /** What RedLayer's effect does on every note change. */
+    commit: async (lane: Lane, visitDate: string) => {
+      const location = deriveRedLocation({
+        mode: lane.note.mode,
+        visitDate,
+        today: TODAY,
+        kiosk: false,
+      });
+      return hop.onAnswers(VISIT, lane.note.answers, location);
+    },
+  };
+}
+
+const LATER = "2026-09-02"; // Hızlı + a later visit → REMOTE
+
+function screenOf(store: RedStore) {
+  return redScreen(store.getSnapshot());
+}
+
+describe("INT-446 — a red-flag answer reaches the RED screen on the voice lane", () => {
+  it("spoken answers → note → engine → RED root layer, verbatim, with 112 under REMOTE", async () => {
+    const h = harness();
+    const lane = fresh("hizli");
+    speak(lane, 1, "ziyaret.basvuru_nedeni", "sentetik_yasamsal");
+    // One bound answer, undated: the engine's near miss — no RED yet.
+    expect(await h.commit(lane, LATER)).toEqual({ kind: "level", level: "GREEN" });
+    expect(screenOf(h.store)).toEqual({ kind: "none" });
+    speak(lane, 2, "sure_dakika", "2026-08-29");
+    const started = performance.now();
+    expect((await h.commit(lane, LATER)).kind).toBe("red");
+    const answerToRedMs = performance.now() - started;
+    const screen = screenOf(h.store);
+    expect(screen).toMatchObject({
+      kind: "act",
+      mode: "rootLayer",
+      register: "ALERT",
+      location: "REMOTE",
+      actionTr: "Hemen yardım isteyin.",
+      doNotsTr: ["Yalnız kalmayın."],
+      whyTr: "Bu bir sentetik test metnidir.",
+      call112: true,
+    });
+    // The catalog was on the device before the first verdict, once.
+    expect(h.calls).toEqual(["catalog", "near_miss_undated", "red_remote"]);
+    expect(answerToRedMs).toBeLessThan(300);
+    console.info(
+      `INT-446 voice lane: answer bound → RED screen model ${answerToRedMs.toFixed(2)} ms`,
+    );
+  });
+
+  it("near miss: one differing value goes through the engine and shows nothing", async () => {
+    const h = harness();
+    const lane = fresh("hizli");
+    speak(lane, 1, "ziyaret.basvuru_nedeni", "sentetik_yasamsal_degil");
+    speak(lane, 2, "sure_dakika", "2026-08-29");
+    expect(await h.commit(lane, LATER)).toEqual({ kind: "level", level: "GREEN" });
+    expect(h.calls).toEqual(["catalog", "near_miss_value"]);
+    expect(h.store.getSnapshot()).toBeNull();
+  });
+});
+
+describe("INT-446 — a red-flag answer reaches the RED screen on the typed lane", () => {
+  it("typed composer: Detaylı → UNKNOWN → the one question, then ON_SITE with no 112", async () => {
+    const h = harness();
+    const lane = fresh("detayli");
+    dispatch(lane, { type: "speech_done" });
+    type(lane, 1, "ziyaret.basvuru_nedeni", "sentetik_yasamsal");
+    await h.commit(lane, LATER);
+    if (lane.dialogue.turn.phase === "speaking") {
+      dispatch(lane, { type: "speech_done" });
+    }
+    type(lane, 2, "sure_dakika", "2026-08-29");
+    expect((await h.commit(lane, LATER)).kind).toBe("red");
+    expect(screenOf(h.store)).toMatchObject({
+      kind: "ask",
+      mode: "rootLayer",
+      askTr: "Şu anda hastanede misiniz?",
+    });
+    h.store.answerLocation("inHospital");
+    const screen = screenOf(h.store);
+    expect(screen).toMatchObject({
+      kind: "act",
+      location: "ON_SITE",
+      actionTr: "Görevlilere haber verin.",
+      call112: false, // ON_SITE: absent
+    });
+  });
+
+  it("typed StepFlow: each tapped/typed commit is one note answer, and RED follows the second", async () => {
+    const h = harness();
+    let lane = fresh("hizli");
+    const commit = (questionId: string, value: string) => {
+      lane = {
+        ...lane,
+        note: noteReducer(lane.note, { type: "answer", questionId, values: [value], words: value }),
+      };
+    };
+    commit("ziyaret.basvuru_nedeni", "sentetik_yasamsal");
+    expect((await h.commit(lane, LATER)).kind).toBe("level");
+    commit("sure_dakika", "2026-08-29");
+    h.tick(0);
+    expect((await h.commit(lane, LATER)).kind).toBe("red");
+    expect(h.store.getSnapshot()?.elapsedMs).not.toBeNull();
+    expect(screenOf(h.store)).toMatchObject({ kind: "act", location: "REMOTE", call112: true });
+  });
+
+  it("near miss on the typed lane: the undated answer alone never fires", async () => {
+    const h = harness();
+    const lane = fresh("hizli");
+    lane.note = noteReducer(lane.note, {
+      type: "answer",
+      questionId: "ziyaret.basvuru_nedeni",
+      values: ["sentetik_yasamsal"],
+    });
+    expect(await h.commit(lane, LATER)).toEqual({ kind: "level", level: "GREEN" });
+    // Unchanged answers are not re-sent: one hop per bound-answer change.
+    expect(await h.commit(lane, LATER)).toEqual({ kind: "unevaluated" });
+    expect(h.calls).toEqual(["catalog", "near_miss_undated"]);
+    expect(h.store.getSnapshot()).toBeNull();
+  });
+
+  it("no catalog, no verdict: the answers are not sent before the words are on the device", async () => {
+    const store = createRedStore();
+    const sent: string[] = [];
+    const hop = createRedHop({
+      transport: async (path) => {
+        sent.push(path);
+        return { status: 503, bytes: new Uint8Array() };
+      },
+      store,
+      now: () => 0,
+      clock: () => REFERENCE,
+    });
+    const lane = fresh("hizli");
+    lane.note = noteReducer(lane.note, {
+      type: "answer",
+      questionId: "sure_dakika",
+      values: ["x"],
+    });
+    expect(await hop.onAnswers("v", lane.note.answers, "REMOTE")).toEqual({ kind: "unevaluated" });
+    expect(sent).toEqual([CATALOG_PATH]);
+    expect(store.getSnapshot()).toBeNull();
+  });
+});
+
+describe("INT-475 — the patient's location answer reaches the server", () => {
+  /** The typed lane at UNKNOWN (Detaylı): a RED that asks first, with the reporter on. */
+  async function asked() {
+    const calls: string[] = [];
+    const store = createRedStore();
+    const transport = recordedEngine(calls);
+    subscribeLocationReports(
+      store,
+      createLocationReporter({ transport, sleep: async () => undefined }),
+    );
+    const hop = createRedHop({ transport, store, now: () => 0, clock: () => REFERENCE });
+    let lane = fresh("detayli");
+    lane = {
+      ...lane,
+      note: noteReducer(
+        noteReducer(lane.note, {
+          type: "answer",
+          questionId: "ziyaret.basvuru_nedeni",
+          values: ["sentetik_yasamsal"],
+        }),
+        { type: "answer", questionId: "sure_dakika", values: ["2026-08-29"] },
+      ),
+    };
+    const location = deriveRedLocation({
+      mode: "detayli",
+      visitDate: LATER,
+      today: TODAY,
+      kiosk: false,
+    });
+    expect(location).toBe("UNKNOWN");
+    expect((await hop.onAnswers(VISIT, lane.note.answers, location)).kind).toBe("red");
+    return { calls, store };
+  }
+
+  const flush = async () => {
+    for (let i = 0; i < 20; i += 1) {
+      await Promise.resolve();
+    }
+  };
+
+  it("evet: the RED moves to ON_SITE on the screen, and the answer is posted — the route notifies staff", async () => {
+    const { calls, store } = await asked();
+    expect(calls).toEqual(["catalog", "red_unknown"]);
+    store.answerLocation("inHospital");
+    // The screen does not wait for the server: ON_SITE, no 112, at once.
+    expect(redScreen(store.getSnapshot())).toMatchObject({
+      kind: "act",
+      location: "ON_SITE",
+      actionTr: "Görevlilere haber verin.",
+      call112: false,
+    });
+    await flush();
+    // The recorded answer: 202, staffNotified — the route's own output.
+    expect(calls).toEqual(["catalog", "red_unknown", "answer_on_site"]);
+  });
+
+  it("a late evet after the no-answer branch (LD-05) is posted then, once", async () => {
+    const { calls, store } = await asked();
+    store.answerLocation("noAnswer");
+    await flush();
+    expect(redScreen(store.getSnapshot())).toMatchObject({ location: "REMOTE", call112: true });
+    expect(calls).toEqual(["catalog", "red_unknown"]); // the wait is not an answer
+    store.answerLocation("inHospital");
+    store.answerLocation("inHospital");
+    await flush();
+    expect(redScreen(store.getSnapshot())).toMatchObject({ location: "ON_SITE", call112: false });
+    expect(calls).toEqual(["catalog", "red_unknown", "answer_on_site"]);
+  });
+
+  it("near miss: hayır is posted as REMOTE, which notifies no staff", async () => {
+    const { calls, store } = await asked();
+    store.answerLocation("notInHospital");
+    await flush();
+    expect(calls).toEqual(["catalog", "red_unknown", "answer_remote"]);
+  });
+
+  it("near miss: a RED that arrived at a known location asks nothing and posts nothing", async () => {
+    const h = harness();
+    const calls: string[] = [];
+    subscribeLocationReports(
+      h.store,
+      createLocationReporter({ transport: recordedEngine(calls), sleep: async () => undefined }),
+    );
+    const lane = fresh("hizli");
+    lane.note = noteReducer(
+      noteReducer(lane.note, {
+        type: "answer",
+        questionId: "ziyaret.basvuru_nedeni",
+        values: ["sentetik_yasamsal"],
+      }),
+      { type: "answer", questionId: "sure_dakika", values: ["2026-08-29"] },
+    );
+    expect((await h.commit(lane, LATER)).kind).toBe("red");
+    h.store.answerLocation("inHospital");
+    await flush();
+    expect(calls).toEqual([]);
+  });
+
+  it("RedLayer reports through the same store, subscribed once, with nothing on the screen awaiting it", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    expect(layer).toMatch(
+      /useEffect\(\s*\(\)\s*=>\s*subscribeLocationReports\(redStore, createLocationReporter\(\{ transport \}\)\),\s*\[\],?\s*\)/,
+    );
+    expect(layer).toMatch(/useLocationReports\(\);/);
+    // Nothing the layer renders reads a result of the report.
+    expect(layer).not.toMatch(/staffNotified/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The RED path touches no media transport, and the layer is mounted at root.
+// ---------------------------------------------------------------------------
+
+const SRC = join(MOBILE, "src");
+
+function resolveLocal(from: string, spec: string): string | null {
+  const base = spec.startsWith("@/")
+    ? join(SRC, spec.slice(2))
+    : spec.startsWith(".")
+      ? resolve(dirname(from), spec)
+      : null;
+  if (base === null) {
+    return null;
+  }
+  for (const candidate of [`${base}.ts`, `${base}.tsx`, join(base, "index.ts")]) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+/** Every package a file reaches through local imports, transitively. */
+function reachedPackages(entry: string): Set<string> {
+  const seen = new Set<string>();
+  const packages = new Set<string>();
+  const queue = [entry];
+  while (queue.length > 0) {
+    const current = queue.pop() as string;
+    if (seen.has(current)) {
+      continue;
+    }
+    seen.add(current);
+    for (const spec of specifiers(readFileSync(current, "utf8"))) {
+      const local = resolveLocal(current, spec);
+      if (local !== null) {
+        queue.push(local);
+      } else if (!spec.startsWith(".") && !spec.startsWith("@/")) {
+        packages.add(spec);
+      }
+    }
+  }
+  return packages;
+}
+
+const MEDIA = /expo-audio|expo-av|livekit|webrtc|expo-haptics|expo-speech/;
+
+describe("INT-453 — a RED with a missing script shows the generic RED on the device", () => {
+  /** The recorded engine, with a pre-positioned catalog that lacks one script (pack drift). */
+  function driftedEngine(missing: string, calls: string[]): HopTransport {
+    const engine = recordedEngine(calls);
+    return async (path, body) => {
+      if (path !== CATALOG_PATH) {
+        return engine(path, body);
+      }
+      calls.push("catalog");
+      const raw = JSON.parse(new TextDecoder().decode(CATALOG_BYTES)) as {
+        scripts: Record<string, unknown>;
+        questions: Record<string, unknown>;
+      };
+      delete raw.scripts[missing];
+      delete raw.questions[missing];
+      return { status: 200, bytes: new TextEncoder().encode(JSON.stringify(raw)) };
+    };
+  }
+
+  it.each([
+    ["REMOTE", "hizli", "2026-09-02"],
+    ["UNKNOWN", "detayli", "2026-09-02"],
+  ] as const)(
+    "answer → engine RED (%s) → script missing → the pre-positioned generic RED, ALERT root layer",
+    async (location, mode, visitDate) => {
+      const calls: string[] = [];
+      const store = createRedStore();
+      const hop = createRedHop({
+        transport: driftedEngine(`rf.sentetik_yasamsal.${location.toLowerCase()}`, calls),
+        store,
+        now: () => 0,
+        clock: () => REFERENCE,
+      });
+      let lane = fresh(mode);
+      lane = {
+        ...lane,
+        note: noteReducer(
+          noteReducer(lane.note, {
+            type: "answer",
+            questionId: "ziyaret.basvuru_nedeni",
+            values: ["sentetik_yasamsal"],
+          }),
+          { type: "answer", questionId: "sure_dakika", values: ["2026-08-29"] },
+        ),
+      };
+      const derived = deriveRedLocation({
+        mode: lane.note.mode,
+        visitDate,
+        today: TODAY,
+        kiosk: false,
+      });
+      expect(derived).toBe(location);
+      expect((await hop.onAnswers(VISIT, lane.note.answers, derived)).kind).toBe("red");
+      // The served catalog carries the generic RED (the INT-453 serve
+      // precondition), so its own words show: verbatim, never invented.
+      if (location === "UNKNOWN") {
+        expect(redScreen(store.getSnapshot())).toMatchObject({
+          kind: "ask",
+          mode: "rootLayer",
+          register: "ALERT",
+          askTr: "Şu anda hastanede misiniz?",
+        });
+        store.answerLocation("notInHospital");
+      }
+      expect(redScreen(store.getSnapshot())).toMatchObject({
+        kind: "act",
+        mode: "rootLayer",
+        register: "ALERT",
+        location: "REMOTE",
+        // INT-465: the active CD-24 copy, as the route serves it (rendered).
+        actionTr: "Hemen 112 Acil Çağrı Merkezi'ni arayın.",
+        call112: true,
+      });
+      // Near miss: with the script present the rule's own words show, not the generic.
+      const own = createRedStore();
+      await createRedHop({
+        transport: recordedEngine([]),
+        store: own,
+        now: () => 0,
+        clock: () => REFERENCE,
+      }).onAnswers(VISIT, lane.note.answers, derived);
+      expect(redScreen(own.getSnapshot()).kind).toBe(location === "UNKNOWN" ? "ask" : "act");
+      expect(JSON.stringify(redScreen(own.getSnapshot()))).not.toContain('"actionTr":""');
+    },
+  );
+
+  it("RedLayer renders the RED's words always, and the 112 control only where allowed", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    // INT-465: never wordless (CD-24); no branch hides an empty action line.
+    expect(layer).not.toMatch(/actionTr\.length/);
+    expect(layer).toMatch(/\{screen\.call112 \?/);
+  });
+
+  it("REMOTE shows 112 as large selectable text beside the tel: control (files/02 §5.3)", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    const start = layer.indexOf("{screen.call112 ? (");
+    const end = layer.indexOf(") : null}", start);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const block = layer.slice(start, end);
+    expect(block).toMatch(/selectable[^>]*>\s*\{EMERGENCY_NUMBER\}/);
+    expect(block).toMatch(/Linking\.openURL\(`tel:\$\{EMERGENCY_NUMBER\}`\)/);
+    // Near miss (invariant 21): the number appears nowhere outside the call112
+    // gate except its import, so no location can show it ungated.
+    const rest = layer.slice(0, start) + layer.slice(end);
+    expect(rest.match(/EMERGENCY_NUMBER/g)).toEqual(["EMERGENCY_NUMBER"]);
+    expect(rest).not.toMatch(/tel:/);
+  });
+
+  it("after the no-answer branch the question stays answerable, below the action and 112 (LD-05)", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    const call = layer.indexOf("{screen.call112 ?");
+    const late = layer.indexOf("{screen.lateAskTr !== null ?");
+    expect(call).toBeGreaterThan(-1);
+    // After the 112 control, never in front of it: the wait never delays 112.
+    expect(late).toBeGreaterThan(call);
+    expect(layer.slice(late)).toMatch(/redStore\.answerLocation\("inHospital"\)/);
+    expect(layer.slice(late)).toMatch(/redStore\.answerLocation\("notInHospital"\)/);
+  });
+
+  it("when the RED changes under the patient, the screen reader's focus moves to its words (round 4)", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    // One post-paint effect, keyed on what the patient is shown, moves focus
+    // with the KioskGate pattern; lib/red/store.ts decides when (first paint
+    // and an identical re-render never move it — store.test.ts).
+    expect(layer).toMatch(/const key = redFocusKey\(screen\);/);
+    expect(layer).toMatch(
+      /if \(movesRedFocus\(previous, key\) && node !== null\) \{\s*AccessibilityInfo\.sendAccessibilityEvent\(node, "focus"\);/,
+    );
+    expect(layer).toMatch(/\}, \[key\]\);/);
+    // The target is the RED's own words: the question, and the action.
+    expect(layer).toMatch(/<AppText ref=\{lead\}[^>]*>\s*\{screen\.askTr\}/);
+    expect(layer).toMatch(/<AppText ref=\{lead\}[^>]*>\s*\{screen\.actionTr\}/);
+  });
+
+  it("the unsigned no-answer wait cites its human blocker, HB-C25", () => {
+    const store = readFileSync(join(SRC, "lib/red/store.ts"), "utf8");
+    const at = store.indexOf("export const UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS");
+    expect(store.slice(Math.max(0, at - 1200), at)).toContain("HB-C25");
+    const a11y = readFileSync(join(__dirname, "a11y.spec.ts"), "utf8");
+    expect(a11y).toMatch(/"src\/lib\/red\/noAnswerClock\.ts":[\s\S]{0,800}HB-C25/);
+  });
+
+  it("an unanswered location question starts the no-answer clock (CD-24), owned by no component", () => {
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    expect(layer).toMatch(
+      /useEffect\(\(\)\s*=>\s*\(asking \? startNoAnswerClock\(redStore\) : undefined\),\s*\[asking\]\)/,
+    );
+    expect(layer).not.toMatch(/setTimeout|setInterval/);
+  });
+
+  it("CD-24 generic_red_stops_intake: the dialogue shows nothing that arrives after the RED", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    expect(dialogue).toMatch(/dialogueShown\(state\.stream,\s*frozenAt\)\.map\(renderEntry\)/);
+    expect(dialogue).not.toMatch(/\{state\.stream\.map\(renderEntry\)\}/);
+    for (const phase of ["listening", "settling", "confirming"]) {
+      expect(dialogue).not.toMatch(new RegExp(`\\{turn\\.phase === "${phase}" \\?`));
+    }
+  });
+});
+
+describe("INT-446 — the RED path", () => {
+  it("decode → store → screen reaches no media, audio or haptic module", () => {
+    for (const entry of [
+      "lib/red/store.ts",
+      "lib/red/hop.ts",
+      "lib/red/location.ts",
+      "lib/red/locationReport.ts",
+    ]) {
+      const reached = [...reachedPackages(join(SRC, entry))];
+      expect(
+        reached.filter((p) => MEDIA.test(p)),
+        entry,
+      ).toEqual([]);
+    }
+    // Non-vacuity: the detector does see a media module where one is.
+    const dialogue = reachedPackages(join(SRC, "lib/dialogue/useDialogueSession.ts"));
+    expect([...dialogue].some((p) => MEDIA.test(p))).toBe(true);
+  });
+
+  it("the layer imports no media, audio, animation or haptic module, and opens no Modal", () => {
+    const layer = readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8");
+    expect(specifiers(layer).filter((s) => MEDIA.test(s) || /reanimated/.test(s))).toEqual([]);
+    expect(code(layer)).not.toMatch(/\bModal\b|\bAnimated\b|\bLayoutAnimation\b|\bHaptics\b/);
+  });
+
+  it("the root layout mounts RedLayer after the navigator container, never inside it", () => {
+    const layout = code(readFileSync(join(SRC, "app/_layout.tsx"), "utf8"));
+    const navigator = layout.indexOf("</KioskGate>");
+    const layer = layout.indexOf("<RedLayer />");
+    expect(navigator).toBeGreaterThan(-1);
+    expect(layer).toBeGreaterThan(navigator);
+    expect(layout.slice(layer).indexOf("</SessionProvider>")).toBeGreaterThan(0);
+  });
+
+  it("the dialogue stops for a RED the patient sees, and SILENT renders in the flow of both lanes", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    expect(dialogue).toMatch(/redStopsDialogue\(red\)/);
+    expect(dialogue).toMatch(/session\.leave\(\)/);
+    expect(dialogue).toMatch(/<RedInFlow \/>/);
+    const typed = code(readFileSync(join(SRC, "app/(tabs)/visits/[visitId]/intake.tsx"), "utf8"));
+    expect(typed).toMatch(/<RedInFlow \/>/);
+  });
+
+  // INT-465 (round 3): a RED stops the intake in every lane, not only the dialogue.
+  it("the typed lane shows no question and no commit control while a RED stands", () => {
+    const typed = code(readFileSync(join(SRC, "app/(tabs)/visits/[visitId]/intake.tsx"), "utf8"));
+    expect(typed).toMatch(/const live = intakeLive\(useSyncExternalStore\(redStore\.subscribe/);
+    expect(typed).toMatch(/\{live \? finishNowBar : null\}/);
+    expect(typed).toMatch(/\{live \? \(\s*<LayoutAnimationConfig skipEntering>/);
+    // Every glass-bar commit control sits behind the same gate.
+    const lines = typed.split("\n");
+    const bars = lines.flatMap((line, i) => (line.includes("<GlassBar") ? [i] : []));
+    expect(bars.length).toBeGreaterThanOrEqual(4);
+    for (const i of bars) {
+      expect(lines[i - 1], `GlassBar at line ${i + 1}`).toMatch(/\{live && /);
+    }
+    // Round 4: the 02 §33 privacy self-check is an early return with two commit
+    // controls, so it is gated on `live` too. Near miss: while the intake is live
+    // the same branch still asks its question.
+    const check = typed.indexOf('if (live && detayli && privacy === "unchecked" && !editing)');
+    expect(check).toBeGreaterThan(-1);
+    expect(typed).not.toMatch(/if \(detayli && privacy === "unchecked"/);
+    expect(typed.slice(check, check + 400)).toMatch(/t\("intake\.privacy\.q"\)/);
+  });
+
+  it("the dialogue hides its composer and its way back to the steps while a RED stands", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    expect(dialogue).toMatch(
+      /\{!stopsDialogue \? \(\s*<Pressable[^>]*accessibilityLabel=\{t\("voiceFirst\.typeInstead"\)\}/,
+    );
+    expect(dialogue).toMatch(/\{!stopsDialogue \? \(\s*<View style=\{styles\.composerRow\}>/);
+  });
+
+  it("the section sheet cannot open or commit while a RED stands (round 4)", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    // The strip opens nothing under a RED…
+    expect(dialogue).toMatch(
+      /<SectionStrip[\s\S]{0,160}onPress=\{stopsDialogue \? undefined : \(\) => setSheetOpen\(true\)\}/,
+    );
+    // …a row confirm writes nothing…
+    const confirm = dialogue.indexOf("const confirmRow = (questionId: string) => {");
+    expect(confirm).toBeGreaterThan(-1);
+    expect(dialogue.slice(confirm, confirm + 160)).toMatch(/if \(stopsDialogue\) \{\s*return;/);
+    // …and an open sheet closes when the RED arrives.
+    expect(dialogue).toMatch(
+      /if \(stopsDialogue\) \{\s*setSheetOpen\(false\);\s*void session\.leave\(\);/,
+    );
+    // Round 5: the sheet is never visible over a RED, not even for the one frame
+    // before the effect runs, and it leaves in 0 ms rather than fading over it.
+    expect(dialogue).toMatch(/<SectionSheet\s+visible=\{sheetOpen && !stopsDialogue\}/);
+    expect(dialogue).toMatch(/<SectionSheet[\s\S]{0,200}stopped=\{stopsDialogue\}/);
+    const sheet = code(readFileSync(join(SRC, "components/SectionPanel.tsx"), "utf8"));
+    expect(sheet).toMatch(/animationType=\{modalAnimation\(reduceMotion \|\| stopped\)\}/);
+    expect(modalAnimation(false || true)).toBe("none");
+    // Near miss: with no RED the sheet keeps the reduce-motion policy's fade.
+    expect(modalAnimation(false || false)).toBe("fade");
+    // Near miss: without a RED the strip still opens the sheet.
+    const strip = code(readFileSync(join(SRC, "components/SectionPanel.tsx"), "utf8"));
+    expect(strip).toMatch(/onPress\?: \(\) => void;/);
+    expect(strip).toMatch(/disabled=\{onPress === undefined\}/);
+  });
+
+  it("the navigator is hidden from assistive technology under the root RED layer (Android and iOS)", () => {
+    const layout = code(readFileSync(join(SRC, "app/_layout.tsx"), "utf8"));
+    expect(layout).toMatch(/<RedCoveredNavigator>\s*<KioskGate>/);
+    const layer = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    expect(layer).toMatch(
+      /importantForAccessibility=\{covered \? "no-hide-descendants" : "auto"\}/,
+    );
+    expect(layer).toMatch(/accessibilityElementsHidden=\{covered\}/);
+  });
+});

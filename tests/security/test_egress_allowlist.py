@@ -470,6 +470,8 @@ NON_VENDOR_PURPOSES = frozenset(
 #: refuses every such call. This set only shrinks: the test after next fails the
 #: moment a row declaring one of these purposes lands, so the row and the
 #: purpose's removal from here arrive in the same change.
+#: INT-428 / ADR-035's hosted_model_inference left this set in the owner's
+#: INT-442 change, together with its two rows (openai-api, elevenlabs-api).
 PURPOSES_AWAITING_THE_OWNER = frozenset({EgressPurpose.SMS_OTP_DELIVERY})
 
 

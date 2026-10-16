@@ -15,11 +15,20 @@ from __future__ import annotations
 from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
 __all__ = [
+    "COUNCIL_ACTIONS_TOTAL",
+    "COUNCIL_MEMBER_AGREEMENT_TOTAL",
+    "COUNCIL_MEMBER_LATENCY_MS",
+    "COUNCIL_MEMBER_TOKENS_TOTAL",
+    "COUNCIL_READINGS_DROPPED_TOTAL",
+    "COUNCIL_VERIFICATIONS_TOTAL",
     "DELIVERY_INSERTION_WAIT_MS",
     "LANE_DROPPED_FRAMES",
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
+    "PREEMPT_RED_VIOLATIONS_TOTAL",
+    "RED_WATCH_FAILURES_TOTAL",
     "TALKER_TOOL_CALLS_TOTAL",
+    "TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL",
     "VENDOR_BREAKER_STATE",
     "VENDOR_BREAKER_TRANSITIONS_TOTAL",
     "VENDOR_FAILOVERS_TOTAL",
@@ -87,6 +96,62 @@ WORK_FAILED_TOTAL = Counter(
     ["type"],
 )
 
+#: INT-521: the session's rules-engine evaluation could not stand. ``kind`` is
+#: closed: ``fault`` (the evaluation raised; the Work fails and the next state
+#: Work evaluates again) or ``conflict`` (a handler's own determination
+#: disagreed with the rules engine's over the served rules; the engine's
+#: stands). Either pages: a RED may be missing from a live session.
+TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL = Counter(
+    "triage_live_evaluation_failures_total",
+    "Live-session rules-engine evaluations that faulted or disagreed with a handler, by kind.",
+    ["kind"],
+)
+
+
+# --- council verifier (INT-430; ADR-036) ---------------------------------------
+#
+# ``member`` is a configured member id (``[a-z0-9][a-z0-9_-]{0,31}``, set by the
+# admin console), never a model name typed by a patient; every other label is a
+# closed enumeration. Cost is not a series here: it is tokens times a price, and
+# the price book is empty until HB-O8 (b) is answered.
+
+COUNCIL_MEMBER_LATENCY_MS = Histogram(
+    "council_member_latency_ms",
+    "Council verifier draw latency by member and outcome, in milliseconds.",
+    ["member", "outcome"],
+    buckets=(50.0, 250.0, 1_000.0, 3_000.0, 10_000.0, 30_000.0, float("inf")),
+)
+
+COUNCIL_MEMBER_TOKENS_TOTAL = Counter(
+    "council_member_tokens_total",
+    "Tokens the serving endpoint reported for council verifier draws.",
+    ["member", "direction"],
+)
+
+COUNCIL_MEMBER_AGREEMENT_TOTAL = Counter(
+    "council_member_agreement_total",
+    "Council verifier verdicts per member: agree, disagree or abstain with the primary.",
+    ["member", "agreement"],
+)
+
+COUNCIL_VERIFICATIONS_TOTAL = Counter(
+    "council_verifications_total",
+    "Council verifications by how they ended (submitted, late, shed, refused).",
+    ["outcome"],
+)
+
+COUNCIL_ACTIONS_TOTAL = Counter(
+    "council_actions_total",
+    "Council verifier actions by kind and by what the engine did with them.",
+    ["action", "result"],
+)
+
+COUNCIL_READINGS_DROPPED_TOTAL = Counter(
+    "council_readings_dropped_total",
+    "Council member readings dropped before adjudication, by reason.",
+    ["reason"],
+)
+
 
 # --- observer lanes (INT-110) ---------------------------------------------------
 #
@@ -123,6 +188,29 @@ PREEMPT_RED_LATENCY_MS = Histogram(
     "preempt_red_latency_ms",
     "Rules-engine RED preemption latency, rule evaluation to script start, in milliseconds.",
     buckets=(50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 1_000.0, float("inf")),
+)
+
+#: INT-531: every violation a delivered RED carried, by the closed
+#: ``RedViolation`` value. The path raises ``RedPathViolation`` after delivering;
+#: a RED the Talker's between-turn watch handed to the path has no caller for
+#: that raise to reach, so the count is how an operator sees it. A late stop is
+#: counted here and nowhere else (the latency histogram is the trigger's).
+PREEMPT_RED_VIOLATIONS_TOTAL = Counter(
+    "preempt_red_violations_total",
+    "Rules-engine REDs delivered with a budget, speech or script violation, by violation.",
+    ["violation"],
+)
+
+#: INT-531 round 2: the Talker's between-turn RED watch could not do its job.
+#: ``kind`` is closed: ``delivery`` (a pushed RED's path raised something other
+#: than a violation or a refusal), ``cancelled`` (the event loop cancelled a
+#: delivery before it finished) or ``exit`` (the watch itself ended other than
+#: by being cancelled). The first two are retried, and raised, on the next turn.
+#: Any increase means a RED may not have reached the patient.
+RED_WATCH_FAILURES_TOTAL = Counter(
+    "red_watch_failures_total",
+    "Between-turn RED watch failures: a pushed RED undelivered, or the watch ended, by kind.",
+    ["kind"],
 )
 
 

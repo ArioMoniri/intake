@@ -84,6 +84,12 @@ class RefusalCode(enum.StrEnum):
     GATE_REF_AMBIGUOUS = "GATE_REF_AMBIGUOUS"
     GATE_REF_UNKNOWN = "GATE_REF_UNKNOWN"
 
+    # --- gate values (INT-441; INT-489): a code slot is compared only against a
+    # member of its committed value set
+    GATE_VALUE_OUTSIDE_VALUESET = "GATE_VALUE_OUTSIDE_VALUESET"
+    GATE_VALUESET_UNCOMMITTED = "GATE_VALUESET_UNCOMMITTED"
+    CHOICE_OUTSIDE_VALUESET = "CHOICE_OUTSIDE_VALUESET"
+
 
 class Refusal(FrozenModel):
     """One reason the compiler will not emit."""

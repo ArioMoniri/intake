@@ -67,6 +67,7 @@ __all__ = [
     "evaluate_triage",
     "rule_truth",
     "when_truth",
+    "winning_red_rule",
     "with_candidates",
 ]
 
@@ -226,13 +227,14 @@ def evaluate_triage(
     level = _triage_level(ek4)
     if level is not TriageLevel.RED:
         return TriageEvaluation(result=RulesTriageResult(level=level, rules=rule_fires), ek4=ek4)
-    winner = _winning_red(fired, ek4)
+    winner = winning_red_rule(fired)
     return TriageEvaluation(
         result=RulesTriageResult(
             level=TriageLevel.RED,
             rules=rule_fires,
             register=_required_register(winner),
             location=location,
+            red_rule_id=winner.id,
         ),
         ek4=ek4,
         action=_resolved_action(winner, location),
@@ -264,6 +266,26 @@ def _triage_level(ek4: EK4Level) -> TriageLevel:
     if ek4 is EK4Level.YESIL:
         return TriageLevel.GREEN
     return TriageLevel.YELLOW
+
+
+def winning_red_rule(fired: Sequence[RedFlagRule]) -> RedFlagRule:
+    """The one rule whose register and script a RED delivers (INT-453).
+
+    Public so a consumer that holds the fired rules — the voice runtime's RED
+    path choosing which pre-positioned script to trigger — asks the engine
+    rather than re-deciding: a second copy of this tie-break is how a register
+    and a script from two different rules would end up on one screen. The
+    order of ``RulesTriageResult.rules`` (severity, then id) is NOT this
+    order, so its first entry is not the winner whenever two RED rules of
+    equal acuity fire with different registers.
+
+    Raises :class:`TriageEngineError` when no RED-level rule is among them.
+    """
+    reds = [rule for rule in fired if rule.level.is_red]
+    if not reds:
+        raise TriageEngineError("no KIRMIZI rule among the fired rules — nothing to deliver")
+    top = max(reds, key=lambda rule: rule.level.severity).level
+    return _winning_red(reds, top)
 
 
 def _winning_red(fired: Sequence[RedFlagRule], ek4: EK4Level) -> RedFlagRule:

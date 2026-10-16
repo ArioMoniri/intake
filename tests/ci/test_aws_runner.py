@@ -16,6 +16,10 @@ The workflows are read as data. The host install (infra/ci/aws-runner) is read
 statically: what each unit and script promises is pinned here, and the
 isolation it produces on the host was measured as the runner user and is
 recorded in the evidence file.
+
+INT-467 made the runner a pool of templated instances (`intake-aws-ci-*@N`).
+This file pins the INT-463 contract on the template, so every instance carries
+it; tests/ci/test_aws_runner_pool.py pins what the pool adds.
 """
 
 from __future__ import annotations
@@ -35,6 +39,10 @@ WORKFLOW_DIR = REPO / ".github" / "workflows"
 POOLS_FILE = REPO / "infra" / "ci" / "runners.yaml"
 HOST = REPO / "infra" / "ci" / "aws-runner"
 OPERATOR = REPO / "scripts" / "ci" / "aws_runner.sh"
+
+JOB = "intake-aws-ci-job@.service"
+DOCKERD = "intake-aws-ci-dockerd@.service"
+SUPERVISOR = "intake-aws-ci-runner@.service"
 
 POOL_LABEL = "intake-aws-ci"
 RUNS_ON = ["self-hosted", "linux", POOL_LABEL]
@@ -165,8 +173,7 @@ def test_the_runner_registers_with_the_pool_label() -> None:
 
 
 def test_the_runner_user_is_dedicated_and_unprivileged() -> None:
-    conf = _conf()
-    assert conf["RUNNER_USER"] == "ghrunner"
+    assert _conf()["RUNNER_USER_PREFIX"] == "ghrunner"
     install = _code(_script("install.sh"))
     assert "useradd --system" in install
     assert "--shell /usr/sbin/nologin" in install
@@ -205,10 +212,10 @@ def test_the_net_guard_blocks_metadata_staging_networks_and_private_ranges() -> 
     assert "runner_can_connect 169.254.169.254 80" in guard
 
 
-@pytest.mark.parametrize("unit", ["intake-aws-ci-job.service", "intake-aws-ci-dockerd.service"])
+@pytest.mark.parametrize("unit", [JOB, DOCKERD])
 def test_the_sandboxed_units_hide_staging_and_the_root_disk(unit: str) -> None:
     lines = _unit_lines(unit)
-    assert "User=ghrunner" in lines
+    assert "User=ghrunner%i" in lines
     assert "ProtectSystem=strict" in lines
     assert "ProtectHome=yes" in lines
     assert "TemporaryFileSystem=/opt:ro" in lines
@@ -223,19 +230,17 @@ def test_the_sandboxed_units_hide_staging_and_the_root_disk(unit: str) -> None:
 
 
 def test_job_code_never_gains_privileges() -> None:
-    lines = _unit_lines("intake-aws-ci-job.service")
+    lines = _unit_lines(JOB)
     assert "NoNewPrivileges=yes" in lines
-    assert "-/run/docker.sock" in " ".join(
-        _values("intake-aws-ci-job.service", "InaccessiblePaths")
-    )
+    assert "-/run/docker.sock" in " ".join(_values(JOB, "InaccessiblePaths"))
 
 
 # --- ephemeral, re-registered by systemd, workspace wiped ------------------------------
 
 
 def test_the_supervisor_unit_loops_the_ephemeral_cycle() -> None:
-    unit = _unit("intake-aws-ci-runner.service")
-    assert unit["Service"]["ExecStart"] == "/usr/local/lib/intake-aws-ci-runner/bin/cycle.sh"
+    unit = _unit(SUPERVISOR)
+    assert unit["Service"]["ExecStart"] == "/usr/local/lib/intake-aws-ci-runner/bin/cycle.sh %i"
     assert unit["Service"]["Restart"] == "always"
     assert unit["Install"]["WantedBy"] == "multi-user.target"
 
@@ -246,6 +251,7 @@ def test_registration_is_ephemeral_and_pinned() -> None:
     for flag in ("--unattended", "--ephemeral", "--replace", "--disableupdate"):
         assert flag in config, flag
     assert '--labels "$RUNNER_LABELS"' in config
+    assert '--name "$RUNNER_NAME"' in config
     assert 'systemctl start --wait "$JOB_UNIT"' in cycle
 
 
@@ -253,7 +259,14 @@ def test_the_token_never_reaches_a_command_line_or_a_log() -> None:
     cycle = _code(_script("cycle.sh"))
     assert 'ACTIONS_RUNNER_INPUT_TOKEN="$token"' in cycle
     assert "--token" not in cycle
-    for name in ("cycle.sh", "guard.sh", "fetch-credential.sh", "install.sh"):
+    for name in (
+        "cycle.sh",
+        "guard.sh",
+        "fetch-credential.sh",
+        "install.sh",
+        "job-started.sh",
+        "probe.sh",
+    ):
         code = _code(_script(name))
         assert "set +x" in code, name
         assert "set -x" not in code, name
@@ -318,14 +331,12 @@ def test_only_root_can_reach_the_admin_token() -> None:
     """The supervisor that reads it runs as root and unsandboxed; jobs run as
     ghrunner, whose route to the instance role (the metadata service) is
     rejected by the net guard, and whose units hide the root-only secret dir."""
-    supervisor = _unit("intake-aws-ci-runner.service")["Service"]
+    supervisor = _unit(SUPERVISOR)["Service"]
     assert "User" not in supervisor
-    job = _unit("intake-aws-ci-job.service")["Service"]
-    assert job["User"] == "ghrunner"
+    job = _unit(JOB)["Service"]
+    assert job["User"] == "ghrunner%i"
     assert "169.254.0.0/16" in _code(_script("guard.sh"))
-    assert "-/etc/intake-aws-ci-runner" in " ".join(
-        _values("intake-aws-ci-job.service", "InaccessiblePaths")
-    )
+    assert "-/etc/intake-aws-ci-runner" in " ".join(_values(JOB, "InaccessiblePaths"))
 
 
 def test_the_hand_over_path_no_longer_takes_an_admin_token() -> None:
@@ -359,12 +370,13 @@ def test_every_job_ends_with_a_wipe() -> None:
 
 def test_the_workspace_lives_on_the_nvme_volume_only() -> None:
     conf = _conf()
-    assert conf["CI_ROOT"].startswith(conf["NVME_MOUNT"] + "/")
-    job = _unit_lines("intake-aws-ci-job.service")
-    assert f"BindPaths={conf['CI_ROOT']}/home" in job
+    assert conf["CI_ROOT_BASE"].startswith(conf["NVME_MOUNT"] + "/")
+    ci_root = conf["CI_ROOT_BASE"] + "-%i"
+    job = _unit_lines(JOB)
+    assert f"BindPaths={ci_root}/home" in job
     # The job's temp directory is a bind of the NVMe tree, never the host's.
     temp = str(Path("/") / "tmp")
-    assert f"BindPaths={Path(conf['CI_ROOT']) / 'tmp'}:{temp}" in job
+    assert f"BindPaths={Path(ci_root) / 'tmp'}:{temp}" in job
 
 
 def test_the_workspace_sits_under_home_as_on_github_hosted_runners() -> None:
@@ -373,17 +385,17 @@ def test_the_workspace_sits_under_home_as_on_github_hosted_runners() -> None:
     workspace beside home instead of inside it, the gitleaks job found no leaks
     and still failed ("rootDirectory … is not a parent directory", #791, 3 Oct
     2026). The runner's --work must be a directory under the job's HOME."""
-    conf = _conf()
+    ci_root = _conf()["CI_ROOT_BASE"] + "-%i"
     job_home = next(
         line.split("HOME=", 1)[1]
-        for line in _unit_lines("intake-aws-ci-job.service")
+        for line in _unit_lines(JOB)
         if line.startswith("Environment=HOME=")
     )
     cycle = _code(_script("cycle.sh"))
     work = cycle.split("--work ", 1)[1].split()[0].strip('"')
-    assert work.replace("$CI_ROOT", conf["CI_ROOT"]).startswith(job_home + "/"), (work, job_home)
+    assert work.replace("$CI_ROOT", ci_root).startswith(job_home + "/"), (work, job_home)
     env_home = cycle.split("HOME=", 1)[1].splitlines()[0]
-    assert env_home.replace("$CI_ROOT", conf["CI_ROOT"]) == job_home
+    assert env_home.replace("$CI_ROOT", ci_root) == job_home
     started = _code(_script("job-started.sh"))
     assert '"$CI_ROOT/home"' in started
 
@@ -398,7 +410,7 @@ def test_the_disk_guard_has_floors_and_a_watchdog() -> None:
     assert int(conf["WATCH_FLOOR_CI_GB"]) < int(conf["MIN_FREE_CI_GB"])
     guard = _code(_script("guard.sh"))
     assert 'systemctl kill --kill-whom=all "$JOB_UNIT"' in guard
-    timer = _unit("intake-aws-ci-diskwatch.timer")
+    timer = _unit("intake-aws-ci-diskwatch@.timer")
     assert timer["Timer"]["OnUnitActiveSec"] == "1min"
     install = _code(_script("install.sh"))
     assert '[ "$root_free" -ge 20 ]' in install
@@ -410,7 +422,7 @@ def test_the_slice_caps_ci_below_staging() -> None:
     assert int(slice_["IOWeight"]) < 100
     assert slice_["MemoryMax"].endswith("G")
     assert slice_["CPUQuota"].endswith("%")
-    for unit in ("intake-aws-ci-job.service", "intake-aws-ci-dockerd.service"):
+    for unit in (JOB, DOCKERD):
         assert "Slice=intake-aws-ci.slice" in _unit_lines(unit)
         assert "OOMScoreAdjust=500" in _unit_lines(unit)
 
@@ -419,9 +431,9 @@ def test_the_slice_caps_ci_below_staging() -> None:
 
 
 def test_docker_is_rootless_and_started_only_after_the_guards() -> None:
-    unit = _unit("intake-aws-ci-dockerd.service")
+    unit = _unit(DOCKERD)
     assert unit["Service"]["ExecStart"].startswith("/usr/bin/dockerd-rootless.sh ")
-    assert unit["Service"]["User"] == "ghrunner"
+    assert unit["Service"]["User"] == "ghrunner%i"
     assert not unit.has_section("Install"), (
         "rootless Docker must not start at boot, before the guards"
     )
