@@ -14,7 +14,8 @@ The fix has three parts:
 - Only that one RED rule has to be addressable, so a YELLOW rule firing beside
   it never drops the RED.
 - A RED whose script cannot be addressed still reaches the device as the
-  generic escalation. That trigger uses ALERT, the result's own location (so
+  generic escalation. That trigger carries the result's own register (CD-24
+  carry_engine_register, never a fixed ALERT) and the result's own location (so
   there is no 112 under ON_SITE), and a SCRIPT_UNADDRESSABLE failure is raised
   loudly. Sending nothing is no longer a possible outcome.
 
@@ -57,9 +58,8 @@ from test_red_preemption import Rig
 REPO = Path(__file__).resolve().parents[2]
 SIGNED = REPO / "tests" / "fixtures" / "protocols" / "compile" / "life_threat_signed.yaml"
 CLIENT_RED_TS = REPO / "apps" / "mobile" / "src" / "lib" / "livekit" / "red.ts"
-GENERIC_SENTETIK = REPO / "tests" / "fixtures" / "triage_hop" / "generic_red_sentetik.yaml"
 GENERIC_COMMITTED = REPO / "packages" / "protocols" / "generic" / "generic_red.yaml"
-BASE = load_life_threat_set(SIGNED).rules[0].rule
+BASE = load_life_threat_set(SIGNED, allow_fixture_snapshots=True).rules[0].rule
 
 RULE_A = "rf.sentetik_a"  # sorts first
 RULE_B = "rf.sentetik_b"
@@ -312,5 +312,56 @@ def test_the_device_mirrors_the_generic_red_ids() -> None:
 def test_the_generic_document_carries_cd24s_register_policy() -> None:
     """The policy the path implements is the document's own literal, so the
     two cannot drift: carry the engine result's register (CD-24)."""
-    for path in (GENERIC_SENTETIK, GENERIC_COMMITTED):
-        assert load_generic_red(path).register_policy == "carry_engine_register"
+    assert load_generic_red(GENERIC_COMMITTED).register_policy == "carry_engine_register"
+
+
+# --- INT-465 delivery goldens: CD-24 mixed registers (meanwhile rule) -------------------------
+
+
+@pytest.mark.parametrize(
+    ("registers", "delivered"),
+    [
+        ((RedRegister.ALERT, RedRegister.CALM), RedRegister.CALM),
+        ((RedRegister.CALM, RedRegister.ALERT), RedRegister.CALM),
+        ((RedRegister.ALERT, RedRegister.SILENT), RedRegister.SILENT),
+        ((RedRegister.SILENT, RedRegister.ALERT), RedRegister.SILENT),
+        ((RedRegister.CALM, RedRegister.SILENT), RedRegister.SILENT),
+        ((RedRegister.SILENT, RedRegister.CALM), RedRegister.SILENT),
+        ((RedRegister.ALERT, RedRegister.ALERT), RedRegister.ALERT),
+    ],
+    ids=[
+        "alert+calm",
+        "calm+alert",
+        "alert+silent",
+        "silent+alert",
+        "calm+silent",
+        "silent+calm",
+        "near-miss-alert+alert",
+    ],
+)
+@pytest.mark.parametrize("location", list(RedLocation))
+def test_a_generic_over_mixed_registers_takes_the_most_restrictive(
+    registers: tuple[RedRegister, RedRegister], delivered: RedRegister, location: RedLocation
+) -> None:
+    """CD-24 golden ``generic_red_mixed_registers_take_the_most_restrictive``.
+
+    Two REDs of equal acuity fire with different registers, and neither script is on
+    the device. The generic carries SILENT over CALM over ALERT, and never ALERT when
+    a fired rule is CALM or SILENT. Near miss: two ALERT rules deliver ALERT, not a
+    quieter register. The case where acuity differs is recorded in
+    docs/evidence/INT-465.md: the result does not carry a register for each fired
+    rule, so the generic gets the winning rule's register.
+    """
+    rules = (red(RULE_A, registers[0]), red(RULE_B, registers[1]))
+    triage = evaluate_triage(rules, FIRING, location).result
+    rig = Rig(scripts=MappingRedScriptIndex(entries={}))
+    with pytest.raises(RedPathViolation):
+        rig.trigger(preempt(triage))
+    [message] = sent(rig)
+    assert message.script_id == GENERIC_RED_SCRIPT_IDS[location]
+    assert message.register is delivered
+    assert rig.media.calls == ["cancel"]  # the floor: intake stops whichever register
+    # CD-24 silent_over_alert_is_stated_to_the_clinic: when the generic goes out
+    # SILENT, the clinic notice says so. Near miss: ALERT and CALM generics do not.
+    [notice] = rig.clinic.notifications
+    assert notice.silent_generic is (delivered is RedRegister.SILENT)

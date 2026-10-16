@@ -112,6 +112,67 @@
 - Next: `scripts/ci/aws_runner.sh install` once host changes are cleared, then re-run #791.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-03T21:30:00Z · INT-465 · done (PR open, not merged, not deployed)
+- Goal: acceptance verbatim (GitHub #794). (1) generic_red.yaml is active with CD-24's own source blocks, every location entry stating its location and `carry_engine_register`, and no 112 in any ON_SITE carrier. (2) The ON_SITE bold markers and the tenant segment are expanded before the screen and before TTS, and 112 becomes "yüz on iki". (3) The generic RED goldens pass in tests/safety, and `make safety` is green. (4) The served red rule set is signed with a non-exportable OpenBao test key on the synthetic AWS host, and every non-synthetic tenant config rejects it.
+- Plan:
+  - Start from `int-453-red-path-winner` merged with main `3bffb58d` (CD-24).
+  - Write `protocols.red_render`, `intake_platform.red_signature` and `intake_platform.red_tenant`.
+  - Make the generic RED document active, checked against CD-24.
+  - Add the API tenant kind and the signature interlock.
+  - Run the signer script on the host over SSM: the root token once, then a scoped token.
+- Tests added: `test_red_render.py`, `test_red_signature.py`, `test_red_rule_set_signature_cli.py`, `test_generic_red.py` (rewritten), `tests/safety/test_generic_red_goldens.py` (G01–G10), `test_triage_tenant_kind.py`, `test_red_signing_infra.py`, and the synthetic-tier cases in `test_triage_hop.py` and `test_red_winner.py`. Each has a near miss; examples:
+  - REMOTE carries 112 and ON_SITE does not;
+  - the exemplar's `why_tr` names an organ and the generic's does not;
+  - the authored line carries markup;
+  - a synthetic tenant accepts and every other kind refuses;
+  - ALERT+ALERT stays ALERT.
+  - RED run: 5 collection errors plus 30 failed. GREEN: the targeted lanes pass. M1–M4 mutation proofs are all detected.
+- Result:
+  - `make safety` exit 0: triage 100 % branch (600 passed), 18/18 mutants detected, voice 1631 passed at 98.65 %, adversarial 121 passed.
+  - ruff, format and `mypy --strict` are clean.
+  - Mobile tsc and eslint are clean, and vitest RED lanes pass (95).
+  - Backlog pins move 335 → 336, and files/11 is regenerated.
+  - Host: key `redset-synthetic-test` v1 (ed25519, exportable false); envelope verified for synthetic, refused for real.
+  - Review round (clinical and security reviewer agents): every block's `supports` now matches CD-24, so the generic RED was re-signed (`3bbd3fdd…`). Also fixed: both-order mixed-register goldens with the silent clinic notice, HB-C12b-independent near misses, the G10 tripwire, an explicit `INTAKE_ENV`, read-once parsing, an existing-key check, token renewal before signing, logged refusals, threat-model rows, and malformed-envelope tests.
+  - Review round 2 (coordinator, CHANGES REQUIRED): the cardiac why lines were rewritten through **CD-25** (D18, agent author, verifier agreed; HB-C12b stays open); the source fields were fixed and snapshot checks added to `load_life_threat_set`; the device gained a no-answer path (unsigned 30 s wait, Essential-Exception time limit); the generic is never wordless (decoder, store and session refuse); intake stops for `protocol_next` and on the device; the signature is bound to the host; RED clip rows refuse digits. Re-signed once (`c33a737f…`).
+  - Review round 3 (orchestrator, REQUEST_CHANGES), all fixed test-first with near misses:
+    - no question or commit control in any lane while a RED stands, and the navigator is hidden
+      from assistive technology under the root RED layer;
+    - `on_no_answer` is REMOTE only (DSL, API and device decoder);
+    - the generic copy is in the PolicyGuard sweep;
+    - `version_or_date` is checked against the snapshot;
+    - fixture snapshots sit behind an explicit flag;
+    - ON_SITE 112 is checked over every RED rule;
+    - LiveKit RED goes through the RED store;
+    - REMOTE shows 112 as selectable text;
+    - HB-C25 (the unsigned no-answer wait) was added;
+    - a late location answer after the wait is honoured (LD-05, INT-471 #800), and BK13
+      cites it.
+    Recorded, not built: the hop notifies no clinic, and the cardiac do-not lines are unsourced.
+    Rule bytes are unchanged, so there was no re-sign.
+  - Review round 4 (orchestrator, REQUEST_CHANGES), test-first with near misses:
+    - the privacy self-check is gated on `live`;
+    - the hop-lane notification gap is held by two tripwire tests and owned by INT-475 (#814);
+      `depends_on` is back to [INT-432, INT-446, INT-453];
+    - focus moves to the RED's words when it changes (never on first paint);
+    - the section sheet cannot open or commit under a RED;
+    - the 112 block near miss is added;
+    - HB-C25 carries the five LD-05 physician questions;
+    - `on_yes`/`on_no` are narrowed;
+    - the kiosk/RED-store observation is recorded under INT-476 (#815).
+    No rule bytes changed, so there was no re-sign.
+  - Review round 5 (orchestrator, REQUEST_CHANGES), test-first:
+    - the 422 tripwire's near miss now dates the tense anchor, with an engine positive
+      control (booleans fire RED), so type is the only blocker;
+    - HB-C25 asks (vi) about the SILENT focus move on expiry;
+    - the section sheet is never visible over a RED and leaves in 0 ms;
+    - the device decoder types yes ON_SITE and no REMOTE.
+- Invariants touched and still passing: 1, 2, 7, 10, 14, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: CD-25 (decision register); D23 (owner, 3 Oct 2026, read with D18). D17 and HB-C1 are unchanged, and INT-058 (cosign) is untouched.
+- Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b, HB-C25). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).
+- Next: PR `INT-465: …` (Closes #794, Sec-Row triage), stacked on #773; a protocol CODEOWNER review is required. Do not merge and do not deploy.
+- LOOP_STATUS: DONE
+
 ### 2026-10-04T00:30:00Z · INT-453 · done (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #767): *"The RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr. A multi-rule test with a near-miss control is included."* and *"`make safety` passes, with triage at 100% branch coverage."* Found by INT-446 (#766).
 - Plan (after review round 1 on #773, CHANGES-REQUESTED):

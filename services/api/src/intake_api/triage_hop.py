@@ -22,15 +22,19 @@ Two routes:
   here) and the session's reference time. Returns the trigger or the level.
 
 Fail closed, content empty (HUMAN_BLOCKERS rule 2). The served set comes from
-``ApiSettings.triage_rules_path``. No path, an unreadable file, a set that
-declares ``served: false``, an incomplete clinical sign-off (HB-C1), a draft
-rule, or a RED rule whose action cannot be resolved to verbatim ``tr`` text for
-all three locations: every one of those is a 503 ``triage_unconfigured`` on
-both routes — never an empty catalog and never a GREEN, because "no rule
-fired" is not something a server without rules can say. Today no signed set
-exists (every base.life_threat rule is ``draft_needs_source``, HB-C1), so the
-shipped state is that 503; the mechanism is proved over the committed signed
-SENTETİK fixture.
+``ApiSettings.triage_rules_path`` through ``triage_rules.load_served_red_rules``.
+No path, an unreadable file, a RED rule whose action cannot be resolved to
+verbatim ``tr`` text for all three locations or that names 112 under ON_SITE,
+or a generic RED copy that is not servable (CD-24): every one of those is a 503
+``triage_unconfigured`` on both routes — never an empty catalog and never a
+GREEN, because "no rule fired" is not something a server without rules can say.
+Which rules a tenant gets is the tenant's kind (INT-465). A real tenant needs a
+set that declares ``served: true``, carries the complete clinical sign-off
+(HB-C1) and holds no draft rule; nobody has signed, so its shipped state is that
+503. A synthetic tenant on the AWS test host serves the set's active rules only
+under the test-key signature over exactly those bytes and that rule list (D18;
+owner decision of 3 Oct 2026; ``intake_platform.red_signature``), and a real
+tenant refuses that key.
 
 Consent: the evaluation processes the patient's intake answers, so both routes
 run under the core intake scope. Nothing is stored, nothing is logged — not a

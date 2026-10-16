@@ -20,12 +20,20 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from intake_platform.red_tenant import TenantKind
+
 __all__ = [
+    "ENV_TRIAGE_DEPLOYMENT",
+    "ENV_TRIAGE_SIGNATURE",
+    "ENV_TRIAGE_TENANT_KIND",
+    "SYNTHETIC_TENANT_ENVIRONMENTS",
     "ApiSettings",
     "DevConfigRefusedError",
+    "TriageTenantRefusedError",
     "environment_name",
     "is_dev_env",
     "refuse_dev_config_outside_dev",
+    "refuse_synthetic_tenant_outside_synthetic_host",
 ]
 
 # Environment KEY NAMES, not credentials: the values live only in the
@@ -78,6 +86,20 @@ NON_DEV_REQUIRED_CREDENTIALS = (
 
 KekMode = Literal["transit", "file-dev"]
 
+# INT-465: the synthetic-only test-key signature over the red rule set.
+ENV_TRIAGE_SIGNATURE = "INTAKE_API_TRIAGE_SIGNATURE"
+ENV_TRIAGE_TENANT_KIND = "INTAKE_API_TRIAGE_TENANT_KIND"
+#: The host a synthetic tenant runs on; the test signature names exactly one.
+ENV_TRIAGE_DEPLOYMENT = "INTAKE_API_TRIAGE_DEPLOYMENT"
+#: Where a synthetic triage tenant may be declared: dev, and the synthetic
+#: staging host (infra/staging: SYNTHETIC PATIENTS ONLY). Nowhere else.
+SYNTHETIC_TENANT_ENVIRONMENTS = frozenset({"dev", "staging"})
+
+
+class TriageTenantRefusedError(RuntimeError):
+    """Raised at boot when an environment that may hold a real patient declares a
+    synthetic triage tenant, the only kind that trusts the test key (INT-465)."""
+
 
 class DevConfigRefusedError(RuntimeError):
     """Raised at boot when a non-dev environment carries a dev bypass, the
@@ -122,6 +144,36 @@ def refuse_dev_config_outside_dev(environ: Mapping[str, str]) -> None:
         raise DevConfigRefusedError(
             f"INTAKE_ENV={environment_name(environ)} is not dev and the API refuses to boot "
             "with dev configuration (no dev default is used outside dev): " + "; ".join(offences)
+        )
+
+
+def _triage_tenant_kind(environ: Mapping[str, str]) -> TenantKind:
+    """Exactly ``synthetic`` is synthetic; anything else is a real tenant (fail closed)."""
+    if environ.get(ENV_TRIAGE_TENANT_KIND) == TenantKind.SYNTHETIC.value:
+        return TenantKind.SYNTHETIC
+    return TenantKind.REAL
+
+
+def refuse_synthetic_tenant_outside_synthetic_host(environ: Mapping[str, str]) -> None:
+    """INT-465: a synthetic triage tenant trusts the test key. Only dev and the
+    synthetic staging host may declare one; any other environment refuses to boot,
+    so a misconfigured deployment cannot quietly trust a test signature."""
+    if _triage_tenant_kind(environ) is not TenantKind.SYNTHETIC:
+        return
+    # Explicit, never the unset-means-dev reading: a deployment that forgot
+    # INTAKE_ENV must not trust the test key (security review, INT-465).
+    environment = environ.get("INTAKE_ENV", "").strip().lower()
+    if environment not in SYNTHETIC_TENANT_ENVIRONMENTS:
+        named = environment or "(unset)"
+        raise TriageTenantRefusedError(
+            f"{ENV_TRIAGE_TENANT_KIND}=synthetic is refused in INTAKE_ENV={named}: only an "
+            "explicit dev or the synthetic staging host may trust the test key (INT-465)"
+        )
+    if not environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip():
+        raise TriageTenantRefusedError(
+            f"{ENV_TRIAGE_TENANT_KIND}=synthetic needs {ENV_TRIAGE_DEPLOYMENT}: the test "
+            "signature is bound to one host, and a tenant that names none cannot be "
+            "checked against it (INT-465)"
         )
 
 
@@ -212,6 +264,15 @@ class ApiSettings:
     triage_generic_red_path: Path | None = field(
         default_factory=lambda: Path("packages/protocols/generic/generic_red.yaml")
     )
+    # INT-465: the test-key signature over the served set, and the tenant kind
+    # that decides whether it is trusted. A real tenant (the default) never trusts
+    # it; a synthetic tenant requires it (intake_platform.red_signature).
+    triage_signature_path: Path | None = None
+    triage_tenant_kind: TenantKind = TenantKind.REAL
+    triage_deployment: str | None = None
+    # INT-465: admit a served set citing a tests/fixtures snapshot. Test harness
+    # only: from_env never sets it, so no deployment can.
+    triage_fixture_sources: bool = False
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).
@@ -237,6 +298,8 @@ class ApiSettings:
     def from_env(cls) -> ApiSettings:
         # INT-325: outside dev, refuse before any dev default below can apply
         refuse_dev_config_outside_dev(os.environ)
+        # INT-465: only dev and the synthetic host may trust the test key
+        refuse_synthetic_tenant_outside_synthetic_host(os.environ)
         kek_mode: KekMode = "file-dev" if os.environ.get(ENV_KEK_MODE) == "file-dev" else "transit"
         return cls(
             token_patient=os.environ.get(ENV_TOKEN_PATIENT) or None,
@@ -288,5 +351,12 @@ class ApiSettings:
                 os.environ.get("INTAKE_API_TRIAGE_GENERIC_RED")
                 or "packages/protocols/generic/generic_red.yaml"
             ),
+            triage_signature_path=(
+                Path(os.environ[ENV_TRIAGE_SIGNATURE])
+                if os.environ.get(ENV_TRIAGE_SIGNATURE)
+                else None
+            ),
+            triage_tenant_kind=_triage_tenant_kind(os.environ),
+            triage_deployment=os.environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip() or None,
             environment=environment_name(os.environ),
         )

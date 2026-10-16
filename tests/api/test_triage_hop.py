@@ -24,19 +24,27 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Iterator
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
 from api_harness import ADMIN_TOKEN, PATIENT_TOKEN, ApiHarness, build_harness
+from clinical_schemas.session import AnswerState
+from clinical_schemas.triage import RedLocation, TriageLevel
 from intake_api.consent_guard import unguarded_data_routes
+from protocols.compile.life_threat import load_life_threat_set
+from protocols.triage import TriageContext, evaluate_triage
+from protocols.triage.context import SlotAnswer
+from protocols.triage.expr import And, BoolRef, Compare, Lit, Or, WhenNode, parse_when
+from protocols.types import RuleStatus
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SIGNED = REPO_ROOT / "tests" / "fixtures" / "protocols" / "compile" / "life_threat_signed.yaml"
 GOLDEN = REPO_ROOT / "tests" / "fixtures" / "triage_hop"
-GENERIC = GOLDEN / "generic_red_sentetik.yaml"
-COMMITTED_GENERIC = REPO_ROOT / "packages" / "protocols" / "generic" / "generic_red.yaml"
+# INT-465: the committed generic RED is active (CD-24), so every test serves it.
+GENERIC = REPO_ROOT / "packages" / "protocols" / "generic" / "generic_red.yaml"
 
 REFERENCE_TIME = "2026-08-29T10:00:00+03:00"
 FIRING = {"ziyaret.basvuru_nedeni": "sentetik_yasamsal", "sure_dakika": "2026-08-29"}
@@ -326,15 +334,23 @@ def test_the_simulator_set_fires_on_the_typed_free_note_only(
             assert body == {"kind": "triage_level", "level": "GREEN"}
 
 
-@pytest.mark.parametrize("generic", ["committed-draft-cd24", "absent"])
+def _draft_generic(tmp_path: Path) -> Path:
+    doc = yaml.safe_load(GENERIC.read_text(encoding="utf-8"))
+    doc["status"] = "draft_needs_source"
+    doc["source_gap"] = "sentetik: the register row is withdrawn"
+    path = tmp_path / "generic_draft.yaml"
+    path.write_text(yaml.safe_dump(doc, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("generic", ["draft", "absent"])
 def test_nothing_is_served_while_the_generic_red_is_draft_or_absent(
     tmp_path: Path, generic: str
 ) -> None:
     """INT-453 serve precondition: a blank generic RED never reaches a live
-    tenant. The committed document is draft_needs_source until CD-24 lands,
-    so the signed set is not served. The near miss is every other test here:
-    with the servable SENTETİK generic, the very same set serves."""
-    path = COMMITTED_GENERIC if generic == "committed-draft-cd24" else tmp_path / "absent.yaml"
+    tenant. A draft generic, or none, serves nothing. The near miss is every
+    other test here: with the active CD-24 generic, the very same set serves."""
+    path = _draft_generic(tmp_path) if generic == "draft" else tmp_path / "absent.yaml"
     for harness in build_harness(
         tmp_path,
         token_patient=PATIENT_TOKEN,
@@ -351,3 +367,267 @@ def test_the_catalog_pre_positions_the_generic_red(harness: ApiHarness) -> None:
     assert catalog["scripts"]["base.generic_red.on_site"]["show112"] is False
     unknown = catalog["questions"]["base.generic_red.unknown"]
     assert unknown["askTr"] == "Şu anda hastanede misiniz?"
+    # INT-465: the generic is CD-24's copy, rendered (no markup reaches the screen).
+    assert catalog["scripts"]["base.generic_red.remote"]["actionTr"] == (
+        "Hemen 112 Acil Çağrı Merkezi'ni arayın."
+    )
+    assert catalog["scripts"]["base.generic_red.on_site"]["actionTr"] == (
+        "Acil Servis'e gidin. Randevuyu beklemeyin. Görevlilere haber verildi."
+    )
+
+
+# --- INT-465: the synthetic host's rule set, signed with the synthetic-only test key ---------
+
+LIFE_THREAT = REPO_ROOT / "files" / "protocols" / "base.life_threat.yaml"
+SIGNATURE = REPO_ROOT / "packages" / "protocols" / "signing" / "red_rule_set.synthetic.json"
+CARDIAC = "rf.chest_pain_cardiac_features"
+HOST = "i-0e489e48739f5de98"
+
+
+def _synthetic(
+    tmp_path: Path,
+    *,
+    kind: str = "synthetic",
+    rules: Path = LIFE_THREAT,
+    signature: Path | None = SIGNATURE,
+    deployment: str | None = HOST,
+) -> Iterator[ApiHarness]:
+    return build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=rules,
+        triage_signature_path=signature,
+        triage_tenant_kind=kind,
+        triage_deployment=deployment,
+    )
+
+
+def test_a_synthetic_tenant_serves_the_test_key_signed_life_threat_set(tmp_path: Path) -> None:
+    """The owner's 3 Oct 2026 decision with D18: on the synthetic host the test-key
+    signature stands in for the physician's sign-off (HB-C1), for simulated patients
+    only. Drafts are never served and every script is rendered."""
+    for harness in _synthetic(tmp_path):
+        response = harness.client.get("/v1/triage/red-scripts", headers=harness.patient())
+        assert response.status_code == 200, response.text
+        catalog = response.json()
+        assert catalog["scripts"][f"{CARDIAC}.remote"]["actionTr"] == "Hemen 112'yi arayın."
+        assert catalog["scripts"][f"{CARDIAC}.on_site"]["show112"] is False
+        assert "base.generic_red.on_site" in catalog["scripts"]
+        assert not any(key.startswith("rf.crisis_disclosure") for key in catalog["scripts"])
+        assert not any(key.startswith("rf.paediatric_airway") for key in catalog["scripts"])
+        # Near miss: an answer set with no chest pain stays GREEN.
+        near = _evaluate(harness, {"chest_pain.character": "baskı"})
+        assert near == {"kind": "triage_level", "level": "GREEN"}
+
+
+@pytest.mark.parametrize("kind", ["real", "", "production", "Synthetic"])
+def test_any_non_synthetic_tenant_rejects_the_test_key_signed_set(
+    tmp_path: Path, kind: str
+) -> None:
+    """The same files and the same signature: anything but the exact synthetic
+    kind is a real tenant, and a real tenant refuses the test key."""
+    for harness in _synthetic(tmp_path, kind=kind):
+        _assert_closed(harness)
+
+
+def test_a_real_tenant_refuses_a_test_signature_even_beside_a_clinically_signed_set(
+    tmp_path: Path,
+) -> None:
+    """A test-key signature never helps on a real tenant. Configured beside a set that
+    carries a complete sign-off, it makes the set unservable rather than trusted. Near
+    miss: the same set with no signature configured serves (the ``harness`` fixture)."""
+    for harness in _synthetic(tmp_path, kind="real", rules=SIGNED):
+        _assert_closed(harness)
+
+
+def test_a_synthetic_tenant_on_another_host_fails_closed(tmp_path: Path) -> None:
+    """The committed signature names i-0e489e48739f5de98. The same files on another
+    host do not serve. Near miss: the first synthetic test above serves on the bound host."""
+    for harness in _synthetic(tmp_path, deployment="i-0123456789abcdef0"):
+        _assert_closed(harness)
+
+
+def test_a_synthetic_tenant_without_a_signature_fails_closed(tmp_path: Path) -> None:
+    for harness in _synthetic(tmp_path, signature=None):
+        _assert_closed(harness)
+
+
+def test_a_synthetic_tenant_with_a_malformed_signature_fails_closed(tmp_path: Path) -> None:
+    broken = tmp_path / "envelope.json"
+    broken.write_bytes(b"\xff not an envelope")
+    for harness in _synthetic(tmp_path, signature=broken):
+        _assert_closed(harness)
+
+
+def test_a_set_citing_a_test_fixture_snapshot_is_not_served_without_the_flag(
+    tmp_path: Path,
+) -> None:
+    """INT-465 round 3: the SENTETİK snapshot prefix is admitted only behind the
+    explicit flag, which ApiSettings.from_env never sets. Near miss: every other
+    fixture-backed test here passes the flag, and the same set serves."""
+    for harness in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=SIGNED,
+        triage_fixture_sources=False,
+    ):
+        _assert_closed(harness)
+
+
+def test_an_on_site_script_naming_112_is_not_served(tmp_path: Path) -> None:
+    """CD-24's ON_SITE 112 check runs over every RED rule at catalog build, not only
+    the generic. Near miss: 112 in the REMOTE script is served (every test above)."""
+
+    def name_112(doc: dict[str, Any]) -> None:
+        doc["rules"][0]["action"]["ON_SITE"]["action_tr"] = {
+            "tr": "Görevlilere haber verin; 112 arayın."
+        }
+
+    for harness in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=_set(tmp_path, name_112),
+    ):
+        _assert_closed(harness)
+
+
+def test_near_miss_112_in_the_remote_script_is_served(tmp_path: Path) -> None:
+    """Near miss for the ON_SITE 112 check: the same words under REMOTE are served."""
+    words = "Görevlilere haber verin; 112 arayın."
+
+    def remote_112(doc: dict[str, Any]) -> None:
+        doc["rules"][0]["action"]["REMOTE"]["action_tr"] = {"tr": words}
+
+    for harness in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        triage_rules_path=_set(tmp_path, remote_112),
+    ):
+        response = harness.client.get("/v1/triage/red-scripts", headers=harness.patient())
+        assert response.status_code == 200, response.text
+        assert response.json()["scripts"]["rf.sentetik_yasamsal.remote"]["actionTr"] == words
+
+
+def requires_bool(node: WhenNode) -> bool:
+    """Whether ``node`` can only come out TRUE with a boolean answer bound.
+
+    The hop carries strings and lists of strings only (``EvaluateIn.answers``), and a
+    string compared with a boolean is UNKNOWN, never TRUE (protocols.triage.expr
+    ``_equal``). So a boolean atom, or a comparison against a boolean literal, can
+    never be TRUE through the hop; an AND fails if any part needs a boolean; an OR
+    only if every part does. A NOT is counted as fireable, the cautious reading.
+    """
+    if isinstance(node, BoolRef):
+        return True
+    if isinstance(node, Compare):
+        return any(
+            isinstance(side, Lit) and isinstance(side.value, bool)
+            for side in (node.left, node.right)
+        )
+    if isinstance(node, And):
+        return any(requires_bool(item) for item in node.items)
+    if isinstance(node, Or):
+        return all(requires_bool(item) for item in node.items)
+    return False
+
+
+@pytest.mark.parametrize(
+    ("when", "needs_bool"),
+    [
+        ("a.b", True),
+        ("a.b == true", True),
+        ("a.b == 'x'", False),
+        ("a.b == true && c.d == 'x'", True),
+        ("a.b == true || c.d == 'x'", False),
+        ("a.b == true || c.d == false", True),
+        ("!(a.b == 'x')", False),
+        ("a.b in {'x', 'y'}", False),
+    ],
+)
+def test_the_tripwire_reads_the_grammar(when: str, needs_bool: bool) -> None:
+    assert requires_bool(parse_when(when)) is needs_bool
+
+
+def test_tripwire_no_served_red_rule_can_fire_through_the_hop() -> None:
+    """INT-465 finding 6; INT-475 (GitHub #814) owns the fix.
+
+    The ON_SITE RED says "Görevlilere haber verildi." and the hop notifies no clinic.
+    That copy may stand on the synthetic host only while no served RED rule can reach a
+    patient through the hop: every active KIRMIZI rule in base.life_threat needs a
+    boolean answer, which the hop cannot carry. When this test or the schema pin below
+    fails, a RED can reach a patient through the hop, and finding 6 closes in the same
+    PR (INT-475: the hop raises the Safety-inbox entry and the device's location answer
+    reaches the server).
+    """
+    served = load_life_threat_set(LIFE_THREAT)
+    reds = [
+        entry.rule
+        for entry in served.rules
+        if entry.rule.status is RuleStatus.ACTIVE and entry.rule.level.value.startswith("KIRMIZI")
+    ]
+    assert [rule.id for rule in reds] == [CARDIAC]
+    for rule in reds:
+        assert requires_bool(parse_when(rule.when)), rule.id
+    # Near miss: the SENTETİK rule fires through the hop from a string answer
+    # (test_red_answer_returns_the_data_channel_packet), and the tripwire says so.
+    sentetik = load_life_threat_set(SIGNED, allow_fixture_snapshots=True).rules[0].rule
+    assert not requires_bool(parse_when(sentetik.when))
+
+
+#: The served cardiac rule's firing answers, with its `now` tense anchor dated, so
+#: the answer's TYPE is the only thing that can keep it from firing.
+CARDIAC_FIRING: dict[str, bool | str] = {
+    "chest_pain.present": True,
+    "associated.dyspnoea": True,
+    "chest_pain.onset_at": "2026-08-29",
+}
+
+
+def test_tripwire_the_hop_refuses_a_json_boolean_answer(tmp_path: Path) -> None:
+    """The schema half of the tripwire above: a JSON boolean is a 422, so the served
+    cardiac rule's boolean atoms stay unbindable through the hop (INT-475)."""
+    # Positive control: these exact answers, as typed booleans, DO fire the served
+    # cardiac rule in the engine — so the near miss below is held by type alone.
+    served = [
+        entry.rule
+        for entry in load_life_threat_set(LIFE_THREAT).rules
+        if entry.rule.status is RuleStatus.ACTIVE
+    ]
+    context = TriageContext(
+        reference_time=datetime.fromisoformat(REFERENCE_TIME),
+        answers={
+            slot: SlotAnswer(state=AnswerState.ASKED_PRESENT, values=(value,))
+            for slot, value in CARDIAC_FIRING.items()
+        },
+    )
+    fired = evaluate_triage(served, context, RedLocation.ON_SITE).result
+    assert fired.level is TriageLevel.RED
+    assert fired.red_rule_id == CARDIAC
+    for harness in _synthetic(tmp_path):
+        response = harness.client.post(
+            "/v1/triage/evaluate",
+            headers=harness.patient(),
+            json={
+                "location": "ON_SITE",
+                "reference_time": REFERENCE_TIME,
+                "answers": CARDIAC_FIRING,
+            },
+        )
+        assert response.status_code == 422, response.text
+        # Near miss: the same three answers as strings, anchor dated, are accepted,
+        # and no RED comes back: "true" is not true.
+        strings = {slot: str(value).lower() for slot, value in CARDIAC_FIRING.items()}
+        assert strings["chest_pain.onset_at"] == "2026-08-29"
+        body = _evaluate(harness, strings, "ON_SITE")
+        assert body["kind"] == "triage_level", body
+
+
+def test_a_synthetic_tenant_refuses_a_changed_byte(tmp_path: Path) -> None:
+    tampered = tmp_path / "base.life_threat.yaml"
+    tampered.write_bytes(LIFE_THREAT.read_bytes() + b"\n")
+    for harness in _synthetic(tmp_path, rules=tampered):
+        _assert_closed(harness)

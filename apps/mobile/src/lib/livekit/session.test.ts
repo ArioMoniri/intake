@@ -9,8 +9,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createVoiceSession, type AppLifecycle, type VoiceSessionDeps } from "./session";
 import type { VoiceSessionEvent } from "./events";
-import { redAffordances } from "../motion/red";
-import { GENERIC_RED_SCRIPT_IDS, genericRed, type RedScriptCatalog } from "./red";
+import type { PrePositionedRed } from "../red/hop";
+import { createRedStore, redScreen } from "../red/store";
+import { GENERIC_RED_SCRIPT_IDS } from "./red";
 import type { RoomAdapter, RoomCredentials, RuntimeEnvironment, TransportSample } from "./types";
 
 const SESSION_ID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
@@ -108,21 +109,55 @@ class FakeAdapter implements RoomAdapter {
   }
 }
 
-const RED_SCRIPTS: RedScriptCatalog = {
-  "life_threat.chest_pain.remote": {
-    primary: "CALL_112",
-    show112: true,
-    actionTr: "Hemen 112'yi arayın.",
-    doNotsTr: ["Araç kullanmayın."],
-    whyTr: "Belirtileriniz acil değerlendirme gerektirebilir.",
+/**
+ * The pre-positioned RED the session holds before it starts (invariant 21):
+ * SENTETİK copy, CD-24's generic entries and one rule's three locations.
+ */
+const RED: PrePositionedRed = {
+  scripts: {
+    [GENERIC_RED_SCRIPT_IDS.REMOTE]: {
+      primary: "CALL_112",
+      show112: true,
+      actionTr: "Sentetik genel yönerge.",
+      doNotsTr: [],
+      whyTr: null,
+    },
+    [GENERIC_RED_SCRIPT_IDS.ON_SITE]: {
+      primary: "GO_TO_IN_HOUSE_ACIL",
+      show112: false,
+      actionTr: "Sentetik yerinde yönerge.",
+      doNotsTr: [],
+      whyTr: null,
+    },
+    "life_threat.chest_pain.remote": {
+      primary: "CALL_112",
+      show112: true,
+      actionTr: "Hemen 112'yi arayın.",
+      doNotsTr: ["Araç kullanmayın."],
+      whyTr: "Sentetik açıklama.",
+    },
+    "life_threat.chest_pain.on_site": {
+      primary: "GO_TO_IN_HOUSE_ACIL",
+      // The pack authorises 112 here; ON_SITE must still suppress it.
+      show112: true,
+      actionTr: "En yakın görevliye hemen haber verin.",
+      doNotsTr: [],
+      whyTr: null,
+    },
   },
-  "life_threat.chest_pain.on_site": {
-    primary: "GO_TO_IN_HOUSE_ACIL",
-    // The pack authorises 112 here; ON_SITE must still suppress it.
-    show112: true,
-    actionTr: "En yakın görevliye hemen haber verin.",
-    doNotsTr: [],
-    whyTr: null,
+  questions: {
+    [GENERIC_RED_SCRIPT_IDS.UNKNOWN]: {
+      askTr: "Şu anda hastanede misiniz?",
+      onYes: "ON_SITE",
+      onNo: "REMOTE",
+      onNoAnswer: "REMOTE",
+    },
+    "life_threat.chest_pain.unknown": {
+      askTr: "Şu anda hastanede misiniz?",
+      onYes: "ON_SITE",
+      onNo: "REMOTE",
+      onNoAnswer: "REMOTE",
+    },
   },
 };
 
@@ -148,7 +183,8 @@ function harness(over: Partial<VoiceSessionDeps> = {}, adapter = new FakeAdapter
       },
     },
     createAdapter: async () => adapter,
-    redScripts: RED_SCRIPTS,
+    red: RED,
+    redStore: createRedStore(),
     now: () => clock,
     sleep: async () => undefined,
     jitter: () => 0.5,
@@ -439,165 +475,164 @@ describe("background and interruption", () => {
 });
 
 describe("RED over the data channel (invariant 21)", () => {
-  it("renders with the media plane torn down", async () => {
+  // INT-465 round 3: the LiveKit lane hands a RED to the same store and screen the
+  // HTTP hop uses (lib/red/store.ts), so UNKNOWN asks first, a missing script shows
+  // CD-24's generic copy, and a wordless generic is a failure on both lanes alike.
+  async function started(over: Partial<VoiceSessionDeps> = {}) {
     const adapter = new FakeAdapter();
-    const { deps } = harness({}, adapter);
+    const store = createRedStore();
+    const { deps } = harness({ redStore: store, ...over }, adapter);
     const session = createVoiceSession(deps);
     await session.start();
     const events = collect(session);
+    return { adapter, store, session, events };
+  }
 
+  const trigger = (
+    location: "REMOTE" | "ON_SITE" | "UNKNOWN",
+    register: "ALERT" | "CALM" | "SILENT" | "DEFERRED_CLINICIAN" = "ALERT",
+    scriptId = `life_threat.chest_pain.${location.toLowerCase()}`,
+  ) => ({
+    kind: "red_trigger",
+    ruleId: "life_threat.chest_pain",
+    register,
+    location,
+    scriptId,
+  });
+
+  it("renders with the media plane torn down", async () => {
+    const { adapter, store, events } = await started();
     // Tear the media plane down: every media call now throws.
     await adapter.disconnect();
     expect(adapter.mediaDown).toBe(true);
     await expect(adapter.sampleTransport()).rejects.toThrow();
 
-    adapter.pushData({
-      kind: "red_trigger",
-      ruleId: "life_threat.chest_pain",
+    adapter.pushData(trigger("REMOTE"));
+
+    expect(events).toContainEqual({ type: "red", trigger: trigger("REMOTE") });
+    expect(redScreen(store.getSnapshot())).toMatchObject({
+      kind: "act",
       register: "ALERT",
       location: "REMOTE",
-      scriptId: "life_threat.chest_pain.remote",
+      actionTr: "Hemen 112'yi arayın.",
+      call112: true,
     });
-
-    const red = events.find((e) => e.type === "red");
-    expect(red).toBeDefined();
-    if (red?.type !== "red") {
-      throw new Error("expected a red event");
-    }
-    expect(red.presentation.register).toBe("ALERT");
-    expect(red.presentation.location).toBe("REMOTE");
-    expect(red.presentation.script.actionTr).toBe("Hemen 112'yi arayın.");
-    expect(red.presentation.show112).toBe(true);
   });
 
   it("suppresses the 112 affordance under ON_SITE even when the pack allows it", async () => {
-    const adapter = new FakeAdapter();
-    const { deps } = harness({}, adapter);
-    const session = createVoiceSession(deps);
-    await session.start();
-    const events = collect(session);
-
-    adapter.pushData({
-      kind: "red_trigger",
-      ruleId: "life_threat.chest_pain",
-      register: "ALERT",
+    const { adapter, store } = await started();
+    adapter.pushData(trigger("ON_SITE"));
+    expect(redScreen(store.getSnapshot())).toMatchObject({
       location: "ON_SITE",
-      scriptId: "life_threat.chest_pain.on_site",
+      call112: false,
     });
+  });
 
-    const red = events.find((e) => e.type === "red");
-    if (red?.type !== "red") {
-      throw new Error("expected a red event");
-    }
-    expect(red.presentation.show112).toBe(false);
+  it("under UNKNOWN the rule's question comes first, with no 112 and no script (ask-first)", async () => {
+    const { adapter, store } = await started();
+    adapter.pushData(trigger("UNKNOWN"));
+    const screen = redScreen(store.getSnapshot());
+    expect(screen).toMatchObject({
+      kind: "ask",
+      askTr: "Şu anda hastanede misiniz?",
+    });
+    expect("call112" in screen || "actionTr" in screen).toBe(false);
+    // Near miss: "hayır" then shows the REMOTE script with 112.
+    store.answerLocation("notInHospital");
+    expect(redScreen(store.getSnapshot())).toMatchObject({
+      location: "REMOTE",
+      call112: true,
+    });
   });
 
   // INT-453: a RED whose script is not on this device is still a RED on screen.
   it.each([
-    ["REMOTE", true],
-    ["UNKNOWN", true],
-    ["ON_SITE", false],
+    ["REMOTE", "Sentetik genel yönerge.", true],
+    ["ON_SITE", "Sentetik yerinde yönerge.", false],
   ] as const)(
-    "shows the generic RED when the script is not pre-positioned (%s → 112 %s)",
-    async (location, show112) => {
-      const adapter = new FakeAdapter();
-      const { deps } = harness({}, adapter);
-      const session = createVoiceSession(deps);
-      await session.start();
-      const events = collect(session);
-
-      adapter.pushData({
-        kind: "red_trigger",
-        ruleId: "life_threat.unknown",
-        register: "CALM",
+    "shows CD-24's generic copy when the script is not pre-positioned (%s)",
+    async (location, actionTr, call112) => {
+      const { adapter, store } = await started();
+      adapter.pushData(trigger(location, "CALM", "life_threat.not.on.this.device"));
+      expect(redScreen(store.getSnapshot())).toMatchObject({
+        kind: "act",
+        register: "CALM", // the engine result's own, never a fixed ALERT (CD-24)
         location,
-        scriptId: "life_threat.not.on.this.device",
+        actionTr,
+        call112,
       });
-
-      const red = events.find((e) => e.type === "red");
-      if (red?.type !== "red") {
-        throw new Error("expected a red event: the patient must be shown a RED");
-      }
-      // CD-24: the trigger's own register and location; no invented words.
-      expect(red.presentation.register).toBe("CALM");
-      expect(red.presentation.location).toBe(location);
-      expect(red.presentation.show112).toBe(show112);
-      expect(red.presentation.script.actionTr).toBe("");
     },
   );
 
-  it("a generic RED is told in the engine result's own register, never a fixed ALERT (CD-24)", () => {
-    for (const register of ["ALERT", "CALM", "SILENT"] as const) {
-      for (const scriptId of [GENERIC_RED_SCRIPT_IDS.REMOTE, "life_threat.not.on.this.device"]) {
-        const shown = genericRed(
-          {
-            kind: "red_trigger",
-            ruleId: "life_threat.unknown",
-            register,
-            location: "REMOTE",
-            scriptId,
-          },
-          {},
-        );
-        expect(shown.register).toBe(register);
-      }
-    }
+  it("a generic RED under UNKNOWN asks the generic question first (files/04 §8.1 rule 7)", async () => {
+    const { adapter, store } = await started();
+    adapter.pushData(trigger("UNKNOWN", "SILENT", "life_threat.not.on.this.device"));
+    expect(redScreen(store.getSnapshot())).toMatchObject({
+      kind: "ask",
+      mode: "inFlow",
+      register: "SILENT",
+    });
   });
 
-  it("a generic RED under UNKNOWN asks the one location question before any 112 (files/04 §8.1 rule 7)", () => {
-    const at = (location: "REMOTE" | "ON_SITE" | "UNKNOWN") =>
-      genericRed(
-        {
-          kind: "red_trigger",
-          ruleId: "life_threat.unknown",
-          register: "ALERT",
-          location,
-          scriptId: GENERIC_RED_SCRIPT_IDS[location],
+  it("a clinician-only RED changes nothing on the patient's screen (near miss)", async () => {
+    const { adapter, store } = await started();
+    adapter.pushData(trigger("REMOTE", "DEFERRED_CLINICIAN"));
+    expect(redScreen(store.getSnapshot())).toEqual({ kind: "none" });
+  });
+
+  // INT-465, review round 2.
+  describe("CD-24 generic_red_silent_is_never_wordless — the session", () => {
+    const wordless: PrePositionedRed = {
+      ...RED,
+      scripts: {
+        ...RED.scripts,
+        [GENERIC_RED_SCRIPT_IDS.ON_SITE]: {
+          ...RED.scripts[GENERIC_RED_SCRIPT_IDS.ON_SITE],
+          actionTr: "",
         },
-        {},
-      );
-    // UNKNOWN: the question first, never a guessed 112…
-    expect(redAffordances(at("UNKNOWN"), "unanswered")).toEqual({
-      call112: false,
-      askLocation: true,
-    });
-    expect(redAffordances(at("UNKNOWN"), "notInHospital").call112).toBe(true);
-    expect(redAffordances(at("UNKNOWN"), "inHospital").call112).toBe(false);
-    // …REMOTE shows it at once, and ON_SITE never does (near misses).
-    expect(redAffordances(at("REMOTE"), "unanswered").call112).toBe(true);
-    expect(redAffordances(at("ON_SITE"), "notInHospital")).toEqual({
-      call112: false,
-      askLocation: false,
-    });
-  });
+      },
+    };
+    const { [GENERIC_RED_SCRIPT_IDS.UNKNOWN]: _question, ...noQuestion } = RED.questions;
+    it.each([
+      ["no generic copy", { scripts: {}, questions: {} }],
+      ["a wordless ON_SITE", wordless],
+      ["no generic question", { ...RED, questions: noQuestion }],
+    ] as const)(
+      "refuses to start with %s, before the microphone or a token",
+      async (_name, red) => {
+        const asked: string[] = [];
+        const { deps, tokenFetches } = harness({
+          red,
+          permission: {
+            request: async () => {
+              asked.push("mic");
+              return { granted: true };
+            },
+          },
+        });
+        const session = createVoiceSession(deps);
+        const events = collect(session);
+        await session.start();
+        expect(session.phase).toBe("failed");
+        expect(events).toContainEqual({
+          type: "failed",
+          reason: "red_copy_missing",
+        });
+        expect(asked).toEqual([]);
+        expect(tokenFetches()).toBe(0);
+      },
+    );
 
-  it("uses the generic script's own words once one is pre-positioned (near miss: none invented)", () => {
-    const signed = {
-      primary: "GENERIC_ESCALATION",
-      show112: true,
-      actionTr: "Sentetik genel yönerge.",
-      doNotsTr: [],
-      whyTr: null,
-    };
-    const trigger = {
-      kind: "red_trigger" as const,
-      ruleId: "life_threat.unknown",
-      register: "SILENT" as const,
-      location: "ON_SITE" as const,
-      scriptId: "life_threat.not.on.this.device",
-    };
-    const shown = genericRed(trigger, { [GENERIC_RED_SCRIPT_IDS.ON_SITE]: signed });
-    expect(shown.script).toBe(signed);
-    expect(shown.show112).toBe(false); // ON_SITE clamps even a script that authorises 112
-    expect(genericRed(trigger, {}).script.actionTr).toBe("");
+    it("near miss: with the generic copy the same session starts", async () => {
+      const { deps } = harness();
+      const session = createVoiceSession(deps);
+      await session.start();
+      expect(session.phase).toBe("connected");
+    });
   });
 
   it("ignores non-RED and malformed traffic without emitting anything", async () => {
-    const adapter = new FakeAdapter();
-    const { deps } = harness({}, adapter);
-    const session = createVoiceSession(deps);
-    await session.start();
-    const events = collect(session);
+    const { adapter, store, events } = await started();
 
     adapter.pushData({ kind: "transcript", text: "karnım ağrıyor" });
     adapter.pushData({ kind: "red_trigger", ruleId: "x", scriptId: "y" }); // no axes
@@ -610,5 +645,6 @@ describe("RED over the data channel (invariant 21)", () => {
     });
 
     expect(events).toEqual([]);
+    expect(store.getSnapshot()).toBeNull();
   });
 });
