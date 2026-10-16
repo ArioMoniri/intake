@@ -7553,3 +7553,24 @@
     - "tests/protocols/test_int519_decisions.py pins that the decisions are machine-readable and internally consistent, with near-miss controls; the register's provenance tests stay green."
   tests: [tests/protocols/test_int519_decisions.py, tests/protocols/test_clinical_decisions.py, tests/protocols/test_signoff_packet_decisions.py]
   sec_row: "clinical-content"
+- id: INT-546
+  epic: E03-protocols
+  phase: P1
+  title: "Apply INT-519's verified D18 decisions — 'hayır' cluster gates, per-question hedge mappings, per-cause anchor follow-ups, close-time onset resolution"
+  # GitHub #925, 16 Oct 2026. Builds what INT-519 (#924) decided and verified
+  # (CD-112 r1, CD-04 r3, CD-05 r3, CD-100 r4): items 2, 3, 5, 8, 10 and 11.
+  # Items 1 and 4 wait on #833 and #804 and moved to INT-549 (#929); item 7
+  # waits on item 6 (HB-C1). The CD-08 chest_pain_arms_unresolved item is
+  # INT-547's (#927); this issue leaves the hook it plugs into. Stacked on
+  # INT-519 (PR #924).
+  depends_on: [INT-519, INT-540]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-546.md
+  acceptance:
+    - "Items 2, 3: cluster YAML gates and proposal gen: lines read != 'hayır' (bagisiklik_tedavisinde_enfeksiyon, gebelik_dogrulandi; CD-100 T4(b)'s five items take the same literal when T4 is applied); per-question answer mappings for immunosuppression and pregnancy_status are read before CD-04's general hedges; CD-100's quote of the womens_health gate is updated in the same change; goldens with near-miss controls; make safety."
+    - "Items 5, 8 (runtime): the anchor reads tense_anchor_follow_up_tr_asks {hedge: 0, no_choice: 1}; the hedged choice is kept on the record, never bound; INT-540's hedge tests are updated."
+    - "Items 10, 11: SessionCloseHandler evaluates a never-asked onset anchor at close (never_asked_at_close) when chest pain was affirmed, and hands the anchor to the CD-08 chest_pain_arms_unresolved hook; an asked-unanswered anchor carries the session_closed label."
+    - "Invariants 1, 7, 10, 17, 21 hold; both profiles for the runtime items; make safety and runtime-sim (both profiles, PARITY=1) green; protocols coverage >= 95 %, triage 100 %."
+  tests: [tests/protocols/test_int546_cluster_gates.py, tests/protocols/test_answer_mappings.py, tests/protocols/test_answer_states.py, tests/protocols/test_anchor_choices.py, tests/voice/test_int546_anchor_causes.py, tests/voice/test_int546_answer_mappings.py, tests/voice/test_anchor_unclear.py, tests/engine/test_clarification_bounds.py, tests/safety/test_triage_goldens.py]
+  sec_row: "clinical-core"

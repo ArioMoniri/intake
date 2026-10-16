@@ -142,10 +142,47 @@ def test_the_follow_up_bound_is_cd04s_once_read_from_the_decision() -> None:
 
 @pytest.mark.parametrize("asks", [0, 1, 2])
 def test_an_amendment_to_the_bound_changes_data_and_not_code(asks: int) -> None:
-    """INT-519 item 5 (the D18 lane) may resolve an explicit hedge at once. When
-    it lands, the decision's number changes and this module reads it."""
+    """The decision-wide number is read, whatever it says."""
     amended = _mutated(lambda value: value.__setitem__("unclear_follow_up_tr_asks", asks))
     assert answer_state_table(amended).unclear_follow_up_tr_asks == asks
+
+
+# --- 1b · CD-04 round 3: the tense anchor's bound, by cause (INT-546) ------------------
+
+
+def test_the_tense_anchor_bound_is_cd04s_round_3_split_read_from_the_decision() -> None:
+    """INT-519 item 5, decided in CD-04 round 3: on a tense anchor a hedge takes
+    no follow-up and an answer that binds no choice takes one. The build reads
+    the per-cause key; the decision-wide once still governs every other slot."""
+    raw = _raw()["value"]
+    table = _table()
+    assert dict(table.tense_anchor_follow_up_tr_asks) == raw["tense_anchor_follow_up_tr_asks"]
+    assert dict(table.tense_anchor_follow_up_tr_asks) == {"hedge": 0, "no_choice": 1}
+    # near miss: the round-3 split leaves the decision-wide once unchanged
+    assert table.unclear_follow_up_tr_asks == raw["unclear_follow_up_tr_asks"] == 1
+
+
+@pytest.mark.parametrize(("hedge", "no_choice"), [(0, 1), (1, 1), (0, 2), (2, 0)])
+def test_an_amendment_to_a_cause_bound_changes_data_and_not_code(
+    hedge: int, no_choice: int
+) -> None:
+    amended = _mutated(
+        _set(("tense_anchor_follow_up_tr_asks",), {"hedge": hedge, "no_choice": no_choice})
+    )
+    assert dict(answer_state_table(amended).tense_anchor_follow_up_tr_asks) == {
+        "hedge": hedge,
+        "no_choice": no_choice,
+    }
+
+
+def test_the_unresolved_anchor_item_is_cd04s_own_inbox_kind() -> None:
+    """CD-04 ``unresolved_after_follow_up``: the CD-08 item the anchor raises
+    once its cause's bound is spent (``anchor_trigger``), read, not written."""
+    raw = _raw()["value"]["unresolved_after_follow_up"]
+    item = _table().unresolved_inbox
+    assert (item.decision_ref, item.kind) == (raw["decision_ref"], raw["kind"])
+    assert (item.decision_ref, item.kind) == ("CD-08", "chest_pain_arms_unresolved")
+    assert "anchor_trigger" in raw
 
 
 # --- 2 · what each entry reads as, and where -----------------------------------------
@@ -325,6 +362,25 @@ REFUSALS = [
     pytest.param(_drop(("entries", 1, "present_qualified_upgrade")), id="draft-no-upgrade"),
     pytest.param(_set(("entries", 0, "slots"), [ANY_SLOT]), id="pq-on-every-slot"),
     pytest.param(_duplicate_bilmiyorum, id="duplicate-entry"),
+    # INT-546: CD-04 round 3's per-cause bound and the anchor's inbox item
+    pytest.param(_drop(("tense_anchor_follow_up_tr_asks",)), id="no-cause-bounds"),
+    pytest.param(_set(("tense_anchor_follow_up_tr_asks",), 1), id="cause-bounds-not-a-mapping"),
+    pytest.param(_set(("tense_anchor_follow_up_tr_asks",), {"hedge": 0}), id="a-cause-missing"),
+    pytest.param(
+        _set(
+            ("tense_anchor_follow_up_tr_asks",),
+            {"hedge": 0, "no_choice": 1, "session_closed": 0},
+        ),
+        id="an-extra-cause",
+    ),
+    pytest.param(_set(("tense_anchor_follow_up_tr_asks", "hedge"), -1), id="negative-cause"),
+    pytest.param(_set(("tense_anchor_follow_up_tr_asks", "hedge"), False), id="boolean-cause"),
+    pytest.param(_set(("tense_anchor_follow_up_tr_asks", "no_choice"), "1"), id="string-cause"),
+    pytest.param(_drop(("unresolved_after_follow_up",)), id="no-unresolved-item"),
+    pytest.param(_set(("unresolved_after_follow_up", "kind"), ""), id="unresolved-no-kind"),
+    pytest.param(_drop(("unresolved_after_follow_up", "decision_ref")), id="unresolved-no-ref"),
+    pytest.param(_set(("unresolved_after_follow_up", "action"), "note_only"), id="not-inbox"),
+    pytest.param(_set(("unresolved_after_follow_up", "never_dropped"), False), id="item-may-drop"),
 ]
 
 

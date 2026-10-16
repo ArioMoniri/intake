@@ -17,8 +17,16 @@ The close is one state-lane Work, ``close_session``:
   the protocol holds that is ``ASKED_PENDING`` — its follow-up pending
   included — :meth:`~intake_voice_runtime.clinical_agent.fsm.IntakeEngine.close_unanswered`
   records UNCLEAR and the gap, exactly what a spent clarification records,
-  and CD-05 resolves it to the reference day. A step that was never asked is
-  not touched (files/13 §9.6); nor is any slot that is not an anchor.
+  and CD-05 resolves it to the reference day, labelled ``session_closed``
+  (INT-546, CD-05 round 3 item 11). No slot that is not an anchor is touched.
+- **It reads a never-asked anchor once, binding nothing** (INT-546, CD-05
+  round 3 item 10). An anchor still NOT_ASKED whose gate is open —
+  ``chest_pain.present == true`` — is marked ``never_asked_at_close``: the
+  rules engine evaluates the close with it read as the reference day, and the
+  slot itself stays NOT_ASKED, so nothing binds to a question that was not
+  asked (files/13 §9.6). A gate that is shut or Unknown reads nothing.
+- **Each anchor it resolves is handed to the CD-08 hook** (CD-04
+  ``anchor_trigger``), once, by :class:`SessionAnchors`.
 - **It decides nothing.** The handler returns an empty effect. The queue
   compares the answers the served rules read before and after it, as it does
   for every state Work, and the rules engine — and nothing else — evaluates
@@ -67,7 +75,7 @@ def close_request(*, session_id: str, protocol_hash: str) -> WorkRequest:
 
 @dataclass
 class SessionCloseHandler:
-    """Close each asked, unanswered tense anchor; decide nothing."""
+    """Close each asked, unanswered tense anchor and read each never-asked one; decide nothing."""
 
     anchors: SessionAnchors | None
     #: The anchors the protocol holds — the only steps this handler may close.
@@ -77,11 +85,16 @@ class SessionCloseHandler:
 
     def __call__(self, context: StateContext) -> StateEffect:
         engine = context.engine
-        if self.anchors is None:
+        anchors = self.anchors
+        if anchors is None:
             return StateEffect()
-        for anchor in sorted(self.anchors.refs.intersection(self.steps)):
-            if engine.state_of(anchor) is AnswerState.ASKED_PENDING:
+        for anchor in sorted(anchors.refs.intersection(self.steps)):
+            state = engine.state_of(anchor)
+            if state is AnswerState.ASKED_PENDING:
                 engine.close_unanswered(anchor)
-                self.anchors.note_unclear(anchor, UnclearCause.SESSION_CLOSED)
+                anchors.note_unclear(anchor, UnclearCause.SESSION_CLOSED)
+                anchors.settle(engine, anchor)
                 self.closed.append(anchor)
+            elif state is AnswerState.NOT_ASKED:
+                anchors.close_never_asked(engine, anchor)
         return StateEffect()

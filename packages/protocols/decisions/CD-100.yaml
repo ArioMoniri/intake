@@ -562,8 +562,8 @@ spec_basis:
     supports: "T4: the base gate keeps an unsure answer that a boolean loses"
   - file: packages/protocols/review/cluster/womens_health.yaml
     section: "sorular.gebelik_dogrulandi"
-    quote: "ask_if: pregnancy_status != 'hayir'"
-    supports: "T4: the cluster already gates its pregnancy items on the base slot"
+    quote: "ask_if: pregnancy_status != 'hayır'"
+    supports: "T4: the cluster already gates its pregnancy items on the base slot, since INT-546 with the authored literal CD-112 item 3 decides (the 'hayir' spelling it replaced matched no answer)"
   - file: files/13_QUESTION_FLOW.md
     section: "§9.2 The frontier"
     quote: "UNKNOWN does NOT open a gate"

@@ -310,6 +310,23 @@ value:
       opens_on: ["evet", "emin değilim"]
       closes_on: ["hayır"]
       hedges: "CD-100 T4(c): 'bilmiyorum' and every hedge record 'emin değilim', never UNCLEAR, never 'hayır'"
+      # INT-546: the `hedges` line above, machine-readable for the runtime, in the
+      # shape gates[1].hedge_mapping already has. A restatement of CD-100 T4(c) and
+      # of this record's own verified reading; it adds no value and changes none.
+      # No unresolved_after_follow_up here: CD-100 round 4 names an answer still
+      # off-choice after the follow-up as the remaining gap (UNCLEAR), so it is not
+      # mapped.
+      hedge_mapping:
+        slot: pmh_fh_sh.pregnancy_status
+        records_choice: "emin değilim"
+        reads: "'bilmiyorum', every CD-04 entry that reads on '*', and any unmatched hedge"
+        never: [UNCLEAR, "hayır"]
+        plain_negative_only: "hayır"
+        plain_negative_is: "a plain negative to the scripted question itself (CD-04: 'hayır', 'yok', 'olmadı')"
+        precedence: "on this slot the mapping is read before CD-04's '*' entries (CD-100 T4(c))"
+        record_label_by_source:
+          hedge: mapped_from_hedge
+        decided_in: "CD-100 T4 (c)"
       also_applies_to:
         record: CD-100
         ref: "T4 (b)"

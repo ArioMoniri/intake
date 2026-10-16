@@ -48,6 +48,27 @@ it UNCLEAR too (:mod:`intake_voice_runtime.clinical_agent.session_close`).
 :attr:`SessionAnchors.unclear` keeps each such reading and its cause — ids and
 CD-04 qualifiers, never the patient's words.
 
+**The bound is per cause, and the close reaches every anchor** (INT-546,
+applying INT-519's CD-04 round 3 and CD-05 round 3):
+
+- :meth:`SessionAnchors.follow_up_bound` is CD-04's
+  ``tense_anchor_follow_up_tr_asks`` for the cause — none for a hedge, one for
+  an answer that binds no choice — and :meth:`SessionAnchors.follow_up_bounds`
+  hands the engine the larger as the anchor's ceiling. A hedge therefore
+  resolves on the Work that read it.
+- A hedge beside an authored choice keeps that choice on the reading
+  (``hedged_choice``) and on the record, never bound (CD-04 round 3 item 8).
+- The record of an unresolved anchor carries CD-05's label for its cause.
+- An anchor never asked when the session closes, while its gate —
+  ``chest_pain.present == true`` — is open, is read once as CD-05's
+  ``never_asked_at_close`` day (:meth:`SessionAnchors.close_never_asked`); the
+  slot stays NOT_ASKED and nothing binds.
+- Every anchor left unresolved — its cause's bound spent, ``session_closed``,
+  or ``never_asked_at_close`` — is handed once to
+  :class:`AnchorUnresolvedHook`, where the CD-08 ``chest_pain_arms_unresolved``
+  clinic-inbox item plugs in (INT-547 builds the item). The trigger is kept on
+  :attr:`SessionAnchors.unresolved_triggers` whether or not a hook is wired.
+
 Nothing here produces a triage level (invariant 1): it dates an anchor; the
 rules engine alone decides whether the date and the gate fire a rule.
 """
@@ -58,15 +79,22 @@ import enum
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Protocol
 
 from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from protocols.anchor_choices import AnchorChoiceError, AnchorChoiceTable, AnchorResolution
-from protocols.answer_states import AnswerStateError, AnswerStateTable, HedgeState
+from protocols.answer_states import AnswerStateError, AnswerStateTable, HedgeState, InboxItemRef
 
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 
-__all__ = ["SessionAnchors", "UnclearAnswer", "UnclearCause"]
+__all__ = [
+    "AnchorUnresolved",
+    "AnchorUnresolvedHook",
+    "SessionAnchors",
+    "UnclearAnswer",
+    "UnclearCause",
+]
 
 
 class UnclearCause(enum.StrEnum):
@@ -90,6 +118,8 @@ class UnclearAnswer:
     #: The CD-04 entry's qualifier, for a hedge; otherwise ``None``.
     qualifier: str | None
     decision_id: str
+    #: The authored choice a hedge leaned to — kept, never bound (INT-546).
+    hedged_choice: str | None = None
 
     def __repr__(self) -> str:
         return (
@@ -101,17 +131,50 @@ class UnclearAnswer:
         return self.__repr__()
 
 
+@dataclass(frozen=True)
+class AnchorUnresolved:
+    """One anchor left unresolved, as the CD-08 clinic-inbox item needs it (INT-546).
+
+    Ids and labels only (invariant 6): the anchor's step id, CD-05's label for
+    why it is unresolved, the item kind and the decisions behind it, as the
+    decisions name them (CD-04 ``unresolved_after_follow_up``, CD-05
+    ``never_asked_at_close.inbox_item``).
+    """
+
+    anchor: str
+    label: str
+    kind: str
+    decision_ids: tuple[str, ...]
+
+
+class AnchorUnresolvedHook(Protocol):
+    """Where an unresolved anchor's CD-08 ``chest_pain_arms_unresolved`` item is raised.
+
+    The item itself — its inbox entry, audit row and once-per-session id — is
+    INT-547's; this hook is the one place it plugs in. It is called on the
+    Backend lane under the engine lock and must not block (invariant 9).
+    """
+
+    def anchor_unresolved(self, trigger: AnchorUnresolved) -> None: ...
+
+
 @dataclass
 class SessionAnchors:
     """One session's CD-05 and CD-04 tables, and the record of each anchor."""
 
     table: AnchorChoiceTable
-    #: CD-04 (INT-540): which answers are UNCLEAR, and the follow-up bound.
+    #: CD-04 (INT-540): which answers are UNCLEAR, and the follow-up bounds.
     answer_states: AnswerStateTable
+    #: INT-546: where an unresolved anchor's CD-08 item is raised, if wired.
+    hook: AnchorUnresolvedHook | None = None
     #: ``{anchor step id: its latest resolution}`` — the choice beside the day.
     record: dict[str, AnchorResolution] = field(default_factory=dict, init=False)
     #: Every UNCLEAR reading of an anchor, in order (INT-540).
     unclear: list[UnclearAnswer] = field(default_factory=list, init=False)
+    #: Every unresolved anchor handed to the hook, in order, once each (INT-546).
+    unresolved_triggers: list[AnchorUnresolved] = field(default_factory=list, init=False)
+    #: Anchors the close found never asked with their gate open (CD-05 item 10).
+    never_asked: set[str] = field(default_factory=set, init=False)
 
     def __post_init__(self) -> None:
         """A tense anchor is a date: CD-04 may read it UNCLEAR, never present."""
@@ -127,25 +190,35 @@ class SessionAnchors:
         """The step ids CD-05 resolves: its active anchors."""
         return self.table.anchors
 
+    def follow_up_bound(self, cause: UnclearCause) -> int:
+        """CD-04 round 3: the follow-up asks an anchor gets for this cause."""
+        return self.answer_states.tense_anchor_follow_up_tr_asks[cause.value]
+
     def follow_up_bounds(self, steps: Collection[str]) -> dict[str, int]:
-        """CD-04's follow-up bound for each anchor among ``steps``."""
-        asks = self.answer_states.unclear_follow_up_tr_asks
+        """The engine's ceiling for each anchor among ``steps``: the larger cause bound."""
+        asks = max(self.answer_states.tense_anchor_follow_up_tr_asks.values())
         return {ref: asks for ref in sorted(self.refs.intersection(steps))}
 
-    def unclear_cause(self, anchor: str, text: str, chose: bool) -> UnclearCause | None:
+    def unclear_cause(
+        self, anchor: str, text: str, choice: JsonValue | None
+    ) -> UnclearCause | None:
         """Why this answer to the asked ``anchor`` is UNCLEAR, or ``None``.
 
-        ``chose`` says whether the extraction bound an authored choice. A
-        CD-04 hedge is UNCLEAR whatever the model chose; with no hedge, an
-        answer that bound no choice is UNCLEAR too. The reading is recorded.
+        ``choice`` is the authored choice the extraction bound, or ``None``. A
+        CD-04 hedge is UNCLEAR whatever the model chose, and the choice it
+        leaned to is kept as ``hedged_choice``; with no hedge, an answer that
+        bound no choice is UNCLEAR too. The reading is recorded.
         """
         reading = self.answer_states.read(anchor, text)
         if reading is not None and reading.state is HedgeState.UNCLEAR:
+            leaned = choice if isinstance(choice, str) else None
             self.unclear.append(
-                UnclearAnswer(anchor, UnclearCause.HEDGE, reading.qualifier, reading.decision_id)
+                UnclearAnswer(
+                    anchor, UnclearCause.HEDGE, reading.qualifier, reading.decision_id, leaned
+                )
             )
             return UnclearCause.HEDGE
-        if chose:
+        if choice is not None:
             return None
         self.note_unclear(anchor, UnclearCause.NO_CHOICE)
         return UnclearCause.NO_CHOICE
@@ -153,6 +226,44 @@ class SessionAnchors:
     def note_unclear(self, anchor: str, cause: UnclearCause) -> None:
         """Record an UNCLEAR reading CD-05 decides the resolution of."""
         self.unclear.append(UnclearAnswer(anchor, cause, None, self.table.decision_id))
+
+    def settle(self, engine: IntakeEngine, anchor: str) -> None:
+        """Hand the anchor to the hook once the engine holds it UNCLEAR.
+
+        CD-04 ``anchor_trigger``: the item is raised when the cause's bound is
+        spent — at once for a hedge — and for an anchor the close records
+        UNCLEAR. An anchor still being clarified raises nothing yet.
+        """
+        if engine.state_of(anchor) is not AnswerState.UNCLEAR:
+            return
+        cause = self._last_cause(anchor)
+        if cause is not None:
+            self._raise(
+                anchor,
+                self.table.unresolved_labels[cause.value],
+                self.answer_states.unresolved_inbox,
+                self.answer_states.decision_id,
+            )
+
+    def close_never_asked(self, engine: IntakeEngine, anchor: str) -> None:
+        """CD-05 ``never_asked_at_close``: read the never-asked anchor once at close.
+
+        Only an anchor NOT_ASKED whose gate is open — ``chest_pain.present ==
+        true``, the condition CD-05 names — is read; nothing is bound and the
+        slot stays NOT_ASKED. The rules engine evaluates the close with the
+        reading (:meth:`never_asked_readings`), and the item is raised.
+        """
+        if engine.state_of(anchor) is not AnswerState.NOT_ASKED or not engine.gate_open(anchor):
+            return
+        self.never_asked.add(anchor)
+        resolution = self.table.resolve_never_asked(anchor, engine.reference_time)
+        self.record[anchor] = resolution
+        self._raise(
+            anchor,
+            resolution.label or resolution.basis.value,
+            self.table.never_asked_inbox,
+            self.table.decision_id,
+        )
 
     def resolve_choices(
         self, updates: Mapping[str, JsonValue], reference_time: datetime
@@ -204,14 +315,58 @@ class SessionAnchors:
         """CD-05's resolution for each of ``refs`` the engine holds UNCLEAR.
 
         Pure: it records nothing (the queue reads it before and after every
-        Work). :meth:`note` records the ones an evaluation used.
+        Work). :meth:`note` records the ones an evaluation used. The resolution
+        carries the label of the cause that left the anchor UNCLEAR and, for a
+        hedge, the choice it leaned to (INT-546).
+        """
+        readings: dict[str, AnchorResolution] = {}
+        for ref in sorted(self.refs.intersection(refs)):
+            if engine.state_of(ref) is not AnswerState.UNCLEAR:
+                continue
+            last = self._last_reading(ref)
+            readings[ref] = self.table.resolve_unresolved(
+                ref,
+                engine.reference_time,
+                cause=None if last is None else last.cause.value,
+                hedged_choice=None if last is None else last.hedged_choice,
+            )
+        return readings
+
+    def never_asked_readings(
+        self, engine: IntakeEngine, refs: Collection[str]
+    ) -> dict[str, AnchorResolution]:
+        """CD-05 ``never_asked_at_close`` for each of ``refs`` the close read (pure).
+
+        Only while the anchor is still NOT_ASKED: nothing was bound, and the
+        reading is the rules engine's alone.
         """
         return {
-            ref: self.table.resolve_unresolved(ref, engine.reference_time)
-            for ref in sorted(self.refs.intersection(refs))
-            if engine.state_of(ref) is AnswerState.UNCLEAR
+            ref: self.table.resolve_never_asked(ref, engine.reference_time)
+            for ref in sorted(self.never_asked.intersection(refs))
+            if engine.state_of(ref) is AnswerState.NOT_ASKED
         }
 
     def note(self, resolution: AnchorResolution) -> None:
         """Record one resolution an evaluation read."""
         self.record[resolution.anchor] = resolution
+
+    def _last_reading(self, anchor: str) -> UnclearAnswer | None:
+        for reading in reversed(self.unclear):
+            if reading.anchor == anchor:
+                return reading
+        return None
+
+    def _last_cause(self, anchor: str) -> UnclearCause | None:
+        last = self._last_reading(anchor)
+        return None if last is None else last.cause
+
+    def _raise(self, anchor: str, label: str, item: InboxItemRef, source: str) -> None:
+        """Hand one unresolved anchor to the hook — once per anchor."""
+        if any(trigger.anchor == anchor for trigger in self.unresolved_triggers):
+            return
+        trigger = AnchorUnresolved(
+            anchor=anchor, label=label, kind=item.kind, decision_ids=(source, item.decision_ref)
+        )
+        self.unresolved_triggers.append(trigger)
+        if self.hook is not None:
+            self.hook.anchor_unresolved(trigger)

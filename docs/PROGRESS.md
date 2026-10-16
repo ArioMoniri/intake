@@ -1,5 +1,27 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T23:59:00Z · INT-546 · done (stacked on #924 INT-519)
+- Goal: build what INT-519's verified D18 decisions say: items 2, 3, 5, 8, 10 and 11. Items 1 and 4 are INT-549 (#929); item 7 waits on item 6 (HB-C1).
+- Plan:
+  - Items 2 and 3: the two cluster gates and their proposal `gen:` lines become `!= 'hayır'`, and CD-100's quote moves with the womens_health gate. Per-question answer mappings for immunosuppression and pregnancy_status are read from CD-112 and checked before CD-04's `*` hedges.
+  - Items 5 and 8: the anchor's bound comes from CD-04 round 3's per-cause key, and the hedged choice is kept, never bound.
+  - Items 10 and 11: the close reads a never-asked anchor while chest pain is affirmed, and labels an asked-unanswered one `session_closed`.
+  - The CD-08 item is INT-547's (#927), so a hook it plugs into is left here.
+- Tests added (near misses): gate goldens per slot where a plain "hayır" closes and "bilmiyorum" or a hedge opens. The rest:
+  - hedge at once, against a no-choice answer that keeps one follow-up;
+  - the hedged choice kept, against the same band said plainly binding its own day;
+  - "yok" to the onset is not absent, against "yok" to `chest_pain.present` being ASKED_ABSENT;
+  - the never-asked anchor evaluated at close, against chest pain denied or never answered;
+  - golden family 17 (6 cases).
+  - INT-540's hedge tests are updated as INT-519 listed.
+  - RED: 52 failed, 5 errors. GREEN: 796 passed.
+- Result: docs/evidence/INT-546.md (protocols lane, `make safety`, runtime-sim on both profiles with PARITY=1, the check-py lanes, placeholder, PHI, claims and evidence gates).
+- Invariants touched and still passing: 1, 7, 9, 10, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none new. CD-112 `gates[2]` gains a machine-readable `hedge_mapping` that restates CD-100 T4(c) and changes no value; the clinical reviewer is asked to acknowledge it. CD-100's spec_basis quote follows the gate.
+- Blocked on: nothing here. CD-100 T4 (kadın five items) waits on its base-owner part. HB-C1 stands before any real patient.
+- Next: INT-547 wires its CD-08 item into `AnchorUnresolvedHook`, whichever merges second.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T23:30:00Z · INT-519 · D18 verifier round, agree on all four records (committed locally, not pushed)
 - Goal: the independent D18 clinical verifier's round on the author's `9034f8b9` (CD-112 round 1, CD-04 and CD-05 round 3, CD-100 round 4).
 - Result: **agree, no blocker**, on all four records.

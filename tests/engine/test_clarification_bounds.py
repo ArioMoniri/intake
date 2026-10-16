@@ -128,6 +128,64 @@ def test_a_bound_the_engine_cannot_honour_is_refused_when_it_is_built(
         _engine(bounds)
 
 
+# --- 1b · a tighter bound for one answer (INT-546) --------------------------------------
+#
+# CD-04 round 3 (INT-519 item 5) splits the tense anchor's bound by the cause of
+# the UNCLEAR: none for a hedge, one for an answer that binds no choice. The
+# step keeps one ceiling (the larger); the caller hands the cause's bound with
+# the answer, and the engine honours it if it is no looser than the step's.
+
+
+def test_a_tighter_bound_for_one_answer_records_unclear_at_once() -> None:
+    engine = _asked_duration({DURATION: 1})
+    engine.clarify(DURATION, bound=0)
+    assert engine.follow_ups == ()
+    assert engine.state_of(DURATION) is AnswerState.UNCLEAR
+    assert engine.data_gaps == (DURATION,)
+
+
+def test_near_miss_the_steps_own_bound_handed_in_asks_the_follow_up() -> None:
+    engine = _asked_duration({DURATION: 1})
+    engine.clarify(DURATION, bound=1)
+    assert engine.follow_ups == (f"{DURATION}/clarify/1",)
+    assert engine.state_of(DURATION) is AnswerState.ASKED_PENDING
+
+
+def test_a_tighter_bound_after_the_follow_up_was_asked_records_unclear() -> None:
+    """One follow-up spent on an answer that bound no choice; a hedge to it
+    (bound zero) records UNCLEAR rather than queueing a second."""
+    engine = _asked_duration({DURATION: 1})
+    engine.clarify(DURATION, bound=1)
+    engine.mark_asked(f"{DURATION}/clarify/1")
+    engine.clarify(f"{DURATION}/clarify/1", bound=0)
+    assert engine.follow_ups == ()
+    assert engine.state_of(DURATION) is AnswerState.UNCLEAR
+
+
+@pytest.mark.parametrize(
+    "bound",
+    [pytest.param(-1, id="negative"), pytest.param(2, id="looser"), pytest.param(True, id="bool")],
+)
+def test_a_bound_looser_than_the_steps_is_refused_and_changes_nothing(bound: int) -> None:
+    engine = _asked_duration({DURATION: 1})
+    version = engine.snapshot.version
+    with pytest.raises(EngineError):
+        engine.clarify(DURATION, bound=bound)
+    assert engine.state_of(DURATION) is AnswerState.ASKED_PENDING
+    assert engine.follow_ups == () and engine.snapshot.version == version
+
+
+def test_clarifications_left_counts_the_steps_bound_down() -> None:
+    engine = _asked_duration({DURATION: 1})
+    assert engine.clarifications_left(DURATION) == 1
+    engine.apply_extraction(DURATION, {}, True)
+    assert engine.clarifications_left(DURATION) == 0
+    # near miss: a step given no bound keeps files/13 §11.1's two
+    assert engine.clarifications_left(SYMPTOM) == MAX_CLARIFICATION_ATTEMPTS
+    with pytest.raises(EngineError):
+        engine.clarifications_left("oyku.yok")
+
+
 def test_the_origin_of_a_re_entry_is_its_step() -> None:
     engine = _asked_duration({DURATION: 1})
     engine.apply_extraction(DURATION, {}, clarification_needed=True)

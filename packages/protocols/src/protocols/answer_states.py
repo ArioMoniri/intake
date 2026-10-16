@@ -12,9 +12,14 @@ and of nothing else:
   names none of the decision's entries.
 - **The follow-up bound is the decision's own number.** CD-04: *"UNCLEAR
   reads Unknown and triggers the slot's follow_up_tr once"*, carried
-  machine-readable as ``unclear_follow_up_tr_asks``. The D18 amendment open on
-  INT-519 item 5 (resolve an explicit hedge at once) changes that number, and
-  this module reads whatever it says.
+  machine-readable as ``unclear_follow_up_tr_asks``. For a CD-05 tense anchor
+  CD-04 round 3 (INT-519 item 5, applied by INT-546) splits it by the cause the
+  runtime records: ``tense_anchor_follow_up_tr_asks`` — none for a hedge, one
+  for an answer that binds no choice. Both are read, whatever they say; the
+  causes must be exactly the two the decision names.
+- **The anchor's clinic-inbox item is the decision's**
+  (``unresolved_after_follow_up``): the CD-08 kind and the decision it names,
+  never one written here.
 - **A reading is per slot.** An entry naming ``*`` reads on any scripted slot;
   any other entry reads only on the slots it names. A PRESENT_QUALIFIED entry
   must name its slots: CD-04 makes that mapping "per rule and per slot".
@@ -59,6 +64,7 @@ from protocols.clinical_decisions import (
 from protocols.validator import PLACEHOLDER_SIGNOFF_RE
 
 __all__ = [
+    "ANCHOR_CAUSES",
     "ANSWER_STATE_DECISION_ID",
     "ANY_SLOT",
     "AnswerStateError",
@@ -67,6 +73,7 @@ __all__ = [
     "HedgeEntry",
     "HedgeReading",
     "HedgeState",
+    "InboxItemRef",
     "answer_state_table",
     "load_answer_state_table",
     "utterance_tokens",
@@ -76,6 +83,11 @@ __all__ = [
 ANSWER_STATE_DECISION_ID: Final = "CD-04"
 #: CD-04's spelling of "any scripted slot".
 ANY_SLOT: Final = "*"
+#: CD-04 round 3: the causes ``tense_anchor_follow_up_tr_asks`` bounds — the
+#: two the runtime records while an anchor is still being answered.
+ANCHOR_CAUSES: Final = frozenset({"hedge", "no_choice"})
+#: CD-04 ``unresolved_after_follow_up.action``: the only action built.
+_INBOX_ACTION: Final = "clinic_inbox_item"
 
 #: What CD-04's value must say for this build to follow it, key by key.
 _FIXED: Final[Mapping[str, str]] = {
@@ -105,6 +117,17 @@ class HedgeBasis(enum.StrEnum):
     DECIDED = "decided"
     #: A draft entry: its sourced UNCLEAR floor; its upgrade is still open.
     DRAFT_FLOOR = "draft_unclear_floor"
+
+
+@dataclass(frozen=True)
+class InboxItemRef:
+    """The clinic-inbox item a decision names: which decision routes it, which kind.
+
+    Ids only. Building the item is the inbox's (CD-08); this is what to raise.
+    """
+
+    decision_ref: str
+    kind: str
 
 
 @dataclass(frozen=True)
@@ -152,6 +175,10 @@ class AnswerStateTable:
     entries: tuple[HedgeEntry, ...]
     #: CD-04's "once": follow_up_tr asks before an UNCLEAR answer stays UNCLEAR.
     unclear_follow_up_tr_asks: int
+    #: CD-04 round 3: a tense anchor's bound by cause (``ANCHOR_CAUSES``).
+    tense_anchor_follow_up_tr_asks: Mapping[str, int]
+    #: CD-04 ``unresolved_after_follow_up``: the item an unresolved anchor raises.
+    unresolved_inbox: InboxItemRef
 
     @property
     def present_qualified_slots(self) -> frozenset[str]:
@@ -211,6 +238,10 @@ def answer_state_table(decision: ClinicalDecision) -> AnswerStateTable:
         decision_id=decision.id,
         entries=tuple(sorted(entries, key=lambda entry: -len(" ".join(entry.tokens)))),
         unclear_follow_up_tr_asks=_asks(value.get("unclear_follow_up_tr_asks"), where),
+        tense_anchor_follow_up_tr_asks=_cause_asks(
+            value.get("tense_anchor_follow_up_tr_asks"), where
+        ),
+        unresolved_inbox=_inbox(value.get("unresolved_after_follow_up"), where),
     )
 
 
@@ -223,10 +254,31 @@ def _require(condition: bool, where: str, reason: str) -> None:
         raise _refuse(where, reason)
 
 
-def _asks(node: object, where: str) -> int:
+def _asks(node: object, where: str, key: str = "unclear_follow_up_tr_asks") -> int:
     if isinstance(node, bool) or not isinstance(node, int) or node < 0:
-        raise _refuse(where, "unclear_follow_up_tr_asks is not a whole number of asks")
+        raise _refuse(where, f"{key} is not a whole number of asks")
     return node
+
+
+def _cause_asks(node: object, where: str) -> Mapping[str, int]:
+    """CD-04 round 3's per-cause bound: exactly ``ANCHOR_CAUSES``, whole numbers."""
+    key = "tense_anchor_follow_up_tr_asks"
+    if not isinstance(node, Mapping):
+        raise _refuse(where, f"{key} is not a mapping of cause to asks")
+    _require(set(node) == ANCHOR_CAUSES, where, f"{key} does not name exactly its causes")
+    return {str(cause): _asks(node[cause], where, f"{key}.{cause}") for cause in sorted(node)}
+
+
+def _inbox(node: object, where: str) -> InboxItemRef:
+    """CD-04 ``unresolved_after_follow_up``: a clinic-inbox item, never dropped."""
+    if not isinstance(node, Mapping):
+        raise _refuse(where, "unresolved_after_follow_up is not a mapping")
+    _require(node.get("action") == _INBOX_ACTION, where, "the unresolved action is not an item")
+    _require(node.get("never_dropped") is True, where, "the unresolved item may be dropped")
+    return InboxItemRef(
+        decision_ref=_text(node.get("decision_ref"), where, "the unresolved item's decision"),
+        kind=_text(node.get("kind"), where, "the unresolved item's kind"),
+    )
 
 
 def _list(node: object, where: str, what: str) -> Sequence[Any]:

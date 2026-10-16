@@ -8,7 +8,7 @@
 > live status with GitHub state and named blocker owners is the generated
 > section of `files/05_ROADMAP.md` (INT-452).
 
-**388 issues.** By phase: P0 183 · P1 151 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 246 · todo 94 · withdrawn 1.
+**389 issues.** By phase: P0 183 · P1 152 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 247 · todo 94 · withdrawn 1.
 
 ## P0
 
@@ -353,6 +353,7 @@
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human | owner — no blocker record names it |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human | owner — no blocker record names it |
 | INT-519 | D18 decisions — review-queue cluster gate literals (CD-112), CD-100 T1 on the corrected premise, CD-04/CD-05 amendments for the onset anchor | E03-protocols | INT-432, INT-448, INT-522, INT-540 | area:protocols, risk:clinical | done | agent · clinical-reviewer |
+| INT-546 | Apply INT-519's verified D18 decisions — 'hayır' cluster gates, per-question hedge mappings, per-cause anchor follow-ups, close-time onset resolution | E03-protocols | INT-519, INT-540 | area:protocols, risk:clinical | done | agent · clinical-reviewer |
 
 ## P2
 
