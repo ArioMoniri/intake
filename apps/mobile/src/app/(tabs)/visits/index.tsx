@@ -6,6 +6,11 @@
  * lets the patient tap a day to read that day's visits below it. Design pass 3:
  * kicker over the groups, xl rhythm between them, air above the hero line.
  *
+ * INT-499 (ADR-039 amendment): the list on the still stage. The stage wash
+ * and palette sit under it, the visits and the calendar are solid stage
+ * cards (22 pt), the List/Calendar control is a capsule, and adding a visit is
+ * an inert, untinted glass capsule: available, not urgent. Nothing moves.
+ *
  * "Today" is read once per render from the injected clock (lib/clock.ts): the
  * device's date in Europe/Istanbul, so the whole screen (the upcoming/past
  * split, the calendar's today marker and its opening month) agrees on one
@@ -19,8 +24,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { Segmented, type SegmentedOption } from "@/components/Segmented";
+import { AmbientBackdrop } from "@/components/stage/AmbientBackdrop";
+import { StageButton } from "@/components/stage/StageControls";
+import { StageSurfaceProvider } from "@/components/stage/StageSurface";
+import { useStageScreen } from "@/components/stage/useStageScreen";
 import { statusLabelKey } from "@/components/StatusChip";
-import { AppText, Card, RAIL_EDGES, Screen, SecondaryButton } from "@/components/Themed";
+import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
 import { VisitCalendar } from "@/components/VisitCalendar";
 import { VisitCard, formatVisitDate } from "@/components/VisitCard";
 import { joinParts } from "@/lib/a11y/labels";
@@ -51,6 +60,8 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
   const router = useRouter();
   const { visits } = useSession();
   const today = todayIso(clock);
+  const { palette, chrome } = useStageScreen("visits");
+  const tabBarClearance = useTabBarClearance();
 
   const [view, setView] = useState<ViewMode>("list");
   // Open the calendar on the soonest booked visit, and pre-select it, so a
@@ -96,86 +107,94 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
   );
 
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("visits.title")}
-        </AppText>
-        {visits.length === 0 ? (
-          <EmptyState icon="calendar" message={t("visits.empty")} />
-        ) : (
-          <>
-            <Segmented
-              label={t("visits.view.label")}
-              options={viewOptions}
-              value={view}
-              onChange={(id) => {
-                haptic("select", { surface: "visits", valueChanged: id !== view });
-                setView(id as ViewMode);
-              }}
-            />
-            {view === "list" ? (
-              <>
-                {upcoming.length > 0 ? (
-                  <View style={styles.section}>
-                    {/* Neutral like Oura's quiet group headings (design pass 5)
+    <Screen edges={RAIL_EDGES} style={{ backgroundColor: palette.base }}>
+      {chrome.backdrop ? <AmbientBackdrop palette={palette} /> : null}
+      <StageSurfaceProvider palette={palette}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+          <AppText role="hero" heading style={[styles.heroLine, { color: palette.ink }]}>
+            {t("visits.title")}
+          </AppText>
+          {visits.length === 0 ? (
+            <EmptyState icon="calendar" message={t("visits.empty")} />
+          ) : (
+            <>
+              <Segmented
+                label={t("visits.view.label")}
+                options={viewOptions}
+                value={view}
+                onChange={(id) => {
+                  haptic("select", { surface: "visits", valueChanged: id !== view });
+                  setView(id as ViewMode);
+                }}
+              />
+              {view === "list" ? (
+                <>
+                  {upcoming.length > 0 ? (
+                    <View style={styles.section}>
+                      {/* Neutral like Oura's quiet group headings (design pass 5)
                         — the accent budget belongs to the screen's one action. */}
-                    <Kicker label={t("visits.upcoming")} />
-                    {upcoming.map(renderVisit)}
-                  </View>
-                ) : null}
-                {/* Always present, even with nothing in it: the patient asked
+                      <Kicker label={t("visits.upcoming")} />
+                      {upcoming.map(renderVisit)}
+                    </View>
+                  ) : null}
+                  {/* Always present, even with nothing in it: the patient asked
                     for their past visits, so "none yet" is the honest answer,
                     not a hidden section (02 §4). */}
-                <View style={styles.section}>
-                  <Kicker label={t("visits.past")} />
-                  {past.length > 0 ? (
-                    past.map(renderVisit)
-                  ) : (
-                    <Card>
-                      <AppText role="body" color="inkSoft">
-                        {t("visits.pastEmpty")}
-                      </AppText>
-                    </Card>
-                  )}
-                </View>
-              </>
-            ) : (
-              <>
-                <VisitCalendar
-                  visits={visits}
-                  todayIso={today}
-                  viewMonth={viewMonth}
-                  onChangeMonth={setViewMonth}
-                  selectedIso={selectedDay}
-                  onSelectDay={(iso) => {
-                    haptic("select", { surface: "visits", valueChanged: iso !== selectedDay });
-                    setSelectedDay(iso);
-                  }}
-                />
-                <View style={styles.section}>
-                  <AppText role="label" heading color="inkSoft">
-                    {longDate(selectedDay, getLocale())}
-                  </AppText>
-                  {dayVisits.length > 0 ? (
-                    dayVisits.map(renderVisit)
-                  ) : (
-                    <AppText role="body" color="inkSoft">
-                      {t("visits.calendar.noVisitsOnDay")}
+                  <View style={styles.section}>
+                    <Kicker label={t("visits.past")} />
+                    {past.length > 0 ? (
+                      past.map(renderVisit)
+                    ) : (
+                      <Card>
+                        <AppText role="body" color="inkSoft">
+                          {t("visits.pastEmpty")}
+                        </AppText>
+                      </Card>
+                    )}
+                  </View>
+                </>
+              ) : (
+                <>
+                  <VisitCalendar
+                    visits={visits}
+                    todayIso={today}
+                    viewMonth={viewMonth}
+                    onChangeMonth={setViewMonth}
+                    selectedIso={selectedDay}
+                    onSelectDay={(iso) => {
+                      haptic("select", { surface: "visits", valueChanged: iso !== selectedDay });
+                      setSelectedDay(iso);
+                    }}
+                  />
+                  <View style={styles.section}>
+                    <AppText role="label" heading color="inkSoft">
+                      {longDate(selectedDay, getLocale())}
                     </AppText>
-                  )}
-                </View>
-              </>
-            )}
-          </>
-        )}
-        {/* Adding is available, not urgent — the Oura register keeps list
-            screens free of saturated CTAs (design pass 5). */}
-        <SecondaryButton
-          label={t("today.addVisit")}
-          onPress={() => router.push("/(tabs)/visits/new")}
-        />
-      </ScrollView>
+                    {dayVisits.length > 0 ? (
+                      dayVisits.map(renderVisit)
+                    ) : (
+                      <AppText role="body" color="inkSoft">
+                        {t("visits.calendar.noVisitsOnDay")}
+                      </AppText>
+                    )}
+                  </View>
+                </>
+              )}
+            </>
+          )}
+          {/* Adding is available, not urgent — the Oura register keeps list
+            screens free of saturated CTAs (design pass 5). INT-499: a page
+            action, so a stage capsule; untinted, inert glass (ADR-039 S3,
+            S7), solid wherever the policy says so. */}
+          <StageButton
+            palette={palette}
+            interactive={false}
+            solid={!chrome.glass}
+            label={t("today.addVisit")}
+            onPress={() => router.push("/(tabs)/visits/new")}
+          />
+        </ScrollView>
+      </StageSurfaceProvider>
     </Screen>
   );
 }

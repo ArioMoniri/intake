@@ -234,3 +234,111 @@ The owner's reply, in chat on 16 Oct 2026, relayed by the orchestrator: "orb=len
 5. **P5, auto-advance after a single answer** (beUI 240 ms, beautifului 480 ms): it commits a mis-tap on a clinical answer. **No.**
 
 Rejected outright, with the sources that do them: shimmer and pulse loaders, error shakes, under-damped springs (ζ below 0.9: spaceui like button, accordions, interest picker), overshooting check pops (kobra 1.09), particles and emoji bursts, hover effects, slide-to-confirm on a submit, green and red ✓/✗ progress dots (an intake answer is never right or wrong), and any numeral formatted with grouping (`toLocaleString()` gives "12.345" in Turkish) or a "." decimal.
+
+## 8. The remaining screens: visits, documents, share centre and settings (INT-499, 16 Oct 2026)
+
+The owner's mandate (16 Oct 2026, GitHub #849): apply ADR-039 and the Liquid Glass research (`liquid-glass-research.md`) across the visits list, documents (Kayıtlarım), the share centre (Paylaşımlarınız) and settings (Profilim). Glass belongs on controls only and content stays solid. The capture-protected screens are solid (INT-477). Code may be copied only from MIT sources, and anything beyond the ADR bounds is an owner approval item.
+
+Two designer subagents did the research:
+
+- one read 68 spaceui.one pages (each as page, markdown and registry entry) and 103 pages across the eight other libraries;
+- the other ran 23 iOS searches on Mobbin.
+
+What ships is the ADR-039 amendment for INT-499. Evidence: `docs/evidence/INT-499.md`. Captures: `issue-drafts/design-499/` in the owner's drafts.
+
+### 8.1 Licences, read from the raw file on 16 Oct 2026
+
+| Library | Raw licence | Licence | sha256 | Use |
+|---|---|---|---|---|
+| spaceui.one | [usespaceui/ui LICENSE](https://raw.githubusercontent.com/usespaceui/ui/main/LICENSE) | MIT, © 2026 Space UI. Pro components are excluded: `agent-clearance-deck`, `agent-usage-card`, `capability-matrix`, `deploy-pipeline` and `status-badge-glow` are locked | `f95e7503f0e8842209b16f15a134b618d629da5037f8ce6b1730c5a55c83fb55` (unchanged since §7.1) | Numbers and anatomy; no code copied |
+| Astryx | [facebook/astryx LICENSE](https://raw.githubusercontent.com/facebook/astryx/main/LICENSE) | MIT, © 2026 Meta Platforms | `a6855be541fc8f446acd1bc4f2f8efce1ace6dce71dba32fcd8da553ee54b473` | Rules and sizes; no code copied |
+| beUI | [starc007/ui-components LICENSE](https://raw.githubusercontent.com/starc007/ui-components/main/LICENSE) | MIT, © 2026 Saurabh Chauhan | `9e27b491d5691a1bd95708e79de23beb2962f33fe6c1ee31ab639f43009a0b20` | The upload state vocabulary; no code copied |
+| evilcharts | [legions-developer/evilcharts LICENSE](https://raw.githubusercontent.com/legions-developer/evilcharts/main/LICENSE) | MIT, © 2026 Gurbinder | `7b6baf25f6caa0de061a2c99a47205d6651cdefc6e636910bc51bb3853ed056e` | Not used: these screens have no chart |
+| beautifului.dev | [licence page](https://beautifului.dev/license) only: no raw blob and no repository | MIT as the page states, © 2026 Shane Levine | Not recorded. The text extracted this time hashes differently from §7.1's, so the page is not byte-stable | Not used here |
+| kobra.systems | [terms](https://kobra.systems/terms) | Proprietary; its terms forbid feeding its source to a model | — | Rendered page and computed styles only; no source opened |
+| transitions.dev | [terms](https://transitions.dev/terms.html) | Custom: use and modify, but no repackaging | — | Timings only |
+| reverseui.com | none | Proprietary | — | Rejected (decoration) |
+| kinetics | none (no LICENSE blob) | All rights reserved by default | — | Visible timings only, as rejects |
+
+No code was copied from any library. Every pattern is rebuilt from the app's own primitives (`StageButton`, `ListGroup`, `Card`, `Segmented`) and the stage tokens.
+
+### 8.2 The map
+
+**All four screens.**
+
+| Component (licence) | Built as | Motion verdict |
+|---|---|---|
+| Apple's Liquid Glass guidance (`liquid-glass-research.md`): controls on glass, content solid, regular glass, no glass on glass, tint only the primary action | `lib/stage/screens.ts`: glass only on an unprotected screen that has system glass. Increase Contrast and Reduce Transparency are solid, and the protected screens are always solid | — |
+
+**Visits.**
+
+| Component (licence) | Built as | Motion verdict |
+|---|---|---|
+| spaceui [Segmented Control](https://www.spaceui.one/primitives/segmented-control) (MIT): a 2 px track inset, and the fill swaps with no indicator. Astryx [SegmentedControl](https://astryx.atmeta.com/components/SegmentedControl) (MIT): the selected item is semibold on a fill. Mobbin [Wise](https://mobbin.com/screens/01ed9bbb-06ca-4ba3-b196-82c2806c605d): a full-width capsule segment under the large title | Liste/Takvim on the stage is a capsule track holding capsule thumbs, so the two stay concentric. Both are solid, because the control sits in the content. The selection shows as the thumb, its 3:1 edge and the semibold label | Adopted, instant. Rejected: spaceui Tabs' 200 ms slide and Astryx's 175 ms colour change |
+| spaceui [Event Calendar](https://www.spaceui.one/components/event-calendar) agenda view (MIT); kobra [grouped-table](https://kobra.systems/components/grouped-table) (rendered only); Mobbin [Zocdoc history](https://mobbin.com/screens/bc4199bc-ef66-48ee-a8d6-ea790f11d07c) | Visit cards and the past group's empty card are solid stage cards at 22 pt, with a boundary under Increase Contrast. The group headers stay the quiet Kicker | Static. Rejected: collapsing groups (kobra, 200 ms) |
+| spaceui [Calendar](https://www.spaceui.one/primitives/calendar) (MIT); kobra calendar (rendered only) | `VisitCalendar` sits on the stage card through the surface context. Its cells, dots and today ring are unchanged | Static. Rejected: kobra's 220 ms month-height animation |
+| spaceui [Glass Button](https://www.spaceui.one/components/glass-button) (MIT); Mobbin [Apple Maps, iOS 26 Reports](https://mobbin.com/screens/21918293-e48b-48ac-ba9c-eb79fa478271) | "Vizit ekleyin" is a `StageButton`: regular glass, `interactive={false}`, untinted. Adding a visit is available but not urgent | Adapted to the system material only. Rejected: the shine sweep, the 0.94 press and the 400 ms transitions |
+
+**Documents.**
+
+| Component (licence) | Built as | Motion verdict |
+|---|---|---|
+| kobra [attachment](https://kobra.systems/components/attachment) (rendered only); spaceui [Gradient File Upload](https://www.spaceui.one/components/gradient-file-upload) (MIT); beUI [file-upload](https://beui.dev/components/blocks/file-upload) (MIT); Mobbin [Fi, Documents](https://mobbin.com/screens/3f271048-41b5-4b81-826e-9a082875eccd) | The row anatomy is unchanged: file glyph, the patient's own name and a worded scan-state chip, now on the solid stage card. Upload and camera are `StageButton`s forced `solid` | Static. Rejected: the glow loop, the width tween, the "N %" counter, and kobra's glass remove button (glass on content) |
+| Astryx [Badge](https://astryx.atmeta.com/components/Badge) (MIT); beUI [animated-badge](https://beui.dev/components/motion/animated-badge) (MIT) | The scan-state chip is unchanged: a word in a capsule | Astryx's static badge adopted. Rejected: beUI's roll, pulse and per-state tint |
+| spaceui [Empty](https://www.spaceui.one/primitives/empty) and [Alert](https://www.spaceui.one/primitives/alert) (MIT); Astryx [EmptyState](https://astryx.atmeta.com/components/EmptyState) (MIT); Mobbin [ChatGPT Library, empty](https://mobbin.com/screens/7bc30ea5-b297-4d2a-bff8-ec2408c128e8) | The consent, need-a-visit and offline guidance blocks are unchanged. Their actions are now solid stage capsules | Static |
+
+**Share centre.**
+
+| Component (licence) | Built as | Motion verdict |
+|---|---|---|
+| Astryx [MetadataList](https://astryx.atmeta.com/components/MetadataList) (MIT); spaceui [Timeline](https://www.spaceui.one/components/timeline) and [Agent Activity Feed](https://www.spaceui.one/interactions/agent-activity-feed) (MIT); Mobbin [Discord audit log](https://mobbin.com/screens/71fede58-dc2e-4332-a130-70c68c8e4328), [Telegram devices](https://mobbin.com/screens/a3c7d97d-e05a-45d6-a308-00ac1e44173d) | The grants and the access log stay grouped rows on the solid stage card. A log row shows the role, never a person, with the time as the sublabel. The bar is `withProtectedStageBar`: opaque, back chevron only, no scroll-edge effect. The title is the large title in the content | Static. Rejected: the feed's slide-in and ping |
+| spaceui [Alert Dialog](https://www.spaceui.one/primitives/alert-dialog) (MIT); beUI [action-swap](https://beui.dev/components/motion/action-swap) (MIT); Mobbin [Grok, Unshare](https://mobbin.com/screens/1182cf9a-d7c5-4f43-ae44-2e617d5385f2) | Revoke stays INT-140's two-tap row: the first tap only changes the word. There is no dialog, because an `Alert` cannot carry catalogue text or a hint | The word swaps instantly. Rejected: beUI's roll and the dialogs' 200 ms scale-in |
+| spaceui [Status Badge](https://www.spaceui.one/components/status-badge) (MIT) | The state stays a word in the trailing caption | Rejected: its 2.25 s ping, which is on by default |
+
+**Settings.**
+
+| Component (licence) | Built as | Motion verdict |
+|---|---|---|
+| spaceui [Group](https://www.spaceui.one/primitives/group) (MIT); kobra [item](https://kobra.systems/components/item) (rendered only); Mobbin [Apple Health profile, iOS 26](https://mobbin.com/screens/52e6962d-c119-4faa-9c01-d8f673e27c89), [Oura](https://mobbin.com/screens/94022ec1-1b9e-48e3-a46f-3f2a642b3149) | Each group is a solid stage card at 22 pt, with inset hairlines and its header outside. The rows are unchanged | Static. Rejected: kobra's 150 ms colour change. The row press stays INT-451's instant fill step |
+| spaceui [Switch](https://www.spaceui.one/primitives/switch) (MIT); Astryx and beUI switches | The health and language state pills are unchanged | Rejected: every custom thumb motion (spaceui's stretch, beUI's overshoot) |
+| spaceui [Button](https://www.spaceui.one/primitives/button) (MIT); Mobbin [Ro, outline sign-out](https://mobbin.com/screens/76681191-fc48-4e1a-8b51-7bb0996c5e1f), [TIDE](https://mobbin.com/screens/eabdae95-6634-4a5e-81fa-df9871d8334c) | "Çıkış yapın" is an untinted `StageButton`: inert glass, never the accent | Static |
+
+**Capture protection (documents and the share centre).** INT-477 (owner: "solid"). These two screens draw the flat stage base, with no wash and no glass host, and every action is forced `solid`.
+
+**The split this section ships.** Mobbin [Matter](https://mobbin.com/screens/d5836828-6a37-4cac-a77d-345f4a593915) and [Apple Health Sharing](https://mobbin.com/screens/6b4927d5-0a55-4fba-a648-c37915e7c640): rows are opaque, and glass is only on the controls and the tab bar.
+
+### 8.3 Approval needed (not built)
+
+Each of these would go beyond ADR-033, ADR-037 or ADR-039 as they stand, or would add copy.
+
+1. **A floating glass action pinned above the tab rail.**
+   - Examples: Apple Maps' "Report a New Issue" and the Reminders "+". Mobbin: [Maps](https://mobbin.com/screens/21918293-e48b-48ac-ba9c-eb79fa478271), [Reminders](https://mobbin.com/screens/84be367a-1f4e-48ac-8740-541510d01dad), [Substack](https://mobbin.com/screens/9e20c289-4a70-4c7d-a202-94a97d0b1e87).
+   - It is the most Apple-like home for "Vizit ekleyin", as a true floating control.
+   - It is also a second bottom chrome beside the rail, which design pass 4 ruled out.
+   - Kept in the scroll instead, the action passes under the rail when the list is long.
+2. **A glass "+" in a native navigation bar on the tab roots.** Mobbin: [Wise](https://mobbin.com/screens/01ed9bbb-06ca-4ba3-b196-82c2806c605d), [Luma](https://mobbin.com/screens/55b83aa2-840f-4620-bbc7-8ffc93df6842). It needs two things the app does not have: the native collapsing large title, which ADR-037 ratified (D22) but no issue has shipped, and an icon-only add control.
+3. **A glass segmented control, or a sliding thumb.**
+   - Sources: spaceui Tabs (200 ms), [kobra tabs](https://kobra.systems/components/tabs) (250 ms), [beUI tabs](https://beui.dev/components/motion/tabs), transitions.dev Tabs (250 ms), kinetics animated-tabs.
+   - The slide is a translate, which ADR-033 forbids.
+   - Glass on an in-content control is glass on content.
+4. **Swipe actions on rows**, to revoke a share or delete a document.
+   - Sources: Astryx [Item](https://astryx.atmeta.com/components/Item) `swipeActions`, [beUI swipeable-list](https://beui.dev/components/blocks/swipeable-list), kinetics swipe-to-reveal, spaceui [Notification List](https://www.spaceui.one/components/notification-list).
+   - Swipe hides a safety control behind a gesture, and the motion is a translate.
+5. **Documents grouped by scan state** (İnceleniyor, Hazır, Reddedildi). Mobbin: [Apple Maps Reports](https://mobbin.com/screens/21918293-e48b-48ac-ba9c-eb79fa478271). It adds new section copy, and the list would reorder when a scan finishes.
+6. **Counts and relative times** ("Yaklaşan (1)", "7 gün sonra"). Mobbin: [Fresha](https://mobbin.com/screens/95504603-982b-41db-81ab-e8b7d9216501). It adds new copy and new numerals on a patient screen (invariant 22).
+7. **A destructive red sign-out row with a confirmation alert.** Mobbin: [TIDE](https://mobbin.com/screens/eabdae95-6634-4a5e-81fa-df9871d8334c). It adds new copy, and an `Alert` cannot carry catalogue text.
+8. **Interactive glass on the page actions.** ADR-039 S4 keeps the system press response for the dialogue alone.
+
+Rejected outright:
+
+- pulse and ping loops (spaceui Status Badge, Astryx StatusDot, beUI animated-badge, kinetics pulse-badge);
+- skeleton shimmer;
+- list reorder springs (spaceui [Liquid Sortable List](https://www.spaceui.one/components/liquid-sortable-list), kinetics);
+- animated or overshooting switches (spaceui [Liquid Switch](https://www.spaceui.one/components/liquid-switch), beUI, transitions.dev, kinetics);
+- collapsing groups;
+- dialogs and toasts that scale or slide in;
+- press scales below 0.97 (spaceui 0.94, kinetics 0.88);
+- glass on content (kobra's attachment remove button, spaceui [Frost Blurred](https://www.spaceui.one/components/frost-blurred));
+- a tint per state;
+- reverseui's decorative rings and monospace logs;
+- an upload percentage counter.

@@ -12,6 +12,11 @@
  * container stripped on the way), and the READING section — the confirm
  * cards and their provenance boxes, fed by the extraction route and settled
  * only on the server's acknowledgement.
+ *
+ * INT-499 (ADR-039 amendment): documents on the stage, SOLID. The screen is
+ * capture-protected (INT-131), so it never mounts glass or the wash (INT-477,
+ * owner: "solid"): the flat stage base, its groups and cards as solid stage
+ * cards (22 pt), and its actions as stage capsules forced solid. Nothing moves.
  */
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -26,7 +31,10 @@ import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { RecordReading } from "@/components/RecordReading";
-import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { StageButton } from "@/components/stage/StageControls";
+import { StageSurfaceProvider } from "@/components/stage/StageSurface";
+import { useStageScreen } from "@/components/stage/useStageScreen";
+import { AppText, RAIL_EDGES, Screen, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
 import { joinParts } from "@/lib/a11y/labels";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
@@ -140,6 +148,7 @@ type Phase = "loading" | "ready" | "offline";
 
 function OtpRecords() {
   const router = useRouter();
+  const { palette } = useStageScreen("records");
   const { visits } = useSession();
   // the day Vizitlerim splits on: Istanbul's, not UTC's (INT-409)
   const pick = pickUploadVisit(visits, todayIso(deviceClock));
@@ -308,7 +317,10 @@ function OtpRecords() {
           titleKey="records.needVisit.title"
           bodyKey="records.needVisit.body"
         />
-        <SecondaryButton
+        <StageButton
+          palette={palette}
+          interactive={false}
+          solid
           label={t("today.addVisit")}
           onPress={() => router.push("/(tabs)/visits/new")}
         />
@@ -353,7 +365,13 @@ function OtpRecords() {
           titleKey="records.offline.title"
           bodyKey="records.offline.body"
         />
-        <SecondaryButton label={t("records.retry")} onPress={() => void refresh(selected)} />
+        <StageButton
+          palette={palette}
+          interactive={false}
+          solid
+          label={t("records.retry")}
+          onPress={() => void refresh(selected)}
+        />
       </>
     );
   }
@@ -429,12 +447,18 @@ function OtpRecords() {
         />
       ) : null}
       <View style={styles.actions}>
-        <SecondaryButton
+        <StageButton
+          palette={palette}
+          interactive={false}
+          solid
           label={uploading ? t("records.uploading") : t("records.upload")}
           onPress={() => void onUpload()}
           disabled={uploading || phase === "loading"}
         />
-        <SecondaryButton
+        <StageButton
+          palette={palette}
+          interactive={false}
+          solid
           label={t("records.camera")}
           onPress={() => void onCapture()}
           disabled={uploading || phase === "loading"}
@@ -448,35 +472,42 @@ export default function Records() {
   useClinicalScreenPrivacy(); // clinical screen: FLAG_SECURE-class (INT-131)
   const router = useRouter();
   const { account, consents } = useSession();
+  const { palette } = useStageScreen("records");
+  const tabBarClearance = useTabBarClearance();
   const documentsAllowed = consents?.documents === true;
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("records.title")}
-        </AppText>
-        {!documentsAllowed ? (
-          <>
-            <GuidanceBlock
-              accent
-              icon="checkmark.shield"
-              kickerKey="records.consent.kicker"
-              titleKey="records.consent.title"
-              bodyKey="records.consent.body"
-            />
-            <SecondaryButton
-              label={t("records.consent.cta")}
-              onPress={() => router.push("/(tabs)/me/consents")}
-            />
-          </>
-        ) : isSyntheticSession(account) ? (
-          // INT-421: the synthetic sample and its labels only for the dev
-          // fixture session; any other session gets the real document flow.
-          <DevRecords records={account?.records ?? []} />
-        ) : (
-          <OtpRecords />
-        )}
-      </ScrollView>
+    <Screen edges={RAIL_EDGES} style={{ backgroundColor: palette.base }}>
+      <StageSurfaceProvider palette={palette}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+          <AppText role="hero" heading style={[styles.heroLine, { color: palette.ink }]}>
+            {t("records.title")}
+          </AppText>
+          {!documentsAllowed ? (
+            <>
+              <GuidanceBlock
+                accent
+                icon="checkmark.shield"
+                kickerKey="records.consent.kicker"
+                titleKey="records.consent.title"
+                bodyKey="records.consent.body"
+              />
+              <StageButton
+                palette={palette}
+                interactive={false}
+                solid
+                label={t("records.consent.cta")}
+                onPress={() => router.push("/(tabs)/me/consents")}
+              />
+            </>
+          ) : isSyntheticSession(account) ? (
+            // INT-421: the synthetic sample and its labels only for the dev
+            // fixture session; any other session gets the real document flow.
+            <DevRecords records={account?.records ?? []} />
+          ) : (
+            <OtpRecords />
+          )}
+        </ScrollView>
+      </StageSurfaceProvider>
     </Screen>
   );
 }

@@ -6907,3 +6907,26 @@
     - "a component to screen map with source URLs is in docs/design/library-patterns.md; light and dark simulator captures of the shipped capsule and chips are recorded"
   tests: [apps/mobile/src/lib/intake/progressCapsule.test.ts, apps/mobile/src/lib/motion/micro.test.ts, apps/mobile/src/lib/controlChrome.test.ts, apps/mobile/e2e/progressMicro.spec.ts, apps/mobile/e2e/questionScreen.spec.ts, apps/mobile/e2e/overflow.spec.ts, apps/mobile/e2e/motion.spec.ts]
   sec_row: "mobile"
+- id: INT-499
+  epic: E08-mobile
+  phase: P1
+  title: "ADR-039 and the Liquid Glass research on the remaining screens: the visits list, documents, the share centre and settings on the still stage, glass on page actions only, capture-protected screens solid"
+  # GitHub #849. Owner mandate, 16 Oct 2026, after #842 (the lens orb) and
+  # #843 (the in-bounds progress capsule): apply ADR-039 and the Liquid Glass
+  # research across the remaining screens, mining every component page of
+  # spaceui.one (primary), kobra.systems and the other owner-listed libraries,
+  # with Mobbin; code copied only from MIT sources; anything beyond the ADR
+  # bounds is an approval item, not shipped. Stacked on INT-492 (#843).
+  depends_on: [INT-131, INT-331]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-499.md
+  acceptance:
+    - "the visits list, documents, the share centre and settings render the stage chrome: the stage palette and base, the large title in the stage ink, content on the solid 22 pt stage card with a boundary under Increase Contrast, capsule controls, and page actions as inert, untinted stage capsules; the share centre has no page action and keeps its rows"
+    - "glass is on the page actions only, never on content, and the glass and gradient allow-lists do not grow; the visits list and settings draw the still wash and may mount glass; documents and the share centre are capture-protected (INT-131, INT-477) and never mount glass or the wash, every action forced solid and the share centre's bar solid (near miss: the unprotected screens do mount glass)"
+    - "Reduce Transparency, a missing system glass and Increase Contrast draw solid actions, never a blur; nothing on the four screens moves, so Reduce Motion has nothing to still: no Reanimated, no press scale, no interactive glass"
+    - "RED is untouched, no RED surface reads the stage; text_tr and question text are untouched; no new string; the system text colours stay AA on every stage ground"
+    - "every relevant component page of spaceui.one (primary), kobra.systems, beui.dev, astryx.atmeta.com, beautifului.dev, evilcharts.com, transitions.dev, reverseui.com and kinetics is mined, with Mobbin; licences are read from the raw file with their sha256; no code is copied; the component to screen map with URLs is docs/design/library-patterns.md §8, with the approval-needed list"
+    - "ADR-039 carries a dated amendment for the four screens; light and dark simulator captures of each screen are recorded"
+  tests: [apps/mobile/src/lib/stage/screens.test.ts, apps/mobile/e2e/stageScreens.spec.ts, apps/mobile/e2e/interactionPatterns.spec.ts, apps/mobile/e2e/designSystem.spec.ts, tests/docs/test_adr_039.py]
+  sec_row: "mobile"

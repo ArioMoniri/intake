@@ -346,7 +346,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
     # + INT-492 (question progress and micro-interactions behind a flag,
     # GitHub #839); grows only with a stated reason.
-    assert len(ids) == 353, f"expected 175 blueprint + 178 added issues, got {len(ids)}"
+    # + INT-499 (ADR-039 and the Liquid Glass research on the remaining
+    # screens, GitHub #849); grows only with a stated reason.
+    assert len(ids) == 354, f"expected 175 blueprint + 179 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

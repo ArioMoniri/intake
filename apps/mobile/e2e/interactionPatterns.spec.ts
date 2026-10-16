@@ -36,7 +36,6 @@ const BARS = "src/components/GlassBar.tsx";
 /** The visit's pushed screens that now ride the glass nav bar. */
 const GLASS_NAV_SCREENS = [
   "src/app/(tabs)/visits/[visitId]/index.tsx",
-  "src/app/(tabs)/visits/[visitId]/shares.tsx",
   "src/app/(tabs)/visits/[visitId]/review.tsx",
   "src/app/(tabs)/visits/new.tsx",
 ] as const;
@@ -44,10 +43,12 @@ const GLASS_NAV_SCREENS = [
 /**
  * Screens that keep the solid bar. The Doctor Link screen renders a bearer
  * credential, and the auth screens are gates (ADR-033 §4): nothing there
- * scrolls under a material.
+ * scrolls under a material. The share centre is capture-protected, so its
+ * bar is solid too (INT-499, INT-477; e2e/stageScreens.spec.ts).
  */
 const SOLID_NAV_SCREENS = [
   "src/app/(tabs)/visits/[visitId]/issue-link.tsx",
+  "src/app/(tabs)/visits/[visitId]/shares.tsx",
   "src/app/(auth)/phone.tsx",
   "src/app/(auth)/otp.tsx",
 ] as const;

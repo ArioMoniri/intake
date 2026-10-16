@@ -3800,3 +3800,48 @@
 - Blocked on: nothing.
 - Next: merge after #808. #842 (INT-491, the lens orb) also appends to library-patterns.md: keep both, §6 and §7.
 - LOOP_STATUS: CONTINUE
+### 2026-10-16T07:10:00+03:00 · INT-499 · done (PR open, not merged; stacked on #843)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-499, GitHub #849):
+  - "the visits list, documents, the share centre and settings render the stage chrome: the stage palette and base, the large title in the stage ink, content on the solid 22 pt stage card with a boundary under Increase Contrast, capsule controls, and page actions as inert, untinted stage capsules; the share centre has no page action and keeps its rows"
+  - "glass is on the page actions only, never on content, and the glass and gradient allow-lists do not grow; the visits list and settings draw the still wash and may mount glass; documents and the share centre are capture-protected (INT-131, INT-477) and never mount glass or the wash, every action forced solid and the share centre's bar solid (near miss: the unprotected screens do mount glass)"
+  - "Reduce Transparency, a missing system glass and Increase Contrast draw solid actions, never a blur; nothing on the four screens moves, so Reduce Motion has nothing to still: no Reanimated, no press scale, no interactive glass"
+  - "RED is untouched, no RED surface reads the stage; text_tr and question text are untouched; no new string; the system text colours stay AA on every stage ground"
+  - "every relevant component page of spaceui.one (primary), kobra.systems, beui.dev, astryx.atmeta.com, beautifului.dev, evilcharts.com, transitions.dev, reverseui.com and kinetics is mined, with Mobbin; licences are read from the raw file with their sha256; no code is copied; the component to screen map with URLs is docs/design/library-patterns.md §8, with the approval-needed list"
+  - "ADR-039 carries a dated amendment for the four screens; light and dark simulator captures of each screen are recorded"
+- Plan:
+  - Two designer subagents: the libraries (68 spaceui.one pages and 103 others, raw licences, kobra as a rendered page only) and Mobbin (23 searches).
+  - Pure policy first (`lib/stage/screens.ts`). Then the hook and the surface context, so the shared content components take the stage card without prop threading. Then the four screens. Then simulator captures.
+- Tests added (with the near-miss negative for any safety rule):
+  - `src/lib/stage/screens.test.ts` and `e2e/stageScreens.spec.ts`. In `e2e/interactionPatterns.spec.ts` the share centre moves to the solid-bar list. `tests/docs/test_adr_039.py` pins the amendment.
+  - Near misses:
+    - the same inputs without capture protection give glass;
+    - the unprotected screens mount the wash and glass-capable actions, and the protected-screen predicate refuses them;
+    - a non-AA grey fails the contrast check;
+    - two mutations, each caught and restored from a copy.
+  - Red: 3 files failed, 1 failed and 35 passed. Green: 156 files, 3230 tests.
+- Result:
+  - Mobile vitest is green, `pnpm -r typecheck` reports Done, and lint has 0 errors.
+  - The backlog, smoke and ADR doc tests pass, and `no_placeholders` is OK on the staged tree.
+  - Captured on the iPhone 17 Pro simulator (iOS 26.5, Expo Go), light and dark, for each screen and for the calendar, plus Increase Contrast for two screens.
+  - The simulator caught one defect: under Increase Contrast an empty group's boundary drew a stray line. It is fixed and pinned.
+- Invariants touched and still passing:
+  - 2 and 5: no new copy.
+  - 10: `text_tr` is untouched.
+  - 17.
+  - 21: no RED surface; RED never reads the stage.
+  - 22: no numeral added.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-039 gains the dated INT-499 amendment for the four screens, and D23 notes it. No D-row and no HUMAN_BLOCKERS id is minted.
+  - Counts are re-derived to 354 (#867's derived check is not on main), and files/11 is regenerated.
+- Blocked on: nothing. The floating tab rail over the two protected screens turns solid with INT-477 (#819), which owns the rail.
+- Approval needed from the owner (library-patterns §8.3), none built:
+  - a floating glass action above the rail;
+  - a glass "+" in a native nav bar;
+  - a glass or sliding segmented thumb;
+  - swipe row actions;
+  - status-grouped documents;
+  - counts and relative times;
+  - a red sign-out row with an alert;
+  - interactive glass on the page actions.
+- Next: merge after #843.
+- LOOP_STATUS: DONE

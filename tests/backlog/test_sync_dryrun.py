@@ -124,7 +124,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
     # + INT-492 (question progress and micro-interactions behind a flag, GitHub #839)
-    assert len(actions) == 353
+    # + INT-499 (ADR-039 and the Liquid Glass research on the remaining screens, GitHub #849)
+    assert len(actions) == 354
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

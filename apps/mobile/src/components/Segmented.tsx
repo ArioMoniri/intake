@@ -29,6 +29,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { Icon } from "@/components/Icon";
+import { useStageSurface } from "@/components/stage/StageSurface";
 import { AppText, useFontScale, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -58,6 +59,10 @@ interface SegmentedProps {
 export function Segmented({ label, options, value, onChange, hint }: SegmentedProps) {
   const theme = useTheme();
   const stacked = shouldStack(useFontScale(), options.length);
+  // INT-499: on a stage screen the control is a capsule track holding capsule
+  // thumbs, concentric because both are capsules (ADR-039 S5); stacked, each
+  // row is a stage card. Solid either way: the control sits in the content.
+  const stage = useStageSurface();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -66,6 +71,7 @@ export function Segmented({ label, options, value, onChange, hint }: SegmentedPr
         styles.group,
         stacked ? styles.groupStacked : styles.groupInline,
         stacked ? null : { backgroundColor: theme.surfaceRaised },
+        stage !== null && !stacked ? styles.capsule : null,
       ]}
     >
       {options.map((option) => {
@@ -83,8 +89,13 @@ export function Segmented({ label, options, value, onChange, hint }: SegmentedPr
             style={({ pressed }) => [
               styles.option,
               stacked ? styles.optionStacked : styles.optionInline,
+              stage === null ? null : stacked ? { borderRadius: stage.corner } : styles.capsule,
               {
-                backgroundColor: stacked ? theme.surface : selected ? theme.thumb : "transparent",
+                backgroundColor: stacked
+                  ? (stage?.card ?? theme.surface)
+                  : selected
+                    ? theme.thumb
+                    : "transparent",
                 borderColor: selected ? (stacked ? theme.primary : theme.inkFaint) : "transparent",
                 opacity: pressed ? motion.press.opacity : 1,
               },
@@ -145,4 +156,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   selectedLabel: { fontWeight: "600" },
+  // Radius = height ÷ 2 at any height: the stage's capsule.
+  capsule: { borderRadius: radius.chip },
 });

@@ -21,6 +21,11 @@
  * motion, so their glass is inert and a press shows only the opacity step.
  * Under Reduce Transparency (`mode !== "liquid"`) every surface is a solid
  * stage fill instead, so nothing is see-through.
+ *
+ * INT-499: a screen whose policy forbids glass passes `solid` to a
+ * `StageButton` (lib/stage/screens.ts): documents and the share centre are
+ * capture-protected (INT-477), and Increase Contrast draws solid actions on
+ * the remaining screens. The solid branch is the same stage fill.
  */
 import { GlassContainer, GlassView } from "expo-glass-effect";
 import { type ReactNode } from "react";
@@ -53,6 +58,7 @@ function Pane({
   palette,
   tint,
   interactive = true,
+  solid = false,
   style,
   children,
 }: {
@@ -60,12 +66,18 @@ function Pane({
   tint?: string;
   /** False on the sign-in screens: glass without the system press response. */
   interactive?: boolean;
+  /**
+   * True where the screen's policy forbids glass (INT-499): a capture-protected
+   * screen (INT-477) or Increase Contrast. The solid stage fill, whatever the
+   * OS offers.
+   */
+  solid?: boolean;
   style: StyleProp<ViewStyle>;
   children?: ReactNode;
 }) {
   const mode = useGlassMode();
   const scheme = useScheme();
-  if (mode !== "liquid") {
+  if (mode !== "liquid" || solid) {
     return (
       <View
         style={[
@@ -129,6 +141,7 @@ export function StageButton({
   prominent = false,
   disabled = false,
   interactive = true,
+  solid = false,
 }: {
   palette: StagePalette;
   label: string;
@@ -137,6 +150,8 @@ export function StageButton({
   disabled?: boolean;
   /** ADR-039 S7: false where a screen adds no motion (the sign-in flow). */
   interactive?: boolean;
+  /** INT-499: the screen's policy forbids glass here; draw the solid stage fill. */
+  solid?: boolean;
 }) {
   return (
     <Pressable
@@ -161,6 +176,7 @@ export function StageButton({
         palette={palette}
         tint={prominent ? palette.cardSelected : undefined}
         interactive={interactive}
+        solid={solid}
         style={styles.action}
       >
         <AppText

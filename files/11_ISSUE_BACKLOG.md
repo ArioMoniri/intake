@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**353 issues.** By phase: P0 167 · P1 132 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 240 · todo 71 · withdrawn 1.
+**354 issues.** By phase: P0 167 · P1 133 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 241 · todo 71 · withdrawn 1.
 
 ## P0
 
@@ -315,6 +315,7 @@
 | INT-472 | Review and send as iOS grouped inset lists: section rows, share switch rows, a metadata summary | E08-mobile | INT-464, INT-137 | area:mobile | done |
 | INT-473 | In-tree detent sheet (ADR-038 A3) for the dialogue's section sheet: no presented sheet over RED | E08-mobile | INT-472, INT-461 | area:mobile | done |
 | INT-492 | Question progress and micro-interactions: a segmented capsule with the count, a reserved chip check, the press response, a still loading glyph | E08-mobile | INT-473, INT-331 | area:mobile | done |
+| INT-499 | ADR-039 and the Liquid Glass research on the remaining screens: the visits list, documents, the share centre and settings on the still stage, glass on page actions only, capture-protected screens solid | E08-mobile | INT-131, INT-331 | area:mobile | done |
 
 ## P2
 

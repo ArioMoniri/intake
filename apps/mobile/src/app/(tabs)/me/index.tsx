@@ -11,6 +11,11 @@
  * the one row that navigates, and sign-out as a quiet pill instead of the
  * screen's loudest element (the saturated accent belongs to forward
  * actions, never to leaving).
+ *
+ * INT-499 (ADR-039 amendment): settings on the still stage. The wash and the
+ * stage palette sit under the groups, every group is a solid stage card
+ * (22 pt), and signing out is an inert, untinted glass capsule, never the
+ * accent. Nothing moves.
  */
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -19,7 +24,11 @@ import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
-import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { AmbientBackdrop } from "@/components/stage/AmbientBackdrop";
+import { StageButton } from "@/components/stage/StageControls";
+import { StageSurfaceProvider } from "@/components/stage/StageSurface";
+import { useStageScreen } from "@/components/stage/useStageScreen";
+import { AppText, RAIL_EDGES, Screen, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
@@ -106,6 +115,7 @@ export default function Me() {
   const { account, consents, setConsent, signOut, locale, switchLocale } = useSession();
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
+  const { palette, chrome } = useStageScreen("settings");
   // INT-301 — the language chooser, reachable here without ending a visit in
   // progress. It reads the registry (INT-296) and is ABSENT below two real
   // choices; with only `tr` registered it renders nothing.
@@ -133,134 +143,145 @@ export default function Me() {
   // phone-verified account in a store build carries no sublabel at all.
   const badge = accountBadgeKey(account);
   return (
-    <Screen edges={RAIL_EDGES}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("me.title")}
-        </AppText>
-        <ListGroup>
-          <ListRow
-            icon="person.crop.circle"
-            label={account.name}
-            sublabel={badge === null ? undefined : t(badge)}
-          />
-        </ListGroup>
-        {/* Görünüm (INT-260): text size, theme, motion and how a visit
-            starts. Above İzinleriniz because a patient who cannot read the
-            screen cannot reach anything below it either. */}
-        <ListGroup>
-          <ListRow
-            icon="textformat.size"
-            label={t("appearance.title")}
-            chevron
-            hint={t("a11y.appearance.entry")}
-            onPress={() => router.push("/(tabs)/me/appearance")}
-          />
-        </ListGroup>
-        {/* İzinleriniz (INT-132): the per-purpose record moved to its own
-            layered screen — every 06 §2 purpose, versioned texts, one-tap
-            withdrawal. This row is the permanent one-tap-away entry. */}
-        <View style={styles.section}>
-          <Kicker label={t("me.consents")} />
+    <Screen edges={RAIL_EDGES} style={{ backgroundColor: palette.base }}>
+      {chrome.backdrop ? <AmbientBackdrop palette={palette} /> : null}
+      <StageSurfaceProvider palette={palette}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+          <AppText role="hero" heading style={[styles.heroLine, { color: palette.ink }]}>
+            {t("me.title")}
+          </AppText>
           <ListGroup>
             <ListRow
-              icon="checkmark.shield"
-              label={t("me.consents")}
-              sublabel={t("consent.entry.sub")}
-              chevron
-              hint={t("a11y.openHint")}
-              onPress={() => router.push("/(tabs)/me/consents")}
+              icon="person.crop.circle"
+              label={account.name}
+              sublabel={badge === null ? undefined : t(badge)}
             />
           </ListGroup>
-        </View>
-        {/* Sağlık verileri (INT-208): device-local reads behind their own
+          {/* Görünüm (INT-260): text size, theme, motion and how a visit
+            starts. Above İzinleriniz because a patient who cannot read the
+            screen cannot reach anything below it either. */}
+          <ListGroup>
+            <ListRow
+              icon="textformat.size"
+              label={t("appearance.title")}
+              chevron
+              hint={t("a11y.appearance.entry")}
+              onPress={() => router.push("/(tabs)/me/appearance")}
+            />
+          </ListGroup>
+          {/* İzinleriniz (INT-132): the per-purpose record moved to its own
+            layered screen — every 06 §2 purpose, versioned texts, one-tap
+            withdrawal. This row is the permanent one-tap-away entry. */}
+          <View style={styles.section}>
+            <Kicker label={t("me.consents")} />
+            <ListGroup>
+              <ListRow
+                icon="checkmark.shield"
+                label={t("me.consents")}
+                sublabel={t("consent.entry.sub")}
+                chevron
+                hint={t("a11y.openHint")}
+                onPress={() => router.push("/(tabs)/me/consents")}
+              />
+            </ListGroup>
+          </View>
+          {/* Sağlık verileri (INT-208): device-local reads behind their own
             consent. The hint states the scope honestly — read on this phone
             only, nothing sent, nothing enters a note unless the patient adds
             it. Content renders only while the consent is ON; the hint is the
             group's quiet footer (Oura's under-group explanations). */}
-        <View style={styles.section}>
-          <Kicker label={t("me.health")} />
-          <ListGroup footer={t("consent.health.hint")}>
-            <ListRow
-              label={t("consent.health")}
-              trailing={
-                <StatePill
-                  label={consents.health ? t("consent.on") : t("consent.off")}
-                  context={t("consent.health")}
-                  hint={t("a11y.consent.switchHint")}
-                  active={consents.health}
-                  activeColor="success"
-                  accessibilityRole="switch"
-                  checked={consents.health}
-                  onPress={() => setConsent("health", !consents.health)}
-                />
-              }
-            />
-          </ListGroup>
-          {consents.health ? <HealthSection /> : null}
-        </View>
-        <ListGroup>
-          {languageChoices.length > 0 ? (
-            <ListRow
-              label={t("me.language")}
-              trailing={
-                <View style={styles.langGroup}>
-                  {languageChoices.map((choice) => (
-                    <StatePill
-                      key={choice.code}
-                      // Each language in its own name and script (acceptance 1).
-                      label={choice.endonym}
-                      context={t("me.language")}
-                      active={locale === choice.code}
-                      activeColor="primary"
-                      onPress={() => pickLanguage(choice.code)}
-                    />
-                  ))}
-                </View>
-              }
-            />
-          ) : null}
-          {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
+          <View style={styles.section}>
+            <Kicker label={t("me.health")} />
+            <ListGroup footer={t("consent.health.hint")}>
+              <ListRow
+                label={t("consent.health")}
+                trailing={
+                  <StatePill
+                    label={consents.health ? t("consent.on") : t("consent.off")}
+                    context={t("consent.health")}
+                    hint={t("a11y.consent.switchHint")}
+                    active={consents.health}
+                    activeColor="success"
+                    accessibilityRole="switch"
+                    checked={consents.health}
+                    onPress={() => setConsent("health", !consents.health)}
+                  />
+                }
+              />
+            </ListGroup>
+            {consents.health ? <HealthSection /> : null}
+          </View>
+          <ListGroup>
+            {languageChoices.length > 0 ? (
+              <ListRow
+                label={t("me.language")}
+                trailing={
+                  <View style={styles.langGroup}>
+                    {languageChoices.map((choice) => (
+                      <StatePill
+                        key={choice.code}
+                        // Each language in its own name and script (acceptance 1).
+                        label={choice.endonym}
+                        context={t("me.language")}
+                        active={locale === choice.code}
+                        activeColor="primary"
+                        onPress={() => pickLanguage(choice.code)}
+                      />
+                    ))}
+                  </View>
+                }
+              />
+            ) : null}
+            {/* Bildirimler (INT-141): opt-out and quiet hours. Its own screen
               because the quiet-window choices do not fit a settings row —
               and because the honest explanation of what a reminder never
               says belongs beside the switch that governs it. */}
-          <ListRow
-            label={t("me.notifications")}
-            sublabel={t("notifications.entry.sub")}
-            chevron
-            hint={t("a11y.openHint")}
-            onPress={() => router.push("/(tabs)/me/notifications")}
-          />
-          {/* Yakınınız adına (INT-133): who is doing this sitting, and what
+            <ListRow
+              label={t("me.notifications")}
+              sublabel={t("notifications.entry.sub")}
+              chevron
+              hint={t("a11y.openHint")}
+              onPress={() => router.push("/(tabs)/me/notifications")}
+            />
+            {/* Yakınınız adına (INT-133): who is doing this sitting, and what
               that does to the note (06 §6, 13 §13). The under-18 door lives
               on that screen too, closed with its reason on it. */}
-          <ListRow
-            label={t("me.companion")}
-            sublabel={t("companion.entry.sub")}
-            chevron
-            hint={t("a11y.openHint")}
-            onPress={() => router.push("/(tabs)/me/companion")}
-          />
-          <ListRow
-            label={t("me.learned")}
-            chevron
-            hint={t("a11y.openHint")}
-            onPress={() => router.push("/(tabs)/me/learned")}
-          />
-          {/* Verileriniz (INT-140): the KVKK m.11 controls — a copy of the
+            <ListRow
+              label={t("me.companion")}
+              sublabel={t("companion.entry.sub")}
+              chevron
+              hint={t("a11y.openHint")}
+              onPress={() => router.push("/(tabs)/me/companion")}
+            />
+            <ListRow
+              label={t("me.learned")}
+              chevron
+              hint={t("a11y.openHint")}
+              onPress={() => router.push("/(tabs)/me/learned")}
+            />
+            {/* Verileriniz (INT-140): the KVKK m.11 controls — a copy of the
               record, and its erasure. Last in the group and one tap away,
               which is where a right the patient rarely exercises belongs:
               always reachable, never the loudest thing on the screen. */}
-          <ListRow
-            label={t("me.data")}
-            sublabel={t("data.entry.sub")}
-            chevron
-            hint={t("a11y.openHint")}
-            onPress={() => router.push("/(tabs)/me/data")}
+            <ListRow
+              label={t("me.data")}
+              sublabel={t("data.entry.sub")}
+              chevron
+              hint={t("a11y.openHint")}
+              onPress={() => router.push("/(tabs)/me/data")}
+            />
+          </ListGroup>
+          {/* Leaving is never the accent: an untinted stage capsule, inert glass
+            (ADR-039 S3, S7), solid wherever the policy says so. */}
+          <StageButton
+            palette={palette}
+            interactive={false}
+            solid={!chrome.glass}
+            label={t("me.signOut")}
+            onPress={signOut}
           />
-        </ListGroup>
-        <SecondaryButton label={t("me.signOut")} onPress={signOut} />
-      </ScrollView>
+        </ScrollView>
+      </StageSurfaceProvider>
     </Screen>
   );
 }

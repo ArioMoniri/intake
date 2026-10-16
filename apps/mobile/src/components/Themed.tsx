@@ -27,6 +27,7 @@ import { Stack } from "expo-router";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { PressScale, type PressHandlers } from "@/components/PressScale";
+import { useStageSurface } from "@/components/stage/StageSurface";
 import { useIncreasedContrast } from "@/lib/a11y/prefs";
 import { getLocale } from "@/lib/i18n";
 import { CTA_MIN_HEIGHT, effectiveFontScale, resolveScheme } from "@/lib/prefs/appearance";
@@ -256,6 +257,9 @@ interface CardProps {
 
 export function Card({ children, style, wash = "none" }: CardProps) {
   const theme = useTheme();
+  // INT-499: on a stage screen the card is the solid stage card at the stage
+  // corner, with its boundary under Increase Contrast (ADR-039 S5, S6).
+  const stage = useStageSurface();
   // A grouped cell: the surface on the grouped ground, with no edge and no
   // shadow, in both schemes; the tone step carries the separation. Its padding is the 16 pt content margin at
   // every text size, so a long Turkish word keeps the card's whole measure
@@ -264,7 +268,16 @@ export function Card({ children, style, wash = "none" }: CardProps) {
     <View
       style={[
         styles.card,
-        { backgroundColor: wash === "primary" ? theme.primarySoft : theme.surface },
+        {
+          backgroundColor: wash === "primary" ? theme.primarySoft : (stage?.card ?? theme.surface),
+        },
+        stage === null
+          ? null
+          : {
+              borderRadius: stage.corner,
+              borderWidth: stage.border === null ? 0 : 1,
+              borderColor: stage.border ?? "transparent",
+            },
         style,
       ]}
     >
@@ -359,6 +372,9 @@ export function PrimaryButton(props: PrimaryButtonProps) {
  */
 export function SecondaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
   const theme = useTheme();
+  // INT-499: a control on a stage screen is a capsule (ADR-039 S5). It stays
+  // a solid fill: it sits in the content, and content is never glass.
+  const stage = useStageSurface();
   return (
     <Pressable
       ref={ref}
@@ -370,6 +386,7 @@ export function SecondaryButton({ label, onPress, disabled = false, hint, ref }:
       disabled={disabled}
       style={({ pressed }) => [
         styles.primaryButton,
+        stage === null ? null : styles.capsule,
         {
           backgroundColor: theme.surfaceRaised,
           opacity: disabled ? motion.press.disabledOpacity : pressed ? motion.press.opacity : 1,
@@ -408,4 +425,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonLabel: { fontWeight: "600" },
+  // Radius = height ÷ 2 at any height the label reaches: the stage's capsule.
+  capsule: { borderRadius: radius.chip },
 });

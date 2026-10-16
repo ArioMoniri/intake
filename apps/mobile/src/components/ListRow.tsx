@@ -14,6 +14,7 @@ import { type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { Icon } from "@/components/Icon";
+import { useStageSurface } from "@/components/stage/StageSurface";
 import { AppText, Hairline, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import type { SymbolKey } from "@/lib/symbols";
@@ -36,6 +37,9 @@ export function ListGroup({
   surface?: string;
 }) {
   const theme = useTheme();
+  // INT-499: on a stage screen the group is the solid stage card at the stage
+  // corner, with its boundary under Increase Contrast (ADR-039 S5, S6).
+  const stage = useStageSurface();
   const rows: ReactNode[] = [];
   const items = Array.isArray(children) ? children : [children];
   items
@@ -48,7 +52,23 @@ export function ListGroup({
     });
   return (
     <View style={styles.wrap}>
-      <View style={[styles.group, { backgroundColor: surface ?? theme.surface }]}>{rows}</View>
+      <View
+        style={[
+          styles.group,
+          { backgroundColor: surface ?? stage?.card ?? theme.surface },
+          // An empty group is zero-height: a boundary on it would draw a
+          // stray line under its header (found under Increase Contrast).
+          stage === null || rows.length === 0
+            ? null
+            : {
+                borderRadius: stage.corner,
+                borderWidth: stage.border === null ? 0 : 1,
+                borderColor: stage.border ?? "transparent",
+              },
+        ]}
+      >
+        {rows}
+      </View>
       {footer ? (
         <AppText role="caption" color="inkFaint" style={styles.footer}>
           {footer}

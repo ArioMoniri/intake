@@ -46,19 +46,25 @@
  * renders no clinical content — the note itself lives behind `review`, which
  * keeps its own. Capture is blocked all the same, because a recipient label
  * is the patient's own words about who they are seeing.
+ *
+ * INT-499 (ADR-039 amendment): the share centre on the stage, SOLID. Capture
+ * protection means it never mounts glass or the wash (INT-477, owner:
+ * "solid"): the flat stage base, a solid bar with only the back chevron (the
+ * title is the large title in the content, so nothing scrolls under a
+ * material), and its groups as solid stage cards (22 pt). It has no page
+ * action of its own; the revoke rows stay rows. Nothing moves.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useHeaderHeight } from "expo-router/react-navigation";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
-import { withGlassNav } from "@/components/GlassBar";
-import { useGlassMode } from "@/components/glassMode";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
+import { StageSurfaceProvider } from "@/components/stage/StageSurface";
+import { useStageScreen } from "@/components/stage/useStageScreen";
 import { AppText, Screen, useStackHeader } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
@@ -72,6 +78,7 @@ import {
   stateLabelKey,
 } from "@/lib/shares/links";
 import { loadShareCentre, revokeShare, useShareCentre } from "@/lib/shares/store";
+import { withProtectedStageBar } from "@/lib/stage/screens";
 import { spacing } from "@/lib/theme";
 
 /** Pushed screen: the stack header owns the top inset. */
@@ -84,11 +91,8 @@ export default function ShareCentre() {
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { links, log, loaded, unreachable, unsent } = useShareCentre();
   const tabBarClearance = useTabBarClearance();
-  // INT-451: the share centre scrolls under the glass nav bar and clears it
-  // by the header's own height.
-  const headerHeight = useHeaderHeight();
-  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
-  const glass = useGlassMode();
+  // INT-499: capture-protected, so the stage is flat and solid (INT-477).
+  const { palette } = useStageScreen("shares");
   // Armed, not stopped: the first tap on a grant only changes the word, and
   // arming another disarms this one.
   const [armed, setArmed] = useState<string | null>(null);
@@ -101,137 +105,134 @@ export default function ShareCentre() {
   }, [visit]);
 
   return (
-    <Screen edges={HEADER_EDGES}>
-      <Stack.Screen options={withGlassNav(headerOptions(t("shares.title")), glass)} />
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: headerHeight, paddingBottom: tabBarClearance },
-        ]}
-      >
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("shares.title")}
-        </AppText>
-        <GuidanceBlock
-          accent
-          icon="person.2"
-          kickerKey="shares.guide.kicker"
-          titleKey="shares.guide.title"
-          bodyKey="shares.guide.body"
-        />
-        {/* INT-311 — the act of issuing has one owner and one surface, and this
+    <Screen edges={HEADER_EDGES} style={{ backgroundColor: palette.base }}>
+      <Stack.Screen options={withProtectedStageBar(headerOptions(t("shares.title")), palette)} />
+      <StageSurfaceProvider palette={palette}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+          <AppText role="hero" heading style={[styles.heroLine, { color: palette.ink }]}>
+            {t("shares.title")}
+          </AppText>
+          <GuidanceBlock
+            accent
+            icon="person.2"
+            kickerKey="shares.guide.kicker"
+            titleKey="shares.guide.title"
+            bodyKey="shares.guide.body"
+          />
+          {/* INT-311 — the act of issuing has one owner and one surface, and this
             is the way in. It is a plain navigation from the hub; the bearer
             credential it renders never touches this screen (INT-139 §3 still
             holds), only the screen it opens. */}
-        <ListGroup>
-          <ListRow
-            icon="paperplane"
-            label={t("shares.issue.entry")}
-            sublabel={t("shares.issue.sub")}
-            chevron
-            hint={t("a11y.shares.issueHint")}
-            onPress={() => router.push(`/(tabs)/visits/${visit}/issue-link`)}
-          />
-        </ListGroup>
-        <View style={styles.section}>
-          <Kicker label={t("shares.active")} />
-          <ListGroup footer={emptyFooter(loaded, unreachable, links.length)}>
-            {links.flatMap((link) => {
-              const state = linkState(link);
-              const isArmed = armed === link.id;
-              const rows = [
+          <ListGroup>
+            <ListRow
+              icon="paperplane"
+              label={t("shares.issue.entry")}
+              sublabel={t("shares.issue.sub")}
+              chevron
+              hint={t("a11y.shares.issueHint")}
+              onPress={() => router.push(`/(tabs)/visits/${visit}/issue-link`)}
+            />
+          </ListGroup>
+          <View style={styles.section}>
+            <Kicker label={t("shares.active")} />
+            <ListGroup footer={emptyFooter(loaded, unreachable, links.length)}>
+              {links.flatMap((link) => {
+                const state = linkState(link);
+                const isArmed = armed === link.id;
+                const rows = [
+                  <ListRow
+                    key={link.id}
+                    icon="paperplane"
+                    label={link.recipient}
+                    sublabel={`${t("shares.until")}: ${formatShareMoment(link.expiresAt)}`}
+                    trailing={
+                      <AppText role="caption" color={state === "live" ? "primary" : "inkSoft"}>
+                        {t(stateLabelKey(state))}
+                      </AppText>
+                    }
+                  />,
+                ];
+                if (revokeOffered(link)) {
+                  rows.push(
+                    <ListRow
+                      key={`${link.id}-stop`}
+                      inset
+                      label={isArmed ? t("shares.revoke.confirm") : t("shares.revoke")}
+                      // Several grants carry the same control, so the row's
+                      // accessible name has to say WHICH one (INT-144): the
+                      // visible word first (SC 2.5.3), the recipient after.
+                      labelContext={link.recipient}
+                      hint={isArmed ? t("a11y.shares.confirmHint") : t("a11y.shares.revokeHint")}
+                      onPress={() => {
+                        if (isArmed) {
+                          setArmed(null);
+                          // INT-340: felt only when the server's row says stopped.
+                          const action = appHaptics.action();
+                          void revokeShare(visit, link.id).then((confirmed) =>
+                            haptic("success", {
+                              surface: "shareRevoke",
+                              actionId: action,
+                              serverConfirmed: confirmed,
+                            }),
+                          );
+                          return;
+                        }
+                        haptic("arm", { surface: "shareRevoke" });
+                        setArmed(link.id);
+                      }}
+                    />,
+                  );
+                }
+                return rows;
+              })}
+            </ListGroup>
+            {unreachable ? (
+              // In the footer's place and style, but announced (SC 4.1.3): a
+              // list that could not be read must not pass for an empty one.
+              <AnnouncedText
+                tone="status"
+                role="caption"
+                color="inkFaint"
+                style={styles.footerLine}
+                message={t("shares.unreachable")}
+              />
+            ) : null}
+            <AppText role="caption" color="inkSoft">
+              {t("shares.revoke.effect")}
+            </AppText>
+            {unsent ? (
+              // SC 3.3.1: the stop the patient asked for did not arrive, and the
+              // share may still be open — announced as an error (INT-362).
+              <AnnouncedText
+                tone="error"
+                role="caption"
+                color="inkSoft"
+                message={t("shares.revoke.unsent")}
+              />
+            ) : null}
+          </View>
+          <View style={styles.section}>
+            <Kicker label={t("shares.log")} />
+            <ListGroup footer={log.length === 0 ? t("shares.log.empty") : t("shares.log.noNames")}>
+              {log.map((entry) => (
                 <ListRow
-                  key={link.id}
-                  icon="paperplane"
-                  label={link.recipient}
-                  sublabel={`${t("shares.until")}: ${formatShareMoment(link.expiresAt)}`}
+                  key={entry.seq}
+                  label={t(categoryLabelKey(entry.category))}
+                  sublabel={formatShareMoment(entry.occurredAt)}
                   trailing={
-                    <AppText role="caption" color={state === "live" ? "primary" : "inkSoft"}>
-                      {t(stateLabelKey(state))}
+                    <AppText role="caption" color="inkSoft">
+                      {t(roleLabelKey(entry.role))}
                     </AppText>
                   }
-                />,
-              ];
-              if (revokeOffered(link)) {
-                rows.push(
-                  <ListRow
-                    key={`${link.id}-stop`}
-                    inset
-                    label={isArmed ? t("shares.revoke.confirm") : t("shares.revoke")}
-                    // Several grants carry the same control, so the row's
-                    // accessible name has to say WHICH one (INT-144): the
-                    // visible word first (SC 2.5.3), the recipient after.
-                    labelContext={link.recipient}
-                    hint={isArmed ? t("a11y.shares.confirmHint") : t("a11y.shares.revokeHint")}
-                    onPress={() => {
-                      if (isArmed) {
-                        setArmed(null);
-                        // INT-340: felt only when the server's row says stopped.
-                        const action = appHaptics.action();
-                        void revokeShare(visit, link.id).then((confirmed) =>
-                          haptic("success", {
-                            surface: "shareRevoke",
-                            actionId: action,
-                            serverConfirmed: confirmed,
-                          }),
-                        );
-                        return;
-                      }
-                      haptic("arm", { surface: "shareRevoke" });
-                      setArmed(link.id);
-                    }}
-                  />,
-                );
-              }
-              return rows;
-            })}
-          </ListGroup>
-          {unreachable ? (
-            // In the footer's place and style, but announced (SC 4.1.3): a
-            // list that could not be read must not pass for an empty one.
-            <AnnouncedText
-              tone="status"
-              role="caption"
-              color="inkFaint"
-              style={styles.footerLine}
-              message={t("shares.unreachable")}
-            />
-          ) : null}
-          <AppText role="caption" color="inkSoft">
-            {t("shares.revoke.effect")}
+                />
+              ))}
+            </ListGroup>
+          </View>
+          <AppText role="caption" color="inkFaint">
+            {t("shares.held")}
           </AppText>
-          {unsent ? (
-            // SC 3.3.1: the stop the patient asked for did not arrive, and the
-            // share may still be open — announced as an error (INT-362).
-            <AnnouncedText
-              tone="error"
-              role="caption"
-              color="inkSoft"
-              message={t("shares.revoke.unsent")}
-            />
-          ) : null}
-        </View>
-        <View style={styles.section}>
-          <Kicker label={t("shares.log")} />
-          <ListGroup footer={log.length === 0 ? t("shares.log.empty") : t("shares.log.noNames")}>
-            {log.map((entry) => (
-              <ListRow
-                key={entry.seq}
-                label={t(categoryLabelKey(entry.category))}
-                sublabel={formatShareMoment(entry.occurredAt)}
-                trailing={
-                  <AppText role="caption" color="inkSoft">
-                    {t(roleLabelKey(entry.role))}
-                  </AppText>
-                }
-              />
-            ))}
-          </ListGroup>
-        </View>
-        <AppText role="caption" color="inkFaint">
-          {t("shares.held")}
-        </AppText>
-      </ScrollView>
+        </ScrollView>
+      </StageSurfaceProvider>
     </Screen>
   );
 }

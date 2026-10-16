@@ -95,3 +95,55 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 - **Harder.** Five allow-lists grow by named stage files and may only shrink afterwards. A device check of the glass on each iOS major version is owed, and timings go to `docs/evidence/` with a device and a date (invariant 20).
 - **Not done.** A tilt-following highlight would need `expo-sensors`. Its pedometer code needs a motion-permission string, which is a store artefact for legal review, and the simulator has no gyroscope to test it on. The highlight is still.
 - **Records.** `files/00_STATE.md` §3 row **D23**. No HUMAN_BLOCKERS id is minted.
+
+## Amendment — the still stage on the visits list, documents, the share centre and settings (INT-499, 16 Oct 2026)
+
+Amendment status: Accepted (owner mandate, 16 Oct 2026, INT-499, GitHub #849, relayed by the orchestrator). The mandate: apply this ADR and the Liquid Glass research to the remaining screens, with "glass on controls only, content solid; capture-protected screens solid per INT-477". Anything beyond these bounds is an approval item and does not ship. S5's 12 pt ceiling and S6's single-screen palette no longer apply to these four screens. Everything else above stands.
+
+**Decision.**
+
+- **The four screens take the stage, still, as S7 did for sign-in.** They are the visits list, documents (Kayıtlarım), the share centre and settings (Profilim). One pure policy, `lib/stage/screens.ts`, decides every surface on them.
+- **Backdrop and palette (S2, S6).**
+  - The visits list and settings draw the still wash (`AmbientBackdrop`) on the stage palette. No new gradient file is added.
+  - The large title is drawn in the stage ink.
+  - The shared rows keep the system text colours. Each one is held to AA on every wash stop, on the base and on the card.
+- **Content is solid (S3, S5).**
+  - Grouped lists, visit cards, the calendar and every other card are the solid stage card, with 22 pt corners, through `StageSurfaceProvider`.
+  - Under Increase Contrast each card has a boundary (S6).
+  - Nothing in the content is glass.
+- **Controls are capsules (S5).**
+  - The List/Calendar control is a capsule track holding capsule thumbs.
+  - The secondary buttons inside content are solid capsules.
+- **Glass is on the page actions only, and it is inert (S3, S7).**
+  - "Vizit ekleyin" and "Çıkış yapın" are `StageButton`s with `interactive={false}`, drawn in regular glass.
+  - They are untinted, because neither is a forward step.
+  - The glass allow-list does not grow.
+- **Capture-protected screens are solid (INT-477).**
+  - Documents and the share centre never mount glass or the wash. They draw on the flat stage base, and every action is forced `solid`.
+  - The share centre's bar comes from `withProtectedStageBar`: it is opaque, shows only the back chevron and has no scroll-edge effect. The title is the large title in the content.
+  - The floating tab rail keeps its own policy. INT-477 (#819) carries capture protection to the rail.
+- **Reduce Transparency and Increase Contrast give solid surfaces.**
+  - Without system Liquid Glass the wash is flat and the actions are solid stage fills, never a blur. That covers Reduce Transparency, an OS that has not answered, iOS before 26, and Android.
+  - Under Increase Contrast the wash stays, and the actions are solid with the card boundary.
+- **Nothing moves.** None of the four screens adds Reanimated, a press scale or interactive glass, so Reduce Motion has nothing to stop. The 120 ms tab fade is unchanged, and it is still absent under Reduce Motion.
+- **No copy changes.** Every visible line is an existing key. RED never reads the stage.
+
+**Not shipped (approval needed).** These are listed in `docs/design/library-patterns.md` §8.3. They include:
+
+- a floating glass action above the tab rail;
+- a sliding or glass segmented thumb;
+- swipe actions on rows;
+- interactive glass;
+- status-grouped documents with new section copy.
+
+**Where each bound is enforced.**
+
+| Bound | Test |
+|---|---|
+| The four screens; glass only unprotected with system glass; protected screens never glass or wash; Reduce Transparency and Increase Contrast solid; the 22 pt surface and its boundary; the share centre's solid bar; the system colours AA on every stage ground | `apps/mobile/src/lib/stage/screens.test.ts` |
+| Each screen renders its new chrome; capture protection matches the source; protected screens mount no glass, and, as a near miss, unprotected ones do; inert, untinted actions; no motion; no new string; RED never reads the stage | `apps/mobile/e2e/stageScreens.spec.ts` |
+| The share centre leaves the glass nav bar for the solid one | `apps/mobile/e2e/interactionPatterns.spec.ts` |
+| The glass and gradient allow-lists do not grow | `apps/mobile/e2e/designSystem.spec.ts`, `apps/mobile/e2e/chatStage.spec.ts` |
+| This amendment | `tests/docs/test_adr_039.py` |
+
+**Records.** `files/00_STATE.md` §3 row **D23** notes this amendment. No new D-row or HUMAN_BLOCKERS id is minted.
