@@ -27,6 +27,7 @@ from intake_voice_runtime.profiles import VoiceProfile
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
 from protocols.types import Delivery, SlotType
+from red_harness import RecordingClinicNotifier
 from talker_harness import (
     FakeClock,
     InMemoryPatientMemory,
@@ -140,6 +141,7 @@ def builders(
             sink=RecordingSink(clock=clock),
             memory=InMemoryPatientMemory(),
             tenant_id=tenant_id,
+            clinic=RecordingClinicNotifier(),
             screen=surface if voice_screen else None,
         )
 
@@ -153,6 +155,7 @@ def builders(
             gateway=TableGateway(answers),
             memory=InMemoryPatientMemory(),
             tenant_id=tenant_id,
+            clinic=RecordingClinicNotifier(),
             screen=surface,
         )
 

@@ -1159,6 +1159,69 @@ export const en: Record<MessageKey, string> = {
   "intake.open.hint": "You can write it, or say it, in your own words.",
   "intake.open.orChoose": "Or choose from below.",
 
+  // --- INT-414 · conversational delivery (the words around a question, never
+  // inside it). Mirrors only: the Turkish is the source of truth and the voice
+  // is Turkish whatever the UI locale.
+  "dialogue.delivery.welcome.a": "Welcome. Before your examination, I will ask you some questions.",
+  "dialogue.delivery.welcome.b":
+    "Hello, and welcome. Before the examination, let us go through some questions together.",
+  "dialogue.delivery.welcome.c":
+    "Welcome. To prepare for your examination, I would like to ask you some questions.",
+  "dialogue.delivery.orientVoice.a":
+    "You can also see the questions on the screen. If you wish, you can answer by typing too.",
+  "dialogue.delivery.orientVoice.b":
+    "You can interrupt me while I am speaking. The questions also stay written on the screen.",
+  "dialogue.delivery.orientTyped.a": "You can answer the questions at your own pace.",
+  "dialogue.delivery.orientTyped.b":
+    "You can move through them at your own pace, without hurrying.",
+  "dialogue.delivery.resume.a": "Let us continue where we left off.",
+  "dialogue.delivery.resume.b": "Let us pick up where we left off.",
+  "dialogue.delivery.lead.a": "Let us continue.",
+  "dialogue.delivery.lead.b": "Let us move on to the next question.",
+  "dialogue.delivery.lead.c": "Now let us ask this.",
+  "dialogue.delivery.lead.d": "I would also like to know this.",
+  "dialogue.delivery.thanks.a": "Thanks.",
+  "dialogue.delivery.thanks.b": "Thank you.",
+  "dialogue.delivery.thanks.c": "Noted, thank you.",
+  "dialogue.delivery.hesitant.a": "I understand; let us go on.",
+  "dialogue.delivery.hesitant.b": "Alright, I have noted it that way.",
+  "dialogue.delivery.revised.a": "Thank you for the correction.",
+  "dialogue.delivery.revised.b": "I have noted your correction.",
+  "dialogue.delivery.silence.a": "You can come back to the previous question later, on the screen.",
+  "dialogue.delivery.silence.b": "You can answer the previous question later, on the screen.",
+  "dialogue.delivery.repair.b":
+    "I did not quite understand your answer. Let us ask the question once more.",
+  "dialogue.delivery.pain.a": "I would like to understand your pain a little better.",
+  "dialogue.delivery.pain.b": "Let us ask a few details about your pain.",
+  "dialogue.delivery.instrument.a":
+    "The next questions belong to a standard questionnaire. That is why they are always asked the same way.",
+  "dialogue.delivery.instrument.b":
+    "Now let us move to a questionnaire that is asked the same way of everyone.",
+  "dialogue.delivery.sensitive.a":
+    "The next topic is a little more private. You can answer without hurrying.",
+  "dialogue.delivery.sensitive.b": "Now let us move to a more personal topic.",
+  "dialogue.delivery.sensitiveLead.a": "Let us continue, little by little.",
+  "dialogue.delivery.sensitiveLead.b": "You can answer in the way that feels comfortable to you.",
+  "dialogue.delivery.topic.allergies.a": "Now let us move to questions about allergies.",
+  "dialogue.delivery.topic.allergies.b": "Next come questions about allergies.",
+  "dialogue.delivery.topic.medications.a": "Now let us move to questions about medicines.",
+  "dialogue.delivery.topic.medications.b": "Next come questions about medicines.",
+  "dialogue.delivery.topic.pmh.a": "Now let us move to questions about your health history.",
+  "dialogue.delivery.topic.pmh.b": "Next come questions about your health history.",
+  "dialogue.delivery.topic.family.a":
+    "Now let us turn to your family's health history. You can answer without hurrying.",
+  "dialogue.delivery.topic.family.b": "The next questions are about your family's health history.",
+  "dialogue.delivery.topic.social.a": "Now let us move to questions about your daily life.",
+  "dialogue.delivery.topic.social.b": "Next come questions about your daily life.",
+  "dialogue.delivery.topic.measurements.a":
+    "Now let us gather some information about a few measurements.",
+  "dialogue.delivery.topic.measurements.b": "Next come questions about measurements.",
+  "dialogue.delivery.topic.wrapup.a": "Before we finish, let us also ask this.",
+  "dialogue.delivery.topic.wrapup.b": "We are nearing the end.",
+  "dialogue.delivery.closing.a": "That is all my questions. Thank you for your time.",
+  "dialogue.delivery.closing.b":
+    "We have reached the end of the questions. Thank you for your time.",
+
   // --- INT-137 · consent summary above Send, and the satisfaction question.
   "review.consent.title": "Sharing summary",
   "review.consent.sections": "Sections being shared",
@@ -1276,4 +1339,8 @@ export const en: Record<MessageKey, string> = {
     "Are you still there? To protect your information, the session will close shortly.",
   "kiosk.idle.extend": "Continue",
   "kiosk.idle.extendHint": "Keeps the session open.",
+  "red.call112": "Call 112",
+  "red.location.yes": "Yes",
+  "red.location.no": "No",
+  "red.doNots": "Please do not",
 };

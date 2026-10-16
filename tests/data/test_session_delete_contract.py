@@ -1,5 +1,5 @@
-"""INT-392 / INT-393 — what a subject's erasure does to every foreign key in
-the erasure graph.
+"""INT-392 / INT-393 / INT-395 — what a subject's erasure does to every foreign
+key in the erasure graph, and what the erasure and the export must cover.
 
 The defects: INT-317 added ``previsit_outputs.session_id`` → ``sessions.id``
 (INT-392), and INT-150 added ``doctor_links.share_id`` → ``shares.id``
@@ -25,6 +25,18 @@ because SQLite does not enforce foreign keys unless it is asked to.
    dependent raises here exactly as it would on postgres, and every declared
    fate is checked against what the executor actually left behind. The live
    postgres proof is tests/integration/test_session_erasure.py.
+3. **Completeness, read from the inventory annotations (INT-395).** Points
+   1 and 2 check that what is declared is done; this point checks that what
+   the annotations say must be declared. A table in the graph whose retention
+   clock lets the subject erase it (:func:`grants_subject_erasure`) must be
+   ``ERASED`` — the one pinned exception is the pseudonym anchor,
+   :data:`ANCHORED`. A table in the graph that holds the subject's personal
+   data (:func:`holds_subject_data`) must be listed by the DSAR export, in
+   the section :data:`EXPORTED_IN` names, and the export over the full seed
+   lists every seeded row there. The near-miss controls plant an annotated
+   table missing from either path. INT-393 found both gaps this closes:
+   ``notification_preferences`` was annotated patient-deletable and no path
+   erased it, and the export did not list Doctor Links.
 
 Why the children are ``REMOVED_FIRST`` and not ``CASCADE``: files/06 §1
 KVKK-7 names crypto-shredding as the destruction method, and the DSAR
@@ -39,7 +51,11 @@ deletes the subject's vectors, setting the patient GUC first), and its only
 key in the graph is ``patient_id``, to a row the erasure keeps. It has no key
 to ``sessions`` or ``documents`` — a vector is keyed to its document by the
 ``doc:<documents.id>`` ref — so the retention executor is held to removing the
-vector of the document it destroys by an explicit assertion below.
+vector of the document it destroys by an explicit assertion below. Its
+annotations put it under both INT-395 rules (``RET_RECORD`` is
+patient-deletable; the item kind and the vector are health data), so the
+export lists each vector in the documents section, beside the document it
+was read from, and the erasure run declares the grants it needs on it.
 
 Sec row: data-at-rest (files/10 §9).
 """
@@ -60,9 +76,26 @@ from typing import Any, Final
 import pytest
 from clinical_schemas.records import RecordItemKind
 from intake_api.audit import AuditWriter
+from intake_api.dsar.export import ExportView, build_view
+from intake_api.dsar.grants import ERASURE_PRIVILEGES
 from intake_api.dsar.shred import execute_due_shreds
+from intake_api.dsar.store import subject_record
+from intake_api.dsar.strings import DSAR_EXPORT_SECTIONS
 from intake_platform.audit import InMemoryAuditStore
+from intake_platform.db import inventory
 from intake_platform.db.envelope_json import encrypted_field_to_json
+from intake_platform.db.inventory import (
+    BASIS_HEALTH_CONSENT,
+    CAT_HEALTH,
+    CAT_OPERATIONAL,
+    INVENTORY_KEY,
+    REC_INTERNAL,
+    RET_EVENTS,
+    RET_RECORD,
+    grants_subject_erasure,
+    holds_subject_data,
+    inv,
+)
 from intake_platform.db.models import (
     Base,
     Consent,
@@ -107,7 +140,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql.schema import ForeignKey as ForeignKeyObject
@@ -156,7 +189,6 @@ ROWS_ON_ERASURE: Final[Mapping[str, RowFate]] = MappingProxyType(
         "dsar_requests": RowFate.KEPT,
         "events": RowFate.KEPT,
         "guardian_links": RowFate.KEPT,
-        "notification_preferences": RowFate.KEPT,
         "sessions": RowFate.ERASED,
         "slots": RowFate.ERASED,
         "notes": RowFate.ERASED,
@@ -168,6 +200,8 @@ ROWS_ON_ERASURE: Final[Mapping[str, RowFate]] = MappingProxyType(
         "dsar_rectifications": RowFate.ERASED,
         "overlay_facts": RowFate.ERASED,
         "patient_overlays": RowFate.ERASED,
+        # INT-395: RET_NOTIFICATION_PREFERENCE puts it on the record clock.
+        "notification_preferences": RowFate.ERASED,
         "record_embeddings": RowFate.ERASED,
     }
 )
@@ -184,9 +218,6 @@ KEPT_BECAUSE: Final[Mapping[str, str]] = MappingProxyType(
         "construction; de-linked from the erased session",
         "guardian_links": "06 §3 has no guardian-linkage row (RET_AWAITING_HUMAN_GUARDIAN); "
         "counsel sets the period and no path destroys the row until then",
-        "notification_preferences": "no erasure path reaches it today: 0007 grants app_rw no "
-        "DELETE on it, although RET_NOTIFICATION_PREFERENCE puts it on the record clock; "
-        "recorded for its owner in docs/evidence/INT-393.md §8",
     }
 )
 
@@ -307,6 +338,124 @@ def contract_breaches(
     return breaches
 
 
+# --- completeness, read from the inventory annotations (INT-395) --------------------
+
+#: A table the annotations make subject-erasable that the erasure keeps
+#: anyway. One entry, pinned by a test: the pseudonym row that the retained
+#: consent and destruction records point at. Its annotation still says
+#: RET_RECORD; that mismatch is recorded in docs/evidence/INT-395.md §11, and
+#: the identity_vault question behind it is INT-037's open ask (item 4).
+ANCHORED: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "patients": "INT-037: statutory retention outranks erasure; the consent (10 y) and "
+        "DEST-2017 destruction records the erasure keeps name this row, so it is their anchor",
+    }
+)
+
+#: The export's subject header rather than a section: the FHIR ``Patient``
+#: resource and the PDF's ``subject:`` line.
+SUBJECT: Final = "subject"
+
+
+@dataclass(frozen=True)
+class Listed:
+    """Where the DSAR export answers for a table's rows: the section, and the
+    ref each row's line leads with (``<ref>:<id>``). ``ref`` is ``None`` for
+    the two tables rendered outside the section lines: the subject header,
+    and a slot, which is an answer inside its visit's QuestionnaireResponse."""
+
+    section: str
+    ref: str | None
+
+
+#: Adding a table that holds the subject's data means adding it here and to
+#: the export (``intake_api.dsar.store`` + ``intake_api.dsar.sections``).
+EXPORTED_IN: Final[Mapping[str, Listed]] = MappingProxyType(
+    {
+        "patients": Listed(SUBJECT, None),
+        "sessions": Listed("visits", "visit"),
+        "slots": Listed("visits", None),
+        "notes": Listed("notes", "note"),
+        "previsit_outputs": Listed("notes", "previsit_output"),
+        "documents": Listed("documents", "document"),
+        "consents": Listed("consents", "consent"),
+        "shares": Listed("shares", "share"),
+        "doctor_links": Listed("shares", "doctor_link"),
+        "dsar_rectifications": Listed("rectifications", "rectification"),
+        "dsar_requests": Listed("requests", "dsar-request"),
+        "overlay_facts": Listed("learned_facts", "learned_fact"),
+        "patient_overlays": Listed("learned_facts", "overlay"),
+        "csat_texts": Listed("feedback", "csat_text"),
+        "notification_preferences": Listed("preferences", "notification_preference"),
+        "guardian_links": Listed("guardians", "guardian_link"),
+        # INT-123: each vector beside the document it was read from
+        "record_embeddings": Listed("documents", "record_index"),
+    }
+)
+
+
+def _column_annotations(metadata: MetaData, table: str) -> list[Mapping[str, str]]:
+    return [dict(column.info[INVENTORY_KEY]) for column in metadata.tables[table].columns]
+
+
+def subject_erasable_tables(metadata: MetaData) -> frozenset[str]:
+    """The graph's tables with a column on a clock the subject can erase."""
+    tables, _ = erasure_graph(metadata)
+    return frozenset(
+        name
+        for name in tables
+        if any(
+            grants_subject_erasure(annotation["retention"])
+            for annotation in _column_annotations(metadata, name)
+        )
+    )
+
+
+def subject_data_tables(metadata: MetaData) -> frozenset[str]:
+    """The graph's tables with a column that holds the subject's data."""
+    tables, _ = erasure_graph(metadata)
+    return frozenset(
+        name
+        for name in tables
+        if any(holds_subject_data(annotation) for annotation in _column_annotations(metadata, name))
+    )
+
+
+def completeness_breaches(
+    metadata: MetaData,
+    rows: Mapping[str, RowFate] = ROWS_ON_ERASURE,
+    exported: Mapping[str, Listed] = EXPORTED_IN,
+    anchored: Mapping[str, str] = ANCHORED,
+) -> list[str]:
+    """Every way the declarations fall short of what the annotations require,
+    one line each."""
+    tables, _ = erasure_graph(metadata)
+    breaches = [
+        f"{name} is annotated subject-erasable but the erasure keeps it"
+        for name in sorted(subject_erasable_tables(metadata) - set(anchored))
+        if rows.get(name) is RowFate.KEPT
+    ]
+    breaches += [
+        f"{name} holds the subject's data but the DSAR export does not list it"
+        for name in sorted(subject_data_tables(metadata) - set(exported))
+    ]
+    breaches += [
+        f"{name} is declared exported but is not in the erasure graph"
+        for name in sorted(set(exported) - tables)
+    ]
+    breaches += [
+        f"{name} is declared exported under {listed.section!r}, which the export does not render"
+        for name, listed in sorted(exported.items())
+        if listed.section not in (SUBJECT, *DSAR_EXPORT_SECTIONS)
+    ]
+    breaches += [
+        f"{name} is anchored but is not a subject-erasable table the erasure keeps"
+        for name in sorted(anchored)
+        if name not in subject_erasable_tables(metadata) or rows.get(name) is not RowFate.KEPT
+    ]
+    return breaches
+
+
 # --- the contract ------------------------------------------------------------------
 
 
@@ -318,6 +467,74 @@ def test_every_kept_table_says_why_and_no_erased_table_does() -> None:
     kept = {name for name, fate in ROWS_ON_ERASURE.items() if fate is RowFate.KEPT}
     assert set(KEPT_BECAUSE) == kept
     assert all(reason.strip() for reason in KEPT_BECAUSE.values())
+
+
+def test_the_erasure_and_the_export_cover_what_the_annotations_require() -> None:
+    assert completeness_breaches(Base.metadata) == []
+
+
+def test_the_only_subject_erasable_table_the_erasure_keeps_is_the_pseudonym_anchor() -> None:
+    """An anchor is a subject-erasable table the erasure keeps, so the list is
+    pinned: a second entry is a retention decision, not a test edit."""
+    assert set(ANCHORED) == {"patients"}
+    assert all(reason.strip() for reason in ANCHORED.values())
+
+
+def test_the_clocks_that_grant_erasure_are_exactly_these() -> None:
+    """The derivation reads wording, so the wording is pinned. A clock
+    reworded out of "patient-deletable" would take its tables off the
+    erasure without a diff anywhere near them, and a new erasable clock has to
+    be somebody's decision rather than a side effect of its phrasing."""
+    erasable = {
+        name
+        for name, value in vars(inventory).items()
+        if name.startswith("RET_") and isinstance(value, str) and grants_subject_erasure(value)
+    }
+    assert erasable == {
+        "RET_RECORD",
+        "RET_NOTIFICATION_PREFERENCE",
+        "RET_PREVISIT_OUTPUT",
+        "RET_SATISFACTION",
+    }
+
+
+def test_the_tables_that_hold_the_subjects_data_are_what_the_annotations_say() -> None:
+    """The derivation's answer today, spelled out for the reviewer: everything
+    in the graph except the telemetry (operational, its own clock) and the
+    request tracker (operational, the consent & audit tier) — and the export
+    lists the tracker anyway."""
+    tables, _ = erasure_graph(Base.metadata)
+    assert tables - subject_data_tables(Base.metadata) == {"events", "dsar_requests"}
+    assert subject_erasable_tables(Base.metadata) == {
+        "patients",
+        "sessions",
+        "slots",
+        "notes",
+        "documents",
+        "previsit_outputs",
+        "csat_texts",
+        "dsar_rectifications",
+        "overlay_facts",
+        "patient_overlays",
+        "notification_preferences",
+        "record_embeddings",
+    }
+
+
+def test_the_erasure_declares_a_grant_for_every_table_it_reads_and_removes() -> None:
+    """The grant preflight (``intake_api.dsar.grants``) protects a run only if
+    its declaration is complete. A table the sweep reads, or the erasure
+    deletes, without a declared privilege would pass the preflight and then
+    fail half-way on postgres, after the object bytes are already gone. The
+    sweep reads every exported table (the subject header is the request's own
+    id); the erasure deletes every erased table except a cascade child, which
+    postgres removes as the table owner."""
+    declared = {(need.table, need.privilege) for need in ERASURE_PRIVILEGES if need.column is None}
+    cascaded = {where.split(".")[0] for where, on in ON_ERASURE.items() if on is OnErasure.CASCADE}
+    read = set(EXPORTED_IN) - {"patients"}
+    removed = {name for name, fate in ROWS_ON_ERASURE.items() if fate is RowFate.ERASED}
+    assert sorted({(name, "SELECT") for name in read} - declared) == []
+    assert sorted({(name, "DELETE") for name in removed - cascaded} - declared) == []
 
 
 @pytest.mark.parametrize(
@@ -410,6 +627,73 @@ def test_near_miss_stale_declarations_are_named() -> None:
     ]
 
 
+def _plant_annotated_table(clone: MetaData, *, category: str, retention: str) -> None:
+    """A new subject table as a feature would add it: keyed to the patient and
+    carrying a complete invariant-18 annotation on every column."""
+
+    def annotated(name: str, *args: Any, **kwargs: Any) -> Column[Any]:
+        info = inv(
+            category, "planted near-miss column", BASIS_HEALTH_CONSENT, retention, REC_INTERNAL
+        )
+        return Column(name, *args, info=info, **kwargs)
+
+    Table(
+        "ghost_facts",
+        clone,
+        annotated("id", Uuid(), primary_key=True),
+        annotated("patient_id", Uuid(), ForeignKey("patients.id"), nullable=False),
+    )
+
+
+def test_near_miss_a_planted_subject_erasable_table_the_erasure_keeps_is_named() -> None:
+    clone = _clone()
+    _plant_annotated_table(clone, category=CAT_OPERATIONAL, retention=RET_RECORD)
+    rows = {**ROWS_ON_ERASURE, "ghost_facts": RowFate.KEPT}
+    exported = {**EXPORTED_IN, "ghost_facts": Listed("notes", "ghost_fact")}
+    assert completeness_breaches(clone, rows=rows, exported=exported) == [
+        "ghost_facts is annotated subject-erasable but the erasure keeps it"
+    ]
+
+
+def test_near_miss_a_planted_table_of_subject_data_the_export_omits_is_named() -> None:
+    """Health data on a clock the subject cannot erase still has to be shown
+    to the subject: the access right does not depend on the erasure right."""
+    clone = _clone()
+    _plant_annotated_table(clone, category=CAT_HEALTH, retention=RET_EVENTS)
+    rows = {**ROWS_ON_ERASURE, "ghost_facts": RowFate.KEPT}
+    assert completeness_breaches(clone, rows=rows) == [
+        "ghost_facts holds the subject's data but the DSAR export does not list it"
+    ]
+
+
+def test_near_miss_undoing_either_int395_fix_is_named() -> None:
+    rows = {**ROWS_ON_ERASURE, "notification_preferences": RowFate.KEPT}
+    exported = {name: listed for name, listed in EXPORTED_IN.items() if name != "doctor_links"}
+    assert completeness_breaches(Base.metadata, rows=rows, exported=exported) == [
+        "notification_preferences is annotated subject-erasable but the erasure keeps it",
+        "doctor_links holds the subject's data but the DSAR export does not list it",
+    ]
+
+
+def test_near_miss_stale_or_unrendered_export_declarations_are_named() -> None:
+    exported = {
+        **EXPORTED_IN,
+        "tenants": Listed("visits", "tenant"),
+        "doctor_links": Listed("links", "doctor_link"),
+    }
+    assert completeness_breaches(Base.metadata, exported=exported) == [
+        "tenants is declared exported but is not in the erasure graph",
+        "doctor_links is declared exported under 'links', which the export does not render",
+    ]
+
+
+def test_near_miss_an_anchor_the_annotations_do_not_support_is_named() -> None:
+    anchored = {**ANCHORED, "consents": "not subject-erasable, so not an anchor"}
+    assert completeness_breaches(Base.metadata, anchored=anchored) == [
+        "consents is anchored but is not a subject-erasable table the erasure keeps"
+    ]
+
+
 # --- the behaviour: both executors, foreign keys enforced ---------------------------
 
 
@@ -446,19 +730,26 @@ class Seeded:
     keep: uuid.UUID
     rows: tuple[object, ...]
     envelopes: int
+    cipher: EnvelopeCipher
+
+
+#: The plaintext each envelope carries, in the shape its reader expects, so the
+#: export over this seed decrypts what production would (INT-395).
+NOTE_BODY: Final = b'{"sections": [{"id": "hpi", "title": "Oyku", "lines": ["dun basladi"]}]}'
 
 
 def _seed_graph(db: Engine) -> Seeded:
     """One subject with a row in every table of the erasure graph: a completed
     session carrying the whole session tree (note, share, Doctor Link, output,
     slot, document, telemetry, CSAT text), a second session, and the
-    subject-level rows. Every payload an erasure shreds is a real envelope."""
+    subject-level rows. Every payload an erasure shreds or the export reads is
+    a real envelope over the plaintext shape its reader expects."""
     cipher = EnvelopeCipher(FileKekProvider())
     tenant = Tenant(id=uuid.uuid4(), display_name="t", kvkk_role=KvkkRole.PROCESSOR, created_at=T0)
     patient = Patient(id=uuid.uuid4(), tenant_id=tenant.id, pseudonym="k1.int393", created_at=T0)
 
-    def envelope() -> dict[str, Any]:
-        return dict(encrypted_field_to_json(cipher.encrypt_field(str(tenant.id), b"{}")))
+    def envelope(body: bytes = b"{}") -> dict[str, Any]:
+        return dict(encrypted_field_to_json(cipher.encrypt_field(str(tenant.id), body)))
 
     def visit(protocol_id: str) -> IntakeSession:
         return IntakeSession(
@@ -474,7 +765,9 @@ def _seed_graph(db: Engine) -> Seeded:
     ids = {"tenant_id": tenant.id, "created_at": T0}
     subject = {"tenant_id": tenant.id, "patient_id": patient.id}
     target, keep = visit("chest_pain"), visit("headache")
-    note = Note(id=uuid.uuid4(), session_id=target.id, payload=envelope(), **subject, created_at=T0)
+    note = Note(
+        id=uuid.uuid4(), session_id=target.id, payload=envelope(NOTE_BODY), **subject, created_at=T0
+    )
     request = DsarRequest(
         id=uuid.uuid4(),
         **subject,
@@ -510,12 +803,19 @@ def _seed_graph(db: Engine) -> Seeded:
                 guardian_account_ref="acct:g1",
                 relationship_ref="rel:r1",
             ),
-            NotificationPreference(id=uuid.uuid4(), **subject, opted_out=False),
+            NotificationPreference(
+                id=uuid.uuid4(),
+                **subject,
+                opted_out=False,
+                quiet_start_minute=22 * 60,
+                quiet_end_minute=7 * 60,
+                updated_at=T0,
+            ),
             OverlayFact(
                 id=uuid.uuid4(),
                 **subject,
                 fact_key="oyku.belirti_var",
-                payload=envelope(),
+                payload=envelope(b'{"confidence": 0.9, "value": true}'),
                 source="confirmed_intake_extraction",
                 source_ref="session:x",
                 confirmed_at=T0,
@@ -559,7 +859,7 @@ def _seed_graph(db: Engine) -> Seeded:
                 **subject,
                 request_id=request.id,
                 target_ref=f"note:{note.id}",
-                payload=envelope(),
+                payload=envelope(b'{"correction": "iki gun"}'),
             ),
             # INT-123: the vector indexed from the session's document
             RecordEmbedding(
@@ -585,7 +885,7 @@ def _seed_graph(db: Engine) -> Seeded:
                 id=uuid.uuid4(),
                 session_id=target.id,
                 event_id=telemetry.id,
-                payload={"v": 1},
+                payload=envelope("hızlıydı".encode()),
                 **ids,
             ),
         ],
@@ -595,7 +895,7 @@ def _seed_graph(db: Engine) -> Seeded:
                 tenant_id=tenant.id,
                 share_id=share.id,
                 token_fingerprint="2" * 64,
-                recipient=envelope(),
+                recipient=envelope(b"Dr. Sentetik"),
                 expires_at=T0 + timedelta(hours=72),
                 view_limit=3,
                 views_used=0,
@@ -612,7 +912,7 @@ def _seed_graph(db: Engine) -> Seeded:
             s.flush()
     rows = tuple(row for level in levels for row in level)
     # note, output, rectification, learned fact, Doctor Link recipient
-    return Seeded(tenant.id, patient.id, target.id, keep.id, rows, envelopes=5)
+    return Seeded(tenant.id, patient.id, target.id, keep.id, rows, envelopes=5, cipher=cipher)
 
 
 def _count(db: Engine, table: str) -> int:
@@ -701,4 +1001,59 @@ def test_the_dsar_erasure_does_to_every_table_what_the_contract_declares(
         ("dsar.delete.previsit_output", f"previsit_output:{by_id['previsit_outputs']}"),
         ("dsar.delete.doctor_link", f"doctor_link:{by_id['doctor_links']}"),
         ("dsar.delete.share", f"share:{by_id['shares']}"),
+        (
+            "dsar.delete.notification_preference",
+            f"notification_preference:{by_id['notification_preferences']}",
+        ),
     ]
+
+
+# --- the export over the same seed (INT-395) ----------------------------------------
+
+
+def _is_listed(view: ExportView, listed: Listed, row: Any) -> bool:
+    if listed.section == SUBJECT:
+        return bool(view.patient_id == row.id)
+    if listed.ref is None:  # a slot: an answer inside its visit
+        return any(
+            visit.id == row.session_id and row.slot_id in dict(visit.slots) for visit in view.visits
+        )
+    lead = f"{listed.ref}:{row.id} "
+    return any(line.startswith(lead) for line in view.section_lines.get(listed.section, ()))
+
+
+def test_the_export_lists_every_seeded_row_where_the_contract_says(
+    db: Engine, db_path: Path
+) -> None:
+    """The seed has a row in every table of the graph, so this reads the
+    whole declaration against the view both renderers consume — the FHIR
+    bundle and the PDF are built from it and cannot disagree about it."""
+    seeded = _seed_graph(db)
+
+    async def _view() -> ExportView:
+        engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", poolclass=NullPool)
+        try:
+            async with AsyncSession(engine) as session:
+                record = await subject_record(
+                    session, tenant_id=seeded.tenant_id, patient_id=seeded.patient_id
+                )
+                return build_view(
+                    record,
+                    tenant_id=seeded.tenant_id,
+                    patient_id=seeded.patient_id,
+                    cipher=seeded.cipher,
+                    generated_at=T0,
+                )
+        finally:
+            await engine.dispose()
+
+    view = asyncio.run(_view())
+
+    assert set(EXPORTED_IN) <= _tables(seeded.rows), "every declared table is seeded"
+    unlisted: list[str] = []
+    for row in seeded.rows:
+        table = type(row).__table__.name  # type: ignore[attr-defined]
+        listed = EXPORTED_IN.get(table)
+        if listed is not None and not _is_listed(view, listed, row):
+            unlisted.append(f"{table}:{row.id}")  # type: ignore[attr-defined]
+    assert unlisted == []

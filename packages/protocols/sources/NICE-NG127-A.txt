@@ -1,0 +1,38 @@
+# guideline_id: NICE-NG127
+# title: Suspected neurological conditions: recognition and referral
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information)
+# url: https://www.nice.org.uk/guidance/ng127/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng127/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header, recommendations 1.2.1 (opening sentence), 1.2.2 and 1.2.5 on dizziness and vertigo in adults, then the Update information entries and the list of minor changes; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+NICE guideline
+Reference number: NG127
+Published:
+01 May 2019
+Last updated:
+02 October 2023
+[...]
+1.2 Dizziness and vertigo in adults
+Sudden-onset dizziness with a focal neurological deficit
+1.2.1
+For adults with sudden-onset dizziness and a focal neurological deficit such as vertical or rotatory nystagmus, new-onset unsteadiness or new‑onset deafness:
+[...]
+Sudden-onset acute vestibular syndrome
+1.2.2
+For adults with sudden-onset acute vestibular syndrome (vertigo, nausea or vomiting and gait unsteadiness), a HINTS (head-impulse–nystagmus–test-of-skew) test should be performed if a healthcare professional with training and experience in the use of this test is available.
+[...]
+Sudden-onset dizziness with no imbalance or focal neurological deficit
+1.2.5
+Be aware that dizziness in adults with no imbalance or other focal neurological deficit is unlikely to indicate a serious neurological condition.
+[...]
+Update information
+October 2023: We updated recommendations 1.3.1, 1.4.2 and 1.7.4 in line with NHS England's standard on faster diagnosis of cancer .
+July 2019: We changed the timing of referral from urgent to immediate for adults with sudden-onset speech or language disturbance and for children under 4 years with a change in head circumference and signs or symptoms of raised intracranial pressure (see recommendations 1.13.1 and 1.22.3 ).
+Minor changes since publication
+November 2025: We updated links to NICE's guideline on suspected sepsis in under 16s in recommendation 1.19.2.
+March 2024: In recommendation 1.30.1 and the related rationale, we changed red reflex to fundal ('red') reflex. See the surveillance report for more information. We also updated links to our guidance on bacterial meningitis and meningococcal disease following the launch of NICE's guideline on meningitis (bacterial) and meningococcal disease: recognition, diagnosis and management .
+October 2021: In recommendation 1.30.1, we added a cross-reference to NICE's guideline on suspected cancer . We also updated the rationale for this recommendation to clarify that new-onset squint with loss of fundal 'red' reflex may indicate a neurological condition associated with raised intracranial pressure or a brain tumour. See the surveillance report for more information.
+In recommendation 1.16.1, we added a link to NICE's guideline on shared decision making .

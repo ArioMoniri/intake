@@ -57,6 +57,7 @@ acknowledgement) turned out to have no section carrying them.
 | Visit creation / SMS screenshot OCR | `visits` | `OCR` |
 | Voice intake (runtime) | `intake-voice`, `voice-runtime` | `DTLS-SRTP` |
 | Typed intake | `intake-typed` | `input limits` |
+| Council verifier (`llm-boundary`; INT-430, ADR-036) | `llm-boundary` | `INT-430 (ADR-036): the council verifier` |
 | Triage RED / YELLOW | `triage` | `set me green` |
 | Wellbeing screening & observer lanes | `wellbeing`, `observer-lanes` | `biometric drift` |
 | Records upload & ingestion | `records` | `ClamAV` |
@@ -133,17 +134,26 @@ it or whose tests exercise it.
 - **Assets:** workflow definitions, runner credentials, build artefacts, SBOMs, signing
   identity, the gate set itself.
 - **Trust boundaries:** GitHub-hosted runners ↔ repo ↔ registries; PR author ↔ required
-  checks. INT-206 adds the self-hosted TR-DC pool as a *declared* boundary
-  (`infra/ci/runners.yaml`) — and the pool list is empty, so today the boundary is the
-  GitHub-hosted one. HB-I7 (spend) and HB-L11 (physical residency is not legal residency)
-  own that — **not HB-I5, which is GPU supply and does not bind a CPU CI runner** — and no
-  facility, provider or label is invented to close the gap.
+  checks. INT-206 makes every self-hosted pool a *declared* boundary
+  (`infra/ci/runners.yaml`). **INT-463 declares the one pool that exists, `intake-aws-ci`**:
+  an ephemeral runner on the AWS us-east-1 host that also serves synthetic staging (owner
+  order, 3 Oct 2026). Every Actions job runs there, so the boundary is now job code ↔ the
+  staging host. The TR-DC pool is still undeclared. HB-I7 (spend) and HB-L11 (physical
+  residency is not legal residency) own it — **not HB-I5, which is GPU supply and does not
+  bind a CPU CI runner** — and no TR facility, provider or label is invented to close the gap.
 - **Threats (STRIDE/LINDDUN):** [T] a repointed action tag or poisoned artefact (ci.yml pins
   actions to commit SHAs for exactly this reason); [E] workflow permission escalation;
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
   an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [I/E] **a job on `intake-aws-ci` reaching staging** — its files, the OpenBao tokens, the
+  staging containers, the instance role through the metadata service, or the host Docker
+  socket — or **leaving state for the next job**; [I/T/D] **a job on one runner of the pool
+  reaching another runner's job** — its tree, its Docker daemon and containers, or a port
+  its containers publish — or **one runner's post-job wipe destroying another's live job**
+  (INT-467: a user, daemon, egress chain and network namespace per runner; port driver
+  `none`, so no published port reaches the host);
   [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
   is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
   update** past review and the licence gate.
@@ -647,6 +657,42 @@ it or whose tests exercise it.
 - **Signals:** OCR failures and processing time (§9) land with INT-134.
 - **Tests:** image fuzzing lands with INT-134 and INT-122.
 
+### INT-407 — the visit lifecycle (files/02 §2b): a RED visit cannot silently move
+
+- **Assets:** the visit's lifecycle state (`visit.lifecycle`, a plain slot on the session
+  row — no new table or column), its datetime, the shares and Doctor Links hanging off its
+  note, the queued T-24h confirm, the clinic Safety inbox.
+- **Threats:** [D·safety] a RED-flagged visit rescheduled or cancelled with nobody told —
+  *"invisible to everyone"*; [S·safety] a check-in that claims `ON_SITE` from a geofence in
+  the car park or a QR scanned by a relative, turning a RED's 112 into "walk to the acil"
+  for someone outside; [I] a cancelled visit's note still readable by the clinic or through
+  a Doctor Link; [I] a Doctor Link that expires before (issue-time anchoring) or outlives
+  (a stale anchor after a reschedule) the visit it serves; [T] a lost update re-planning a
+  cancelled visit; [R] a move with no record of who made it.
+- **Controls:** a typed machine refuses every move outside the table (409, nothing
+  written) and audits each move by id (`visit:<id>/transition:<id>`); the row is locked
+  `FOR UPDATE` for the move. A reschedule or cancel reads the INT-406 inbox **before**
+  writing and writes its entry **before** committing — unwired or unreachable, the move is
+  refused (503); no connector is on the path. The patient re-show is a pointer (rule,
+  register, location) at the pre-positioned script, in the RED's recorded register, with
+  location re-derived — `UNKNOWN` outside a session; a register never recorded is not
+  guessed and `DEFERRED_CLINICIAN` is not shown. Check-in evidence is certain only on an
+  affirmative signal; anything else is `UNKNOWN`, never `ON_SITE` (invariant 21). A cancel
+  revokes every share and link (routing hints dropped) and withdraws the clinic's read;
+  a reschedule re-pins live links (row and hint) to the new `visit_datetime + 72 h` and
+  never revives a revoked or expired one. The T-24h confirm is queued transactional-only,
+  has no `sent` state, and the dispatch seam refuses before any transport (no SMS vendor,
+  INT-358; no reviewed body). The delta-session offer is behind a safety flag.
+- **Signals:** every move and every hook is a hash-chained audit row by id
+  (`api.visit.transition.*`, `api.note.share_revoked`, `api.doctor_link.revoked`,
+  `api.visit.clinician_entry_withdrawn`, `api.doctor_link.expiry_repinned`); the RED moves
+  land in the Safety queue and page on INT-406's clock.
+- **Tests:** `tests/platform/test_visit_lifecycle_machine.py` (every (from, to) pair, the
+  guards, location, the confirm gate), `tests/api/test_visit_lifecycle.py` (route, cancel,
+  reschedule with the issue-time near-miss, staleness, check-in doubt, the queued confirm),
+  `tests/safety/test_red_visit_transition.py` (RED move → entry with no connector on a fake
+  clock, the re-show per register, near-miss controls, fail-closed inbox).
+
 ## `intake-voice` — the patient-facing voice session
 
 - **Assets:** live audio, session tokens, the RED delivery path, patient trust in the voice.
@@ -784,27 +830,37 @@ it or whose tests exercise it.
   missed RED (patient safety, the highest-consequence failure in the product); [D] false-RED
   volume eroding clinician trust.
   **RED acknowledgement (§9 row, files/02 §8):** [D/De] the alert fires and **nobody
-  answers** — no queue, no clock, no metric, no alert; `triage.events_total` counts REDs that
-  fired, not REDs anyone answered; a RED visit rescheduled or cancelled out of everyone's
-  sight.
+  answers** — `triage.events_total` counts REDs that fired, not REDs anyone answered; a RED
+  visit rescheduled or cancelled out of everyone's sight.
 - **Controls (files/10):** §9 triage row — deterministic rules only, LLM cannot set levels,
   preemption path tested, rule changes via ADR plus sign-off; monotonic inheritance with
   `base.life_threat` unextendable (CLAUDE.md invariant 7); RED three axes with no default
   register/location (invariant 21, ADR-023).
-  **RED acknowledgement (§9, inv. 49):** every RED produces a clinic inbox entry within 60 s
-  regardless of connector presence and starts an acknowledgement clock; a Safety queue in the
-  console (files/08 §3, F19) where `tenant_clinical_responsible` acknowledges; an SLA breach
-  pages; a files/02 §2b reschedule or cancel on a RED visit raises an entry regardless of
-  connector presence.
+  **RED acknowledgement (§9, inv. 49), INT-406:** Layer B hands every rules-engine RED to
+  the clinician route as it settles, which puts an ids-only entry in the clinic Safety inbox
+  in-process — no connector on the path — and a runtime without the inbox store is not
+  ready; the console's Safety queue (files/08 §3, F19) is answered by
+  `tenant_clinical_responsible` alone (tier 1, audited write-ahead naming the entry); a
+  sweep pages past the files/02 §8.2 SLA (default 4 h, counted in wall-clock hours until a
+  tenant calendar is recorded) and pages when the inbox cannot be read; a files/02 §2b
+  reschedule or cancel on a visit carrying a RED entry raises its own entry.
 - **Signals:** RED events (`triage.events_total`, named in §9), preemption latency,
   false-RED reviews, missed-flag reports — land with INT-080 and INT-025.
-  `clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` (§9) are catalogued
-  `planned` in `observability/metrics_catalog.yaml`; nothing emits them yet.
+  `clinic.red_ack_latency_min` and `clinic.red_unacknowledged_total` (§9) are emitted by
+  INT-406, with `clinic_red_inbox_pending_age_s` and `clinic_red_inbox_route_failures_total`
+  for the 60 s half; the last three page through `infra/observability/safety-rules.yaml`
+  (`docs/runbooks/red-acknowledgement.md`), and the latency histogram is the measurement.
+- **Generic RED and the synthetic serve path (INT-465, D23 with D18).** The generic escalation
+  is CD-24's copy, active, with per-location sources checked against committed snapshots and no
+  112 in any ON_SITE carrier; RED text is rendered (markers removed, tenant segment resolved or
+  dropped) before any screen or TTS. On the synthetic host only, a test-key signature stands in
+  for the physician sign-off (HB-C1 unchanged for every real tenant); draft rules are never
+  served. Tests: `tests/safety/test_generic_red_goldens.py`, `tests/protocols/test_generic_red.py`.
 - **Tests:** golden suite with near-miss negatives and mutation tests land with INT-059;
-  preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is **unowned**:
-  the INT-020 close-out found no backlog row whose acceptance carries the Safety queue, the
-  acknowledgement clock or inv. 49, and records the gap in docs/evidence/INT-020.md for the
-  coordinator to allocate (an agent does not mint an issue id).
+  preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is owned by
+  INT-406: `tests/safety/test_red_acknowledgement_sla.py` (fake clocks: entry ≤ 60 s with no
+  connector, page at SLA + 1 s and not at the SLA, a transition on a RED visit raises an
+  entry; YELLOW, GREEN, an LLM candidate and an unpinned RED never create one).
 
 ## `wellbeing` — screening instruments
 
@@ -921,6 +977,31 @@ it or whose tests exercise it.
   never bound to an invented `atNNNN` (files/HUMAN_BLOCKERS.md HB-C12).
   `tests/platform/test_ehrbase_client.py` pins [I]: no clinical text reaches a log line or an
   exception message.
+- **RED notification records (INT-475).** The app's triage hop and the patient's on-site
+  location answer now write clinic Safety-inbox entries (a `red` entry per hop RED; a
+  `red_on_site` staff notification under ON_SITE, files/04 §8.1 rule 7) through the INT-406
+  outbox and store. [I] a clinical value or answer reaching the entry, an audit row or a log:
+  control — every field is an id, a closed enum or an instant (`InboxEntry`, `extra="forbid"`
+  request models, a 422 that echoes no value), pinned by `tests/api/test_red_notify.py`. [I] an
+  identifier inside a device id (a synced hospital visit's id carries the hospital patient
+  number): a server-minted UUID is kept as it is, any other id only as its keyed pseudonym, and
+  with no tokenization key not at all — the RED is then counted and audited as unrouted, never
+  stored raw (invariant 14; `red_notify.stored_ref`). [T] a patient raising entries for another
+  tenant: the tenant is the principal's, never a request field, and the location route is
+  patient-only (`require_patient`) under the core consent scope; it answers only a KIRMIZI rule
+  of the served set. [T] residual, recorded: the session and visit ids are the device's (a device-local
+  visit has no server row to check against), so a patient who knew another patient's server
+  visit id in the same tenant could file a RED against it; that visit's files/02 §2b move would
+  then raise an inbox entry and re-show a RED pointer to its owner. A server visit id is a
+  random UUID the patient is never shown another's of, so this needs a leaked id; it adds
+  alerts and never removes one. [D] the RED
+  never waits on the store or the audit chain: the entry is an outbox append, the hop's audit
+  rows follow the answer, and a failed route or append is counted
+  (`clinic_red_inbox_route_failures_total`, which pages; `clinic_red_notification_unaudited_total`).
+  Every share is audited by id (`api.triage.red_notified`, `api.triage.red_on_site_notified`,
+  `api.triage.red_unrouted`, `api.triage.red_location.{on_site,remote}`). Tests:
+  `tests/api/test_red_notify.py`, `tests/platform/test_safety_inbox.py`,
+  `tests/voice/test_safety_inbox_notifier.py`, `apps/mobile/src/lib/red/locationReport.test.ts`.
 
 ## `protocol-registry` — signed bundles and the clip cache
 
@@ -938,6 +1019,19 @@ it or whose tests exercise it.
   INT-058/INT-184.
 - **Tests:** load-time signature verification lands with INT-058; quarantine drill with the
   pack-lifecycle issues.
+- **Synthetic-only test key (INT-465, D23).** [S/E] a test signature trusted where a real
+  patient may be. Control: the red rule set of the synthetic AWS host is signed by an ed25519
+  key held non-exportable in OpenBao Transit there, used only through a sign-only token; the
+  public half is the only key in `packages/protocols/signing/trusted_keys.yaml`, whose one scope
+  is `synthetic_test`. `intake_platform.red_signature.admitted_scopes` is an allow-list keyed on
+  the synthetic tenant kind alone and runs before any cryptography, and the API refuses to boot
+  with a synthetic tenant unless `INTAKE_ENV` is explicitly `dev` or `staging`. The signature
+  binds the exact bytes parsed (each document read once), the served rule list and the one host
+  it is for (`deployment`, which a synthetic tenant config must name). This is not
+  the production path (cosign, INT-058, untouched). Signal: a refusal logs its id-shaped code
+  (`intake_api.triage_rules`). Tests: `tests/protocols/test_red_signature.py` (every
+  non-synthetic tenant config rejects the key), `tests/api/test_triage_tenant_kind.py`,
+  `tests/api/test_triage_hop.py`, `tests/infra/test_red_signing_infra.py`.
 
 ## `llm-boundary` — model calls behind gateways
 
@@ -981,6 +1075,37 @@ it or whose tests exercise it.
   taking exactly the same virtual time as an unmetered one on the fake clock (invariant
   9), and the price book refusing rather than returning a zero. The adversarial suite
   RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
+- **INT-430 (ADR-036): the council verifier.** The owner asked for an agent council of
+  self-hosted or API models. Two binding challenger reviews reduced it to a verifier, and
+  this row now covers it. The verifier runs only after the primary single-pass extraction
+  has bound the answer, so RED never waits on it.
+  - **Scope.** It reads red-flag and numeric slots only. Tense anchors, `text_only`
+    safeguarding slots, identity slots and instrument items are unreachable by type.
+  - **What a member returns.** A closed schema: a verbatim evidence span for every reading,
+    a Turkish hedge enum, and no confidence field.
+  - **What it can do.** Adjudication is asymmetric. It may only *append* the slot's own
+    scripted re-ask or confirm-back, compare-and-swapped on the slot revision. It never
+    clears, skips, reorders or overwrites, and its candidate flags are add-only at
+    YELLOW_REVIEW and go to the clinician alone.
+  - **Excessive agency (LLM06)** is closed by that action set.
+  - **Prompt injection (LLM01).** Every transcript crosses the INT-083 fence, and readings
+    for any slot outside scope are dropped before adjudication.
+  - **Unbounded consumption (LLM10).** Each verification is an *elective* charge, refused
+    while HB-O8 is open. A process-wide admission gate sheds a verification when saturated,
+    and stragglers abstain at a deadline set on the injected clock.
+  - **Disclosure (LLM02).**
+    - Every proposal is logged as an event of ids and closed codes.
+    - Spans use the closed `LlmSpan` field set (`kind=verification`).
+    - Each session carries its own `cache_salt` for the shared prefix cache.
+    - A hosted member is unrepresentable on a real-PHI deployment, and an unset data class
+      reads as real PHI.
+  - **Signals:** `council_member_latency_ms`, `council_member_agreement_total`,
+    `council_verifications_total`, `council_actions_total` and
+    `council_readings_dropped_total`, all catalogued `live`.
+  - **Tests:** the `tests/voice/test_council_*.py` suites, each must-have with a near-miss
+    control. They cover a 30 s stall measured on the fake clock, the injection corpus, the
+    Turkish negation set, permutation determinism, CAS on a mid-flight correction, replay
+    with refusal of a wrong-lane recording, and the span PHI scan.
 
 - **INT-428 — hosted model lanes (ADR-035).** The owner's decision of 2 Oct 2026 puts a hosted
   provider behind the `llm`, `asr` and `tts` lanes until the GPU lanes are healthy, narrowed by the
@@ -1838,6 +1963,21 @@ it or whose tests exercise it.
     26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
     closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
     `tests/admin/test_realm_claim_mappers.py`.
+  - **Controls added by INT-378 (the WebAuthn provider writes the two notes):** the staff flow
+    runs `intake-webauthn-session-notes`, which is Keycloak's own WebAuthn authenticator
+    unchanged. Only after that authenticator returns SUCCESS does it write the asserted
+    credential's stored AAGUID and its base64url id as the two notes, so neither value can
+    come from anything but a verified assertion ([S] against a forged actor block). Any other
+    outcome writes nothing, and the token is refused. The values are identifiers, never
+    personal data, and nothing is logged (inv 6). Supply chain (inv 14): Keycloak is compiled
+    against and not bundled. The Maven distribution is pinned by sha256, and so is every
+    artefact Maven resolves (the build fails on a missing or different hash). The jar is
+    reproducible and pinned (`infra/keycloak/providers/webauthn-session-notes.sha256`), and
+    the required CI job `check-py` rebuilds it against the pin. The committed realm also now
+    imports: Keycloak keeps a flow description in NVARCHAR(255), and a longer one had failed
+    the import. Tests: the provider's Java suite (`make keycloak-provider`) and
+    `tests/admin/test_webauthn_session_notes_provider.py`, which replays a recorded real
+    Keycloak login (26.7.4, the composed version). Open: the owner's TOTP decision (INT-389, #644).
   - **Controls added by INT-366 (quarterly access review, one-action offboarding, 60-day
     auto-disable; files/08 §2.4, §2.7):** against [E] access that outlives its need and a
     departure that leaves one identity store open. `GET /admin/access/review` is generated
@@ -1898,11 +2038,11 @@ it or whose tests exercise it.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
-  the same file, with property tests over generated ids (INT-391).
-  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the realm-import column
+  the same file, with property tests over generated ids (INT-391); the realm-import column
   limits, the image digest and the import file name in
-  `tests/infra/test_keycloak_realm_import.py` (INT-390).
-  the same file, with property tests over generated ids (INT-391). Break-glass (INT-180):
+  `tests/infra/test_keycloak_realm_import.py` (INT-390); the WebAuthn session-notes
+  provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
+  (INT-378). Break-glass (INT-180):
   the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
   `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both
   break-glass routes in `tests/admin/test_admin_audit.py`; only break-glass roles carrying the

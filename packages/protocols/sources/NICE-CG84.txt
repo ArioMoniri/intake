@@ -1,0 +1,86 @@
+# guideline_id: NICE-CG84
+# title: Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022 (Update information)
+# url: https://www.nice.org.uk/guidance/cg84/chapter/Recommendations ; https://www.nice.org.uk/guidance/cg84/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on both pages); HTML tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; table cells end with ' | '; trailing whitespace removed from every line
+# scope: verbatim excerpt of the page header, the Update information list, section 1.2.1 with the symptoms part of Table 1, and recommendation 1.8.1.1; nothing paraphrased or edited; omissions marked [...]
+---
+ Clinical guideline
+ Reference number: CG84
+ Published:
+ 22 April 2009
+[...]
+Minor changes since publication
+ October 2022: In recommendations 1.3.3.2 and 1.3.3.3 we updated the volume of fluid bolus used for intravenous fluid therapy from 20 ml/kg to 10 ml/kg in children under 5 with suspected or confirmed shock. See the surveillance report for more information.
+ January 2019: After a surveillance review, recommendation 1.1.2.6 on monitoring for haemolytic uraemic syndrome has been updated and some links to external sources have been updated throughout.
+[...]
+ 1.2 Assessing dehydration and shock
+ 1.2.1 Clinical assessment
+ 1.2.1.1
+ During remote or face-to-face assessment ask whether the child:
+ appears unwell
+ has altered responsiveness, for example is irritable or lethargic
+ has decreased urine output
+ has pale or mottled skin
+ has cold extremities.
+ 1.2.1.2
+ Recognise that the following are at increased risk of dehydration:
+ children younger than 1 year, particularly those younger than 6 months
+ infants who were of low birth weight
+ children who have passed more than five diarrhoeal stools in the previous 24 hours
+ children who have vomited more than twice in the previous 24 hours
+ children who have not been offered or have not been able to tolerate supplementary fluids before presentation
+ infants who have stopped breastfeeding during the illness
+ children with signs of malnutrition.
+ 1.2.1.3
+ Use table 1 to detect clinical dehydration and shock.
+ Table 1. Symptoms and signs of clinical dehydration and shock
+ Interpret symptoms and signs taking risk factors for dehydration into account (see recommendation 1.2.1.2). Within the category of 'clinical dehydration' there is a spectrum of severity indicated by increasingly numerous and more pronounced symptoms and signs. For clinical shock, one or more of the symptoms and/or signs listed would be expected to be present. Dashes (–) indicate that these clinical features do not specifically indicate shock. Symptoms and signs with red flags may help to identify children at increased risk of progression to shock. If in doubt, manage as if there are symptoms and/or signs with red flags.
+ Symptoms by increasing severity of dehydration (remote and face-to-face assessments)
+ No clinically detectable dehydration |
+ Clinical dehydration |
+ Clinical shock |
+ Appears well
+ |
+ Red flag Appears to be unwell or deteriorating
+ |
+ –
+ |
+ Alert and responsive
+ |
+ Red flag Altered responsiveness (for example, irritable, lethargic)
+ |
+ Decreased level of consciousness
+ |
+ Normal urine output
+ |
+ Decreased urine output
+ |
+ –
+ |
+ Skin colour unchanged
+ |
+ Skin colour unchanged
+ |
+ Pale or mottled skin
+ |
+ Warm extremities
+ |
+ Warm extremities
+ |
+ Cold extremities
+ |
+[...]
+ 1.8.1 Caring for a child with diarrhoea and vomiting at home
+ 1.8.1.1
+ Inform parents and carers that:
+ most children with gastroenteritis can be safely managed at home, with advice and support from a healthcare professional if necessary
+ the following symptoms may indicate dehydration:
+ appearing to get more unwell
+ changing responsiveness (for example, irritability, lethargy)
+ decreased urine output
+ pale or mottled skin
+ cold extremities
+ they should contact a healthcare professional if symptoms of dehydration develop.

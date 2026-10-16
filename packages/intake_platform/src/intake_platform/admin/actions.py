@@ -45,6 +45,7 @@ __all__ = [
     "MODEL_LANES_SELF_HOSTED_ENGAGE",
     "OFFBOARD",
     "SAFETY_FLAG_ENABLE",
+    "SAFETY_QUEUE_ACKNOWLEDGE",
     "VOICE_CANARY_SET",
     "VOICE_CEREMONIES",
     "VOICE_KILL_SWITCH_ENGAGE",
@@ -473,6 +474,25 @@ OFFBOARD = DangerousAction(
     alert_metric="admin.offboarding_total",
 )
 
+#: files/08 §3 "Safety queue" and §0c F19, INT-406 (invariant 49). The one
+#: action the queue takes: *"acknowledge (`tenant_clinical_responsible`)"*.
+#: Tier 1 and SAFE. It adds no capability to anything — it records that the
+#: tenant's clinical responsible has seen a RED, and stops the clock that pages
+#: — and a second key on it would be an availability control placed on the
+#: answer to a safety alert, the exact failure §0c F17 names. The actor is the
+#: one role §3 gives it, scoped to its own tenant by the claim; the alert it
+#: answers is the unacknowledged-RED page.
+SAFETY_QUEUE_ACKNOWLEDGE = DangerousAction(
+    id="admin.safety_queue.acknowledge",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset({AdminRole.TENANT_CLINICAL_RESPONSIBLE}),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/red-acknowledgement.md",
+    alert_metric="clinic.red_unacknowledged_total",
+)
+
 DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN,
     MODEL_BENCHMARK_RUN.id: MODEL_BENCHMARK_RUN,
@@ -485,6 +505,7 @@ DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     DEPLOY_FREEZE_LIFT.id: DEPLOY_FREEZE_LIFT,
     ACCESS_REVIEW_SIGN.id: ACCESS_REVIEW_SIGN,
     OFFBOARD.id: OFFBOARD,
+    SAFETY_QUEUE_ACKNOWLEDGE.id: SAFETY_QUEUE_ACKNOWLEDGE,
     MODEL_LANES_HOSTED_DISABLE.id: MODEL_LANES_HOSTED_DISABLE,
     MODEL_LANES_SELF_HOSTED_ENGAGE.id: MODEL_LANES_SELF_HOSTED_ENGAGE,
     MODEL_LANES_HOSTED_RELEASE.id: MODEL_LANES_HOSTED_RELEASE,

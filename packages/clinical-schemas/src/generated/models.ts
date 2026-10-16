@@ -360,6 +360,7 @@ export interface RulesTriageResult {
   "rules"?: RuleFire[];
   "register"?: RedRegister | null;
   "location"?: RedLocation | null;
+  "red_rule_id"?: string | null;
 }
 
 export interface ScreeningBlock {

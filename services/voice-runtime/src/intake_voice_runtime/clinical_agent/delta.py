@@ -24,6 +24,10 @@ The mechanism, and nothing beyond it:
   :func:`~clinical_schemas.overlay.fact_needs_reconfirmation` predicate
   INT-258's overlay activation uses, so the two cannot drift apart on what
   "in date" means.
+- a fact for a slot a red-flag rule reads, or names as its tense anchor,
+  **does not pre-fill** (INT-430, medical review §9): a confirm step must
+  never let a patient's "evet" clear a red flag, so that slot is asked in
+  full, positively, every session.
 - a fact for a slot the author gave no ``confirm_tr`` **does not pre-fill**.
   There is no improvised confirmation (CLAUDE.md invariant 10), and the
   fail-closed direction here is to ask the question in full.
@@ -85,6 +89,11 @@ class DeltaDecision(FrozenModel):
         description="Facts a step could have used but which are past the twelve-month "
         "re-confirmation window (files/09 §3).",
     )
+    safety_full_ask_fact_keys: tuple[str, ...] = Field(
+        default=(),
+        description="Facts for a red-flag or tense-anchor slot — asked in full, never "
+        "offered as a confirm a yes could clear (INT-430; ADR-036).",
+    )
     unconfirmable_fact_keys: tuple[str, ...] = Field(
         default=(),
         description="Facts a step could have used but whose slot carries no "
@@ -106,11 +115,16 @@ def decide_delta(
     by_id = plan.by_id
     prefills: list[DeltaPrefill] = []
     withheld: list[str] = []
+    safety: list[str] = []
     unconfirmable: list[str] = []
+    protected = plan.red_flag_refs | plan.tense_anchor_refs
     for fact in sorted(overlay_facts.facts, key=lambda item: item.key):
         step = by_id.get(fact.key)
         if step is None:
             continue  # a fact no step in this protocol reads changes nothing
+        if step.step_id in protected:
+            safety.append(fact.key)
+            continue
         if fact_needs_reconfirmation(fact, now):
             withheld.append(fact.key)
             continue
@@ -131,5 +145,6 @@ def decide_delta(
         mode=DeltaMode.ON if prefills else DeltaMode.OFF,
         prefills=tuple(prefills),
         withheld_fact_keys=tuple(withheld),
+        safety_full_ask_fact_keys=tuple(safety),
         unconfirmable_fact_keys=tuple(unconfirmable),
     )

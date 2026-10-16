@@ -294,11 +294,67 @@ def test_backlog_parses_and_is_complete() -> None:
     # stated reason.
     # + INT-431 (the embed sample's JWT fixture is built at runtime, found
     # merging main into #481, GitHub #733); grows only with a stated reason.
+    # + INT-395 (DSAR erasure and export cover every patient-deletable table,
+    # found by INT-393); grows only with a stated reason.
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
+    # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
+    # with a stated reason.
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status, owner request, GitHub #721); grows only with a stated
+    # reason.
+    # + INT-407 (the files/02 §2b visit lifecycle state machine — a RED visit
+    # cannot silently move; found by INT-406's PR as GitHub #684); grows only
+    # with a stated reason.
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # GitHub #735); grows only with a stated reason.
+    # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
+    # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
+    # a stated reason.
+    # + INT-448 (the #642 sign-off packet items under D18, GitHub #759); grows
+    # only with a stated reason.
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415, owner request, GitHub #705); grows only with a stated reason.
+    # + INT-447 (INT-414's 48 delivery lines verified under owner decision D18,
+    # GitHub #758); grows only with a stated reason.
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
+    # with a stated reason.
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713);
+    # grows only with a stated reason.
+    # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
+    # 3 Oct 2026, GitHub #790); grows only with a stated reason.
+    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
+    # + INT-500 (lockfile advisories upgraded so the vulnerabilities gate stops
+    # blocking every merge, GitHub #851); grows only with a stated reason.
+    # + INT-460 (a second admin approver on the synthetic host is a second
+    # Keycloak user, not a dev bearer; owner request, GitHub #785); grows only
+    # with a stated reason.
+    # + INT-453 (the voice-runtime RED path triggers the winning rule's own
+    # script, found by INT-446, GitHub #767); grows only with a stated reason.
+    # + INT-446 (RED end to end in the app — the rules-engine hop on both lanes
+    # and the RED screen mounted, found by INT-440, GitHub #756); grows only
+    # with a stated reason.
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only test key, D23, GitHub #794); grows
+    # only with a stated reason.
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads, GitHub #890); grows only with a
+    # stated reason.
+    # + INT-501 (http-cache-semantics lifted before its osv exception expires,
+    # GitHub #853) and INT-508 (node-forge and braces: no upstream fix, split
+    # from INT-501, GitHub #865); grows only with a stated reason.
+    # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
+    # proposal, owner request, GitHub #719); grows only with a stated reason.
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews, owner request, GitHub #732); grows
+    # only with a stated reason.
     # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
     # GitHub #724); grows only with a stated reason.
+    # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
+    # location answer reaches the server, INT-465 finding 6, GitHub #814);
+    # grows only with a stated reason.
     # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
     # GitHub #752); grows only with a stated reason.
-    assert len(ids) == 330, f"expected 175 blueprint + 155 added issues, got {len(ids)}"
+    assert len(ids) == 355, f"expected 175 blueprint + 180 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

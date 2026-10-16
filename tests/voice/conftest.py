@@ -50,7 +50,7 @@ def template() -> OperationalTemplate:
 
 @pytest.fixture
 def life_threat() -> LifeThreatSet:
-    return load_life_threat_set(SIGNED_LIFE_THREAT)
+    return load_life_threat_set(SIGNED_LIFE_THREAT, allow_fixture_snapshots=True)
 
 
 @pytest.fixture

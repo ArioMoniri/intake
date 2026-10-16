@@ -242,7 +242,8 @@ false positive, routed to the HB-C23 lexicon owner). Risk-factor context only; n
 
 **Q10 — Work-related dust, fume or gas exposure** · archetype: `OBSERVATION.story.v1` (narrative only) · source: GH-S1 ("toz, duman ve gazlara maruz kalma"), GH-S6 p. 9 (occupational asthma)
 > "Çalıştığınız işlerde uzun süre toz, duman ya da gaz soludunuz mu?"
-gen: slot=mesleki_toz_duman_gaz; type=boolean
+gen: slot=mesleki_toz_duman_gaz; type=boolean; delivery=text_first; data_category=occupational
+INT-432 CD-11: the owner approved workplace exposure as a data category on 3 Oct 2026 ("yes for workplace"), so this item is `occupational` and `text_first` (D3 delivery); counsel fields in docs/legal/data-categories.yaml stay open, so it is not servable.
 CANDIDATE — clinician to approve wording. Asks about every job held, not only the current one (base
 intake's `occupation` already asks the current job); not a flag.
 

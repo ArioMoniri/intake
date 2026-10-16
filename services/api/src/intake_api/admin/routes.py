@@ -60,7 +60,7 @@ from intake_platform.compliance import AuditSearchQuery
 from intake_platform.compliance.audit_search import AuditSearchContentRefused
 from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
-from intake_api.admin import access_console, compliance_source, views
+from intake_api.admin import access_console, compliance_source, safety_queue, views
 from intake_api.admin.cicd_routes import CICD_HANDLERS
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.model_lanes_routes import MODEL_LANES_HANDLERS
@@ -409,6 +409,9 @@ _HANDLERS: dict[str, Handler] = {
     "admin.access.review.countersign": access_console.review_countersign,
     "admin.access.offboard": access_console.offboard_run,
     "admin.access.offboard.confirm": access_console.offboard_confirm,
+    # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49)
+    "admin.safety_queue.read": safety_queue.queue_read,
+    "admin.safety_queue.acknowledge": safety_queue.acknowledge,
 }
 
 #: HTTP methods that write. The §2.7 read-only downgrade applies to these.

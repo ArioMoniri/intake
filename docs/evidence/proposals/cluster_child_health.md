@@ -258,11 +258,12 @@ alarm direction.
 gen: slot=her_seyi_kusma; type=boolean
 CANDIDATE — paediatrician to approve wording. Same text as cocuk_enfeksiyon_hastaliklari.
 
-**Q7 — Passing urine as usual** · archetype: `OBSERVATION.symptom_sign.v1` · source: CH-S2 1.2.6 ("reduced urine output")
-> "Çocuğunuz her zamanki kadar çiş yapıyor mu?"
-gen: slot=cis_miktari; type=boolean
+**Q7 — Passing less urine than usual** · archetype: `OBSERVATION.symptom_sign.v1` · source: CH-S2 1.2.6 ("reduced urine output")
+> "Çocuğunuz her zamankinden daha az çiş yapıyor mu?"
+gen: slot=az_cis; type=boolean
+INT-432 decision CD-10 (docs/clinical/decisions/CD-10.md): one polarity for every hydration item, `true` is the concern; renamed from `cis_miktari` so an old reader fails at compile instead of silently inverting.
 CANDIDATE — paediatrician to approve wording. Same text as cocuk_sagligi_ve_hastaliklari. Age-neutral; the
-nappy wording is left to Neonatoloji (`islak_bez_azalmasi`).
+nappy wording is left to Neonatoloji, which asks the same fact under the shared id `az_cis` (CD-10).
 
 **Q8 — Dry mouth or sunken eyes** · archetype: `OBSERVATION.symptom_sign.v1` · source: CH-S2 1.7.2 ("dry mouth", "sunken eyes"); CH-S1 PDF p. 98 ("Göz küresinde çökme"), PDF p. 104
 > "Çocuğunuzun ağzı kuru ya da gözleri çökük görünüyor mu?"
@@ -373,7 +374,9 @@ on any item.)*
      and `eksik_asi` each have two texts across the specialty packs.
    - Opposite polarity; a polarity decision comes first: neonatoloji `beslenmede_azalma` and
      `islak_bez_azalmasi`; cocuk_gastroenterolojisi `az_cis`; cocuk_nefrolojisi `idrar_azalmasi`
-     (against this cluster's Q5 and Q7, where `false` is the alarm direction).
+     (against this cluster's Q5 and Q7, where `false` is the alarm direction). Decided for the
+     hydration items by INT-432 CD-10: `true` is the concern; Q7 and neonatoloji's nappy item are
+     now `az_cis`, `idrar_azalmasi` stays distinct; the feeding construct (Q5) is still open.
    - Construct choice for the paediatrician: `emebiliyor_icebiliyor` (CH-S1's danger sign, inability to
      drink or breastfeed) against `beslenme_sivi_alimi` (feeding as usual).
    - Overlaps; the paediatrician decides whether the cluster item stays where a specialty asks its own:

@@ -1,0 +1,36 @@
+# guideline_id: NICE-NG10
+# title: Violence and aggression: short-term management in mental health, health and community settings
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG10; published 28 May 2015 (no later update shown on the Recommendations or Update information page at retrieval)
+# url: https://www.nice.org.uk/guidance/ng10/chapter/Recommendations
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header, recommendations 1.2.8-1.2.10 and 1.6.3-1.6.4; nothing paraphrased or edited; omissions marked [...]
+---
+Reference number: NG10
+Published: 28 May 2015
+[...]
+Assessing and managing the risk of violence and aggression
+1.2.8
+When assessing and managing the risk of violence and aggression use a multidisciplinary approach that reflects the care setting.
+1.2.9
+Before assessing the risk of violence or aggression:
+Take into account previous violent or aggressive episodes because these are associated with an increased risk of future violence and aggression.
+Do not make negative assumptions based on culture, religion or ethnicity.
+Recognise that unfamiliar cultural practices and customs could be misinterpreted as being aggressive.
+Ensure that the risk assessment will be objective and take into account the degree to which the perceived risk can be verified.
+1.2.10
+Carry out the risk assessment with the service user and, if they agree, their carer. If this finds that the service user could become violent or aggressive, set out approaches that address:
+service user‑related domains in the framework (see recommendation 1.2.7)
+contexts in which violence and aggression tend to occur
+usual manifestations and factors likely to be associated with the development of violence and aggression
+primary prevention strategies that focus on improving quality of life and meeting the service user's needs
+symptoms or feelings that may lead to violence and aggression, such as anxiety, agitation, disappointment, jealousy and anger, and secondary prevention strategies focusing on these symptoms or feelings
+[...]
+1.6.3
+Health and social care provider organisations, including ambulance trusts, should ensure that staff working in community and primary care settings are able to undertake a risk assessment for violence and aggression in collaboration with service users known to be at risk and their carers if possible. The risk assessment should be available for case supervision and in community teams it should be subject to multidisciplinary review.
+Managing violence and aggression
+1.6.4
+After a risk assessment has been carried out, staff working in community and primary care settings should:
+share the risk assessment with other health and social care services and partner agencies (including the police and probation service) who may be involved in the person's care and treatment, and with carers if there are risks to them
+be aware of professional responsibilities in relation to limits of confidentiality and the need to share information about risks.

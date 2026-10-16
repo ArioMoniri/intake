@@ -1,0 +1,30 @@
+# guideline_id: IADT-AVULSION-2020
+# title: International Association of Dental Traumatology guidelines for the management of traumatic dental injuries: 2. Avulsion of permanent teeth
+# publisher: International Association of Dental Traumatology (IADT); Dental Traumatology 2020;36(4):331-342, doi 10.1111/edt.12573
+# version_or_date: 2020 (accepted version deposited in White Rose Research Online; the publisher's page returned HTTP 403 at retrieval)
+# url: https://eprints.whiterose.ac.uk/id/eprint/161687/
+# url_pdf: https://eprints.whiterose.ac.uk/id/eprint/161687/1/IADT%20guidelines%20-%20Avulsion%20of%20permanent%20teeth.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200, 862006 bytes); text extracted with pdftotext (poppler); page numbers are PDF page indices; within each excerpted paragraph the PDF line wraps are joined with single spaces; characters otherwise kept as extracted
+# scope: verbatim excerpt of the repository cover lines, the first-aid paragraph (PDF p. 6), the patient-instructions lead (PDF p. 18) and the follow-up schedule (PDF p. 19); nothing paraphrased or edited; omissions marked [...]
+---
+[PDF p. 1]
+https://eprints.whiterose.ac.uk/id/eprint/161687/
+Version: Accepted Version
+Article:
+Fouad, AF, Abbott, PV, Tsilingaridis, G et al. (2020) International Association of Dental
+Traumatology guidelines for the management of traumatic dental injuries: 2. Avulsion of
+permanent teeth. Dental Traumatology, 36 (4). pp. 331-342. ISSN: 1600-4469
+[...]
+[PDF p. 6]
+First aid for avulsed teeth at the place of accident
+Dentists should be prepared to give appropriate advice to the public about first aid for avulsed teeth.2, 11, 22-27 An avulsed permanent tooth is one of the few real emergency situations in dentistry. In addition to increasing the public awareness by mass media campaigns or other means of communication, parents, guardians and teachers should receive information on how to proceed following these severe and unexpected injuries. Also, instructions may be given by telephone to people at the emergency site. Immediate replantation of the avulsed tooth is the best treatment at the place of the accident. If for some reason this cannot be carried out, there are alternatives such as using different types of storage media.
+[...]
+[PDF p. 18]
+Patient instructions
+Patient compliance with follow-up visits and home care contributes to satisfactory healing following an injury.2, 24, 25, 27, 29 Both patients and parents or guardians of young patients should be advised regarding care of the replanted tooth for optimal healing and prevention of further injury. They should be advised to:
+[...]
+[PDF p. 19]
+Follow-up procedures
+Clinical control
+Replanted teeth should be monitored clinically and radiographically at 2 weeks (when the splint is removed), 4 weeks, 3 months, 6 months, one year and yearly thereafter for at least five years.2, 6-9, 25, 26

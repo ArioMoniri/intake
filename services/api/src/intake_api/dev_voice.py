@@ -72,6 +72,7 @@ from protocols.dsl import clip_text_hash
 from pydantic import BaseModel, ConfigDict, Field
 from voice_clips.audio import wav_bytes
 from voice_clips.delivery import (
+    CLIPGEN_VOICE_ID,
     DEFAULT_DELIVERY_CONTEXT,
     DeliveryContext,
     DeliveryProfile,
@@ -81,9 +82,9 @@ from voice_clips.gateway import (
     ENV_ELEVENLABS_BASE,
     ENV_ELEVENLABS_KEY,
     ElevenLabsClipGenGateway,
-    NumeralInScriptError,
     TtsError,
     TtsGateway,
+    UnspeakableScriptError,
     assert_speakable_tr,
 )
 
@@ -110,8 +111,10 @@ __all__ = [
     "router",
 ]
 
-#: George — the voice id ADR-028 pins; the model (eleven_multilingual_v2) and
-#: the numeral-normaliser-off request are the gateway's, unchanged.
+#: George, the ADR-028 voice until INT-449. The route now speaks in the cast
+#: voice, ``voice_clips.delivery.CLIPGEN_VOICE_ID`` (D20); the constant stays so
+#: the change of voice is asserted, and a George-era clip is never replayed (the
+#: profile version in the cache key moved to v4).
 GEORGE_VOICE_ID: Final = "JBFqnCBsd6RMkjVDRZzb"
 
 #: Opt-in dev phrase. Anything but the exact string leaves the route
@@ -147,7 +150,7 @@ class GeorgeClipCache:
 
     gateway: TtsGateway
     cache_dir: Path
-    voice_id: str = GEORGE_VOICE_ID
+    voice_id: str = CLIPGEN_VOICE_ID
 
     def ensure(self, text_tr: str, profile: DeliveryProfile) -> tuple[bytes, bool]:
         """Return ``(wav_body, cache_hit)``.
@@ -159,7 +162,7 @@ class GeorgeClipCache:
         ``clip_text_hash(text_tr)``, with no file extension, so this service
         names no audio artefact.
 
-        Raises :class:`NumeralInScriptError` (invariant 22) or another
+        Raises :class:`UnspeakableScriptError` (a numeral, invariant 22, or markup) or another
         :class:`TtsError` (vendor unreachable/refused); the route maps both to a
         refusal that never echoes the key.
         """
@@ -279,8 +282,9 @@ async def _refusal(
         return JSONResponse({"error": "george_budget_unavailable"}, status_code=503)
     try:
         assert_speakable_tr(text_tr)
-    except NumeralInScriptError:
-        # invariant 22 keeps its own, more specific refusal
+    except UnspeakableScriptError:
+        # invariant 22 (a numeral) and INT-424 (SSML or an audio tag) keep their
+        # own, more specific refusal
         return JSONResponse({"error": "not_speakable"}, status_code=422)
     if not wiring.catalogue.admits(text_tr):
         # not a compiled clip-manifest row: never scripted text, never dialled
@@ -304,8 +308,8 @@ async def george_clip(payload: GeorgeClipIn, request: Request, principal: Princi
         return refusal
     try:
         wav, hit = wiring.cache.ensure(payload.text_tr, delivery_profile(payload.delivery_context))
-    except NumeralInScriptError:
-        # invariant 22: a numeral reached the boundary — refuse, do not normalise
+    except UnspeakableScriptError:
+        # a numeral or markup reached the boundary — refuse, do not normalise
         return JSONResponse({"error": "not_speakable"}, status_code=422)
     except TtsError:
         # vendor unreachable/refused; the key is never in the message (files/10
