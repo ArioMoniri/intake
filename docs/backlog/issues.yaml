@@ -6967,6 +6967,22 @@
     - "tests/infra/test_staging_admin_tier.py::TestLoginGate pins both, with a near-miss that the default (both absent), either one alone, or either set to \"true\" fails the same check; the red and green runs are recorded in docs/evidence/INT-485.md; nothing is deployed from the PR"
   tests: [tests/infra/test_staging_admin_tier.py]
   sec_row: "admin-console"
+- id: INT-441
+  epic: E03-protocols
+  phase: P0
+  title: "base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date)"
+  # GitHub #750. base.intake gates compare code slots against literals the slot
+  # never carries. Acceptance verbatim from the issue. The issue had no row on
+  # main; this row is the one INT-452 (#867) reconciled, closed by PR #907.
+  depends_on: [INT-043]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-441.md
+  acceptance:
+    - "Each gate compares against a value its slot can carry. `proxy_reported` opens only on \"yakınım adına\". `lmp_date` keeps its current behaviour (asked once `pregnancy_status` is answered, with any answer), and every literal is an authored choice. Both gates project to a FHIR enableWhen. No Turkish string changes, so the INT-297 tr content baseline is not regenerated."
+    - "A test asserts that every `ask_if`/`skip_if` literal compared against a code slot in base.intake is one of that slot's `choices_tr`. Near-miss controls: a prefix of a choice (`'kendim'`) and an ASCII-folded choice are refused."
+    - "Engine tests drive a real IntakeEngine with the authored choice strings. \"kendim için\" keeps `proxy_reported` closed, and every pregnancy_status answer, \"hayır\" included, opens `lmp_date`. `test_base_intake_gates_name_one_slot_each` stays green."
+  sec_row: "clinical-content"
 - id: INT-518
   epic: E03-protocols
   phase: P0

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**356 issues.** By phase: P0 175 · P1 127 · P2 47 · P3 7. By status: awaiting-human 36 · doing 7 · done 238 · todo 74 · withdrawn 1.
+**357 issues.** By phase: P0 176 · P1 127 · P2 47 · P3 7. By status: awaiting-human 36 · doing 7 · done 239 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -185,6 +185,7 @@
 | INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models | E05-voice | INT-081, INT-083, INT-092, INT-095, INT-101 | area:voice, risk:clinical | doing |
 | INT-428 | Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over | E05-voice | INT-182, INT-187, INT-018 | area:api, area:voice, risk:security | awaiting-human |
 | INT-485 | Admin oauth2-proxy logs no staff email or client IP (invariant 6) | E13-infra | INT-421 | area:infra | done |
+| INT-441 | base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date) | E03-protocols | INT-043 | area:protocols, risk:clinical | done |
 | INT-518 | Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind | E03-protocols | INT-083, INT-432 | area:protocols | done |
 
 ## P1

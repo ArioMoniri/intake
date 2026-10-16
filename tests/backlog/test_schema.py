@@ -199,7 +199,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-518 (live extraction gets the committed value table, so the code
     # slots the active life-threat rules read can bind; from the INT-441
     # clinical review, GitHub #884).
-    assert len(ids) == 356
+    assert len(ids) == 357
     import re
 
     for i in ids:
