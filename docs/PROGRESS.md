@@ -172,6 +172,10 @@
     infra/backlog/smoke gives 10642 passed, and infra/backlog/smoke all pass. The owner patch
     re-applies (`git apply --check` OK); with it applied, 8800 passed across the 17 suites that
     read the allow-list.
+  - After INT-442/443 (#774, #775) were merged in, the two proxies coexist, and
+    `PURPOSE_PROXIES` keeps each purpose on its own proxy (red 15 failed, then green 47
+    passed). Whole Python suite: **12408 passed**, 0 failed (`tests/infra tests/security tests/backlog tests/smoke tests/voice/adapters` plus the Netgsm API tests: 1783; everything else: 10625; integration tests deselected by the default marker; deid-NER cache through `INTAKE_DEID_MODEL_DIR`); admin-web vitest 385 passed. Patch re-cut, `git apply --check` OK; with it
+    applied: **9352 passed**, 0 failed (55 integration tests deselected).
 - Invariants touched and still passing:
   - 6: no phone, code, password or vendor text anywhere; numbers only counted.
   - 13: `otp_sms_delivery_total` is catalogued, and `sms-egress` has its registry row. The
