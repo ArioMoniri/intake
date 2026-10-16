@@ -280,13 +280,33 @@ value:
       sources: [NICE-CG95]
   unmatched_hedge: UNCLEAR
   # Round 3: what changed, item by item, so a reader can tell the decided values of
-  # rounds 1 and 2 (unchanged) from the amendment. The verifier's round-3 verdict is
-  # pending until the independent verifier records it below and in `verifier`.
+  # rounds 1 and 2 (unchanged) from the amendment. The independent verifier's round-3
+  # verdict is recorded in `verification` below and in `verifier`.
   amendments:
     - round: 3
       date: 2026-10-16
       issue: "INT-519 (GitHub #885)"
       origin: "INT-522 (#888) and INT-540 (#913) clinical reviews; the reviewers' recommendations were inputs, not decisions"
+      verification:
+        round: 3
+        date: 2026-10-16
+        head: 9034f8b9
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+        verdict: agree
+        findings: >-
+          No blocker. Every round-3 quote (NICE CG95 1.2.1.1 and 1.2.1.7, NICE CG84) was
+          re-read on the live NICE pages on 2026-10-16 and is verbatim there and in the
+          committed snapshots. The split bound only removes a turn that could move the
+          anchor to a less acute day: a hedge resolves to the reference day, the day of
+          CG95 1.2.1.7's emergency bands, so no answer resolves less acutely than before.
+          The runtime reads none of the new keys yet (anchors.py follow_up_bounds still
+          reads unclear_follow_up_tr_asks), so this round changes data, not behaviour.
+          One note for the physician of record (HB-C1) on item 5, not a change here.
+        per_item:
+          "5": "agree with note (a hedge beside a leaned-to 'üç günden daha önce' now reaches K2 without a clarifying turn; that over-triage is the fail-closed direction inside D18's simulated scope, and its alarm cost (files/04 §8.1 rule 4) is for the physician of record)"
+          "8": "agree, including the author's departure: keeping the leaned-to choice as hedged_choice and never binding it gives the same resolved day as binding it would, and keeps the record from showing a hedged answer as definite"
+          "9": "agree (CG95 1.2.1.1 makes 'pain free now' the case in which the last episode is still dated; files/13 §11.2 forbids a late 'yok' lowering a level)"
+          "12": "acknowledged (verifier_acknowledgement below)"
       items:
         - item: 5
           question: "Should an explicit hedge to the onset question resolve the tense anchor at once, rather than after a follow-up?"
@@ -357,11 +377,21 @@ value:
             governing every other scripted slot. The independent verifier acknowledges
             the key in its round-3 note.
           keys: [unclear_follow_up_tr_asks]
-          verifier_acknowledgement: pending
+          verifier_acknowledgement: >-
+            Acknowledged by the independent verifier, round 3 (2026-10-16). The key was
+            added by INT-540 (de6aa59a) after the round-2 verdict of 3 Oct 2026. Its value,
+            1, is exactly the decision's round-1 sentence "triggers the slot's
+            follow_up_tr once", so it restates a verified value and changes none. It
+            governs every scripted slot this decision covers. The INT-540 runtime reads it
+            for the CD-05 tense anchors only (anchors.py follow_up_bounds); the other
+            scripted slots still take files/13 §11.1's two clarifications, an engineering
+            residual of INT-540 and not a change to this decision. Once round 3 is built,
+            the anchors read tense_anchor_follow_up_tr_asks and this key keeps governing
+            every other scripted slot.
           spec_basis_ref: ["docs/evidence/INT-540.md Scope held to the anchor"]
           status: active
 verifier:
-  verdict: pending
-  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
-  verified_on: 2026-10-03
-  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 3 (INT-519 amendment, items 5, 8, 9 and 12, 16 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+  verified_on: 2026-10-16
+  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 8, 9 and 12, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 and CG84 quotes re-read verbatim on the live NICE pages and in the committed snapshots; the item-12 key acknowledged; one note for the physician of record on item 5 (amendments[0].verification). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

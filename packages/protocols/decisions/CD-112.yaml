@@ -323,5 +323,32 @@ value:
         items.
       sources: [NICE-NG126]
       status: active
+  verification_history:
+    - round: 1
+      date: 2026-10-16
+      head: 9034f8b9
+      reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+      verdict: agree
+      findings: >-
+        No blocker. Both new snapshots were checked against the live NICE pages fetched
+        on 2026-10-16: every body line of NICE-CG178.txt is verbatim, and every body
+        line of NICE-NG253.txt carries the same words, with the page headers' dates as
+        recorded (NG253 last updated 23 September 2026, CG178 04 September 2026). Every
+        quote CD-112 cites is verbatim on the live page and in its snapshot. Each decided
+        literal is a member of its committed value set, and the replaced one is not. No
+        triage rule reads any gated item or immunosuppression (rf.sepsis_like is draft),
+        no pack changed in this round, and the three clusters stay review-queue L0.
+        Two notes, neither a change to the decision: one on item 1 (per_gate) and one on
+        the snapshot. In three NG253 lines that no decision quotes (the 1.2.1
+        cross-reference and two Update information entries) the extraction put a space
+        before punctuation where an inline tag ended; the words are unchanged, and the
+        committed NICE-CG95 snapshot follows the same convention.
+      per_gate:
+        "1 (cluster.mental_health)": "agree with note. Self-report only, held until ADR-040 (#833, d5943fd7, which defines PROXY_GATED_ON_SUBJECT_ROLE and proxy skip: true) lands; CG178 1.1.4.2 and 1.3.6.7 support the direction, with the adult-psychosis caveat recorded. Note for the lead: specialty ruh_sagligi_ve_hastaliklari carries an ungated diger_madde_kullanimi with the same wording; ADR-040's proxy compiler forces a proxy text or a skip there, and this reading points to the skip. That pack is outside this record's three gates"
+        "2 (cluster.medical)": "agree. NG253 1.2.1 lists impaired immune function from illness or treatment as a sepsis risk factor, so an uncertain answer must not read Unknown; mapping hedges to 'bilmiyorum' opens the item and counts with 'evet' for any rule (rule_reading). NG253 is for people aged 16 or over, and no adult threshold reaches a child"
+        "3 (cluster.womens_health)": "agree. CD-100 T4's decided reading in the authored literal; a woman who answers 'hayır' is still asked the LMP and the ungated bleeding and lower-abdominal-pain items (NG126 1.4.3, 1.4.5)"
 verifier:
-  verdict: pending
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+  verified_on: 2026-10-16
+  notes: "Round 1 (2026-10-16, head 9034f8b9) agree, no blocker. Both new snapshots (NICE NG253, NICE CG178) compared line by line with the live NICE pages; every cited quote is verbatim on the live page and in its snapshot; each decided literal is a member of its committed value set. Notes on item 1 (the specialty substance-use twin) and on the NG253 snapshot's extraction spacing, neither a change (value.verification_history). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

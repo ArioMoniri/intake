@@ -1456,8 +1456,9 @@ value:
       sources: [NICE-NG75]
       status: active
   # Round 4: amendments after the round-3 verdict. Each keeps the item it amends
-  # unchanged above (its history) and says what now applies. The verifier's
-  # round-4 verdict is pending until the independent verifier records it.
+  # unchanged above (its history) and says what now applies. The independent
+  # verifier's round-4 verdict is recorded in each entry's `verification` and in
+  # `verifier`.
   amendments:
     - round: 4
       date: 2026-10-16
@@ -1503,6 +1504,27 @@ value:
       red_flag_gate_input: "lmp_date gates the pregnancy family (rf.pregnancy_bleeding_pain, HB-C6), so applying the OR term runs the goldens with near-miss controls and make safety in the same change (CD-110 T1 (5))"
       sources: [NICE-NG126]
       status: active
+      verification:
+        round: 4
+        date: 2026-10-16
+        head: 9034f8b9
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+        verdict: agree
+        findings: >-
+          Agree, including the author's departure to leave the age atom out while CD-110's
+          age bounds are draft. The corrected premise holds: base intake.yaml lmp_date
+          reads the three authored answers, so every answer opens it today. Under Kleene
+          logic the OR term decides only when pregnancy_status is Unknown, so the gate can
+          only add askers; without the age atom the term is true for everyone not recorded
+          male at birth, which asks more and never fewer. NICE NG126 1.4.5 ('they may be
+          pregnant') and 1.4.3 ('amenorrhoea or missed period' among the common symptoms)
+          were re-read on the live NICE page on 2026-10-16. Note for whoever adds the age
+          atom once CD-110's bounds are sourced: that step narrows against this shape, so
+          it is a decision of its own, and CD-110 T1 (4)'s condition applies again to the
+          kadın chain (son_adet_tarihi stays while an age bound would leave a woman in the
+          chain unasked); kadin_q2 above holds for the atom-free shape. Today's
+          behaviour of asking the LMP after a recorded male's plain 'hayır' is kept;
+          dropping it would be a narrowing and is not decided here.
     - round: 4
       date: 2026-10-16
       issue: "INT-519 (GitHub #885) item 3"
@@ -1514,8 +1536,21 @@ value:
       decided_in: CD-112
       sources: [NICE-NG126]
       status: active
+      verification:
+        round: 4
+        date: 2026-10-16
+        head: 9034f8b9
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+        verdict: agree
+        findings: >-
+          Agree. 'hayır' is a member of vs.pregnancy_status and 'hayir' is not, so the
+          authored literal gives change (b) the reading T4 decided ('emin değilim' opens
+          the five items, a plain 'hayır' closes them). No triage rule reads any of the
+          five items, and a woman who answers 'hayır' is still asked the LMP (T1 round 4)
+          and the ungated adet_disi_kanama and alt_karin_agrisi that both the
+          women's-health cluster and the kadın chain carry.
 verifier:
-  verdict: pending
-  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
-  verified_on: 2026-10-03
-  notes: "Round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree (2026-10-03). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-519 amendment, T1 owner part re-read and the T4(b) literal, 16 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+  verified_on: 2026-10-16
+  notes: "Round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree (2026-10-03), by the independent clinical verifier (agent; EM/IM/paediatrics). Round 4 (2026-10-16, INT-519 amendment, T1 owner part re-read and the T4(b) literal, head 9034f8b9) agree, no blocker: NICE NG126 1.4.3 and 1.4.5 re-read verbatim on the live NICE page; the OR term only adds askers; one note for whoever later adds the age atom (amendments[0].verification). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

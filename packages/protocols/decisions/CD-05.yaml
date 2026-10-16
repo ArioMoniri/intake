@@ -243,13 +243,39 @@ value:
   ambiguity: more_acute
   document_may_feed_anchor: false
   council_may_fill: false
-  # Round 3: what changed, item by item. The verifier's round-3 verdict is pending
-  # until the independent verifier records it in `verifier`.
+  # Round 3: what changed, item by item. The independent verifier's round-3 verdict
+  # is recorded in `verification` below and in `verifier`.
   amendments:
     - round: 3
       date: 2026-10-16
       issue: "INT-519 (GitHub #885)"
       origin: "INT-522 (#888) and INT-540 (#913) clinical reviews; the reviewers' recommendations were inputs, not decisions"
+      verification:
+        round: 3
+        date: 2026-10-16
+        head: 9034f8b9
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+        verdict: agree
+        findings: >-
+          No blocker. The round-3 NICE CG95 quotes (1.2.1.1, 1.2.1.8) were re-read on the
+          live NICE page on 2026-10-16 and are verbatim there and in the committed snapshot;
+          the CG84 'if in doubt' sentence keeps its paediatric caveat and is cited for
+          direction only. The TR-EK4-2022 snapshot confirms the item-6 gap: EK-4 places
+          'Kardiyak ağrıya benzer göğüs ağrısı' in Kırmızı Kategori 2 and 'Kardiyak öykü
+          ile uyumlu olmayan göğüs ağrısı' in Sarı Kategori 1, by character, with no time
+          since the last episode. Every decided item resolves to the reference day or to
+          the more acute of the bands an answer fits, so none is less acute than CD-05's
+          verified unresolved_answer. The twelve-to-seventy-two-hour band keeps its
+          invariant-17 literal under draft_needs_source and its labelled while-draft day;
+          final_route and final_resolution_needs sit inside that draft entry and no
+          consumer reads them. No pack, rule or runtime file changed.
+        per_item:
+          "5": "agree (no follow-up for a hedge, one for a no-choice answer; both resolve to the reference day)"
+          "6": "agree that it stays open: urgent same-day assessment is sourced (CG95 1.2.1.8), the arm's EK-4 level and register are not, and the DSL has no seventy-two-hour tense (types.py Tense stops at within_7d); the signing clinician's (HB-C1)"
+          "7": "agree (more acute of the bands still fitted after one follow-up, ordered by CG95 1.2.1.7, 1.2.1.8, 1.2.1.10; while the band is draft every straddle reaches the reference day, the same as the fallback)"
+          "9": "agree (UNCLEAR with cause no_choice under unresolved_answer; never retracts chest_pain.present)"
+          "10": "agree, including the author's departure to decide it rather than leave it open: CD-05 already resolves an asked-but-unanswered anchor to the reference day, so leaving a never-asked anchor Unknown would make the case with the least information the least acute, and CG95 1.2.1.1 asks first whether the pain is current, which an unasked anchor cannot exclude. Note for the physician of record: a present qualified as long past ('eskiden vardı') is over-triaged at close; the label and the qualifier reach the clinician"
+          "11": "agree (session_closed resolves to the reference day; the inbox item is raised at close)"
       items:
         - item: 5
           decision: "the anchor's follow-up bound is CD-04's tense_anchor_follow_up_tr_asks: none for a hedge, one for a no-choice answer; unresolved_answer then resolves it"
@@ -286,7 +312,7 @@ value:
           sources: [NICE-CG95, NICE-CG84]
           status: active
 verifier:
-  verdict: pending
-  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
-  verified_on: 2026-10-03
-  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 3 (INT-519 amendment, items 5, 6, 7, 9, 10 and 11, 16 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
+  verified_on: 2026-10-16
+  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 6, 7, 9, 10 and 11, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 quotes re-read verbatim on the live NICE page and in the committed snapshot; item 6 correctly stays draft_needs_source in the invariant-17 form; one note for the physician of record on item 10 (amendments[0].verification). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

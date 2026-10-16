@@ -1,5 +1,18 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T23:30:00Z · INT-519 · D18 verifier round, agree on all four records (committed locally, not pushed)
+- Goal: the independent D18 clinical verifier's round on the author's `9034f8b9` (CD-112 round 1, CD-04 and CD-05 round 3, CD-100 round 4).
+- Result: **agree, no blocker**, on all four records.
+  - Items 1–5 and 7–12 agree; item 12 is acknowledged; item 6 correctly stays `draft_needs_source` in the invariant-17 form.
+  - The author's three departures (item 4's age atom left out, item 8's hedged choice never bound, item 10 decided) are agreed.
+  - Four notes, none a change: item 1's specialty substance-use twin; the HB-C1 over-triage costs of items 5 and 10; and item 4's later age atom, which would be a narrowing of its own.
+- Sources: the cited NICE pages fetched live on 2026-10-16. Every NG253 and CG178 snapshot line carries the live words, and all 29 NICE quotes in the four records are verbatim live. One spacing note on three unquoted NG253 lines, the same convention as the committed CG95 snapshot.
+- Recorded: each `verifier` block; `verification` in the CD-04 and CD-05 round-3 entries and in both CD-100 round-4 entries; CD-112 `value.verification_history`; CD-04 item-12 `verifier_acknowledgement`; the four twins; the docs/evidence/INT-519.md verifier section.
+- Tests: the register and INT-519 suites 201 passed (the two by-design verdict failures now pass). Protocols lane 97.63 %, 2084 passed. `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.32 %, adversarial 121.
+- Invariants touched and still passing: 1, 7, 10, 17, 21. No pack, rule, gate or runtime file changed.
+- Blocked on: nothing for the D18 lane. HB-C1 (physician signature) still stands before any real patient.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T21:30:00Z · INT-519 · done, verifier pending (committed locally, not pushed; stacked on #918 INT-540)
 - Goal: the D18 lane's twelve items on #885.
   - Items 1–4 come from the INT-441 clinical review: three review-queue cluster gates compare a code slot against a string no answer holds, and CD-100 T1 rested on a premise INT-441 corrected.
