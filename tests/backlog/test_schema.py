@@ -145,6 +145,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-395 (no path erased notification_preferences and the DSAR export
     # did not list Doctor Links; found by INT-393, fixed and closed in the
     # same PR).
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    # + INT-440 (voice-first end-to-end test on the iOS simulator and the
+    # robotic-voice fixes; owner request, GitHub #748).
     # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
     # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
     # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
@@ -223,7 +227,7 @@ def test_ids_unique_and_well_formed() -> None:
     # clinical review, GitHub #913).
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget; INT-521 residual 1, GitHub #898).
-    assert len(ids) == 364
+    assert len(ids) == 365
     import re
 
     for i in ids:

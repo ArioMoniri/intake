@@ -982,6 +982,15 @@ export const tr = {
   "devVoice.reason.timeout": "zaman aşımı",
   "devVoice.reason.refused": "bağlantı reddedildi",
   "devVoice.reason.status": "yanıt kodu",
+  "devVoice.lane.title": "Geliştirici notu: bu soru George sesiyle çalınmadı",
+  "devVoice.lane.titleOk": "Geliştirici notu: ses hattı",
+  "devVoice.lane.served": "Konuşan ses",
+  "devVoice.lane.audioStart": "Soru ekrana gelince sesin başlaması",
+  "devVoice.lane.micPeak": "Bu turdaki en yüksek mikrofon düzeyi",
+  "devVoice.lane.clipGaps": "Ses parçaları arasındaki boşluk",
+  "devVoice.lane.georgeMiss": "George sesinin gelmeme nedeni",
+  "devVoice.lane.hint":
+    "George sesi için telefonla doğrulanmış bir hasta oturumu ve API'de George yolu gerekir",
   // ---- INT-247: önceki ziyaretlerden taşınan bilgiler ---------------------
   // Patient copy for the confirm / changed / stopped step and the
   // transparency ledger, plus the markers the note carries. The note markers
@@ -1212,7 +1221,6 @@ export const tr = {
   // speaks the scripted question verbatim and adds this; the typed screen
   // puts the same invitation over the answer field and keeps the options
   // under it as the fallback.
-  "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
   "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
 

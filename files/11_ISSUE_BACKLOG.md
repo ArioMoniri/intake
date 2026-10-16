@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**364 issues.** By phase: P0 180 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 244 · todo 74 · withdrawn 1.
+**365 issues.** By phase: P0 181 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 8 · done 244 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -174,6 +174,7 @@
 | INT-382 | The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads | E03-protocols | INT-258 | area:protocols, risk:clinical | done |
 | INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
 | INT-395 | DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links) | E02-data | INT-037, INT-141, INT-150, INT-393 | area:data, risk:legal | done |
+| INT-440 | Voice-first end-to-end test on the iOS simulator + fixes | E05-voice | INT-414, INT-415, INT-326 | area:mobile, area:voice | doing |
 | INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
 | INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 | INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done |

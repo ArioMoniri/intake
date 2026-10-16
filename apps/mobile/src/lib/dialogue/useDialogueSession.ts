@@ -10,8 +10,9 @@
  * tier): the next question never waits for the previous answer's
  * pipeline — `utterance` advances the turn the moment the mic closes,
  * and each utterance's transcribe→extract runs detached, reconciling by
- * work id. The WHOLE session's question clips pre-warm in parallel at
- * mount, so "soru hazırlanıyor" is the exception, not the rhythm — and
+ * work id. The WHOLE session's question clips pre-warm at mount, in
+ * question order and bounded (INT-440, prewarm.ts), so "soru hazırlanıyor"
+ * is the exception, not the rhythm — and
  * the bubble always shows the question TEXT instantly regardless.
  * A typed composer submit is the same conversation: one utterance that
  * skips the ASR hop.
@@ -66,7 +67,9 @@ import { configuredServiceCandidates } from "../dev/expoHosts";
 import { BARGE_IN_SAMPLE_MS, createSpeechOnsetDetector } from "./bargeIn";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
+import { clientTelemetry } from "../telemetry/expoTelemetry";
 import { discardRecording, transcribeRecording } from "../voice";
+import { createAudioModeLatch, DIALOGUE_PLAYER_OPTIONS, type AudioModeLatch } from "./audioSession";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { readCue, type DeliveryCue, type Utterance } from "./delivery";
 import { deliveryClipName, leadSources, settleTurnClips, shownDelivery } from "./deliveryClips";
@@ -82,7 +85,8 @@ import {
   planDialogueDelivery,
   questionDeliveryContextOf,
 } from "./deliveryPlan";
-import { scriptedDeliveryTr } from "./georgeClip";
+import { scriptedDeliveryTr, type ClipLaneRecord } from "./georgeClip";
+import { nextQuestionAfter, PREWARM_CONCURRENCY, warmInOrder } from "./prewarm";
 import { confirmSpeechTr, questionSpeechTr } from "./speech";
 import {
   dialogueStreamReducer,
@@ -138,6 +142,16 @@ export interface DialogueSession {
   /** True only while a clip is audibly playing — the bubble says
    * "preparing" honestly until then (no duration claim, 02 §5.2). */
   playing: boolean;
+  /** The lane that synthesized the question clip now playing (INT-440) — what
+   * the `__DEV__` lane banner reads. Null until a clip has played. */
+  voiceLane: ClipLaneRecord | null;
+  /** Dev measurement (INT-440): this turn's question on screen → its first
+   * clip playing, in ms; null until it plays. */
+  audioStartMs: number | null;
+  /** Dev measurement (INT-440): the loudest metered mic level this turn, dB. */
+  micPeakDb: number | null;
+  /** Dev measurement (INT-440): end of one clip → the next audible, this turn. */
+  clipGapsMs: readonly number[];
   /** Tap on the speaking bubble: stop playback NOW, open the mic. */
   bargeIn: () => void;
   /** "Bitirdim" / tap-to-stop: take the utterance, advance NOW; the
@@ -195,9 +209,26 @@ export function useDialogueSession({
   const stateRef = useRef(state);
   stateRef.current = state;
   const [playing, setPlaying] = useState(false);
+  const [voiceLane, setVoiceLane] = useState<ClipLaneRecord | null>(null);
+  /** INT-440 dev measurements: turn start → audible clip, and the turn's
+   * loudest metered microphone level (the app's own recorder, not a probe). */
+  const [audioStartMs, setAudioStartMs] = useState<number | null>(null);
+  const [micPeakDb, setMicPeakDb] = useState<number | null>(null);
+  const [clipGapsMs, setClipGapsMs] = useState<readonly number[]>([]);
 
   const storeRef = useRef<Promise<ClipStore> | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
+  /** INT-440: which lane synthesized each clip of this session, by its text. */
+  const laneByTextRef = useRef(new Map<string, ClipLaneRecord>());
+  /** INT-440: the audio mode is applied once per session, not once per clip. */
+  const audioModeRef = useRef<AudioModeLatch | null>(null);
+  const audioMode = (): AudioModeLatch => {
+    audioModeRef.current ??= createAudioModeLatch((mode) => AudioModule.setAudioModeAsync(mode));
+    return audioModeRef.current;
+  };
+  /** INT-440: players already loaded with a clip that is about to be said —
+   * the rest of this turn's queue, and the next question's clip — by URI. */
+  const preloadedRef = useRef(new Map<string, AudioPlayer>());
   /** One controller for every background extract of the session. */
   const abortRef = useRef<AbortController | null>(null);
   const closedRef = useRef(false);
@@ -283,9 +314,71 @@ export function useDialogueSession({
       if (!permission.granted) {
         throw new Error("mic_denied");
       }
-      return dialogueClipStore(createDialogueTtsLaneSelector());
+      return dialogueClipStore(createDialogueTtsLaneSelector(), (text, record) => {
+        laneByTextRef.current.set(text, record);
+        clientTelemetry().noteTtsLane(record);
+      });
     })();
     return storeRef.current;
+  };
+
+  /** A player for `uri`: the one preloaded for it, else a fresh one. Every
+   * dialogue player keeps the audio session active (INT-440). */
+  const playerFor = (uri: string): AudioPlayer => {
+    const preloaded = preloadedRef.current.get(uri);
+    if (preloaded !== undefined) {
+      preloadedRef.current.delete(uri);
+      return preloaded;
+    }
+    return createAudioPlayer({ uri }, DIALOGUE_PLAYER_OPTIONS);
+  };
+
+  /** Load `uris` into paused players now, releasing any other preloaded one,
+   * so each starts on `play()` with no load in between (INT-440). */
+  const preload = (uris: readonly string[]) => {
+    const keep = new Set(uris);
+    for (const [uri, player] of preloadedRef.current) {
+      if (!keep.has(uri)) {
+        preloadedRef.current.delete(uri);
+        try {
+          player.remove();
+        } catch {
+          // already released
+        }
+      }
+    }
+    for (const uri of uris) {
+      if (!preloadedRef.current.has(uri)) {
+        preloadedRef.current.set(uri, createAudioPlayer({ uri }, DIALOGUE_PLAYER_OPTIONS));
+      }
+    }
+  };
+
+  /**
+   * Load the likely next question's clip while this turn plays (INT-440), next
+   * to the clips still queued in this turn (`pending`, read when the clip is
+   * ready). A guess, never a decision: gates may skip that question, and a
+   * missed guess only costs the load it would have saved.
+   */
+  const preloadNextQuestion = async (
+    store: ClipStore,
+    step: number,
+    pending: readonly string[],
+  ) => {
+    const next = nextQuestionAfter(questions, step, stateRef.current.asked);
+    if (next === null) {
+      return;
+    }
+    try {
+      const name = clipName("question", next.id);
+      const nextContext = questionDeliveryContextOf(next);
+      const uri = await store.ensure(name, questionSpeechTr(next), nextContext);
+      if (!closedRef.current) {
+        preload([...pending, uri]);
+      }
+    } catch {
+      // the next turn ensures its own clip and reports a failure honestly there
+    }
   };
 
   /** Immediate, synchronous stop — the barge-in guarantee. One player ref,
@@ -309,11 +402,7 @@ export function useDialogueSession({
    * driver when there was no clip.
    */
   const openMicrophone = async () => {
-    await AudioModule.setAudioModeAsync({
-      allowsRecording: true,
-      playsInSilentMode: true,
-      shouldRouteThroughEarpiece: false,
-    });
+    await audioMode().ensure();
     await recorder.prepareToRecordAsync();
     recorder.record();
   };
@@ -440,17 +529,18 @@ export function useDialogueSession({
   useEffect(() => {
     let stale = false;
     (async () => {
-      const warm = (store: ClipStore, question: IntakeQuestion): Promise<unknown>[] => {
+      const warm = (store: ClipStore, question: IntakeQuestion): (() => Promise<unknown>)[] => {
         // A question's context follows from its declarations alone, so it is
         // the same here as on its turn and the warm clip is the one used.
         const context = questionDeliveryContextOf(question);
         const clips = [
-          store.ensure(clipName("question", question.id), questionSpeechTr(question), context),
+          () =>
+            store.ensure(clipName("question", question.id), questionSpeechTr(question), context),
         ];
         if (question.kind === "text") {
           // The generic confirm line is scripted too — free text never
           // names a clip and patient words are never synthesized.
-          clips.push(
+          clips.push(() =>
             store.ensure(clipName("confirm", question.id), confirmSpeechTr(question, []), context),
           );
         }
@@ -462,11 +552,20 @@ export function useDialogueSession({
           return;
         }
         const opening = leadClipsFor(store, deliveryRef.current.get(0) ?? []);
-        await Promise.allSettled([...opening, ...warm(store, questions[0])]);
+        await Promise.allSettled([...opening, ...warm(store, questions[0]).map((job) => job())]);
         if (stale) {
           return;
         }
-        await Promise.allSettled(questions.slice(1).flatMap((q) => warm(store, q)));
+        // INT-440: in question order with at most PREWARM_CONCURRENCY in
+        // flight, rather than every clip at once — a burst overran the George
+        // budget and the vendor's concurrency, and the overflow was asked in
+        // the self-hosted voice (prewarm.ts). A bundled clip resolves at once.
+        await warmInOrder(
+          questions.slice(1).flatMap((q) => warm(store, q)),
+          PREWARM_CONCURRENCY,
+          (job) => job(),
+          () => stale,
+        );
         if (stale) {
           return;
         }
@@ -475,10 +574,11 @@ export function useDialogueSession({
           ...DELIVERY_DECK.welcome,
           ...DELIVERY_DECK.orientVoice,
         ]);
-        await Promise.allSettled(
-          VOICE_DELIVERY_KEYS.filter((key) => !openingOnly.has(key)).map((key) =>
-            ensureLead(store, key, prewarmContextOf(key)),
-          ),
+        await warmInOrder(
+          VOICE_DELIVERY_KEYS.filter((key) => !openingOnly.has(key)),
+          PREWARM_CONCURRENCY,
+          (key) => ensureLead(store, key, prewarmContextOf(key)),
+          () => stale,
         );
       } catch {
         // surfaced by the speaking driver on its own ensure
@@ -519,6 +619,11 @@ export function useDialogueSession({
     }
     const question = questions[speaking.step];
     let stale = false;
+    // INT-440: the question is on screen from this render; the dev banner
+    // reports how long until the turn's first clip is actually playing.
+    const turnStartedAt = Date.now();
+    setAudioStartMs(null);
+    setClipGapsMs([]);
     (async () => {
       let store: ClipStore;
       try {
@@ -592,20 +697,22 @@ export function useDialogueSession({
           const said = turnClips.spoken;
           setSpokenLines((before) => new Map(before).set(planned.index, said));
         }
-        // `allowsRecording: true` while the agent speaks is the whole change.
-        // On iOS this is the `.playAndRecord` category, which is the only one
-        // that admits simultaneous play and capture; `shouldRouteThroughEarpiece:
-        // false` is stated rather than left to the default because the same
-        // category is what puts audio on the receiver, and answering "the voice
-        // sounds bad" with a quieter voice would be its own defect.
-        await AudioModule.setAudioModeAsync({
-          allowsRecording: true,
-          playsInSilentMode: true,
-          shouldRouteThroughEarpiece: false,
-        });
+        // `allowsRecording: true` while the agent speaks (INT-291) — the
+        // `.playAndRecord` category on the loudspeaker, applied once per
+        // session (INT-440, audioSession.ts), not once per clip.
+        await audioMode().ensure();
         if (stale) {
           return;
         }
+        // INT-440: every clip of the turn is loaded before the first one
+        // plays, so a lead-in hands over to the question with no load in
+        // between — and the session stays active between them.
+        preload(queue);
+        setVoiceLane(laneByTextRef.current.get(speech) ?? null);
+        let audible = false;
+        // INT-440 dev measurement: end of one clip → the next one audible.
+        const gaps: number[] = [];
+        let finishedAt: number | null = null;
         // One player at a time, always cleared before the next clip, so the
         // utterances of a turn play strictly in order and never overlap. A
         // barge-in clears `playerRef`, which is what stops the chain: the
@@ -617,14 +724,28 @@ export function useDialogueSession({
           }
           const last = queue.length === 0;
           stopPlayback();
-          const player = createAudioPlayer({ uri });
+          const player = playerFor(uri);
           playerRef.current = player;
+          let started = false;
           player.addListener("playbackStatusUpdate", (status) => {
+            if (!started && status.playing && !stale) {
+              started = true;
+              const now = Date.now();
+              if (!audible) {
+                audible = true;
+                setAudioStartMs(now - turnStartedAt);
+              }
+              if (finishedAt !== null) {
+                gaps.push(now - finishedAt);
+                setClipGapsMs([...gaps]);
+              }
+            }
             if (status.didJustFinish && !stale && playerRef.current === player) {
               if (last) {
                 stopPlayback();
                 dispatch({ type: "speech_done" });
               } else {
+                finishedAt = Date.now();
                 playNext();
               }
             }
@@ -633,6 +754,8 @@ export function useDialogueSession({
         };
         playNext();
         setPlaying(true);
+        // While this turn plays, load the likely next question's clip too.
+        void preloadNextQuestion(store, speaking.step, queue);
         await armBargeInWatch(() => stale);
       } catch {
         // Audio output only — the conversation is unaffected and goes on.
@@ -704,6 +827,36 @@ export function useDialogueSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- terminal transitions only
   }, [state.turn.phase]);
 
+  // INT-440, dev only: the loudest level the app's OWN recorder meters in this
+  // turn, for the lane banner — the one honest answer to "does the simulator
+  // microphone hear anything". A platform meter reading, never a buffer
+  // (invariant 3), keyed by step so a speaking → listening hand-over keeps it.
+  const meterStep =
+    state.turn.phase === "speaking" ||
+    state.turn.phase === "listening" ||
+    state.turn.phase === "confirming"
+      ? state.turn.step
+      : null;
+  useEffect(() => {
+    if (!__DEV__ || meterStep === null) {
+      return;
+    }
+    let peak: number | null = null;
+    setMicPeakDb(null);
+    const timer = setInterval(() => {
+      if (!recorder.isRecording) {
+        return;
+      }
+      const level = recorder.getStatus().metering;
+      if (typeof level === "number" && Number.isFinite(level) && (peak === null || level > peak)) {
+        peak = level;
+        setMicPeakDb(Math.round(level * 10) / 10);
+      }
+    }, BARGE_IN_SAMPLE_MS);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one meter per question step
+  }, [meterStep]);
+
   // Unmount: stop audio both ways and delete the whole agent-clip cache.
   useEffect(() => {
     return () => {
@@ -713,6 +866,8 @@ export function useDialogueSession({
       if (!closedRef.current && stateRef.current.turn.phase === "listening") {
         void stopAndDiscardRecording();
       }
+      closedRef.current = true; // no preload may land after this (INT-440)
+      preload([]);
       void clearDialogueClips();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
@@ -867,6 +1022,10 @@ export function useDialogueSession({
     state,
     delivery: shownLines,
     playing,
+    voiceLane,
+    audioStartMs,
+    micPeakDb,
+    clipGapsMs,
     bargeIn,
     finishListening,
     sendTyped,

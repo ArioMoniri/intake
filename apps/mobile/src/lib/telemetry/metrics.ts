@@ -4,8 +4,10 @@
  * INVARIANT 13 — every id here ALREADY exists in
  * observability/metrics_catalog.yaml: `client.crash_free_sessions` (target
  * ">= 99.5 %"), `client.cold_start_p95_ms`, `client.anr_rate` and
- * `web.core_web_vitals` (labels `[vital]`), all `owner: client`. This module
- * adds nothing to the catalogue and emits under the catalogued dotted ids.
+ * `web.core_web_vitals` (labels `[vital]`), all `owner: client`, and since
+ * INT-440 `client.dialogue_tts_lane` (labels `[lane, george_miss]`), catalogued
+ * in the same PR that emits it. This module emits under the catalogued dotted
+ * ids only.
  *
  * THEIR `status` STAYS `planned`, AND THAT IS THE HONEST ANSWER. The catalogue
  * gate (tests/observability/test_metrics_catalog.py) decides "live" by two
@@ -29,10 +31,15 @@
  * the reassuring direction.
  */
 
+import type { ClipLaneOutcome, GeorgeMiss } from "../dialogue/georgeClip";
+
 export const CLIENT_CRASH_FREE_SESSIONS = "client.crash_free_sessions";
 export const CLIENT_COLD_START_P95_MS = "client.cold_start_p95_ms";
 export const CLIENT_ANR_RATE = "client.anr_rate";
 export const WEB_CORE_WEB_VITALS = "web.core_web_vitals";
+/** INT-440: one count per synthesized dialogue clip, by the lane that spoke it
+ * (catalogued `labels: [lane, george_miss]`, `status: planned`). */
+export const CLIENT_DIALOGUE_TTS_LANE = "client.dialogue_tts_lane";
 
 /** Every id this module is allowed to emit. The emit guard enforces it. */
 export const EMITTED_CLIENT_METRIC_IDS: readonly string[] = [
@@ -40,7 +47,12 @@ export const EMITTED_CLIENT_METRIC_IDS: readonly string[] = [
   CLIENT_COLD_START_P95_MS,
   CLIENT_ANR_RATE,
   WEB_CORE_WEB_VITALS,
+  CLIENT_DIALOGUE_TTS_LANE,
 ];
+
+/** The `lane` label's closed value set for `client.dialogue_tts_lane`. */
+export const TTS_LANES = ["george", "elevenlabs_bundled", "self_hosted"] as const;
+export type TtsLaneLabel = (typeof TTS_LANES)[number];
 
 /** The catalogue gives `web.core_web_vitals` one label, `vital`. This is its
  * closed value set — a label is an enumeration, never free text (the catalogue
@@ -53,8 +65,26 @@ export interface ClientMetricSample {
   readonly metricId: string;
   readonly value: number;
   /** Present only for `web.core_web_vitals`, whose catalogued labels are
-   * `[vital]`. Every other series is catalogued with `labels: []`. */
+   * `[vital]`. */
   readonly vital?: WebVital;
+  /** Present only for `client.dialogue_tts_lane` (INT-440). */
+  readonly lane?: TtsLaneLabel;
+  /** `client.dialogue_tts_lane` on the self-hosted lane: why George did not
+   * speak — a closed set (georgeClip GEORGE_MISSES), never a narrative. Every
+   * other series is catalogued with `labels: []`. */
+  readonly georgeMiss?: GeorgeMiss;
+}
+
+/** One `client.dialogue_tts_lane` count for one synthesized clip (INT-440). */
+export function ttsLaneSample(outcome: ClipLaneOutcome): ClientMetricSample {
+  return outcome.lane === "self_hosted"
+    ? {
+        metricId: CLIENT_DIALOGUE_TTS_LANE,
+        value: 1,
+        lane: "self_hosted",
+        georgeMiss: outcome.georgeMiss,
+      }
+    : { metricId: CLIENT_DIALOGUE_TTS_LANE, value: 1, lane: outcome.lane };
 }
 
 export interface ClientMetricSink {

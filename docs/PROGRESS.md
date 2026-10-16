@@ -3811,6 +3811,20 @@
 - Next: the `leadIn` rendering through #728's `ChatLines` waits for #728 to reach main.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-03T03:30:00+03:00 · INT-440 · doing (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-440, GitHub #748): voice is the default intake mode and a full simulated-patient intake runs by voice in the iOS simulator (TTS questions play, spoken answers are transcribed, slots bind, follow-ups adapt, the note is produced), recorded in evidence with timings; each defect found is fixed with a failing test first or filed; no Docker, Postgres or Redis on the laptop.
+- Plan:
+  - Diagnose the owner's "robotic, no emotion, stoppy": George never served (anonymous POST → 401 since INT-326, no dev base, route unmounted on AWS) and every miss was silent; the self-hosted fallback cut each question per sentence.
+  - Fix client-side: DPoP George transport, closed-set miss reasons + lane record + `__DEV__` banner + `client.dialogue_tts_lane`, dev hosted-base fallback, one-utterance clips, one audio session, ordered bounded pre-warm, X-Clip-Lane honoured.
+  - ADR-028 fast path: render the app's own scripted lines offline (v3 expressive proposal, owner request) and play them from the bundle, every clip of a turn preloaded; merge INT-414 (#726) so the welcome, lead-ins and acknowledgements play; drop the open-ask "in your own words" tail (owner).
+- Tests added (with the near-miss negative for any safety rule): georgeClip, bundledClips (JSON pinned to the app's composition), audioSession, prewarm, speechShaping/tts (one request per clip), apiBase (an http, LAN or `.local` configured base is never a dev fallback), voiceDiagnostic, metrics/runtime, speech (an open ask ends on the question), tests/voice/test_render_bundled_clips.py (RED/instrument never rendered; a numeral or markup refuses the set; MAX_STYLE pinned at 0.4).
+- Result (`make check` / `make safety` / `make security` summary): mobile vitest 2,674 passed; `pnpm -r typecheck` done; `make check-ts` exit 0; `make check-i18n` 192 passed; tests/voice, tests/observability, tests/release, the dev-voice API lanes, tests/backlog + smoke pass; `no_placeholders` OK. Whole-tree `make check-py`, `check-integration` and `make security` are CI-only here.
+- Simulator measurements (docs/evidence/INT-440.md §5): every clip `elevenlabs-bundled` @v3; the welcome plays first; question shown → audio start median 313 ms over turns 2–4 (1,448 ms cold first turn); inter-clip gap median 36 ms. ASR not measured (no lane).
+- Invariants touched and still passing: 3, 6, 10, 13, 17, 19, 20, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none. `MAX_STYLE` 0.3 → 0.4 for the owner's v3 proposal; the served profile table is unchanged. No id minted.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner, not an HB row: "Enable Simulator under Privacy → Microphone (or restart audiomxd / reboot) and read the dev banner's microphone level while speaking." Split rows proposed, unminted: the spoken-answer loop on the hosted lanes; RED mounted on device; George on the synthetic AWS host (INT-443); native Turkish voice casting (next step, not started).
+- Next: PR `INT-440: Voice-first end-to-end test on the iOS simulator + fixes` (Closes #748, Sec-Row intake-voice), left unmerged; the full spoken loop reruns when an ASR lane answers.
+- LOOP_STATUS: WAITING_HUMAN
 ### 2026-10-03T22:00:00+03:00 · INT-447 · done (PR open, not merged)
 - Goal: verify INT-414's 48 delivery lines (#726) under owner decision D18 (INT-432). That means a medical-author pass and an independent verifier pass, sourced to Sağlık Bakanlığı health-literacy material, with a decision record per line, so the approval:human-clinical label on #726 can come off. Scope is simulated-patient testing only; a licensed physician reviews before any real patient.
 - Plan:

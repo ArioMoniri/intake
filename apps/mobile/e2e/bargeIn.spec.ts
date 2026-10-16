@@ -14,6 +14,9 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..");
 const HOOK = readFileSync(join(ROOT, "src/lib/dialogue/useDialogueSession.ts"), "utf8");
+// INT-440: the mode the hook applies lives in one contract, applied once per
+// session through a latch, rather than inline before every clip.
+const AUDIO_SESSION = readFileSync(join(ROOT, "src/lib/dialogue/audioSession.ts"), "utf8");
 
 describe("the microphone is open WHILE the agent speaks", () => {
   it("the speaking driver sets an audio mode that permits recording", () => {
@@ -24,15 +27,18 @@ describe("the microphone is open WHILE the agent speaks", () => {
       HOOK.indexOf("const speaking ="),
       HOOK.indexOf("// Listening driver"),
     );
-    expect(speaking).toContain("allowsRecording: true");
+    expect(speaking).toContain("audioMode().ensure()");
     expect(speaking).not.toContain("allowsRecording: false");
+    expect(AUDIO_SESSION).toContain("allowsRecording: true");
+    expect(AUDIO_SESSION).not.toContain("allowsRecording: false");
   });
 
   it("routes playback to the speaker, not the earpiece", () => {
     // iOS puts a `.playAndRecord` session on the receiver unless told
     // otherwise. Getting this wrong would answer "make the voice better"
     // with a quieter voice.
-    expect(HOOK).toContain("shouldRouteThroughEarpiece: false");
+    expect(AUDIO_SESSION).toContain("shouldRouteThroughEarpiece: false");
+    expect(HOOK).not.toContain("shouldRouteThroughEarpiece: true");
   });
 
   it("enables metering on the recorder, or every level reads undefined", () => {

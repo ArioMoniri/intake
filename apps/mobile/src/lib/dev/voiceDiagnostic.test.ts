@@ -18,8 +18,10 @@ import { setLocale } from "@/lib/i18n";
 import { en } from "@/lib/i18n/en";
 import { tr } from "@/lib/i18n/tr";
 
+import type { ClipLaneRecord } from "@/lib/dialogue/georgeClip";
+
 import type { ReachabilityReport } from "./hosts";
-import { voiceDiagnostic } from "./voiceDiagnostic";
+import { ttsLaneDiagnostic, voiceDiagnostic } from "./voiceDiagnostic";
 
 afterEach(() => setLocale("tr"));
 
@@ -111,6 +113,98 @@ describe("invariant 5 — the strings come from the catalogue, tr first", () => 
       "devVoice.reason.timeout",
       "devVoice.reason.refused",
       "devVoice.reason.status",
+    ] as const) {
+      expect(tr[key].length, key).toBeGreaterThan(0);
+      expect(en[key].length, key).toBeGreaterThan(0);
+    }
+  });
+});
+
+// INT-440: the owner heard the self-hosted lane and could not tell it was not
+// George — the fallback was silent by design. The same dev-only posture as the
+// ASR banner: production renders nothing, a George clip renders nothing, and a
+// fallback clip says which lane spoke and why George did not.
+describe("ttsLaneDiagnostic — the voice that spoke, when it is not George", () => {
+  const FALLBACK: ClipLaneRecord = {
+    lane: "self_hosted",
+    georgeMiss: "unauthorized",
+    tiers: ["freya"],
+  };
+
+  it("is null in production, whatever lane spoke", () => {
+    expect(ttsLaneDiagnostic(FALLBACK, false)).toBeNull();
+  });
+
+  it("is null before any clip", () => {
+    expect(ttsLaneDiagnostic(null, true)).toBeNull();
+  });
+
+  it("labels an ElevenLabs clip compactly — live or bundled — with no failure copy", () => {
+    const live = ttsLaneDiagnostic({ lane: "george" }, true)!;
+    expect(live.title).toBe(tr["devVoice.lane.titleOk"]);
+    expect(live.lines).toEqual([`${tr["devVoice.lane.served"]} — elevenlabs-live`]);
+    expect(live.hint).toBeNull();
+    const bundled = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true)!;
+    expect(bundled.lines).toEqual([`${tr["devVoice.lane.served"]} — elevenlabs-bundled`]);
+  });
+
+  it("names the self-hosted tier that spoke and the George miss", () => {
+    const diagnostic = ttsLaneDiagnostic(FALLBACK, true)!;
+    expect(diagnostic.title).toBe(tr["devVoice.lane.title"]);
+    expect(diagnostic.lines).toEqual([
+      `${tr["devVoice.lane.served"]} — freya`,
+      `${tr["devVoice.lane.georgeMiss"]} — unauthorized`,
+    ]);
+    expect(diagnostic.hint).toBe(tr["devVoice.lane.hint"]);
+  });
+
+  it("joins a clip spoken across tiers", () => {
+    const diagnostic = ttsLaneDiagnostic({ ...FALLBACK, tiers: ["voxcpm2", "freya"] }, true)!;
+    expect(diagnostic.lines[0]).toBe(`${tr["devVoice.lane.served"]} — voxcpm2 + freya`);
+  });
+
+  it("adds the measured audio start and microphone peak when known (INT-440)", () => {
+    const diagnostic = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true, {
+      audioStartMs: 84,
+      micPeakDb: -23.4,
+    })!;
+    expect(diagnostic.lines).toEqual([
+      `${tr["devVoice.lane.served"]} — elevenlabs-bundled`,
+      `${tr["devVoice.lane.audioStart"]} — 84 ms`,
+      `${tr["devVoice.lane.micPeak"]} — -23.4 dB`,
+    ]);
+    const unknown = ttsLaneDiagnostic({ lane: "george" }, true, {
+      audioStartMs: null,
+      micPeakDb: null,
+    })!;
+    expect(unknown.lines).toHaveLength(1);
+  });
+
+  it("lists the measured gaps between a turn's clips (welcome → question, lead-in → question)", () => {
+    const diagnostic = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true, {
+      audioStartMs: 120,
+      micPeakDb: null,
+      clipGapsMs: [14, 9],
+    })!;
+    expect(diagnostic.lines).toContain(`${tr["devVoice.lane.clipGaps"]} — 14, 9 ms`);
+    const single = ttsLaneDiagnostic({ lane: "elevenlabs_bundled" }, true, {
+      audioStartMs: 120,
+      micPeakDb: null,
+      clipGapsMs: [],
+    })!;
+    expect(single.lines.some((line) => line.startsWith(tr["devVoice.lane.clipGaps"]))).toBe(false);
+  });
+
+  it("every lane-banner key exists in both catalogues", () => {
+    for (const key of [
+      "devVoice.lane.title",
+      "devVoice.lane.titleOk",
+      "devVoice.lane.served",
+      "devVoice.lane.georgeMiss",
+      "devVoice.lane.hint",
+      "devVoice.lane.audioStart",
+      "devVoice.lane.micPeak",
+      "devVoice.lane.clipGaps",
     ] as const) {
       expect(tr[key].length, key).toBeGreaterThan(0);
       expect(en[key].length, key).toBeGreaterThan(0);

@@ -31,6 +31,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import appConfig, { API_BASE_ENV, resolveAppConfig } from "../app.config";
 import { ApiBaseUnconfigured, parseReleaseApiBase } from "../src/lib/auth/apiBase";
+import { georgePreferringSynth, type ScriptedTr } from "../src/lib/dialogue/georgeClip";
 
 const ROOT = join(__dirname, "..");
 const REPO = join(ROOT, "..", "..");
@@ -120,9 +121,12 @@ const occurrences = (text: string, needle: string): number => text.split(needle)
 /**
  * Whether the clips module keeps the George dev route behind the real
  * `__DEV__`: the source function returns null before anything else when
- * `__DEV__` is false, it is the only place that fetches a George clip, and the
- * store takes the self-hosted lane alone when it gets null. A release build
- * compiles `__DEV__` to false, so the route is never dialled.
+ * `__DEV__` is false, it is the only place that fetches a George clip (any
+ * `fetchGeorgeClip*` variant, so INT-440's lane-reporting fetch counts), and
+ * the store hands that one source straight to `georgePreferringSynth` beside
+ * the self-hosted lane. The null path of `georgePreferringSynth` is asserted
+ * below by behaviour. A release build compiles `__DEV__` to false, so the route
+ * is never dialled.
  */
 function georgeRouteIsDevOnly(clipsSource: string): boolean {
   const code = stripComments(clipsSource);
@@ -132,14 +136,14 @@ function georgeRouteIsDevOnly(clipsSource: string): boolean {
     return false;
   }
   const guardFirst = /^\{\s*if \(!__DEV__\) \{\s*return null;\s*\}/.test(source);
-  const fetchesOnlyThere =
-    occurrences(source, "fetchGeorgeClip(") === 1 && occurrences(code, "fetchGeorgeClip(") === 1;
+  const fetchCalls = (text: string): number => [...text.matchAll(/\bfetchGeorgeClip\w*\(/g)].length;
+  const fetchesOnlyThere = fetchCalls(source) === 1 && fetchCalls(code) === 1;
   const calls = [...code.matchAll(/(?<!function )\bcreateGeorgeSource\(\)/g)].length;
   const builtOnce =
     calls === 1 &&
-    /const george = createGeorgeSource\(\);\s*if \(george === null\) \{\s*return createClipStore\([^;]*\bselfHosted\);\s*\}/.test(
-      store,
-    );
+    /const george = createGeorgeSource\(\);/.test(store) &&
+    [...store.matchAll(/\bgeorge\b/g)].length === 2 &&
+    /\bgeorgePreferringSynth\(george, selfHosted\b/.test(store);
   return guardFirst && fetchesOnlyThere && builtOnce;
 }
 
@@ -382,6 +386,26 @@ describe("INT-421 · the George dev clip route is unreachable in a release build
 
   it("createGeorgeSource returns null first when __DEV__ is false, and is the only caller", () => {
     expect(georgeRouteIsDevOnly(clips)).toBe(true);
+  });
+
+  it("with the release build's null source, the store's synth speaks self-hosted and reports off", async () => {
+    const fallback = vi.fn(async () => new Uint8Array([7]));
+    const outcomes: unknown[] = [];
+    const synth = georgePreferringSynth(null, fallback, (outcome) => outcomes.push(outcome));
+    await expect(synth("Sizi bugün hekime getiren nedir?" as ScriptedTr)).resolves.toEqual(
+      new Uint8Array([7]),
+    );
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(outcomes).toEqual([{ lane: "self_hosted", georgeMiss: "off" }]);
+  });
+
+  it("control: a store that calls the source itself, outside georgePreferringSynth, is caught", () => {
+    const direct = clips.replace(
+      "const george = createGeorgeSource();",
+      'const george = createGeorgeSource();\n  void george?.("x" as ScriptedTr);',
+    );
+    expect(direct).not.toBe(clips);
+    expect(georgeRouteIsDevOnly(direct)).toBe(false);
   });
 
   it("nothing else the app ships reaches the route", () => {

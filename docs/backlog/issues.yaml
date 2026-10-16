@@ -6467,6 +6467,27 @@
   tests: [tests/legal/test_dsar_flows.py, tests/data/test_session_delete_contract.py, tests/integration/test_session_erasure.py]
   legal: "KVKK-7,KVKK-11,DEST-2017"
   sec_row: "data-at-rest"
+- id: INT-440
+  epic: E05-voice
+  phase: P0
+  title: "Voice-first end-to-end test on the iOS simulator + fixes"
+  # GitHub #748. Owner request, 3 Oct 2026: the intake agent must be voice-
+  # oriented, tested in the local iOS simulator with real voice. The owner's
+  # "robotic, no emotion, stoppy" report was diagnosed and fixed client-side in
+  # the same PR (docs/evidence/INT-440.md). The real-voice turns wait on a
+  # reachable ASR lane (no GPU tunnel; the hosted lanes are INT-442/443) and on
+  # a simulator microphone the app's own recorder hears.
+  depends_on: [INT-414, INT-415, INT-326]
+  labels: [area:mobile, area:voice]
+  status: doing
+  evidence: docs/evidence/INT-440.md
+  acceptance:
+    - "voice is the default intake mode, and a full simulated-patient intake runs by voice in the iOS simulator: TTS questions play, spoken answers are transcribed, slots bind, follow-ups adapt and the note is produced"
+    - "the run is recorded in evidence with timings"
+    - "each defect found is fixed with a failing test first, or filed if it is out of scope"
+    - "no Docker, Postgres or Redis on the laptop: the API is the AWS host, and voice lanes are the team GPU box or hosted lanes"
+  tests: [apps/mobile/src/lib/dialogue/georgeClip.test.ts, apps/mobile/src/lib/dialogue/bundledClips.test.ts, apps/mobile/src/lib/dialogue/audioSession.test.ts, apps/mobile/src/lib/dialogue/prewarm.test.ts, apps/mobile/src/lib/dialogue/speechShaping.test.ts, apps/mobile/src/lib/dialogue/tts.test.ts, apps/mobile/src/lib/auth/apiBase.test.ts, apps/mobile/src/lib/dev/voiceDiagnostic.test.ts, apps/mobile/src/lib/telemetry/metrics.test.ts, tests/voice/test_render_bundled_clips.py]
+  sec_row: "intake-voice"
 - id: INT-406
   epic: E09-clinician
   phase: P0

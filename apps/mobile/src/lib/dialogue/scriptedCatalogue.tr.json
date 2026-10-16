@@ -1200,7 +1200,7 @@
     },
     {
       "subject": "question.alcohol",
-      "text_tr": "Alkol kullanıyor musunuz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Alkol kullanıyor musunuz?",
       "delivery_context": "routine"
     },
     {
@@ -1210,72 +1210,72 @@
     },
     {
       "subject": "question.allergy_kind",
-      "text_tr": "Alerjiniz neye karşı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Alerjiniz neye karşı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.allergy_known",
-      "text_tr": "Bilinen bir ilaç ya da madde alerjiniz var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Bilinen bir ilaç ya da madde alerjiniz var mı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.allergy_reaction",
-      "text_tr": "Alerjiniz olduğunda neler oluyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Alerjiniz olduğunda neler oluyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.associated",
-      "text_tr": "Şikâyetinize eşlik eden başka bir şey var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetinize eşlik eden başka bir şey var mı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.blood_group",
-      "text_tr": "Kan grubunuz nedir? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Kan grubunuz nedir?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.breath_lying",
-      "text_tr": "Uzanınca rahatlamak için ne yapıyorsunuz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Uzanınca rahatlamak için ne yapıyorsunuz?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.breath_timing",
-      "text_tr": "Nefes darlığınız ne zaman oluyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Nefes darlığınız ne zaman oluyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.cardio_palpitation",
-      "text_tr": "Çarpıntınızı nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Çarpıntınızı nasıl tarif edersiniz?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.complaint",
-      "text_tr": "Sizi bugün hekime getiren nedir? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Sizi bugün hekime getiren nedir?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.derm_character",
-      "text_tr": "Şikâyetli bölgede neler oluyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetli bölgede neler oluyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.derm_fever_order",
-      "text_tr": "Ateş ile cilt şikâyetinizden hangisi önce başladı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ateş ile cilt şikâyetinizden hangisi önce başladı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.derm_itch_sleep",
-      "text_tr": "Kaşıntı uykunuzu bölüyor mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Kaşıntı uykunuzu bölüyor mu?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.derm_itch_when",
-      "text_tr": "Kaşıntı ne zaman artıyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Kaşıntı ne zaman artıyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.derm_location",
-      "text_tr": "Cilt şikâyetiniz vücudunuzun neresinde? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Cilt şikâyetiniz vücudunuzun neresinde?",
       "delivery_context": "routine"
     },
     {
@@ -1285,27 +1285,27 @@
     },
     {
       "subject": "question.duration",
-      "text_tr": "Bu şikâyetiniz ne zamandır var? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Bu şikâyetiniz ne zamandır var?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.duration_course",
-      "text_tr": "Başladığından bu yana nasıl gidiyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Başladığından bu yana nasıl gidiyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ent_hear_side",
-      "text_tr": "İşitmedeki azalma hangi kulakta? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "İşitmedeki azalma hangi kulakta?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ent_pain_where",
-      "text_tr": "Ağrınız en çok nerede? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ağrınız en çok nerede?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ent_swallow",
-      "text_tr": "Yutkunurken ne oluyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Yutkunurken ne oluyor?",
       "delivery_context": "routine"
     },
     {
@@ -1315,27 +1315,27 @@
     },
     {
       "subject": "question.eye_character",
-      "text_tr": "Gözünüzde nasıl bir rahatsızlık var? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Gözünüzde nasıl bir rahatsızlık var?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.eye_headache_link",
-      "text_tr": "Baş ağrınız ile göz şikâyetiniz birlikte mi oluyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Baş ağrınız ile göz şikâyetiniz birlikte mi oluyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.eye_pain_move",
-      "text_tr": "Ağrı gözünüzü hareket ettirince değişiyor mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ağrı gözünüzü hareket ettirince değişiyor mu?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.eye_vision",
-      "text_tr": "Görmenizde bir değişiklik oldu mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Görmenizde bir değişiklik oldu mu?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.fever_pattern",
-      "text_tr": "Ateşiniz en çok ne zaman yükseliyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ateşiniz en çok ne zaman yükseliyor?",
       "delivery_context": "routine"
     },
     {
@@ -1355,7 +1355,7 @@
     },
     {
       "subject": "question.fh_known",
-      "text_tr": "Ailenizde bilinen bir hastalık var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ailenizde bilinen bir hastalık var mı?",
       "delivery_context": "routine"
     },
     {
@@ -1370,32 +1370,32 @@
     },
     {
       "subject": "question.fh_who",
-      "text_tr": "Ailenizde kimlerde var? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ailenizde kimlerde var?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.gastro_bowel",
-      "text_tr": "Tuvalet alışkanlığınızda değişiklik var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Tuvalet alışkanlığınızda değişiklik var mı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.gastro_bowel_relief",
-      "text_tr": "Tuvalete çıkınca şikâyetiniz değişiyor mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Tuvalete çıkınca şikâyetiniz değişiyor mu?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.gastro_location",
-      "text_tr": "Şikâyetiniz karnınızın neresinde? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetiniz karnınızın neresinde?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.gastro_meal",
-      "text_tr": "Şikâyetinizin yemekle ilişkisi var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetinizin yemekle ilişkisi var mı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.gyn_cycle",
-      "text_tr": "Şikâyetinizin âdet döneminizle ilişkisi var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetinizin âdet döneminizle ilişkisi var mı?",
       "delivery_context": "routine"
     },
     {
@@ -1405,12 +1405,12 @@
     },
     {
       "subject": "question.injury_history",
-      "text_tr": "Daha önce bir yaralanma geçirdiniz mi? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Daha önce bir yaralanma geçirdiniz mi?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.meds_otc",
-      "text_tr": "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Reçetesiz ya da bitkisel bir ürün kullanıyor musunuz?",
       "delivery_context": "routine"
     },
     {
@@ -1420,7 +1420,7 @@
     },
     {
       "subject": "question.meds_other",
-      "text_tr": "Burada görünmeyen bir ilaç kullanıyor musunuz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Burada görünmeyen bir ilaç kullanıyor musunuz?",
       "delivery_context": "routine"
     },
     {
@@ -1430,22 +1430,22 @@
     },
     {
       "subject": "question.neuro_course",
-      "text_tr": "Şikâyetiniz zaman içinde nasıl değişiyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetiniz zaman içinde nasıl değişiyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.neuro_head_same",
-      "text_tr": "Ağrı her seferinde aynı tarafta mı oluyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ağrı her seferinde aynı tarafta mı oluyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.neuro_head_side",
-      "text_tr": "Baş ağrınız başınızın neresinde? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Baş ağrınız başınızın neresinde?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.neuro_numb_where",
-      "text_tr": "Uyuşma en çok nerede oluyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Uyuşma en çok nerede oluyor?",
       "delivery_context": "routine"
     },
     {
@@ -1455,47 +1455,47 @@
     },
     {
       "subject": "question.onset",
-      "text_tr": "Nasıl başladı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Nasıl başladı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.onset_today_when",
-      "text_tr": "Bugün ne zaman başladı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Bugün ne zaman başladı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ortho_fall_how",
-      "text_tr": "Nasıl düştünüz ya da darbe aldınız? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Nasıl düştünüz ya da darbe aldınız?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ortho_mechanism",
-      "text_tr": "Şikâyetiniz nasıl ortaya çıktı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetiniz nasıl ortaya çıktı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ortho_region",
-      "text_tr": "Şikâyetiniz en çok hangi bölgede? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetiniz en çok hangi bölgede?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ortho_spread",
-      "text_tr": "Ağrı kolunuza ya da bacağınıza yayılıyor mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ağrı kolunuza ya da bacağınıza yayılıyor mu?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.ortho_spread_feel",
-      "text_tr": "Yayıldığı yerde başka bir his var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Yayıldığı yerde başka bir his var mı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.pain_character",
-      "text_tr": "Ağrınızı nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ağrınızı nasıl tarif edersiniz?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.pain_present",
-      "text_tr": "Şu anda ağrınız var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şu anda ağrınız var mı?",
       "delivery_context": "routine"
     },
     {
@@ -1505,7 +1505,7 @@
     },
     {
       "subject": "question.pmh_known",
-      "text_tr": "Doktorunuzun size söylediği bir hastalık var mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Doktorunuzun size söylediği bir hastalık var mı?",
       "delivery_context": "routine"
     },
     {
@@ -1515,7 +1515,7 @@
     },
     {
       "subject": "question.pmh_recent_change",
-      "text_tr": "Son görüşmenizden bu yana yeni bir gelişme oldu mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Son görüşmenizden bu yana yeni bir gelişme oldu mu?",
       "delivery_context": "routine"
     },
     {
@@ -1525,7 +1525,7 @@
     },
     {
       "subject": "question.pmh_surgery",
-      "text_tr": "Daha önce ameliyat oldunuz mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Daha önce ameliyat oldunuz mu?",
       "delivery_context": "routine"
     },
     {
@@ -1535,27 +1535,27 @@
     },
     {
       "subject": "question.pulmo_character",
-      "text_tr": "Öksürük ya da nefes şikâyetinizi nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Öksürük ya da nefes şikâyetinizi nasıl tarif edersiniz?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.radiation",
-      "text_tr": "Ağrı ya da baskı hissi başka bir yere yayılıyor mu? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Ağrı ya da baskı hissi başka bir yere yayılıyor mu?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.radiation_side",
-      "text_tr": "Yayılma hangi tarafta? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Yayılma hangi tarafta?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.severity",
-      "text_tr": "Şiddetini nasıl tarif edersiniz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şiddetini nasıl tarif edersiniz?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.side",
-      "text_tr": "Hangi tarafta? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Hangi tarafta?",
       "delivery_context": "routine"
     },
     {
@@ -1565,7 +1565,7 @@
     },
     {
       "subject": "question.smoking_quit_when",
-      "text_tr": "Sigarayı ne zaman bıraktınız? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Sigarayı ne zaman bıraktınız?",
       "delivery_context": "routine"
     },
     {
@@ -1575,27 +1575,27 @@
     },
     {
       "subject": "question.time_of_day",
-      "text_tr": "Şikâyetiniz günün hangi vaktinde daha belirgin? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetiniz günün hangi vaktinde daha belirgin?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.transfusion",
-      "text_tr": "Daha önce kan ya da kan ürünü aldınız mı? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Daha önce kan ya da kan ürünü aldınız mı?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.trigger",
-      "text_tr": "Şikâyetiniz ne zaman artıyor? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Şikâyetiniz ne zaman artıyor?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.uro_flank_side",
-      "text_tr": "Yan ya da bel ağrısı hangi tarafta? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "Yan ya da bel ağrısı hangi tarafta?",
       "delivery_context": "routine"
     },
     {
       "subject": "question.uro_urination",
-      "text_tr": "İdrar yaparken bir değişiklik fark ediyor musunuz? Kendi sözlerinizle anlatabilirsiniz.",
+      "text_tr": "İdrar yaparken bir değişiklik fark ediyor musunuz?",
       "delivery_context": "routine"
     }
   ]

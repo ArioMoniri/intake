@@ -34,6 +34,23 @@ function runtime(dsn: string | null = null) {
   };
 }
 
+describe("createTelemetryRuntime · the dialogue lane counter (INT-440)", () => {
+  it("emits one client.dialogue_tts_lane sample per synthesized clip", () => {
+    const { it: rt, emit } = runtime();
+    rt.noteTtsLane({ lane: "george" });
+    rt.noteTtsLane({ lane: "self_hosted", georgeMiss: "not_mounted" });
+    expect(emit.mock.calls.map((call) => call[0])).toEqual([
+      { metricId: "client.dialogue_tts_lane", value: 1, lane: "george" },
+      {
+        metricId: "client.dialogue_tts_lane",
+        value: 1,
+        lane: "self_hosted",
+        georgeMiss: "not_mounted",
+      },
+    ]);
+  });
+});
+
 describe("createTelemetryRuntime", () => {
   it("counts the launch as one session, crash-free until told otherwise", () => {
     const { it: rt } = runtime();

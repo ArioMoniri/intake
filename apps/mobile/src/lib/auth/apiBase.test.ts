@@ -179,6 +179,34 @@ describe("dev build · the LAN walk is exactly as before", () => {
   });
 });
 
+// INT-440: the owner's laptop runs no API (no Docker, no Postgres), so the dev
+// LAN walk finds nothing and a dev build had no API at all — no OTP session,
+// no George clip route — even with the hosted API configured at Metro start.
+// The walk still wins whenever it answers; the configured base is only the
+// fallback, and only under the same validation a release build applies.
+describe("dev build · the configured hosted base is the walk's fallback (INT-440)", () => {
+  it("falls back to the configured https base when no LAN host answers", async () => {
+    const devBase = vi.fn(async () => null);
+    expect(
+      await resolveApiBase({ isDev: true, configured: "https://api.example.org/", devBase }),
+    ).toBe("https://api.example.org");
+    expect(devBase).toHaveBeenCalledTimes(1);
+  });
+
+  it("still returns null when nothing is configured", async () => {
+    const devBase = vi.fn(async () => null);
+    expect(await resolveApiBase({ isDev: true, configured: "", devBase })).toBeNull();
+  });
+
+  it.each(["http://api.example.org", "https://192.168.1.10", "https://intake.local", "nonsense"])(
+    "never falls back to a base a release build would refuse: %s",
+    async (configured) => {
+      const devBase = vi.fn(async () => null);
+      expect(await resolveApiBase({ isDev: true, configured, devBase })).toBeNull();
+    },
+  );
+});
+
 // ---------------------------------------------------------------------------
 // The UI renders the refusal as its own Turkish state
 // ---------------------------------------------------------------------------
@@ -284,8 +312,12 @@ describe("lib/dev is not reachable from the production call path", () => {
   });
 
   it("clips resolve the dev George base through the same resolver, not a second LAN walk", () => {
+    // INT-440: George now rides the auth client's `authedFetch`, whose base is
+    // `apiBase()` → `buildApiBase()` — the same resolver, one walk.
     const clips = readFileSync(join(SRC, "lib", "dialogue", "clips.ts"), "utf8");
-    expect(clips).toContain('from "../auth/expoApiBase"');
+    const api = readFileSync(join(SRC, "lib", "auth", "api.ts"), "utf8");
+    expect(clips).toMatch(/import \{[^}]*\bauthedFetch\b[^}]*\} from "\.\.\/auth\/api"/);
+    expect(api).toContain('from "./expoApiBase"');
     expect(clips).not.toContain("configuredServiceCandidates");
     expect(clips).not.toContain("/healthz");
   });

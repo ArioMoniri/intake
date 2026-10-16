@@ -100,6 +100,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-429 (vulnerabilities gate: dependency upgrades + time-boxed node-forge row, GitHub #727)
     # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
     # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
+    # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
+    # + INT-440 (voice-first end-to-end test on the iOS simulator, GitHub #748)
     # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
     # + INT-426 (CI on AWS: gate runner via S3 + SSM, aws-ci commit status, GitHub #721)
     # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
@@ -138,7 +140,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-449 (Turkish voice casting, owner request, GitHub #762)
     # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
     # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
-    assert len(actions) == 364
+    assert len(actions) == 365
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

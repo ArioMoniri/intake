@@ -19,6 +19,11 @@
  *      from speech to nothing, which clicks. A short raised-cosine fade on
  *      each edge removes that without audibly shortening the speech.
  *
+ * INT-440 reverses (1) on the clip path: the owner heard the per-sentence
+ * seams as "robotic … so stoppy", so a clip is now sent as ONE utterance
+ * (`shapeForUtterance`) and (2)/(3) apply to its outer edges only. The
+ * sentence splitter stays as the analyser the invariant-10 pin runs over.
+ *
  * INVARIANT 10 — scripted text is spoken verbatim. Shaping is
  * punctuation-neutral on words: every chunk's `text` is an exact substring
  * of the whitespace-collapsed input, the chunks appear in order, and they
@@ -87,30 +92,6 @@ export const SENTENCE_GAP_MS = 200;
  * whole clip (bargeIn.ts), so the patient can answer into this silence.
  */
 export const TURN_YIELD_TAIL_MS = 300;
-
-/**
- * The shortest text this seam will send as one TTS request, in non-space
- * characters.
- *
- * MEASURED, docs/evidence/INT-291.md, 2 Sep 2026, Freya lane
- * (`freyavoice/Freya-TTS` @ d124e07, normalizer disabled), synthesise ->
- * transcribe with the independent ASR daemon: every request under 13
- * non-space characters came back carrying a token nobody authored —
- * `"Tutun."` -> *"Tutun, atun."*, `"Arayın."` -> *"Arayın, arayın."*,
- * `"Bakmayın."` -> *"Bakmayın, ha!"*, `"Onaylayın."` -> *"Onaylayın, hı!"*,
- * 4 of 4. The shortest fragment that round-tripped clean was 13.
- *
- * That is not a prosody defect. A model that invents a word breaks CLAUDE.md
- * invariant 10 at the acoustic layer: the patient does not hear the string the
- * protocol authored. And the strings this bites are the shortest in the
- * product — the RED action imperatives, where invariant 21 says ambiguity is
- * the harm.
- *
- * INT-237 split at EVERY sentence boundary, which is how a safety script
- * became three sub-floor requests. `shapeForDelivery` keeps that split
- * wherever both sides clear the floor, and merges where they do not.
- */
-export const MIN_CHUNK_CHARS = 13;
 
 export interface SpeechChunk {
   /** Exact substring of the whitespace-collapsed input. */
@@ -360,7 +341,7 @@ export function joinClips(parts: PcmClip[], gapsMs: number[]): PcmClip {
   }
 
   // INT-291: the LAST gap is honoured too, because it is no longer a discard.
-  // `shapeForDelivery` puts the turn-yield tail there, and a caller that means
+  // `shapeForUtterance` puts the turn-yield tail there, and a caller that means
   // "nothing after the last part" passes 0 — which is what INT-237's callers
   // already did.
   const gapSamples = parts.map((_, i) => Math.round((sampleRate * (gapsMs[i] ?? 0)) / 1000));
@@ -383,61 +364,42 @@ export function assembleClip(parts: Uint8Array[], gapsMs: number[]): Uint8Array 
 }
 
 // ---------------------------------------------------------------------------
-// The delivery stage (INT-291). `shapeForSpeech` answers "where are the
-// sentence boundaries"; this answers "what may I actually send to a TTS, and
-// how does the turn end". The two are separate because the floor below is a
-// property of the LANE, measured on it, not a property of Turkish sentences —
-// and `shapeForSpeech`'s invariant-10 pin over the whole catalog must keep
-// testing the splitter on its own terms.
+// The utterance stage (INT-440). `shapeForSpeech` answers "where are the
+// sentence boundaries"; this answers "what is sent to a TTS, and how does the
+// turn end" — and the answer is: the whole clip, once.
 // ---------------------------------------------------------------------------
 
-/** Non-space characters, which is what the lane's failure sorted on. */
-function weight(text: string): number {
-  return text.replace(/\s+/gu, "").length;
-}
-
 /**
- * Sentence chunks, merged up to `MIN_CHUNK_CHARS` and carrying the turn
- * contour. This is what the clip path sends.
+ * The whole clip as ONE utterance, carrying the turn contour. This is what the
+ * clip path sends.
  *
- * INVARIANT 10 is preserved through the merge, not weakened by it: chunks are
- * joined with the single space that already separated them in the
- * whitespace-collapsed input, so every `text` is still an exact substring of
- * that input, the chunks are still in order, and they still cover it
- * completely. Merging can only make a chunk longer; it can never make one that
- * is not in the source.
+ * Why not sentences any more. INT-237 split every sentence into its own request
+ * because the Freya daemon paced a full stop exactly like a comma, and INT-291
+ * merged fragments below the 13-character floor at which the lane invented
+ * words ("Tutun." came back "Tutun, atun.", docs/evidence/INT-291.md). The
+ * owner's verdict on the result (3 Oct 2026) was "awfully robotic … so
+ * stoppy": every request restarts the model's prosody, and the seams were
+ * then trimmed to 15 ms and rejoined with a 200 ms hole — a mid-question stop
+ * the patient hears on every turn, since a question is its title plus an
+ * aside. One request is one contour. It also removes the floor problem at the
+ * root: no fragment of a script is ever sent alone, so the only short request
+ * left is a script that is itself short (the honest limit INT-291 named).
+ *
+ * INVARIANT 10: the chunk's `text` IS the whitespace-collapsed input, and
+ * `spoken` adds at most a terminal mark — no word is added, dropped or moved.
+ * INVARIANT 22: no digit is created or removed; the caller's
+ * `assertSpeakableTr` still runs before any request leaves the app.
  */
-export function shapeForDelivery(text: string): SpeechChunk[] {
-  const sentences = shapeForSpeech(text);
-  if (sentences.length === 0) {
+export function shapeForUtterance(text: string): SpeechChunk[] {
+  const collapsed = collapseWhitespace(text);
+  if (collapsed.length === 0) {
     return [];
   }
-
-  // Accumulate forward until the running chunk clears the floor.
-  const merged: string[] = [];
-  let pending = "";
-  for (const sentence of sentences) {
-    pending = pending === "" ? sentence.text : `${pending} ${sentence.text}`;
-    if (weight(pending) >= MIN_CHUNK_CHARS) {
-      merged.push(pending);
-      pending = "";
-    }
-  }
-  if (pending !== "") {
-    // A short tail merges BACKWARDS. There is nothing after it to grow into,
-    // and sending it alone is the defect the floor exists for. When it is the
-    // only chunk there is nothing to merge with either — the honest limit:
-    // this stage may not pad a short turn with words nobody authored.
-    if (merged.length === 0) {
-      merged.push(pending);
-    } else {
-      merged[merged.length - 1] = `${merged[merged.length - 1]} ${pending}`;
-    }
-  }
-
-  return merged.map((chunkText, index) => ({
-    text: chunkText,
-    spoken: TERMINALS.includes(chunkText[chunkText.length - 1]) ? chunkText : `${chunkText}.`,
-    gapMs: index === merged.length - 1 ? TURN_YIELD_TAIL_MS : SENTENCE_GAP_MS,
-  }));
+  return [
+    {
+      text: collapsed,
+      spoken: TERMINALS.includes(collapsed[collapsed.length - 1]) ? collapsed : `${collapsed}.`,
+      gapMs: TURN_YIELD_TAIL_MS,
+    },
+  ];
 }

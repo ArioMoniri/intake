@@ -938,6 +938,15 @@ export const en: Record<MessageKey, string> = {
   "devVoice.reason.timeout": "timed out",
   "devVoice.reason.refused": "connection refused",
   "devVoice.reason.status": "response code",
+  "devVoice.lane.title": "Dev note: this question did not play in George's voice",
+  "devVoice.lane.titleOk": "Dev note: voice lane",
+  "devVoice.lane.served": "Voice that spoke",
+  "devVoice.lane.audioStart": "Question shown to audio start",
+  "devVoice.lane.micPeak": "Loudest microphone level this turn",
+  "devVoice.lane.clipGaps": "Gap between clips",
+  "devVoice.lane.georgeMiss": "Why George did not speak",
+  "devVoice.lane.hint":
+    "George needs a phone-verified patient session and the George route on the API host",
   // ---- INT-247: facts carried from earlier visits -------------------------
   // Mirrors the tr block key-for-key (invariant 5; tr is the source of
   // truth). The note markers report who said what, nothing more.
@@ -1155,7 +1164,6 @@ export const en: Record<MessageKey, string> = {
   "a11y.measure.increaseMore": "Increase by more",
   "intake.measure.untouched": "It is recorded once you adjust the value.",
   // --- INT-286 · open-ended asking ------------------------------------------
-  "dialogue.openInvite": "You can tell me in your own words.",
   "intake.open.hint": "You can write it, or say it, in your own words.",
   "intake.open.orChoose": "Or choose from below.",
 

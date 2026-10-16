@@ -22,7 +22,8 @@ import { StyleSheet, View } from "react-native";
 
 import { AppText, useTheme } from "@/components/Themed";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
-import { voiceDiagnostic } from "@/lib/dev/voiceDiagnostic";
+import { ttsLaneDiagnostic, voiceDiagnostic, type VoiceTiming } from "@/lib/dev/voiceDiagnostic";
+import type { ClipLaneRecord } from "@/lib/dialogue/georgeClip";
 import { radius, spacing } from "@/lib/theme";
 
 interface DevVoiceBannerProps {
@@ -57,6 +58,45 @@ export function DevVoiceBanner({ report }: DevVoiceBannerProps) {
   );
 }
 
+/**
+ * INT-440 — the `__DEV__` strip for the agent's VOICE: names the lane that
+ * spoke the current clip (`elevenlabs-bundled`, `elevenlabs-live`, or the
+ * self-hosted tier with the closed-set reason George did not), plus the turn's
+ * measured audio start and microphone peak. The decision is
+ * lib/dev/voiceDiagnostic's `ttsLaneDiagnostic`; in production nothing renders.
+ */
+export function DevTtsLaneBanner({
+  record,
+  timing,
+}: {
+  record: ClipLaneRecord | null;
+  timing?: VoiceTiming;
+}) {
+  const theme = useTheme();
+  const diagnostic = ttsLaneDiagnostic(record, __DEV__, timing);
+  if (diagnostic === null) {
+    return null;
+  }
+  return (
+    <View
+      accessible
+      style={[styles.inline, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+    >
+      <AppText role="label">{diagnostic.title}</AppText>
+      {diagnostic.lines.map((line) => (
+        <AppText key={line} role="caption" color="inkFaint">
+          {line}
+        </AppText>
+      ))}
+      {diagnostic.hint === null ? null : (
+        <AppText role="caption" color="inkFaint">
+          {diagnostic.hint}
+        </AppText>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   banner: {
     borderRadius: radius.control,
@@ -64,6 +104,13 @@ const styles = StyleSheet.create({
     gap: 2,
     marginHorizontal: spacing.screen,
     marginTop: spacing.sm,
+    padding: spacing.sm,
+  },
+  // inside the transcript's padded scroller, so no horizontal margin of its own
+  inline: {
+    borderRadius: radius.control,
+    borderWidth: 1,
+    gap: 2,
     padding: spacing.sm,
   },
 });

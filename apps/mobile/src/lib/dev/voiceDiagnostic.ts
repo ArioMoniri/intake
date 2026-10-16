@@ -19,6 +19,7 @@
  * flight (`report === null`) and when a lane actually answered. A dev banner
  * that appears on a healthy run is a banner people learn to ignore.
  */
+import type { ClipLaneRecord } from "@/lib/dialogue/georgeClip";
 import { t } from "@/lib/i18n";
 
 import type { ProbeFailure, ReachabilityReport } from "./hosts";
@@ -75,5 +76,80 @@ export function voiceDiagnostic(
     body: t("devVoice.body"),
     lines,
     hint: t("devVoice.hint"),
+  };
+}
+
+export interface TtsLaneDiagnostic {
+  readonly title: string;
+  /** The lane that spoke, why George did not (fallback only), then the
+   * measured timings — all as tokens. */
+  readonly lines: readonly string[];
+  /** What would bring George back; only on a fallback clip. */
+  readonly hint: string | null;
+}
+
+/** The turn's measurements, when the hook has them (INT-440). */
+export interface VoiceTiming {
+  /** Turn start (question on screen) → the clip audibly playing. */
+  readonly audioStartMs: number | null;
+  /** The loudest microphone level metered in this turn, in dB. */
+  readonly micPeakDb: number | null;
+  /** End of one clip → start of the next within this turn, in ms. */
+  readonly clipGapsMs?: readonly number[];
+}
+
+function laneToken(record: ClipLaneRecord): string {
+  switch (record.lane) {
+    case "george":
+      return "elevenlabs-live";
+    case "elevenlabs_bundled":
+      return "elevenlabs-bundled";
+    case "self_hosted":
+      return record.tiers.length === 0 ? "self-hosted" : record.tiers.join(" + ");
+  }
+}
+
+/**
+ * INT-440 — the same dev-only posture for the agent's VOICE. The owner heard
+ * the self-hosted lane and could not tell it was not George, because the
+ * George fallback was silent by design. In dev, every clip names the lane that
+ * spoke it (`elevenlabs-bundled`, `elevenlabs-live`, or the self-hosted tier),
+ * a fallback adds the closed-set reason George did not (a code token like an
+ * HTTP status, never a host or a narrative), and the turn's measured audio
+ * start and microphone peak ride along. Production and "no clip yet" render
+ * nothing.
+ *
+ * @param record the lane record of the clip now playing, or null
+ * @param isDev  pass `__DEV__`, never a literal
+ * @param timing the turn's measurements, when known
+ */
+export function ttsLaneDiagnostic(
+  record: ClipLaneRecord | null,
+  isDev: boolean,
+  timing?: VoiceTiming,
+): TtsLaneDiagnostic | null {
+  if (!isDev || record === null) {
+    return null;
+  }
+  const lines = [`${t("devVoice.lane.served")}${SEPARATOR}${laneToken(record)}`];
+  if (record.lane === "self_hosted") {
+    lines.push(`${t("devVoice.lane.georgeMiss")}${SEPARATOR}${record.georgeMiss}`);
+  }
+  // Concatenated tokens, as the HTTP status above: the catalogue stays
+  // interpolation-free and a measurement is not a localised quantity.
+  if (timing?.audioStartMs != null) {
+    lines.push(`${t("devVoice.lane.audioStart")}${SEPARATOR}${String(timing.audioStartMs)} ms`);
+  }
+  if (timing?.clipGapsMs !== undefined && timing.clipGapsMs.length > 0) {
+    lines.push(`${t("devVoice.lane.clipGaps")}${SEPARATOR}${timing.clipGapsMs.join(", ")} ms`);
+  }
+  if (timing?.micPeakDb != null) {
+    lines.push(`${t("devVoice.lane.micPeak")}${SEPARATOR}${String(timing.micPeakDb)} dB`);
+  }
+  const fallback = record.lane === "self_hosted";
+  return {
+    title: t(fallback ? "devVoice.lane.title" : "devVoice.lane.titleOk"),
+    lines,
+    hint: fallback ? t("devVoice.lane.hint") : null,
   };
 }

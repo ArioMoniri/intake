@@ -1590,6 +1590,19 @@ metrics:
     unit: "ratio"
     status: planned
     description: Offline sync success share in the mobile client.
+  - name: client_dialogue_tts_lane
+    id: client.dialogue_tts_lane
+    type: counter
+    labels: [lane, george_miss]
+    owner: client
+    unit: "count"
+    status: planned
+    description: >-
+      Dialogue clips played in the mobile client, by the lane that spoke them
+      (george / elevenlabs_bundled / self_hosted) and, on the self-hosted lane, the closed-set
+      reason George did not (georgeClip GEORGE_MISSES). Handed to the client
+      metric sink by lib/telemetry runtime.noteTtsLane (INT-440); planned until
+      an ingest endpoint registers it, as for the other client.* series.
   - name: net_rtt_ms
     id: net.rtt_ms
     type: histogram

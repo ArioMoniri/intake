@@ -17,62 +17,90 @@
  * session end: no session leaves audio behind, of either kind.
  */
 import * as FileSystem from "expo-file-system/legacy";
+import { Image } from "react-native";
 
-import { buildApiBase } from "../auth/expoApiBase";
+import { AuthApiError, authedFetch } from "../auth/api";
+import { getAccessToken, getRefreshToken } from "../auth/tokens";
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
-import type { DeliveryContext } from "./deliveryContext";
+import { BUNDLED_CLIP_ASSETS } from "./bundledClipAssets";
+import { bundledClipFor } from "./bundledClips";
+import { DEFAULT_DELIVERY_CONTEXT, type DeliveryContext } from "./deliveryContext";
 import {
-  fetchGeorgeClip,
+  fetchGeorgeClipLaneVia,
   georgePreferringSynth,
+  GeorgeUnavailable,
+  type ClipLaneRecord,
+  type GeorgeClip,
   type GeorgeGenerator,
+  type GeorgeTransport,
   type ScriptedTr,
 } from "./georgeClip";
-import { createClipStore, synthesizeClipWith, type ClipFs, type ClipStore } from "./tts";
+import {
+  assertSpeakableTr,
+  createClipStore,
+  synthesizeClipWith,
+  type ClipFs,
+  type ClipStore,
+} from "./tts";
 import { createTtsLaneSelector, synthesizeWithFallback, type TtsLaneSelector } from "./ttsLane";
 
-/** The dev API host the George clip route lives on: the same resolver, and so
- * the same LAN walk, as the auth/records clients (INT-328). Null when no dev
- * host answers. */
-function firstReachableApiBase(): Promise<string | null> {
-  return buildApiBase().catch(() => null);
+/**
+ * The playable URI of a bundled clip (INT-440). React Native's asset registry
+ * resolves any bundled asset, not only images: the Metro dev server's URL in a
+ * dev build, the file inside the app in a release one.
+ */
+function bundledClipUri(asset: number): string {
+  const resolved = Image.resolveAssetSource(asset) as { uri?: string } | null;
+  if (resolved?.uri === undefined || resolved.uri === "") {
+    throw new Error("bundled_clip_unresolved");
+  }
+  return resolved.uri;
 }
+
+/**
+ * The George request's transport: the DPoP-bound `authedFetch` the records and
+ * consent clients use, which resolves the API base (INT-328, and its INT-440
+ * hosted fallback) and signs the request as the signed-in patient.
+ *
+ * INT-326 put the route behind `require_patient`; the client kept posting
+ * anonymously and every request became a 401 the fallback swallowed (INT-440).
+ * A device with no patient session — a dev test account, or nobody signed in
+ * — has nothing to sign with, and that is reported as such rather than sent.
+ */
+const authedGeorgeTransport: GeorgeTransport = async (path, init) => {
+  // No session to sign with: say so before any host walk, so a clip the
+  // George route could never serve costs the turn nothing on its way to the
+  // self-hosted lane.
+  if (getAccessToken() === null && (await getRefreshToken()) === null) {
+    throw new GeorgeUnavailable("no_session");
+  }
+  try {
+    return await authedFetch(path, init);
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      throw new GeorgeUnavailable(error.kind === "session" ? "no_session" : "no_host");
+    }
+    throw error;
+  }
+};
 
 /**
  * The DEV-ONLY George clip source (ADR-028 on-demand variant), or null.
  *
  * `null` in production — invariant 19 stays intact, the PHI path is
  * self-hosted, and the store uses only the self-hosted lane exactly as before.
- * `null` too when no dev API host answers, so a demo with the API down still
- * speaks in the self-hosted voice. When present it POSTs SCRIPTED question text
- * to the dev server route; the DEVICE never holds the vendor key (the server
- * reads it from its env), and a `ScriptedTr` is the only thing it can be handed.
+ * When present it POSTs SCRIPTED question text to the dev server route as the
+ * signed-in patient; the DEVICE never holds the vendor key (the server reads
+ * it from its env), and a `ScriptedTr` is the only thing it can be handed.
  */
 function createGeorgeSource(): GeorgeGenerator | null {
   if (!__DEV__) {
     return null;
   }
-  let baseP: Promise<string | null> | null = null;
-  const resolveBase = (): Promise<string | null> => {
-    if (baseP === null) {
-      baseP = firstReachableApiBase();
-    }
-    return baseP;
-  };
-  return async (text: ScriptedTr, context?: DeliveryContext): Promise<Uint8Array> => {
-    const base = await resolveBase();
-    if (base === null) {
-      baseP = null; // a later turn re-probes rather than staying muted
-      throw new Error("george_unavailable");
-    }
-    try {
-      // INT-415: the utterance's delivery context rides along; the server maps
-      // it to its own profile (the device holds no voice setting)
-      return await fetchGeorgeClip(base, text, { context });
-    } catch (error) {
-      baseP = null; // degrade this turn to the self-hosted lane, re-probe next
-      throw error;
-    }
-  };
+  // INT-415: the utterance's delivery context rides along; the server maps it
+  // to its own profile (the device holds no voice setting)
+  return (text: ScriptedTr, context?: DeliveryContext): Promise<GeorgeClip> =>
+    fetchGeorgeClipLaneVia(authedGeorgeTransport, text, { context });
 }
 
 /**
@@ -122,20 +150,15 @@ const expoClipFs: ClipFs = {
  * the selector instead means each sentence asks "which lane can speak right
  * now", and a mid-session wedge degrades to the fallback voice.
  */
-export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
-  // INT-237 shaping is unchanged: one request per SENTENCE, trimmed, faded
-  // and joined with a real sentence gap. INT-249 only changes where each of
-  // those requests lands.
-  const selfHosted = (text: string): Promise<Uint8Array> =>
-    synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text);
+export function dialogueClipStore(
+  selector: TtsLaneSelector,
+  onClipLane?: (text: string, record: ClipLaneRecord) => void,
+): ClipStore {
   // ADR-028 (on-demand variant): in dev, prefer George's cloud voice for a
   // scripted question with no cached clip, and degrade to the self-hosted lane
-  // on any failure. Null in prod, so this is the SAME store as before there.
+  // on any failure. Null in prod, where `georgePreferringSynth` goes straight
+  // to the self-hosted lane and reports it as `off`.
   const george = createGeorgeSource();
-  if (george === null) {
-    return createClipStore(dialogueClipDir(), expoClipFs, selfHosted);
-  }
-  const prefer = georgePreferringSynth(george, selfHosted);
   // The store is only ever fed catalog-composed SCRIPTED text
   // (useDialogueSession → speech.ts questionSpeechTr/confirmSpeechTr); patient
   // words are DISPLAYED, never synthesized (invariant 2/10). This is the single
@@ -147,9 +170,39 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // `prefer` forwards to George (INT-415) and the self-hosted lane ignores.
   // Delivery lines reach the store the same way questions do: minted from a
   // deck key (`scriptedDeliveryTr`), never from anything the patient said.
-  return createClipStore(dialogueClipDir(), expoClipFs, (text, context) =>
-    prefer(text as ScriptedTr, context),
-  );
+  const synthesized = createClipStore(dialogueClipDir(), expoClipFs, (text, context) => {
+    // INT-440: one utterance per clip on the self-hosted lane (INT-249 picks
+    // where it lands), and every clip reports the lane — and tier — that spoke.
+    const tiers: string[] = [];
+    const selfHosted = (scripted: string): Promise<Uint8Array> =>
+      synthesizeClipWith(
+        (utterance) =>
+          synthesizeWithFallback(selector, utterance, {}, (lane) => {
+            if (!tiers.includes(lane.id)) {
+              tiers.push(lane.id);
+            }
+          }),
+        scripted,
+      );
+    const prefer = georgePreferringSynth(george, selfHosted, (outcome) => {
+      onClipLane?.(text, outcome.lane === "self_hosted" ? { ...outcome, tiers } : outcome);
+    });
+    return prefer(text as ScriptedTr, context);
+  });
+  return {
+    // INT-440 fast path: a line rendered offline in George's voice for this
+    // context is played from the app bundle — no lane, no synthesis, no file.
+    async ensure(name, text, context = DEFAULT_DELIVERY_CONTEXT) {
+      const bundled = bundledClipFor(text, context, BUNDLED_CLIP_ASSETS);
+      if (bundled !== null) {
+        assertSpeakableTr(text); // the same guard every other clip passes
+        onClipLane?.(text, { lane: "elevenlabs_bundled" });
+        return bundledClipUri(bundled);
+      }
+      return synthesized.ensure(name, text, context);
+    },
+    clear: () => synthesized.clear(),
+  };
 }
 
 /** Deletes every agent-voice clip of this session (unmount + session end). */

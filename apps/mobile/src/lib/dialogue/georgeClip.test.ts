@@ -13,16 +13,26 @@
  * (patient) text. INT-415: (e) every request names its delivery context
  * (routine by default) and never a voice setting; RED is never requested.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { packForDepartment } from "../intake/questions";
 import { DEFAULT_DELIVERY_CONTEXT, DELIVERY_CONTEXTS } from "./deliveryContext";
 import {
   fetchGeorgeClip,
+  fetchGeorgeClipLaneVia,
+  fetchGeorgeClipVia,
   GEORGE_CLIP_PATH,
+  GEORGE_MISSES,
+  georgeMissForStatus,
   georgePreferringSynth,
+  GeorgeUnavailable,
   requireScriptedTr,
   scriptedQuestionTr,
+  type ClipLaneOutcome,
   type ScriptedTr,
 } from "./georgeClip";
 import { questionSpeechTr } from "./speech";
@@ -194,5 +204,205 @@ describe("georgePreferringSynth + clip store", () => {
     const bytes = await georgePreferringSynth(null, fallback)(scripted);
     expect(bytes).toEqual(new Uint8Array([5]));
     expect(fallback).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// INT-440 — the owner heard a robotic voice because George never served, and
+// nothing said so. Since INT-326 the route requires an authenticated patient;
+// the client posted anonymously, got a 401, and `georgePreferringSynth`
+// swallowed it. The request now rides an injected (authenticated) transport,
+// every miss carries a closed-set reason, and the synthesizer reports which
+// lane actually served each clip.
+// ---------------------------------------------------------------------------
+
+describe("fetchGeorgeClipVia — the request rides the caller's transport (INT-440)", () => {
+  const scripted = scriptedQuestionTr(question);
+
+  it("hands the transport the route PATH and the scripted body — no base, no key", async () => {
+    const calls: { path: string; init: RequestInit }[] = [];
+    const transport = vi.fn(async (path: string, init: RequestInit) => {
+      calls.push({ path, init });
+      return new Response(new Uint8Array([1, 2]).buffer, { status: 200 });
+    });
+    const bytes = await fetchGeorgeClipVia(transport, scripted);
+    expect(bytes).toEqual(new Uint8Array([1, 2]));
+    expect(calls).toHaveLength(1);
+    expect(calls[0].path).toBe(GEORGE_CLIP_PATH);
+    expect(calls[0].init.method).toBe("POST");
+    expect(JSON.parse(String(calls[0].init.body))).toEqual({
+      text_tr: scripted,
+      delivery_context: "routine",
+    });
+  });
+
+  it.each([
+    [401, "unauthorized"],
+    [403, "unauthorized"],
+    [404, "not_mounted"],
+    [422, "refused"],
+    [429, "rate_limited"],
+    [502, "vendor"],
+    [503, "unconfigured"],
+    [500, "status"],
+  ] as const)(
+    "names a %i as %s, still george_unavailable to the caller",
+    async (status, reason) => {
+      const transport = async () => new Response("", { status });
+      const error = await fetchGeorgeClipVia(transport, scripted).catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(GeorgeUnavailable);
+      expect((error as GeorgeUnavailable).message).toBe("george_unavailable");
+      expect((error as GeorgeUnavailable).reason).toBe(reason);
+      expect(georgeMissForStatus(status)).toBe(reason);
+    },
+  );
+
+  it("passes a transport's own reason through (no session, no host)", async () => {
+    const transport = async (): Promise<Response> => {
+      throw new GeorgeUnavailable("no_session");
+    };
+    const error = await fetchGeorgeClipVia(transport, scripted).catch((e: unknown) => e);
+    expect((error as GeorgeUnavailable).reason).toBe("no_session");
+  });
+
+  it("names any other transport error 'transport' and never echoes it", async () => {
+    const transport = async (): Promise<Response> => {
+      throw new Error("connect ECONNREFUSED 10.0.0.9:8000");
+    };
+    const error = await fetchGeorgeClipVia(transport, scripted).catch((e: unknown) => e);
+    expect((error as GeorgeUnavailable).reason).toBe("transport");
+    expect(String((error as Error).message)).not.toContain("10.0.0.9");
+  });
+
+  it("names a client-side give-up 'timeout'", async () => {
+    const transport = (_path: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    const error = await fetchGeorgeClipVia(transport, scripted, { timeoutMs: 5 }).catch(
+      (e: unknown) => e,
+    );
+    expect((error as GeorgeUnavailable).reason).toBe("timeout");
+  });
+
+  it("names an empty 2xx body 'empty'", async () => {
+    const transport = async () => new Response(new Uint8Array([]).buffer, { status: 200 });
+    const error = await fetchGeorgeClipVia(transport, scripted).catch((e: unknown) => e);
+    expect((error as GeorgeUnavailable).reason).toBe("empty");
+  });
+
+  it("every reason is a member of the closed set the banner and metric label use", () => {
+    for (const status of [400, 401, 403, 404, 422, 429, 500, 502, 503, 504]) {
+      expect(GEORGE_MISSES).toContain(georgeMissForStatus(status));
+    }
+  });
+});
+
+describe("georgePreferringSynth reports which lane served the clip (INT-440)", () => {
+  const scripted = scriptedQuestionTr(question) as ScriptedTr;
+
+  it("George served → one 'george' outcome", async () => {
+    const outcomes: ClipLaneOutcome[] = [];
+    const synth = georgePreferringSynth(
+      async () => new Uint8Array([9]),
+      async () => new Uint8Array([0]),
+      (outcome) => outcomes.push(outcome),
+    );
+    await synth(scripted);
+    expect(outcomes).toEqual([{ lane: "george" }]);
+  });
+
+  it("a George miss is never silent: the fallback outcome names the reason", async () => {
+    const outcomes: ClipLaneOutcome[] = [];
+    const synth = georgePreferringSynth(
+      async () => {
+        throw new GeorgeUnavailable("unauthorized");
+      },
+      async () => new Uint8Array([0]),
+      (outcome) => outcomes.push(outcome),
+    );
+    await synth(scripted);
+    expect(outcomes).toEqual([{ lane: "self_hosted", georgeMiss: "unauthorized" }]);
+  });
+
+  it("no George source at all is reported as 'off'", async () => {
+    const outcomes: ClipLaneOutcome[] = [];
+    await georgePreferringSynth(
+      null,
+      async () => new Uint8Array([0]),
+      (outcome) => outcomes.push(outcome),
+    )(scripted);
+    expect(outcomes).toEqual([{ lane: "self_hosted", georgeMiss: "off" }]);
+  });
+
+  it("an unexpected George error is reported as 'transport'", async () => {
+    const outcomes: ClipLaneOutcome[] = [];
+    await georgePreferringSynth(
+      async () => {
+        throw new Error("boom");
+      },
+      async () => new Uint8Array([0]),
+      (outcome) => outcomes.push(outcome),
+    )(scripted);
+    expect(outcomes).toEqual([{ lane: "self_hosted", georgeMiss: "transport" }]);
+  });
+
+  it("reports nothing when no lane produced a clip", async () => {
+    const outcomes: ClipLaneOutcome[] = [];
+    const synth = georgePreferringSynth(
+      null,
+      async () => {
+        throw new Error("tts_unreachable");
+      },
+      (outcome) => outcomes.push(outcome),
+    );
+    await expect(synth(scripted)).rejects.toThrow("tts_unreachable");
+    expect(outcomes).toEqual([]);
+  });
+});
+
+describe("the server's own fallback is named, never passed off as George (INT-440/443)", () => {
+  const scripted = scriptedQuestionTr(question) as ScriptedTr;
+
+  it("reads X-Clip-Lane from the George route", async () => {
+    const answer = (lane: string | null) => async () =>
+      new Response(new Uint8Array([3]).buffer, {
+        status: 200,
+        headers: lane === null ? {} : { "X-Clip-Lane": lane },
+      });
+    expect(await fetchGeorgeClipLaneVia(answer("elevenlabs"), scripted)).toEqual({
+      bytes: new Uint8Array([3]),
+      serverLane: "elevenlabs",
+    });
+    expect((await fetchGeorgeClipLaneVia(answer("self_hosted"), scripted)).serverLane).toBe(
+      "self_hosted",
+    );
+    // a route that predates the header is George's, as before
+    expect((await fetchGeorgeClipLaneVia(answer(null), scripted)).serverLane).toBe("elevenlabs");
+  });
+
+  it("a clip the server made on its self-hosted lane is reported as such", async () => {
+    const outcomes: ClipLaneOutcome[] = [];
+    const bytes = await georgePreferringSynth(
+      async () => ({ bytes: new Uint8Array([4]), serverLane: "self_hosted" as const }),
+      async () => new Uint8Array([0]),
+      (outcome) => outcomes.push(outcome),
+    )(scripted);
+    expect(bytes).toEqual(new Uint8Array([4])); // the audio is still played
+    expect(outcomes).toEqual([{ lane: "self_hosted", georgeMiss: "server_fallback" }]);
+  });
+});
+
+describe("the device's George source authenticates (INT-440)", () => {
+  const clipsSource = readFileSync(
+    join(fileURLToPath(new URL(".", import.meta.url)), "clips.ts"),
+    "utf8",
+  );
+
+  it("posts through the DPoP-bound authedFetch, never an anonymous fetch", () => {
+    expect(clipsSource).toMatch(/import \{[^}]*\bauthedFetch\b[^}]*\} from "\.\.\/auth\/api"/);
+    expect(clipsSource).toContain("fetchGeorgeClipLaneVia(authedGeorgeTransport");
+    // the anonymous base+fetch entry point is what returned 401 since INT-326
+    expect(clipsSource).not.toMatch(/\bfetchGeorgeClip\(/);
   });
 });
