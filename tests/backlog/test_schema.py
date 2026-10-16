@@ -171,7 +171,10 @@ def test_ids_unique_and_well_formed() -> None:
     # order of 3 Oct 2026, GitHub #790).
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785).
-    assert len(ids) == 344
+    # + INT-501 (http-cache-semantics lifted out of its advisory before its
+    # osv exception expires, GitHub #853) and INT-508 (node-forge and braces
+    # have no upstream fix: renew or replace before 1 Nov 2026, GitHub #865).
+    assert len(ids) == 346
     import re
 
     for i in ids:
