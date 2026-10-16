@@ -42,6 +42,14 @@ import {
 } from "./carriedFacts";
 import { measurementLine, measurementQuestions } from "./baseLayer";
 import {
+  IDLE_DELIVERY,
+  deliveryStep,
+  isDeliveryAction,
+  type DeliveryAction,
+  type NoteDelivery,
+  type SendRefusal,
+} from "./noteDelivery";
+import {
   allQuestions,
   askIfMet,
   optionLabelKey,
@@ -141,11 +149,16 @@ export interface NoteSection {
   lines: string[];
 }
 
+export type { NoteDelivery, SendRefusal } from "./noteDelivery";
+
 export interface NoteState {
   answers: Answer[];
   /** sectionId -> shared; absent means shared (default-on, visible label). */
   scopes: Record<string, boolean>;
+  /** INT-510: `sent` only on the server's 200 to the send — never on the tap. */
   status: "draft" | "sent";
+  /** Where the send stands on its way there (./noteDelivery). */
+  delivery: NoteDelivery;
   /**
    * Device health summary lines the patient explicitly attached (INT-208).
    * Device-local by design: they exist only in this in-memory draft, and
@@ -180,7 +193,13 @@ export type NoteAction =
   | { type: "answer"; questionId: string; values: string[]; words?: string }
   | { type: "scope"; sectionId: string; shared: boolean }
   | { type: "attachHealth"; lines: string[] }
+  /** INT-510: Gönder only starts a send; `delivered` is the server's 200, and
+   * `queued` / `refused` / `retry` are the send's other steps (./noteDelivery). */
   | { type: "send" }
+  | { type: "delivered" }
+  | { type: "queued" }
+  | { type: "refused"; reason: SendRefusal }
+  | { type: "retry" }
   | { type: "mode"; mode: IntakeMode }
   | { type: "privacy"; alone: boolean }
   | { type: "checkpoint" }
@@ -193,6 +212,7 @@ export function emptyNoteState(): NoteState {
     answers: [],
     scopes: {},
     status: "draft",
+    delivery: IDLE_DELIVERY,
     healthLines: null,
     mode: "hizli",
     modeChosen: false,
@@ -203,7 +223,39 @@ export function emptyNoteState(): NoteState {
   };
 }
 
+/**
+ * A note read back from the sealed draft store (INT-142), made whole. A blob
+ * written before INT-510 has no `delivery`; and since no build before INT-510
+ * had a client that sent anything, a stored `sent` without one is a note the
+ * clinic never received — it comes back a draft, so it can really be sent.
+ */
+export function restoreNote(
+  stored: Omit<NoteState, "delivery"> & { delivery?: NoteDelivery },
+): NoteState {
+  const delivery = stored.delivery ?? IDLE_DELIVERY;
+  const whole: NoteState = { ...emptyNoteState(), ...stored, delivery };
+  return stored.delivery === undefined ? { ...whole, status: "draft" } : whole;
+}
+
+type EditAction = Exclude<NoteAction, DeliveryAction>;
+
 export function noteReducer(state: NoteState, action: NoteAction): NoteState {
+  if (isDeliveryAction(action)) {
+    return deliveryStep(state, action);
+  }
+  // INT-510: frozen while the send is in flight, so what reaches the clinic is
+  // what the patient confirmed. An edit to a queued or refused send cancels
+  // it — Gönder is then pressed again over the note as it now stands.
+  if (state.delivery.phase === "sending") {
+    return state;
+  }
+  const next = editNote(state, action);
+  return next === state || next.delivery.phase === "idle"
+    ? next
+    : { ...next, delivery: IDLE_DELIVERY };
+}
+
+function editNote(state: NoteState, action: EditAction): NoteState {
   switch (action.type) {
     case "answer": {
       const rest = state.answers.filter((a) => a.questionId !== action.questionId);
@@ -222,15 +274,11 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
       // A sent note is frozen; re-attaching on a draft replaces the block
       // (idempotent — never a duplicate section).
       return state.status === "sent" ? state : { ...state, healthLines: [...action.lines] };
-    case "send":
-      return { ...state, status: "sent" };
     case "mode":
       // A sent note is frozen — the same rule as attachHealth. Picking a
       // mode (INT-321) records the choice, which is what dismisses the
       // up-front chooser — for either value, so "kısa" is a choice too.
-      return state.status === "sent"
-        ? state
-        : { ...state, mode: action.mode, modeChosen: true };
+      return state.status === "sent" ? state : { ...state, mode: action.mode, modeChosen: true };
     case "privacy": {
       if (state.status === "sent") {
         return state;

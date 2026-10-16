@@ -174,6 +174,9 @@ describe("note builder + reducer (pure)", () => {
     }
     state = noteReducer(state, { type: "scope", sectionId: "hpi", shared: false });
     state = noteReducer(state, { type: "send" });
+    // INT-510: the tap starts the send; the ladder moves on the server's 200
+    expect(state.status).toBe("draft");
+    state = noteReducer(state, { type: "delivered" });
     expect(state.status).toBe("sent");
     const sent = sentSections(state, ayse);
     expect(sent.map((s) => s.id)).not.toContain("hpi");
@@ -187,7 +190,10 @@ describe("note builder + reducer (pure)", () => {
       state = noteReducer(state, { type: "scope", sectionId: id, shared: false });
     }
     state = noteReducer(state, { type: "send" });
-    expect(state.status).toBe("sent");
+    // The tap is never refused on the phone. With nothing shared the send
+    // itself answers `nothing_shared` in words (INT-510, noteSend.test.ts) —
+    // it does not pretend an empty note reached the clinic.
+    expect(state.delivery).toEqual({ phase: "sending" });
   });
 });
 

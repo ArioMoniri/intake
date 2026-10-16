@@ -12,7 +12,7 @@
  * crypto-shreds every blob and the DEK, so a draft never outlives the session
  * that owns it or surfaces under another account.
  */
-import type { NoteState } from "../note";
+import { restoreNote, type NoteState } from "../note";
 import {
   loadAllDrafts,
   loadDraft,
@@ -51,13 +51,16 @@ export async function persistNoteDraft(
 }
 
 /** Restore this account's drafts after an app restart. Other accounts' drafts
- * (should any survive) are never surfaced. */
+ * (should any survive) are never surfaced. INT-510: each note is made whole by
+ * `restoreNote`, so a send that was queued (or in flight) when the app closed
+ * comes back still waiting to be sent — and a pre-INT-510 "sent" that never
+ * reached a server comes back a draft. */
 export async function hydrateAccountDrafts(accountId: string): Promise<Record<string, NoteState>> {
   const drafts = await loadAllDrafts(resolveBackend());
   const notes: Record<string, NoteState> = {};
   for (const draft of drafts) {
     if (draft.accountId === accountId) {
-      notes[draft.visitId] = draft.note;
+      notes[draft.visitId] = restoreNote(draft.note);
     }
   }
   return notes;

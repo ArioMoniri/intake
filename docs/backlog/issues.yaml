@@ -6731,3 +6731,24 @@
     - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
   tests: [tests/admin/test_second_admin_runbook.py]
   sec_row: "admin-console"
+- id: INT-510
+  epic: E08-mobile
+  phase: P1
+  title: "The patient's send reaches the clinic"
+  # GitHub #872. From the INT-498 feature audit (#850, PR #870, F07/F08/F11),
+  # 16 Oct 2026. Gönder only marked the note sent on the phone: no note-sync
+  # client shipped, so the share centre and the Doctor Link then called
+  # /v1/visits/{local id}/note/..., an id the server never saw, and the server
+  # refused. A withheld section now never leaves the phone; the server reads
+  # the withholding from the body's scopes (NoteBody.withheld_section_ids), so
+  # INT-304's affirmative record survives the smaller body.
+  depends_on: [INT-137, INT-142, INT-197, INT-311]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-510.md
+  acceptance:
+    - "Gönder sends the built note with PUT /v1/visits/{server id}/note and status sent, carrying exactly the scoped-on sections; the server visit is resolved first with ensureServerVisit(create: true); the local-to-server id map lives in the session and every /v1/visits/* call (shares, issue-link, records) goes through it; the phone shows sent only when the server answers 200"
+    - "a refused share consent is worded on the review screen, not swallowed; an offline send waits in the INT-142 sealed store and is retried, and never marks the note sent early"
+    - "tests: a send with consent creates exactly one share; a send without consent creates none and the phone does not show sent; a Doctor Link issued after a send succeeds against the server id; a near miss that uses the local id is refused"
+  tests: [apps/mobile/src/lib/intake/noteSend.test.ts, apps/mobile/src/lib/intake/noteSendClient.test.ts, apps/mobile/src/lib/shares/issue.test.ts, apps/mobile/src/lib/shares/store.test.ts, apps/mobile/e2e/sendReachesClinic.spec.ts, tests/api/test_note_send.py]
+  sec_row: "review-send"

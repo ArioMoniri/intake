@@ -15,7 +15,13 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { issueDoctorLink, parseCode, parseIssued, validateRecipient } from "./issue";
+import {
+  issueDoctorLink,
+  issueDoctorLinkForVisit,
+  parseCode,
+  parseIssued,
+  validateRecipient,
+} from "./issue";
 
 const mocks = vi.hoisted(() => {
   class AuthApiError extends Error {
@@ -185,5 +191,50 @@ describe("issueDoctorLink — issue then mint, in one act", () => {
       path.endsWith("/otp") ? ok({ code: "" }) : ok(ISSUED),
     );
     expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "unreachable" });
+  });
+});
+
+describe("INT-510 — a Doctor Link is issued against the SERVER visit, never the local one", () => {
+  const LOCAL = "v-local-1";
+  const toServer = vi.fn(async (visitId: string) => (visitId === LOCAL ? VISIT : null));
+
+  afterEach(() => {
+    toServer.mockClear();
+  });
+
+  it("resolves the local id first and posts to the server id it maps to", async () => {
+    serving();
+    const result = await issueDoctorLinkForVisit(LOCAL, "Dr Efe Onganer", toServer);
+    expect(result.ok).toBe(true);
+    expect(toServer).toHaveBeenCalledWith(LOCAL);
+    const paths = mocks.authedFetch.mock.calls.map(([path]) => String(path));
+    expect(paths[0]).toBe(`/v1/visits/${VISIT}/note/doctor-links`);
+    for (const path of paths) {
+      expect(path, "the local id reached the server").not.toContain(LOCAL);
+    }
+  });
+
+  it("a visit the server has never seen is a note that was not sent — no request at all", async () => {
+    serving();
+    const result = await issueDoctorLinkForVisit("v-local-9", "Dr Efe Onganer", toServer);
+    expect(result).toEqual({ ok: false, reason: "not_shared" });
+    expect(mocks.authedFetch).not.toHaveBeenCalled();
+  });
+
+  it("an unreachable lookup is unreachable, not 'not shared'", async () => {
+    serving();
+    const result = await issueDoctorLinkForVisit(LOCAL, "Dr Efe Onganer", async () => {
+      throw new mocks.AuthApiError("network");
+    });
+    expect(result).toEqual({ ok: false, reason: "unreachable" });
+    expect(mocks.authedFetch).not.toHaveBeenCalled();
+  });
+
+  it("a bad recipient costs no lookup and no request", async () => {
+    serving();
+    const result = await issueDoctorLinkForVisit(LOCAL, "   ", toServer);
+    expect(result).toEqual({ ok: false, reason: "recipient_invalid" });
+    expect(toServer).not.toHaveBeenCalled();
+    expect(mocks.authedFetch).not.toHaveBeenCalled();
   });
 });

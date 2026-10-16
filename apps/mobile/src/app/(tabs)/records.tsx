@@ -40,7 +40,6 @@ import {
   cameraFile,
   docDisplayName,
   downloadUrl,
-  ensureServerVisit,
   listDocuments,
   pickUploadVisit,
   precheckFile,
@@ -140,7 +139,7 @@ type Phase = "loading" | "ready" | "offline";
 
 function OtpRecords() {
   const router = useRouter();
-  const { visits } = useSession();
+  const { visits, resolveServerVisit } = useSession();
   // the day Vizitlerim splits on: Istanbul's, not UTC's (INT-409)
   const pick = pickUploadVisit(visits, todayIso(deviceClock));
 
@@ -154,25 +153,28 @@ function OtpRecords() {
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const noticeIsError = notice !== null && notice !== "records.scanningInfo";
 
-  const refresh = useCallback(async (visit: VisitFixture) => {
-    setPhase("loading");
-    setNotice(null);
-    try {
-      // read-only resolve: listing must never create the server visit
-      const visitId = await ensureServerVisit(visit, { create: false });
-      setServerVisitId(visitId);
-      setDocs(visitId === null ? [] : await listDocuments(visitId));
-      setPhase("ready");
-    } catch (error) {
-      if (error instanceof RecordsApiError && error.kind === "network") {
-        setPhase("offline");
-        return;
+  const refresh = useCallback(
+    async (visit: VisitFixture) => {
+      setPhase("loading");
+      setNotice(null);
+      try {
+        // read-only resolve: listing must never create the server visit
+        const visitId = await resolveServerVisit(visit.id, { create: false });
+        setServerVisitId(visitId);
+        setDocs(visitId === null ? [] : await listDocuments(visitId));
+        setPhase("ready");
+      } catch (error) {
+        if (error instanceof RecordsApiError && error.kind === "network") {
+          setPhase("offline");
+          return;
+        }
+        setPhase("ready");
+        setDocs([]);
+        setNotice(errorKey(error));
       }
-      setPhase("ready");
-      setDocs([]);
-      setNotice(errorKey(error));
-    }
-  }, []);
+    },
+    [resolveServerVisit],
+  );
 
   useEffect(() => {
     if (selected !== null) {
@@ -198,7 +200,7 @@ function OtpRecords() {
       }
       setUploading(true);
       try {
-        const visitId = serverVisitId ?? (await ensureServerVisit(selected, { create: true }));
+        const visitId = serverVisitId ?? (await resolveServerVisit(selected.id, { create: true }));
         if (visitId === null) {
           setNotice("records.err.generic");
           return;
@@ -220,7 +222,7 @@ function OtpRecords() {
         setUploading(false);
       }
     },
-    [selected, serverVisitId],
+    [selected, serverVisitId, resolveServerVisit],
   );
 
   const onUpload = useCallback(async () => {

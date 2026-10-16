@@ -1564,6 +1564,10 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
   "src/lib/dialogue/useDialogueSession.ts":
     "the barge-in level meter's sampling interval: it listens, it limits nothing",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
+  "src/lib/intake/noteSendClient.ts":
+    "a request deadline on the note's send (INT-510): a send that runs out is queued and tried again, the note stays as it was",
+  "src/lib/intake/useNoteOutbox.ts":
+    "the pause before a queued send is tried again (INT-510): it re-sends, it limits nothing the patient does",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
   "src/lib/records/extraction.ts":
     "the backoff between asks about a document still being read: when it stops, the reading line stays and nothing is taken",

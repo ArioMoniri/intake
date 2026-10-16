@@ -1229,6 +1229,15 @@ export const en: Record<MessageKey, string> = {
   "review.consent.recipient": "Who receives it",
   "review.consent.until": "Until when",
   "review.consent.untilValue": "Sharing ends three days after your appointment time.",
+  "review.delivery.sending": "Your note is being sent.",
+  "review.delivery.queued":
+    "Your note has not been sent yet. It will be sent on its own once you are back online.",
+  "review.delivery.consent": "Your note was not sent. Your consent to share is not on record.",
+  "review.delivery.notAllowed":
+    "Your note was not sent. Sharing is not available from this account right now.",
+  "review.delivery.empty": "Your note was not sent. No section is selected for sharing.",
+  "review.delivery.synthetic": "You are in a sample account; the note is not sent to a doctor.",
+  "review.delivery.failed": "Your note was not sent. Something went wrong; you can send it again.",
   "csat.title": "How was this conversation?",
   "csat.optional": "This question is optional. Your note was sent whether you answer or not.",
   "csat.scoreGroup": "Rate the conversation",

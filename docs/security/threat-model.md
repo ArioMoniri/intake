@@ -1270,7 +1270,11 @@ it or whose tests exercise it.
 - **Controls (files/10):** §9 review row — section-level scope, consent summary, explicit
   confirm step; scopes enforced server-side per §4 consent checks.
 - **Signals:** share scope distribution (§9) lands with INT-137.
-- **Tests:** UI flow tests land with INT-137.
+- **Tests:** UI flow tests land with INT-137. INT-510 (the send reaches the server): a withheld
+  section's content never leaves the phone and is recorded server-side as withheld; "sent" only
+  on the server's 200; a refused share consent creates no share and is worded on the phone; the
+  phone's local visit id is refused at every `/v1/visits/*` route (`tests/api/test_note_send.py`,
+  `apps/mobile/src/lib/intake/noteSend.test.ts`, `apps/mobile/e2e/sendReachesClinic.spec.ts`).
 
 ## `doctor-link` — tokenized clinician access
 

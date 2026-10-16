@@ -24,6 +24,8 @@
  */
 import { useSyncExternalStore } from "react";
 
+import type { ServerVisitResolver } from "@/lib/serverVisits";
+
 import { fetchAccessLog, fetchShareLinks, revokeShareLink } from "./api";
 import type { AccessEntry, ShareLink } from "./links";
 
@@ -50,6 +52,8 @@ const FRESH: ShareCentreState = {
 
 let state: ShareCentreState = FRESH;
 let heldVisit: string | null = null;
+/** INT-510: the server's id for `heldVisit`, once resolved; the only id on the wire. */
+let heldServerVisit: string | null = null;
 const listeners = new Set<() => void>();
 
 function commit(next: ShareCentreState): void {
@@ -77,6 +81,7 @@ export function useShareCentre(): ShareCentreState {
 /** Drop the working copy — another visit's grants are not this one's. */
 export function resetShares(): void {
   heldVisit = null;
+  heldServerVisit = null;
   commit(FRESH);
 }
 
@@ -88,13 +93,37 @@ function ordered(links: readonly ShareLink[]): ShareLink[] {
 /**
  * Read the whole centre for one visit: the grants and the log, in one pass,
  * so the screen never shows a log that describes grants it is not showing.
+ *
+ * INT-510: `visitId` is the screen's LOCAL id, and the calls go to the id the
+ * server issued, found through the session's map (`resolve`). A visit the
+ * server has no row for has no grants — that is a true "nobody", said without
+ * asking. A lookup that could not reach the server is "we could not ask".
  */
-export async function loadShareCentre(visitId: string): Promise<void> {
+export async function loadShareCentre(
+  visitId: string,
+  resolve: ServerVisitResolver,
+): Promise<void> {
   if (heldVisit !== visitId) {
     heldVisit = visitId;
+    heldServerVisit = null;
     commit(FRESH);
   }
-  const [links, log] = await Promise.all([fetchShareLinks(visitId), fetchAccessLog(visitId)]);
+  let serverVisitId: string | null;
+  try {
+    serverVisitId = await resolve(visitId);
+  } catch {
+    commit({ ...state, links: [], log: [], loaded: false, unreachable: true });
+    return;
+  }
+  heldServerVisit = serverVisitId;
+  if (serverVisitId === null) {
+    commit({ ...state, links: [], log: [], loaded: true, unreachable: false });
+    return;
+  }
+  const [links, log] = await Promise.all([
+    fetchShareLinks(serverVisitId),
+    fetchAccessLog(serverVisitId),
+  ]);
   if (links === null || log === null) {
     commit({ ...state, links: [], log: [], loaded: false, unreachable: true });
     return;
@@ -115,9 +144,19 @@ export async function loadShareCentre(visitId: string): Promise<void> {
  * mirrors that: it takes a visit and a grant, and consults no consent value,
  * so a withdrawal of `share:previsit_note` cannot reach the decision to call
  * it. A refusal register a refusal can lock is not a refusal register.
+ *
+ * INT-510: the grant lives under the server's visit id, the one the load
+ * resolved. A visit whose server id was never resolved has no grant this phone
+ * could have listed, so the revoke is reported as not landed — never sent to
+ * the local id.
  */
 export async function revokeShare(visitId: string, linkId: string): Promise<void> {
-  const row = await revokeShareLink(visitId, linkId);
+  const serverVisitId = heldVisit === visitId ? heldServerVisit : null;
+  if (serverVisitId === null) {
+    commit({ ...state, unsent: true });
+    return;
+  }
+  const row = await revokeShareLink(serverVisitId, linkId);
   if (row === null) {
     commit({ ...state, unsent: true });
     return;

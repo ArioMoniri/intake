@@ -328,7 +328,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785); grows only
     # with a stated reason.
-    assert len(ids) == 344, f"expected 175 blueprint + 169 added issues, got {len(ids)}"
+    # + INT-510 (the patient's send reaches the clinic, from the INT-498 audit,
+    # GitHub #872); grows only with a stated reason.
+    assert len(ids) == 345, f"expected 175 blueprint + 170 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
