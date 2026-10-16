@@ -65,13 +65,13 @@ import logging
 import warnings
 from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass, field
-from typing import Annotated, Literal, Protocol, runtime_checkable
+from typing import Annotated, Literal, Protocol, Self, runtime_checkable
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult, TriageLevel
 from intake_platform.safety_inbox.metrics import CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL
 from protocols.generic_red import GENERIC_RED_SCRIPT_IDS
-from pydantic import Field, StringConstraints
+from pydantic import Field, StringConstraints, model_validator
 
 from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS, PREEMPT_RED_VIOLATIONS_TOTAL
 from intake_voice_runtime.ports import Clock
@@ -84,6 +84,7 @@ __all__ = [
     "REGISTER_DELIVERY",
     "STOP_BUDGET_MS",
     "ClinicNotifier",
+    "DeviceDelivery",
     "MappingRedScriptIndex",
     "PlaybackCanceller",
     "RedDataChannel",
@@ -96,6 +97,7 @@ __all__ = [
     "RedTriggerAck",
     "RedTriggerMessage",
     "RedViolation",
+    "delivery_before_trigger",
 ]
 
 logger = logging.getLogger("intake_voice_runtime.red_path")
@@ -194,6 +196,28 @@ class RedTriggerAck(FrozenModel):
     script_started_at_ms: float = Field(ge=0.0)
 
 
+class DeviceDelivery(enum.StrEnum):
+    """What the patient's device has been given of one RED (INT-545).
+
+    ``patient_facing`` says what the register *intends*; this says what
+    happened, so a clinician can tell a RED the patient saw from one the
+    patient was never shown. The clinician route runs ahead of the device by
+    design (it cannot delay the stop), so a notification can only ever say the
+    delivery is pending — and a second one, for the same ``work_id``, says
+    when it never arrived.
+    """
+
+    #: Told ahead of the trigger: Layer B at the determination, the RED path
+    #: before its stop and trigger.
+    PENDING = "pending"
+    #: The register keeps the patient surface unchanged (``DEFERRED_CLINICIAN``):
+    #: nothing is sent to the device, by design.
+    WITHHELD = "withheld"
+    #: The device was meant to show this RED and was not reached: the session
+    #: ended with the RED undelivered, and no later turn will retry it.
+    NOT_REACHED = "not_reached"
+
+
 class RedNotification(FrozenModel):
     """The clinician route. ``notify_clinic: always`` on every RED.
 
@@ -219,6 +243,24 @@ class RedNotification(FrozenModel):
         "generic, a superset of CD-24's 'SILENT chosen over a co-fired ALERT or CALM', "
         "because the result carries no per-rule register.",
     )
+    delivery: DeviceDelivery = Field(
+        description="What the device has been given (INT-545). No default: every "
+        "route states it. WITHHELD exactly where the register is not patient-facing."
+    )
+
+    @model_validator(mode="after")
+    def _delivery_agrees_with_the_register(self) -> Self:
+        if (self.delivery is DeviceDelivery.WITHHELD) == self.patient_facing:
+            raise ValueError(
+                "a RED is withheld from the device exactly where its register is not "
+                "patient-facing (DEFERRED_CLINICIAN; files/02 §5.3)"
+            )
+        if self.silent_generic and self.delivery is not DeviceDelivery.PENDING:
+            raise ValueError(
+                "silent_generic says what the trigger is about to give the device; a "
+                "notification that the device was not reached was given nothing"
+            )
+        return self
 
 
 # --- the register table --------------------------------------------------------------
@@ -268,6 +310,14 @@ REGISTER_DELIVERY: Mapping[RedRegister, RedDelivery] = {
         "shadow-logged and the session runs on (files/03 §15b).",
     ),
 }
+
+
+def delivery_before_trigger(register: RedRegister) -> DeviceDelivery:
+    """What a notification sent ahead of the device trigger can say (INT-545):
+    pending where the register triggers the device, withheld where it does not."""
+    if REGISTER_DELIVERY[register].triggers_device:
+        return DeviceDelivery.PENDING
+    return DeviceDelivery.WITHHELD
 
 
 # --- ports -------------------------------------------------------------------------------
@@ -445,6 +495,8 @@ class RedPreemption:
                     silent_generic=delivery.triggers_device
                     and register is RedRegister.SILENT
                     and self._script_for(triage) is None,
+                    # INT-545: told ahead of the trigger, so nothing given yet.
+                    delivery=delivery_before_trigger(register),
                 )
             )
         except Exception:  # the clinic's route must never cost the patient the RED
@@ -595,6 +647,39 @@ class RedPreemption:
             _count(device_violations)
             raise RedPathViolation(outcome)
         return outcome
+
+    def not_reached(self, result: BackendResult, *, evaluated_at_ms: float) -> None:
+        """Tell the clinician this RED never reached the patient's device (INT-545).
+
+        The route was told when the RED was determined and again before its
+        trigger, each time ``PENDING``: it runs ahead of the device by design.
+        When the session ends with the RED undelivered — its trigger failed and
+        no later turn will retry it — this second notification for the same
+        ``work_id`` says so. A register that never triggers the device was told
+        ``WITHHELD`` already and is not told again. Like the first, it awaits
+        nothing, and a route that raises is logged by work id and counted on the
+        series Layer B's route uses, never raised.
+        """
+        triage = _rules_engine_red(result)
+        register, location = triage.register, triage.location
+        assert register is not None and location is not None  # noqa: S101 - RulesTriageResult
+        if not REGISTER_DELIVERY[register].triggers_device:
+            return
+        try:
+            self.clinic.notify(
+                RedNotification(
+                    work_id=result.work_id,
+                    rule_ids=tuple(fire.id for fire in triage.rules),
+                    register=register,
+                    location=location,
+                    evaluated_at_ms=evaluated_at_ms,
+                    patient_facing=True,
+                    delivery=DeviceDelivery.NOT_REACHED,
+                )
+            )
+        except Exception:  # the route must never cost the session's end
+            CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL.inc()
+            logger.error("red clinic route failed", extra={"work_id": result.work_id})
 
     @property
     def delivered_work_ids(self) -> tuple[str, ...]:

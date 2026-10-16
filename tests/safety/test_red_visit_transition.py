@@ -52,7 +52,7 @@ from intake_platform.safety_inbox import (
     entry_id_for,
 )
 from intake_voice_runtime.safety_inbox import SafetyInboxNotifier
-from intake_voice_runtime.talker.red_path import RedNotification
+from intake_voice_runtime.talker.red_path import DeviceDelivery, RedNotification
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "api"))
 
@@ -418,6 +418,7 @@ def test_the_runtime_notifier_files_the_red_with_its_register() -> None:
             location=RedLocation.REMOTE,
             evaluated_at_ms=0.0,
             patient_facing=True,
+            delivery=DeviceDelivery.PENDING,
         )
     )
     (entry,) = outbox.pending()

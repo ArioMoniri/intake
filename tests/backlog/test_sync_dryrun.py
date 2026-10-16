@@ -37,6 +37,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "scripts" / "backlog"))
 
 import sync_issues as sync  # noqa: E402
+from backlog_lib import load_issues  # noqa: E402
 
 
 def _plan(tmp_path: Path, existing: list[dict]) -> dict:
@@ -71,74 +72,11 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     ]
     plan = _plan(tmp_path, existing)
     actions = {a["id"]: a for a in plan["actions"]}
-    # tracks test_schema.py (175 blueprint + added issues incl. INT-321 + INT-322 + INT-323)
-    # tracks test_schema.py (175 blueprint + added issues incl. INT-321 + INT-322 + INT-323,
-    # and INT-372 from the INT-354 consolidation)
-    # and INT-370 from the INT-354 consolidation)
-    # tracks test_schema.py (175 blueprint + added issues incl. INT-321 + INT-322 + INT-323
-    # + INT-317, carried from int-demo by INT-354)
-    # tracks test_schema.py (175 blueprint + added issues, latest INT-376)
-    # + INT-318, the INT-354 slice S2 row)
-    # + INT-380 and INT-381, split out of INT-121 and INT-124 by INT-124's PR
-    # + INT-385 (record quantities in the locale's decimal separator, GitHub #635)
-    # + INT-392, the session-deletion fix found on check-integration)
-    # + INT-393, the Doctor Link erasure fix found by INT-392)
-    # + INT-391 (every valid WebAuthn credential id admitted, GitHub #646)
-    # + INT-386 (the typed rail, note, summary and FHIR narrative quantities, GitHub #638)
-    # + INT-387 (the a11y conformance report re-rated after INT-361..363, GitHub #640)
-    # + INT-397 (the last three SC 4.1.3 status lines are announced, GitHub #659)
-    # + INT-390, the Keycloak upgrade INT-378 found
-    # + INT-396 (backlog status reconciliation and drift guard, GitHub #655)
-    # + INT-405 (sync paging past 500 issues and issue state, GitHub #675)
-    # + INT-398..400 (split out of INT-122 by its own PR, #663)
-    # + INT-401 (console rollback split out of INT-187)
-    # + INT-409 (Vizitlerim reads today from the device clock, not a pinned date, GitHub #688)
-    # + INT-410 (release bundles carry no synthetic seed accounts, audit F30, GitHub #689)
-    # + INT-404 (triage rule evidence lines in the reader's locale, GitHub #673)
-    # + INT-382 (rule-read slot removal refused in every layer; GitHub #629)
-    # + INT-415 (ElevenLabs delivery profiles + on-prem TTS wiring guide, GitHub #706)
-    # + INT-429 (vulnerabilities gate: dependency upgrades + time-boxed node-forge row, GitHub #727)
-    # + INT-431 (the embed sample's JWT fixture built at runtime, GitHub #733)
-    # + INT-395, the DSAR erasure/export completeness fix found by INT-393)
-    # + INT-406 (RED acknowledgement Safety inbox, invariant 49, GitHub #681)
-    # + INT-426 (CI on AWS: gate runner via S3 + SSM, aws-ci commit status, GitHub #721)
-    # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
-    # + INT-432 (clinical decisions register under owner decision D18, GitHub #735)
-    # + INT-378 (WebAuthn session-notes provider, GitHub #621) and INT-389 (its
-    # TOTP clause as an owner decision, GitHub #644)
-    # + INT-448 (#642 packet items under D18, GitHub #759)
-    # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
-    # + INT-447 (INT-414's delivery lines verified under D18, GitHub #758)
-    # + INT-449 (Turkish voice casting, owner request, GitHub #762)
-    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
-    # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
-    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
-    # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
-    # + INT-460 (second admin approver: a second Keycloak user, GitHub #785)
-    # + INT-453 (RED path triggers the winning rule's script, found by INT-446, GitHub #767)
-    # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
-    # + INT-465 (generic RED active from CD-24; synthetic-only test-key signature, GitHub #794)
-    # + INT-524 (a pull request's superseded CI runs are cancelled, GitHub #890)
-    # + INT-501 (http-cache-semantics lifted before its exception expires, GitHub #853)
-    # + INT-508 (node-forge and braces: no upstream fix, split from INT-501, GitHub #865)
-    # + INT-424 (delivery profiles v2 + expressive-model ADR proposal, GitHub #719)
-    # + INT-430 (the agent council as a post-bind verifier, GitHub #732)
-    # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
-    # + INT-475 (hop RED to the Safety inbox; location answer to the server, GitHub #814)
-    # + INT-485 (the admin oauth2-proxy logs no staff email, GitHub #830)
-    # + INT-518 (live extraction gets the committed value table, GitHub #884)
-    # + INT-521 (the live session evaluates triage on every bound answer, GitHub #887)
-    # + INT-522 (the onset binds from its closed-choice answer by CD-05, GitHub #888)
-    # + INT-538 (one laptop command creates a staff user, GitHub #906)
-    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428, GitHub #752)
-    # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
-    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428, GitHub #752)
-    # + INT-424 (delivery profiles v2 + expressive-model ADR proposal, GitHub #719)
-    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from INT-428, GitHub #753)
-    # + INT-449 (Turkish voice casting, owner request, GitHub #762)
-    # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
-    # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
-    assert len(actions) == 364
+    # INT-452: one planned action per backlog row, counted from the rows
+    # rather than pinned (the row floor guard is in test_schema.py).
+    rows = load_issues()
+    assert len(actions) == len(rows)
+    assert set(actions) == {r["id"] for r in rows}
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

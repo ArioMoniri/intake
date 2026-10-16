@@ -6390,6 +6390,365 @@
     - "make safety green; CODEOWNER review"
   tests: [tests/protocols/test_rule_slot_removal.py]
   sec_row: "protocol-registry"
+- id: INT-374
+  epic: E12-admin
+  phase: P1
+  title: "Step-up WebAuthn for privileged console actions outside the patient-content roles"
+  # GitHub #608. Found by INT-365 (PR #598).
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-365]
+  labels: [area:admin, risk:security]
+  status: todo
+  acceptance:
+    - "each listed action refuses a token without `hwk` in `amr`, whatever the role, with the same generic 401 and an audit entry that names ids only"
+    - "one test per action, plus a near-miss where the same token is admitted for a read-only action"
+  sec_row: "admin-console"
+- id: INT-383
+  epic: E03-protocols
+  phase: P1
+  title: "Generated red-flag stubs anchor their timing on a duration slot the engine cannot read"
+  # GitHub #630. Found by the PR #628 verification. The issue is awaiting-human: red-flag rule
+  # semantics, the clinician chooses each anchor when the stubs are sourced (HB-C1).
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:protocols, risk:clinical]
+  status: awaiting-human
+  acceptance:
+    - "a compiler refusal for a `tense_anchor` on a slot whose type is not a date; every draft stub either carries a clinician-chosen date anchor or stays `draft_needs_source`"
+  tests: [tests/protocols/test_tense_anchor_types.py]
+  sec_row: "protocol-registry"
+- id: INT-394
+  epic: E02-data
+  phase: P0
+  title: "Owner decision — the database role that runs erasure and retention"
+  # GitHub #650. Found by INT-392 (PR #648). Awaiting the owner's least-privilege choice:
+  # (a) a dedicated erasure_rw role, or (b) column-level UPDATE on events.session_id.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-392]
+  labels: [area:data, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "the chosen role is created by migration or init with exactly the needed grants; a test asserts the grant set (a near-miss: an extra grant fails); a CI integration test runs erasure as that role"
+  tests: [tests/security/test_db_roles.py]
+  sec_row: "data-at-rest"
+- id: INT-416
+  epic: E04-engines
+  phase: P0
+  title: "triage context refuses an empty unit at construction, so RED evaluation can never raise mid-rule"
+  # GitHub #707. Found by the clinical-safety reviewer on #679 (INT-404), 27 Sep 2026.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-404]
+  labels: [area:protocols]
+  status: todo
+  acceptance:
+    - "`TriageContext.units` values are `Annotated[str, Field(min_length=1)]`, so a malformed unit map is refused when the context is built and never during evaluation."
+    - "A safety test proves both halves: a RED with a malformed unit map is refused at construction, and the near-miss (a well-formed unit) still returns RED."
+    - "`make safety` passes, and triage branch coverage stays at 100 %."
+  sec_row: "triage"
+- id: INT-417
+  epic: E08-mobile
+  phase: P1
+  title: "share centre never shows another visit's grants, and an unreachable read never prints the empty-log footer"
+  # GitHub #708. Found while building INT-342 (#704), 27 Sep 2026.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-139]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "The share store is keyed by visit id, or reset on visit change. A test opens visit A and then visit B, and asserts that no frame of B renders A's grants."
+    - "An unreachable read renders the unreachable state only, never the empty-log footer. A near-miss test covers a reachable empty log, which does show the footer."
+  sec_row: "mobile"
+- id: INT-418
+  epic: E08-mobile
+  phase: P1
+  title: "privacy hide — the 'gizle' control and the third-party auto-hide (02 §5.2a rule 6)"
+  # GitHub #709. Found while building INT-338 (#703), 27 Sep 2026: no row owned files/02
+  # §5.2a rule 6.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-338]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "A \"gizle\" control on the intake screen hides all clinical content at once. The privacy close is instant, with no fade (INT-338 `sheetClose(\"privacy\")`), and there is a clear way to un-hide."
+    - "The automatic hide is wired to the third-party signal only if that signal exists and is consented (files/02 §5.2a). If the signal does not exist, the mechanism is built and fails closed, and the missing signal is recorded as a blocker. A signal is never faked."
+    - "Tests: hiding removes every clinical string from the rendered tree in the same frame; un-hiding restores the content; a near miss covers a non-privacy close."
+  sec_row: "mobile"
+- id: INT-419
+  epic: E00-governance
+  phase: P1
+  title: "licence gate verifies native (Maven/CocoaPods) dependencies against the raw LICENSE, not only package.json"
+  # GitHub #711. Found by the licence-auditor on #710, 27 Sep 2026.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:ci]
+  status: todo
+  acceptance:
+    - "The licence gate lists every native runtime dependency: the Android Maven coordinates from the bundled `.pom` files, and the iOS pods from `Podfile.lock`, or the podspecs when no lockfile exists. Each one is checked against an allow-list of licence ids."
+    - "Each native dependency has a recorded raw-LICENSE sha256 and `licence_verified_at`. A dependency with no record fails the gate."
+    - "A test uses a fixture with one unrecorded Maven artefact, and the gate fails; the near-miss with a recorded one passes."
+  sec_row: "cicd"
+- id: INT-434
+  epic: E05-voice
+  phase: P1
+  title: "admin Council section — member selection with 4-eyes via flag_governance, per-member latency/tokens/agreement"
+  # GitHub #742. Split from INT-430 (#741, ADR-036). Also waits on INT-428 (#751), whose row
+  # is on its PR branch, not on main.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:admin]
+  status: todo
+  acceptance:
+    - "Extends INT-428's Model lanes module. Members are picked per role through the role→(provider, model) resolver, under four-eyes governance with an audit row."
+    - "Per-member latency, token and agreement metrics, each listed in metrics_catalog.yaml."
+  sec_row: "admin-console"
+- id: INT-435
+  epic: E05-voice
+  phase: P1
+  title: "council production composition — ModelAssignment adapter, triage re-run, clinician inbox sink, CD-07 binding"
+  # GitHub #743. Split from INT-430 (#741, ADR-036). Also waits on INT-428 (#751, row on its
+  # PR branch) and HB-O8.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-432]
+  labels: [area:api]
+  status: todo
+  acceptance:
+    - "The verifier is composed into a session in composition.py, using the INT-428 adapter."
+    - "A late verdict re-runs triage and sends an addendum to the clinician inbox. The CD-07 YELLOW_REVIEW routing from INT-432 is bound."
+    - "Blocked on INT-428, INT-432 and HB-O8."
+  sec_row: "llm-boundary"
+- id: INT-436
+  epic: E11-learning
+  phase: P1
+  title: "offline Loop-2 yield_table proposal (replaces the cut runtime ranker)"
+  # GitHub #744. Split from INT-430 (#741, ADR-036).
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:protocols]
+  status: todo
+  acceptance:
+    - "Offline Loop-2 proposals reorder DETAIL steps only, within one section, covered by the pack hash."
+    - "Proposal-only (invariant 12), with an evidence bundle."
+  sec_row: "learning-loops"
+- id: INT-437
+  epic: E07-records
+  phase: P1
+  title: "document rules on the parse_document path — add/arm only, staleness, contested, identity match"
+  # GitHub #745. Split from INT-430 (#741, ADR-036).
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-432]
+  labels: [area:api]
+  status: todo
+  acceptance:
+    - "Document facts can only add or arm. An undated item cannot fill a slot. Each document class has a staleness window (from INT-432)."
+    - "A document/patient conflict becomes CONTESTED, worst case stands. Identity is matched before extraction."
+    - "The five document tests from the medical review, each with a near-miss control."
+  sec_row: "records"
+- id: INT-438
+  epic: E03-protocols
+  phase: P1
+  title: "deterministic red-flag lexicon, speaker attribution and backchannel lexicon"
+  # GitHub #746. Split from INT-430 (#741, ADR-036).
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-432]
+  labels: [area:protocols]
+  status: todo
+  acceptance:
+    - "A deterministic Turkish red-flag/crisis lexicon on the raw transcript, independent of the council. It always runs."
+    - "Speaker attribution: when speakers conflict the slot is CONTESTED. A backchannel never counts as a confirmation."
+    - "Clinical content is sourced via INT-432, with golden tests and near-miss controls."
+  sec_row: "clinical-content"
+- id: INT-444
+  epic: E05-voice
+  phase: P1
+  title: "model identity & drift hardening — /identity, drift canary, model@revision recording keys, schema lint, guarded extraction transport"
+  # GitHub #754. Split from INT-428 (#751, ADR-035); waits on INT-428, whose row is on its PR
+  # branch.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:api]
+  status: todo
+  acceptance:
+    - "The remaining AI/ML review items from INT-428, each with tests."
+  sec_row: "llm-boundary"
+- id: INT-445
+  epic: E08-mobile
+  phase: P1
+  title: "hosted/self-hosted lanes wired into the mobile release build"
+  # GitHub #755. Split from INT-428 (#751, ADR-035); waits on INT-428, whose row is on its PR
+  # branch.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "The release build resolves lanes through the server only; the device holds no vendor keys. Tested."
+  sec_row: "mobile"
+- id: INT-452
+  epic: E00-governance
+  phase: P1
+  title: "Roadmap refresh, made dynamic: files/05's live status and files/11 regenerated from the backlog and a GitHub snapshot, with a CI check"
+  # GitHub #765. Owner request of 3 Oct 2026 ("every in-flight item visible in
+  # the backlog"), restated by the owner on 16 Oct 2026 through the
+  # orchestrator: finish the roadmap so every phase is complete and it stays
+  # dynamic, regenerated by a script with a CI check, never hand-edited. The
+  # 3 Oct body also names "the admin Roadmap module"; no such module exists on
+  # main or on any of the 355 branches (checked 16 Oct). A console module that
+  # renders this status is new admin-console surface (RBAC, audit, tr copy), so
+  # it is listed in docs/evidence/INT-452.md for the orchestrator to file.
+  depends_on: [INT-004, INT-396]
+  labels: [area:docs]
+  status: done
+  evidence: docs/evidence/INT-452.md
+  acceptance:
+    - "scripts/backlog/render_roadmap.py renders the live status section of files/05_ROADMAP.md from docs/backlog/issues.yaml, docs/backlog/epics.yaml, files/HUMAN_BLOCKERS.md, docs/backlog/blockers.md and the committed GitHub snapshot docs/backlog/github_snapshot.json: per phase and epic, done, in flight (open PR and branch), blocked (blocker record and named owner) and todo, each with an owner (a named human or an agent role)"
+    - "`make roadmap-snapshot` is the only step that calls GitHub; CI and the tests read the committed snapshot or fixtures, and a pytest check fails when the committed roadmap or files/11 differs from the generator output"
+    - "the three hard-coded backlog count pins become one derived check: ids are unique, the sync plans exactly one action per row, and no id recorded in the snapshot's row floor (which only the snapshot step may raise) loses its row"
+    - "every reserved issue (INT-414..451) and every other open issue with no row on main or on any branch has its backlog row, with its acceptance copied verbatim, unless an agent may be adding that row now; those are listed in docs/evidence/INT-452.md instead, so no id gets two rows"
+    - "files/00_STATE.md's work queue points at the generated status, and docs/evidence/INT-452.md lists, per phase, what remains open with its blocker and owner, in the order the orchestrator works it"
+  tests: [tests/backlog/test_roadmap.py, tests/backlog/test_schema.py, tests/backlog/test_sync_dryrun.py, tests/smoke/test_make_check.py]
+  sec_row: "compliance-evidence"
+- id: INT-454
+  epic: E05-voice
+  phase: P0
+  title: "spoken-answer loop end to end on the hosted lanes (ASR → extract → next question), measured"
+  # GitHub #769. Split from INT-440 (#748, PR #768). Needs the hosted lanes INT-428, INT-442 and
+  # INT-443 and the RED hop INT-446, whose rows are on their PR branches.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:voice]
+  status: todo
+  acceptance:
+    - "On the synthetic AWS host's hosted lanes (INT-428, INT-442 and INT-443), a full simulated-patient intake runs by voice in the simulator or on a device. Spoken answers are transcribed, slots bind, follow-ups adapt, and a RED fires via INT-446. ASR latency and the per-turn timings are recorded as measurements."
+  sec_row: "intake-voice"
+- id: INT-456
+  epic: E03-protocols
+  phase: P1
+  title: "Spoken clip text carries markdown emphasis and an unresolved {{tenant.acil_location_tr}} placeholder into the TTS request"
+  # GitHub #779. Found during INT-455 (#778). The issue names no Sec-Row and no phase label;
+  # the phase is INT-455's.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-060]
+  labels: [area:protocols, area:voice]
+  status: todo
+  acceptance:
+    - "A failing test compiles the real scripted strings through `emit_clips.rule_sources` + `rows_from` and asserts that no `text_tr` carries `*`, `{{`, `}}` or a template bracket."
+    - "The spoken form is markup-free, and the clip key stays the hash of exactly what TTS receives (emit_clips rule 1)."
+    - "The tenant placeholder is resolved per tenant or refused; it is never spoken and never defaulted (files/04 §8.2 `tenant_acil_location_string_is_never_defaulted`). Write an ADR if clip keying becomes per-tenant."
+    - "No authored RED byte in `base.life_threat.yaml` changes."
+- id: INT-457
+  epic: E03-protocols
+  phase: P1
+  title: "ON_SITE 112 gate checks the flag, numbers and action codes but not the spoken script text (decision: INT-432/owner)"
+  # GitHub #780. Found by the INT-455 clinical review (#778). Red-flag semantics: decided by the
+  # INT-432 lane or the owner before any gate is built. No Sec-Row on the issue.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-432]
+  labels: [area:protocols, area:safety]
+  status: todo
+  acceptance:
+    - "Decided by INT-432 or the owner, and recorded: whether the compiler refuses a 112 mention (digits or the expanded `yüz on iki`) in any ON_SITE spoken field. Also decide whether a SARI REMOTE do-not may speak 112 while `show_112: false` (today `rf.chest_pain_no_cardiac_history` does: \"… beklemeyin — 112'yi arayın.\")."
+    - "If yes: the compiler refusal, plus a near-miss test (ON_SITE text with 112 is refused; REMOTE text with 112 compiles; ON_SITE text without 112 compiles). `make safety` green."
+- id: INT-458
+  epic: E03-protocols
+  phase: P1
+  title: "expand_tr passes ½ through unexpanded, and an over-long digit run crashes the build instead of refusing"
+  # GitHub #781. Found by the INT-455 security review (#778). No Sec-Row on the issue.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: [INT-314]
+  labels: [area:protocols, area:safety]
+  status: todo
+  acceptance:
+    - "The compiler refuses every Unicode number character it does not expand (category N), and a test plants `½`. Decide whether the runtime check also widens to category N."
+    - "An over-long digit run raises `TrExpansionError`, so `rows_from` records a refusal. Test it."
+    - "Near-miss controls: prose is unchanged, `1/2` is still refused, and a large in-lexicon number still expands."
+- id: INT-476
+  epic: E08-mobile
+  phase: P1
+  title: "kiosk wipe clears the RED store, and the RED screen-reader cover does not hide the kiosk idle warning"
+  # GitHub #815. From the #796 (INT-465) clinical re-review, round 3 (observation 9). Must land
+  # before kiosk activation is allowed.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "A kiosk wipe clears redStore (and the no-answer clock); test with a near miss (a non-kiosk session keeps a standing RED across navigation)."
+    - "The kiosk idle warning and PIN stay reachable by screen readers while a RED stands; test with a near miss."
+    - "Must land before kiosk activation is allowed."
+  sec_row: "clinical-core"
+- id: INT-487
+  epic: E12-admin
+  phase: P1
+  title: "probe emitters use fullmatch for id, ref and sha shapes (invariant 6)"
+  # GitHub #832. From the owner's 4 Oct chip session with INT-485 and INT-486 (the issue carries
+  # no labels; epic, phase and area follow INT-486, its sibling).
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:admin]
+  status: todo
+  acceptance:
+    - "use .fullmatch everywhere, with near-miss tests per emitter."
+  sec_row: "admin-console"
+- id: INT-489
+  epic: E03-protocols
+  phase: P1
+  title: "proxy-path gaps outside the packs — subject_role literal mismatch, mid-session speaker switch, carer route in the profile flow"
+  # GitHub #836. Found while building INT-483 (#826, PR #833, ADR-040).
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:protocols]
+  status: todo
+  acceptance:
+    - "each item fixed or explicitly closed (fail closed) with tests and near misses; clinical content via D18 (clinical-reviewer), legal via D25 (legal-reviewer)."
+    - "item 1: base.intake compares subject_role against 'kendim', but the choice offered is \"kendim için\", and no value set for subject_role is committed — any gate reading subject_role may never match. Pack content: route through the D18 lane (CD record) with a near-miss test; commit a vs.subject_role value set."
+    - "item 2: A speaker who answers \"yakınım adına\" in a session started as self is not handled (addressing is fixed at session build)."
+    - "item 3: INT-133's profile flow still accepts an acknowledged adult companion as proxy_report, and the mobile app's own question set is outside the compiled packs, so the carer path is not closed on those routes (LD-02 carers.conflict_for_06_owner; files/06 §6 proxy_reported)."
+    - "item 4: Proxy wording for safeguarding probes must stay consistent with files/13 §13 and HB-C8."
+    - "item 5: ADR-040 / HB-C9: the RED unknown-location question asks where the device holder is; in a proxy session the carer's location would set the patient's."
+  sec_row: "clinical-content"
+- id: INT-493
+  epic: E03-protocols
+  phase: P1
+  title: "proxy mechanism follow-ups before any proxy content lands (from the INT-483 review)"
+  # GitHub #841. From the #833 (INT-483, ADR-040) clinical review APPROVE, 4 Oct 2026.
+  # Acceptance verbatim from the issue. Row added by INT-452: the issue was open
+  # with no row on main or on any branch (16 Oct 2026).
+  depends_on: []
+  labels: [area:protocols]
+  status: todo
+  acceptance:
+    - "Non-blocking follow-ups from the #833 (INT-483, ADR-040) clinical review APPROVE, 4 Oct 2026. All proxy paths are closed today; items 1-2 are HIGH and must land before or with the first proxy content PR."
+    - "1. HIGH — ADR-040:178 / compile/proxy_path.py:382-384: the HB-C9 condition (a proxy device-holder's location answer sets REMOTE/ON_SITE for the patient; ON_SITE drops 112) is only prose. Add a proxy-path refusal while any active RED rule exists and HB-C9 is open (inv 21)."
+    - "2. HIGH — plan.py:247-248, emit_clips.py:104, addressing.py:103-107: in an allow_paraphrase section, reworded proxy text becomes PARAPHRASE_OK so the Talker could drift it back to second person. Refuse such slots on the proxy path or force SCRIPTED for proxy documents (inv 10)."
+    - "3. MEDIUM — proxy_path.py:292-306: make RED_FLAG_PROBE_GATED_ON_SUBJECT_ROLE every-path with a shrink-only allow-list {chest_pain.present} (inv 7)."
+    - "4. MEDIUM — proxy_path.py:307: PROXY_GATED_ON_SUBJECT_ROLE is direct-only; use _reach(...) & speaker_side."
+    - "5. MEDIUM — skipped slot keeps second-person texts; apply_extraction(clarification_needed) on a NOT_ASKED_PROXY origin re-enters with the self follow_up_tr and flips to UNCLEAR; submit_utterance doesn't check step_id — make it a no-op/raise + test."
+    - "6. MEDIUM — dsl.py:203-209: allow-list addressee: speaker slots (e.g. identity_check.*)."
+    - "7. MEDIUM — ADR-040:111-117: exhaustive proxy_report → PROXY mapping + test when session start is wired (ties to INT-489)."
+    - "8-15. LOW — note-gap wiring in the production assembler; plan-build re-check of protocol.addressing; pin test scans ops[].slot; AST guard aliases; in-test near-miss controls; add_slot 5-part pointer named refusal; hospital override_text closes proxy path; register gate on cluster/specialty proxy copy."
+    - "16-17. INFO — 'kendim' vs 'kendim için' (INT-489); rf_suicidal_* probes vs files/13 §13 / HB-C8."
+  sec_row: "clinical-content"
 - id: INT-415
   epic: E05-voice
   phase: P1
@@ -7170,4 +7529,52 @@
     - "Fake-clock tests: RED evaluated mid-silence, mid-patient-speech, mid-TTS; delivered once; budget held; near miss (YELLOW, GREEN) never takes the path."
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
+  sec_row: "voice-runtime"
+- id: INT-519
+  epic: E03-protocols
+  phase: P1
+  title: "D18 decisions — review-queue cluster gate literals (CD-112), CD-100 T1 on the corrected premise, CD-04/CD-05 amendments for the onset anchor"
+  # GitHub #885, from the INT-441 (#750) clinical review, with items 5 to 12
+  # added from the INT-522 (#888) and INT-540 (#913) clinical reviews, 16 Oct
+  # 2026. D18 lane: a sourced medical author agent and an independent
+  # verifier; the reviewers' recommendations are inputs, not decisions.
+  # Decisions only: no gate, pack, rule or runtime code changes here, and the
+  # engineering each decision needs is listed in the evidence. Stacked on
+  # INT-540 (PR #918).
+  depends_on: [INT-432, INT-448, INT-522, INT-540]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-519.md
+  acceptance:
+    - "Items 1 to 3 (the cluster gate literals) are decided in one new record, CD-112, each literal a member of its slot's committed value set; item 1 applies only once ADR-040 (#833) lands."
+    - "Item 4 (CD-100 T1 owner part) is a CD-100 amendment re-read on the corrected premise; items 5 to 12 are CD-04 and CD-05 amendments that keep every decided value they do not change, with item 5's split carried as machine-readable per-cause keys."
+    - "Items 6, 7 and 10 are decided only where they can be sourced; anything left open stays the invariant-17 literal under draft_needs_source with the missing source or clinician input named."
+    - "Every value cites a primary source against a committed verbatim snapshot (url, version, date, retrieved_on), states its safety direction, and carries no paediatric extrapolation without the caveat; each record carries an independent verifier verdict."
+    - "tests/protocols/test_int519_decisions.py pins that the decisions are machine-readable and internally consistent, with near-miss controls; the register's provenance tests stay green."
+  tests: [tests/protocols/test_int519_decisions.py, tests/protocols/test_clinical_decisions.py, tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"
+- id: INT-545
+  epic: E05-voice
+  phase: P0
+  title: "A RED the session close raises reaches the patient's device"
+  # GitHub #921, from the runtime review of the #920 merge (INT-531 +
+  # INT-540), 17 Oct 2026. VoiceSessionRouter.end() queued the close and then
+  # stopped the RED watch at once, so a RED raised by the close (or by a last
+  # queued answer) reached only the clinician route. Reproduced on both
+  # profiles. The watch now outlives the close and is released once the close
+  # has settled on two polls and the watch is idle; the clinician route is told
+  # when the device was not reached. Must land before any worker calls end()
+  # on a normal finish (INT-515). Built on #920.
+  depends_on: [INT-531, INT-540]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-545.md
+  acceptance:
+    - "test_a_red_the_close_raises_after_end_reaches_the_device (profile x location): watch alive after end(); pump -> published == [(K2, location)] with the script <= 300 ms after evaluation; one poll -> still running; second poll -> cancelled, nothing left closing."
+    - "Near misses: a quiet close releases the watch after two polls; a session already sealed at end() stops the watch at once."
+    - "Update test_red_push.py test_the_watch_stops_when_the_session_ends (pump + two polls first)."
+    - "The clinic inbox notification states when the device was not reached (RedNotification.patient_facing describes the register, not delivery)."
+    - "Contract documented: the worker that composes sessions must run router.watch()/poll(), or ended sessions pile up in _closing (INT-542 item 1)."
+    - "Invariants 9, 21; make safety and runtime-sim green."
+  tests: [tests/voice/test_red_watch_outlives_close.py, tests/voice/test_red_push.py, tests/voice/test_red_preemption.py, tests/voice/test_safety_inbox_notifier.py]
   sec_row: "voice-runtime"
