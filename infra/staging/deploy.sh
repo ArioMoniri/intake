@@ -39,6 +39,13 @@
 #   7. Brings the project up on exactly the image the SBOM describes (and the
 #      console image built beside it), and waits for health.
 #   8. Probes /healthz and /readyz over public HTTPS.
+#
+# INT-481, the telemetry tier (compose.obs.yaml): once the release gate admits
+# the deploy it writes the `started` deploy marker, and after step 8 the
+# `completed` one, which the staff Grafana draws on every dashboard. After
+# step 6 it makes sure the live realm has the committed `grafana` client, and
+# after step 7 it recreates the telemetry services, as it does caddy, so they
+# read this release's configuration.
 set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -57,6 +64,7 @@ build_admin_web_image
 build_keycloak_image
 stamp_sbom
 require_release_not_frozen
+write_deploy_marker started
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}, SBOM ${INTAKE_SBOM_DIGEST}) to https://${STAGING_HOSTNAME}"
 
 compose up -d postgres redis openbao
@@ -79,6 +87,7 @@ rotate_role_passwords
 ensure_keycloak_database
 compose up -d --no-build --wait keycloak
 ensure_staff_webauthn_notes
+ensure_grafana_client
 mirror_keycloak_jwks
 
 # --no-build: the api runs the image build_api_image made and syft described
@@ -95,6 +104,8 @@ fi
 # it serves this release's sites.
 # caddy declares no healthcheck, so --wait waits for it to be running
 compose up -d --no-build --no-deps --force-recreate --wait caddy
+# INT-481: the same for every telemetry service that reads a config file
+recreate_telemetry_tier
 
 for path in /healthz /readyz; do
   if ! wait_https "$path"; then
@@ -104,5 +115,6 @@ for path in /healthz /readyz; do
   fi
   log "https://${STAGING_HOSTNAME}${path}: ok"
 done
+write_deploy_marker completed
 
 log "deployed ${INTAKE_GIT_SHA}; next: ./smoke.sh"

@@ -1,0 +1,54 @@
+{
+  "schema": "intake.admin.alerts.v1",
+  "generated_at": "2026-10-04T09:12:30Z",
+  "source": {
+    "state": "ok",
+    "reason": null
+  },
+  "counts": {
+    "page": 2,
+    "ticket": 2,
+    "other": 0
+  },
+  "alerts": [
+    {
+      "alertname": "AuditChainVerificationFailed",
+      "severity": "page",
+      "state": "suppressed",
+      "starts_at": "2026-10-04T03:00:00Z",
+      "labels": {}
+    },
+    {
+      "alertname": "ApiAvailabilityFastBurn",
+      "severity": "page",
+      "state": "active",
+      "starts_at": "2026-10-04T08:57:00Z",
+      "labels": {
+        "service": "api",
+        "slo": "availability"
+      }
+    },
+    {
+      "alertname": "CostBudgetNotConfigured",
+      "severity": "ticket",
+      "state": "active",
+      "starts_at": "2026-10-01T00:00:00Z",
+      "labels": {
+        "budget_id": "all-vendors-day",
+        "period": "day",
+        "scope": "all_vendors"
+      }
+    },
+    {
+      "alertname": "ApiLatencyTicketBurn",
+      "severity": "ticket",
+      "state": "unprocessed",
+      "starts_at": "2026-10-03T22:10:00Z",
+      "labels": {
+        "service": "api",
+        "slo": "latency"
+      }
+    }
+  ],
+  "withheld": 1
+}

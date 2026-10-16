@@ -348,6 +348,26 @@ it or whose tests exercise it.
 - **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
   (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
   test_slo_coverage.py (INT-021).
+- **Controls added by INT-481 (4 Oct 2026, staging telemetry tier and staff Grafana, ADR-041):**
+  the [I] label threat is closed at ingestion, not only at the catalogue. One reviewed list of
+  label keys (`intake_platform.observability.labels`) is held against the catalogue, every
+  rule file and every dashboard. It refuses any key that names a person, a session or a
+  device, carries free text, or is identifier-shaped, unless the key is a reviewed identifier
+  with its reason. Every staging scrape job ends with a `labelkeep` of exactly that list and
+  caps samples, labels and value lengths. New threats this tier adds, each closed by a test:
+  [S/E] Grafana as a second console (files/08 §0b F1). It reads Prometheus only, sits on its
+  own origin, client and cookie behind a staff session with an ops-console role, and has no
+  password, admin account, Explore or anonymous access. It is linked from the console, never
+  framed. [I] a Grafana or proxy log line with an email: Grafana logs errors only and the
+  gate's request and auth logs are off. [Dd] egress from the tier: internal networks only,
+  no published port, no receiver that sends anywhere, and no plugin or update traffic.
+  [I] alert text in the console: `GET /admin/alerts` returns names, states and id labels
+  only, never annotations or the generator URL. Signals: SyntheticProbeFailing,
+  ScrapeTargetDown, the host disk and memory alerts and the deploy markers
+  (infra/staging/observability/staging-rules.yaml). Tests:
+  tests/observability/test_metric_labels.py, test_ops_dashboards.py,
+  tests/infra/test_staging_obs_tier.py, tests/admin/test_alerts_console.py,
+  apps/admin-web/e2e/alerts.spec.ts.
 
 ## `observability-pipeline` — logs, traces, errors are not a side channel
 

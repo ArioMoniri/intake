@@ -78,7 +78,7 @@ OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}" "${SMS_KEYS[@]}")
 # padding), rather than gen_secret's 64 hex. oauth2-proxy accepts a cookie
 # secret only as 16, 24 or 32 bytes, raw or base64-decoded, and 64 hex
 # characters are neither.
-COOKIE_SECRET_KEYS=(OAUTH2_PROXY_COOKIE_SECRET)
+COOKIE_SECRET_KEYS=(OAUTH2_PROXY_COOKIE_SECRET OAUTH2_PROXY_GRAFANA_COOKIE_SECRET)
 
 # INT-421: the admin tier. Keycloak keeps its own database in the staging
 # Postgres, under its own role. The API reads the realm's key set from a file
@@ -110,8 +110,10 @@ require_tools() {
 }
 
 # The only way this tier calls compose: one project, one root-only env file.
+# INT-481: compose.obs.yaml (the telemetry tier) is part of the same project.
 compose() {
-  docker compose -p intake-staging --env-file "$ENV_FILE" -f "$STAGING_DIR/compose.yaml" "$@"
+  docker compose -p intake-staging --env-file "$ENV_FILE" -f "$STAGING_DIR/compose.yaml" \
+    -f "$STAGING_DIR/compose.obs.yaml" "$@"
 }
 
 # --- pure helpers (tested without docker) ----------------------------------------------
@@ -794,6 +796,119 @@ with urllib.request.urlopen(url, timeout=10) as response:
   chmod 644 "$JWKS_FILE"
   JWKS_CHANGED=1
   log "realm ${KEYCLOAK_REALM} key set mirrored to $JWKS_FILE"
+}
+
+# --- the telemetry tier (INT-481) --------------------------------------------------------
+
+# Deploy markers. deploy.sh writes one node-exporter textfile per stage of a
+# deploy; node-exporter reads the directory read-only and Prometheus keeps the
+# one family, deploy_event_timestamp_seconds{head_sha,stage}, which the staff
+# Grafana draws on every dashboard. A marker holds a commit sha and a time,
+# nothing secret, so the directory is 0755 and each file 0644.
+OBS_TEXTFILE_DIR="${INTAKE_OBS_TEXTFILE_DIR:-/var/lib/intake-obs/textfile}"
+DEPLOY_STAGES=(started completed)
+# Every service of compose.obs.yaml that reads a bind-mounted config file. Like
+# caddy, each is recreated on every deploy, so it reads this release's files.
+OBS_CONFIGURED_SERVICES=(prometheus alertmanager blackbox-exporter grafana oauth2-proxy-grafana)
+
+ensure_obs_textfile_dir() {
+  mkdir -p "$OBS_TEXTFILE_DIR"
+  # root on the host (deploy.sh runs as root); a test runs this unprivileged
+  if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    chown root:root "$OBS_TEXTFILE_DIR"
+  fi
+  chmod 755 "$OBS_TEXTFILE_DIR"
+}
+
+deploy_marker_line() {
+  # The one exposition line of a marker. It refuses anything but a full commit
+  # sha, a known stage and a unix time, so no other value reaches a label.
+  local sha=$1 stage=$2 at=$3 known=0 candidate
+  [[ $sha =~ ^[0-9a-f]{40}$ ]] || return 1
+  for candidate in "${DEPLOY_STAGES[@]}"; do
+    [[ $stage == "$candidate" ]] && known=1
+  done
+  ((known == 1)) || return 1
+  [[ $at =~ ^[0-9]+$ ]] || return 1
+  printf 'deploy_event_timestamp_seconds{head_sha="%s",stage="%s"} %s\n' "$sha" "$stage" "$at"
+}
+
+write_deploy_marker() {
+  # write_deploy_marker <stage>: atomic, through a temporary name node-exporter
+  # ignores and a rename. A new deploy's `started` removes the last deploy's
+  # `completed`, so a started with no completed is a deploy that stopped.
+  local stage=$1 line tmp
+  line=$(deploy_marker_line "$INTAKE_GIT_SHA" "$stage" "$(date -u +%s)") ||
+    die "refusing a deploy marker for '${stage}' at '${INTAKE_GIT_SHA}'"
+  ensure_obs_textfile_dir
+  if [[ $stage == started ]]; then
+    rm -f "$OBS_TEXTFILE_DIR/deploy-completed.prom"
+  fi
+  tmp="$OBS_TEXTFILE_DIR/.deploy-${stage}.tmp"
+  printf '%s\n' "$line" >"$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$OBS_TEXTFILE_DIR/deploy-${stage}.prom"
+  log "deploy marker: ${stage} ${INTAKE_GIT_SHA}"
+}
+
+recreate_telemetry_tier() {
+  # The telemetry tier reads its configuration from this release's files. Its
+  # data volumes survive the recreate, and Prometheus misses at most a scrape.
+  compose up -d --no-build --no-deps --force-recreate --wait "${OBS_CONFIGURED_SERVICES[@]}"
+}
+
+# The staff Grafana's Keycloak client (keycloak/grafana_client.py). Keycloak
+# imports a realm once, so a host whose realm predates INT-481 has no `grafana`
+# client. This creates it, or brings it back to the committed shape, and fails
+# unless it ends there. Like staff_flow it runs in a one-off api container, and
+# the bootstrap admin password and the client secret travel on stdin, never in
+# an argv, an environment or a log. `check` only reads.
+grafana_client() {
+  local mode=${1:-} password secret script
+  case $mode in
+  apply) set -- ;;
+  check) set -- --check ;;
+  *) die "usage: grafana_client apply|check" ;;
+  esac
+  password=$(env_get "$ENV_FILE" KEYCLOAK_ADMIN_PASSWORD)
+  [[ $password =~ ^[0-9a-f]{64}$ ]] || die "KEYCLOAK_ADMIN_PASSWORD is not a generated secret: run ./init.sh"
+  secret=$(env_get "$ENV_FILE" INTAKE_GRAFANA_CLIENT_SECRET)
+  [[ $secret =~ ^[0-9a-f]{64}$ ]] || die "INTAKE_GRAFANA_CLIENT_SECRET is not a generated secret: run ./init.sh"
+  script=$(<"$STAGING_DIR/keycloak/grafana_client.py")
+  printf '%s\n%s\n' "$password" "$secret" | compose run --rm --no-deps -T api python -c "$script" \
+    "$@" http://keycloak:8080 "$KEYCLOAK_REALM" "$KEYCLOAK_BOOTSTRAP_ADMIN" "$STAGING_HOSTNAME"
+}
+
+ensure_grafana_client() {
+  grafana_client apply || die "the live realm's grafana client is not in the committed shape; the staff Grafana stays closed"
+}
+
+prom_value() {
+  # prom_value <PromQL>: the first sample's value of an instant query, asked
+  # inside the prometheus container (Prometheus publishes no port), or nothing
+  local url
+  url="http://127.0.0.1:9090/api/v1/query?query=$(python3 -c '
+import sys, urllib.parse
+print(urllib.parse.quote(sys.argv[1], safe=""))
+' "$1")"
+  compose exec -T prometheus wget -qO- "$url" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    result = json.load(sys.stdin)["data"]["result"]
+except (ValueError, KeyError, TypeError):
+    sys.exit(1)
+print(result[0]["value"][1] if result else "")
+'
+}
+
+wait_prom_value() {
+  # wait_prom_value <PromQL> <value>: two minutes for a fresh scrape to say so
+  local _
+  for _ in $(seq 1 24); do
+    [[ $(prom_value "$1" || true) == "$2" ]] && return 0
+    sleep 5
+  done
+  return 1
 }
 
 # --- the release gate (INT-187) ---------------------------------------------------------

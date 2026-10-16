@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**364 issues.** By phase: P0 180 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 244 · todo 74 · withdrawn 1.
+**365 issues.** By phase: P0 180 · P1 131 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 245 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -326,6 +326,7 @@
 | INT-538 | One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required | E13-infra | INT-460 | area:infra | done |
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
+| INT-481 | Staff observability stack: Grafana-class dashboards and alerts for the admin panel (AWS host) | E01-platform | INT-021, INT-345, INT-421 | area:observability | done |
 
 ## P2
 

@@ -1,0 +1,22 @@
+# INT-481 — Alertmanager on the synthetic staging host (compose.obs.yaml).
+#
+# SYNTHETIC PATIENTS ONLY (HB-I5, HB-L11). Internal networks only.
+#
+# One receiver, `console`, with no integration: nothing here sends a mail, a
+# chat message or a webhook, so this file opens no egress. Alerts surface in
+# the admin console, which reads them through the API (GET /admin/alerts, ids
+# only: alert name, severity, state, start time and the id labels), and in the
+# staff Grafana. Paging a human is a receiver the owner adds later, with its
+# own egress decision.
+#
+# Grouping is by alert and severity, so one failing probe across several
+# components is one notification group.
+route:
+  receiver: console
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+
+receivers:
+  - name: console

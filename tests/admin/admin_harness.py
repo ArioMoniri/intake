@@ -201,6 +201,8 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
     RouteDrive("GET", "/admin/ops", "/admin/ops", "sre_oncall"),
     # INT-181 — the reliability composite (platform scope, read only).
     RouteDrive("GET", "/admin/reliability", "/admin/reliability", "sre_oncall"),
+    # INT-481 — the alerts feed (platform scope, read only).
+    RouteDrive("GET", "/admin/alerts", "/admin/alerts", "sre_oncall"),
     RouteDrive(
         "POST",
         "/admin/models/{component}/benchmark",

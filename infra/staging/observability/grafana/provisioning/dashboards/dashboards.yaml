@@ -1,0 +1,31 @@
+# INT-481 — the staff Grafana's dashboards, as code (compose.obs.yaml).
+#
+# Two read-only folders, both generated and drift-gated:
+#   SLOs        infra/observability/grafana/dashboards/, one per docs/slo file
+#               (intake_platform.slo_dashboards, INT-021)
+#   Operations  infra/observability/grafana/ops-dashboards/ (INT-481,
+#               intake_platform.ops_dashboards)
+# Nothing can be saved, moved or deleted from the UI.
+apiVersion: 1
+
+providers:
+  - name: slo
+    orgId: 1
+    folder: SLOs
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/dashboards/slo
+      foldersFromFilesStructure: false
+  - name: ops
+    orgId: 1
+    folder: Operations
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/dashboards/ops
+      foldersFromFilesStructure: false

@@ -2314,6 +2314,155 @@ metrics:
       1 when the ops collector's last read of a source (gpu_host, ci, cicd)
       succeeded, 0 when it failed — what lets the console tell "failing" from
       "not configured".
+  # --- INT-481: the staging host's telemetry tier ------------------------------
+  # Not constructed in our code: Prometheus's own series, the pinned
+  # node-exporter and blackbox exporter (observability/registry.yaml), and the
+  # deploy markers infra/staging/lib.sh writes as a node-exporter textfile.
+  # `emitter` names which, and infra/staging/observability/prometheus.yml keeps
+  # exactly these names from each exporter job and drops every other family
+  # (tests/infra/test_staging_obs_tier.py). Each job also keeps only the
+  # reviewed label keys (invariant 6), so the labels below are what is stored.
+  - name: up
+    type: gauge
+    labels: [component]
+    owner: platform
+    unit: "bool (0/1)"
+    emitter: prometheus
+    description: >-
+      1 when Prometheus's last scrape of a target succeeded, 0 when it failed,
+      per job and instance. A blackbox target also carries its probed
+      endpoint's component id.
+  - name: prometheus_tsdb_storage_blocks_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bytes"
+    emitter: prometheus
+    description: Bytes the staging Prometheus's persisted blocks occupy on disk.
+  - name: prometheus_tsdb_retention_limit_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bytes"
+    emitter: prometheus
+    description: >-
+      The staging Prometheus's size cap (--storage.tsdb.retention.size, 4 GB);
+      the oldest blocks are dropped beyond it.
+  - name: prometheus_tsdb_head_series
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "count"
+    emitter: prometheus
+    description: Series held in the staging Prometheus's in-memory head block.
+  - name: prometheus_config_last_reload_successful
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bool (0/1)"
+    emitter: prometheus
+    description: 1 when the staging Prometheus's last configuration load succeeded.
+  - name: node_cpu_seconds_total
+    type: counter
+    labels: [cpu, mode]
+    owner: platform
+    unit: "s"
+    emitter: "exporter:node-exporter"
+    description: >-
+      CPU seconds the staging host spent per CPU index and mode (idle, user,
+      system and the rest of the kernel's closed set).
+  - name: node_memory_memtotal_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bytes"
+    emitter: "exporter:node-exporter"
+    description: >-
+      The staging host's total memory. node-exporter's node_memory_MemTotal_bytes,
+      renamed to lower case at ingestion.
+  - name: node_memory_memavailable_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bytes"
+    emitter: "exporter:node-exporter"
+    description: >-
+      The staging host's memory available for new work. node-exporter's
+      node_memory_MemAvailable_bytes, renamed to lower case at ingestion.
+  - name: node_filesystem_size_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bytes"
+    emitter: "exporter:node-exporter"
+    description: >-
+      Size of the staging host's root filesystem, the only one the collector
+      sees; device, filesystem type and mount point are dropped at ingestion.
+  - name: node_filesystem_avail_bytes
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bytes"
+    emitter: "exporter:node-exporter"
+    description: Bytes free to unprivileged users on the staging host's root filesystem.
+  - name: node_load1
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "count"
+    emitter: "exporter:node-exporter"
+    description: The staging host's one-minute load average.
+  - name: node_load15
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "count"
+    emitter: "exporter:node-exporter"
+    description: The staging host's fifteen-minute load average.
+  - name: node_textfile_scrape_error
+    type: gauge
+    labels: []
+    owner: platform
+    unit: "bool (0/1)"
+    emitter: "exporter:node-exporter"
+    description: >-
+      1 when node-exporter could not read the deploy-marker textfile directory,
+      so a missing marker is told apart from a deploy that never happened.
+  - name: probe_success
+    type: gauge
+    labels: [component]
+    owner: platform
+    unit: "bool (0/1)"
+    emitter: "exporter:blackbox-exporter"
+    description: >-
+      1 when the synthetic probe of a staging service's own health endpoint
+      answered 2xx within 5 s, by the endpoint's component id. The probed URL
+      is never a label.
+  - name: probe_duration_seconds
+    type: gauge
+    labels: [component]
+    owner: platform
+    unit: "s"
+    emitter: "exporter:blackbox-exporter"
+    description: How long the synthetic probe of each component took, end to end.
+  - name: probe_http_status_code
+    type: gauge
+    labels: [component]
+    owner: platform
+    unit: "HTTP status"
+    emitter: "exporter:blackbox-exporter"
+    description: The HTTP status the synthetic probe of each component received (0 for none).
+  - name: deploy_event_timestamp_seconds
+    type: gauge
+    labels: [head_sha, stage]
+    owner: platform
+    unit: "s (unix time)"
+    emitter: "textfile:infra/staging/lib.sh"
+    description: >-
+      When deploy.sh reached a stage of a deploy (started, after the release
+      gate admits it; completed, after /healthz and /readyz answer over public
+      HTTPS), by the deployed commit sha. The staff Grafana draws these as deploy
+      markers; a started with no completed is a deploy that stopped.
   # --- INT-187: the CI/CD console's collector-fed series -----------------------
   # Emitted by intake_probes.ops_collector from intake_probes.ops_cicd, read
   # server-side with the same read-only token (OpenBao) and egress guard as the

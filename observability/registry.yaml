@@ -744,3 +744,113 @@ components:
       none: hub parsers and scenarios are MIT too, but they would arrive over
       the network from a host that is not on the egress allow-list, which is
       why there are none.
+
+  # INT-481 — the staging host's telemetry tier (infra/staging/compose.obs.yaml).
+  # Not on the PHI path: metrics only, ids and enumerations only, every label
+  # key on the reviewed allow-list at ingestion (invariant 6). No fallback: a
+  # telemetry outage loses visibility, never a patient-facing function. Each
+  # licence was read from the raw LICENSE blob at the release tag's commit on
+  # 4 Oct 2026 (docs/evidence/INT-481.md); each image is the multi-arch index
+  # digest from Docker Hub's v2 API, rehashed from the body the same day. The
+  # four Prometheus-family repos ship the same Apache-2.0 blob (git blob
+  # 261eeb9e), byte-identical to apache.org's text without its leading blank
+  # line. The images carry no revision label, so the tie between an image and
+  # the commit read is the release job's timing, recorded in the evidence.
+  - component: prometheus
+    self_hostable: true
+    self_hosted_now: true
+    host: "staging compose.obs.yaml, AWS host (synthetic only) — prom/prometheus v3.15.0, internal networks only, 30 d / 4 GB retention"
+    image: "prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e"
+    license: "Apache-2.0"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    phi_path: false
+    licence_verified_at: 2026-10-04
+    licence_blob_url: "https://raw.githubusercontent.com/prometheus/prometheus/5241a27fe3c6983549fccc32f6e65917408c63cd/LICENSE"
+    licence_blob_sha256: "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    licence_note: >-
+      Read at commit 5241a27f (annotated tag v3.15.0), 11 357 bytes, the stock
+      Apache License 2.0. The NOTICE at the same commit (4 370 bytes, sha256
+      ac9e3044…) carries attributions only. The probe is /-/ready.
+
+  - component: alertmanager
+    self_hostable: true
+    self_hosted_now: true
+    host: "staging compose.obs.yaml, AWS host (synthetic only) — prom/alertmanager v0.34.1, one receiver that sends nothing"
+    image: "prom/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a"
+    license: "Apache-2.0"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    phi_path: false
+    licence_verified_at: 2026-10-04
+    licence_blob_url: "https://raw.githubusercontent.com/prometheus/alertmanager/73c6bfe7393929211294c1954f30d8ed78e4d0ad/LICENSE"
+    licence_blob_sha256: "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    licence_note: >-
+      Read at commit 73c6bfe7 (annotated tag v0.34.1), the same Apache-2.0 blob
+      as Prometheus's. The probe is /-/ready; the admin console reads its
+      alerts through the API (GET /admin/alerts).
+
+  - component: node-exporter
+    self_hostable: true
+    self_hosted_now: true
+    host: "staging compose.obs.yaml, AWS host (synthetic only) — prom/node-exporter v1.12.1, five collectors, host /proc /sys and / read-only"
+    image: "prom/node-exporter:v1.12.1@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0"
+    license: "Apache-2.0"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    phi_path: false
+    licence_verified_at: 2026-10-04
+    licence_blob_url: "https://raw.githubusercontent.com/prometheus/node_exporter/6044da783597cc3b57aef7580ddcdcff58a4ee99/LICENSE"
+    licence_blob_sha256: "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    licence_note: >-
+      Read at commit 6044da78 (annotated tag v1.12.1), the same Apache-2.0 blob.
+
+  - component: blackbox-exporter
+    self_hostable: true
+    self_hosted_now: true
+    host: "staging compose.obs.yaml, AWS host (synthetic only) — prom/blackbox-exporter v0.28.0, run as uid 65534, HTTP probes inside the host"
+    image: "prom/blackbox-exporter:v0.28.0@sha256:e753ff9f3fc458d02cca5eddab5a77e1c175eee484a8925ac7d524f04366c2fc"
+    license: "Apache-2.0"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    phi_path: false
+    licence_verified_at: 2026-10-04
+    licence_blob_url: "https://raw.githubusercontent.com/prometheus/blackbox_exporter/5a059bee8d8ffa4e75947c5055fb0abeefc582e6/LICENSE"
+    licence_blob_sha256: "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    licence_note: >-
+      Read at commit 5a059bee (lightweight tag v0.28.0), the same Apache-2.0
+      blob. The image sets no USER, so compose runs it as 65534; it is built on
+      CircleCI, so the image-to-commit tie is release timing only.
+
+  - component: grafana
+    self_hostable: true
+    self_hosted_now: true
+    host: "staging compose.obs.yaml, AWS host (synthetic only) — grafana/grafana 13.2.3 OSS, unmodified, staff only behind oauth2-proxy-grafana, Prometheus its only datasource"
+    image: "grafana/grafana:13.2.3@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572"
+    license: "AGPL-3.0-only (LICENSE blob verified @v13.2.3; LICENSING.md carve-outs are Apache-2.0 client packages)"
+    probe: http_health
+    budget_ms: 2000
+    fallback: "none"
+    phi_path: false
+    licence_verified_at: 2026-10-04
+    licence_blob_url: "https://raw.githubusercontent.com/grafana/grafana/6193dc03311b631b9727b560d24369e683dc396e/LICENSE"
+    licence_blob_sha256: "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0"
+    licence_note: >-
+      Read at commit 6193dc03 (annotated tag v13.2.3): 34 523 bytes, the GNU
+      Affero GPL v3 text byte-identical to gnu.org's. LICENSING.md at the same
+      commit (991 bytes, sha256 4393eddd…) names the default as AGPL-3.0-only
+      and carves out Apache-2.0 client packages (grafana-data, -ui, -runtime,
+      -e2e-selectors), packaging/ and a few schema directories; the server we
+      run is AGPL-3.0-only. Acceptable because it runs unmodified from the
+      upstream image, for this deployment's own staff, and is never
+      distributed or offered as a service to anyone else: the AGPL's
+      network-use clause binds a modified version, and we modify nothing. A
+      modification, a fork or an offer to third parties re-opens this row.
+      The image's config was created at 2026-09-28T20:55Z, before the tag
+      commit (2026-09-29T09:01Z), the shape of a security release built from
+      a private mirror; the LICENSE and LICENSING.md blobs are identical at the
+      tag and its parent, so the finding holds either way.

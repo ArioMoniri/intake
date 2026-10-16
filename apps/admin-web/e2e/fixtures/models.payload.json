@@ -942,6 +942,166 @@
           }
         }
       }
+    },
+    {
+      "component": "prometheus",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "staging compose.obs.yaml, AWS host (synthetic only) — prom/prometheus v3.15.0, internal networks only, 30 d / 4 GB retention",
+      "license": "Apache-2.0",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": "2026-10-04",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "prometheus: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "alertmanager",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "staging compose.obs.yaml, AWS host (synthetic only) — prom/alertmanager v0.34.1, one receiver that sends nothing",
+      "license": "Apache-2.0",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": "2026-10-04",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "alertmanager: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "node-exporter",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "staging compose.obs.yaml, AWS host (synthetic only) — prom/node-exporter v1.12.1, five collectors, host /proc /sys and / read-only",
+      "license": "Apache-2.0",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": "2026-10-04",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "node-exporter: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "blackbox-exporter",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "staging compose.obs.yaml, AWS host (synthetic only) — prom/blackbox-exporter v0.28.0, run as uid 65534, HTTP probes inside the host",
+      "license": "Apache-2.0",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": "2026-10-04",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "blackbox-exporter: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "grafana",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "staging compose.obs.yaml, AWS host (synthetic only) — grafana/grafana 13.2.3 OSS, unmodified, staff only behind oauth2-proxy-grafana, Prometheus its only datasource",
+      "license": "AGPL-3.0-only (LICENSE blob verified @v13.2.3; LICENSING.md carve-outs are Apache-2.0 client packages)",
+      "probe": "http_health",
+      "budget_ms": 2000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": "2026-10-04",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "grafana: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
     }
   ]
 }

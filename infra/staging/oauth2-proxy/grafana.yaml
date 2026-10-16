@@ -1,0 +1,58 @@
+# INT-481: the staff Grafana's login gate. Caddy sends grafana.<host> here, and
+# this proxy sends only a signed-in Keycloak staff session through to Grafana.
+#
+# It is a second oauth2-proxy, with its own Keycloak client (`grafana`), its
+# own cookie and its own origin, so Grafana never shares an origin, a session
+# or a token audience with the admin console: a Grafana defect cannot act as
+# the console. The realm's "staff browser" flow still demands a password and a
+# second factor for every login.
+#
+# Who passes: a staff account holding one of the roles that may read the ops
+# console (`admin.ops.read`, intake_platform.admin.wiring._PLATFORM_SCOPE_ROLES),
+# read from the realm roles in the access token. tests/infra/
+# test_staging_obs_tier.py holds this list equal to that set.
+#
+# Grafana authenticates by the X-Forwarded-Email header this proxy sets from
+# the session (Grafana's auth proxy; no Grafana password exists). oauth2-proxy
+# strips any incoming copy of an injected header first, so a browser cannot
+# supply it, and Grafana is reachable on no network but this proxy's and the
+# internal obs network. The client secret is host-generated and root-only
+# (init.sh). Code redemption and the key set use the internal network.
+server:
+  bindAddress: "0.0.0.0:4180"
+upstreamConfig:
+  upstreams:
+    - id: grafana
+      path: /
+      uri: http://grafana:3000
+providers:
+  - id: keycloak
+    provider: keycloak-oidc
+    clientID: grafana
+    clientSecret: ${INTAKE_GRAFANA_CLIENT_SECRET}
+    code_challenge_method: S256
+    scope: "openid email"
+    loginURL: https://auth.${STAGING_HOSTNAME}/realms/intake/protocol/openid-connect/auth
+    redeemURL: http://keycloak:8080/realms/intake/protocol/openid-connect/token
+    keycloakConfig:
+      roles:
+        - auditor
+        - clinical_lead
+        - compliance_officer
+        - platform_admin
+        - platform_owner
+        - qms_owner
+        - researcher
+        - sre_oncall
+    oidcConfig:
+      issuerURL: https://auth.${STAGING_HOSTNAME}/realms/intake
+      skipDiscovery: true
+      jwksURL: http://keycloak:8080/realms/intake/protocol/openid-connect/certs
+      emailClaim: email
+      userIDClaim: sub
+      audienceClaims: [aud]
+injectRequestHeaders:
+  - name: X-Forwarded-Email
+    values:
+      - claimSource:
+          claim: email

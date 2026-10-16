@@ -370,6 +370,10 @@ def test_live_entries_are_emitted_and_planned_entries_are_not() -> None:
         if metric.status == "live"
         and metric.name not in observed
         and metric.name not in DEFAULT_COLLECTOR_FAMILIES
+        # INT-481: Prometheus's own series, a pinned exporter's and a textfile
+        # writer's are not constructed in our code; their proof is the staging
+        # scrape job that keeps them by name (tests/infra/test_staging_obs_tier.py)
+        and metric.emitter == "code"
     )
     assert dishonest_live == [], (
         f"catalogued as live but never emitted (mark planned or emit): {dishonest_live}"

@@ -175,6 +175,31 @@
 - Next: orchestrator's word to push and open the PR.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-04T00:30:00Z · INT-481 · done (PR open; deploys through the merge queue)
+- Goal: the owner's request of 4 Oct 2026, *"have grafana or related better options or more detailed things for the admin panel and all telemetrics measurements"* (GitHub #824).
+- Plan:
+  - Survey what exists.
+  - Recommend one stack, with each licence read from its raw blob.
+  - Size it against a read-only SSM probe of the AWS host.
+  - Build it as `infra/staging/compose.obs.yaml` with dashboards and rules as code.
+  - Add an Alerts page fed through the API.
+  - Hold every label key to one closed list.
+- Tests added: `tests/observability/test_metric_labels.py`, `test_ops_dashboards.py`, `tests/infra/test_staging_obs_tier.py`, `tests/admin/test_alerts_console.py` and `apps/admin-web/e2e/alerts.spec.ts`.
+  - Near-misses: person, session, device, free-text and id-shaped keys are refused; a class or a count is admitted; an uncatalogued series is caught; a changed objective changes the dashboard; a phi-bearing datasource is caught; a marker with a short sha or an injected stage is refused; a misspelt oauth2-proxy key is refused by the binary; annotations and the generator URL never reach the console.
+  - RED and GREEN runs: `docs/evidence/INT-481.md`.
+- Result:
+  - `2605 passed` across admin, observability and infra; admin-web `386 passed`.
+  - `promtool`, `amtool`, `blackbox_exporter` and the pinned oauth2-proxy accept every config; `promtool test rules` passes.
+  - shellcheck, no_placeholders, phi_scan and claims_scan are clean. `make check-py`: see the evidence.
+- Invariants touched and still passing: 6 (labelkeep at ingestion; no email in the Grafana or gate logs; ids-only alerts), 13 (`emitter` on every catalogued family; each exporter job keeps exactly its families), 14 (digest pins; host-generated secrets on stdin), 15 (coverage `tier` entry with probe rows), 17 (*unknown* is a state; no figure is invented), 48 (Grafana reads Prometheus only, on its own origin, linked not framed).
+- Decisions / ADRs / `00_STATE.md` rows: ADR-041 and **D27** narrow files/08 §0b F1 for a staff Grafana over Prometheus only. D27 is numbered past D21 and D23–D26, which are taken on open branches.
+- Blocked on (owner):
+  - `owner-481-prometheus-console.patch` lights the console's Prometheus tiles, and with them the INT-187 error-budget freeze. One sentence: "May an exhausted 28-day SLO budget refuse staging deploys?"
+  - The CI collector needs a read-only GitHub token, an OpenBao path, and an egress route to `api.github.com`, which is a hook-protected allow-list change.
+  - The council and USD-spend panels wait on INT-430 (#741) and INT-439 (#761).
+- Next: the merge-queue deploy, then three or four dashboard screenshots for the owner.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:
