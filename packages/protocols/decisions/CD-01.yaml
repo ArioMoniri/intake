@@ -2,11 +2,11 @@ kind: clinical_decision
 id: CD-01
 title: "Chest-pain slots the two active RED rules read (HB-C6)"
 question: "Which slots, with which scripted Turkish questions and closed choices, must base.intake declare so that rf.chest_pain_cardiac_features and rf.chest_pain_no_cardiac_history can evaluate, and which patients are asked each one?"
-decision: "Declare three sections and seven slots: chest_pain {present, character, radiation, onset_at}, associated {diaphoresis, dyspnoea} and trauma {recent}. chest_pain.present is asked of every session as one direct scripted question that names pain or discomfort, now or recently, because NICE CG95 counts discomfort as chest pain and requires an immediate check of current pain and, when pain free, of the last episode. The other six are asked only when chest_pain.present is true. All seven are must_ask: the K2 rule can fire on chest_pain.present, one positive feature and the anchor with the others unanswered (T or U is T), but the SARI rule fires only when all seven are answered, so leaving any of them unasked silently removes the SARI arm. Every code slot offers a closed choice containing each literal the rules test, spelled exactly. character adds 'yanma' (a pain character the CKM Symptom/Sign archetype names) and 'başka bir his' (the archetype's free character phrase); radiation adds 'boyun' and 'omuz' (NICE CG95 1.3.3.1) and 'başka bir yer'. An answer naming more than one site or more than one character word is recorded CONTESTED with every named value and evaluated on their union (files/12 §7.3); it is never stored as a list (a list reads Unknown) and never reduced to one value, and 'yok' is exclusive. The associated symptoms are asked as occurring with the chest pain (NICE CG95 1.2.1.3: marked sweating, breathlessness). trauma.recent is anchored to the current chest-pain episode rather than to a numeric window, because no retrieved source states a window. onset_at holds the time of the most recent episode, not the first onset (NICE CG95 1.2.1.1), and is answered from the four-band closed choice of CD-05. Each slot also carries a proxy form, spoken when identity_check.subject_role is 'yakınım adına', because the CKM Symptom/Sign archetype records symptoms as reported by a parent, care-giver or other party; the DSL holds one ask_tr per slot, so until it can select the proxy form the proxy stop-gap below applies, and the under-triage gap it leaves is recorded as finding F13. Disagreements between the sources and the two rules are recorded as findings and are not applied to base.life_threat."
+decision: "Declare three sections and seven slots: chest_pain {present, character, radiation, onset_at}, associated {diaphoresis, dyspnoea} and trauma {recent}. chest_pain.present is asked of every session as one direct scripted question that names pain or discomfort, now or recently, because NICE CG95 counts discomfort as chest pain and requires an immediate check of current pain and, when pain free, of the last episode. The other six are asked only when chest_pain.present is true. All seven are must_ask: the K2 rule can fire on chest_pain.present, one positive feature and the anchor with the others unanswered (T or U is T), but the SARI rule fires only when all seven are answered, so leaving any of them unasked silently removes the SARI arm. Every code slot offers a closed choice containing each literal the rules test, spelled exactly. character adds 'yanma' (a pain character the CKM Symptom/Sign archetype names) and 'başka bir his' (the archetype's free character phrase); radiation adds 'boyun' and 'omuz' (NICE CG95 1.3.3.1) and 'başka bir yer'. An answer naming more than one site or more than one character word is recorded CONTESTED with every named value and evaluated on their union (files/12 §7.3); it is never stored as a list (a list reads Unknown) and never reduced to one value, and 'yok' is exclusive. The associated symptoms are asked as occurring with the chest pain (NICE CG95 1.2.1.3: marked sweating, breathlessness). trauma.recent is anchored to the current chest-pain episode rather than to a numeric window, because no retrieved source states a window. onset_at holds the time of the most recent episode, not the first onset (NICE CG95 1.2.1.1), and is answered from the four-band closed choice of CD-05. Each slot also carries a proxy form, spoken when identity_check.subject_role is 'yakınım adına', because the CKM Symptom/Sign archetype records symptoms as reported by a parent, care-giver or other party; the DSL holds one ask_tr per slot, so until it can select the proxy form the proxy stop-gap below applies, and the under-triage gap it leaves is recorded as finding F13. Disagreements between the sources and the two rules are recorded as findings and are not applied to base.life_threat. Round 4 amendment (INT-554, 17 Oct 2026). identity_check.subject_role is asked, and bound to one of its authored choices, before any of the seven slots is asked, and no chest-pain slot is asked ahead of it. If the subject role binds 'yakınım adına' after a chest-pain slot was answered, every chest-pain answer given before the binding is invalidated, as files/13 §11.3 invalidates an answer whose premise has changed: it is discarded rather than stored as the patient's, the slots read NOT_ASKED, and the proxy item is raised. A level the rules engine has already determined from those answers is never lowered, because the person who answered reported it. The subject's age is bound only from the subject's own recorded date of birth, never from a slot answer and never from the speaker's identity; with none, or while the rules' adult band states no lower bound, it is unknown, so the proxy item is raised as it is today."
 status: active
 scope: simulated_patient_stress_testing
 author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
-inference_disclosure: "The proxy wording, the CONTESTED recording of multi-value answers and the proxy stop-gap are this author's operationalisation; no cited guideline words a proxy question or a multi-site answer. The character/radiation/associated feature split itself is the rule author's, as base.life_threat's own inference_disclosure says."
+inference_disclosure: "The proxy wording, the CONTESTED recording of multi-value answers and the proxy stop-gap are this author's operationalisation; no cited guideline words a proxy question or a multi-site answer. The character/radiation/associated feature split itself is the rule author's, as base.life_threat's own inference_disclosure says. Round 4 (INT-554): binding the subject role strictly before the chest-pain slots, and invalidating a chest-pain answer given before a proxy binding, are this author's operationalisation of the stop-gap's purpose; that a second-person question answered before the role is known is about the speaker is the structural reading of the copy (it asks about 'Göğsünüzde'), not a clinical source. Keeping a level already determined is files/13's monotonic rule applied to an invalidation, which that rule does not itself name."
 sources:
   - kind: guideline
     guideline_id: TR-EK4-2022
@@ -144,6 +144,22 @@ spec_basis:
     section: "RULE SCHEMA, age_band"
     quote: "age_band:           adult | paediatric | both"
     supports: "proxy_unasked_inbox_item.raised_when (both chest-pain rules carry age_band: adult)"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.1 Nine priority classes, one total order"
+    quote: "universal facts other *rules* depend on"
+    supports: "amendments round 4 (INT-554 item D7) subject_role_first: the subject role is the fact the chest-pain stop-gap, and so both chest-pain rules, depend on"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§11.3 The ask-ahead race that is currently a fabricated-data path"
+    quote: "the answer rather than storing it, record nothing for that slot."
+    supports: "amendments round 4 (INT-554 item D7) answered_before_proxy_binding: an answer whose premise changed is discarded, not stored"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§11.2 Contradiction — and it can never lower triage"
+    quote: "Monotonic: a contradiction can never lower a level"
+    supports: "amendments round 4 (INT-554 item D7) answered_before_proxy_binding.level_already_determined"
+  - file: packages/protocols/decisions/CD-100.yaml
+    section: "value.amendments round 4, T1 decision"
+    quote: "from recorded demographics, false when nothing is recorded, never through the slot lookup."
+    supports: "amendments round 4 (INT-554 item D7) subject_age: the same binding rule for a demographic fact"
 value:
   proxy_selection: "proxy_ask_tr / proxy_follow_up_tr are spoken instead of ask_tr / follow_up_tr whenever identity_check.subject_role is 'yakınım adına'; a proxy answer fills the patient's slot with proxy-reported provenance"
   proxy_until_dsl_selects_copy: "The DSL holds one ask_tr per slot. Until it can select proxy copy, the self-worded copy of these seven slots is not spoken in a proxy session and the seven slots stay NOT_ASKED (rendered 'Sorulmadı'). This stop-gap avoids filling the patient's slots with the speaker's own answers, but it is not fail-closed: meanwhile neither chest-pain RED rule can fire in a proxy session, a known under-triage gap recorded as finding F13 that blocks any real patient. In simulated stress testing a proxy persona with chest pain is reported as unscreened, never as negative."
@@ -353,8 +369,60 @@ value:
       finding: "Until the DSL can select proxy copy, none of the seven chest-pain slots is asked in a proxy session (subject_role 'yakınım adına'), so neither chest-pain RED rule can fire for an adult patient spoken for by a relative: the immediate check NICE CG95 asks for is not performed. This is a known under-triage gap that blocks any real patient. In simulated stress testing a proxy persona with chest pain is reported as unscreened, never as negative; a subject-neutral wording was considered and not adopted (value.considered_proxy_alternative)."
       quote: "Check immediately whether people currently have chest pain."
       guideline_id: NICE-CG95
+  # Round 4: what changed. Rounds 1 to 3 above are unchanged. The independent
+  # verifier's round-4 verdict is recorded in `verifier`.
+  amendments:
+    - round: 4
+      date: 2026-10-17
+      issue: "INT-554 (GitHub #938) item D7"
+      origin: "#931/#932 clinical review, 17 Oct 2026, and the INT-525 residual 2; the reviewers' recommendations were inputs, not decisions"
+      items:
+        - item: D7
+          question: "Proxy item: wire SubjectAge when a verified age fact exists; a screen answered before subject_role binds keeps the speaker's own answer and raises no item. Should the engine ask subject_role strictly first?"
+          decision: >-
+            Yes. identity_check.subject_role is asked, and bound to one of its
+            authored choices, before any of the seven slots is asked, and no
+            chest-pain slot is asked ahead of it while the role is unbound. If the
+            role nonetheless binds 'yakınım adına' after a chest-pain slot was
+            answered, every chest-pain answer given before the binding is
+            invalidated: discarded rather than stored as the patient's, the slots
+            read NOT_ASKED, and the proxy item is raised. A level the rules engine has
+            already determined from those answers is never lowered: whoever answered
+            reported that chest pain, and the RED script reaches whoever is at the
+            device. A role that binds 'kendim için' late keeps the answers. The
+            subject's age binds only from the subject's own recorded date of birth
+            (the booked patient's record), never from a slot answer and never from
+            the speaker's identity or account in a proxy session; without one it is
+            unknown. Placing a recorded age in or outside the adult band needs the
+            band's lower bound, which neither chest-pain rule states (age_band:
+            adult); until one is stated every subject's age is unknown for this
+            item, which raises the item exactly as today.
+          subject_role_first:
+            gatekeeper: identity_check.subject_role
+            precedes: [chest_pain.present, chest_pain.character, chest_pain.radiation, chest_pain.onset_at, associated.diaphoresis, associated.dyspnoea, trauma.recent]
+            bound_means: "the direct answer binds one of the authored choices of vs.subject_role"
+            ask_ahead_before_bound: false
+          answered_before_proxy_binding:
+            when: "identity_check.subject_role binds the proxy choice after any of the seven slots was answered"
+            proxy_choice: "yakınım adına"
+            answers: invalidated
+            slots_read: NOT_ASKED
+            level_already_determined: never_lowered
+            raises: proxy_chest_pain_screen_unasked
+            self_choice_late: "a role that binds 'kendim için' after the answers keeps them"
+          subject_age:
+            binds_from: "the subject's own recorded date of birth (the booked patient's record)"
+            never_from: [slot_answer, speaker_identity]
+            absent_or_unverified: unknown
+            band_lower_bound: "not stated by either chest-pain rule (age_band: adult); it is the rule author's to state"
+            while_band_bound_unstated: unknown
+            effect_today: "none: every proxy session that skips the screen raises the item, as it does now"
+          keys: [subject_role_first, answered_before_proxy_binding, subject_age]
+          safety_direction: "never a speaker's answer filed as the patient's, never a lowered level, and never fewer proxy items"
+          sources: [openEHR-EHR-CLUSTER.symptom_sign.v2, NICE-CG95]
+          status: active
 verifier:
-  verdict: agree
+  verdict: pending
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree_with_changes; round 2 agree_with_changes (proxy stop-gap scope and F13); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree_with_changes (proxy stop-gap scope and F13); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 item D7, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

@@ -1,0 +1,113 @@
+# guideline_id: AOMRC-IMAGING-ALERTS-2022
+# title: Alerts and notification of imaging reports: Recommendations
+# publisher: Academy of Medical Royal Colleges (AoMRC)
+# version_or_date: October 2022 (© The Academy of Medical Royal Colleges 2022; the RCR's listing of the same recommendations gives a next review date of 2025, and no later edition was found on 2026-10-17)
+# url: https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf
+# url_landing: https://aomrc.org.uk/publication/alerts-notification-imaging-reports-recommendations
+# retrieved_on: 2026-10-17
+# retrieval: curl -L with a browser user-agent; the landing URL redirects to the PDF above (HTTP 200, application/pdf, 37 pages, sha256 c75d9ac9cc1746358cd2320137c193ba745ad70cd726f15f7fc0e0a0a327f36a); text extracted with pdftotext (poppler, reading order, no layout); line breaks as in the PDF; blank lines, page numbers and running heads removed; nothing paraphrased or edited
+# scope: verbatim excerpts of the title page, the Introduction, the Principles of a Fail-Safe Result Notification System, the Results Coordination Team section, the cancer-alert notification paragraph and its four recommendations, one paragraph of Roles and responsibilities, and the copyright line. '[...]' marks an omission between excerpts. UK recommendations for alerts and notification of imaging reports; cited for INT-554 (CD-08 round 4) only for the structure of a fail-safe notification (acknowledgement of receipt is distinct from action or a plan to act; unacknowledged items are followed up by the organisation; time frames are agreed by the organisation), never as a value for a pre-visit clinic inbox.
+---
+October 2022
+Alerts and
+notification of
+imaging reports
+Recommendations
+[...]
+In addition to the standard result notification process, some imaging findings may require
+an alert system to prioritise actions. The time frame and the mode of communication
+will depend on the acuity of the findings. A system should also be in place to define
+responsibility for communicating results to patients.
+The principles of a safe and effective imaging result notification process should
+encompass a fail-safe system from initiation of the report by the imaging department
+to appropriate action of the report by the referrers. Patients that are under the care of
+multiple clinical teams are most at risk of falling outside the completion of this system.
+Healthcare organisations should ensure a robust governance system to maintain patient
+safety by ensuring that all investigations are justified, completed and acted upon. Regular
+audits are essential to ensure compliance with the recommendations.
+A robust digital infrastructure in combination with human interactions is essential to
+ensure the success of the fail-safe notification system.
+[...]
+Principles and recommendations of a Fail-Safe Result
+Notification System:
+1.
+Prompt notification of all imaging reports by the Imaging department.
+2.
+Prompt review, acknowledgement and action on all imaging reports by the
+referrers.
+3.
+A system to facilitate identification and action of reports which have not been read,
+acknowledged and acted upon.
+[...]
+Individual healthcare organisations may incorporate additional imaging alerts, subject to
+their local governance processes.
+The main objective of a robust notification process is to ensure that the imaging reports
+are reviewed and understood so that further clinical actions can be taken if required.
+It is the responsibility of the healthcare organisations to adopt a fail-safe system that
+enables the identification of reports that have not been reviewed and acted upon (or plan
+to act) and embed a mechanism to follow up on these reports. This may involve a digital
+system, a Results Coordination Team, or a combination. This should not solely become
+the responsibility of the imaging department. Funding and support should remain the
+responsibility of the healthcare organisations.
+[...]
+Every imaging referral must include a valid contact detail to which an urgent
+communication can be made if required, including an out of hours' contact. The system
+can also be pre-agreed between the referrers and the imaging department.
+A Results Coordination Team is a team of staff employed by the healthcare organisation
+to optimise the alert notification system. The team is reportable to the local patient safety
+department, or other unit deemed appropriate by the healthcare organisation. They may
+also be responsible for other support services in escalating alerts and should at least be
+available from 9:00-17:00, 7 days a week.
+The aim of the Result Coordination Team is to ensure that no patient suffers adversely
+because of delayed or miscommunicated radiology reports. The Results Coordination
+Team should be primarily focused on patient outcomes and not merely concerned with
+institutional compliance around alert and acknowledgement systems.
+The function of a Results Coordination Team should include, as a minimum:
+—
+Verbal communication to the referrers that an imaging report containing a critical
+finding which may require immediate intervention is now available. This includes
+inpatients, outpatients, and primary care. The role here is to escalate the review of
+the imaging report, and not communicate the actual report findings.
+—
+Support the results notification system to ensure that reports are returned to the
+correct clinical team caring for the patient.
+—
+Identify and escalate imaging alerts (for example a new cancer diagnosis or a
+significant addendum) that have not been reviewed and acted upon (or plan to act).
+A 48-hour interval before escalation is reasonable but this may vary depending on
+clinical urgency and should be agreed upon by the healthcare organisation.
+It is important to acknowledge that this document should not be used to establish the
+legal standard of care in any particular clinical scenario.
+[...]
+The alert (alert text code: CANCER) should be immediately apparent on the report
+e.g. the red alert CANCER be stated at the top or bottom of the radiology report. The
+preferred format is at the discretion of the healthcare organisations. This notification
+should be triggered immediately upon completion of the report and be conducted
+via a digital platform incorporating a system for acknowledgement of receipt of the
+reports and subsequent actions (or plan to act). The actions from the CANCER alert
+notification may include clinic review, further investigations, or treatment plan.
+Recommendation on cancer imaging alerts
+1.
+All imaging reports with expected or unexpected new cancer diagnosis or newly
+detected cancer recurrence should be notified to the referrers with a CANCER alert
+in the report via a digital platform immediately upon completion of the reports.
+2.
+Referring teams must ensure a valid contact detail (or through a pre-agreed
+system) is available, including out of hours, on all imaging referrals. They must also
+ensure that all reports are read, acknowledged and acted upon (or plan to act).
+3.
+Healthcare organisations must ensure a fail-safe system that enables
+identification of reports that have not been read, acknowledged and acted upon (or
+plan to act).
+4.
+Healthcare organisations must embed a mechanism to follow up on these reports
+that have not been read, acknowledged and acted upon (or plan to act). This may
+involve a digital system, a Results Coordination Team, or a combination.
+[...]
+It is the responsibility of the referrer receiving the radiology alert to act or redirect
+the alert accordingly. This should be documented on the patient record. The
+clinical team deciding to redirect a report should be clear that this action is safe
+and appropriate. A Results Coordination Team may help to ensure that the current
+responsible clinical team receives the report.
+[...]
+© The Academy of Medical Royal Colleges 2022

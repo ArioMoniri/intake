@@ -2,11 +2,11 @@ kind: clinical_decision
 id: CD-04
 title: "Turkish hedge to answer-state table"
 question: "When the answer to a scripted red-flag question is hedged, qualified, double-negated or 'bilmiyorum', which answer state does it take, per rule, given that it may never become ASKED_ABSENT?"
-decision: "A hedged or qualified answer to a scripted rule question is UNCLEAR or PRESENT_QUALIFIED, never ASKED_ABSENT; only a plain negative ('hayır', 'yok', 'olmadı') to the scripted question itself is ASKED_ABSENT, and the matcher tests every entry below before it tests a plain negative, so 'yok gibi' never reads as 'yok'. PRESENT_QUALIFIED is not an eighth answer state: it is ASKED_PRESENT carrying the qualifier as an annotation, so it evaluates as present for the rule and the qualifier is carried into the note. UNCLEAR reads Unknown and triggers the slot's follow_up_tr once; an UNCLEAR on any CD-01 feature slot that survives the follow-up raises a labelled CD-08 clinic-inbox item (kind chest_pain_arms_unresolved), pinned to the note and never dropped, because under three-valued logic it can leave both chest-pain arms silent. The CKM screening archetype's presence value set (Yes / No / Unknown / Unsure) is the basis for keeping 'bilmiyorum' and every hedge out of No. For chest pain the NICE CG95 definition (pain or discomfort) makes a qualified pain or a discomfort present, and NICE CG95 1.2.1.1 and 1.2.1.7 make a pain that has passed still clinically present, to be dated by the anchor question (CD-05). The mapping is per rule and per slot: 'biraz' affirms breathlessness, which NICE names without a qualifier. On associated.diaphoresis NICE names marked sweating, so 'biraz' does not match the guideline feature, yet it is still PRESENT_QUALIFIED (qualifier mild_not_marked): as UNCLEAR it would leave both arms silent when no other feature is present, while a plain 'hayır' fires SARI_K1, so admitting a little sweating would be treated as less acute than denying it. That monotonicity argument is this author's (inference_disclosure), not NICE's. Two of the three files/04 §8.2 adversarial strings concern syncope and bleeding probes that no active rule reads; they take the UNCLEAR floor (which still arms the probe, CD-03) and whether they should be PRESENT_QUALIFIED stays draft_needs_source. An unmatched hedge is UNCLEAR. Round 3 amendment (INT-519, 16 Oct 2026), for a CD-05 tense anchor only: an answer that one of the entries below reads UNCLEAR, alone or beside a choice, takes no follow-up and is resolved at once by CD-05's more-acute rule, because a follow-up can only move a resolved anchor to a less acute day; an answer that binds no choice and that no entry reads (a narrative such as 'dün akşam', a plain 'yok' or 'olmadı', an answer that fits two bands) keeps the one follow-up; and a plain negative to the onset question is never ASKED_ABSENT and never retracts chest_pain.present, because the plain-negative clause above is about a yes-or-no scripted question, and NICE CG95 1.2.1.1 reads 'pain free now' as the case in which the last episode must still be dated. On every other scripted slot nothing changes."
+decision: "A hedged or qualified answer to a scripted rule question is UNCLEAR or PRESENT_QUALIFIED, never ASKED_ABSENT; only a plain negative ('hayır', 'yok', 'olmadı') to the scripted question itself is ASKED_ABSENT, and the matcher tests every entry below before it tests a plain negative, so 'yok gibi' never reads as 'yok'. PRESENT_QUALIFIED is not an eighth answer state: it is ASKED_PRESENT carrying the qualifier as an annotation, so it evaluates as present for the rule and the qualifier is carried into the note. UNCLEAR reads Unknown and triggers the slot's follow_up_tr once; an UNCLEAR on any CD-01 feature slot that survives the follow-up raises a labelled CD-08 clinic-inbox item (kind chest_pain_arms_unresolved), pinned to the note and never dropped, because under three-valued logic it can leave both chest-pain arms silent. The CKM screening archetype's presence value set (Yes / No / Unknown / Unsure) is the basis for keeping 'bilmiyorum' and every hedge out of No. For chest pain the NICE CG95 definition (pain or discomfort) makes a qualified pain or a discomfort present, and NICE CG95 1.2.1.1 and 1.2.1.7 make a pain that has passed still clinically present, to be dated by the anchor question (CD-05). The mapping is per rule and per slot: 'biraz' affirms breathlessness, which NICE names without a qualifier. On associated.diaphoresis NICE names marked sweating, so 'biraz' does not match the guideline feature, yet it is still PRESENT_QUALIFIED (qualifier mild_not_marked): as UNCLEAR it would leave both arms silent when no other feature is present, while a plain 'hayır' fires SARI_K1, so admitting a little sweating would be treated as less acute than denying it. That monotonicity argument is this author's (inference_disclosure), not NICE's. Two of the three files/04 §8.2 adversarial strings concern syncope and bleeding probes that no active rule reads; they take the UNCLEAR floor (which still arms the probe, CD-03) and whether they should be PRESENT_QUALIFIED stays draft_needs_source. An unmatched hedge is UNCLEAR. Round 3 amendment (INT-519, 16 Oct 2026), for a CD-05 tense anchor only: an answer that one of the entries below reads UNCLEAR, alone or beside a choice, takes no follow-up and is resolved at once by CD-05's more-acute rule, because a follow-up can only move a resolved anchor to a less acute day; an answer that binds no choice and that no entry reads (a narrative such as 'dün akşam', a plain 'yok' or 'olmadı', an answer that fits two bands) keeps the one follow-up; and a plain negative to the onset question is never ASKED_ABSENT and never retracts chest_pain.present, because the plain-negative clause above is about a yes-or-no scripted question, and NICE CG95 1.2.1.1 reads 'pain free now' as the case in which the last episode must still be dated. On every other scripted slot nothing changes. Round 4 amendment (INT-554, 17 Oct 2026), for the chest-pain slots other than a CD-05 tense anchor. When the session closes, a slot of the trigger that was asked and holds no answer is recorded UNCLEAR with CD-05's label session_closed, a slot already UNCLEAR whose follow-up was not yet asked stays UNCLEAR with the same label, and a slot never asked while chest_pain.present reads true stays NOT_ASKED; either raises the same clinic-inbox item, once per session, and neither changes triage, because each already reads Unknown. The decision's 'once' governs the follow-up of every slot the trigger names that is not a tense anchor, so the engine asks those slots' follow_up_tr once; a tense anchor keeps its per-cause bound."
 status: active
 scope: simulated_patient_stress_testing
 author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
-inference_disclosure: "The Turkish surface readings (double negation, hedges, 'biraz') are this author's linguistic operationalisation. Mapping 'biraz terledim' to PRESENT_QUALIFIED although NICE names marked sweating is the author's monotonicity choice: an answer that admits some of a feature must never evaluate as less acute than a plain denial of it. Raising a clinic-inbox item for an unresolved UNCLEAR is a fail-closed design choice, not a clinical source. Round 3 (INT-519): splitting the tense anchor's follow-up bound by cause is this author's operationalisation of CD-05's more-acute rule (itself a design rule of the 2 Oct 2026 physician pre-review, with NICE CG84's paediatric 'if in doubt' sentence cited only for its direction). That a second asking of the same verbatim question after an explicit 'bilmiyorum' adds a turn but no information, and invites a guess, is this author's reading, not a source."
+inference_disclosure: "The Turkish surface readings (double negation, hedges, 'biraz') are this author's linguistic operationalisation. Mapping 'biraz terledim' to PRESENT_QUALIFIED although NICE names marked sweating is the author's monotonicity choice: an answer that admits some of a feature must never evaluate as less acute than a plain denial of it. Raising a clinic-inbox item for an unresolved UNCLEAR is a fail-closed design choice, not a clinical source. Round 3 (INT-519): splitting the tense anchor's follow-up bound by cause is this author's operationalisation of CD-05's more-acute rule (itself a design rule of the 2 Oct 2026 physician pre-review, with NICE CG84's paediatric 'if in doubt' sentence cited only for its direction). That a second asking of the same verbatim question after an explicit 'bilmiyorum' adds a turn but no information, and invites a guess, is this author's reading, not a source. Round 4 (INT-554): raising the item at close for a slot asked and never answered, or never reached behind an affirmed chest_pain.present, extends the same fail-closed choice to the close; no source speaks to a session that ends in the middle of the chest-pain questions. Confirming 'once' for the non-anchor slots keeps the verified value: a second follow-up could resolve an answer the speech recogniser missed, and could equally draw a guess; no source or measurement in this repository settles which is more frequent, and the physician of record may weigh it."
 spec_basis:
   - file: files/13_QUESTION_FLOW.md
     section: "§9.3 Seven answer states"
@@ -32,6 +32,22 @@ spec_basis:
     section: "Scope held to the anchor"
     quote: "This issue builds the table whole but applies it at runtime to the CD-05 tense anchors only."
     supports: "amendments round 3, item 12: where the runtime applies unclear_follow_up_tr_asks today"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.3 Seven answer states"
+    quote: "`ASKED_PENDING` (ask-ahead bookkeeping)"
+    supports: "unresolved_at_close.asked_unanswered (round 4, INT-554 item D2): a pending ask is bookkeeping, not an answer a slot may keep once the session has closed"
+  - file: packages/protocols/decisions/CD-05.yaml
+    section: "value.never_asked_at_close"
+    quote: "record_label: never_asked_at_close"
+    supports: "unresolved_at_close.never_asked_gate_open.label (round 4): the same label CD-05 gives the anchor the session never reached"
+  - file: docs/evidence/INT-547.md
+    section: "Residuals (for the orchestrator), 3"
+    quote: "Non-anchor CD-01 slots still take two follow-ups"
+    supports: "follow_up_bound_scope (round 4, INT-554 item D6): the engine bound this round aligns"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§11.1 Clarification → a class-3 re-entry, bounded at 2 attempts"
+    quote: "bounded at 2 attempts"
+    supports: "follow_up_bound_scope.outside_this_decision (round 4): the general bound this decision does not reach"
 sources:
   - kind: openehr_ckm
     archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
@@ -279,6 +295,47 @@ value:
       note: "NICE names marked sweating, so 'a little' is below the guideline feature; it is still PRESENT_QUALIFIED so that admitting some sweating never evaluates as less acute than 'hayır' (which fires SARI_K1). The qualifier mild_not_marked is carried into the note (inference_disclosure)."
       sources: [NICE-CG95]
   unmatched_hedge: UNCLEAR
+  # Round 4 (INT-554 item D2): the trigger's slots at the session's close. The
+  # tense anchor is CD-05's (never_asked_at_close, session_closed) and
+  # unresolved_after_follow_up.anchor_trigger's; these are the other six.
+  unresolved_at_close:
+    slots: [chest_pain.present, chest_pain.character, chest_pain.radiation, associated.diaphoresis, associated.dyspnoea, trauma.recent]
+    asked_unanswered:
+      state_at_close: ASKED_PENDING
+      trigger: "the slot was asked (its ask_tr or its follow_up_tr spoken) and holds no answer when the session closes, whether or not its follow_up_tr has been asked"
+      records: UNCLEAR
+      label: session_closed
+    unclear_bound_unspent:
+      state_at_close: UNCLEAR
+      trigger: "the slot is already UNCLEAR when the session closes and its follow_up_tr has not yet been asked: the close spends the bound"
+      records: UNCLEAR
+      label: session_closed
+    never_asked_gate_open:
+      slots: [chest_pain.character, chest_pain.radiation, associated.diaphoresis, associated.dyspnoea, trauma.recent]
+      gate: "chest_pain.present == true"
+      state_at_close: NOT_ASKED
+      trigger: "the slot's gate reads TRUE and the slot is still NOT_ASKED when the session closes (end, abandonment or time-out)"
+      records: NOT_ASKED
+      rendered: "Sorulmadı"
+      label: never_asked_at_close
+    not_reached_by_this_decision: "chest_pain.present never asked at close: it has no gate, and a session that ends before the screen gave no answer about chest pain; a proxy session's skipped screen is CD-01's item"
+    action: clinic_inbox_item
+    kind: chest_pain_arms_unresolved
+    decision_ref: CD-08
+    once_per_session: true
+    pinned_to_note: true
+    never_dropped: true
+    evaluates_as: unknown
+    changes_triage: false
+    sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1, NICE-CG95]
+    status: active
+  # Round 4 (INT-554 item D6): which slots the decision-wide "once" governs.
+  follow_up_bound_scope:
+    once_slots: [chest_pain.present, chest_pain.character, chest_pain.radiation, associated.diaphoresis, associated.dyspnoea, trauma.recent]
+    asks: unclear_follow_up_tr_asks
+    tense_anchors_read: tense_anchor_follow_up_tr_asks
+    outside_this_decision: "a scripted slot no served red-flag rule reads keeps files/13 §11.1's bound; this decision does not reach it"
+    status: active
   # Round 3: what changed, item by item, so a reader can tell the decided values of
   # rounds 1 and 2 (unchanged) from the amendment. The independent verifier's round-3
   # verdict is recorded in `verification` below and in `verifier`.
@@ -390,8 +447,50 @@ value:
             every other scripted slot.
           spec_basis_ref: ["docs/evidence/INT-540.md Scope held to the anchor"]
           status: active
+    - round: 4
+      date: 2026-10-17
+      issue: "INT-554 (GitHub #938) items D2 and D6"
+      origin: "#931/#932 clinical review, 17 Oct 2026, and INT-543 (#917) finding F8; the reviewers' recommendations were inputs, not decisions"
+      items:
+        - item: D2
+          question: "A non-anchor CD-01 slot whose follow-up was spoken but never answered stays ASKED_PENDING at close, so the session ends GREEN with both arms Unknown and no item. Does it raise chest_pain_arms_unresolved?"
+          decision: >-
+            Yes. At close, a slot of the trigger other than a tense anchor that was
+            asked (its ask_tr or its follow_up_tr spoken) and holds no answer is
+            recorded UNCLEAR with CD-05's label session_closed, whether or not its
+            follow-up was asked, and raises the arms item; a slot already UNCLEAR
+            whose follow-up was not yet asked is closed the same way, the close
+            spending its bound. A slot never asked while
+            chest_pain.present reads true stays NOT_ASKED ('Sorulmadı'), is labelled
+            never_asked_at_close, and raises the same item. The item is one per
+            session whatever raises it. Neither case changes triage: a pending,
+            unclear or unasked slot already reads Unknown, so the close tells the
+            clinic and decides nothing. A close before chest_pain.present was asked is
+            not reached by this decision.
+          why: >-
+            The session ends with the arms as unresolved as an UNCLEAR after its
+            follow-up leaves them (CD-01 finding F9), and without the item nobody is
+            told: the patient's affirmed chest pain ends GREEN. Unknown is not No
+            (CKM presence value set), and CG95 1.2.1.1's check of current chest pain
+            is the one the close interrupted.
+          keys: [unresolved_at_close]
+          safety_direction: "more items, never a different level: the close adds a clinic item where an affirmed chest pain would otherwise end GREEN in silence"
+          sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1, NICE-CG95]
+          status: active
+        - item: D6
+          question: "Non-anchor slots take two follow-ups in the engine against this decision's 'once' (INT-543 F8): align the engine bound or confirm?"
+          decision: >-
+            Confirmed, and the engine aligns. unclear_follow_up_tr_asks (1) governs
+            every slot of the trigger that is not a tense anchor; the tense anchor
+            reads tense_anchor_follow_up_tr_asks. A scripted slot that no served rule
+            reads is outside this decision and keeps files/13 §11.1's bound. No value
+            changes.
+          keys: [follow_up_bound_scope]
+          value_changed: false
+          spec_basis_ref: ["docs/evidence/INT-547.md Residuals (for the orchestrator), 3", "files/13_QUESTION_FLOW.md §11.1"]
+          status: active
 verifier:
-  verdict: agree
+  verdict: pending
   role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
   verified_on: 2026-10-16
-  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 8, 9 and 12, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 and CG84 quotes re-read verbatim on the live NICE pages and in the committed snapshots; the item-12 key acknowledged; one note for the physician of record on item 5 (amendments[0].verification). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 8, 9 and 12, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 and CG84 quotes re-read verbatim on the live NICE pages and in the committed snapshots; the item-12 key acknowledged; one note for the physician of record on item 5 (amendments[0].verification). Round 4 (INT-554 items D2 and D6, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

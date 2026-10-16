@@ -32,14 +32,29 @@ decision: >-
   carry the other clinician-only items the INT-432 decisions route here: a
   red-flag-relevant result that lands after the session (review design change
   6); a scripted probe armed but left unanswered at session end (CD-03); a
-  chest-pain slot still UNCLEAR after its follow-up that leaves both chest-pain
-  arms Unknown (CD-04, kind chest_pain_arms_unresolved); and a proxy session
+  chest-pain slot still UNCLEAR after its follow-up, or left without an answer
+  when the session closes, which can leave both chest-pain arms Unknown (CD-04,
+  kind chest_pain_arms_unresolved); and a proxy session
   whose seven chest-pain slots stay unasked until the DSL can select proxy copy,
   for a subject in the chest-pain rules' adult age band or of unknown age
   (CD-01, kind proxy_chest_pain_screen_unasked). Each item kind is labelled and
   pinned to the note, never dropped, and its SLA may differ; all stay draft.
   The proxy item only makes the gap visible to a clinician; it does not close
-  it (CD-01 finding F13).
+  it (CD-01 finding F13). Round 4 amendment (INT-554, 17 Oct 2026).
+  Acknowledging an item records that it was received and read; it never closes
+  it. An item closes only on a recorded outcome, action_taken or plan_to_act,
+  the reviewer setting the urgency of any follow-up; redirected sends it to the
+  clinic now responsible for the patient and leaves it open there. The SLA,
+  out-of-hours cover and escalation role and window stay open: they are values
+  each tenant's clinical governance agrees, which no guideline found sets for a
+  pre-visit clinic inbox, and the inbox reports not ready until the tenant has
+  stated them and named an out-of-hours contact. The tenant Safety queue is the
+  booked clinic's inbox only when each entry names the booked clinic and only
+  the clinicians the tenant rosters to that clinic list it and record its
+  outcome; until then it is an interim delivery path, never a reason to drop an
+  item. The tenant_clinical_responsible role is not the recipient role; its
+  holder records an outcome only when also a
+  tenant_clinic_triage_trained_clinician.
 status: draft_needs_source
 scope: simulated_patient_stress_testing
 scope_note: >-
@@ -52,7 +67,9 @@ question_origin: >-
   late-landing addendum of the same review's design change 6; and the
   unanswered armed probe that sibling decision CD-03 defers to physician
   decision 7; and the two chest-pain item kinds raised under sibling decisions
-  CD-01 and CD-04.
+  CD-01 and CD-04. Round 4: INT-554 (GitHub #938) items D1, D3, D4 and D5, from
+  the #931/#932 clinical review of 17 Oct 2026, whose recommendations were
+  inputs, not decisions.
 author_role: "emergency medicine operations / clinical informatics physician (agent)"
 sources:
   - kind: guideline
@@ -111,6 +128,114 @@ sources:
     quote: "Children with any 'red' features but who are not considered to have an immediately life-threatening illness should be urgently assessed by a healthcare professional in a face-to-face setting within 2 hours."
     snapshot: packages/protocols/sources/NICE-NG143.txt
     supports: "source_gap (the only time NG143 sets is for red features, which a YELLOW_REVIEW cannot carry)"
+  # Round 4 (INT-554): the Academy of Medical Royal Colleges' recommendations on a
+  # fail-safe notification system, the one current Royal College text found on
+  # following up clinical notifications that were not read, acknowledged and acted
+  # upon. Imaging-report scope; cited for the structure of a fail-safe
+  # notification only, never for a value of this inbox.
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Categories of imaging findings, 1 (cancer alert notification)"
+    quote: "via a digital platform incorporating a system for acknowledgement of receipt of the reports and subsequent actions (or plan to act)."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "failure_path.outcome (round 4): acknowledgement of receipt is one record, the action or the plan to act another"
+    caveat: >-
+      UK recommendations for alerts on imaging reports (new cancer diagnoses,
+      time-critical findings, significant addenda). Cited for the structure of a
+      fail-safe notification, not as a statement about a pre-visit clinic inbox, and
+      the document says it should not be used to establish the legal standard of care.
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Recommendation on cancer imaging alerts, 2"
+    quote: "They must also ensure that all reports are read, acknowledged and acted upon (or plan to act)."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "failure_path.outcome.closes_on (round 4): an item closes on an action or a plan to act, not on acknowledgement"
+    caveat: "Imaging-report scope (see the first AoMRC entry)."
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Categories of imaging findings, 1 (cancer alert notification)"
+    quote: "The actions from the CANCER alert notification may include clinic review, further investigations, or treatment plan."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "failure_path.outcome.codes.plan_to_act (round 4): a clinic review is an action the reviewer may plan"
+    caveat: "Imaging-report scope (see the first AoMRC entry)."
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Roles and responsibilities of clinical teams and healthcare organisations"
+    quote: "It is the responsibility of the referrer receiving the radiology alert to act or redirect the alert accordingly. This should be documented on the patient record. The clinical team deciding to redirect a report should be clear that this action is safe and appropriate."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "failure_path.outcome.codes.redirected and failure_path.outcome.content (round 4)"
+    caveat: "Imaging-report scope (see the first AoMRC entry)."
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Introduction"
+    quote: "The time frame and the mode of communication will depend on the acuity of the findings."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "tenant_agreed and source_gap (round 4): a time frame follows acuity, and a clinic-inbox item carries none of its own"
+    caveat: "Imaging-report scope (see the first AoMRC entry)."
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Categories of imaging findings (Results Coordination Team)"
+    quote: "A 48-hour interval before escalation is reasonable but this may vary depending on clinical urgency and should be agreed upon by the healthcare organisation."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "tenant_agreed.nearest_published_interval (round 4): recorded and not adopted; the escalation interval is the organisation's to agree"
+    caveat: "The interval is for imaging alerts (a new cancer diagnosis or a significant addendum) and is itself left to the organisation; it is not carried into this inbox."
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Categories of imaging findings (Results Coordination Team)"
+    quote: "Every imaging referral must include a valid contact detail to which an urgent communication can be made if required, including an out of hours' contact."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "out_of_hours.constraints out_of_hours_contact_named_by_tenant (round 4)"
+    caveat: "Imaging-report scope (see the first AoMRC entry). Cited for the requirement that an out-of-hours contact exists, not for how the tenant covers it."
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Categories of imaging findings (Results Coordination Team)"
+    quote: "Support the results notification system to ensure that reports are returned to the correct clinical team caring for the patient."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "built_route_conformance.tenant_safety_queue (round 4): an organisation-wide queue routes to the team caring for the patient; it does not replace it"
+    caveat: "Imaging-report scope (see the first AoMRC entry)."
+  - kind: guideline
+    guideline_id: AOMRC-IMAGING-ALERTS-2022
+    title: "Alerts and notification of imaging reports: Recommendations"
+    version_or_date: "October 2022"
+    url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
+    retrieved_on: 2026-10-17
+    section: "Recommendation on cancer imaging alerts, 3"
+    quote: "Healthcare organisations must ensure a fail-safe system that enables identification of reports that have not been read, acknowledged and acted upon (or plan to act)."
+    snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
+    supports: "built_route_conformance.inbox_not_ready_report (round 4): the organisation, here the tenant, owns the follow-up of an item nobody has acted on"
+    caveat: "Imaging-report scope (see the first AoMRC entry)."
 spec_basis:
   - file: files/04_CLINICAL_PROTOCOLS.md
     section: "§4.2 defect 1"
@@ -132,6 +257,18 @@ spec_basis:
     section: "How we work"
     quote: "build the mechanism, wire the gate, make it fail closed, leave the content empty."
     supports: fail_closed_while_draft
+  - file: packages/protocols/decisions/CD-04.yaml
+    section: "value.unresolved_after_follow_up.trigger"
+    quote: "the slot is still UNCLEAR after its follow_up_tr has been asked once"
+    supports: "round 4 item D1: the trigger CD-04 decides names no condition on the arms, so the item is raised whenever the slot is unresolved, which can leave both arms Unknown"
+  - file: files/08_ADMIN_CONSOLE_AND_OBSERVABILITY.md
+    section: "§2.1 Role set, tenant_clinical_responsible"
+    quote: "Held by the medical director or delegate; signs the quarterly clinician review with KEP/e-imza"
+    supports: "built_route_conformance.tenant_clinical_responsible (round 4): a clinical-governance role whose definition requires neither an eligible clinical title nor in-service triage training"
+  - file: files/08_ADMIN_CONSOLE_AND_OBSERVABILITY.md
+    section: "§3 Modules, Safety queue"
+    quote: "acknowledge (`tenant_clinical_responsible`); escalate; record out-of-hours path used"
+    supports: "built_route_conformance.tenant_safety_queue (round 4): the queue specified for REDs is tenant-wide and names no clinic"
 source_gap: >-
   sla, out_of_hours.coverage, failure_path.escalation_role and
   failure_path.escalation_after: NICE NG143 1.3.4 leaves the urgency of
@@ -142,6 +279,16 @@ source_gap: >-
   (files/04 §3), and a YELLOW_REVIEW is not an EK-4 level (files/12). No Turkish
   regulation found sets a response time, out-of-hours cover or an escalation
   chain for a pre-visit clinic inbox. Any value written here would be invented.
+  Round 4 (INT-554), re-searched 2026-10-17: the one current Royal College text
+  found on following up clinical notifications that were not read, acknowledged
+  and acted upon (AoMRC, Alerts and notification of imaging reports, October
+  2022) ties the time frame to the acuity of the finding and leaves the
+  escalation interval, 48 hours for imaging alerts, to agreement by the
+  healthcare organisation. A clinic-inbox item has no acuity of its own (its
+  reviewer sets the urgency of any follow-up), so no source gives a value for
+  any tenant; each of the four is a value the tenant's clinical governance
+  agrees (value.tenant_agreed), and what is missing is that statement from each
+  tenant.
 value:
   applies_to:
     - yellow_review_candidate
@@ -150,7 +297,7 @@ value:
     - chest_pain_arms_unresolved
     - proxy_chest_pain_screen_unasked
   item_kind_notes:
-    chest_pain_arms_unresolved: "raised under CD-04 when a CD-01 chest-pain slot is still UNCLEAR after its follow-up, which can leave both chest-pain arms Unknown; pinned to the note, never dropped"
+    chest_pain_arms_unresolved: "raised under CD-04 when a CD-01 chest-pain slot is still UNCLEAR after its follow-up, or is left without an answer when the session closes (CD-04 value.unresolved_at_close), which can leave both chest-pain arms Unknown; pinned to the note, never dropped"
     proxy_chest_pain_screen_unasked: "raised under CD-01 (value.proxy_unasked_inbox_item) when a proxy session (identity_check.subject_role 'yakınım adına') leaves the seven chest-pain slots unasked until the DSL can select proxy copy, and only when the subject is in the adult age band of rf.chest_pain_cardiac_features and rf.chest_pain_no_cardiac_history or the subject's age is unknown; never raised for a subject known to be outside that band (for example a child intake), where neither chest-pain rule applies; pinned to the note, never dropped. The item makes the gap visible to a clinician but does not close it: until the DSL selects proxy copy neither chest-pain RED rule can fire in a proxy session (CD-01 finding F13), and in simulated stress testing a proxy persona with chest pain is reported as unscreened, never as negative"
   recipient_role:
     role_id: tenant_clinic_triage_trained_clinician
@@ -178,6 +325,9 @@ value:
       - never_a_patient_facing_urgency_path
       - never_dropped_or_expired_out_of_hours
       - shown_in_pre_visit_note_if_unreviewed_at_visit_start
+      # Round 4 (INT-554 item D4): an out-of-hours contact exists before the inbox
+      # is ready; how the tenant covers the hours stays tenant-agreed.
+      - out_of_hours_contact_named_by_tenant
   failure_path:
     escalation_role: "TODO: escalation role for an unacknowledged clinic-inbox item requires clinical sign-off"
     escalation_after: "TODO: escalation window for an unacknowledged clinic-inbox item requires clinical sign-off"
@@ -187,6 +337,126 @@ value:
       - inbox_delivery_failure_counts_as_sla_breach
       - sla_breach_is_an_emitted_event
       - never_lowers_or_replaces_a_rules_engine_level
+    # Round 4 (INT-554 item D3): what "a recorded clinician outcome" is. The words
+    # are the AoMRC's: read, acknowledged and acted upon (or plan to act); act or
+    # redirect.
+    outcome:
+      acknowledgement_closes: false
+      acknowledgement_records: "that the item was received and read: the role-holder id and the time, audited; it closes nothing and is never read as an outcome"
+      codes:
+        action_taken: "the reviewer has acted on the item; what was done is documented in the patient's record"
+        plan_to_act: "the reviewer has recorded a plan, at the urgency the reviewer sets by clinical judgement (NICE NG143 1.3.4); a review at the booked visit is such a plan"
+        redirected: "the reviewer has sent the item to the clinic now responsible for the patient, being clear that the redirect is safe and appropriate"
+      closes_on: [action_taken, plan_to_act]
+      redirect_code: redirected
+      redirect_closes: false
+      redirect_effect: "the item is re-addressed to the named clinic and stays open there"
+      content: "the item carries the code, the role-holder id and the time only; the clinical content of the action or the plan is documented in the patient's record, never in the item (invariant 6)"
+      note_shows: "a closed item shows its code in the pre-visit note; an item acknowledged but without an outcome is shown open"
+      while_outcome_unrecordable: "an item whose outcome the console cannot yet record stays open and pinned to the note; acknowledgement is never taken as its close"
+  # Round 4 (INT-554 item D4): who states the four values that stay open.
+  tenant_agreed:
+    keys: [sla, out_of_hours.coverage, failure_path.escalation_role, failure_path.escalation_after]
+    stated_by: "the tenant's clinical governance, in the tenant configuration, per clinic-inbox item kind"
+    register_value: "the invariant-17 literal above stays; the register holds no platform-wide value for any of the four"
+    why: >-
+      The AoMRC's recommendations tie a time frame to the acuity of the finding and
+      leave the escalation interval to agreement by the healthcare organisation. A
+      clinic-inbox item carries no acuity of its own: its reviewer sets the urgency
+      of any follow-up (NICE NG143 1.3.4). Each value also depends on the tenant's
+      opening hours, staffing and organisation, which differ by tenant.
+    nearest_published_interval:
+      text: "AoMRC 2022: a 48-hour interval before escalating an imaging alert not reviewed and acted upon (or plan to act)"
+      adopted: false
+      why_not: "it is set for imaging alerts (a new cancer diagnosis or a significant addendum), not for a pre-visit clinic inbox, and the same sentence leaves it to agreement by the healthcare organisation"
+    until_stated: "the inbox reports not ready (built_route_conformance.inbox_not_ready_report), and every item is still delivered and pinned to the note"
+    real_patient_note: "D18 scope: before any real patient, the licensed physician's review covers the values each tenant states"
+  # Round 4 (INT-554 item D5): whether the built route satisfies this decision.
+  built_route_conformance:
+    tenant_safety_queue:
+      is_the_booked_clinics_inbox: only_when_condition_holds
+      condition: "each entry names the booked clinic, and only the clinicians the tenant rosters to that clinic as tenant_clinic_triage_trained_clinician list it and record its outcome"
+      why: "the item goes to the clinical team caring for the patient; an organisation-wide queue may route to that team and follow up what nobody has acted on, but does not replace it"
+      while_condition_unmet: interim_delivery_path
+      interim_delivery_path: "items are still delivered to the tenant Safety queue and never dropped, and the tenant configuration reports the clinic inbox not ready"
+    tenant_clinical_responsible:
+      is_the_recipient_role: false
+      why: "files/08 defines it as clinical governance, held by the medical director or delegate; its definition requires neither an eligible clinical title nor the in-service triage training this decision's recipient role requires"
+      may_record_outcome_when: "its holder is also a tenant_clinic_triage_trained_clinician (an eligible title and in-service triage training, attested when the account is provisioned)"
+      escalation_role: "not decided here: whether it is the escalation role is the tenant's to agree (tenant_agreed)"
+    inbox_not_ready_report:
+      required: true
+      not_ready_while_unset: [booked_clinic_routing, rostered_recipient, sla, out_of_hours.coverage, out_of_hours_contact, failure_path.escalation_role, failure_path.escalation_after]
+      effect: "reported to the tenant and the platform; never drops, delays or holds an item"
+  # Round 4: what changed, item by item. Rounds 1 to 3 above are unchanged except
+  # where an item says so. The independent verifier's round-4 verdict is recorded
+  # in `verifier`.
+  amendments:
+    - round: 4
+      date: 2026-10-17
+      issue: "INT-554 (GitHub #938) items D1, D3, D4 and D5"
+      origin: "#931/#932 clinical review, 17 Oct 2026; the reviewers' recommendations were inputs, not decisions"
+      items:
+        - item: D1
+          question: "Does the arms item need both chest-pain arms to read Unknown, as the decision's 'that leaves both chest-pain arms Unknown' says, or is it raised whenever the slot is unresolved?"
+          decision: >-
+            Whenever the slot is unresolved. The decision now reads "which can leave
+            both chest-pain arms Unknown", as item_kind_notes, CD-04's decision and
+            CD-08.md already said, and as the build reads CD-04's trigger, which
+            names no condition on the arms. An unresolved slot is missing information
+            for the clinician even when another feature has fired a rule, and
+            computing the arms' state before raising would make a clinician-only item
+            depend on rule evaluation. The same sentence now also names the close
+            (CD-04 round 4, INT-554 item D2).
+          was: "a chest-pain slot still UNCLEAR after its follow-up that leaves both chest-pain arms Unknown"
+          now: "a chest-pain slot still UNCLEAR after its follow-up, or left without an answer when the session closes, which can leave both chest-pain arms Unknown"
+          value_changed: false
+          keys: [decision, item_kind_notes.chest_pain_arms_unresolved]
+          spec_basis_ref: ["packages/protocols/decisions/CD-04.yaml value.unresolved_after_follow_up.trigger"]
+          status: active
+        - item: D3
+          question: "closes_only_on_recorded_clinician_outcome has no outcome vocabulary: decide a code set, or accept acknowledgement as an interim close?"
+          decision: >-
+            A code set; acknowledgement is not accepted as a close, interim or not.
+            Acknowledging records receipt and reading (who and when, audited). An
+            item closes on action_taken or plan_to_act; the reviewer sets the urgency
+            of any follow-up, and a review at the booked visit is a plan. redirected
+            re-addresses the item to the clinic now responsible and leaves it open.
+            The item carries the code, the role-holder id and the time; the clinical
+            content is documented in the patient's record. Until the console can
+            record an outcome, an acknowledged item stays open and is shown open in
+            the pre-visit note.
+          keys: [failure_path.outcome]
+          safety_direction: "never closes on a click that records no decision; an item that cannot yet be closed stays visible at the visit"
+          sources: [AOMRC-IMAGING-ALERTS-2022, NICE-NG143]
+          status: active
+        - item: D4
+          question: "CD-08's SLA, out-of-hours cover, escalation role and escalation window."
+          decision: >-
+            All four stay open in the invariant-17 form. They are values each tenant's
+            clinical governance agrees, per item kind, in the tenant configuration; no
+            guideline found sets one for a pre-visit clinic inbox, and the register
+            holds no platform-wide value. The AoMRC's 48-hour interval for imaging
+            alerts is recorded as the nearest published interval and not adopted. One
+            constraint is added: the tenant names an out-of-hours contact before the
+            inbox is ready.
+          keys: [tenant_agreed, out_of_hours.constraints]
+          what_is_missing: "each tenant's statement of the four values, per item kind; the D18 lane cannot supply it"
+          sources: [AOMRC-IMAGING-ALERTS-2022, NICE-NG143]
+          status: active
+        - item: D5
+          question: "Do the tenant Safety queue and tenant_clinical_responsible satisfy the recipient role and 'the booked clinic's named inbox'?"
+          decision: >-
+            Not as built. The queue is the booked clinic's inbox only when each entry
+            names the booked clinic and only the clinicians the tenant rosters to that
+            clinic list it and record its outcome; until then it is an interim delivery
+            path, items are never dropped, and the inbox reports not ready.
+            tenant_clinical_responsible is not the recipient role; its holder records
+            an outcome only when also a tenant_clinic_triage_trained_clinician. The
+            not-ready report is required.
+          keys: [built_route_conformance]
+          sources: [AOMRC-IMAGING-ALERTS-2022, TR-ACIL-TEBLIG-2022]
+          status: active
 value_status:
   applies_to: active
   item_kind_notes: active
@@ -198,13 +468,19 @@ value_status:
   failure_path.escalation_role: draft_needs_source
   failure_path.escalation_after: draft_needs_source
   failure_path.constraints: active
+  failure_path.outcome: active
+  tenant_agreed: active
+  built_route_conformance: active
 fail_closed_while_draft: >-
   Every clinic-inbox item is still delivered to the inbox and pinned to the
   pre-visit note while the SLA and escalation stay draft; a missing SLA never
   drops or delays delivery. The tenant configuration reports the inbox as not
-  ready (no stated SLA, no escalation role) instead of inventing one.
+  ready (no stated SLA, no escalation role) instead of inventing one. Round 4
+  (INT-554): the report also names a missing escalation window, out-of-hours
+  cover or out-of-hours contact, and an item not routed to the booked clinic's
+  rostered clinicians (value.built_route_conformance.inbox_not_ready_report).
 verifier:
-  verdict: agree
+  verdict: pending
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 items D1, D3, D4 and D5, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

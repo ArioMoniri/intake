@@ -73,7 +73,18 @@ decision: >-
   so the guard only ever adds askers. While CD-110's age bounds are draft, the age
   atom, which can only narrow, is left out. The kadın Q2 son_adet_tarihi goes once
   that OR term is applied. CD-112 item 3 gives the T4(b) gate its authored literal,
-  pregnancy_status != 'hayır'.
+  pregnancy_status != 'hayır'. Round 5 amendment (INT-554, 17 Oct 2026), T4.
+  T4(c)'s named examples 'galiba', 'olabilir' and 'bilemiyorum' are
+  machine-readable surfaces on pmh_fh_sh.pregnancy_status, matched as whole
+  words before CD-04's '*' entries and before any plain answer, and each records
+  'emin değilim'. None is on CD-04's list, and none is added to it: 'galiba' and
+  'olabilir' take the direction of the clause they qualify, so on a chest-pain
+  feature slot they are a separate question. A hedge beside an explicit choice
+  records 'emin değilim' and keeps the choice on the record as hedged_choice,
+  never bound. A rule that reads pregnancy_status as the possibility of
+  pregnancy reads it as != 'hayır', so 'emin değilim' counts with 'evet'. T4
+  (a), (b) and (c) are applied as one change in the kadın chain once the base
+  owner answers T4, with CD-106 (1)'s removal of the reorder op.
 status: active
 scope: simulated_patient_stress_testing
 scope_note: >-
@@ -92,7 +103,11 @@ inference_disclosure: >-
   new Turkish string is ≤ B1, uses siz, has one question mark and no digits, and
   names no diagnosis. NICE CG116 is scoped to under 19s. It is cited for the
   dietitian item only as the source that names food avoidance as a history
-  element. CG115 covers alcohol, and AMATEM also sees other substances.
+  element. CG115 covers alcohol, and AMATEM also sees other substances. Round 5 (INT-554):
+  reading 'galiba', 'olabilir' and 'bilemiyorum' as whole-word surfaces on the
+  pregnancy slot, and keeping 'galiba' and 'olabilir' off CD-04's '*' list because
+  they take the direction of the clause they qualify, is this author's linguistic
+  operationalisation of T4(c), which already named them.
 sources:
   - kind: guideline
     guideline_id: NICE-NG126
@@ -620,6 +635,18 @@ spec_basis:
     section: "value.pending_construct_choice.rule"
     quote: "When the construct is chosen, its ask follows true_is_concern."
     supports: "T9, T48"
+  - file: packages/protocols/decisions/CD-04.yaml
+    section: "value.match_order"
+    quote: "hedge entries first (longest surface first), plain negatives last"
+    supports: "amendments round 5 (INT-554 item D8): the per-slot surfaces are read before the plain negative, so 'Hamile değilim galiba' never reads as 'hayır'"
+  - file: packages/protocols/decisions/CD-04.yaml
+    section: "value.hedge_with_choice_on_tense_anchor"
+    quote: "choice_recorded_as: hedged_choice"
+    supports: "amendments round 5 (INT-554 item D9): a hedge beside a choice keeps the choice the same way on the pregnancy slot"
+  - file: packages/protocols/decisions/CD-106.yaml
+    section: "value.items reorder-op A-4, change (1)"
+    quote: "remove the INT-353 reorder op from the kadın candidate"
+    supports: "amendments round 5 (INT-554 item D10): the reorder op goes in the same change as T4"
 value:
   packet_commit: 151cf34f
   trail: docs/evidence/verification/near-twin-sweep-582.md
@@ -1549,8 +1576,89 @@ value:
           five items, and a woman who answers 'hayır' is still asked the LMP (T1 round 4)
           and the ungated adet_disi_kanama and alt_karin_agrisi that both the
           women's-health cluster and the kadın chain carry.
+    - round: 5
+      date: 2026-10-17
+      issue: "INT-554 (GitHub #938) items D8, D9 and D10"
+      item: "docs/evidence/verification/near-twin-sweep-582.md#L97"
+      ref: T4
+      amends: "change (c), and how T4 is applied"
+      origin: "#935 (INT-546) clinical review, 17 Oct 2026; the reviewers' recommendations were inputs, not decisions"
+      items:
+        - item: D8
+          question: "Make T4(c)'s named hedge examples ('galiba', 'olabilir', 'bilemiyorum') machine-readable as per-slot surfaces, or decide CD-04's '*' list is enough."
+          decision: >-
+            Per-slot surfaces. CD-04's '*' list is not enough: none of the three is on
+            it, and the runtime reads only machine-readable surfaces, so 'Hamile
+            değilim galiba' could be read as 'hayır' and close the pregnancy items.
+            On pmh_fh_sh.pregnancy_status each of the three, matched as a whole word,
+            records 'emin değilim' (mapped_from_hedge), read before CD-04's '*'
+            entries and before any plain answer. They are not added to CD-04's '*'
+            list: 'galiba' and 'olabilir' take the direction of the clause they
+            qualify ('galiba terledim' is a hedged yes), and on a chest-pain feature
+            slot a hedged yes read as UNCLEAR would evaluate less acute than a plain
+            'hayır', against CD-04's own monotonicity rule. That is a CD-04 question
+            and is not decided here.
+          hedge_surfaces_tr:
+            slot: pmh_fh_sh.pregnancy_status
+            surfaces: ["galiba", "olabilir", "bilemiyorum"]
+            records_choice: "emin değilim"
+            record_label: mapped_from_hedge
+            match: "whole words after Unicode NFC and the Turkish lower-case fold, never a substring, as CD-04's entries are matched"
+            precedence: "before CD-04's '*' entries and before any plain answer, as T4(c) already orders the slot's mapping"
+          golden:
+            answer: "Hamile değilim galiba."
+            records: "emin değilim"
+            hedged_choice: "hayır"
+            gated_items: open
+            near_miss:
+              answer: "Hayır."
+              records: "hayır"
+              gated_items: closed
+              lmp_date: still_asked
+          keys: [hedge_surfaces_tr]
+          restates: "T4 change (c), which names the three examples; no value changes"
+          sources: [NICE-NG126]
+          status: active
+        - item: D9
+          question: "What does a hedge next to an explicit 'evet' record on a mapped slot, and how does a rule read pregnancy_status?"
+          decision: >-
+            The mapped choice, with the explicit choice kept. On pregnancy_status a
+            hedge beside an explicit choice ('Evet, galiba'; 'Hayır galiba') records
+            'emin değilim' and keeps the choice the model read as hedged_choice on the
+            record, never bound, as CD-04 round 3 keeps a hedged choice on the tense
+            anchor: the record must not show a hedged answer as a definite one. A rule
+            that reads pregnancy_status as the possibility of pregnancy reads it as
+            != 'hayır', as CD-112 gates[1] reads immunosuppression, so 'emin değilim'
+            counts with 'evet' and a hedged 'evet' is never less acute than a plain
+            one. No rule reads pregnancy_status today; any that does still needs its
+            own source and sign-off (HB-C1).
+          hedge_with_choice:
+            records_choice: "emin değilim"
+            choice_recorded_as: hedged_choice
+            choice_bound: false
+          rule_reading: "pregnancy_status != 'hayır'"
+          keys: [hedge_with_choice, rule_reading]
+          safety_direction: "never less acute: a hedged 'evet' evaluates as 'evet' under the rule reading, and a hedged 'hayır' opens what a plain 'hayır' closes"
+          sources: [NICE-NG126]
+          status: active
+        - item: D10
+          question: "Track T4 (a), (b) and (c) as one change in the kadın chain once the base owner answers T4."
+          decision: >-
+            Yes. (a) removing gebelik_durumu and (b) re-gating its five readers on
+            pregnancy_status != 'hayır' land together, in one change, once the base
+            owner has answered T4's owner part: (a) alone leaves five items gated on a
+            removed slot, and (b) alone leaves gebelik_durumu asked and read by
+            nothing. (c) must be in force on the base slot when (b) lands (the per-slot
+            mapping INT-546 builds, PR #935, and this round's surfaces), because
+            without it an unsure woman's hedge reads UNCLEAR and the five items stay
+            unasked. CD-106 (1) removes the reorder op in the same change.
+          parts: ["(a)", "(b)", "(c)"]
+          with: "CD-106 (1): remove the INT-353 reorder op from the kadın candidate"
+          until_applied: "nothing in the kadın chain changes; the five items keep gebelik_durumu == true and CD-106 (2) holds the op"
+          keys: [parts, with]
+          status: active
 verifier:
-  verdict: agree
+  verdict: pending
   role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
   verified_on: 2026-10-16
-  notes: "Round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree (2026-10-03), by the independent clinical verifier (agent; EM/IM/paediatrics). Round 4 (2026-10-16, INT-519 amendment, T1 owner part re-read and the T4(b) literal, head 9034f8b9) agree, no blocker: NICE NG126 1.4.3 and 1.4.5 re-read verbatim on the live NICE page; the OR term only adds askers; one note for whoever later adds the age atom (amendments[0].verification). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree (2026-10-03), by the independent clinical verifier (agent; EM/IM/paediatrics). Round 4 (2026-10-16, INT-519 amendment, T1 owner part re-read and the T4(b) literal, head 9034f8b9) agree, no blocker: NICE NG126 1.4.3 and 1.4.5 re-read verbatim on the live NICE page; the OR term only adds askers; one note for whoever later adds the age atom (amendments[0].verification). Round 5 (INT-554 items D8, D9 and D10, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

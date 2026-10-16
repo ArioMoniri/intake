@@ -62,7 +62,12 @@ decision: >-
   which base asks after every pregnancy answer (CD-100 round 4). Against the intent
   recorded when the gates were written (the proposals and CD-100 T4), nothing is
   narrowed. Once it applies, item 1 asks more patients than today, because the items
-  never open today, and it never asks a relative.
+  never open today, and it never asks a relative. Round 2 amendment (INT-554, 17
+  Oct 2026), item 2. The hedges CD-100 round 5 makes machine-readable on the
+  pregnancy slot, 'galiba', 'olabilir' and 'bilemiyorum', are read the same way on
+  pmh_fh_sh.immunosuppression, where item 2's "any unmatched hedge" already
+  records them as "bilmiyorum". A hedge beside an explicit choice records
+  "bilmiyorum" and keeps the choice on the record as hedged_choice, never bound.
 status: active
 scope: simulated_patient_stress_testing
 scope_note: >-
@@ -347,8 +352,40 @@ value:
         "1 (cluster.mental_health)": "agree with note. Self-report only, held until ADR-040 (#833, d5943fd7, which defines PROXY_GATED_ON_SUBJECT_ROLE and proxy skip: true) lands; CG178 1.1.4.2 and 1.3.6.7 support the direction, with the adult-psychosis caveat recorded. Note for the lead: specialty ruh_sagligi_ve_hastaliklari carries an ungated diger_madde_kullanimi with the same wording; ADR-040's proxy compiler forces a proxy text or a skip there, and this reading points to the skip. That pack is outside this record's three gates"
         "2 (cluster.medical)": "agree. NG253 1.2.1 lists impaired immune function from illness or treatment as a sepsis risk factor, so an uncertain answer must not read Unknown; mapping hedges to 'bilmiyorum' opens the item and counts with 'evet' for any rule (rule_reading). NG253 is for people aged 16 or over, and no adult threshold reaches a child"
         "3 (cluster.womens_health)": "agree. CD-100 T4's decided reading in the authored literal; a woman who answers 'hayır' is still asked the LMP and the ungated bleeding and lower-abdominal-pain items (NG126 1.4.3, 1.4.5)"
+  # Round 2 (INT-554 items D8 and D9): the immunosuppression mapping reads what
+  # CD-100 round 5 makes machine-readable on the pregnancy slot. Round 1 above is
+  # unchanged. The independent verifier's round-2 verdict is recorded in `verifier`.
+  amendments:
+    - round: 2
+      date: 2026-10-17
+      issue: "INT-554 (GitHub #938) items D8 and D9"
+      origin: "#935 (INT-546) clinical review, 17 Oct 2026; the reviewers' recommendations were inputs, not decisions"
+      items:
+        - item: D8-D9
+          question: "Do T4(c)'s named hedges, and the rule for a hedge beside an explicit choice, reach pmh_fh_sh.immunosuppression, whose mapping already reads 'any unmatched hedge'?"
+          decision: >-
+            Yes. gates[1].hedge_mapping already decides that any unmatched hedge
+            records "bilmiyorum" on this slot; 'galiba', 'olabilir' and 'bilemiyorum'
+            are now machine-readable surfaces here as on the pregnancy slot (CD-100
+            round 5, item D8), matched as whole words and read before CD-04's '*'
+            entries and before any plain answer. A hedge beside an explicit choice
+            ('Evet galiba') records "bilmiyorum" and keeps the choice as
+            hedged_choice, never bound (CD-100 round 5, item D9). rule_reading already
+            counts "bilmiyorum" with "evet", so a hedged "evet" is never less acute
+            than a plain one.
+          slot: pmh_fh_sh.immunosuppression
+          surfaces: ["galiba", "olabilir", "bilemiyorum"]
+          records_choice: "bilmiyorum"
+          record_label: mapped_from_hedge
+          hedge_with_choice:
+            records_choice: "bilmiyorum"
+            choice_recorded_as: hedged_choice
+            choice_bound: false
+          restates: "gates[1].hedge_mapping.reads ('any unmatched hedge'); no value changes"
+          sources: [NICE-NG253, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+          status: active
 verifier:
-  verdict: agree
+  verdict: pending
   role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
   verified_on: 2026-10-16
-  notes: "Round 1 (2026-10-16, head 9034f8b9) agree, no blocker. Both new snapshots (NICE NG253, NICE CG178) compared line by line with the live NICE pages; every cited quote is verbatim on the live page and in its snapshot; each decided literal is a member of its committed value set. Notes on item 1 (the specialty substance-use twin) and on the NG253 snapshot's extraction spacing, neither a change (value.verification_history). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Round 1 (2026-10-16, head 9034f8b9) agree, no blocker. Both new snapshots (NICE NG253, NICE CG178) compared line by line with the live NICE pages; every cited quote is verbatim on the live page and in its snapshot; each decided literal is a member of its committed value set. Notes on item 1 (the specialty substance-use twin) and on the NG253 snapshot's extraction spacing, neither a change (value.verification_history). Round 2 (INT-554 items D8 and D9, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
