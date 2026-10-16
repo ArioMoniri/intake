@@ -1,6 +1,6 @@
 {
   "schema": "intake.admin.reliability.v1",
-  "generated_at": "2026-09-27T01:04:19Z",
+  "generated_at": "2026-10-16T11:18:11Z",
   "sources": {
     "prometheus": "ok",
     "slo_files": "ok",
@@ -360,8 +360,8 @@
         "self_hosted_now": true,
         "budget_ms": 500,
         "status": "unhealthy",
-        "latency_ms": 74.48995811864734,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 140.42708277702332,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -372,8 +372,8 @@
         "self_hosted_now": true,
         "budget_ms": 200,
         "status": "unhealthy",
-        "latency_ms": 2.055500168353319,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 1.8861666321754456,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -384,8 +384,8 @@
         "self_hosted_now": true,
         "budget_ms": 1000,
         "status": "unhealthy",
-        "latency_ms": 0.3287908621132374,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.33016595989465714,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -396,8 +396,8 @@
         "self_hosted_now": true,
         "budget_ms": 3000,
         "status": "unhealthy",
-        "latency_ms": 0.20891614258289337,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.16175024211406708,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -409,7 +409,7 @@
         "budget_ms": 5000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -420,8 +420,8 @@
         "self_hosted_now": true,
         "budget_ms": 500,
         "status": "unhealthy",
-        "latency_ms": 0.12204190716147423,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.25129225105047226,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -433,7 +433,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -445,7 +445,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -457,7 +457,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -469,7 +469,7 @@
         "budget_ms": 800,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -481,7 +481,7 @@
         "budget_ms": 5000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -493,7 +493,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -504,8 +504,8 @@
         "self_hosted_now": false,
         "budget_ms": 200,
         "status": "unhealthy",
-        "latency_ms": 0.022834166884422302,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.019249506294727325,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -515,9 +515,9 @@
         "phi_path": false,
         "self_hosted_now": false,
         "budget_ms": 2000,
-        "status": "skipped",
-        "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "status": "unhealthy",
+        "latency_ms": 0.011541880667209625,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -529,7 +529,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -541,7 +541,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -553,7 +553,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -565,7 +565,7 @@
         "budget_ms": 4000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -577,7 +577,7 @@
         "budget_ms": 3000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -589,7 +589,7 @@
         "budget_ms": 3000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -601,7 +601,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -612,8 +612,8 @@
         "self_hosted_now": true,
         "budget_ms": 200,
         "status": "healthy",
-        "latency_ms": 0.20350003615021706,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "latency_ms": 0.9785415604710579,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -625,7 +625,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -637,7 +637,7 @@
         "budget_ms": 2000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -649,7 +649,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -661,7 +661,19 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
+        "age_s": 0,
+        "stale": false
+      },
+      {
+        "component": "sms-egress",
+        "probe": "tcp_connect",
+        "phi_path": true,
+        "self_hosted_now": false,
+        "budget_ms": 1000,
+        "status": "skipped",
+        "latency_ms": null,
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -673,7 +685,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       },
@@ -685,7 +697,7 @@
         "budget_ms": 1000,
         "status": "skipped",
         "latency_ms": null,
-        "checked_at": "2026-09-27T01:04:19Z",
+        "checked_at": "2026-10-16T11:18:11Z",
         "age_s": 0,
         "stale": false
       }
@@ -703,7 +715,7 @@
           "probe": "postgres_select1",
           "health": "unhealthy",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "component",
           "fallback": "backups",
           "fallback_health": "unhealthy"
@@ -713,7 +725,7 @@
           "probe": "redis_ping",
           "health": "unhealthy",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "none",
           "fallback": null,
           "fallback_health": null
@@ -723,7 +735,7 @@
           "probe": "minio_ready",
           "health": "unhealthy",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "component",
           "fallback": "backups",
           "fallback_health": "unhealthy"
@@ -733,7 +745,7 @@
           "probe": "http_health",
           "health": "unhealthy",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "component",
           "fallback": "backups",
           "fallback_health": "unhealthy"
@@ -743,7 +755,7 @@
           "probe": "openbao_seal_status",
           "health": "unhealthy",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "component",
           "fallback": "backups",
           "fallback_health": "unhealthy"
@@ -753,7 +765,7 @@
           "probe": "http_health",
           "health": "skipped",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "none",
           "fallback": null,
           "fallback_health": null
@@ -763,7 +775,7 @@
           "probe": "http_health",
           "health": "skipped",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "none",
           "fallback": null,
           "fallback_health": null
@@ -773,7 +785,7 @@
           "probe": "http_health",
           "health": "skipped",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "none",
           "fallback": null,
           "fallback_health": null
@@ -783,7 +795,7 @@
           "probe": "http_health",
           "health": "skipped",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "component",
           "fallback": "freya-tts",
           "fallback_health": "skipped"
@@ -793,7 +805,7 @@
           "probe": "backup_freshness",
           "health": "healthy",
           "health_reason": null,
-          "checked_at": "2026-09-27T01:04:19Z",
+          "checked_at": "2026-10-16T11:18:11Z",
           "fallback_kind": "in_process",
           "fallback": null,
           "fallback_health": "healthy"

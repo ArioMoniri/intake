@@ -632,6 +632,34 @@ components:
       states its "+" only in headers can drop it in a header sweep without
       touching COPYING at all.
 
+  # INT-528 / ADR-042 — the synthetic host's SMS-only forward proxy. It does
+  # carry personal data: the OTP tier's call (the patient's phone number and
+  # a one-time code) passes through it inside TLS, so it is on the PHI path in
+  # both senses. The same squid as egress-proxy, pinned by the same digest in
+  # infra/staging/compose.yaml, so the licence record below is that one's.
+  - component: sms-egress
+    self_hostable: true
+    # false until a deploy carrying ADR-042 runs on the synthetic host
+    self_hosted_now: false
+    host: "infra/staging/compose.yaml, service `sms-egress` — ubuntu/squid:6.6-24.04_edge pinned by digest, on the internal sms-out network (shared with the API alone) and sms-wan; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_sms_egress_conf.py. Validated statically by tests/infra/test_staging_sms_egress.py"
+    license: "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see egress-proxy's licence_note)"
+    # tcp_connect, as for egress-proxy: a probe that sent traffic through the
+    # boundary would be traffic to the SMS vendor.
+    probe: tcp_connect
+    budget_ms: 1000
+    # A failed proxy means no SMS leaves: the OTP tier answers 503, never a
+    # fake "sent". Nothing to fall back to without reopening the boundary.
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/squid-cache/squid/e8118a7381213f5cfcdeb4cec1d2d854bfd261c8/COPYING"
+    licence_blob_sha256: "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    licence_note: >-
+      The same upstream squid 6.6 as egress-proxy, verified there from the raw
+      COPYING blob and a source header at tag SQUID_6_6 (2026-08-29). It runs
+      unmodified behind a generated config file, which is data, not a
+      derivative work; we do not distribute it.
+
   # INT-203 — the edge (files/10 §4 `Edge:`). Two components, one policy:
   # infra/security/edge/edge-policy.yaml renders Traefik's static and dynamic
   # configuration, CrowdSec's scenarios and acquisition, and the cert-manager

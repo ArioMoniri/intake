@@ -234,8 +234,10 @@ tokenization key. Nothing else is set by editing a file by hand:
   reads the four parameters with the instance role, strips the whitespace a
   paste leaves around them, checks their shapes, enables KV v2 at `secret/`
   and re-applies that policy before it writes, so an older host needs no
-  `./init.sh` re-run. The instance role needs `ssm:GetParameter` on the four
-  names and `kms:Decrypt` on their key. An env file from before INT-528 may
+  `./init.sh` re-run. It reads with the instance role, which already holds
+  `ssm:GetParameter` and decryption on all four (checked from the host on
+  16 Oct 2026: readable, one well-formed E.164 entry on the test list). An
+  env file from before INT-528 may
   still hold empty `TWILIO_*` lines. Nothing reads them; delete them.
 - **SMS is real here, so the test allow-list is the gate.** On this host the
   API starts an OTP login, and sends a code, only for a number on the list. A

@@ -42,8 +42,8 @@
     coverage.
 - Invariants touched and still passing:
   - 6: no phone, code, password or vendor text anywhere; numbers only counted.
-  - 13: `otp_sms_delivery_total` is catalogued. The `sms-egress` registry row is outstanding:
-    it needs a probe-sweep re-take on the recording host.
+  - 13: `otp_sms_delivery_total` is catalogued, and `sms-egress` has its registry row. The
+    probe sweep was re-taken with the shipped recorder (INT-124's precedent).
   - 14: vendor secrets from OpenBao only, synced from SSM on stdin, never argv; egress via the
     guard and ADR-042's one proxy.
   - 17: no fake sender; fail closed everywhere.
@@ -52,13 +52,12 @@
     ADR-032 for one purpose.
   - No D-row. The owner's 16 Oct decision is cited as INT-358.
 - Blocked on (owner, no HB id exists for "SMS done"):
-  - applying the patch;
-  - the instance role's SSM/KMS read;
+  - applying the patch, which carries the corrected 2018/10 measure 5a wording;
   - counsel's answers listed in the evidence.
+  - The instance role's SSM read is already satisfied (checked from the host).
 - Next:
   - the orchestrator pushes and opens the PR from `.scratch/pr-528.md`;
-  - the owner applies the patch, deploys and authorises the real OTP;
-  - the `sms-egress` registry row with a re-taken probe sweep.
+  - the owner applies the patch, deploys and authorises the real OTP.
 - LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)

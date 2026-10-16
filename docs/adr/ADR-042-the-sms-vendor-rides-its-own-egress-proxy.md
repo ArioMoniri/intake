@@ -69,10 +69,10 @@ re-renders it when the SMS row lands.
   other purposes never rendered; cache and denied-range directives; a content-free log; the
   service's privileges; no other service on `sms-out`; the API naming exactly the admitted URL.
 
-**Open.** `observability/registry.yaml` does not carry `sms-egress` yet. Invariant 13 wants a row
-for a PHI-path service, and adding it means re-taking the recorded probe sweep on the recording
-host, which re-dates every admin fixture (INT-528 evidence). The production PHI deployment does not
-inherit this decision. It is in-country and self-hosted (D11), and its SMS route needs its own
+`observability/registry.yaml` carries `sms-egress` (invariant 13): self-hostable, a
+`tcp_connect` probe, the squid licence record, and `self_hosted_now: false` until a deploy carrying
+this decision runs. The recorded probe sweep was re-taken with the shipped recorder to include it
+(INT-528 evidence). The production PHI deployment does not inherit this decision. It is in-country and self-hosted (D11), and its SMS route needs its own
 decision when it exists.
 
 No `00_STATE.md` row is minted here. The vendor decision itself is the owner's INT-358.
