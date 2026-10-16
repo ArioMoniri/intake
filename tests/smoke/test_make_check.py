@@ -382,7 +382,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
     # stated reason.
-    assert len(ids) == 364, f"expected 175 blueprint + 189 added issues, got {len(ids)}"
+    # + INT-497 (the voice experience: the turn ends on silence, one queue per
+    # turn, one loudness; owner order of 16 Oct 2026, GitHub #848) and its two
+    # splits, INT-504 (#858) and INT-505 (#859); grows only with a stated reason.
+    assert len(ids) == 367, f"expected 175 blueprint + 192 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

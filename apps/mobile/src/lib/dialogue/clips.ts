@@ -20,6 +20,7 @@ import * as FileSystem from "expo-file-system/legacy";
 
 import { buildApiBase } from "../auth/expoApiBase";
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
+import { finishingSynth } from "./clipFinish";
 import type { DeliveryContext } from "./deliveryContext";
 import {
   fetchGeorgeClip,
@@ -126,8 +127,13 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // INT-237 shaping is unchanged: one request per SENTENCE, trimmed, faded
   // and joined with a real sentence gap. INT-249 only changes where each of
   // those requests lands.
-  const selfHosted = (text: string): Promise<Uint8Array> =>
+  const rawSelfHosted = (text: string): Promise<Uint8Array> =>
     synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text);
+  // INT-497: whichever source makes a clip, it is stored FINISHED — trimmed,
+  // at one loudness, and ending on the pause its place in the turn calls for
+  // (clipFinish.ts) — so a lead-in and its question join like two sentences
+  // of one speaker rather than two recordings.
+  const selfHosted = finishingSynth(rawSelfHosted);
   // ADR-028 (on-demand variant): in dev, prefer George's cloud voice for a
   // scripted question with no cached clip, and degrade to the self-hosted lane
   // on any failure. Null in prod, so this is the SAME store as before there.
@@ -135,7 +141,9 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   if (george === null) {
     return createClipStore(dialogueClipDir(), expoClipFs, selfHosted);
   }
-  const prefer = georgePreferringSynth(george, selfHosted);
+  // The fallback is the RAW lane: the store finishes whatever `prefer` returns
+  // once, below, so a George miss is not finished twice.
+  const prefer = georgePreferringSynth(george, rawSelfHosted);
   // The store is only ever fed catalog-composed SCRIPTED text
   // (useDialogueSession → speech.ts questionSpeechTr/confirmSpeechTr); patient
   // words are DISPLAYED, never synthesized (invariant 2/10). This is the single
@@ -147,8 +155,10 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // `prefer` forwards to George (INT-415) and the self-hosted lane ignores.
   // Delivery lines reach the store the same way questions do: minted from a
   // deck key (`scriptedDeliveryTr`), never from anything the patient said.
-  return createClipStore(dialogueClipDir(), expoClipFs, (text, context) =>
-    prefer(text as ScriptedTr, context),
+  return createClipStore(
+    dialogueClipDir(),
+    expoClipFs,
+    finishingSynth((text, context) => prefer(text as ScriptedTr, context)),
   );
 }
 

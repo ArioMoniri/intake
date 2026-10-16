@@ -14,6 +14,14 @@ figure it never measured, which is precisely the shape invariant 20 forbids.
 
 Where no budget is published the row says so and names the sentence that
 refuses; it never prints a substitute.
+
+INT-497 adds the turn's audio timeline, on the same terms. ``first audio`` is
+virtual milliseconds from entering the turn to the first sample handed to the
+sink — the Talker's own share of the turn gap and nothing else — and ``joins``
+is the dead air it leaves between two sentences it plays inside one turn. ASR
+finalisation is not in this path at all (the Talker is handed a final
+transcript), and the report says that rather than printing a number for it.
+The device measures all three end to end (apps/mobile turnTimeline.ts).
 """
 
 from __future__ import annotations
@@ -63,6 +71,19 @@ class TurnRecord(FrozenModel):
     drained_results: int = Field(default=0, ge=0)
     delivered_work_ids: tuple[str, ...] = Field(default=())
     held: str | None = Field(default=None, description="TurnHold value, if the turn held.")
+    first_audio_ms: float | None = Field(
+        default=None,
+        ge=0.0,
+        description="INT-497. Virtual ms from entering the turn to the first sample "
+        "handed to the audio sink. None when the turn played nothing — a screen "
+        "write, a held turn — never 0, which would be a claim of instant audio. "
+        "Transport-specific, so outside ParityTrace.",
+    )
+    join_gaps_ms: tuple[float, ...] = Field(
+        default=(),
+        description="INT-497. Dead air between consecutive sentences played inside "
+        "this turn, in virtual ms. Transport-specific, so outside ParityTrace.",
+    )
 
 
 class ScenarioReport(FrozenModel):
@@ -150,6 +171,10 @@ def render_report(reports: Iterable[ScenarioReport]) -> str:
         "runtime-sim · per-turn budgets per profile",
         "measurement: server-side Talker turn on a virtual clock "
         "(NOT the files/02 §8.1 round trip, which this process cannot see)",
+        "first audio: turn entry -> first sample handed to the sink (the Talker's "
+        "own share of the turn gap); joins: dead air between its sentences in a turn",
+        "ASR finalisation: not in this path — the Talker is handed a final "
+        "transcript; the device timeline measures it (apps/mobile turnTimeline.ts)",
         "",
     ]
     ordered: Sequence[ScenarioReport] = list(reports)
@@ -166,6 +191,12 @@ def render_report(reports: Iterable[ScenarioReport]) -> str:
         )
         for turn in report.turns:
             state = "spoke" if turn.spoke else "held"
-            lines.append(f"    turn {turn.index}: {turn.elapsed_ms:.1f} ms ({state})")
+            timing = ""
+            if turn.first_audio_ms is not None:
+                timing = f" · first audio +{turn.first_audio_ms:.1f} ms"
+                if turn.join_gaps_ms:
+                    gaps = ", ".join(f"{gap:.1f}" for gap in turn.join_gaps_ms)
+                    timing += f" · joins {gaps} ms"
+            lines.append(f"    turn {turn.index}: {turn.elapsed_ms:.1f} ms ({state}){timing}")
         lines.append("")
     return "\n".join(lines)

@@ -155,8 +155,9 @@ export function readCue(source: CueSource | null | undefined): DeliveryCue {
   return typeof value === "string" && CUE_SET.has(value) ? (value as DeliveryCue) : "none";
 }
 
-/** FNV-1a, 32-bit: small, stable across engines, and not a random source. */
-function fnv1a(text: string): number {
+/** FNV-1a, 32-bit: small, stable across engines, and not a random source.
+ * Exported for the holding line (INT-497), which varies the same way. */
+export function fnv1a(text: string): number {
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i += 1) {
     hash ^= text.charCodeAt(i);

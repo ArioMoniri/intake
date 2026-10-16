@@ -7170,4 +7170,67 @@
     - "Fake-clock tests: RED evaluated mid-silence, mid-patient-speech, mid-TTS; delivered once; budget held; near miss (YELLOW, GREEN) never takes the path."
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
+- id: INT-497
+  epic: E05-voice
+  phase: P1
+  title: "Voice experience: natural and seamless, first audio < 800 ms p50 / 1.2 s p95, no gaps, a live feel"
+  # GitHub #848. Owner order, 16 Oct 2026: "voices natural, emotional and
+  # seamless, no delay, nothing robotic, the conversation context feels live".
+  # Measured first, then the levers that main can carry. Bundled-clip prefetch
+  # needs INT-440 (#768) on main and is INT-504; hosted streaming TTS needs
+  # INT-443 (#775) and is INT-505. The device column of the after table is the
+  # session run once the hosted ASR/TTS lanes deploy to the AWS host.
+  depends_on: [INT-291, INT-414, INT-449]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-497.md
+  acceptance:
+    - "measured before the levers: make runtime-sim prints each turn's first audio and the dead air between its sentences on the virtual clock and says that ASR finalisation is not in its path; make voice-experience measures a rendered clip set's edges and BS.1770 loudness, the lead-in to question joins before and after, AVFoundation's player switch (a new player per clip against one queue), and replays level traces through the device's own end-of-turn detector"
+    - "the device measures what the patient waited, durations only: last voiced sample to first agent audio, the dead air between consecutive clips, and ASR finalisation, shown in a dev-only readout"
+    - "the turn ends when the patient stops talking: an end-of-turn detector on the recorder's level meter whose wait is chosen by the question (free text invites a narrative) and the answer so far, and widens for the session after a premature end; it is armed only where taking the turn leads to a spoken turn, which reopens the microphone before anything else; the tap still ends a turn, and a finish tap that lands just after the turn ended itself is never read as a barge-in"
+    - "no seam between the clips of a turn: one playlist per turn, so there is no player switch; every stored clip finished to one loudness (-18 LUFS, BS.1770, capped at -1 dBFS peak), a lead-in ending on the sentence pause and the turn's last clip on the turn-yield tail; the audio mode is set once per session"
+    - "no dead silence: a question whose clip is not ready within 120 ms is fronted by a ready acknowledgement from the deck, never the same line twice in a row, never around RED, inside an instrument or before a sensitive question, and the transcript shows what the voice said"
+    - "before/after tables and two short audio samples (synthetic content, E04 voice, kept outside the repository under ADR-028) in docs/evidence/INT-497.md"
+  tests:
+    - apps/mobile/src/lib/dialogue/endpointer.test.ts
+    - apps/mobile/src/lib/dialogue/autoEnd.test.ts
+    - apps/mobile/e2e/endOfTurn.spec.ts
+    - apps/mobile/src/lib/dialogue/turnQueue.test.ts
+    - apps/mobile/src/lib/dialogue/clipFinish.test.ts
+    - apps/mobile/src/lib/dialogue/loudness.test.ts
+    - apps/mobile/src/lib/dialogue/holdingLine.test.ts
+    - apps/mobile/src/lib/dialogue/turnTimeline.test.ts
+    - apps/mobile/src/lib/dev/turnTimelineReadout.test.ts
+    - tests/voice/test_clip_loudness.py
+    - tests/voice/test_runtime_sim_timeline.py
+    - tests/voice/test_voice_experience.py
+  sec_row: "voice-runtime"
+- id: INT-504
+  epic: E05-voice
+  phase: P1
+  title: "Prefetch the bundled E04 clips for the next likely questions"
+  # GitHub #858. Split from INT-497 (#848): it needs INT-440's bundled clips
+  # (#768: bundledClips.ts, bundledClipSet.json, render_bundled_clips.py) on
+  # main. The bundle's copy step should finish each clip as INT-497's
+  # clipFinish.ts does (one loudness, the tail its place calls for), because a
+  # bundled clip is played as it is stored and never passes through the store.
+  depends_on: [INT-497]
+  labels: [area:voice]
+  status: todo
+  acceptance:
+    - "the bundled E04 clips for the next likely questions are ready before the patient's turn ends, so the first agent audio after it comes from memory"
+    - "measured with INT-497's turn timeline against first audio < 800 ms p50 and < 1.2 s p95 and no audible gap; clips never committed; invariants 3, 9, 10 and 22 hold"
+  sec_row: "voice-runtime"
+- id: INT-505
+  epic: E05-voice
+  phase: P1
+  title: "Streaming TTS on the hosted lane for anything not pre-rendered"
+  # GitHub #859. Split from INT-497 (#848): it needs INT-443's hosted
+  # ElevenLabs lane (#775) on main, E04 at v4 with render-time tags.
+  depends_on: [INT-497]
+  labels: [area:voice]
+  status: todo
+  acceptance:
+    - "text that is not pre-rendered is synthesised with streaming TTS on the hosted lane (flash or turbo streaming), keeping #775's refusals: numerals and markup refused on text_tr, RED refused, tags server-side only"
+    - "spend stays inside the 100 USD cap with every live call charged and logged; measured with INT-497's turn timeline; invariants 9, 10, 21 and 22 hold"
   sec_row: "voice-runtime"

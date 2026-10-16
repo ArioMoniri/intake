@@ -138,7 +138,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-449 (Turkish voice casting, owner request, GitHub #762)
     # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
     # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
-    assert len(actions) == 364
+    # + INT-497 (voice experience: end of turn on silence, one queue, one loudness, GitHub #848)
+    # + INT-504 and INT-505 (INT-497's splits: clip prefetch #858, hosted streaming TTS #859)
+    assert len(actions) == 367
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

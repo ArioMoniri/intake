@@ -331,6 +331,10 @@ class Stack:
         # with; point it at the table this Stack was asked for.
         self.session.scheduler.deadlines = table
 
+        #: INT-497: each turn's audio timeline, keyed by the outcome object it
+        #: belongs to — (first audio offset, join gaps), virtual ms.
+        self.turn_audio: dict[int, tuple[float | None, tuple[float, ...]]] = {}
+
         self.media = MediaPlane(clock=self.clock)
         self.channel = RecordingDataChannel(clock=self.clock)
         self.clinic = RecordingClinicNotifier()
@@ -390,7 +394,14 @@ class Stack:
 
         async def main() -> object:
             before = asyncio.ensure_future(self._pump()) if pump else None
+            started_ms = self.clock.now_ms()
+            already = len(self.sink.intervals) if self.sink is not None else 0
             outcome = await self.session.take_turn(transcript)
+            plays = self.sink.intervals[already:] if self.sink is not None else []
+            self.turn_audio[id(outcome)] = (
+                plays[0][0] - started_ms if plays else None,
+                tuple(nxt[0] - prev[1] for prev, nxt in zip(plays, plays[1:], strict=False)),
+            )
             after = asyncio.ensure_future(self._pump()) if pump else None
             await asyncio.sleep(0)
             for task in (before, after):
@@ -1248,12 +1259,14 @@ class TestRT08:
 # this module for exactly that reason.
 
 
-def _record(index: int, outcome: Any) -> TurnRecord:
+def _record(index: int, outcome: Any, stack: Stack) -> TurnRecord:
     """One turn, projected for the report and for the INT-096 parity check.
 
-    Everything but ``elapsed_ms`` is what the turn *did* rather than what the
-    transport charged for it, which is the split ``ParityTrace`` reads.
+    Everything but ``elapsed_ms`` and the INT-497 audio timeline is what the
+    turn *did* rather than what the transport charged for it, which is the
+    split ``ParityTrace`` reads.
     """
+    first_audio_ms, join_gaps_ms = stack.turn_audio.get(id(outcome), (None, ()))
     return TurnRecord(
         index=index,
         elapsed_ms=outcome.elapsed_ms,
@@ -1265,6 +1278,8 @@ def _record(index: int, outcome: Any) -> TurnRecord:
         drained_results=outcome.drained_results,
         delivered_work_ids=outcome.delivered_work_ids,
         held=outcome.held.value if outcome.held is not None else None,
+        first_audio_ms=first_audio_ms,
+        join_gaps_ms=join_gaps_ms,
     )
 
 
@@ -1292,19 +1307,22 @@ def _drive_rt01(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
     stack.session.observe_duplex(
         DuplexState(patient_silence_ms=400.0, talker_idle=True, pending_response=False)
     )
-    return (_record(0, talking), _record(1, stack.turn(None)))
+    return (_record(0, talking, stack), _record(1, stack.turn(None), stack))
 
 
 def _drive_rt02(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
     stack = Stack(profile=profile)
     first = stack.turn(None)
     stack.preempt(red_result(), evaluated_at_ms=stack.clock.now_ms())
-    return (_record(0, first), _record(1, stack.turn(None)))
+    return (_record(0, first, stack), _record(1, stack.turn(None), stack))
 
 
 def _drive_rt03(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
     stack = Stack(profile=profile, stall_s=10.0)
-    return (_record(0, stack.turn("sentetik yanit")), _record(1, stack.turn(None)))
+    return (
+        _record(0, stack.turn("sentetik yanit"), stack),
+        _record(1, stack.turn(None), stack),
+    )
 
 
 def _drive_rt04(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
@@ -1312,7 +1330,7 @@ def _drive_rt04(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
     stack.engine.mark_asked(STEP_IDS[0])
     stack.engine.mark_asked(STEP_IDS[1])
     stack.engine.apply_extraction(STEP_IDS[0], {}, clarification_needed=True)
-    return (_record(0, stack.turn(None)),)
+    return (_record(0, stack.turn(None), stack),)
 
 
 def _drive_rt05(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
@@ -1320,7 +1338,7 @@ def _drive_rt05(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
     records: list[TurnRecord] = []
     for index, step_id in enumerate(STEP_IDS):
         stack.answers[step_id] = index
-        records.append(_record(index, stack.turn(f"sentetik {index}")))
+        records.append(_record(index, stack.turn(f"sentetik {index}"), stack))
     return tuple(records)
 
 
@@ -1337,7 +1355,7 @@ def _drive_rt07(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
     stack.session.observe_duplex(
         DuplexState(patient_silence_ms=400.0, talker_idle=True, pending_response=False)
     )
-    return (_record(0, first), _record(1, stack.turn(None)))
+    return (_record(0, first, stack), _record(1, stack.turn(None), stack))
 
 
 def _drive_rt08(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
@@ -1354,7 +1372,7 @@ def _drive_rt08(profile: VoiceProfile) -> tuple[TurnRecord, ...]:
     stack.session.observe_duplex(
         DuplexState(patient_silence_ms=400.0, talker_idle=True, pending_response=False)
     )
-    return (_record(0, held), _record(1, stack.turn(None)))
+    return (_record(0, held, stack), _record(1, stack.turn(None), stack))
 
 
 DRIVERS = {

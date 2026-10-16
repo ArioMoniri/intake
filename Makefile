@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures put-key
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim voice-experience tts-latency live-smoke admin-fixtures put-key
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -282,6 +282,24 @@ runtime-sim:
 	@test -n "$(SCENARIO)" && test -n "$(PROFILE)" || { echo "usage: make runtime-sim SCENARIO=RT-03 PROFILE=residency_tr [NETWORK=tr_mobile_mid_lte] [MEASURE=1] [PARITY=1]"; exit 2; }
 	uv run python scripts/voice/runtime_sim.py --scenario $(SCENARIO) --profile $(PROFILE) \
 	  $(if $(NETWORK),--network $(NETWORK),) $(if $(MEASURE),--measure,) $(if $(PARITY),--parity,)
+
+# INT-497: the seams of a rendered clip set and the end-of-turn detector,
+# measured. CLIPS is a rendered set (index.json + <context>/<hash>.wav — the
+# gitignored E04 render, never committed). `joins` prints per-clip edges and
+# BS.1770 loudness and the lead-in -> question joins before/after; `traces`
+# renders level envelopes over a quiet and a noisy room, which endpoint_replay
+# feeds to the device's own endpointer.ts. PLAYBACK=1 (macOS only) also times
+# AVFoundation: a new player per clip vs one queue. Agent speech only; levels,
+# never samples, leave the clip set (invariant 3). Every figure is this clip set
+# on this machine on this day, never a property of the product (invariant 20).
+voice-experience:
+	@test -n "$(CLIPS)" || { echo "usage: make voice-experience CLIPS=<rendered clip dir> [PLAYBACK=1]"; exit 2; }
+	@mkdir -p .cache/voice-experience
+	$(if $(PLAYBACK),uv run python scripts/voice/voice_experience.py playback --clips $(CLIPS) > .cache/voice-experience/playback.json && cat .cache/voice-experience/playback.json,)
+	uv run python scripts/voice/voice_experience.py joins --clips $(CLIPS) \
+	  $(if $(PLAYBACK),--switch .cache/voice-experience/playback.json,)
+	uv run python scripts/voice/voice_experience.py traces --clips $(CLIPS) --out .cache/voice-experience/traces.json
+	node scripts/voice/endpoint_replay.mjs .cache/voice-experience/traces.json
 
 # INT-319: the dev TTS latency harness (files/03 §4.9.1 rows 10-12). Measures
 # four delays per lane over one fixed, named corpus of scripted questions:

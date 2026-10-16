@@ -223,7 +223,12 @@ def test_ids_unique_and_well_formed() -> None:
     # clinical review, GitHub #913).
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget; INT-521 residual 1, GitHub #898).
-    assert len(ids) == 364
+    # + INT-497 (the voice experience: end-of-turn detection, one queue per
+    # turn, one loudness, holding lines, the turn timeline; owner order of
+    # 16 Oct 2026, GitHub #848) and its two splits, INT-504 (bundled-clip
+    # prefetch after INT-440, #858) and INT-505 (hosted streaming TTS after
+    # INT-443, #859).
+    assert len(ids) == 367
     import re
 
     for i in ids:

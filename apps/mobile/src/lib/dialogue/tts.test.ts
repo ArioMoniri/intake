@@ -315,6 +315,21 @@ describe("createClipStore (one synthesis per clip per session)", () => {
     expect(synth).not.toHaveBeenCalled();
     expect(fs.files.size).toBe(0);
   });
+
+  it("hands the clip's name to the synthesizer, which finishes it for its place (INT-497)", async () => {
+    // A lead-in and a question are finished differently (clipFinish.ts); the
+    // name is how the store's caller tells them apart. It is a cache key the
+    // app minted, never anything the patient said.
+    const fs = memoryFs();
+    const synth = vi.fn(async (_text: string, _context?: unknown, _name?: string) => wav);
+    const store = createClipStore("cache/dialogue/", fs, synth);
+    await store.ensure(
+      "l_acknowledgement_dialogue_delivery_thanks_a.wav",
+      "Teşekkürler.",
+      "acknowledgement",
+    );
+    expect(synth.mock.calls[0][2]).toBe("l_acknowledgement_dialogue_delivery_thanks_a.wav");
+  });
 });
 
 // INT-261 — the patient's turn has a deadline; the TTS ladder does not.
