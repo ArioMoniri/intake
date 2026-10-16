@@ -888,6 +888,11 @@ LOCKFILE = REPO / "pnpm-lock.yaml"
 # main 3afc5a29 on 16 Oct 2026, each with a fixed release. shell-quote,
 # compression and source-map-js are transitive, so root pnpm.overrides floors
 # raise them; next is admin-web's own direct pin (docs/evidence/INT-500.md).
+#
+# INT-501 adds http-cache-semantics. Its osv-scanner exception (GHSA-ch52-4w7c-c8xp)
+# expires on 2 Nov 2026. The record's range ends at last_affected 4.2.0, and 4.3.0
+# shipped on 4 Oct, so a root override floor lifts the one transitive copy
+# (@expo/ngrok > got > cacheable-request) out of it (docs/evidence/INT-501.md).
 FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "vitest": (4, 1, 11),  # GHSA-5xrq-8626-4rwp (3.2.6), GHSA-82fw-gwwq-j7x9 (4.1.11)
     "@vitest/mocker": (4, 1, 11),  # GHSA-82fw-gwwq-j7x9
@@ -899,6 +904,7 @@ FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "compression": (1, 8, 2),  # GHSA-vc2v-76pw-4v95 (CVE-2026-87776)
     "source-map-js": (1, 2, 2),  # GHSA-68fv-2mgg-jv7q (CVE-2026-93749)
     "next": (16, 3, 8),  # CVE-2026-94483 and six more GHSA records, all fixed in 16.3.8
+    "http-cache-semantics": (4, 3, 0),  # GHSA-ch52-4w7c-c8xp (CVE-2026-93748), through 4.2.0
 }
 
 # INT-500: the one uv.lock advisory osv-scanner 2.5.1 reported beside the four
@@ -1116,7 +1122,35 @@ OVERRIDE_FLOORS = {
     "shell-quote@<1.11.0": "^1.11.0",
     "compression@<1.8.2": "^1.8.2",
     "source-map-js@<1.2.2": "^1.2.2",
+    "http-cache-semantics@<4.3.0": "^4.3.0",  # INT-501
 }
+
+
+def _override_reaches_its_fix(selector: str, floor: str) -> bool:
+    """The selector's upper bound and the floor are both the package's fixed version.
+
+    A selector bounded lower (`<4.2.0`) leaves the last vulnerable release
+    unrewritten; a floor below the fix rewrites it to another vulnerable one.
+    """
+    name, _, bound = selector.rpartition("@")
+    fixed = FIXED_VERSIONS[name]
+    return (
+        bound.startswith("<")
+        and _parse_version(bound[1:]) == fixed
+        and _parse_version(floor.lstrip("^")) == fixed
+    )
+
+
+def test_every_override_floor_is_its_fixed_version() -> None:
+    """INT-501: each override lifts exactly the advisory's range, no lower."""
+    for selector, floor in OVERRIDE_FLOORS.items():
+        assert _override_reaches_its_fix(selector, floor), f"{selector} -> {floor}"
+
+
+def test_near_miss_an_override_one_release_short_is_caught() -> None:
+    assert not _override_reaches_its_fix("http-cache-semantics@<4.2.0", "^4.3.0")
+    assert not _override_reaches_its_fix("http-cache-semantics@<4.3.0", "^4.2.0")
+    assert _override_reaches_its_fix("http-cache-semantics@<4.3.0", "^4.3.0")
 
 
 def test_the_transitive_floors_are_overrides_and_next_is_pinned_directly() -> None:
