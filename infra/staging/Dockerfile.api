@@ -55,6 +55,12 @@ LABEL org.opencontainers.image.title="intake-api staging (synthetic patients onl
       org.opencontainers.image.revision=${GIT_SHA} \
       org.opencontainers.image.created=${BUILT_AT}
 WORKDIR /app
+# INT-529: this image is the synthetic deployment's, so it bakes the data
+# class. The API then loads the synthetic legal index (docs/legal/synthetic,
+# every text marked "sentetik test metni") and refuses the real tree; any
+# other image is real_phi and refuses the synthetic one. compose.yaml never
+# sets this variable, so no operator environment can declare it.
+ENV INTAKE_DEPLOYMENT_DATA_CLASS=synthetic
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \

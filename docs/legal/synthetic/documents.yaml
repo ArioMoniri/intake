@@ -1,0 +1,163 @@
+# docs/legal/synthetic/documents.yaml — the SYNTHETIC-SCOPE legal index (INT-529).
+#
+# SYNTHETIC TENANTS ONLY. Owner decision, 16 Oct 2026, relayed: "for third do
+# recommended" — yes to the INT-498 audit's proposal P6. The legal lane (D25,
+# GitHub #800: a sourced legal-author agent, then an independent
+# legal-reviewer agent) authors these texts for the synthetic host, where every
+# patient is invented. They are not legal texts for a real person: a licensed
+# Turkish lawyer countersigns before any real patient (HB-L27, G3), and the
+# real-tenant index docs/legal/documents.yaml stays empty and untouched.
+#
+# HOW THIS INDEX IS READ — intake_platform.legal.synthetic.SyntheticLegalIndex
+#   - only when INTAKE_DEPLOYMENT_DATA_CLASS=synthetic is baked into the image
+#     (infra/staging/Dockerfile.api); a real_phi boot refuses this tree and a
+#     synthetic boot refuses the real one (intake_api.settings);
+#   - ids are the INT-210 aydınlatma and açık rıza ids; each file path comes
+#     from REQUIRED_DOCUMENTS, never from this file;
+#   - each row binds {version, sha256}: the bytes must hash to sha256 and the
+#     file's consent_text_version must equal version, or nothing serves;
+#   - every served body carries "Sentetik test metni" on its first line;
+#   - `grounds` names the declared values each text states: retention classes
+#     from packages/intake_platform/src/intake_platform/retention/
+#     retention_policy.yaml (status: sourced, or a non_persisted row), and
+#     recipients, categories and bases as constants of
+#     intake_platform.db.inventory. tests/legal/test_synthetic_legal_index.py
+#     checks every name resolves and none is an awaiting-human value.
+#
+# AWAITING-HUMAN — an id below is unbuilt because a value it must state is not
+# declared anywhere in the repository. It refuses as missing and names the
+# gap. Retention periods, recipients and new data categories are the owner's
+# to decide (CLAUDE.md, "When to stop and ask the human"); none is guessed.
+# docs/evidence/INT-529.md §4 is the table, docs/backlog/blockers.md the ask.
+
+synthetic_index_version: "2026-10-16.1"
+data_class: synthetic
+
+documents:
+  - id: acik_riza.core
+    version: "2026-10-16.syn1"
+    sha256: "6280a1a17f2af1baa1af6f0469b67499ee5a8306c5779cec5b53c83560c35578"
+    grounds:
+      retention: [clinical_record]
+      recipients: [REC_PATIENT_CLINICIAN, REC_CLINICIAN, REC_INTERNAL]
+      categories: [CAT_HEALTH, CAT_PSEUDONYM, CAT_OPERATIONAL]
+      bases: [BASIS_HEALTH_CONSENT]
+
+  - id: acik_riza.voice
+    version: "2026-10-16.syn1"
+    sha256: "edb080351c43ec262a2a69829c3eca9977d1af8afa6b913f4367e2d0cccdfe09"
+    grounds:
+      retention: [raw_audio, clinical_record]
+      recipients: [REC_INTERNAL]
+      categories: [CAT_HEALTH]
+      bases: [BASIS_HEALTH_CONSENT]
+
+  - id: acik_riza.wellbeing
+    version: "2026-10-16.syn1"
+    sha256: "305072e55f012e5477050b4783bae0571d9e13aa8ffc78536d033cab726b93a4"
+    grounds:
+      retention: [clinical_record]
+      recipients: [REC_PATIENT_CLINICIAN, REC_CLINICIAN]
+      categories: [CAT_HEALTH]
+      bases: [BASIS_HEALTH_CONSENT]
+
+  - id: acik_riza.lane.affect
+    version: "2026-10-16.syn1"
+    sha256: "17183b1f1d8ff246b933244e5333c9cf512ac57eb3182faca75cecb701dbacc9"
+    grounds:
+      retention: [lane_windows]
+      recipients: [REC_INTERNAL]
+      categories: []
+      bases: [BASIS_HEALTH_CONSENT]
+
+  - id: acik_riza.documents
+    version: "2026-10-16.syn1"
+    sha256: "ef06eb0cce769cf166b0788ba4c7d4c8b41d129ea69871b193e1eec3cdaa9ee9"
+    grounds:
+      retention: [clinical_record]
+      recipients: [REC_CLINICIAN, REC_INTERNAL]
+      categories: [CAT_HEALTH, CAT_OPERATIONAL]
+      bases: [BASIS_HEALTH_CONSENT]
+
+  - id: acik_riza.satisfaction
+    version: "2026-10-16.syn1"
+    sha256: "3ae42b617f5b77081731b3cf9ae5e8a18e4a30bd5a5623a386626e5977126e22"
+    grounds:
+      retention: [satisfaction, telemetry]
+      recipients: [REC_INTERNAL]
+      categories: [CAT_HEALTH, CAT_OPERATIONAL]
+      bases: [BASIS_HEALTH_CONSENT]
+
+  - id: acik_riza.share
+    version: "2026-10-16.syn1"
+    sha256: "6a2c45a99647e50f995ff984bde8e94e1e48401c48416a4bf2d31ef79d44760d"
+    grounds:
+      retention: [doctor_link_tokens, clinical_record]
+      recipients: [REC_CLINICIAN]
+      categories: [CAT_HEALTH, CAT_CONSENT]
+      bases: [BASIS_HEALTH_CONSENT]
+
+awaiting_human:
+  - id: aydinlatma.app
+    missing:
+      - "the controller's registered identity — title, MERSİS number, address, telephone, e-mail and KEP (KVKK m.10(1)(a); Aydınlatma Tebliği m.4(1)(a); the Board's 2026/347 Ek-1 template). No file in the repository names INTAKE's legal entity (HB-L21(e))."
+      - "the recipient of the sign-in phone number: the SMS vendor for the one-time code is undecided (INT-358; docs/legal/drafts/sms-vendor-transfer-memo.draft.md, decision 17), and the phone number has no inventory annotation because it lives only in identity_vault, outside the ORM inventory"
+      - "the KVKK m.9 ground for holding testers' real phone numbers on the us-east-1 host (infra/staging/compose.yaml: the AWS host is in us-east-1)"
+    ask: "Owner and counsel: name INTAKE's legal entity and its contact points, choose the sign-in SMS vendor, and state the transfer ground for the synthetic host, so the app-channel notice can name the controller, every recipient and the transfer truthfully."
+    refs: [HB-L21, HB-L27, INT-358]
+
+  - id: aydinlatma.kiosk
+    missing:
+      - "the controller: on the kiosk channel the hospital is the controller and INTAKE the processor (files/06 §0.1(b)); no hospital tenant exists on the synthetic host and no DPA is executed"
+      - "recipients beyond the PHI boundary, which only a hospital DPA defines (infra/previsit_output/recipients.yaml has zero rows)"
+    ask: "Owner: name the hospital tenant and DPA whose kiosk this notice speaks for, or confirm the synthetic host has no kiosk channel."
+    refs: [HB-L27]
+
+  - id: aydinlatma.clinician
+    missing:
+      - "the controller: on the clinician channel the hospital is the controller and INTAKE the processor (files/06 §0.1(b)); no hospital tenant exists on the synthetic host and no DPA is executed"
+      - "the collection flow itself: the clinician surfaces are not built (INT-151, INT-152)"
+    ask: "Owner: name the hospital tenant and DPA whose clinicians collect through this channel, or confirm the synthetic host has no clinician channel."
+    refs: [HB-L27]
+
+  - id: aydinlatma.admin
+    missing:
+      - "what personal data the admin console collects from a patient, and under whose controllership: consents.channel admits admin, but no repository file describes an admin-channel collection"
+      - "the controller's registered identity (HB-L21(e))"
+    ask: "Owner: say what a patient's data entering through the admin console is, and for which tenant, so the notice can describe a real collection."
+    refs: [HB-L21, HB-L27]
+
+  - id: aydinlatma.web
+    missing:
+      - "the controller: the web channel is the partner embed (INT-320, ADR-028), whose partner-processor statement is per tenant under the tenant's own legal_root; the embed registry holds dev rows only"
+      - "the controller's registered identity (HB-L21(e))"
+    ask: "Owner: name the partner tenant the web notice speaks for, or confirm the synthetic host has no web channel."
+    refs: [HB-L21, HB-L27]
+
+  - id: acik_riza.lane.linguistic
+    missing:
+      - "files/06 §2.1 requires this text to disclose that certain self-harm phrases trigger a fixed safety response regardless of the choice; that response does not exist — the crisis lexicon is draft_needs_source with no terms and CrisisBypass refuses to build (packages/protocols/lexicons/tr/linguistic.yaml). The text can neither state the carve-out truthfully nor leave it out."
+    ask: "Physician of record and counsel: which Turkish phrases trigger the consent-independent response, and is it signposting or an instrument (HB-C17)?"
+    refs: [HB-C17, HB-C8, HB-L2]
+
+  - id: acik_riza.learning.personal
+    missing:
+      - "the lawful ground: the registry gives SERVICE_PERFORMANCE, on by default (consent/registry.py), but what Loop 1 learns is health data (overlay_facts, CAT_HEALTH) and KVKK m.6(3) as amended by Law 7499 lists no service-performance ground; Board decision 2026/347 says no açık rıza text is shown for processing that rests on another ground, so neither text can be written until the ground is decided"
+      - "a retention class for personal learning: retention_policy.yaml has none (docs/legal/COUNSEL_BRIEF.md §3.6)"
+    ask: "Owner and counsel: which KVKK m.6(3) ground carries default-on personal learning over health data, and how long is what it learns kept?"
+    refs: [HB-L27]
+
+  - id: acik_riza.learning.service_improvement
+    missing:
+      - "the lawful ground: the registry gives DEIDENTIFIED_OPTOUT, which is not a KVKK ground; making the de-identified aggregates is itself processing of health data that needs a KVKK m.6(3) ground, and Board decision 2026/347 rules out an açık rıza text for processing that rests on another ground"
+      - "a retention class for the aggregates: retention_policy.yaml has none (docs/legal/COUNSEL_BRIEF.md §3.6)"
+    ask: "Owner and counsel: which ground carries the de-identification step, and how long are the aggregates kept?"
+    refs: [HB-L27]
+
+  - id: acik_riza.research
+    missing:
+      - "retention: retention_policy.yaml research_extracts is draft_needs_source ('per ethics protocol', and no protocol exists)"
+      - "recipients: per ethics protocol; none is defined in the repository"
+      - "which limb of KSVY m.16 a consented research export rides (HB-L26), and the study site (HB-L1)"
+    ask: "Owner and counsel: the ethics protocol that fixes retention and recipients, and the KSVY m.16 limb the research purpose rides."
+    refs: [HB-L26, HB-L1, HB-L27]
