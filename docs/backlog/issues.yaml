@@ -7205,8 +7205,11 @@
   # declares it, but purposes.ts showed core as information (ui: "info") and
   # the ledger never made it grantable, so a signed-in account could not
   # start a visit on the synthetic host. Stacked on INT-529 (#911), whose
-  # synthetic core text is what the app renders there. The server side was
-  # already complete; the API tests here pin it end to end.
+  # synthetic core text is what the app renders there. The grant surface was
+  # already complete; the API tests here pin it end to end. Legal review
+  # round 2 (B1): a core withdrawal now also writes the opt-out of each
+  # default-on learning purpose, as the core text promises; the default-on
+  # legal question itself is INT-556's.
   depends_on: [INT-529, INT-132, INT-232]
   labels: [area:mobile, risk:legal]
   status: done

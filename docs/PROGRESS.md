@@ -1,5 +1,29 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T08:00:00Z · INT-537 · done (round 2 on PR #940; the legal review's B1 and B2 fixed)
+- Goal: clear the legal review's two blocks. B1: a core withdrawal left both learning purposes `default_on` and processing, against the core text. B2: `consent.who.core` hid the RED staff alert.
+- Plan:
+  - The core cascade writes each default-on purpose's opt-out (audited, listed); the app's spare goes.
+  - Use the reviewer's wording for the who-row.
+  - Comment fix in `purposes.ts`. Visit-start copy for a tenant with no core text.
+  - Merge #911 as refreshed (`2cf0d5f3`).
+- Tests added:
+  - API: cascade inverted, re-grant re-opens nothing, voice near miss, no second opt-out.
+  - Legal: service test and sweep repair.
+  - ledger: inverted, plus the voice near miss. gate: a `no_text` reason. consent and visits specs pin the copy.
+  - RED: 13 mobile and 5 Python failed.
+  - Mutations caught: M1 5, M2 1, M3 3.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2848 tests.
+  - api, legal, research, release, backlog and platform: 2219 passed.
+  - mypy --strict is clean on `intake_platform`.
+  - Details are in `docs/evidence/INT-537.md` §8.
+- Invariants touched and still passing: 4 (opt-outs audited as `consent.cascade`, chain verified), 5, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The default-on question goes to INT-556 (the coordinator files it).
+- Blocked on: nothing.
+- Next: the legal-reviewer re-check.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T21:00:00Z · INT-537 · done (PR stacked on #911; legal-reviewer pass to follow)
 - Goal: a signed-in account can start a visit end to end on the synthetic host. The server makes `core` açık rıza, and every visit and note route requires it. The app showed `core` as information and could not grant it (INT-529 finding F2).
 - Plan:
