@@ -212,10 +212,14 @@ class RecordingSink:
     cancels: int = 0
     #: virtual milliseconds of playback charged per byte of agent speech
     ms_per_byte: float = 1.0
+    #: INT-497: when each sentence played, on the virtual clock — (start, end) ms.
+    intervals: list[tuple[float, float]] = field(default_factory=list)
 
     async def play(self, frames: bytes, *, label: str = "") -> None:
         self.played.append((label, len(frames)))
+        started = self.clock.now_ms()
         await self.clock.sleep(len(frames) * self.ms_per_byte / 1000.0)
+        self.intervals.append((started, self.clock.now_ms()))
 
     async def cancel(self) -> None:
         self.cancels += 1
