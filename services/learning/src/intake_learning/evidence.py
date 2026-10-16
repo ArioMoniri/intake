@@ -96,6 +96,11 @@ class EvidenceSource(StrEnum):
     CLAUDE_INVARIANT_20 = "CLAUDE.md invariant 20"
     #: INT-171 — the de-identified views and the k-anonymity gate this reads
     INT_171_ANALYTICS = "INT-171 analytics"
+    #: INT-490 — the research and improvement release the admin panel shows,
+    #: already gated within and across views
+    INT_490_RESEARCH = "INT-490 research analytics"
+    #: LD-06 — what admin research and improvement analytics may hold
+    LD_06 = "LD-06"
     #: Test fixtures only. No committed configuration names it, which is why
     #: :meth:`~intake_learning.architect.PromotionThresholds.from_blueprint`
     #: raises instead of returning a floor sourced from here.
