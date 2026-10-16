@@ -166,7 +166,7 @@ def _positive_int(raw: object) -> int | None:
 
 
 def _sha(raw: object) -> str | None:
-    return raw if isinstance(raw, str) and SHA_RE.match(raw) else None
+    return raw if isinstance(raw, str) and SHA_RE.fullmatch(raw) else None
 
 
 def _cache() -> Any:
@@ -350,7 +350,7 @@ class GithubCicdSource:
         names = {
             name
             for job in failing
-            if isinstance(name := job.get("name"), str) and JOB_NAME.match(name)
+            if isinstance(name := job.get("name"), str) and JOB_NAME.fullmatch(name)
         }
         result = (tuple(sorted(names)), len(failing))
         self._jobs_cache[key] = result
@@ -421,7 +421,7 @@ class GithubCicdSource:
                 continue
             tag = entry.get("tag_name")
             published = parse_github_time(entry.get("published_at"))
-            if isinstance(tag, str) and REF_RE.match(tag) and published is not None:
+            if isinstance(tag, str) and REF_RE.fullmatch(tag) and published is not None:
                 candidates.append((tag, published, entry.get("prerelease") is True))
         if not candidates:
             return ()

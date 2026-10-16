@@ -59,6 +59,8 @@ __all__ = [
 GITHUB_API: Final = "https://api.github.com"
 _API_VERSION: Final = "2022-11-28"
 _PAGE: Final = 30
+#: Each shape below is held with ``fullmatch`` (as :data:`ID_SHAPED` is): ``$``
+#: also matches before a final newline, so ``match`` would pass ``"main\n"``.
 _REPO_RE: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}$")
 #: A git ref name — the watched branch, or a release tag (INT-187).
 REF_RE: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
@@ -119,9 +121,9 @@ def parse_github_time(raw: object) -> datetime | None:
 
 def check_github_target(repo: str, branch: str, api_base: str) -> None:
     """Refuse a repository, branch or API base the collector will not dial."""
-    if not _REPO_RE.match(repo) or ".." in repo:
+    if not _REPO_RE.fullmatch(repo) or ".." in repo:
         raise OpsConfigError("the GitHub repository must be owner/name")
-    if not REF_RE.match(branch) or ".." in branch:
+    if not REF_RE.fullmatch(branch) or ".." in branch:
         raise OpsConfigError("the branch must be a plain ref name")
     if not api_base.startswith("https://"):
         raise OpsConfigError("the GitHub API base must be https")
@@ -158,7 +160,7 @@ def github_get(client: httpx.Client, url: str, token: str, params: Mapping[str, 
 
 def parse_run(entry: Mapping[str, Any], branch: str) -> CiRun | None:
     """One API row as a :class:`CiRun`, or ``None`` if any field is not an id."""
-    match = _WORKFLOW_PATH_RE.match(str(entry.get("path", "")))
+    match = _WORKFLOW_PATH_RE.fullmatch(str(entry.get("path", "")))
     workflow = match.group(1) if match else ""
     status = entry.get("status")
     conclusion = entry.get("conclusion") or "none"
@@ -166,12 +168,12 @@ def parse_run(entry: Mapping[str, Any], branch: str) -> CiRun | None:
     number = entry.get("run_number")
     updated = parse_github_time(entry.get("updated_at"))
     if (
-        not ID_SHAPED.match(workflow)
+        not ID_SHAPED.fullmatch(workflow)
         or entry.get("head_branch") != branch
         or status not in CI_STATUSES
         or conclusion not in CI_CONCLUSIONS
         or not isinstance(sha, str)
-        or not SHA_RE.match(sha)
+        or not SHA_RE.fullmatch(sha)
         or not isinstance(number, int)
         or updated is None
     ):
