@@ -2050,6 +2050,12 @@ it or whose tests exercise it.
     the file name 26.7.4's directory import requires. **Known limit:** three OSV records
     still match 26.7.4 through open-ended ranges whose GitHub source bounds them below it
     (docs/evidence/INT-390.md); a scanner that reads the Keycloak artefacts reports them.
+  - **Controls added by INT-485 (the console's login gate writes no staff identity):**
+    against [L] staff identities in the host's container logs. oauth2-proxy's request and
+    auth logs are on by default, and each line names the signed-in email and the client IP,
+    so every console request wrote both into the json-file logs (inv. 6). The admin
+    `oauth2-proxy` service turns both off, the same as INT-481's Grafana gate; start-up and
+    error lines are still written.
 - **Signals:** group O (§7): device-flag and study-assertion changes, break-glass rate and
   patient-log lag, pack promote/quarantine, connector and allow-list changes, privileged
   role grants, `admin.four_eyes_self_approval_attempt_total` (an intrusion signal),
@@ -2060,8 +2066,9 @@ it or whose tests exercise it.
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
   the same file, with property tests over generated ids (INT-391); the realm-import column
   limits, the image digest and the import file name in
-  `tests/infra/test_keycloak_realm_import.py` (INT-390); the WebAuthn session-notes
-  provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
+  `tests/infra/test_keycloak_realm_import.py` (INT-390); the login gate's logs off, with the
+  default as a near-miss, in `tests/infra/test_staging_admin_tier.py` (INT-485); the
+  WebAuthn session-notes provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
   (INT-378). Break-glass (INT-180):
   the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
   `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both

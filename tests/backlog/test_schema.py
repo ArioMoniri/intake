@@ -194,9 +194,11 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
     # location answer reaches the server, so ON_SITE notifies staff; found by
     # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
+    # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
+    # invariant 6, GitHub #830).
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
-    assert len(ids) == 355
+    assert len(ids) == 356
     import re
 
     for i in ids:

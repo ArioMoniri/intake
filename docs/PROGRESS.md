@@ -1,5 +1,28 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
+- Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).
+- Plan:
+  - Set `OAUTH2_PROXY_REQUEST_LOGGING` and `OAUTH2_PROXY_AUTH_LOGGING` to `"false"` on `oauth2-proxy` in infra/staging/compose.yaml, with a comment saying why. This is the same pair INT-481 sets on `oauth2-proxy-grafana`, which runs the same image digest.
+  - Pin both in `TestLoginGate`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staging_admin_tier.py::TestLoginGate`: both switches pinned.
+  - Near-misses refused by the same check: the default (both keys absent), one key alone, and either key set to `"true"`.
+  - Red: 1 failed, 39 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Green: tests/infra unit lane 754 passed. The 17 `integration` errors are the edge tier (HB-I13).
+  - tests/backlog and tests/smoke green, with counts at 342.
+  - files/11 regenerated.
+  - `make safety` exit 0. Local security: gitleaks found no leaks; trivy config on infra/staging gave rc 0.
+  - Full check-py, check-ts and check-integration, and the full `make security`, run on the PR's AWS runner.
+- Invariants touched and still passing:
+  - 6 (no staff email or IP in the gate's logs);
+  - 14 (image pin unchanged);
+  - 16 (Sec-Row `admin-console`, threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
+- LOOP_STATUS: CONTINUE
 ### 2026-10-16T12:30:00Z · INT-528 · done (committed locally, not pushed; live once the owner applies the egress patch and deploys)
 - Goal: acceptance verbatim (GitHub #895). In summary:
   - a Netgsm adapter behind the INT-329 SMS port, from Netgsm's documented OTP SMS API;
