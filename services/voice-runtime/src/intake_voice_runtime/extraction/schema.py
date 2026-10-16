@@ -16,6 +16,15 @@ serialisation details:
   whole document rather than dropping the key — dropping it would let the rest
   of a hallucinated answer through.
 
+**A date answered by a closed choice is offered its choices, never a date**
+(INT-522). ``chest_pain.onset_at`` is a ``date`` slot whose authored
+``choices_tr`` are CD-05's four bands. The model is given no reference date and
+is told not to infer, so a ``format: date`` field could only be filled with an
+invented day; the field is the closed set of authored choices instead, and the
+runtime resolves the chosen band to a day against the session's own reference
+time (:mod:`intake_voice_runtime.clinical_agent.anchors`). The choices come from
+the slot's own declaration, like every other part of this schema.
+
 :func:`build_instructions` takes the schema and nothing else. That is the
 structural half of invariant 14: there is no parameter through which patient
 text reaches the instruction region. The instructions are written in English
@@ -31,6 +40,7 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 from protocols.dsl import Slot
+from protocols.locale_text import DEFAULT_LOCALE
 from protocols.types import SlotType
 
 from intake_voice_runtime.extraction.boundary import DATA_TAG
@@ -45,7 +55,10 @@ __all__ = [
     "UNIT_KEY",
     "VALUE_KEY",
     "build_instructions",
+    "closed_choice_dates",
+    "date_choices",
     "slot_output_schema",
+    "unbound_code_slots",
 ]
 
 #: The schema's identity, carried on every trace span so a completion can be
@@ -96,7 +109,42 @@ def _value_shape(ref: str, slot: Slot, valuesets: Mapping[str, tuple[str, ...]])
                 "unconstrained answer, so the schema is refused rather than widened"
             )
         return {"type": "string", "enum": list(members)}
+    choices = date_choices(slot)
+    if choices:
+        return {"type": "string", "enum": list(choices)}
     return dict(_VALUE_SHAPE[slot.type])
+
+
+def date_choices(slot: Slot) -> tuple[str, ...]:
+    """The authored choices of a date slot answered by a closed choice, else ``()``.
+
+    Turkish, the extraction language: the members the model may pick, byte for
+    byte as the pack authored them (INT-522).
+    """
+    if slot.type is not SlotType.DATE or slot.choices_tr is None:
+        return ()
+    return tuple(slot.choices_tr.get(DEFAULT_LOCALE, ()))
+
+
+def closed_choice_dates(slots: Mapping[str, Slot]) -> dict[str, tuple[str, ...]]:
+    """``{ref: choices}`` for every date slot answered by a closed choice."""
+    return {ref: choices for ref, slot in sorted(slots.items()) if (choices := date_choices(slot))}
+
+
+def unbound_code_slots(
+    slots: Mapping[str, Slot], valuesets: Mapping[str, tuple[str, ...]]
+) -> tuple[tuple[str, str | None], ...]:
+    """Every code slot :func:`slot_output_schema` would refuse, as ``(ref, valueset)``.
+
+    The same test :func:`_value_shape` applies per Work, run once over a whole
+    protocol, so a session that could never bind one of its code slots is
+    refused when it is composed rather than one Work at a time (INT-518).
+    """
+    return tuple(
+        (ref, slot.valueset)
+        for ref, slot in sorted(slots.items())
+        if slot.type is SlotType.CODE and not valuesets.get(slot.valueset or "")
+    )
 
 
 def slot_output_schema(

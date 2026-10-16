@@ -6967,6 +6967,93 @@
     - "tests/infra/test_staging_admin_tier.py::TestLoginGate pins both, with a near-miss that the default (both absent), either one alone, or either set to \"true\" fails the same check; the red and green runs are recorded in docs/evidence/INT-485.md; nothing is deployed from the PR"
   tests: [tests/infra/test_staging_admin_tier.py]
   sec_row: "admin-console"
+- id: INT-441
+  epic: E03-protocols
+  phase: P0
+  title: "base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date)"
+  # GitHub #750. base.intake gates compare code slots against literals the slot
+  # never carries. Acceptance verbatim from the issue. The issue had no row on
+  # main; this row is the one INT-452 (#867) reconciled, closed by PR #907.
+  depends_on: [INT-043]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-441.md
+  acceptance:
+    - "Each gate compares against a value its slot can carry. `proxy_reported` opens only on \"yakınım adına\". `lmp_date` keeps its current behaviour (asked once `pregnancy_status` is answered, with any answer), and every literal is an authored choice. Both gates project to a FHIR enableWhen. No Turkish string changes, so the INT-297 tr content baseline is not regenerated."
+    - "A test asserts that every `ask_if`/`skip_if` literal compared against a code slot in base.intake is one of that slot's `choices_tr`. Near-miss controls: a prefix of a choice (`'kendim'`) and an ASCII-folded choice are refused."
+    - "Engine tests drive a real IntakeEngine with the authored choice strings. \"kendim için\" keeps `proxy_reported` closed, and every pregnancy_status answer, \"hayır\" included, opens `lmp_date`. `test_base_intake_gates_name_one_slot_each` stays green."
+  sec_row: "clinical-content"
+- id: INT-518
+  epic: E03-protocols
+  phase: P0
+  title: "Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind"
+  # GitHub #884, from the INT-441 clinical review (16 Oct 2026). The
+  # composition root handed extraction `dict(valuesets or {})` and no
+  # production caller passed a table. Every Work declaring a code slot was
+  # refused, and the slot then stayed awaiting, so every later Work was refused
+  # too: a session bound nothing after its first question. chest_pain.character
+  # and chest_pain.radiation, the code inputs of the two active life-threat
+  # rules, never bound. Stacked on INT-441 (#750), which commits the first
+  # three sets and the compiler check; this row's sets complete the table.
+  depends_on: [INT-083, INT-432]
+  labels: [area:protocols]
+  status: done
+  evidence: docs/evidence/INT-518.md
+  acceptance:
+    - "Composition loads the committed table (load_valuesets(VALUESETS_PATH)) and passes it to extraction; a test pins that production composition passes a non-empty table."
+    - "Commit value sets for every base code slot (chest_pain_character, chest_pain_radiation, timing_pattern, trajectory, anticoagulant_use, smoking_status, alcohol_use, plus INT-441's three), copied byte-for-byte from each slot's choices_tr (no clinical re-decision)."
+    - "A test that every code slot read by any red-flag rule (base.life_threat + base.intake rf.*) can bind from an authored choice; near miss: a slot with no committed set fails."
+    - "Plan build re-checks gate values against the table (the compiler is not the only gate)."
+    - "make safety green; runtime-sim green; invariants 1, 7, 9, 21."
+  tests: [tests/voice/test_extraction_valuesets.py, tests/engine/test_plan_valuesets.py, tests/protocols/test_base_intake_valuesets.py]
+  sec_row: "clinical-core"
+- id: INT-521
+  epic: E05-voice
+  phase: P0
+  title: "The live voice and typed session evaluates triage on every bound answer, so a RED fires from the conversation"
+  # GitHub #887, from INT-518 (#884), 16 Oct 2026. After INT-518 every
+  # base.intake code slot binds in a live session, but no production module
+  # called evaluate_triage during a session and no handler set triage_update:
+  # the answers bound and nothing evaluated them, and the queue's RED path was
+  # fed only by tests. #766 (INT-446) evaluates on the app's API hop, #773
+  # (INT-453) chooses the winning rule's script inside the RED path and #855
+  # (INT-475) notifies staff; none evaluates inside the voice runtime or hands a
+  # drained RED to the path. Stacked on INT-518 (#884) and INT-441 (#750).
+  depends_on: [INT-518, INT-093]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-521.md
+  acceptance:
+    - "Every completed Work that binds a slot read by a served red-flag rule triggers a rules-engine evaluation (packages/protocols/triage only; invariant 1); a RED result reaches the existing RED path (pre-positioned script over the data channel, priority preempt only from the rules engine; invariants 9, 21)."
+    - "The Talker never awaits the evaluation (fake-clock test)."
+    - "End-to-end test over the committed base.intake + base.life_threat on both profiles: a chest-pain character or radiation answer alone yields RED at the rule's register and location; near misses do not."
+    - "make safety, runtime-sim (both profiles, PARITY=1) green."
+  tests: [tests/voice/test_live_triage.py]
+  sec_row: "clinical-core"
+- id: INT-522
+  epic: E03-protocols
+  phase: P0
+  title: "chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live"
+  # GitHub #888, from INT-518 (#884), 16 Oct 2026. chest_pain.onset_at is the
+  # tense anchor of rf.chest_pain_cardiac_features (KIRMIZI_K2) and its SARI
+  # sibling: a date slot answered by four closed choices. CD-05 decided how
+  # each choice resolves to a day; nothing built it. Extraction offered the
+  # model a format: date field with no reference date and told it not to
+  # infer one, so a spoken choice bound nothing, the anchor read Unknown and
+  # K2 could not fire from a conversation. INT-518's and INT-521's tests
+  # passed only because their recorded completion carried an ISO date.
+  # Stacked on INT-521 (#910), INT-518 and INT-441.
+  depends_on: [INT-518, INT-521]
+  labels: [area:protocols]
+  status: done
+  evidence: docs/evidence/INT-522.md
+  acceptance:
+    - "Build CD-05's decided choice-to-date resolution exactly as CD-05 states it (each authored onset choice to its day; no clinical re-decision); anything CD-05 leaves open stays the invariant-17 literal under draft_needs_source and goes to the D18 lane."
+    - "The session reference date comes from the runtime's injected clock (fake-clock tested), never inferred by the model; the model only picks the authored choice (schema-constrained, invariant 14)."
+    - "Tests: every authored onset choice resolves to its CD-05 day; hedged answers stay Unknown and the rule's Unknown branch behaves as authored; boundary near misses one unit either side; end to end over committed base.intake + base.life_threat on both profiles, a spoken onset choice (no recorded ISO date) plus a cardiac character fires K2 at the rule's register and location, and a choice outside the window does not."
+    - "make safety and runtime-sim (both profiles, PARITY=1) green; protocols coverage >= 95 %, voice-runtime >= 90 %; goldens updated with a near-miss negative control."
+  tests: [tests/protocols/test_anchor_choices.py, tests/voice/test_onset_anchor.py, tests/safety/test_triage_goldens.py]
+  sec_row: "clinical-core"
 - id: INT-538
   epic: E13-infra
   phase: P1

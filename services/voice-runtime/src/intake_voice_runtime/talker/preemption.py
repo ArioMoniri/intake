@@ -131,10 +131,23 @@ class BackendResult(FrozenModel):
     delivery_class: DeliveryClass
     presentation: Presentation
     priority: Priority = Field(default=Priority.NORMAL)
+    evaluated_at_ms: float | None = Field(
+        default=None,
+        ge=0.0,
+        description="``preempt`` only: the session-clock moment Layer B had the "
+        "rules-engine determination in hand (INT-521). files/02 §8.2 measures the RED "
+        "budgets from rule evaluation, so the stamp travels with the RED and the "
+        "Talker never stamps one on arrival, which would discount the Layer B hop.",
+    )
 
     @model_validator(mode="after")
     def _only_a_rules_engine_red_may_preempt(self) -> BackendResult:
         if self.priority is not Priority.PREEMPT:
+            if self.evaluated_at_ms is not None:
+                raise ValueError(
+                    "evaluated_at_ms stamps a RED's determination; a result that does "
+                    "not preempt has no RED budget to measure from it (INT-521)"
+                )
             return self
         triage = self.presentation.triage_update
         if not isinstance(triage, RulesTriageResult) or triage.level is not TriageLevel.RED:
