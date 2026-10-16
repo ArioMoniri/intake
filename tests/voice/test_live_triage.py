@@ -49,6 +49,7 @@ from typing import Any
 
 import pytest
 import test_extraction_valuesets as int518
+from clinic_item_harness import RecordingClinicItems
 from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import (
@@ -224,6 +225,7 @@ def _rig(
             clinic=clinic,
             clock=clock,
             red=red,
+            clinic_items=RecordingClinicItems(),
         )
         return Rig(stack, clock, channel, clinic, None, None, screen)
     sink = RecordingSink(clock=clock)
@@ -244,6 +246,7 @@ def _rig(
         clock=clock,
         screen=screen,
         red=red,
+        clinic_items=RecordingClinicItems(),
     )
     return Rig(stack, clock, channel, clinic, sink, synthesizer, screen)
 

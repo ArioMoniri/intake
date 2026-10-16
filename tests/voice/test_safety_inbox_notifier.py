@@ -46,7 +46,12 @@ from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.safety_inbox import SafetyInboxNotifier
 from intake_voice_runtime.talker.delivery import DeliveryClass
 from intake_voice_runtime.talker.preemption import BackendResult, Presentation, Priority
-from intake_voice_runtime.talker.red_path import ClinicNotifier, RedNotification
+from intake_voice_runtime.talker.red_path import (
+    ClinicNotifier,
+    DeviceDelivery,
+    RedNotification,
+    delivery_before_trigger,
+)
 from prometheus_client import REGISTRY
 from red_harness import RecordingClinicNotifier
 from session_harness import HASH, NOW, builders, protocol
@@ -188,6 +193,7 @@ class TestTheAdapterIsInProcess:
                 location=RedLocation.REMOTE,
                 evaluated_at_ms=0.0,
                 patient_facing=True,
+                delivery=DeviceDelivery.PENDING,
             )
         )
         (entry,) = outbox.pending()
@@ -308,4 +314,5 @@ def _notification(
         location=location,
         evaluated_at_ms=0.0,
         patient_facing=register is not RedRegister.DEFERRED_CLINICIAN,
+        delivery=delivery_before_trigger(register),
     )

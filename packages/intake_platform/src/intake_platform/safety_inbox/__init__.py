@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from intake_platform.safety_inbox.metrics import UNREADABLE_TENANT, mark_inbox_unreadable
 from intake_platform.safety_inbox.model import (
+    CLINIC_ITEM_KINDS,
     AlreadyAcknowledged,
     EntryKind,
     InboxEntry,
@@ -56,6 +57,7 @@ from intake_platform.safety_inbox.store import (
 )
 
 __all__ = [
+    "CLINIC_ITEM_KINDS",
     "DEFAULT_ACK_SLA",
     "ENV_SAFETY_INBOX_REDIS_URL",
     "INBOX_ENTRY_BUDGET",

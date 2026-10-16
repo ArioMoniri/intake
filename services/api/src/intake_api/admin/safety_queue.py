@@ -73,7 +73,8 @@ def _row(row: QueueRow) -> dict[str, Any]:
             entry.acknowledged_at.isoformat() if entry.acknowledged_at is not None else None
         ),
         "acknowledged_by": entry.acknowledged_by,
-        "sla_minutes": _minutes(row.sla.total_seconds()),
+        # INT-547: a CD-08 clinic item states no SLA, because CD-08 decides none
+        "sla_minutes": _minutes(row.sla.total_seconds()) if row.sla is not None else None,
         "elapsed_minutes": _minutes(row.elapsed.total_seconds()),
         "age_band": row.band.value if row.band is not None else None,
     }
@@ -147,7 +148,7 @@ async def acknowledge(
     return _row(
         QueueRow(
             entry=acked,
-            sla=inbox.policy.sla_for(acked.tenant_id),
+            sla=inbox.policy.sla_for_entry(acked),
             elapsed=acked.age(acked.acknowledged_at or acked.created_at),
             band=None,
         )

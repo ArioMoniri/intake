@@ -1,5 +1,101 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T23:30:00Z · INT-519 · D18 verifier round, agree on all four records (committed locally, not pushed)
+- Goal: the independent D18 clinical verifier's round on the author's `9034f8b9` (CD-112 round 1, CD-04 and CD-05 round 3, CD-100 round 4).
+- Result: **agree, no blocker**, on all four records.
+  - Items 1–5 and 7–12 agree; item 12 is acknowledged; item 6 correctly stays `draft_needs_source` in the invariant-17 form.
+  - The author's three departures (item 4's age atom left out, item 8's hedged choice never bound, item 10 decided) are agreed.
+  - Four notes, none a change: item 1's specialty substance-use twin; the HB-C1 over-triage costs of items 5 and 10; and item 4's later age atom, which would be a narrowing of its own.
+- Sources: the cited NICE pages fetched live on 2026-10-16. Every NG253 and CG178 snapshot line carries the live words, and all 29 NICE quotes in the four records are verbatim live. One spacing note on three unquoted NG253 lines, the same convention as the committed CG95 snapshot.
+- Recorded: each `verifier` block; `verification` in the CD-04 and CD-05 round-3 entries and in both CD-100 round-4 entries; CD-112 `value.verification_history`; CD-04 item-12 `verifier_acknowledgement`; the four twins; the docs/evidence/INT-519.md verifier section.
+- Tests: the register and INT-519 suites 201 passed (the two by-design verdict failures now pass). Protocols lane 97.63 %, 2084 passed. `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.32 %, adversarial 121.
+- Invariants touched and still passing: 1, 7, 10, 17, 21. No pack, rule, gate or runtime file changed.
+- Blocked on: nothing for the D18 lane. HB-C1 (physician signature) still stands before any real patient.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T21:30:00Z · INT-519 · done, verifier pending (committed locally, not pushed; stacked on #918 INT-540)
+- Goal: the D18 lane's twelve items on #885.
+  - Items 1–4 come from the INT-441 clinical review: three review-queue cluster gates compare a code slot against a string no answer holds, and CD-100 T1 rested on a premise INT-441 corrected.
+  - Items 5–12 come from the INT-522 and INT-540 reviews: how the onset anchor resolves when the patient hedges, says "yok", straddles two bands, or the session ends.
+- Plan: decisions only, authored by a sourced medical agent; the independent verifier follows.
+  - Items 1–3 go into a new record, CD-112.
+  - Item 4 is a CD-100 round-4 amendment.
+  - Items 5–12 are CD-04 and CD-05 round-3 amendments that keep every decided value they do not change.
+  - Two new verbatim snapshots: NICE NG253 and NICE CG178.
+- Tests added: `tests/protocols/test_int519_decisions.py` (19). RED: 19 failed (`KeyError: 'CD-112'`). GREEN: 19 passed, the register loads with every quote verbatim, and the runtime suites that read CD-04 and CD-05 are unchanged (283 passed).
+- Result (docs/evidence/INT-519.md):
+  - Decided: items 1 (applies once #833 lands), 2, 3, 4 (once #804 lands), 5, 7, 8, 9, 10, 11 and 12 (author note for the verifier).
+  - Left open: item 6. The 12–72 h band's EK-4 level and register have no committed source; it is the signing clinician's (HB-C1), and the exact missing pieces are recorded in CD-05.
+  - The register's two verdict tests fail until the verifier records its rounds, by design (CD-110 precedent).
+  - Protocols lane 97.63 % (2082 passed, plus those two). `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.32 %. Placeholder, PHI, claims and evidence gates OK.
+- Invariants touched and still passing: 1, 7, 10, 17 (only CD-05's own open literal), 21.
+- Decisions / ADRs / `00_STATE.md` rows: CD-112 (new, id allocated by the orchestrator); CD-04 and CD-05 round 3; CD-100 round 4. No other id minted.
+- Backlog: INT-519 row added (`area:protocols`, `risk:clinical`, depends on INT-432, INT-448, INT-522 and INT-540, `clinical-content`); the three pins go from 359 to 360; files/11 regenerated.
+- Blocked on: the independent D18 verifier's verdicts (four records). Engineering each decision requires is listed in the evidence, with no ids minted.
+
+### 2026-10-17T09:30:00Z · INT-545 · done (PR open on main after #920 INT-531 + INT-540)
+- Goal: from the runtime review of the #920 merge, `VoiceSessionRouter.end()` queued the close and stopped the RED watch at once, so a RED the close raised (or a last queued answer) reached the clinician route and never the device. Reproduced on both profiles: clinic told of K2, nothing published.
+- Plan:
+  - The router keeps a `_closing` map; `end()` records the close and keeps the watch running (starting it where a loop runs and no turn did).
+  - `poll()` first releases a closing session once its close is settled on two consecutive polls and it is quiescent: the Backend's engine lock free and `TalkerSession.red_watch_idle` (`RedMailbox.empty`, no delivery in flight).
+  - A session already sealed at `end()` is released at once only when quiescent — the issue's "at once" lost the RED when `end()` followed the pump in the same step (measured).
+  - `RedNotification.delivery` (`pending` / `withheld` / `not_reached`, no default); `TalkerSession.end_red_watch()` tells the clinician `not_reached` for a RED whose delivery failed and that no next turn will retry, counted on `red_watch_failures_total{kind="unreached"}`.
+  - The worker contract (INT-542 item 1) in the `session_router` docstring; `closing()` shows the pile.
+- Tests added: `tests/voice/test_red_watch_outlives_close.py` (42) with the acceptance test (2 profiles × 3 locations) and its near misses (quiet close, sealed-and-delivered, close not yet run); `test_red_push.py`'s watch-stops test now pumps and polls twice first.
+  - RED (on `3007d03a`): the reviewer's probe, `published: []` on both profiles; the issue's literal sealed branch, `cancelled: True, published: [], posted: True`; the suite failed to collect.
+  - GREEN: the script starts 50 ms after the evaluation, no violation; one poll leaves the watch running, the second cancels it. 25/25 mutations caught.
+- Result (docs/evidence/INT-545.md): `make safety` exit 0 (voice-runtime 98.41 %, 2408 passed; the touched router, mailbox and path modules at 100 %); runtime-sim exit 0 for every runnable scenario on both profiles and parity (RT-06 withdrawn, exit 2); ruff, ruff format and `mypy --strict` over the check-py trees clean; `tests/voice` under `-W error` for RuntimeWarning and unraisable exceptions, 1884 passed.
+- Invariants touched and still passing: 1, 6, 9, 13, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-545 row added (`area:voice`, depends on INT-531 and INT-540, `voice-runtime`); the three pins go from 364 to 365; files/11 regenerated.
+- Blocked on: nothing.
+- Residuals in evidence: the Safety inbox entry does not store the delivery (platform lane); a failed RED is reported, not retried, after the end; the turn path's own channel failure; a data channel that never resolves holds the session; INT-542 item 1's wording.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-17T12:00:00Z · INT-525 · done (PR opened; stacked on #931 INT-547)
+- Goal: a proxy session's subject-role answer retires the chest-pain screen through CD-01's stop-gap `skip_if`. The seven chest-pain slots then stay unasked and neither chest-pain RED rule can fire. CD-01/CD-08 decide the item `proxy_chest_pain_screen_unasked`, and nothing raised it.
+- Plan:
+  - Read `ProxyScreenRule` from CD-01: the kind, the seven slots, the screen, and the band rule.
+  - Have the watch parse the screen's own `skip_if` and refuse one that reads a slot CD-01 does not name.
+  - Raise the item once when the `skip_if` reads TRUE and the seven are unasked, through INT-547's route.
+  - Age is unknown in the runtime, which CD-01 raises for.
+  - The note pin moved to INT-548 (#928), per the orchestrator.
+- Tests added:
+  - protocols +15 (56);
+  - platform +3 (22);
+  - admin +1 (3);
+  - voice +8 (53): the proxy item once on both profiles, near misses for a self session and an unanswered subject role, the wiring refusal, and a screen with nothing to skip.
+  - RED: stage 1, missing types (2 errors, 2 failed); stage 2, on INT-547's watch a proxy session raised nothing (4 failed).
+  - GREEN: below.
+- Result (docs/evidence/INT-525.md): `make safety`, the protocols lane and runtime-sim on both profiles with parity, recorded there.
+- Invariants touched and still passing: 1, 4, 6, 9, 13, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-525 row (done, scope change commented) and INT-548 row (todo, `blocked:no-live-note`) added; the three pins go from 365 to 367; files/11 regenerated.
+- Blocked on: nothing for this row. When #833 lands, `NOT_ASKED_PROXY` joins `_UNASKED` (one line).
+- Residual: a screen answered before the subject role binds stays answered (an engine-ordering question, recorded in evidence).
+
+### 2026-10-17T10:00:00Z · INT-547 · done (PR opened; split from INT-543 F3, #917)
+- Goal: CD-04 (active, verified) raises a CD-08 clinic-inbox item, `chest_pain_arms_unresolved`, when a CD-01 chest-pain slot is still UNCLEAR after its follow-up was asked once. Nothing built it, so the golden `hedge/c2-karakter-belirsiz` ended GREEN with both arms silent and the clinic never told (INT-540 clinical review F3).
+- Plan:
+  - Read the trigger from CD-04, CD-01 and CD-08 into `protocols.clinic_items`.
+  - Add a clinic-item kind to the Safety inbox, with no SLA while CD-08's is draft.
+  - Add `ClinicItemWatch`, wrapping `extract_slots` and `close_session` in both roots and observing which follow-ups were spoken.
+  - Add a `ClinicItemNotifier` route that puts the entry, then audits it.
+  - Pin the item in the golden.
+- Tests added: `tests/protocols/test_clinic_item_rules.py` (41), `tests/platform/test_clinic_inbox_items.py` (19), `tests/admin/test_safety_queue_clinic_items.py` (2), `tests/voice/test_clinic_items.py` (45), four golden-checker tests, and one golden near miss (corpus 231 → 232).
+  - RED (on `ab9b8819`): 9 collection errors.
+  - GREEN: 695 passed on the red-run set.
+- Result (docs/evidence/INT-547.md):
+  - `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.12 %, every touched runtime module 100 %.
+  - Protocols lane 97.67 %.
+  - runtime-sim: every scenario, both profiles and parity exit 0, with RT-06 withdrawn as before.
+  - ruff and mypy strict clean; no_placeholders, PHI and claims gates OK.
+- Invariants touched and still passing: 1, 4, 6, 9, 13, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-547 row added; the three pins go from 364 to 365; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane: CD-08's SLA, cover and escalation (already open); CD-08's "leaves both arms Unknown" wording against CD-04's trigger; an outcome vocabulary for "closes only on a recorded clinician outcome"; CD-04 round 3 (INT-519, pending, being applied by INT-546).
+- Residuals: pinned to the note is INT-548 (#928), blocked on a live note. No production session builder constructs the notifier yet. Non-anchor slots still take two follow-ups (INT-543 F8).
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.
@@ -173,6 +269,40 @@
 - Backlog: PR #867 carries the INT-441 and INT-489 rows; this PR adds none.
 - Blocked on: D18 for four review-queue cluster gates now refused (`cluster.mental_health` ×2 on `'kendim'`, `cluster.medical` and `cluster.womens_health` on `'hayir'`); push waits on the orchestrator.
 - Next: orchestrator's word to push and open the PR.
+
+### 2026-10-16T03:30:00Z · INT-452 · done (PR open, not merged)
+- Goal: the owner's 16 Oct restatement of GitHub #765. Finish the roadmap so every phase is complete and it stays dynamic. files/11 and the roadmap must show done, in-flight and blocked items, each with an owner. They are regenerated from issues.yaml plus GitHub state by a script, checked in CI, and never edited by hand. The three count pins stop colliding.
+- Plan:
+  - Survey the renderer, the roadmap, the pins and the sync.
+  - Verify the counter before replacing the pins.
+  - Take an offline GitHub snapshot with `make roadmap-snapshot`.
+  - Render a generated section of files/05 with a pytest check.
+  - Add the missing rows, but never where an agent may be adding one.
+  - Write the per-phase work plan.
+- Tests added: `tests/backlog/test_roadmap.py` (32).
+  - Near-misses:
+    - a hand edit fails the check;
+    - a vanished row fails the floor, and a new row never does;
+    - a shrunken floor or a duplicated id fails;
+    - a closed HB row is never an owner;
+    - a blocked row with no record is named as drift;
+    - the renderer runs with `subprocess` refusing every call.
+  - The pins in `test_schema.py`, `test_sync_dryrun.py` and `test_make_check.py` are now derived.
+  - RED: 3 collection errors (no `render_roadmap`, no `load_snapshot`).
+  - GREEN: 209 passed across tests/backlog, smoke, docs, the two infra scans, no_placeholders, threat model and evidence check.
+- Result: `docs/evidence/INT-452.md`.
+  - The counter was right: 343 four ways.
+  - 24 rows were added (343 → 367; 368 after merging INT-460 from main), inserted mid-file so they do not collide with end-of-file appends.
+  - 12 issues an agent may hold are listed, not added.
+  - The live snapshot holds 64 open PRs, 256 open INT issues and a row floor of 367.
+  - No status was changed. INT-421 stays `doing`: reconcile says done, but its evidence says the workers process does not exist.
+- Invariants touched and still passing:
+  - 6: the snapshot and renderings hold titles and ids only, and phi_scan is clean.
+  - 16: Sec-Row `compliance-evidence`.
+  - 17: no placeholders, no skipped tests.
+- Decisions / ADRs / `00_STATE.md` rows: none new. §6 now points at the generated status.
+- Blocked on: the 3 Oct body's "admin Roadmap module" does not exist on any branch. The ask, for the orchestrator to file as its own admin-console issue, is in evidence §8.
+- Next: the orchestrator runs `make roadmap-snapshot` after merges and works the order in evidence §7.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)

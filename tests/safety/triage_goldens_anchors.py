@@ -16,9 +16,9 @@ the near-miss negative — one attribute off, the anchor three days back — tha
 must not (``NEAR_MISS_BY_RULE``). The twelve-to-seventy-two-hour band fires on
 CD-05's while-draft resolution; its final resolution is the D18 lane's.
 
-Family 16 (INT-540, 13 cases): a hedged onset answer, read by CD-04. Each
-active UNCLEAR entry of CD-04's table, said to the onset question, reads
-UNCLEAR on the anchor (``protocols.answer_states``, the table read from the
+Family 16 (INT-540, 13 cases; INT-547, 14): a hedged onset answer, read by
+CD-04. Each active UNCLEAR entry of CD-04's table, said to the onset question,
+reads UNCLEAR on the anchor (``protocols.answer_states``, the table read from the
 decision); once CD-04's one follow-up is spent, CD-05 resolves it to the
 reference day and both rules fire — so a hedge dropped from the table, or
 read as anything but UNCLEAR on the anchor, fails the golden suite. Two near
@@ -27,13 +27,25 @@ misses sit one attribute away: the same hedge before its follow-up is spent
 slot's follow_up_tr once"), and — for the SARI sibling, whose gate turns on
 the character — the hedge said to the character instead, which is not an
 anchor, resolves to no value and leaves the sibling Unknown.
+
+That last state is the one CD-04 says must reach the clinic (INT-547):
+the character still UNCLEAR after its follow-up leaves both chest-pain arms
+Unknown, so the session is GREEN on a pain nobody could characterise, and
+CD-04 ``unresolved_after_follow_up`` raises the CD-08 clinic-inbox item
+``chest_pain_arms_unresolved``. ``hedge/c2-karakter-belirsiz`` pins the item
+beside the GREEN; its near miss ``hedge/c2-karakter-takipte-netlesti`` answers
+the same follow-up with a choice, so the arm resolves (SARI_K1) and nothing is
+raised.
 """
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from clinical_schemas.session import AnswerState
 from protocols.anchor_choices import load_anchor_choice_table
 from protocols.answer_states import HedgeBasis, HedgeState, load_answer_state_table
+from protocols.clinic_items import ClinicItemKind
 from protocols.triage import SlotAnswer
 from protocols.types import EK4Level
 from triage_goldens_corpus import C1, C2, CP_ANCHOR, REF_TIME, GoldenCase, p, st
@@ -123,13 +135,39 @@ def anchor_hedges() -> list[GoldenCase]:
     note = "near miss: the hedge before its one follow-up is spent reads Unknown (CD-04)"
     cases.append(green("hedge/c1-takip-bekliyor", "life", lt01p(anchor=pending), note))
     cases.append(green("hedge/c2-takip-bekliyor", "life", lt02p(anchor=pending), note))
-    unclear_character = st(AnswerState.UNCLEAR)
-    cases.append(
-        green(
-            "hedge/c2-karakter-belirsiz",
-            "life",
-            lt02p(anchor=_hedged("Bilmiyorum."), **{"chest_pain.character": unclear_character}),
-            "near miss: 'bilmiyorum' to the character is not an anchor and resolves to no value",
-        )
-    )
+    cases.extend(_character_hedges())
     return cases
+
+
+#: CD-04's "asked once", for the character in the two cases below.
+_CHARACTER_FOLLOWED_UP = {"chest_pain.character": 1}
+
+
+def _character_hedges() -> list[GoldenCase]:
+    """INT-547: the character's hedge, and the clinic item it raises."""
+    anchor = _hedged("Bilmiyorum.")
+    unresolved = green(
+        "hedge/c2-karakter-belirsiz",
+        "life",
+        lt02p(anchor=anchor, **{"chest_pain.character": st(AnswerState.UNCLEAR)}),
+        "near miss: 'bilmiyorum' to the character is not an anchor and resolves to no "
+        "value; still UNCLEAR after its follow-up it leaves both arms Unknown, so CD-04 "
+        "raises the CD-08 clinic-inbox item chest_pain_arms_unresolved (INT-547)",
+    )
+    resolved = yellow(
+        "hedge/c2-karakter-takipte-netlesti",
+        "life",
+        lt02p(anchor=anchor, **{"chest_pain.character": p("başka bir his")}),
+        (C2,),
+        EK4Level.SARI_K1,
+        "near miss of the clinic item: the character's follow-up answered with a choice, "
+        "the arm resolves to SARI_K1 and CD-04 raises nothing (INT-547)",
+    )
+    return [
+        replace(
+            unresolved,
+            follow_ups_asked=_CHARACTER_FOLLOWED_UP,
+            clinic_items=(ClinicItemKind.CHEST_PAIN_ARMS_UNRESOLVED.value,),
+        ),
+        replace(resolved, follow_ups_asked=_CHARACTER_FOLLOWED_UP, clinic_items=()),
+    ]
