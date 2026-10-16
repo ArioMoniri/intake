@@ -32,6 +32,7 @@ import { joinParts } from "@/lib/a11y/labels";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { deviceClock, todayIso } from "@/lib/clock";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
+import { isSyntheticSession } from "@/lib/profile/badge";
 import {
   ALLOWED_DOCUMENT_TYPES,
   RecordsApiError,
@@ -468,10 +469,12 @@ export default function Records() {
               onPress={() => router.push("/(tabs)/me/consents")}
             />
           </>
-        ) : account?.kind === "otp" ? (
-          <OtpRecords />
-        ) : (
+        ) : isSyntheticSession(account) ? (
+          // INT-421: the synthetic sample and its labels only for the dev
+          // fixture session; any other session gets the real document flow.
           <DevRecords records={account?.records ?? []} />
+        ) : (
+          <OtpRecords />
         )}
       </ScrollView>
     </Screen>

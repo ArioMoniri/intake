@@ -57,6 +57,7 @@ acknowledgement) turned out to have no section carrying them.
 | Visit creation / SMS screenshot OCR | `visits` | `OCR` |
 | Voice intake (runtime) | `intake-voice`, `voice-runtime` | `DTLS-SRTP` |
 | Typed intake | `intake-typed` | `input limits` |
+| Council verifier (`llm-boundary`; INT-430, ADR-036) | `llm-boundary` | `INT-430 (ADR-036): the council verifier` |
 | Triage RED / YELLOW | `triage` | `set me green` |
 | Wellbeing screening & observer lanes | `wellbeing`, `observer-lanes` | `biometric drift` |
 | Records upload & ingestion | `records` | `ClamAV` |
@@ -100,6 +101,7 @@ it or whose tests exercise it.
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
 | `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/hosted-lanes` | `llm-boundary`, `cloud-boundary` | the hosted model-lane adapters, shipped in the synthetic deployment's image only (ADR-035) |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
 | `packages/voice-clips` | `protocol-registry`, `cloud-clipgen`, `voice-runtime` | the clip cache, its build and the agent-audio framing |
@@ -132,17 +134,26 @@ it or whose tests exercise it.
 - **Assets:** workflow definitions, runner credentials, build artefacts, SBOMs, signing
   identity, the gate set itself.
 - **Trust boundaries:** GitHub-hosted runners ↔ repo ↔ registries; PR author ↔ required
-  checks. INT-206 adds the self-hosted TR-DC pool as a *declared* boundary
-  (`infra/ci/runners.yaml`) — and the pool list is empty, so today the boundary is the
-  GitHub-hosted one. HB-I7 (spend) and HB-L11 (physical residency is not legal residency)
-  own that — **not HB-I5, which is GPU supply and does not bind a CPU CI runner** — and no
-  facility, provider or label is invented to close the gap.
+  checks. INT-206 makes every self-hosted pool a *declared* boundary
+  (`infra/ci/runners.yaml`). **INT-463 declares the one pool that exists, `intake-aws-ci`**:
+  an ephemeral runner on the AWS us-east-1 host that also serves synthetic staging (owner
+  order, 3 Oct 2026). Every Actions job runs there, so the boundary is now job code ↔ the
+  staging host. The TR-DC pool is still undeclared. HB-I7 (spend) and HB-L11 (physical
+  residency is not legal residency) own it — **not HB-I5, which is GPU supply and does not
+  bind a CPU CI runner** — and no TR facility, provider or label is invented to close the gap.
 - **Threats (STRIDE/LINDDUN):** [T] a repointed action tag or poisoned artefact (ci.yml pins
   actions to commit SHAs for exactly this reason); [E] workflow permission escalation;
   [R] unsigned artefacts with no provenance; [Nc] a skipped security gate (invariant 14);
   [I] **a patient-shaped value reaching a CI context** — a fixture CI reads, a job's `env`,
   the retained job log, an uploaded artefact, a restorable cache; [S/E] **a job running on
   an undeclared self-hosted runner**, which is a job executing somewhere nobody decided;
+  [I/E] **a job on `intake-aws-ci` reaching staging** — its files, the OpenBao tokens, the
+  staging containers, the instance role through the metadata service, or the host Docker
+  socket — or **leaving state for the next job**; [I/T/D] **a job on one runner of the pool
+  reaching another runner's job** — its tree, its Docker daemon and containers, or a port
+  its containers publish — or **one runner's post-job wipe destroying another's live job**
+  (INT-467: a user, daemon, egress chain and network namespace per runner; port driver
+  `none`, so no published port reaches the host);
   [T] **a known-vulnerable pin left in a lockfile** because the scanners report only on what
   is already pinned and nothing proposes the fix; [E] **a dependency bot merging its own
   update** past review and the licence gate.
@@ -1064,6 +1075,75 @@ it or whose tests exercise it.
   taking exactly the same virtual time as an unmetered one on the fake clock (invariant
   9), and the price book refusing rather than returning a zero. The adversarial suite
   RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
+- **INT-430 (ADR-036): the council verifier.** The owner asked for an agent council of
+  self-hosted or API models. Two binding challenger reviews reduced it to a verifier, and
+  this row now covers it. The verifier runs only after the primary single-pass extraction
+  has bound the answer, so RED never waits on it.
+  - **Scope.** It reads red-flag and numeric slots only. Tense anchors, `text_only`
+    safeguarding slots, identity slots and instrument items are unreachable by type.
+  - **What a member returns.** A closed schema: a verbatim evidence span for every reading,
+    a Turkish hedge enum, and no confidence field.
+  - **What it can do.** Adjudication is asymmetric. It may only *append* the slot's own
+    scripted re-ask or confirm-back, compare-and-swapped on the slot revision. It never
+    clears, skips, reorders or overwrites, and its candidate flags are add-only at
+    YELLOW_REVIEW and go to the clinician alone.
+  - **Excessive agency (LLM06)** is closed by that action set.
+  - **Prompt injection (LLM01).** Every transcript crosses the INT-083 fence, and readings
+    for any slot outside scope are dropped before adjudication.
+  - **Unbounded consumption (LLM10).** Each verification is an *elective* charge, refused
+    while HB-O8 is open. A process-wide admission gate sheds a verification when saturated,
+    and stragglers abstain at a deadline set on the injected clock.
+  - **Disclosure (LLM02).**
+    - Every proposal is logged as an event of ids and closed codes.
+    - Spans use the closed `LlmSpan` field set (`kind=verification`).
+    - Each session carries its own `cache_salt` for the shared prefix cache.
+    - A hosted member is unrepresentable on a real-PHI deployment, and an unset data class
+      reads as real PHI.
+  - **Signals:** `council_member_latency_ms`, `council_member_agreement_total`,
+    `council_verifications_total`, `council_actions_total` and
+    `council_readings_dropped_total`, all catalogued `live`.
+  - **Tests:** the `tests/voice/test_council_*.py` suites, each must-have with a near-miss
+    control. They cover a 30 s stall measured on the fake clock, the injection corpus, the
+    Turkish negation set, permutation determinism, CAS on a mid-flight correction, replay
+    with refusal of a wrong-lane recording, and the span PHI scan.
+
+- **INT-428 — hosted model lanes (ADR-035).** The owner's decision of 2 Oct 2026 puts a hosted
+  provider behind the `llm`, `asr` and `tts` lanes until the GPU lanes are healthy, narrowed by the
+  binding medical and AI/ML reviews:
+  - **Threats.** [I/Nc] patient speech or text egressing to a vendor; [S] an address that answers
+    passing for a self-hosted model (a loopback tunnel); [T] a silent model or snapshot swap; [E] a
+    console switch widening egress on one key; [Dd] a key echoed.
+  - **Controls.**
+    - The hosted adapters are a separate package that only the synthetic deployment's image
+      carries. No PHI-closure package imports or depends on it, and a real-PHI hosted lane cannot
+      be constructed (`HostedPermit`, `ModelAssignment`). There is no DPA branch and no mock route.
+    - The data class is declared by the image, bound by the first write and immutable.
+    - Only attested registry models are served (pinned, plus `jurisdiction: TR` and `phi_path` for
+      PHI), proven by an identity probe. A per-call model check quarantines on mismatch.
+    - Hosted models are dated snapshots only.
+    - A swap on `llm`/`asr` is gated on green red-flag extraction goldens and the negation set for
+      that exact version.
+    - Assignments are frozen per session.
+    - Widening is four eyes, approvals are bound to a `config_hash`, and narrowing is one key.
+    - Keys live in OpenBao only and are never echoed.
+    - Egress uses purpose `hosted_model_inference` on a `phi_allowed: false` row that a human
+      applies.
+    - Refusals, truncations and empty outputs collapse to one outcome (`hosted_lane_no_answer`).
+    - Instructions and data stay in separate roles under a strict schema, every numeral is refused
+      before any TTS, and RED/YELLOW stay with the rules engine.
+  - **Signals.** `model_lane_calls_total`, `model_lane_latency_seconds`,
+    `model_lane_refused_total{reason}`, `model_lane_fallback_total`, the token, audio-second and
+    character usage series, and `admin_model_lane_changes_total`.
+  - **Tests.** `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment,shims}.py`
+    and `tests/admin/test_model_lanes_routes.py`:
+    - `mock_hosted_unrepresentable_for_phi_tenant`, `synthetic_flag_immutable`,
+      `model_pin_frozen_in_session` and `lane_swap_requires_green_rf_extraction_goldens`, each
+      with a near miss;
+    - the adapters against recorded fixtures behind the real egress guard;
+    - the key never echoed.
+  - **Open and split out.** Guarded transport for the self-hosted extraction clients, the
+    `/identity` endpoint on the GPU servers, a drift canary, recording keys carrying
+    model@revision, and a schema-keyword lint.
 
 ## `cloud-boundary` — what may leave, and in what form
 
@@ -1883,6 +1963,21 @@ it or whose tests exercise it.
     26.1.4 authenticator writes, so every token lacks them and the console refuses it (fail
     closed) until the WebAuthn provider in `docs/runbooks/keycloak-realm.md` §3 exists. Test:
     `tests/admin/test_realm_claim_mappers.py`.
+  - **Controls added by INT-378 (the WebAuthn provider writes the two notes):** the staff flow
+    runs `intake-webauthn-session-notes`, which is Keycloak's own WebAuthn authenticator
+    unchanged. Only after that authenticator returns SUCCESS does it write the asserted
+    credential's stored AAGUID and its base64url id as the two notes, so neither value can
+    come from anything but a verified assertion ([S] against a forged actor block). Any other
+    outcome writes nothing, and the token is refused. The values are identifiers, never
+    personal data, and nothing is logged (inv 6). Supply chain (inv 14): Keycloak is compiled
+    against and not bundled. The Maven distribution is pinned by sha256, and so is every
+    artefact Maven resolves (the build fails on a missing or different hash). The jar is
+    reproducible and pinned (`infra/keycloak/providers/webauthn-session-notes.sha256`), and
+    the required CI job `check-py` rebuilds it against the pin. The committed realm also now
+    imports: Keycloak keeps a flow description in NVARCHAR(255), and a longer one had failed
+    the import. Tests: the provider's Java suite (`make keycloak-provider`) and
+    `tests/admin/test_webauthn_session_notes_provider.py`, which replays a recorded real
+    Keycloak login (26.7.4, the composed version). Open: the owner's TOTP decision (INT-389, #644).
   - **Controls added by INT-366 (quarterly access review, one-action offboarding, 60-day
     auto-disable; files/08 §2.4, §2.7):** against [E] access that outlives its need and a
     departure that leaves one identity store open. `GET /admin/access/review` is generated
@@ -1943,11 +2038,11 @@ it or whose tests exercise it.
 - **Tests:** invariants 31–34, 36–40, 47–48 land with the console issues (INT-180 onward);
   the role × tenant matrix with INT-180; the second factor, the realm flow and the session
   bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the credential id shape in
-  the same file, with property tests over generated ids (INT-391).
-  bounds in `tests/admin/test_staff_second_factor.py` (INT-365); the realm-import column
+  the same file, with property tests over generated ids (INT-391); the realm-import column
   limits, the image digest and the import file name in
-  `tests/infra/test_keycloak_realm_import.py` (INT-390).
-  the same file, with property tests over generated ids (INT-391). Break-glass (INT-180):
+  `tests/infra/test_keycloak_realm_import.py` (INT-390); the WebAuthn session-notes
+  provider in its Java suite and `tests/admin/test_webauthn_session_notes_provider.py`
+  (INT-378). Break-glass (INT-180):
   the ceremony — reason floor, distinct principal, controller instruction, TTL ceiling — in
   `tests/admin/test_four_eyes.py`; the intent row written before the outcome on both
   break-glass routes in `tests/admin/test_admin_audit.py`; only break-glass roles carrying the

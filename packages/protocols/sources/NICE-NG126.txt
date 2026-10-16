@@ -1,0 +1,41 @@
+# guideline_id: NICE-NG126
+# title: Ectopic pregnancy and miscarriage: diagnosis and initial management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG126; published 17 April 2019; last updated 17 June 2026 (Update information)
+# url: https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment
+# url_update_information: https://www.nice.org.uk/guidance/ng126/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the guideline header, the chapter title, recommendations 1.4.1 to 1.4.3 (common symptoms), 1.4.5 and 1.4.8, then the first two entries of the Update information page; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+NICE guideline
+Reference number: NG126
+Published:
+17 April 2019
+Last updated:
+17 June 2026
+[...]
+Symptoms and signs of ectopic pregnancy and initial assessment
+1.4 Presentation, assessment and referral
+1.4.1
+Refer women who are haemodynamically unstable, or in whom there is significant concern about the degree of pain or bleeding, directly to A&E. [2012]
+1.4.2
+Be aware that atypical presentation for ectopic pregnancy is common. [2012]
+1.4.3
+Be aware that ectopic pregnancy can present with a variety of symptoms. Even if a symptom is less common, it may still be significant. Symptoms of ectopic pregnancy include:
+common symptoms:
+abdominal or pelvic pain
+amenorrhoea or missed period
+vaginal bleeding with or without clots
+[...]
+1.4.5
+During clinical assessment of women of reproductive age, be aware that:
+they may be pregnant, and think about offering a pregnancy test even when symptoms are non-specific and
+the symptoms and signs of ectopic pregnancy can resemble the common symptoms and signs of other conditions – for example, gastrointestinal conditions or urinary tract infection. [2012]
+[...]
+1.4.8
+Exclude the possibility of ectopic pregnancy, even in the absence of risk factors (such as previous ectopic pregnancy), because about a third of women with an ectopic pregnancy will have no known risk factors. [2012]
+[...]
+Update information
+June 2026: We have reviewed the evidence and made new recommendations on anti-D immunoglobulin prophylaxis. These recommendations are marked [2026] .
+In some cases, minor changes have been made to the guideline to bring the language and style up to date, without changing the meaning.

@@ -1,0 +1,45 @@
+# guideline_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+# title: Symptom/Sign (openEHR Clinical Knowledge Manager archetype)
+# publisher: openEHR Foundation (CKM cid 1013.1.6769, lifecycle PUBLISHED)
+# version_or_date: revision 2.1.4 (the ADL's own revision line, reproduced below)
+# url: https://ckm.openehr.org/ckm/archetypes/1013.1.6769
+# url_adl: https://ckm.openehr.org/ckm/rest/v1/archetypes/1013.1.6769/adl
+# retrieved_on: 2026-10-03
+# retrieval: curl of the CKM REST ADL export (ADL 1.4, utf-8, BOM and CR stripped)
+# scope: verbatim ADL lines - archetype id, the revision line, the Precipitating factor cluster constraint and the English term definitions of at0165, at0170 and at0171; nothing paraphrased or edited; omissions marked [...]. A second excerpt of the archetype beside openEHR-EHR-CLUSTER.symptom_sign.v2.txt.
+---
+archetype (adl_version=1.4; uid=88c7d677-fa69-498f-aec2-976c53d15a6f)
+	openEHR-EHR-CLUSTER.symptom_sign.v2
+[...]
+		["revision"] = <"2.1.4">
+[...]
+			CLUSTER[at0165] occurrences matches {0..*} matches {    -- Precipitating factor
+				items cardinality matches {1..*; unordered} matches {
+					ELEMENT[at0170] occurrences matches {0..1} matches {    -- Factor
+						value matches {
+							DV_TEXT matches {*}
+						}
+					}
+					allow_archetype CLUSTER[at0154] occurrences matches {0..*} matches {    -- Factor detail
+						include
+							archetype_id/value matches {/openEHR-EHR-CLUSTER\.health_event(-[a-zA-Z0-9_]+)*\.v0|openEHR-EHR-CLUSTER\.symptom_sign(-[a-zA-Z0-9_]+)*\.v1|openEHR-EHR-CLUSTER\.symptom_sign(-[a-zA-Z0-9_]+)*\.v2/}
+					}
+					ELEMENT[at0171] occurrences matches {0..1} matches {    -- Time interval
+						value matches {
+							DV_DURATION matches {*}
+						}
+[...]
+				["at0165"] = <
+					text = <"Precipitating factor">
+					description = <"Details about specified factors that are associated with the precipitation of the symptom or sign.">
+					comment = <"For example: lying down leads to heartburn; or walking up a hill leads to claudication.">
+				>
+				["at0170"] = <
+					text = <"Factor">
+					description = <"Name of the health event, symptom, reported sign or other factor.">
+					comment = <"For example: onset of another symptom; lying down; or walking up a hill.">
+				>
+				["at0171"] = <
+					text = <"Time interval">
+					description = <"The interval of time between the occurrence or onset of the factor and onset of the symptom or sign.">
+				>

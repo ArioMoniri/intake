@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
+.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures put-key
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -58,7 +58,7 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src packages/hosted-lanes/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
@@ -173,6 +173,12 @@ security:
 # INT-031: regenerate the committed schema exports (OpenAPI bundle, per-event
 # JSON Schemas, generated TS types). tests/schemas/test_roundtrip.py fails
 # `make check` whenever these are stale.
+# INT-428 (ADR-035): put a hosted-provider key onto the synthetic AWS host from
+# a shell that already holds it (never an argument):
+#   set -a; . ~/.intake-secrets.env; set +a; make put-key PROVIDER=openai
+put-key:
+	@scripts/ops/put_provider_key.sh $(PROVIDER)
+
 schemas-codegen:
 	uv run python -m clinical_schemas.codegen
 
@@ -327,9 +333,21 @@ release-gate:
 # file statically.
 OBS_COMPOSE := docker compose -f infra/docker-compose.obs.yml --profile obs
 
-.PHONY: obs obs-down
+.PHONY: obs obs-down keycloak-provider
 
-obs:
+# INT-378: the Keycloak provider that writes the aaguid/credential_id session notes.
+# mvnw fetches the sha256-pinned Maven; every artefact must match .mvn/checksums; the
+# jar is reproducible and must equal the committed pin before it is staged in deploy/,
+# the directory the obs Keycloak mounts at /opt/keycloak/providers. CI runs this target.
+KEYCLOAK_PROVIDERS := infra/keycloak/providers
+KEYCLOAK_PROVIDER_JAR := intake-webauthn-session-notes-1.0.0.jar
+
+keycloak-provider:
+	cd $(KEYCLOAK_PROVIDERS)/webauthn-session-notes && ./mvnw -B clean verify
+	cd $(KEYCLOAK_PROVIDERS)/webauthn-session-notes/target && shasum -a 256 -c ../../webauthn-session-notes.sha256
+	cp $(KEYCLOAK_PROVIDERS)/webauthn-session-notes/target/$(KEYCLOAK_PROVIDER_JAR) $(KEYCLOAK_PROVIDERS)/deploy/$(KEYCLOAK_PROVIDER_JAR)
+
+obs: keycloak-provider
 	$(OBS_COMPOSE) up -d --build --wait
 
 obs-down:

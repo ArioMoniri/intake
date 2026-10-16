@@ -5919,6 +5919,43 @@
   tests: [tests/infra/test_staging_compose.py]
   legal: "KVKK-9"
   sec_row: "platform"
+- id: INT-378
+  epic: E12-admin
+  phase: P1
+  title: "Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims"
+  depends_on: [INT-373, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-378.md
+  # GitHub #621. Found by INT-373 (PR #619). Delivered: the provider
+  # (infra/keycloak/providers/webauthn-session-notes, pinned jar, built
+  # against the composed Keycloak 26.7.4) and a recorded real Keycloak login
+  # the console admits, with the stock authenticator's login refused as the
+  # control. The issue's third clause, the owner's TOTP decision, is split
+  # out as INT-389 (GitHub #644) and stays awaiting-human; the console's
+  # aaguid rule is unchanged until it is recorded.
+  acceptance:
+    - "a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes, which the #619 mappers put into the token; its licence is verified, and it is built reproducibly and pinned by sha256 (invariant 14)"
+    - "a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"
+  tests: [tests/admin/test_webauthn_session_notes_provider.py]
+  sec_row: "admin-console"
+- id: INT-389
+  epic: E12-admin
+  phase: P1
+  title: "Owner decision: second factor for console roles outside the patient-content set (TOTP vs aaguid)"
+  depends_on: [INT-378, INT-365]
+  labels: [area:admin, risk:security]
+  status: awaiting-human
+  # GitHub #644. Split out of INT-378 (#621 clause 3) so the provider PR (#643)
+  # can close its engineering part. INT-365 admits TOTP for the roles that
+  # never reach patient content, but a TOTP login carries no AAGUID and the
+  # console requires one, so today every TOTP sign-in is refused (fail closed).
+  # The owner chooses; no agent may.
+  acceptance:
+    - "owner decision (awaiting-human): INT-365 admits TOTP for roles outside the patient-content set, but a TOTP login has no AAGUID and the console requires one. Either (a) require WebAuthn for every console role, or (b) require `aaguid` only when `amr` contains `hwk`. The implementation follows the recorded choice."
+    - "the decision is recorded (who, when); the verifier follows it; tests for both TOTP and WebAuthn logins per role class, with a near-miss control"
+  tests: [tests/admin/test_staff_second_factor.py]
+  sec_row: "admin-console"
 - id: INT-377
   epic: E12-admin
   phase: P1
@@ -6512,6 +6549,188 @@
     - "the decision is recorded in files/00_STATE.md §3, scoped to simulated-patient stress testing, with the note that a licensed physician's review is required before any real patient"
   tests: [tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py]
   sec_row: "clinical-content"
+- id: INT-448
+  epic: E03-protocols
+  phase: P0
+  title: "Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines"
+  # GitHub #759, split from INT-432 (#735). Owner decision D18 scope:
+  # simulated-patient stress testing; a licensed physician's review is
+  # required before any real patient. Owner-decider parts are recorded as
+  # owner questions, never decided by an agent.
+  depends_on: [INT-432]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-448.md
+  acceptance:
+    - "every #642 packet item gets a sourced decision record (guideline or openEHR, with a verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source"
+    - "red-flag changes keep invariant 7, with golden tests and near-miss controls"
+  tests: [tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"
+- id: INT-414
+  epic: E08-mobile
+  phase: P1
+  title: "Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim"
+  # GitHub #705. Owner request, 27 Sep 2026. Stacked on INT-415, whose delivery
+  # contexts every utterance carries. The new copy is listed for clinician
+  # review under HB-C1 in docs/evidence/INT-414.md and is not signed.
+  depends_on: [INT-415]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-414.md
+  acceptance:
+    - "a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase (opening / first question / mid / sensitive topic / closing), question context (routine, sensitive, instrument, pain, RED-adjacent) and the patient's on-device state (read-only, invariant 11), and never alters the question text"
+    - "every new string is B1 Turkish in the siz register, uses warmth through verb mood (-elim/-alım) and passes PolicyGuard (no diagnosis, treatment or prognosis language; one question per turn); en is the mirror"
+    - "an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr in the composed output (a test over every served pack and instrument), and a RED gets nothing added"
+    - "no numerals reach TTS (invariant 22); no patient words are composed into speech"
+    - "all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md"
+  tests: [apps/mobile/src/lib/dialogue/delivery.test.ts, apps/mobile/src/lib/dialogue/deliveryPlan.test.ts, tests/release/test_delivery_copy.py, tests/release/test_i18n_complete.py, tests/api/test_dev_voice_delivery.py]
+  sec_row: "mobile"
+- id: INT-447
+  epic: E08-mobile
+  phase: P1
+  title: "Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced)"
+  # GitHub #758. Split from INT-432 (#735). Owner decision D18: agent-authored,
+  # independently agent-verified, for simulated-patient testing only; a licensed
+  # physician's review is required before any real patient. The lines are
+  # INT-414's (#726, not yet on main, so not a depends_on edge here).
+  depends_on: [INT-432]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-447.md
+  acceptance:
+    - "a medical-author agent and an independent verifier agent check every INT-414 delivery line against PolicyGuard, B1 and siz, using Turkish health-literacy sources; each line gets a decision record"
+    - "the approval:human-clinical label on #726 is cleared through this process"
+  tests: [tests/protocols/test_delivery_line_decisions.py, tests/protocols/test_clinical_decisions.py]
+  sec_row: "clinical-content"
+- id: INT-449
+  epic: E05-voice
+  phase: P1
+  title: "Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation"
+  # GitHub #762. Owner request, 3 Oct 2026: George is an English voice speaking
+  # Turkish; the intonation between words is off and the delivery lacks
+  # emotion. ADR-034 keeps eleven_multilingual_v2 unless the owner re-decides;
+  # a v3 pick is the owner's decision, recorded in that ADR. The owner picked
+  # E04 on 3 Oct 2026 ("use E04 voice"; D20): eleven_v3, render-time tags, the
+  # ADR-034 amendment accepted. The pin is applied and the bundled set was
+  # re-rendered in E04 (226/226, evidence). Copying the gitignored clips into
+  # the app is INT-440's dev-build step (#768).
+  depends_on: [INT-415]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-449.md
+  acceptance:
+    - "native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines; the owner picks from a blind page"
+    - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
+  tests: [tests/voice/test_cast_turkish_voices.py]
+  sec_row: "cloud-clipgen"
+- id: INT-421
+  epic: E13-infra
+  phase: P0
+  title: "Production release: full stack from main on the AWS host + EAS store builds"
+  depends_on: [INT-352]
+  labels: [area:infra]
+  status: doing
+  evidence: docs/evidence/INT-421.md
+  # 2 Oct 2026 (PR #723, not merged). These are done:
+  #   - release 7d2cc23d is live on the host with every existing service up (api, postgres+pgvector,
+  #     redis, openbao, minio, caddy, keycloak, oauth2-proxy, admin-web), smoke green (19 checks),
+  #     and the SBOM stamped;
+  #   - the admin console is at https://admin.3-211-2-143.sslip.io behind a Keycloak login with two
+  #     factors, with network access open by owner decision D19;
+  #   - the "deneme hastası" fixture was retired on the host, audited by id;
+  #   - the George route answers 404 on the host;
+  #   - the EAS production profile is in place, and both production exports build.
+  # Gaps:
+  #   - there is no workers process (INT-408);
+  #   - the synthetic-probe runner is dev-tier only;
+  #   - hosted model lanes are INT-428;
+  #   - release sign-in needs SMS + App Attest (HB-A3);
+  #   - eas build needs the owner's EXPO_TOKEN and Apple/Google accounts (HB-A3);
+  #   - the iOS identity arrives with INT-420.
+  acceptance:
+    - "the AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis); the SBOM stamp and smoke/probe results are recorded in the evidence; nothing but simulated patients reaches us-east-1"
+    - "the EAS production profiles build from main with the Önvizit identity and the production API URL; anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask"
+    - "a release checklist in docs/ runs end to end"
+  tests: [tests/infra/test_staging_admin_tier.py, tests/api/test_dev_fixture_production.py, apps/mobile/e2e/releaseConfig.spec.ts]
+  sec_row: "platform"
+- id: INT-463
+  epic: E13-infra
+  phase: P1
+  title: "All CI jobs on the AWS self-hosted runner"
+  # GitHub #790. Owner order, 3 Oct 2026: every GitHub Actions run executes on
+  # the AWS host, not on GitHub-hosted runners (billing). The runner is
+  # installed from infra/ci/aws-runner. The workflow edits are an owner patch:
+  # security.yml is hook-protected and the session classifier refused the
+  # ci.yml staging, so the owner applies both files to the PR branch.
+  depends_on: [INT-206, INT-426]
+  labels: [area:ci, approval:human-infra]
+  status: awaiting-human
+  evidence: docs/evidence/INT-463.md
+  acceptance:
+    - "a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; it is ephemeral and re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker is available to that user only as rootless Docker, for workflow service and container actions"
+    - "every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts that no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml"
+    - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
+  tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
+  sec_row: "cicd"
+- id: INT-467
+  epic: E13-infra
+  phase: P1
+  title: "A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is"
+  # GitHub #799. Follow-up to INT-463 (#790, PR #791): one runner serializes
+  # every PR's 13 jobs. Two runners on one user and one rootless daemon are not
+  # isolated: each post-job wipe removes the other's containers, and
+  # check-integration's fixed host-loopback ports collide across PRs. The pool
+  # is built and tested; the host install waits for the owner (blockers.md).
+  depends_on: [INT-463]
+  labels: [area:ci, approval:human-infra]
+  status: awaiting-human
+  evidence: docs/evidence/INT-467.md
+  acceptance:
+    - "three ephemeral runners intake-aws-ci-1..3 run on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, from templated units intake-aws-ci-{runner,job,dockerd,diskwatch}@N; each has its own unprivileged user ghrunnerN with a subordinate id range that overlaps no other, its own CI root on the NVMe volume, rootless Docker daemon and owner-match egress chain, all under the one intake-aws-ci.slice ceiling; the root registrar mints a registration token before every registration of every runner"
+    - "each runner's job runs in its rootless daemon's network namespace, as its own uid; rootlesskit's port driver is none, so a published container port never reaches the host loopback and two concurrent check-integration jobs with the fixed ports do not collide; a runner's post-job wipe touches only its own daemon, processes and tree"
+    - "each runner's isolation is measured as INT-463's was, as that runner's user inside its job sandbox: staging files, the OpenBao tokens, the host Docker socket, the metadata service, staging containers, host-local listeners and root-disk writes blocked; every other runner's tree, Docker socket and published ports blocked; DNS, public HTTPS, rootless Docker and its own published port reachable (evidence)"
+    - "tests/ci/test_aws_runner.py pins the pool contract (every INT-463 isolation assertion, per instance, plus the netns and peer isolation); on the PR, jobs are picked up by more than one runner and two check-integration jobs run concurrently on two runners and pass (evidence)"
+  tests: [tests/ci/test_aws_runner.py, tests/ci/test_aws_runner_pool.py]
+  sec_row: "cicd"
+- id: INT-500
+  epic: E13-infra
+  phase: P0
+  title: "Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako"
+  # GitHub #851. On 16 Oct 2026 the required vulnerabilities job went red on
+  # main 3afc5a29. Trivy found four advisories, all with fixed releases, and
+  # every PR was blocked. osv-scanner also flagged mako in uv.lock. Each one is
+  # upgraded, not ignored (the INT-429 pattern). The issue body's "supply-chain"
+  # names no threat-model row, so the row is cicd, as it was for INT-429.
+  depends_on: [INT-429]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-500.md
+  acceptance:
+    - "shell-quote, compression and source-map-js are raised by root pnpm.overrides floors and next by admin-web's exact pin, all to their fixed releases; mako is raised in uv.lock; no .trivyignore.yaml or osv-scanner.toml entry is added, and tests/ci/test_security_gates.py pins every floor and the absence of any suppression"
+    - "trivy 0.70.0 and osv-scanner 2.5.1, run with the vulnerabilities job's own invocations, report no finding on the PR tree (evidence, before and after)"
+    - "the mobile, admin-web and package vitest suites, pnpm -r typecheck and lint, and admin-web's next build pass; the licence gate passes for the changed packages"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
+- id: INT-460
+  epic: E12-admin
+  phase: P1
+  title: "Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer"
+  # GitHub #785. Owner request, 3 Oct 2026. The brief proposed a second
+  # INT-197 dev-bearer admin. The investigation found that the console admits
+  # only Keycloak tokens (INT-180), and that INT-325 refuses a non-dev boot
+  # with any dev flag set. That design could not add an approver and would
+  # stop the staging API. The existing path is a second Keycloak user, so no
+  # product code changes. Prerequisite outside this row: the INT-378 provider
+  # (PR #643). Without it the console refuses every staff token.
+  depends_on: [INT-180, INT-325, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-460.md
+  acceptance:
+    - "docs/runbooks/second-admin.md, at most 15 lines, gives the owner's exact steps: a second Keycloak user in the owner's org with an approver role and a WebAuthn second factor; a one-time password created in SSM as a SecureString from $(openssl rand -hex 32) without printing it, set on the host without echoing it, handed over once via aws ssm get-parameter --with-decryption and then deleted; it names INT-378 (#643) as the prerequisite and no dev variable"
+    - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
+  tests: [tests/admin/test_second_admin_runbook.py]
+  sec_row: "admin-console"
 - id: INT-453
   epic: E05-voice
   phase: P0
@@ -6579,6 +6798,71 @@
     - "the served red rule set is signed with an ed25519 test key held non-exportable in OpenBao Transit on the synthetic AWS host, never in the repo or a log; a synthetic tenant config serves it only with a valid test-key signature over its exact bytes; a test proves any non-synthetic tenant config rejects the test-key signature; the production signing path (INT-058, cosign) and its key are untouched"
   tests: [tests/protocols/test_generic_red.py, tests/protocols/test_red_render.py, tests/protocols/test_red_signature.py, tests/protocols/test_red_rule_set_signature_cli.py, tests/safety/test_generic_red_goldens.py, tests/api/test_triage_hop.py, tests/api/test_triage_tenant_kind.py, tests/infra/test_red_signing_infra.py, tests/voice/test_red_winner.py]
   sec_row: "triage"
+- id: INT-424
+  epic: E05-voice
+  phase: P1
+  title: "ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal"
+  # GitHub #719. Owner request, 2 Oct 2026: questions should sound more natural
+  # and emotionally attuned while staying medical and professional. Voice
+  # tuning, not clinical values (docs/evidence/INT-424.md). The owner ran the
+  # render, delegated the listening review on 3 Oct 2026 and accepted ADR-034.
+  depends_on: [INT-415]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-424.md
+  acceptance:
+    - "delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"
+    - "an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"
+    - "RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"
+  tests: [tests/voice/test_delivery_profiles.py, tests/voice/test_render_delivery_samples.py, tests/voice/test_elevenlabs_clipgen.py, tests/api/test_dev_voice_george.py]
+  sec_row: "cloud-clipgen"
+- id: INT-430
+  epic: E05-voice
+  phase: P0
+  title: "Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models"
+  # GitHub #732. Owner request, 2 Oct 2026, reshaped by the binding medical
+  # and AI/ML challenger reviews into a verifier (ADR-036): the free follow-up
+  # ranker and the critic are cut, the document reader stays parse_document.
+  depends_on: [INT-081, INT-083, INT-092, INT-095, INT-101]
+  labels: [area:voice, risk:clinical]
+  status: doing
+  evidence: docs/evidence/INT-430.md
+  acceptance:
+    - "ADR-036 records the owner request verbatim, the verifier design both reviews required, why the deterministic IntakeEngine stays the only authority on the next question, the asymmetric adjudication rule, the latency budget (primary extraction single-pass feeds triage; the verifier never blocks a turn; the Talker never awaits it) and self-hosted/API payload parity"
+    - "the verifier reads only red-flag and numeric slots of the served pack; tense anchors, text_only (safeguarding) slots, identity slots and instrument items are unreachable at the type level; member output is a closed Pydantic schema with a verbatim evidence span per reading, no confidence field and a Turkish hedge enum; inputs are fenced data"
+    - "adjudication is deterministic and asymmetric: one arming reading re-asks the positive question from ask_tr, a numeric doubt appends the slot's own confirm_tr, nothing is ever cleared, skipped or reordered; every append is a compare-and-swap on the slot revision and never overwrites a direct answer; contested fields keep both attributed values; candidate flags are add-only and capped at YELLOW_REVIEW; a red-flag slot is never offered as a delta confirm"
+    - "members resolve per session through the INT-428 role router (llm.council.<member>), mock and hosted members are unrepresentable on a real-PHI deployment, the pin is frozen per session, the policy binds each member by hash, multi-member mode needs recorded independence and calibration studies, the run is an elective charge refused while HB-O8 is open, a saturated verifier sheds, every proposal is a PHI-free event, spans use the closed LlmSpan field set and each session carries its own cache_salt"
+    - "a fake-clock test shows a verifier stalled 30 s leaves Talker turn latency, the asked order and a rules-engine RED unchanged; a late verdict after session end or a RED seal becomes a clinician addendum and re-runs triage; replay reads recorded outputs and a wrong-lane recording is refused"
+  tests: [tests/voice/test_council_contract.py, tests/voice/test_council_adjudication.py, tests/voice/test_council_lanes.py, tests/voice/test_council_timing.py, tests/voice/test_council_ledger.py]
+  sec_row: "llm-boundary"
+- id: INT-428
+  epic: E05-voice
+  phase: P0
+  title: "Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over"
+  # GitHub #724. Owner decision, 2 Oct 2026 (chat): "use openai or similar
+  # provider let api to be set from admin panel and let to switch for gpu
+  # models", extended the same day to per-lane model selection and narrowed by
+  # the binding medical (finding 12) and AI/ML reviews (ADR-035). The mechanism
+  # ships; serving a hosted lane awaits humans: the hook-protected egress
+  # allow-list row and its INT-001 gate exception, the provider key, a second
+  # console approver, unit prices, and the clinically signed golden set whose
+  # green runs qualify a model version. The AI/ML items not in this change
+  # (guarded transport for the self-hosted extraction clients, /identity on the
+  # GPU servers, a drift canary, model@revision recording keys, a
+  # schema-keyword lint, an egress route for the synthetic host) are split rows
+  # for the coordinator to allocate.
+  depends_on: [INT-182, INT-187, INT-018]
+  labels: [area:api, area:voice, risk:security]
+  status: awaiting-human
+  evidence: docs/evidence/INT-428.md
+  acceptance:
+    - "ADR-035 records the owner decision and its scope against invariant 19: hosted lanes exist only in the synthetic deployment image; for real PHI they are unrepresentable (no DPA branch, no mock route); the relaxation reverts when the GPU lanes are healthy"
+    - "per-lane and per-role routing (self_hosted | hosted:<provider>) with provider AND model selection: dated-snapshot hosted allow-lists, attested registry models only (TR + phi_path for PHI), identity probe and per-call model check; a typed ModelResolver role -> (provider, model)"
+    - "admin Model lanes module: lane provider/model, identity and probes, p50/p95 latency and cost from catalogued series and owner-filled unit prices; four-eyes switch bound to a config hash with a hash-chained audit row; key entry to OpenBao only, never echoed (last four at most); one-click switch to GPU refused unless the identity is healthy; hosted fallback for synthetic only; kill switches stop hosted instantly"
+    - "a swap on llm/asr needs green red-flag extraction goldens and negation-set runs for that exact model version; the model is frozen per session; the synthetic flag is immutable; synthetic or hosted runs never count as clinical evidence"
+    - "tests: the routing table, mock_hosted_unrepresentable_for_phi_tenant, lane_swap_requires_green_rf_extraction_goldens, model_pin_frozen_in_session, synthetic_flag_immutable (each with a near miss), the deployment split, the key never echoed, the four-eyes switch and its audit chain, fallback, and the adapters against recorded fixtures; no live provider call"
+  tests: [tests/platform/test_model_lane_routing.py, tests/platform/test_model_lane_resolver.py, tests/platform/test_model_lane_hosted_adapter.py, tests/platform/test_model_lane_deployment.py, tests/voice/test_model_lane_shims.py, tests/admin/test_model_lanes_routes.py, tests/infra/test_put_provider_key.py]
+  sec_row: "llm-boundary"
 - id: INT-475
   epic: E09-clinician
   phase: P1

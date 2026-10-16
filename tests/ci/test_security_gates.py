@@ -686,6 +686,12 @@ OSV_NO_FIX_ROWS = {
     "GHSA-ch52-4w7c-c8xp": ("http-cache-semantics 4.2.0", "@expo/ngrok", "--tunnel"),
 }
 
+# INT-378: the one OSV record keycloak-services 26.7.4 still matches. Its range is open,
+# and its GitHub source ends below 26.5.5 (docs/evidence/INT-390.md, INT-378.md). The
+# entry sits beside the provider's pom, the only config osv-scanner applies to it.
+OSV_SAML_BROKER_ROW = "GHSA-794g-x443-36f7"
+OSV_KEYCLOAK_CONFIG = REPO / "infra/keycloak/providers/webauthn-session-notes/osv-scanner.toml"
+
 
 def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
     """Each entry names one advisory of one package, says how it is reached,
@@ -708,6 +714,40 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
             *musts,
         ):
             assert must in reason, f"{advisory}: the reason must say {must!r}"
+
+
+def test_the_keycloak_osv_exception_is_bounded_reasoned_and_expires() -> None:
+    """One advisory of one package, beside the pom it applies to.
+
+    The reason names the one version, why the record is not live for it (GitHub's
+    bound and the fixing change), why it is unreachable, and its evidence. It
+    expires within 30 days of 3 Oct 2026, after which the gate turns red again."""
+    config = tomllib.loads(OSV_KEYCLOAK_CONFIG.read_text(encoding="utf-8"))
+    assert set(config) == {"IgnoredVulns"}, "no package-wide override, no other mute form"
+    (entry,) = config["IgnoredVulns"]
+    assert entry["id"] == OSV_SAML_BROKER_ROW
+    until = entry.get("ignoreUntil")
+    assert isinstance(until, datetime.datetime), "the exception must carry ignoreUntil"
+    assert datetime.date(2026, 10, 3) < until.date() <= datetime.date(2026, 11, 2), (
+        "30 days, no more"
+    )
+    reason = " ".join(str(entry.get("reason", "")).split())
+    for must in (
+        "keycloak-services 26.7.4 only",
+        "< 26.5.5",
+        "keycloak/keycloak#46912",
+        "provided",
+        "no identity provider",
+        "docs/evidence/INT-378.md",
+    ):
+        assert must in reason, f"the reason must say {must!r}"
+
+
+def test_near_miss_the_root_config_would_not_reach_the_pom() -> None:
+    """The root file names no Keycloak advisory: there it would be an unused ignore."""
+    root = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    assert OSV_SAML_BROKER_ROW not in {e["id"] for e in root["IgnoredVulns"]}
+    assert OSV_KEYCLOAK_CONFIG in _tracked_suppression_files(OSV_SUPPRESSION_FILES)
 
 
 def test_make_security_actually_loads_the_trivy_ignore_file() -> None:
@@ -843,6 +883,11 @@ LOCKFILE = REPO / "pnpm-lock.yaml"
 # INT-346 raised the vitest floor and added @vitest/mocker: GHSA-82fw-gwwq-j7x9
 # (published 8 Sep 2026, during the Actions billing outage) affects both from
 # 2.1.0 up to the 4.1.11 fix, so no 3.x release clears it (docs/evidence/INT-346.md).
+#
+# INT-500 adds the four advisories trivy 0.70.0 and osv-scanner 2.5.1 reported on
+# main 3afc5a29 on 16 Oct 2026, each with a fixed release. shell-quote,
+# compression and source-map-js are transitive, so root pnpm.overrides floors
+# raise them; next is admin-web's own direct pin (docs/evidence/INT-500.md).
 FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "vitest": (4, 1, 11),  # GHSA-5xrq-8626-4rwp (3.2.6), GHSA-82fw-gwwq-j7x9 (4.1.11)
     "@vitest/mocker": (4, 1, 11),  # GHSA-82fw-gwwq-j7x9
@@ -850,7 +895,18 @@ FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "esbuild": (0, 25, 0),  # GHSA-67mh-4wv8-2f99
     "uuid": (11, 1, 1),  # GHSA-w5hq-g745-h8pq (CVE-2026-41907, CVE-2026-41988)
     "decode-uri-component": (0, 5, 0),  # GHSA-vcc3-ghjq-m6fr (CVE-2026-45822)
+    "shell-quote": (1, 11, 0),  # GHSA-pqg4-j6r4-53mv (CVE-2026-102422)
+    "compression": (1, 8, 2),  # GHSA-vc2v-76pw-4v95 (CVE-2026-87776)
+    "source-map-js": (1, 2, 2),  # GHSA-68fv-2mgg-jv7q (CVE-2026-93749)
+    "next": (16, 3, 8),  # CVE-2026-94483 and six more GHSA records, all fixed in 16.3.8
 }
+
+# INT-500: the one uv.lock advisory osv-scanner 2.5.1 reported beside the four
+# above. trivy 0.70.0 has no record of it, which is why only osv saw it.
+PYPI_FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
+    "mako": (1, 4, 2),  # PYSEC-2026-4243 (GHSA-5639-2j2p-m4mx)
+}
+UV_LOCKFILE = REPO / "uv.lock"
 
 ADVISORY_IDS = (
     "GHSA-5xrq-8626-4rwp",
@@ -865,6 +921,22 @@ ADVISORY_IDS = (
     "CVE-2026-41907",
     "CVE-2026-41988",
     "CVE-2026-45822",
+    # INT-500: as trivy 0.70.0 and osv-scanner 2.5.1 named them on 16 Oct 2026
+    "CVE-2026-102422",
+    "GHSA-pqg4-j6r4-53mv",
+    "CVE-2026-87776",
+    "GHSA-vc2v-76pw-4v95",
+    "CVE-2026-93749",
+    "GHSA-68fv-2mgg-jv7q",
+    "CVE-2026-94483",
+    "GHSA-39w2-rjm5-chcv",
+    "GHSA-3w37-wq28-93x7",
+    "GHSA-4jqv-mc3x-m676",
+    "GHSA-cjq9-62q9-8jv4",
+    "GHSA-f87g-xv8r-7p7x",
+    "GHSA-mcj8-r9mp-w47p",
+    "PYSEC-2026-4243",
+    "GHSA-5639-2j2p-m4mx",
 )
 
 # Every suppression mechanism the two lockfile/filesystem scanners in
@@ -913,7 +985,19 @@ OSV_SUPPRESSION_FILES = (
 # on 2 Oct with no fixed release
 # (test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire). The pin goes
 # back down as each entry expires or is removed.
-MAX_OSV_SUPPRESSIONS = 3
+#
+# INT-378 raises it from 3 to 4, by exactly one. That happens only through the
+# owner's own commit of owner-643-keycloak-exception.patch.
+# - The advisory: GHSA-794g-x443-36f7 on keycloak-services 26.7.4, whose open
+#   OSV range has a GitHub source that ends below 26.5.5, so no Keycloak
+#   version clears it.
+# - The entry sits beside the provider's pom, because osv-scanner reads config
+#   per manifest directory. The pin therefore counts every tracked osv config
+#   file, not only the root's (_tracked_suppression_files).
+# - It expires on 2 Nov 2026
+#   (test_the_keycloak_osv_exception_is_bounded_reasoned_and_expires).
+# - The trivy pin does not move, because trivy reports nothing for that pom.
+MAX_OSV_SUPPRESSIONS = 4
 # The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
 # the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
 # owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
@@ -947,11 +1031,25 @@ def _parse_version(raw: str) -> tuple[int, ...]:
     return tuple(int(p) for p in re.match(r"(\d+)\.(\d+)\.(\d+)", raw).groups())
 
 
-def _resolved_versions(package: str) -> list[str]:
+def _resolved_versions(package: str, text: str | None = None) -> list[str]:
     """Every version of `package` the pnpm lockfile resolves, peer suffix dropped."""
-    text = LOCKFILE.read_text(encoding="utf-8")
+    if text is None:
+        text = LOCKFILE.read_text(encoding="utf-8")
     pattern = re.compile(rf"^  '?{re.escape(package)}@(\d+\.\d+\.\d+[^:'(]*)'?[:(]", re.M)
     return sorted({m.group(1) for m in pattern.finditer(text)})
+
+
+def _tracked_suppression_files(names: tuple[str, ...]) -> list[Path]:
+    """Every TRACKED file with one of these names, at any depth.
+
+    osv-scanner reads the config beside each manifest (INT-378's pom carries its
+    own), so a pin that counted the root file alone could be passed by moving a
+    suppression one directory down.
+    """
+    listed = subprocess.run(
+        ["git", "ls-files", "-z"], cwd=REPO, capture_output=True, check=True
+    ).stdout.decode("utf-8")
+    return [REPO / rel for rel in listed.split("\0") if rel and Path(rel).name in names]
 
 
 def _suppression_entries(path: Path) -> list[str]:
@@ -998,10 +1096,62 @@ def test_every_advisory_is_cleared_by_a_resolved_version() -> None:
             )
 
 
+def test_every_python_advisory_is_cleared_by_a_resolved_version() -> None:
+    """INT-500: uv.lock resolves nothing below a fixed version either."""
+    locked = tomllib.loads(UV_LOCKFILE.read_text(encoding="utf-8"))["package"]
+    for package, floor in PYPI_FIXED_VERSIONS.items():
+        resolved = [p["version"] for p in locked if p["name"] == package]
+        assert resolved, f"{package} vanished from uv.lock"
+        for raw in resolved:
+            assert _parse_version(raw) >= floor, (
+                f"{package}=={raw} is below the fixed version "
+                f"{'.'.join(str(n) for n in floor)} — the advisory is back"
+            )
+
+
+# INT-500: how each npm floor is held. A transitive package is held by a root
+# override, so a parent's next release cannot pull the vulnerable range back in
+# a lockfile refresh; next is a direct dependency and is held by its exact pin.
+OVERRIDE_FLOORS = {
+    "shell-quote@<1.11.0": "^1.11.0",
+    "compression@<1.8.2": "^1.8.2",
+    "source-map-js@<1.2.2": "^1.2.2",
+}
+
+
+def test_the_transitive_floors_are_overrides_and_next_is_pinned_directly() -> None:
+    root = json.loads((REPO / "package.json").read_text(encoding="utf-8"))
+    overrides = root["pnpm"]["overrides"]
+    for selector, floor in OVERRIDE_FLOORS.items():
+        assert overrides.get(selector) == floor, f"pnpm.overrides lost the {selector} floor"
+    admin = json.loads((REPO / "apps/admin-web/package.json").read_text(encoding="utf-8"))
+    pin = admin["dependencies"]["next"]
+    assert re.fullmatch(r"\d+\.\d+\.\d+", pin), f"next must stay an exact pin, not {pin!r}"
+    assert _parse_version(pin) >= FIXED_VERSIONS["next"], f"next {pin} is below its fix"
+
+
+def test_near_miss_a_vulnerable_lockfile_entry_is_caught() -> None:
+    """The lockfile reader sees a planted vulnerable entry, peer suffix and all,
+    and does not mistake a longer package name for the one under test."""
+    planted = (
+        "packages:\n\n"
+        "  shell-quote@1.10.0:\n"
+        "  shell-quote-word@1.0.1:\n"
+        "  next@16.3.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3):\n"
+        "  '@scope/compression@0.1.0':\n"
+    )
+    assert _resolved_versions("shell-quote", planted) == ["1.10.0"]
+    assert _parse_version("1.10.0") < FIXED_VERSIONS["shell-quote"]
+    assert _resolved_versions("next", planted) == ["16.3.6"]
+    assert _parse_version("16.3.6") < FIXED_VERSIONS["next"]
+    assert _resolved_versions("compression", planted) == []
+    assert _parse_version("1.11.0") >= FIXED_VERSIONS["shell-quote"], "the fix itself passes"
+
+
 def test_osv_suppressions_do_not_grow() -> None:
     total = 0
-    for name in OSV_SUPPRESSION_FILES:
-        total += len(_suppression_entries(REPO / name))
+    for path in _tracked_suppression_files(OSV_SUPPRESSION_FILES):
+        total += len(_suppression_entries(path))
     assert total <= MAX_OSV_SUPPRESSIONS, (
         f"osv-scanner suppression entries rose to {total} (pin {MAX_OSV_SUPPRESSIONS}). "
         "INT-310 clears step [6/12] by upgrading; a suppression here undoes that."
@@ -1020,14 +1170,11 @@ def test_trivy_suppressions_do_not_grow() -> None:
 
 def test_no_suppression_file_names_any_of_the_eight_advisories() -> None:
     """A pin on counts is not enough: one row could replace another."""
-    for name in TRIVY_SUPPRESSION_FILES + OSV_SUPPRESSION_FILES:
-        path = REPO / name
-        if not path.exists():
-            continue
+    for path in _tracked_suppression_files(TRIVY_SUPPRESSION_FILES + OSV_SUPPRESSION_FILES):
         body = path.read_text(encoding="utf-8")
         for advisory in ADVISORY_IDS:
             assert advisory not in body, (
-                f"{name} names {advisory} — INT-310's contract is that these are "
+                f"{path.relative_to(REPO)} names {advisory} — INT-310's contract is that these are "
                 "cleared by upgrading, never by suppression"
             )
 

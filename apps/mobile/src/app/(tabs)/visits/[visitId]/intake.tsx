@@ -53,6 +53,8 @@ import { InstrumentStep } from "@/components/InstrumentStep";
 import { RedInFlow } from "@/components/RedLayer";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
+import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
+import { typedStepDelivery } from "@/lib/dialogue/deliveryPlan";
 import { joinParts } from "@/lib/a11y/labels";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -342,8 +344,30 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       : null,
   );
   const editing = requested !== undefined;
+  // INT-414: the sitting this screen opened on, held rather than re-derived —
+  // the resume point moves with every answer, and the delivery plan is folded
+  // from where the patient actually started. A fresh intake opens with the
+  // welcome; a resumed one, or the steps after a voice hand-over, pick up.
+  const [sitting] = useState(() => ({
+    startId: initialQuestion.id,
+    fresh: !editing && answers.length === 0 && Object.keys(prefill).length === 0 && !voiceFailed,
+  }));
 
   const question = intakeQuestions.find((x) => x.id === currentId) ?? initialQuestion;
+  // The line above the step: a welcome, a lead-in, a topic transition or an
+  // acknowledgement — at most one after the opening, and none while editing a
+  // single answer from the review. Pure and synchronous: the heading below
+  // never waits on it, and it never touches the question's words.
+  const deliveryLines = editing
+    ? []
+    : typedStepDelivery({
+        applicable,
+        answers,
+        currentId: question.id,
+        startId: sitting.startId,
+        fresh: sitting.fresh,
+        sessionSeed: visitId ?? "",
+      });
   // INT-339 (MOTION-10, C16): the question's body is keyed by the question,
   // so a step change removes the old body in the commit that mounts the next
   // one, and only the next one fades in. No frame holds two questions.
@@ -594,6 +618,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                   message={t("voiceFirst.failed")}
                 />
               ) : null}
+              {deliveryLines.map((utterance) => {
+                const deckKey = asDeliveryKey(utterance.key);
+                return deckKey === null ? null : (
+                  <AppText key={utterance.key} role="body" color="inkSoft">
+                    {t(deckKey)}
+                  </AppText>
+                );
+              })}
               {/* The bar is untitled by design (pass 6), so the question line is
             this screen's title and must be a heading (SC 1.3.1). An instrument
             step's heading is the ITEM, so it is rendered by InstrumentStep and

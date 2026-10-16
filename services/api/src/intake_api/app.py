@@ -42,6 +42,7 @@ from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
+from intake_platform.model_lanes.wiring import ModelLanesWiring, model_lanes_from_env
 from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.release_freeze import release_freeze_store_from_env
 from intake_platform.safety_inbox import (
@@ -54,7 +55,7 @@ from intake_platform.safety_inbox import (
 )
 from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
-from intake_platform.voice_control import voice_control_store_from_env
+from intake_platform.voice_control import VoiceControlStore, voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -98,7 +99,7 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
+from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings, is_dev_env
 from intake_api.state import ApiState
 
 if TYPE_CHECKING:
@@ -370,6 +371,7 @@ def _admin_from_env() -> AdminWiring | None:
         release_freeze=release_freeze,
         identity=_identity_from_env(),
         safety_inbox=_safety_inbox_from_env(),
+        model_lanes=_model_lanes_from_env(voice_controls),
     )
 
 
@@ -384,6 +386,31 @@ def _safety_inbox_from_env() -> SafetyInbox | None:
         logger.warning("safety inbox unconfigured: the store URL is not a redis URL")
         return None
     return SafetyInbox(store=store) if store is not None else None
+
+
+def _model_lanes_from_env(voice_controls: VoiceControlStore | None) -> ModelLanesWiring | None:
+    """INT-428 (ADR-035): the model-lane control store, the router and the
+    hosted adapters. No ``INTAKE_MODEL_LANES_REDIS_URL`` leaves the module
+    unconfigured — its mutations answer 503 and its tiles read unknown. The
+    INT-182 voice kill switch, when wired, disables hosted lanes for its
+    tenant; an unreadable one reads as engaged (fail closed). A policy file
+    that does not load (the allow-list, the provider catalogue, the transfer
+    bases) leaves the module unconfigured rather than half-built."""
+    kill_switch = None
+    if voice_controls is not None:
+        store = voice_controls
+
+        def kill_switch(tenant_id: str) -> bool:
+            return store.read(tenant_id).kill_switch
+
+    try:
+        return model_lanes_from_env(
+            os.environ, kv=SecretsProvider.from_env, kill_switch=kill_switch
+        )
+    except (OSError, ValueError) as err:
+        # the class name says what failed; no path or value is logged
+        logger.warning("model lanes unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _identity_from_env() -> IdentityWiring | None:
@@ -514,10 +541,15 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if w.bootstrap:
-            try:
-                await ensure_dev_fixture(w.engine, w.bootstrap_engine)
-            except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
-                logger.warning("dev fixture bootstrap deferred: database not ready")
+            # INT-421 (owner, 27 Sep 2026: "in production don't include deneme
+            # hastası"): the synthetic dev tenant, patient and consents are the
+            # dev environment's only. Anywhere else nothing is seeded, and what
+            # earlier boots left is removed by intake_api.dev_fixture_retire.
+            if w.settings.dev_tier_expected:
+                try:
+                    await ensure_dev_fixture(w.engine, w.bootstrap_engine)
+                except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
+                    logger.warning("dev fixture bootstrap deferred: database not ready")
             if w.auth is not None:
                 try:
                     # INT-131: consumer tenant for real OTP accounts (tenant
@@ -657,6 +689,9 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(embed.router)
     # INT-326: the dev George route reaches a paid US vendor, so in production
     # it is not mounted at all (404) — whatever the dev flags or wiring say.
-    if not intake_env_is_prod():
+    # INT-421: the same holds on every non-dev host. The AWS host runs
+    # INTAKE_ENV=staging, and only the dev environment (INT-325's one
+    # definition, is_dev_env) mounts the route.
+    if is_dev_env(os.environ) and not intake_env_is_prod():
         app.include_router(dev_voice.router)
     return app

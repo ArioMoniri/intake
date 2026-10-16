@@ -1,0 +1,37 @@
+# guideline_id: NICE-NG127
+# title: Suspected neurological conditions: recognition and referral
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG127; published 01 May 2019; last updated 02 October 2023; minor changes October 2021, March 2024 and November 2025 (Update information, https://www.nice.org.uk/guidance/ng127/chapter/Update-information, retrieved 2026-10-03)
+# url: https://www.nice.org.uk/guidance/ng127/chapter/Recommendations
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header and recommendations 1.2.1-1.2.6 (dizziness and vertigo in adults); nothing paraphrased or edited; omissions marked [...]
+---
+Reference number: NG127
+Published: 01 May 2019
+Last updated: 02 October 2023
+[...]
+1.2 Dizziness and vertigo in adults
+Sudden-onset dizziness with a focal neurological deficit
+1.2.1
+For adults with sudden-onset dizziness and a focal neurological deficit such as vertical or rotatory nystagmus, new-onset unsteadiness or new‑onset deafness:
+if the person has diabetes, check for and treat hypoglycaemia
+if the person does not have diabetes, or treating hypoglycaemia does not resolve the symptoms, and benign paroxysmal positional vertigo or postural hypotension do not account for the presentation, refer immediately to exclude posterior circulation stroke, in line with the NICE guideline on stroke and transient ischaemic attack in over 16s.
+Sudden-onset acute vestibular syndrome
+1.2.2
+For adults with sudden-onset acute vestibular syndrome (vertigo, nausea or vomiting and gait unsteadiness), a HINTS (head-impulse–nystagmus–test-of-skew) test should be performed if a healthcare professional with training and experience in the use of this test is available.
+1.2.3
+For adults with sudden-onset acute vestibular syndrome who have had a HINTS test:
+be aware that a negative HINTS test makes a diagnosis of stroke very unlikely
+refer immediately for neuroimaging if the HINTS test shows indications of stroke (a normal head impulse test, direction-changing nystagmus or skew deviation).
+1.2.4
+Refer immediately adults with sudden-onset acute vestibular syndrome in whom benign paroxysmal positional vertigo or postural hypotension do not account for the presentation, in line with local stroke pathways, if a healthcare professional with training and experience in the use of the HINTS test is not available.
+Sudden-onset dizziness with no imbalance or focal neurological deficit
+1.2.5
+Be aware that dizziness in adults with no imbalance or other focal neurological deficit is unlikely to indicate a serious neurological condition.
+Vertigo on head movement
+1.2.6
+For adults with transient rotational vertigo on head movement:
+Offer the Hallpike manoeuvre to check for benign paroxysmal positional vertigo (BPPV) if a healthcare professional trained in its use is available. If there is no healthcare professional trained in the Hallpike manoeuvre available, refer in accordance with local pathways.
+If BPPV is diagnosed, offer a canalith repositioning manoeuvre (such as the Epley manoeuvre) if a healthcare professional trained in its use is available and if the person does not have unstable cervical spine disease. If there is no healthcare professional trained in a canalith repositioning manoeuvre available, or the person has unstable cervical spine disease, refer in accordance with local pathways.
+Be aware that BPPV is common after a head injury or labyrinthitis.

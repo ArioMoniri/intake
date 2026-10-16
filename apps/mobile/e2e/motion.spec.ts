@@ -597,6 +597,9 @@ describe("MOTION-12 — press feedback comes from motion.press", () => {
 
 /** Every RED surface file on main. Grow it only with a file that paints or carries RED. */
 const RED_SURFACE_FILES: readonly string[] = [
+  // INT-414: the delivery composer hands a RED script through bare, in the
+  // `red` delivery context — it is on the RED path, so it is held here too.
+  "src/lib/dialogue/delivery.ts",
   // INT-446: the RED screen and the rules-engine hop that feeds it.
   "src/components/RedLayer.tsx",
   "src/lib/red/hop.ts",
