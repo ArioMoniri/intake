@@ -750,6 +750,8 @@ def _life_threat_rule_yaml(**overrides: Any) -> dict[str, Any]:
             "url": "https://example.invalid/syn-guide-b",
             "retrieved_on": date(2026, 8, 28),
             "quote": "sentetik yaşamsal alıntı",
+            # INT-465: an active rule cites a committed snapshot, checked at load.
+            "quote_snapshot": "tests/fixtures/protocols/sources/SYN-GUIDE-B.txt",
         },
         "action": {
             "REMOTE": {

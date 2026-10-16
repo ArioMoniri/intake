@@ -323,9 +323,22 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
+    # + INT-500 (lockfile advisories upgraded so the vulnerabilities gate stops
+    # blocking every merge, GitHub #851); grows only with a stated reason.
+    # + INT-460 (a second admin approver on the synthetic host is a second
+    # Keycloak user, not a dev bearer; owner request, GitHub #785); grows only
+    # with a stated reason.
+    # + INT-453 (the voice-runtime RED path triggers the winning rule's own
+    # script, found by INT-446, GitHub #767); grows only with a stated reason.
+    # + INT-446 (RED end to end in the app — the rules-engine hop on both lanes
+    # and the RED screen mounted, found by INT-440, GitHub #756); grows only
+    # with a stated reason.
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only test key, D23, GitHub #794); grows
+    # only with a stated reason.
     # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
     # proposal, owner request, GitHub #719); grows only with a stated reason.
-    assert len(ids) == 343, f"expected 175 blueprint + 168 added issues, got {len(ids)}"
+    assert len(ids) == 348, f"expected 175 blueprint + 173 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

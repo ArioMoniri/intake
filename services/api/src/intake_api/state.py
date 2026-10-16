@@ -16,6 +16,7 @@ from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
 from intake_platform.previsit_output import RecipientRegistry, load_recipients
+from intake_platform.red_tenant import TenantRedConfig
 from intake_platform.safety_inbox import SafetyInbox
 from intake_platform.tokenization import Tokenizer
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -25,6 +26,7 @@ from intake_api.audit import AuditWriter
 from intake_api.record_feed import ExtractionSource, NoExtractionSource, RecordDecisions
 from intake_api.settings import ApiSettings
 from intake_api.taxonomy_feed import LoadedTaxonomy, load_taxonomy_feed
+from intake_api.triage_rules import ServedRedRules, load_served_red_rules
 
 if TYPE_CHECKING:
     from intake_connectors.acibadem import AcibademAppointmentsClient
@@ -132,6 +134,10 @@ class ApiState:
     # taxonomy is: a broken or absent registry must surface as a per-request
     # 503, never as a startup crash that takes the whole API down with it.
     _recipients: RecipientRegistry | None = field(init=False, default=None)
+    # INT-446: the served red-flag rule set, lazy like the taxonomy, so an
+    # unservable set is a per-request 503 on /v1/triage, never a startup crash.
+    _red_rules: ServedRedRules | None = field(init=False, default=None)
+    _red_rules_loaded: bool = field(init=False, default=False)
 
     def __post_init__(self) -> None:
         self.consent_catalog = _catalog_from_settings(self.settings)
@@ -154,6 +160,24 @@ class ApiState:
             self._taxonomy = load_taxonomy_feed(self.settings.taxonomy_path)
             self._taxonomy_loaded = True
         return self._taxonomy
+
+    def served_red_rules(self) -> ServedRedRules | None:
+        """The served rule set, loaded once; ``None`` means fail closed (503)."""
+        if not self._red_rules_loaded:
+            self._red_rules = load_served_red_rules(
+                self.settings.triage_rules_path,
+                self.settings.triage_generic_red_path,
+                signature_path=self.settings.triage_signature_path,
+                # INT-465: no tenant record holds acil_location_tr yet (files/08
+                # asks for it with a change tier), so the segment is dropped.
+                tenant=TenantRedConfig(
+                    kind=self.settings.triage_tenant_kind,
+                    deployment=self.settings.triage_deployment,
+                ),
+                allow_fixture_snapshots=self.settings.triage_fixture_sources,
+            )
+            self._red_rules_loaded = True
+        return self._red_rules
 
 
 def get_state(request: Request) -> ApiState:
