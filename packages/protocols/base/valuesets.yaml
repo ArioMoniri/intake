@@ -1,6 +1,7 @@
 # =====================================================================================
-#  Committed value sets for code slots (INT-441; INT-489 item 1)
+#  Committed value sets for code slots (INT-441; INT-489 item 1; INT-518)
 #  Loader: protocols.valuesets · check: protocols.compile.gate_values
+#  Runtime: intake_voice_runtime.composition hands this table to extraction
 # =====================================================================================
 #
 #  A code slot carries one member of its value set and nothing else. A gate that
@@ -9,12 +10,17 @@
 #  (`subject_role != 'kendim'`, `pregnancy_status != 'hayir'`) while no set was
 #  committed, so nothing could show it.
 #
+#  Extraction binds a code slot only to a member of its set, so a code slot with no
+#  committed set can never be answered at all (INT-518). A set is therefore committed
+#  for EVERY code slot base.intake declares, not only for the ones a gate compares;
+#  chest_pain.character and chest_pain.radiation are the inputs of the two active
+#  life-threat rules.
+#
 #  EVERY MEMBER BELOW IS COPIED, NOT CHOSEN. Each set is the authored `choices_tr.tr`
 #  of the base.intake slot that names it, in the same order and byte for byte. The
 #  compiler refuses a gate literal outside its slot's set and a `tr` choice outside
-#  it, so the two cannot drift. A set is committed for every code slot a gate
-#  compares (base.intake and the review-queue cluster packs). Changing a member is
-#  changing what a patient can answer: it is pack content, under CODEOWNERS.
+#  it, so the two cannot drift. Changing a member is changing what a patient can
+#  answer: it is pack content, under CODEOWNERS.
 #
 #  `kind` is not `pack`, so the registry loader passes over this document the way
 #  it passes over the English mirror (files/12 §1; protocols.cli.load_registry).
@@ -24,9 +30,30 @@ valuesets:
   vs.subject_role:
     members: ["kendim için", "yakınım adına"]
     source: "base.intake identity_check.subject_role choices_tr.tr"
+  vs.timing_pattern:
+    members: ["sabahları", "akşamları", "geceleri", "belli bir saati yok"]
+    source: "base.intake hpi.timing_pattern choices_tr.tr"
+  vs.trajectory:
+    members: ["daha kötü", "aynı", "daha iyi"]
+    source: "base.intake hpi.trajectory choices_tr.tr"
+  vs.chest_pain_character:
+    members: ["baskı", "sıkışma", "ağırlık", "yanma", "başka bir his"]
+    source: "base.intake chest_pain.character choices_tr.tr"
+  vs.chest_pain_radiation:
+    members: ["kol", "çene", "sırt", "boyun", "omuz", "başka bir yer", "yok"]
+    source: "base.intake chest_pain.radiation choices_tr.tr"
+  vs.anticoagulant_use:
+    members: ["evet", "hayır", "bilmiyorum"]
+    source: "base.intake meds_allergies.anticoagulant_use choices_tr.tr"
   vs.pregnancy_status:
     members: ["evet", "hayır", "emin değilim"]
     source: "base.intake pmh_fh_sh.pregnancy_status choices_tr.tr"
   vs.immunosuppression:
     members: ["evet", "hayır", "bilmiyorum"]
     source: "base.intake pmh_fh_sh.immunosuppression choices_tr.tr"
+  vs.smoking_status:
+    members: ["evet", "bıraktım", "hiç kullanmadım"]
+    source: "base.intake pmh_fh_sh.smoking_status choices_tr.tr"
+  vs.alcohol_use:
+    members: ["hiç", "ara sıra", "düzenli"]
+    source: "base.intake pmh_fh_sh.alcohol_use choices_tr.tr"

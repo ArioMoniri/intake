@@ -46,6 +46,7 @@ __all__ = [
     "VALUE_KEY",
     "build_instructions",
     "slot_output_schema",
+    "unbound_code_slots",
 ]
 
 #: The schema's identity, carried on every trace span so a completion can be
@@ -97,6 +98,22 @@ def _value_shape(ref: str, slot: Slot, valuesets: Mapping[str, tuple[str, ...]])
             )
         return {"type": "string", "enum": list(members)}
     return dict(_VALUE_SHAPE[slot.type])
+
+
+def unbound_code_slots(
+    slots: Mapping[str, Slot], valuesets: Mapping[str, tuple[str, ...]]
+) -> tuple[tuple[str, str | None], ...]:
+    """Every code slot :func:`slot_output_schema` would refuse, as ``(ref, valueset)``.
+
+    The same test :func:`_value_shape` applies per Work, run once over a whole
+    protocol, so a session that could never bind one of its code slots is
+    refused when it is composed rather than one Work at a time (INT-518).
+    """
+    return tuple(
+        (ref, slot.valueset)
+        for ref, slot in sorted(slots.items())
+        if slot.type is SlotType.CODE and not valuesets.get(slot.valueset or "")
+    )
 
 
 def slot_output_schema(

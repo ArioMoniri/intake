@@ -41,6 +41,18 @@ patient, so ``clinic`` — the :class:`~intake_voice_runtime.talker.red_path.Cli
 into the Safety inbox — is a required argument of both roots and is bound to
 the ``BackendAgent``, which tells it of every rules-engine RED as it settles.
 A session with no route to the clinic cannot be composed.
+
+**Extraction gets the committed value-set table** (INT-518, GitHub #884).
+Both roots used to hand the handler ``dict(valuesets or {})`` and no
+production caller passed a table, so every Work that declared a code slot was
+refused, and the slot then stayed awaiting, so every later Work was refused
+too: a session bound nothing after its first question, and
+``chest_pain.character`` / ``chest_pain.radiation``, the code inputs of the
+active life-threat rules, never bound at all. Omitted, ``valuesets`` is now
+:func:`protocols.valuesets.load_committed_valuesets`, handed to the engine
+(whose plan build re-checks every gate against it) and to the handler (which
+refuses a code slot with no set when the session is composed). A table passed
+in is used as given, and is held to the same two checks.
 """
 
 from __future__ import annotations
@@ -52,6 +64,7 @@ from datetime import datetime
 from clinical_schemas.overlay import PatientOverlay
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.dsl import Slot
+from protocols.valuesets import ValueSetTable, load_committed_valuesets
 
 from intake_voice_runtime.adapters.pins import ModelPin, ModelStackRow, resolve_pin
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
@@ -168,7 +181,7 @@ def build_residency_tr_session(
     catalogue: ClipCatalogue | None = None,
     deadlines: DeliveryDeadlines | None = None,
     rule_ids: frozenset[str] = frozenset(),
-    valuesets: Mapping[str, tuple[str, ...]] | None = None,
+    valuesets: ValueSetTable | None = None,
     overlay_facts: PatientOverlay | None = None,
     extraction_row: ModelStackRow = ModelStackRow.TALKER_LLM,
     screen: ScreenSink | None = None,
@@ -194,6 +207,11 @@ def build_residency_tr_session(
     extraction in production is a decision for the issue that sizes the GPU
     tier, and the parameter exists so it is made explicitly rather than
     inherited from this default.
+
+    ``valuesets`` omitted is the committed table
+    (:func:`protocols.valuesets.load_committed_valuesets`, INT-518), and that
+    is how every production caller composes. Handed one, it is used as given;
+    either way a code slot with no set refuses the composition.
     """
     return _compose(
         protocol=protocol,
@@ -241,7 +259,7 @@ def build_typed_session(
     clock: Clock | None = None,
     deadlines: DeliveryDeadlines | None = None,
     rule_ids: frozenset[str] = frozenset(),
-    valuesets: Mapping[str, tuple[str, ...]] | None = None,
+    valuesets: ValueSetTable | None = None,
     overlay_facts: PatientOverlay | None = None,
     extraction_row: ModelStackRow = ModelStackRow.TALKER_LLM,
     meter: SessionMeter | None = None,
@@ -256,6 +274,11 @@ def build_typed_session(
     and what is added is ``screen``. That difference *is* the profile; if this
     signature ever grows a clinical parameter the other lacks, parity has been
     lost at the composition root and no test below it can restore it.
+
+    ``valuesets`` omitted is the committed table, as it is for the voice
+    root: the typed lane binds a tapped choice through the same handler, so a
+    typed session without the table could not record a code answer either
+    (INT-518).
 
     ``deadlines`` survives the change of channel deliberately. files/12 §6's
     ladder decides whether a YELLOW result is delivered or expires into the
@@ -302,7 +325,7 @@ def _compose(
     clock: Clock | None,
     deadlines: DeliveryDeadlines | None,
     rule_ids: frozenset[str],
-    valuesets: Mapping[str, tuple[str, ...]] | None,
+    valuesets: ValueSetTable | None,
     overlay_facts: PatientOverlay | None,
     extraction_row: ModelStackRow,
     config: TalkerConfig,
@@ -332,19 +355,14 @@ def _compose(
     # spends no characters, so half of this budget is structurally zero for
     # half the sessions.
     if meter is not None:
-        # INT-190: the session is counted where it is composed, by the meter
-        # whose labels its usage series carry, so the per-session divisor and
-        # the quantities it divides describe the same sessions.
-        meter.count_session()
         gateway = MeteredExtractionGateway(inner=gateway, meter=meter)
         if synthesizer is not None:
             synthesizer = MeteredSpeechSynthesizer(inner=synthesizer, meter=meter)
-    engine = IntakeEngine(
-        protocol=protocol, reference_time=reference_time, overlay_facts=overlay_facts
-    )
-    agent = BackendAgent(
-        session_id=session_id, engine=engine, rule_ids=rule_ids, clock=ticking, clinic=clinic
-    )
+    # INT-518: the committed table unless one is handed in. The handler refuses
+    # a code slot it has no members for; the engine re-checks every gate
+    # against the table at plan build. Both refuse here, before a patient is
+    # asked anything and before the session is counted.
+    table = load_committed_valuesets() if valuesets is None else valuesets
     transcripts = SessionTranscripts()
     pin = resolve_pin(extraction_row)
     handler = ExtractSlotsHandler(
@@ -354,7 +372,22 @@ def _compose(
         pin=pin,
         clock=ticking,
         tenant_id=tenant_id,
-        valuesets=dict(valuesets or {}),
+        valuesets=table.member_map(),
+    )
+    engine = IntakeEngine(
+        protocol=protocol,
+        reference_time=reference_time,
+        overlay_facts=overlay_facts,
+        valuesets=table,
+    )
+    if meter is not None:
+        # INT-190: the session is counted where it is composed, by the meter
+        # whose labels its usage series carry, so the per-session divisor and
+        # the quantities it divides describe the same sessions. Counted only
+        # once composition can no longer refuse (INT-518).
+        meter.count_session()
+    agent = BackendAgent(
+        session_id=session_id, engine=engine, rule_ids=rule_ids, clock=ticking, clinic=clinic
     )
     agent.register_state(WorkType.EXTRACT_SLOTS, handler)
 

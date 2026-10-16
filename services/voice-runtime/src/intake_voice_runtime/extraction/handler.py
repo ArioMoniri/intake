@@ -73,7 +73,9 @@ from protocols.dsl import Slot
 
 from intake_voice_runtime.adapters.pins import ModelPin
 from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect
+from intake_voice_runtime.extraction.errors import CodeSlotUnbound
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
+from intake_voice_runtime.extraction.schema import unbound_code_slots
 from intake_voice_runtime.extraction.work import ExtractionContext, ExtractionOutcome
 from intake_voice_runtime.extraction.work import run_extraction as _run_extraction
 from intake_voice_runtime.ports import Clock, work_key
@@ -110,6 +112,24 @@ class ExtractSlotsHandler:
     tenant_id: str
     valuesets: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     outcomes: list[ExtractionOutcome] = field(default_factory=list, init=False)
+
+    def __post_init__(self) -> None:
+        """Refuse a handler that could never bind one of its code slots (INT-518).
+
+        A code slot binds only to a member of its value set. Handed no members,
+        every Work that declares it is refused, and because the slot then stays
+        awaiting, every later Work declares it too: before INT-518 a session
+        bound nothing after its first question. Composition is where that is
+        refused, naming each slot and set, before a patient is asked anything.
+        """
+        unbound = unbound_code_slots(self.slots, self.valuesets)
+        if unbound:
+            named = ", ".join(f"{ref} ({valueset})" for ref, valueset in unbound)
+            raise CodeSlotUnbound(
+                f"code slot(s) with no committed value set: {named}. Extraction binds a "
+                "code slot only to a member, so these could never be answered; commit "
+                "each set in packages/protocols/base/valuesets.yaml (INT-518)"
+            )
 
     def __call__(self, context: StateContext) -> StateEffect:
         request = context.request

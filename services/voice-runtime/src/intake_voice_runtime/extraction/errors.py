@@ -15,6 +15,7 @@ from __future__ import annotations
 
 __all__ = [
     "BoundaryEscape",
+    "CodeSlotUnbound",
     "ExtractionNotConfigured",
     "ExtractionRefused",
     "ExtractionUnavailable",
@@ -33,6 +34,16 @@ class BoundaryEscape(ExtractionRefused):
 
     Raised before any bytes are assembled, so the escaping string never reaches
     a prompt, a log line or this exception's own message.
+    """
+
+
+class CodeSlotUnbound(ExtractionRefused):
+    """A code slot whose value set the extraction lane was not handed (INT-518).
+
+    The schema constrains a code slot to its members, so a slot with none could
+    never bind: every Work that declared it would be refused, and the slot
+    stays awaiting, so every later Work is refused too. Raised when the
+    session is composed, naming each step id and value-set id (ids only).
     """
 
 

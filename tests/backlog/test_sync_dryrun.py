@@ -115,7 +115,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
     # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
     # + INT-460 (second admin approver: a second Keycloak user, GitHub #785)
-    assert len(actions) == 344
+    # + INT-518 (live extraction gets the committed value table, GitHub #884)
+    assert len(actions) == 345
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

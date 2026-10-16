@@ -45,6 +45,7 @@ from clinical_schemas.session import AnswerState
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.triage.context import canonical_scalar
 from protocols.triage.expr import Truth
+from protocols.valuesets import NO_VALUESETS, ValueSetTable
 
 from intake_voice_runtime.clinical_agent.coverage import MustAskCoverage
 from intake_voice_runtime.clinical_agent.coverage import must_ask_coverage as _compute_coverage
@@ -106,8 +107,12 @@ class IntakeEngine:
         protocol: ResolvedProtocol,
         reference_time: datetime,
         overlay_facts: PatientOverlay | None = None,
+        valuesets: ValueSetTable = NO_VALUESETS,
     ) -> None:
-        self._plan = build_plan(protocol)
+        # INT-518: the gates are re-checked against the table the session runs
+        # with, so a document that reached the engine without the compiler is
+        # refused here rather than run with a gate that can never open.
+        self._plan = build_plan(protocol, valuesets)
         self._by_id = self._plan.by_id
         self._reference_time = reference_time
         self._delta = decide_delta(plan=self._plan, overlay_facts=overlay_facts, now=reference_time)
