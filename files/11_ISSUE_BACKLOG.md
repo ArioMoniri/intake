@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**363 issues.** By phase: P0 179 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 243 · todo 74 · withdrawn 1.
+**365 issues.** By phase: P0 181 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 245 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -190,6 +190,8 @@
 | INT-518 | Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind | E03-protocols | INT-083, INT-432 | area:protocols | done |
 | INT-521 | The live voice and typed session evaluates triage on every bound answer, so a RED fires from the conversation | E05-voice | INT-518, INT-093 | area:voice | done |
 | INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done |
+| INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
+| INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
 
 ## P1
 

@@ -377,7 +377,10 @@ def test_every_work_that_binds_a_read_slot_is_evaluated_and_no_other(
 @pytest.mark.parametrize("profile", list(VoiceProfile))
 def test_near_miss_a_work_that_binds_nothing_is_not_evaluated(profile: VoiceProfile) -> None:
     """The model answers no onset: the Work completes and binds nothing, so
-    the rules engine is not run for it, and the undated RED cannot fire."""
+    the rules engine is not run for it, and the undated RED cannot fire yet.
+    It is not left silently pending either (INT-540, the INT-522 review's F1):
+    an asked anchor with no choice recorded is UNCLEAR at once and CD-04's one
+    scripted follow-up is queued (tests/voice/test_anchor_unclear.py)."""
     answers = {
         ref: value for ref, value in int518._model_answers("baskı", "yok").items() if ref != ONSET
     }
@@ -385,6 +388,7 @@ def test_near_miss_a_work_that_binds_nothing_is_not_evaluated(profile: VoiceProf
     work_ids = _drive(rig)
     assert rig.stack.agent.record(work_ids[ONSET]).state is WorkState.COMPLETED
     assert rig.stack.engine.state_of(ONSET) is AnswerState.ASKED_PENDING
+    assert rig.stack.engine.follow_ups == (f"{ONSET}/clarify/1",)
     assert work_ids[ONSET] not in rig.triage.evaluated
     assert rig.triage.evaluated == [work_ids[step] for step in (PRESENT, CHARACTER, RADIATION)]
     assert rig.stack.session.preempts == ()

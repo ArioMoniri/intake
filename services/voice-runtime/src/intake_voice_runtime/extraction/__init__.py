@@ -44,6 +44,7 @@ from intake_voice_runtime.extraction.result import (
     ExtractionFlag,
     ExtractionResult,
     FlagReason,
+    SlotOutcome,
     SlotUpdate,
     SlotValue,
 )
@@ -97,6 +98,7 @@ __all__ = [
     "RecordedExtractionGateway",
     "RecordedExtractionMismatchError",
     "RecordedExtractionMissingError",
+    "SlotOutcome",
     "SlotUpdate",
     "SlotValue",
     "VendorEndpointRefused",

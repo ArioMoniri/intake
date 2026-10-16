@@ -1,5 +1,31 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
+- Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
+  - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.
+  - An abandoned session left the anchor pending too.
+  - CD-04's UNCLEAR-at-once with one `follow_up_tr` was not built, so the engine's generic two applied, and a choice the model guessed beat the patient's hedge.
+- Plan:
+  - Read CD-04's table into `protocols.answer_states`, with the bound as the decision's own number.
+  - Define `clarification_needed` in the instructions (`extraction.v2`) and in the parse (`SlotOutcome`).
+  - For an asked anchor, treat a hedge or no recorded choice as UNCLEAR and give the engine CD-04's per-step bound.
+  - Add a `close_session` state Work, from `SessionStack.close()` and `VoiceSessionRouter.end()`, that resolves an asked, unanswered anchor; the rules engine then evaluates it.
+- Tests added: `tests/voice/test_anchor_unclear.py` (71), `tests/protocols/test_answer_states.py` (75), `tests/engine/test_clarification_bounds.py` (15) and `tests/ai/test_clarification_contract.py` (11); golden family `anchor_hedges` (13) with near misses for both active rules. INT-521/522 tests were updated to CD-04's once.
+  - RED (on `64e6aef7`): collection errors; 15 failed on the engine; INT-521's near miss failed twice (no follow-up). The probe showed the onset pending, GREEN, and no clinic for "Bilmiyorum." and for abandonment, on both profiles.
+  - GREEN: the four unfit answers × 3 locations × 2 profiles all end UNCLEAR → reference day → K2 at ALERT over the data channel. Abandonment and session end do the same through the close. Near misses stay quiet. Tables saying 0 or 2 change the session as data. 14/14 mutations caught.
+- Result (docs/evidence/INT-540.md):
+  - `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.32 % with every touched module at 100 %.
+  - Protocols lane 97.63 % (`answer_states.py` 100 %).
+  - runtime-sim: every scenario, both profiles and parity exit 0, with RT-06 withdrawn as before.
+  - ruff and mypy strict clean.
+- Invariants touched and still passing: 1, 6, 7, 9, 10, 14, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-04 gains only `unclear_follow_up_tr_asks: 1`, a machine-readable restatement of its own "once". CD-05 is unchanged.
+- Backlog: INT-540 row added (`area:voice`, depends on INT-522, `clinical-core`); the three pins go from 358 to 359; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane:
+  - INT-519 items 5, 6 and 7 are unchanged, and item 5's amendment is now one number in CD-04.
+  - New items: a hedge plus a choice in one answer; a plain negative to the onset question; a never-asked anchor at session end; CD-05's own wording for "asked, never answered at close".
+- Residuals in evidence: the CD-08 inbox kind `chest_pain_arms_unresolved` is unbuilt; CD-04 is not applied to non-anchor slots; no production worker pumps the close yet.
+
 ### 2026-10-16T17:45:00Z · INT-544 · done (PR #923 open, round 2; owner patch and host install pending)
 - Goal: a pull request clears CI in under 20 minutes on the intake-aws-ci pool (GitHub #919, P0, Sec-Row cicd). The acceptance is quoted verbatim in docs/evidence/INT-544.md.
 - Plan:
@@ -118,6 +144,26 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
+
+### 2026-10-16T18:30:00Z · INT-531 · done (committed locally, not pushed; stacked on INT-521)
+- Goal: GitHub #898, INT-521 residual 1. The Talker drained Layer B only when it took a turn, so a RED evaluated between turns waited for the next turn; measured on `1ba358ff`, a RED evaluated mid-silence reached the device 3 050 ms after the evaluation (5 050 ms with a 2 s sink cancel) and the next turn raised both budget violations.
+  - Acceptance (verbatim, GitHub #898): a rules-engine RED reaches the RED path within 300 ms of evaluation whether or not a turn is in progress, including mid-patient-speech and mid-TTS (barge-in for RED only); only a rules-engine RED takes the path, the Talker never awaits Backend Work and keeps six tools; fake-clock tests mid-silence, mid-patient-speech, mid-TTS, delivered once, budget held, YELLOW/GREEN near misses; `make safety` and runtime-sim (both profiles, PARITY=1) green.
+- Plan: tests first (behaviour end to end over INT-521's served session, then the parts); then `RedPush`/`RedMailbox`, the queue's post after settle and seal, the Talker's own between-turn watch started by `take_turn`, the stop latch before the path's first await, the turn stopping after a RED that cut its speech, the stop bounded by the stop budget (INT-520 item 1), one mailbox per session at composition, `preempt_red_violations_total`.
+- Tests added: `tests/voice/test_red_between_turns.py`, `tests/voice/test_red_push.py`.
+  - RED: `test_red_push.py` collection `ModuleNotFoundError`; `test_red_between_turns.py` 13 failed, 6 passed (nothing published between turns; the passing six are the drain-first, GREEN near-miss and watch-cost controls).
+  - GREEN: 55 passed; 24/24 mutations caught (evidence).
+- Also: `VoiceSessionRouter.end()` stops the ended session's watch (`stop_red_watch()`), so no task stays parked on its mailbox.
+- Result (docs/evidence/INT-531.md): `make safety` exit 0 (voice-runtime 98.27 %, 2168 passed); runtime-sim exit 0 for every runnable scenario on both profiles and parity (RT-06 withdrawn, exit 2); ruff, ruff format and `mypy --strict` over the check-py trees clean.
+- Invariants touched and still passing: 9 (six tools; the push is one non-awaitable member; the watch awaits no Backend Work; only a rules-engine RED is posted, re-checked by the mailbox and the Talker), 21 (pre-positioned script over the data channel; the cancel is the only media call), 11 (lanes stalled 30 s change nothing), 17 (refusals and violations on the watch are logged by id and counted, never swallowed), 6 (ids and closed values only), 13 (the new metric is catalogued).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-531 row added (`area:voice`, depends on INT-521, `voice-runtime`); the three pins go from 357 to 358; files/11 regenerated.
+- Blocked on: nothing. Residuals in evidence (no production worker runs a session yet, no alert on the RED series, the barge-in path's own `red_in_flight` is not wired).
+- Round 2 (the runtime review blocked `fc18a197`):
+  - **B1:** an INTERJECT item's speech could start after the RED script (the cancel awaited, then the emit, with no latch check). Now every egress start is gated on the latch, and only spoken items are reported delivered.
+  - **B2:** an unexpected error on the RED path killed the watch silently. Now it is logged by id and error class and counted (`red_watch_failures_total`); the watch serves on, and the next turn retries the RED and raises `RedDeliveryFailed` ahead of the stopped-intake return. An unexpected watch exit is counted by a done-callback.
+  - **The session ending mid-delivery:** this no longer cuts the trigger, because the delivery runs in its own task that the watch only shields. A delivery the loop cancels is recorded and retried like B2.
+  - **A clinician route that raises in the RED path:** this is now logged and counted, and the stop and trigger still go.
+  - Tests: `tests/voice/test_red_watch_failures.py` (10, with the reviewer's probes lifted). RED on `fc18a197`: 8 failed, 2 passed (the near misses). GREEN: 10 passed. Mutations: 15/15 caught. `make safety` exit 0 (98.32 %, 2178 passed). runtime-sim exit 0 on both profiles and with parity.
 
 ### 2026-10-16T16:30:00Z · INT-521 · done (committed locally, not pushed; stacked on INT-518 and INT-441)
 - Goal: after INT-518 every base.intake code slot binds, but no production module called `evaluate_triage` in a session and no handler set `triage_update`, so a chest-pain RED could not fire from the conversation. Behind it: the Talker recorded a drained preempt and nothing delivered it, composition never bound the RED path, and the queue's pinned rule ids did not include the session's own rules.
