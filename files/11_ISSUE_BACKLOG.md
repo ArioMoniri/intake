@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**346 issues.** By phase: P0 168 · P1 124 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 230 · todo 74 · withdrawn 1.
+**350 issues.** By phase: P0 171 · P1 125 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 234 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -179,6 +179,9 @@
 | INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
 | INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | INT-352 | area:infra | doing |
 | INT-500 | Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako | E13-infra | INT-429 | area:security | done |
+| INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done |
+| INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
+| INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
 
 ## P1
 
@@ -306,6 +309,7 @@
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
+| INT-524 | CI cancels a pull request's superseded runs (concurrency group), so the three-runner pool runs only current heads | E13-infra | INT-467 | area:ci, approval:human-infra | done |
 | INT-501 | http-cache-semantics lifted to 4.3.0, so its time-boxed osv exception can go before it expires | E13-infra | INT-500 | area:security | done |
 | INT-508 | node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents before 1 Nov 2026 | E13-infra | INT-500 | area:security | todo |
 
