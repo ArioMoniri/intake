@@ -1,0 +1,32 @@
+# =====================================================================================
+#  Committed value sets for code slots (INT-441; INT-489 item 1)
+#  Loader: protocols.valuesets · check: protocols.compile.gate_values
+# =====================================================================================
+#
+#  A code slot carries one member of its value set and nothing else. A gate that
+#  compares the slot against any other string compares against a value no answer
+#  holds, so it answers the same for every patient. base.intake did that twice
+#  (`subject_role != 'kendim'`, `pregnancy_status != 'hayir'`) while no set was
+#  committed, so nothing could show it.
+#
+#  EVERY MEMBER BELOW IS COPIED, NOT CHOSEN. Each set is the authored `choices_tr.tr`
+#  of the base.intake slot that names it, in the same order and byte for byte. The
+#  compiler refuses a gate literal outside its slot's set and a `tr` choice outside
+#  it, so the two cannot drift. A set is committed for every code slot a gate
+#  compares (base.intake and the review-queue cluster packs). Changing a member is
+#  changing what a patient can answer: it is pack content, under CODEOWNERS.
+#
+#  `kind` is not `pack`, so the registry loader passes over this document the way
+#  it passes over the English mirror (files/12 §1; protocols.cli.load_registry).
+# =====================================================================================
+kind: valueset_table
+valuesets:
+  vs.subject_role:
+    members: ["kendim için", "yakınım adına"]
+    source: "base.intake identity_check.subject_role choices_tr.tr"
+  vs.pregnancy_status:
+    members: ["evet", "hayır", "emin değilim"]
+    source: "base.intake pmh_fh_sh.pregnancy_status choices_tr.tr"
+  vs.immunosuppression:
+    members: ["evet", "hayır", "bilmiyorum"]
+    source: "base.intake pmh_fh_sh.immunosuppression choices_tr.tr"

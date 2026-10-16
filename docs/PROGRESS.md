@@ -22,6 +22,21 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
+
+### 2026-10-16T11:00:00Z · INT-441 · done (committed locally, not pushed; part of INT-489 item 1)
+- Goal: `base.intake` gated `proxy_reported` on `subject_role != 'kendim'` and `lmp_date` on `pregnancy_status != 'hayir'`. Neither literal is an answer the slot offers, so the first opened for a patient answering "kendim için" and the second could never close. No value set was committed, so nothing showed it.
+  - Acceptance (verbatim, GitHub #750): each gate compares against a value its slot can carry; `proxy_reported` opens only on "yakınım adına"; `lmp_date` keeps its behaviour with authored literals; both project to `enableWhen`; a literal test with near misses `'kendim'` and an ASCII-folded choice; engine tests with the authored strings.
+  - INT-489 (#836) item 1: commit `vs.subject_role` and refuse a gate literal outside a code slot's value set.
+- Plan: tests first (engine, compiler, base.intake); then the committed value sets, a loader, a compiler check with three refusal codes wired through `resolve_protocol`, `compile_bundle` and `protocols compile --valuesets`; then the two gate literals.
+- Tests added: `tests/protocols/test_gate_values.py`, `tests/protocols/test_base_intake_gate_values.py`; `tests/engine/test_bare_gates.py` now answers only with `choices_tr` strings; `test_base_intake_pack.py` compiles with the committed sets.
+  - RED: 1 failed on main `be6c09c1` ("kendim için" opened `proxy_reported`), plus the missing-module collection error.
+  - GREEN: 78 passed in the three files; 1674 across protocols, engine, sim and ai. Nine single-change mutations each caught.
+- Result (docs/evidence/INT-441.md): `make safety` exits 0 (triage 100 %, 18/18 mutations). Protocols coverage 97.48 %. No Turkish string changed.
+- Invariants touched and still passing: 1 and 7 (gates only; no rule touched; every red-flag code literal is already an authored choice), 5 (tr choices are the source of the members), 17 (ambiguous cluster gates refused, not guessed).
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-100 spec_basis T1 quote updated to the new verbatim line; its `supports` text corrected. Listed for D18.
+- Backlog: PR #867 carries the INT-441 and INT-489 rows; this PR adds none.
+- Blocked on: D18 for four review-queue cluster gates now refused (`cluster.mental_health` ×2 on `'kendim'`, `cluster.medical` and `cluster.womens_health` on `'hayir'`); push waits on the orchestrator.
+- Next: orchestrator's word to push and open the PR.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
