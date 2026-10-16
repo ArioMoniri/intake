@@ -57,6 +57,7 @@ __all__ = [
     "DELIVERY_PROFILES",
     "MAX_STYLE",
     "PINNED_CONTEXTS",
+    "PROFILE_VERSION",
     "SPEED_MAX",
     "SPEED_MIN",
     "UNTAGGED_CONTEXTS",
@@ -87,6 +88,12 @@ DEFAULT_DELIVERY_CONTEXT: Final[DeliveryContext] = "routine"
 #: action script is RED delivery and an instrument item is instrument delivery,
 #: whatever a caller labels them. The on-demand route holds a request to the pin.
 PINNED_CONTEXTS: Final[frozenset[DeliveryContext]] = frozenset({"red", "instrument"})
+
+#: The table's version: v4 is the INT-449 cast take E04 on eleven_v3 (D20);
+#: v2 was the INT-424 retune of George on eleven_multilingual_v2. It is in
+#: every profile key and so in every clip key: a bump re-synthesises instead of
+#: replaying older takes, so no clip made under v2 is ever served as v4.
+PROFILE_VERSION: Final = 4
 
 #: ElevenLabs' documented speed range for ``voice_settings.speed``.
 SPEED_MIN: Final = 0.7
@@ -227,7 +234,7 @@ def _profile(
     *,
     stability: float,
     tags: tuple[str, ...] = (),
-    version: int = 4,
+    version: int = PROFILE_VERSION,
 ) -> DeliveryProfile:
     """One table row. Similarity and speaker boost are the identity knobs, so
     they take the vendor defaults and are the same in every row; style stays at
@@ -255,11 +262,12 @@ _ROBUST: Final = 1.0
 
 
 #: The table (v4 of every row: the INT-449 cast take E04 on eleven_v3, D20;
-#: v1 was George on eleven_multilingual_v2, docs/evidence/INT-415.md). Retune a
-#: row by editing it AND bumping its ``version``: the version is in the clip
-#: key, so the retune re-synthesises instead of replaying clips made under the
-#: old settings. Warmth and softness are carried by the closed-table tags; RED
-#: and instrument are Robust (the most stable) and never tagged.
+#: v1 and v2 were George on eleven_multilingual_v2, docs/evidence/INT-415.md and
+#: docs/evidence/INT-424.md). Retune a row by editing it AND bumping
+#: :data:`PROFILE_VERSION`: the version is in the clip key, so the retune
+#: re-synthesises instead of replaying clips made under the old settings.
+#: Warmth and softness are carried by the closed-table tags; RED and instrument
+#: are Robust (the most stable) and never tagged.
 DELIVERY_PROFILES: Final[Mapping[DeliveryContext, DeliveryProfile]] = MappingProxyType(
     {
         "welcome": _profile("welcome", stability=_NATURAL, tags=("[warmly]",)),
