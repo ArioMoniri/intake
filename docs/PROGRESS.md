@@ -3409,3 +3409,33 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-16T06:50:00+03:00 · INT-498 · done (PR open)
+- Goal: the owner's "all features working, nothing demo" (GitHub #850). Audit every requested feature on main, in open PRs and on the AWS synthetic host. Propose issues for the engineering gaps, and write the short GATED list with the fastest legitimate paths. Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Read the spec, the D-rows, the blockers and the owner orders.
+  - Trace each feature to its code on main and to its open PR.
+  - Check the host read-only: public probes, plus SSM commands that list containers, report keys as SET or EMPTY, and count log lines. No sign-in, no write, and smoke.sh not run (it restarts services).
+- Tests added (with the near-miss negative for any safety rule):
+  - tests/docs/test_feature_audit.py holds four properties: the closed status vocabulary, stated counts equal to table counts, WORKING only where the host serves, and five GATED items each with a path and a source.
+  - Mutations: a wrong count, and a WORKING row whose host cell says "not deployed". Both went red.
+  - Red run: 4 failed (no evidence file). Green run: 4 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - tests/docs, tests/backlog and tests/smoke green, with the counts at 345 and files/11 regenerated.
+  - no_placeholders (staged): OK.
+  - The full fan-out runs in CI on intake-aws-ci.
+- Findings:
+  - The host is at 1785dd58, 15 merges behind, with stock Keycloak.
+  - Zero patient requests and zero staff sign-ins in 13 days.
+  - "Gönder" never uploads the note.
+  - The question flow is UI fixtures; voice is `__DEV__`-only.
+  - No consent text exists, no scanner runs, and no voice-runtime runs.
+  - Counts: WORKING 2, PARTIAL 16, NOT BUILT 16, DEMO-ONLY 3, GATED 2.
+- Invariants touched and still passing:
+  - 6: host checks printed no values or PHI.
+  - 16: Sec-Row is monitoring-contract.
+  - 17: no id was minted, and the proposals are written as issue bodies.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing for this row. P6 (synthetic-scope consent texts) needs the owner's yes before anyone builds it, because consent texts are a stop-and-ask topic.
+- Next: the coordinator mints P1–P7. P1 (send reaches the clinic) and P2 (the host follows main) come first.
+- LOOP_STATUS: CONTINUE
