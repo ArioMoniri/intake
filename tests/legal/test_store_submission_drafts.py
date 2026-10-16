@@ -32,7 +32,18 @@ from intake_platform.legal.document_index import LegalDocumentSet
 from intake_platform.legal.documents import LegalDocumentError, required_document
 from intake_platform.store import eas_metadata as eas
 from intake_platform.store import listing as listing_mod
-from store_drafts_harness import APP_NAME, DRAFTS, LOCALES, REPO, STRICT, body, cited_path, promote
+from store_drafts_harness import (
+    APP_NAME,
+    DRAFTS,
+    LOCALES,
+    REPO,
+    STRICT,
+    body,
+    cited_path,
+    promote,
+    store_texts,
+    submission_source,
+)
 
 CHECKLIST = REPO / "docs" / "release" / "production-checklist.md"
 SCREENSHOTS = REPO / "docs" / "store" / "screenshots" / "app-store-screenshots.json"
@@ -252,7 +263,7 @@ def test_an_unreadable_submission_is_refused(tmp_path: Path, text: str, match: s
 
 
 def test_the_age_rating_answers_cover_the_eas_schema_and_cite_their_source() -> None:
-    submission = eas.load_submission(DRAFTS / "app-store.submission.draft.yaml")
+    submission = eas.load_submission(submission_source())
     assert set(submission.advisory) == set(eas.ADVISORY_LEVEL_KEYS) | set(eas.ADVISORY_FLAG_KEYS)
     for key in eas.ADVISORY_LEVEL_KEYS:
         assert submission.advisory[key] in eas.ADVISORY_LEVELS
@@ -277,10 +288,17 @@ def test_the_age_rating_answers_cover_the_eas_schema_and_cite_their_source() -> 
         (lambda b: b.update(review_notes=" "), "review_notes"),
         (lambda b: b.update(legal_links={"privacyPolicyUrl": "gizlilik"}), "legal_links"),
         (lambda b: b.update(copyright=2026), "copyright"),
+        (lambda b: b["advisory_asc"].pop("lootBox"), "lootBox"),
+        (lambda b: b["advisory_asc"]["advertising"].update(answer="NONE"), "advertising"),
+        (lambda b: b.update(content_rights={"answer": "MAYBE", "source": "x"}), "content_rights"),
+        (
+            lambda b: b.update(content_rights={"answer": "USES_THIRD_PARTY_CONTENT"}),
+            "content_rights",
+        ),
     ],
 )
 def test_a_broken_submission_is_refused(tmp_path: Path, edit: object, match: str) -> None:
-    loaded = body(DRAFTS / "app-store.submission.draft.yaml")
+    loaded = body(submission_source())
     assert callable(edit)
     edit(loaded)
     path = tmp_path / "app-store.yaml"
@@ -290,7 +308,7 @@ def test_a_broken_submission_is_refused(tmp_path: Path, edit: object, match: str
 
 
 def _review_texts() -> dict[str, str]:
-    apple = eas.load_submission(DRAFTS / "app-store.submission.draft.yaml").review_notes
+    apple = eas.load_submission(submission_source()).review_notes
     play = body(DRAFTS / "google-play.submission.draft.yaml")["app_access_instructions"]
     return {"apple": apple, "play": play}
 
@@ -317,7 +335,7 @@ def test_no_credential_is_committed_in_any_store_draft() -> None:
     assert not credential.search("prepared_on: 2026-10-04")
     found = [
         (path.name, match.group(0))
-        for path in sorted(DRAFTS.iterdir())
+        for path in store_texts()
         for match in credential.finditer(path.read_text(encoding="utf-8"))
     ]
     assert found == []
@@ -347,7 +365,7 @@ def test_the_screenshot_captions_pass_the_gates_or_the_checklist_waits_for_738()
 
 def test_the_checklist_links_every_artefact_and_names_the_owner_asks() -> None:
     section = _checklist_section_5()
-    for path in sorted(DRAFTS.iterdir()):
+    for path in store_texts():
         assert path.name in section, path.name
     for needle in (
         "eas login",

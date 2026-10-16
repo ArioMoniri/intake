@@ -169,7 +169,10 @@ def test_ids_unique_and_well_formed() -> None:
     # render and the privacy answers for the legal lane; GitHub #825).
     # + INT-496 (Google Play deferred by the owner; the list of what Play will
     # need, GitHub #847).
-    assert len(ids) == 343
+    # + INT-495 (the App Store Connect draft writer and the promoted App Store
+    # copy, GitHub #846) and INT-502 (its asset capture and upload, split off,
+    # GitHub #856).
+    assert len(ids) == 345
     import re
 
     for i in ids:

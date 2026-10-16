@@ -326,7 +326,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-496 (Google Play deferred by the owner, GitHub #847); grows only with
     # a stated reason.
-    assert len(ids) == 343, f"expected 175 blueprint + 168 added issues, got {len(ids)}"
+    # + INT-495 (the App Store Connect draft, GitHub #846) and INT-502 (its asset
+    # capture and upload, GitHub #856); grows only with a stated reason.
+    assert len(ids) == 345, f"expected 175 blueprint + 170 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

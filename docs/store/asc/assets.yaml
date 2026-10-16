@@ -1,0 +1,50 @@
+# INT-495 (GitHub #846) — the App Store creative assets for Önvizit: what each
+# slot takes, read from Apple's pages on 2026-10-16 (sources in
+# docs/evidence/INT-495.md §1), and which files fill it.
+#
+# The files lists are empty: the new design (#842, #792, #797, #801, #843) is not
+# merged and no build of it exists, so nothing has been captured. INT-502
+# (GitHub #856) captures the header and the screenshots from the merged design
+# stack and uploads them; until then scripts/store/asc_plan.py lists every slot
+# here as blocked, and scripts/store/asc_listing.py --apply refuses the asset
+# step and names INT-502.
+#
+# Rules for every file (scripts/store/asc_assets.py checks them):
+# - PNG only (Apple also takes JPEG; this pipeline uses one format), RGB, no
+#   alpha channel and no tRNS chunk;
+# - exactly one of the sizes listed for its slot;
+# - captured from a release build with simulated patients: no development
+#   fixture, demo label or development-client chrome. The file name may not
+#   carry such a word either.
+#
+# placement_group is the App Asset Library identifier. Apple's API docs name only
+# IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE; the others are read from
+# GET /v1/appAssetLibraryRefData on the first owner-run apply
+# (scripts/store/asc_listing.py --placement-groups) and written here then. A
+# null group blocks its slot rather than guessing an identifier.
+retrieved_on: "2026-10-16"
+assets:
+  - id: product-page-header
+    placement_type: PRODUCT_PAGE_HEADER_ASSET
+    category: CREATIVE_ASSETS
+    placement_group: null
+    sizes: [[3840, 1646]]
+    max_per_locale: 1
+    required: false
+    files: {tr: [], en-US: []}
+  - id: iphone-large
+    placement_type: APP_SCREENSHOT
+    category: APP_SCREENSHOTS_AND_PREVIEWS
+    placement_group: IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE
+    sizes: [[1320, 2868], [1290, 2796], [1260, 2736]]
+    max_per_locale: 10
+    required: false
+    files: {tr: [], en-US: []}
+  - id: iphone-medium
+    placement_type: APP_SCREENSHOT
+    category: APP_SCREENSHOTS_AND_PREVIEWS
+    placement_group: null
+    sizes: [[1206, 2622], [1179, 2556]]
+    max_per_locale: 10
+    required: true
+    files: {tr: [], en-US: []}

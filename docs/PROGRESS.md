@@ -1,5 +1,33 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T14:00:00Z · INT-495 · done (PR stacked on #854; live write is the owner's)
+- Goal: GitHub #846. Fill the Önvizit App Store listing in App Store Connect as an editable draft. It must come from repo sources, use the owner's credentials read at run time, and never submit for review or release.
+- Plan:
+  - Research the live ASC requirements with dates.
+  - Promote the legal-approved App Store copy (#828).
+  - Build a dry-run-by-default ASC writer, allow-listed.
+  - Validate the asset slots and plan their upload. The captures go to INT-502.
+- Tests added: `tests/legal/test_asc_listing.py` (28).
+  - Near misses refused: ten forbidden endpoints, the App Review sign-in and contact fields, an unserved tree, Turkish keywords over 100 bytes, an alpha PNG, a wrong size, and a development file name.
+  - Six mutations were killed.
+  - INT-224's empty-listing pin became a two-way test.
+  - RED: collection error, then 13 failures. GREEN: 28, and 653 across legal and the threat model.
+- Result: ruff clean. `mypy --strict` clean on intake_platform and scripts/store. The backlog, smoke and docs suites pass (counts 345). `no_placeholders`, the claims scan and the PHI scan are OK.
+- Invariants touched and still passing:
+  - 18: the privacy link binds to signed bytes only.
+  - 20: the copy, the notes and the rendered config pass both claims scans.
+  - 6 and 14: credentials are read at run time and never logged.
+  - 17: blocked fields name their owner.
+- Decisions / ADRs / `00_STATE.md` rows: the orchestrator approved the promotion of the three App Store artefacts. HB-L21 now reads "submission for review waits on (a) and (e)".
+- Blocked on:
+  - the owner's own live run (`make asc-draft`);
+  - App Privacy entry, by hand;
+  - HB-L21(e) for the support URL and copyright;
+  - HB-L27 for the privacy URL;
+  - INT-502 for the assets, after the design stack merges.
+- Next: the legal-reviewer on the PR, then INT-502 when the design stack merges.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-16T10:00:00Z · INT-496 · done (PR stacked on #828)
 - Goal: GitHub #847. The owner says "dont do google for now", so record everything Play will need and build no Play submission.
 - Plan: write `docs/store/google-play-later.md`, with each item pointing at its repo file or blocker. Quote Play's figures with their help page and retrieval date.

@@ -49,9 +49,10 @@ from store_drafts_harness import (
     STRICT,
     body,
     cited_path,
-    draft,
     lines,
+    listing_source,
     promote,
+    store_texts,
 )
 
 #: files/06 §7, the static safety line, verbatim. The one sentence in the
@@ -90,9 +91,21 @@ def listings(tmp_path_factory: pytest.TempPathFactory) -> tuple[listing_mod.Stor
 
 def test_every_store_draft_starts_with_the_counsel_banner() -> None:
     files = sorted(p for p in DRAFTS.iterdir() if p.is_file())
-    assert len(files) >= 8
+    assert files
     for path in files:
         assert path.read_text(encoding="utf-8").splitlines()[0].lstrip("#> ").strip() == BANNER
+
+
+def test_no_served_store_file_carries_the_draft_banner_or_status() -> None:
+    """INT-495 promoted the App Store artefacts; a served file that still read as a
+    draft, or a draft still sitting beside its served copy, would be two answers."""
+    for path in store_texts():
+        if DRAFTS in path.parents:
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert BANNER not in text, path.name
+        assert body(path)["provenance"]["status"].startswith("served"), path.name
+        assert not (DRAFTS / path.name.replace(".yaml", ".draft.yaml")).exists()
 
 
 def test_the_drafts_readme_indexes_every_store_draft() -> None:
@@ -140,8 +153,8 @@ def test_the_store_name_is_onvizit_on_every_listing(
 
 def test_the_play_listing_is_the_app_store_listing_from_the_same_source() -> None:
     for locale in LOCALES:
-        apple = body(draft("app-store", locale))["fields"]
-        play = body(draft("google-play", locale))["fields"]
+        apple = body(listing_source("app-store", locale))["fields"]
+        play = body(listing_source("google-play", locale))["fields"]
         assert play["title"] == apple["title"]
         assert play["full_description"] == apple["description"]
 
@@ -152,7 +165,7 @@ def test_the_play_listing_is_the_app_store_listing_from_the_same_source() -> Non
 def test_every_line_of_copy_cites_an_existing_repo_file() -> None:
     for store in STORES:
         for locale in LOCALES:
-            loaded = body(draft(store, locale))
+            loaded = body(listing_source(store, locale))
             sources = loaded["sources"]
             for name, value in loaded["fields"].items():
                 if isinstance(sources[name], str):
@@ -170,7 +183,7 @@ def test_every_line_of_copy_cites_an_existing_repo_file() -> None:
 def _turkish_fields() -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
     for store in STORES:
-        for name, value in body(draft(store, "tr"))["fields"].items():
+        for name, value in body(listing_source(store, "tr"))["fields"].items():
             if name != "keywords":
                 out.append((f"{store}.{name}", value))
     return out
@@ -222,7 +235,7 @@ def test_the_only_imperative_in_the_turkish_copy_is_the_static_safety_line() -> 
 def test_the_app_store_fields_hold_the_eas_reference_limits() -> None:
     assert (REPO / eas.EAS_REFERENCE).exists()
     for locale in LOCALES:
-        fields = body(draft("app-store", locale))["fields"]
+        fields = body(listing_source("app-store", locale))["fields"]
         assert set(fields) <= set(eas.INFO_COPY_FIELDS)
         for name, limit in eas.INFO_LIMITS.items():
             if name in fields:

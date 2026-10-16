@@ -6713,3 +6713,41 @@
   tests: [tests/legal/test_google_play_later.py]
   legal: "STORE"
   sec_row: "mobile"
+- id: INT-495
+  epic: E08-mobile
+  phase: P1
+  title: "App Store listing for Önvizit, filled in App Store Connect as an editable draft"
+  # GitHub #846 (owner order, 16 Oct 2026). Delivered: the dated research of the
+  # current ASC requirements; the legal-lane-approved App Store copy and answers
+  # promoted to docs/legal/store; store.config.json rendered; the ASC draft
+  # writer (scripts/store, dry run by default, allow-listed, credentials read at
+  # run time) whose live run is the owner's own command; the asset validator,
+  # manifest and upload plan. The captures and their upload are INT-502 (#856).
+  depends_on: [INT-482]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-495.md
+  acceptance:
+    - "research the current App Store Connect requirements (help pages, ASC API) including the new header image, with sources and retrieval dates in docs/evidence/INT-495.md"
+    - "Turkish and English listing copy under the name Önvizit (subtitle, promo text, description, keywords; what's new where a version takes it) from the INT-482 drafts; support, marketing and privacy-policy URLs only from their owners (the privacy policy only via the signed docs/legal document); age rating, privacy nutrition labels from the data inventory, export compliance and content rights recorded; invariant 20 on all copy"
+    - "a scripts/store ASC writer with tests, dry run by default, that writes only editable draft metadata to the next version with the owner's credentials read at run time; never Submit for Review or Release"
+    - "the asset slots (header, iPhone screenshot groups) validated against the current specs, with the capture and upload split to INT-502"
+  tests: [tests/legal/test_asc_listing.py, tests/legal/test_store_listing_drafts.py, tests/legal/test_store_submission_drafts.py, tests/legal/test_store_labels.py]
+  legal: "STORE"
+  sec_row: "mobile"
+- id: INT-502
+  epic: E08-mobile
+  phase: P1
+  title: "Capture the App Store header and screenshots from the merged design stack and upload them to App Store Connect"
+  # GitHub #856, split from INT-495. Waits for the design stack to merge
+  # (#792, #797, #801, #806, #808, #842 lens orb, #843 progress capsule) and a
+  # build machine with disk for an iOS release build.
+  depends_on: [INT-495]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "the product page header at 3840×1646 (21:9) and iPhone screenshots for the large (1320×2868) and medium (1206×2622) groups, light and dark, Turkish and English, captured from a release-equivalent build with simulated patients only (no development-client chrome, development fixture, demo or mock label), listed in docs/store/asc/assets.yaml and passing scripts/store/asc_assets.py"
+    - "uploaded through the App Asset Library (reserve, put, commit, place, order) by the INT-495 writer, dry run by default and live only by the owner's own command after their explicit yes; never Submit for Review or Release"
+  tests: [tests/legal/test_asc_listing.py]
+  legal: "STORE"
+  sec_row: "mobile"

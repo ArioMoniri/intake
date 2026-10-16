@@ -1,20 +1,21 @@
-# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+# The served App Store listing for Önvizit, English. intake_platform.store.listing
+# loads it hash-bound to its bytes, and `make store-config` renders
+# apps/mobile/store.config.json from it.
 #
-# INT-482 (GitHub #825) — App Store listing copy for Önvizit, English.
-# Prepared 2026-10-04 by a drafting agent for the legal lane. Not published and
-# not served: no loader reads this directory (tests/legal/test_legal_drafts.py).
+# Promoted on 2026-10-16 by INT-495 (GitHub #846) from the draft of #828, which the
+# legal lane approved. Under the owner's rule of 3 Oct 2026, legal sign-offs go to a
+# sourced legal agent and a verifier, in synthetic scope; a licensed Turkish lawyer
+# countersigns before any real patient.
 #
-# Promotion (docs/legal/drafts/README.md §5): after the legal-lane review, and once
-# HB-L21 (a) and (e) are answered, the owner moves this file in a separate PR to
-# docs/legal/store/listing/app-store.en-US.yaml, deletes this draft and runs `make store-config`.
+# Submitting for review still waits on HB-L21 (a) and (e) and on every condition in
+# docs/legal/drafts/store/app-review-notes.draft.md §1.
 #
-# Every line of `fields` cites its source under `sources`; a line with no source, or
-# a source path that does not exist, fails tests/legal/test_store_listing_drafts.py.
+# Every line of `fields` cites its source under `sources`.
 provenance:
   issue: INT-482
   store: app-store
   locale: en-US
-  status: pending legal-lane review
+  status: served — legal lane approved (#828), promoted by INT-495
   prepared_on: "2026-10-04"
 fields:
   title: Önvizit

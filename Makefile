@@ -330,6 +330,19 @@ store-config:
 store-config-check:
 	uv run python scripts/release/render_store_config.py --check
 
+# INT-495: the App Store Connect draft. asc-plan is the dry run (field names only, no
+# credentials, nothing sent). asc-draft writes the editable draft and is the OWNER's
+# command, run after their own yes: EAS_JSON names their eas.json whose
+# submit.production.ios holds ascApiKeyPath/ascApiKeyId/ascApiKeyIssuerId/ascAppId,
+# read at run time and never printed. Neither target submits for review or releases.
+.PHONY: asc-plan asc-draft
+asc-plan:
+	uv run python scripts/store/asc_listing.py
+
+asc-draft:
+	@test -n "$(EAS_JSON)" || { echo "asc-draft: set EAS_JSON=<your eas.json that holds ascApiKeyPath>"; exit 2; }
+	uv run python scripts/store/asc_listing.py --apply --eas-json "$(EAS_JSON)"
+
 # INT-023: local observability stack — compose profile `obs` (Prometheus,
 # Grafana, Loki, Tempo, OTel collector, Unleash, Keycloak, GlitchTip).
 # Dev tier only: loopback ports, dev-only credentials overridable via env.

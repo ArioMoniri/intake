@@ -397,10 +397,19 @@ def _write_listing(tmp_path: Path, fields: dict[str, str]) -> Path:
     return path
 
 
-def test_no_store_listing_is_committed_yet_and_the_loader_says_so() -> None:
+def test_the_served_listing_is_gated_or_the_loader_refuses() -> None:
+    """Until INT-495 promoted the legal-lane-approved App Store copy, nothing was
+    served and the loader refused. Both states stay pinned: with no listing the
+    refusal names HB-L21; with listings, each is hash-bound and passes both
+    gates."""
     directory = listing_mod.listing_dir(REPO)
-    with pytest.raises(listing_mod.StoreListingMissingError, match="HB-L21"):
-        listing_mod.load_all_listings(directory)
+    if not sorted(directory.glob("*.yaml")):
+        with pytest.raises(listing_mod.StoreListingMissingError, match="HB-L21"):
+            listing_mod.load_all_listings(directory)
+        return
+    for listing in listing_mod.load_all_listings(directory):
+        assert len(listing.text_hash) == 64
+        assert listing_mod.gate_listing(listing) == (), listing.path.name
 
 
 def test_a_listing_binds_its_own_bytes(tmp_path: Path) -> None:

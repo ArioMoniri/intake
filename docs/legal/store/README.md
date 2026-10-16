@@ -59,11 +59,20 @@ disclaimers would reject the very sentences that keep the product on the
 non-device side of the boundary. The exemption window is bounded so that
 denying one capability cannot launder a claim about another.
 
-Nothing is committed yet. The seller's legal entity, the privacy and support
-URLs and the Turkish marketing text are owed by **HB-L21**, together with the
-determination that decides the largest single row of the label: whether
-microphone audio, which is transmitted for transcription and by invariant 3
-never written anywhere, counts as *collected* on each store's form.
+**What is served today (INT-495, 2026-10-16):** `app-store.tr.yaml` and
+`app-store.en-US.yaml`. The legal lane approved them on #828, and INT-495 promoted
+them on the owner's order #846, so that App Store Connect can hold an editable
+draft. The Google Play copy stays in `docs/legal/drafts/store/` while Play is
+deferred (INT-496).
+
+What **HB-L21** still owes:
+
+- the seller's legal entity, and the privacy and support URLs;
+- the determination that decides the largest single row of the label: whether
+  microphone audio counts as *collected* on each store's form. By invariant 3 that
+  audio is transmitted for transcription and never written anywhere.
+
+Submitting for review waits on both.
 
 ## `submission/` — the App Store answers that are not copy (INT-482)
 
@@ -74,8 +83,15 @@ HB-L27 and HB-L21(e) answer them. `intake_platform.store.eas_metadata.load_submi
 refuses a missing age-rating key, an answer outside the EAS schema, review notes
 that fail either listing gate, and a link that is not https.
 
-Nothing is committed here yet either. The candidates are in
-`docs/legal/drafts/store/`, pending legal-lane review.
+Since INT-495 the file is served. It also carries two blocks that App Store
+Connect takes and the EAS schema cannot:
+
+- `advisory_asc`: the live age-rating keys beyond the EAS set, read from Apple's API
+  reference on 2026-10-16;
+- `content_rights`.
+
+Both are optional to the loader. Once present, each must be complete and sourced.
+`scripts/store/asc_listing.py` writes them to the App Store Connect draft.
 
 ## `apps/mobile/store.config.json` — rendered, never written
 

@@ -4,7 +4,8 @@
 
 Prepared on 2026-10-04 by a drafting agent for the legal lane (GitHub #825). It is pending
 legal-lane review. This file is for the owner and the reviewer of this PR. The text the store
-reviewers read is in `app-store.submission.draft.yaml` (`review_notes`) and in
+reviewers read is in the served `docs/legal/store/submission/app-store.yaml` (`review_notes`;
+promoted by INT-495) and in
 `google-play.submission.draft.yaml` (`app_access_instructions`). Nothing here is submitted.
 
 ## 1 · Do not submit until each of these holds
@@ -74,13 +75,20 @@ verbatim quotation the repo holds is App Review 1.4.1, in ADR-022 under `docs/ad
 
 ## 5 · Age rating
 
-Apple: `advisory` in `app-store.submission.draft.yaml`. It has one sourced answer per key of the EAS
-schema, and two answers carry a note for the legal lane. Google Play (IARC): the facts in
-`google-play.submission.draft.yaml`. Counsel gives the answers (HB-L21(c)).
+Apple: `advisory` and `advisory_asc` in `docs/legal/store/submission/app-store.yaml`. That file has
+one sourced answer for each key of the EAS schema, and one for each live App Store Connect key beyond
+it. The answers that carry a note are judgements for the legal lane.
+
+Google Play (IARC): the facts are in `google-play.submission.draft.yaml`. Counsel gives the answers
+(HB-L21(c)).
 
 ## 6 · Screenshots
 
-INT-425 builds them (PR #738, still open), and this draft does not copy them. Once #738 merges,
-`docs/store/screenshots/app-store-screenshots.json` exists. Then the INT-482 tests run its captions
-through the same claims and device-claim gates as the listing. The Play frames are iPhone captures.
-#738 says to replace them with Android captures before submitting to Play.
+The App Store header and screenshots for the new design are INT-502 (#856). INT-502 captures them
+from a release build, once the design stack has merged. The slots and sizes are in
+`docs/store/asc/assets.yaml`, and the checks are in `scripts/store/asc_assets.py`.
+
+INT-425 (PR #738, still open) captured the earlier design, and this draft does not copy it. Once #738
+merges, `docs/store/screenshots/app-store-screenshots.json` exists. Then the INT-482 tests run its
+captions through the same claims and device-claim gates as the listing. The Play frames are iPhone
+captures, and #738 says to replace them with Android captures before submitting to Play.

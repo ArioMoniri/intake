@@ -114,7 +114,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-482 (store listing readiness as Önvizit, GitHub #825)
     # + INT-496 (Google Play deferred by the owner, GitHub #847)
-    assert len(actions) == 343
+    # + INT-495 (the App Store Connect draft, GitHub #846) and INT-502 (GitHub #856)
+    assert len(actions) == 345
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

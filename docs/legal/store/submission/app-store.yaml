@@ -1,25 +1,27 @@
-# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+# The served App Store answers that are not listing copy: the category, the
+# age-rating questionnaire, the content-rights answer and the App Review notes.
+# eas_metadata.load_submission reads it; `make store-config` puts the EAS part into
+# apps/mobile/store.config.json, and scripts/store/asc_listing.py writes the rest
+# (advisory_asc, content_rights) to the App Store Connect draft.
 #
-# INT-482 (GitHub #825) — the App Store answers that are not listing copy: the
-# category, the age-rating questionnaire (EAS `advisory`) and the App Review
-# notes. Prepared 2026-10-04 by a drafting agent for the legal lane.
+# Promoted on 2026-10-16 by INT-495 (GitHub #846) from the draft of #828, which the
+# legal lane approved. Under the owner's rule of 3 Oct 2026, legal sign-offs go to a
+# sourced legal agent and a verifier, in synthetic scope; a licensed Turkish lawyer
+# countersigns before any real patient.
 #
-# The keys and values are the EAS Metadata schema as the committed reference
-# states it (.claude/skills/eas-app-stores/references/app-store-metadata.md).
-# App Store Connect's live questionnaire may ask questions that schema does not
-# hold; Apple's current wording is not recalled here (HB-A12), and any extra
-# question is answered by the owner from the same sourced facts.
+# Submitting for review still waits on HB-L21 (a) and (e) and on every condition in
+# docs/legal/drafts/store/app-review-notes.draft.md §1.
 #
-# Promotion: after the legal-lane review the owner moves this file to
-# docs/legal/store/submission/app-store.yaml in a separate PR and runs
-# `make store-config`. The reviewer contact and the reviewer sign-in are never
-# written here: they go into App Store Connect at submission
-# (app-review-notes.draft.md §2). The privacy-policy link, the support URL and
-# the copyright line stay null until HB-L27 and HB-L21(e) answer them.
+# `advisory` uses the EAS schema's keys; `advisory_asc` answers the keys the live
+# App Store Connect API asks beyond them (read 2026-10-16). Every answer cites its
+# source. Answers that carry a `note` are judgements for the legal lane. The
+# reviewer contact and sign-in are never written here; the owner enters them in App
+# Store Connect. The privacy-policy link, support URL and copyright stay null until
+# HB-L27 and HB-L21(e) answer them.
 provenance:
   issue: INT-482
   store: app-store
-  status: pending legal-lane review
+  status: served — legal lane approved (#828), promoted by INT-495
   prepared_on: "2026-10-04"
 categories:
   - MEDICAL
@@ -72,6 +74,45 @@ advisory:
   seventeenPlus:
     answer: false
     source: ".claude/skills/eas-app-stores/references/app-store-metadata.md — follows from the answers above, none of which is FREQUENT_OR_INTENSE"
+advisory_asc:
+  advertising:
+    answer: false
+    source: "packages/intake_platform/src/intake_platform/store/answers.py — the privacy sheet's product answer: no inventory purpose is advertising, and apps/mobile/package.json links no ad library"
+  ageAssurance:
+    answer: false
+    source: "services/api/src/intake_api/age_context.py — no date of birth is recorded or verified today"
+    note: "The legal lane confirms this against Apple's definition."
+  gunsOrOtherWeapons:
+    answer: NONE
+    source: "docs/legal/data-categories.yaml — the personal-safety questions of one specialty intake ask about the patient's situation and depict nothing; not served until counsel completes the row"
+    note: "The legal lane decides whether forensic intake questions count here."
+  healthOrWellnessTopics:
+    answer: true
+    source: "files/02_PRODUCT_SPEC.md — a pre-visit health intake for the patient's own visit"
+  lootBox:
+    answer: false
+    source: "apps/mobile/package.json — no purchase library; nothing is sold in the app"
+  messagingAndChat:
+    answer: false
+    source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx — users never message each other; the intake conversation is with the app, and the note goes only to the clinician the patient chooses"
+    note: "The legal lane confirms that a conversation with the app is not messaging in Apple's sense."
+  parentalControls:
+    answer: false
+    source: "files/02_PRODUCT_SPEC.md — the app has no parental-control feature"
+  socialMedia:
+    answer: false
+    source: "files/02_PRODUCT_SPEC.md — no feed, profile or follower feature; nothing is published to other users"
+  socialMediaAgeRestricted:
+    answer: false
+    source: "files/02_PRODUCT_SPEC.md — not a social media app (socialMedia is false)"
+  userGeneratedContent:
+    answer: false
+    source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx — what a patient writes or uploads reaches only the clinician they share it with; nothing is shown to other users"
+    note: "The legal lane confirms this against Apple's definition."
+content_rights:
+  answer: USES_THIRD_PARTY_CONTENT
+  source: "packages/protocols/src/protocols/licences.py — the validated instruments (PHQ-9, GAD-7) are third-party content used under Pfizer's blanket permission (licence GO)"
+  note: "The legal lane confirms; the alternative answer is DOES_NOT_USE_THIRD_PARTY_CONTENT."
 review_notes: |-
   Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.
 

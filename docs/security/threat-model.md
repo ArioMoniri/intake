@@ -1636,6 +1636,13 @@ it or whose tests exercise it.
   the privacy answers are derived from the inventory and drift-checked; links bind to a signed
   docs/legal document by sha256; `automaticRelease` is pinned false; reviewer sign-in lives
   only in the store consoles.
+  **App Store Connect writer (INT-495):** [S/I] the owner's API key leaving the laptop or
+  reaching a log; [T] a draft writer that submits, releases or edits pricing. Controls: the key
+  file, key id, issuer id and app id are read from the owner's eas.json at run time and never
+  printed; ES256 tokens live 15 minutes; dry run by default; an allow-list of reads and draft
+  edits with per-endpoint attribute sets refuses submissions, releases, pricing, availability,
+  deletes, version creation and the App Review contact and sign-in fields before sending; the
+  log carries field names and HTTP statuses only. Tests: `tests/legal/test_asc_listing.py`.
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
   design (§9); the crash-free rate covers them (INT-145).
