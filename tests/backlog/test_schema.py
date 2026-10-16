@@ -225,7 +225,10 @@ def test_ids_unique_and_well_formed() -> None:
     # 300 ms budget; INT-521 residual 1, GitHub #898).
     # + INT-547 (CD-04's CD-08 item chest_pain_arms_unresolved reaches the
     # clinic Safety inbox, split from INT-543 F3, GitHub #927).
-    assert len(ids) == 365
+    # + INT-525 (a proxy session that skips the chest-pain screen raises CD-01's
+    # CD-08 item, from the INT-518 clinical review, GitHub #891) and INT-548
+    # (both items pinned to the pre-visit note, split from INT-525, GitHub #928).
+    assert len(ids) == 367
     import re
 
     for i in ids:

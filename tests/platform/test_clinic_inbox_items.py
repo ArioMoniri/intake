@@ -1,9 +1,10 @@
-"""INT-547 — CD-08's chest-pain item in the clinic inbox, and no SLA invented.
+"""INT-547 and INT-525 — CD-08's chest-pain items in the clinic inbox, and no SLA invented.
 
-CD-04 raises a clinician-only item that CD-08 routes to the booked clinic's
-inbox: ``chest_pain_arms_unresolved``. It travels the clinic Safety inbox the
+CD-04 and CD-01 raise clinician-only items that CD-08 routes to the booked
+clinic's inbox: ``chest_pain_arms_unresolved`` and (INT-525)
+``proxy_chest_pain_screen_unasked``. They travel the clinic Safety inbox the
 RED route already writes (INT-406, INT-475) — the same entry shape, the same
-store, the same console queue — and it is not a RED:
+store, the same console queue — and they are not REDs:
 
 1. Each item is its own entry kind, its id derived from tenant, kind and the
    item's own reference, so raising it twice is one entry (once per session).
@@ -102,7 +103,10 @@ def _fresh_gauge() -> None:
 
 def test_the_item_kinds_are_cd08s_names_and_only_they_are_clinic_items() -> None:
     assert {kind.value for kind in CLINIC_ITEM_KINDS} == {kind.value for kind in ClinicItemKind}
-    assert CLINIC_ITEM_KINDS == {EntryKind.CHEST_PAIN_ARMS_UNRESOLVED}
+    assert CLINIC_ITEM_KINDS == {
+        EntryKind.CHEST_PAIN_ARMS_UNRESOLVED,
+        EntryKind.PROXY_CHEST_PAIN_SCREEN_UNASKED,  # INT-525
+    }
     for kind in EntryKind:
         assert kind.is_clinic_item is (kind in CLINIC_ITEM_KINDS)
     assert not EntryKind.RED.is_clinic_item and not EntryKind.RED_ON_SITE.is_clinic_item
@@ -121,6 +125,14 @@ def test_an_item_entry_is_derived_from_tenant_kind_and_its_own_reference(kind: E
 
 def test_another_reference_is_another_entry() -> None:
     assert _item().entry_id != _item(item_ref="ci_" + "c" * 32).entry_id
+
+
+def test_the_two_kinds_for_one_reference_are_two_entries() -> None:
+    """INT-525: the proxy item is its own entry, beside the arms item."""
+    assert (
+        _item(EntryKind.CHEST_PAIN_ARMS_UNRESOLVED).entry_id
+        != _item(EntryKind.PROXY_CHEST_PAIN_SCREEN_UNASKED).entry_id
+    )
 
 
 @pytest.mark.parametrize(

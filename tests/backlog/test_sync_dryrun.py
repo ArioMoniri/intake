@@ -139,7 +139,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
     # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
     # + INT-547 (CD-04's unresolved-arms item reaches the clinic inbox, GitHub #927)
-    assert len(actions) == 365
+    # + INT-525 (a proxy session's unasked chest-pain screen reaches the clinic, GitHub #891)
+    # + INT-548 (both chest-pain items pinned to the pre-visit note, GitHub #928)
+    assert len(actions) == 367
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -103,10 +103,12 @@ patient's on-site location answer).
 
 `ClinicInboxItemRouteFailed` — a live session raised a CD-08 clinician-only
 item and its route into the Safety inbox raised
-(`clinic_inbox_item_route_failures_total{kind}`, INT-547), such as
+(`clinic_inbox_item_route_failures_total{kind}`, INT-547, INT-525):
 `chest_pain_arms_unresolved` (CD-04: a chest-pain slot still UNCLEAR after its
-follow-up, so both chest-pain arms may be silent). An item is not a RED and
-has no SLA while CD-08's is draft.
+follow-up, so both chest-pain arms may be silent) or
+`proxy_chest_pain_screen_unasked` (CD-01: a proxy session left the chest-pain
+screen unasked, so neither chest-pain rule could fire). An item is not a RED
+and has no SLA while CD-08's is draft.
 
 1. The session raises the item again on its next answer, so a page that clears
    by itself means the item landed. Find the session from the runtime's error

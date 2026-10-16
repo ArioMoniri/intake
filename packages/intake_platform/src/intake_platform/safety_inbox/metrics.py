@@ -91,7 +91,8 @@ CLINIC_RED_NOTIFICATION_UNAUDITED_TOTAL = Counter(
 #: and kind; counted when the route took it.
 CLINIC_INBOX_ITEMS_RAISED_TOTAL = Counter(
     "clinic_inbox_items_raised_total",
-    "CD-08 clinic-inbox items raised (such as a chest-pain slot left unresolved), by kind.",
+    "CD-08 clinic-inbox items raised (a chest-pain slot left unresolved, a proxy "
+    "session's unasked chest-pain screen), by kind.",
     ["kind"],
 )
 

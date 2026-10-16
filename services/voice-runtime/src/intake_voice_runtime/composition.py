@@ -95,13 +95,14 @@ anchor. ``close_session`` is registered on every session beside
 asked and unanswered when the session ends is recorded UNCLEAR, resolved and
 evaluated by the rules engine like any other answer.
 
-**The clinic hears of unresolved chest-pain arms** (INT-547). Wherever a
-served rule reads a CD-04 chest-pain slot, both roots require a
-``clinic_items`` route (:class:`ClinicItemRouteMissing` otherwise) and wrap
-``extract_slots`` and ``close_session`` in a
+**The clinic hears of unresolved or unasked chest-pain arms** (INT-547,
+INT-525). Wherever a served rule reads a CD-01 chest-pain slot, both roots
+require a ``clinic_items`` route (:class:`ClinicItemRouteMissing` otherwise)
+and wrap ``extract_slots`` and ``close_session`` in a
 :class:`~intake_voice_runtime.clinical_agent.clinic_items.ClinicItemWatch`:
-CD-04's ``chest_pain_arms_unresolved`` reaches the clinic inbox once, by ids,
-and never touches the Work's determination. The production route is
+CD-04's ``chest_pain_arms_unresolved`` and CD-01's
+``proxy_chest_pain_screen_unasked`` reach the clinic inbox once each, by ids,
+and never touch the Work's determination. The production route is
 :class:`~intake_voice_runtime.safety_inbox.ClinicItemNotifier`.
 """
 

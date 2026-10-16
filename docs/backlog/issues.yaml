@@ -7193,3 +7193,41 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; every new metric catalogued (invariant 13)."
   tests: [tests/voice/test_clinic_items.py, tests/protocols/test_clinic_item_rules.py, tests/platform/test_clinic_inbox_items.py, tests/admin/test_safety_queue_clinic_items.py, tests/safety/test_triage_goldens.py]
   sec_row: "clinical-core"
+- id: INT-525
+  epic: E05-voice
+  phase: P0
+  title: "A proxy session that skips the chest-pain screen raises the CD-01/CD-08 clinician inbox item proxy_chest_pain_screen_unasked"
+  # GitHub #891, from the INT-518 (#884) clinical review, 16 Oct 2026. Once
+  # subject_role binds (INT-518), chest_pain.present's skip_if (CD-01's proxy
+  # stop-gap) takes effect in a proxy session, so the chest-pain screen is not
+  # asked and neither chest-pain rule can fire. CD-01/CD-08 decide a
+  # compensating clinic-inbox item; it is raised on INT-547's watch and route.
+  # Scope change, 17 Oct 2026 (orchestrator): pinning the item to the
+  # pre-visit note (CD-01 pinned_to_note; CD-08 shown in the pre-visit note if
+  # unreviewed at visit start) moved to INT-548 (#928), because no live session
+  # composes a note yet.
+  depends_on: [INT-518, INT-547]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-525.md
+  acceptance:
+    - "Build the inbox item exactly as CD-01/CD-08 decide it, the note pin excepted (INT-548): no clinical re-decision; anything they leave open goes to the D18 lane in the invariant-17 form."
+    - "Test: a proxy session that skips the screen raises the item once, ids only (invariant 6), audited (invariant 4); a self session does not; near miss included."
+    - "Must land before or with the voice lane going live for proxy sessions (ADR-040, #833)."
+  tests: [tests/voice/test_clinic_items.py, tests/protocols/test_clinic_item_rules.py, tests/platform/test_clinic_inbox_items.py]
+  sec_row: "clinical-core"
+- id: INT-548
+  epic: E05-voice
+  phase: P1
+  title: "Both CD-08 chest-pain inbox items are pinned to the pre-visit note when unreviewed at visit start"
+  # GitHub #928, split from INT-525 and INT-547, 17 Oct 2026. CD-04 and CD-01
+  # mark both items pinned_to_note, and CD-08 shows an unreviewed item in the
+  # pre-visit note at visit start. No live session composes a note yet
+  # (note.compose has no production caller), so there is no note to pin to.
+  depends_on: [INT-547, INT-525]
+  labels: [area:voice, blocked:no-live-note]
+  status: todo
+  acceptance:
+    - "Once note.compose has a production caller, both items (chest_pain_arms_unresolved, proxy_chest_pain_screen_unasked) are pinned to the session's pre-visit note and shown there while unreviewed at visit start, never dropped (CD-04, CD-01, CD-08)."
+    - "Ids and closed kinds only (invariant 6); the note never shows the item to the patient (CD-08 never_shown_to_patient)."
+  sec_row: "clinical-core"

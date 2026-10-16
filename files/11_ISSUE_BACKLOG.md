@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**365 issues.** By phase: P0 180 · P1 131 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 245 · todo 74 · withdrawn 1.
+**367 issues.** By phase: P0 181 · P1 132 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 246 · todo 75 · withdrawn 1.
 
 ## P0
 
@@ -191,6 +191,7 @@
 | INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done |
 | INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
+| INT-525 | A proxy session that skips the chest-pain screen raises the CD-01/CD-08 clinician inbox item proxy_chest_pain_screen_unasked | E05-voice | INT-518, INT-547 | area:api | done |
 
 ## P1
 
@@ -327,6 +328,7 @@
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 | INT-547 | The clinic Safety inbox is told once when chest-pain arms stay unresolved (CD-04's CD-08 item chest_pain_arms_unresolved) | E05-voice | INT-540 | area:voice | done |
+| INT-548 | Both CD-08 chest-pain inbox items are pinned to the pre-visit note when unreviewed at visit start | E05-voice | INT-547, INT-525 | area:voice, blocked:no-live-note | todo |
 
 ## P2
 

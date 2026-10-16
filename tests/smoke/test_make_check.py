@@ -385,7 +385,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-547 (CD-04's CD-08 item chest_pain_arms_unresolved reaches the
     # clinic Safety inbox, split from INT-543 F3, GitHub #927); grows only with
     # a stated reason.
-    assert len(ids) == 365, f"expected 175 blueprint + 190 added issues, got {len(ids)}"
+    # + INT-525 (a proxy session that skips the chest-pain screen raises CD-01's
+    # CD-08 item, GitHub #891) and INT-548 (both chest-pain items pinned to the
+    # pre-visit note, split from INT-525, GitHub #928); grows only with a
+    # stated reason.
+    assert len(ids) == 367, f"expected 175 blueprint + 192 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

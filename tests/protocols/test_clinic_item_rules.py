@@ -1,4 +1,4 @@
-"""INT-547 — CD-08's chest-pain arms item, read from the decisions.
+"""INT-547 and INT-525 — CD-08's two chest-pain items, read from the decisions.
 
 GitHub #927 (split from #917, finding F3). Verified clinical decisions
 (files/00_STATE.md D18) already decide a clinician-only clinic-inbox item, and
@@ -8,7 +8,10 @@ nothing built it:
   UNCLEAR after its ``follow_up_tr`` has been asked once raises a CD-08 item of
   kind ``chest_pain_arms_unresolved``, because under three-valued logic it can
   leave both chest-pain arms silent.
-- **CD-01** declares the seven chest-pain slots.
+- **CD-01** declares the seven chest-pain slots, and (INT-525, GitHub #891)
+  ``value.proxy_unasked_inbox_item``: a proxy session that leaves the seven
+  unasked raises a CD-08 item of kind ``proxy_chest_pain_screen_unasked``,
+  unless the subject is known to be outside the rules' adult age band.
 - **CD-08** routes the item to the booked clinic's inbox (``clinic_inbox``) and
   leaves its SLA, out-of-hours cover and escalation ``draft_needs_source``.
 
@@ -21,7 +24,10 @@ nothing else:
 2. The arms trigger: UNCLEAR after the follow-up was asked → raised; near
    misses: the same UNCLEAR before its follow-up, a slot resolved by its
    follow-up, a slot still pending, and an UNCLEAR slot CD-04 does not name.
-3. Every way a decision could ask for something this build does not do is
+3. The proxy trigger: the screen skipped and the seven slots unasked →
+   raised for an adult or unknown age; near misses: a subject known to be
+   outside the adult band, a self session, and a screen that was asked.
+4. Every way a decision could ask for something this build does not do is
    refused when the rules are built.
 """
 
@@ -45,6 +51,7 @@ from protocols.clinic_items import (
     ClinicItemError,
     ClinicItemKind,
     ClinicItemRules,
+    SubjectAge,
     clinic_item_rules,
     load_clinic_item_rules,
 )
@@ -54,7 +61,9 @@ from protocols.validator import PLACEHOLDER_SIGNOFF_RE
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTER = REPO_ROOT / "packages" / "protocols" / "decisions"
 
+PRESENT = "chest_pain.present"
 CHARACTER = "chest_pain.character"
+SUBJECT = "identity_check.subject_role"
 RADIATION = "chest_pain.radiation"
 ONSET = "chest_pain.onset_at"
 
@@ -89,6 +98,7 @@ def test_the_three_decisions_are_the_ones_this_build_reads() -> None:
     )
     rules = _rules()
     assert rules.arms.decision_ids == ("CD-04", "CD-08")
+    assert rules.proxy.decision_ids == ("CD-01", "CD-08")
     assert rules.channel == CLINIC_INBOX_CHANNEL == "clinic_inbox"
 
 
@@ -100,6 +110,36 @@ def test_the_kind_is_the_one_cd04_names_and_cd08_routes() -> None:
     assert rules.arms.kind.value == arms["kind"]
     assert {kind.value for kind in ClinicItemKind} <= set(routed)
     assert arms["decision_ref"] == "CD-08"
+
+
+def test_the_proxy_kind_is_the_one_cd01_names_and_cd08_routes() -> None:
+    routed = _raw("CD-08")["value"]["applies_to"]
+    proxy = _raw("CD-01")["value"]["proxy_unasked_inbox_item"]
+    rules = _rules()
+    assert rules.proxy.kind is ClinicItemKind.PROXY_CHEST_PAIN_SCREEN_UNASKED
+    assert rules.proxy.kind.value == proxy["kind"] and proxy["kind"] in routed
+    assert proxy["decision_ref"] == "CD-08"
+    assert rules.proxy.slots == _seven()
+
+
+def test_the_screen_is_cd01s_one_slot_asked_of_every_session() -> None:
+    """CD-01: chest_pain.present is asked of every session; the other six open
+    on its yes. The screen is the one slot with no ask_if, read, not written."""
+    sections = _raw("CD-01")["value"]["sections"]
+    ungated = [
+        f"{section}.{slot}"
+        for section, slots in sections.items()
+        for slot, spec in slots.items()
+        if spec["ask_if"] is None
+    ]
+    assert ungated == [PRESENT]
+    assert _rules().proxy.screen == PRESENT
+
+
+def test_cd01_names_the_subject_role_reading_the_proxy_item_rests_on() -> None:
+    proxy = _rules().proxy
+    assert proxy.names_reading(SUBJECT) is True
+    assert proxy.names_reading("identity_check.proxy_reported") is False  # near miss
 
 
 def test_the_arms_slots_are_cd04s_and_every_one_is_cd01s() -> None:
@@ -136,7 +176,7 @@ def test_cd08s_sla_and_escalation_are_still_open_for_the_d18_lane() -> None:
 
 def test_the_module_names_no_slot_of_the_decisions() -> None:
     source = inspect.getsource(clinic_items)
-    for ref in _seven():
+    for ref in (*_seven(), SUBJECT):
         assert ref not in source
 
 
@@ -144,7 +184,7 @@ def test_the_rules_carry_no_level_priority_or_register() -> None:
     """Invariant 1: a clinic item is not a triage outcome. The rules have no
     field a queue could read as a level, a register or a priority."""
     rules = _rules()
-    for part in (rules, rules.arms):
+    for part in (rules, rules.arms, rules.proxy):
         names = set(vars(part))
         assert not names & {"level", "priority", "register", "location", "triage_update"}
 
@@ -206,7 +246,39 @@ def test_near_miss_an_unclear_slot_cd04_does_not_name_is_not_unresolved() -> Non
     assert _rules().arms.unresolved(states, {"hpi.onset_date": 1}) == ()
 
 
-# --- 3 · a decision outside this build is refused -------------------------------------------
+# --- 3 · the proxy trigger ------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("age", [SubjectAge.IN_ADULT_BAND, SubjectAge.UNKNOWN])
+def test_a_skipped_screen_with_the_seven_unasked_raises_for_an_adult_or_unknown_age(
+    age: SubjectAge,
+) -> None:
+    assert _rules().proxy.raised(screen_skipped=True, slots_unasked=True, subject_age=age)
+
+
+def test_near_miss_a_subject_known_outside_the_adult_band_raises_nothing() -> None:
+    """CD-01 not_raised_when: neither chest-pain rule applies to a child."""
+    proxy = _rules().proxy
+    assert not proxy.raised(
+        screen_skipped=True, slots_unasked=True, subject_age=SubjectAge.OUTSIDE_ADULT_BAND
+    )
+
+
+def test_near_miss_a_self_session_raises_nothing() -> None:
+    proxy = _rules().proxy
+    assert not proxy.raised(
+        screen_skipped=False, slots_unasked=True, subject_age=SubjectAge.UNKNOWN
+    )
+
+
+def test_near_miss_a_screen_that_was_asked_raises_nothing() -> None:
+    proxy = _rules().proxy
+    assert not proxy.raised(
+        screen_skipped=True, slots_unasked=False, subject_age=SubjectAge.UNKNOWN
+    )
+
+
+# --- 4 · a decision outside this build is refused -------------------------------------------
 
 
 _IDS = {"arms": "CD-04", "chest_pain": "CD-01", "routing": "CD-08"}
@@ -250,6 +322,16 @@ def _drop(path: tuple[str, ...]) -> Callable[[dict[str, Any]], None]:
 
 
 ARMS = ("unresolved_after_follow_up",)
+PROXY = ("proxy_unasked_inbox_item",)
+
+
+def _ungate_character(value: dict[str, Any]) -> None:
+    value["sections"]["chest_pain"]["character"]["ask_if"] = None
+
+
+def _gate_every_slot(value: dict[str, Any]) -> None:
+    value["sections"]["chest_pain"]["present"]["ask_if"] = "x == true"
+
 
 REFUSALS = [
     pytest.param("arms", _set((*ARMS, "kind"), "chest_pain_unclear"), id="arms-kind-renamed"),
@@ -266,6 +348,13 @@ REFUSALS = [
     pytest.param("arms", _set((*ARMS, "applies_to"), ["hpi.onset_date"]), id="arms-not-cd01"),
     pytest.param("chest_pain", _set(("sections",), {}), id="no-chest-pain-slots"),
     pytest.param("chest_pain", _set(("sections", "trauma"), {}), id="a-section-without-slots"),
+    pytest.param("chest_pain", _set((*PROXY, "kind"), "proxy_unasked"), id="proxy-kind-renamed"),
+    pytest.param("chest_pain", _set((*PROXY, "decision_ref"), "CD-03"), id="proxy-elsewhere"),
+    pytest.param("chest_pain", _set((*PROXY, "pinned_to_note"), False), id="proxy-not-pinned"),
+    pytest.param("chest_pain", _set((*PROXY, "raised_when"), ""), id="proxy-no-condition"),
+    pytest.param("chest_pain", _drop(PROXY), id="proxy-no-item"),
+    pytest.param("chest_pain", _ungate_character, id="proxy-two-screens"),
+    pytest.param("chest_pain", _gate_every_slot, id="proxy-no-screen"),
     pytest.param("routing", _set(("applies_to",), ["yellow_review_candidate"]), id="kind-unrouted"),
     pytest.param("routing", _set(("channel",), "acil_triage_desk"), id="routing-not-the-inbox"),
     pytest.param("routing", _drop(("item_kind_notes",)), id="routing-no-kind-notes"),

@@ -1,5 +1,27 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T12:00:00Z · INT-525 · done (PR opened; stacked on #931 INT-547)
+- Goal: a proxy session's subject-role answer retires the chest-pain screen through CD-01's stop-gap `skip_if`. The seven chest-pain slots then stay unasked and neither chest-pain RED rule can fire. CD-01/CD-08 decide the item `proxy_chest_pain_screen_unasked`, and nothing raised it.
+- Plan:
+  - Read `ProxyScreenRule` from CD-01: the kind, the seven slots, the screen, and the band rule.
+  - Have the watch parse the screen's own `skip_if` and refuse one that reads a slot CD-01 does not name.
+  - Raise the item once when the `skip_if` reads TRUE and the seven are unasked, through INT-547's route.
+  - Age is unknown in the runtime, which CD-01 raises for.
+  - The note pin moved to INT-548 (#928), per the orchestrator.
+- Tests added:
+  - protocols +15 (56);
+  - platform +3 (22);
+  - admin +1 (3);
+  - voice +8 (53): the proxy item once on both profiles, near misses for a self session and an unanswered subject role, the wiring refusal, and a screen with nothing to skip.
+  - RED: stage 1, missing types (2 errors, 2 failed); stage 2, on INT-547's watch a proxy session raised nothing (4 failed).
+  - GREEN: below.
+- Result (docs/evidence/INT-525.md): `make safety`, the protocols lane and runtime-sim on both profiles with parity, recorded there.
+- Invariants touched and still passing: 1, 4, 6, 9, 13, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-525 row (done, scope change commented) and INT-548 row (todo, `blocked:no-live-note`) added; the three pins go from 365 to 367; files/11 regenerated.
+- Blocked on: nothing for this row. When #833 lands, `NOT_ASKED_PROXY` joins `_UNASKED` (one line).
+- Residual: a screen answered before the subject role binds stays answered (an engine-ordering question, recorded in evidence).
+
 ### 2026-10-17T10:00:00Z · INT-547 · done (PR opened; split from INT-543 F3, #917)
 - Goal: CD-04 (active, verified) raises a CD-08 clinic-inbox item, `chest_pain_arms_unresolved`, when a CD-01 chest-pain slot is still UNCLEAR after its follow-up was asked once. Nothing built it, so the golden `hedge/c2-karakter-belirsiz` ended GREEN with both arms silent and the clinic never told (INT-540 clinical review F3).
 - Plan:

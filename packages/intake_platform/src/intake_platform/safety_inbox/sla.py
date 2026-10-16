@@ -25,7 +25,8 @@ one, and a value that is not a positive duration is refused at construction —
 there is no state in which a tenant has no SLA and therefore never pages.
 
 **A CD-08 clinic item has no SLA here, by decision** (INT-547). The
-clinician-only items the clinical decisions raise (CD-04's, first) are not
+clinician-only items the clinical decisions raise (CD-04's, and CD-01's from
+INT-525) are not
 REDs, so files/02 §8.2's RED clock is not theirs, and CD-08 leaves their
 acknowledgement SLA,
 out-of-hours cover and escalation ``draft_needs_source`` (the invariant-17

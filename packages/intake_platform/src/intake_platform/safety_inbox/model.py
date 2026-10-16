@@ -27,10 +27,12 @@ kinds and instants. So that is the whole field set:
   It is the one record of the RED location axis (ids and the kind only), and
   it does not index the visit — files/02 §2b reads a visit's REDs, and this is
   not one.
-- **Clinician-only clinic items, which are not REDs** (INT-547). CD-08
-  routes the items the clinical decisions raise to the booked clinic's inbox;
-  ``chest_pain_arms_unresolved`` is CD-04's (a chest-pain slot still UNCLEAR
-  after its follow-up). An item entry names the item by its own reference,
+- **Clinician-only clinic items, which are not REDs** (INT-547, INT-525).
+  CD-08 routes the items the clinical decisions raise to the booked clinic's
+  inbox: ``chest_pain_arms_unresolved`` is CD-04's (a chest-pain slot still
+  UNCLEAR after its follow-up), and ``proxy_chest_pain_screen_unasked`` is
+  CD-01's (a proxy session left the chest-pain screen unasked). An item entry
+  names the item by its own reference,
   which the session derives from itself and the kind, so an item is one entry
   per session however often it is raised. The rule ids are the chest-pain
   rules the item concerns, never a fired RED. No item kind carries a register
@@ -151,6 +153,8 @@ class EntryKind(enum.StrEnum):
     RED_ON_SITE = "red_on_site"
     #: INT-547 (CD-04, CD-08): a chest-pain slot still UNCLEAR after its follow-up.
     CHEST_PAIN_ARMS_UNRESOLVED = "chest_pain_arms_unresolved"
+    #: INT-525 (CD-01, CD-08): a proxy session left the chest-pain screen unasked.
+    PROXY_CHEST_PAIN_SCREEN_UNASKED = "proxy_chest_pain_screen_unasked"
 
     @property
     def is_clinic_item(self) -> bool:
@@ -158,8 +162,10 @@ class EntryKind(enum.StrEnum):
         return self in CLINIC_ITEM_KINDS
 
 
-#: The CD-08 clinic items (INT-547). Never a RED.
-CLINIC_ITEM_KINDS: Final = frozenset({EntryKind.CHEST_PAIN_ARMS_UNRESOLVED})
+#: The CD-08 clinic items (INT-547, INT-525). Never a RED.
+CLINIC_ITEM_KINDS: Final = frozenset(
+    {EntryKind.CHEST_PAIN_ARMS_UNRESOLVED, EntryKind.PROXY_CHEST_PAIN_SCREEN_UNASKED}
+)
 
 
 class VisitTransition(enum.StrEnum):

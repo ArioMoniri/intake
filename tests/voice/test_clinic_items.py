@@ -1,25 +1,31 @@
-"""INT-547 — the clinic is told when chest-pain arms stay unresolved.
+"""INT-547 and INT-525 — the clinic is told when chest-pain arms stay unresolved or go unasked.
 
-GitHub #927, split from #917 finding F3. Verified decisions already decide a clinician-only
-clinic-inbox item, and nothing raised it in a live session:
+GitHub #927 (split from #917 finding F3) and #891. Verified decisions already
+decide two clinician-only clinic-inbox items, and nothing raised either in a
+live session:
 
 - **CD-04** ``unresolved_after_follow_up``: a CD-01 chest-pain slot still
   UNCLEAR after its ``follow_up_tr`` has been asked once raises a CD-08 item,
   kind ``chest_pain_arms_unresolved`` — under three-valued logic it can leave
   both chest-pain arms silent, so the session can end GREEN on a pain nobody
   could characterise (the golden ``hedge/c2-karakter-belirsiz``).
+- **CD-01** ``proxy_unasked_inbox_item`` (INT-525): a proxy session (the
+  subject-role answer 'yakınım adına', which today retires the chest-pain
+  screen through CD-01's stop-gap ``skip_if``) leaves the seven chest-pain
+  slots unasked, and raises a CD-08 item, kind ``proxy_chest_pain_screen_unasked``.
 
 What this suite holds, on both profiles, over the committed ``base.intake`` and
 the committed active ``base.life_threat`` rules:
 
-1. The item is raised exactly when its decision says, at most once per
+1. Each item is raised exactly when its decision says, at most once per
    session, ids and closed kinds only (invariant 6), through the clinic route
    the RED already uses (the Safety inbox, INT-406/INT-475), audited
    (invariant 4).
 2. Near misses: a slot resolved by its follow-up, a hedge whose follow-up is
    not yet spent, an anchor closed before its follow-up was ever asked
-   (rounds 1 and 2 of CD-04; round 3 is pending on INT-519), and an UNCLEAR
-   slot CD-04 does not name.
+   (rounds 1 and 2 of CD-04; round 3 is pending on INT-519), an UNCLEAR slot
+   CD-04 does not name, a self session, and a subject-role question not yet
+   answered.
 3. The item is not a RED: it never carries a priority, never changes the Work's
    determination and never seals the queue (invariants 1 and 9). A route that
    fails costs the Work nothing, pages, and the item lands on a later Work.
@@ -70,7 +76,7 @@ from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.safety_inbox import ClinicItemNotifier
 from intake_voice_runtime.talker.preemption import Priority
 from prometheus_client import REGISTRY
-from protocols.clinic_items import ClinicItemKind, load_clinic_item_rules
+from protocols.clinic_items import ClinicItemKind, SubjectAge, load_clinic_item_rules
 from protocols.triage import evaluate_triage
 from pydantic import ValidationError
 from red_harness import RecordingClinicNotifier, RecordingDataChannel
@@ -91,6 +97,7 @@ CHARACTER = int522.CHARACTER
 RADIATION = int522.RADIATION
 ONSET = int522.ONSET
 ARMS = ClinicItemKind.CHEST_PAIN_ARMS_UNRESOLVED
+PROXY = ClinicItemKind.PROXY_CHEST_PAIN_SCREEN_UNASKED
 CHEST_RULES = (K2, SARI)
 
 #: What the patient says, synthetic. The model double flags the hedges (the
@@ -99,11 +106,13 @@ HEDGE = "Bilmiyorum."
 STILL_HEDGED = "Hatırlamıyorum ki."
 LAST_HEDGE = "Gerçekten bilemiyorum."
 SAID_BASKI = "Daha çok bir baskı gibi."
+SAID_PROXY = "Annem adına konuşuyorum."
+UNFLAGGED_SUBJECT = "Hı hı."
 FREE_DATE = "hpi.onset_date"
 
 
 def _seven() -> tuple[str, ...]:
-    return tuple(sorted(load_clinic_item_rules().arms.slots))
+    return tuple(sorted(load_clinic_item_rules().proxy.slots))
 
 
 def _model(
@@ -117,6 +126,8 @@ def _model(
         STILL_HEDGED: {},
         LAST_HEDGE: {},
         SAID_BASKI: {CHARACTER: "baskı"},
+        SAID_PROXY: {SUBJECT: "yakınım adına"},
+        UNFLAGGED_SUBJECT: {},
     }
     lines.update(extra or {})
     return int522._model(character, "yok", extra=lines, clarify=clarify)
@@ -209,6 +220,7 @@ def test_an_item_carries_ids_and_closed_kinds_and_nothing_a_queue_reads_as_prior
 def test_the_item_id_is_derived_from_the_session_and_the_kind() -> None:
     first = clinic_item_id(int518.SESSION, ARMS)
     assert first == clinic_item_id(int518.SESSION, ARMS)
+    assert first != clinic_item_id(int518.SESSION, PROXY)
     assert first != clinic_item_id("22222222-2222-4333-8444-555555555555", ARMS)
     assert first.startswith("ci_") and len(first) == 35
 
@@ -423,6 +435,61 @@ def test_a_route_that_fails_costs_the_work_nothing_pages_and_the_item_lands_late
     assert _route(rig).calls == 2
 
 
+# --- 3 · the proxy item: CD-01 ----------------------------------------------------------------
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_a_proxy_session_that_skips_the_screen_raises_the_item_once(
+    profile: VoiceProfile,
+) -> None:
+    """'yakınım adına' retires the chest-pain screen (CD-01's stop-gap), so the
+    seven chest-pain slots stay unasked and neither chest-pain rule can fire:
+    the clinic is told the screen went unasked. The subject's age is unknown to
+    the runtime, which CD-01 raises for."""
+    rig = int522._rig(profile, _model())
+    before = _raised(PROXY)
+    int522._say(rig, SUBJECT, SAID_PROXY)
+    engine = rig.stack.engine
+    assert engine.value_of(SUBJECT) == "yakınım adına"
+    assert engine.state_of(PRESENT) is AnswerState.NOT_ASKED
+    assert PRESENT not in {step.step_id for step in engine.frontier()}
+    [item] = _route(rig).items
+    assert item == ClinicItem(
+        item_id=clinic_item_id(int518.SESSION, PROXY),
+        kind=PROXY,
+        session_id=int518.SESSION,
+        slot_refs=_seven(),
+        rule_ids=CHEST_RULES,
+        decision_ids=("CD-01", "CD-08"),
+    )
+    assert _watch(rig).subject_age is SubjectAge.UNKNOWN
+    assert _raised(PROXY) - before == 1
+    # later Works raise it again never
+    next_step = engine.frontier()[0].step_id
+    int522._say(rig, next_step, "Evet.")
+    assert len(_route(rig).items) == 1 and _route(rig).calls == 1
+    assert rig.clinic.notifications == [] and rig.stack.agent.sealed is False
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_near_miss_a_self_session_raises_nothing_and_the_screen_is_offered(
+    profile: VoiceProfile,
+) -> None:
+    rig = int522._rig(profile, _model())
+    int522._say(rig, SUBJECT, int522.SAID[SUBJECT])
+    assert rig.stack.engine.value_of(SUBJECT) == "kendim için"
+    assert PRESENT in {step.step_id for step in rig.stack.engine.frontier()}
+    assert _route(rig).items == []
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_near_miss_a_subject_role_not_yet_answered_raises_nothing(profile: VoiceProfile) -> None:
+    rig = int522._rig(profile, _model(clarify=()))
+    int522._say(rig, SUBJECT, UNFLAGGED_SUBJECT)
+    assert rig.stack.engine.state_of(SUBJECT) is AnswerState.ASKED_PENDING
+    assert _route(rig).items == []
+
+
 # --- 4 · composition --------------------------------------------------------------------------
 
 
@@ -476,6 +543,43 @@ def test_both_roots_compose_the_watch_with_the_committed_decisions() -> None:
         assert set(watch.arms) == set(_seven())
         assert watch.arms["trauma.recent"] == (SARI,)  # only the SARI arm reads it
         assert all(watch.arms[slot] == CHEST_RULES for slot in (PRESENT, CHARACTER, ONSET))
+        assert watch.proxy_rule_ids == CHEST_RULES and watch.screen_skip is not None
+
+
+def _with_screen_skip(skip_if: str | None) -> Any:
+    """The served protocol with the chest-pain screen's ``skip_if`` replaced."""
+    protocol = int521._served_protocol()
+    sections = []
+    for section in protocol.sections:
+        slots = tuple(
+            resolved.model_copy(
+                update={"slot": resolved.slot.model_copy(update={"skip_if": skip_if})}
+            )
+            if f"{section.id}.{resolved.key}" == PRESENT
+            else resolved
+            for resolved in section.slots
+        )
+        sections.append(section.model_copy(update={"slots": slots}))
+    return protocol.model_copy(update={"sections": tuple(sections)})
+
+
+def test_a_screen_skipped_on_a_reading_cd01_does_not_name_is_refused() -> None:
+    """Retiring the screen on anything but CD-01's subject-role reading would
+    raise a proxy item for a session that is not a proxy one."""
+    from intake_voice_runtime.clinical_agent.clinic_items import ClinicItemWiringError
+
+    protocol = _with_screen_skip("hpi.trajectory == 'daha kötü'")
+    with pytest.raises(ClinicItemWiringError, match=r"hpi\.trajectory"):
+        ClinicItemWatch.for_protocol(
+            protocol, route=RecordingClinicItems(), session_id=int518.SESSION
+        )
+
+
+def test_near_miss_a_screen_asked_of_every_session_has_nothing_to_skip() -> None:
+    watch = ClinicItemWatch.for_protocol(
+        _with_screen_skip(None), route=RecordingClinicItems(), session_id=int518.SESSION
+    )
+    assert watch is not None and watch.screen_skip is None
 
 
 def test_a_session_whose_served_rules_read_no_chest_pain_slot_has_no_watch() -> None:
