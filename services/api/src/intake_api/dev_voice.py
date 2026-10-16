@@ -39,10 +39,17 @@ touches.
   fetched on demand (invariant 21). An instrument item is spoken only in the
   instrument profile. The profile id and version are part of the cache key.
 - *A per-principal budget* (INT-326) on the INT-012 Redis token bucket; every
-  authenticated request costs a token, an empty bucket is 429, an unreachable
-  store is 503.
+  authenticated request that would dial a vendor costs a token, and so does
+  every refusal; a cache hit dials nothing and is free (INT-443). An empty
+  bucket is 429, an unreachable store is 503.
 - *Absent in production* (INT-326): with ``INTAKE_ENV`` prod the route is not
   mounted (``intake_api.app``) and no wiring is built, whatever the dev flags say.
+- *The synthetic host* (INT-443): outside dev the route exists only on the
+  synthetic deployment that declares its hosted clip lane, and there the
+  vendor is ElevenLabs through the allow-list, the forward proxy and the
+  OpenBao key (``intake_api.hosted_clip_lane``). A vendor failure falls back to
+  the self-hosted TTS when one is configured; the lane that spoke each clip is
+  in the ``X-Clip-Lane`` header, the cache path and ``api_clip_lane_total``.
 - *Invariant 22* (no numeral crosses into a TTS) is enforced HERE too, before
   the wire, by ``voice_clips.gateway.assert_speakable_tr`` — a patient-shaped
   answer carrying a numeral is refused before any dial.
@@ -60,6 +67,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
@@ -67,7 +76,9 @@ from typing import Final
 import redis
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
+from intake_platform.model_lanes.keys import KvBackend
 from intake_platform.security.rate_limit import RateLimitExceeded, TokenBucketLimiter
+from prometheus_client import Counter
 from protocols.dsl import clip_text_hash
 from pydantic import BaseModel, ConfigDict, Field
 from voice_clips.audio import wav_bytes
@@ -84,6 +95,7 @@ from voice_clips.gateway import (
     ElevenLabsClipGenGateway,
     TtsError,
     TtsGateway,
+    TtsUnavailableError,
     UnspeakableScriptError,
     assert_speakable_tr,
 )
@@ -93,17 +105,23 @@ from intake_api.consent_guard import dev_voice_scripted
 from intake_api.dev_voice_guard import (
     ScriptedCatalogue,
     george_budget,
+    hosted_clip_lane_declared,
     intake_env_is_prod,
     scripted_catalogue_from_env,
 )
+from intake_api.hosted_clip_lane import hosted_clip_lane
 from intake_api.settings import DEFAULT_REDIS_URL
 
 __all__ = [
+    "CLIP_LANE_TOTAL",
     "ENV_DEV_GEORGE",
     "ENV_GEORGE_CACHE_DIR",
     "GEORGE_CLIP_PATH",
     "GEORGE_VOICE_ID",
+    "LANE_ELEVENLABS",
+    "LANE_SELF_HOSTED",
     "MAX_SCRIPTED_LEN",
+    "ClipServed",
     "GeorgeClipCache",
     "GeorgeClipIn",
     "GeorgeWiring",
@@ -131,8 +149,44 @@ MAX_SCRIPTED_LEN: Final = 600
 
 _DEFAULT_CACHE_DIR: Final = ".cache/george-clips"
 
+#: The lanes a clip can come from (INT-443): the vendor's, or the self-hosted
+#: TTS it fell back to. A closed set, so it can be a header and a label.
+LANE_ELEVENLABS: Final = "elevenlabs"
+LANE_SELF_HOSTED: Final = "self_hosted"
+
+CLIP_LANE_TOTAL = Counter(
+    "api_clip_lane_total",
+    "Scripted clips served by the George route, by the lane that spoke them "
+    "(elevenlabs | self_hosted) and cache (hit | miss). No text, no principal.",
+    ["lane", "cache"],
+)
+
 
 router = APIRouter(tags=["dev-voice"])
+
+
+@dataclass(frozen=True)
+class ClipServed:
+    """One served clip: the WAV body, whether the cache had it, and the lane
+    that spoke it."""
+
+    wav: bytes
+    hit: bool
+    lane: str
+
+
+def _write_atomic(path: Path, body: bytes) -> None:
+    """Write via a sibling temporary file and a rename, so a concurrent reader
+    of the shared cache sees a whole clip or none."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, tmp = tempfile.mkstemp(dir=path.parent, prefix=".partial-")
+    try:
+        with os.fdopen(handle, "wb") as out:
+            out.write(body)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 @dataclass
@@ -146,14 +200,41 @@ class GeorgeClipCache:
     ways as two clips. The vendor is dialled AT MOST once per distinct (text,
     profile), and a retuned profile is a miss rather than a replay of the old
     tuning.
+
+    ``fallback`` (INT-443) is the self-hosted TTS a vendor failure falls back
+    to, in ``fallback_voice_id``. Its clips live under ``self_hosted/`` so the
+    lane is recorded per clip and a later request tries the vendor again
+    rather than replaying the fallback for good. A refusal is never a reason to
+    fall back: only :class:`TtsUnavailableError` is.
     """
 
     gateway: TtsGateway
     cache_dir: Path
     voice_id: str = CLIPGEN_VOICE_ID
+    lane: str = LANE_ELEVENLABS
+    fallback: TtsGateway | None = None
+    fallback_voice_id: str | None = None
 
-    def ensure(self, text_tr: str, profile: DeliveryProfile) -> tuple[bytes, bool]:
-        """Return ``(wav_body, cache_hit)``.
+    def _primary(self, text_tr: str, profile: DeliveryProfile) -> Path:
+        return self.cache_dir / profile.key / clip_text_hash(text_tr)
+
+    def has(self, text_tr: str, profile: DeliveryProfile) -> bool:
+        """The vendor's clip is cached: serving it dials nothing."""
+        return self._primary(text_tr, profile).is_file()
+
+    def _fall_back(
+        self, fallback: TtsGateway, voice_id: str, text_tr: str, profile: DeliveryProfile
+    ) -> ClipServed:
+        path = self.cache_dir / LANE_SELF_HOSTED / profile.key / clip_text_hash(text_tr)
+        if path.is_file():
+            return ClipServed(path.read_bytes(), True, LANE_SELF_HOSTED)
+        speech = fallback.synthesise(text_tr=text_tr, voice_id=voice_id, profile=profile)
+        wav = wav_bytes(speech)
+        _write_atomic(path, wav)
+        return ClipServed(wav, False, LANE_SELF_HOSTED)
+
+    def ensure(self, text_tr: str, profile: DeliveryProfile) -> ClipServed:
+        """Return the clip, whether it was cached, and the lane that spoke it.
 
         The WAV framing is the sanctioned :func:`voice_clips.audio.wav_bytes`,
         never assembled here — agent-audio encoding lives in the one module
@@ -167,15 +248,20 @@ class GeorgeClipCache:
         refusal that never echoes the key.
         """
         assert_speakable_tr(text_tr)  # invariant 22 — before the vendor, always
-        folder = self.cache_dir / profile.key
-        path = folder / clip_text_hash(text_tr)
+        path = self._primary(text_tr, profile)
         if path.is_file():
-            return path.read_bytes(), True
-        speech = self.gateway.synthesise(text_tr=text_tr, voice_id=self.voice_id, profile=profile)
+            return ClipServed(path.read_bytes(), True, self.lane)
+        try:
+            speech = self.gateway.synthesise(
+                text_tr=text_tr, voice_id=self.voice_id, profile=profile
+            )
+        except TtsUnavailableError:
+            if self.fallback is None or self.fallback_voice_id is None:
+                raise
+            return self._fall_back(self.fallback, self.fallback_voice_id, text_tr, profile)
         wav = wav_bytes(speech)
-        folder.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(wav)
-        return wav, False
+        _write_atomic(path, wav)
+        return ClipServed(wav, False, self.lane)
 
 
 @dataclass
@@ -192,8 +278,15 @@ class GeorgeWiring:
     budget: TokenBucketLimiter
 
 
-def george_wiring_from_env(redis_url: str = DEFAULT_REDIS_URL) -> GeorgeWiring | None:
-    """Build the dev George wiring, or ``None`` (fail closed).
+def george_wiring_from_env(
+    redis_url: str = DEFAULT_REDIS_URL, *, kv: Callable[[], KvBackend] | None = None
+) -> GeorgeWiring | None:
+    """Build the George wiring, or ``None`` (fail closed).
+
+    On the synthetic deployment that declares its hosted clip lane (INT-443)
+    the wiring is :func:`intake_api.hosted_clip_lane.hosted_clip_wiring`: the
+    vendor through the allow-list and the proxy, its key from OpenBao (``kv``).
+    Everywhere else it is the dev lane below.
 
     Never in production (INT-326): checked FIRST, so a prod process does not
     even read the vendor key, whatever the dev flags say. Otherwise off unless
@@ -205,6 +298,23 @@ def george_wiring_from_env(redis_url: str = DEFAULT_REDIS_URL) -> GeorgeWiring |
     """
     if intake_env_is_prod():
         return None
+    if hosted_clip_lane_declared(os.environ):
+        catalogue = scripted_catalogue_from_env()
+        if catalogue is None:
+            return None
+        lane = hosted_clip_lane(os.environ, kv=kv, admits=catalogue.admits)
+        if lane is None:
+            return None
+        return GeorgeWiring(
+            cache=GeorgeClipCache(
+                gateway=lane.primary,
+                cache_dir=lane.cache_dir,
+                fallback=lane.fallback,
+                fallback_voice_id=lane.fallback_voice_id,
+            ),
+            catalogue=catalogue,
+            budget=george_budget(redis_url),
+        )
     if os.environ.get(ENV_DEV_GEORGE) != _EXPLICIT_YES:
         return None
     base = os.environ.get(ENV_ELEVENLABS_BASE, "").strip()
@@ -258,16 +368,8 @@ def _delivery_refusal(wiring: GeorgeWiring, payload: GeorgeClipIn) -> JSONRespon
     return None
 
 
-async def _refusal(
-    wiring: GeorgeWiring, account_id: str, payload: GeorgeClipIn
-) -> JSONResponse | None:
-    """The INT-326 doors after authentication, in order; ``None`` admits.
-
-    The budget is charged FIRST, so a refused request still costs a token
-    (hammering the door with off-catalogue text is not free). No refusal
-    echoes the text (invariant 6), and none of them reaches the vendor.
-    """
-    text_tr = payload.text_tr
+async def _charge(wiring: GeorgeWiring, account_id: str) -> JSONResponse | None:
+    """Spend one token of the principal's budget; ``None`` when it was spent."""
     try:
         # sync Redis client, so the call hops off the event loop (INT-131 precedent)
         await asyncio.to_thread(wiring.budget.consume, "user", account_id)
@@ -280,6 +382,17 @@ async def _refusal(
     except redis.RedisError:
         # no budget can be checked, so none is granted (fail closed)
         return JSONResponse({"error": "george_budget_unavailable"}, status_code=503)
+    return None
+
+
+def _refusal(wiring: GeorgeWiring, payload: GeorgeClipIn) -> JSONResponse | None:
+    """The INT-326 doors after authentication, in order; ``None`` admits.
+
+    No refusal echoes the text (invariant 6), and none of them reaches the
+    vendor. The route charges the budget for every refusal (hammering the door
+    with off-catalogue text is not free) and for every cache miss.
+    """
+    text_tr = payload.text_tr
     try:
         assert_speakable_tr(text_tr)
     except UnspeakableScriptError:
@@ -303,11 +416,18 @@ async def george_clip(payload: GeorgeClipIn, request: Request, principal: Princi
         # No dev flag / no key / no catalogue — the mobile treats this as
         # "unavailable" and falls back to the self-hosted TTS (ADR-028 posture).
         return JSONResponse({"error": "george_unconfigured"}, status_code=503)
-    refusal = await _refusal(wiring, account.account_id, payload)
+    refusal = _refusal(wiring, payload)
+    profile = delivery_profile(payload.delivery_context)
+    if refusal is not None or not wiring.cache.has(payload.text_tr, profile):
+        # INT-443: a cache hit dials no vendor and costs nothing; a refusal and
+        # a miss each spend a token, charged before anything else happens
+        spent = await _charge(wiring, account.account_id)
+        if spent is not None:
+            return spent
     if refusal is not None:
         return refusal
     try:
-        wav, hit = wiring.cache.ensure(payload.text_tr, delivery_profile(payload.delivery_context))
+        served = wiring.cache.ensure(payload.text_tr, profile)
     except UnspeakableScriptError:
         # a numeral or markup reached the boundary — refuse, do not normalise
         return JSONResponse({"error": "not_speakable"}, status_code=422)
@@ -321,8 +441,10 @@ async def george_clip(payload: GeorgeClipIn, request: Request, principal: Princi
     # the allow-list is locked to exactly that grant. The mobile client reads the
     # bytes opaquely and plays them by file URI (apps/mobile georgeClip.ts), so it
     # never inspects this content type — octet-stream is both honest and inert.
+    cache = "hit" if served.hit else "miss"
+    CLIP_LANE_TOTAL.labels(lane=served.lane, cache=cache).inc()
     return Response(
-        content=wav,
+        content=served.wav,
         media_type="application/octet-stream",
-        headers={"X-George-Cache": "hit" if hit else "miss"},
+        headers={"X-George-Cache": cache, "X-Clip-Lane": served.lane},
     )

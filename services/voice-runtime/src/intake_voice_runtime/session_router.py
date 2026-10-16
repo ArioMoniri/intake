@@ -240,10 +240,12 @@ class VoiceSessionRouter:
         The close (INT-540) is queued behind the session's last answers and
         returns at once: a tense anchor still asked and unanswered is resolved
         and evaluated by the Backend pump, so it cannot outlive the session.
+        Then the Talker stops watching for a RED between turns (INT-531).
         """
         routed = self._live.pop(session_id, None)
         if routed is not None:
             routed.stack.close()
+            routed.stack.session.stop_red_watch()
 
     def live(self) -> tuple[RoutedSession, ...]:
         return tuple(self._live.values())

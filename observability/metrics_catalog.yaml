@@ -772,6 +772,38 @@ metrics:
       started on the device. Only patient-facing registers observe it: a
       DEFERRED_CLINICIAN RED has no patient-facing latency to report, and
       inventing a zero for it would flatter the p99 that pages.
+  # INT-531: the RED path's violations, counted where the path raises them. A
+  # RED the Talker's between-turn watch hands to the path has no caller for the
+  # raise to reach, so this count is how an operator sees one.
+  - name: preempt_red_violations_total
+    type: counter
+    labels: [violation]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Rules-engine REDs the path delivered with a violation, by the closed
+      RedViolation value: stop_budget (the agent's audio was not stopped
+      within 150 ms of the evaluation, including a cancel the path stopped
+      waiting for), e2e_budget, server_side_speech or script_unaddressable.
+      Emitted by intake_voice_runtime.talker.red_path when it raises
+      RedPathViolation, after the RED reached the device and the clinician.
+  # INT-531 round 2: the Talker's between-turn RED watch failing a RED.
+  - name: red_watch_failures_total
+    type: counter
+    labels: [kind]
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      Between-turn RED watch failures, by kind: `delivery` (a pushed RED's path
+      raised something other than a budget violation or a provenance refusal,
+      such as a data channel that failed), `cancelled` (the event loop cancelled
+      a delivery before it finished) or `exit` (the watch itself ended other
+      than by being cancelled; the next turn starts a new one). The first two
+      are retried and raised on the session's next turn. Emitted by
+      intake_voice_runtime.talker.session. A RED may not have reached the
+      patient, so any increase matters.
   - name: talker_tool_calls_total
     id: talker.tool_calls_total
     type: counter
@@ -1971,6 +2003,15 @@ metrics:
   # counter would let a Prometheus scrape — which is not consent-scoped and
   # which retains what it sees — reconstruct one clinician's reading of one
   # patient's note (inv. 6).
+  - name: api_clip_lane_total
+    type: counter
+    labels: [lane, cache]
+    owner: api
+    unit: "count"
+    description: >-
+      Scripted clips the George route served (INT-443), by the lane that spoke
+      them (elevenlabs, or self_hosted after a vendor failure) and by cache
+      (hit or miss). Emitted by intake_api.dev_voice; no text, no principal.
   - name: doctor_link_events_total
     type: counter
     labels: [event]

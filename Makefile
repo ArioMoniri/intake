@@ -258,6 +258,17 @@ backlog-sync:
 backlog-render:
 	uv run python scripts/backlog/render_backlog.py
 
+# INT-452: the only roadmap step that calls GitHub. gh reads open PRs, merged PR
+# titles and open issues; git measures which rows each open PR's branch adds;
+# the result is docs/backlog/github_snapshot.json, and the row floor only rises.
+# Then files/11 and the live status of files/05_ROADMAP.md are re-rendered.
+# CI never runs this: tests/backlog/test_roadmap.py renders from the commit.
+.PHONY: roadmap-snapshot
+roadmap-snapshot:
+	git fetch origin --quiet
+	uv run python scripts/backlog/roadmap_snapshot.py
+	uv run python scripts/backlog/render_backlog.py
+
 # INT-246: "is voice up?" answered in one command from THIS machine, instead
 # of by reading app logs. Probes every lane the dev voice profile uses (ASR,
 # extract, the whole TTS ladder) on every host in apps/mobile/app.json, one
@@ -456,6 +467,9 @@ siem-down:
 # INT-018: the forward egress proxy. `egress-conf` re-renders squid.conf from
 # infra/security/egress-allowlist.yaml — the allow-list is the only file anyone
 # edits, and tests/infra/test_egress_proxy.py fails when the render is stale.
+# INT-442: it renders two proxies from that one list — the build proxy
+# (infra/security/squid/squid.conf, tooling rows) and the synthetic AWS host's
+# proxy (infra/staging/egress/squid.conf, hosted_model_inference rows only).
 .PHONY: egress egress-down egress-conf egress-conf-check
 
 egress-conf:

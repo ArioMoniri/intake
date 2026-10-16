@@ -978,6 +978,7 @@ source = { editable = "packages/hosted-lanes" }
 dependencies = [
     { name = "httpx" },
     { name = "intake-platform" },
+    { name = "intake-voice-clips" },
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
@@ -986,6 +987,7 @@ dependencies = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "intake-platform", editable = "packages/intake_platform" },
+    { name = "intake-voice-clips", editable = "packages/voice-clips" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]
