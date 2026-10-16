@@ -131,10 +131,19 @@ def test_an_image_without_the_package_gets_no_hosted_lanes(monkeypatch: pytest.M
 
 
 def test_near_miss_the_synthetic_image_loads_the_provider_unlisted() -> None:
+    # without the provider's row (the owner's protected change, INT-442)
+    shipped = load_allowlist(ALLOWLIST)
+    without = shipped.model_copy(
+        update={
+            "tiers": shipped.tiers.model_copy(
+                update={"dev": [e for e in shipped.tiers.dev if e.name != "openai-api"]}
+            )
+        }
+    )
     lanes = load_hosted_lanes(
         {"INTAKE_DEPLOYMENT_DATA_CLASS": "synthetic"},
         keys=None,
-        allowlist=load_allowlist(ALLOWLIST),
+        allowlist=without,
         root=REPO,
     )
     info = lanes.info(ProviderId.OPENAI)

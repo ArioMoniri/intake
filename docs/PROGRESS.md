@@ -501,6 +501,21 @@
 - Blocked on: nothing for the ADR, which the owner accepted on 3 Oct 2026. The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8 (INT-439).
 - Next: five split rows, with ids to be allocated by the coordinator: the admin Council section; production composition; the Loop-2 `yield_table` proposal; the document rules on `parse_document`; the red-flag lexicon, speaker attribution and the backchannel lexicon. Evidence-gated studies are listed in the evidence file.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T22:48:00Z · INT-442 · awaiting-human (PR open, stacked on #751; owner egress commit + deploy pending)
+- Goal: acceptance verbatim (GitHub #752): *"A forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts. INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment."* and *"Tests prove an unlisted host is refused. Deployed and smoked."*
+- Plan: render a second squid config from the one allow-list (hosted_model_inference rows only) and run it as `egress-proxy` on the staging compose, the API's one route out. Read the variable through a guard that refuses it outside the synthetic deployment, and probe it live from the API container on every deploy.
+- Tests added: `tests/infra/test_staging_egress.py` (40). It covers topology; the variable's single setter; the boot refusal outside synthetic, with a near miss; the config; host-for-host parity with the in-process guard; the renderer on a fake list with hosted rows; and the probe's five outcomes.
+  - RED: 32 failed and 6 errors against the base renderer and compose.
+  - GREEN: 284 targeted, then 723 over the egress, platform, admin and voice lane suites, and 482 observability.
+- Result: docs/evidence/INT-442.md. Pins 329 → 330; files/11 regenerated.
+- Invariants touched and still passing: 14 (egress allow-list, digest-pinned image), 19 (no vendor on the PHI path: the proxy and its variable exist only in the synthetic deployment), 6 (the CONNECT log is host:port only).
+- Decisions / ADRs / `00_STATE.md` rows: none. The vendor rows are the owner's protected change (07 §F rule 2), prepared unstaged.
+- Blocked on:
+  - the owner's commit of `infra/security/egress-allowlist.yaml` and the three files that move with it. Until then the proxy admits nothing.
+  - the deploy. The classifier refused my upload of the corrected artefact. The host still runs `1785dd58`, and `/opt/intake` needs restoring from the earliest `/opt/intake.prev-*`.
+- Next: INT-443 (ElevenLabs hosted TTS), stacked on this.
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.

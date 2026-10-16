@@ -7078,3 +7078,25 @@
     - "the laptop prints only created (or the refusal reason) and the one aws command that reveals the temporary password once and deletes the parameter; docs/runbooks/second-admin.md points to the command and keeps the manual steps as fallback; tests drive both scripts end to end with fake aws, docker and openssl"
   tests: [tests/infra/test_staff_user.py, tests/infra/test_staff_user_host.py, tests/admin/test_second_admin_runbook.py]
   sec_row: "platform"
+- id: INT-442
+  epic: E05-voice
+  phase: P1
+  title: "Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors)"
+  # GitHub #752. Split from INT-428 (#751, ADR-035), its split row 6. The
+  # synthetic host's API networks are internal, so a hosted lane had no route
+  # out. One allow-list, two proxies: the synthetic proxy renders only the
+  # hosted_model_inference rows, the build proxy never does. The vendor rows
+  # themselves are the owner's protected change (07 §F rule 2), prepared
+  # unstaged for the owner to commit.
+  depends_on: [INT-428, INT-018]
+  labels: [area:infra, risk:security]
+  # awaiting-human: the vendor rows are the owner's protected commit, and the
+  # deploy to the synthetic host is the owner's/coordinator's step (the agent's
+  # deploy was refused by the permission classifier; docs/evidence/INT-442.md).
+  status: awaiting-human
+  evidence: docs/evidence/INT-442.md
+  acceptance:
+    - "a forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts (the hosted_model_inference rows, rendered from infra/security/egress-allowlist.yaml); INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment, and a process that is not synthetic refuses to boot with it"
+    - "tests prove an unlisted host is refused (the rendered ACLs and the in-process guard agree host for host); deployed and smoked: smoke.sh proves no direct route, an unlisted host and the metadata address refused by the proxy, and every hosted row tunnelled"
+  tests: [tests/infra/test_staging_egress.py, tests/infra/test_egress_proxy.py, tests/infra/test_staging_compose.py]
+  sec_row: "platform"

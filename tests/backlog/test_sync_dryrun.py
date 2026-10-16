@@ -130,7 +130,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-521 (the live session evaluates triage on every bound answer, GitHub #887)
     # + INT-522 (the onset binds from its closed-choice answer by CD-05, GitHub #888)
     # + INT-538 (one laptop command creates a staff user, GitHub #906)
-    assert len(actions) == 360
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428, GitHub #752)
+    assert len(actions) == 361
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

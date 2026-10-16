@@ -38,6 +38,12 @@ The alert for every action below is `admin_model_lane_changes_total`, labelled b
 - **The provider's egress row**
   - Lives in `infra/security/egress-allowlist.yaml`, which is hook-protected.
   - Without the row, every hosted lane reads `hosted_egress_not_listed`.
+- **The synthetic host's route out** (INT-442)
+  - The API's networks are all internal. Its one way out is the `egress-proxy` service in `infra/staging/compose.yaml`, a default-deny squid named by `INTAKE_EGRESS_PROXY_URL=http://egress-proxy:3128`.
+  - The proxy's config, `infra/staging/egress/squid.conf`, is rendered from the allow-list's `hosted_model_inference` rows and nothing else (`make egress-conf`). With no such row it admits nothing. The build proxy (`infra/security/squid/squid.conf`) never admits those rows.
+  - The variable belongs to the synthetic deployment alone. The API refuses to boot when it is set anywhere else (`EgressProxyRefused`), and nothing but the staging compose sets it.
+  - Every deploy proves it live: `smoke.sh` step 6 runs `infra/staging/egress_probe.py proxy` in the api container. It checks that there is no direct route, that an unlisted host and the metadata address get the proxy's 403, and that every hosted row is tunnelled.
+  - Adding a provider is one protected change: the allow-list row, the removal of its purpose from the "awaiting the owner" test set, the regenerated `infra/staging/egress/squid.conf`, and the INT-001 vendor-gate exception for exactly those two files and that host.
 
 ## Stopping hosted lanes (narrowing: one key)
 

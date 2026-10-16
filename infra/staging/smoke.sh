@@ -166,6 +166,15 @@ else
   fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
 fi
 
+# 8. INT-442: the API's egress, from the API's own network position — no
+#    direct route out, an unlisted host and the metadata address refused by
+#    the forward proxy, and every hosted-model allow-list row tunnelled
+if out=$(compose exec -T api python infra/staging/egress_probe.py proxy 2>&1); then
+  pass "$(printf '%s' "$out" | tr '\n' ';')"
+else
+  fail "$(printf '%s' "$out" | tr '\n' ';')"
+fi
+
 if ((failures > 0)); then
   die "smoke: ${failures} check(s) failed"
 fi

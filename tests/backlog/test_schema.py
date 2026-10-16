@@ -205,7 +205,9 @@ def test_ids_unique_and_well_formed() -> None:
     # CD-05, so the K2 tense anchor is known live; from INT-518, GitHub #888).
     # + INT-538 (one laptop command creates a staff user on the synthetic
     # host; owner order, GitHub #906).
-    assert len(ids) == 360
+    # + INT-442 (the synthetic AWS host's egress forward proxy, split from
+    # INT-428, GitHub #752).
+    assert len(ids) == 361
     import re
 
     for i in ids:

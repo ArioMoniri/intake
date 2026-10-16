@@ -364,7 +364,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # a stated reason.
     # + INT-538 (one laptop command creates a staff user on the synthetic
     # host, owner order, GitHub #906); grows only with a stated reason.
-    assert len(ids) == 360, f"expected 175 blueprint + 185 added issues, got {len(ids)}"
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
+    # GitHub #752); grows only with a stated reason.
+    assert len(ids) == 361, f"expected 175 blueprint + 186 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
