@@ -13,6 +13,9 @@ dependencies = [
     "intake-protocols",
     # The clinical-schemas base models (FrozenModel, Sha256, Ref).
     "intake-clinical-schemas",
+    # INT-428 (ADR-035): the routed TTS gateway reads the model-lane router.
+    # One-way: intake-platform never imports voice_clips.
+    "intake-platform",
     # The TTS gateway's HTTP adapter. CI never dials it: the recorded-response
     # adapter is the CI and no-GPU dev path (ADR-006).
     "httpx>=0.27",

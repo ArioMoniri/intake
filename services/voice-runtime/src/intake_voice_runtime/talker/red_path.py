@@ -39,7 +39,17 @@ and a missing row raises.
 files/02 §8.2: *"Barge-in stop ≤ 150 ms. RED preemption ≤ 300 ms from rule
 evaluation."* Raising at the first breach would abandon the patient to police
 a number, so the path always completes and then raises
-:class:`RedPathViolation` carrying the whole outcome.
+:class:`RedPathViolation` carrying the whole outcome, and counts each
+violation on ``preempt_red_violations_total`` (INT-531), because a RED that
+reached the path between turns has no caller for the raise to reach.
+
+**A slow media plane cannot hold the trigger** (INT-531; INT-520 item 1). The
+cancel runs as its own task and the path waits for it only until
+:data:`STOP_BUDGET_MS` after the evaluation, on the session clock. Past that
+the trigger goes, the stop is a violation, and the cancel keeps running behind
+it until the agent's audio has stopped. A live SFU tearing a room down over
+HTTP is the case this exists for: it can take seconds, and the device's
+pre-positioned script does not need it to finish.
 
 What is deliberately **not** here: the Work queue's RED seal, which
 files/12 §7.1 places on Layer B and INT-092 built — a second implementation
@@ -49,6 +59,7 @@ has no backlog issue and is recorded in docs/evidence/INT-093.md.
 
 from __future__ import annotations
 
+import asyncio
 import enum
 import logging
 import warnings
@@ -58,14 +69,17 @@ from typing import Annotated, Literal, Protocol, runtime_checkable
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult, TriageLevel
+from intake_platform.safety_inbox.metrics import CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL
+from protocols.generic_red import GENERIC_RED_SCRIPT_IDS
 from pydantic import Field, StringConstraints
 
-from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS
+from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS, PREEMPT_RED_VIOLATIONS_TOTAL
 from intake_voice_runtime.ports import Clock
 from intake_voice_runtime.talker.preemption import BackendResult, Priority
 
 __all__ = [
     "E2E_BUDGET_MS",
+    "GENERIC_RED_SCRIPT_IDS",
     "ID_SHAPE",
     "REGISTER_DELIVERY",
     "STOP_BUDGET_MS",
@@ -197,6 +211,14 @@ class RedNotification(FrozenModel):
         description="False for DEFERRED_CLINICIAN, whose whole definition is "
         "that the patient surface does not change (files/02 §5.3)."
     )
+    silent_generic: bool = Field(
+        default=False,
+        description="CD-24 delivery floor (INT-453): the device was given the generic "
+        "escalation in the SILENT register, so a time-critical RED may have been "
+        "delivered silently with no rule-specific script. It is set for every SILENT "
+        "generic, a superset of CD-24's 'SILENT chosen over a co-fired ALERT or CALM', "
+        "because the result carries no per-rule register.",
+    )
 
 
 # --- the register table --------------------------------------------------------------
@@ -307,6 +329,15 @@ class MappingRedScriptIndex:
         return self.entries.get((rule_id, location))
 
 
+# The generic escalation (INT-453; CD-24): what the device shows when a RED's
+# own script cannot be addressed. It uses the result's own location, so ON_SITE
+# still carries no 112, and the result's own register (CD-24
+# register_policy carry_engine_register), never a fixed one. Ids and copy live
+# in ``protocols.generic_red``. The SILENT copy and the register for mixed
+# registers stay draft_needs_source in CD-24. The floor is: intake stops, and
+# the clinic notification marks a SILENT generic (RedNotification.silent_generic).
+
+
 # --- the outcome ---------------------------------------------------------------------------
 
 
@@ -326,6 +357,13 @@ class RedPreemptionOutcome(FrozenModel):
         default=False,
         description="The cancel could not run. Nothing was playing to stop — the "
         "case files/03 §4.6 invariant 4 exists for, not a failure of the RED.",
+    )
+    stop_overran: bool = Field(
+        default=False,
+        description="The cancel had not returned when the stop budget ran out, so "
+        "the trigger went without waiting for it (INT-531). ``stopped_at_ms`` is then "
+        "unset; the cancel keeps running behind the trigger, and the stop is a "
+        "STOP_BUDGET violation.",
     )
     violations: tuple[RedViolation, ...] = Field(default=())
 
@@ -353,7 +391,10 @@ class RedPreemption:
     route runs **first**. §4.3 lists it last, but its port has no awaitable
     member, so running it first costs the stop nothing and buys the one
     guarantee worth buying — a RED reaches a human even if the media plane,
-    the data channel and both budgets fail in the same instant.
+    the data channel and both budgets fail in the same instant. The converse
+    holds too (INT-531): a route that raises is logged by work id and counted,
+    the outcome records that the clinician was not told, and the stop and the
+    trigger still go.
     """
 
     canceller: PlaybackCanceller
@@ -362,6 +403,9 @@ class RedPreemption:
     scripts: RedScriptIndex
     clock: Clock
     _delivered: dict[str, RedPreemptionOutcome] = field(default_factory=dict, init=False)
+    #: Cancels still running after their RED triggered without them (INT-531),
+    #: held so the event loop cannot drop a task the agent's audio depends on.
+    _stopping: set[asyncio.Task[bool]] = field(default_factory=set, init=False, repr=False)
 
     async def trigger(
         self, result: BackendResult, *, evaluated_at_ms: float
@@ -372,6 +416,12 @@ class RedPreemption:
         triage = _rules_engine_red(result)
         recorded = self._delivered.get(result.work_id)
         if recorded is not None:
+            if RedViolation.SCRIPT_UNADDRESSABLE in recorded.violations:
+                # A replay of a RED the device could only show generically
+                # re-sends the device trigger (INT-453): the pack may hold the
+                # script now, and either way the patient is shown a RED again.
+                # The intake is already stopped and the clinician already told.
+                return await self._redeliver(recorded, triage)
             # files/03 §4.6 invariant 6 and files/12 §7.5: a re-derived RED
             # carries the same content-addressed work_id, so replay is a no-op.
             return recorded
@@ -381,16 +431,28 @@ class RedPreemption:
         delivery = REGISTER_DELIVERY[register]
         rule_ids = tuple(fire.id for fire in triage.rules)
 
-        self.clinic.notify(
-            RedNotification(
-                work_id=result.work_id,
-                rule_ids=rule_ids,
-                register=register,
-                location=location,
-                evaluated_at_ms=evaluated_at_ms,
-                patient_facing=delivery.triggers_device,
+        notified_clinician = True
+        try:
+            self.clinic.notify(
+                RedNotification(
+                    work_id=result.work_id,
+                    rule_ids=rule_ids,
+                    register=register,
+                    location=location,
+                    evaluated_at_ms=evaluated_at_ms,
+                    patient_facing=delivery.triggers_device,
+                    # A pure lookup, so the clinician route still runs first.
+                    silent_generic=delivery.triggers_device
+                    and register is RedRegister.SILENT
+                    and self._script_for(triage) is None,
+                )
             )
-        )
+        except Exception:  # the clinic's route must never cost the patient the RED
+            # INT-531 round 2: logged by id and counted on the series Layer B's
+            # own route uses (it pages), and the stop and the trigger still go.
+            notified_clinician = False
+            CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL.inc()
+            logger.error("red clinic route failed", extra={"work_id": result.work_id})
 
         violations: list[RedViolation] = []
         if result.presentation.speech_tr is not None:
@@ -400,36 +462,20 @@ class RedPreemption:
 
         stopped_at_ms: float | None = None
         media_plane_unreachable = False
+        stop_overran = False
         if delivery.stops_intake:
-            try:
-                await self.canceller.cancel()
-            except Exception:  # the media plane is the least reliable thing here
-                media_plane_unreachable = True
-                logger.warning("red stop found no reachable media plane", exc_info=False)
-            stopped_at_ms = self.clock.now_ms()
-            if stopped_at_ms - evaluated_at_ms > STOP_BUDGET_MS:
+            stopped_at_ms, media_plane_unreachable = await self._stop(evaluated_at_ms)
+            stop_overran = stopped_at_ms is None
+            if stopped_at_ms is None or stopped_at_ms - evaluated_at_ms > STOP_BUDGET_MS:
                 violations.append(RedViolation.STOP_BUDGET)
 
         script_id: str | None = None
         script_started_at_ms: float | None = None
         if delivery.triggers_device:
-            script_id = self.scripts.script_id_for(rule_ids[0], location)
-            if script_id is None:
-                violations.append(RedViolation.SCRIPT_UNADDRESSABLE)
-            else:
-                ack = await self.channel.publish(
-                    RedTriggerMessage(
-                        rule_id=rule_ids[0],
-                        register=register,
-                        location=location,
-                        script_id=script_id,
-                    )
-                )
-                script_started_at_ms = ack.script_started_at_ms
-                elapsed_ms = script_started_at_ms - evaluated_at_ms
-                PREEMPT_RED_LATENCY_MS.observe(elapsed_ms)
-                if elapsed_ms > E2E_BUDGET_MS:
-                    violations.append(RedViolation.E2E_BUDGET)
+            script_id, script_started_at_ms, device_violations = await self._to_device(
+                triage, evaluated_at_ms
+            )
+            violations.extend(device_violations)
 
         outcome = RedPreemptionOutcome(
             work_id=result.work_id,
@@ -440,18 +486,125 @@ class RedPreemption:
             evaluated_at_ms=evaluated_at_ms,
             stopped_at_ms=stopped_at_ms,
             script_started_at_ms=script_started_at_ms,
-            notified_clinician=True,
+            notified_clinician=notified_clinician,
             media_plane_unreachable=media_plane_unreachable,
+            stop_overran=stop_overran,
             violations=tuple(violations),
         )
         self._delivered[result.work_id] = outcome
         if violations:
+            _count(violations)
+            raise RedPathViolation(outcome)
+        return outcome
+
+    async def _stop(self, evaluated_at_ms: float) -> tuple[float | None, bool]:
+        """Stop the agent's audio, waiting no longer than the stop budget has left.
+
+        Returns when it stopped (``None`` if the budget ran out first) and
+        whether the media plane was unreachable. The bound is the session
+        clock's, so a fake clock measures the same bound production enforces;
+        a RED that is already past its stop budget does not wait at all.
+        """
+        cancel = asyncio.ensure_future(self._cancel())
+        left_ms = max(STOP_BUDGET_MS - (self.clock.now_ms() - evaluated_at_ms), 0.0)
+        budget = asyncio.ensure_future(self.clock.sleep(left_ms / 1000.0))
+        await asyncio.wait((cancel, budget), return_when=asyncio.FIRST_COMPLETED)
+        budget.cancel()
+        if not cancel.done():
+            self._stopping.add(cancel)
+            cancel.add_done_callback(self._stopping.discard)
+            logger.warning("red stop overran its budget; triggering without it")
+            return None, False
+        return self.clock.now_ms(), cancel.result()
+
+    async def _cancel(self) -> bool:
+        """Cancel the agent's audio. True when the media plane was unreachable."""
+        try:
+            await self.canceller.cancel()
+        except Exception:  # the media plane is the least reliable thing here
+            logger.warning("red stop found no reachable media plane", exc_info=False)
+            return True
+        return False
+
+    async def _to_device(
+        self, triage: RulesTriageResult, evaluated_at_ms: float
+    ) -> tuple[str, float, list[RedViolation]]:
+        """Trigger the RED on the device — always (INT-453).
+
+        The script is the one the rules engine named (``red_rule_id``): never a
+        position in ``rules``, which is ordered by severity then id while the
+        engine breaks a severity tie on register. A RED whose script the pack
+        cannot address — pack drift, or a result that names no RED — is still
+        shown: the generic escalation, in the result's own register (CD-24
+        carry_engine_register) and for the result's own location (so no 112
+        under ON_SITE), and it fails loudly as SCRIPT_UNADDRESSABLE. A patient
+        who is shown nothing is the one outcome this path must never produce.
+        """
+        register, location = triage.register, triage.location
+        assert register is not None and location is not None  # noqa: S101 - RulesTriageResult
+        violations: list[RedViolation] = []
+        rule_id = _red_rule(triage)
+        script_id = self._script_for(triage)
+        if rule_id is None or script_id is None:
+            violations.append(RedViolation.SCRIPT_UNADDRESSABLE)
+            message = RedTriggerMessage(
+                rule_id=rule_id if rule_id is not None else triage.rules[0].id,
+                register=register,
+                location=location,
+                script_id=GENERIC_RED_SCRIPT_IDS[location],
+            )
+        else:
+            message = RedTriggerMessage(
+                rule_id=rule_id, register=register, location=location, script_id=script_id
+            )
+        ack = await self.channel.publish(message)
+        elapsed_ms = ack.script_started_at_ms - evaluated_at_ms
+        PREEMPT_RED_LATENCY_MS.observe(elapsed_ms)
+        if elapsed_ms > E2E_BUDGET_MS:
+            violations.append(RedViolation.E2E_BUDGET)
+        return message.script_id, ack.script_started_at_ms, violations
+
+    def _script_for(self, triage: RulesTriageResult) -> str | None:
+        """The named RED's own script at the result's location, or None."""
+        rule_id = _red_rule(triage)
+        if rule_id is None or triage.location is None:
+            return None
+        return self.scripts.script_id_for(rule_id, triage.location)
+
+    async def _redeliver(
+        self, recorded: RedPreemptionOutcome, triage: RulesTriageResult
+    ) -> RedPreemptionOutcome:
+        script_id, started_at_ms, device_violations = await self._to_device(
+            triage, recorded.evaluated_at_ms
+        )
+        kept = [
+            violation
+            for violation in recorded.violations
+            if violation not in (RedViolation.SCRIPT_UNADDRESSABLE, RedViolation.E2E_BUDGET)
+        ]
+        outcome = recorded.model_copy(
+            update={
+                "script_id": script_id,
+                "script_started_at_ms": started_at_ms,
+                "violations": (*kept, *device_violations),
+            }
+        )
+        self._delivered[recorded.work_id] = outcome
+        if outcome.violations:
+            # the kept violations were counted when they happened
+            _count(device_violations)
             raise RedPathViolation(outcome)
         return outcome
 
     @property
     def delivered_work_ids(self) -> tuple[str, ...]:
         return tuple(self._delivered)
+
+
+def _count(violations: list[RedViolation]) -> None:
+    """One count per violation, by its closed value (invariant 6: no ids)."""
+    for violation in violations:
+        PREEMPT_RED_VIOLATIONS_TOTAL.labels(violation=violation.value).inc()
 
 
 def _rules_engine_red(result: BackendResult) -> RulesTriageResult:
@@ -467,3 +620,12 @@ def _rules_engine_red(result: BackendResult) -> RulesTriageResult:
         # assumed, because this is the one path where being wrong is fatal.
         raise ValueError("the RED preemption path takes only a rules-engine RED (invariant 1)")
     return triage
+
+
+def _red_rule(triage: RulesTriageResult) -> str | None:
+    """The RED the engine named; a lone fired rule is its own. Never a position."""
+    if triage.red_rule_id is not None:
+        return triage.red_rule_id
+    if len(triage.rules) == 1:
+        return triage.rules[0].id
+    return None

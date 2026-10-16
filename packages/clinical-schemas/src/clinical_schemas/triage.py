@@ -145,6 +145,13 @@ class RulesTriageResult(FrozenModel):
         description="RED location axis — required on RED with no permitted default "
         "(CLAUDE.md invariant 21; files/02 §5.3 Axis 3); absent on GREEN/YELLOW.",
     )
+    red_rule_id: str | None = Field(
+        default=None,
+        description="RED only: the fired rule whose register and action script this "
+        "RED delivers, as the rules engine chose it (INT-453). ``rules`` is ordered by "
+        "severity then id, which is not the engine's winner order, so a consumer reads "
+        "this and never a position. The engine sets it on every RED; absent elsewhere.",
+    )
 
     @model_validator(mode="after")
     def _red_axes_and_rule_evidence(self) -> RulesTriageResult:
@@ -155,6 +162,11 @@ class RulesTriageResult(FrozenModel):
                 raise ValueError("RED requires register and location — no default (invariant 21)")
         elif self.register is not None or self.location is not None:
             raise ValueError("register/location are RED axes only (files/02 §5.3)")
+        if self.red_rule_id is not None:
+            if self.level is not TriageLevel.RED:
+                raise ValueError("red_rule_id is a RED axis only (INT-453)")
+            if self.red_rule_id not in {fire.id for fire in self.rules}:
+                raise ValueError("red_rule_id must name a rule that fired (INT-453)")
         return self
 
 

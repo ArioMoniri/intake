@@ -25,7 +25,9 @@ import { probeVoiceTransport, streamingVoiceSupported } from "./capability";
 import type { VoiceSessionEvent, VoiceSessionListener } from "./events";
 import { emitTurnQuality, noopMetricSink, type MetricSink } from "./metrics";
 import { addSample, closeWindow, openWindow, type QualityWindow } from "./quality";
-import { decodeRedTrigger, resolveRed, type RedScriptCatalog } from "./red";
+import type { PrePositionedRed } from "../red/hop";
+import { catalogSaysGenericRed, type RedStore } from "../red/store";
+import { decodeRedTrigger } from "./red";
 import { nextReconnect, tokenNeedsRemint } from "./reconnect";
 import type {
   MicrophonePermission,
@@ -55,8 +57,16 @@ export interface VoiceSessionDeps {
   readonly tokens: TokenSource;
   /** Builds the adapter. The real one dynamic-imports LiveKit; tests fake it. */
   readonly createAdapter: () => Promise<RoomAdapter>;
-  /** RED scripts already on the device before the session starts (inv. 21). */
-  readonly redScripts: RedScriptCatalog;
+  /**
+   * Everything a RED can show, on the device before the session starts (inv. 21):
+   * the scripts and the location questions, CD-24's generic entries included.
+   */
+  readonly red: PrePositionedRed;
+  /**
+   * Where a RED goes (INT-465): the same store, screen and ask-first logic the
+   * HTTP hop feeds, so the two lanes cannot render one RED two ways.
+   */
+  readonly redStore: Pick<RedStore, "present">;
   readonly sink?: MetricSink;
   readonly now?: () => number;
   readonly sleep?: (ms: number) => Promise<void>;
@@ -86,6 +96,8 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
   const now = deps.now ?? (() => Date.now());
   const sleep = deps.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   const jitter = deps.jitter ?? Math.random;
+  // INT-465: read once; the catalog is on the device before the session starts.
+  const canSayGenericRed = catalogSaysGenericRed(deps.red);
 
   const listeners = new Set<VoiceSessionListener>();
   let phase: SessionPhase = "idle";
@@ -131,12 +143,16 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
       // message kinds belong to INT-091/092 and are ignored here.
       return;
     }
-    const presentation = resolveRed(trigger, deps.redScripts);
-    if (presentation === null) {
-      emit({ type: "red_unrenderable", ruleId: trigger.ruleId });
-      return;
-    }
-    emit({ type: "red", presentation });
+    // INT-465: the RED store resolves the script, asks first under UNKNOWN, and
+    // shows CD-24's generic copy when the script is not on this device — never
+    // nothing and never wordless (start() refused a catalog without it).
+    // INT-475: the RED names this session, which is its visit's row (INT-197),
+    // so the patient's location answer reaches the server for it.
+    deps.redStore.present(trigger, deps.red, {
+      sessionId: deps.sessionId,
+      visitId: deps.sessionId,
+    });
+    emit({ type: "red", trigger });
   };
 
   const handleConnectionChange = (state: "connected" | "reconnecting" | "disconnected") => {
@@ -244,6 +260,13 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
 
     async start() {
       if (closed || phase !== "idle") {
+        return;
+      }
+      // 0. INT-465: a session that could not say a generic RED does not begin
+      // (CD-24 generic_red_silent_is_never_wordless) — before the microphone,
+      // a token or a room.
+      if (!canSayGenericRed) {
+        fail("red_copy_missing");
         return;
       }
       // 1. Capability, before anything else. Expo Go cannot host the native

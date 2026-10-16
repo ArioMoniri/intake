@@ -54,7 +54,15 @@
  */
 import { Stack, useNavigation, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -71,6 +79,7 @@ import { useGlassBarClearance } from "@/components/GlassBar";
 import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
 import { PresenceOrb } from "@/components/PresenceOrb";
+import { RedInFlow } from "@/components/RedLayer";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import { AmbientBackdrop, StageEdgeFade } from "@/components/stage/AmbientBackdrop";
 import {
@@ -101,6 +110,7 @@ import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
+import { dialogueFrozenAt, dialogueShown, redStopsDialogue, redStore } from "@/lib/red/store";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { haptic } from "@/lib/motion/appHaptics";
 import { bubbleEntrance, bubbleGranted } from "@/lib/motion/bubbles";
@@ -199,6 +209,24 @@ export function DialogueIntake({
   });
   const { state } = session;
   const { turn } = state;
+
+  // INT-446: a RED the patient is shown preempts the dialogue instead of
+  // advancing it — the agent stops mid-word and the microphone closes, for
+  // every register the patient sees (SILENT included: no audio, ever).
+  const red = useSyncExternalStore(redStore.subscribe, redStore.getSnapshot);
+  const stopsDialogue = redStopsDialogue(red);
+  // INT-465 (CD-24 generic_red_stops_intake): the stream freezes where the RED
+  // landed; a question the agent was already sending is never shown after it.
+  const frozenRef = useRef<number | null>(null);
+  frozenRef.current = dialogueFrozenAt(frozenRef.current, stopsDialogue, state.stream.length);
+  const frozenAt = frozenRef.current;
+  useEffect(() => {
+    if (stopsDialogue) {
+      setSheetOpen(false); // an open sheet's confirms are commits too (round 4)
+      void session.leave();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- leave() is stable in effect; the RED is the trigger
+  }, [stopsDialogue]);
 
   // On-screen selection for the live confirm turn (seeded pre-selected).
   const [selected, setSelected] = useState<string[]>([]);
@@ -359,6 +387,9 @@ export function DialogueIntake({
   /** Panel-row confirm of one pending suggestion (invariant 1: this tap
    * IS the patient's confirm — nothing commits without it). */
   const confirmRow = (questionId: string) => {
+    if (stopsDialogue) {
+      return; // CD-24 generic_red_stops_intake: nothing commits under a RED
+    }
     const candidate = state.pending[questionId];
     if (candidate === undefined) {
       return;
@@ -427,20 +458,24 @@ export function DialogueIntake({
   };
 
   // INT-336: the orb's one input. This lane is the dev dialogue over HTTP:
-  // it has no media transport to lose and no RED channel (the LiveKit lane
-  // feeds both), so those two inputs are honestly "connected" and none.
+  // it has no media transport to lose, so that input is honestly "connected".
+  // Its RED channel is the root store (INT-446): while a RED the patient sees
+  // stands, the orb holds at idle (lib/motion/red.ts, the in-flow yield; a
+  // root-layer RED covers the navigator above it).
   const orbState = orbStateFor({
     lane: "voice",
     turnPhase: turn.phase,
     playing: session.playing,
     voiceMuted: state.voiceMuted,
     transport: "connected",
-    red: null,
+    red: stopsDialogue ? "idle" : null,
   });
-  // ADR-039 S1: the stage orb's motion, from the same state. This lane has
-  // no RED channel (`red: null` above); RED paints as a root layer above the
-  // stage, and the LiveKit lane passes its presentation here.
-  const stageMotion = stageOrbMotion(orbState, { reduce: reduceMotion, redPresented: false });
+  // ADR-039 S1: the stage orb's motion, from the same state; still while a
+  // RED the patient sees stands.
+  const stageMotion = stageOrbMotion(orbState, {
+    reduce: reduceMotion,
+    redPresented: stopsDialogue,
+  });
   const orbSize = stageOrbSize(orbState, chipsOpen || composerFocused);
   // The note's progress, as the bar item names it (SC 2.5.3: the visible
   // count is inside the spoken name).
@@ -454,9 +489,10 @@ export function DialogueIntake({
   // INT-423: the rhythm. Consecutive turns from one speaker group, and the
   // tail belongs to a run's last bubble; the open-mic turn is the patient's,
   // after the stream. The measure is lib/dialogue/rhythm's.
+  // Under a RED the rhythm is the frozen stream's (INT-465), with no open mic.
   const sides: Side[] = [
-    ...state.stream.map(sideOf),
-    ...(turn.phase === "listening" ? (["patient"] as const) : []),
+    ...dialogueShown(state.stream, frozenAt).map(sideOf),
+    ...(!stopsDialogue && turn.phase === "listening" ? (["patient"] as const) : []),
   ];
   const placements = placeTurns(sides);
   const measure =
@@ -712,7 +748,12 @@ export function DialogueIntake({
               type: "button",
               label: stripTitle,
               tintColor: palette.ink,
-              onPress: () => setSheetOpen(true),
+              // INT-465: the sheet's confirms are commits, so a RED opens nothing.
+              onPress: () => {
+                if (!stopsDialogue) {
+                  setSheetOpen(true);
+                }
+              },
               accessibilityLabel: stripLabel,
               accessibilityHint: t("a11y.dialogue.sectionsHint"),
             },
@@ -724,7 +765,7 @@ export function DialogueIntake({
                   <SectionStrip
                     filled={transients.strip.filled}
                     total={transients.strip.total}
-                    onPress={() => setSheetOpen(true)}
+                    onPress={stopsDialogue ? undefined : () => setSheetOpen(true)}
                   />
                 ),
         }}
@@ -779,20 +820,19 @@ export function DialogueIntake({
           {/* History never fades in: only what arrives after the first mount
               can enter, and only as the arbiter grants it (INT-337). */}
           <LayoutAnimationConfig skipEntering>
-            {state.stream.map((entry, index) => {
+            {dialogueShown(state.stream, frozenAt).map((entry, index) => {
               const key = scene.entries[index].key;
               return (
                 // ADR-038 A1 (INT-462): a bubble the arbiter grants rises 8 pt on
                 // the critically damped spring under the one fade; Reduce Motion
-                // keeps the fade; nothing moves while a RED shows. This lane has
-                // no RED channel (INT-336's orb takes `red: null` the same way);
-                // INT-446 wires it, and RED paints as a root layer above this.
+                // keeps the fade; nothing moves while a RED shows (INT-446's
+                // root store; the stream also freezes where the RED landed).
                 <Animated.View
                   key={nodeKey(transients, key)}
                   entering={bubbleEntering(
                     bubbleEntrance({
                       granted: bubbleGranted(transients, key, reduceMotion),
-                      redPresented: false,
+                      redPresented: stopsDialogue,
                       reduce: reduceMotion,
                     }),
                   )}
@@ -803,7 +843,7 @@ export function DialogueIntake({
             })}
           </LayoutAnimationConfig>
 
-          {turn.phase === "listening" ? (
+          {!stopsDialogue && turn.phase === "listening" ? (
             // The open-mic turn, inside the stream: tap-to-stop.
             <Pressable
               accessibilityRole="button"
@@ -840,7 +880,7 @@ export function DialogueIntake({
             </Pressable>
           ) : null}
 
-          {turn.phase === "settling" ? (
+          {!stopsDialogue && turn.phase === "settling" ? (
             // The one honest wait: everything is asked, the last answers are
             // still being worked into the note — quiet, in-stream.
             <View accessible style={styles.stateRow}>
@@ -850,7 +890,7 @@ export function DialogueIntake({
             </View>
           ) : null}
 
-          {chipsOpen && question !== null && scene.chips !== null ? (
+          {!stopsDialogue && chipsOpen && question !== null && scene.chips !== null ? (
             // The answer cards on the agent's confirm turn: the candidate
             // arrives pre-selected; the patient adjusts, then confirms below
             // (nothing auto-commits). The group enters as one element; a
@@ -895,17 +935,23 @@ export function DialogueIntake({
             </Animated.View>
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("voiceFirst.typeInstead")}
-            accessibilityHint={t("a11y.dialogue.exitHint")}
-            hitSlop={verticalSlop(18)}
-            onPress={() => void exitToSteps()}
-          >
-            <AppText role="caption" style={[styles.rounded, { color: palette.inkSoft }]}>
-              {t("voiceFirst.typeInstead")}
-            </AppText>
-          </Pressable>
+          {/* INT-446: a SILENT RED, where the next turn would be. */}
+          <RedInFlow />
+
+          {/* INT-465: no way back into the steps while a RED stands. */}
+          {!stopsDialogue ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("voiceFirst.typeInstead")}
+              accessibilityHint={t("a11y.dialogue.exitHint")}
+              hitSlop={verticalSlop(18)}
+              onPress={() => void exitToSteps()}
+            >
+              <AppText role="caption" style={[styles.rounded, { color: palette.inkSoft }]}>
+                {t("voiceFirst.typeInstead")}
+              </AppText>
+            </Pressable>
+          ) : null}
         </ScrollView>
 
         {/* The stage's edges: the transcript fades out where it meets the
@@ -945,7 +991,7 @@ export function DialogueIntake({
               stays in view. */}
           <StageGlassGroup>
             <ScrollView style={styles.barScroll} keyboardShouldPersistTaps="handled">
-              {turn.phase === "listening" ? (
+              {!stopsDialogue && turn.phase === "listening" ? (
                 <View style={styles.barItem}>
                   <StageButton
                     palette={palette}
@@ -955,7 +1001,7 @@ export function DialogueIntake({
                   />
                 </View>
               ) : null}
-              {turn.phase === "confirming" ? (
+              {!stopsDialogue && turn.phase === "confirming" ? (
                 <View style={[styles.barItem, styles.barStack]}>
                   <StageButton
                     palette={palette}
@@ -980,29 +1026,33 @@ export function DialogueIntake({
                 and text are one conversation, never two modes. INT-462 (P3):
                 its one control is composerTrailing's — the mic while the
                 draft is empty, send once there are words, stop while
-                listening. The swap is instant. */}
-            <GlassComposer
-              palette={palette}
-              value={draft}
-              onChangeText={setDraft}
-              onFocus={() => setComposerFocused(true)}
-              onBlur={() => setComposerFocused(false)}
-              onSubmit={send}
-              prompt={t("dialogue.typeThisStep")}
-              promptHint={t("a11y.dialogue.composerHint")}
-              focused={composerFocused}
-              control={trailing.kind}
-              controlLabel={trailingLabel}
-              controlHint={trailing.kind === "mic" ? t("a11y.dialogue.micHint") : undefined}
-              controlDisabled={trailingDisabled}
-              onControl={pressTrailing}
-            />
+                listening. The swap is instant. Until a RED stands (INT-465):
+                then nothing more is committed. */}
+            {!stopsDialogue ? (
+              <GlassComposer
+                palette={palette}
+                value={draft}
+                onChangeText={setDraft}
+                onFocus={() => setComposerFocused(true)}
+                onBlur={() => setComposerFocused(false)}
+                onSubmit={send}
+                prompt={t("dialogue.typeThisStep")}
+                promptHint={t("a11y.dialogue.composerHint")}
+                focused={composerFocused}
+                control={trailing.kind}
+                controlLabel={trailingLabel}
+                controlHint={trailing.kind === "mic" ? t("a11y.dialogue.micHint") : undefined}
+                controlDisabled={trailingDisabled}
+                onControl={pressTrailing}
+              />
+            ) : null}
           </StageGlassGroup>
         </View>
       </View>
 
       <SectionSheet
-        visible={sheetOpen}
+        visible={sheetOpen && !stopsDialogue}
+        stopped={stopsDialogue}
         model={model}
         // ADR-038 A3: the large detent stops under the bar, which on the
         // stage floats over the dialogue's frame.

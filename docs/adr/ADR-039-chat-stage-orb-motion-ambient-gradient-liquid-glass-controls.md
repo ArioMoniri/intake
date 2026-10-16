@@ -94,4 +94,4 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 - **Easier.** The conversation looks and moves like a 2026 health app while every bound is a number and a test. The glass follows Apple's own split between content and controls.
 - **Harder.** Five allow-lists grow by named stage files and may only shrink afterwards. A device check of the glass on each iOS major version is owed, and timings go to `docs/evidence/` with a device and a date (invariant 20).
 - **Not done.** A tilt-following highlight would need `expo-sensors`. Its pedometer code needs a motion-permission string, which is a store artefact for legal review, and the simulator has no gyroscope to test it on. The highlight is still.
-- **Records.** `files/00_STATE.md` §3 row **D23**. No HUMAN_BLOCKERS id is minted.
+- **Records.** `files/00_STATE.md` §3 row **D33**. No HUMAN_BLOCKERS id is minted.
