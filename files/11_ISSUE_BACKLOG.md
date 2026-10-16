@@ -314,7 +314,7 @@
 | INT-464 | Native welcome and sign-in in the stage language: iOS setup layout, still mark, filled fields, static large titles | E08-mobile | INT-466, INT-433 | area:mobile | done |
 | INT-472 | Review and send as iOS grouped inset lists: section rows, share switch rows, a metadata summary | E08-mobile | INT-464, INT-137 | area:mobile | done |
 | INT-473 | In-tree detent sheet (ADR-038 A3) for the dialogue's section sheet: no presented sheet over RED | E08-mobile | INT-472, INT-461 | area:mobile | done |
-| INT-492 | Question progress and micro-interactions behind a flag: a segmented capsule with the count, a reserved chip check, the press response, a still loading glyph | E08-mobile | INT-473, INT-331 | area:mobile | done |
+| INT-492 | Question progress and micro-interactions: a segmented capsule with the count, a reserved chip check, the press response, a still loading glyph | E08-mobile | INT-473, INT-331 | area:mobile | done |
 
 ## P2
 

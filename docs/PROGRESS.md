@@ -3786,3 +3786,17 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — run (or allow a session to run) `scripts/ci/aws_runner.sh install` from this branch, so the pool replaces the single runner; this session's permission classifier refused it (HB-I7). Also apply the `.github/renovate.json` owner patch (issue-drafts/owner-int467-renovate-probe-image.patch), which the classifier refused to stage; until then check-py fails on the digest-reachability test.
 - Next: after the install, `scripts/ci/aws_runner.sh probe` for the per-runner isolation, then two overlapping check-integration runs; record both in docs/evidence/INT-467.md.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T04:30:00+03:00 · INT-492 · done (PR #843 updated, not merged; stacked on #808)
+- Goal: the owner's decision on #843, in chat on 16 Oct 2026, relayed by the orchestrator, verbatim: "orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y". P1 to P5 (the rolling number, glass on the capsule, a tweened fill, a press on intake chips, auto-advance) are all no; ship only the within-bounds parts, on by default. The acceptance (docs/backlog/issues.yaml INT-492) is rewritten to match.
+- Plan:
+  - Tests first for the shipped design: no flag reader anywhere, the capsule, the chip slot, the press and the still wait always wired, no rolling-number code in `src`; INT-433's thin-bar guards moved to the capsule, each keeping its intent.
+  - Then delete the flags (`lib/flags.ts`, `lib/featureFlags.ts`, `INTAKE_FLAGS`) and the roll (`native/numberRoll.ts`, `rollDigits`, `rollGranted`, `numberRoll`), keep the roll's gif in `docs/design/progress-capsule/`.
+  - Merge `origin/main` (3afc5a29); `origin/int-473-detent-sheet` is unchanged (edda8efc).
+- Tests added (with the near-miss negative for any safety rule): `e2e/progressMicro.spec.ts` rewritten; `e2e/questionScreen.spec.ts` and `e2e/overflow.spec.ts` moved to the capsule (the count is measured inside it, beside six segments and stacked); the roll and flag cases removed. RED: 4 files, 11 failed (one a full-suite timeout in `pinnedToday.spec.ts` that passes alone). GREEN after the merge: 154 files, 3171 tests.
+- Result: mobile vitest green; `pnpm -r typecheck` Done; lint 0 errors; backlog, smoke and docs tests pass; `no_placeholders` OK on the staged tree. Fresh light and dark captures of the capsule, the chips and a section change are in the owner's `issue-drafts/design-492-final/`.
+- Invariants touched and still passing: 2, 5 (no new copy), 10, 17 (no flag or declined code left behind), 21 (no RED surface touched; the press is off on RED), 22 (the count is display-only, refused by the TTS guard, never grouped, one atom, unreachable from the spoken lane).
+- Decisions / ADRs / `00_STATE.md` rows: none. Everything shipped is inside ADR-033, ADR-037 P1 and ADR-039. The merge kept main's D19 and D20 before the stack's D21 to D23.
+- Blocked on: nothing.
+- Next: merge after #808. #842 (INT-491, the lens orb) also appends to library-patterns.md: keep both, §6 and §7.
+- LOOP_STATUS: CONTINUE
