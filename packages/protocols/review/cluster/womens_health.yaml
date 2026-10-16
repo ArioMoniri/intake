@@ -47,7 +47,7 @@ sections:
           tr: Bir gebelik testi ya da ultrason gebe olduğunuzu gösterdi mi?
         follow_up_tr:
           tr: Evde ya da hastanede yapılan gebelik testi pozitif çıktı mı?
-        ask_if: pregnancy_status != 'hayir'
+        ask_if: pregnancy_status != 'hayır'
         delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_womens_health.md'
       tahmini_dogum_tarihi:

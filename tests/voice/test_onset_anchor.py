@@ -24,9 +24,11 @@ the committed active ``base.life_threat`` rules:
 3. A spoken choice plus a cardiac character answer fires K2 at the rule's
    register and location through the live RED path; 'üç günden daha önce' is
    evaluated and does not; the SARI sibling reads the same resolution.
-4. A hedged answer binds nothing: the anchor stays Unknown, the rule's Unknown
-   branch holds (``when ∧ anchor`` is Unknown, nothing fires) and the scripted
-   follow-up is asked. An answer that never fits a choice ends UNCLEAR once
+4. An answer that fits no choice binds nothing: the anchor stays Unknown,
+   the rule's Unknown branch holds (``when ∧ anchor`` is Unknown, nothing
+   fires) and the scripted follow-up is asked. (A CD-04 hedge takes no
+   follow-up since INT-546, CD-04 round 3: it resolves on the Work that read
+   it.) An answer that never fits a choice ends UNCLEAR once
    CD-04's one follow-up is spent (INT-540; it was the engine's generic two
    before), and CD-05 resolves it to the reference day.
 5. A closed-choice date slot with no decided resolution cannot be composed.
@@ -37,10 +39,12 @@ transcripts are synthetic (files/04 §7).
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytest
 import test_extraction_valuesets as int518
@@ -69,6 +73,7 @@ from protocols.anchor_choices import (
     load_anchor_choice_table,
 )
 from protocols.answer_states import AnswerStateTable, load_answer_state_table
+from protocols.compile.resolve import ResolvedProtocol
 from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.triage import evaluate_triage
 from protocols.triage.engine import rule_truth
@@ -116,6 +121,8 @@ SAID_ONSET: Mapping[str, str] = {
 }
 #: Answers that fit no choice: the model answers none and asks to clarify.
 HEDGED = ("Emin değilim, tam hatırlamıyorum.", "Bilmiyorum.", "Gerçekten hatırlayamıyorum.")
+#: INT-546: the one of them no CD-04 entry reads, so it keeps its one follow-up.
+NO_CHOICE_LINE = HEDGED[2]
 
 #: The non-onset steps, as INT-518 drives them, and what the patient says.
 LEAD_STEPS: tuple[str, ...] = (SUBJECT, PRESENT, CHARACTER, RADIATION)
@@ -197,9 +204,13 @@ def _rig(
     reference_time: datetime = NOW,
     anchor_choices: AnchorChoiceTable | None = None,
     answer_states: AnswerStateTable | None = None,
+    protocol: ResolvedProtocol | None = None,
+    **compose: Any,
 ) -> Rig:
     """INT-521's composition, with the reference time, the CD-05 table and
-    the CD-04 table (INT-540) the caller's to inject."""
+    the CD-04 table (INT-540) the caller's to inject — and (INT-546) the
+    protocol and any further composition argument, handed to both roots."""
+    served = int521._served_protocol() if protocol is None else protocol
     clock = FakeClock()
     channel = RecordingDataChannel(clock=clock)
     clinic = RecordingClinicNotifier()
@@ -207,7 +218,7 @@ def _rig(
     red = RedWiring(location=location, channel=channel, scripts=int521._scripts())
     if profile is VoiceProfile.TYPED:
         stack = build_typed_session(
-            protocol=int521._served_protocol(),
+            protocol=served,
             reference_time=reference_time,
             session_id=int518.SESSION,
             protocol_hash=int518.HASH,
@@ -220,12 +231,13 @@ def _rig(
             red=red,
             anchor_choices=anchor_choices,
             answer_states=answer_states,
+            **compose,
         )
         return Rig(stack, clock, channel, clinic, None, None, screen, stack.anchors)
     sink = RecordingSink(clock=clock)
     synthesizer = RecordingSynthesizer()
     stack = build_residency_tr_session(
-        protocol=int521._served_protocol(),
+        protocol=served,
         reference_time=reference_time,
         session_id=int518.SESSION,
         voice_id=int518.VOICE_ID,
@@ -242,6 +254,7 @@ def _rig(
         red=red,
         anchor_choices=anchor_choices,
         answer_states=answer_states,
+        **compose,
     )
     return Rig(stack, clock, channel, clinic, sink, synthesizer, screen, stack.anchors)
 
@@ -508,14 +521,14 @@ def test_the_today_tensed_sibling_reads_the_same_resolution(
 def test_a_hedged_answer_binds_nothing_and_the_rules_unknown_branch_holds(
     profile: VoiceProfile,
 ) -> None:
-    """The model picks no choice for 'emin değilim' and asks to clarify. The
-    anchor stays pending, so it reads Unknown: K2's ``when`` is True on the
+    """The model picks no choice for an answer no CD-04 entry reads and asks to
+    clarify. The anchor stays pending, so it reads Unknown: K2's ``when`` is True on the
     cardiac answer and ``when ∧ anchor`` is Unknown, which does not fire. The
     scripted follow-up — verbatim from the pack — is queued, nothing is
     evaluated for that Work, and nothing is resolved."""
-    rig = _rig(profile, _model("baskı", "yok", clarify=HEDGED[:1]))
+    rig = _rig(profile, _model("baskı", "yok", clarify=(NO_CHOICE_LINE,)))
     _lead(rig)
-    work_id = _say(rig, ONSET, HEDGED[0])
+    work_id = _say(rig, ONSET, NO_CHOICE_LINE)
     engine = rig.stack.engine
     assert engine.state_of(ONSET) is AnswerState.ASKED_PENDING
     assert work_id not in rig.triage.evaluated
@@ -541,9 +554,9 @@ def test_near_miss_a_hedged_answer_then_a_clear_older_band_binds_the_older_day(
 ) -> None:
     """The follow-up answered with a choice binds that choice's day — the
     hedge does not linger as an acute reading once the patient has answered."""
-    rig = _rig(profile, _model("baskı", "yok", _onset(OLDER), clarify=HEDGED[:1]))
+    rig = _rig(profile, _model("baskı", "yok", _onset(OLDER), clarify=(NO_CHOICE_LINE,)))
     _lead(rig)
-    _say(rig, ONSET, HEDGED[0])
+    _say(rig, ONSET, NO_CHOICE_LINE)
     _say(rig, _reentry(rig), SAID_ONSET[OLDER])
     assert rig.stack.engine.value_of(ONSET) == _day(3)
     assert rig.anchors is not None
@@ -566,7 +579,7 @@ def test_an_answer_that_never_fits_a_choice_is_unclear_and_resolves_to_the_refer
     session's location."""
     rig = _rig(profile, _model("baskı", "yok", clarify=HEDGED), location=location)
     _lead(rig)
-    first = _say(rig, ONSET, HEDGED[0])
+    first = _say(rig, ONSET, NO_CHOICE_LINE)
     assert rig.stack.agent.sealed is False
     last = _say(rig, _reentry(rig), HEDGED[1])
     engine = rig.stack.engine
@@ -598,7 +611,7 @@ def test_near_miss_an_unclear_onset_with_a_non_cardiac_answer_does_not_fire(
     two unfitting answers with no cardiac feature stay quiet."""
     rig = _rig(profile, _model("başka bir his", "yok", clarify=HEDGED))
     _lead(rig)
-    _say(rig, ONSET, HEDGED[0])
+    _say(rig, ONSET, NO_CHOICE_LINE)
     last = _say(rig, _reentry(rig), HEDGED[1])
     assert rig.stack.engine.state_of(ONSET) is AnswerState.UNCLEAR
     assert rig.triage.evaluated[-1] == last
@@ -634,25 +647,12 @@ def test_an_unclear_slot_that_is_not_an_anchor_still_reads_unknown() -> None:
 
 
 def _table_without_anchor() -> AnchorChoiceTable:
-    table = load_anchor_choice_table()
-    return AnchorChoiceTable(
-        decision_id=table.decision_id,
-        anchors=frozenset(),
-        question_tr=table.question_tr,
-        choices=table.choices,
-        unresolved_days_before_reference=table.unresolved_days_before_reference,
-    )
+    return dataclasses.replace(load_anchor_choice_table(), anchors=frozenset())
 
 
 def _table_missing_a_choice() -> AnchorChoiceTable:
     table = load_anchor_choice_table()
-    return AnchorChoiceTable(
-        decision_id=table.decision_id,
-        anchors=table.anchors,
-        question_tr=table.question_tr,
-        choices=table.choices[:-1],
-        unresolved_days_before_reference=table.unresolved_days_before_reference,
-    )
+    return dataclasses.replace(table, choices=table.choices[:-1])
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))

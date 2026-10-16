@@ -150,7 +150,7 @@ sections:
           tr: Bağışıklığınızı baskılayan tedavi sırasında yeni bir enfeksiyon belirtisi fark ettiniz mi?
         follow_up_tr:
           tr: Öksürük, idrarda yanma ya da yarada kızarıklık gibi bir değişiklik oldu mu?
-        ask_if: immunosuppression != 'hayir'
+        ask_if: immunosuppression != 'hayır'
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_medical.md'
       ilac_doz_atlama:
         type: boolean

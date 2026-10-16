@@ -12,8 +12,8 @@ rest sit in sibling modules so no file passes the 500-line ceiling:
 - ``triage_goldens_answers``   — families 3, 4, 6, 14 (answer state)
 - ``triage_goldens_temporal``  — family 5 (tense windows)
 - ``triage_goldens_structure`` — families 7-9, 12 (axes, merge, sibling set)
-- ``triage_goldens_anchors``   — families 15-16 (CD-05 onset choices, INT-522;
-  CD-04 hedged onset answers, INT-540)
+- ``triage_goldens_anchors``   — families 15-17 (CD-05 onset choices, INT-522;
+  CD-04 hedged onset answers, INT-540; the anchor at close, INT-546)
 
 Arithmetic (``test_the_family_arithmetic_is_honest`` asserts every builder
 really produces its claimed count; the total is asserted ≥ 200 in
@@ -38,8 +38,9 @@ green_baseline             1   the life set alone, empty context
 type_mismatch_unknown      6   cross-type comparison is Unknown, never False
 anchor_choices             10  CD-05: each onset choice's day, near miss 3 days
 anchor_hedges              13  CD-04: each hedge on the onset → UNCLEAR → ref. day
+anchor_close               6   CD-05: never asked / unanswered at close → ref. day
 ======================  =====  ==================================================
-total                     231
+total                     237
 
 Rule levels available in merged content today: KIRMIZI_K2 (rf.synthetic_
 kirmizi, rf.synthetic_kirmizi.genis, rf.chest_pain_cardiac_features),
@@ -55,7 +56,7 @@ from __future__ import annotations
 
 from protocols.triage import DraftRuleError
 from protocols.types import EK4Level
-from triage_goldens_anchors import anchor_choices, anchor_hedges
+from triage_goldens_anchors import anchor_choices, anchor_close, anchor_hedges
 from triage_goldens_answers import (
     contested_values,
     explicit_absent,
@@ -208,6 +209,7 @@ FAMILY_COUNTS: tuple[tuple[str, int], ...] = (
     ("type_mismatch_unknown", 6),
     ("anchor_choices", 10),
     ("anchor_hedges", 13),
+    ("anchor_close", 6),
 )
 
 
@@ -229,6 +231,7 @@ def build_cases() -> tuple[GoldenCase, ...]:
     cases.extend(type_mismatch_unknown())
     cases.extend(anchor_choices())
     cases.extend(anchor_hedges())
+    cases.extend(anchor_close())
     return tuple(cases)
 
 

@@ -23,15 +23,18 @@ and the committed active ``base.life_threat`` rules:
 
 1. For the asked anchor, a CD-04 hedge (read from the decision, beating a
    choice the model guessed), an off-choice narrative ('dün akşam'), and a
-   completion with no slot and no flag are each UNCLEAR at once: the scripted
-   ``follow_up_tr`` is asked verbatim, once, and the anchor reads Unknown
-   meanwhile (CD-04). An answer to it that is still unfit records UNCLEAR,
+   completion with no slot and no flag are each UNCLEAR at once. Since INT-546
+   (CD-04 round 3, INT-519 item 5) the bound is per cause: a hedge takes no
+   follow-up and resolves on the Work that read it; an answer that bound no
+   choice has the scripted ``follow_up_tr`` asked verbatim, once, and reads
+   Unknown meanwhile. An answer to it that is still unfit records UNCLEAR,
    CD-05 resolves the anchor to the reference day, the rules engine evaluates
    that Work, and K2 fires at its register and the session's location through
    the existing RED path (invariants 1, 9, 21).
-2. The bound is CD-04's ``unclear_follow_up_tr_asks``, read from the decision:
-   a table that says 0 or 2 changes the session with no code change (the D18
-   amendment open on INT-519 item 5).
+2. The bound is CD-04's ``tense_anchor_follow_up_tr_asks``, read from the
+   decision by cause: a table that says 0 or 2 changes the session with no
+   code change (INT-546; ``tests/voice/test_int546_anchor_causes.py`` holds the
+   per-cause cases).
 3. A pending anchor cannot outlive the session. Closing the session — from
    the router's ``end`` or directly — queues one state-lane Work behind the
    patient's last answers; an anchor still asked and unanswered (mid-
@@ -42,7 +45,8 @@ and the committed active ``base.life_threat`` rules:
    günden daha önce' stays quiet, even when it is the last thing said before
    the session closes); an unclear onset with a non-cardiac answer resolves
    and stays quiet; a hedge to a slot that is not an anchor resolves to no
-   date and is not closed; an anchor that was never asked is not resolved.
+   date and is not closed. (An anchor never asked when the session closes is
+   INT-546's ``never_asked_anchor_evaluated_at_close``.)
 
 The gateway is a table keyed by what the patient said; nothing dials a model.
 The clock is the harness's fake one; the reference time is injected at
@@ -52,6 +56,7 @@ composition. The transcripts are synthetic (files/04 §7).
 from __future__ import annotations
 
 import copy
+import dataclasses
 from collections.abc import Mapping
 
 import pytest
@@ -105,6 +110,9 @@ UNFIT: Mapping[str, tuple[str, JsonValue | None, bool, UnclearCause, str | None]
     ),
     "no-slot-no-flag": ("Hı hı, işte öyle.", None, False, UnclearCause.NO_CHOICE, None),
 }
+#: INT-546 (CD-04 round 3): a hedge resolves at once; only these keep a follow-up.
+NO_CHOICE_UNFIT = tuple(key for key, row in UNFIT.items() if row[3] is UnclearCause.NO_CHOICE)
+HEDGE_UNFIT = tuple(key for key, row in UNFIT.items() if row[3] is UnclearCause.HEDGE)
 #: The answer to the follow-up that is still unfit: a hedge CD-04 does not
 #: list, which the model leaves unrecorded and unflagged (CD-04: an unmatched
 #: hedge is UNCLEAR; CD-05: an answer fitting no choice).
@@ -166,13 +174,13 @@ def _assert_resolved_unclear(rig: int522.Rig) -> None:
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))
-@pytest.mark.parametrize("first", list(UNFIT))
+@pytest.mark.parametrize("first", NO_CHOICE_UNFIT)
 def test_an_unfit_onset_answer_asks_the_follow_up_once_and_reads_unknown_meanwhile(
     profile: VoiceProfile, first: str
 ) -> None:
-    """CD-04: UNCLEAR reads Unknown and triggers the slot's follow_up_tr once.
-    Whatever the model did with the answer — nothing, a guessed choice under a
-    hedge, or a flag — the anchor is not left silently pending."""
+    """CD-04: UNCLEAR reads Unknown and triggers the slot's follow_up_tr once —
+    for an answer that bound no choice (CD-04 round 3). Whatever the model did
+    with it — nothing, or a flag — the anchor is not left silently pending."""
     said, _, _, cause, qualifier = UNFIT[first]
     rig = int522._rig(profile, _model("baskı", first))
     int522._lead(rig)
@@ -188,8 +196,27 @@ def test_an_unfit_onset_answer_asks_the_follow_up_once_and_reads_unknown_meanwhi
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))
+@pytest.mark.parametrize("first", HEDGE_UNFIT)
+def test_an_unfit_onset_hedge_resolves_on_the_first_work(profile: VoiceProfile, first: str) -> None:
+    """INT-546 (CD-04 round 3, INT-519 item 5): a hedge — alone, or beside a
+    choice the model guessed — takes no follow-up. The Work that read it is
+    the one evaluated, and with a cardiac character K2 fires on it."""
+    said, _, _, cause, qualifier = UNFIT[first]
+    rig = int522._rig(profile, _model("baskı", first))
+    int522._lead(rig)
+    work_id = int522._say(rig, ONSET, said)
+    assert [s for s in rig.stack.engine.follow_ups if s.startswith(ONSET)] == []
+    _assert_resolved_unclear(rig)
+    assert rig.triage.evaluated[-1] == work_id
+    _assert_k2_reached_the_clinic(rig, work_id, RedLocation.REMOTE)
+    assert rig.anchors is not None
+    [unclear] = rig.anchors.unclear
+    assert (unclear.anchor, unclear.cause, unclear.qualifier) == (ONSET, cause, qualifier)
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
 @pytest.mark.parametrize("location", list(RedLocation))
-@pytest.mark.parametrize("first", list(UNFIT))
+@pytest.mark.parametrize("first", NO_CHOICE_UNFIT)
 def test_still_unfit_after_the_one_follow_up_resolves_and_fires_k2(
     profile: VoiceProfile, location: RedLocation, first: str
 ) -> None:
@@ -217,12 +244,12 @@ def test_still_unfit_after_the_one_follow_up_resolves_and_fires_k2(
 def test_near_miss_the_follow_up_answered_with_an_older_band_binds_it_and_stays_quiet(
     profile: VoiceProfile,
 ) -> None:
-    """The hedge does not linger once the patient has answered: 'üç günden
-    daha önce' on the follow-up binds the reference day minus three, and K2
-    and its sibling stay quiet."""
-    rig = int522._rig(profile, _model("baskı", "bilmiyorum-no-slot-no-flag"))
+    """The unfit answer does not linger once the patient has answered: 'üç
+    günden daha önce' on the follow-up binds the reference day minus three,
+    and K2 and its sibling stay quiet."""
+    rig = int522._rig(profile, _model("baskı", "no-slot-no-flag"))
     int522._lead(rig)
-    int522._say(rig, ONSET, UNFIT["bilmiyorum-no-slot-no-flag"][0])
+    int522._say(rig, ONSET, UNFIT["no-slot-no-flag"][0])
     last = int522._say(rig, int522._reentry(rig), SAID_OLDER)
     assert rig.stack.engine.value_of(ONSET) == int522._day(3)
     assert rig.anchors is not None and rig.anchors.record[ONSET].basis is AnchorBasis.DECIDED
@@ -267,29 +294,35 @@ def test_near_miss_a_hedge_to_a_slot_that_is_not_an_anchor_resolves_to_no_date(
     rig.stack.agent.run_pending()
     for slot in (CHARACTER, FREE_DATE):
         assert engine.state_of(slot) is AnswerState.ASKED_PENDING
-    assert rig.anchors.record == {}
+    # INT-546 (CD-05 round 3 item 10): the onset itself was never asked while
+    # chest pain was affirmed, so the close reads it; neither non-anchor is
+    assert set(rig.anchors.record) == {ONSET}
+    assert rig.anchors.record[ONSET].basis is AnchorBasis.NEVER_ASKED_AT_CLOSE
 
 
 # --- 2 · the bound is the decision's, so an amendment changes data -------------------
 
 
 def _with_bound(asks: int) -> AnswerStateTable:
+    """CD-04 with both of the anchor's cause bounds set to ``asks`` (INT-546:
+    the anchor reads ``tense_anchor_follow_up_tr_asks``, not the decision-wide
+    ``unclear_follow_up_tr_asks``)."""
     decision = load_decision(REGISTER_DIR / "CD-04.yaml")
     value = copy.deepcopy(decision.value)
-    value["unclear_follow_up_tr_asks"] = asks
+    value["tense_anchor_follow_up_tr_asks"] = {"hedge": asks, "no_choice": asks}
     return answer_state_table(decision.model_copy(update={"value": value}))
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))
-def test_a_cd04_table_that_says_zero_resolves_the_first_hedge_at_once(
+def test_a_cd04_table_that_says_zero_resolves_the_first_unfit_answer_at_once(
     profile: VoiceProfile,
 ) -> None:
-    """The shape INT-519 item 5's amendment would take, as data: no follow-up,
-    the first 'bilmiyorum' resolves the anchor and K2 fires on that Work."""
-    rig = int522._rig(profile, _model("baskı", "bilmiyorum-no-slot-no-flag"))
+    """As data: no follow-up for either cause, so an answer that bound no
+    choice resolves the anchor and K2 fires on that Work."""
+    rig = int522._rig(profile, _model("baskı", "no-slot-no-flag"))
     rig = _recompose(rig, profile, _with_bound(0))
     int522._lead(rig)
-    work_id = int522._say(rig, ONSET, "Bilmiyorum.")
+    work_id = int522._say(rig, ONSET, UNFIT["no-slot-no-flag"][0])
     assert rig.stack.engine.follow_ups == ()
     _assert_resolved_unclear(rig)
     _assert_k2_reached_the_clinic(rig, work_id, RedLocation.REMOTE)
@@ -335,13 +368,14 @@ def test_the_committed_decision_is_the_table_both_roots_compose_with() -> None:
 def test_abandoned_mid_clarification_the_anchor_resolves_and_k2_reaches_the_clinic(
     profile: VoiceProfile, location: RedLocation
 ) -> None:
-    """'Bilmiyorum.', the follow-up asked, and the patient is gone. Closing the
+    """An answer that bound no choice, the follow-up asked, and the patient is
+    gone. Closing the
     session records the anchor UNCLEAR, CD-05 resolves it, the rules engine
     evaluates the close, and the RED is handed to the clinician route at once
     — and to the device by its pre-positioned script if it is still there."""
-    rig = int522._rig(profile, _model("baskı", "bilmiyorum-no-slot-no-flag"), location=location)
+    rig = int522._rig(profile, _model("baskı", "no-slot-no-flag"), location=location)
     int522._lead(rig)
-    int522._say(rig, ONSET, "Bilmiyorum.")
+    int522._say(rig, ONSET, UNFIT["no-slot-no-flag"][0])
     rig.stack.session.ask_ledger.note_asked(int522._reentry(rig))  # the follow-up is spoken
     ticket = rig.stack.close()
     assert ticket is not None and rig.stack.agent.record(ticket.work_id).state is WorkState.QUEUED
@@ -353,7 +387,7 @@ def test_abandoned_mid_clarification_the_anchor_resolves_and_k2_reaches_the_clin
     _assert_k2_reached_the_clinic(rig, ticket.work_id, location)
     assert rig.anchors is not None
     assert [u.cause for u in rig.anchors.unclear] == [
-        UnclearCause.HEDGE,
+        UnclearCause.NO_CHOICE,
         UnclearCause.SESSION_CLOSED,
     ]
     int521._turn(rig, None)
@@ -400,24 +434,6 @@ def test_near_miss_the_last_answer_runs_before_the_close_and_an_older_band_stays
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))
-def test_near_miss_an_anchor_that_was_never_asked_is_not_resolved_at_session_end(
-    profile: VoiceProfile,
-) -> None:
-    """Nothing binds to a question that was not asked (files/13 §9.6). A session
-    that ends between the chest-pain answers and the onset question leaves the
-    anchor NOT_ASKED and unresolved — whether CD-05 should reach it is an open
-    question for the D18 lane (docs/evidence/INT-540.md), not decided here."""
-    rig = int522._rig(profile, _model("baskı", "no-slot-no-flag"))
-    int522._lead(rig)
-    ticket = rig.stack.close()
-    assert ticket is not None
-    rig.stack.agent.run_pending()
-    assert rig.stack.engine.state_of(ONSET) is AnswerState.NOT_ASKED
-    assert rig.anchors is not None and rig.anchors.record == {}
-    assert rig.clinic.notifications == []
-
-
-@pytest.mark.parametrize("profile", list(VoiceProfile))
 def test_closing_twice_is_one_close_and_a_sealed_session_has_nothing_to_close(
     profile: VoiceProfile,
 ) -> None:
@@ -450,8 +466,8 @@ class _Unreadable:
 def test_ending_a_routed_session_closes_it() -> None:
     """The router's ``end`` is the runtime's session end: it queues the close
     behind the session's last answers before forgetting the session."""
-    typed = int522._rig(VoiceProfile.TYPED, _model("baskı", "bilmiyorum-no-slot-no-flag"))
-    voice = int522._rig(VoiceProfile.RESIDENCY_TR, _model("baskı", "bilmiyorum-no-slot-no-flag"))
+    typed = int522._rig(VoiceProfile.TYPED, _model("baskı", "no-slot-no-flag"))
+    voice = int522._rig(VoiceProfile.RESIDENCY_TR, _model("baskı", "no-slot-no-flag"))
     router = VoiceSessionRouter(controls=_Unreadable(), clock=FakeClock())
     routed = router.start(
         tenant_id=int522.int518.TENANT,
@@ -463,7 +479,7 @@ def test_ending_a_routed_session_closes_it() -> None:
     )
     assert routed.stack is typed.stack
     int522._lead(typed)
-    int522._say(typed, ONSET, "Bilmiyorum.")
+    int522._say(typed, ONSET, UNFIT["no-slot-no-flag"][0])
     router.end(int522.int518.SESSION)
     assert router.live() == ()
     typed.stack.agent.run_pending()
@@ -507,11 +523,7 @@ def test_session_anchors_refuse_a_cd04_table_with_a_present_qualified_anchor() -
         slots=frozenset({ONSET}),
         basis=HedgeBasis.DECIDED,
     )
-    bad = AnswerStateTable(
-        decision_id=table.decision_id,
-        entries=(*table.entries, wrong),
-        unclear_follow_up_tr_asks=table.unclear_follow_up_tr_asks,
-    )
+    bad = dataclasses.replace(table, entries=(*table.entries, wrong))
     with pytest.raises(AnswerStateError, match=ONSET):
         SessionAnchors(load_anchor_choice_table(), bad)
 

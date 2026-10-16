@@ -330,10 +330,11 @@ CANDIDATE — clinician to approve wording.
 
 **Q15 — Infection signs while on immunosuppressive treatment** · archetype: `OBSERVATION.symptom_sign.v1` · source: MED-S7 rec 1.1.10, rec 1.2.1; MED-S2 PDF p. 28
 > "Bağışıklığınızı baskılayan tedavi sırasında yeni bir enfeksiyon belirtisi fark ettiniz mi?"
-gen: slot=bagisiklik_tedavisinde_enfeksiyon; type=boolean; ask_if=immunosuppression != 'hayir'; follow_up=Öksürük, idrarda yanma ya da yarada kızarıklık gibi bir değişiklik oldu mu?
+gen: slot=bagisiklik_tedavisinde_enfeksiyon; type=boolean; ask_if=immunosuppression != 'hayır'; follow_up=Öksürük, idrarda yanma ya da yarada kızarıklık gibi bir değişiklik oldu mu?
 CANDIDATE — clinician to approve wording. Reads base `immunosuppression` and does not re-ask it. The
-gate opens on "evet" and on "bilmiyorum" alike, because it fails open toward asking. The code
-literal `'hayir'` mirrors base's own `lmp_date` gate; the value set is undefined (§4 gap 8).
+gate opens on "evet" and on "bilmiyorum" alike, because it fails open toward asking. The literal
+is the authored `'hayır'` of `vs.immunosuppression` (CD-112 item 2, applied by INT-546), so a plain
+"hayır" closes the item; a hedge to base `immunosuppression` records "bilmiyorum" (§4 gap 8).
 **Overlap: neutropenic sepsis (§2.3).** Gate input only.
 
 **Q16 — Missed doses** · archetype: `ACTION.medication.v1` · source: MED-S9 rec 1.2.2; MED-S2 PDF p. 28 ("Tedaviye uyumu")
@@ -387,9 +388,8 @@ vomiting is a clinician decision and is not drafted here (§4 gap 3).)*
    KVC-S1) and breathlessness on exertion. The clinician may swap them in.
 7. **Functional status for all adults.** MED-S2's functional anchor is in the older-adult chapter.
    Applying Q18 to every adult is an extrapolation for the clinician to confirm.
-8. **Base value-set codes.** `vs.immunosuppression` has no definition file in the repository. Q15's
-   literal `'hayir'` copies base's `lmp_date` gate convention. **DSL owner must confirm** the code,
-   or the gate never opens.
+8. **Base value-set codes.** Resolved. `vs.immunosuppression` is committed (INT-441), and Q15's
+   literal is its member `'hayır'` (CD-112 item 2, applied by INT-546).
 9. **Generator default.** Resolved (verification cluster-wave-a §E-2). The generator's cluster mode
    emits `id: cluster.medical`, `layer: cluster` and `extends: base.intake` under
    `packages/protocols/review/cluster/`, with no specialty draft precondition.

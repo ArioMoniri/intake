@@ -35,6 +35,15 @@ This module is the build of that decision and of nothing else:
 - **Neither a document nor the council feeds the anchor** (CD-05
   ``document_may_feed_anchor`` / ``council_may_fill``): a decision that allowed
   either is refused, because nothing here could honour it.
+- **CD-05 round 3 (INT-519, applied by INT-546).** An unresolved answer
+  carries the record label of its cause (``record_label_by_cause``: hedge,
+  no_choice, session_closed); a hedge beside an authored choice keeps that
+  choice beside the resolution as ``hedged_choice`` and never binds it (CD-04
+  ``hedge_with_choice_on_tense_anchor``); and an anchor never asked when the
+  session closes is evaluated as CD-05's ``never_asked_at_close`` day, labelled
+  so, with the CD-08 item it names. Whether the anchor qualifies — never asked,
+  ``chest_pain.present`` reading true — is the runtime's to see; the day, the
+  label and the item are the decision's.
 
 Everything else CD-05 might say — a token this grammar does not know, a status
 outside the register's two, a draft band with no while-draft resolution — is
@@ -56,6 +65,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Final
 
+from protocols.answer_states import InboxItemRef
 from protocols.clinical_decisions import (
     REGISTER_DIR,
     ClinicalDecision,
@@ -82,6 +92,11 @@ ANCHOR_DECISION_ID: Final = "CD-05"
 #: CD-05 ``unresolved_answer.answer_state``: the engine's state for an answer
 #: that fits no choice once its bounded clarification is spent (files/13 §11.1).
 _UNRESOLVED_STATE: Final = "UNCLEAR"
+#: CD-05 ``never_asked_at_close.answer_state``: never an elicited answer.
+_NEVER_ASKED_STATE: Final = "NOT_ASKED"
+#: CD-05 ``unresolved_answer.causes``: the one cause a hedged choice is kept for
+#: (CD-04 ``hedge_with_choice_on_tense_anchor.cause``).
+_HEDGE_CAUSE: Final = "hedge"
 #: CD-05 ``ambiguity``: the only direction this module resolves doubt in.
 _MORE_ACUTE: Final = "more_acute"
 _TOKEN: Final = re.compile(r"^reference_day(?:_minus_(?P<days>[1-9][0-9]*))?$")
@@ -100,6 +115,8 @@ class AnchorBasis(enum.StrEnum):
     WHILE_DRAFT = "while_draft_resolution"
     #: CD-05 ``unresolved_answer``: no choice fitted; the more acute reading.
     UNRESOLVED = "unresolved_answer"
+    #: CD-05 ``never_asked_at_close``: its own ``record_label`` (INT-546).
+    NEVER_ASKED_AT_CLOSE = "never_asked_at_close"
 
 
 @dataclass(frozen=True)
@@ -116,7 +133,10 @@ class AnchorResolution:
     """One anchor's resolved day, with the patient's choice kept beside it.
 
     CD-05: *"the record keeps the patient's choice beside the resolved date"*.
-    ``choice_tr`` is ``None`` for an answer that fitted no choice.
+    ``choice_tr`` is ``None`` for an answer that fitted no choice, and for an
+    anchor never asked. ``label`` is CD-05's record label for an unresolved
+    answer's cause or for the never-asked anchor (INT-546); ``hedged_choice``
+    is the authored choice a hedge leaned to — kept, never bound (CD-04 round 3).
     """
 
     anchor: str
@@ -124,11 +144,13 @@ class AnchorResolution:
     resolved_on: str
     basis: AnchorBasis
     decision_id: str
+    label: str | None = None
+    hedged_choice: str | None = None
 
     def __repr__(self) -> str:
         return (
             f"AnchorResolution(anchor={self.anchor!r}, basis={self.basis.value!r}, "
-            f"decision_id={self.decision_id!r})"
+            f"label={self.label!r}, decision_id={self.decision_id!r})"
         )
 
     def __str__(self) -> str:
@@ -144,6 +166,12 @@ class AnchorChoiceTable:
     question_tr: str
     choices: tuple[AnchorChoice, ...]
     unresolved_days_before_reference: int
+    #: CD-05 round 3 ``unresolved_answer.record_label_by_cause``.
+    unresolved_labels: Mapping[str, str]
+    #: CD-05 round 3 ``never_asked_at_close.evaluated_as``.
+    never_asked_days_before_reference: int
+    #: CD-05 round 3 ``never_asked_at_close.inbox_item``.
+    never_asked_inbox: InboxItemRef
 
     @property
     def choice_texts(self) -> tuple[str, ...]:
@@ -172,15 +200,59 @@ class AnchorChoiceTable:
             f"of {self.decision_id} (the value is not echoed: invariant 6)"
         )
 
-    def resolve_unresolved(self, anchor: str, reference_time: datetime) -> AnchorResolution:
-        """The day an answer that fitted no choice resolves to (recorded UNCLEAR)."""
+    def resolve_unresolved(
+        self,
+        anchor: str,
+        reference_time: datetime,
+        *,
+        cause: str | None = None,
+        hedged_choice: str | None = None,
+    ) -> AnchorResolution:
+        """The day an answer that fitted no choice resolves to (recorded UNCLEAR).
+
+        ``cause`` is the runtime's reason for the UNCLEAR; the record carries
+        CD-05's label for it, and a cause CD-05 does not name is refused.
+        ``hedged_choice`` is the authored choice a hedge leaned to: kept on the
+        record, never the resolved day's source, and only for a hedge.
+        """
         self._require_anchor(anchor)
+        label = None
+        if cause is not None:
+            label = self.unresolved_labels.get(cause)
+            if label is None:
+                raise AnchorChoiceError(
+                    f"{anchor}: the unresolved cause is not one {self.decision_id} names"
+                )
+        if hedged_choice is not None:
+            if cause != _HEDGE_CAUSE or hedged_choice not in self.choice_texts:
+                raise AnchorChoiceError(
+                    f"{anchor}: a hedged choice is kept only for a hedge, and only an "
+                    f"authored choice of {self.decision_id} (the value is not echoed)"
+                )
         return AnchorResolution(
             anchor=anchor,
             choice_tr=None,
             resolved_on=reference_day(reference_time, self.unresolved_days_before_reference),
             basis=AnchorBasis.UNRESOLVED,
             decision_id=self.decision_id,
+            label=label,
+            hedged_choice=hedged_choice,
+        )
+
+    def resolve_never_asked(self, anchor: str, reference_time: datetime) -> AnchorResolution:
+        """The day an anchor never asked by the session's close is evaluated as.
+
+        CD-05 ``never_asked_at_close``: nothing is bound to the slot, which
+        stays NOT_ASKED; this is the reading the rules engine evaluates once.
+        """
+        self._require_anchor(anchor)
+        return AnchorResolution(
+            anchor=anchor,
+            choice_tr=None,
+            resolved_on=reference_day(reference_time, self.never_asked_days_before_reference),
+            basis=AnchorBasis.NEVER_ASKED_AT_CLOSE,
+            decision_id=self.decision_id,
+            label=AnchorBasis.NEVER_ASKED_AT_CLOSE.value,
         )
 
     def _require_anchor(self, anchor: str) -> None:
@@ -232,12 +304,21 @@ def anchor_choice_table(decision: ClinicalDecision) -> AnchorChoiceTable:
         where,
         "the unresolved answer resolves to a less acute day than a choice",
     )
+    never_asked, never_asked_inbox = _never_asked(value.get("never_asked_at_close"), where)
+    _require(
+        all(never_asked <= choice.days_before_reference for choice in choices),
+        where,
+        "a never-asked anchor is evaluated as a less acute day than a choice",
+    )
     return AnchorChoiceTable(
         decision_id=decision.id,
         anchors=_active_anchors(value.get("anchors"), where),
         question_tr=question,
         choices=choices,
         unresolved_days_before_reference=unresolved,
+        unresolved_labels=_unresolved_labels(value.get("unresolved_answer"), where),
+        never_asked_days_before_reference=never_asked,
+        never_asked_inbox=never_asked_inbox,
     )
 
 
@@ -320,6 +401,47 @@ def _unresolved(node: object, where: str) -> int:
         "the unresolved answer is not recorded UNCLEAR",
     )
     return _days(entry.get("resolves_to"), where)
+
+
+def _unresolved_labels(node: object, where: str) -> Mapping[str, str]:
+    """CD-05 round 3: each cause the unresolved answer covers, and its label."""
+    entry = _mapping(node, where, "unresolved_answer")
+    causes = [
+        _text(cause, where, "a cause is empty")
+        for cause in _list(entry.get("causes"), where, "causes")
+    ]
+    _require(len(set(causes)) == len(causes), where, "a cause is named twice")
+    _require(_HEDGE_CAUSE in causes, where, "the hedge cause is not named")
+    labels = _mapping(entry.get("record_label_by_cause"), where, "record_label_by_cause")
+    _require(set(labels) == set(causes), where, "a cause has no record label")
+    return {cause: _text(labels[cause], where, "a record label is empty") for cause in causes}
+
+
+def _never_asked(node: object, where: str) -> tuple[int, InboxItemRef]:
+    """CD-05 round 3 ``never_asked_at_close``: the day, the label and the item."""
+    entry = _mapping(node, where, "never_asked_at_close")
+    _require(
+        entry.get("status") == DecisionStatus.ACTIVE.value, where, "the never-asked rule is draft"
+    )
+    _require(
+        entry.get("answer_state") == _NEVER_ASKED_STATE,
+        where,
+        "a never-asked anchor is not recorded NOT_ASKED",
+    )
+    _require(
+        entry.get("record_label") == AnchorBasis.NEVER_ASKED_AT_CLOSE.value,
+        where,
+        "the never-asked record label",
+    )
+    item = _mapping(entry.get("inbox_item"), where, "the never-asked inbox item")
+    _require(item.get("never_dropped") is True, where, "the never-asked item may be dropped")
+    inbox = InboxItemRef(
+        decision_ref=_text(
+            item.get("decision_ref"), where, "the never-asked item names no decision"
+        ),
+        kind=_text(item.get("kind"), where, "the never-asked item names no kind"),
+    )
+    return _days(entry.get("evaluated_as"), where), inbox
 
 
 def _active_anchors(node: object, where: str) -> frozenset[str]:

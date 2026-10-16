@@ -395,6 +395,84 @@ def test_a_slot_that_is_not_an_anchor_does_not_resolve() -> None:
         _table().resolve("hpi.onset_date", NOW_CHOICE, REF)
     with pytest.raises(AnchorChoiceError, match="airway.onset_at"):
         _table().resolve_unresolved("airway.onset_at", REF)
+    with pytest.raises(AnchorChoiceError, match="hpi.onset_date"):
+        _table().resolve_never_asked("hpi.onset_date", REF)
+
+
+# --- 6 · CD-05 round 3: labels by cause, the hedged choice, the close (INT-546) --------
+
+
+def test_an_unresolved_answer_carries_cd05s_label_for_its_cause() -> None:
+    """INT-519 items 5, 9 and 11: every cause the runtime records is named in
+    ``unresolved_answer``, each with its record label; all resolve to the
+    reference day."""
+    raw = _raw()["value"]["unresolved_answer"]
+    table = _table()
+    assert dict(table.unresolved_labels) == raw["record_label_by_cause"]
+    assert set(table.unresolved_labels) == set(raw["causes"])
+    for cause, label in raw["record_label_by_cause"].items():
+        resolution = table.resolve_unresolved(ANCHOR, REF, cause=cause)
+        assert (resolution.basis, resolution.label, resolution.choice_tr) == (
+            AnchorBasis.UNRESOLVED,
+            label,
+            None,
+        )
+        assert resolution.resolved_on == reference_day(REF, 0)
+
+
+def test_near_miss_a_cause_cd05_does_not_name_resolves_nothing() -> None:
+    """The straddle's label is CD-05's too, but not an unresolved cause: a
+    cause the decision does not name is refused, never labelled by guess."""
+    with pytest.raises(AnchorChoiceError, match="cause"):
+        _table().resolve_unresolved(ANCHOR, REF, cause="straddle_more_acute")
+
+
+def test_a_hedged_choice_is_kept_beside_the_resolution_and_never_bound() -> None:
+    """INT-519 item 8 (CD-04 ``hedge_with_choice_on_tense_anchor``): 'emin
+    değilim, galiba üç günden önceydi' is UNCLEAR, cause hedge; the choice the
+    patient leaned to is kept as ``hedged_choice`` and never bound — the day is
+    the reference day, not the leaned-to band's."""
+    assert _raw()["value"]["unresolved_answer"]["resolves_to"] == "reference_day"
+    resolution = _table().resolve_unresolved(ANCHOR, REF, cause="hedge", hedged_choice=OLDER)
+    assert (resolution.hedged_choice, resolution.choice_tr) == (OLDER, None)
+    assert resolution.resolved_on == reference_day(REF, 0) != reference_day(REF, 3)
+    shown = f"{resolution!r} {resolution}"
+    assert OLDER not in shown and resolution.resolved_on not in shown
+
+
+def test_near_miss_a_hedged_choice_that_is_not_authored_is_refused() -> None:
+    with pytest.raises(AnchorChoiceError):
+        _table().resolve_unresolved(ANCHOR, REF, cause="hedge", hedged_choice="dün akşam")
+    with pytest.raises(AnchorChoiceError):
+        _table().resolve_unresolved(ANCHOR, REF, cause="no_choice", hedged_choice=OLDER)
+
+
+def test_a_never_asked_anchor_at_close_is_evaluated_as_the_reference_day() -> None:
+    """INT-519 item 10 (CD-05 ``never_asked_at_close``): the reference day,
+    labelled, with no choice — the slot itself stays NOT_ASKED (the runtime's)."""
+    raw = _raw()["value"]["never_asked_at_close"]
+    assert (raw["answer_state"], raw["evaluated_as"], raw["status"]) == (
+        "NOT_ASKED",
+        "reference_day",
+        "active",
+    )
+    resolution = _table().resolve_never_asked(ANCHOR, REF)
+    assert (resolution.basis, resolution.label, resolution.choice_tr) == (
+        AnchorBasis.NEVER_ASKED_AT_CLOSE,
+        raw["record_label"],
+        None,
+    )
+    assert AnchorBasis.NEVER_ASKED_AT_CLOSE.value == raw["record_label"]
+    assert resolution.resolved_on == reference_day(REF, 0)
+    # never less acute than an answer that fits no choice
+    assert resolution.resolved_on >= _table().resolve_unresolved(ANCHOR, REF).resolved_on
+
+
+def test_the_never_asked_item_is_cd05s_inbox_kind() -> None:
+    raw = _raw()["value"]["never_asked_at_close"]["inbox_item"]
+    item = _table().never_asked_inbox
+    assert (item.decision_ref, item.kind) == (raw["decision_ref"], raw["kind"])
+    assert (item.decision_ref, item.kind) == ("CD-08", "chest_pain_arms_unresolved")
 
 
 def _set(path: tuple[str | int, ...], new: object) -> Callable[[dict[str, Any]], None]:
@@ -464,6 +542,37 @@ REFUSALS = [
     pytest.param(_set(("anchors", 0, "anchor"), ""), id="empty-anchor"),
     pytest.param(_set(("anchors",), {}), id="anchors-not-a-list"),
     pytest.param(_set(("anchor_question_tr",), ""), id="no-question"),
+    # INT-546: CD-05 round 3's labels by cause and the never-asked anchor
+    pytest.param(_set(("unresolved_answer", "causes"), []), id="no-causes"),
+    pytest.param(
+        _drop(("unresolved_answer", "record_label_by_cause", "session_closed")),
+        id="a-cause-unlabelled",
+    ),
+    pytest.param(
+        _set(("unresolved_answer", "record_label_by_cause", "hedge"), ""), id="empty-label"
+    ),
+    pytest.param(_drop(("never_asked_at_close",)), id="no-never-asked-rule"),
+    pytest.param(
+        _set(("never_asked_at_close", "status"), "draft_needs_source"), id="never-asked-draft"
+    ),
+    pytest.param(
+        _set(("never_asked_at_close", "answer_state"), "UNCLEAR"), id="never-asked-elicited"
+    ),
+    pytest.param(
+        _set(("never_asked_at_close", "evaluated_as"), "reference_day_minus_3"),
+        id="never-asked-less-acute",
+    ),
+    pytest.param(
+        _set(("never_asked_at_close", "record_label"), "unresolved_answer"),
+        id="never-asked-other-label",
+    ),
+    pytest.param(
+        _set(("never_asked_at_close", "inbox_item", "kind"), ""), id="never-asked-no-item"
+    ),
+    pytest.param(
+        _set(("never_asked_at_close", "inbox_item", "never_dropped"), False),
+        id="never-asked-item-may-drop",
+    ),
 ]
 
 

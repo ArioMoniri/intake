@@ -41,7 +41,9 @@ What it holds to:
   :class:`~intake_voice_runtime.clinical_agent.anchors.SessionAnchors`, such
   an anchor is read as that day — before and after every Work, so the Work
   that spent the last clarification is evaluated — and every other UNCLEAR
-  slot still reads Unknown.
+  slot still reads Unknown. Since INT-546 (CD-05 round 3 item 10) an anchor
+  the session's close found never asked, with chest pain affirmed, is read as
+  CD-05's ``never_asked_at_close`` day the same way; the slot stays NOT_ASKED.
 - **A read is spelled ``<section>.<slot>`` or bare ``<slot>``** (files/12
   §2.4). Each spelling is mapped to the step it names; a bare name two
   sections share names neither and reads Unknown, because guessing between
@@ -63,6 +65,7 @@ from datetime import datetime
 from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, RulesTriageResult
+from protocols.anchor_choices import AnchorResolution
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.compile.rule_reads import rule_reads
 from protocols.dsl import RedFlagRule
@@ -196,21 +199,31 @@ class SessionTriage:
         """The rules engine's determination over the session's answers now."""
         result = evaluate_triage(self.rules, self.context(engine), self.location).result
         if self.anchors is not None:
-            for resolution in self.anchors.unclear_readings(engine, self.reads).values():
+            for resolution in self._anchor_readings(self.anchors, engine).values():
                 self.anchors.note(resolution)
         self.evaluated.append(work_id)
         return result
 
+    def _anchor_readings(
+        self, anchors: SessionAnchors, engine: IntakeEngine
+    ) -> dict[str, AnchorResolution]:
+        """Each anchor CD-05 reads although nothing is bound to it (pure)."""
+        readings = anchors.unclear_readings(engine, self.reads)
+        readings.update(anchors.never_asked_readings(engine, self.reads))
+        return readings
+
     def _answered(self, engine: IntakeEngine) -> dict[str, tuple[AnswerState, JsonValue]]:
-        """The engine's bound answers, plus each UNCLEAR anchor read as CD-05 decides.
+        """The engine's bound answers, plus each anchor read as CD-05 decides.
 
         An UNCLEAR anchor carries the day CD-05 ``unresolved_answer`` resolves
-        it to, as a value-bearing answer: the record of the slot is still
-        UNCLEAR (``engine.state_of``), and ``SessionAnchors.record`` labels the
-        day ``unresolved_answer``.
+        it to, and an anchor the close found never asked with chest pain
+        affirmed carries CD-05's ``never_asked_at_close`` day (INT-546), each as
+        a value-bearing answer: the record of the slot is unchanged
+        (``engine.state_of`` is UNCLEAR or NOT_ASKED; nothing is bound), and
+        ``SessionAnchors.record`` labels the day.
         """
         answered = engine.answered()
         if self.anchors is not None:
-            for step_id, resolution in self.anchors.unclear_readings(engine, self.reads).items():
+            for step_id, resolution in self._anchor_readings(self.anchors, engine).items():
                 answered[step_id] = (AnswerState.ASKED_PRESENT, resolution.resolved_on)
         return answered

@@ -260,11 +260,11 @@ follow-up rather than the complaint one.
 
 **Q2 — Pregnancy confirmed by a test or scan (gate)** · archetype: `OBSERVATION.story.v1` · source: WH-S5 rec 1.4.5; WH-S1 PDF p. 14
 > "Bir gebelik testi ya da ultrason gebe olduğunuzu gösterdi mi?"
-gen: slot=gebelik_dogrulandi; type=boolean; ask_if=pregnancy_status != 'hayir'; follow_up=Evde ya da hastanede yapılan gebelik testi pozitif çıktı mı?; delivery=text_first
+gen: slot=gebelik_dogrulandi; type=boolean; ask_if=pregnancy_status != 'hayır'; follow_up=Evde ya da hastanede yapılan gebelik testi pozitif çıktı mı?; delivery=text_first
 CANDIDATE — clinician to approve wording. Neutral: the ask presumes no pregnancy, because the gate
 also opens on "emin değilim". Reads base `pregnancy_status` and does not re-ask it. It
-opens on "evet" and "emin değilim", and the literal `'hayir'` copies base's own `lmp_date` gate
-(§4 gap 4). Gate for Q3–Q9. A "hayır" here still leaves a possible pregnancy on record through base,
+opens on "evet" and "emin değilim", and its literal is the authored `'hayır'` (CD-112 item 3,
+applied by INT-546; §4 gap 4), so a plain "hayır" closes it. Gate for Q3–Q9. A "hayır" here still leaves a possible pregnancy on record through base,
 and the ectopic candidate (§2.3) reads base, not this item.
 
 **Q3 — Estimated due date** · archetype: `OBSERVATION.story.v1` · source: WH-S1 PDF p. 14 ("Tahmini doğum tarihi")
@@ -402,8 +402,8 @@ Q3–Q9 on Q2 or Q5; Q11–Q12 on Q10; Q14b on Q14a. 18 are `text_first`, and on
    postpartum window are **clinical values**. They stay as the invariant-17 pending form in any rule
    until signed. A date slot for when the pregnancy ended (for example `gebelik_sonlanma_tarihi`,
    type date) would let a rule apply that window. It is not drafted, to stay within eighteen.
-4. **Base value-set codes.** `vs.pregnancy_status` has no definition file. Q2's literal `'hayir'`
-   copies base's `lmp_date` gate. **DSL owner must confirm**, or the gate never opens.
+4. **Base value-set codes.** Resolved. `vs.pregnancy_status` is committed (INT-441), and Q2's
+   literal is its member `'hayır'` (CD-112 item 3, applied by INT-546).
 5. **Contraceptive method name.** Q17 is a boolean. The method named in its follow-up has no slot.
    A string slot gated on Q17 is the fix, following the wave-7 split pattern. The only Turkish
    contraception guide retrieved (WH-S4) dates from 2005. **NO current SOURCE FOUND.**

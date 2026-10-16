@@ -239,6 +239,10 @@ class IntakeEngine:
         self.state_of(step_id)
         return self._bounds.get(step_id, MAX_CLARIFICATION_ATTEMPTS)
 
+    def clarifications_left(self, step_id: str) -> int:
+        """How many of ``step_id``'s clarifications are still unspent (INT-546)."""
+        return max(self.clarification_bound(step_id) - self._clarify_attempts.get(step_id, 0), 0)
+
     def origin_of(self, step_id: str) -> str:
         """The plan step a step id or a queued re-entry answers."""
         return self._origin_of(step_id)
@@ -386,6 +390,9 @@ class IntakeEngine:
         ``step_id`` may name a plan step or one of its clarification
         re-entries; either way the answer binds to the origin slot.
         """
+        if clarification_needed:
+            self.clarify(step_id)
+            return
         origin = self._origin_of(step_id)
         reentry = self._reentries.get(step_id)
         rebinds = reentry is not None and reentry.rebinds
@@ -395,9 +402,6 @@ class IntakeEngine:
             # record nothing for that slot
             self._drop_reentry(step_id)
             return
-        if clarification_needed:
-            self._clarify(origin, consumed=step_id, rebinds=rebinds)
-            return
         self._drop_reentry(step_id)
         if rebinds and origin in slot_updates:
             self._states[origin] = AnswerState.ASKED_PENDING
@@ -405,6 +409,27 @@ class IntakeEngine:
         else:
             self._bind(slot_updates)
         self._sweep_invalidated()
+
+    def clarify(self, step_id: str, *, bound: int | None = None) -> None:
+        """The answer to ``step_id`` needs clarifying: ``apply_extraction(step_id, {}, True)``.
+
+        Queues the origin's ``follow_up_tr`` re-entry, or — its bound spent —
+        records files/13 §11.1's UNCLEAR and the gap. ``bound`` tightens the
+        origin's bound for this answer only (INT-546: CD-04 round 3 bounds a
+        tense anchor by the cause of its UNCLEAR, none for a hedge); it may be
+        at most the step's own, and anything looser is refused before anything
+        changes.
+        """
+        origin = self._origin_of(step_id)
+        limit = self._answer_bound(origin, bound)
+        reentry = self._reentries.get(step_id)
+        rebinds = reentry is not None and reentry.rebinds
+        self._version += 1
+        if origin in self._invalidated:
+            # files/13 §11.3: an invalidated slot records nothing
+            self._drop_reentry(step_id)
+            return
+        self._clarify(origin, consumed=step_id, rebinds=rebinds, bound=limit)
 
     def close_unanswered(self, step_id: str) -> None:
         """The session ended with ``step_id`` asked and unanswered (INT-540).
@@ -464,12 +489,27 @@ class IntakeEngine:
         if self._reentries.pop(step_id, None) is not None:
             self._asked_reentries.discard(step_id)
 
-    def _clarify(self, origin: str, *, consumed: str, rebinds: bool = False) -> None:
+    def _answer_bound(self, origin: str, bound: int | None) -> int:
+        """The bound one answer's clarification is held to: the step's, or tighter."""
+        ceiling = self.clarification_bound(origin)
+        if bound is None:
+            return ceiling
+        if isinstance(bound, bool) or not 0 <= bound <= ceiling:
+            raise EngineError(
+                f"{origin!r}: an answer's clarification bound outside 0..{ceiling}, "
+                "the step's own (a bound may tighten the step's, never lift it)"
+            )
+        return bound
+
+    def _clarify(
+        self, origin: str, *, consumed: str, rebinds: bool = False, bound: int | None = None
+    ) -> None:
         """Queue a class-3 re-entry, or record the gap (files/13 §11.1)."""
         self._drop_reentry(consumed)
         step = self._by_id[origin]
         attempts = self._clarify_attempts.get(origin, 0)
-        if step.follow_up_tr is None or attempts >= self.clarification_bound(origin):
+        limit = self.clarification_bound(origin) if bound is None else bound
+        if step.follow_up_tr is None or attempts >= limit:
             # no follow_up_tr means no verbatim text to speak, and invariant
             # 10 leaves no improvised alternative — the honest move is the gap
             self._give_up(origin)
