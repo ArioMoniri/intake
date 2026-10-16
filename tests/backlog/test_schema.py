@@ -171,7 +171,9 @@ def test_ids_unique_and_well_formed() -> None:
     # order of 3 Oct 2026, GitHub #790).
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785).
-    assert len(ids) == 344
+    # + INT-498 (the feature audit on the AWS synthetic stack; owner order of
+    # 16 Oct 2026, GitHub #850).
+    assert len(ids) == 345
     import re
 
     for i in ids:

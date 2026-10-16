@@ -6731,3 +6731,25 @@
     - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
   tests: [tests/admin/test_second_admin_runbook.py]
   sec_row: "admin-console"
+- id: INT-498
+  epic: E01-platform
+  phase: P1
+  title: "Feature audit on the AWS synthetic stack: every requested feature on main, in a PR and on the host, and the short GATED list"
+  # GitHub #850. Owner order, 16 Oct 2026: "all features working, nothing
+  # demo". The audit is read-only on the host (no sign-in, no write; smoke.sh
+  # not run because it restarts services). Engineering gaps are proposed as
+  # issue bodies in the evidence (P1-P7) for the coordinator to mint; none is
+  # minted here. INT-452's PR #867 lists this row as held by an agent and does
+  # not add it.
+  depends_on: []
+  labels: [area:observability]
+  status: done
+  evidence: docs/evidence/INT-498.md
+  acceptance:
+    - "docs/evidence/INT-498.md lists every owner-requested feature (patient app, clinician note, admin console, hosted model lanes, voice lanes, store readiness and the owner's design orders) with its state on main, its open PR or issue, and its observed state on the AWS synthetic host, each marked WORKING, PARTIAL, NOT BUILT, DEMO-ONLY or GATED"
+    - "every host observation is read-only: public endpoints and anonymous refusals, and SSM commands that list containers, report keys as SET or EMPTY without values, and count log lines; no sign-in, no write"
+    - "engineering gaps with no issue get a one-paragraph issue body with a Sec-Row in the evidence, and gaps that already have an issue name it; no id is minted by this PR"
+    - "the GATED list names real-patient hosting in Türkiye, physician sign-off, a licensed lawyer's countersign, the medical-device status of triage and Apple's review, each with the fastest legitimate path and a source; no gate is proposed for removal"
+    - "tests/docs/test_feature_audit.py holds the table to the closed status vocabulary, the stated counts to the table, WORKING to a serving host, and the GATED list to its five items with a path and a source"
+  tests: [tests/docs/test_feature_audit.py]
+  sec_row: "monitoring-contract"
