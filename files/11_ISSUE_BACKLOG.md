@@ -8,7 +8,7 @@
 > live status with GitHub state and named blocker owners is the generated
 > section of `files/05_ROADMAP.md` (INT-452).
 
-**367 issues.** By phase: P0 172 · P1 141 · P2 47 · P3 7. By status: awaiting-human 37 · doing 6 · done 229 · todo 94 · withdrawn 1.
+**368 issues.** By phase: P0 172 · P1 142 · P2 47 · P3 7. By status: awaiting-human 37 · doing 6 · done 230 · todo 94 · withdrawn 1.
 
 ## P0
 
@@ -332,6 +332,7 @@
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done | agent · runtime-reviewer |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human | owner (infrastructure) |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human | owner (infrastructure) |
+| INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done | agent · security-reviewer |
 
 ## P2
 

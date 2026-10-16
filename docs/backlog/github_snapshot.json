@@ -1,6 +1,6 @@
 {
- "base": "6cd8c988af667f3b049631378a998beb76079dd1",
- "captured_at": "2026-10-16T02:43:16Z",
+ "base": "be6c09c1e03c14553e35004cdabb30fcf4949f92",
+ "captured_at": "2026-10-16T03:13:48Z",
  "merged_prs": {
   "INT-001": [
    2
@@ -761,6 +761,9 @@
   ],
   "INT-449": [
    772
+  ],
+  "INT-460": [
+   789
   ],
   "INT-463": [
    791
@@ -1834,11 +1837,6 @@
    "title": "INT-459: admin-web premium redesign"
   },
   {
-   "number": 785,
-   "phase": "P1",
-   "title": "INT-460: second admin approver for synthetic staging"
-  },
-  {
    "number": 786,
    "phase": null,
    "title": "INT-461: ADR-038 — ADR-033 amendment: spring-in bubbles, selection haptics on chips and mic, in-tree detent sheets under the RED root layer"
@@ -2052,6 +2050,16 @@
    "number": 862,
    "phase": "P2",
    "title": "INT-506: App Store listing follow-ups from the INT-495 legal approval (non-blocking)"
+  },
+  {
+   "number": 864,
+   "phase": "P1",
+   "title": "INT-507: per-question, platform and triage-share analytics from anonymous-at-source counters (no per-person records)"
+  },
+  {
+   "number": 865,
+   "phase": "P1",
+   "title": "INT-508: node-forge and braces have no upstream fix — renew their time-boxed exceptions or replace the dependents before 1 Nov 2026"
   }
  ],
  "open_prs": [
@@ -2168,7 +2176,7 @@
   {
    "branch": "int-338-section-sheet",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 703,
    "rows_added": [],
    "title": "INT-338: Motion: section sheet — measured fade budget, instant privacy and RED closes"
@@ -2176,7 +2184,7 @@
   {
    "branch": "int-342-content-reveal",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 704,
    "rows_added": [],
    "title": "INT-342: Motion: content reveal and a static skeleton"
@@ -2229,7 +2237,7 @@
   {
    "branch": "int-420-onvizit-rebrand",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 729,
    "rows_added": [
     "INT-420"
@@ -2239,7 +2247,7 @@
   {
    "branch": "int-350-ci-edge-plugin-tests",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 731,
    "rows_added": [],
    "title": "INT-350: CI part 2: check-integration builds the pinned edge plugin; osv findings fixed"
@@ -2247,7 +2255,7 @@
   {
    "branch": "int-424-voice-profiles-v2",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 734,
    "rows_added": [
     "INT-424"
@@ -2257,7 +2265,7 @@
   {
    "branch": "int-427-specialty-wave",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 737,
    "rows_added": [
     "INT-427"
@@ -2267,7 +2275,7 @@
   {
    "branch": "int-425-store-screenshots",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 738,
    "rows_added": [
     "INT-422",
@@ -2280,7 +2288,7 @@
   {
    "branch": "int-433-question-screen",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 740,
    "rows_added": [
     "INT-422",
@@ -2302,7 +2310,7 @@
   {
    "branch": "int-428-hosted-lanes",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 751,
    "rows_added": [
     "INT-428"
@@ -2323,7 +2331,7 @@
   {
    "branch": "int-446-red-e2e",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 766,
    "rows_added": [
     "INT-446"
@@ -2333,7 +2341,7 @@
   {
    "branch": "int-440-voice-first-e2e",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 768,
    "rows_added": [
     "INT-440"
@@ -2356,7 +2364,7 @@
   {
    "branch": "int-453-red-path-winner",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "MERGEABLE",
    "number": 773,
    "rows_added": [
     "INT-446",
@@ -2367,7 +2375,7 @@
   {
    "branch": "int-442-egress-proxy",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 774,
    "rows_added": [
     "INT-428",
@@ -2378,7 +2386,7 @@
   {
    "branch": "int-443-elevenlabs-hosted-tts",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 775,
    "rows_added": [
     "INT-424",
@@ -2391,7 +2399,7 @@
   {
    "branch": "int-450-admin-ui",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 776,
    "rows_added": [
     "INT-450"
@@ -2411,7 +2419,7 @@
   {
    "branch": "int-459-admin-premium",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 784,
    "rows_added": [
     "INT-450",
@@ -2430,19 +2438,9 @@
    "title": "INT-461: ADR-038 — ADR-033 amendment: spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets"
   },
   {
-   "branch": "int-460-second-admin-approver",
-   "draft": false,
-   "mergeable": "MERGEABLE",
-   "number": 789,
-   "rows_added": [
-    "INT-460"
-   ],
-   "title": "INT-460: second admin approver for synthetic staging"
-  },
-  {
    "branch": "int-462-native-chat",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 792,
    "rows_added": [
     "INT-422",
@@ -2457,7 +2455,7 @@
   {
    "branch": "int-465-generic-red-active",
    "draft": false,
-   "mergeable": "MERGEABLE",
+   "mergeable": "CONFLICTING",
    "number": 796,
    "rows_added": [
     "INT-446",
@@ -2469,7 +2467,7 @@
   {
    "branch": "int-466-chat-stage",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 797,
    "rows_added": [
     "INT-422",
@@ -2485,7 +2483,7 @@
   {
    "branch": "int-464-native-welcome",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 801,
    "rows_added": [
     "INT-422",
@@ -2512,7 +2510,7 @@
   {
    "branch": "int-472-review-grouped",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 806,
    "rows_added": [
     "INT-422",
@@ -2530,7 +2528,7 @@
   {
    "branch": "int-473-detent-sheet",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 808,
    "rows_added": [
     "INT-422",
@@ -2560,7 +2558,7 @@
   {
    "branch": "int-468-red-clinical-values",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 813,
    "rows_added": [
     "INT-468"
@@ -2570,7 +2568,7 @@
   {
    "branch": "int-469-adli-tip-no-report-purpose",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 816,
    "rows_added": [
     "INT-469"
@@ -2580,7 +2578,7 @@
   {
    "branch": "int-474-deployment-role-gate",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 818,
    "rows_added": [
     "INT-474"
@@ -2590,7 +2588,7 @@
   {
    "branch": "int-477-capture-solid-chrome",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 819,
    "rows_added": [
     "INT-422",
@@ -2610,7 +2608,7 @@
   {
    "branch": "int-478-capture-protection-refcount",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 821,
    "rows_added": [
     "INT-478"
@@ -2620,7 +2618,7 @@
   {
    "branch": "int-482-store-listing",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 828,
    "rows_added": [
     "INT-482"
@@ -2630,7 +2628,7 @@
   {
    "branch": "int-483-self-proxy",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 833,
    "rows_added": [
     "INT-483"
@@ -2650,7 +2648,7 @@
   {
    "branch": "int-484-ld06",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 835,
    "rows_added": [
     "INT-470",
@@ -2662,7 +2660,7 @@
   {
    "branch": "int-481-observability-stack",
    "draft": false,
-   "mergeable": "MERGEABLE",
+   "mergeable": "UNKNOWN",
    "number": 840,
    "rows_added": [
     "INT-481"
@@ -2672,7 +2670,7 @@
   {
    "branch": "int-491-orb-variants",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 842,
    "rows_added": [
     "INT-422",
@@ -2692,7 +2690,7 @@
   {
    "branch": "int-492-progress-micro",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 843,
    "rows_added": [
     "INT-422",
@@ -2733,7 +2731,7 @@
   {
    "branch": "int-475-red-staff-notify",
    "draft": false,
-   "mergeable": "CONFLICTING",
+   "mergeable": "UNKNOWN",
    "number": 855,
    "rows_added": [
     "INT-446",
@@ -2759,7 +2757,7 @@
   {
    "branch": "int-494-apply-cd111",
    "draft": false,
-   "mergeable": "MERGEABLE",
+   "mergeable": "UNKNOWN",
    "number": 861,
    "rows_added": [
     "INT-446",
@@ -2769,6 +2767,28 @@
     "INT-494"
    ],
    "title": "INT-494: apply CD-111 to the served cardiac RED rule — decided do-not lists, re-signed synthetic rule set"
+  },
+  {
+   "branch": "int-490-research-analytics",
+   "draft": false,
+   "mergeable": "UNKNOWN",
+   "number": 863,
+   "rows_added": [
+    "INT-490"
+   ],
+   "title": "INT-490: research and improvement analytics in the admin panel, anonymised aggregates within LD-06"
+  },
+  {
+   "branch": "int-497-voice-experience",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 866,
+   "rows_added": [
+    "INT-497",
+    "INT-504",
+    "INT-505"
+   ],
+   "title": "INT-497: voice experience — the turn ends on silence, one queue per turn, one loudness, measured"
   }
  ],
  "repo": "ArioMoniri/intake",
@@ -3133,6 +3153,7 @@
   "INT-456",
   "INT-457",
   "INT-458",
+  "INT-460",
   "INT-463",
   "INT-467",
   "INT-476",
