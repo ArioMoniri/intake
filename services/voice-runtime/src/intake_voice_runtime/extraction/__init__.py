@@ -17,6 +17,7 @@ from intake_voice_runtime.extraction.boundary import (
 )
 from intake_voice_runtime.extraction.errors import (
     BoundaryEscape,
+    CodeSlotUnbound,
     ExtractionNotConfigured,
     ExtractionRefused,
     ExtractionUnavailable,
@@ -51,6 +52,7 @@ from intake_voice_runtime.extraction.schema import (
     TOP_LEVEL_KEYS,
     build_instructions,
     slot_output_schema,
+    unbound_code_slots,
 )
 from intake_voice_runtime.extraction.work import (
     CANDIDATE_FLAG_LEVEL,
@@ -76,6 +78,7 @@ __all__ = [
     "SENTINEL_PREFIX",
     "TOP_LEVEL_KEYS",
     "BoundaryEscape",
+    "CodeSlotUnbound",
     "Completion",
     "ExtractionCall",
     "ExtractionContext",
@@ -103,5 +106,6 @@ __all__ = [
     "render_request_payload",
     "run_extraction",
     "slot_output_schema",
+    "unbound_code_slots",
     "wrap_patient_data",
 ]

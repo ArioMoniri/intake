@@ -26,6 +26,7 @@ __all__ = [
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
     "TALKER_TOOL_CALLS_TOTAL",
+    "TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL",
     "VENDOR_BREAKER_STATE",
     "VENDOR_BREAKER_TRANSITIONS_TOTAL",
     "VENDOR_FAILOVERS_TOTAL",
@@ -91,6 +92,17 @@ WORK_FAILED_TOTAL = Counter(
     "work_failed_total",
     "Backend Work that ended in the failed state, by work type.",
     ["type"],
+)
+
+#: INT-521: the session's rules-engine evaluation could not stand. ``kind`` is
+#: closed: ``fault`` (the evaluation raised; the Work fails and the next state
+#: Work evaluates again) or ``conflict`` (a handler's own determination
+#: disagreed with the rules engine's over the served rules; the engine's
+#: stands). Either pages: a RED may be missing from a live session.
+TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL = Counter(
+    "triage_live_evaluation_failures_total",
+    "Live-session rules-engine evaluations that faulted or disagreed with a handler, by kind.",
+    ["kind"],
 )
 
 
