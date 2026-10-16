@@ -982,6 +982,10 @@ export const tr = {
   "devVoice.reason.timeout": "zaman aşımı",
   "devVoice.reason.refused": "bağlantı reddedildi",
   "devVoice.reason.status": "yanıt kodu",
+  "devVoice.timeline.title": "Geliştirici notu: tur zamanlaması",
+  "devVoice.timeline.firstAudio": "Konuşma sonundan ilk sese",
+  "devVoice.timeline.join": "Klipler arasındaki en uzun boşluk",
+  "devVoice.timeline.asr": "Yazıya dökme süresi",
   // ---- INT-247: önceki ziyaretlerden taşınan bilgiler ---------------------
   // Patient copy for the confirm / changed / stopped step and the
   // transparency ledger, plus the markers the note carries. The note markers

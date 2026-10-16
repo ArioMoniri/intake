@@ -52,15 +52,22 @@
  * patient's words; the cue that picks it is read from the patient's last
  * action on this device and never awaited; and a lead-in whose clip is not
  * made yet is dropped for that turn, so the question is never late for it.
+ *
+ * INT-497 is the owner's "no delay, no seams, nothing robotic", in four parts,
+ * each in its own pure module and wired here:
+ *   - the turn ends when the patient stops talking (endpointer.ts), not when
+ *     they find "Bitirdim" — the tap still works, and a tap that lands just
+ *     after the turn ended itself is read as that, never as a barge-in;
+ *   - a turn's clips play as ONE queue (turnQueue.ts), so a lead-in and its
+ *     question have no player switch between them, and every clip is stored
+ *     finished — one loudness, the pause its place calls for (clipFinish.ts);
+ *   - a question whose clip is not made yet is fronted by a holding
+ *     acknowledgement that is (holdingLine.ts), never dead silence;
+ *   - the audio mode is set once per session, not re-applied every turn.
+ * The turn timeline (turnTimeline.ts) measures what the patient waited.
  */
 import { useEffect, useReducer, useRef, useState } from "react";
-import {
-  AudioModule,
-  RecordingPresets,
-  createAudioPlayer,
-  useAudioRecorder,
-  type AudioPlayer,
-} from "expo-audio";
+import { AudioModule, RecordingPresets, createAudioPlaylist, useAudioRecorder } from "expo-audio";
 
 import { configuredServiceCandidates } from "../dev/expoHosts";
 import { BARGE_IN_SAMPLE_MS, createSpeechOnsetDetector } from "./bargeIn";
@@ -68,8 +75,20 @@ import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../e
 import type { IntakeQuestion } from "../intake/questions";
 import { discardRecording, transcribeRecording } from "../voice";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
-import { readCue, type DeliveryCue, type Utterance } from "./delivery";
+import { lastDeliveryKey, readCue, type DeliveryCue, type Utterance } from "./delivery";
 import { deliveryClipName, leadSources, settleTurnClips, shownDelivery } from "./deliveryClips";
+import {
+  ENDPOINT_SAMPLE_MS,
+  createEndpointer,
+  createHangoverPolicy,
+  isLateFinishTap,
+  isLikelyCutOff,
+  type AnswerShape,
+  type Endpointer,
+} from "./endpointer";
+import { HOLDING_AFTER_MS, holdingLine, withHolding } from "./holdingLine";
+import { playTurnQueue, type TurnQueue } from "./turnQueue";
+import { createTurnTimeline, type EndpointKind, type TimelineSummary } from "./turnTimeline";
 import type { DeliveryContext } from "./deliveryContext";
 import {
   DELIVERY_DECK,
@@ -80,6 +99,7 @@ import {
 import {
   HESITANT_OPTION_IDS,
   planDialogueDelivery,
+  questionContextOf,
   questionDeliveryContextOf,
 } from "./deliveryPlan";
 import { scriptedDeliveryTr } from "./georgeClip";
@@ -103,6 +123,36 @@ function lastQuestionIndex(stream: readonly StreamEntry[]): number {
     }
   }
   return -1;
+}
+
+/** Whether `work` settles — either way — within `ms`. Never rejects. */
+function settlesWithin(work: Promise<unknown>, ms: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    work.then(
+      () => true,
+      () => true,
+    ),
+    new Promise<boolean>((resolve) => {
+      timer = setTimeout(() => resolve(false), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
+/** Whether the question asked before stream index `index` was RED-adjacent. */
+function previousWasRed(
+  pack: readonly IntakeQuestion[],
+  stream: readonly StreamEntry[],
+  index: number,
+): boolean {
+  for (let at = index - 1; at >= 0; at -= 1) {
+    const entry = stream[at];
+    if (entry.kind === "agent_question") {
+      const asked = pack.find((candidate) => candidate.id === entry.questionId);
+      return asked !== undefined && questionContextOf(asked) === "red";
+    }
+  }
+  return false;
 }
 
 export interface DialogueSessionOptions {
@@ -153,6 +203,8 @@ export interface DialogueSession {
   confirmPending: (questionId: string) => void;
   /** From the confirm card: the patient speaks the correction instead. */
   speakCorrection: () => void;
+  /** INT-497: what this session's turns cost the patient — durations only. */
+  timeline: TimelineSummary;
 }
 
 function toCandidates(
@@ -197,7 +249,8 @@ export function useDialogueSession({
   const [playing, setPlaying] = useState(false);
 
   const storeRef = useRef<Promise<ClipStore> | null>(null);
-  const playerRef = useRef<AudioPlayer | null>(null);
+  /** The turn's one queue of clips (INT-497): stopping it stops all audio. */
+  const playerRef = useRef<TurnQueue | null>(null);
   /** One controller for every background extract of the session. */
   const abortRef = useRef<AbortController | null>(null);
   const closedRef = useRef(false);
@@ -207,6 +260,26 @@ export function useDialogueSession({
   const workRef = useRef(0);
   /** The level watch armed for the clip currently playing, if any. */
   const watchRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // INT-497 — end-of-turn detection and what the turns cost. The policy is
+  // the SESSION's: a premature end widens every later turn's wait, never one.
+  const policyRef = useRef(createHangoverPolicy());
+  const endpointerRef = useRef<Endpointer | null>(null);
+  /** The level watch armed for the open listen, if any. */
+  const endpointWatchRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** When the last turn ended ITSELF; null when the patient tapped. */
+  const autoEndedAtRef = useRef<number | null>(null);
+  /** When a voice barge-in opened the current listen — the patient is already
+   * speaking, so the endpointer counts their first words. */
+  const voiceBargeInAtRef = useRef<number | null>(null);
+  const timelineRef = useRef(createTurnTimeline());
+  /** The audio mode is the same for the whole session: applied once. */
+  const audioModeSetRef = useRef(false);
+  /** The last delivery line actually said, and the last holding line. */
+  const lastLineKeyRef = useRef<string | null>(null);
+  const lastHoldingKeyRef = useRef<string | null>(null);
+  /** Holding lines said, by the stream index of their question — the
+   * transcript shows what the voice said (holdingLine.withHolding). */
+  const [heldLines, setHeldLines] = useState<ReadonlyMap<number, Utterance>>(() => new Map());
 
   // INT-414 — conversational delivery. The cue is what the patient's LAST
   // action looked like (a barge-in, a "don't know", a correction, an empty
@@ -244,10 +317,17 @@ export function useDialogueSession({
       ? lastQuestionIndex(state.stream)
       : -1;
   const shownLines = new Map(
-    [...delivery].map(([index, utterances]) => [
-      index,
-      shownDelivery(utterances, spokenLines.get(index), index === settlingIndex),
-    ]),
+    [...delivery].map(([index, utterances]) => {
+      // INT-497: a turn that said a holding line shows that line, not the
+      // lines it did not say — the voice and the transcript stay one plan.
+      const held = heldLines.get(index);
+      return [
+        index,
+        held !== undefined
+          ? withHolding(utterances, held)
+          : shownDelivery(utterances, spokenLines.get(index), index === settlingIndex),
+      ];
+    }),
   );
   /** Delivery clips this session already holds: name → file. A lead-in whose
    * clip is here plays without a race; one that is not yet made is dropped
@@ -293,14 +373,20 @@ export function useDialogueSession({
   const stopPlayback = () => {
     const player = playerRef.current;
     playerRef.current = null;
-    if (player !== null) {
-      try {
-        player.pause();
-        player.remove();
-      } catch {
-        // already released — nothing left to stop
-      }
+    player?.stop(); // synchronous pause inside, before anything else runs
+  };
+
+  /**
+   * The session's one audio mode, applied once (INT-497). Every call site asks
+   * for the same mode, and re-applying it on every turn put a native category
+   * change on the critical path of every question for nothing.
+   */
+  const ensureAudioMode = async (mode: Parameters<typeof AudioModule.setAudioModeAsync>[0]) => {
+    if (audioModeSetRef.current) {
+      return;
     }
+    await AudioModule.setAudioModeAsync(mode);
+    audioModeSetRef.current = true;
   };
 
   /**
@@ -309,13 +395,31 @@ export function useDialogueSession({
    * driver when there was no clip.
    */
   const openMicrophone = async () => {
-    await AudioModule.setAudioModeAsync({
+    await ensureAudioMode({
       allowsRecording: true,
       playsInSilentMode: true,
       shouldRouteThroughEarpiece: false,
     });
     await recorder.prepareToRecordAsync();
     recorder.record();
+  };
+
+  /** Play one turn's clips as one queue (turnQueue.ts); `onFinish` once at
+   * the end. The timeline is told when audio really started, and every join. */
+  const playQueue = (uris: readonly string[], isStale: () => boolean, onFinish: () => void) => {
+    stopPlayback();
+    const queue = playTurnQueue(createAudioPlaylist, uris, {
+      now: Date.now,
+      onStart: (at) => timelineRef.current.firstAudio(at),
+      onJoin: (gap) => timelineRef.current.join(gap),
+      onFinish: () => {
+        if (!isStale() && playerRef.current === queue) {
+          onFinish();
+        }
+      },
+    });
+    playerRef.current = queue;
+    return queue;
   };
 
   /**
@@ -365,10 +469,55 @@ export function useDialogueSession({
       }
       if (detector.sample(level, Date.now()) === "fired") {
         clearInterval(timer);
-        bargeIn();
+        bargeInByVoice();
       }
     }, BARGE_IN_SAMPLE_MS);
     watchRef.current = timer;
+  };
+
+  const clearEndpointWatch = () => {
+    if (endpointWatchRef.current !== null) {
+      clearInterval(endpointWatchRef.current);
+      endpointWatchRef.current = null;
+    }
+  };
+
+  /**
+   * Watch the level while the patient has the floor and take the turn when
+   * they stop (INT-497). Every decision about WHETHER they have stopped lives
+   * in endpointer.ts as a pure function; this only supplies samples — the
+   * platform's own meter reading, never a buffer (invariant 3) — and takes the
+   * turn exactly as the "Bitirdim" tap does.
+   */
+  const armEndpointWatch = (
+    isStale: () => boolean,
+    speakingAt: number | null,
+    shape: AnswerShape,
+  ) => {
+    clearEndpointWatch(); // at most one watch is ever referenced
+    const endpointer = createEndpointer(
+      policyRef.current,
+      speakingAt === null ? { shape } : { speakingAt, shape },
+    );
+    endpointerRef.current = endpointer;
+    const timer = setInterval(() => {
+      if (isStale() || stateRef.current.turn.phase !== "listening") {
+        clearInterval(timer);
+        return;
+      }
+      let level: number | undefined;
+      try {
+        level = recorder.getStatus().metering;
+      } catch {
+        clearInterval(timer);
+        return;
+      }
+      if (endpointer.sample(level, Date.now()) === "ended") {
+        clearInterval(timer);
+        void takeTurn("auto");
+      }
+    }, ENDPOINT_SAMPLE_MS);
+    endpointWatchRef.current = timer;
   };
 
   const stopAndDiscardRecording = async () => {
@@ -423,6 +572,79 @@ export function useDialogueSession({
     turnPlan: readonly Utterance[],
   ): (string | Promise<string>)[] =>
     leadSources(turnPlan, readyLeadsRef.current, (key, context) => ensureLead(store, key, context));
+
+  /**
+   * The holding line for a late question (INT-497, holdingLine.ts), or null.
+   * A re-ask carries the repair line and nothing is added to it; everything
+   * else reads the cue this entry was planned with.
+   */
+  const holdingFor = (
+    question: IntakeQuestion,
+    index: number,
+    turnPlan: readonly Utterance[],
+  ): Utterance | null => {
+    const stream = stateRef.current.stream;
+    const reask = index > 0 && stream[index - 1].kind === "agent_unclear";
+    return holdingLine({
+      plan: turnPlan,
+      questionContext: questionContextOf(question),
+      cue: reask ? "repeat_request" : (cuesRef.current.get(index) ?? "none"),
+      afterRed: previousWasRed(questions, stream, index),
+      previousLineKey: lastLineKeyRef.current,
+      lastHoldingKey: lastHoldingKeyRef.current,
+      sessionSeed,
+      turnIndex: index,
+      isReady: (key, context) => readyLeadsRef.current.has(deliveryClipName(key, context)),
+    });
+  };
+
+  /**
+   * Say the holding line now; the question joins the same queue the moment
+   * its clip is made, so it follows with no seam. If the holding line has
+   * already finished by then, the question plays on its own. A question clip
+   * that fails stops the holding line too: the turn goes silent honestly
+   * rather than leaving an acknowledgement playing into the patient's turn.
+   */
+  const speakWithHolding = async (
+    holding: Utterance,
+    index: number,
+    questionClip: Promise<string>,
+    isStale: () => boolean,
+    done: () => void,
+  ): Promise<void> => {
+    const uri = readyLeadsRef.current.get(
+      deliveryClipName(holding.key as DeliveryKey, holding.deliveryContext),
+    );
+    if (uri === undefined) {
+      throw new Error("holding_clip_missing"); // holdingLine only picks ready clips
+    }
+    lastHoldingKeyRef.current = holding.key;
+    lastLineKeyRef.current = holding.key;
+    setHeldLines((before) => new Map(before).set(index, holding));
+    let questionQueued = false;
+    const queue = playQueue([uri], isStale, () => {
+      if (questionQueued) {
+        done();
+      }
+    });
+    let questionUri: string;
+    try {
+      questionUri = await questionClip;
+    } catch (error) {
+      if (!isStale()) {
+        stopPlayback();
+      }
+      throw error;
+    }
+    if (isStale()) {
+      return;
+    }
+    if (queue.append(questionUri)) {
+      questionQueued = true;
+    } else {
+      playQueue([questionUri], isStale, done);
+    }
+  };
 
   // Pre-warm the session's scripted clips at mount, FIRST QUESTION FIRST
   // (INT-239): the opening turn is the one the patient waits on, so its
@@ -574,64 +796,74 @@ export function useDialogueSession({
         // lead-in whose clip is not made yet is dropped for this turn rather
         // than waited for (deliveryClips.ts) — only the opening waits for its
         // own welcome, which IS that turn's content.
-        const turnClips = await settleTurnClips(
-          withDeadline(store.ensure(name, speech, questionContext), clipDeadlineMs(speech)),
-          leadClipsFor(store, turnPlan),
-          {
-            awaitLeads: turnPlan.some((utterance) => utterance.deliveryContext === "welcome"),
-            deadlineMs: clipDeadlineMs(speech),
-          },
-        );
-        const queue = [...turnClips.leads, turnClips.question];
-        if (stale) {
-          return;
-        }
-        // The transcript shows what is about to be said and nothing else: a
-        // lead-in dropped above is dropped from the screen too.
-        if (planned.index >= 0) {
-          const said = turnClips.spoken;
-          setSpokenLines((before) => new Map(before).set(planned.index, said));
-        }
+        const deadlineMs = clipDeadlineMs(speech);
+        const questionClip = withDeadline(store.ensure(name, speech, questionContext), deadlineMs);
+        questionClip.catch(() => undefined); // observed below, on every path
+        const awaitLeads = turnPlan.some((utterance) => utterance.deliveryContext === "welcome");
         // `allowsRecording: true` while the agent speaks is the whole change.
         // On iOS this is the `.playAndRecord` category, which is the only one
         // that admits simultaneous play and capture; `shouldRouteThroughEarpiece:
         // false` is stated rather than left to the default because the same
         // category is what puts audio on the receiver, and answering "the voice
-        // sounds bad" with a quieter voice would be its own defect.
-        await AudioModule.setAudioModeAsync({
+        // sounds bad" with a quieter voice would be its own defect. INT-497:
+        // applied once per session, in parallel with the clip, not per turn.
+        const audioMode = ensureAudioMode({
           allowsRecording: true,
           playsInSilentMode: true,
           shouldRouteThroughEarpiece: false,
         });
+        audioMode.catch(() => undefined); // awaited below; never unhandled meanwhile
+        // INT-497: a pre-warmed question settles inside HOLDING_AFTER_MS. One
+        // that does not is still being made, and the patient who just finished
+        // speaking hears a ready acknowledgement now instead of dead silence.
+        const late =
+          speaking.intent === "question" &&
+          planned.index >= 0 &&
+          !awaitLeads &&
+          !(await settlesWithin(questionClip, HOLDING_AFTER_MS));
+        const holding = late ? holdingFor(question, planned.index, turnPlan) : null;
+        await audioMode;
         if (stale) {
           return;
         }
-        // One player at a time, always cleared before the next clip, so the
-        // utterances of a turn play strictly in order and never overlap. A
-        // barge-in clears `playerRef`, which is what stops the chain: the
-        // finished clip's listener no longer owns the player and plays nothing.
-        const playNext = () => {
-          const uri = queue.shift();
-          if (uri === undefined) {
+        const done = () => {
+          stopPlayback();
+          dispatch({ type: "speech_done" });
+        };
+        if (holding !== null) {
+          await speakWithHolding(holding, planned.index, questionClip, () => stale, done);
+        } else {
+          // Never the same line twice in a row: a planned line the previous
+          // turn already said (as its holding line) is not said again.
+          const fresh = turnPlan.map((utterance) =>
+            utterance.kind !== "question" && utterance.key === lastLineKeyRef.current
+              ? { ...utterance, key: "" }
+              : utterance,
+          );
+          const turnClips = await settleTurnClips(questionClip, leadClipsFor(store, fresh), {
+            awaitLeads,
+            deadlineMs,
+          });
+          if (stale) {
             return;
           }
-          const last = queue.length === 0;
-          stopPlayback();
-          const player = createAudioPlayer({ uri });
-          playerRef.current = player;
-          player.addListener("playbackStatusUpdate", (status) => {
-            if (status.didJustFinish && !stale && playerRef.current === player) {
-              if (last) {
-                stopPlayback();
-                dispatch({ type: "speech_done" });
-              } else {
-                playNext();
-              }
-            }
-          });
-          player.play();
-        };
-        playNext();
+          // The transcript shows what is about to be said and nothing else: a
+          // lead-in dropped above is dropped from the screen too.
+          if (planned.index >= 0) {
+            const said = turnClips.spoken;
+            setSpokenLines((before) => new Map(before).set(planned.index, said));
+          }
+          if (speaking.intent === "question") {
+            const saidLines = fresh.filter((utterance) => utterance.kind !== "question");
+            lastLineKeyRef.current = lastDeliveryKey(
+              saidLines.filter((_, at) => turnClips.spoken[at] === true),
+            );
+          }
+          // One queue for the whole turn (turnQueue.ts): the utterances play
+          // strictly in order with no player switch between them, and a
+          // barge-in stops the queue — and so the turn — in one call.
+          playQueue([...turnClips.leads, turnClips.question], () => stale, done);
+        }
         setPlaying(true);
         await armBargeInWatch(() => stale);
       } catch {
@@ -657,6 +889,9 @@ export function useDialogueSession({
     }
     finishingRef.current = false; // a fresh listen re-arms the stop guard
     let stale = false;
+    // A voice barge-in opened this listen: the patient is already talking.
+    const speakingAt = voiceBargeInAtRef.current;
+    voiceBargeInAtRef.current = null;
     (async () => {
       try {
         // Usually a no-op now: the speaking driver already opened this
@@ -665,18 +900,25 @@ export function useDialogueSession({
         // exact failure a barge-in exists to avoid — so the recorder is only
         // started when nothing is running (a `typed` turn, a clip that never
         // played, a session whose voice went silent).
-        if (recorder.isRecording) {
-          return;
+        if (!recorder.isRecording) {
+          await openMicrophone();
         }
-        await openMicrophone();
       } catch {
         if (!stale) {
           dispatch({ type: "failure" });
         }
+        return;
+      }
+      if (!stale) {
+        // INT-497: the turn ends when they stop. A free-text question invites
+        // a narrative, so it gets the long wait from the first word.
+        const shape = questions[listening.step]?.kind === "text" ? "narrative" : "short";
+        armEndpointWatch(() => stale, speakingAt, shape);
       }
     })();
     return () => {
       stale = true;
+      clearEndpointWatch();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- listening is a fresh object per turn entry
   }, [listening]);
@@ -708,6 +950,7 @@ export function useDialogueSession({
   useEffect(() => {
     return () => {
       clearBargeInWatch();
+      clearEndpointWatch();
       stopPlayback();
       abortRef.current?.abort();
       if (!closedRef.current && stateRef.current.turn.phase === "listening") {
@@ -759,15 +1002,29 @@ export function useDialogueSession({
     });
   };
 
-  /** "Bitirdim" / tap-to-stop: close the mic and advance NOW (ask-ahead);
-   * transcription and extraction reconcile behind under this work id.
-   * The ref guard keeps the stop affordances single-shot. */
-  const finishListening = async () => {
+  /** Take the patient's turn — "Bitirdim", tap-to-stop, or (INT-497) the
+   * end of their speech: close the mic and advance NOW (ask-ahead);
+   * transcription and extraction reconcile behind under this work id. The
+   * ref guard keeps the affordances single-shot, whichever lands first. */
+  const takeTurn = async (endpoint: EndpointKind) => {
     if (finishingRef.current || stateRef.current.turn.phase !== "listening") {
       return;
     }
     finishingRef.current = true;
     const question = questions[stateRef.current.turn.step];
+    const endpointer = endpointerRef.current;
+    endpointerRef.current = null;
+    clearEndpointWatch();
+    // The timeline measures from the last voiced sample, which the tap and
+    // the endpointer both know: the tap often lands while the voice is still
+    // in the air, and that is exactly the wait the gap must include.
+    const takenAt = endpoint === "auto" ? (endpointer?.endedAt ?? Date.now()) : Date.now();
+    autoEndedAtRef.current = endpoint === "auto" ? takenAt : null;
+    timelineRef.current.turnTaken({
+      endpoint,
+      speechEndAt: endpointer?.lastVoicedAt ?? null,
+      at: takenAt,
+    });
     let uri: string | null = null;
     try {
       await recorder.stop();
@@ -791,8 +1048,10 @@ export function useDialogueSession({
       return;
     }
     let transcript = "";
+    const handedOverAt = Date.now();
     try {
       transcript = await transcribeRecording(uri); // deletes the file after upload
+      timelineRef.current.asrSettled(Date.now() - handedOverAt);
     } catch {
       if (!closedRef.current) {
         dispatch({ type: "failure" }); // a broken ASR lane is a hard failure
@@ -810,6 +1069,8 @@ export function useDialogueSession({
     }
     await runExtract(workId, trimmed, question);
   };
+
+  const finishListening = () => takeTurn("tap");
 
   /** Composer submit: voice and text are ONE conversation — a typed
    * utterance takes the same path as a spoken one, minus the ASR hop. */
@@ -831,12 +1092,37 @@ export function useDialogueSession({
     await runExtract(workId, text, step >= 0 ? questions[step] : null);
   };
 
-  const bargeIn = () => {
+  /** Stop the agent NOW and give the patient the floor — the one interrupt
+   * both causes share, so they cannot diverge into two state machines. */
+  const interrupt = () => {
     clearBargeInWatch();
     stopPlayback(); // synchronous — playback halts before anything else runs
     // INT-414: they cut in, so the next question comes with less, not more.
     pendingCueRef.current = "barge_in";
     dispatch({ type: "barge_in" });
+  };
+
+  /** The tap on the speaking bubble. INT-497: one that lands just after the
+   * turn ended ITSELF is the "Bitirdim" the patient was already reaching for,
+   * and interrupting the question it would land on is not what they meant. */
+  const bargeIn = () => {
+    if (isLateFinishTap(autoEndedAtRef.current, Date.now())) {
+      return;
+    }
+    interrupt();
+  };
+
+  /** The patient's voice over the agent. INT-497: right after an automatic
+   * end, that is the turn having ended too early — every later turn of this
+   * session waits a step longer (endpointer.ts), and this listen counts the
+   * words already being said. */
+  const bargeInByVoice = () => {
+    const now = Date.now();
+    if (isLikelyCutOff(autoEndedAtRef.current, now)) {
+      policyRef.current.noteCutOff();
+    }
+    voiceBargeInAtRef.current = now;
+    interrupt();
   };
 
   /** The confirm tap. Its values say whether the patient did not know, or
@@ -855,6 +1141,7 @@ export function useDialogueSession({
   const leave = async () => {
     closedRef.current = true;
     clearBargeInWatch();
+    clearEndpointWatch();
     stopPlayback();
     abortRef.current?.abort();
     if (stateRef.current.turn.phase === "listening") {
@@ -877,5 +1164,6 @@ export function useDialogueSession({
       pendingCueRef.current = "revised"; // they are correcting what we suggested
       dispatch({ type: "speak" });
     },
+    timeline: timelineRef.current.summary(),
   };
 }

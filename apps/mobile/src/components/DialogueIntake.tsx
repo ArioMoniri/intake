@@ -72,6 +72,7 @@ import { joinParts, spoken } from "@/lib/a11y/labels";
 import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
 import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
+import { turnTimelineReadout } from "@/lib/dev/turnTimelineReadout";
 import type { Utterance } from "@/lib/dialogue/delivery";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
@@ -198,6 +199,7 @@ export function DialogueIntake({
     },
   });
   const { state } = session;
+  const timingLines = turnTimelineReadout(session.timeline, __DEV__);
   const { turn } = state;
 
   // On-screen selection for the live confirm turn (seeded pre-selected).
@@ -601,6 +603,19 @@ export function DialogueIntake({
               <AppText role="caption" color="inkFaint">
                 {t("dialogue.voiceMuted")}
               </AppText>
+            </View>
+          ) : null}
+
+          {timingLines !== null ? (
+            // INT-497, dev only: what this session's turns cost, measured on
+            // the device. turnTimelineReadout returns null outside __DEV__, so
+            // in production this line does not exist at all.
+            <View accessible>
+              {timingLines.map((line) => (
+                <AppText key={line} role="caption" color="inkFaint">
+                  {line}
+                </AppText>
+              ))}
             </View>
           ) : null}
 

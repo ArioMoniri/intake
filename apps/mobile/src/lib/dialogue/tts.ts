@@ -299,7 +299,10 @@ export interface ClipStore {
 export function createClipStore(
   dir: string,
   fs: ClipFs,
-  synth: (text: string, context?: DeliveryContext) => Promise<Uint8Array>,
+  // INT-497: the clip's NAME rides along, because where a clip sits in its
+  // turn (a lead-in, or the line that ends the turn) decides how it is
+  // finished (clipFinish.ts). It is a session cache key, never patient text.
+  synth: (text: string, context?: DeliveryContext, name?: string) => Promise<Uint8Array>,
 ): ClipStore {
   const root = dir.endsWith("/") ? dir : `${dir}/`;
   // Concurrent ensures of one clip share a single synthesis: the session
@@ -319,7 +322,7 @@ export function createClipStore(
         if (await fs.exists(path)) {
           return path;
         }
-        const bytes = await synth(text, context);
+        const bytes = await synth(text, context, name);
         await fs.mkdirp(root);
         await fs.writeBase64(path, bytesToBase64(bytes));
         return path;

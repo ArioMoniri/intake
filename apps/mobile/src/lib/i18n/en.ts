@@ -938,6 +938,10 @@ export const en: Record<MessageKey, string> = {
   "devVoice.reason.timeout": "timed out",
   "devVoice.reason.refused": "connection refused",
   "devVoice.reason.status": "response code",
+  "devVoice.timeline.title": "Dev note: turn timing",
+  "devVoice.timeline.firstAudio": "Speech end to first audio",
+  "devVoice.timeline.join": "Longest gap between clips",
+  "devVoice.timeline.asr": "Transcription time",
   // ---- INT-247: facts carried from earlier visits -------------------------
   // Mirrors the tr block key-for-key (invariant 5; tr is the source of
   // truth). The note markers report who said what, nothing more.
