@@ -367,6 +367,10 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         f"/admin/safety-queue/sx_{'0' * 32}/acknowledge",
         "tenant_clinical_responsible",
     ),
+    # INT-490 — the Analytics page (LD-06). The harness configures no tenant
+    # registry, so a permitted role reaches the handler and is answered with
+    # an empty, "unconfigured" release — past the guard, audited, never 403.
+    RouteDrive("GET", "/admin/analytics", "/admin/analytics", "researcher"),
 )
 
 

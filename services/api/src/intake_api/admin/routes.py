@@ -61,6 +61,7 @@ from intake_platform.compliance.audit_search import AuditSearchContentRefused
 from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
 from intake_api.admin import access_console, compliance_source, safety_queue, views
+from intake_api.admin.analytics_console import analytics_read
 from intake_api.admin.cicd_routes import CICD_HANDLERS
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.models_source import (
@@ -409,6 +410,8 @@ _HANDLERS: dict[str, Handler] = {
     # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49)
     "admin.safety_queue.read": safety_queue.queue_read,
     "admin.safety_queue.acknowledge": safety_queue.acknowledge,
+    # INT-490 — the research and improvement Analytics page (LD-06)
+    "admin.analytics.read": analytics_read,
 }
 
 #: HTTP methods that write. The §2.7 read-only downgrade applies to these.
@@ -483,7 +486,14 @@ def _endpoint(route: AdminRoute) -> Callable[[Request], Awaitable[Response]]:
                 role = await _effective_role(route, caller, wiring, sink)
                 if role is None:
                     raise admin_refused("access_review_overdue")
-            return JSONResponse(await handler(request, caller, wiring, role))
+            # no-store on every console answer: a staff read is computed for
+            # the request that asked, and no browser or proxy keeps it
+            # (INT-490: LD-06's aggregate retention is undecided, so nothing
+            # of the Analytics release may be kept anywhere)
+            return JSONResponse(
+                await handler(request, caller, wiring, role),
+                headers={"Cache-Control": "no-store"},
+            )
 
     return endpoint
 

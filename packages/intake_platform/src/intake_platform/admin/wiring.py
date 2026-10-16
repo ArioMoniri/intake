@@ -129,6 +129,25 @@ _SAFETY_QUEUE_READERS = frozenset(
 )
 
 
+#: INT-490 — the research and improvement Analytics page (LD-06). files/08
+#: §2.1 gives `researcher` "de-identified aggregates, k ≥ 10"; `clinical_lead`
+#: and `qms_owner` own the improvement loop (Loop 2 proposals, change
+#: control); `platform_owner` sees all tenants; `auditor` reads as evidence.
+#: Every one is an all-tenant role, because the release is platform-wide over
+#: the admitted tenants and never a tenant cut of it — a per-tenant release
+#: beside a platform-wide one would let a reader subtract one from the other.
+#: No tenant-scoped role and no patient-grant role reaches it.
+_ANALYTICS_READERS = frozenset(
+    {
+        AdminRole.RESEARCHER,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.QMS_OWNER,
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.AUDITOR,
+    }
+)
+
+
 @dataclass(frozen=True)
 class AdminRoute:
     method: str
@@ -359,6 +378,9 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         SAFETY_QUEUE_ACKNOWLEDGE.actor_roles,
         SAFETY_QUEUE_ACKNOWLEDGE.id,
     ),
+    # INT-490 — the Analytics page: anonymised aggregates only (LD-06). A read,
+    # so no DangerousAction; audited by the wrapper like every route.
+    AdminRoute("GET", "/admin/analytics", "admin.analytics.read", _ANALYTICS_READERS),
 )
 
 
