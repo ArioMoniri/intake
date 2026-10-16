@@ -259,3 +259,14 @@ def test_the_two_proxies_share_no_network_and_each_inner_one_only_with_the_api()
     assert {"sms-out", "outbound"} <= set(api["networks"])
     assert api["depends_on"]["sms-egress"] == {"condition": "service_started"}
     assert api["depends_on"]["egress-proxy"] == {"condition": "service_started"}
+
+
+def test_the_shipped_proxy_admits_the_netgsm_host_alone() -> None:
+    """Owner patch (INT-528): with the allow-list's SMS row, the committed
+    config admits api.netgsm.com.tr on 443 and nothing else, and the hosted
+    lanes' proxy (INT-442) still never names it."""
+    lines = _directives(CONF.read_text(encoding="utf-8"))
+    assert "acl sms_vendor dstdomain api.netgsm.com.tr" in lines
+    assert "http_access allow sms_vendor" in lines
+    hosted = REPO / "infra" / "staging" / "egress" / "squid.conf"
+    assert "netgsm" not in hosted.read_text(encoding="utf-8")

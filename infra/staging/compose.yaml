@@ -117,6 +117,10 @@ services:
       INTAKE_APP_ATTEST_TEAM_ID: ${INTAKE_APP_ATTEST_TEAM_ID}
       INTAKE_APP_ATTEST_BUNDLE_ID: ${INTAKE_APP_ATTEST_BUNDLE_ID}
       INTAKE_APP_ATTEST_ENVIRONMENT: ${INTAKE_APP_ATTEST_ENVIRONMENT}
+      # Owner patch (INT-528, INT-358): the runtime half of the PHI egress
+      # gate, for the allow-list's one phi_path row (Netgsm OTP SMS). Without
+      # it that row refuses, and the OTP tier answers 503.
+      INTAKE_ALLOW_PHI_EGRESS: explicit-yes
       # ADR-042 (INT-528): the SMS-only forward proxy, which the Netgsm client
       # alone rides. intake_platform.egress admits exactly this URL for the
       # SMS purpose and refuses every other personal-data proxy (INT-203).

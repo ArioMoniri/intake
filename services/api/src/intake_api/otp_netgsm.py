@@ -32,8 +32,8 @@ docs/evidence/INT-528.md), and the tests replay
   ``EgressPurpose.SMS_OTP_DELIVERY`` and ``DataClass.PHI``: the phone of a
   patient signing up for a clinical intake says they are one. The call clears
   only a ``phi_allowed`` row that names a recorded decision, with
-  ``INTAKE_ALLOW_PHI_EGRESS=explicit-yes`` at runtime. The shipped allow-list
-  has no such row; it is the owner's patch (owner-528-netgsm-egress.patch).
+  ``INTAKE_ALLOW_PHI_EGRESS=explicit-yes`` at runtime. The allow-list's one
+  phi_path row is that row (owner-528-netgsm-egress.patch, INT-358).
 - Credentials from OpenBao only (invariant 14): ``secret/api/netgsm`` holds
   ``usercode``, ``password`` and ``msgheader``. No environment variable is
   read. A refusal names the field, never the value, and the password never

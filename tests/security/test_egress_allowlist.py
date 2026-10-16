@@ -472,7 +472,9 @@ NON_VENDOR_PURPOSES = frozenset(
 #: purpose's removal from here arrive in the same change.
 #: INT-428 / ADR-035's hosted_model_inference left this set in the owner's
 #: INT-442 change, together with its two rows (openai-api, elevenlabs-api).
-PURPOSES_AWAITING_THE_OWNER = frozenset({EgressPurpose.SMS_OTP_DELIVERY})
+#: INT-528 emptied it: SMS_OTP_DELIVERY left with its phi_path row (Netgsm, the
+#: owner's INT-358 decision of 16 Oct 2026).
+PURPOSES_AWAITING_THE_OWNER: frozenset[EgressPurpose] = frozenset()
 
 
 def _shipped_rows() -> list[AllowlistEntry]:
@@ -533,6 +535,37 @@ def test_a_purpose_awaiting_the_owner_has_no_row_and_every_tier_refuses_it() -> 
                 context = EgressContext(purpose=purpose, data_class=data_class)
                 for host in ("api.twilio.com", "api.netgsm.com.tr"):
                     assert not policy.check(host, 443, context).allowed, host
+
+
+def test_the_sms_row_is_netgsm_alone_and_only_on_the_phi_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """INT-528. The one phi_path row: Netgsm's OTP SMS host, exact, on 443,
+    for the SMS purpose only, citing the owner's INT-358 decision, and open
+    only with the runtime gate. No other tier, purpose or SMS host clears."""
+    allowlist = load_allowlist(ALLOWLIST_PATH)
+    [row] = allowlist.tiers.phi_path
+    assert (row.host, row.port, row.glob) == ("api.netgsm.com.tr", 443, False)
+    assert row.purpose_id is EgressPurpose.SMS_OTP_DELIVERY
+    assert row.phi_allowed and row.phi_exception_approval
+    assert row.phi_exception_approval.startswith("INT-358")
+    assert all(e.purpose_id is not EgressPurpose.SMS_OTP_DELIVERY for e in allowlist.tiers.dev)
+
+    sms = EgressContext(purpose=EgressPurpose.SMS_OTP_DELIVERY, data_class=DataClass.PHI)
+    phi = EgressPolicy.for_tier(allowlist, "phi_path", resolver=_resolver({}))
+    monkeypatch.delenv("INTAKE_ALLOW_PHI_EGRESS", raising=False)
+    assert not phi.check("api.netgsm.com.tr", 443, sms).allowed
+    monkeypatch.setenv("INTAKE_ALLOW_PHI_EGRESS", "explicit-yes")
+    assert phi.check("api.netgsm.com.tr", 443, sms).allowed
+    assert not phi.check("api.twilio.com", 443, sms).allowed
+    assert not phi.check("netgsm.com.tr", 443, sms).allowed
+    for purpose in set(EgressPurpose) - {EgressPurpose.SMS_OTP_DELIVERY}:
+        other = EgressContext(purpose=purpose, data_class=DataClass.PHI)
+        assert not phi.check("api.netgsm.com.tr", 443, other).allowed, purpose
+    dev = EgressPolicy.for_tier(allowlist, "dev", resolver=_resolver({}))
+    for data_class in DataClass:
+        context = EgressContext(purpose=EgressPurpose.SMS_OTP_DELIVERY, data_class=data_class)
+        assert not dev.check("api.netgsm.com.tr", 443, context).allowed
 
 
 # --- the transfer log: {host, purpose, bytes, ts} -----------------------------------

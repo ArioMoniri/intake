@@ -275,16 +275,18 @@ def test_the_runtime_phi_gate_unset_refuses_even_a_listed_row(
     assert vendor.requests == []
 
 
-def test_the_shipped_allowlist_refuses_netgsm_on_every_tier_for_every_class(
-    phi_egress: None,
-) -> None:
-    """Today's state, until the owner applies owner-528-netgsm-egress.patch."""
+def test_the_shipped_allowlist_admits_netgsm_on_the_phi_tier_alone(phi_egress: None) -> None:
+    """The owner's row (owner-528-netgsm-egress.patch): the SMS call clears the
+    PHI tier and nothing else, and the adapter reaches the vendor through it."""
     allowlist = load_allowlist(SHIPPED_ALLOWLIST)
-    for tier in ("dev", "phi_path"):
-        shipped = EgressPolicy.for_tier(allowlist, tier, resolver)
-        for data_class in DataClass:
-            context = EgressContext(purpose=netgsm().SMS_EGRESS.purpose, data_class=data_class)
-            assert not shipped.check(netgsm().NETGSM_API_HOST, 443, context).allowed
+    shipped = EgressPolicy.for_tier(allowlist, "phi_path", resolver)
+    assert shipped.check(netgsm().NETGSM_API_HOST, 443, netgsm().SMS_EGRESS).allowed
+    dev = EgressPolicy.for_tier(allowlist, "dev", resolver)
+    for data_class in DataClass:
+        context = EgressContext(purpose=netgsm().SMS_EGRESS.purpose, data_class=data_class)
+        assert not dev.check(netgsm().NETGSM_API_HOST, 443, context).allowed
+    vendor = Vendor(accepted)
+    assert send(adapter(vendor, shipped)).delivery_id == JOBID
 
 
 def test_the_call_declares_the_sms_purpose_and_the_strictest_class() -> None:

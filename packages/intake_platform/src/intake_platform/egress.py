@@ -197,9 +197,8 @@ class EgressPurpose(StrEnum):
     row's purpose is a member (both directions tested): the vendor rows in
     ``infra/security/egress-allowlist.yaml`` for the four vendor purposes, and
     the connector destination schema for ``CLINICAL_RECORD_PUSH``, whose
-    destinations are per-tenant data rather than committed rows. The one
-    exception is ``SMS_OTP_DELIVERY``, whose row awaits the owner's decision
-    and is therefore refused by the shipped policy (tested in that direction).
+    destinations are per-tenant data rather than committed rows.
+    ``SMS_OTP_DELIVERY``'s row is the PHI tier's one row (INT-528).
     """
 
     PACKAGE_REGISTRY = "package_registry"
@@ -224,12 +223,10 @@ class EgressPurpose(StrEnum):
     #: so it never appears in ``infra/security/egress-allowlist.yaml`` either.
     CONNECTOR_AUTHORIZATION = "connector_authorization"
     #: INT-329. The OTP tier's SMS vendor: the patient's phone number and a
-    #: one-time code leave for a processor abroad, so a row serving this purpose
-    #: is personal-data egress and needs the owner's DPA and cross-border
-    #: decision (on the PHI tier, a ``phi_exception_approval`` naming it). No
-    #: shipped row declares it yet, so every call made for it is refused: the
-    #: adapter declares why it calls and the policy says no until a human says
-    #: yes (docs/evidence/INT-329.md).
+    #: one-time code leave for the SMS processor, so a row serving this purpose
+    #: is personal-data egress. Its one row is Netgsm's, on the PHI tier with a
+    #: ``phi_exception_approval`` naming the owner's decision (INT-358,
+    #: INT-528), and it opens only with the runtime gate.
     SMS_OTP_DELIVERY = "sms_otp_delivery"
     #: Reading a patient's own record back OUT of a hospital system, rather
     #: than pushing one in. Separated from ``CLINICAL_RECORD_PUSH`` for the

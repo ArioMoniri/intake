@@ -150,11 +150,24 @@ def test_the_environment_is_not_a_secrets_path(
 
 
 @pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)
-def test_the_shipped_allowlist_keeps_the_tier_at_503_and_reads_no_secret(
-    phi_egress: None, environment: str, caplog: pytest.LogCaptureFixture
+def test_the_shipped_allowlist_and_the_vault_wire_netgsm(
+    phi_egress: None, environment: str
 ) -> None:
-    """Today's state: credentials alone configure nothing until the owner's
-    egress patch lands, and a refused vendor never has its secret pulled."""
+    """With the owner's row on main, the shipped list plus OpenBao is enough."""
+    vault = complete_vault()
+    wiring = _auth_from_settings(_settings(environment), secrets=vault)
+    assert isinstance(wiring, AuthWiring)
+    assert isinstance(wiring.delivery, netgsm().NetgsmSmsDeliveryAdapter)
+    assert vault.paths == ["api/netgsm"]
+
+
+@pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)
+def test_the_shipped_allowlist_without_the_runtime_gate_reads_no_secret(
+    environment: str, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The row alone is not enough: without INTAKE_ALLOW_PHI_EGRESS the tier
+    stays at 503 and the vendor's secret is never pulled."""
+    monkeypatch.delenv("INTAKE_ALLOW_PHI_EGRESS", raising=False)
     caplog.set_level(logging.WARNING)
     vault = complete_vault()
     assert _auth_from_settings(_settings(environment), secrets=vault) is None

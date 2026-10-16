@@ -1663,6 +1663,13 @@ class TestAttestAndSms:
         for field in SMS_FIELDS:
             assert field in result.stderr, (field, result.stderr)
 
+    def test_the_phi_egress_gate_is_open_on_the_api_alone(self) -> None:
+        """Owner patch (INT-528): the runtime half of the gate for the
+        allow-list's one phi_path row, Netgsm OTP SMS. Only the API gets it."""
+        assert _environment(_service("api")).get("INTAKE_ALLOW_PHI_EGRESS") == "explicit-yes"
+        for name in SERVICES - {"api"}:
+            assert "INTAKE_ALLOW_PHI_EGRESS" not in _environment(_service(name)), name
+
     def test_the_runbook_tells_the_operator_what_to_set(self) -> None:
         runbook = _text(RUNBOOK)
         assert re.search(rf"^## {ATTEST_SMS_SECTION}$", runbook, re.M)
