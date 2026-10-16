@@ -233,6 +233,21 @@
 - Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-03T12:00:00Z · INT-460 · done (PR open, not merged)
+- Goal (GitHub #785, owner request): give the owner a way to add one real second admin approver on the synthetic staging host without weakening the four-eyes rule. Acceptance verbatim: *"docs/runbooks/second-admin.md, at most 15 lines, gives the owner's exact steps … it names INT-378 (#643) as the prerequisite and no dev variable"* and *"tests hold the facts the runbook rests on … each behaviour pin is mutation-checked"*.
+- Plan: investigate first. The console admits only Keycloak tokens (INT-180), and a dev token set outside dev refuses the boot (INT-325). So the brief's second dev-bearer admin could not approve anything and would stop the staging API. The existing path is a second Keycloak user, so no product code changes. Write the runbook and pin it.
+- Tests added: `tests/admin/test_second_admin_runbook.py` (15).
+  - Near-miss: the same staging environment without the dev variable boots.
+  - RED: 6 failed (runbook absent), 9 passed (pins of existing behaviour).
+  - Mutations: 4 of 4 caught (self-approval, the org rule, dev flags outside dev, a bearer fallback at the gate).
+  - GREEN: 15 passed.
+- Result: docs/evidence/INT-460.md. Pins 330 → 331; files/11 regenerated. `no_placeholders` OK after staging. `make check-py`: ruff, format and mypy clean; whole-tree pytest 9826 passed at 95.65 %, and the 4 deid-cache failures pass once the cache is linked. check-integration is CI-only.
+- Invariants touched and still passing: 4 and 14 (four eyes and the second factor unchanged; no secret generated or stored), 6 (the boot refusal names the variable, never its value), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The brief's dev-bearer design is rejected because it would weaken INT-325 and the INT-180 gate. Its Sec-Row `auth` does not exist; `admin-console` is used.
+- Blocked on: PR #643 (INT-378) merged and live in the host's Keycloak. Until then the console refuses every staff token. Owner: #644 (INT-389) TOTP vs WebAuthn.
+- Next: PR `INT-460: second admin approver for synthetic staging` (Closes #785, Sec-Row admin-console), unmerged. The coordinator should know that the provider must also be mounted into #723's staging Keycloak and switched on in the live realm.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
