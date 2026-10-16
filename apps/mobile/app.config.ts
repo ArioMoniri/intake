@@ -2,11 +2,14 @@
  * Dynamic Expo config over app.json (INT-328). app.json stays the static
  * source; this file adds only what a static file cannot say.
  *
- * - F01: `extra.apiBaseUrl` is the release build's API base, and its ONLY
- *   source is the EAS environment variable `EXPO_PUBLIC_API_BASE_URL`. No
- *   hostname is committed anywhere: the production FQDN is a human decision
- *   (HB-I14). Until it is set the value is empty, and lib/auth/apiBase.ts
- *   refuses to talk to anything — it never falls back to the dev LAN walk.
+ * - F01: `extra.apiBaseUrl` is the release build's API base, and its value
+ *   still comes only from the EAS environment variable
+ *   `EXPO_PUBLIC_API_BASE_URL`; app.json cannot supply it. eas.json's
+ *   production profile sets that variable, so the base a store build carries
+ *   is a reviewed diff, and it must pass lib/auth/apiBase.ts's release parser
+ *   (https, public DNS name). HB-I14, the final FQDN, stays open. With the
+ *   variable unset the value is empty, and lib/auth/apiBase.ts refuses to talk
+ *   to anything — it never falls back to the dev LAN walk.
  * - F17: the production profile never declares the iOS local-network usage
  *   string (nor the Bonjour list that goes with it). A release build reaches no
  *   LAN host, and declaring the key is what puts the local-network prompt in
@@ -19,6 +22,10 @@
  *   does not grow. Expo writes the block as `tools:node="remove"`, which wins
  *   over any library's declaration in the manifest merge, and drops the
  *   permission from `android.permissions` if app.json ever asks for it.
+ * - INT-421: the production profile carries no dev-only lane. `extra.asrHosts`
+ *   and `extra.ttsLanes` are the LAN and loopback hosts of the `__DEV__` voice
+ *   lanes, so they resolve to empty lists there, and the release config names
+ *   no private address. Every other profile keeps them, deduplicated.
  */
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
@@ -85,12 +92,18 @@ function withBlockedPermissions(android: ExpoConfig["android"]): ExpoConfig["and
 
 /** The resolved config for one environment. Pure, so the rules are testable. */
 export function resolveAppConfig(config: ExpoConfig, env: Env): ExpoConfig {
+  const production = env[PROFILE_ENV] === PRODUCTION_PROFILE;
   const extra: Record<string, unknown> = { ...(config.extra ?? {}) };
-  if (Array.isArray(extra.asrHosts)) {
-    extra.asrHosts = uniqueBy(extra.asrHosts as unknown[], (host) => String(host));
-  }
-  if (Array.isArray(extra.ttsLanes)) {
-    extra.ttsLanes = uniqueBy(extra.ttsLanes as unknown[], laneKey);
+  if (production) {
+    extra.asrHosts = [];
+    extra.ttsLanes = [];
+  } else {
+    if (Array.isArray(extra.asrHosts)) {
+      extra.asrHosts = uniqueBy(extra.asrHosts as unknown[], (host) => String(host));
+    }
+    if (Array.isArray(extra.ttsLanes)) {
+      extra.ttsLanes = uniqueBy(extra.ttsLanes as unknown[], laneKey);
+    }
   }
   extra.apiBaseUrl = (env[API_BASE_ENV] ?? "").trim();
 
@@ -99,7 +112,7 @@ export function resolveAppConfig(config: ExpoConfig, env: Env): ExpoConfig {
     extra,
     android: withBlockedPermissions(config.android),
   };
-  if (env[PROFILE_ENV] === PRODUCTION_PROFILE && config.ios !== undefined) {
+  if (production && config.ios !== undefined) {
     resolved.ios = withoutLocalNetwork(config.ios);
   }
   return resolved;

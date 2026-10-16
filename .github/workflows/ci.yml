@@ -2,6 +2,9 @@
 # can be silently repointed; SHAs resolved from git ls-remote, never guessed). make check split into parallel jobs (05 §3); gates run the
 # invariant-17, vendor-call and evidence checks. CI never calls a vendor and
 # carries no secrets: recorded fixtures only (CLAUDE.md §How we work).
+# INT-463 — every job runs on the ephemeral intake-aws-ci runner on the AWS
+# host (owner order, 3 Oct 2026: no GitHub-hosted minutes). It is installed from
+# infra/ci/aws-runner, and tests/ci/test_aws_runner.py pins every runs-on.
 name: ci
 
 on:
@@ -14,7 +17,7 @@ permissions:
 
 jobs:
   check-py:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -41,7 +44,7 @@ jobs:
       - run: make check-py
 
   check-ts:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
@@ -54,7 +57,7 @@ jobs:
 
   check-integration:
     # the docker-compose tier in its own required job (05 §3); INT-017 seeds it
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -65,7 +68,7 @@ jobs:
       - run: make check-integration
 
   gates:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/ci/assert_no_vendor_calls.sh

@@ -22,3 +22,28 @@
 	}
 	reverse_proxy api:8000
 }
+
+# INT-421: the admin console. Every request goes through oauth2-proxy, which
+# admits a signed-in Keycloak session only. The one exception is the
+# console's /healthz.
+admin.{$STAGING_HOSTNAME} {
+	header {
+		X-Intake-Environment "staging-synthetic-only"
+		-Server
+	}
+	reverse_proxy oauth2-proxy:4180
+}
+
+# INT-421: Keycloak, for the staff realm's login pages and OIDC endpoints only.
+# Its admin console and the master realm are not routed: the operator works
+# with kcadm.sh inside the container, over SSM. The management port (9000:
+# health, metrics) is never routed.
+auth.{$STAGING_HOSTNAME} {
+	header {
+		X-Intake-Environment "staging-synthetic-only"
+		-Server
+	}
+	@not_public path /admin /admin/* /realms/master /realms/master/* /metrics /health /health/*
+	respond @not_public 404
+	reverse_proxy keycloak:8080
+}

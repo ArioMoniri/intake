@@ -111,9 +111,11 @@ ENV_ELEVENLABS_KEY: Final = "TTS_ELEVENLABS_API_KEY"
 #: taken there — the recorded fixture is.
 ENV_EVAL_BUDGET_USD: Final = "EVAL_BUDGET_USD"
 
-#: The multilingual model id (Turkish among its languages) and the raw-PCM
-#: sample rate the offline clip-gen requests. Config, not a claim about output.
-ELEVENLABS_MODEL_ID: Final = "eleven_multilingual_v2"
+#: The pinned model id and the raw-PCM sample rate the offline clip-gen
+#: requests. Config, not a claim about output. ``eleven_v3`` since INT-449
+#: (D20; ADR-034 amended by the owner's pick of the cast take E04, 3 Oct 2026);
+#: it was ``eleven_multilingual_v2`` under INT-319/INT-415.
+ELEVENLABS_MODEL_ID: Final = "eleven_v3"
 ELEVENLABS_PCM_RATE_HZ: Final = 24000
 
 #: The dev bridges expose ``POST /synthesize`` returning a WAV body
@@ -325,7 +327,9 @@ class ElevenLabsClipGenGateway:
                     params={"output_format": f"pcm_{self.sample_rate_hz}"},
                     headers={"xi-api-key": self.api_key},
                     json={
-                        "text": text_tr,
+                        # INT-449: the profile's closed-table tags, on the wire
+                        # only; text_tr itself is the script, verbatim (inv. 10)
+                        "text": profile.wire_prefix + text_tr,
                         "model_id": self.model_id,
                         # invariant 22: disable the vendor normaliser — the
                         # compiler already expanded every numeral to orthography.
