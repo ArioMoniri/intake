@@ -171,9 +171,16 @@ def test_ids_unique_and_well_formed() -> None:
     # order of 3 Oct 2026, GitHub #790).
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785).
+    # + INT-453 (the voice-runtime RED path triggers the winning rule's own
+    # script, not rule_ids[0]; found by INT-446, GitHub #767).
+    # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
+    # both lanes and the pre-positioned RED screen mounted; found by the
+    # INT-440 voice end-to-end test, GitHub #756).
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
     # + INT-524 (a pull request's superseded CI runs are cancelled, so the
     # runner pool builds only current heads; GitHub #890).
-    assert len(ids) == 345
+    assert len(ids) == 348
     import re
 
     for i in ids:

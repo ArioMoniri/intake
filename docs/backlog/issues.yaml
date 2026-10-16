@@ -6731,6 +6731,72 @@
     - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
   tests: [tests/admin/test_second_admin_runbook.py]
   sec_row: "admin-console"
+- id: INT-453
+  epic: E05-voice
+  phase: P0
+  title: "voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script"
+  # GitHub #767. Found by INT-446 (#766), 3 Oct 2026. RulesTriageResult.rules
+  # is ordered by severity then id; the engine breaks a severity tie on
+  # register restrictiveness, so with several RED rules firing rule_ids[0]
+  # could address another rule's script beside the winner's register. The
+  # engine now names the winner (protocols.triage.winning_red_rule) and the
+  # path asks it over the pack's own rules; anything less is unaddressable.
+  depends_on: [INT-080, INT-093]
+  labels: [area:voice, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-453.md
+  acceptance:
+    - "the RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr; a multi-rule test with a near-miss control is included"
+    - "make safety passes with triage at 100 % branch coverage"
+  tests: [tests/voice/test_red_winner.py, tests/safety/test_triage_engine.py]
+  sec_row: "triage"
+- id: INT-446
+  epic: E08-mobile
+  phase: P0
+  title: "RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted"
+  # GitHub #756. Found by the INT-440 voice end-to-end test, 3 Oct 2026: no
+  # screen mounted livekit/red.ts and no lane called the rules engine, so a
+  # RED could not fire anywhere in the app. The hop is services/api
+  # /v1/triage (packages/protocols evaluate_triage, never a mobile copy of a
+  # rule); the screen is components/RedLayer.tsx. No signed rule set exists
+  # (HB-C1), so the shipped state is 503 and no RED — the mechanism is proved
+  # over the committed signed SENTETİK fixture (docs/evidence/INT-446.md).
+  depends_on: [INT-080, INT-103, INT-333]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-446.md
+  acceptance:
+    - "every bound answer on the typed and voice lanes passes through the deterministic rules engine (invariant 1); a RED result mounts the pre-positioned RED screen and script with no media transport (invariant 21); its register and location are honoured, and on ON_SITE the 112 affordance is absent"
+    - "an end-to-end test proves a red-flag answer reaches the RED screen on both lanes, with a near-miss control that does not; the answer-to-RED time is measured"
+  tests: [tests/api/test_triage_hop.py, apps/mobile/e2e/red.spec.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"
+- id: INT-465
+  epic: E03-protocols
+  phase: P0
+  title: "generic RED active from CD-24, and the red rule set signed with a synthetic-only test key"
+  # GitHub #794. Follows INT-453 (#767) and INT-446 (#756) once INT-432's
+  # CD-24 reached main (PR #757). Owner decision D23, 3 Oct 2026, read with
+  # D18: a non-exportable OpenBao test key on the synthetic AWS host signs the
+  # rule set that host serves to simulated patients, and every non-synthetic
+  # tenant rejects it. D17 and HB-C1 are unchanged; INT-058 (cosign) is the
+  # production path and is untouched. Follow-up, not a prerequisite: INT-475
+  # (GitHub #814) makes the API triage hop raise the clinic Safety-inbox entry
+  # and sends the device's location answer to the server, so the ON_SITE line
+  # "Görevlilere haber verildi." holds on every lane (finding 6 in
+  # docs/evidence/INT-465.md). Until then the round-4 tripwire tests in
+  # tests/api/test_triage_hop.py prove no served RED rule can fire through the
+  # hop. INT-476 (GitHub #815) owns the kiosk-wipe / RED-store finding.
+  depends_on: [INT-432, INT-446, INT-453]
+  labels: [area:protocols, risk:clinical, risk:security]
+  status: done
+  evidence: docs/evidence/INT-465.md
+  acceptance:
+    - "generic_red.yaml is active with CD-24's own source blocks, each quote verbatim in a committed snapshot under packages/protocols/sources/; every location entry (REMOTE, ON_SITE, UNKNOWN) states its location and the CD-24 register policy (carry_engine_register); no ON_SITE text, number or action code carries 112; each with a near-miss test"
+    - "the ON_SITE bold markers and the [ — {{tenant.acil_location_tr}}] segment are expanded before the screen and TTS: markup-free, the segment resolved from the tenant's value or dropped when unset, never defaulted; every spoken generic string passes expand_tr (112 → yüz on iki) with no digit, markup or placeholder; each with a near-miss test"
+    - "the generic RED goldens (CD-24's near-miss tests) are in tests/safety and make safety is green"
+    - "the served red rule set is signed with an ed25519 test key held non-exportable in OpenBao Transit on the synthetic AWS host, never in the repo or a log; a synthetic tenant config serves it only with a valid test-key signature over its exact bytes; a test proves any non-synthetic tenant config rejects the test-key signature; the production signing path (INT-058, cosign) and its key are untouched"
+  tests: [tests/protocols/test_generic_red.py, tests/protocols/test_red_render.py, tests/protocols/test_red_signature.py, tests/protocols/test_red_rule_set_signature_cli.py, tests/safety/test_generic_red_goldens.py, tests/api/test_triage_hop.py, tests/api/test_triage_tenant_kind.py, tests/infra/test_red_signing_infra.py, tests/voice/test_red_winner.py]
+  sec_row: "triage"
 - id: INT-524
   epic: E13-infra
   phase: P1
