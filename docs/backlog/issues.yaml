@@ -6950,6 +6950,23 @@
     - "Consent scope checked and the notification audited (invariant 4); no PHI in logs (invariant 6)."
   tests: [tests/api/test_red_notify.py, tests/api/test_triage_hop.py, tests/platform/test_safety_inbox.py, tests/voice/test_safety_inbox_notifier.py, tests/infra/test_staging_compose.py, apps/mobile/src/lib/red/locationReport.test.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/src/lib/red/hop.test.ts, apps/mobile/e2e/red.spec.ts]
   sec_row: "clinical-core"
+- id: INT-485
+  epic: E13-infra
+  phase: P0
+  title: "Admin oauth2-proxy logs no staff email or client IP (invariant 6)"
+  # GitHub #830. INT-421's admin login gate kept oauth2-proxy's default request
+  # and auth logs, which name the signed-in email and the client IP on every
+  # console request, so the host's json-file logs held staff identities. The
+  # same two switches INT-481 sets on oauth2-proxy-grafana turn both off.
+  depends_on: [INT-421]
+  labels: [area:infra]
+  status: done
+  evidence: docs/evidence/INT-485.md
+  acceptance:
+    - "the admin oauth2-proxy service in infra/staging/compose.yaml sets OAUTH2_PROXY_REQUEST_LOGGING and OAUTH2_PROXY_AUTH_LOGGING to \"false\", with a comment saying why, the same as INT-481's oauth2-proxy-grafana; start-up and error lines are still written"
+    - "tests/infra/test_staging_admin_tier.py::TestLoginGate pins both, with a near-miss that the default (both absent), either one alone, or either set to \"true\" fails the same check; the red and green runs are recorded in docs/evidence/INT-485.md; nothing is deployed from the PR"
+  tests: [tests/infra/test_staging_admin_tier.py]
+  sec_row: "admin-console"
 - id: INT-442
   epic: E05-voice
   phase: P1
