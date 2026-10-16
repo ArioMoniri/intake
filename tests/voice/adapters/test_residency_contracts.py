@@ -27,9 +27,11 @@ synthetic Turkish with no clinical content (files/04 §7) and no numeral
 
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
 import logging
+import re
 import sys
 from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime
@@ -41,7 +43,10 @@ import pytest
 from clinical_schemas.session import AnswerState
 from intake_platform.egress import (
     VENDOR_LLM_DOMAINS,
+    AllowlistEntry,
     DataClass,
+    EgressAllowlist,
+    EgressConfigError,
     EgressContext,
     EgressPolicy,
     EgressPurpose,
@@ -77,8 +82,12 @@ from intake_voice_runtime.adapters.speech import (
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.work_queue import BackendAgent, WorkLane
 from intake_voice_runtime.composition import ResidencyStack, build_residency_tr_session
-from intake_voice_runtime.extraction.errors import BoundaryEscape
-from intake_voice_runtime.extraction.gateway import Completion, ExtractionCall
+from intake_voice_runtime.extraction.errors import BoundaryEscape, VendorEndpointRefused
+from intake_voice_runtime.extraction.gateway import (
+    Completion,
+    ExtractionCall,
+    HttpExtractionGateway,
+)
 from intake_voice_runtime.ports import AskLedger, WorkRequest, WorkType
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.talker.speculation import (
@@ -94,6 +103,7 @@ from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, Resolve
 from protocols.dsl import Slot
 from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.types import Delivery, SlotType
+from red_harness import RecordingClinicNotifier
 from talker_harness import (
     FakeClock,
     InMemoryPatientMemory,
@@ -212,6 +222,7 @@ def build_stack(
         sink=sink,
         memory=InMemoryPatientMemory(),
         tenant_id="00000000-0000-4000-8000-000000000001",
+        clinic=RecordingClinicNotifier(),
     )
     stack.session.speculation = speculation
     return stack, clock, resolved, tts, sink
@@ -757,25 +768,335 @@ class TestAsrAdapter:
         )
 
 
-class TestNoPhiPathEgress:
-    """The fourth acceptance line, from both ends."""
+# --- invariant 19 after ADR-035: the owner's hosted rows and nothing else ---------
 
-    def test_the_allow_list_names_no_external_model_or_speech_vendor(self) -> None:
+#: The INT-001 vendor gate: the one file that spells every external model and
+#: speech vendor endpoint (its ``PATTERN``) and, since the owner's 47d4a93d, the
+#: two ADR-035 hosts it excepts (``EXCEPTION_HOSTS``). The guard reads both
+#: rather than restating them, because the gate scans this file too.
+VENDOR_GATE = REPO / "scripts" / "ci" / "assert_no_vendor_calls.sh"
+SYNTHETIC_PROXY_CONF = REPO / "infra" / "staging" / "egress" / "squid.conf"
+BUILD_PROXY_CONF = REPO / "infra" / "security" / "squid" / "squid.conf"
+
+#: The owner's ADR-035 rows exactly as committed in 47d4a93d (00_STATE D30,
+#: 3 Oct 2026: "i approve all u need"): row name -> sha256 of the row's host.
+#: A digest, not the host, because the INT-001 gate admits those two hosts in
+#: the allow-list and the synthetic proxy's config only. A new vendor row, a
+#: renamed one or a moved host fails the guard until this pin is extended on
+#: purpose, in a reviewed diff; and the pin must shrink when ADR-035 reverts.
+#: Names and digests are zipped from two tuples, in the same order, so no line
+#: pairs a row name ending in "-api" with a hex value (gitleaks' generic rule
+#: reads that as a key assignment).
+HOSTED_VENDOR_PIN: Mapping[str, str] = dict(
+    zip(
+        (
+            "openai-api",
+            "elevenlabs-api",
+        ),
+        (
+            "934d38a346a7d76108a273a94c52797cfee5f360a01e9bfd1af0aca38a435a2b",
+            "1ca6f97934fb270d6e76f6517100adea4eb8a296c59d21f1672ccb9e99e7e7e0",
+        ),
+        strict=True,
+    )
+)
+
+#: How the allow-list's lawful-basis column says "synthetic only" on both of
+#: the owner's rows: no personal data, synthetic deployment only, ADR-035.
+NO_PERSONAL_DATA_BASIS = "no-personal-data;"
+SYNTHETIC_ONLY_BASIS = "synthetic deployment only (ADR-035)"
+
+HOSTED = EgressPurpose.HOSTED_MODEL_INFERENCE
+
+
+def _gate_hosts(variable: str) -> frozenset[str]:
+    """The hosts one alternation variable of the INT-001 gate spells."""
+    text = VENDOR_GATE.read_text(encoding="utf-8")
+    found = re.search(rf"^{variable}='([^']+)'$", text, flags=re.MULTILINE)
+    assert found is not None, f"{variable} is no longer defined in {VENDOR_GATE.name}"
+    hosts = frozenset(part.replace("\\.", ".").lstrip(".") for part in found.group(1).split("|"))
+    assert hosts, f"{variable} spells no host"
+    for host in hosts:
+        assert re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", host), (
+            f"{variable} holds an alternative that is not a plain host"
+        )
+    return hosts
+
+
+def _registrable(host: str) -> str:
+    return ".".join(host.split(".")[-2:])
+
+
+def _vendor_families() -> frozenset[str]:
+    """Every external model or speech vendor domain the tree knows of:
+    invariant 19's LLM families plus the registrable domain of each host the
+    INT-001 gate refuses."""
+    return VENDOR_LLM_DOMAINS | {_registrable(host) for host in _gate_hosts("PATTERN")}
+
+
+def _digest(host: str) -> str:
+    return hashlib.sha256(host.encode("utf-8")).hexdigest()
+
+
+def _is_vendor_row(entry: AllowlistEntry, families: frozenset[str]) -> bool:
+    """A hosted-model row is a vendor row whatever its host; any other row is
+    one when it can reach a vendor family (a glob wider than the family too)."""
+    if entry.purpose_id is HOSTED:
+        return True
+    subject = entry.host[2:] if entry.glob else entry.host
+    return any(
+        subject == family
+        or subject.endswith(f".{family}")
+        or (entry.glob and family.endswith(f".{subject}"))
+        for family in families
+    )
+
+
+def hosted_vendor_violations(allowlist: EgressAllowlist) -> list[str]:
+    """Invariant 19 as ADR-035 and D30 leave it: every way a vendor row breaks it.
+
+    A model or speech vendor row is allowed only as one of the owner's pinned
+    rows, in the ``dev`` tier, serving ``hosted_model_inference`` (the purpose
+    the synthetic proxy renders and the build proxy never does), as one exact
+    host on 443, with ``phi_allowed: false``, no PHI exception and a
+    no-personal-data, synthetic-only basis. Messages name rows, never hosts.
+    """
+    families = _vendor_families()
+    found: list[str] = []
+    tiers = (("dev", allowlist.tiers.dev), ("phi_path", allowlist.tiers.phi_path))
+    for tier, entries in tiers:
+        for entry in entries:
+            if not _is_vendor_row(entry, families):
+                continue
+            row = f"{tier}/{entry.name}"
+            if tier != "dev":
+                found.append(f"{row}: an external model or speech vendor on the PHI path")
+            if entry.phi_allowed or entry.phi_exception_approval is not None:
+                found.append(f"{row}: a vendor row approved for personal data")
+            if entry.purpose_id is not HOSTED:
+                found.append(f"{row}: a vendor row serving {entry.purpose_id}")
+            if entry.glob or entry.port != 443:
+                found.append(f"{row}: not one exact host on 443")
+            if not (
+                entry.basis.startswith(NO_PERSONAL_DATA_BASIS)
+                and entry.basis.endswith(SYNTHETIC_ONLY_BASIS)
+            ):
+                found.append(f"{row}: basis does not restrict it to the synthetic deployment")
+            if HOSTED_VENDOR_PIN.get(entry.name) != _digest(entry.host):
+                found.append(f"{row}: not one of the owner's pinned ADR-035 rows")
+    return found
+
+
+def _shipped_vendor_rows() -> dict[str, AllowlistEntry]:
+    allowlist = load_allowlist(ALLOWLIST_PATH)
+    families = _vendor_families()
+    return {
+        entry.name: entry
+        for entry in (*allowlist.tiers.dev, *allowlist.tiers.phi_path)
+        if _is_vendor_row(entry, families)
+    }
+
+
+def _with_rows(
+    allowlist: EgressAllowlist,
+    *,
+    dev: list[AllowlistEntry],
+    phi_path: list[AllowlistEntry] | None = None,
+) -> EgressAllowlist:
+    return EgressAllowlist(
+        version=allowlist.version,
+        tiers=allowlist.tiers.model_copy(
+            update={"dev": dev, "phi_path": phi_path if phi_path is not None else []}
+        ),
+    )
+
+
+def _changed(entry: AllowlistEntry, **changes: object) -> AllowlistEntry:
+    """A validated copy: the allow-list's own shape rules still apply."""
+    return AllowlistEntry.model_validate({**entry.model_dump(), **changes})
+
+
+def _near_miss(name: str) -> EgressAllowlist:
+    """The shipped list with one deliberate breach of the guard."""
+    shipped = load_allowlist(ALLOWLIST_PATH)
+    rows = _shipped_vendor_rows()
+    openai_row, speech_row = rows["openai-api"], rows["elevenlabs-api"]
+    llm_family = next(d for d in sorted(VENDOR_LLM_DOMAINS) if d == _registrable(openai_row.host))
+    # a vendor the INT-001 gate refuses that is not an LLM family: a speech vendor
+    refused_speech = next(
+        host
+        for host in sorted(_gate_hosts("PATTERN") - _gate_hosts("EXCEPTION_HOSTS"))
+        if _registrable(host) not in VENDOR_LLM_DOMAINS
+    )
+    dev = list(shipped.tiers.dev)
+
+    def without(entry: AllowlistEntry) -> list[AllowlistEntry]:
+        return [row for row in dev if row.name != entry.name]
+
+    def replaced(entry: AllowlistEntry, **changes: object) -> list[AllowlistEntry]:
+        return [*without(entry), _changed(entry, **changes)]
+
+    cases: dict[str, EgressAllowlist] = {
+        "llm-row-on-phi-path": _with_rows(shipped, dev=without(openai_row), phi_path=[openai_row]),
+        "speech-row-on-phi-path": _with_rows(
+            shipped, dev=without(speech_row), phi_path=[speech_row]
+        ),
+        "llm-row-phi-allowed": _with_rows(
+            shipped,
+            dev=replaced(openai_row, phi_allowed=True, phi_exception_approval="D30"),
+        ),
+        "speech-row-phi-allowed-on-phi-path": _with_rows(
+            shipped,
+            dev=without(speech_row),
+            phi_path=[_changed(speech_row, phi_allowed=True, phi_exception_approval="D30")],
+        ),
+        "llm-row-as-package-registry": _with_rows(
+            shipped, dev=replaced(openai_row, purpose_id=EgressPurpose.PACKAGE_REGISTRY)
+        ),
+        "speech-row-as-model-weights": _with_rows(
+            shipped, dev=replaced(speech_row, purpose_id=EgressPurpose.MODEL_WEIGHTS)
+        ),
+        "llm-row-on-another-port": _with_rows(shipped, dev=replaced(openai_row, port=8443)),
+        "llm-row-widened-to-a-glob": _with_rows(
+            shipped, dev=replaced(openai_row, host=f"*.{llm_family}", glob=True)
+        ),
+        "speech-row-basis-not-synthetic": _with_rows(
+            shipped,
+            dev=replaced(speech_row, basis="no-personal-data; hosted text to speech"),
+        ),
+        "llm-row-renamed": _with_rows(shipped, dev=replaced(openai_row, name="openai-api-v2")),
+        "llm-row-host-moved-in-family": _with_rows(
+            shipped, dev=replaced(openai_row, host=f"uploads.{llm_family}")
+        ),
+        "third-hosted-vendor-row": _with_rows(
+            shipped,
+            dev=[*dev, _changed(speech_row, name="vendor-c-api", host="api.vendor-c.example")],
+        ),
+        "refused-speech-vendor-as-tooling": _with_rows(
+            shipped,
+            dev=[
+                *dev,
+                _changed(
+                    speech_row,
+                    name="speech-weights",
+                    host=refused_speech,
+                    purpose_id=EgressPurpose.MODEL_WEIGHTS,
+                ),
+            ],
+        ),
+    }
+    return cases[name]
+
+
+#: Each near miss, and the breach the guard must name for it.
+NEAR_MISSES: Mapping[str, str] = {
+    "llm-row-on-phi-path": "on the PHI path",
+    "speech-row-on-phi-path": "on the PHI path",
+    "llm-row-phi-allowed": "approved for personal data",
+    "speech-row-phi-allowed-on-phi-path": "approved for personal data",
+    "llm-row-as-package-registry": "serving package_registry",
+    "speech-row-as-model-weights": "serving model_weights",
+    "llm-row-on-another-port": "not one exact host on 443",
+    "llm-row-widened-to-a-glob": "not one exact host on 443",
+    "speech-row-basis-not-synthetic": "synthetic deployment",
+    "llm-row-renamed": "not one of the owner's pinned",
+    "llm-row-host-moved-in-family": "not one of the owner's pinned",
+    "third-hosted-vendor-row": "not one of the owner's pinned",
+    "refused-speech-vendor-as-tooling": "serving model_weights",
+}
+
+
+class TestNoPhiPathEgress:
+    """The fourth acceptance line, from both ends — and invariant 19 as the
+    owner's ADR-035 decision (00_STATE D30) leaves it: the hosted vendors reach
+    the synthetic deployment through exactly the two pinned rows, and nothing
+    on the PHI path reaches any external model or speech vendor."""
+
+    def test_the_only_vendor_rows_are_the_owners_pinned_synthetic_rows(self) -> None:
         allowlist = load_allowlist(ALLOWLIST_PATH)
-        hosts = {
-            entry.host.casefold() for entry in (*allowlist.tiers.dev, *allowlist.tiers.phi_path)
-        }
-        for domain in sorted(VENDOR_LLM_DOMAINS):
-            assert not any(host == domain or host.endswith(f".{domain}") for host in hosts), (
-                f"{domain} is on the egress allow-list"
-            )
-        # invariant 19's own check, run rather than restated: no vendor LLM
-        # host is PHI-enabled or on the PHI path at all. The speech vendors
-        # files/03 §1 deletes are covered by the row below and by the
-        # adapters' default-deny host rule — naming them here would put the
-        # hostnames back into the tree that
-        # `scripts/ci/assert_no_vendor_calls.sh` exists to keep them out of.
+        assert hosted_vendor_violations(allowlist) == []
+        assert set(_shipped_vendor_rows()) == set(HOSTED_VENDOR_PIN), (
+            "the pin and the shipped hosted rows disagree: extend or shrink the pin "
+            "in the same reviewed change as the row"
+        )
+        # invariant 19's own library check, run rather than restated: no vendor
+        # LLM host is PHI-enabled or on the PHI path at all.
         assert_dev_only_vendors(allowlist)
+
+    def test_the_pin_is_the_vendor_gates_adr_035_exception(self) -> None:
+        excepted = {_digest(host) for host in _gate_hosts("EXCEPTION_HOSTS")}
+        assert excepted == set(HOSTED_VENDOR_PIN.values())
+
+    def test_every_pinned_row_is_a_vendor_row_by_host_alone(self) -> None:
+        """Not vacuous: the families catch both rows even off the hosted purpose,
+        the speech vendor included (it is not an LLM family)."""
+        families = _vendor_families()
+        assert families >= VENDOR_LLM_DOMAINS
+        rows = _shipped_vendor_rows()
+        assert set(rows) == set(HOSTED_VENDOR_PIN)
+        for row in rows.values():
+            as_tooling = _changed(row, purpose_id=EgressPurpose.PACKAGE_REGISTRY)
+            assert _is_vendor_row(as_tooling, families), row.name
+
+    def test_the_synthetic_proxy_renders_exactly_the_pin_and_the_build_proxy_none(
+        self,
+    ) -> None:
+        prefix = "acl hosted_exact dstdomain "
+        lines = SYNTHETIC_PROXY_CONF.read_text(encoding="utf-8").splitlines()
+        rendered = {
+            host
+            for line in lines
+            if line.startswith(prefix)
+            for host in line[len(prefix) :].split()
+        }
+        assert {_digest(host) for host in rendered} == set(HOSTED_VENDOR_PIN.values())
+        build = BUILD_PROXY_CONF.read_text(encoding="utf-8")
+        for row in _shipped_vendor_rows().values():
+            assert row.host not in build, f"the build proxy admits {row.name}"
+
+    @pytest.mark.parametrize("case", sorted(NEAR_MISSES))
+    def test_each_near_miss_is_refused(self, case: str) -> None:
+        violations = hosted_vendor_violations(_near_miss(case))
+        assert any(NEAR_MISSES[case] in violation for violation in violations), violations
+
+    def test_the_library_check_misses_a_speech_vendor_on_the_phi_path(self) -> None:
+        """Why the guard exists beside assert_dev_only_vendors: that check knows
+        the LLM families only, so the speech row on the PHI path passes it."""
+        assert_dev_only_vendors(_near_miss("speech-row-on-phi-path"))
+        with pytest.raises(EgressConfigError):
+            assert_dev_only_vendors(_near_miss("llm-row-on-phi-path"))
+
+    def test_the_phi_tier_refuses_every_vendor_row_for_any_purpose_or_data(self) -> None:
+        allowlist = load_allowlist(ALLOWLIST_PATH)
+        phi = EgressPolicy.for_tier(allowlist, "phi_path")
+        dev = EgressPolicy.for_tier(allowlist, "dev")
+        for row in _shipped_vendor_rows().values():
+            for purpose in EgressPurpose:
+                for data_class in DataClass:
+                    context = EgressContext(purpose=purpose, data_class=data_class)
+                    assert not phi.check(row.host, row.port, context).allowed, row.name
+            # the second key: phi_allowed is false, so personal data bound for a
+            # hosted row is refused on the dev tier too
+            for data_class in (DataClass.PHI, DataClass.PSEUDONYMOUS):
+                context = EgressContext(purpose=HOSTED, data_class=data_class)
+                assert not dev.check(row.host, row.port, context).allowed, row.name
+            # near miss: the synthetic tenant's non-personal call is the one admitted
+            synthetic = EgressContext(purpose=HOSTED, data_class=DataClass.NON_PERSONAL)
+            assert dev.check(row.host, row.port, synthetic).allowed, row.name
+
+    def test_the_phi_path_adapters_refuse_every_vendor_row(self) -> None:
+        rows = _shipped_vendor_rows().values()
+        llm_rows = [row for row in rows if _registrable(row.host) in VENDOR_LLM_DOMAINS]
+        assert llm_rows, "no LLM vendor row: the extraction refusal below proves nothing"
+        for row in rows:
+            endpoint = f"https://{row.host}"
+            with pytest.raises(ExternalHostRefused):
+                HttpSpeechSynthesizer(endpoint=endpoint)
+            with pytest.raises(ExternalHostRefused):
+                HttpTranscriber(endpoint)
+        for row in llm_rows:
+            with pytest.raises(VendorEndpointRefused):
+                HttpExtractionGateway(f"https://{row.host}")
 
     def test_the_phi_tier_reaches_no_model_host_at_all(self) -> None:
         """A self-hosted stack has no model destination to allow."""

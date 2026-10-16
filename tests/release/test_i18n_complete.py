@@ -138,6 +138,13 @@ HARDCODED_EXEMPT = {
         "A Turkish character class inside the MHRS-message parser's regex. It "
         "is matched against text the patient pastes and is never rendered."
     ),
+    "lib/taxonomy/turkishDates.ts": (
+        "INT-400: the twelve Turkish month names and the I/İ fold of the "
+        "server's `turkish_dates.TURKISH_MONTHS` and `fold_tr`, ported so the "
+        "device reads a pasted date by the server's rule. They are matched "
+        "against what a message printed and are never rendered. The server "
+        "module creates no tr key for the same table, for the same reason."
+    ),
 }
 
 #: Instructional prose and form labels carrying the SHORT imperative (`-in`)

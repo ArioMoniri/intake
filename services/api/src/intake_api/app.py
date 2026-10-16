@@ -12,12 +12,16 @@ contracts: the four health endpoints and readiness checks come from
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import json
 import logging
 import os
+import threading
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -38,11 +42,20 @@ from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
+from intake_platform.model_lanes.wiring import ModelLanesWiring, model_lanes_from_env
 from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.release_freeze import release_freeze_store_from_env
+from intake_platform.safety_inbox import (
+    PUMP_INTERVAL,
+    SafetyInbox,
+    SafetyInboxOutbox,
+    mark_inbox_unreadable,
+    safety_inbox_store_from_env,
+    sweep_forever,
+)
 from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
-from intake_platform.voice_control import voice_control_store_from_env
+from intake_platform.voice_control import VoiceControlStore, voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -63,8 +76,11 @@ from intake_api import (
     previsit_output,
     profile_routes,
     record_items,
+    red_notify,
     satisfaction,
     taxonomy_routes,
+    triage_hop,
+    visit_lifecycle,
     visits,
     visits_acibadem,
 )
@@ -73,7 +89,7 @@ from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
 from intake_api.dev_fixture import ensure_dev_fixture
 from intake_api.dev_voice import GeorgeWiring, george_wiring_from_env
-from intake_api.dev_voice_guard import intake_env_is_prod
+from intake_api.dev_voice_guard import george_route_mountable
 from intake_api.doctor_link.common import NOINDEX
 from intake_api.doctor_link.service import (
     DoctorLinkService,
@@ -143,6 +159,10 @@ class ApiWiring:
     # None = no row (the shipped state), so /v1/visits/sync answers
     # "unavailable" (fail closed).
     acibadem: AcibademAppointmentsClient | None = None
+    # INT-407: the clinic Safety inbox a RED visit's reschedule or cancel
+    # raises its entry in (files/02 §2b). None = unwired: those two moves
+    # answer 503 rather than happen silently.
+    safety_inbox: SafetyInbox | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -350,7 +370,47 @@ def _admin_from_env() -> AdminWiring | None:
         voice_controls=voice_controls,
         release_freeze=release_freeze,
         identity=_identity_from_env(),
+        safety_inbox=_safety_inbox_from_env(),
+        model_lanes=_model_lanes_from_env(voice_controls),
     )
+
+
+def _safety_inbox_from_env() -> SafetyInbox | None:
+    """INT-406: the clinic Safety inbox, from the store the voice runtime
+    writes. Unset or malformed, the Safety queue answers 503 and the inbox is
+    reported unreadable at boot, which pages (fail closed, never a default
+    address). The SLA is files/02 §8.2's default; no tenant SLA is set here."""
+    try:
+        store = safety_inbox_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("safety inbox unconfigured: the store URL is not a redis URL")
+        return None
+    return SafetyInbox(store=store) if store is not None else None
+
+
+def _model_lanes_from_env(voice_controls: VoiceControlStore | None) -> ModelLanesWiring | None:
+    """INT-428 (ADR-035): the model-lane control store, the router and the
+    hosted adapters. No ``INTAKE_MODEL_LANES_REDIS_URL`` leaves the module
+    unconfigured — its mutations answer 503 and its tiles read unknown. The
+    INT-182 voice kill switch, when wired, disables hosted lanes for its
+    tenant; an unreadable one reads as engaged (fail closed). A policy file
+    that does not load (the allow-list, the provider catalogue, the transfer
+    bases) leaves the module unconfigured rather than half-built."""
+    kill_switch = None
+    if voice_controls is not None:
+        store = voice_controls
+
+        def kill_switch(tenant_id: str) -> bool:
+            return store.read(tenant_id).kill_switch
+
+    try:
+        return model_lanes_from_env(
+            os.environ, kv=SecretsProvider.from_env, kill_switch=kill_switch
+        )
+    except (OSError, ValueError) as err:
+        # the class name says what failed; no path or value is logged
+        logger.warning("model lanes unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _identity_from_env() -> IdentityWiring | None:
@@ -420,9 +480,44 @@ def wiring_from_env() -> ApiWiring:
         auth=_auth_from_settings(settings),
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
-        george=george_wiring_from_env(redis_url=settings.redis_url),
+        # INT-443: on the synthetic host the vendor key comes from OpenBao
+        george=george_wiring_from_env(redis_url=settings.redis_url, kv=SecretsProvider.from_env),
         acibadem=visits_acibadem.acibadem_client_from_registry(settings.clinical_sources_path),
+        # INT-407: the same store the console's queue reads and the voice
+        # runtime writes (INTAKE_SAFETY_INBOX_REDIS_URL)
+        safety_inbox=_safety_inbox_from_env(),
     )
+
+
+@dataclass(frozen=True)
+class _RedPump:
+    """INT-475: the thread writing the RED path's outbox into the shared store."""
+
+    outbox: SafetyInboxOutbox
+    thread: threading.Thread
+
+    @classmethod
+    def start(cls, state: ApiState) -> _RedPump | None:
+        """No inbox, no pump: a hop RED then counts a route failure, which pages."""
+        if state.red_outbox is None or state.safety_inbox is None:
+            return None
+        thread = threading.Thread(
+            target=state.red_outbox.pump,
+            args=(state.safety_inbox.store,),
+            name="safety-inbox-pump",
+            daemon=True,
+        )
+        thread.start()
+        return cls(outbox=state.red_outbox, thread=thread)
+
+    def stop(self) -> None:
+        """One last pass; what the store still refuses is counted, never named."""
+        self.outbox.stop()
+        self.thread.join(timeout=PUMP_INTERVAL.total_seconds() * 5)
+        left = len(self.outbox.pending())
+        if left:
+            # a count only (invariant 6); the entries' age already pages
+            logger.error("safety inbox entries unwritten at stop", extra={"count": left})
 
 
 def create_app(wiring: ApiWiring | None = None) -> FastAPI:
@@ -439,15 +534,23 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         doctor_link=_doctor_link_service(w.auth),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
+        safety_inbox=w.safety_inbox,
+        # INT-475: the RED path's outbox, wired exactly when the inbox is
+        red_outbox=SafetyInboxOutbox() if w.safety_inbox is not None else None,
     )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if w.bootstrap:
-            try:
-                await ensure_dev_fixture(w.engine, w.bootstrap_engine)
-            except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
-                logger.warning("dev fixture bootstrap deferred: database not ready")
+            # INT-421 (owner, 27 Sep 2026: "in production don't include deneme
+            # hastası"): the synthetic dev tenant, patient and consents are the
+            # dev environment's only. Anywhere else nothing is seeded, and what
+            # earlier boots left is removed by intake_api.dev_fixture_retire.
+            if w.settings.dev_tier_expected:
+                try:
+                    await ensure_dev_fixture(w.engine, w.bootstrap_engine)
+                except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
+                    logger.warning("dev fixture bootstrap deferred: database not ready")
             if w.auth is not None:
                 try:
                     # INT-131: consumer tenant for real OTP accounts (tenant
@@ -462,7 +565,29 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                 await w.admin.review_ledger.refresh(audit)
             except Exception:  # noqa: BLE001 — the gauge stays +Inf and pages; ids-only log
                 logger.warning("access review ledger deferred: audit chain not readable")
-        yield
+        # INT-406, invariant 49: the scheduled checker. Wired, it recomputes
+        # the unacknowledged-RED gauge every sweep interval for as long as the
+        # API serves; unwired, nothing can say whether a RED is waiting, so the
+        # inbox is reported unreadable — which pages — until it is wired.
+        inbox = w.admin.safety_inbox if w.admin is not None else None
+        sweeper: asyncio.Task[None] | None = None
+        if inbox is None:
+            mark_inbox_unreadable()
+        else:
+            sweeper = asyncio.create_task(sweep_forever(inbox, clock=lambda: datetime.now(UTC)))
+        # INT-475: the outbox pump — the triage hop's RED and the on-site staff
+        # notification are put in-process and written to the shared store here,
+        # as the voice runtime's are (INT-406).
+        pump = _RedPump.start(state)
+        try:
+            yield
+        finally:
+            if sweeper is not None:
+                sweeper.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await sweeper
+            if pump is not None:
+                pump.stop()
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state
@@ -542,6 +667,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     mount_health(app, readiness=readiness)
 
     app.include_router(visits.router)
+    app.include_router(visit_lifecycle.router)
     app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
     app.include_router(previsit_output.router)
@@ -553,6 +679,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(consents.router)
     app.include_router(profile_routes.router)
     app.include_router(taxonomy_routes.router)
+    app.include_router(triage_hop.router)
+    app.include_router(red_notify.router)
     app.include_router(dsar.router)
     app.include_router(satisfaction.router)
     app.include_router(notification_prefs.router)
@@ -562,6 +690,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(embed.router)
     # INT-326: the dev George route reaches a paid US vendor, so in production
     # it is not mounted at all (404) — whatever the dev flags or wiring say.
-    if not intake_env_is_prod():
+    # INT-443: outside dev, only the synthetic deployment that declares its
+    # hosted clip lane mounts it; a PHI deployment never does.
+    if george_route_mountable(os.environ):
         app.include_router(dev_voice.router)
     return app

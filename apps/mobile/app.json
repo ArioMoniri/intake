@@ -13,9 +13,13 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ariomoniri.intakemobile"
+      "bundleIdentifier": "com.ariomoniri.intakemobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.ariomoniri.intakemobile",
       "adaptiveIcon": {
         "backgroundColor": "#FAF8F4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -85,7 +89,10 @@
         { "id": "freya", "port": 8803 }
       ],
       "certificatePins": [],
-      "glitchtipDsn": ""
+      "glitchtipDsn": "",
+      "eas": {
+        "projectId": "307d4cf2-c447-4855-8110-da59fb5ed170"
+      }
     }
   }
 }

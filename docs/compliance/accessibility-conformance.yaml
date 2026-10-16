@@ -40,12 +40,13 @@ report:
     INT-387 re-assessed 3.3.1, 3.3.8 and 4.1.3, and the 3.2.2 remark, against
     `origin/main` at `c489289e`, on branch `int-387-conformance-refresh`.
     INT-397 re-assessed 4.1.3 on branch `int-397-status-lines`, built on
-    `int-387-conformance-refresh` at `76d98388`
+    `int-387-conformance-refresh` at `76d98388`. INT-465 re-assessed 2.2.1 on
+    branch `int-465-generic-red-active`
   assessed_by: >-
     INT-226 engineering pass: automated source assertions, code inspection and
     palette arithmetic. Rows re-assessed since, by the same method: 1.3.4 and
     1.4.10 (INT-360), 2.2.1 (INT-363), 3.3.1, 3.3.8, 4.1.3 and the 3.2.2
-    remark (INT-387), and 4.1.3 again (INT-397)
+    remark (INT-387), 4.1.3 again (INT-397), and 2.2.1 again (INT-465)
   standards: >-
     WCAG 2.2 (W3C Recommendation, 5 October 2023), Level A and AA. EN 301 549
     V3.2.1 (2021-03), clauses 5, 11 and 12 as they apply to a mobile application.
@@ -309,11 +310,29 @@ wcag:
       - "apps/mobile/src/lib/kiosk/kioskState.test.ts::one action — extend — returns to active and restarts the full timeout"
       - "apps/mobile/src/lib/kiosk/kioskState.test.ts::can be extended again and again — ten times and more, never wiping"
       - "apps/mobile/e2e/kiosk.spec.ts::offers one action that extends, and moves the screen reader's focus onto it"
+      - "apps/mobile/e2e/a11y.spec.ts::the Essential-Exception register holds the RED no-answer clock and nothing else"
+      - "apps/mobile/src/lib/red/noAnswerClock.test.ts::an answer given after the wait still lands — ON_SITE, without 112"
+      - "apps/mobile/src/lib/red/store.test.ts::the patient's own answer is final: nothing moves it afterwards"
+      - "apps/mobile/e2e/red.spec.ts::after the no-answer branch the question stays answerable, below the action and 112 (LD-05)"
     manual: [MC-08]
     remarks: >-
-      In the phone app the only time limit a patient meets is the OTP resend
-      cooldown. It is a server rate limit and takes nothing away when it runs
-      out. Kiosk mode's 60-second idle wipe is a time limit, and since INT-363
+      In the phone app a patient meets two time limits. The OTP resend cooldown
+      is a server rate limit and takes nothing away when it runs out. The second
+      is the RED location question's no-answer wait (INT-465). When a RED fires
+      at an unknown location it first asks "Şu anda hastanede misiniz?". If that
+      stays unanswered for 30 seconds, the RED takes its no-answer branch, which
+      is REMOTE with the 112 control. The wait is registered as the criterion's
+      Essential Exception, because extending it would hold back emergency
+      guidance from a patient who cannot answer. The exception holds only
+      because the wait takes nothing away (LD-05, INT-471, #800). After the
+      wait, the question stays on screen below the action and the 112 control,
+      and the patient's own answer still moves the RED to the answered
+      location. ON_SITE then shows no 112. The 30 seconds is an unsigned
+      engineering value until the physician of record decides it (HB-C25). The
+      Essential classification is LD-05's (INT-471, #809; conditional on a late
+      location answer being honoured), and the late-answer tests cited above are
+      the proof of that condition. Kiosk mode's 60-second
+      idle wipe is a time limit, and since INT-363
       it meets the criterion's Extend option. After 40 seconds without a touch
       it shows a warning, announces it assertively and moves screen-reader focus
       to its one action, "Devam edin". The patient then has 20 seconds. That

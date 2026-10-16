@@ -46,6 +46,7 @@ __all__ = [
     "PatientMemoryKey",
     "PatientMemoryStore",
     "PatientRecord",
+    "QueueSealed",
     "RoomTokenSource",
     "ScreenSink",
     "SpeechSynthesizer",
@@ -186,6 +187,16 @@ def work_key(request: WorkRequest) -> str:
     return f"w_{digest[:32]}"
 
 
+class QueueSealed(RuntimeError):
+    """files/12 §7.1: a RED that stops the intake sealed the queue; it admits
+    nothing more.
+
+    Part of the :class:`WorkSubmitter` contract rather than of one queue: the
+    Talker catches it on ``submit`` (INT-521), because the RED that sealed the
+    queue is already settled and waiting in the queue's results.
+    """
+
+
 @runtime_checkable
 class WorkSubmitter(Protocol):
     """Layer B, seen from Layer A. **No member of this port is awaitable.**
@@ -193,7 +204,8 @@ class WorkSubmitter(Protocol):
     ADR-009: ``submit_utterance`` returns a ``work_id`` immediately. Results
     arrive by polling :meth:`drain_results`, which returns whatever is ready
     and never blocks — so there is no expression the Talker could write that
-    would wait on Backend Work.
+    would wait on Backend Work. ``submit`` raises :class:`QueueSealed` once a
+    RED that stops the intake has settled; that RED is then in the results.
     """
 
     def submit(self, request: WorkRequest) -> WorkTicket: ...

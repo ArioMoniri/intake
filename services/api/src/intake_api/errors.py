@@ -168,6 +168,13 @@ def taxonomy_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "taxonomy_unconfigured"})
 
 
+def triage_unconfigured() -> HTTPException:
+    """No servable red-flag rule set (INT-446): the rules-engine hop fails
+    CLOSED. "No rule fired" is not an answer a server without rules can give,
+    so this is never a GREEN and never an empty RED-script catalog."""
+    return HTTPException(status_code=503, detail={"error": "triage_unconfigured"})
+
+
 def dev_auth_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "dev_auth_unconfigured"})
 
@@ -400,6 +407,18 @@ def voice_control_refused(status: int, code: str) -> HTTPException:
     return HTTPException(status_code=status, detail={"error": code})
 
 
+def model_lanes_refused(status: int, code: str) -> HTTPException:
+    """INT-428: the Model lanes module refused a change or could not reach its
+    store. 422 — a body it will not take (an unexpected field, an unknown lane,
+    route or provider, a malformed key); 403 — a role that may not take the
+    action; 409 — the control's state or the ADR-035 guard forbids it (nothing
+    to change, the control moved, the self-hosted probe is down, a real-PHI
+    deployment with no transfer basis); 503 — no store or key store wired, or
+    unreachable. ``code`` is machine-shaped and echoes no submitted value —
+    least of all a key (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
 def release_freeze_refused(status: int, code: str) -> HTTPException:
     """INT-187: the CI/CD module refused a deploy-freeze change or could not
     reach its store. 422 — a body it will not take (an unexpected field, an
@@ -407,6 +426,16 @@ def release_freeze_refused(status: int, code: str) -> HTTPException:
     forbids it (nothing to lift, the freeze moved since the request); 503 — no
     store wired, or the store unreachable. ``code`` is machine-shaped and
     echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
+def safety_inbox_refused(status: int, code: str) -> HTTPException:
+    """INT-406: the Safety queue refused, or could not reach its store. 503 —
+    no inbox wired, or the store unreachable: never an empty queue, which would
+    read as "nobody is waiting"; 404 — no such entry in the caller's tenant
+    (another tenant's entry is not found too); 409 — already acknowledged;
+    422 — a body field the acknowledgement does not take. ``code`` is
+    machine-shaped and echoes no submitted value (invariant 6)."""
     return HTTPException(status_code=status, detail={"error": code})
 
 

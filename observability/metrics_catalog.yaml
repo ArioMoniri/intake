@@ -621,6 +621,87 @@ metrics:
       intake_voice_runtime.clinical_agent.work_queue (INT-092); a handler
       fault, a refused preempt provenance and an invariant-22 numeric pair all
       land here as receipts rather than as a crashed pump.
+  # INT-430 / ADR-036: the council verifier. `member` is a configured member id
+  # (the admin console's role segment), never a model name or free text. There
+  # is no cost series: cost is tokens times a price and the price book is empty
+  # until HB-O8 (b) is answered.
+  - name: council_member_latency_ms
+    type: histogram
+    labels: [member, outcome]
+    owner: voice-runtime
+    unit: "ms"
+    status: live
+    description: >-
+      Latency of one council verifier draw, by member and outcome (ok,
+      abstained, timed_out, failed). Emitted by
+      intake_voice_runtime.clinical_agent.council.orchestrator; the per-member
+      latency column of the admin Council section.
+  - name: council_member_tokens_total
+    type: counter
+    labels: [member, direction]
+    owner: voice-runtime
+    unit: "tokens"
+    status: live
+    description: >-
+      Tokens the serving endpoint reported for council verifier draws, by
+      member and direction (input, output). Emitted by
+      intake_voice_runtime.clinical_agent.council.orchestrator.
+  - name: council_member_agreement_total
+    type: counter
+    labels: [member, agreement]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Council verdicts per member: agree, disagree or abstain with the primary
+      extraction. The agreement rate the admin Council section shows is
+      agree / (agree + disagree). Emitted by
+      intake_voice_runtime.clinical_agent.council.desk.
+  - name: council_verifications_total
+    type: counter
+    labels: [outcome]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Council verifications by how they ended: submitted, late (session ended
+      or queue sealed by RED), shed_saturated or refused_budget. Emitted by
+      intake_voice_runtime.clinical_agent.council.desk.
+  - name: council_actions_total
+    type: counter
+    labels: [action, result]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Council verifier actions (reask_positive, confirm_back, candidate_flag) by
+      what the engine's compare-and-swap did with them. Emitted by
+      intake_voice_runtime.clinical_agent.council.desk.
+  - name: council_readings_dropped_total
+    type: counter
+    labels: [reason]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Member readings dropped before adjudication: out_of_scope,
+      no_verbatim_evidence or number_on_non_numeric. Emitted by
+      intake_voice_runtime.clinical_agent.council.orchestrator.
+  # INT-521: the live session's rules-engine evaluation, run by the Work queue
+  # after every state Work that binds a slot a served red-flag rule reads.
+  - name: triage_live_evaluation_failures_total
+    type: counter
+    labels: [kind]
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      Live-session rules-engine evaluations that could not stand, by kind:
+      `fault` (the evaluation raised; the Work failed and the next state Work
+      evaluates again) or `conflict` (a handler's own determination disagreed
+      with the rules engine over the served rules; the engine's stood).
+      Emitted by intake_voice_runtime.clinical_agent.work_queue. A RED may be
+      missing from a live session, so any increase pages.
   # files/10 §9 observer-lane row: `lane.dropped_frames` is one of the signals
   # that row says lands with INT-110. files/03 §4.7.6 makes it a metric AND a
   # recorded field on every lane signal, so the same number appears here and on
@@ -852,6 +933,11 @@ metrics:
     unit: "bool (0/1)"
     status: planned
     description: S2S eval gate status (1 = passing).
+  # INT-406 made these two live and added the two below them: invariant 49
+  # (files/10 §9.1). intake_platform.safety_inbox constructs all four; the API's
+  # scheduled sweep sets the gauge, the console's acknowledgement observes the
+  # histogram, and the voice runtime's outbox and Layer B feed the last two.
+  # Alerted in infra/observability/safety-rules.yaml.
   - name: clinic_red_ack_latency_min
     id: clinic.red_ack_latency_min
     type: histogram
@@ -859,20 +945,62 @@ metrics:
     owner: safety
     unit: "min"
     target: "within tenant SLA (default 4 business hours, files/02 §8)"
-    status: planned
+    status: live
     description: >-
       RED inbox arrival to human acknowledgement; counts the answer, not
-      the alert (files/08 §0c F19).
+      the alert (files/08 §0c F19). Observed by
+      intake_platform.safety_inbox.SafetyInbox.acknowledge.
   - name: clinic_red_unacknowledged_total
     id: clinic.red_unacknowledged_total
     type: gauge
     labels: [tenant, age_band]
     owner: safety
     unit: "count"
-    status: planned
+    status: live
     description: >-
-      REDs nobody has acknowledged yet, by tenant and age band; pages past
-      the tenant SLA.
+      REDs nobody has acknowledged yet, by tenant and age band (within_sla |
+      past_sla against the tenant SLA); pages past the tenant SLA. Recomputed
+      by the scheduled sweep; tenant="inbox_unreadable" at +Inf means the
+      inbox could not be read, which pages too.
+  - name: clinic_red_inbox_pending_age_s
+    type: gauge
+    labels: []
+    owner: safety
+    unit: "s"
+    target: "<= 60 s (files/02 §8.2 RED -> clinic inbox)"
+    status: live
+    description: >-
+      Age of the oldest RED entry recorded on the RED path but not yet written
+      to the shared Safety inbox store; 0 when none waits. Computed at scrape
+      time from the process's outbox — the voice runtime's, and since INT-475
+      the API's, which holds the triage hop's REDs and the on-site staff
+      notifications; pages above 60.
+  - name: clinic_red_inbox_route_failures_total
+    type: counter
+    labels: []
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      REDs whose clinician route into the Safety inbox raised before an entry
+      existed — Layer B's, and since INT-475 the API triage hop's and the
+      on-site location answer's (an unwired inbox included). The RED is still
+      delivered; no entry means no clock, so this pages instead.
+  # INT-475: the API puts the hop's RED and the on-site staff notification
+  # first and appends their audit rows (invariant 4) after; an append that
+  # fails is counted here rather than holding back a notification.
+  - name: clinic_red_notification_unaudited_total
+    type: counter
+    labels: []
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      Audit appends that failed for a RED's clinic route on the API — a RED
+      or on-site staff notification raised in the Safety inbox, or a RED that
+      could not be routed (api.triage.red_unrouted). The notification went
+      ahead; on the location-answer route the device retries until the row
+      lands. Constructed by intake_platform.safety_inbox.metrics.
   # --- files/08 §4 F. Experience & satisfaction
   # INT-240 made these four live: intake_metrics.metrics constructs them and
   # intake_metrics.rollups feeds them. Every value is published for a named
@@ -1544,6 +1672,88 @@ metrics:
       (freeze_engage, freeze_lift) and outcome (requested, applied, unchanged,
       refused). The alert of the two deploy-freeze DangerousActions; who acted
       is on the audit chain and in the freeze record, never on a label.
+  - name: admin_model_lane_changes_total
+    id: admin.model_lane_changes_total
+    type: counter
+    labels: [control, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      Model lanes module control changes (INT-428, ADR-035), by control
+      (route_switch, self_hosted_engage, hosted_disable, hosted_release,
+      key_set) and outcome (requested, applied, unchanged, refused). The alert
+      of the five model-lane DangerousActions; who acted is on the audit
+      chain, never on a label, and no key is ever a label or a value.
+  # --- INT-428: the model lanes (ADR-035) --------------------------------------
+  # route is self_hosted | hosted and provider is a ProviderId or
+  # `none` — two id-shaped labels, never a tenant, a text or a key.
+  - name: model_lane_calls_total
+    type: counter
+    labels: [lane, route, provider, outcome]
+    owner: platform
+    unit: "count"
+    status: live
+    description: >-
+      Model-lane calls (llm, asr, tts) by serving route, provider and outcome
+      (ok, failed). Emitted by intake_platform.model_lanes.dispatch.
+  - name: model_lane_latency_seconds
+    type: histogram
+    labels: [lane, route, provider]
+    owner: platform
+    unit: "s"
+    status: live
+    description: >-
+      Model-lane call latency in seconds by serving route and provider; the
+      Model lanes console reads its p50 and p95.
+  - name: model_lane_tokens_total
+    type: counter
+    labels: [lane, route, provider, direction]
+    owner: platform
+    unit: "tokens"
+    status: live
+    description: >-
+      Tokens a model lane's backend reported, by direction (input, output).
+      Zero is what nothing reported, never an estimate. Priced by
+      infra/costs/unit-prices.yaml.
+  - name: model_lane_audio_seconds_total
+    type: counter
+    labels: [lane, route, provider]
+    owner: platform
+    unit: "s"
+    status: live
+    description: >-
+      Audio seconds a model lane's ASR backend reported transcribing. Priced
+      by infra/costs/unit-prices.yaml.
+  - name: model_lane_characters_total
+    type: counter
+    labels: [lane, route, provider]
+    owner: platform
+    unit: "chars"
+    status: live
+    description: >-
+      Characters a model lane sent for synthesis (after the invariant-22
+      numeral refusal). Priced by infra/costs/unit-prices.yaml.
+  - name: model_lane_fallback_total
+    type: counter
+    labels: [lane, provider]
+    owner: platform
+    unit: "count"
+    status: live
+    description: >-
+      Calls served by a hosted fallback because the lane's self-hosted backend
+      was unhealthy or failed (ADR-035; only for tenants the guard admits).
+  - name: model_lane_refused_total
+    type: counter
+    labels: [lane, reason]
+    owner: platform
+    unit: "count"
+    status: live
+    description: >-
+      Model-lane calls refused, by lane and closed reason code (for example
+      hosted_lane_real_phi_refused, hosted_disabled, kill_switch_engaged,
+      self_hosted_unhealthy, model_not_qualified, model_identity_mismatch,
+      hosted_lane_no_answer, hosted_egress_not_listed).
   - name: admin_break_glass_patient_log_lag_h
     id: admin.break_glass_patient_log_lag_h
     type: gauge
@@ -1761,6 +1971,15 @@ metrics:
   # counter would let a Prometheus scrape — which is not consent-scoped and
   # which retains what it sees — reconstruct one clinician's reading of one
   # patient's note (inv. 6).
+  - name: api_clip_lane_total
+    type: counter
+    labels: [lane, cache]
+    owner: api
+    unit: "count"
+    description: >-
+      Scripted clips the George route served (INT-443), by the lane that spoke
+      them (elevenlabs, or self_hosted after a vendor failure) and by cache
+      (hit or miss). Emitted by intake_api.dev_voice; no text, no principal.
   - name: doctor_link_events_total
     type: counter
     labels: [event]

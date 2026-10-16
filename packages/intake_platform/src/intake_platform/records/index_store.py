@@ -15,7 +15,10 @@ trade recall for speed nobody needs (see :mod:`intake_platform.db.vector`).
 :func:`erase_record_index` is the async half the DSAR erasure calls. It sets
 the patient GUC first because without it the RESTRICTIVE policy turns the
 DELETE into a silent no-op — tests/records/test_vector_rls.py shows exactly
-that on postgres.
+that on postgres. :func:`subject_record_index` is the read the DSAR subject
+sweep makes (INT-395: the export and the erasure read one sweep), and it sets
+the same GUC for the same reason: without it the export would list no vector
+at all, silently (tests/integration/test_session_erasure.py).
 """
 
 from __future__ import annotations
@@ -30,12 +33,13 @@ from clinical_schemas.records import RecordItemKind
 from sqlalchemy import Connection, Engine, delete, func, select, text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from intake_platform.db.models import RecordEmbedding
 from intake_platform.db.vector import vector_literal
 from intake_platform.records.index import IndexEntry, IndexHit, RecordNamespace
 
-__all__ = ["PgRecordIndexStore", "erase_record_index"]
+__all__ = ["PgRecordIndexStore", "erase_record_index", "subject_record_index"]
 
 _SET_TENANT: Final = text("SELECT set_config('app.tenant_id', :tenant_id, true)")
 _SET_PATIENT: Final = text("SELECT set_config('app.patient_id', :patient_id, true)")
@@ -145,6 +149,40 @@ class PgRecordIndexStore:
             return int(result.rowcount or 0)
 
 
+async def _enter_patient_namespace(session: AsyncSession, patient_id: uuid.UUID) -> None:
+    """Set ``app.patient_id`` for the rest of the caller's transaction, on
+    postgres. SQLite has no RLS; its explicit predicates carry the scope."""
+    if session.get_bind().dialect.name == "postgresql":
+        await session.execute(select(func.set_config("app.patient_id", str(patient_id), True)))
+
+
+async def subject_record_index(
+    session: AsyncSession, *, tenant_id: uuid.UUID, patient_id: uuid.UUID
+) -> tuple[RecordEmbedding, ...]:
+    """One patient's index rows, oldest first, inside the caller's transaction.
+
+    The DSAR subject sweep's read: it sets ``app.patient_id`` as
+    :func:`erase_record_index` does, so the export lists exactly the rows the
+    erasure then removes. The vector itself is never loaded (``raiseload``):
+    a subject's answer names each row and what it indexes, and nothing on the
+    DSAR path has a use for the model's coordinates.
+    """
+    await _enter_patient_namespace(session, patient_id)
+    return tuple(
+        (
+            await session.scalars(
+                select(RecordEmbedding)
+                .options(defer(RecordEmbedding.embedding, raiseload=True))
+                .where(
+                    RecordEmbedding.tenant_id == tenant_id,
+                    RecordEmbedding.patient_id == patient_id,
+                )
+                .order_by(RecordEmbedding.created_at, RecordEmbedding.id)
+            )
+        ).all()
+    )
+
+
 async def erase_record_index(
     session: AsyncSession, *, tenant_id: uuid.UUID, patient_id: uuid.UUID
 ) -> int:
@@ -156,8 +194,7 @@ async def erase_record_index(
     backend without RLS (the SQLite unit lane) the explicit predicates carry
     the scope alone.
     """
-    if session.get_bind().dialect.name == "postgresql":
-        await session.execute(select(func.set_config("app.patient_id", str(patient_id), True)))
+    await _enter_patient_namespace(session, patient_id)
     result = cast(
         "CursorResult[Any]",
         await session.execute(

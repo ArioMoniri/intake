@@ -34,13 +34,18 @@
 # publishes ports, and only 80 and 443.
 #
 # Images are pinned by digest. Digests were resolved from the registries' v2
-# APIs on 26 Sep 2026. Licences:
-#   postgres    PostgreSQL Licence
+# APIs on 26 Sep 2026 (pgvector on 27 Sep 2026). Licences:
+#   postgres    PostgreSQL Licence; the pgvector extension is PostgreSQL
+#               Licence too, read from the raw LICENSE blob at tag v0.8.6
+#               (docs/evidence/INT-421.md)
 #   redis 7.4   RSALv2/SSPLv1. Internal self-hosting is permitted, as recorded
 #               in observability/registry.yaml.
 #   openbao     MPL-2.0
 #   minio       AGPL-3.0, verified from the raw LICENSE blob (INT-347)
 #   caddy       Apache-2.0
+#   squid       GPL-2.0-or-later (ubuntu/squid; INT-018 recorded the licence in
+#               observability/registry.yaml; the digest below was resolved
+#               from Docker Hub's v2 API on 3 Oct 2026, INT-442)
 name: intake-staging
 
 x-logging: &logging
@@ -77,6 +82,23 @@ services:
       # release gate reads it, in a one-off api container, before it restarts
       # anything; unset, the gate refuses every deploy.
       INTAKE_RELEASE_FREEZE_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-428 (ADR-035): the model-lane control the console's Model lanes
+      # module writes and every routed gateway reads. The deployment's data
+      # class is NOT set here: the synthetic image bakes it, so no compose or
+      # env edit can turn this host into something else.
+      INTAKE_MODEL_LANES_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-442 (ADR-035): the synthetic host's one route out, the egress-proxy
+      # service below. Read only through intake_platform.model_lanes.guard.
+      # egress_proxy_url, which refuses the boot if this is set in a
+      # deployment that is not synthetic. It is never set in the PHI
+      # deployment (tests/infra/test_staging_egress.py pins that).
+      INTAKE_EGRESS_PROXY_URL: http://egress-proxy:3128
+      # INT-443 (ADR-035): ElevenLabs is this synthetic host's default TTS for
+      # scripted clips. Honoured only because the image bakes the synthetic
+      # data class; the vendor is reached only once its allow-list row exists
+      # and its key is in OpenBao (secret/model-lanes/providers/elevenlabs).
+      INTAKE_HOSTED_TTS: elevenlabs
+      INTAKE_HOSTED_TTS_CACHE_DIR: /var/lib/intake/george-clips
       # The object store: the minio service below, over the internal backend
       # network. The API creates its buckets itself on first use, the audit
       # bucket with object lock, so nothing here pre-creates one.
@@ -96,6 +118,46 @@ services:
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
       TWILIO_FROM: ${TWILIO_FROM}
+      # INT-465: this host serves synthetic patients only, so its triage tenant
+      # is synthetic. Its red rule set is base.life_threat, signed with the
+      # synthetic-only test key (owner decision, 3 Oct 2026, with D18; the
+      # signer is redset_signer.sh). Only the signed active rules are served.
+      # The API refuses a synthetic tenant outside dev and staging, and every
+      # other tenant rejects this signature.
+      INTAKE_API_TRIAGE_TENANT_KIND: synthetic
+      # The host the signature names (review round 2). Declared, not attested:
+      # the same compose on another host would claim this id, which is why the
+      # API also refuses a synthetic tenant outside dev and staging.
+      INTAKE_API_TRIAGE_DEPLOYMENT: i-0e489e48739f5de98
+      INTAKE_API_TRIAGE_RULES: files/protocols/base.life_threat.yaml
+      INTAKE_API_TRIAGE_SIGNATURE: packages/protocols/signing/red_rule_set.synthetic.json
+      # INT-475: a RED the hop fires, and a patient's on-site answer, reach the
+      # clinic Safety inbox here — the same store the voice runtime writes and
+      # the console reads (INT-406). Unset, every hop RED pages
+      # RedInboxRouteFailed and the ON_SITE copy "Görevlilere haber verildi."
+      # would be untrue.
+      INTAKE_SAFETY_INBOX_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-421: the admin console (INT-180). The API verifies every console
+      # bearer against the realm's issuer, the `api` audience and a key set
+      # mirrored onto the host by deploy.sh, so no request depends on Keycloak
+      # answering.
+      INTAKE_ADMIN_OIDC_ISSUER: https://auth.${STAGING_HOSTNAME:?run init.sh}/realms/intake
+      INTAKE_ADMIN_OIDC_AUDIENCE: api
+      INTAKE_ADMIN_OIDC_JWKS_PATH: /run/intake/keycloak-jwks.json
+      # Owner decision D19 (files/00_STATE.md §3, 2 Oct 2026): "dont make admin
+      # access ip restricted". This is an explicit allow-all, because an empty
+      # list would admit nobody. The gate is the Keycloak login: a password
+      # plus a second factor (the INT-365 staff browser flow), checked again
+      # by the API (amr).
+      INTAKE_ADMIN_IP_ALLOWLIST: "0.0.0.0/0,::/0"
+      # the console's voice kill switch (INT-182), in the deployment's Redis
+      INTAKE_VOICE_CONTROL_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+    volumes:
+      # written by deploy.sh (mirror_keycloak_jwks) before the api starts
+      - /etc/intake-staging/keycloak-jwks.json:/run/intake/keycloak-jwks.json:ro
+      # INT-443: the George clip cache survives redeploys, so a pre-baked clip
+      # is served without a vendor call for as long as its profile version stands
+      - george-clips:/var/lib/intake/george-clips
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,8 +167,14 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    # both networks are internal: the API has no route to the internet
-    networks: [backend, edge]
+      # started, not healthy: a proxy that is down fails the hosted calls
+      # closed, and nothing else in the API needs it
+      egress-proxy:
+        condition: service_started
+    # every network is internal: the API has no route to the internet. Its one
+    # way out is `outbound`, to the egress proxy, which answers only for the
+    # allow-list's hosted-model rows (INT-442).
+    networks: [backend, edge, outbound]
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -117,7 +185,12 @@ services:
     logging: *logging
 
   postgres:
-    image: postgres:16.15-trixie@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    # INT-421: pgvector, because migration 0014 (INT-123) runs CREATE EXTENSION
+    # vector and the plain postgres image has no vector.control, so main could
+    # not migrate here. 0.8.6-pg16-trixie carries the same server package as
+    # the image it replaces (PG_VERSION 16.15-1.pgdg13+2, Debian trixie), so
+    # the existing data volume and its collations are unchanged.
+    image: pgvector/pgvector:0.8.6-pg16-trixie@sha256:c8483555ce48101872f888c1df8a895ff689d6c7c7a5f7ac266475f9dfe89e0b
     environment:
       POSTGRES_USER: intake
       POSTGRES_DB: intake
@@ -218,6 +291,167 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  keycloak:
+    # INT-421: staff identity for the admin console. 26.7.4 pinned by the
+    # multi-arch index digest that INT-390 recorded (Apache-2.0). `start`,
+    # never `start-dev`. TLS ends at Caddy, so Keycloak serves plain HTTP on
+    # the internal edge network and trusts the X-Forwarded-* headers Caddy
+    # sets. The realm is imported once, on first start: realm `intake`, no
+    # users, and a password plus a second factor (the INT-365 staff browser
+    # flow). The operator creates staff with kcadm.sh over SSM
+    # (docs/release/production-checklist.md). The bootstrap admin and the
+    # client secret are host-generated, and the master realm and the admin
+    # console are not routed publicly (Caddyfile).
+    #
+    # INT-378: the image is INT-390's pin plus the WebAuthn session-notes
+    # provider (Dockerfile.keycloak). The jar is built from source and refused
+    # unless it matches infra/keycloak/providers/webauthn-session-notes.sha256.
+    # Without it no staff token carries aaguid and credential_id, and the API's
+    # admin gate refuses every one. The realm on the host was imported before the
+    # provider existed, and an import never re-runs, so deploy.sh switches the
+    # live realm's WebAuthn step too (ensure_staff_webauthn_notes).
+    image: intake-staging/keycloak:${INTAKE_GIT_SHA:?set by deploy.sh}
+    build:
+      context: ../..
+      dockerfile: infra/staging/Dockerfile.keycloak
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?run init.sh}
+      KC_HOSTNAME: https://auth.${STAGING_HOSTNAME:?run init.sh}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: intake-bootstrap
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run init.sh}
+      # read by the realm import's ${...} substitution, and only there
+      INTAKE_ADMIN_WEB_CLIENT_SECRET: ${INTAKE_ADMIN_WEB_CLIENT_SECRET:?run init.sh}
+      STAGING_HOSTNAME: ${STAGING_HOSTNAME:?run init.sh}
+    volumes:
+      # since 26.2.0 the import file must be named after the realm inside it
+      - ./keycloak/intake-realm.json:/opt/keycloak/data/import/intake-realm.json:ro
+    networks: [backend, edge]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # the image has bash but no curl or wget, so this is a builtin probe of
+      # the management port's readiness endpoint
+      test:
+        [
+          "CMD",
+          "/bin/bash",
+          "-c",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: 127.0.0.1:9000\\r\\nConnection: close\\r\\n\\r\\n' >&3 && read -r line <&3 && [[ \"$$line\" == *'200'* ]]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  oauth2-proxy:
+    # INT-421: the console's login gate (oauth2-proxy/alpha.yaml). MIT, read
+    # from the raw LICENSE blob at tag v7.15.4 (docs/evidence/INT-421.md).
+    # Pinned by the index digest from quay.io's v2 API, recomputed from the
+    # manifest bytes.
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.4@sha256:b1b2021fe8f4004573e8d690dec6c7bb29cc44364572cf8510a05bf3a0ae2ded
+    command: ["--alpha-config=/etc/oauth2-proxy/alpha.yaml"]
+    environment:
+      INTAKE_ADMIN_WEB_CLIENT_SECRET: ${INTAKE_ADMIN_WEB_CLIENT_SECRET:?run init.sh}
+      STAGING_HOSTNAME: ${STAGING_HOSTNAME:?run init.sh}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET:?run init.sh}
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_SAMESITE: lax
+      OAUTH2_PROXY_REDIRECT_URL: https://admin.${STAGING_HOSTNAME:?run init.sh}/oauth2/callback
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_REVERSE_PROXY: "true"
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      # the console's liveness answer (files/08 §6) is the one unauthenticated path
+      OAUTH2_PROXY_SKIP_AUTH_ROUTES: GET=^/healthz$$
+      # INT-485, invariant 6: the request and auth logs name the signed-in staff
+      # email and the client IP on every console request, so neither is
+      # written; start-up and error lines still are.
+      OAUTH2_PROXY_REQUEST_LOGGING: "false"
+      OAUTH2_PROXY_AUTH_LOGGING: "false"
+    volumes:
+      - ./oauth2-proxy/alpha.yaml:/etc/oauth2-proxy/alpha.yaml:ro
+    networks: [edge]
+    depends_on:
+      admin-web:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  admin-web:
+    # INT-421: the admin console (apps/admin-web). It renders only what the
+    # API's /admin routes return for the caller's own bearer. It holds no
+    # secret, and it reaches nothing but the API.
+    image: intake-staging/admin-web:${INTAKE_GIT_SHA:?set by deploy.sh}
+    build:
+      context: ../..
+      dockerfile: infra/staging/Dockerfile.admin-web
+    environment:
+      INTAKE_ADMIN_API_BASE: http://api:8000
+    networks: [edge]
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp, /app/apps/admin-web/.next/cache]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  # INT-442 (ADR-035): the synthetic deployment's forward proxy. Default deny:
+  # its config is rendered from infra/security/egress-allowlist.yaml's
+  # hosted_model_inference rows (scripts/security/render_egress_proxy_conf.py
+  # --profile synthetic), so it admits exactly the vendor hosts the in-process
+  # guard admits and nothing else. With no such row it admits nothing. It runs
+  # as the image's unprivileged `proxy` user (uid 13) from the start, so it
+  # needs no capability to drop privileges and can open /dev/stdout for the
+  # CONNECT log (host:port only, never a path or a query).
+  egress-proxy:
+    image: ubuntu/squid:6.6-24.04_edge@sha256:8a3baed477e2c282ab8aa5edad442f69873246964f225c5c2ae8364b6610963c
+    user: "13:13"
+    volumes:
+      - ./egress/squid.conf:/etc/squid/squid.conf:ro
+    # outbound: the API's only way to it; vendor: its only way off the host
+    networks: [outbound, vendor]
+    read_only: true
+    tmpfs:
+      - /tmp:uid=13,gid=13
+      - /run:uid=13,gid=13
+      - /var/spool/squid:uid=13,gid=13
+      - /var/log/squid:uid=13,gid=13
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ulimits:
+      core: 0
+    healthcheck:
+      # the listener answers; `squid -k check` needs a pid file this config
+      # does not write
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/3128"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+    logging: *logging
+
   caddy:
     image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
     environment:
@@ -234,6 +468,10 @@ services:
     depends_on:
       api:
         condition: service_started
+      keycloak:
+        condition: service_started
+      oauth2-proxy:
+        condition: service_started
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -248,6 +486,11 @@ networks:
     internal: true
   backend:
     internal: true
+  # INT-442: the API and the egress proxy, nothing else
+  outbound:
+    internal: true
+  # the egress proxy's route off the host, and nothing else on it
+  vendor: {}
 
 volumes:
   pgdata: {}
@@ -256,3 +499,4 @@ volumes:
   minio-data: {}
   caddy-data: {}
   caddy-config: {}
+  george-clips: {}

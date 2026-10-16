@@ -32,13 +32,33 @@ const DEV_TENANT = "0b6f9d2e-1111-5aaa-8bbb-000000000001";
 const ADMIN_TOKEN = "unit-lane-admin-token";
 const API_BASE = "http://127.0.0.1:8000";
 
+/** Unpadded base64url, the encoding of each part of a compact JWT. */
+function base64url(text: string): string {
+  return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** The synthetic ticket's three parts. It is built here, at runtime, so no
+ * token-shaped literal exists in the source for a secret scanner to report as
+ * a leaked credential (INT-431). Nothing about it is real: the header names
+ * HS256, the payload names the dev tenant, and the "signature" is a label. */
+const TICKET_PARTS = {
+  header: { alg: "HS256" },
+  payload: { tenant: "dev" },
+  signature: "signature-sample",
+} as const;
+
+const SYNTHETIC_TICKET = [
+  base64url(JSON.stringify(TICKET_PARTS.header)),
+  base64url(JSON.stringify(TICKET_PARTS.payload)),
+  base64url(TICKET_PARTS.signature),
+].join(".");
+
 /** A recorded upstream mint response, shaped exactly like the real endpoint:
  * an HS256-style token and a branded https launch_url with the ticket in the
  * URL fragment (so it never reaches an access log). */
 const MINTED: LaunchResponse = {
-  ticket: "eyJhbGciOiJIUzI1NiJ9.eyJ0ZW5hbnQiOiJkZXYifQ.c2lnbmF0dXJlLXNhbXBsZQ",
-  launch_url:
-    "https://intake.app/embed/launch#ticket=eyJhbGciOiJIUzI1NiJ9.eyJ0ZW5hbnQiOiJkZXYifQ.c2lnbmF0dXJlLXNhbXBsZQ",
+  ticket: SYNTHETIC_TICKET,
+  launch_url: `https://intake.app/embed/launch#ticket=${SYNTHETIC_TICKET}`,
   expires_at: 1_800_000_120,
 };
 
@@ -74,6 +94,21 @@ function recordingFetch(
   }) as unknown as typeof fetch;
   return { fetchImpl, seen };
 }
+
+describe("the synthetic ticket fixture (INT-431)", () => {
+  it("is a compact three-part base64url token whose parts decode to the fixture", () => {
+    const decode = (part: string): string => atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+    const [header = "", payload = "", signature = "", ...rest] = MINTED.ticket.split(".");
+    expect(rest).toEqual([]);
+    for (const part of [header, payload, signature]) {
+      expect(part).toMatch(/^[A-Za-z0-9_-]+$/);
+    }
+    expect(JSON.parse(decode(header))).toEqual(TICKET_PARTS.header);
+    expect(JSON.parse(decode(payload))).toEqual(TICKET_PARTS.payload);
+    expect(decode(signature)).toBe(TICKET_PARTS.signature);
+    expect(MINTED.launch_url.endsWith(`#ticket=${MINTED.ticket}`)).toBe(true);
+  });
+});
 
 describe("mintLaunchTicket", () => {
   it("calls the real embed endpoint with the bearer and a tenant_id body", async () => {

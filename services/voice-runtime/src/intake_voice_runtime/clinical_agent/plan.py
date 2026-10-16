@@ -37,6 +37,17 @@ that name across the resolved chain, and a name two sections hold, or none
 does, is refused here like any other unreadable gate: read as written it
 would evaluate Unknown for the whole session, and the question behind it
 would silently never be asked.
+
+**Gate literals are re-checked against the value-set table at build**
+(INT-518). INT-441 made the compiler refuse a gate that compares a code slot
+with a value the slot cannot carry. The engine runs whatever resolved document
+it is handed, and the runtime builds one without ``protocols compile``, so the
+plan build runs the same check
+(:func:`protocols.compile.gate_values.gate_value_refusals`) against the table
+it is given and refuses with every reason. Omitted, the table is empty, which
+is the compiler's own reading: nothing is committed, so a gate on a code slot
+refuses. The check never rewrites a gate and reads no red-flag rule
+(invariants 1 and 7).
 """
 
 from __future__ import annotations
@@ -46,6 +57,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
+from protocols.compile.gate_values import gate_value_refusals
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.gates import SlotNamespace, qualify_gate
 from protocols.locale_text import entry_for
@@ -56,8 +68,10 @@ from protocols.triage.expr import (
     WhenNode,
     evaluate_node,
     parse_when,
+    referenced_slots,
 )
 from protocols.types import Delivery
+from protocols.valuesets import NO_VALUESETS, ValueSetTable
 from pydantic import Field
 
 from intake_voice_runtime.steps import StepKind
@@ -138,6 +152,13 @@ class IntakePlan:
     steps: tuple[EngineStep, ...]
     ask_gates: Mapping[str, WhenNode] = field(default_factory=dict)
     skip_gates: Mapping[str, WhenNode] = field(default_factory=dict)
+    #: INT-430. Every step a red-flag ``when`` predicate reads, pack rules and
+    #: ``base.life_threat`` alike. These are the slots no confirm step may
+    #: clear and the council verifier reads but never writes (ADR-036).
+    red_flag_refs: frozenset[str] = frozenset()
+    #: INT-430. Every step a red-flag rule names as its ``tense_anchor``.
+    #: Never council-filled and never fed from a document (ADR-036).
+    tense_anchor_refs: frozenset[str] = frozenset()
 
     @property
     def by_id(self) -> dict[str, EngineStep]:
@@ -184,11 +205,30 @@ def _parse_gate(step_id: str, field_name: str, text: str, namespace: SlotNamespa
     return qualified
 
 
-def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
+def _gate_value_check(protocol: ResolvedProtocol, valuesets: ValueSetTable) -> None:
+    """Refuse every gate literal and ``tr`` choice the table does not hold (INT-518)."""
+    refusals = gate_value_refusals(
+        (
+            (section.id, resolved.key, resolved.slot)
+            for section in protocol.sections
+            for resolved in section.slots
+        ),
+        valuesets,
+    )
+    if refusals:
+        raise PlanError(
+            "the plan's gates and choices do not hold against the value-set table "
+            "(INT-441, INT-518; the compiler is not the only gate): "
+            + "; ".join(f"{r.code.value} {r.subject}: {r.message}" for r in refusals)
+        )
+
+
+def build_plan(protocol: ResolvedProtocol, valuesets: ValueSetTable = NO_VALUESETS) -> IntakePlan:
     """Project a resolved protocol into the engine's step plan.
 
     Raises :class:`PlanError` on the first defect that would make a step
-    unaskable or a gate unreadable.
+    unaskable or a gate unreadable, and then on every gate literal or ``tr``
+    choice ``valuesets`` does not hold, all of them in one message.
     """
     steps: list[EngineStep] = []
     ask_gates: dict[str, WhenNode] = {}
@@ -261,4 +301,53 @@ def build_plan(protocol: ResolvedProtocol) -> IntakePlan:
                     skip_if=slot.skip_if,
                 )
             )
-    return IntakePlan(steps=tuple(steps), ask_gates=ask_gates, skip_gates=skip_gates)
+    _gate_value_check(protocol, valuesets)
+    red_flag_refs, tense_anchor_refs = red_flag_slot_refs(protocol, namespace)
+    return IntakePlan(
+        steps=tuple(steps),
+        ask_gates=ask_gates,
+        skip_gates=skip_gates,
+        red_flag_refs=red_flag_refs,
+        tense_anchor_refs=tense_anchor_refs,
+    )
+
+
+def _step_refs(text: str, namespace: SlotNamespace, step_ids: frozenset[str]) -> frozenset[str]:
+    """The step ids one rule expression reads, qualified the way gates are.
+
+    A rule the gate qualifier cannot resolve keeps the atoms that already
+    spell a step id. Over-counting is the safe direction here: a slot wrongly
+    treated as a red-flag slot is asked in full, never cleared by a confirm.
+    """
+    try:
+        node = parse_when(text)
+    except WhenGrammarError as exc:
+        raise PlanError(
+            f"a red-flag expression {text!r} is outside the closed when grammar ({exc}) "
+            "— the slots it reads cannot be protected, so the plan is refused"
+        ) from exc
+    qualified, issues = qualify_gate(node, namespace)
+    atoms = referenced_slots(node if issues else qualified)
+    return frozenset(atom for atom in atoms if atom in step_ids)
+
+
+def red_flag_slot_refs(
+    protocol: ResolvedProtocol, namespace: SlotNamespace | None = None
+) -> tuple[frozenset[str], frozenset[str]]:
+    """``(when-predicate refs, tense-anchor refs)`` over every served rule.
+
+    Pack rules and the ``base.life_threat`` sibling set are read alike: a slot
+    that any rule reads is a red-flag slot, whichever set the rule came from
+    (CLAUDE.md invariant 7 keeps the two apart for *inheritance*, not for this).
+    """
+    pairs = [
+        (section.id, resolved.key) for section in protocol.sections for resolved in section.slots
+    ]
+    names = namespace or SlotNamespace(pairs)
+    step_ids = frozenset(f"{section_id}.{key}" for section_id, key in pairs)
+    when_refs: set[str] = set()
+    anchor_refs: set[str] = set()
+    for rule in (*protocol.red_flags, *protocol.life_threat_rules):
+        when_refs |= _step_refs(rule.when, names, step_ids)
+        anchor_refs |= _step_refs(rule.tense_anchor, names, step_ids)
+    return frozenset(when_refs), frozenset(anchor_refs)

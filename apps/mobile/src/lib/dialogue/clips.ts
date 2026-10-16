@@ -142,7 +142,14 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // point where that architectural fact is asserted as a ScriptedTr — every
   // OTHER path to the George vendor requires a ScriptedTr minted from an
   // IntakeQuestion (georgeClip.ts), so patient words cannot reach the vendor.
-  return createClipStore(dialogueClipDir(), expoClipFs, (text) => prefer(text as ScriptedTr));
+  //
+  // INT-414: the store also hands on each clip's delivery context, which
+  // `prefer` forwards to George (INT-415) and the self-hosted lane ignores.
+  // Delivery lines reach the store the same way questions do: minted from a
+  // deck key (`scriptedDeliveryTr`), never from anything the patient said.
+  return createClipStore(dialogueClipDir(), expoClipFs, (text, context) =>
+    prefer(text as ScriptedTr, context),
+  );
 }
 
 /** Deletes every agent-voice clip of this session (unmount + session end). */

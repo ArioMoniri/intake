@@ -132,6 +132,31 @@ FREEZE_BRIEF_READERS = (
     FREEZE_ACTORS | FREEZE_LIFT_REQUESTERS | FREEZE_LIFT_APPROVERS | {AdminRole.AUDITOR}
 )
 
+#: INT-406 — the Safety queue (files/08 §3: "acknowledge
+#: (`tenant_clinical_responsible`)"). Read by the acknowledger, the all-tenant
+#: clinical lead, the platform owner and the auditor (read-only evidence).
+SAFETY_QUEUE_ACKNOWLEDGERS = frozenset({AdminRole.TENANT_CLINICAL_RESPONSIBLE})
+SAFETY_QUEUE_READERS = SAFETY_QUEUE_ACKNOWLEDGERS | {
+    AdminRole.CLINICAL_LEAD,
+    AdminRole.PLATFORM_OWNER,
+    AdminRole.AUDITOR,
+}
+
+#: INT-428 (ADR-035): narrowing is one key, widening is two.
+LANES_SAFE_ACTORS = frozenset(
+    {
+        AdminRole.SRE_ONCALL,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.PLATFORM_ADMIN,
+    }
+)
+LANES_REQUESTERS = frozenset({AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN})
+LANES_APPROVERS = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER, AdminRole.COMPLIANCE_OFFICER}
+)
+LANES_BRIEF_READERS = LANES_SAFE_ACTORS | LANES_REQUESTERS | LANES_APPROVERS | {AdminRole.AUDITOR}
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
@@ -162,11 +187,23 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("POST", "/admin/cicd/freeze/lift"): FREEZE_LIFT_REQUESTERS,
     ("POST", "/admin/cicd/freeze/lift/{action_id}/approve"): FREEZE_LIFT_APPROVERS,
     ("GET", "/admin/cicd/pending/{action_id}"): frozenset(FREEZE_BRIEF_READERS),
+    ("GET", "/admin/model-lanes"): PLATFORM_SCOPE_ROLES,
+    ("POST", "/admin/model-lanes/hosted/disable"): LANES_SAFE_ACTORS,
+    ("POST", "/admin/model-lanes/self-hosted"): LANES_SAFE_ACTORS,
+    ("POST", "/admin/model-lanes/hosted/release"): LANES_REQUESTERS,
+    ("POST", "/admin/model-lanes/hosted/release/{action_id}/approve"): LANES_APPROVERS,
+    ("PUT", "/admin/model-lanes/route/{role}"): LANES_REQUESTERS,
+    ("POST", "/admin/model-lanes/route/pending/{action_id}/approve"): LANES_APPROVERS,
+    ("PUT", "/admin/model-lanes/keys/{provider}"): LANES_REQUESTERS,
+    ("POST", "/admin/model-lanes/keys/pending/{action_id}/approve"): LANES_APPROVERS,
+    ("GET", "/admin/model-lanes/pending/{action_id}"): frozenset(LANES_BRIEF_READERS),
     ("GET", "/admin/access/review"): frozenset(ACCESS_REVIEW_READERS),
     ("POST", "/admin/access/review/sign"): ACCESS_REVIEW_SIGNERS,
     ("POST", "/admin/access/review/sign/{action_id}/countersign"): ACCESS_REVIEW_COUNTERSIGNERS,
     ("POST", "/admin/access/offboard"): OFFBOARDERS,
     ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
+    ("GET", "/admin/safety-queue"): SAFETY_QUEUE_READERS,
+    ("POST", "/admin/safety-queue/{entry_id}/acknowledge"): SAFETY_QUEUE_ACKNOWLEDGERS,
 }
 
 

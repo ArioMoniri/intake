@@ -135,6 +135,73 @@ components:
     usage_note: no catalogued host-uptime series exists on main
     price: {usd_per_unit: null, source: null, as_of: null}
 
+  # INT-428 / ADR-035: the hosted model lanes (synthetic tenants only, until
+  # the GPU lanes are healthy). Metered by the catalogued model_lane_* series
+  # the routed gateways emit; priced by the owner from the provider's invoice
+  # or price list, with its source and date — empty until then.
+  - component: hosted_llm_input
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: llm, provider: openai, direction: input}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: hosted_llm_output
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: llm, provider: openai, direction: output}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: hosted_asr_input
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: asr, provider: openai, direction: input}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: hosted_asr_output
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: asr, provider: openai, direction: output}
+    usage_note: null
+    price: {usd_per_unit: null, source: null, as_of: null}
+
+  - component: hosted_tts
+    vendor: openai
+    vendor_note: null
+    unit: character
+    profiles: []
+    usage:
+      metric: model_lane_characters_total
+      aggregation: counter_increase
+      selector: {lane: tts, provider: openai}
+    usage_note: >-
+      the speech route reports no usage; characters sent are what is metered,
+      so the owner's per-character price is derived from the provider's
+      invoice for the same period
+    price: {usd_per_unit: null, source: null, as_of: null}
+
 budgets:
   - budget_id: all-vendors-day
     scope: all_vendors
@@ -174,5 +241,15 @@ budgets:
   - budget_id: aws-month
     scope: vendor
     vendor: aws
+    period: month
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: openai-day
+    scope: vendor
+    vendor: openai
+    period: day
+    limit: {usd: null, source: null, as_of: null}
+  - budget_id: openai-month
+    scope: vendor
+    vendor: openai
     period: month
     limit: {usd: null, source: null, as_of: null}

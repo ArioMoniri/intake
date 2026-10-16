@@ -2,6 +2,9 @@
 # can be silently repointed; SHAs resolved from git ls-remote, never guessed). make check split into parallel jobs (05 §3); gates run the
 # invariant-17, vendor-call and evidence checks. CI never calls a vendor and
 # carries no secrets: recorded fixtures only (CLAUDE.md §How we work).
+# INT-463 — every job runs on the ephemeral intake-aws-ci runner on the AWS
+# host (owner order, 3 Oct 2026: no GitHub-hosted minutes). It is installed from
+# infra/ci/aws-runner, and tests/ci/test_aws_runner.py pins every runs-on.
 name: ci
 
 on:
@@ -12,9 +15,19 @@ on:
 permissions:
   contents: read
 
+# INT-524 — a new push to a pull request cancels that pull request's older
+# run, queued or in progress, so the intake-aws-ci pool builds only current
+# heads. A push run (main, and security.yml's v* tags) is never cancelled:
+# cancel-in-progress is false outside pull_request, and the sha plus the ref
+# give each push run a group of its own, so no later run can replace it while
+# it waits for a runner. tests/ci/test_workflow_concurrency.py pins this block.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check-py:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -29,10 +42,19 @@ jobs:
       - run: make deid-model
         env:
           GH_TOKEN: ${{ github.token }}
+      # INT-378: rebuild the Keycloak provider from its pinned recipe (mvnw with a
+      # sha256-pinned Maven; a trusted sha256 for every artefact Maven resolves),
+      # run its tests, and hold the jar byte-identical to the committed pin
+      # infra/keycloak/providers/webauthn-session-notes.sha256. The runner's own
+      # preinstalled Temurin 21 builds it, so no action is added. It is a step of
+      # this required job rather than a job of its own: REQUIRED_GATES
+      # (intake_probes.ops_cicd) names the jobs every pull request runs, and the
+      # GitHub answers its tests replay were recorded before this build existed.
+      - run: JAVA_HOME="$JAVA_HOME_21_X64" make keycloak-provider
       - run: make check-py
 
   check-ts:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
@@ -45,17 +67,18 @@ jobs:
 
   check-integration:
     # the docker-compose tier in its own required job (05 §3); INT-017 seeds it
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
       - run: uv sync --all-packages
+      - run: make edge-plugin
       - run: make check-integration
 
   gates:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/ci/assert_no_vendor_calls.sh

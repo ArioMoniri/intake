@@ -30,7 +30,7 @@
  * (02 §34) — into the partial-note review.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useReducer, useState } from "react";
+import { useReducer, useState, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 
@@ -50,8 +50,11 @@ import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
 import { InstrumentStep } from "@/components/InstrumentStep";
+import { RedInFlow } from "@/components/RedLayer";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
+import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
+import { typedStepDelivery } from "@/lib/dialogue/deliveryPlan";
 import { joinParts } from "@/lib/a11y/labels";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -59,6 +62,7 @@ import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
+import { intakeLive, redStore } from "@/lib/red/store";
 import {
   intakeProgress,
   isOpenAsk,
@@ -280,6 +284,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];
   const reduceMotion = useReducedMotion();
+  // INT-465 (CD-24 generic_red_stops_intake): while a RED the patient sees
+  // stands, the typed lane shows no question and no control that commits one.
+  const live = intakeLive(useSyncExternalStore(redStore.subscribe, redStore.getSnapshot));
 
   // Adaptive flow (INT-236): the applicable list derives from the committed
   // answers on EVERY render, so gates open and close as answers change and
@@ -337,8 +344,30 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       : null,
   );
   const editing = requested !== undefined;
+  // INT-414: the sitting this screen opened on, held rather than re-derived —
+  // the resume point moves with every answer, and the delivery plan is folded
+  // from where the patient actually started. A fresh intake opens with the
+  // welcome; a resumed one, or the steps after a voice hand-over, pick up.
+  const [sitting] = useState(() => ({
+    startId: initialQuestion.id,
+    fresh: !editing && answers.length === 0 && Object.keys(prefill).length === 0 && !voiceFailed,
+  }));
 
   const question = intakeQuestions.find((x) => x.id === currentId) ?? initialQuestion;
+  // The line above the step: a welcome, a lead-in, a topic transition or an
+  // acknowledgement — at most one after the opening, and none while editing a
+  // single answer from the review. Pure and synchronous: the heading below
+  // never waits on it, and it never touches the question's words.
+  const deliveryLines = editing
+    ? []
+    : typedStepDelivery({
+        applicable,
+        answers,
+        currentId: question.id,
+        startId: sitting.startId,
+        fresh: sitting.fresh,
+        sessionSeed: visitId ?? "",
+      });
   // INT-339 (MOTION-10, C16): the question's body is keyed by the question,
   // so a step change removes the old body in the commit that mounts the next
   // one, and only the next one fades in. No frame holds two questions.
@@ -450,7 +479,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   // DEFERRED — not asked quieter, not asked in text — and the note carries
   // `eksik: ortam uygun değildi` (buildNote). Wellbeing is today's only
   // deferral consumer; the dev packs carry no sensitive-flagged questions.
-  if (detayli && privacy === "unchecked" && !editing) {
+  // INT-465 round 4: it is a question with two commit controls, so a standing
+  // RED skips it like every other step and the flow below shows <RedInFlow />.
+  if (live && detayli && privacy === "unchecked" && !editing) {
     return (
       <ScrollView
         contentContainerStyle={styles.content}
@@ -525,7 +556,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
         // which takes about half of a landscape window.
         automaticallyAdjustKeyboardInsets
       >
-        {finishNowBar}
+        {live ? finishNowBar : null}
         {/* The deferral notice (02 §33) lived on the old mode row; it stays,
             as the calm one-liner that private questions are held for later,
             shown when a third party is present in the ayrıntılı flow. */}
@@ -574,240 +605,253 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             The progress above and the glass-bar CTA below swap instantly
             with the step (C9), and the first step arrives with its container
             (skipEntering) rather than fading a second time inside it. */}
-        <LayoutAnimationConfig skipEntering>
-          <Animated.View key={step.key} entering={enteringFor(step.enter)} style={styles.step}>
-            {voiceFailed && question.id === initialQuestion.id ? (
-              // SC 4.1.3: why the conversation became these steps. A status, not
-              // an error — nothing the patient did failed (INT-362).
-              <AnnouncedText
-                tone="status"
-                role="caption"
-                color="inkFaint"
-                message={t("voiceFirst.failed")}
-              />
-            ) : null}
-            {/* The bar is untitled by design (pass 6), so the question line is
+        {live ? (
+          <LayoutAnimationConfig skipEntering>
+            <Animated.View key={step.key} entering={enteringFor(step.enter)} style={styles.step}>
+              {voiceFailed && question.id === initialQuestion.id ? (
+                // SC 4.1.3: why the conversation became these steps. A status, not
+                // an error — nothing the patient did failed (INT-362).
+                <AnnouncedText
+                  tone="status"
+                  role="caption"
+                  color="inkFaint"
+                  message={t("voiceFirst.failed")}
+                />
+              ) : null}
+              {deliveryLines.map((utterance) => {
+                const deckKey = asDeliveryKey(utterance.key);
+                return deckKey === null ? null : (
+                  <AppText key={utterance.key} role="body" color="inkSoft">
+                    {t(deckKey)}
+                  </AppText>
+                );
+              })}
+              {/* The bar is untitled by design (pass 6), so the question line is
             this screen's title and must be a heading (SC 1.3.1). An instrument
             step's heading is the ITEM, so it is rendered by InstrumentStep and
             the catalogue title is not shown at all — two askings of one
             question is how a verbatim item stops being the one that was
             validated. */}
-            {instrumentStep ? (
-              <InstrumentStep
-                instrument={question.instrument!}
-                options={question.options ?? []}
-                onSelect={(optionId) => commit([optionId])}
-              />
-            ) : (
-              <AppText role="hero" heading>
-                {t(question.titleKey)}
-              </AppText>
-            )}
-            {/* On an open step the invitation replaces the pack's control hint
+              {instrumentStep ? (
+                <InstrumentStep
+                  instrument={question.instrument!}
+                  options={question.options ?? []}
+                  onSelect={(optionId) => commit([optionId])}
+                />
+              ) : (
+                <AppText role="hero" heading>
+                  {t(question.titleKey)}
+                </AppText>
+              )}
+              {/* On an open step the invitation replaces the pack's control hint
             here: "Birden fazla seçebilirsiniz" describes the chips grid, and
             the grid is now below the answer field, so the hint travels down
             with the control it describes (the same rule INT-261 applied to
             the spoken turn). */}
-            {instrumentStep ? null : openAsk ? (
-              <AppText role="body" color="inkSoft">
-                {t("intake.open.hint")}
-              </AppText>
-            ) : question.hintKey ? (
-              <AppText role="body" color="inkSoft">
-                {t(question.hintKey)}
-              </AppText>
-            ) : null}
-
-            {suggestion !== undefined && suggestion.quote.length > 0 ? (
-              // Provenance, verbatim: the patient's own words behind the
-              // suggestion — quoted, never interpreted (INT-199).
-              <Card>
-                <AppText role="caption" color="inkFaint">
-                  {t("voiceFirst.saidLabel")}
-                </AppText>
+              {instrumentStep ? null : openAsk ? (
                 <AppText role="body" color="inkSoft">
-                  “{suggestion.quote}”
+                  {t("intake.open.hint")}
                 </AppText>
-              </Card>
-            ) : null}
+              ) : question.hintKey ? (
+                <AppText role="body" color="inkSoft">
+                  {t(question.hintKey)}
+                </AppText>
+              ) : null}
 
-            {/* INT-286 — the open answer, first. What the patient writes or
+              {suggestion !== undefined && suggestion.quote.length > 0 ? (
+                // Provenance, verbatim: the patient's own words behind the
+                // suggestion — quoted, never interpreted (INT-199).
+                <Card>
+                  <AppText role="caption" color="inkFaint">
+                    {t("voiceFirst.saidLabel")}
+                  </AppText>
+                  <AppText role="body" color="inkSoft">
+                    “{suggestion.quote}”
+                  </AppText>
+                </Card>
+              ) : null}
+
+              {/* INT-286 — the open answer, first. What the patient writes or
             dictates here is recorded as their own words and is NEVER put in
             `values`: the typed lane resolves nothing locally, because the
             only route from words to a declared option id is the INT-083
             extraction boundary and there is not going to be a second one.
             So an answer given only in words carries no coded value, opens no
             gate, and reaches the clinician as the sentence they said. */}
-            {openAsk ? (
-              <>
-                <TextInput
-                  accessibilityLabel={t(question.titleKey)}
-                  accessibilityHint={t("intake.open.hint")}
-                  allowFontScaling={false}
-                  value={text}
-                  onChangeText={setText}
-                  multiline
-                  style={[
-                    styles.textField,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      color: theme.ink,
-                      fontSize: scaledSize("body", fontScale),
-                    },
-                  ]}
-                />
-                {__DEV__ && consents?.voice === true ? (
-                  <VoiceNote
-                    onTranscript={(spoken) =>
-                      setText((prev) =>
-                        prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken,
-                      )
-                    }
+              {openAsk ? (
+                <>
+                  <TextInput
+                    accessibilityLabel={t(question.titleKey)}
+                    accessibilityHint={t("intake.open.hint")}
+                    allowFontScaling={false}
+                    value={text}
+                    onChangeText={setText}
+                    multiline
+                    style={[
+                      styles.textField,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.ink,
+                        fontSize: scaledSize("body", fontScale),
+                      },
+                    ]}
                   />
-                ) : null}
-                <AppText role="caption" color="inkFaint">
-                  {t("intake.open.orChoose")}
-                </AppText>
-                {question.hintKey ? (
-                  <AppText role="caption" color="inkFaint">
-                    {t(question.hintKey)}
-                  </AppText>
-                ) : null}
-              </>
-            ) : null}
-
-            {question.kind === "chips" && !instrumentStep ? (
-              <View style={styles.chipWrap}>
-                {question.options!.map((o) => {
-                  const on = selected.includes(o.id);
-                  return (
-                    <Pressable
-                      key={o.id}
-                      accessibilityRole="checkbox"
-                      accessibilityLabel={t(o.labelKey)}
-                      accessibilityHint={t("a11y.selectHint")}
-                      accessibilityState={{ checked: on }}
-                      onPress={() => toggleChip(o.id)}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: on ? theme.primarySoft : theme.surface,
-                          // Oura chips are filled, borderless in dark (tonal
-                          // separation); light keeps the hairline (pass 4).
-                          borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
-                        },
-                      ]}
-                    >
-                      <AppText role="label" color={on ? "primary" : "ink"}>
-                        {t(o.labelKey)}
-                      </AppText>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
-
-            {question.kind === "single" && !instrumentStep ? (
-              <View style={styles.optionColumn}>
-                {question.options!.map((o) => {
-                  const suggested = suggestion?.values.includes(o.id) === true;
-                  return (
-                    <Pressable
-                      key={o.id}
-                      // One answer per turn: a radio says so, a button does not.
-                      accessibilityRole="radio"
-                      // The suggested card is marked by a wash only — the word
-                      // "Önerilen" is inside the card, so it survives the merge
-                      // as context after the option itself (SC 1.4.1, 2.5.3).
-                      // The card renders "Önerilen yanıt" ABOVE the option, so
-                      // the name follows the same order the eye reads.
-                      accessibilityLabel={joinParts(
-                        suggested ? t("voiceFirst.suggested") : null,
-                        t(o.labelKey),
-                      )}
-                      // NOT `checked: suggested`. "Önerilen" means the voice pass
-                      // proposed this option, not that the patient chose it, and
-                      // nothing commits until the tap below (invariant 1). A
-                      // reader announcing it as selected would be the one
-                      // modality in which the suggestion looks like an answer.
-                      accessibilityState={{ checked: false }}
-                      style={styles.cardTarget}
-                      onPress={() =>
-                        commit(
-                          resolveAnswer(
-                            suggestion,
-                            suggested ? { type: "confirm" } : { type: "change", values: [o.id] },
-                          ),
-                          // INT-286 — the provenance that belongs to THIS value:
-                          // what the patient wrote in the open field if they
-                          // wrote anything, otherwise the quote behind a
-                          // suggestion they are confirming. Never the quote
-                          // behind a suggestion they just overrode: those words
-                          // were not said about this card.
-                          openWords(suggested),
+                  {__DEV__ && consents?.voice === true ? (
+                    <VoiceNote
+                      onTranscript={(spoken) =>
+                        setText((prev) =>
+                          prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken,
                         )
                       }
-                    >
-                      <Card wash={suggested ? "primary" : "none"}>
-                        {suggested ? (
-                          <AppText role="caption" color="primary">
-                            {t("voiceFirst.suggested")}
-                          </AppText>
-                        ) : null}
-                        <AppText role="body">
-                          {/* invariant 22: the numeral is an INLINE render
+                    />
+                  ) : null}
+                  <AppText role="caption" color="inkFaint">
+                    {t("intake.open.orChoose")}
+                  </AppText>
+                  {question.hintKey ? (
+                    <AppText role="caption" color="inkFaint">
+                      {t(question.hintKey)}
+                    </AppText>
+                  ) : null}
+                </>
+              ) : null}
+
+              {question.kind === "chips" && !instrumentStep ? (
+                <View style={styles.chipWrap}>
+                  {question.options!.map((o) => {
+                    const on = selected.includes(o.id);
+                    return (
+                      <Pressable
+                        key={o.id}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={t(o.labelKey)}
+                        accessibilityHint={t("a11y.selectHint")}
+                        accessibilityState={{ checked: on }}
+                        onPress={() => toggleChip(o.id)}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: on ? theme.primarySoft : theme.surface,
+                            // Oura chips are filled, borderless in dark (tonal
+                            // separation); light keeps the hairline (pass 4).
+                            borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                          },
+                        ]}
+                      >
+                        <AppText role="label" color={on ? "primary" : "ink"}>
+                          {t(o.labelKey)}
+                        </AppText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+
+              {question.kind === "single" && !instrumentStep ? (
+                <View style={styles.optionColumn}>
+                  {question.options!.map((o) => {
+                    const suggested = suggestion?.values.includes(o.id) === true;
+                    return (
+                      <Pressable
+                        key={o.id}
+                        // One answer per turn: a radio says so, a button does not.
+                        accessibilityRole="radio"
+                        // The suggested card is marked by a wash only — the word
+                        // "Önerilen" is inside the card, so it survives the merge
+                        // as context after the option itself (SC 1.4.1, 2.5.3).
+                        // The card renders "Önerilen yanıt" ABOVE the option, so
+                        // the name follows the same order the eye reads.
+                        accessibilityLabel={joinParts(
+                          suggested ? t("voiceFirst.suggested") : null,
+                          t(o.labelKey),
+                        )}
+                        // NOT `checked: suggested`. "Önerilen" means the voice pass
+                        // proposed this option, not that the patient chose it, and
+                        // nothing commits until the tap below (invariant 1). A
+                        // reader announcing it as selected would be the one
+                        // modality in which the suggestion looks like an answer.
+                        accessibilityState={{ checked: false }}
+                        style={styles.cardTarget}
+                        onPress={() =>
+                          commit(
+                            resolveAnswer(
+                              suggestion,
+                              suggested ? { type: "confirm" } : { type: "change", values: [o.id] },
+                            ),
+                            // INT-286 — the provenance that belongs to THIS value:
+                            // what the patient wrote in the open field if they
+                            // wrote anything, otherwise the quote behind a
+                            // suggestion they are confirming. Never the quote
+                            // behind a suggestion they just overrode: those words
+                            // were not said about this card.
+                            openWords(suggested),
+                          )
+                        }
+                      >
+                        <Card wash={suggested ? "primary" : "none"}>
+                          {suggested ? (
+                            <AppText role="caption" color="primary">
+                              {t("voiceFirst.suggested")}
+                            </AppText>
+                          ) : null}
+                          <AppText role="body">
+                            {/* invariant 22: the numeral is an INLINE render
                           beside the word it renders, on the same option
                           object — never a numeral inside the string. */}
-                          {o.inline === undefined
-                            ? t(o.labelKey)
-                            : `${o.inline} — ${t(o.labelKey)}`}
-                        </AppText>
-                      </Card>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
+                            {o.inline === undefined
+                              ? t(o.labelKey)
+                              : `${o.inline} — ${t(o.labelKey)}`}
+                          </AppText>
+                        </Card>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
 
-            {question.kind === "measure" ? (
-              <MeasureStepper question={question} value={measure} onChange={setMeasure} />
-            ) : null}
+              {question.kind === "measure" ? (
+                <MeasureStepper question={question} value={measure} onChange={setMeasure} />
+              ) : null}
 
-            {question.kind === "text" ? (
-              <>
-                <TextInput
-                  accessibilityLabel={t(question.titleKey)}
-                  accessibilityHint={question.hintKey ? t(question.hintKey) : undefined}
-                  allowFontScaling={false}
-                  value={text}
-                  onChangeText={setText}
-                  multiline
-                  style={[
-                    styles.textField,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      color: theme.ink,
-                      fontSize: scaledSize("body", fontScale),
-                    },
-                  ]}
-                />
-                {__DEV__ && consents?.voice === true ? (
-                  <VoiceNote
-                    onTranscript={(spoken) =>
-                      setText((prev) =>
-                        prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken,
-                      )
-                    }
+              {question.kind === "text" ? (
+                <>
+                  <TextInput
+                    accessibilityLabel={t(question.titleKey)}
+                    accessibilityHint={question.hintKey ? t(question.hintKey) : undefined}
+                    allowFontScaling={false}
+                    value={text}
+                    onChangeText={setText}
+                    multiline
+                    style={[
+                      styles.textField,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.ink,
+                        fontSize: scaledSize("body", fontScale),
+                      },
+                    ]}
                   />
-                ) : null}
-              </>
-            ) : null}
-          </Animated.View>
-        </LayoutAnimationConfig>
+                  {__DEV__ && consents?.voice === true ? (
+                    <VoiceNote
+                      onTranscript={(spoken) =>
+                        setText((prev) =>
+                          prev.trim().length > 0 ? `${prev.trim()} ${spoken}` : spoken,
+                        )
+                      }
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </Animated.View>
+          </LayoutAnimationConfig>
+        ) : null}
+        {/* INT-446: a SILENT RED, in the flow — outside the step's entering
+            animation, so it has no motion of its own. */}
+        <RedInFlow />
       </ScrollView>
-      {question.kind === "chips" && !instrumentStep ? (
+      {live && question.kind === "chips" && !instrumentStep ? (
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
@@ -819,7 +863,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           />
         </GlassBar>
       ) : null}
-      {question.kind === "single" && openAsk ? (
+      {live && question.kind === "single" && openAsk ? (
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
@@ -831,7 +875,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           />
         </GlassBar>
       ) : null}
-      {question.kind === "text" ? (
+      {live && question.kind === "text" ? (
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
@@ -839,7 +883,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
           />
         </GlassBar>
       ) : null}
-      {question.kind === "measure" ? (
+      {live && question.kind === "measure" ? (
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}

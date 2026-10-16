@@ -29,11 +29,52 @@ and ``UnregisteredWorkType`` at ``submit`` is the fail-closed state CLAUDE.md
 asks for while it does not exist — build the mechanism, wire the gate, leave
 the content empty.
 
-**The RED path is not wired here either.** ``TalkerSession.preemption`` stays
-``None``, so a rules-engine RED reaching this session raises
-``RedPathNotWired`` rather than continuing the intake past a life threat
-(invariant 21). Binding it needs the pre-positioned RED scripts, which are
-compiled clinical content and blocked on HB-C1.
+**A session that can fire a RED is composed with the means to deliver one**
+(INT-521, GitHub #887). The served red-flag rules are the pinned protocol's
+own — its pack rules and the sibling ``base.life_threat`` set
+(:func:`~intake_voice_runtime.clinical_agent.live_triage.served_rules`). Where
+there are any, three things are bound together or the composition is refused
+with :class:`RedWiringMissing`:
+
+- a :class:`~intake_voice_runtime.clinical_agent.live_triage.SessionTriage`
+  on the ``BackendAgent``, so every Work that binds a slot one of those rules
+  reads is evaluated by ``packages/protocols/triage`` (invariant 1);
+- the RED preemption path on the ``TalkerSession`` — the caller's data
+  channel and pre-positioned script index (:class:`RedWiring`), the clinician
+  route, and the agent's own audio sink as the canceller (a ``typed`` session
+  has no outbound audio, so its cancel stops nothing) — so the RED the queue
+  derives is delivered over the data channel the turn it is drained
+  (invariant 21);
+- the pinned rule ids, widened by the served rules' own, so the preempt gate
+  never refuses a RED the session's own rules produced, which would fail the
+  Work and drop the RED.
+
+The location axis is the caller's (:attr:`RedWiring.location`), derived from
+the visit lifecycle and the mode (files/02 §5.3 Axis 3) and never defaulted.
+A protocol that serves no rule composes exactly as before: no evaluator, and
+``TalkerSession.preemption`` stays ``None`` unless a :class:`RedWiring` is
+handed in, so a RED reaching it from elsewhere raises ``RedPathNotWired``
+rather than continuing the intake past a life threat. Today every compiled
+pack is in that state: the life-threat set is unsigned (HB-C1) and not served.
+
+**The clinician route is wired, and it is required** (INT-406, invariant 49).
+The clinic hearing of a RED must not wait on the scripts that tell the
+patient, so ``clinic`` — the :class:`~intake_voice_runtime.talker.red_path.ClinicNotifier`
+into the Safety inbox — is a required argument of both roots and is bound to
+the ``BackendAgent``, which tells it of every rules-engine RED as it settles.
+A session with no route to the clinic cannot be composed.
+
+**Extraction gets the committed value-set table** (INT-518, GitHub #884).
+Both roots used to hand the handler ``dict(valuesets or {})`` and no
+production caller passed a table, so every Work that declared a code slot was
+refused, and the slot then stayed awaiting, so every later Work was refused
+too: a session bound nothing after its first question, and
+``chest_pain.character`` / ``chest_pain.radiation``, the code inputs of the
+active life-threat rules, never bound at all. Omitted, ``valuesets`` is now
+:func:`protocols.valuesets.load_committed_valuesets`, handed to the engine
+(whose plan build re-checks every gate against it) and to the handler (which
+refuses a code slot with no set when the session is composed). A table passed
+in is used as given, and is held to the same two checks.
 """
 
 from __future__ import annotations
@@ -43,14 +84,20 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from clinical_schemas.overlay import PatientOverlay
+from clinical_schemas.triage import RedLocation
+from protocols.anchor_choices import AnchorChoiceTable, load_anchor_choice_table
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.dsl import Slot
+from protocols.valuesets import ValueSetTable, load_committed_valuesets
 
 from intake_voice_runtime.adapters.pins import ModelPin, ModelStackRow, resolve_pin
+from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
+from intake_voice_runtime.clinical_agent.live_triage import SessionTriage, served_rules
 from intake_voice_runtime.clinical_agent.work_queue import BackendAgent
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
 from intake_voice_runtime.extraction.handler import ExtractSlotsHandler
+from intake_voice_runtime.extraction.schema import closed_choice_dates
 from intake_voice_runtime.metering import (
     MeteredExtractionGateway,
     MeteredSpeechSynthesizer,
@@ -69,11 +116,20 @@ from intake_voice_runtime.ports import (
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.talker.clips import ClipCatalogue
 from intake_voice_runtime.talker.delivery import DeliveryDeadlines
+from intake_voice_runtime.talker.red_path import (
+    ClinicNotifier,
+    PlaybackCanceller,
+    RedDataChannel,
+    RedPreemption,
+    RedScriptIndex,
+)
 from intake_voice_runtime.talker.session import TalkerConfig, TalkerSession
 from intake_voice_runtime.transcript import SessionTranscripts
 from intake_voice_runtime.typed.affordance import SlotFacts, slot_facts
 
 __all__ = [
+    "RedWiring",
+    "RedWiringMissing",
     "ResidencyStack",
     "SessionStack",
     "build_residency_tr_session",
@@ -97,6 +153,43 @@ def protocol_slots(protocol: ResolvedProtocol) -> dict[str, Slot]:
         for section in protocol.sections
         for resolved in section.slots
     }
+
+
+class RedWiringMissing(ValueError):
+    """A session whose pinned protocol serves red-flag rules, composed without
+    the means to deliver the RED one of them can produce (INT-521)."""
+
+
+@dataclass(frozen=True)
+class RedWiring:
+    """What a session over served red-flag rules needs to fire one (INT-521).
+
+    Required, with no default, wherever the pinned protocol serves a rule:
+    the session can then produce a RED, and must be able to deliver it.
+    """
+
+    #: files/02 §5.3 Axis 3: derived by the caller from the visit lifecycle and
+    #: the mode — ``REMOTE``, ``ON_SITE`` or ``UNKNOWN`` — never guessed here.
+    location: RedLocation
+    #: The reliable, ordered data channel the trigger travels (invariant 21:
+    #: the RED path touches no media transport).
+    channel: RedDataChannel
+    #: Which pre-positioned script addresses each rule at each location, from
+    #: the pack the device already holds.
+    scripts: RedScriptIndex
+
+
+@dataclass(frozen=True)
+class _NoOutboundAudio:
+    """The ``typed`` profile's canceller: it has no outbound audio to stop.
+
+    The RED path cancels the agent's audio first. A typed session synthesises
+    and plays nothing (files/03 §4.4), so stopping it is complete the moment it
+    is asked for; the intake still stops through the Talker's own latch.
+    """
+
+    async def cancel(self) -> None:
+        return None
 
 
 @dataclass
@@ -129,6 +222,10 @@ class SessionStack:
     #: because the tenant and branch labels are the caller's to supply and a
     #: guessed label is a wrong dimension on a real series.
     meter: SessionMeter | None = None
+    #: CD-05 at runtime (INT-522): each closed onset choice's day, and the
+    #: record of the choice beside the day it bound. ``None`` where the pinned
+    #: protocol declares no date answered by a closed choice.
+    anchors: SessionAnchors | None = None
 
     @property
     def profile(self) -> VoiceProfile:
@@ -155,15 +252,18 @@ def build_residency_tr_session(
     sink: AudioSink,
     memory: PatientMemoryStore,
     tenant_id: str,
+    clinic: ClinicNotifier,
     clock: Clock | None = None,
     catalogue: ClipCatalogue | None = None,
     deadlines: DeliveryDeadlines | None = None,
     rule_ids: frozenset[str] = frozenset(),
-    valuesets: Mapping[str, tuple[str, ...]] | None = None,
+    valuesets: ValueSetTable | None = None,
     overlay_facts: PatientOverlay | None = None,
     extraction_row: ModelStackRow = ModelStackRow.TALKER_LLM,
     screen: ScreenSink | None = None,
     meter: SessionMeter | None = None,
+    red: RedWiring | None = None,
+    anchor_choices: AnchorChoiceTable | None = None,
 ) -> SessionStack:
     """Compose one ``residency_tr`` session and close the three joints.
 
@@ -185,6 +285,21 @@ def build_residency_tr_session(
     extraction in production is a decision for the issue that sizes the GPU
     tier, and the parameter exists so it is made explicitly rather than
     inherited from this default.
+
+    ``valuesets`` omitted is the committed table
+    (:func:`protocols.valuesets.load_committed_valuesets`, INT-518), and that
+    is how every production caller composes. Handed one, it is used as given;
+    either way a code slot with no set refuses the composition.
+
+    ``red`` is required wherever the pinned protocol serves a red-flag rule: a
+    session that could fire a RED and not deliver it is not composed
+    (:class:`RedWiringMissing`, INT-521).
+
+    ``anchor_choices`` omitted is CD-05 read from the committed register
+    (:func:`protocols.anchor_choices.load_anchor_choice_table`, INT-522),
+    loaded wherever the protocol declares a date answered by a closed choice.
+    Handed one, it is used as given; either way a closed-choice date with no
+    decided day for every choice refuses the composition.
     """
     return _compose(
         protocol=protocol,
@@ -194,6 +309,7 @@ def build_residency_tr_session(
         gateway=gateway,
         memory=memory,
         tenant_id=tenant_id,
+        clinic=clinic,
         clock=clock,
         deadlines=deadlines,
         rule_ids=rule_ids,
@@ -214,6 +330,8 @@ def build_residency_tr_session(
         sink=sink,
         screen=screen,
         meter=meter,
+        red=red,
+        anchor_choices=anchor_choices,
     )
 
 
@@ -227,13 +345,16 @@ def build_typed_session(
     screen: ScreenSink,
     memory: PatientMemoryStore,
     tenant_id: str,
+    clinic: ClinicNotifier,
     clock: Clock | None = None,
     deadlines: DeliveryDeadlines | None = None,
     rule_ids: frozenset[str] = frozenset(),
-    valuesets: Mapping[str, tuple[str, ...]] | None = None,
+    valuesets: ValueSetTable | None = None,
     overlay_facts: PatientOverlay | None = None,
     extraction_row: ModelStackRow = ModelStackRow.TALKER_LLM,
     meter: SessionMeter | None = None,
+    red: RedWiring | None = None,
+    anchor_choices: AnchorChoiceTable | None = None,
 ) -> SessionStack:
     """Compose one ``typed`` session — the same three joints, no audio.
 
@@ -245,6 +366,12 @@ def build_typed_session(
     and what is added is ``screen``. That difference *is* the profile; if this
     signature ever grows a clinical parameter the other lacks, parity has been
     lost at the composition root and no test below it can restore it.
+
+    ``valuesets`` omitted is the committed table, as it is for the voice
+    root: the typed lane binds a tapped choice through the same handler, so a
+    typed session without the table could not record a code answer either
+    (INT-518). ``anchor_choices`` likewise: a tapped onset choice binds its
+    CD-05 day through the same handler (INT-522).
 
     ``deadlines`` survives the change of channel deliberately. files/12 §6's
     ladder decides whether a YELLOW result is delivered or expires into the
@@ -259,6 +386,7 @@ def build_typed_session(
         gateway=gateway,
         memory=memory,
         tenant_id=tenant_id,
+        clinic=clinic,
         clock=clock,
         deadlines=deadlines,
         rule_ids=rule_ids,
@@ -274,6 +402,8 @@ def build_typed_session(
         ),
         screen=screen,
         meter=meter,
+        red=red,
+        anchor_choices=anchor_choices,
     )
 
 
@@ -286,10 +416,11 @@ def _compose(
     gateway: ExtractionGateway,
     memory: PatientMemoryStore,
     tenant_id: str,
+    clinic: ClinicNotifier,
     clock: Clock | None,
     deadlines: DeliveryDeadlines | None,
     rule_ids: frozenset[str],
-    valuesets: Mapping[str, tuple[str, ...]] | None,
+    valuesets: ValueSetTable | None,
     overlay_facts: PatientOverlay | None,
     extraction_row: ModelStackRow,
     config: TalkerConfig,
@@ -299,6 +430,8 @@ def _compose(
     sink: AudioSink | None = None,
     screen: ScreenSink | None = None,
     meter: SessionMeter | None = None,
+    red: RedWiring | None = None,
+    anchor_choices: AnchorChoiceTable | None = None,
 ) -> SessionStack:
     """Both profiles, composed once.
 
@@ -319,32 +452,58 @@ def _compose(
     # spends no characters, so half of this budget is structurally zero for
     # half the sessions.
     if meter is not None:
-        # INT-190: the session is counted where it is composed, by the meter
-        # whose labels its usage series carry, so the per-session divisor and
-        # the quantities it divides describe the same sessions.
-        meter.count_session()
         gateway = MeteredExtractionGateway(inner=gateway, meter=meter)
         if synthesizer is not None:
             synthesizer = MeteredSpeechSynthesizer(inner=synthesizer, meter=meter)
-    engine = IntakeEngine(
-        protocol=protocol, reference_time=reference_time, overlay_facts=overlay_facts
-    )
-    agent = BackendAgent(session_id=session_id, engine=engine, rule_ids=rule_ids, clock=ticking)
+    # INT-518: the committed table unless one is handed in. The handler refuses
+    # a code slot it has no members for; the engine re-checks every gate
+    # against the table at plan build. Both refuse here, before a patient is
+    # asked anything and before the session is counted.
+    table = load_committed_valuesets() if valuesets is None else valuesets
     transcripts = SessionTranscripts()
     pin = resolve_pin(extraction_row)
+    slots = protocol_slots(protocol)
+    # INT-522: CD-05 wherever a date is answered by a closed choice. The
+    # handler refuses one whose choices are not all resolved to a day.
+    anchors = _session_anchors(slots, anchor_choices)
     handler = ExtractSlotsHandler(
         transcripts=transcripts,
         gateway=gateway,
-        slots=protocol_slots(protocol),
+        slots=slots,
         pin=pin,
         clock=ticking,
         tenant_id=tenant_id,
-        valuesets=dict(valuesets or {}),
+        valuesets=table.member_map(),
+        anchors=anchors,
+    )
+    engine = IntakeEngine(
+        protocol=protocol,
+        reference_time=reference_time,
+        overlay_facts=overlay_facts,
+        valuesets=table,
+    )
+    # INT-521: the evaluator over the served rules, refused here (before the
+    # session is counted) when the session could not deliver the RED it finds.
+    triage = _session_triage(protocol, reference_time=reference_time, red=red, anchors=anchors)
+    pinned = rule_ids | {rule.id for rule in served_rules(protocol)}
+    if meter is not None:
+        # INT-190: the session is counted where it is composed, by the meter
+        # whose labels its usage series carry, so the per-session divisor and
+        # the quantities it divides describe the same sessions. Counted only
+        # once composition can no longer refuse (INT-518).
+        meter.count_session()
+    agent = BackendAgent(
+        session_id=session_id,
+        engine=engine,
+        rule_ids=pinned,
+        clock=ticking,
+        clinic=clinic,
+        triage=triage,
     )
     agent.register_state(WorkType.EXTRACT_SLOTS, handler)
 
     session = TalkerSession(
-        config=config,
+        config=config.model_copy(update={"rule_ids": pinned}),
         engine=engine,
         backend=agent,
         memory=memory,
@@ -355,6 +514,7 @@ def _compose(
         sink=sink,
         screen=screen,
         transcripts=transcripts,
+        preemption=_red_path(red, sink=sink, clinic=clinic, clock=ticking),
     )
     return SessionStack(
         engine=engine,
@@ -365,4 +525,65 @@ def _compose(
         extraction_pin=pin,
         slot_affordances=slot_facts(protocol),
         meter=meter,
+        anchors=anchors,
+    )
+
+
+def _session_anchors(
+    slots: Mapping[str, Slot], anchor_choices: AnchorChoiceTable | None
+) -> SessionAnchors | None:
+    """CD-05 for this session, or ``None`` where no date is a closed choice.
+
+    Handed a table, it is used as given; otherwise the committed register's
+    CD-05 is read (provenance-checked) only when the protocol needs it.
+    """
+    if anchor_choices is None and not closed_choice_dates(slots):
+        return None
+    return SessionAnchors(
+        table=load_anchor_choice_table() if anchor_choices is None else anchor_choices
+    )
+
+
+def _session_triage(
+    protocol: ResolvedProtocol,
+    *,
+    reference_time: datetime,
+    red: RedWiring | None,
+    anchors: SessionAnchors | None,
+) -> SessionTriage | None:
+    """The evaluator over the protocol's served rules, or ``None`` if it serves none.
+
+    A protocol that serves a rule, composed without a :class:`RedWiring`, is
+    refused, naming the rules: the session could produce a RED and not
+    deliver it.
+    """
+    served = served_rules(protocol)
+    if not served:
+        return None
+    if red is None:
+        named = ", ".join(sorted(rule.id for rule in served))
+        raise RedWiringMissing(
+            f"the pinned protocol serves red-flag rules ({named}) and no RedWiring was "
+            "handed in: a session that can fire a RED needs its location, data channel "
+            "and pre-positioned scripts to deliver one (invariant 21; INT-521)"
+        )
+    return SessionTriage.for_protocol(
+        protocol, location=red.location, reference_time=reference_time, anchors=anchors
+    )
+
+
+def _red_path(
+    red: RedWiring | None, *, sink: AudioSink | None, clinic: ClinicNotifier, clock: Clock
+) -> RedPreemption | None:
+    """The RED preemption path, bound wherever a :class:`RedWiring` was handed in.
+
+    The clinician route is the one Layer B already tells: the Safety inbox
+    entry is keyed by the RED's content-addressed work id, so the path's own
+    notification lands on the same entry (INT-406).
+    """
+    if red is None:
+        return None
+    canceller: PlaybackCanceller = sink if sink is not None else _NoOutboundAudio()
+    return RedPreemption(
+        canceller=canceller, channel=red.channel, clinic=clinic, scripts=red.scripts, clock=clock
     )

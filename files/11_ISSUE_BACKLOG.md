@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**327 issues.** By phase: P0 162 · P1 111 · P2 47 · P3 7. By status: awaiting-human 32 · doing 5 · done 215 · todo 74 · withdrawn 1.
+**363 issues.** By phase: P0 179 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 243 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -172,6 +172,23 @@
 | INT-393 | Patient erasure removes Doctor Links, and the retention source text matches the post-INT-317 tree | E02-data | INT-036, INT-037, INT-150, INT-392 | area:data, risk:legal | done |
 | INT-390 | Keycloak upgraded to a patched release, and the committed realm imports on it | E12-admin | INT-023, INT-365 | area:admin, risk:security | done |
 | INT-382 | The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads | E03-protocols | INT-258 | area:protocols, risk:clinical | done |
+| INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done |
+| INT-395 | DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links) | E02-data | INT-037, INT-141, INT-150, INT-393 | area:data, risk:legal | done |
+| INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
+| INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
+| INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
+| INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | INT-352 | area:infra | doing |
+| INT-500 | Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako | E13-infra | INT-429 | area:security | done |
+| INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done |
+| INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
+| INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
+| INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models | E05-voice | INT-081, INT-083, INT-092, INT-095, INT-101 | area:voice, risk:clinical | doing |
+| INT-428 | Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over | E05-voice | INT-182, INT-187, INT-018 | area:api, area:voice, risk:security | awaiting-human |
+| INT-485 | Admin oauth2-proxy logs no staff email or client IP (invariant 6) | E13-infra | INT-421 | area:infra | done |
+| INT-441 | base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date) | E03-protocols | INT-043 | area:protocols, risk:clinical | done |
+| INT-518 | Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind | E03-protocols | INT-083, INT-432 | area:protocols | done |
+| INT-521 | The live voice and typed session evaluates triage on every bound answer, so a RED fires from the conversation | E05-voice | INT-518, INT-093 | area:voice | done |
+| INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done |
 | INT-420 | Önvizit everywhere — finish the Vizite→Önvizit rebrand on main | E08-mobile | INT-130, INT-320 | area:mobile | done |
 
 ## P1
@@ -265,6 +282,8 @@
 | INT-369 | schemathesis API fuzzing runs in CI instead of being recorded as deferred | E13-infra | INT-215 | area:infra, risk:security | todo |
 | INT-372 | Visit-card chevron clears long department names | E08-mobile | — | area:mobile | done |
 | INT-370 | Visits calendar view and Geçmiş (past) list on Vizitlerim | E08-mobile | INT-341 | area:mobile | done |
+| INT-378 | Keycloak WebAuthn provider writes aaguid and credential_id session notes for the console's claims | E12-admin | INT-373, INT-365 | area:admin, risk:security | done |
+| INT-389 | Owner decision: second factor for console roles outside the patient-content set (TOTP vs aaguid) | E12-admin | INT-378, INT-365 | area:admin, risk:security | awaiting-human |
 | INT-377 | /admin/models and /admin/ops fail closed on a malformed probe-results file | E12-admin | INT-183, INT-351 | area:admin | done |
 | INT-373 | Keycloak realm emits the claims the admin console requires (aud=api, org, tenant, aaguid, credential_id) | E12-admin | INT-180 | area:admin, risk:security | done |
 | INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | INT-121, INT-381 | area:records, risk:clinical | awaiting-human |
@@ -282,13 +301,30 @@
 | INT-408 | Workers tier SLOs: the owner decides the tier and its targets | E01-platform | INT-021 | area:observability | awaiting-human |
 | INT-398 | Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox | E07-records | INT-122 | area:records, risk:security | awaiting-human |
 | INT-399 | Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2) | E07-records | INT-122 | area:records | awaiting-human |
-| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | todo |
+| INT-400 | The on-device MHRS SMS parser refuses an ambiguous date, as the server does | E08-mobile | INT-122 | area:mobile, risk:clinical | done |
 | INT-409 | The visits list uses the real date, not a pinned TODAY_FIXTURE, in every build | E08-mobile | INT-370 | area:mobile, risk:clinical | done |
 | INT-410 | Release bundles carry no synthetic seed accounts (audit F30) | E08-mobile | INT-130 | area:mobile, risk:security | done |
 | INT-412 | Apple-native chrome: SF Symbols with Android fallbacks, Liquid Glass rail honouring Reduce Transparency, layered icon proposal | E08-mobile | INT-360 | area:mobile | done |
 | INT-413 | Counsel drafts for the open legal texts (data categories, SMS transfer, accessibility statement, org measures, breach notices) | E14-legal | INT-215 | area:legal, risk:legal | done |
 | INT-404 | Triage rule evidence strings render quantities with the locale decimal separator | E03-protocols | INT-386 | area:protocols, risk:clinical | done |
 | INT-415 | ElevenLabs delivery profiles per question context + on-prem TTS wiring guide | E05-voice | INT-326 | area:voice | done |
+| INT-431 | The embed sample's test builds its JWT fixture at runtime, so secret scanners see no token at rest | E10-connectors | INT-320 | area:release, risk:security | done |
+| INT-426 | CI on AWS: gate runner via S3+SSM with commit status, no workflow edits | E13-infra | INT-352 | area:ci | done |
+| INT-407 | Visit lifecycle state machine (02 §2b): a RED visit cannot silently move | E02-data | INT-197, INT-150, INT-306, INT-406 | area:api, risk:clinical | done |
+| INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
+| INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
+| INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
+| INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
+| INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
+| INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
+| INT-524 | CI cancels a pull request's superseded runs (concurrency group), so the three-runner pool runs only current heads | E13-infra | INT-467 | area:ci, approval:human-infra | done |
+| INT-501 | http-cache-semantics lifted to 4.3.0, so its time-boxed osv exception can go before it expires | E13-infra | INT-500 | area:security | done |
+| INT-508 | node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents before 1 Nov 2026 | E13-infra | INT-500 | area:security | todo |
+| INT-424 | ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal | E05-voice | INT-415 | area:voice | done |
+| INT-475 | RED staff notification on the typed hop and the device's location answer reach the server | E09-clinician | INT-432 | area:api, risk:clinical | done |
+| INT-538 | One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required | E13-infra | INT-460 | area:infra | done |
+| INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
+| INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 
 ## P2
 

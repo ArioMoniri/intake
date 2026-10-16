@@ -219,3 +219,7 @@ entries:
   kind: former_name
   line: '| 23 | `a23f838a` | feat(mobile): warm the previsit intake copy to a helper-tool register | owner allocates | no. main''s strings equal int-demo HEAD, where `82c1a1e6` dropped the warm keys again. The build source restored them (`ef277abb`) | **held.** Patient copy for fixture questions (F11, HB-C1). `dialogue.entryBody` says "Ben Vizite", a pre-rebrand name (audit §4). The build source deleted `dialogue.openInvite`, and that deletion plus two register findings wait on the owner and clinical-reviewer (handoff "Blocked on the owner") | S7 |'
   why: INT-354's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-421.md
+  kind: former_name
+  line: '- name `Vizite`, slug `intake-mobile`, version `0.1.0`;'
+  why: 'INT-421''s dated evidence: the `expo config` run output of 2026-10-02, before INT-420 renamed the app'

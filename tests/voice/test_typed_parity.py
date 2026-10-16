@@ -47,6 +47,7 @@ from typing import Any
 
 import pytest
 from clinical_schemas.observers import Lane
+from intake_voice_runtime.app import VoiceRuntimeWiring
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.work_queue import BackendAgent
 from intake_voice_runtime.composition import (
@@ -89,6 +90,7 @@ from intake_voice_runtime.typed import (
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, ResolvedSlot
 from protocols.dsl import Slot
 from protocols.types import Delivery, SlotType
+from red_harness import RecordingClinicNotifier
 from talker_harness import (
     FakeClock,
     InMemoryPatientMemory,
@@ -210,6 +212,7 @@ def voice_stack(
         sink=sink if sink is not None else RecordingSink(clock=ticking),
         memory=InMemoryPatientMemory(),
         tenant_id=TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=surface,
     )
     return stack, ticking, surface
@@ -229,6 +232,7 @@ def typed_stack(
         gateway=ScriptedGateway(ANSWERS),
         memory=InMemoryPatientMemory(),
         tenant_id=TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=screen,
     )
     return stack, ticking, screen
@@ -850,10 +854,12 @@ class TestTheTypedWorkerCanBecomeReady:
     """
 
     def test_a_typed_worker_is_ready_with_no_speech_binding_at_all(self) -> None:
+        """INT-406: the Safety inbox is not a speech binding — a typed RED
+        reaches the clinic through it too — so it is the one wired here."""
         from fastapi.testclient import TestClient  # noqa: PLC0415
-        from intake_voice_runtime.app import VoiceRuntimeWiring, create_app  # noqa: PLC0415
+        from intake_voice_runtime.app import create_app  # noqa: PLC0415
 
-        client = TestClient(create_app(VoiceRuntimeWiring(profile=VoiceProfile.TYPED)))
+        client = TestClient(create_app(_typed_wiring()))
         response = client.get("/readyz")
         assert response.status_code == 200
 
@@ -861,13 +867,20 @@ class TestTheTypedWorkerCanBecomeReady:
         """A readiness report that silently shrinks is one nobody can compare
         across deployments. INT-182 added a fourth — ``voice_controls``, the
         kill-switch read a speech worker needs at every session start — and a
-        typed worker names it too, passed, rather than dropping it."""
+        typed worker names it too, passed, rather than dropping it. INT-406
+        added a fifth, ``safety_inbox``, which every profile needs."""
         from fastapi.testclient import TestClient  # noqa: PLC0415
-        from intake_voice_runtime.app import VoiceRuntimeWiring, create_app  # noqa: PLC0415
+        from intake_voice_runtime.app import create_app  # noqa: PLC0415
 
-        client = TestClient(create_app(VoiceRuntimeWiring(profile=VoiceProfile.TYPED)))
+        client = TestClient(create_app(_typed_wiring()))
         checks = client.get("/readyz").json()["checks"]
-        assert set(checks) == {"clip_store", "speech_synthesizer", "room_token", "voice_controls"}
+        assert set(checks) == {
+            "clip_store",
+            "speech_synthesizer",
+            "room_token",
+            "voice_controls",
+            "safety_inbox",
+        }
         assert set(checks.values()) == {"ok"}
 
     def test_the_voice_worker_still_fails_closed_on_the_same_three(self) -> None:
@@ -876,3 +889,13 @@ class TestTheTypedWorkerCanBecomeReady:
 
         client = TestClient(create_app(VoiceRuntimeWiring()))
         assert client.get("/readyz").status_code == 503
+
+
+def _typed_wiring() -> VoiceRuntimeWiring:
+    """A typed worker with the one binding every profile needs (INT-406)."""
+    import fakeredis  # noqa: PLC0415
+    from intake_platform.safety_inbox import RedisSafetyInboxStore  # noqa: PLC0415
+
+    return VoiceRuntimeWiring(
+        profile=VoiceProfile.TYPED, safety_inbox=RedisSafetyInboxStore(fakeredis.FakeRedis())
+    )

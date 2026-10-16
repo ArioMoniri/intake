@@ -15,11 +15,18 @@ from __future__ import annotations
 from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
 __all__ = [
+    "COUNCIL_ACTIONS_TOTAL",
+    "COUNCIL_MEMBER_AGREEMENT_TOTAL",
+    "COUNCIL_MEMBER_LATENCY_MS",
+    "COUNCIL_MEMBER_TOKENS_TOTAL",
+    "COUNCIL_READINGS_DROPPED_TOTAL",
+    "COUNCIL_VERIFICATIONS_TOTAL",
     "DELIVERY_INSERTION_WAIT_MS",
     "LANE_DROPPED_FRAMES",
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
     "TALKER_TOOL_CALLS_TOTAL",
+    "TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL",
     "VENDOR_BREAKER_STATE",
     "VENDOR_BREAKER_TRANSITIONS_TOTAL",
     "VENDOR_FAILOVERS_TOTAL",
@@ -85,6 +92,62 @@ WORK_FAILED_TOTAL = Counter(
     "work_failed_total",
     "Backend Work that ended in the failed state, by work type.",
     ["type"],
+)
+
+#: INT-521: the session's rules-engine evaluation could not stand. ``kind`` is
+#: closed: ``fault`` (the evaluation raised; the Work fails and the next state
+#: Work evaluates again) or ``conflict`` (a handler's own determination
+#: disagreed with the rules engine's over the served rules; the engine's
+#: stands). Either pages: a RED may be missing from a live session.
+TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL = Counter(
+    "triage_live_evaluation_failures_total",
+    "Live-session rules-engine evaluations that faulted or disagreed with a handler, by kind.",
+    ["kind"],
+)
+
+
+# --- council verifier (INT-430; ADR-036) ---------------------------------------
+#
+# ``member`` is a configured member id (``[a-z0-9][a-z0-9_-]{0,31}``, set by the
+# admin console), never a model name typed by a patient; every other label is a
+# closed enumeration. Cost is not a series here: it is tokens times a price, and
+# the price book is empty until HB-O8 (b) is answered.
+
+COUNCIL_MEMBER_LATENCY_MS = Histogram(
+    "council_member_latency_ms",
+    "Council verifier draw latency by member and outcome, in milliseconds.",
+    ["member", "outcome"],
+    buckets=(50.0, 250.0, 1_000.0, 3_000.0, 10_000.0, 30_000.0, float("inf")),
+)
+
+COUNCIL_MEMBER_TOKENS_TOTAL = Counter(
+    "council_member_tokens_total",
+    "Tokens the serving endpoint reported for council verifier draws.",
+    ["member", "direction"],
+)
+
+COUNCIL_MEMBER_AGREEMENT_TOTAL = Counter(
+    "council_member_agreement_total",
+    "Council verifier verdicts per member: agree, disagree or abstain with the primary.",
+    ["member", "agreement"],
+)
+
+COUNCIL_VERIFICATIONS_TOTAL = Counter(
+    "council_verifications_total",
+    "Council verifications by how they ended (submitted, late, shed, refused).",
+    ["outcome"],
+)
+
+COUNCIL_ACTIONS_TOTAL = Counter(
+    "council_actions_total",
+    "Council verifier actions by kind and by what the engine did with them.",
+    ["action", "result"],
+)
+
+COUNCIL_READINGS_DROPPED_TOTAL = Counter(
+    "council_readings_dropped_total",
+    "Council member readings dropped before adjudication, by reason.",
+    ["reason"],
 )
 
 

@@ -1,0 +1,2408 @@
+{
+ "source": "the #642 sign-off packets (PR #642, branch int-388-signoff-packets, commit 151cf34f), docs/signoff/*.md section 4; one row per unique open item, keyed <trail doc>#L<line> at that commit",
+ "commit": "151cf34f",
+ "count": 197,
+ "items": [
+  {
+   "key": "docs/evidence/INT-353.md#L286",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L287",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cluster_surgical",
+    "el_cerrahisi"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L289",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "kulak_burun_bogaz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L291",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "goz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L292",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cluster_sensory",
+    "odyoloji"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L300",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cocuk_enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3",
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L301",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cocuk_gogus_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3",
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L303",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cocuk_gastroenterolojisi",
+    "cocuk_nefrolojisi",
+    "neonatoloji"
+   ],
+   "deciders": [
+    "HB-C3",
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L304",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_enfeksiyon_hastaliklari",
+    "cocuk_sagligi_ve_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3",
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L306",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "klinik_psikoloji_poliklinigi"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L308",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "amatem"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L310",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cematem",
+    "cocuk_ve_ergen_ruh_sagligi"
+   ],
+   "deciders": [
+    "HB-L20",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L314",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "agiz_dis_cene_radyolojisi"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L315",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cluster_dental",
+    "pedodonti"
+   ],
+   "deciders": [
+    "HB-C3",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L316",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cluster_allied_and_reports",
+    "saglik_kurulu"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L422",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L424",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L425",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "kulak_burun_bogaz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L426",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "kulak_burun_bogaz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L427",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "amatem"
+   ],
+   "deciders": [
+    "HB-C1",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L428",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "klinik_psikoloji_poliklinigi"
+   ],
+   "deciders": [
+    "HB-C1",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/INT-353.md#L432",
+   "ref": "",
+   "decision_id": "CD-104",
+   "packets": [
+    "cluster_medical",
+    "fiziksel_tip_ve_rehabilitasyon"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L92",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L96",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "anesteziyoloji",
+    "cluster_surgical"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L113",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_medical",
+    "diyabet_poliklinigi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L115",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_medical",
+    "cluster_womens_health"
+   ],
+   "deciders": [
+    "HB-C1",
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L116",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_sensory",
+    "cluster_surgical",
+    "kulak_burun_bogaz_hastaliklari",
+    "ortopedi_ve_travmatoloji",
+    "uroloji"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L117",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_womens_health"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L118",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_womens_health"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L123",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_sensory",
+    "goz_hastaliklari",
+    "odyoloji"
+   ],
+   "deciders": [
+    "HB-C5",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L124",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "HB-C5",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L128",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L243",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_medical",
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L244",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_surgical",
+    "el_cerrahisi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-a.md#L247",
+   "ref": "",
+   "decision_id": "CD-102",
+   "packets": [
+    "cluster_sensory",
+    "odyoloji"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L72",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_gogus_hastaliklari",
+    "cocuk_sagligi_ve_hastaliklari"
+   ],
+   "deciders": [
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L73",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_hematolojisi_ve_onkolojisi"
+   ],
+   "deciders": [
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L75",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_child_health"
+   ],
+   "deciders": [
+    "clinician",
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L77",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_child_health"
+   ],
+   "deciders": [
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L79",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L80",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_child_health"
+   ],
+   "deciders": [
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L88",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_mental_health"
+   ],
+   "deciders": [
+    "psychiatrist",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L89",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_mental_health"
+   ],
+   "deciders": [
+    "clinician",
+    "psychiatrist",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L90",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_mental_health"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L103",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_dental",
+    "ortodonti",
+    "pedodonti",
+    "periodontoloji",
+    "protetik",
+    "restoratif"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L104",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_dental",
+    "pedodonti"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L105",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_dental",
+    "pedodonti"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L115",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "adli_tip",
+    "cluster_allied_and_reports",
+    "is_ve_meslek_hastaliklari",
+    "saglik_kurulu"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L116",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_allied_and_reports"
+   ],
+   "deciders": [
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/cluster-wave-b.md#L117",
+   "ref": "",
+   "decision_id": "CD-103",
+   "packets": [
+    "cluster_allied_and_reports",
+    "evde_saglik"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L94",
+   "ref": "T1",
+   "decision_id": "CD-100",
+   "packets": [
+    "kadin_hastaliklari_ve_dogum"
+   ],
+   "deciders": [
+    "HB-C1",
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L95",
+   "ref": "T2",
+   "decision_id": "CD-100",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "base owner",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L96",
+   "ref": "T3",
+   "decision_id": "CD-100",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "base owner",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L97",
+   "ref": "T4",
+   "decision_id": "CD-100",
+   "packets": [
+    "kadin_hastaliklari_ve_dogum"
+   ],
+   "deciders": [
+    "HB-C1",
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L98",
+   "ref": "T5",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_endokrinolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L99",
+   "ref": "T6",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_medical",
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L100",
+   "ref": "T7",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_gastroenterolojisi"
+   ],
+   "deciders": [
+    "HB-C3",
+    "paediatrician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L101",
+   "ref": "T8",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_nefrolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L102",
+   "ref": "T9",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "neonatoloji"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L103",
+   "ref": "T10",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "neonatoloji"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L104",
+   "ref": "T11",
+   "decision_id": "CD-100",
+   "packets": [
+    "cematem",
+    "cluster_mental_health"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L105",
+   "ref": "T12",
+   "decision_id": "CD-100",
+   "packets": [
+    "cematem",
+    "cluster_mental_health"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L106",
+   "ref": "T13",
+   "decision_id": "CD-100",
+   "packets": [
+    "cematem",
+    "cluster_mental_health",
+    "cocuk_ve_ergen_ruh_sagligi"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L107",
+   "ref": "T14",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_mental_health",
+    "cocuk_ve_ergen_ruh_sagligi"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L108",
+   "ref": "T15",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_mental_health",
+    "cocuk_ve_ergen_ruh_sagligi"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L109",
+   "ref": "T16",
+   "decision_id": "CD-100",
+   "packets": [
+    "agiz_dis_ve_cene_cerrahisi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L110",
+   "ref": "T17",
+   "decision_id": "CD-100",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L111",
+   "ref": "T18",
+   "decision_id": "CD-100",
+   "packets": [
+    "anesteziyoloji"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L112",
+   "ref": "T19",
+   "decision_id": "CD-100",
+   "packets": [
+    "asi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L113",
+   "ref": "T20",
+   "decision_id": "CD-100",
+   "packets": [
+    "beslenme_ve_diyet"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L114",
+   "ref": "T21",
+   "decision_id": "CD-100",
+   "packets": [
+    "cocuk_immunolojisi_ve_alerjisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L115",
+   "ref": "T22",
+   "decision_id": "CD-100",
+   "packets": [
+    "deri_ve_zuhrevi_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L116",
+   "ref": "T23",
+   "decision_id": "CD-100",
+   "packets": [
+    "dis_hekimligi",
+    "endodonti"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L117",
+   "ref": "T24",
+   "decision_id": "CD-100",
+   "packets": [
+    "diyabet_poliklinigi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L118",
+   "ref": "T25",
+   "decision_id": "CD-100",
+   "packets": [
+    "diyabet_poliklinigi",
+    "endokrinoloji_ve_metabolizma"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L119",
+   "ref": "T26",
+   "decision_id": "CD-100",
+   "packets": [
+    "el_cerrahisi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L120",
+   "ref": "T27",
+   "decision_id": "CD-100",
+   "packets": [
+    "endodonti"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L121",
+   "ref": "T28",
+   "decision_id": "CD-100",
+   "packets": [
+    "endokrinoloji_ve_metabolizma"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L122",
+   "ref": "T29",
+   "decision_id": "CD-100",
+   "packets": [
+    "fiziksel_tip_ve_rehabilitasyon"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L123",
+   "ref": "T30",
+   "decision_id": "CD-100",
+   "packets": [
+    "fizyoterapi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L124",
+   "ref": "T31",
+   "decision_id": "CD-100",
+   "packets": [
+    "fizyoterapi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L125",
+   "ref": "T32",
+   "decision_id": "CD-100",
+   "packets": [
+    "gastroenteroloji_cerrahisi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L126",
+   "ref": "T33",
+   "decision_id": "CD-100",
+   "packets": [
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L127",
+   "ref": "T34",
+   "decision_id": "CD-100",
+   "packets": [
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L128",
+   "ref": "T35",
+   "decision_id": "CD-100",
+   "packets": [
+    "obezite_poliklinigi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L129",
+   "ref": "T36",
+   "decision_id": "CD-100",
+   "packets": [
+    "ruh_sagligi_ve_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L130",
+   "ref": "T37",
+   "decision_id": "CD-100",
+   "packets": [
+    "aile_hekimligi",
+    "cluster_medical"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L131",
+   "ref": "T38",
+   "decision_id": "CD-100",
+   "packets": [
+    "aile_hekimligi",
+    "cluster_medical"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L132",
+   "ref": "T39",
+   "decision_id": "CD-100",
+   "packets": [
+    "aile_hekimligi",
+    "cluster_medical"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L133",
+   "ref": "T40",
+   "decision_id": "CD-100",
+   "packets": [
+    "algoloji",
+    "cluster_medical"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L134",
+   "ref": "T41",
+   "decision_id": "CD-100",
+   "packets": [
+    "amatem",
+    "cluster_mental_health"
+   ],
+   "deciders": [
+    "HB-C1",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L135",
+   "ref": "T42",
+   "decision_id": "CD-100",
+   "packets": [
+    "amatem",
+    "cluster_mental_health"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L136",
+   "ref": "T43",
+   "decision_id": "CD-100",
+   "packets": [
+    "asi",
+    "cluster_allied_and_reports"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L137",
+   "ref": "T44",
+   "decision_id": "CD-100",
+   "packets": [
+    "cerrahi_onkoloji",
+    "cluster_surgical"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L138",
+   "ref": "T45",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_cerrahisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L139",
+   "ref": "T46",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_endokrinolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L140",
+   "ref": "T47",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L141",
+   "ref": "T48",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L142",
+   "ref": "T49",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L143",
+   "ref": "T50",
+   "decision_id": "CD-100",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_gastroenterolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L144",
+   "ref": "T51",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_gastroenterolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L145",
+   "ref": "T52",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_genetik_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L146",
+   "ref": "T53",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_genetik_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L147",
+   "ref": "T54",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_hematolojisi_ve_onkolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L148",
+   "ref": "T55",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_immunolojisi_ve_alerjisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L149",
+   "ref": "T56",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_kardiyolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L150",
+   "ref": "T57",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_kardiyolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L151",
+   "ref": "T58",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_metabolizma_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L152",
+   "ref": "T59",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_metabolizma_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L153",
+   "ref": "T60",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "deri_ve_zuhrevi_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L154",
+   "ref": "T61",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_surgical",
+    "el_cerrahisi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L155",
+   "ref": "T62",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "endokrinoloji_ve_metabolizma"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L156",
+   "ref": "T63",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L157",
+   "ref": "T64",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L158",
+   "ref": "T65",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L159",
+   "ref": "T66",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L160",
+   "ref": "T67",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L161",
+   "ref": "T68",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "fiziksel_tip_ve_rehabilitasyon"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L162",
+   "ref": "T69",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "fiziksel_tip_ve_rehabilitasyon"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L163",
+   "ref": "T70",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "goz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L164",
+   "ref": "T71",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "goz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L165",
+   "ref": "T72",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "goz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L166",
+   "ref": "T73",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "goz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L167",
+   "ref": "T74",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "goz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L168",
+   "ref": "T75",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L169",
+   "ref": "T76",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L170",
+   "ref": "T77",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L171",
+   "ref": "T78",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L172",
+   "ref": "T79",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "ic_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L173",
+   "ref": "T80",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "kardiyoloji"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L174",
+   "ref": "T81",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_mental_health",
+    "klinik_psikoloji_poliklinigi"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L175",
+   "ref": "T82",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "kulak_burun_bogaz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L176",
+   "ref": "T83",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "kulak_burun_bogaz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L177",
+   "ref": "T84",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "kulak_burun_bogaz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L178",
+   "ref": "T85",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "kulak_burun_bogaz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L179",
+   "ref": "T86",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "neonatoloji"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L180",
+   "ref": "T87",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_child_health",
+    "neonatoloji"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L181",
+   "ref": "T88",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_sensory",
+    "odyoloji"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L182",
+   "ref": "T89",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_surgical",
+    "el_cerrahisi",
+    "plastik_rekonstruktif_ve_estetik_cerrahi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L183",
+   "ref": "T90",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "sualti_ve_hiperbarik_tip"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L184",
+   "ref": "T91",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_medical",
+    "tibbi_ekoloji_ve_hidroklimatoloji"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L185",
+   "ref": "T92",
+   "decision_id": "CD-101",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "base owner",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L186",
+   "ref": "T93",
+   "decision_id": "CD-101",
+   "packets": [
+    "agiz_dis_cene_radyolojisi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L187",
+   "ref": "T94",
+   "decision_id": "CD-101",
+   "packets": [
+    "agiz_dis_ve_cene_cerrahisi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L188",
+   "ref": "T95",
+   "decision_id": "CD-101",
+   "packets": [
+    "amatem",
+    "cematem"
+   ],
+   "deciders": [
+    "HB-C1",
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L189",
+   "ref": "T96",
+   "decision_id": "CD-101",
+   "packets": [
+    "beslenme_ve_diyet"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L190",
+   "ref": "T97",
+   "decision_id": "CD-101",
+   "packets": [
+    "cocuk_enfeksiyon_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L191",
+   "ref": "T98",
+   "decision_id": "CD-101",
+   "packets": [
+    "deri_ve_zuhrevi_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L192",
+   "ref": "T99",
+   "decision_id": "CD-101",
+   "packets": [
+    "dis_hekimligi"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/near-twin-sweep-582.md#L258",
+   "ref": "",
+   "decision_id": "CD-101",
+   "packets": [
+    "cluster_surgical",
+    "gogus_cerrahisi",
+    "kalp_ve_damar_cerrahisi",
+    "plastik_rekonstruktif_ve_estetik_cerrahi"
+   ],
+   "deciders": [
+    "clinician",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/reorder-op-582.md#L38",
+   "ref": "A-4",
+   "decision_id": "CD-106",
+   "packets": [
+    "kadin_hastaliklari_ve_dogum"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/reorder-op-582.md#L42",
+   "ref": "A-8",
+   "decision_id": "CD-106",
+   "packets": [
+    "cluster_womens_health",
+    "kadin_hastaliklari_ve_dogum"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/reorder-op-582.md#L43",
+   "ref": "A-9",
+   "decision_id": "CD-106",
+   "packets": [
+    "cocuk_enfeksiyon_hastaliklari",
+    "cocuk_kardiyolojisi",
+    "gebe_poliklinigi",
+    "kadin_hastaliklari_ve_dogum",
+    "neonatoloji"
+   ],
+   "deciders": [
+    "HB-C1",
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/reorder-op-582.md#L44",
+   "ref": "A-10",
+   "decision_id": "CD-106",
+   "packets": [
+    "cluster_child_health",
+    "cocuk_endokrinolojisi"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/sibling-rebinds-582.md#L54",
+   "ref": "",
+   "decision_id": "CD-106",
+   "packets": [
+    "klinik_psikoloji_poliklinigi"
+   ],
+   "deciders": [
+    "psychiatrist"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/sibling-rebinds-582.md#L57",
+   "ref": "",
+   "decision_id": "CD-106",
+   "packets": [
+    "goz_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/sibling-rebinds-582.md#L60",
+   "ref": "",
+   "decision_id": "CD-106",
+   "packets": [
+    "cocuk_enfeksiyon_hastaliklari",
+    "cocuk_genetik_hastaliklari",
+    "cocuk_metabolizma_hastaliklari",
+    "diyabet_poliklinigi",
+    "neonatoloji",
+    "odyoloji"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/sibling-rebinds-582.md#L61",
+   "ref": "",
+   "decision_id": "CD-106",
+   "packets": [
+    "cluster_medical",
+    "fiziksel_tip_ve_rehabilitasyon"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/sibling-rebinds-582.md#L118",
+   "ref": "",
+   "decision_id": "CD-106",
+   "packets": [
+    "agiz_dis_ve_cene_cerrahisi"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave1-3.md#L67",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "anesteziyoloji"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave1-3.md#L69",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "adli_tip"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave1-3.md#L72",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "amatem"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave1-3.md#L75",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "dis_hekimligi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave1-3.md#L80",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gastroenteroloji",
+    "kardiyoloji",
+    "noroloji"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave4-5.md#L16",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "_cross-cutting"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave6-internal-mental.md#L57",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "hematoloji"
+   ],
+   "deciders": [
+    "HB-C6",
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave6-internal-mental.md#L60",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gogus_hastaliklari"
+   ],
+   "deciders": [
+    "HB-C23",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave6-internal-mental.md#L61",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gogus_hastaliklari",
+    "romatoloji"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave6-internal-mental.md#L73",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "ruh_sagligi_ve_hastaliklari"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave6-internal-mental.md#L75",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gogus_hastaliklari",
+    "hematoloji"
+   ],
+   "deciders": [
+    "HB-C1"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave6-internal-mental.md#L77",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gogus_hastaliklari",
+    "hematoloji",
+    "nefroloji",
+    "romatoloji",
+    "sigara_birakma_poliklinigi"
+   ],
+   "deciders": [
+    "HB-C1",
+    "clinician",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L84",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "cocuk_metabolizma_hastaliklari",
+    "hematoloji",
+    "nefroloji"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L88",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gebe_poliklinigi",
+    "perinatoloji"
+   ],
+   "deciders": [
+    "HB-C4",
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L91",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gebe_poliklinigi",
+    "perinatoloji"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L93",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "nukleer_tip",
+    "tibbi_genetik"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L109",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "hematoloji",
+    "nefroloji",
+    "nukleer_tip"
+   ],
+   "deciders": [
+    "HB-C6"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L110",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "neonatoloji"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave7-onc-women-peds.md#L117",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "gebe_poliklinigi",
+    "neonatoloji",
+    "perinatoloji",
+    "ureme_endokrinolojisi_ve_infertilite"
+   ],
+   "deciders": [
+    "HB-C4",
+    "HB-C3",
+    "clinician",
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L84",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "klinik_norofizyoloji"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L90",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "yasli_sagligi_poliklinigi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L94",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "geriatri",
+    "ortodonti",
+    "periodontoloji",
+    "protetik",
+    "yasli_sagligi_poliklinigi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L95",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "ortodonti"
+   ],
+   "deciders": [
+    "clinician",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L96",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "agiz_dis_cene_radyolojisi",
+    "agiz_dis_ve_cene_cerrahisi",
+    "cluster_dental",
+    "dis_hekimligi",
+    "endodonti",
+    "pedodonti",
+    "periodontoloji"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L107",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "klinik_norofizyoloji"
+   ],
+   "deciders": [
+    "HB-C23",
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L108",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "geriatri",
+    "yasli_sagligi_poliklinigi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L110",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "yasli_sagligi_poliklinigi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L111",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "geriatri",
+    "klinik_norofizyoloji",
+    "pedodonti",
+    "periodontoloji",
+    "uyku_poliklinigi",
+    "yasli_sagligi_poliklinigi"
+   ],
+   "deciders": [
+    "clinician",
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L113",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "anesteziyoloji",
+    "cerrahi_onkoloji",
+    "cocuk_genetik_hastaliklari",
+    "cocuk_immunolojisi_ve_alerjisi",
+    "cocuk_kardiyolojisi",
+    "cocuk_metabolizma_hastaliklari",
+    "hematoloji",
+    "nefroloji"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave8-geriatric-dental.md#L114",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "cluster_child_health",
+    "cluster_dental",
+    "pedodonti"
+   ],
+   "deciders": [
+    "HB-C3"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L71",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "hemsirelik_egitim_poliklinikleri"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L77",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "spor_hekimligi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L78",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "odyoloji",
+    "sualti_ve_hiperbarik_tip"
+   ],
+   "deciders": [
+    "clinician",
+    "base owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L88",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "halk_sagligi",
+    "is_ve_meslek_hastaliklari"
+   ],
+   "deciders": [
+    "owner"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L94",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "is_ve_meslek_hastaliklari"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L101",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "getat",
+    "tibbi_ekoloji_ve_hidroklimatoloji"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L102",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "halk_sagligi"
+   ],
+   "deciders": [
+    "clinician"
+   ]
+  },
+  {
+   "key": "docs/evidence/verification/specialty-wave9-occupational-public.md#L113",
+   "ref": "",
+   "decision_id": "CD-105",
+   "packets": [
+    "halk_sagligi",
+    "hava_ve_uzay_hekimligi",
+    "odyoloji",
+    "spor_hekimligi",
+    "sualti_ve_hiperbarik_tip",
+    "tibbi_ekoloji_ve_hidroklimatoloji"
+   ],
+   "deciders": [
+    "clinician",
+    "base owner"
+   ]
+  }
+ ]
+}

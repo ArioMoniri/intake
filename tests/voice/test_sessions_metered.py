@@ -13,13 +13,18 @@ which would make the series' cardinality the number of patients seen
 
 from __future__ import annotations
 
+import pytest
+import test_extraction_valuesets as int518
 import test_typed_parity as parity
 from intake_platform.slo import PHI_RISK_LABEL_NAMES
 from intake_voice_runtime.composition import build_residency_tr_session, build_typed_session
+from intake_voice_runtime.extraction import CodeSlotUnbound
 from intake_voice_runtime.metering import SessionLedger, SessionMeter, TurnLabels
 from intake_voice_runtime.metrics import VOICE_SESSIONS_METERED
 from intake_voice_runtime.profiles import VoiceProfile
 from prometheus_client import REGISTRY
+from protocols.valuesets import load_committed_valuesets
+from red_harness import RecordingClinicNotifier
 from talker_harness import VOICE_ID, FakeClock, RecordedClipStore, RecordingSynthesizer
 
 TENANT = "t-sessions"
@@ -51,6 +56,7 @@ def _typed(meter: SessionMeter | None) -> None:
         gateway=parity.ScriptedGateway(parity.ANSWERS),
         memory=parity.InMemoryPatientMemory(),
         tenant_id=parity.TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=parity.RecordingScreen(),
         meter=meter,
     )
@@ -79,6 +85,7 @@ def test_a_voice_session_is_counted_under_its_own_profile() -> None:
         sink=parity.RecordingSink(clock=clock),
         memory=parity.InMemoryPatientMemory(),
         tenant_id=parity.TENANT,
+        clinic=RecordingClinicNotifier(),
         screen=parity.RecordingScreen(),
         meter=_meter(VoiceProfile.RESIDENCY_TR),
     )
@@ -91,6 +98,30 @@ def test_near_miss_an_unmetered_session_is_not_counted() -> None:
     # a session with no meter spends into no series and must not dilute it
     before = _count(VoiceProfile.TYPED)
     _typed(None)
+    assert _count(VoiceProfile.TYPED) == before
+
+
+def test_near_miss_a_composition_refused_at_build_is_not_counted() -> None:
+    """INT-518: composition refuses a code slot with no committed set. It does
+    so before the count, so a session that never started does not dilute the
+    per-session divisor."""
+    before = _count(VoiceProfile.TYPED)
+    empty = load_committed_valuesets().model_copy(update={"valuesets": {}})
+    with pytest.raises(CodeSlotUnbound):
+        build_typed_session(
+            protocol=int518._base_intake(),
+            reference_time=parity.NOW,
+            session_id=parity.SESSION,
+            protocol_hash=parity.HASH,
+            clock=FakeClock(),
+            gateway=int518.AnswerTable({}),
+            memory=parity.InMemoryPatientMemory(),
+            tenant_id=parity.TENANT,
+            clinic=RecordingClinicNotifier(),
+            screen=parity.RecordingScreen(),
+            valuesets=empty,
+            meter=_meter(VoiceProfile.TYPED),
+        )
     assert _count(VoiceProfile.TYPED) == before
 
 
