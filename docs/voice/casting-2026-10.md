@@ -132,6 +132,11 @@ its source. None carries a numeral or markup.
 | instrument      | Sıradaki sorular standart bir ankete ait. Bu yüzden her zaman aynı şekilde sorulur.                | `apps/mobile/src/lib/i18n/tr.ts` (INT-414 branch)         |
 | red             | Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin.                                         | `files/protocols/base.life_threat.yaml` (exemplar do-not) |
 
+This table records what these rounds rendered. On 16 Oct 2026 CD-111 (INT-468, applied by
+INT-494) replaced the red line in the served rule with "Yanınızda biri varsa sizi yalnız
+bırakmasına izin vermeyin.", and `scripts/voice/cast_turkish_voices.py` now carries that line, so
+a later round renders the served text.
+
 No validated instrument item is authored in this tree (`instruments.ts` refuses with
 `items_not_authored`). For that reason the instrument context speaks the catalogue lead-in under
 the instrument profile, and no item was invented.
