@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**364 issues.** By phase: P0 180 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 244 · todo 74 · withdrawn 1.
+**365 issues.** By phase: P0 181 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 245 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -191,6 +191,7 @@
 | INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done |
 | INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
+| INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
 
 ## P1
 
