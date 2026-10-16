@@ -40,6 +40,10 @@
   - `make check` was not run as one command (check-integration needs a container runtime), and
     the whole-suite coverage line was killed from outside. `otp_netgsm` is at 100 % branch
     coverage.
+  - On the head with main's INT-424/428/430/475/501 merged in: the Python suite outside
+    infra/backlog/smoke gives 10642 passed, and infra/backlog/smoke all pass. The owner patch
+    re-applies (`git apply --check` OK); with it applied, 8800 passed across the 17 suites that
+    read the allow-list.
 - Invariants touched and still passing:
   - 6: no phone, code, password or vendor text anywhere; numbers only counted.
   - 13: `otp_sms_delivery_total` is catalogued, and `sms-egress` has its registry row. The
