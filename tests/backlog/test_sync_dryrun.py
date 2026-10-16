@@ -114,7 +114,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
     # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
-    assert len(actions) == 343
+    assert len(actions) == 346
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

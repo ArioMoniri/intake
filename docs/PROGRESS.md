@@ -1,5 +1,42 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T05:40:00Z · INT-497 · done (PR open; INT-504 and INT-505 split out)
+- Goal: the owner's order of 16 Oct 2026 (GitHub #848): voices natural, emotional and seamless, no delay, nothing robotic, a conversation that feels live. Targets: first audio under 800 ms p50 and under 1.2 s p95, and no audible gap between clips. Measure first, then pull the levers.
+- Plan: measure, then build each lever main can carry.
+  - Bundled-clip prefetch needs #768 on main and is INT-504 (#858).
+  - Hosted streaming TTS needs #775 and is INT-505 (#859).
+  - The AWS synthetic host runs no ASR or TTS lane (SSM probe). So the device-equivalent session is "after deploy", and the device timeline built here is its instrument.
+- Tests added:
+  - mobile: `endpointer`, `turnQueue`, `clipFinish`, `loudness`, `holdingLine`, `turnTimeline`, `turnTimelineReadout`, plus a `tts` name hand-off;
+  - Python: `test_clip_loudness.py`, `test_runtime_sim_timeline.py`, `test_voice_experience.py`.
+  - Near-misses:
+    - a click under ONSET_MIN_MS is not speech;
+    - silence alone never ends a turn;
+    - a missing meter reading is skipped, not read as silence;
+    - no holding line around RED, in an instrument or before a sensitive question;
+    - a typed turn reports no audio rather than 0.
+  - The red runs are in the evidence. The first endpointer tuning passed its unit tests but failed the replay (13 % cut-offs); sweeps set the shipped 600/850 ms.
+- Result: docs/evidence/INT-497.md.
+  - Loudness spread over the E04 set: 9.24 → 0.50 LU.
+  - Step at joins: p95 5.78 → 0.50 LU.
+  - Player switch: 120 ms → 0 ms (AVFoundation).
+  - Self-hosted lead-in join: ≥ 450 ms → 230 ms, a sentence boundary.
+  - Endpoint delay: 540 ms (short answers) and 780 ms (long), p50.
+  - Server first audio: +0.0 ms in every runtime-sim scenario.
+  - make check: see the evidence.
+- Invariants touched and still passing:
+  - 3: levels only; one prepareToRecordAsync; no clip committed.
+  - 6: durations only.
+  - 9: the Talker and its six tools untouched.
+  - 10, 11 (the endpointer is turn detection, not an observer), 21 and 22.
+  - ElevenLabs spend: 0 characters.
+- Decisions / ADRs / `00_STATE.md` rows: none. Lever tuning only; no clinical, legal or retention change.
+- Blocked on: nothing for this issue. Still to come:
+  - the device-equivalent session waits for the hosted-lane deploy (#751, #774, #775);
+  - the listening hint "Bitirince dokunun" still names only the tap, which is a copy-owner question, not changed here.
+- Next: a runtime-reviewer pass (orchestrator); the device session after deploy; then INT-504 once #768 merges and INT-505 once #775 merges.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:

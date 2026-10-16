@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**343 issues.** By phase: P0 168 · P1 121 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 228 · todo 73 · withdrawn 1.
+**346 issues.** By phase: P0 168 · P1 124 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 229 · todo 75 · withdrawn 1.
 
 ## P0
 
@@ -305,6 +305,9 @@
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
+| INT-497 | Voice experience: natural and seamless, first audio < 800 ms p50 / 1.2 s p95, no gaps, a live feel | E05-voice | INT-291, INT-414, INT-449 | area:voice | done |
+| INT-504 | Prefetch the bundled E04 clips for the next likely questions | E05-voice | INT-497 | area:voice | todo |
+| INT-505 | Streaming TTS on the hosted lane for anything not pre-rendered | E05-voice | INT-497 | area:voice | todo |
 
 ## P2
 

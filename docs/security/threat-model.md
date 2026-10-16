@@ -818,6 +818,22 @@ it or whose tests exercise it.
   **unspeakable** — `emit_clips` refuses it (`NumeralWithoutExpander`) rather than handing a
   digit to a TTS model whose normaliser would read it wrongly. Tests:
   `tests/voice/test_locale_profile.py`, `tests/protocols/test_number_expansion_locale.py`.
+- **Turn timing and seams (INT-497).** The dev dialogue now ends a turn on the patient's
+  silence. This adds no new read of audio, so **[I] transient PCM exposure** is unchanged.
+  - The endpointer (`apps/mobile/src/lib/dialogue/endpointer.ts`) reads the recorder's own
+    level meter, the scalar barge-in already read, and never a buffer.
+    `e2e/bargeIn.spec.ts` still pins one `prepareToRecordAsync` and two `recorder.uri` reads.
+  - The turn timeline holds durations only (invariant 6), and its readout is `__DEV__`-gated
+    in a pure function.
+  - **[D] a stalled Backend** is now also measured as the patient hears it:
+    `make runtime-sim` reports each turn's first audio, and with Backend stalled ten seconds
+    it stays at +0.0 ms.
+  - The Talker, its six tools and the preempt gate are untouched (invariant 9).
+  - The measurement harness (`scripts/voice/voice_experience.py`) reads agent clips only,
+    and only level envelopes leave the clip set. No clip or sample is committed (ADR-028).
+  - Tests: `tests/voice/test_runtime_sim_timeline.py`, `tests/voice/test_clip_loudness.py`,
+    `tests/voice/test_voice_experience.py`, and the mobile `endpointer`, `turnQueue`,
+    `clipFinish`, `holdingLine` and `turnTimeline` suites.
 
 ## `triage` — deterministic RED/YELLOW only
 

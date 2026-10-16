@@ -168,7 +168,12 @@ def test_ids_unique_and_well_formed() -> None:
     # three, each with its own user, daemon and network namespace, GitHub #799).
     # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
     # vulnerabilities gate stops blocking every merge; GitHub #851).
-    assert len(ids) == 343
+    # + INT-497 (the voice experience: end-of-turn detection, one queue per
+    # turn, one loudness, holding lines, the turn timeline; owner order of
+    # 16 Oct 2026, GitHub #848) and its two splits, INT-504 (bundled-clip
+    # prefetch after INT-440, #858) and INT-505 (hosted streaming TTS after
+    # INT-443, #859).
+    assert len(ids) == 346
     import re
 
     for i in ids:
