@@ -77,6 +77,7 @@ from intake_api import (
     visit_lifecycle,
     visits,
     visits_acibadem,
+    voice_token,
 )
 from intake_api.audit import AuditWriter
 from intake_api.auth import AUTH_TIER_HEADER
@@ -95,6 +96,7 @@ from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
 from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings, is_dev_env
 from intake_api.state import ApiState
+from intake_api.voice_token import VoiceRooms
 
 if TYPE_CHECKING:
     from intake_connectors.acibadem import AcibademAppointmentsClient
@@ -157,6 +159,10 @@ class ApiWiring:
     # raises its entry in (files/02 §2b). None = unwired: those two moves
     # answer 503 rather than happen silently.
     safety_inbox: SafetyInbox | None = None
+    # INT-515: the SFU a patient's room token names (INTAKE_LIVEKIT_PUBLIC_URL
+    # and the LiveKit key pair). None = unconfigured: /v1/visits/{id}/voice-token
+    # answers 503.
+    voice_rooms: VoiceRooms | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -453,6 +459,7 @@ def wiring_from_env() -> ApiWiring:
         # INT-407: the same store the console's queue reads and the voice
         # runtime writes (INTAKE_SAFETY_INBOX_REDIS_URL)
         safety_inbox=_safety_inbox_from_env(),
+        voice_rooms=voice_token.voice_rooms_from_env(os.environ),
     )
 
 
@@ -471,6 +478,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
         safety_inbox=w.safety_inbox,
+        voice_rooms=w.voice_rooms,
     )
 
     @asynccontextmanager
@@ -596,6 +604,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
 
     app.include_router(visits.router)
     app.include_router(visit_lifecycle.router)
+    app.include_router(voice_token.router)
     app.include_router(visits_acibadem.router)
     app.include_router(notes.router)
     app.include_router(previsit_output.router)

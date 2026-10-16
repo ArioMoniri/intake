@@ -1,0 +1,75 @@
+# INT-515 — the LiveKit SFU on the synthetic staging host.
+#
+# SYNTHETIC PATIENTS ONLY. The host is in us-east-1 (HB-I5, HB-L11).
+#
+# livekit-server v1.13.10 decodes this file strictly: a key it does not
+# declare stops it at boot, and tests/infra/test_staging_voice.py holds every
+# key to the sets v1.13.10's pkg/config declares. Two values live outside
+# this file, in compose: the key pair (LIVEKIT_KEYS, generated on the host and
+# never committed, invariant 14) and the TURN domain (LIVEKIT_TURN_DOMAIN,
+# turn.<STAGING_HOSTNAME>).
+#
+# The media path. The host's security group admits TCP 80 and 443 only, and
+# only Caddy publishes ports. So every client reaches the SFU by TURN over
+# TLS on 443: Caddy's layer-4 listener wrapper matches the SNI turn.<host>,
+# terminates TLS with that name's certificate and passes the plain TURN
+# stream to tls_port here, prefixed with a PROXY v2 header carrying the
+# client's address. LiveKit advertises the TURN/TLS candidate as
+# turns:<domain>:443 itself. The relay then reaches the SFU's own UDP port
+# inside this container. Nothing else is open: no ICE-over-TCP, no UDP TURN,
+# no published media port.
+#
+# Recording is structurally impossible, as in INT-090's dev tier (invariant
+# 3): no redis block, so no egress or ingress worker can register on a bus;
+# no ingress, sip or webhook block; and the container mounts nothing writable.
+
+port: 7880
+
+rtc:
+  # one UDP mux port for every peer connection, reached only by the relay
+  udp_port: 7882
+  # ICE over TCP would need a published port; 0 disables it
+  tcp_port: 0
+  # the SFU's fixed address on the media network (compose), never a
+  # discovered public IP it does not have
+  use_external_ip: false
+  node_ip: 10.47.115.10
+
+room:
+  # rooms exist only while a session runs; a session's room is created on
+  # the patient's join
+  auto_create: true
+  empty_timeout: 300
+  departure_timeout: 20
+  # patient + agent + reconnect headroom
+  max_participants: 4
+  # audio only: no video codec is negotiable
+  enabled_codecs:
+    - mime: audio/opus
+
+turn:
+  enabled: true
+  # TURN over TLS only. TLS ends at Caddy (external_tls), so this port takes
+  # plain TURN, and LiveKit advertises turns:<domain>:443.
+  tls_port: 5349
+  external_tls: true
+  # no UDP TURN: 3478/udp is not published
+  udp_port: 0
+  # Caddy dials from its own address; the PROXY header carries the client's,
+  # and only Caddy may send one
+  proxy_protocol: true
+  proxy_protocol_trusted_cidrs:
+    - 10.47.115.20/32
+  # relays allocate here, inside the container, and are never published
+  relay_range_start: 30000
+  relay_range_end: 30049
+  # LiveKit denies relays to private addresses unless listed: the one listed
+  # peer is this SFU. v1.13.10 further limits a relay to this host to its
+  # media ports (#4992), and refuses TCP relays.
+  allow_restricted_peer_cidrs:
+    - 10.47.115.10/32
+
+logging:
+  # warn, not info: the info-level join and connection lines carry the
+  # client's network details, which invariant 6 keeps out of logs
+  level: warn

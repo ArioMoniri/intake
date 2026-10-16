@@ -25,9 +25,12 @@ __all__ = [
     "VENDOR_FAILOVERS_TOTAL",
     "VOICE_CONTROL_READ_FAILURES_TOTAL",
     "VOICE_KILL_SWITCH_FLIPS_TOTAL",
+    "VOICE_LANE_READY",
+    "VOICE_RED_DATA_CHANNEL_TOTAL",
     "VOICE_SESSIONS_METERED",
     "VOICE_SESSION_ROUTES_TOTAL",
     "VOICE_SPEECH_CALLS_TOTAL",
+    "VOICE_SYNTHETIC_TURNS_TOTAL",
     "VOICE_TTS_CHARS",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
@@ -274,4 +277,36 @@ VOICE_SPEECH_CALLS_TOTAL = Counter(
     "voice_speech_calls_total",
     "Speech model calls that reached a wire, by component, kind (asr/tts) and outcome.",
     ["component", "kind", "outcome"],
+)
+
+
+# --- the deployment on the synthetic host (INT-515) -------------------------------
+#
+# Not files/08 §4 ids — the INT-100 precedent: catalogued, no ``id``. Every
+# label is a closed enumeration or a refusal code the lane gate has already
+# reduced to an id shape; no session id, no text, no endpoint (invariant 6).
+
+#: Whether each lane the worker needs resolves in the lane registry, and why
+#: not when it does not: 1 on ``reason="ready"``, 0 on the refusal code. The
+#: lane's earlier series is removed when its reason changes, so a dashboard
+#: reads one current answer per lane.
+VOICE_LANE_READY = Gauge(
+    "voice_lane_ready",
+    "Lane readiness by lane (asr/tts/llm) and reason; 1 when ready, 0 with the refusal code.",
+    ["lane", "reason"],
+)
+
+#: One increment per synthetic-turn probe the runtime answered: ``completed``,
+#: ``incomplete`` (a stage refused or failed) or ``rate_limited``.
+VOICE_SYNTHETIC_TURNS_TOTAL = Counter(
+    "voice_synthetic_turns_total",
+    "Synthetic-turn probes the runtime answered, by outcome.",
+    ["outcome"],
+)
+
+#: RED triggers handed to the SFU's data channel: ``sent`` or ``failed``.
+VOICE_RED_DATA_CHANNEL_TOTAL = Counter(
+    "voice_red_data_channel_total",
+    "RED triggers sent to the device over the SFU data channel, by outcome.",
+    ["outcome"],
 )

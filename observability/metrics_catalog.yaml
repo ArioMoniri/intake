@@ -341,6 +341,49 @@ metrics:
       is failed over ok + failed. TTS is counted by the INT-100 failover
       ladder per lane dialled (a lane skipped behind an open breaker dialled
       nothing); ASR by intake_voice_runtime.adapters.asr.HttpTranscriber.
+  # --- live series (INT-515): the voice tier on the synthetic host -----------
+  # Not files/08 §4 ids, so no `id` (the INT-100 precedent). Labels are closed
+  # enumerations and refusal codes reduced to an id shape before they are a
+  # label; never a session id, a room name, a token or text (inv. 6).
+  - name: voice_lane_ready
+    type: gauge
+    labels: [lane, reason]
+    owner: voice-runtime
+    unit: "boolean"
+    description: >-
+      Whether each lane the worker needs (asr / tts / llm) resolves in the
+      lane registry: 1 with reason="ready", 0 with the refusal code
+      (lane_registry_absent, lane_store_unconfigured, or the registry's own,
+      e.g. hosted_key_not_set). One current series per lane. Emitted by
+      intake_voice_runtime.lanes.LaneGate at every /readyz.
+  - name: voice_synthetic_turns_total
+    type: counter
+    labels: [outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      Synthetic-turn probes the runtime answered (POST /probe/synthetic-turn),
+      by outcome: completed, incomplete (a stage refused or failed) or
+      rate_limited. Emitted by intake_voice_runtime.app.
+  - name: voice_red_data_channel_total
+    type: counter
+    labels: [outcome]
+    owner: voice-runtime
+    unit: "count"
+    description: >-
+      RED triggers handed to the SFU for the patient's data channel, by
+      outcome (sent / failed). Emitted by
+      intake_voice_runtime.sfu.RoomRedChannel; the trigger's latency is
+      preempt_red_latency_ms.
+  - name: voice_room_tokens_total
+    type: counter
+    labels: [outcome]
+    owner: api
+    unit: "count"
+    description: >-
+      Patient room-token requests on POST /v1/visits/{id}/voice-token, by
+      outcome: issued, or the refusal (requires_dpop, unconfigured,
+      not_found, forbidden). Emitted by intake_api.voice_token.
   # --- live series (INT-205): the SIEM scrub boundary (files/10 §7) ----------
   # Wazuh's and Falco's own liveness are probes, not error budgets (the
   # `wazuh-manager`, `wazuh-indexer` and `falco` rows of

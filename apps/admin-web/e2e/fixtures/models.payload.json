@@ -366,10 +366,10 @@
       "component": "voice-runtime",
       "self_hostable": true,
       "self_hosted_now": false,
-      "host": "planned — LiveKit Agents worker; the LiveKit server+TURN dev tier lands with INT-090",
-      "license": "proprietary (repo LICENSE); LiveKit Agents Apache-2.0; livekit/turn-detector is proprietary (LiveKit Model License — knowingly adopted, files/03 §4.9.2(d))",
-      "probe": "livekit_room_join",
-      "budget_ms": 5000,
+      "host": "infra/staging/compose.yaml service voice-runtime on the synthetic AWS host only; no PHI deployment runs it. Lanes come from the lane registry (INT-428) and report lane_registry_absent until that package is in the image",
+      "license": "proprietary (repo LICENSE). The image carries the workspace packages only: no LiveKit Agents SDK and no livekit/turn-detector weights (files/00_STATE.md §3: the turn-detector's proprietary LiveKit Model License is OUT)",
+      "probe": "voice_synthetic_turn",
+      "budget_ms": 10000,
       "fallback": "none",
       "phi_path": true,
       "pin": null,
@@ -378,7 +378,39 @@
       "findings": [
         {
           "code": "planned_not_running",
-          "detail": "voice-runtime: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (planned — LiveKit Agents worker; the LiveKit server+TURN dev tier lands with INT-090)."
+          "detail": "voice-runtime: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/staging/compose.yaml service voice-runtime on the synthetic AWS host only; no PHI deployment runs it. Lanes come from the lane registry (INT-428) and report lane_registry_absent until that package is in the image)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "livekit-server",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/staging/compose.yaml service livekit on the synthetic AWS host only: signalling at rtc.<host> and TURN over TLS at turn.<host>:443, both through the staging Caddy; no published port of its own",
+      "license": "Apache-2.0",
+      "probe": "livekit_room_join",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-10-16",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "livekit-server: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/staging/compose.yaml service livekit on the synthetic AWS host only: signalling at rtc.<host> and TURN over TLS at turn.<host>:443, both through the staging Caddy; no published port of its own)."
         }
       ],
       "benchmark": {

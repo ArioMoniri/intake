@@ -38,6 +38,13 @@
 #   7. Brings the project up on exactly the image the SBOM describes (and the
 #      console image built beside it), and waits for health.
 #   8. Probes /healthz and /readyz over public HTTPS.
+#
+# INT-515: step 1 also builds the voice runtime's image and the edge's (Caddy
+# with the layer-4 module that carries TURN over TLS on 443), and step 2 has
+# syft write the voice runtime's SBOM beside the api's. Step 7 starts the SFU
+# and the runtime with everything else. A host initialised before INT-515 has
+# no LiveKit key pair: load_env stops on it, and ./init.sh, re-run once,
+# generates the pair.
 set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -52,9 +59,12 @@ require_sms_with_app_attest
 ensure_jwks_file
 stamp_revision
 build_api_image
+build_voice_runtime_image
 build_admin_web_image
 build_keycloak_image
+build_caddy_image
 stamp_sbom
+stamp_voice_runtime_sbom
 require_release_not_frozen
 log "deploying ${INTAKE_GIT_SHA} (image built ${INTAKE_BUILT_AT}, SBOM ${INTAKE_SBOM_DIGEST}) to https://${STAGING_HOSTNAME}"
 

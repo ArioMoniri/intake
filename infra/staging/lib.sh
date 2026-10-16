@@ -19,6 +19,9 @@ ENV_FILE="$STATE_DIR/.env"
 INIT_FILE="$STATE_DIR/openbao-init.json"
 ENV_TEMPLATE="$STAGING_DIR/staging.env.template"
 API_IMAGE_REPO="intake-staging/api"
+# INT-515: the voice runtime's image, built from the same commit. It has its
+# own SBOM (stamp_voice_runtime_sbom), as the api's has (INT-352).
+VOICE_RUNTIME_IMAGE_REPO="intake-staging/voice-runtime"
 # The restart probe's Transit key. TransitKekProvider names keys tenant-<id>,
 # and staging_probe.PROBE_TENANT is "staging-restart-probe".
 PROBE_KEK="tenant-staging-restart-probe"
@@ -51,7 +54,9 @@ RELEASES_DIR="$STATE_DIR/releases"
 # compose loads the whole file, so even `compose build` needs a value for the
 # api's required INTAKE_SBOM_DIGEST, which names the SBOM of the image that
 # build makes. build_api_image binds this value to that one call. It is not a
-# digest, so /version could never pass smoke.sh with it.
+# digest, so /version could never pass smoke.sh with it. INT-515: the same
+# holds for the voice runtime's INTAKE_VOICE_RUNTIME_SBOM_DIGEST, so every
+# build binds both.
 SBOM_DIGEST_DURING_BUILD="none-while-the-image-builds"
 
 # Every LOGIN role that a migration creates with a committed dev password,
@@ -417,7 +422,7 @@ build_api_image() {
   # The only build in this tier. The value is bound to this one call and never
   # exported (see SBOM_DIGEST_DURING_BUILD). A build creates no container, and
   # every later compose call runs with stamp_sbom's digest or not at all.
-  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" INTAKE_VOICE_RUNTIME_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api
 }
 
 api_image_id() {
@@ -666,7 +671,7 @@ rotate_role_passwords() {
 build_admin_web_image() {
   # The console image, built from the same commit as the api. compose
   # interpolates the whole file, so this call needs the build-time value too.
-  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" INTAKE_VOICE_RUNTIME_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web
 }
 
 build_keycloak_image() {
@@ -675,7 +680,74 @@ build_keycloak_image() {
   # byte-identical to infra/keycloak/providers/webauthn-session-notes.sha256
   # (Dockerfile.keycloak). It runs before anything restarts, so a refused
   # build leaves the running tier as it was.
-  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build keycloak
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" INTAKE_VOICE_RUNTIME_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build keycloak
+}
+
+# --- the voice tier (INT-515) -----------------------------------------------------------
+
+build_voice_runtime_image() {
+  # services/voice-runtime, from the same commit as the api. Neither SBOM
+  # digest exists while an image builds, so both stamps carry the build-time
+  # value for this one call and are never exported.
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" INTAKE_VOICE_RUNTIME_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build voice-runtime
+}
+
+build_caddy_image() {
+  # The edge with caddy-l4 (Dockerfile.caddy). The build refuses a binary
+  # that does not carry the pinned module checksum, before anything restarts.
+  INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" INTAKE_VOICE_RUNTIME_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build caddy
+}
+
+voice_runtime_image_id() {
+  # the voice-runtime image compose built for this commit, by id
+  local id
+  id=$(docker image inspect --format '{{.Id}}' "$VOICE_RUNTIME_IMAGE_REPO:$INTAKE_GIT_SHA" 2>/dev/null) || return 1
+  [[ $id =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+  printf '%s\n' "$id"
+}
+
+voice_runtime_sbom_path() {
+  # <releases>/<commit>/voice-runtime-<image id>.spdx.json, beside the api's
+  local image_id=${1:-}
+  [[ $INTAKE_GIT_SHA =~ ^[0-9a-f]{40}$ ]] || return 1
+  [[ $image_id =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+  printf '%s/%s/voice-runtime-%s.spdx.json\n' "$RELEASES_DIR" "$INTAKE_GIT_SHA" "${image_id#sha256:}"
+}
+
+export_voice_runtime_sbom_digest() {
+  local digest
+  digest=$(sha256_of "$VOICE_RUNTIME_SBOM_FILE") || die "could not hash $VOICE_RUNTIME_SBOM_FILE"
+  [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]] || die "the voice-runtime SBOM digest is malformed: $digest"
+  INTAKE_VOICE_RUNTIME_SBOM_DIGEST=$digest
+  export INTAKE_VOICE_RUNTIME_SBOM_DIGEST
+}
+
+stamp_voice_runtime_sbom() {
+  # init.sh and deploy.sh, after build_voice_runtime_image: INT-352's rule
+  # for the voice runtime's own image. The same pinned syft, offline, on a
+  # saved archive; an image that already has its SBOM keeps it.
+  local id dir
+  id=$(voice_runtime_image_id) || die "no voice-runtime image for ${INTAKE_GIT_SHA}: build_voice_runtime_image runs first"
+  VOICE_RUNTIME_SBOM_FILE=$(voice_runtime_sbom_path "$id") || die "no release path for ${INTAKE_GIT_SHA}"
+  dir=${VOICE_RUNTIME_SBOM_FILE%/*}
+  (umask 077 && mkdir -p "$dir") || die "could not create $dir"
+  if sbom_is_spdx "$VOICE_RUNTIME_SBOM_FILE"; then
+    log "SBOM of voice-runtime ${id} already written: ${VOICE_RUNTIME_SBOM_FILE}"
+  else
+    generate_sbom "$VOICE_RUNTIME_IMAGE_REPO:$INTAKE_GIT_SHA" "$VOICE_RUNTIME_SBOM_FILE"
+    log "SBOM of voice-runtime ${id} written: ${VOICE_RUNTIME_SBOM_FILE}"
+  fi
+  export_voice_runtime_sbom_digest
+}
+
+stamp_voice_runtime_sbom_from_disk() {
+  # smoke.sh: the SBOM deploy.sh wrote for this commit's voice-runtime image
+  local id
+  id=$(voice_runtime_image_id) || die "no voice-runtime image for ${INTAKE_GIT_SHA}: run ./deploy.sh"
+  VOICE_RUNTIME_SBOM_FILE=$(voice_runtime_sbom_path "$id") || die "no release path for ${INTAKE_GIT_SHA}"
+  sbom_is_spdx "$VOICE_RUNTIME_SBOM_FILE" || die "no SBOM on disk for voice-runtime ${id} (${VOICE_RUNTIME_SBOM_FILE}): run ./deploy.sh"
+  log "SBOM of voice-runtime ${id}: ${VOICE_RUNTIME_SBOM_FILE}"
+  export_voice_runtime_sbom_digest
 }
 
 ensure_keycloak_database() {

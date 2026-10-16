@@ -1,5 +1,37 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T06:30:00Z · INT-515 · done (committed locally; not pushed, not deployed)
+- Goal: issue #877 (INT-498 audit P7). Run the voice runtime and a pinned LiveKit SFU on the synthetic host, with TURN on 443/TLS behind the existing Caddy. Point the runtime at the lane registry and fail closed when a lane is missing. Add a token route on the patient's DPoP session, catalogued metrics, the four endpoints, an SLO file and a synthetic probe. Raw audio is never written.
+- Plan:
+  - Compose: `voice-runtime` and `livekit` (v1.13.10, by digest) on an internal `media` network with a fixed subnet.
+  - Caddy rebuilt with caddy-l4 v0.1.2, pinned by its go.sum checksum. SNI `turn.<host>` goes to the SFU's TURN port with a PROXY header.
+  - Readiness is keyed on #751's `ModelResolver` seam. The RED path's two ports are bound to the SFU's server API.
+- Tests added: `tests/infra/test_staging_voice.py`, `tests/voice/test_voice_runtime_on_host.py`, `tests/voice/test_red_data_channel.py`, `tests/api/test_voice_token.py`, `tests/observability/test_voice_probes.py`, and admin-token cases in `tests/voice/test_room_tokens.py`.
+  - Near-misses: a misspelt LiveKit key; an unqualified `servers` block; an unmatched `respond 404`; a recording worker; a non-id refusal reason; a dev-bearer request; a bind-nothing extraction.
+  - RED: 5 collection errors and 60 failures (docs/evidence/INT-515.md). GREEN: below.
+- Result: docs/evidence/INT-515.md.
+  - Before the lanes land, the runtime is alive and not ready. Every lane reports `lane_registry_absent`, and smoke logs the turn as skipped.
+  - After #751, the lanes report the registry's own reasons.
+  - After the owner's egress patch (once #774 merges), the hosted lanes have their route out.
+- Invariants touched and still passing:
+  - 3: no volume, read-only roots, noexec tmpfs, core off, not dumpable, mlockall, each a readiness check.
+  - 6: ids only; the SFU logs at `warn`.
+  - 9: the six tools are unchanged.
+  - 13: two registry rows and four catalogued series.
+  - 14: digests, a module checksum, licences read raw.
+  - 15: probes `voice_synthetic_turn` and a real `livekit_room_join`.
+  - 19: no turn-detector, no Agents SDK.
+  - 21: the RED goes over the data channel only, and arrives with media torn down.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+  - The registry's voice-runtime licence text no longer says the turn-detector was "knowingly adopted". 00 §3 records it as OUT, and 00 wins.
+  - LiveKit v1.13.10 is chosen over v1.13.6 for its TURN relay policy (#4992).
+- Blocked on:
+  - #751/#774/#775, to merge: the lanes.
+  - The owner's egress patch: `owner-515-egress.patch`.
+  - The operator: re-run `./init.sh` once on the host for the LiveKit key pair before the first deploy.
+- Next: the runtime-reviewer pass; push and open the PR when the orchestrator says so.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:

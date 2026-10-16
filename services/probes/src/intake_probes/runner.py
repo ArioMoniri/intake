@@ -28,6 +28,7 @@ from typing import Final
 
 import httpx
 from intake_platform.ci import CiPolicyError, RunnerPools, load_runner_pools
+from intake_platform.room_tokens import LiveKitCredentials, RoomTokenError
 
 from intake_probes import probes
 from intake_probes.probes import Failed, Outcome, Skipped, SupportsPing
@@ -210,7 +211,11 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
             Path(env.get("INTAKE_DEID_MODEL_DIR", ".cache/deid-tr-ner-v1")),
             None,
         ),
-        "voice-runtime": probes.livekit_room_join,
+        # INT-515: the runtime runs its own scripted synthetic turn, and the
+        # SFU validates a probe join. Each is wired where its target is named
+        # and says so in words where it is not.
+        "voice-runtime": _voice_turn_probe(env, http_client),
+        "livekit-server": _livekit_join_probe(env, http_client),
         # INT-206: the CI row. The pool file is committed and always readable;
         # with zero pools declared this reports HB-I7/HB-I5 as a typed Skipped,
         # which is the honest state and never counts healthy. Heartbeats arrive
@@ -280,6 +285,34 @@ def build_dev_clients(registry: Registry, config: DevProbeConfig) -> dict[str, P
 
     known = {entry.component for entry in registry}
     return {component: fn for component, fn in wiring.items() if component in known}
+
+
+def _voice_turn_probe(env: Mapping[str, str], client: httpx.Client) -> ProbeFn:
+    """INT-515: the runtime's synthetic turn, where ``INTAKE_VOICE_RUNTIME_URL`` names it."""
+    base = env.get("INTAKE_VOICE_RUNTIME_URL", "").strip().rstrip("/")
+    if not base:
+        return partial(
+            probes.target_absent,
+            "no voice-runtime target in this environment (INTAKE_VOICE_RUNTIME_URL)",
+        )
+    return partial(probes.voice_synthetic_turn, client, f"{base}/probe/synthetic-turn")
+
+
+def _livekit_join_probe(env: Mapping[str, str], client: httpx.Client) -> ProbeFn:
+    """INT-515: a probe join on the SFU, where its URL and key pair are both named."""
+    base = env.get("INTAKE_LIVEKIT_URL", "").strip()
+    if not base:
+        return partial(
+            probes.target_absent, "no livekit target in this environment (INTAKE_LIVEKIT_URL)"
+        )
+    try:
+        credentials = LiveKitCredentials.from_env(env)
+    except RoomTokenError:
+        return partial(
+            probes.target_absent,
+            "the livekit target has no key pair (LIVEKIT_API_KEY, LIVEKIT_API_SECRET)",
+        )
+    return partial(probes.livekit_room_join, client, base, credentials)
 
 
 def _runner_pools(env: Mapping[str, str]) -> RunnerPools:

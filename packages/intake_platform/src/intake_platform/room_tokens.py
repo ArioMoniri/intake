@@ -16,6 +16,12 @@ this module mints:
 - names the room ``intake-<session uuid>`` and accepts only id-shaped
   identities: ids, never PHI (invariant 6).
 
+INT-515 adds the one other token the deployment mints,
+:func:`mint_room_admin_token`: the voice runtime's server-API credential,
+``roomAdmin`` on one session room for one minute and nothing else. It is how
+a RED trigger reaches the device over the data channel without the agent's
+participant token ever carrying ``canPublishData``.
+
 The JWT is HS256 over the LiveKit claim shape (livekit/protocol
 ``auth/accesstoken.go`` + ``auth/grants.go``, Apache-2.0, read at the
 v1.13.6-era tree). Stdlib ``hmac`` is sufficient, so no token library — and
@@ -37,10 +43,13 @@ from dataclasses import dataclass
 from datetime import datetime
 
 __all__ = [
+    "ADMIN_IDENTITY",
+    "ADMIN_TOKEN_TTL_S",
     "ROOM_PREFIX",
     "TOKEN_TTL_S",
     "LiveKitCredentials",
     "RoomTokenError",
+    "mint_room_admin_token",
     "mint_room_token",
     "room_name",
 ]
@@ -48,6 +57,12 @@ __all__ = [
 #: Hard ceiling on token lifetime (seconds). 10-minute minimal grants — long
 #: enough to join and renegotiate ICE once, never long enough to hoard.
 TOKEN_TTL_S = 600
+
+#: INT-515: a server-API token is minted for one call and lives one minute.
+ADMIN_TOKEN_TTL_S = 60
+
+#: Who a server-API token says is calling: the runtime, never a person.
+ADMIN_IDENTITY = "voice-runtime"
 
 #: Room names are this prefix plus the canonical session UUID, nothing else.
 ROOM_PREFIX = "intake-"
@@ -174,6 +189,45 @@ def mint_room_token(
             "canPublishSources": ["microphone"],
         },
     }
+    return _sign(claims, credentials)
+
+
+def mint_room_admin_token(
+    session_id: str | uuid.UUID,
+    now: datetime,
+    *,
+    credentials: LiveKitCredentials | None = None,
+    ttl_s: int = ADMIN_TOKEN_TTL_S,
+) -> str:
+    """The voice runtime's server-API token for ONE session room (INT-515).
+
+    LiveKit's RoomService (``SendData``, ``ListParticipants``,
+    ``MutePublishedTrack``) admits a caller whose grant carries ``roomAdmin``
+    on the room it names. That is the whole grant here: no ``roomJoin``, so
+    the token can never become a participant; no ``roomCreate``/``roomList``/
+    ``roomRecord``/``recorder``/``agent``/``ingressAdmin``; one room, derived
+    from the session id; one minute. It never leaves the process that mints it.
+    """
+    if now.tzinfo is None:
+        raise RoomTokenError("now must be timezone-aware (naive datetimes drift across hosts)")
+    if not 0 < ttl_s <= ADMIN_TOKEN_TTL_S:
+        raise RoomTokenError(f"ttl_s must be in (0, {ADMIN_TOKEN_TTL_S}]; got {ttl_s}")
+    room = room_name(session_id)
+    if credentials is None:
+        credentials = LiveKitCredentials.from_env()
+    epoch = int(now.timestamp())
+    claims: dict[str, object] = {
+        "iss": credentials.api_key,
+        "sub": ADMIN_IDENTITY,
+        "iat": epoch,
+        "nbf": epoch,
+        "exp": epoch + ttl_s,
+        "video": {"room": room, "roomAdmin": True},
+    }
+    return _sign(claims, credentials)
+
+
+def _sign(claims: Mapping[str, object], credentials: LiveKitCredentials) -> str:
     signing_input = f"{_encode_segment({'alg': 'HS256', 'typ': 'JWT'})}.{_encode_segment(claims)}"
     signature = hmac.new(
         credentials.api_secret.encode("utf-8"),

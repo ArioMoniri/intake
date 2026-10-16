@@ -233,9 +233,16 @@ class TestNoWorkerWithoutTheInbox:
         assert response.json()["checks"]["safety_inbox"] == "error"
 
     def test_a_typed_worker_with_the_inbox_is_ready(self) -> None:
+        from intake_voice_runtime.hardening import ProcessHardening
+        from intake_voice_runtime.lanes import LaneGate
+        from test_voice_runtime_on_host import Resolver
+
         wiring = VoiceRuntimeWiring(
             profile=VoiceProfile.TYPED,
             safety_inbox=RedisSafetyInboxStore(fakeredis.FakeStrictRedis()),
+            # INT-515: the extraction lane and core dumps off, every profile
+            lanes=LaneGate(Resolver()),
+            hardening=ProcessHardening(core_dumps_off=True, not_dumpable=True, memory_locked=False),
         )
         response = TestClient(create_app(wiring)).get("/readyz")
         assert response.status_code == 200

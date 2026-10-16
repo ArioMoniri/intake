@@ -20,6 +20,14 @@
 #      Then OpenBao is restarted, which leaves it sealed, and unsealed, and
 #      the record must decrypt again. A process-local KEK fails the first
 #      step. A KEK that is not on persistent storage fails the second.
+#   8. INT-515, the voice tier: the SFU's signalling answers at rtc.<host>
+#      and its server API does not; TURN over TLS on 443 answers a STUN
+#      Binding for turn.<host> (turn_probe.py, from this host, as a phone
+#      dials it); the voice runtime and the SFU mount nothing writable, run
+#      read-only and with core dumps off (invariant 3); the runtime is alive;
+#      and, when it reports ready, one scripted synthetic turn completes on
+#      its lanes. Until its lanes exist (INT-428/442/443) the runtime is not
+#      ready and says why, and the turn is reported as skipped, never passed.
 set -euo pipefail
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -29,6 +37,7 @@ require_tools
 load_env
 stamp_revision
 stamp_sbom_from_disk
+stamp_voice_runtime_sbom_from_disk
 
 failures=0
 pass() { log "PASS $*"; }
@@ -164,6 +173,62 @@ if staff_flow check >/dev/null 2>&1; then
   pass "realm ${KEYCLOAK_REALM} runs the WebAuthn session-notes provider with the hwk reference"
 else
   fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
+fi
+
+# 8. INT-515: the voice tier.
+rtc_host="rtc.${STAGING_HOSTNAME}"
+turn_host="turn.${STAGING_HOSTNAME}"
+# 8a. signalling reaches the SFU (it refuses a caller with no token), and the
+#     server API is not routed
+code=$(curl -sS -o /dev/null -w '%{http_code}' --proto '=https' --max-time 10 "https://${rtc_host}/rtc/validate" || true)
+if [[ $code == 401 ]]; then
+  pass "https://${rtc_host}/rtc/validate reaches the SFU and refuses a caller with no token (401)"
+else
+  fail "https://${rtc_host}/rtc/validate answered ${code:-nothing}, not the SFU's 401"
+fi
+for path in /twirp/livekit.RoomService/ListParticipants /; do
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --proto '=https' --max-time 10 "https://${rtc_host}${path}" || true)
+  if [[ $code == 404 ]]; then
+    pass "https://${rtc_host}${path} is not routed (404)"
+  else
+    fail "https://${rtc_host}${path} answered ${code:-nothing}, not 404"
+  fi
+done
+# 8b. TURN over TLS on 443, from outside, with the TURN name's certificate
+if turn=$(python3 "$STAGING_DIR/turn_probe.py" --connect "$STAGING_HOSTNAME" --port 443 --sni "$turn_host" 2>&1); then
+  pass "$turn"
+else
+  fail "$turn"
+fi
+# 8c. raw audio has nowhere to land: no writable mount, a read-only root and
+#     core dumps off, on the runtime and on the SFU (invariant 3)
+for service in voice-runtime livekit; do
+  id=$(compose ps -q "$service")
+  posture=$(docker inspect --format \
+    '{{.HostConfig.ReadonlyRootfs}} {{range .HostConfig.Ulimits}}{{if eq .Name "core"}}core={{.Hard}}{{end}}{{end}} {{range .Mounts}}{{if .RW}}rw:{{.Destination}} {{end}}{{end}}' \
+    "${id:-none}" 2>/dev/null || true)
+  if [[ $posture =~ ^true\ core=0\ *$ ]]; then
+    pass "$service: read-only root, core dumps off, no writable mount"
+  else
+    fail "$service: posture is '${posture:-unreadable}', not a read-only root with core=0 and no writable mount"
+  fi
+done
+# 8d. the runtime is alive; and, when it reports ready, a synthetic turn completes
+if alive=$(compose exec -T voice-runtime python infra/staging/voice_probe.py healthz 2>&1); then
+  pass "voice-runtime: $alive"
+else
+  fail "voice-runtime: $alive"
+fi
+if ready=$(compose exec -T voice-runtime python infra/staging/voice_probe.py readyz 2>&1); then
+  pass "voice-runtime /readyz: $ready"
+  if turn=$(compose exec -T voice-runtime python infra/staging/voice_probe.py turn 2>&1); then
+    pass "voice-runtime /probe/synthetic-turn: $turn"
+  else
+    fail "voice-runtime /probe/synthetic-turn: $turn"
+  fi
+else
+  # names and states only (invariant 6); not counted: the lanes are not here yet
+  log "SKIP the synthetic turn: voice-runtime is ${ready}"
 fi
 
 if ((failures > 0)); then

@@ -1,0 +1,25 @@
+*
+# INT-515: deny by default, then re-include only what the voice-runtime image
+# needs: the uv workspace (every member's pyproject is needed to honour
+# uv.lock), the model registry the runtime reads at runtime, the server pin
+# the image installs, and the lane registry's committed files (infra/).
+!pyproject.toml
+!uv.lock
+!packages/
+!services/
+!observability/
+!infra/
+# Never sent, wherever they sit. The host's root-only env file lives outside
+# the tree (/etc/intake-staging), and these rules catch a stray copy anyway.
+**/.env
+**/.env.*
+**/.git
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.cache
+**/dist
+packages/embed-sdk

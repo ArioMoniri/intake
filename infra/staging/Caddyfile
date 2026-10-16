@@ -6,11 +6,36 @@
 # naming one is HB-I14, a human fact, and Let's Encrypt issues without it.
 # No access log is configured, so URLs (Doctor Link paths included) are never
 # written to disk (invariant 6).
+#
+# INT-515: 443 also carries the voice tier's media. The host's security group
+# admits TCP 80 and 443 only, so TURN rides 443 too: the layer-4 listener
+# wrapper below (caddy-l4, compiled into this image by Dockerfile.caddy) reads
+# each TLS ClientHello before the HTTP server does. A connection for
+# turn.<host> has its TLS terminated here, with that name's own certificate,
+# and its plain TURN stream proxied to the SFU with a PROXY v2 header carrying
+# the client's address. Every other name falls through to the HTTP server's
+# own TLS, unchanged.
 {
 	admin off
-	servers {
+	# One block, qualified by the listener: Caddy applies the first `servers`
+	# block that matches a listener, so an unqualified block before this one
+	# would silently drop the wrapper.
+	servers :443 {
 		# HTTP/3 would need 443/udp, which is not published
 		protocols h1 h2
+		listener_wrappers {
+			layer4 {
+				@turn tls sni turn.{$STAGING_HOSTNAME}
+				route @turn {
+					tls
+					proxy {
+						proxy_protocol v2
+						upstream tcp/livekit:5349
+					}
+				}
+			}
+			tls
+		}
 	}
 }
 
@@ -46,4 +71,35 @@ auth.{$STAGING_HOSTNAME} {
 	@not_public path /admin /admin/* /realms/master /realms/master/* /metrics /health /health/*
 	respond @not_public 404
 	reverse_proxy keycloak:8080
+}
+
+# INT-515: the SFU's signalling. Only the room-join paths (/rtc, its validate
+# and v1 forms) are routed. The server API (RoomService and the rest of its
+# RPC surface) and the SFU's own root answer 404 here: the voice runtime
+# reaches them on the internal media network, and nobody else needs them.
+rtc.{$STAGING_HOSTNAME} {
+	header {
+		X-Intake-Environment "staging-synthetic-only"
+		-Server
+	}
+	@not_signal not path /rtc /rtc/*
+	respond @not_signal 404
+	reverse_proxy livekit:7880
+}
+
+# INT-515: the TURN name. TLS for it never reaches the HTTP server (the
+# layer-4 wrapper takes it first), so this block exists to have Caddy obtain
+# and renew the name's certificate, over HTTP-01 on port 80. TLS-ALPN is off
+# for it, because that challenge would arrive on 443 and meet the wrapper.
+turn.{$STAGING_HOSTNAME} {
+	tls {
+		issuer acme {
+			disable_tlsalpn_challenge
+		}
+	}
+	header {
+		X-Intake-Environment "staging-synthetic-only"
+		-Server
+	}
+	respond 404
 }

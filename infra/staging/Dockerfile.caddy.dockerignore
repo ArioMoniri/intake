@@ -1,0 +1,3 @@
+# INT-515: the edge image is built from pinned bases and a pinned Go module;
+# it needs nothing from the repository, so nothing is sent.
+*

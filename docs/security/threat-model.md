@@ -818,6 +818,39 @@ it or whose tests exercise it.
   **unspeakable** — `emit_clips` refuses it (`NumeralWithoutExpander`) rather than handing a
   digit to a TTS model whose normaliser would read it wrongly. Tests:
   `tests/voice/test_locale_profile.py`, `tests/protocols/test_number_expansion_locale.py`.
+- **On the synthetic host, with an SFU (INT-515):** the worker and a LiveKit SFU
+  (v1.13.10, digest-pinned, Apache-2.0 from the raw LICENSE blob) run in
+  `infra/staging/compose.yaml`. Threats and controls:
+  - **[I] raw audio at rest on the host:** neither container mounts a writable volume; both
+    run read-only with a small noexec tmpfs and `ulimits.core: 0`; the worker sets
+    `RLIMIT_CORE=(0,0)`, `PR_SET_DUMPABLE=0` and `mlockall(MCL_CURRENT|MCL_FUTURE)` before it
+    binds anything (`intake_voice_runtime.hardening`), and each fact is a readiness check
+    (`core_dumps_off`, `memory_locked`). The SFU's config carries no redis bus, egress,
+    ingress or webhook block, so recording is structurally absent, and it logs at `warn`,
+    below the join lines that carry client network details (invariant 6).
+  - **[S/E] a room token beyond its room:** patients get theirs from
+    `POST /v1/visits/{id}/voice-token` on the DPoP tier only (the dev bearer tier is refused),
+    for their own visit under `core` consent, with INT-090's grant unchanged. The worker's
+    server-API token is `roomAdmin` on one room for 60 s and never leaves the process
+    (`mint_room_admin_token`).
+  - **[T/D] TURN as an open relay or an SSRF hop:** media reaches the SFU only as TURN over
+    TLS on 443 through Caddy's layer-4 wrapper (caddy-l4 v0.1.2, go.sum checksum verified in
+    the build). UDP TURN and ICE-over-TCP are off, the only restricted peer the relay may reach
+    is the SFU's own address, v1.13.10 refuses TCP relays and limits relays to this host to its
+    media ports, and only Caddy's address may send a PROXY header.
+  - **[D] the RED reaches nobody (invariant 21):** the trigger travels as one reliable data
+    packet sent through the SFU's server API to the patient's identity
+    (`intake_voice_runtime.sfu.RoomRedChannel`). The agent's peer connection is not on the path,
+    and the agent's media is torn down first (`RoomMediaTeardown`). The test proves the trigger
+    arrives with the media track torn down and with the media plane unreachable.
+  - **[D] a lane that is not there:** readiness is keyed on the lane registry (INT-428). A
+    missing lane fails closed with the registry's reason, exported as
+    `voice_lane_ready{lane, reason}`; before #751 that reason is `lane_registry_absent`.
+  - **Signals:** `voice_lane_ready`, `voice_synthetic_turns_total`,
+    `voice_red_data_channel_total`, `voice_room_tokens_total`; the `voice_synthetic_turn`
+    and `livekit_room_join` probes. Tests: `tests/infra/test_staging_voice.py`,
+    `tests/voice/test_voice_runtime_on_host.py`, `tests/voice/test_red_data_channel.py`,
+    `tests/api/test_voice_token.py`, `tests/observability/test_voice_probes.py`.
 
 ## `triage` — deterministic RED/YELLOW only
 

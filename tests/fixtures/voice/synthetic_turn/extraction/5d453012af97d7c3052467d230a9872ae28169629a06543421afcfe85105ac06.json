@@ -1,0 +1,8 @@
+{
+  "completion": "{\"candidate_flags\": [], \"clarification_needed\": false, \"slots\": {\"probe.hears_agent\": {\"confidence\": 0.97, \"value\": true}}}",
+  "data_sha256": "b541b71a340190ada03fbea4b03edf9e7428403fe2c4d62f19e19b371358b022",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "prompt_version": "extraction.v1",
+  "schema_id": "intake.extraction.slots.v1"
+}

@@ -73,6 +73,8 @@ class ProbeId(StrEnum):
     BACKUP_FRESHNESS = "backup_freshness"
     LIVEKIT_ROOM_JOIN = "livekit_room_join"
     RUNNER_HEARTBEAT = "runner_heartbeat"
+    #: INT-515: one scripted synthetic turn, run by the voice runtime itself
+    VOICE_SYNTHETIC_TURN = "voice_synthetic_turn"
 
 
 class FallbackKind(StrEnum):

@@ -41,7 +41,7 @@
           "phi_path": true,
           "probe": "minio_ready",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-09-26",
           "severity": "blocking"
         },
         {
@@ -127,9 +127,20 @@
           "self_hostable": true,
           "self_hosted_now": false,
           "phi_path": true,
-          "probe": "livekit_room_join",
+          "probe": "voice_synthetic_turn",
           "probe_status": "no_result",
           "licence_verified_at": null,
+          "severity": "attention"
+        },
+        {
+          "component": "livekit-server",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "livekit_room_join",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         },
         {
@@ -230,6 +241,17 @@
           "probe_status": "no_result",
           "licence_verified_at": "2026-08-29",
           "severity": "blocking"
+        },
+        {
+          "component": "qwen3.6-35b-a3b",
+          "pin": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0",
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-09-27",
+          "severity": "attention"
         },
         {
           "component": "deid-tr-ner-v1",

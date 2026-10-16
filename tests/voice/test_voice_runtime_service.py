@@ -68,6 +68,14 @@ def test_readyz_fails_closed_while_the_bindings_are_absent(client: TestClient) -
         "room_token": "error",
         "voice_controls": "error",
         "safety_inbox": "error",
+        # INT-515: the SFU, the three lanes keyed on the lane registry, and
+        # invariant 3's process hardening
+        "sfu": "error",
+        "lane_asr": "error",
+        "lane_tts": "error",
+        "lane_llm": "error",
+        "core_dumps_off": "error",
+        "memory_locked": "error",
     }
 
 
@@ -75,7 +83,10 @@ def test_readyz_passes_once_every_binding_is_wired() -> None:
     import fakeredis
     from intake_platform.safety_inbox import RedisSafetyInboxStore
     from intake_platform.voice_control import RedisVoiceControlStore
+    from intake_voice_runtime.hardening import ProcessHardening
+    from intake_voice_runtime.lanes import LaneGate
     from talker_harness import RecordedClipStore, RecordingSynthesizer
+    from test_voice_runtime_on_host import Resolver, Sfu
 
     wiring = VoiceRuntimeWiring(
         clip_store=RecordedClipStore(),
@@ -83,6 +94,9 @@ def test_readyz_passes_once_every_binding_is_wired() -> None:
         room_token_source=lambda session_id: "token",
         voice_controls=RedisVoiceControlStore(fakeredis.FakeRedis()),
         safety_inbox=RedisSafetyInboxStore(fakeredis.FakeRedis()),
+        sfu=Sfu(),
+        lanes=LaneGate(Resolver()),
+        hardening=ProcessHardening(core_dumps_off=True, not_dumpable=True, memory_locked=True),
     )
     client = TestClient(create_app(wiring), raise_server_exceptions=False)
     response = client.get("/readyz")
@@ -136,11 +150,12 @@ def test_every_slo_reference_is_catalogued() -> None:
 
 
 def test_the_registry_still_carries_the_planned_voice_runtime_row() -> None:
-    """The worker is not deployed by this issue, so the row stays planned and
-    the release gate keeps seeing the true state (INT-022 header)."""
+    """INT-515 runs the worker on the synthetic host only, which is not a PHI
+    deployment, so the row stays planned and the release gate keeps seeing the
+    true state (INT-022 header). Its probe is the scripted synthetic turn."""
     entry = next(row for row in load_registry(REGISTRY_PATH) if row.component == "voice-runtime")
     assert entry.self_hosted_now is False
-    assert entry.probe is ProbeId.LIVEKIT_ROOM_JOIN
+    assert entry.probe is ProbeId.VOICE_SYNTHETIC_TURN
     assert entry.phi_path is True
 
 

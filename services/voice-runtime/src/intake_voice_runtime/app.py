@@ -39,6 +39,26 @@ The process owns one :class:`~intake_platform.safety_inbox.SafetyInboxOutbox`
 and, with a store wired, the app runs the pump that writes it for as long as it
 serves, and gives the pump its last pass on the way down.
 
+INT-515 deploys the worker on the synthetic host (``infra/staging``) and adds
+six checks, each named on every profile and passed where the profile has no
+use for it:
+
+- ``sfu`` — the LiveKit SFU answers its own liveness path (speech only);
+- ``lane_asr``, ``lane_tts``, ``lane_llm`` — each lane the profile needs
+  resolves in the lane registry (:mod:`intake_voice_runtime.lanes`); the
+  registry's refusal code, or ``lane_registry_absent`` while INT-428's package
+  is not in the image, is on ``/metrics`` as ``voice_lane_ready``;
+- ``core_dumps_off`` and ``memory_locked`` — invariant 3's process facts
+  (:mod:`intake_voice_runtime.hardening`); a typed worker holds no audio, so
+  only the first binds it.
+
+It also adds the synthetic probe, ``POST /probe/synthetic-turn``
+(:mod:`intake_voice_runtime.synthetic_turn`): one scripted turn on the bound
+lanes, answered as ids and timings, at most once per
+:data:`~intake_voice_runtime.synthetic_turn.PROBE_MIN_INTERVAL_S`. The worker
+publishes no port and no edge routes to it, so only a caller inside the
+deployment's networks can ask.
+
 So an unwired process answers ``/healthz`` 200 and ``/readyz`` 503 naming each
 missing binding. That is the shape CLAUDE.md asks for when a dependency is
 absent: build the mechanism, wire the gate, make it fail closed, leave the
@@ -47,13 +67,17 @@ content empty — never a mock on a serving path.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
-from collections.abc import AsyncIterator
+import time
+from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
 from intake_platform.otel import JsonLogFormatter, setup_otel
@@ -61,8 +85,14 @@ from intake_platform.safety_inbox import PUMP_INTERVAL, SafetyInboxOutbox, Safet
 from intake_platform.security import SecurityHeadersMiddleware
 from intake_platform.voice_control import VoiceControlReader
 
+from intake_voice_runtime.adapters.asr import Transcriber
+from intake_voice_runtime.extraction.gateway import ExtractionGateway
+from intake_voice_runtime.hardening import ProcessHardening
+from intake_voice_runtime.lanes import LANES_FOR_PROFILE, LaneGate, SpeechLane
+from intake_voice_runtime.metrics import VOICE_SYNTHETIC_TURNS_TOTAL
 from intake_voice_runtime.ports import ClipStore, RoomTokenSource, SpeechSynthesizer
 from intake_voice_runtime.profiles import VoiceProfile
+from intake_voice_runtime.synthetic_turn import PROBE_MIN_INTERVAL_S, SyntheticTurn
 
 __all__ = ["VoiceRuntimeWiring", "create_app"]
 
@@ -83,6 +113,12 @@ def _setup_observability() -> None:
     handler.setFormatter(JsonLogFormatter())
     logger.addHandler(handler)
     _otel_installed = True
+
+
+class SfuLiveness(Protocol):
+    """Whether the SFU answers (``intake_voice_runtime.sfu.RoomServiceClient``)."""
+
+    def ping(self) -> Awaitable[bool]: ...
 
 
 @dataclass
@@ -117,6 +153,17 @@ class VoiceRuntimeWiring:
     #: The process's one outbox: the worker binds every session's
     #: ``SafetyInboxNotifier`` to it, and the app pumps it into ``safety_inbox``.
     outbox: SafetyInboxOutbox = field(default_factory=SafetyInboxOutbox)
+    #: INT-515: the SFU this worker's rooms live on.
+    sfu: SfuLiveness | None = None
+    #: INT-515: each lane's readiness, keyed on the lane registry.
+    lanes: LaneGate | None = None
+    #: INT-515: invariant 3's process facts, as the process set them at start.
+    hardening: ProcessHardening | None = None
+    #: INT-515: the ASR and extraction lanes the synthetic turn runs on (the
+    #: TTS lane is ``synthesizer``), and the voice it speaks with.
+    transcriber: Transcriber | None = None
+    extraction: ExtractionGateway | None = None
+    probe_voice_id: str | None = None
 
     @property
     def needs_speech(self) -> bool:
@@ -180,6 +227,35 @@ def create_app(wiring: VoiceRuntimeWiring | None = None) -> FastAPI:
         # the clinic through the same inbox as a spoken one.
         return bound.safety_inbox is not None
 
+    async def sfu_ready() -> bool:
+        # INT-515: a speech worker's rooms live on the SFU; a typed one has none.
+        if not bound.needs_speech:
+            return True
+        return bound.sfu is not None and await bound.sfu.ping()
+
+    def lane_ready(lane: SpeechLane) -> ReadinessCheck:
+        async def check() -> bool:
+            if lane not in LANES_FOR_PROFILE[bound.profile]:
+                return True
+            if bound.lanes is None:
+                return False
+            # the registry may read its store or ask a lane who it is: off the loop
+            status = await asyncio.to_thread(bound.lanes.status, lane)
+            return status.ready
+
+        return ReadinessCheck(f"lane_{lane.value}", check)
+
+    async def core_dumps_off() -> bool:
+        # every profile holds transcripts in memory; a core would carry them
+        hardening = bound.hardening
+        return hardening is not None and hardening.core_dumps_off and hardening.not_dumpable
+
+    async def memory_locked() -> bool:
+        # invariant 3's audio buffers exist only on a speech worker
+        if not bound.needs_speech:
+            return True
+        return bound.hardening is not None and bound.hardening.memory_locked
+
     mount_health(
         app,
         readiness=[
@@ -188,6 +264,40 @@ def create_app(wiring: VoiceRuntimeWiring | None = None) -> FastAPI:
             ReadinessCheck("room_token", room_token_ready),
             ReadinessCheck("voice_controls", voice_controls_ready),
             ReadinessCheck("safety_inbox", safety_inbox_ready),
+            ReadinessCheck("sfu", sfu_ready),
+            *(lane_ready(lane) for lane in SpeechLane),
+            ReadinessCheck("core_dumps_off", core_dumps_off),
+            ReadinessCheck("memory_locked", memory_locked),
         ],
     )
+    _mount_synthetic_turn(app, bound)
     return app
+
+
+def _mount_synthetic_turn(app: FastAPI, bound: VoiceRuntimeWiring) -> None:
+    """``POST /probe/synthetic-turn`` — the runtime's synthetic probe (INT-515).
+
+    A plain ``def`` route, so FastAPI runs the turn's blocking lane calls on its
+    worker threads, never on the event loop. One turn at a time, and none
+    within :data:`PROBE_MIN_INTERVAL_S` of the last one started.
+    """
+    lock = threading.Lock()
+    last_started: list[float] = []
+
+    @app.post("/probe/synthetic-turn")
+    def synthetic_turn() -> JSONResponse:
+        with lock:
+            now = time.monotonic()
+            if last_started and now - last_started[-1] < PROBE_MIN_INTERVAL_S:
+                VOICE_SYNTHETIC_TURNS_TOTAL.labels(outcome="rate_limited").inc()
+                return JSONResponse(status_code=429, content={"code": "probe_rate_limited"})
+            last_started[:] = [now]
+            report = SyntheticTurn(
+                synthesizer=bound.synthesizer,
+                transcriber=bound.transcriber,
+                extraction=bound.extraction,
+                voice_id=bound.probe_voice_id,
+            ).run()
+        outcome = "completed" if report.completed else "incomplete"
+        VOICE_SYNTHETIC_TURNS_TOTAL.labels(outcome=outcome).inc()
+        return JSONResponse(status_code=200 if report.completed else 503, content=report.to_json())

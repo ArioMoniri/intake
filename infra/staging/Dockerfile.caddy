@@ -1,0 +1,29 @@
+# INT-515: the staging edge, with the layer-4 module that lets TURN over TLS
+# share port 443 with HTTPS (Caddyfile, "servers :443"). The runtime stage is
+# the very caddy image staging ran before this issue; only the binary is
+# replaced, by one built from the same Caddy version plus caddy-l4.
+#
+# Digests resolved from Docker Hub's v2 API on 16 Oct 2026, each recomputed
+# from the manifest bytes (docs/evidence/INT-515.md):
+#   caddy:2.11.4-builder-alpine   Apache-2.0 (xcaddy and the Go toolchain)
+#   caddy:2.11.4-alpine           Apache-2.0 (unchanged from INT-345)
+#
+# caddy-l4 v0.1.2 (github.com/mholt/caddy-l4, Apache-2.0: the raw LICENSE blob
+# at commit 42db5690dea199f930a6f08005fe2e4aab10dcc9, read 16 Oct 2026). Its
+# go.mod requires exactly caddy v2.11.4. The Go toolchain verifies every
+# module against the checksum database while it builds; the build then
+# refuses a binary whose build info does not carry caddy-l4 at v0.1.2 with the
+# h1 checksum sum.golang.org records for it, so a retagged or substituted
+# module cannot pass. The build context is empty
+# (Dockerfile.caddy.dockerignore): nothing from the repository enters it.
+
+FROM caddy:2.11.4-builder-alpine@sha256:0aa610043dab5da82ad0a0268e46bb852785e6f5160f12f1c6fe3f42903d7e1b AS build
+RUN xcaddy build v2.11.4 \
+      --output /usr/bin/caddy \
+      --with github.com/mholt/caddy-l4@v0.1.2 \
+ && /usr/bin/caddy build-info \
+      | awk '$1 == "dep" && $2 == "github.com/mholt/caddy-l4" && $3 == "v0.1.2" && $4 == "h1:23rhxVar8F5Sl7sYKDgEReI1yT//+e8J7EtMwO2yJpU=" { found = 1 } END { exit !found }' \
+ && /usr/bin/caddy list-modules | awk '$1 == "layer4" { found = 1 } END { exit !found }'
+
+FROM caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+COPY --from=build /usr/bin/caddy /usr/bin/caddy

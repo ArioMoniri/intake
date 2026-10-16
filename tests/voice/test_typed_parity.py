@@ -880,6 +880,14 @@ class TestTheTypedWorkerCanBecomeReady:
             "room_token",
             "voice_controls",
             "safety_inbox",
+            # INT-515: named on typed too, passed where a keyboard has no use
+            # for them (the SFU, the speech lanes, locked audio memory)
+            "sfu",
+            "lane_asr",
+            "lane_tts",
+            "lane_llm",
+            "core_dumps_off",
+            "memory_locked",
         }
         assert set(checks.values()) == {"ok"}
 
@@ -892,10 +900,18 @@ class TestTheTypedWorkerCanBecomeReady:
 
 
 def _typed_wiring() -> VoiceRuntimeWiring:
-    """A typed worker with the one binding every profile needs (INT-406)."""
+    """A typed worker with the bindings every profile needs: the Safety inbox
+    (INT-406), and since INT-515 the extraction lane and a process whose core
+    dumps are off — none of them a speech binding."""
     import fakeredis  # noqa: PLC0415
     from intake_platform.safety_inbox import RedisSafetyInboxStore  # noqa: PLC0415
+    from intake_voice_runtime.hardening import ProcessHardening  # noqa: PLC0415
+    from intake_voice_runtime.lanes import LaneGate  # noqa: PLC0415
+    from test_voice_runtime_on_host import Resolver  # noqa: PLC0415
 
     return VoiceRuntimeWiring(
-        profile=VoiceProfile.TYPED, safety_inbox=RedisSafetyInboxStore(fakeredis.FakeRedis())
+        profile=VoiceProfile.TYPED,
+        safety_inbox=RedisSafetyInboxStore(fakeredis.FakeRedis()),
+        lanes=LaneGate(Resolver(refused={"asr": "unconfigured", "tts": "unconfigured"})),
+        hardening=ProcessHardening(core_dumps_off=True, not_dumpable=True, memory_locked=False),
     )

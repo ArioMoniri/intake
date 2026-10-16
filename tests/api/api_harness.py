@@ -226,6 +226,9 @@ def build_harness(
     # INT-407: the clinic Safety inbox a RED visit's move raises its entry in.
     # None is the unwired state, in which a reschedule or cancel answers 503.
     safety_inbox: Any = None,
+    # INT-515: the SFU a patient's room token names. None is the shipped
+    # unconfigured state, in which the voice-token route answers 503.
+    voice_rooms: Any = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -303,6 +306,7 @@ def build_harness(
             # default in which every /embed route answers 503.
             embed=embed,
             safety_inbox=safety_inbox,
+            voice_rooms=voice_rooms,
         )
     )
     # INT-180: the console's IP allow-list reads the transport peer, so the

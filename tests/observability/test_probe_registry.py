@@ -37,7 +37,6 @@ from intake_probes.probes import (
     cert_expiry_days,
     fetch_tls_not_after,
     http_health,
-    livekit_room_join,
     minio_ready,
     openbao_seal_status,
     postgres_select1,
@@ -369,12 +368,16 @@ def test_rows_without_a_model_id_stay_valid_untouched() -> None:
     assert _registry(_entry()).get("sample").model_id is None
 
 
-def test_voice_runtime_is_marked_planned_with_the_livekit_probe() -> None:
+def test_voice_runtime_is_marked_planned_with_the_synthetic_turn_probe() -> None:
+    """INT-515: the runtime's probe is the scripted synthetic turn; the room
+    join belongs to the SFU's own row (livekit-server)."""
     registry = load_registry(REGISTRY_PATH)
     vr = next(e for e in registry if e.component == "voice-runtime")
     assert vr.self_hosted_now is False
-    assert vr.probe is ProbeId.LIVEKIT_ROOM_JOIN
+    assert vr.probe is ProbeId.VOICE_SYNTHETIC_TURN
     assert vr.phi_path is True
+    sfu = next(e for e in registry if e.component == "livekit-server")
+    assert sfu.probe is ProbeId.LIVEKIT_ROOM_JOIN
 
 
 # --- schema validation ------------------------------------------------------------
@@ -640,12 +643,6 @@ def test_backup_freshness_without_age_bound_is_a_presence_check(tmp_path: Path) 
     assert isinstance(backup_freshness(tmp_path, max_age_s=None, now=lambda: old + 1e9), Ok)
 
 
-def test_livekit_room_join_is_a_typed_skipped_result() -> None:
-    outcome = livekit_room_join()
-    assert isinstance(outcome, Skipped)
-    assert outcome.reason == "livekit lands with INT-090"
-
-
 # --- the runner ---------------------------------------------------------------------
 
 
@@ -667,7 +664,7 @@ def test_run_probes_once_maps_outcomes_and_latency() -> None:
     clients: dict[str, Callable[[], Outcome]] = {
         "up": lambda: Ok("pong"),
         "down": lambda: Failed("no pong"),
-        "later": livekit_room_join,
+        "later": lambda: Skipped(reason="no livekit target in this environment"),
     }
     results = {r.component: r for r in run_probes_once(registry, clients)}
 
@@ -675,7 +672,7 @@ def test_run_probes_once_maps_outcomes_and_latency() -> None:
     assert results["up"].latency_ms is not None and results["up"].latency_ms >= 0
     assert results["down"].status is ProbeStatus.UNHEALTHY
     assert results["later"].status is ProbeStatus.SKIPPED
-    assert results["later"].detail == "livekit lands with INT-090"
+    assert results["later"].detail == "no livekit target in this environment"
     assert results["unwired"].status is ProbeStatus.SKIPPED
     assert "no probe client" in results["unwired"].detail
 
@@ -782,7 +779,8 @@ def test_build_dev_clients_wires_the_real_dev_checks(tmp_path: Path) -> None:
     clients = build_dev_clients(registry, config)
 
     # the acceptance's dev-check list: DB, Redis, MinIO, HAPI, OpenBao seal,
-    # LiveKit room join, cert expiry (via env target), backup freshness
+    # LiveKit room join, cert expiry (via env target), backup freshness. INT-515:
+    # with no runtime or SFU target named, the voice rows say so in words.
     for component in ("postgres", "redis", "minio", "hapi", "openbao", "voice-runtime"):
         assert component in clients, f"{component} has no dev client"
     assert isinstance(clients["postgres"](), Ok)
@@ -790,7 +788,10 @@ def test_build_dev_clients_wires_the_real_dev_checks(tmp_path: Path) -> None:
     assert isinstance(clients["minio"](), Ok)
     assert isinstance(clients["hapi"](), Ok)
     assert isinstance(clients["openbao"](), Ok)
-    assert isinstance(clients["voice-runtime"](), Skipped)
+    voice = clients["voice-runtime"]()
+    assert isinstance(voice, Skipped) and "INTAKE_VOICE_RUNTIME_URL" in voice.reason
+    sfu = clients["livekit-server"]()
+    assert isinstance(sfu, Skipped) and "INTAKE_LIVEKIT_URL" in sfu.reason
     assert isinstance(clients["backups"](), Ok)
     assert isinstance(clients["deid-tr-ner-v1"](), Ok)
     assert isinstance(clients["qwen3.5-9b"](), Ok)

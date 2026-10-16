@@ -32,10 +32,12 @@ from typing import Any
 
 import pytest
 from intake_platform.room_tokens import (
+    ADMIN_TOKEN_TTL_S,
     ROOM_PREFIX,
     TOKEN_TTL_S,
     LiveKitCredentials,
     RoomTokenError,
+    mint_room_admin_token,
     mint_room_token,
     room_name,
 )
@@ -334,3 +336,59 @@ class TestCredentials:
         }
         creds = LiveKitCredentials.from_env(environ)
         assert creds.api_key == "lk-prod-key-aaaa"
+
+
+class TestRoomAdminToken:
+    """INT-515: the voice runtime's server-API credential (RoomService
+    SendData, ListParticipants, MutePublishedTrack). It never leaves the
+    runtime, and it is the narrowest grant LiveKit's server API accepts:
+    ``roomAdmin`` on ONE session room, for one minute."""
+
+    def _claims(self, **overrides: Any) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {"session_id": SESSION_ID, "now": NOW, "credentials": CREDENTIALS}
+        kwargs.update(overrides)
+        _header, claims = decode_verified(mint_room_admin_token(**kwargs), CREDENTIALS.api_secret)
+        return claims
+
+    def test_the_grant_is_room_admin_on_one_room_and_nothing_else(self) -> None:
+        claims = self._claims()
+        assert claims["video"] == {"room": room_name(SESSION_ID), "roomAdmin": True}
+        assert not FORBIDDEN_CLAIM_KEYS & set(claims)
+        assert set(claims) == {"iss", "sub", "iat", "nbf", "exp", "video"}
+
+    def test_the_admin_grant_is_never_a_joinable_identity(self) -> None:
+        video = self._claims()["video"]
+        for grant in (
+            "roomJoin",
+            "canPublish",
+            "canSubscribe",
+            "canPublishData",
+            "roomCreate",
+            "roomList",
+            "roomRecord",
+            "recorder",
+            "agent",
+            "ingressAdmin",
+        ):
+            assert grant not in video, grant
+
+    def test_it_lives_one_minute_and_never_longer(self) -> None:
+        claims = self._claims()
+        assert claims["exp"] - claims["iat"] == ADMIN_TOKEN_TTL_S == 60
+        with pytest.raises(RoomTokenError):
+            mint_room_admin_token(SESSION_ID, NOW, credentials=CREDENTIALS, ttl_s=61)
+        with pytest.raises(RoomTokenError):
+            mint_room_admin_token(SESSION_ID, NOW, credentials=CREDENTIALS, ttl_s=0)
+
+    def test_the_subject_is_the_runtime_never_a_person(self) -> None:
+        assert self._claims()["sub"] == "voice-runtime"
+
+    def test_free_text_and_naive_clocks_are_refused(self) -> None:
+        with pytest.raises(RoomTokenError):
+            mint_room_admin_token("Ayşe Yılmaz", NOW, credentials=CREDENTIALS)
+        with pytest.raises(RoomTokenError):
+            mint_room_admin_token(SESSION_ID, NOW.replace(tzinfo=None), credentials=CREDENTIALS)
+
+    def test_near_miss_the_participant_token_is_not_an_admin_token(self) -> None:
+        _header, claims = decode_verified(_mint(), CREDENTIALS.api_secret)
+        assert "roomAdmin" not in claims["video"]

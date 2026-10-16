@@ -14,12 +14,15 @@
 # What it does:
 #   1. Creates the root-only state dir and env file, and generates every
 #      secret in it here, once: the database and Redis passwords, the
-#      object store's root pair, the API's OpenBao token and the OTP tier's
-#      tokenization key. It writes the operator's App Attest and SMS keys
-#      empty, for the operator to fill (INT-352).
+#      object store's root pair, the API's OpenBao token, the OTP tier's
+#      tokenization key and (INT-515) the SFU's LiveKit key pair. It writes
+#      the operator's App Attest and SMS keys empty, for the operator to fill
+#      (INT-352). A re-run fills in only what is missing.
 #   2. Builds the API image and has syft write its SBOM into the release
 #      directory, as deploy.sh does (INT-352). compose needs the SBOM's
-#      digest for every call, so this comes before anything starts.
+#      digest for every call, so this comes before anything starts. INT-515:
+#      the same for the voice runtime's image, whose own SBOM digest compose
+#      also needs.
 #   3. Starts OpenBao in server mode, initialises it with 3 key shares
 #      (threshold 2), and unseals it. The shares and the root token go to a
 #      separate root-only file.
@@ -48,7 +51,9 @@ load_env
 ensure_jwks_file
 stamp_revision
 build_api_image
+build_voice_runtime_image
 stamp_sbom
+stamp_voice_runtime_sbom
 
 compose up -d postgres redis openbao
 wait_for_openbao

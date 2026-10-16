@@ -266,6 +266,55 @@ A refused deploy has changed nothing on the host: nothing was restarted.
 `docs/runbooks/deploy-freeze.md` explains each refusal and how a freeze is
 lifted (two people). Do not work around the gate on the host.
 
+## Voice runtime and SFU (INT-515)
+
+Two more services run beside the API: `livekit` (the SFU with its embedded
+TURN, `livekit/livekit-server` v1.13.10, pinned by digest) and
+`voice-runtime` (`services/voice-runtime`). Neither publishes a port, and the
+security group stays 80/443 TCP:
+
+- **Signalling** is `rtc.<STAGING_HOSTNAME>`. Caddy routes only `/rtc` and
+  `/rtc/*` there; the SFU's server API answers 404 from outside.
+- **Media** is TURN over TLS on 443 at `turn.<STAGING_HOSTNAME>`. Caddy's
+  layer-4 wrapper (caddy-l4, built in by `Dockerfile.caddy`) terminates TLS for
+  that name and hands the TURN stream to the SFU with a PROXY header. Caddy
+  obtains the name's certificate over HTTP-01 on port 80.
+- The SFU, Caddy and the runtime share the internal `media` network on the
+  fixed subnet `10.47.115.0/24` (SFU `.10`, Caddy `.20`). If the host's VPC
+  uses that range, change it in `compose.yaml` and
+  `infra/staging/livekit/livekit.yaml` together.
+
+**First deploy after INT-515:** the env file has no LiveKit key pair yet, so
+`./deploy.sh` stops with `LIVEKIT_API_KEY is empty`. Re-run `./init.sh` once
+(it fills in only `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET`), then
+`./deploy.sh` and `./smoke.sh`.
+
+What smoke check 8 proves, and what it cannot yet:
+
+- the signalling route reaches the SFU (401 without a token) and the server
+  API is not routed;
+- `turn_probe.py` gets a STUN Binding success over TLS on 443 for the TURN
+  name;
+- neither container has a writable mount, both have a read-only root, and
+  core dumps are off (invariant 3);
+- the runtime is alive. Its `/readyz` names every check, and
+  `voice_lane_ready{lane, reason}` says why a lane is not ready. Until the
+  hosted lanes land (INT-428 #751, INT-442 #774, INT-443 #775), every lane
+  reports `lane_registry_absent`, so the runtime is not ready and the
+  synthetic turn is logged as skipped. When the runtime reports ready, the
+  turn must complete.
+
+The hosted lanes reach their vendors only through INT-442's egress proxy.
+Attaching the runtime to that route is an egress change, so it is the
+owner's: the patch in the INT-515 handover (`owner-515-egress.patch`) applies
+once #774 is on main.
+
+Patients get a room token from `POST /v1/visits/{id}/voice-token`, on their
+DPoP session only. The token is for `intake-<visit id>`, lasts 10 minutes and
+cannot publish data. A RED reaches the phone as a data packet that the
+runtime sends through the SFU's server API. No media path is involved, so the
+RED still arrives after the agent's audio track has been torn down.
+
 ## Known gaps, stated rather than hidden
 
 - **`/readyz` answers 503 on main as of 730e9288.** The response is

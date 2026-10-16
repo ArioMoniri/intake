@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from intake_api.documents import DocumentsGateway
     from intake_api.embed.service import EmbedService
     from intake_api.otp import OtpAuthService
+    from intake_api.voice_token import VoiceRooms
 
 __all__ = ["ApiState", "State", "get_state"]
 
@@ -96,6 +97,9 @@ class ApiState:
     # None = unwired, so those two moves answer 503 rather than happen
     # silently; every other move needs no inbox.
     safety_inbox: SafetyInbox | None = None
+    # INT-515: the SFU a patient's room token names. None = unconfigured, so
+    # the voice-token route answers 503 rather than mint for a guessed SFU.
+    voice_rooms: VoiceRooms | None = None
     # INT-407: the wall clock the lifecycle stamps transitions with and reads
     # staleness against — one clock, injectable, so a test advances time
     # instead of sleeping (docs/TDD.md rule 6).

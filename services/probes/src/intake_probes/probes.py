@@ -8,6 +8,7 @@ raises into the caller: failure is a :class:`Failed` outcome with the cause.
 
 from __future__ import annotations
 
+import re
 import socket
 import ssl
 import time
@@ -20,8 +21,11 @@ from typing import Protocol
 import httpx
 from cryptography import x509
 from intake_platform.ci import RunnerPools, evaluate_heartbeats
+from intake_platform.room_tokens import LiveKitCredentials, mint_room_token
 
 __all__ = [
+    "PROBE_IDENTITY",
+    "PROBE_ROOM_SESSION",
     "Failed",
     "Ok",
     "Outcome",
@@ -38,7 +42,9 @@ __all__ = [
     "postgres_select1",
     "redis_ping",
     "runner_heartbeat",
+    "target_absent",
     "tcp_connect",
+    "voice_synthetic_turn",
 ]
 
 
@@ -209,16 +215,91 @@ def backup_freshness(
 
 # --- voice ----------------------------------------------------------------------------
 
+#: INT-515: the probe's own room, ``intake-<this>``. A fixed id that no visit
+#: can have (version-4 shape, all-zero high bits), so the probe never lands in
+#: a patient's room and a sweep always validates the same name.
+PROBE_ROOM_SESSION = "00000000-0000-4000-8000-000000000515"
+#: The probe participant's identity: an id, never a person.
+PROBE_IDENTITY = "probe"
+#: The probe's token lives a minute; it is minted for one request.
+_PROBE_TOKEN_TTL_S = 60
+#: Stage codes the runtime reports are closed; only id-shaped ones are repeated.
+_CODE_SHAPE = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}")
 
-def livekit_room_join() -> Outcome:
-    """The room-join probe cannot exist before the LiveKit dev tier does.
 
-    INT-090 lands the LiveKit server+TURN tier this probe must join; probing
-    a server that does not exist would mean faking a result, and invariant 17
-    forbids fakes outside tests. Until then the runner carries this typed
-    Skipped status — visible in every probe sweep, never counted healthy.
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def target_absent(reason: str) -> Outcome:
+    """INT-515: a row whose target this environment does not name says which
+    variable would name it — a typed Skipped, never counted healthy."""
+    return Skipped(reason=reason)
+
+
+def livekit_room_join(
+    client: httpx.Client,
+    base_url: str,
+    credentials: LiveKitCredentials,
+    *,
+    now: Callable[[], datetime] = _utc_now,
+) -> Outcome:
+    """The signalling half of a room join: LiveKit's own ``/rtc/validate``.
+
+    A probe participant's token for the probe room — INT-090's grant, one
+    minute — sent as a bearer header (never in the URL, which would put a
+    credential in any access log on the way). LiveKit answers 200 when the
+    token is valid and the join would be admitted. No media and no WebRTC
+    stack are needed, which is what lets a sweep run it every minute.
     """
-    return Skipped(reason="livekit lands with INT-090")
+    token = mint_room_token(
+        PROBE_ROOM_SESSION, PROBE_IDENTITY, now(), credentials=credentials, ttl_s=_PROBE_TOKEN_TTL_S
+    )
+    try:
+        response = client.get(
+            f"{base_url.rstrip('/')}/rtc/validate", headers={"Authorization": f"Bearer {token}"}
+        )
+    except httpx.HTTPError as err:
+        return Failed(f"http request failed: {type(err).__name__}")
+    if response.status_code != 200:
+        # the status is the diagnosis; the body can echo the token's claims
+        return Failed(f"join validation answered {response.status_code}")
+    return Ok("room join validated")
+
+
+def voice_synthetic_turn(client: httpx.Client, url: str) -> Outcome:
+    """INT-515: ask the voice runtime to run one scripted synthetic turn.
+
+    The runtime runs it on its own bound lanes and answers ids and timings
+    (``intake_voice_runtime.synthetic_turn``). 200 with a completed report is
+    healthy; a stopped turn is a failure naming its stage and code; the
+    runtime's rate limit (one turn per 30 s, so a sweep cannot run up a vendor
+    bill) is a typed Skipped, never counted healthy.
+    """
+    try:
+        response = client.post(url)
+    except httpx.HTTPError as err:
+        return Failed(f"http request failed: {type(err).__name__}")
+    if response.status_code == 429:
+        return Skipped(reason="rate limited: a turn ran within the last 30 s")
+    try:
+        report = response.json()
+    except ValueError:
+        return Failed(f"the runtime answered {response.status_code} without a report")
+    stages = report.get("stages") if isinstance(report, dict) else None
+    if not isinstance(stages, list):
+        return Failed(f"the runtime answered {response.status_code} without a report")
+    if response.status_code == 200 and report.get("completed") is True and stages:
+        total = sum(float(stage.get("latency_ms", 0.0)) for stage in stages)
+        return Ok(f"turn completed in {total:.0f} ms")
+    stopped = next((s for s in stages if isinstance(s, dict) and not s.get("ok")), None)
+    if stopped is None:
+        return Failed(f"the runtime answered {response.status_code} with no completed turn")
+    stage = str(stopped.get("stage", ""))
+    code = str(stopped.get("code", ""))
+    stage = stage if _CODE_SHAPE.fullmatch(stage) else "unrecognised"
+    code = code if _CODE_SHAPE.fullmatch(code) else "unrecognised"
+    return Failed(f"turn stopped at {stage}: {code}")
 
 
 # --- models ---------------------------------------------------------------------------

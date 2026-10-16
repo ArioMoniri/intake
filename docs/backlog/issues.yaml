@@ -6731,3 +6731,32 @@
     - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
   tests: [tests/admin/test_second_admin_runbook.py]
   sec_row: "admin-console"
+- id: INT-515
+  epic: E05-voice
+  phase: P1
+  title: "Voice runtime and a pinned LiveKit SFU on the synthetic host, TURN over TLS on 443"
+  # GitHub #877, from the INT-498 feature audit (docs/evidence/INT-498.md §5 P7).
+  # services/voice-runtime was built and deployed nowhere, so no voice turn,
+  # extraction job or RED data-channel trigger could happen on the host. The
+  # hosted lanes (INT-428 #751, INT-442 #774, INT-443 #775) are not on main:
+  # readiness is keyed on the lane registry and fails closed naming the reason
+  # until they land, and the egress route for the runtime is the owner's patch.
+  depends_on: [INT-090, INT-091, INT-345]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-515.md
+  acceptance:
+    - "the staging compose admits exactly its services, the voice runtime and a LiveKit SFU pinned by digest included; neither publishes a port; media reaches the SFU only as TURN over TLS on 443 through Caddy's layer-4 wrapper (caddy-l4 pinned by its go.sum checksum); the SFU's licence is recorded from the raw LICENSE blob in the registry"
+    - "raw audio has nowhere to land: no writable volume on either service, read-only roots, noexec tmpfs, core dumps off; the runtime sets RLIMIT_CORE, PR_SET_DUMPABLE and mlockall before binding anything, and each is a readiness check"
+    - "readiness is keyed on the lane registry and fails closed with a reason per lane (voice_lane_ready{lane, reason}); /healthz /readyz /metrics /version are served, the new series are catalogued, and docs/slo/voice-runtime.yaml covers the service"
+    - "POST /v1/visits/{id}/voice-token issues the room token only on the patient's DPoP session, for their own visit under core consent, ids only, audited"
+    - "the synthetic probe completes a scripted turn against recorded fixtures (no vendor call), and the RED trigger arrives over the data channel with the agent's media track torn down"
+  tests:
+    [
+      tests/infra/test_staging_voice.py,
+      tests/voice/test_voice_runtime_on_host.py,
+      tests/voice/test_red_data_channel.py,
+      tests/api/test_voice_token.py,
+      tests/observability/test_voice_probes.py,
+    ]
+  sec_row: "voice-runtime"

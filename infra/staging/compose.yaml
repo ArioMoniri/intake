@@ -42,7 +42,24 @@
 #               in observability/registry.yaml.
 #   openbao     MPL-2.0
 #   minio       AGPL-3.0, verified from the raw LICENSE blob (INT-347)
-#   caddy       Apache-2.0
+#   caddy       Apache-2.0; since INT-515 built by Dockerfile.caddy from the
+#               same pinned image plus caddy-l4 v0.1.2 (Apache-2.0, raw
+#               LICENSE blob read 16 Oct 2026)
+#   livekit     Apache-2.0, read from the raw LICENSE blob at the commit the
+#               v1.13.10 tag names; the digest was resolved from Docker Hub's
+#               v2 API on 16 Oct 2026 (INT-515, observability/registry.yaml
+#               row livekit-server). The server only: LiveKit's turn-detector
+#               model is proprietary and OUT (files/00_STATE.md §3).
+#
+# INT-515: the voice tier. `livekit` is the SFU with its embedded TURN, and
+# `voice-runtime` is services/voice-runtime. Neither publishes a port. Media
+# reaches the SFU only as TURN over TLS on 443, which Caddy's layer-4 wrapper
+# hands to it (Caddyfile); signalling is rtc.<host>. Raw audio has nowhere to
+# land: no volume on either service, read-only roots, small noexec tmpfs,
+# core dumps off, and the runtime locks its memory (invariant 3). The `media`
+# network is internal and its subnet is fixed, because the SFU's TURN relay
+# may reach exactly one peer, the SFU's own address, and only Caddy's address
+# may state a client's (infra/staging/livekit/livekit.yaml).
 name: intake-staging
 
 x-logging: &logging
@@ -113,6 +130,14 @@ services:
       INTAKE_ADMIN_IP_ALLOWLIST: "0.0.0.0/0,::/0"
       # the console's voice kill switch (INT-182), in the deployment's Redis
       INTAKE_VOICE_CONTROL_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-515: the clinic Safety inbox the voice runtime writes every RED to
+      # (INT-406), which the console's Safety queue and a RED visit's move read
+      INTAKE_SAFETY_INBOX_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-515: the patient's room token (POST /v1/visits/{id}/voice-token).
+      # The SFU's public signalling origin, and the key pair it verifies.
+      INTAKE_LIVEKIT_PUBLIC_URL: wss://rtc.${STAGING_HOSTNAME:?run init.sh}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?run init.sh}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?run init.sh}
     volumes:
       # written by deploy.sh (mirror_keycloak_jwks) before the api starts
       - /etc/intake-staging/keycloak-jwks.json:/run/intake/keycloak-jwks.json:ro
@@ -363,8 +388,93 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # INT-515: the voice runtime (services/voice-runtime). No port, no volume,
+  # no edge route: its callers are on the internal networks only. It reads the
+  # kill switch and writes the Safety inbox in Redis, reaches the SFU's server
+  # API on the media network, and takes its lanes from the lane registry
+  # (INT-428), which reports why a lane is not ready until those lanes exist
+  # here. Raw audio has nowhere to land: a read-only root, a small noexec
+  # tmpfs, no core dumps, and an unlimited memlock limit so the process can
+  # lock every page it has (serve.app_from_env; invariant 3). Hosted lanes
+  # reach their vendors only through INT-442's egress proxy, and attaching
+  # this service to that route is the owner's change (owner-515-egress.patch),
+  # never this file's.
+  voice-runtime:
+    image: intake-staging/voice-runtime:${INTAKE_GIT_SHA:?set by deploy.sh}
+    build:
+      context: ../..
+      dockerfile: infra/staging/Dockerfile.voice-runtime
+      args:
+        GIT_SHA: ${INTAKE_GIT_SHA:?set by deploy.sh}
+        BUILT_AT: ${INTAKE_BUILT_AT:?set by deploy.sh}
+    environment:
+      INTAKE_ENV: staging
+      # its own image's SBOM, written by deploy.sh (stamp_voice_runtime_sbom)
+      INTAKE_SBOM_DIGEST: ${INTAKE_VOICE_RUNTIME_SBOM_DIGEST:?set by deploy.sh from the release SBOM}
+      INTAKE_VOICE_CONTROL_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      INTAKE_SAFETY_INBOX_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # the lane registry's control store (INT-428), read by intake_platform.
+      # model_lanes once that package is in the image
+      INTAKE_MODEL_LANES_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      INTAKE_LIVEKIT_URL: http://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?run init.sh}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?run init.sh}
+    networks: [backend, media]
+    depends_on:
+      redis:
+        condition: service_healthy
+      livekit:
+        condition: service_healthy
+    read_only: true
+    tmpfs: ["/tmp:noexec,nosuid,size=16m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ulimits:
+      core: 0
+      memlock: -1
+    restart: unless-stopped
+    logging: *logging
+
+  # INT-515: the SFU and its embedded TURN, pinned by digest, as an
+  # unprivileged user with nothing writable. Its config is committed
+  # (livekit/livekit.yaml); its key pair and TURN domain come from here.
+  livekit:
+    image: livekit/livekit-server:v1.13.10@sha256:89ca9ce0791e18d6e03bf6e2c49ceb27e1c754eae8bd50c989386c1a5963791a
+    command: ["--config", "/etc/livekit/livekit.yaml"]
+    user: "65534:65534"
+    environment:
+      # "<key>: <secret>", the form livekit-server reads; host-generated
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?run init.sh}: ${LIVEKIT_API_SECRET:?run init.sh}"
+      # the name Caddy terminates TURN/TLS for; LiveKit advertises turns:<it>:443
+      LIVEKIT_TURN_DOMAIN: turn.${STAGING_HOSTNAME:?run init.sh}
+    volumes:
+      - ./livekit/livekit.yaml:/etc/livekit/livekit.yaml:ro
+    networks:
+      media:
+        ipv4_address: 10.47.115.10
+    read_only: true
+    tmpfs: ["/tmp:noexec,nosuid,size=8m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ulimits:
+      core: 0
+    healthcheck:
+      # busybox wget, in the alpine-based image; / answers "OK"
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:7880/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    logging: *logging
+
   caddy:
-    image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+    # INT-515: the INT-345 image plus the layer-4 module (Dockerfile.caddy),
+    # so TURN over TLS shares 443 with HTTPS
+    image: intake-staging/caddy:${INTAKE_GIT_SHA:?set by deploy.sh}
+    build:
+      context: ../..
+      dockerfile: infra/staging/Dockerfile.caddy
     environment:
       STAGING_HOSTNAME: ${STAGING_HOSTNAME:?run init.sh}
     ports:
@@ -374,14 +484,22 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
-    # public: the published ports and ACME egress; edge: the only way to the API
-    networks: [public, edge]
+    # public: the published ports and ACME egress; edge: the only way to the
+    # API; media (INT-515): the SFU's signalling and TURN ports, from the one
+    # address the SFU trusts to state a client's address
+    networks:
+      public: {}
+      edge: {}
+      media:
+        ipv4_address: 10.47.115.20
     depends_on:
       api:
         condition: service_started
       keycloak:
         condition: service_started
       oauth2-proxy:
+        condition: service_started
+      livekit:
         condition: service_started
     read_only: true
     tmpfs: [/tmp]
@@ -397,6 +515,15 @@ networks:
     internal: true
   backend:
     internal: true
+  # INT-515: the SFU, Caddy and the voice runtime. Internal, and on a fixed
+  # subnet so the SFU's and Caddy's addresses can be named in livekit.yaml;
+  # anything else attached is addressed from the upper half only.
+  media:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.47.115.0/24
+          ip_range: 10.47.115.128/25
 
 volumes:
   pgdata: {}

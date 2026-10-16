@@ -94,6 +94,14 @@ ADMIN_DOCKERFILE = STAGING / "Dockerfile.admin-web"
 ADMIN_DOCKERIGNORE = STAGING / "Dockerfile.admin-web.dockerignore"
 REALM = STAGING / "keycloak" / "intake-realm.json"
 OAUTH2_PROXY_CONFIG = STAGING / "oauth2-proxy" / "alpha.yaml"
+#: INT-515: the voice runtime, the SFU and the layer-4 edge.
+VOICE_DOCKERFILE = STAGING / "Dockerfile.voice-runtime"
+VOICE_DOCKERIGNORE = STAGING / "Dockerfile.voice-runtime.dockerignore"
+CADDY_DOCKERFILE = STAGING / "Dockerfile.caddy"
+CADDY_DOCKERIGNORE = STAGING / "Dockerfile.caddy.dockerignore"
+LIVEKIT_CONFIG = STAGING / "livekit" / "livekit.yaml"
+TURN_PROBE = STAGING / "turn_probe.py"
+VOICE_PROBE = STAGING / "voice_probe.py"
 RUNBOOK = REPO / "docs" / "runbooks" / "staging.md"
 MIGRATIONS = REPO / "migrations" / "versions"
 
@@ -116,6 +124,13 @@ ARTEFACT = (
     ADMIN_DOCKERIGNORE,
     REALM,
     OAUTH2_PROXY_CONFIG,
+    VOICE_DOCKERFILE,
+    VOICE_DOCKERIGNORE,
+    CADDY_DOCKERFILE,
+    CADDY_DOCKERIGNORE,
+    LIVEKIT_CONFIG,
+    TURN_PROBE,
+    VOICE_PROBE,
 )
 
 PROJECT = "intake-staging"
@@ -130,6 +145,9 @@ SERVICES = {
     "keycloak",
     "oauth2-proxy",
     "admin-web",
+    # INT-515: the voice runtime and its SFU (tests/infra/test_staging_voice.py)
+    "voice-runtime",
+    "livekit",
 }
 STAGING_ENV = "staging"
 
@@ -149,7 +167,13 @@ PROCESS_LOCAL_KEK = "file-dev"
 
 #: /version's stamps, set by the host scripts, not by the root-only .env: the
 #: commit and build time (build args) and the SBOM digest (a runtime variable).
-DEPLOY_STAMPED = {"INTAKE_GIT_SHA", "INTAKE_BUILT_AT", "INTAKE_SBOM_DIGEST"}
+DEPLOY_STAMPED = {
+    "INTAKE_GIT_SHA",
+    "INTAKE_BUILT_AT",
+    "INTAKE_SBOM_DIGEST",
+    # INT-515: the voice runtime's own image has its own SBOM
+    "INTAKE_VOICE_RUNTIME_SBOM_DIGEST",
+}
 
 #: Committed, non-secret values that lib.sh exports for every compose call.
 LIB_EXPORTED = {"OBJECT_STORE_IMAGE"}
@@ -303,14 +327,25 @@ STAMP_FALLBACK = re.compile(
     r"|(?:GIT_SHA|BUILT_AT|SBOM_DIGEST)\s*[:=]\s*[\"']?dev\b"
 )
 
+#: Every build binds both images' SBOM stamps to the build-time value: compose
+#: interpolates the whole file, and neither digest can exist yet (see lib.sh).
+#: INT-515 added the voice runtime's.
+_BUILD_TIME = (
+    'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" '
+    'INTAKE_VOICE_RUNTIME_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD"'
+)
 #: The one build statement: its SBOM digest cannot exist yet (see lib.sh).
-BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api'
+BUILD_STATEMENT = f"{_BUILD_TIME} compose build api"
 #: INT-421: the console image, built from the same commit, with the same
 #: build-time value (it is not a digest either).
-ADMIN_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web'
+ADMIN_BUILD_STATEMENT = f"{_BUILD_TIME} compose build admin-web"
 #: INT-378: the staff Keycloak, INT-390's pin plus the checked WebAuthn provider jar, built
 #: from the same commit with the same build-time value.
-KEYCLOAK_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build keycloak'
+KEYCLOAK_BUILD_STATEMENT = f"{_BUILD_TIME} compose build keycloak"
+#: INT-515: the voice runtime, from the same commit, and the edge with its
+#: layer-4 module (TURN over TLS on 443).
+VOICE_RUNTIME_BUILD_STATEMENT = f"{_BUILD_TIME} compose build voice-runtime"
+CADDY_BUILD_STATEMENT = f"{_BUILD_TIME} compose build caddy"
 
 #: The docker shim's built image and commit, and the SPDX document its syft
 #: prints (the shape syft's spdx-json output takes, trimmed).
@@ -1695,7 +1730,12 @@ class TestSbomStamp:
     def test_compose_passes_the_digest_to_the_api_as_a_required_stamp(self) -> None:
         match = REQUIRED_INTERPOLATION.match(_environment(_service("api")).get(SBOM_STAMP, ""))
         assert match and match.group(1) == SBOM_STAMP
-        for name in SERVICES - {"api"}:
+        # INT-515: the voice runtime reports its own image's SBOM, never the api's
+        voice = REQUIRED_INTERPOLATION.match(
+            _environment(_service("voice-runtime")).get(SBOM_STAMP, "")
+        )
+        assert voice and voice.group(1) == "INTAKE_VOICE_RUNTIME_SBOM_DIGEST"
+        for name in SERVICES - {"api", "voice-runtime"}:
             assert SBOM_STAMP not in _environment(_service(name)), name
         assert SBOM_STAMP not in _env_template(), "a release stamp, not a host secret"
 
@@ -1758,7 +1798,13 @@ class TestSbomStamp:
             for line in _code(path).splitlines()
             if re.search(r"\bcompose build\b", line)
         ]
-        assert builds == [BUILD_STATEMENT, ADMIN_BUILD_STATEMENT, KEYCLOAK_BUILD_STATEMENT]
+        assert builds == [
+            BUILD_STATEMENT,
+            ADMIN_BUILD_STATEMENT,
+            KEYCLOAK_BUILD_STATEMENT,
+            VOICE_RUNTIME_BUILD_STATEMENT,
+            CADDY_BUILD_STATEMENT,
+        ]
 
     def test_deploy_runs_exactly_the_image_the_sbom_describes(self) -> None:
         ups = re.findall(r"^compose up .*$", _code(DEPLOY), re.M)

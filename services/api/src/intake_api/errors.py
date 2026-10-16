@@ -54,6 +54,8 @@ __all__ = [
     "unknown_embed_tenant",
     "visit_invalid",
     "voice_control_refused",
+    "voice_requires_dpop",
+    "voice_room_unconfigured",
 ]
 
 
@@ -145,6 +147,17 @@ def previsit_output_unconfigured() -> HTTPException:
 
 def not_found() -> HTTPException:
     return HTTPException(status_code=404, detail={"error": "not_found"})
+
+
+def voice_requires_dpop() -> HTTPException:
+    """INT-515: a media room is opened only for a request on the patient's
+    DPoP session (INT-131), never on the dev bearer tier."""
+    return HTTPException(status_code=403, detail={"error": "voice_requires_dpop"})
+
+
+def voice_room_unconfigured() -> HTTPException:
+    """INT-515: no SFU origin or key pair is configured, so nothing is minted."""
+    return HTTPException(status_code=503, detail={"error": "voice_room_unconfigured"})
 
 
 def visit_invalid(reason: str) -> HTTPException:

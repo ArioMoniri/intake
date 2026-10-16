@@ -177,17 +177,60 @@ components:
     # test_proposal_scope.py asserts it — so this sits off the PHI path
     phi_path: false
 
+  # INT-515 runs this service on the synthetic AWS host
+  # (infra/staging/compose.yaml, service `voice-runtime`). That host is not a
+  # PHI deployment (HB-I5, HB-L11), so the row stays planned: "enabled" for the
+  # release gate means running where real patients are, and nothing does yet.
   - component: voice-runtime
     self_hostable: true
     self_hosted_now: false
-    host: "planned — LiveKit Agents worker; the LiveKit server+TURN dev tier lands with INT-090"
-    license: "proprietary (repo LICENSE); LiveKit Agents Apache-2.0; livekit/turn-detector is proprietary (LiveKit Model License — knowingly adopted, files/03 §4.9.2(d))"
-    probe: livekit_room_join
-    budget_ms: 5000
+    host: "infra/staging/compose.yaml service voice-runtime on the synthetic AWS host only; no PHI deployment runs it. Lanes come from the lane registry (INT-428) and report lane_registry_absent until that package is in the image"
+    license: "proprietary (repo LICENSE). The image carries the workspace packages only: no LiveKit Agents SDK and no livekit/turn-detector weights (files/00_STATE.md §3: the turn-detector's proprietary LiveKit Model License is OUT)"
+    # one scripted synthetic turn on the bound lanes: two syntheses, one
+    # transcription and one extraction in series, hence the wider budget
+    probe: voice_synthetic_turn
+    budget_ms: 10000
     # the profile-level degraded mode is `typed` (ADR-010) — a mode of this
     # same service, not a separate component, so it cannot stand as `fallback`
     fallback: "none"
     phi_path: true
+
+  # INT-515 — the SFU and its embedded TURN. Patient audio crosses it (it
+  # forwards each track unmixed, files/00_STATE.md §3), so it is on the PHI
+  # path; it runs on the synthetic host only, so it stays planned like the
+  # runtime. Recording is structurally absent: no redis bus, no egress, ingress
+  # or webhook block (infra/staging/livekit/livekit.yaml, tests/infra/
+  # test_staging_voice.py).
+  - component: livekit-server
+    self_hostable: true
+    self_hosted_now: false
+    host: "infra/staging/compose.yaml service livekit on the synthetic AWS host only: signalling at rtc.<host> and TURN over TLS at turn.<host>:443, both through the staging Caddy; no published port of its own"
+    image: "livekit/livekit-server:v1.13.10@sha256:89ca9ce0791e18d6e03bf6e2c49ceb27e1c754eae8bd50c989386c1a5963791a"
+    license: "Apache-2.0"
+    probe: livekit_room_join
+    budget_ms: 1000
+    # no second SFU; the degraded mode is the runtime's `typed` profile
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/livekit/livekit/e5655ac20267fa5005dccaf3f0e3bfc3ea688c07/LICENSE"
+    licence_blob_sha256: "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    licence_note: >-
+      Read on 2026-10-16 at commit e5655ac20267fa5005dccaf3f0e3bfc3ea688c07,
+      which the v1.13.10 tag names directly: 202 lines, the stock Apache-2.0
+      text with its appendix unfilled. The image digest is the multi-arch index
+      Docker Hub's v2 API served for the tag on the same day, its sha256
+      recomputed from the manifest bytes. v1.13.10 rather than the dev tier's
+      v1.13.6 for one change: #4992, "turn: refuse TCP relays and limit relays
+      to this host to media ports", which is the relay policy a public TURN
+      needs. This is the server only. LiveKit's turn-detector model is a
+      separate artefact under the proprietary LiveKit Model License, which
+      files/00_STATE.md §3 records as OUT; nothing here pulls it. The TURN path
+      also runs through caddy-l4 v0.1.2 (github.com/mholt/caddy-l4, commit
+      42db5690dea199f930a6f08005fe2e4aab10dcc9), whose LICENSE blob read the
+      same day is the same stock Apache-2.0 text (same sha256), compiled into
+      the staging Caddy and pinned there by its go.sum line. Re-read both blobs
+      on every bump.
 
   - component: edge-tls
     self_hostable: true
