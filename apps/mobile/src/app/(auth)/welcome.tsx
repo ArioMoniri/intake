@@ -21,20 +21,41 @@
  * bottom edge, and a 400 pt swipe moved nothing: the copy explaining what this
  * screen IS was unreachable. `flexGrow: 1` on the scroll content keeps the
  * centring while it fits and hands the patient the rest when it does not.
+ *
+ * INT-464 (ADR-039 S7): the iOS setup layout in the stage's visual language.
+ * A calm hero (the stage orb drawn still, the static large title and the
+ * tagline) over the still stage backdrop; the phone sign-in and the
+ * disclaimer in a tray at the bottom; the synthetic accounts as a grouped
+ * inset list on the stage card. Nothing moves: the glass action is inert.
+ *
+ * INT-491: the mark is the same orb the dialogue shows, drawn still: the lens
+ * (ADR-039 amendment, owner 16 Oct 2026: "orb=lens"), or in a development
+ * build that names it, the earlier sphere.
  */
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { GlassCard } from "@/components/GlassCard";
+import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
-import { AppText, PrimaryButton, Screen, SecondaryButton, useTheme } from "@/components/Themed";
+import { ListGroup, ListRow } from "@/components/ListRow";
+import { AmbientBackdrop } from "@/components/stage/AmbientBackdrop";
+import { StageButton } from "@/components/stage/StageControls";
+import { useStagePalette } from "@/components/stage/useStagePalette";
+import { VoiceOrb } from "@/components/stage/VoiceOrb";
+import { AppText, Screen, useTheme } from "@/components/Themed";
 import { verticalSlop } from "@/lib/a11y/target";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
 import { appLocaleChooser, chooseFromChooser } from "@/lib/locale/chooser";
 import { useSession } from "@/lib/session";
+import { ORB_VARIANT } from "@/lib/stage/expoOrbVariant";
+import { stillOrb } from "@/lib/stage/orb";
+import type { StagePalette } from "@/lib/stage/palette";
 import { radius, spacing } from "@/lib/theme";
 import type { TestAccount } from "@/lib/types/account";
+
+/** The welcome mark's diameter: the dialogue's listening orb, at rest. */
+const HERO_ORB = 112;
 
 /** An offered locale this app also carries a UI catalogue for. */
 function isCatalogued(code: string): code is Locale {
@@ -97,9 +118,13 @@ function FirstRunLanguage() {
 /**
  * The synthetic accounts, for a development build only. The `import()` sits
  * inside `if (__DEV__)`, so a release build never bundles the seed: it would
- * render an empty card if it ever rendered this, and it does not.
+ * render an empty list if it ever rendered this, and it does not.
+ *
+ * INT-464: a grouped inset list on the stage card, one row per account with
+ * the navigation chevron, the header outside the group and the note as its
+ * footer, as iOS draws a settings group.
  */
-function DevSignIn() {
+function DevSignIn({ palette }: { palette: StagePalette }) {
   const router = useRouter();
   const { signIn } = useSession();
   const [accounts, setAccounts] = useState<readonly TestAccount[]>([]);
@@ -116,57 +141,94 @@ function DevSignIn() {
       mounted = false;
     };
   }, []);
+  if (accounts.length === 0) {
+    return null;
+  }
   return (
-    <GlassCard style={styles.devCard}>
-      <Kicker label={t("welcome.devSignIn")} />
-      {accounts.map((account) => (
-        <SecondaryButton
-          key={account.id}
-          label={account.name}
-          onPress={() => {
-            signIn(account);
-            router.replace("/(tabs)/today");
-          }}
-        />
-      ))}
-      <AppText role="caption" color="inkFaint">
-        {t("welcome.devNote")}
-      </AppText>
-    </GlassCard>
+    <View style={styles.devSection}>
+      <Kicker label={t("welcome.devSignIn")} inset />
+      <ListGroup surface={palette.card} footer={t("welcome.devNote")}>
+        {accounts.map((account) => (
+          <ListRow
+            key={account.id}
+            label={account.name}
+            chevron
+            onPress={() => {
+              signIn(account);
+              router.replace("/(tabs)/today");
+            }}
+          />
+        ))}
+      </ListGroup>
+    </View>
   );
 }
 
 export default function Welcome() {
   const router = useRouter();
+  const palette = useStagePalette();
+  const glassMode = useGlassMode();
   return (
-    <Screen>
+    <Screen style={[styles.flush, { backgroundColor: palette.base }]}>
+      {/* ADR-039 S7: the stage's still backdrop, full-bleed. */}
+      <AmbientBackdrop palette={palette} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <AppText role="hero" heading>
+          <VoiceOrb
+            size={HERO_ORB}
+            motion={stillOrb()}
+            palette={palette}
+            glass={glassMode === "liquid"}
+            variant={ORB_VARIANT}
+          />
+          <AppText role="hero" heading style={[styles.centred, { color: palette.ink }]}>
             {t("app.name")}
           </AppText>
-          <AppText role="body" color="inkSoft">
+          <AppText role="body" style={[styles.centred, { color: palette.inkSoft }]}>
             {t("app.tagline")}
           </AppText>
         </View>
         <FirstRunLanguage />
-        <AppText role="body">{t("welcome.body")}</AppText>
-        <PrimaryButton label={t("welcome.phoneCta")} onPress={() => router.push("/(auth)/phone")} />
-        {__DEV__ ? <DevSignIn /> : null}
-        <AppText role="caption" color="inkFaint" style={styles.disclaimer}>
-          {t("app.disclaimer")}
+        <AppText role="body" style={[styles.centred, { color: palette.ink }]}>
+          {t("welcome.body")}
         </AppText>
+        {__DEV__ ? <DevSignIn palette={palette} /> : null}
+        {/* The tray: the one action and the disclaimer, at the bottom while
+            the column fits, scrolled to once it does not. */}
+        <View style={styles.tray}>
+          <StageButton
+            palette={palette}
+            prominent
+            interactive={false}
+            label={t("welcome.phoneCta")}
+            onPress={() => router.push("/(auth)/phone")}
+          />
+          <AppText role="caption" style={[styles.centred, { color: palette.inkSoft }]}>
+            {t("app.disclaimer")}
+          </AppText>
+        </View>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  // The stage runs edge to edge; the column keeps the screen margin.
+  flush: { padding: 0 },
   // `flexGrow` rather than `flex`: at the small steps the column is shorter
-  // than the screen and centring is the design; at the large ones it is
+  // than the screen and the tray sits at the bottom; at the large ones it is
   // taller, flexGrow stops applying, and the same container scrolls.
-  content: { flexGrow: 1, justifyContent: "center", gap: spacing.lg },
-  hero: { gap: spacing.sm },
+  content: {
+    flexGrow: 1,
+    gap: spacing.lg,
+    paddingHorizontal: spacing.screen,
+    // Room above the mark for its glow, which the scroll view would
+    // otherwise cut at its top edge, under the status bar.
+    paddingTop: spacing.xl * 2,
+    paddingBottom: spacing.md,
+  },
+  hero: { alignItems: "center", gap: spacing.md },
+  centred: { textAlign: "center" },
   // Wraps so the endonym pills reflow at the enlarged text steps and hold
   // identically once the row flips under a right-to-left locale (INT-301).
   langRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
@@ -175,6 +237,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 4,
     paddingVertical: spacing.xs + 2,
   },
-  devCard: { gap: spacing.sm },
-  disclaimer: { textAlign: "center" },
+  devSection: { gap: spacing.sm },
+  // `marginTop: "auto"` takes the column's spare room, so the tray rests on
+  // the bottom edge while the column fits.
+  tray: { marginTop: "auto", gap: spacing.md, paddingTop: spacing.md },
 });

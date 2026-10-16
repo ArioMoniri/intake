@@ -7,22 +7,22 @@
  * custody) and signs the patient in; no consent is granted here — the shell
  * keeps every gate closed until INT-132 asks in context. In __DEV__ a peek
  * link fetches the code from the server's flag-gated dev endpoint.
+ *
+ * INT-464 (ADR-039 S7): on the still stage. This step is a gate (ADR-033
+ * §4), so nothing on it moves: the actions are inert glass. The solid bar
+ * shows only the back chevron and the step title is the static large title
+ * in the content; each register is a filled stage field with the accent ring
+ * while it holds focus, and no card around the six.
  */
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 import { AnnouncedText } from "@/components/Announced";
-import {
-  AppText,
-  Card,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-  useFontScale,
-  useStackHeader,
-  useTheme,
-} from "@/components/Themed";
+import { AmbientBackdrop } from "@/components/stage/AmbientBackdrop";
+import { StageButton } from "@/components/stage/StageControls";
+import { useStagePalette } from "@/components/stage/useStagePalette";
+import { AppText, Screen, useFontScale, useStackHeader } from "@/components/Themed";
 import { AuthApiError, devPeekOtp, requestOtp, syncVisits, verifyOtp } from "@/lib/auth/api";
 import { attestationMessageKey } from "@/lib/auth/attestationPlan";
 import { getPendingPhone, setPendingPhone } from "@/lib/auth/flow";
@@ -30,6 +30,8 @@ import { OTP_LENGTH, enterOtp, isCompleteOtp, maskPhone, type OtpUpdate } from "
 import { labelled } from "@/lib/a11y/labels";
 import { t, type MessageKey } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { stageFieldChrome } from "@/lib/stage/field";
+import { withSolidStageBar } from "@/lib/stage/nav";
 import { radius, scaledSize, spacing } from "@/lib/theme";
 
 const EMPTY: readonly string[] = Array.from({ length: OTP_LENGTH }, () => "");
@@ -56,7 +58,7 @@ function errorKey(error: unknown): MessageKey {
 
 export default function OtpEntry() {
   const router = useRouter();
-  const theme = useTheme();
+  const palette = useStagePalette();
   const fontScale = useFontScale();
   const headerOptions = useStackHeader();
   const { signInOtp, setApiVisits, setDisplayName } = useSession();
@@ -66,6 +68,7 @@ export default function OtpEntry() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const [resendWait, setResendWait] = useState(60);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputs = useRef<(TextInput | null)[]>([]);
   // Success clears the module-held phone AND navigates to the tabs; any
   // re-render in between (signInOtp, the finally setBusy) re-reads phone as
@@ -88,7 +91,7 @@ export default function OtpEntry() {
   }, [resendWait]);
 
   if (phone === null) {
-    return <Screen>{null}</Screen>;
+    return <Screen style={{ backgroundColor: palette.base }}>{null}</Screen>;
   }
 
   // One typed digit, or a whole pasted / autofilled code: enterOtp decides
@@ -160,13 +163,18 @@ export default function OtpEntry() {
   const complete = isCompleteOtp(digits);
 
   return (
-    <Screen edges={["left", "right", "bottom"]}>
+    <Screen
+      edges={["left", "right", "bottom"]}
+      style={[styles.flush, { backgroundColor: palette.base }]}
+    >
       {/* INT-284: the bottom safe edge is DROPPED only where something else
           owns that zone — the floating tab rail, or a glass bar. This flow has
           neither, and at the largest text step it is long enough to reach the
           physical bottom, so the last control was left under the home
           indicator. */}
-      <Stack.Screen options={headerOptions(t("auth.otp.title"))} />
+      <Stack.Screen options={withSolidStageBar(headerOptions(t("auth.otp.title")), palette)} />
+      {/* ADR-039 S7: the stage's still backdrop, below the solid bar. */}
+      <AmbientBackdrop palette={palette} />
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -174,53 +182,55 @@ export default function OtpEntry() {
         // takes about half of a landscape window.
         automaticallyAdjustKeyboardInsets
       >
-        <AppText role="body" color="inkSoft">
+        <AppText role="hero" heading style={{ color: palette.ink }}>
+          {t("auth.otp.title")}
+        </AppText>
+        <AppText role="body" style={{ color: palette.inkSoft }}>
           {t("auth.otp.body")}
         </AppText>
-        <AppText role="label" color="inkFaint">
+        <AppText role="label" style={{ color: palette.inkSoft }}>
           {maskPhone(phone)}
         </AppText>
-        <Card>
-          <View style={styles.registers}>
-            {digits.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(node) => {
-                  inputs.current[index] = node;
-                }}
-                // "Doğrulama kodu hanesi: 3". The old form glued the
-                // position on with a slash, which screen readers speak as
-                // "bölü"; how many boxes there are is already in the body
-                // line ("altı haneli kodu girin").
-                accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
-                allowFontScaling={false}
-                value={digit}
-                // No maxLength: the platform applies it before onChangeText
-                // sees the text, so a cap of one kept only the first digit of
-                // a paste or of the OS autofill. enterOtp keeps one digit per
-                // register instead.
-                onChangeText={(value) => apply(index, enterOtp(digits, index, value))}
-                keyboardType="number-pad"
-                secureTextEntry
-                // iOS offers the code from Messages; Android's SMS-code
-                // autofill and the web build's autocomplete need their own
-                // hint (SC 3.3.8, and 1.3.5 input purpose).
-                textContentType="oneTimeCode"
-                autoComplete={Platform.OS === "web" ? "one-time-code" : "sms-otp"}
-                autoFocus={index === 0}
-                style={[
-                  styles.register,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.ink,
-                    fontSize: scaledSize("title", fontScale),
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        </Card>
+        <View style={styles.registers}>
+          {digits.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={(node) => {
+                inputs.current[index] = node;
+              }}
+              // "Doğrulama kodu hanesi: 3". The old form glued the
+              // position on with a slash, which screen readers speak as
+              // "bölü"; how many boxes there are is already in the body
+              // line ("altı haneli kodu girin").
+              accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
+              allowFontScaling={false}
+              value={digit}
+              // No maxLength: the platform applies it before onChangeText
+              // sees the text, so a cap of one kept only the first digit of
+              // a paste or of the OS autofill. enterOtp keeps one digit per
+              // register instead.
+              onChangeText={(value) => apply(index, enterOtp(digits, index, value))}
+              onFocus={() => setFocusedIndex(index)}
+              onBlur={() => setFocusedIndex((at) => (at === index ? null : at))}
+              keyboardType="number-pad"
+              secureTextEntry
+              // iOS offers the code from Messages; Android's SMS-code
+              // autofill and the web build's autocomplete need their own
+              // hint (SC 3.3.8, and 1.3.5 input purpose).
+              textContentType="oneTimeCode"
+              autoComplete={Platform.OS === "web" ? "one-time-code" : "sms-otp"}
+              autoFocus={index === 0}
+              // INT-433's filled field in the stage palette: a solid fill,
+              // no resting outline, the accent ring on the register that
+              // holds focus.
+              style={[
+                styles.register,
+                stageFieldChrome(palette, { focused: focusedIndex === index }),
+                { color: palette.ink, fontSize: scaledSize("title", fontScale) },
+              ]}
+            />
+          ))}
+        </View>
         {problem !== null ? (
           // SC 3.3.1: a wrong code also clears every box and moves focus, so
           // the reason must be announced or the patient only perceives the
@@ -228,7 +238,10 @@ export default function OtpEntry() {
           // carries the "Hata" prefix, on both platforms (INT-362).
           <AnnouncedText tone="error" role="body" color="amber" message={t(problem)} />
         ) : null}
-        <PrimaryButton
+        <StageButton
+          palette={palette}
+          prominent
+          interactive={false}
           label={t("auth.otp.verifyCta")}
           onPress={() => void submit(digits.join(""))}
           disabled={busy || !complete}
@@ -239,18 +252,22 @@ export default function OtpEntry() {
           // it runs out, so no extension mechanism is owed. It is
           // deliberately NOT a live region: announcing a new number every
           // second would itself be the interruption SC 2.2.2 warns about.
-          <AppText role="caption" color="inkFaint" style={styles.resendWait}>
+          <AppText role="caption" style={[styles.resendWait, { color: palette.inkSoft }]}>
             {t("auth.otp.resendWait")} {resendWait}
           </AppText>
         ) : (
-          <SecondaryButton
+          <StageButton
+            palette={palette}
+            interactive={false}
             label={t("auth.otp.resend")}
             onPress={() => void resend()}
             disabled={busy}
           />
         )}
         {__DEV__ ? (
-          <SecondaryButton
+          <StageButton
+            palette={palette}
+            interactive={false}
             label={t("auth.otp.devPeek")}
             onPress={() => void peek()}
             disabled={busy}
@@ -262,11 +279,15 @@ export default function OtpEntry() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingTop: spacing.md },
+  // The stage runs edge to edge; the column keeps the screen margin.
+  flush: { padding: 0 },
+  content: { gap: spacing.lg, paddingTop: spacing.md, paddingHorizontal: spacing.screen },
   registers: { flexDirection: "row", gap: spacing.sm, justifyContent: "center" },
+  // ADR-039 S7: the registers keep 12 pt continuous corners; six capsules
+  // would read as dots.
   register: {
-    borderWidth: 1,
     borderRadius: radius.control,
+    borderCurve: "continuous",
     width: 48,
     minHeight: 56,
     textAlign: "center",

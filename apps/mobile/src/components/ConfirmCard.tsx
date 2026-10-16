@@ -128,6 +128,7 @@ const styles = StyleSheet.create({
   decisions: { gap: spacing.sm },
   flag: {
     borderRadius: radius.group,
+    borderCurve: "continuous",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },

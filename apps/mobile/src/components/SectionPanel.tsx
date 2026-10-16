@@ -13,20 +13,20 @@
  * confirms in the turn, never from here (no double-commit path).
  *
  * Register: Oura grouped-table anatomy (ListGroup radii, hairlines
- * between rows only, quiet footer), fade-only motion (02 §5.2a); state is
- * always labelled, never colour alone (02 §8.2).
+ * between rows only, quiet footer); state is always labelled, never colour
+ * alone (02 §8.2).
+ *
+ * INT-473 (ADR-038 A3): the sheet is the in-tree DetentSheet, never a
+ * Modal, so no presented window can cover RED.
  */
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, View } from "react-native";
 
+import { DetentSheet } from "@/components/DetentSheet";
 import { Icon } from "@/components/Icon";
 import { ListGroup } from "@/components/ListRow";
 import { AppText, useScheme, useTheme } from "@/components/Themed";
 import { joinParts, labelled, withContext } from "@/lib/a11y/labels";
-import { modalAnimation } from "@/lib/a11y/motion";
-import { ALL_ORIENTATIONS } from "@/lib/a11y/orientation";
-import { useReducedMotion } from "@/lib/a11y/prefs";
-import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
+import { verticalSlop } from "@/lib/a11y/target";
 import type { SectionPanelModel, SectionRow } from "@/lib/dialogue/sectionPanel";
 import { t } from "@/lib/i18n";
 import { optionLabelKey } from "@/lib/intake/questions";
@@ -183,6 +183,8 @@ interface SectionSheetProps {
   /** A RED stands (INT-465): the sheet leaves in 0 ms, never fading over the RED. */
   stopped?: boolean;
   model: SectionPanelModel;
+  /** Where the screen's own bar ends inside the dialogue's frame. */
+  top: number;
   onClose: () => void;
   onConfirmRow: (questionId: string) => void;
 }
@@ -192,80 +194,44 @@ export function SectionSheet({
   visible,
   stopped = false,
   model,
+  top,
   onClose,
   onConfirmRow,
 }: SectionSheetProps) {
-  const theme = useTheme();
-  const reduceMotion = useReducedMotion();
-  // INT-360: a Modal is its own window, so the Screen's safe edges do not
-  // reach the sheet. In landscape the notch and the rounded corners are at
-  // the SIDES, so the sheet takes the side insets itself, and the bottom one
-  // for the home indicator.
-  const insets = useSafeAreaInsets();
   return (
-    <Modal
+    <DetentSheet
       visible={visible}
-      transparent
-      animationType={modalAnimation(reduceMotion || stopped)}
-      // SC 1.3.4 (INT-360): without this list React Native presents the Modal
-      // portrait-only on an iPhone, and opening the sheet in landscape would
-      // turn the screen under the patient.
-      supportedOrientations={ALL_ORIENTATIONS}
-      onRequestClose={onClose}
-    >
-      <View style={styles.backdropWrap}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("dialogue.close")}
-          accessibilityHint={t("a11y.closeHint")}
-          onPress={onClose}
-          style={[StyleSheet.absoluteFill, styles.backdrop]}
-        />
-        {/* SC 2.4.3: the modal flag belongs HERE, not on <Modal>. React
-            Native's Modal enumerates the props it forwards to the native
-            host view (Libraries/Modal/Modal.js) and `accessibilityViewIsModal`
-            is not among them — set there it type-checks and does nothing.
-            On the sheet it does the real work: the dismiss backdrop and
-            anything behind leave the accessibility tree, so a swipe cannot
-            walk out of the sheet into content the eye cannot see. Dismissal
-            stays reachable through the labelled close control below. */}
-        <View
-          accessibilityViewIsModal
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.background,
-              paddingLeft: insets.left,
-              paddingRight: insets.right,
-              paddingBottom: insets.bottom,
-            },
-          ]}
-        >
-          <View style={styles.sheetHeader}>
-            <AppText role="title" heading>
-              {t("dialogue.sectionsTitle")}
+      top={top}
+      onClose={onClose}
+      closeLabel={t("dialogue.close")}
+      closeHint={t("a11y.closeHint")}
+      // INT-465: under a standing RED the sheet leaves instantly at every
+      // setting (lib/motion/sheet), never fading over the RED.
+      closeReason={stopped ? "red" : "patient"}
+      header={
+        <View style={styles.sheetHeader}>
+          <AppText role="title" heading>
+            {t("dialogue.sectionsTitle")}
+          </AppText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("dialogue.close")}
+            hitSlop={verticalSlop(21)}
+            onPress={onClose}
+          >
+            <AppText role="label" color="inkSoft">
+              {t("dialogue.close")}
             </AppText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("dialogue.close")}
-              hitSlop={verticalSlop(21)}
-              onPress={onClose}
-            >
-              <AppText role="label" color="inkSoft">
-                {t("dialogue.close")}
-              </AppText>
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.sheetContent}>
-            <ListGroup footer={t("dialogue.sheetHint")}>
-              {model.rows.map((row) => (
-                <SectionRowView key={row.questionId} row={row} onConfirm={onConfirmRow} />
-              ))}
-            </ListGroup>
-          </ScrollView>
+          </Pressable>
         </View>
-      </View>
-    </Modal>
+      }
+    >
+      <ListGroup footer={t("dialogue.sheetHint")}>
+        {model.rows.map((row) => (
+          <SectionRowView key={row.questionId} row={row} onConfirm={onConfirmRow} />
+        ))}
+      </ListGroup>
+    </DetentSheet>
   );
 }
 
@@ -283,16 +249,6 @@ const styles = StyleSheet.create({
   // Tabular figures: the counter must not reflow as sections fill
   // (design pass 6 microtypography).
   stripCount: { fontVariant: ["tabular-nums"] },
-  backdropWrap: { flex: 1, justifyContent: "flex-end" },
-  // The dismiss backdrop covers the screen behind the sheet; the floor is
-  // declared rather than inherited from absoluteFill (SC 2.5.8).
-  backdrop: { backgroundColor: "rgba(0, 0, 0, 0.4)", minHeight: MIN_TAP },
-  sheet: {
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
-    paddingTop: spacing.lg,
-    maxHeight: "78%",
-  },
   // Wraps (INT-295): a title role and a close control at opposite ends of a
   // fixed line collide as the text grows, and the control is the one that
   // leaves.
@@ -305,7 +261,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screen,
     paddingBottom: spacing.md,
   },
-  sheetContent: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xl },
   row: {
     flexDirection: "row",
     alignItems: "center",

@@ -9,10 +9,11 @@
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import { EmptyState } from "@/components/EmptyState";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { PrepGauge } from "@/components/PrepGauge";
-import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
+import { AppText, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
 import { packForVisit } from "@/lib/intake/questions";
@@ -55,15 +56,12 @@ export default function Today() {
         ) : (
           <View style={styles.section}>
             <Kicker label={t("today.nextVisit")} />
-            <Card>
-              <AppText role="body" color="inkSoft">
-                {t("today.noVisit")}
-              </AppText>
-            </Card>
-            <PrimaryButton
-              label={t("today.addVisit")}
-              onPress={() => router.push("/(tabs)/visits/new")}
-            />
+            <EmptyState icon="calendar" message={t("today.noVisit")}>
+              <PrimaryButton
+                label={t("today.addVisit")}
+                onPress={() => router.push("/(tabs)/visits/new")}
+              />
+            </EmptyState>
           </View>
         )}
       </ScrollView>

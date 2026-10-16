@@ -80,7 +80,8 @@ describe("controls: the dev sign-in surfaces stay behind __DEV__", () => {
 
   it("the synthetic test accounts render only in a dev build", () => {
     const welcome = source("app/(auth)/welcome.tsx");
-    const card = welcome.indexOf("<DevSignIn />");
+    // INT-464: the list takes the stage palette, so the element carries a prop.
+    const card = welcome.search(/<DevSignIn\b[^>]*\/>/);
     expect(card).toBeGreaterThan(0);
     expect(welcome.lastIndexOf("{__DEV__ ?", card)).toBeGreaterThan(0);
   });

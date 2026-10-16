@@ -1,12 +1,11 @@
 /** Visit summary card used on Bugün and Vizitlerim (02 §5.1). */
 import { StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { Icon } from "@/components/Icon";
 import { StatusChip } from "@/components/StatusChip";
 import { AppText, Card, useFontScale, useTheme } from "@/components/Themed";
 import { getLocale, t } from "@/lib/i18n";
-import { radius, spacing, tracking } from "@/lib/theme";
+import { spacing } from "@/lib/theme";
 import type { VisitFixture } from "@/lib/types/account";
 import { CHEVRON_GAP, CHEVRON_SIZE, chevronPlacement } from "@/lib/visitCardLayout";
 
@@ -33,12 +32,10 @@ interface VisitCardProps {
   /** Live status (local note state) wins over the fixture's ladder step. */
   statusOverride?: VisitFixture["noteStatus"];
   /**
-   * Oura-register hero treatment for the ONE card the screen is about
-   * (design pass 3): solid surface with a very soft STATIC accent glow
-   * washing down from the top (primarySoft → transparent — the Oura scrim
-   * feel), hero radius, date in the accent colour. Text still sits on the
-   * solid surface underneath (02 §8.2); the glow is garnish. Everything
-   * else stays a quiet surface card — one focal point per screen (02 §5.2).
+   * The ONE card the screen is about (Bugün). It is the same grouped cell
+   * as every other visit card, with no glow, gradient or larger corner
+   * (INT-422); what marks it is its place under the screen's title and the
+   * semibold date. One focal point per screen (02 §5.2) is the CTA below.
    */
   hero?: boolean;
   /** Show the "›" affordance — set it on cards that navigate (list rows). */
@@ -62,27 +59,13 @@ export function VisitCard({
   const placement = chevron && !hero ? chevronPlacement(fontScale) : null;
   const glyph = <Icon name="chevron.right" size={CHEVRON_SIZE} tintColor={theme.inkFaint} />;
   return (
-    <Card style={hero ? styles.hero : undefined}>
-      {hero ? (
-        <LinearGradient
-          pointerEvents="none"
-          // Fade to the SAME hue at zero alpha — "transparent" is black@0 and
-          // drags the wash through grey on the light surface.
-          colors={[theme.primarySoft, `${theme.primarySoft}00`]}
-          start={{ x: 0.5, y: 0 }}
-          // Oura's card scrim dies by mid-card (design pass 4 measurement);
-          // 0.85 dragged the wash under the whole card.
-          end={{ x: 0.5, y: 0.55 }}
-          style={StyleSheet.absoluteFill}
-        />
-      ) : null}
+    <Card>
       <View style={styles.row}>
         <View style={styles.text}>
           <View style={placement === "dateLine" ? styles.dateLine : null}>
-            {/* Design pass 5: the hero date is tracked but INK — Oura spends the
-                accent once per screen, and here that moment is the CTA below.
-                Pass 6: dates carry tabular figures so day numbers hold a steady
-                column in stacked lists (Oura microtypography). */}
+            {/* The date is secondary ink: the accent is spent once per
+                screen, on the CTA. Tabular figures hold day numbers in a
+                steady column down a stacked list. */}
             <AppText
               role="caption"
               color="inkSoft"
@@ -96,7 +79,7 @@ export function VisitCard({
             </AppText>
             {placement === "dateLine" ? <View pointerEvents="none">{glyph}</View> : null}
           </View>
-          <AppText role={hero ? "hero" : "title"}>{visit.department}</AppText>
+          <AppText role="title">{visit.department}</AppText>
           <AppText role="body" color="inkSoft">
             {visit.hospital}
           </AppText>
@@ -129,13 +112,6 @@ const styles = StyleSheet.create({
   // below keeps the card's whole measure (lib/visitCardLayout).
   dateLine: { flexDirection: "row", alignItems: "center", gap: CHEVRON_GAP },
   dateFill: { flex: 1 },
-  hero: {
-    borderRadius: radius.hero,
-    padding: spacing.lg,
-    borderWidth: 0,
-    overflow: "hidden",
-    gap: spacing.sm,
-  },
   date: { fontVariant: ["tabular-nums"] },
-  heroDate: { fontWeight: "600", letterSpacing: tracking.kicker },
+  heroDate: { fontWeight: "600" },
 });

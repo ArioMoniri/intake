@@ -250,7 +250,10 @@ it("the scanner found the surfaces it is supposed to police", () => {
   expect(TSX.length).toBeGreaterThan(20);
   expect(PRESSABLES.length).toBeGreaterThan(20);
   expect(TEXT_INPUTS.length).toBeGreaterThan(5);
-  expect(MODALS.length).toBeGreaterThan(0);
+  // ADR-038 A3 (INT-473): no Modal is left; the sheet is the in-tree
+  // DetentSheet (e2e/sheets.spec.ts forbids every presented window). The
+  // Modal rules below stay, so a Modal that comes back meets them.
+  expect(MODALS).toEqual([]);
 });
 
 /* ------------------------------------------------------------------ */
@@ -329,7 +332,12 @@ describe("invariant 5 — accessible names come from the catalog, never a litera
     const users = TSX.filter((f) => /\blib\/a11y\/labels\b/.test(f.source)).map((f) => f.name);
     expect(users).toContain("src/components/DialogueIntake.tsx");
     expect(users).toContain("src/components/SectionPanel.tsx");
-    expect(users).toContain("src/app/(tabs)/visits/[visitId]/review.tsx");
+    // INT-472: the review screen names its controls through the rows'
+    // `labelContext`, which ListRow and SwitchRow compose with these helpers.
+    expect(users).toContain("src/components/SwitchRow.tsx");
+    expect(users).toContain("src/components/ListRow.tsx");
+    const review = TSX.find((f) => f.name === "src/app/(tabs)/visits/[visitId]/review.tsx")!;
+    expect(review.source).toMatch(/labelContext=\{t\(section\.titleKey\)\}/);
   });
 });
 
@@ -542,6 +550,16 @@ describe("BK18 / SC 2.4.3 — a sheet takes focus with it", () => {
   it("a Modal's transition obeys reduce-motion", () => {
     const hardcoded = MODALS.filter((o) => /animationType="/.test(o.props)).map(where);
     expect(hardcoded).toEqual([]);
+  });
+
+  it("the in-tree sheet takes focus with it, and lets the escape gesture out", () => {
+    // INT-473: the sheet is a view, so the flag works where it is set.
+    const sheet = TSX.find((f) => f.name === "src/components/DetentSheet.tsx")!;
+    const flagged = readOpenings(sheet.source, sheet.name, ["Animated.View", "View"]).filter((o) =>
+      hasProp(o.props, "accessibilityViewIsModal"),
+    );
+    expect(flagged.length).toBe(1);
+    expect(hasProp(flagged[0].props, "onAccessibilityEscape")).toBe(true);
   });
 });
 
@@ -1397,20 +1415,31 @@ describe("voice dialogue — a screen-reader user can follow the conversation", 
     expect(dialogue.source).toContain('t("a11y.dialogue.transcript")');
   });
 
+  // INT-466: the composer is the stage's GlassComposer (StageControls); the
+  // dialogue hands it the name, the hint and the control's name.
+  const stage = TSX.find((f) => f.name === "src/components/stage/StageControls.tsx")!;
+  const composer = /export function GlassComposer[\s\S]*?\nexport function /.exec(stage.source)![0];
+
   it("the composer is reachable and described", () => {
-    const inputs = readOpenings(dialogue.source, dialogue.name, ["TextInput"]);
+    const inputs = readOpenings(composer, stage.name, ["TextInput"]);
     expect(inputs.length).toBe(1);
-    expect(hasProp(inputs[0].props, "accessibilityLabel")).toBe(true);
-    expect(hasProp(inputs[0].props, "accessibilityHint")).toBe(true);
+    expect(propValue(inputs[0].props, "accessibilityLabel")).toBe("{prompt}");
+    expect(propValue(inputs[0].props, "accessibilityHint")).toBe("{promptHint}");
+    const [glass] = readOpenings(dialogue.source, dialogue.name, ["GlassComposer"]);
+    expect(propValue(glass.props, "prompt")).toBe('{t("dialogue.typeThisStep")}');
+    expect(propValue(glass.props, "promptHint")).toBe('{t("a11y.dialogue.composerHint")}');
   });
 
   it("the send button is icon-only, so its name and disabled state are explicit", () => {
-    const send = readOpenings(dialogue.source, dialogue.name, ["Pressable"]).filter((o) =>
-      /styles\.sendButton/.test(o.props),
+    const send = readOpenings(composer, stage.name, ["Pressable"]).filter((o) =>
+      /styles\.controlTarget/.test(o.props),
     );
     expect(send.length).toBe(1);
-    expect(hasProp(send[0].props, "accessibilityLabel")).toBe(true);
+    expect(propValue(send[0].props, "accessibilityLabel")).toBe("{controlLabel}");
     expect(hasProp(send[0].props, "accessibilityState")).toBe(true);
+    const [glass] = readOpenings(dialogue.source, dialogue.name, ["GlassComposer"]);
+    expect(propValue(glass.props, "controlLabel")).toBe("{trailingLabel}");
+    expect(hasProp(glass.props, "controlDisabled")).toBe(true);
   });
 
   it("a single-choice turn offers radios, not checkboxes", () => {
@@ -1425,14 +1454,17 @@ describe("voice dialogue — a screen-reader user can follow the conversation", 
 /* ------------------------------------------------------------------ */
 
 describe("BK8 / SC 1.4.1 — nothing is carried by colour alone", () => {
-  it("the intake progress dots are decoration and are hidden from the reader", () => {
-    const intake = TSX.find((f) => f.name === "src/app/(tabs)/visits/[visitId]/intake.tsx")!;
-    const dots = readOpenings(intake.source, intake.name, ["View"]).filter((o) =>
-      /styles\.progressDot/.test(o.props),
+  it("the intake progress is one progressbar whose value is spoken, not a hue", () => {
+    // INT-433 replaced the colour-only dot row: the bar's fill is the sighted
+    // cue and the progressbar's value text is the fact a reader hears.
+    const progress = TSX.find((f) => f.name === "src/components/QuestionProgress.tsx")!;
+    const bars = readOpenings(progress.source, progress.name, ["View"]).filter((o) =>
+      /accessibilityRole="progressbar"/.test(o.props),
     );
-    expect(dots.length).toBe(1);
-    expect(hasProp(dots[0].props, "accessibilityElementsHidden")).toBe(true);
-    expect(hasProp(dots[0].props, "importantForAccessibility")).toBe(true);
+    expect(bars.length).toBe(1);
+    expect(hasProp(bars[0].props, "accessibilityValue")).toBe(true);
+    expect(hasProp(bars[0].props, "accessibilityLabel")).toBe(true);
+    expect(TSX.some((f) => /styles\.progressDot/.test(f.source))).toBe(false);
   });
 
   it("the status ladder speaks which rungs are reached", () => {
@@ -1509,14 +1541,28 @@ describe("criteria the app satisfies by not having the feature", () => {
   const ALL = TSX.map((f) => f.source).join("\n");
 
   it("BK12 / SC 2.1.4 — no character key shortcuts exist", () => {
-    expect(ALL).not.toMatch(/onKeyPress|KeyboardEvent|hardwareBackPress/);
+    expect(ALL).not.toMatch(/onKeyPress|KeyboardEvent/);
+    // Android's back button is the platform's own navigation key, not a
+    // character key (SC 2.1.4 covers letters, punctuation, numbers and
+    // symbols). Only the in-tree sheet takes it, to close itself as a Modal's
+    // onRequestClose did (INT-473).
+    const back = TSX.filter((f) => /hardwareBackPress/.test(f.source)).map((f) => f.name);
+    expect(back).toEqual(["src/components/DetentSheet.tsx"]);
   });
 
   it("BK20 / SC 2.5.1 — no path-based or multipoint gesture is required", () => {
     // Scroll and pinch-to-zoom are the platform's own and exempt; what the
     // criterion forbids is an app-authored gesture with no single-pointer
-    // alternative. There is none: every action is a tap.
-    expect(ALL).not.toMatch(/PanResponder|GestureDetector|Swipeable|onGestureEvent/);
+    // alternative. The one drag is the detent sheet's (ADR-038 A3, INT-473),
+    // and each thing it does has a tap: a tap on the grabber moves to the
+    // other detent (SC 2.5.7), and the backdrop and the close control close.
+    const gestures = TSX.filter((f) =>
+      /PanResponder|GestureDetector|Swipeable|onGestureEvent/.test(f.source),
+    ).map((f) => f.name);
+    expect(gestures).toEqual(["src/components/DetentSheet.tsx"]);
+    const sheet = TSX.find((f) => f.name === "src/components/DetentSheet.tsx")!.source;
+    expect(sheet).toMatch(/if \(isTap\(gesture\)\) \{\s*const other = nextDetent\(detent\)/);
+    expect(sheet).toMatch(/<Pressable\b[^>]*onPress=\{close\}/);
     expect(ALL).not.toMatch(/onLongPress/);
   });
 
@@ -1565,6 +1611,10 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
     "the barge-in level meter's sampling interval: it listens, it limits nothing",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
+  "src/lib/motion/native/useLevelSampler.ts":
+    "the presence orb's level meter sampling interval (INT-336): it draws loudness, it limits nothing",
+  "src/lib/motion/native/useDialogueMotion.ts":
+    "the end of a ≤ 120 ms fade, reported to the motion arbiter (INT-337): it frees the animation slot, it limits nothing",
   "src/lib/red/locationReport.ts":
     "the retry backoff and request deadline of the location answer's delivery to the server (INT-475): they delay or abandon a request, and the patient's answer and screen are already final",
   "src/lib/records/extraction.ts":
@@ -2045,7 +2095,8 @@ describe("SC 1.3.4 — the app is not locked to one orientation", () => {
   });
 
   it("every Modal rotates with the device — iOS presents one portrait-only unless told otherwise", () => {
-    expect(MODALS.length).toBeGreaterThan(0);
+    // INT-473 removed the last Modal (ADR-038 A3); the rule holds for any
+    // that comes back, and the in-tree sheet rotates with its screen.
     const fixed = MODALS.filter(
       (o) => propValue(o.props, "supportedOrientations") !== "{ALL_ORIENTATIONS}",
     ).map(where);
@@ -2193,15 +2244,18 @@ const riskId = (f: LandscapeFinding): string => `${f.file} › ${f.subject}`;
  * entry must still match a finding (tested below), so this list can only shrink.
  */
 const LANDSCAPE_SAFE: Record<string, string> = {
-  'src/components/SectionPanel.tsx › maxHeight: "78%"':
-    "a cap, not a height, on a sheet whose rows scroll inside it: in a 320 pt window it " +
-    "shows fewer rows and clips none",
   "src/components/GlassBar.tsx › floating":
     "every host renders the bar inside a Screen that keeps its left and right safe edges " +
     "(FLOW_EDGES), so it spans the inset content box, not the window",
   "src/components/DialogueIntake.tsx › bottomStack":
     "pinned inside the intake Screen, which keeps its left and right safe edges; capped at " +
     "the height of its frame, and the bar's upper part scrolls",
+  "src/components/stage/AmbientBackdrop.ios.tsx › top":
+    "decoration, not chrome (ADR-039 S2): the stage's top edge fade holds no control and " +
+    "no text, so running it under the side insets hides nothing",
+  "src/components/stage/AmbientBackdrop.ios.tsx › bottom":
+    "decoration, not chrome (ADR-039 S2): the stage's bottom edge fade holds no control and " +
+    "no text; the controls above it sit in the dialogue's inset bottom stack",
 };
 
 const LANDSCAPE_FINDINGS: LandscapeFinding[] = APP_SCRIPTS.flatMap((f) =>
@@ -2300,7 +2354,22 @@ describe("SC 1.3.4 — a text field stays above the keyboard in landscape", () =
   });
 
   it("a text field outside any scroller sits inside a KeyboardAvoidingView", () => {
-    const loose = TSX.flatMap((f) => {
+    // INT-466: the stage's composer field lives in StageControls and is only
+    // ever rendered by the dialogue, inside the dialogue's own avoiding view.
+    const COMPOSED_IN_DIALOGUE = "src/components/stage/StageControls.tsx";
+    const dialogueText = code(
+      TSX.find((f) => f.name === "src/components/DialogueIntake.tsx")!.source,
+    );
+    const glassAt = dialogueText.indexOf("<GlassComposer");
+    expect(
+      jsxSpans(dialogueText, "KeyboardAvoidingView").some(
+        ([start, end]) => glassAt > start && glassAt < end,
+      ),
+    ).toBe(true);
+    expect(TSX.filter((f) => /<GlassComposer\b/.test(code(f.source))).map((f) => f.name)).toEqual([
+      "src/components/DialogueIntake.tsx",
+    ]);
+    const loose = TSX.filter((f) => f.name !== COMPOSED_IN_DIALOGUE).flatMap((f) => {
       const text = code(f.source);
       const scrollers = jsxSpans(text, "ScrollView");
       const avoiding = jsxSpans(text, "KeyboardAvoidingView");
@@ -2316,11 +2385,14 @@ describe("SC 1.3.4 — a text field stays above the keyboard in landscape", () =
   it("the dialogue's bottom stack pins to the keyboard's edge and never outgrows its frame", () => {
     const dialogue = TSX.find((f) => f.name === "src/components/DialogueIntake.tsx")!;
     const text = code(dialogue.source);
-    // The KeyboardAvoidingView measures from its own top, and a header sits
-    // above it: the offset is the header's height.
+    // The KeyboardAvoidingView measures from its own top. Under a solid
+    // header it starts below the header, so the offset is the header's
+    // height; under the stage's transparent bar (INT-466) it starts at the
+    // screen's top and the offset is 0.
     const [avoiding] = readOpenings(text, dialogue.name, ["KeyboardAvoidingView"]);
-    expect(propValue(avoiding.props, "keyboardVerticalOffset")).toBe("{headerHeight}");
+    expect(propValue(avoiding.props, "keyboardVerticalOffset")).toBe("{keyboardOffset}");
     expect(text).toMatch(/const headerHeight = useHeaderHeight\(\);/);
+    expect(text).toMatch(/const keyboardOffset = glassMode === "liquid" \? 0 : headerHeight;/);
     // It lifts its content with PADDING, and an absolutely positioned child
     // ignores its parent's padding (Yoga places it against the border box):
     // pinned in the KeyboardAvoidingView itself, the composer sat behind the
@@ -2339,9 +2411,10 @@ describe("SC 1.3.4 — a text field stays above the keyboard in landscape", () =
     )!;
     expect(propValue(stack.props, "style")).toMatch(/maxHeight: frameHeight/);
     // ...and what does not fit scrolls, while the composer stays in view.
-    const barAt = text.indexOf("<GlassBar", stackAt);
+    const barAt = text.indexOf("<StageGlassGroup", stackAt);
     const scrollAt = text.indexOf("<ScrollView", barAt);
-    const composerAt = text.indexOf("styles.composerRow", barAt);
+    const composerAt = text.indexOf("<GlassComposer", barAt);
+    expect(barAt > stackAt).toBe(true);
     expect(scrollAt > barAt && scrollAt < composerAt).toBe(true);
   });
 
