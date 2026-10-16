@@ -72,6 +72,15 @@
         "\"(?<depName>[a-z0-9][a-z0-9./_-]*):(?<currentValue>[A-Za-z0-9._-]+)@(?<currentDigest>sha256:[0-9a-f]{64})\""
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "The isolation probe's image for the intake-aws-ci runner pool (infra/ci/aws-runner/runner.conf PROBE_IMAGE, INT-467): every runner publishes a port from it at once, and it is pulled by digest into each runner's rootless daemon.",
+      "managerFilePatterns": ["/^infra/ci/aws-runner/runner\\.conf$/"],
+      "matchStrings": [
+        "PROBE_IMAGE=\"(?<depName>[a-z0-9][a-z0-9./_-]*):(?<currentValue>[A-Za-z0-9._-]+)@(?<currentDigest>sha256:[0-9a-f]{64})\""
+      ],
+      "datasourceTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -113,7 +122,7 @@
       "groupName": "node dependencies"
     },
     {
-      "description": "Container images (Dockerfiles, compose files and the two regex-managed references): one weekly PR for minor, patch and digest updates.",
+      "description": "Container images (Dockerfiles, compose files and the regex-managed references): one weekly PR for minor, patch and digest updates.",
       "matchManagers": ["dockerfile", "docker-compose", "custom.regex"],
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "groupName": "container images"
