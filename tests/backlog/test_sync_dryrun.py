@@ -125,7 +125,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-430 (the agent council as a post-bind verifier, GitHub #732)
     # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
     # + INT-475 (hop RED to the Safety inbox; location answer to the server, GitHub #814)
-    assert len(actions) == 354
+    # + INT-485 (the admin oauth2-proxy logs no staff email, GitHub #830)
+    assert len(actions) == 355
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
