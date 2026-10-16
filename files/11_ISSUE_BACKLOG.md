@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**346 issues.** By phase: P0 170 · P1 122 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 231 · todo 73 · withdrawn 1.
+**347 issues.** By phase: P0 170 · P1 123 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 232 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -308,6 +308,7 @@
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
+| INT-528 | Netgsm OTP SMS adapter behind the INT-329 SMS port, recorded fixtures only, fail-closed until the owner's credentials land | E01-platform | INT-329, INT-358 | area:api, risk:security, risk:legal | done |
 
 ## P2
 

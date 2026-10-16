@@ -1,5 +1,12 @@
 """INT-329 — the Twilio SMS delivery adapter for the OTP tier (audit 2026-09-26 F13).
 
+**Not wired since INT-528.** The owner chose Netgsm as the SMS vendor on 16 Oct
+2026 (INT-358, GitHub #576), whose processing the decision records as in
+Türkiye, to be confirmed by the signed DPA.
+``intake_api.otp_netgsm`` is the adapter the OTP tier wires outside dev, and
+nothing constructs this one outside its own tests. It stays as INT-329's record
+and as the second implementation the port's tests run against.
+
 What it does, and what it refuses:
 
 - **Async.** ``send`` awaits an ``httpx.AsyncClient`` over the INT-018 guarded
@@ -39,43 +46,28 @@ import logging
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Final, Protocol
+from typing import Any, Final
 
 import httpx
-import yaml
 from intake_platform.egress import (
     DataClass,
-    EgressConfigError,
     EgressContext,
     EgressDenied,
     EgressPolicy,
     EgressPurpose,
     TransferLog,
-    assert_dev_only_vendors,
     guarded_async_client,
-    load_allowlist,
 )
-from intake_platform.secrets import SecretsBootError, SecretsProvider
 
-from intake_api.otp import (
-    DeliveryReceipt,
-    DevLogDeliveryAdapter,
-    OtpDeliveryAdapter,
-    OtpDeliveryError,
-    OtpDeliveryFailure,
-)
-from intake_api.settings import ApiSettings
+from intake_api.otp import DeliveryReceipt, OtpDeliveryError, OtpDeliveryFailure
 
 __all__ = [
     "SMS_EGRESS",
     "TWILIO_API_HOST",
     "TWILIO_KV_PATH",
-    "KvSecrets",
     "TwilioConfigError",
     "TwilioCredentials",
     "TwilioSmsDeliveryAdapter",
-    "otp_delivery_from_settings",
 ]
 
 logger = logging.getLogger("intake_api.otp_twilio")
@@ -105,12 +97,6 @@ _VENDOR_STATES: Final = frozenset(
 class TwilioConfigError(ValueError):
     """The vault document is missing a value or holds a malformed one. The
     message names fields, never values."""
-
-
-class KvSecrets(Protocol):
-    """The slice of :class:`intake_platform.secrets.SecretsProvider` used here."""
-
-    def get_kv(self, path: str) -> dict[str, Any]: ...
 
 
 @dataclass(frozen=True)
@@ -260,64 +246,3 @@ class TwilioSmsDeliveryAdapter:
             error.vendor_code if error.vendor_code is not None else "-",
         )
         return error
-
-
-def _sms_egress_policy(path: Path) -> EgressPolicy | None:
-    """The PHI-tier policy, or None when it cannot admit the SMS vendor. The
-    check is the pure one (no DNS): whether a row exists for this purpose."""
-    try:
-        allowlist = load_allowlist(path)
-        assert_dev_only_vendors(allowlist)
-    except (OSError, ValueError, EgressConfigError, yaml.YAMLError) as exc:
-        logger.warning(
-            "otp tier unconfigured outside dev: the egress allow-list is unusable (%s)",
-            type(exc).__name__,
-        )
-        return None
-    policy = EgressPolicy.for_tier(allowlist, "phi_path")
-    decision = policy.check(TWILIO_API_HOST, TWILIO_API_PORT, SMS_EGRESS)
-    if not decision.allowed:
-        logger.warning(
-            "otp tier unconfigured outside dev: the egress policy refuses the SMS vendor, "
-            "awaiting the owner's DPA and cross-border decision (%s)",
-            decision.reason,
-        )
-        return None
-    return policy
-
-
-def _credentials_from_vault(secrets: KvSecrets | None) -> TwilioCredentials | None:
-    try:
-        vault = secrets if secrets is not None else SecretsProvider.from_env()
-        return TwilioCredentials.parse(vault.get_kv(TWILIO_KV_PATH))
-    except TwilioConfigError as exc:
-        logger.warning("otp tier unconfigured outside dev: %s", exc)
-    except (SecretsBootError, httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
-        logger.warning(
-            "otp tier unconfigured outside dev: the SMS vendor credentials are not "
-            "readable from OpenBao (%s)",
-            type(exc).__name__,
-        )
-    return None
-
-
-def otp_delivery_from_settings(
-    settings: ApiSettings, secrets: KvSecrets | None = None
-) -> OtpDeliveryAdapter | None:
-    """The OTP tier's delivery adapter, or None, which leaves the tier at 503.
-
-    Dev: the dev event logger, unchanged. Outside dev: Twilio when the egress
-    policy admits the SMS vendor AND OpenBao holds all three values, and
-    nothing otherwise. The dev logger is never wired outside dev (INT-325). The
-    egress check runs first, so a vendor the policy refuses never has its
-    secret pulled into memory.
-    """
-    if settings.dev_tier_expected:
-        return DevLogDeliveryAdapter()
-    policy = _sms_egress_policy(settings.egress_allowlist_path)
-    if policy is None:
-        return None
-    credentials = _credentials_from_vault(secrets)
-    if credentials is None:
-        return None
-    return TwilioSmsDeliveryAdapter(credentials, egress=policy)

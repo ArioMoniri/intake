@@ -6,7 +6,9 @@
 # named tenant-<tenant_id>. It posts to transit/keys/<name> before every wrap:
 # that is create the first time and update after. It never rotates, exports or
 # destroys a key from the API, so no capability for those exists here.
-# Nothing outside transit/ is granted.
+# Outside transit/, one grant (INT-528): read on the SMS vendor's document,
+# secret/api/netgsm, which netgsm_secrets.sh writes with the root token. No
+# other KV path is reachable, and the API can neither write nor list it.
 #
 # Caveat: OpenBao's trailing glob also matches the key's sub-paths, such as
 # /config. Tightening that needs a per-tenant path list, which the staging
@@ -26,4 +28,8 @@ path "transit/decrypt/tenant-*" {
 
 path "transit/rewrap/tenant-*" {
   capabilities = ["update"]
+}
+
+path "secret/data/api/netgsm" {
+  capabilities = ["read"]
 }

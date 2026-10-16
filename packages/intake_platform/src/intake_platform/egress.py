@@ -72,13 +72,14 @@ import ipaddress
 import logging
 import os
 import socket
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from functools import partial
 from pathlib import Path
-from typing import Literal, Protocol
+from types import MappingProxyType
+from typing import Final, Literal, Protocol
 
 import httpx
 import yaml
@@ -86,6 +87,7 @@ from prometheus_client import Counter
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 __all__ = [
+    "DEDICATED_PERSONAL_PROXIES",
     "DENIED_RANGES",
     "VENDOR_LLM_DOMAINS",
     "AllowlistEntry",
@@ -823,8 +825,23 @@ class _GuardedAsyncTransport(httpx.AsyncBaseTransport):
         await self._inner.aclose()
 
 
+#: ADR-042: the one purpose whose personal-data call may ride a forward proxy,
+#: and the one proxy it may ride. ``sms-egress`` is the synthetic host's
+#: SMS-only proxy (infra/staging/compose.yaml): it sits on a network shared
+#: with the API alone, renders the allow-list's SMS row and nothing else
+#: (scripts/security/render_sms_egress_conf.py), closes the rebinding window
+#: itself and refuses the denied ranges at connect. Exact string match: no
+#: other scheme, host or port qualifies, and no other purpose has an entry.
+DEDICATED_PERSONAL_PROXIES: Final[Mapping[EgressPurpose, str]] = MappingProxyType(
+    {EgressPurpose.SMS_OTP_DELIVERY: "http://sms-egress:3128"}
+)
+
+
 def _refuse_personal_proxy(context: EgressContext, proxy: str | None) -> None:
-    """A personal-data transport may not delegate its pin (INT-203)."""
+    """A personal-data transport may not delegate its pin (INT-203), except the
+    one pair ADR-042 admits: the SMS purpose through its dedicated proxy."""
+    if proxy is not None and DEDICATED_PERSONAL_PROXIES.get(context.purpose) == proxy:
+        return
     if context.data_class.is_personal and proxy is not None:
         raise ValueError(
             f"a {context.data_class} transport cannot delegate its pin to the forward "
@@ -869,7 +886,9 @@ def guarded_transport(
     would lose the in-process resolve-and-pin and gain no network-tier check in
     exchange — the two enforcement points would each assume the other had done
     it. Refused at construction rather than at the first send, so the mistake
-    surfaces where it is made instead of in a receipt.
+    surfaces where it is made instead of in a receipt. The one exception is
+    :data:`DEDICATED_PERSONAL_PROXIES` (ADR-042): the SMS purpose through the
+    SMS-only proxy, which renders that purpose's row and resolves at connect.
     """
     _refuse_personal_proxy(context, proxy)
     if inner is None:

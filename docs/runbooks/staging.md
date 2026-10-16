@@ -155,7 +155,7 @@ STAGING_HOSTNAME=<EIP-dashed>.sslip.io ./init.sh
   - It generates every secret into `/etc/intake-staging/.env` (0600, in a
     0700 dir): the Postgres and Redis passwords, the object store's root
     pair, the API's OpenBao token and the OTP tier's tokenization key. It
-    writes the App Attest and SMS keys empty (see "App Attest and SMS"). A
+    writes the App Attest keys empty (see "App Attest and SMS"). A
     re-run keeps every existing value and fills only a missing one.
   - It initialises OpenBao with 3 key shares (threshold 2). The shares and
     the root token go to `/etc/intake-staging/openbao-init.json` (0600).
@@ -215,38 +215,98 @@ the image, so the image cannot carry it:
 ## App Attest and SMS
 
 Phone sign-in (the API's OTP tier) needs device attestation and an SMS
-vendor (INT-352). `./init.sh` generates the tokenization key. The operator
-sets the other keys by hand, as root, in `/etc/intake-staging/.env`:
+vendor (INT-352). The vendor is Netgsm's OTP SMS product, the owner's
+decision of 16 Oct 2026 (INT-358; adapter INT-528). `./init.sh` generates the
+tokenization key. Nothing else is set by editing a file by hand:
 
-| key | set by | value |
-|---|---|---|
-| `INTAKE_TOKENIZATION_KEY` | `./init.sh`, once | the HMAC key for phone pseudonyms. Never edit it: a new key forks every existing pseudonym |
-| `INTAKE_APP_ATTEST_TEAM_ID` | operator | the signed iOS app's Apple App ID prefix, 10 characters (INT-344, HB-A3) |
-| `INTAKE_APP_ATTEST_BUNDLE_ID` | operator, optional | leave empty for the app's committed bundle id |
-| `INTAKE_APP_ATTEST_ENVIRONMENT` | operator, optional | leave empty for production. `development` is for dev-signed builds only, never on a public host like this one |
-| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` | operator | the SMS vendor. `TWILIO_FROM` is a Twilio number in E.164 or a Messaging Service SID |
+| what | where | set by | value |
+|---|---|---|---|
+| `INTAKE_TOKENIZATION_KEY` | `/etc/intake-staging/.env` | `./init.sh`, once | the HMAC key for phone pseudonyms. Never edit it: a new key forks every existing pseudonym |
+| `usercode`, `password`, `msgheader` | SSM Parameter Store `/intake/staging/netgsm_usercode`, `_password`, `_msgheader` (SecureString), synced to OpenBao `secret/api/netgsm` | the owner, in SSM; `./netgsm_secrets.sh` and every `./deploy.sh` copy them to OpenBao | the Netgsm subscriber number (abone no, 10 digits), the dedicated API sub-user's password, and the approved sender name (3 to 11 ASCII characters, spaces allowed; today `VIVAX AS`). Never hard-coded anywhere |
+| `test_allowlist` | SSM Parameter Store `/intake/staging/sms_test_allowlist` (SecureString), synced to the same OpenBao document | the owner, in SSM | the only numbers this host may send a code to: Turkish mobiles in E.164, separated by commas or spaces. Empty, unreadable or with one malformed entry, it admits nobody. The numbers are never printed; the sync reports only their count |
+| `INTAKE_APP_ATTEST_TEAM_ID` | `/etc/intake-staging/.env` | `./app_attest_env.sh` | the signed iOS app's Apple App ID prefix, 10 characters (INT-344, HB-A3), read from the owner's login keychain by `scripts/staging/app_attest_golive.py` |
+| `INTAKE_APP_ATTEST_BUNDLE_ID` | `/etc/intake-staging/.env` | `./app_attest_env.sh` | empty for the app's committed bundle id |
+| `INTAKE_APP_ATTEST_ENVIRONMENT` | `/etc/intake-staging/.env` | `./app_attest_env.sh` | empty for production. `development` is for dev-signed builds only and is refused on a public host like this one |
 
-```bash
-sudo -i
-cd /opt/intake/infra/staging
-"${EDITOR:-vi}" /etc/intake-staging/.env   # fill the keys; the file stays 0600 root
-./deploy.sh
-```
-
-- `./deploy.sh` picks the keys up. Compose passes each one to the api
-  container with no default and recreates the container when a value
-  changes.
+- The SMS vendor is never an env-file key (invariant 14). The API reads
+  `secret/api/netgsm` with its own token, through the one KV grant in
+  `openbao/intake-api-policy.hcl`, and nothing else. `./netgsm_secrets.sh`
+  reads the four parameters with the instance role, strips the whitespace a
+  paste leaves around them, checks their shapes, enables KV v2 at `secret/`
+  and re-applies that policy before it writes, so an older host needs no
+  `./init.sh` re-run. The instance role needs `ssm:GetParameter` on the four
+  names and `kms:Decrypt` on their key. An env file from before INT-528 may
+  still hold empty `TWILIO_*` lines. Nothing reads them; delete them.
+- **SMS is real here, so the test allow-list is the gate.** On this host the
+  API starts an OTP login, and sends a code, only for a number on the list. A
+  number off it gets `422 phone_invalid`, has no code minted and causes no
+  SMS. A list that is empty, unreadable or malformed admits nobody.
+- **The route out (ADR-042).** The API's networks are all internal. Its one
+  way out is the `sms-egress` proxy on the internal `sms-out` network, which
+  only the API shares. The proxy admits CONNECT to the allow-list's SMS host
+  on 443 and nothing else, and logs `host:port` only; TLS runs end to end.
+  Only the Netgsm client uses it (`INTAKE_SMS_EGRESS_PROXY_URL`).
+- The scripts print field and key names, never values or numbers. Their SSM
+  commands carry only a script path. Run them through `aws ssm start-session`
+  with `AWS-StartInteractiveCommand`; nothing secret ever goes into
+  `aws ssm send-command` parameters, which are kept in the command history.
+- `./deploy.sh` re-syncs the four values on every run (a host without the
+  parameters is skipped) and restarts the API when they changed, because the
+  API reads them once, at start. To rotate, change the parameters and deploy.
+- `./deploy.sh` refuses a team id unless the API's own token reads all three
+  Netgsm credentials: a verified device would otherwise reach an OTP tier
+  with no vendor. `./app_attest_env.sh` refuses the same way before it
+  writes, so App Attest goes live together with SMS, never before it. With no
+  team id, every iOS attestation is refused, and Android's is refused until
+  HB-A3, so no code is ever sent.
 - An empty key reaches the API empty, and the API treats it as unset and
-  fails closed. With no team id, every iOS attestation is refused, and
-  Android's is refused until HB-A3, so no code is ever sent.
-- `./deploy.sh` refuses a team id without all three SMS keys, because a
-  verified device would then be told a code was sent that nobody sent.
+  fails closed. Without the Netgsm document, the owner's egress row or the
+  runtime gate, every `/v1/auth` route answers 503.
+- The host's public egress address is its Elastic IP, **3.211.2.143**. The
+  owner whitelists it in the Netgsm account's API IP restriction. A request
+  from anywhere else is refused with code 30, which the check below reports
+  as `refusal=credentials_refused` and the API counts as
+  `otp_sms_delivery_total{outcome="credentials_refused"}`.
 - A host initialised before INT-352 has no tokenization key, so
   `./deploy.sh` stops with `INTAKE_TOKENIZATION_KEY is empty`. Re-run
   `./init.sh` once: it fills in only what is missing.
-- **Setting the SMS keys sends a real phone number through this host to the
-  vendor.** The host is synthetic-only (HB-I5, HB-L11), so setting them is the
-  owner's decision, and the vendor needs a signed DPA first (invariant 18).
+- **Turning SMS on sends a real phone number through this host to the
+  vendor.** The host is synthetic-only (HB-I5, HB-L11), so turning it on is
+  the owner's decision once counsel has answered the questions below, and
+  the vendor needs a signed processor agreement first (KVKK m.12(2)).
+
+### Go-live after "SMS done"
+
+"SMS done" means the Netgsm corporate account is open, the DPA is signed, the
+sender name is approved, an OTP SMS package is on the account, a dedicated API
+sub-user exists, the four SSM parameters above hold their values, and
+3.211.2.143 is on the account's API IP restriction. It also assumes counsel has
+answered the open questions docs/evidence/INT-528.md lists ("Awaiting-human"):
+whether a real tester's number may pass through this us-east-1 host and under
+which route, the lawful basis for giving the number to the SMS processor, what
+the DPA confirms about where Netgsm keeps the data, whether the sender name may
+show on a lock screen, and the notice at phone entry.
+
+The host is `i-0e489e48739f5de98` (`onvizit-api`, docs/evidence/INT-352.md). Its
+tree must be a main that carries INT-528 and the owner's egress patch
+(owner-528-netgsm-egress.patch: the allow-list row, the runtime gate and the
+re-rendered `sms-egress` config). Ship and unpack it with steps 2 and 3 above,
+without `./init.sh`. Then, from the laptop after `aws sso login`, run these in
+order, one command each:
+
+1. Check the credentials, read-only (Netgsm's sender-name listing; writes nothing, sends no SMS; expect `ok: credentials accepted from this host and the sender name is approved`): `aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/netgsm_secrets.sh --check"]'`
+2. Sync the four values from SSM into the host's OpenBao (expect `changed` or `unchanged`, and the allow-list's count): `aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/netgsm_secrets.sh"]'`
+3. Read the team id from the login keychain without setting anything: `cd ~/Downloads/previsit && uv run python scripts/staging/app_attest_golive.py --check`
+4. Set the App Attest keys on the host (the helper types the team id itself): `cd ~/Downloads/previsit && uv run python scripts/staging/app_attest_golive.py`
+5. Deploy (it starts `sms-egress`, syncs the four values again and checks the pairing before the API starts): `aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/deploy.sh"]'`
+6. Smoke: `aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/smoke.sh"]'`
+7. Only when the owner says so, send one real code to the single allow-listed number. It prints `accepted: code 00, job id <id>` or the refusal, never the number or the code: `aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/netgsm_test_otp.sh"]'`
+8. After a sign-in through the app on the allow-listed phone, read what Netgsm answered (job id or refusal, from the API's own log lines): `aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/netgsm_test_otp.sh --last"]'`
+9. Read the delivery counter: `curl -s https://3-211-2-143.sslip.io/metrics | grep '^otp_sms_delivery_total'`
+
+Netgsm's OTP SMS documentation (retrieved 16 Oct 2026) gives three minutes as
+its delivery bound. A code requested in step 8 for a number off the list is
+answered `422` and sends nothing.
 
 ## Deploy freeze
 
@@ -278,7 +338,7 @@ lifted (two people). Do not work around the gate on the host.
 - **The restart test runs through the API's cipher, not an HTTP route.** A
   staging API with no dev gate has no authentication tier that can write a
   note. The dev bearers are dev gates, and the OTP tier needs the
-  operator's App Attest and SMS keys (see "App Attest and SMS").
+  operator's App Attest keys and Netgsm values (see "App Attest and SMS").
   `infra/staging/staging_probe.py`
   drives the same `wiring_from_env()` cipher inside the api container.
 - The release SBOM is not signed. CI's tag job signs the source-tree SBOM

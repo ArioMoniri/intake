@@ -176,7 +176,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
     # both lanes and the pre-positioned RED screen mounted; found by the
     # INT-440 voice end-to-end test, GitHub #756).
-    assert len(ids) == 346
+    # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
+    # owner's vendor decision on INT-358; GitHub #895).
+    assert len(ids) == 347
     import re
 
     for i in ids:

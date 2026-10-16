@@ -16,9 +16,10 @@
 # OpenBao starts. A reboot can bring swap back, and this is the script that
 # unseals OpenBao after one (docs/runbooks/staging.md, "Host memory").
 #
-# It passes the API whatever App Attest and SMS keys the operator set in the
-# env file, and refuses an Apple team id without all three SMS keys (INT-352,
-# docs/runbooks/staging.md, "App Attest and SMS").
+# It passes the API whatever App Attest keys the operator set in the env
+# file, and refuses an Apple team id unless the API's own token reads the
+# whole Netgsm document in OpenBao (INT-352, INT-528; docs/runbooks/staging.md,
+# "App Attest and SMS").
 #
 # What it does:
 #   1. Stamps the commit sha and build time, and builds the API image.
@@ -28,7 +29,9 @@
 #   3. Runs the release gate in that image (INT-187). It stops here, before
 #      anything restarts, if deploys are frozen from the console, an SLO's
 #      error budget is exhausted, or the freeze cannot be read.
-#   4. Unseals OpenBao and renews the API's periodic token.
+#   4. Unseals OpenBao and renews the API's periodic token, syncs the Netgsm
+#      values from SSM Parameter Store into OpenBao (INT-528) and checks the
+#      App Attest pairing.
 #   5. Migrates, and re-keys any new migration role.
 #   6. INT-421: makes sure Keycloak's database exists, starts Keycloak (which
 #      imports the staff realm on first start), switches the live realm's
@@ -48,7 +51,6 @@ require_root
 require_tools
 require_no_unencrypted_swap
 load_env
-require_sms_with_app_attest
 ensure_jwks_file
 stamp_revision
 build_api_image
@@ -62,6 +64,11 @@ compose up -d postgres redis openbao
 wait_for_openbao
 unseal_openbao
 renew_api_token
+# INT-528: the owner's SSM parameters are the Netgsm values' source of truth.
+# Sync them into OpenBao (a host without them is skipped), then check the
+# App Attest pairing against what the API will read, before the API starts.
+NETGSM_SYNC=$("$STAGING_DIR/netgsm_secrets.sh" --if-present)
+require_sms_with_app_attest
 
 wait_healthy postgres
 run_migrations
@@ -75,8 +82,8 @@ mirror_keycloak_jwks
 
 # --no-build: the api runs the image build_api_image made and syft described
 compose up -d --no-build --wait --remove-orphans
-if ((JWKS_CHANGED == 1)); then
-  # the API reads the key set once, at start
+if ((JWKS_CHANGED == 1)) || [[ $NETGSM_SYNC == changed ]]; then
+  # the API reads the key set and the Netgsm document once, at start
   compose restart api
   wait_healthy api
 fi

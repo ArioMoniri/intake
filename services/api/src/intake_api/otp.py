@@ -16,9 +16,9 @@ Honest tiering:
   never the code, never the phone) and claims nothing more; the code is
   reachable solely through the peek endpoint behind
   ``INTAKE_DEV_OTP_PEEK=explicit-yes``. Outside dev the only adapter is
-  ``intake_api.otp_twilio``, wired only when its credentials are in OpenBao
-  and the egress policy admits the vendor (the owner's DPA and cross-border
-  decision), otherwise the tier stays 503. A failed delivery is a typed
+  ``intake_api.otp_netgsm`` (INT-528; the owner's vendor decision, INT-358),
+  wired only when its credentials are in OpenBao and the egress policy admits
+  the vendor (the owner's patch), otherwise the tier stays 503. A failed delivery is a typed
   :class:`OtpDeliveryError` and a generic 503, never a claimed "sent".
 - Attestation (INT-344): iOS registers an App Attest key once
   (``/attest/key``) and signs every OTP call with an assertion from it; the
@@ -85,6 +85,7 @@ from intake_api.errors import (
     refresh_reused,
     unauthorized,
 )
+from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
 
 __all__ = [
     "ATTESTATION_HEADER",
@@ -208,6 +209,9 @@ class AuthWiring:
             AttestationReason.APP_ATTEST_NOT_CONFIGURED
         )
     )
+    # INT-528: on the synthetic host, the owner's SMS test allow-list; a
+    # number off it starts no login. Elsewhere there is no list.
+    recipients: RecipientGate = field(default_factory=lambda: ADMIT_ALL)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -367,6 +371,13 @@ class OtpAuthService:
         # row 1, generic errors). It fails OPEN — see carrier_geo — so today,
         # with an empty authority, this branch is unreachable in production.
         if self._wiring.carrier_geo.evaluate(phone).refuses:
+            raise phone_invalid()
+        # INT-528 — on the synthetic host SMS is real, so a number off the
+        # owner's test allow-list starts no login: no code is minted and no SMS
+        # leaves. Same place and same answer as the carrier check above, for the
+        # same reasons; the line logged names no number.
+        if not self._wiring.recipients.admits(phone):
+            logger.info("otp request refused: the number is not on the SMS test allow-list")
             raise phone_invalid()
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
         await asyncio.to_thread(

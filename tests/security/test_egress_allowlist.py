@@ -529,7 +529,8 @@ def test_a_purpose_awaiting_the_owner_has_no_row_and_every_tier_refuses_it() -> 
         for purpose in PURPOSES_AWAITING_THE_OWNER:
             for data_class in DataClass:
                 context = EgressContext(purpose=purpose, data_class=data_class)
-                assert not policy.check("api.twilio.com", 443, context).allowed
+                for host in ("api.twilio.com", "api.netgsm.com.tr"):
+                    assert not policy.check(host, 443, context).allowed, host
 
 
 # --- the transfer log: {host, purpose, bytes, ts} -----------------------------------
