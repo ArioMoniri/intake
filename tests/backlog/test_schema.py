@@ -188,7 +188,10 @@ def test_ids_unique_and_well_formed() -> None:
     # order of 3 Oct 2026, GitHub #790).
     # + INT-430 (the agent council, reshaped into a post-bind verifier by the
     # medical and AI/ML challenger reviews; owner request, GitHub #732).
-    assert len(ids) == 352
+    # + INT-428 (hosted model lanes for the synthetic deployment, switchable
+    # from the admin panel with a GPU switch-over; owner decision, ADR-035,
+    # GitHub #724).
+    assert len(ids) == 353
     import re
 
     for i in ids:
