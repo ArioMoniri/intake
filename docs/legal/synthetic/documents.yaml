@@ -30,7 +30,9 @@
 # to decide (CLAUDE.md, "When to stop and ask the human"); none is guessed.
 # docs/evidence/INT-529.md §4 is the table, docs/backlog/blockers.md the ask.
 
-synthetic_index_version: "2026-10-16.1"
+# INT-536 (17 Oct 2026): voice and lane.affect name AWS as the hosting
+# processor in their recipients sections (INT-529 F9); both re-signed.
+synthetic_index_version: "2026-10-17.1"
 data_class: synthetic
 
 documents:
@@ -44,8 +46,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.voice
-    version: "2026-10-16.syn1"
-    sha256: "edb080351c43ec262a2a69829c3eca9977d1af8afa6b913f4367e2d0cccdfe09"
+    version: "2026-10-17.syn1"
+    sha256: "4c919d1e8140060546e2ac7906c78614f5b05c58f030fe9b2f0231842b9fdd54"
     grounds:
       retention: [raw_audio, clinical_record]
       recipients: [REC_INTERNAL]
@@ -62,8 +64,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.lane.affect
-    version: "2026-10-16.syn1"
-    sha256: "e377625c58e54b89005fef0a071fd8f9cc4f7f526107201e5dbd464dec0375d5"
+    version: "2026-10-17.syn1"
+    sha256: "e260ee57423f69bffcb953fffe86f009c3543552f9c5af56dc99e2c8c211d74a"
     grounds:
       retention: [lane_windows]
       recipients: [REC_INTERNAL]
@@ -86,7 +88,7 @@ documents:
       retention: [satisfaction, telemetry]
       recipients: [REC_INTERNAL]
       categories: [CAT_HEALTH, CAT_OPERATIONAL]
-      bases: [BASIS_HEALTH_CONSENT]
+      bases: [BASIS_SATISFACTION_CONSENT, BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.share
     version: "2026-10-16.syn1"

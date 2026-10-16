@@ -385,7 +385,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
     # loaded only on the synthetic host, GitHub #896); grows only with a stated
     # reason.
-    assert len(ids) == 365, f"expected 175 blueprint + 190 added issues, got {len(ids)}"
+    # + INT-536 (consent-screen copy true for the host and matching the consent
+    # texts, GitHub #903); grows only with a stated reason.
+    assert len(ids) == 366, f"expected 175 blueprint + 191 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

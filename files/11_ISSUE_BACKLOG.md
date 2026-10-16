@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**365 issues.** By phase: P0 180 · P1 131 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 244 · todo 74 · withdrawn 1.
+**366 issues.** By phase: P0 180 · P1 132 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 245 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -327,6 +327,7 @@
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 | INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
+| INT-536 | Consent-screen copy matches the consent texts and the host: affect cues never reach the doctor, and no 'stays in Türkiye' claim on the us-east-1 host | E14-legal | INT-529 | area:legal | done |
 
 ## P2
 

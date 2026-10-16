@@ -1,7 +1,8 @@
 """INT-529 — the tripwire on the synthetic texts' "no outside party" sentences.
 
-Three synthetic texts say that the patient's audio, answers and documents reach
-no outside company. Each sentence is true only while nothing on the synthetic
+Four synthetic texts (voice, lane:affect, core, documents) say that the
+patient's audio, answers and documents reach no outside company other than the
+hosting processor, which each names. Each sentence is true only while nothing on the synthetic
 host can send that data to a vendor. Two routes could make them false:
 
 - **A PHI-path egress row.** The one admitted purpose is ``sms_otp_delivery``
@@ -75,9 +76,20 @@ REPO = Path(__file__).resolve().parents[2]
 
 #: The sentences that are true only while no outside party receives the data.
 NO_VENDOR_SENTENCES = {
-    "acik_riza.voice": "Sesiniz hiçbir dış şirkete gönderilmez.",
+    "acik_riza.voice": "Sesiniz bunun dışında hiçbir dış şirkete gönderilmez.",
+    "acik_riza.lane.affect": "Bu analiz için sesiniz bunun dışında hiçbir dış şirkete gönderilmez.",
     "acik_riza.core": "yalnızca hizmeti çalıştıran sistemlerimizde işlenir.",
     "acik_riza.documents": "yalnızca hizmeti çalıştıran sistemlerimizde işlenir.",
+}
+#: INT-536 (the INT-529 F9 follow-up): each of those texts names the hosting
+#: processor in its recipients section, before "Nerede:", so "no outside
+#: company" never reads as "not even the host".
+HOSTING_PROCESSOR = "Amazon Web Services (AWS)"
+RECIPIENT_SECTIONS = {
+    "acik_riza.voice": "Ses kimlere gider:",
+    "acik_riza.lane.affect": "Ses kimlere gider:",
+    "acik_riza.core": "Kimler görür:",
+    "acik_riza.documents": "Kimler görür:",
 }
 #: The PHI-path purpose these sentences do not cover (see the module docstring).
 PHI_PATH_PURPOSES_OUTSIDE_THE_TEXTS = frozenset({"sms_otp_delivery"})
@@ -222,6 +234,20 @@ def test_the_no_vendor_sentences_are_in_the_texts() -> None:
     index = SyntheticLegalIndex(REPO / SYNTHETIC_LEGAL_ROOT, data_class=TenantDataClass.SYNTHETIC)
     for document_id, sentence in NO_VENDOR_SENTENCES.items():
         assert sentence in index.entry(document_id).body, document_id
+
+
+@pytest.mark.parametrize("document_id", sorted(RECIPIENT_SECTIONS))
+def test_every_no_vendor_text_names_the_hosting_processor_with_its_recipients(
+    document_id: str,
+) -> None:
+    body = (
+        SyntheticLegalIndex(REPO / SYNTHETIC_LEGAL_ROOT, data_class=TenantDataClass.SYNTHETIC)
+        .entry(document_id)
+        .body
+    )
+    section = body[body.index(RECIPIENT_SECTIONS[document_id]) : body.index("Nerede:")]
+    assert HOSTING_PROCESSOR in section
+    assert NO_VENDOR_SENTENCES[document_id] in section
 
 
 def test_no_outside_party_can_receive_what_the_texts_say_none_receives() -> None:

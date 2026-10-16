@@ -225,7 +225,9 @@ def test_ids_unique_and_well_formed() -> None:
     # 300 ms budget; INT-521 residual 1, GitHub #898).
     # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
     # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
-    assert len(ids) == 365
+    # + INT-536 (consent-screen copy true for the host and matching the
+    # consent texts; from the INT-529 legal-author findings, GitHub #903).
+    assert len(ids) == 366
     import re
 
     for i in ids:
