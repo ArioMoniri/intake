@@ -58,6 +58,7 @@ from protocols.taxonomy import (
     load_taxonomy,
 )
 from protocols.types import PackLayer
+from protocols.valuesets import VALUESETS_PATH, ValueSetError, load_valuesets
 
 __all__ = ["REVIEW_QUEUE_DIRNAME", "ReviewQueueRootError", "load_registry", "main"]
 
@@ -197,6 +198,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "is incomplete is refused",
     )
     com.add_argument(
+        "--valuesets",
+        type=Path,
+        default=VALUESETS_PATH,
+        help="the committed code-slot value sets (INT-441); a gate comparing a code "
+        "slot against a non-member, or a slot with no committed set, is refused",
+    )
+    com.add_argument(
         "--locale",
         default=DEFAULT_LOCALE,
         help="locale the bundle speaks (default: %(default)s). The clip manifest "
@@ -240,7 +248,14 @@ def _compile_command(args: argparse.Namespace) -> int:
         template = load_opt(args.opt)
         registry = load_registry(args.packs)
         data_register = load_data_register(args.data_register)
-    except (LifeThreatSetError, OptError, PackSchemaError, DataRegisterError) as exc:
+        valuesets = load_valuesets(args.valuesets)
+    except (
+        LifeThreatSetError,
+        OptError,
+        PackSchemaError,
+        DataRegisterError,
+        ValueSetError,
+    ) as exc:
         print(f"compile: {exc}")
         return 1
     try:
@@ -253,6 +268,7 @@ def _compile_command(args: argparse.Namespace) -> int:
             locale=args.locale,
             overlays=tuple(args.overlays),
             data_register=data_register,
+            valuesets=valuesets,
         )
     except CompileError as exc:
         print(f"compile: refused to emit {args.pack} ({len(exc.refusals)} reasons)")

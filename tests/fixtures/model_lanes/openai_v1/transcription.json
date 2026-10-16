@@ -1,0 +1,10 @@
+{
+  "_comment": "TEST FIXTURE (INT-428). A recorded-shape transcription answer for a SYNTHETIC utterance, with token usage as the transcribe snapshots report it. Invented; no call was made.",
+  "text": "Sentetik hasta: iki gündür başım ağrıyor.",
+  "usage": {
+    "type": "tokens",
+    "input_tokens": 61,
+    "output_tokens": 12,
+    "total_tokens": 73
+  }
+}

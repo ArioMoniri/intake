@@ -185,6 +185,13 @@ FREEZE_REASON: dict[str, Any] = {
     "justification": "Error budget burning on the api; hold every deploy.",
 }
 
+#: INT-428. The Model lanes module's bodies: the same closed reason class and
+#: real explanation as every other governed change (INT-188).
+LANES_REASON: dict[str, Any] = {
+    "reason_class": "incident_mitigation",
+    "justification": "The GPU lane is down; route the synthetic stress run elsewhere.",
+}
+
 ROUTE_DRIVES: tuple[RouteDrive, ...] = (
     RouteDrive("GET", "/admin/whoami", "/admin/whoami", "auditor"),
     RouteDrive("GET", "/admin/access/roles", "/admin/access/roles", "auditor"),
@@ -322,6 +329,73 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "GET",
         "/admin/cicd/pending/{action_id}",
         f"/admin/cicd/pending/{ABSENT_ACTION_ID}",
+        "auditor",
+    ),
+    # INT-428 — the Model lanes module (ADR-035). The harness wires no
+    # model-lane store, so every permitted role reaches the handler and is
+    # answered 503 (or 404 for an id nothing minted) — past the guard,
+    # audited, and never 403.
+    RouteDrive("GET", "/admin/model-lanes", "/admin/model-lanes", "sre_oncall"),
+    RouteDrive(
+        "POST",
+        "/admin/model-lanes/hosted/disable",
+        "/admin/model-lanes/hosted/disable",
+        "sre_oncall",
+        LANES_REASON,
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/model-lanes/self-hosted",
+        "/admin/model-lanes/self-hosted",
+        "sre_oncall",
+        {**LANES_REASON, "lanes": ["llm"]},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/model-lanes/hosted/release",
+        "/admin/model-lanes/hosted/release",
+        "platform_admin",
+        LANES_REASON,
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/model-lanes/hosted/release/{action_id}/approve",
+        f"/admin/model-lanes/hosted/release/{ABSENT_ACTION_ID}/approve",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-lanes-1"},
+    ),
+    RouteDrive(
+        "PUT",
+        "/admin/model-lanes/route/{role}",
+        "/admin/model-lanes/route/llm",
+        "platform_admin",
+        {**LANES_REASON, "route": "self_hosted"},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/model-lanes/route/pending/{action_id}/approve",
+        f"/admin/model-lanes/route/pending/{ABSENT_ACTION_ID}/approve",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-lanes-2"},
+    ),
+    RouteDrive(
+        "PUT",
+        "/admin/model-lanes/keys/{provider}",
+        "/admin/model-lanes/keys/openai",
+        "platform_admin",
+        {**LANES_REASON, "api_key": "unit-lane-not-a-key-0000000000"},
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/model-lanes/keys/pending/{action_id}/approve",
+        f"/admin/model-lanes/keys/pending/{ABSENT_ACTION_ID}/approve",
+        "qms_owner",
+        {"assertion_id": "assn-unit-lane-lanes-3"},
+    ),
+    RouteDrive(
+        "GET",
+        "/admin/model-lanes/pending/{action_id}",
+        f"/admin/model-lanes/pending/{ABSENT_ACTION_ID}",
         "auditor",
     ),
     # INT-366 — Access & identity. With no identity wired (the harness

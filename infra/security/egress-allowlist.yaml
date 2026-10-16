@@ -107,6 +107,28 @@ tiers:
       purpose: regional LFS CDN (cdn-lfs-*.hf.co) for huggingface-hub pulls
       phi_allowed: false
       basis: no-personal-data; open-weights model pull (invariant 19)
+    # ADR-035 (owner decision, 2 Oct 2026); INT-428, INT-442, INT-443. The
+    # hosted lanes' vendors, for the SYNTHETIC deployment only. phi_allowed
+    # stays false, so a PHI-classed call is refused here as well as by the
+    # ADR-035 guard. The synthetic host's forward proxy
+    # (infra/staging/egress/squid.conf) renders these two rows and nothing
+    # else; the build proxy never renders them. Removed when ADR-035 reverts.
+    - name: openai-api
+      host: api.openai.com
+      port: 443
+      protocol: https
+      purpose_id: hosted_model_inference
+      purpose: hosted LLM, ASR and TTS lanes for synthetic tenants only (ADR-035)
+      phi_allowed: false
+      basis: no-personal-data; synthetic deployment only (ADR-035)
+    - name: elevenlabs-api
+      host: api.elevenlabs.io
+      port: 443
+      protocol: https
+      purpose_id: hosted_model_inference
+      purpose: hosted TTS of scripted catalogue text, synthetic deployment only (ADR-035, INT-443)
+      phi_allowed: false
+      basis: no-personal-data; scripted non-patient text, synthetic deployment only (ADR-035)
 
   # The PHI path is self-hosted end to end (invariant 19 / 00_STATE D11, and
   # 07 §F: "no external model or speech vendor on the list at all"): every

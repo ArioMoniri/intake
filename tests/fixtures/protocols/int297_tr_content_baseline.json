@@ -1,12 +1,12 @@
 {
   "files/protocols/base.life_threat.yaml": {
     "rules/0/action/ON_SITE/why_tr": {
-      "authored": "Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil kabul edilen hastalar sıra beklemez.",
-      "expanded": "Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil kabul edilen hastalar sıra beklemez."
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
     },
     "rules/0/action/REMOTE/why_tr": {
-      "authored": "Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir. 112 ile gelen hastalar acil serviste triyaj için bekletilmez.",
-      "expanded": "Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir. yüz on iki ile gelen hastalar acil serviste triyaj için bekletilmez."
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
     },
     "rules/1/action/ON_SITE/why_tr": {
       "authored": "Anlattığınız ağrının bugün içinde değerlendirilmesi gerekiyor. Zaten hastanedesiniz; acil serviste bugün değerlendirilebilirsiniz.",
