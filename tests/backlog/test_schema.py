@@ -203,7 +203,7 @@ def test_ids_unique_and_well_formed() -> None:
     # RED fires from the conversation; from INT-518, GitHub #887).
     # + INT-442 (the synthetic AWS host's egress forward proxy, split from
     # INT-428, GitHub #752).
-    assert len(ids) == 358
+    assert len(ids) == 359
     import re
 
     for i in ids:

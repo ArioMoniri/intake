@@ -361,7 +361,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # reason.
     # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
     # GitHub #752); grows only with a stated reason.
-    assert len(ids) == 358, f"expected 175 blueprint + 183 added issues, got {len(ids)}"
+    assert len(ids) == 359, f"expected 175 blueprint + 184 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
