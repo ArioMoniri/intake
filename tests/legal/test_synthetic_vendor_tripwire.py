@@ -7,41 +7,67 @@ host can send that data to a vendor. Two routes could make them false:
 - **A PHI-path egress row.** The one admitted purpose is ``sms_otp_delivery``
   (INT-528's Netgsm row). It carries the sign-in number and code, never audio,
   answers or documents, so none of these sentences speaks about it.
-- **A hosted model lane that a deployed process routes patient data through.**
+- **A hosted model lane that a deployed process sends patient data through.**
   ADR-035 lists the hosted vendors' rows (``openai-api``, ``elevenlabs-api``;
-  INT-442), and the console can switch a lane to a hosted provider. A row alone
-  moves no patient data, though. On the synthetic host today, the API reaches
-  a hosted vendor only through the clip lane (server-verified scripted catalogue
-  text, ``NON_PERSONAL``; ``intake_api.dev_voice_guard``) and the console's
-  identity probes. The gateways that would carry a patient's audio or answers
-  (``model_lanes.dispatch`` and its three importers) run in ``voice-runtime``,
-  which ``infra/staging/compose.yaml`` does not deploy.
+  INT-442). A row alone moves no patient data. The question is which code on
+  the host can hand data to a hosted backend.
 
-So the hosted half of the tripwire fires when a hosted row is listed **and**
-any one of these holds:
-1. the synthetic host gains a service the texts were not verified against;
-2. a new module routes calls through ``dispatch``;
-3. the API imports a routed gateway.
+What the texts were verified against (16 Oct 2026; ``hosted_reach`` reads
+each from the tree):
+- **Compose.** The services; who sits on the networks that lead off the host
+  (``outbound``: api and egress-proxy; ``vendor``: egress-proxy only); and the
+  api's command, which is the image's uvicorn.
+- **Dispatchers.** ``model_lanes.dispatch`` has three importers, in
+  voice-clips and voice-runtime. None is deployed or imported by the API.
+- **Hosted-backend call sites.** The API holds the hosted backends
+  (``model_lanes_from_env`` → ``router.hosted.backends``). Its one use is the
+  console's identity probe (``model_lanes_console.py``). The only
+  ``chat_json`` / ``transcribe`` / ``speech`` users are the three dispatchers,
+  plus the self-hosted ``HttpTranscriber`` in ``scripts/voice/live_smoke.py``.
+- **Routed references.** Two string literals name a gateway package: the
+  hosted-lanes plugin name in ``model_lanes/wiring.py`` (the console's
+  backends) and the clip lane in ``hosted_clip_lane.py``.
+- **The clip lane.** It is reached only from ``hosted_clip_lane.py``, which
+  passes the scripted-catalogue predicate, so only server-verified scripted
+  text goes to ElevenLabs.
+- **The API's import closure.** Taken transitively over first-party modules,
+  it reaches no gateway module.
 
-When it fires, the fix is not to widen these sets. The texts must name each
-recipient by its verified legal entity and country (files/06 §2.1's
-consent/vendor parity), the synthetic index must be re-signed, and every grant
-is re-prompted. Only then may the set move. INT-515 (voice-runtime and an SFU
-on this host, GitHub #877) is the planned change that fires it.
+The hosted half fires when a hosted row is listed **and** any of those facts
+moves. That covers a one-line ``router.hosted.backends[p].chat_json(...)`` in
+the API, an ``importlib`` literal naming a gateway, and a gateway reached
+through another module.
 
-Narrowed from "any listed hosted row" on the INT-529 refresh (16 Oct 2026),
-when INT-442 listed the rows without moving any patient data. The
-legal-reviewer verifies the narrowing (docs/evidence/INT-529.md §12).
+When it fires, the fix is not to widen the verified sets. The texts must
+first name each recipient by its verified legal entity and country (files/06
+§2.1's consent/vendor parity). Then the synthetic index is re-signed and every
+grant is re-prompted. Only then may a set move. INT-515 (voice-runtime and an
+SFU on this host, GitHub #877) is the planned change that fires it.
+
+Narrowed from "any listed hosted row" on the INT-529 refresh, 16 Oct 2026.
+Widened again after the legal re-verification found the backend bypass. The
+legal-reviewer verifies it (docs/evidence/INT-529.md §12).
 """
 
 from __future__ import annotations
 
 import ast
-from collections.abc import Iterable
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
 import yaml
+from hosted_reach import (
+    api_reach,
+    compose_facts,
+    dispatchers,
+    gateway_modules,
+    hosted_call_sites,
+    import_graph,
+    python_sources,
+    routed_references,
+)
 from intake_platform.legal.synthetic import SYNTHETIC_LEGAL_ROOT, SyntheticLegalIndex
 from intake_platform.model_lanes.model import TenantDataClass
 
@@ -56,34 +82,74 @@ NO_VENDOR_SENTENCES = {
 #: The PHI-path purpose these sentences do not cover (see the module docstring).
 PHI_PATH_PURPOSES_OUTSIDE_THE_TEXTS = frozenset({"sms_otp_delivery"})
 
-#: The synthetic host's services, as the sentences were verified against them on
-#: 16 Oct 2026. None hosts a routed lane gateway.
-VERIFIED_SYNTHETIC_SERVICES = frozenset(
-    {
-        "api",
-        "postgres",
-        "redis",
-        "openbao",
-        "minio",
-        "keycloak",
-        "oauth2-proxy",
-        "admin-web",
-        "egress-proxy",
-        "caddy",
-    }
-)
+_CONSOLE = "services/api/src/intake_api/admin/model_lanes_console.py"
+_CLIP_LANE = "services/api/src/intake_api/hosted_clip_lane.py"
+_VOICE_CLIPS_LANES = "packages/voice-clips/src/voice_clips/lanes.py"
+_ADAPTER_LANES = "services/voice-runtime/src/intake_voice_runtime/adapters/lanes.py"
+_EXTRACTION_LANES = "services/voice-runtime/src/intake_voice_runtime/extraction/lanes.py"
 
-#: The modules that route a call through ``intake_platform.model_lanes.dispatch``,
-#: so a hosted lane can carry what they are given. The API imports none of them.
-VERIFIED_DISPATCHERS = frozenset(
-    {
-        "packages/voice-clips/src/voice_clips/lanes.py",
-        "services/voice-runtime/src/intake_voice_runtime/adapters/lanes.py",
-        "services/voice-runtime/src/intake_voice_runtime/extraction/lanes.py",
-    }
+
+@dataclass(frozen=True)
+class Reach:
+    """Every fact the no-vendor sentences rest on, as the tree has it."""
+
+    services: frozenset[str]
+    outbound: frozenset[str]
+    vendor: frozenset[str]
+    api_command: object
+    dispatchers: frozenset[str]
+    call_sites: frozenset[tuple[str, str]]
+    routed_refs: frozenset[tuple[str, str]]
+    api_reach: frozenset[str]
+
+
+VERIFIED = Reach(
+    services=frozenset(
+        {
+            "api",
+            "postgres",
+            "redis",
+            "openbao",
+            "minio",
+            "keycloak",
+            "oauth2-proxy",
+            "admin-web",
+            "egress-proxy",
+            "caddy",
+        }
+    ),
+    outbound=frozenset({"api", "egress-proxy"}),
+    vendor=frozenset({"egress-proxy"}),
+    api_command=(
+        None,
+        None,
+        'CMD ["uvicorn", "intake_api.app:create_app", "--factory", "--host", "0.0.0.0", '
+        '"--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-server-header"]',
+    ),
+    dispatchers=frozenset({_VOICE_CLIPS_LANES, _ADAPTER_LANES, _EXTRACTION_LANES}),
+    call_sites=frozenset(
+        {
+            (_CONSOLE, "hosted.backends"),
+            (_VOICE_CLIPS_LANES, "HostedBackend"),
+            (_VOICE_CLIPS_LANES, "speech"),
+            (_ADAPTER_LANES, "HostedBackend"),
+            (_ADAPTER_LANES, "transcribe"),
+            (_EXTRACTION_LANES, "HostedBackend"),
+            (_EXTRACTION_LANES, "chat_json"),
+            ("scripts/voice/live_smoke.py", "transcribe"),
+        }
+    ),
+    routed_refs=frozenset(
+        {
+            (
+                "packages/intake_platform/src/intake_platform/model_lanes/wiring.py",
+                "intake_hosted_lanes",
+            ),
+            (_CLIP_LANE, "intake_hosted_lanes.clip_lane"),
+        }
+    ),
+    api_reach=frozenset(),
 )
-_DISPATCH_MODULE = "intake_platform.model_lanes.dispatch"
-_LANES_PACKAGE = "intake_platform.model_lanes"
 
 
 def _allowlist() -> dict[str, object]:
@@ -93,74 +159,39 @@ def _allowlist() -> dict[str, object]:
     return loaded
 
 
-def _staging_services() -> frozenset[str]:
-    compose = yaml.safe_load((REPO / "infra" / "staging" / "compose.yaml").read_text("utf-8"))
-    return frozenset(compose["services"])
-
-
-def _imports(path: Path) -> list[tuple[str, tuple[str, ...]]]:
-    """``(module, names)`` for every import statement in one file."""
-    found: list[tuple[str, tuple[str, ...]]] = []
-    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-        if isinstance(node, ast.ImportFrom) and node.module:
-            found.append((node.module, tuple(alias.name for alias in node.names)))
-        elif isinstance(node, ast.Import):
-            found.extend((alias.name, ()) for alias in node.names)
-    return found
-
-
-def _source_trees() -> list[Path]:
-    return sorted([*REPO.glob("packages/*/src"), *REPO.glob("services/*/src")])
-
-
-def _routes_through_dispatch(imports: Iterable[tuple[str, tuple[str, ...]]]) -> bool:
-    return any(
-        module == _DISPATCH_MODULE or (module == _LANES_PACKAGE and "dispatch" in names)
-        for module, names in imports
+def _reach(sources: Mapping[str, str] | None = None) -> Reach:
+    sources = python_sources() if sources is None else sources
+    facts = compose_facts()
+    found = dispatchers(sources)
+    return Reach(
+        services=frozenset(facts["services"]),  # type: ignore[arg-type]
+        outbound=frozenset(facts["outbound"]),  # type: ignore[arg-type]
+        vendor=frozenset(facts["vendor"]),  # type: ignore[arg-type]
+        api_command=facts["api_command"],
+        dispatchers=found,
+        call_sites=hosted_call_sites(sources),
+        routed_refs=routed_references(sources),
+        api_reach=api_reach(import_graph(sources), gateway_modules(found)),
     )
 
 
-def _dispatchers() -> frozenset[str]:
-    out: set[str] = set()
-    for tree in _source_trees():
-        for path in tree.rglob("*.py"):
-            relative = path.relative_to(REPO).as_posix()
-            if "/intake_platform/model_lanes/" in relative:
-                continue
-            if _routes_through_dispatch(_imports(path)):
-                out.add(relative)
-    return frozenset(out)
+def _paths(reach: Reach) -> list[str]:
+    """Every way ``reach`` differs from what the texts were verified against."""
+    paths = [
+        *(f"service {s!r}" for s in sorted(reach.services - VERIFIED.services)),
+        *(f"{s!r} on the outbound network" for s in sorted(reach.outbound - VERIFIED.outbound)),
+        *(f"{s!r} on the vendor network" for s in sorted(reach.vendor - VERIFIED.vendor)),
+        *(f"{p} imports dispatch" for p in sorted(reach.dispatchers - VERIFIED.dispatchers)),
+        *(f"{p}: {what}" for p, what in sorted(reach.call_sites - VERIFIED.call_sites)),
+        *(f"{p} names {v!r}" for p, v in sorted(reach.routed_refs - VERIFIED.routed_refs)),
+        *(f"the API's imports reach {m}" for m in sorted(reach.api_reach)),
+    ]
+    if reach.api_command != VERIFIED.api_command:
+        paths.append(f"the api runs {reach.api_command!r}")
+    return paths
 
 
-def _module_name(relative: str) -> str:
-    """``packages/x/src/a/b.py`` → ``a.b``."""
-    inside = relative.split("/src/", 1)[1]
-    return inside.removesuffix(".py").replace("/", ".")
-
-
-def _api_routed_imports(dispatchers: frozenset[str]) -> list[str]:
-    """Every import in ``services/api/src`` of a routed gateway or of dispatch."""
-    gateways = {_module_name(path) for path in dispatchers}
-    hits: list[str] = []
-    for path in sorted((REPO / "services" / "api" / "src").rglob("*.py")):
-        for module, names in _imports(path):
-            routed = (
-                module in gateways
-                or module.startswith("intake_voice_runtime")
-                or _routes_through_dispatch([(module, names)])
-            )
-            if routed:
-                hits.append(f"{path.relative_to(REPO).as_posix()} imports {module}")
-    return hits
-
-
-def outside_parties(
-    allowlist: dict[str, object],
-    *,
-    services: frozenset[str],
-    dispatchers: frozenset[str],
-    api_routed_imports: list[str],
-) -> list[str]:
+def outside_parties(allowlist: dict[str, object], reach: Reach) -> list[str]:
     """Why the no-vendor sentences may no longer be true; empty while they are."""
     tiers = allowlist["tiers"]
     assert isinstance(tiers, dict)
@@ -179,28 +210,12 @@ def outside_parties(
         for row in rows or []
         if row.get("name") in hosted_rows or row.get("purpose_id") == "hosted_model_inference"
     )
-    if not hosted:
-        return reasons
-    paths = [
-        *(
-            f"service {name!r} on the synthetic host"
-            for name in sorted(services - VERIFIED_SYNTHETIC_SERVICES)
-        ),
-        *(f"{path} routes through dispatch" for path in sorted(dispatchers - VERIFIED_DISPATCHERS)),
-        *api_routed_imports,
-    ]
-    reasons.extend(f"hosted rows {hosted} reachable through {path}" for path in paths)
+    if hosted:
+        reasons.extend(f"hosted rows {hosted} reachable: {path}" for path in _paths(reach))
     return reasons
 
 
-def _current() -> list[str]:
-    dispatchers = _dispatchers()
-    return outside_parties(
-        _allowlist(),
-        services=_staging_services(),
-        dispatchers=dispatchers,
-        api_routed_imports=_api_routed_imports(dispatchers),
-    )
+# --- the tripwire ------------------------------------------------------------------------
 
 
 def test_the_no_vendor_sentences_are_in_the_texts() -> None:
@@ -210,34 +225,73 @@ def test_the_no_vendor_sentences_are_in_the_texts() -> None:
 
 
 def test_no_outside_party_can_receive_what_the_texts_say_none_receives() -> None:
-    reasons = _current()
+    reasons = outside_parties(_allowlist(), _reach())
     assert reasons == [], (
         f"{reasons}: name each recipient (verified legal entity and country) in "
         f"{sorted(NO_VENDOR_SENTENCES)}, re-sign the synthetic index (files/06 §2.1), "
-        "and only then move the verified sets"
+        "and only then move the verified facts"
     )
 
 
-def test_the_verified_sets_are_exactly_today_s_tree() -> None:
-    """Both sets must be exact. A set that is wider than the tree could absorb
+def test_the_verified_facts_are_exactly_today_s_tree() -> None:
+    """Exact, not a superset: a verified set wider than the tree could absorb
     a new path silently."""
-    dispatchers = _dispatchers()
-    assert _staging_services() == VERIFIED_SYNTHETIC_SERVICES
-    assert dispatchers == VERIFIED_DISPATCHERS
-    assert _api_routed_imports(dispatchers) == []
+    assert _reach() == VERIFIED
 
 
 def test_hosted_rows_are_listed_today() -> None:
-    """The narrowed half only matters while hosted rows are listed. If they are
+    """The hosted half only matters while hosted rows are listed. If they are
     removed (ADR-035 reverts), this pin goes and the hosted half is dormant."""
     tiers = _allowlist()["tiers"]
     assert isinstance(tiers, dict)
-    assert {
+    listed = {
         row["name"] for row in tiers["dev"] if row.get("purpose_id") == "hosted_model_inference"
-    } == {
-        "openai-api",
-        "elevenlabs-api",
     }
+    assert listed == {"openai-api", "elevenlabs-api"}
+
+
+def _calls_to(source: str, name: str) -> list[ast.Call]:
+    return [
+        node
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        and (
+            (isinstance(node.func, ast.Attribute) and node.func.attr == name)
+            or (isinstance(node.func, ast.Name) and node.func.id == name)
+        )
+    ]
+
+
+def test_the_clip_lane_carries_only_the_scripted_catalogue() -> None:
+    """ElevenLabs is reached from one place, and that place hands it the
+    scripted-catalogue predicate. The predicate's caller builds it from the
+    compiled catalogue (``dev_voice_guard.ScriptedCatalogue.admits``)."""
+    sources = python_sources()
+    vendor_calls = {
+        path: calls
+        for path, source in sources.items()
+        if not path.startswith("packages/hosted-lanes/")
+        and (calls := _calls_to(source, "hosted_clip_tts_from_env"))
+    }
+    assert set(vendor_calls) == {_CLIP_LANE}
+    ((call,),) = vendor_calls.values()
+    admits = {kw.arg: kw.value for kw in call.keywords}["admits"]
+    assert isinstance(admits, ast.Name) and admits.id == "admits"
+
+    lane_calls = {
+        path: calls
+        for path, source in sources.items()
+        if path != _CLIP_LANE and (calls := _calls_to(source, "hosted_clip_lane"))
+    }
+    assert set(lane_calls) == {"services/api/src/intake_api/dev_voice.py"}
+    ((lane_call,),) = lane_calls.values()
+    predicate = {kw.arg: kw.value for kw in lane_call.keywords}["admits"]
+    assert ast.unparse(predicate) == "catalogue.admits"
+    dev_voice = sources["services/api/src/intake_api/dev_voice.py"]
+    assert "catalogue = scripted_catalogue_from_env()" in dev_voice
+
+
+# --- near misses -----------------------------------------------------------------------
 
 
 def _with_row(tier: str, row: dict[str, str]) -> dict[str, object]:
@@ -259,71 +313,91 @@ def _with_row(tier: str, row: dict[str, str]) -> dict[str, object]:
 def test_a_new_row_trips_only_when_it_can_carry_patient_data(
     tier: str, row: dict[str, str], trips: bool
 ) -> None:
-    """Near misses on the row side. The sign-in SMS row passes, and any other
-    PHI-path row trips. A further hosted row on today's tree passes too, because
-    no deployed process routes patient data to a hosted lane."""
-    dispatchers = _dispatchers()
-    reasons = outside_parties(
-        _with_row(tier, row),
-        services=_staging_services(),
-        dispatchers=dispatchers,
-        api_routed_imports=_api_routed_imports(dispatchers),
-    )
-    assert bool(reasons) is trips
+    """Row side. The sign-in SMS row passes, any other PHI-path row trips, and
+    one more hosted row on today's tree passes: nothing hands it patient data."""
+    assert bool(outside_parties(_with_row(tier, row), VERIFIED)) is trips
+
+
+def _console_with(extra: str) -> Reach:
+    """Today's tree with one line appended to the model-lanes console."""
+    sources = dict(python_sources())
+    sources[_CONSOLE] = sources[_CONSOLE] + "\n" + extra + "\n"
+    return _reach(sources)
 
 
 @pytest.mark.parametrize(
-    ("services", "dispatchers", "api_imports"),
+    "line",
     [
-        # INT-515: voice-runtime and an SFU on the synthetic host
-        (VERIFIED_SYNTHETIC_SERVICES | {"voice-runtime", "livekit"}, VERIFIED_DISPATCHERS, []),
-        # a new module routes calls through dispatch (documents, say)
-        (
-            VERIFIED_SYNTHETIC_SERVICES,
-            VERIFIED_DISPATCHERS
+        "router.hosted.backends[provider].chat_json(data_block=answers)",
+        "router.hosted.backends[provider].transcribe(audio)",
+        "speak = getattr(backend, 'speech')",
+    ],
+)
+def test_an_api_call_into_a_hosted_backend_trips(line: str) -> None:
+    assert outside_parties(_allowlist(), _console_with(line))
+
+
+def test_the_console_s_probe_only_call_is_quiet() -> None:
+    """Near miss: another identity probe through the same backends map adds no
+    path, because a probe sends only the model id."""
+    reach = _console_with("healthy = router.hosted.backends.get(provider).probe(model.wire)")
+    assert outside_parties(_allowlist(), reach) == []
+
+
+def test_an_importlib_literal_naming_a_gateway_trips() -> None:
+    sources = dict(python_sources())
+    sources["services/api/src/intake_api/hosted_extract.py"] = (
+        'import importlib\nlane = importlib.import_module("intake_hosted_lanes.openai_compat")\n'
+    )
+    assert outside_parties(_allowlist(), _reach(sources))
+    sources["services/api/src/intake_api/hosted_extract.py"] = (
+        'runner = __import__("intake_voice_runtime.extraction.lanes")\n'
+    )
+    assert outside_parties(_allowlist(), _reach(sources))
+
+
+def test_a_gateway_reached_transitively_trips() -> None:
+    """The API imports a first-party module that imports a dispatcher."""
+    sources = dict(python_sources())
+    sources["packages/intake_platform/src/intake_platform/answers_out.py"] = (
+        "from voice_clips.lanes import LaneRoutedTtsGateway\n"
+    )
+    sources["services/api/src/intake_api/answers_route.py"] = (
+        "from intake_platform.answers_out import LaneRoutedTtsGateway\n"
+    )
+    reach = _reach(sources)
+    assert reach.api_reach == {"voice_clips.lanes"}
+    assert outside_parties(_allowlist(), reach)
+
+
+@pytest.mark.parametrize(
+    "moved",
+    [
+        replace(VERIFIED, services=VERIFIED.services | {"voice-runtime", "livekit"}),  # INT-515
+        replace(VERIFIED, outbound=VERIFIED.outbound | {"admin-web"}),
+        replace(VERIFIED, vendor=VERIFIED.vendor | {"api"}),
+        replace(VERIFIED, api_command=(["python", "-m", "intake_voice_runtime"], None, None)),
+        replace(
+            VERIFIED,
+            dispatchers=VERIFIED.dispatchers
             | {"packages/intake_platform/src/intake_platform/documents_llm.py"},
-            [],
-        ),
-        # the API imports a routed gateway
-        (
-            VERIFIED_SYNTHETIC_SERVICES,
-            VERIFIED_DISPATCHERS,
-            ["services/api/src/intake_api/x.py imports voice_clips.lanes"],
         ),
     ],
 )
-def test_a_path_for_patient_data_trips_while_hosted_rows_are_listed(
-    services: frozenset[str], dispatchers: frozenset[str], api_imports: list[str]
-) -> None:
-    reasons = outside_parties(
-        _allowlist(), services=services, dispatchers=dispatchers, api_routed_imports=api_imports
-    )
+def test_a_deploy_side_path_trips_while_hosted_rows_are_listed(moved: Reach) -> None:
+    reasons = outside_parties(_allowlist(), moved)
     assert reasons
     assert all("openai-api" in reason and "elevenlabs-api" in reason for reason in reasons)
 
 
 def test_the_same_path_is_quiet_when_no_hosted_row_is_listed() -> None:
-    """Near miss on the path side: voice-runtime on a host with no hosted row
-    sends nothing to a vendor, so the sentences stay true."""
+    """Path side: voice-runtime on a host with no hosted row sends nothing to
+    a vendor, so the sentences stay true."""
     allowlist = _allowlist()
     tiers = allowlist["tiers"]
     assert isinstance(tiers, dict)
     tiers["dev"] = [
         row for row in tiers["dev"] if row.get("purpose_id") != "hosted_model_inference"
     ]
-    reasons = outside_parties(
-        allowlist,
-        services=VERIFIED_SYNTHETIC_SERVICES | {"voice-runtime"},
-        dispatchers=VERIFIED_DISPATCHERS,
-        api_routed_imports=[],
-    )
-    assert reasons == []
-
-
-def test_the_api_import_scan_sees_a_routed_gateway(tmp_path: Path) -> None:
-    """The scanner itself, on a file that imports dispatch by name."""
-    path = tmp_path / "probe.py"
-    path.write_text("from intake_platform.model_lanes import LaneRouter, dispatch\n", "utf-8")
-    assert _routes_through_dispatch(_imports(path))
-    path.write_text("from intake_platform.model_lanes import LaneRouter\n", "utf-8")
-    assert not _routes_through_dispatch(_imports(path))
+    moved = replace(VERIFIED, services=VERIFIED.services | {"voice-runtime"})
+    assert outside_parties(allowlist, moved) == []
