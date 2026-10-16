@@ -25,6 +25,16 @@ runtime resolves the chosen band to a day against the session's own reference
 time (:mod:`intake_voice_runtime.clinical_agent.anchors`). The choices come from
 the slot's own declaration, like every other part of this schema.
 
+**``clarification_needed`` is defined, not left to the model** (INT-540). Rule
+8 says when it is true — the patient was answering a declared slot and nothing
+they said can be recorded as a value the schema allows: they do not know, are
+not sure, hedge, or answer outside the offered values — and that the slot is
+then left out rather than guessed. The INT-522 clinical review found the gap
+(F1): with no rule the model could return no slot and ``false`` for
+'bilmiyorum', and the onset anchor stayed pending for the whole session. The
+runtime does not rely on the flag alone for an asked tense anchor either
+(:meth:`~intake_voice_runtime.extraction.result.ExtractionResult.outcome_of`).
+
 :func:`build_instructions` takes the schema and nothing else. That is the
 structural half of invariant 14: there is no parameter through which patient
 text reaches the instruction region. The instructions are written in English
@@ -68,7 +78,8 @@ EXTRACTION_SCHEMA_ID: Final = "intake.extraction.slots.v1"
 #: The instruction region's identity. Bumped whenever the wording below
 #: changes, because a recorded fixture made under other instructions is not a
 #: recording of this call — the recorded gateway refuses on this field.
-PROMPT_VERSION: Final = "extraction.v1"
+#: v2 (INT-540): rule 8 defines ``clarification_needed``.
+PROMPT_VERSION: Final = "extraction.v2"
 
 VALUE_KEY: Final = "value"
 CONFIDENCE_KEY: Final = "confidence"
@@ -232,6 +243,12 @@ anything means. The schema has no field for a judgement of that kind.
 the words from the transcript that prompted it. A candidate is a pointer to \
 evidence and nothing more.
 7. confidence is your own confidence in the recorded value, from 0 to 1.
+8. clarification_needed is true when the patient was answering a declared \
+slot and what they said cannot be recorded as any value the schema allows for \
+it: they say they do not know or are not sure, they hedge, or their answer \
+fits none of the values the schema offers for that slot. When it is true, \
+leave that slot out of slots; never record a guessed value instead. It is \
+false when every slot the patient answered is recorded in slots.
 
 Schema:
 {schema}

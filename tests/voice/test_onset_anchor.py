@@ -26,8 +26,9 @@ the committed active ``base.life_threat`` rules:
    evaluated and does not; the SARI sibling reads the same resolution.
 4. A hedged answer binds nothing: the anchor stays Unknown, the rule's Unknown
    branch holds (``when ∧ anchor`` is Unknown, nothing fires) and the scripted
-   follow-up is asked. An answer that never fits a choice ends UNCLEAR after
-   the bounded clarifications, and CD-05 resolves it to the reference day.
+   follow-up is asked. An answer that never fits a choice ends UNCLEAR once
+   CD-04's one follow-up is spent (INT-540; it was the engine's generic two
+   before), and CD-05 resolves it to the reference day.
 5. A closed-choice date slot with no decided resolution cannot be composed.
 
 The gateway is a table standing in for the model; nothing dials a model. The
@@ -67,6 +68,7 @@ from protocols.anchor_choices import (
     AnchorChoiceTable,
     load_anchor_choice_table,
 )
+from protocols.answer_states import AnswerStateTable, load_answer_state_table
 from protocols.locale_text import DEFAULT_LOCALE as TR
 from protocols.triage import evaluate_triage
 from protocols.triage.engine import rule_truth
@@ -194,9 +196,10 @@ def _rig(
     location: RedLocation = RedLocation.REMOTE,
     reference_time: datetime = NOW,
     anchor_choices: AnchorChoiceTable | None = None,
+    answer_states: AnswerStateTable | None = None,
 ) -> Rig:
-    """INT-521's composition, with the reference time and the CD-05 table
-    the caller's to inject."""
+    """INT-521's composition, with the reference time, the CD-05 table and
+    the CD-04 table (INT-540) the caller's to inject."""
     clock = FakeClock()
     channel = RecordingDataChannel(clock=clock)
     clinic = RecordingClinicNotifier()
@@ -216,6 +219,7 @@ def _rig(
             clock=clock,
             red=red,
             anchor_choices=anchor_choices,
+            answer_states=answer_states,
         )
         return Rig(stack, clock, channel, clinic, None, None, screen, stack.anchors)
     sink = RecordingSink(clock=clock)
@@ -237,6 +241,7 @@ def _rig(
         screen=screen,
         red=red,
         anchor_choices=anchor_choices,
+        answer_states=answer_states,
     )
     return Rig(stack, clock, channel, clinic, sink, synthesizer, screen, stack.anchors)
 
@@ -305,6 +310,8 @@ def test_a_date_the_model_supplies_is_refused_and_binds_nothing(profile: VoicePr
     assert rig.anchors is not None and rig.anchors.record == {}
     assert work_id not in rig.triage.evaluated
     assert rig.stack.agent.sealed is False
+    # INT-540: refused is not silently pending — CD-04's one follow-up is asked
+    assert _reentry(rig) == f"{ONSET}/clarify/1"
 
 
 # --- 2 · each choice binds CD-05's day from the session's own clock -------------------
@@ -553,20 +560,19 @@ def test_an_answer_that_never_fits_a_choice_is_unclear_and_resolves_to_the_refer
 ) -> None:
     """CD-05 ``unresolved_answer``: an answer that fits no choice, or
     'bilmiyorum', is recorded UNCLEAR and resolved to the more acute reading,
-    the reference day. The engine records UNCLEAR when its bounded
-    clarification (files/13 §11.1, two follow-ups) is spent; that Work is
+    the reference day. The engine records UNCLEAR when CD-04's one follow-up
+    is spent (INT-540; files/13 §11.1's generic two before); that Work is
     evaluated, and with a cardiac character K2 fires at its register and the
     session's location."""
     rig = _rig(profile, _model("baskı", "yok", clarify=HEDGED), location=location)
     _lead(rig)
     first = _say(rig, ONSET, HEDGED[0])
-    second = _say(rig, _reentry(rig), HEDGED[1])
     assert rig.stack.agent.sealed is False
-    last = _say(rig, _reentry(rig), HEDGED[2])
+    last = _say(rig, _reentry(rig), HEDGED[1])
     engine = rig.stack.engine
     assert engine.state_of(ONSET) is AnswerState.UNCLEAR
     assert ONSET in engine.data_gaps
-    assert first not in rig.triage.evaluated and second not in rig.triage.evaluated
+    assert first not in rig.triage.evaluated
     assert rig.triage.evaluated[-1] == last
     assert rig.anchors is not None
     resolution = rig.anchors.record[ONSET]
@@ -589,12 +595,11 @@ def test_near_miss_an_unclear_onset_with_a_non_cardiac_answer_does_not_fire(
     profile: VoiceProfile,
 ) -> None:
     """The resolution dates the anchor; it does not open the gate. The same
-    three unfitting answers with no cardiac feature stay quiet."""
+    two unfitting answers with no cardiac feature stay quiet."""
     rig = _rig(profile, _model("başka bir his", "yok", clarify=HEDGED))
     _lead(rig)
     _say(rig, ONSET, HEDGED[0])
-    _say(rig, _reentry(rig), HEDGED[1])
-    last = _say(rig, _reentry(rig), HEDGED[2])
+    last = _say(rig, _reentry(rig), HEDGED[1])
     assert rig.stack.engine.state_of(ONSET) is AnswerState.UNCLEAR
     assert rig.triage.evaluated[-1] == last
     assert rig.stack.agent.sealed is False
@@ -685,7 +690,7 @@ def test_only_the_anchors_choice_is_replaced_and_anything_else_there_is_refused(
     and every other update passes through untouched; a value at the anchor
     that is not an authored choice — a boolean, a date, a near spelling — is
     refused rather than bound (the Work fails, loudly), never guessed."""
-    anchors = SessionAnchors(load_anchor_choice_table())
+    anchors = SessionAnchors(load_anchor_choice_table(), load_answer_state_table())
     updates, [resolution] = anchors.resolve_choices({ONSET: OLDER, CHARACTER: "baskı"}, NOW)
     assert updates == {ONSET: _day(3), CHARACTER: "baskı"}
     assert (resolution.anchor, resolution.choice_tr) == (ONSET, OLDER)

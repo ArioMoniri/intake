@@ -218,7 +218,10 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-428, GitHub #753).
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
-    assert len(ids) == 362
+    # + INT-540 (the onset anchor always resolves: CD-04's UNCLEAR states, a
+    # defined clarification_needed and the session's close; from the INT-522
+    # clinical review, GitHub #913).
+    assert len(ids) == 363
     import re
 
     for i in ids:
