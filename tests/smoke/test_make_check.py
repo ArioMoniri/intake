@@ -325,7 +325,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
     # + INT-500 (lockfile advisories upgraded so the vulnerabilities gate stops
     # blocking every merge, GitHub #851); grows only with a stated reason.
-    assert len(ids) == 346, f"expected 175 blueprint + 171 added issues, got {len(ids)}"
+    # + INT-460 (a second admin approver on the synthetic host is a second
+    # Keycloak user, not a dev bearer; owner request, GitHub #785); grows only
+    # with a stated reason.
+    assert len(ids) == 347, f"expected 175 blueprint + 172 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

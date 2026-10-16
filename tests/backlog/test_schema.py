@@ -168,12 +168,15 @@ def test_ids_unique_and_well_formed() -> None:
     # three, each with its own user, daemon and network namespace, GitHub #799).
     # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
     # vulnerabilities gate stops blocking every merge; GitHub #851).
+    # order of 3 Oct 2026, GitHub #790).
+    # + INT-460 (a second admin approver on the synthetic host is a second
+    # Keycloak user, not a dev bearer; owner request, GitHub #785).
     # + INT-497 (the voice experience: end-of-turn detection, one queue per
     # turn, one loudness, holding lines, the turn timeline; owner order of
     # 16 Oct 2026, GitHub #848) and its two splits, INT-504 (bundled-clip
     # prefetch after INT-440, #858) and INT-505 (hosted streaming TTS after
     # INT-443, #859).
-    assert len(ids) == 346
+    assert len(ids) == 347
     import re
 
     for i in ids:
