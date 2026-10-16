@@ -27,9 +27,15 @@ import {
   blank,
   id,
   noTarget,
+  age,
   reason,
   withUnit,
+  type Age,
 } from "../ops/guards";
+
+// INT-560: the age formatter moved to ../ops/guards, which the ops console's
+// registry tile reads too; re-exported so every existing import keeps its path.
+export { age, type Age } from "../ops/guards";
 import type { Probe } from "../ops/payload";
 import {
   RELIABILITY_SCHEMA,
@@ -102,11 +108,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 // --- formatting (invariant 22) -------------------------------------------------
 
-export interface Age {
-  value: string;
-  unit: "s" | "min" | "h";
-}
-
 function fixed(value: number | null, digits: number, unit: string): string | null {
   return value === null ? null : withUnit(value.toFixed(digits), unit);
 }
@@ -115,13 +116,6 @@ function latency(value: number | null): string | null {
   if (value === null) return null;
   const digits = value < 1 ? 2 : value < 10 ? 1 : 0;
   return withUnit(value.toFixed(digits), "ms");
-}
-
-export function age(seconds: number | null): Age | null {
-  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return null;
-  if (seconds < 120) return { value: String(Math.round(seconds)), unit: "s" };
-  if (seconds < 3600) return { value: String(Math.floor(seconds / 60)), unit: "min" };
-  return { value: String(Math.floor(seconds / 3600)), unit: "h" };
 }
 
 // --- the view ------------------------------------------------------------------

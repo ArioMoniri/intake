@@ -223,7 +223,9 @@ def test_ids_unique_and_well_formed() -> None:
     # clinical review, GitHub #913).
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget; INT-521 residual 1, GitHub #898).
-    assert len(ids) == 364
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on; owner request, GitHub #948).
+    assert len(ids) == 365
     import re
 
     for i in ids:

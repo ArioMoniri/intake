@@ -1,0 +1,99 @@
+# INT-560 — the synthetic AWS host's inventory: what this host runs, which of
+# it the stack needs, and where the probes service dials each component.
+#
+# The admin console's registry page (GET /admin/ops, the models tile) reads
+# this file through intake_probes.inventory, and the probes service on the
+# host (compose service `probes`) sweeps exactly what it declares. It is the
+# one place that says "deployed on this host":
+#
+#   - its services are exactly the compose services in compose_files. The
+#     loader refuses the file otherwise, so a compose edit that forgets this
+#     file blanks the page's host column instead of mislabelling it;
+#   - every component is a row of observability/registry.yaml. A registry row
+#     that no service here names is NOT on this host, whatever the registry's
+#     `self_hosted_now` says about some other host (the team GPU server's
+#     models are reached from the laptop over SSH tunnels, never from AWS);
+#   - `needed: true` marks what the deployed synthetic stack cannot work
+#     without. Only those rows can be "blocking" on the page. A service that is
+#     not needed names why, as a code the page translates;
+#   - `probe_at` is an internal compose DNS name on the backend or edge
+#     network. It never carries a credential (the loader refuses one): the two
+#     probe credentials reach the probes container from the host's root-only
+#     env file (PG_PROBE_PASSWORD, REDIS_PROBE_PASSWORD; lib.sh).
+#
+# data_class is the one value the synthetic image bakes
+# (INTAKE_DEPLOYMENT_DATA_CLASS). A process of any other class refuses this
+# file, so the host-scoped reading can never be applied to a PHI deployment.
+host_id: synthetic-aws
+data_class: synthetic
+compose_files: [compose.yaml]
+
+services:
+  api:
+    needed: true
+    components:
+      - component: api
+        probe_at: http://api:8000/readyz
+  postgres:
+    needed: true
+    components:
+      # svc_probe holds LOGIN and CONNECT and no table grant (lib.sh ensure_probe_role)
+      - component: postgres
+        probe_at: postgres://svc_probe@postgres:5432/intake
+  redis:
+    needed: true
+    components:
+      # intake-probe may run PING and nothing else (the redis service's ACL line)
+      - component: redis
+        probe_at: redis://intake-probe@redis:6379/0
+  openbao:
+    needed: true
+    components:
+      - component: openbao
+        probe_at: http://openbao:8200
+  minio:
+    needed: true
+    components:
+      - component: minio
+        probe_at: http://minio:9000
+  keycloak:
+    needed: true
+    components:
+      # the management port; Caddy never routes it (Caddyfile)
+      - component: keycloak
+        probe_at: http://keycloak:9000/health/ready
+  oauth2-proxy:
+    needed: true
+    components:
+      - component: oauth2-proxy
+        probe_at: http://oauth2-proxy:4180/ping
+  admin-web:
+    needed: true
+    components:
+      - component: admin-web
+        probe_at: http://admin-web:3000/healthz
+  caddy:
+    needed: true
+    components:
+      - component: caddy
+        probe_at: caddy:443
+      # the certificate Caddy serves for STAGING_HOSTNAME, read over a real
+      # TLS handshake with that server name (INTAKE_PROBE_TLS_SERVER_NAME)
+      - component: edge-tls
+        probe_at: caddy:443
+  egress-proxy:
+    # the API's only route to the hosted vendors; down, those calls fail
+    # closed and nothing else in the API needs it (compose.yaml)
+    needed: false
+    not_needed_reason: fails_closed_without_it
+    components:
+      # the probes service joins no network the proxy is on: that would give
+      # it a route off the host (INT-442 keeps `outbound` to the API alone)
+      - component: egress-proxy
+        unprobed: outside_probe_networks
+  probes:
+    needed: false
+    not_needed_reason: observes_only
+    components:
+      - component: probes
+        probe_at: http://probes:8000/readyz

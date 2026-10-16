@@ -16,6 +16,15 @@ export interface TileBase {
   reason: string | null;
 }
 
+/**
+ * INT-560: where a row stands on the host the console runs on. `deployment`
+ * is `this_host`, `elsewhere` (self-hosted on another host of ours, e.g. the
+ * team GPU server), `not_deployed` or `undeclared` (this deployment names no
+ * inventory). `probe_status` is the last result (`healthy`, `unhealthy`,
+ * `skipped`) or `no_result`; `probe_stale` is true past three sweeps or when
+ * the age is unknown. `severity` is `blocking` only for what this host's stack
+ * needs whose probe is not currently healthy; `severity_reason` is its code.
+ */
 export interface ModelRowPayload {
   component: string;
   pin: string | null;
@@ -23,13 +32,23 @@ export interface ModelRowPayload {
   self_hosted_now: boolean;
   phi_path: boolean;
   probe: string;
+  deployment: string;
+  needed: boolean | null;
+  not_needed_reason: string | null;
   probe_status: string;
+  probe_checked_at: string | null;
+  probe_age_s: number | null;
+  probe_stale: boolean;
   licence_verified_at: string | null;
   severity: string;
+  severity_reason: string;
 }
 
 export interface ModelsTilePayload extends TileBase {
   release_blocked: boolean | null;
+  /** INT-560: the host this tile describes, or null with `host_reason`. */
+  host: { host_id: string; data_class: string } | null;
+  host_reason: string | null;
   rows: ModelRowPayload[];
 }
 

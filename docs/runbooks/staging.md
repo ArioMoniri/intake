@@ -266,6 +266,57 @@ A refused deploy has changed nothing on the host: nothing was restarted.
 `docs/runbooks/deploy-freeze.md` explains each refusal and how a freeze is
 lifted (two people). Do not work around the gate on the host.
 
+## Probes and the registry page
+
+The console's ops page (`/ops`, the "Model sunucuları ve kayıt" tile) shows
+every row of `observability/registry.yaml` as this host sees it (INT-560).
+Two things feed it:
+
+- **The probes service** (compose service `probes`) runs the api image with
+  the probes app instead of the API. It serves `/healthz`, `/readyz`,
+  `/metrics` and `/version` like every service. Every 60 s it sweeps
+  `infra/staging/inventory.yaml` and replaces
+  `/var/lib/intake/probe-results/sweep.json` in the `probe-results` volume.
+  The api mounts that volume read-only and reads it as
+  `INTAKE_PROBE_RESULTS_PATH`.
+- **The host inventory**, `infra/staging/inventory.yaml`, lists the compose
+  services this host runs, the registry components each one carries, whether
+  the stack needs it, and the compose name the probe dials. The loader
+  refuses a file whose services are not exactly compose.yaml's. Add a compose
+  service and its inventory entry in the same change, or the page's host
+  column reads "bilinmiyor".
+
+What the columns mean on this host:
+
+| column | value | meaning |
+|---|---|---|
+| Şu an kendi sunucumuzda | evet | the inventory places it on this host |
+| | bu sunucuda değil | we self-host it on another host (the team GPU server's models, reached from the laptop over SSH tunnels, never from AWS) |
+| | hayır | it runs nowhere yet |
+| Yoklama durumu | a status and an age | the last sweep's result for it. A component this host does not run reads `skipped`, with the detail `not deployed on synthetic-aws` |
+| | eski | the result is older than three sweeps (180 s), so it is not current |
+| | sonuç yok | no sweep has ever reported it |
+| Önem | engelleyici (blocking) | the stack needs it and its probe is not currently healthy |
+| | uyarı | anything else worth saying, with the reason: not on this host, not needed, the PHI release gate (which binds a PHI deployment, not this host), or a licence not yet read from its raw blob |
+
+The probes service's logins are its own and minimal:
+
+- Postgres role `svc_probe`: LOGIN and CONNECT on `intake`, no grant on any
+  table. `./deploy.sh` creates it after the migrations
+  (`ensure_probe_role`). Its password is `PG_PROBE_PASSWORD`.
+- Redis user `intake-probe`: PING and nothing else (the `user` line in the
+  redis service's config). Its password is `REDIS_PROBE_PASSWORD`.
+- Both keys are generated like every other secret. A host initialised before
+  INT-560 gets both from `./deploy.sh` (`ensure_probe_secrets`), with no
+  `./init.sh` re-run. An existing value is never replaced.
+
+The probes service joins the `backend` and `edge` networks and no other, so it
+has no route off the host. It cannot reach the egress proxy, which sits on
+`outbound` and `vendor` only. That row therefore reads "deployed, not probed"
+(`outside_probe_networks`). A probe failure never fails a deploy: the service
+stays alive, `/readyz` names an inventory it cannot load, and the page reads
+"sonuç yok".
+
 ## Known gaps, stated rather than hidden
 
 - **`/readyz` answers 503 on main as of 730e9288.** The response is
@@ -285,8 +336,9 @@ lifted (two people). Do not work around the gate on the host.
   with cosign keyless, which needs CI's OIDC identity, and this host has none.
 - Document upload has no ClamAV here, so it fails closed
   (`scan_not_configured`) although the object store runs.
-- The synthetic probe registration and the staging banner/tenant belong to
-  the API and app, not to this artefact.
+- The staging banner and tenant belong to the API and app, not to this
+  artefact. The synthetic probes do belong to it (see "Probes and the
+  registry page").
 - **Key custody is a staging posture only.** The unseal shares sit on the
   same disk as the data they protect. Production key custody (KMS
   auto-unseal, split custodians) is a key-management design decision for a

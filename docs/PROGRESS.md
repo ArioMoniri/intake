@@ -1,5 +1,49 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T00:30:00Z · INT-560 · done (PR open; the merge queue deploys)
+- Goal: owner, 17 Oct ("solve these"). On the synthetic AWS host the ops console's registry tile was wrong in three columns:
+  - "Yoklama durumu" read `no_result` on every row, because nothing probed the host and the API had no results file;
+  - "blocking" appeared on rows the host does not run (HAPI and the team GPU server's models), because the column was the registry-wide INT-022 verdict;
+  - "Şu an kendi sunucumuzda" read "evet" for anything we self-host anywhere.
+  - Acceptance (GitHub #948), verbatim:
+    - services/probes runs on the synthetic host (monitoring contract, SLO yaml, its own registry row) and every registry row gets a real probe result, with probe targets fixed to what actually runs there;
+    - the column reflects reality, and GPU-box models never show a false "evet";
+    - "blocking" only for what the deployed synthetic stack actually needs, everything else advisory with the reason;
+    - TDD against a recorded host inventory, with near misses;
+    - no PHI in probe output, and every emitted metric catalogued;
+    - licence columns are INT-561.
+- Plan:
+  - A recorded host inventory (`infra/staging/inventory.yaml`, `intake_probes.inventory`), refused unless its services are exactly compose's and the process is synthetic.
+  - A host sweep (`intake_probes.host_sweep`) in the probes app, with least-privilege credentials, scrubbed details, an atomic results file and two live series.
+  - `intake_probes.standing` derives deployment, probe age, needed and severity. The ops tile serves them, and the page renders them and refuses a tile that claims what it cannot know.
+  - On the host: compose service `probes` (api image, backend+edge only), a read-only results volume on the api, the `svc_probe` role and the `intake-probe` Redis user. deploy.sh fills the two new secrets on an existing host.
+  - Four registry rows the page lacked (keycloak, oauth2-proxy, admin-web, caddy), licence UNVERIFIED for INT-561.
+- Tests added: `tests/observability/test_host_inventory.py` (33), `test_host_sweep.py` (21), `test_probes_host_service.py` (15), `tests/admin/test_registry_truth.py` (138), `tests/infra/test_staging_probes.py` (19) and `apps/admin-web/e2e/ops.spec.ts` (+18).
+  - Near misses:
+    - a GPU-box model with a planted healthy result is still `elsewhere`;
+    - a missing result is never healthy, and stale or unknown-age results are not current;
+    - every non-needed row × five probe states is never blocking;
+    - no inventory keeps the strict INT-183 reading;
+    - a planted TCKN, phone, IBAN, email or URL credential never reaches the written file.
+  - RED (on `ab9b8819`): 4 collection errors. Then 30 failed on assertions (`host_inventory_unknown_component`; catalogue `planned` ≠ `live`). The admin-web spec failed 18 of 57 against main's sources.
+  - GREEN: 489 targeted Python tests, 226 INT-560 tests and 404 admin-web tests passed. Branch coverage: `inventory.py` 100 %, `standing.py` 100 %, `host_sweep.py` 98 %.
+- Result (docs/evidence/INT-560.md):
+  - ruff and mypy strict clean;
+  - admin-web lint, typecheck and test green;
+  - the infra suite green;
+  - `no_placeholders`, `phi_scan`, `claims_scan` and evidence/sec-row linkage OK on the staged tree;
+  - the full Python suite as recorded in the evidence.
+- Invariants touched and still passing: 6 (scrubbed details, id-only labels, nothing from a refused file logged), 13 (two series live, the registry gains the rows the host runs), 14 (digest-pinned image reuse, host secrets only, no credential in the committed inventory), 15 (the probes app gains the shared OTel setup) and 17 (unknown and no-result stay states; a skip is never healthy).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The host-scoped severity is the owner's instruction in #948.
+  - The INT-022 gate itself is unchanged. Its verdict stays on the tile's badge, labelled registry-wide, and is advisory per row on a synthetic host only.
+- Backlog: INT-560 row added (`area:observability`, `monitoring-contract`). The three pins go from 364 to 365, and files/11 was regenerated.
+- Blocked on: nothing for this row.
+  - The first deploy after merge restarts redis once to load the ACL user.
+  - INT-561 records the licence blobs for the four new rows, and was told their names.
+- Next: the merge queue deploys. After it, `/ops` on the host should read real results with ages.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.

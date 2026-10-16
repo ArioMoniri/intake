@@ -40,12 +40,14 @@ import { bearerFrom, opsConfigFromEnv } from "../src/ops/access";
 import { loadOpsConsole, type FetchLike, type OpsConsoleState } from "../src/ops/load";
 import {
   OpsLabelLeaked,
+  OpsRegistryUntrue,
   OpsSchemaMismatch,
   OpsSuppressedCohortLeaked,
   OpsTargetRendered,
   OpsUnknownCarriesFigure,
   renderOps,
   type HealthResponses,
+  type ModelRowPayload,
   type OpsPayload,
 } from "../src/ops/module";
 
@@ -262,6 +264,8 @@ describe("the rendered tiles (recorded composite)", () => {
       state: "unknown",
       reason: "registry_unreadable",
       release_blocked: null,
+      host: null,
+      host_reason: null,
       rows: [],
     });
     const { state } = await load({ "/admin/ops": { status: 200, body: bent }, ...healthRoutes() });
@@ -275,6 +279,8 @@ describe("the rendered tiles (recorded composite)", () => {
       state: "unknown",
       reason: "probe_results_unreadable",
       release_blocked: null,
+      host: null,
+      host_reason: null,
       rows: [],
     });
     const { state } = await load({ "/admin/ops": { status: 200, body: bent }, ...healthRoutes() });
@@ -332,6 +338,160 @@ describe("the rendered tiles (recorded composite)", () => {
     const lane = view.tiles.modelUsage.lanes.find((l) => l.lane === "extract_slots")!;
     expect(lane.requests).toEqual("412");
     expect(lane.p95).toEqual("2311 ms");
+  });
+});
+
+// ------------------------------------------------------- INT-560: the registry tile
+
+/** The team GPU server's models: reached from the laptop over SSH tunnels, never from AWS. */
+const GPU_BOX_MODELS = ["qwen3.5-9b", "whisper-tr-medical", "freya-tts", "voxcpm2-tts"];
+
+function withRow(component: string, patch: Partial<ModelRowPayload>): OpsPayload {
+  const p = payload();
+  const rows = p.tiles.models.rows.map((row) =>
+    row.component === component ? { ...row, ...patch } : row,
+  );
+  return { ...p, tiles: { ...p.tiles, models: { ...p.tiles.models, rows } } };
+}
+
+/** The rendered <tr> of one component, from the page's own markup. */
+function rowHtml(page: string, component: string): string {
+  const start = page.indexOf(`data-component="${component}"`);
+  expect(start).toBeGreaterThan(-1);
+  return page.slice(start, page.indexOf("</tr>", start));
+}
+
+describe("the registry tile tells the truth about its host (INT-560)", () => {
+  it("names the host it describes, and its data class", async () => {
+    const { state } = await load({
+      "/admin/ops": { status: 200, body: payload() },
+      ...healthRoutes(),
+    });
+    const page = html(state, "tr");
+    expect(page).toContain('data-host="synthetic-aws"');
+    expect(page).toContain("yalnızca sentetik hasta");
+    // the INT-022 badge says what it is about
+    expect(page).toContain("kayıt geneli, hasta verisi taşıyan dağıtım için");
+  });
+
+  it.each(GPU_BOX_MODELS)("never shows the GPU-box model %s as on this host", async (model) => {
+    const { state } = await load({
+      "/admin/ops": { status: 200, body: payload() },
+      ...healthRoutes(),
+    });
+    const row = rowHtml(html(state, "tr"), model);
+    expect(row).toContain('data-deployment="elsewhere"');
+    expect(row).toContain("bu sunucuda değil");
+    expect(row).not.toMatch(/data-cell="deployment"><span[^>]*>evet</);
+    expect(row).not.toContain('data-severity="blocking"');
+  });
+
+  it("shows evet only for what the host's inventory places on it", () => {
+    const view = renderOps(payload(), responses());
+    const here = view.tiles.models.rows.filter((r) => r.deployment === "this_host");
+    expect(here.map((r) => r.component).sort()).toEqual(
+      [
+        "admin-web",
+        "api",
+        "caddy",
+        "edge-tls",
+        "egress-proxy",
+        "keycloak",
+        "minio",
+        "oauth2-proxy",
+        "openbao",
+        "postgres",
+        "probes",
+        "redis",
+      ].sort(),
+    );
+  });
+
+  it("blocks only on what this host needs whose probe is not healthy now", () => {
+    const view = renderOps(payload(), responses());
+    for (const row of view.tiles.models.rows) {
+      if (row.severity !== "blocking") continue;
+      expect(row.deployment).toEqual("this_host");
+      expect(row.needed).toBe(true);
+      expect(row.probeStatus === "healthy" && !row.probeStale).toBe(false);
+    }
+    // near miss: a needed component the stack can do without is advisory, with why
+    const proxy = view.tiles.models.rows.find((r) => r.component === "egress-proxy")!;
+    expect(proxy.severity).toEqual("attention");
+    expect(proxy.notNeededReason).toEqual("fails_closed_without_it");
+  });
+
+  it("shows the last result with its age, and no_result only when never probed", async () => {
+    const { state } = await load({
+      "/admin/ops": { status: 200, body: payload() },
+      ...healthRoutes(),
+    });
+    const page = html(state, "tr");
+    const api = rowHtml(page, "api");
+    expect(api).toContain('data-state="unhealthy"');
+    expect(api).toContain("0\u00a0sn önce");
+    // a skip is a result, shown as one
+    expect(rowHtml(page, "qwen3.5-9b")).toContain("atlandı");
+    expect(page).not.toContain('data-state="no_result"');
+    // the deployment that has run no sweep at all says "sonuç yok" everywhere
+    const none = renderOps(unconfigured(), responses());
+    expect(new Set(none.tiles.models.rows.map((r) => r.probeStatus))).toEqual(
+      new Set(["no_result"]),
+    );
+  });
+
+  it("says doğrulanmadı where no licence was read from a raw blob", async () => {
+    const { state } = await load({
+      "/admin/ops": { status: 200, body: payload() },
+      ...healthRoutes(),
+    });
+    const keycloak = rowHtml(html(state, "tr"), "keycloak");
+    expect(keycloak).toContain('data-state="not_verified"');
+    expect(keycloak).toContain("doğrulanmadı");
+  });
+
+  it("names the missing inventory when the deployment declares none", async () => {
+    const { state } = await load({
+      "/admin/ops": { status: 200, body: unconfigured() },
+      ...healthRoutes(),
+    });
+    const page = html(state, "tr");
+    expect(page).toContain('data-host-reason="host_inventory_unconfigured"');
+    expect(page).toContain("bilinmiyor (sunucu envanteri yok)");
+  });
+
+  it.each([
+    [
+      "a healthy status with no observation",
+      "api",
+      { probe_status: "healthy", probe_checked_at: null, probe_age_s: null },
+    ],
+    [
+      "a no_result that carries an age",
+      "api",
+      { probe_status: "no_result", probe_checked_at: null, probe_age_s: 3, probe_stale: true },
+    ],
+    [
+      "a result of unknown age shown as current",
+      "api",
+      { probe_checked_at: null, probe_age_s: null, probe_stale: false },
+    ],
+    ["a GPU-box model shown as blocking", "qwen3.5-9b", { severity: "blocking" }],
+    ["a component the stack does not need shown as blocking", "probes", { severity: "blocking" }],
+    [
+      "a currently healthy needed row shown as blocking",
+      "redis",
+      { probe_status: "healthy", probe_stale: false, severity: "blocking" },
+    ],
+    ["a host word without an inventory", "api", { deployment: "undeclared" }],
+    ["needed asked of a row the host does not run", "freya-tts", { needed: true }],
+  ] as [string, string, Partial<ModelRowPayload>][])("refuses %s", (_what, component, patch) => {
+    expect(() => renderOps(withRow(component, patch), responses())).toThrow(OpsRegistryUntrue);
+  });
+
+  it("near miss: the recorded tile itself renders", () => {
+    expect(() => renderOps(payload(), responses())).not.toThrow();
+    expect(() => renderOps(unconfigured(), responses())).not.toThrow();
   });
 });
 

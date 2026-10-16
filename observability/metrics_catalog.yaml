@@ -1507,16 +1507,22 @@ metrics:
     labels: [component]
     owner: platform
     unit: "bool (0/1)"
-    status: planned
-    description: Synthetic probe status by component (1 = healthy).
+    status: live
+    description: >-
+      Synthetic probe status by registry component (1 = healthy, 0 = the probe
+      ran and was not). Emitted by intake_probes.host_sweep on every host
+      sweep (INT-560); a component the sweep skipped has no series, because a
+      skip is not an observation. The label is a registry component id.
   - name: probe_latency_ms
     id: probe.latency_ms
     type: histogram
     labels: [component]
     owner: platform
     unit: "ms"
-    status: planned
-    description: Synthetic probe latency by component.
+    status: live
+    description: >-
+      Synthetic probe latency by registry component, in milliseconds, for
+      every probe that ran (INT-560, intake_probes.host_sweep).
   - name: deploy_frequency
     id: deploy.frequency
     type: gauge

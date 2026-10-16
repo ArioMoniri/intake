@@ -108,3 +108,20 @@ export function ms(value: number | null): string | null {
 export function decimal(value: number | null, digits: number): string | null {
   return value === null || !Number.isFinite(value) ? null : value.toFixed(digits);
 }
+
+/**
+ * A probe result's age as one readable atom: seconds under two minutes,
+ * minutes under an hour, hours past that (shared by the overview's probe matrix
+ * and the ops console's registry tile, INT-181 and INT-560).
+ */
+export interface Age {
+  value: string;
+  unit: "s" | "min" | "h";
+}
+
+export function age(seconds: number | null): Age | null {
+  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return null;
+  if (seconds < 120) return { value: String(Math.round(seconds)), unit: "s" };
+  if (seconds < 3600) return { value: String(Math.floor(seconds / 60)), unit: "min" };
+  return { value: String(Math.floor(seconds / 3600)), unit: "h" };
+}

@@ -382,7 +382,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
     # stated reason.
-    assert len(ids) == 364, f"expected 175 blueprint + 189 added issues, got {len(ids)}"
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on, owner request, GitHub #948); grows only with a stated reason.
+    assert len(ids) == 365, f"expected 175 blueprint + 190 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
