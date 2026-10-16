@@ -520,19 +520,20 @@ coordinator decision, not one an agent mints.
 
 ## INT-529 — nine synthetic legal texts wait for a value no file declares
 
-**Raised:** 16 Oct 2026 · **Named human:** the owner, with the physician of record for the crisis carve-out.
+**Raised:** 16 Oct 2026 · **Named humans:** the owner for business facts, retention and recipients. Under the owner's standing orders, clinical questions go to the INT-432 medical-agent lane (D18) and legal questions to the D25 legal lane, both for synthetic scope; a licensed physician or lawyer is needed before any real patient.
 
 The owner's yes covers synthetic tenants only. Seven açık rıza texts are built in
 `docs/legal/synthetic/`. The nine below stay listed `awaiting_human` in that index and refuse as
 missing. Each would have to state a value that no file in the repository declares, and
-retention, recipients and new data categories are the owner's to decide. `docs/evidence/INT-529.md`
-§4 has the table.
+retention, recipients and new data categories are the owner's to decide. The last row is a
+question about the seven built texts. `docs/evidence/INT-529.md` §4 has the table.
 
 | issue | status | who | the one sentence they must answer | HB id |
 |---|---|---|---|---|
-| INT-529 | awaiting-human (`aydinlatma.app`) | owner, with counsel | What is INTAKE's registered legal entity (title, MERSİS number, address, KEP and e-mail), which SMS vendor sends the sign-in code, and on which KVKK m.9 ground may testers' real phone numbers sit on the us-east-1 synthetic host? | HB-L21 (e); INT-358 |
+| INT-529 | awaiting-human (`aydinlatma.app`) | owner, with counsel through INT-535 (GitHub #902) | Netgsm is now the sign-in SMS processor (owner, 16 Oct 2026, INT-358). The notice still needs three answers: INTAKE's registered legal entity (title, MERSİS number, address, KEP and e-mail); the Netgsm DPA confirming in-country handling; and the KVKK m.9 ground for a tester's number crossing the us-east-1 host — and what must the notice at phone entry say? | HB-L21 (e); INT-358; INT-535 |
 | INT-529 | awaiting-human (`aydinlatma.kiosk`, `aydinlatma.clinician`, `aydinlatma.web`) | owner | Which hospital or partner tenant, under which DPA, does the synthetic host's kiosk, clinician or web channel speak for — or does the synthetic host have none of these channels? | HB-L27 |
 | INT-529 | awaiting-human (`aydinlatma.admin`) | owner | What personal data does the admin console collect from a patient, and for which tenant? | HB-L27 |
-| INT-529 | awaiting-human (`acik_riza.lane.linguistic`) | physician of record (**Dr Efe Onganer**) + counsel | Which Turkish phrases trigger the consent-independent safety response the files/06 §2.1 carve-out must disclose, and is it signposting or an instrument? | HB-C17 |
-| INT-529 | awaiting-human (`acik_riza.learning.personal`, `acik_riza.learning.service_improvement`) | owner (retention); the legal lane under D25, or counsel (ground) | How long is what each learning loop keeps retained, and which KVKK m.6(3) ground carries each loop over health data, given that the registry's service-performance and de-identified-opt-out grounds are not m.6(3) grounds? | HB-L27 |
-| INT-529 | awaiting-human (`acik_riza.research`) | owner + counsel | What retention and which recipients does the study's ethics protocol fix, and which KSVY m.16 limb does a consented export ride? | HB-L26, HB-I8 (site: HB-L1) |
+| INT-529 | awaiting-human (`acik_riza.lane.linguistic`) | the INT-432 medical-agent lane (D18: sourced medical agents and an independent verifier, simulated patients only); a licensed physician before any real patient | Which Turkish phrases trigger the consent-independent safety response the files/06 §2.1 carve-out must disclose, and is it signposting or an instrument? | HB-C17 |
+| INT-529 | awaiting-human (`acik_riza.learning.personal`, `acik_riza.learning.service_improvement`) | owner (retention); the D25 legal lane (ground), counsel before any real patient | How long is what each learning loop keeps retained? And which KVKK m.6(3) ground carries each loop over health data, given that the registry's service-performance and de-identified-opt-out grounds are not m.6(3) grounds? | HB-L27 |
+| INT-529 | awaiting-human (`acik_riza.research`) | owner (the ethics protocol); the D25 legal lane (KSVY limb), counsel before any real patient | What retention and which recipients does the study's ethics protocol fix — and which KSVY m.16 limb does a consented export ride? | HB-L26, HB-I8 (site: HB-L1) |
+| INT-529 | open question on the seven built texts (withdrawal) | counsel, through the D25 legal lane for synthetic scope | When a patient withdraws an açık rıza, does KVKK m.7(1) require the data processed under it to be deleted ex officio? If so, sentences like "Geri çekmek belgelerinizi silmez" must change. | HB-L27 |

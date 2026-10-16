@@ -8,13 +8,13 @@ Açık rıza metni: Belge yükleme
 Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Vizite uygulamasını sunan şirket.
 
 Ne için:
-Tahlil sonucu, reçete ya da epikriz gibi belgelerinizi yüklemeniz için. Yüklediğiniz belge önce zararlı yazılıma karşı taranır, sonra saklanır. Belgedeki bilgiler, sizin kontrol edip onaylamanız için maddelere ayrılır. Sistem belgenizi yorumlamaz. Bir sonucun normal olup olmadığını söylemez.
+Tahlil sonucu, reçete ya da epikriz (hastaneden çıkış özeti) gibi belgelerinizi yüklemeniz için. Yüklediğiniz belge önce ayrı bir bekleme alanına (karantina) kaydedilir. Orada zararlı yazılıma karşı taranır. Temiz çıkan belge saklanır ve size açılır. Zararlı yazılım bulunan belge ayrı tutulur ve hiç açılmaz. Belgedeki bilgiler, sizin kontrol edip onaylamanız için maddelere ayrılır. Sistem belgenizi yorumlamaz. Bir sonucun normal olup olmadığını söylemez.
 
 Hangi bilgiler:
 Yüklediğiniz belgeler ve onlardan ayrılan bilgiler. Bunlar sağlık verisidir.
 
 Kimler görür:
-Belgelerinizi siz görürsünüz. Hekiminiz yalnızca siz paylaşırsanız görür. Paylaşım için her seferinde ayrıca onayınız istenir. Bunun dışında belgeleriniz yalnızca hizmeti çalıştıran kendi sistemlerimizde işlenir.
+Belgelerinizi siz görürsünüz. Hekiminiz yalnızca siz paylaşırsanız görür. Paylaşım için her seferinde ayrıca onayınız istenir. Bunun dışında belgeleriniz yalnızca hizmeti çalıştıran sistemlerimizde işlenir. Bu sistemler, sunucu hizmeti veren Amazon Web Services (AWS) üzerinde çalışır.
 
 Nerede:
 Bu test ortamı, ABD'deki bir Amazon Web Services (AWS) sunucusunda çalışır. Belgeleriniz Türkiye dışında işlenir ve saklanır.

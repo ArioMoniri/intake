@@ -11,7 +11,7 @@ Ne için:
 Görüşmenizden sonra memnuniyetinizi sorarak hizmeti değerlendirmek için. Bir puan verirsiniz. İsterseniz bir neden seçer, kısa bir yorum da yazarsınız.
 
 Hangi bilgiler:
-Puanınız, seçtiğiniz neden ve yorumunuz. Yorumunuza sağlık bilgisi yazabilirsiniz. Bu yüzden yorumunuz sağlık verisi gibi korunur ve şifreli saklanır. Yorumunuzdaki kimlik, cep telefonu ve IBAN numaraları saklanmadan önce silinir.
+Puanınız, seçtiğiniz neden ve yorumunuz. Yorumunuza sağlık bilgisi yazabilirsiniz. Bu yüzden yorumunuz sağlık verisi gibi korunur ve şifreli saklanır. Yorumunuzda bilinen biçimdeki kimlik, cep telefonu ve IBAN numaraları saklanmadan önce silinir. Yorumunuza yazdığınız adlar silinmez.
 
 Kimler görür:
 Yanıtlarınız hekiminize gitmez. Yalnızca hizmeti değerlendirmek için kendi sistemlerimizde kullanılır. Puanlar toplu olarak incelenir; yorumunuz bu toplu sonuçlara girmez.

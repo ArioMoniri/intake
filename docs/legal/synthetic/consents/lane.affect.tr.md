@@ -8,7 +8,7 @@ Açık rıza metni: Ses tonundan duygu ipuçları
 Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Vizite uygulamasını sunan şirket.
 
 Ne için:
-Bu seçenek yalnızca sesli görüşmeyle çalışır. Sistem yalnızca söylediğiniz sözlere bakmaz. Nasıl hissettiğinize dair ipuçlarını sesinizin tonundan da çıkarır. Kullanılan sistem bir duygu tanıma sistemidir. İpuçları yalnızca görüşmeyi size uydurmak için kullanılır. Yalnızca şunlar ayarlanır: soruların hızı, ara önerisi ve yanıtın ekranda kartla onaylatılması. Bu ipuçları tanı koymaz. Bu ipuçları hekiminize bir değerlendirme olarak gönderilmez. Notunuza da yazılmaz. Size bir duygu etiketi gösterilmez.
+Bu seçenek yalnızca sesli görüşmeyle çalışır. Sistem yalnızca söylediğiniz sözlere bakmaz. Nasıl hissettiğinize dair ipuçlarını sesinizin tonundan da çıkarır. Kullanılan sistem bir duygu tanıma sistemidir. İpuçları yalnızca görüşmeyi size uyarlamak için kullanılır. Yalnızca şunlar ayarlanır: soruların hızı, ara önerisi ve yanıtın ekranda kartla onaylatılması. Bu ipuçları tanı koymaz. Bu ipuçları hekiminize bir değerlendirme olarak gönderilmez. Notunuza da yazılmaz. Size bir duygu etiketi gösterilmez.
 
 Hangi bilgiler:
 Sesli görüşmede konuştuğunuz ses ve ondan çıkarılan ipuçları.

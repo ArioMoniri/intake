@@ -14,7 +14,7 @@ Hangi bilgiler:
 Notunuzun seçtiğiniz bölümleri ve paylaşımın kaydı. Kayıtta kimin için olduğu, hangi bölümler ve ne zaman açıldığı yer alır. Notunuz sağlık verisidir.
 
 Kimler görür:
-Uygulama bir paylaşım bağlantısı ve bir açma kodu oluşturur. Bunlar yalnızca sizin ekranınızda görünür. Notunuzu yalnızca bunları gösterdiğiniz hekim açabilir. Hekim yalnızca seçtiğiniz bölümleri görür. Her açılışta sayfada yazdığınız hekim adı ve açılma zamanı görünür. Notunuzun ne zaman açıldığını uygulamada görebilirsiniz.
+Uygulama bir paylaşım bağlantısı ve bir açma kodu oluşturur. Bunlar yalnızca sizin ekranınızda görünür. Bağlantıyı ve kodu kimde varsa, notunuzu o kişi açabilir. Bu yüzden bunları yalnızca hekiminize gösteriniz. Açan kişi yalnızca seçtiğiniz bölümleri görür. Her açılışta sayfada yazdığınız hekim adı ve açılma zamanı görünür. Notunuzun ne zaman açıldığını uygulamada görebilirsiniz.
 
 Nerede:
 Bu test ortamı, ABD'deki bir Amazon Web Services (AWS) sunucusunda çalışır. Notunuz ve paylaşım kaydı Türkiye dışında işlenir ve saklanır.

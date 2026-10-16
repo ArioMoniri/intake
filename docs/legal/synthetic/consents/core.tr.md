@@ -11,10 +11,10 @@ Ne için:
 Muayeneden önce size şikâyetinizi ve sağlık geçmişinizi soruyoruz. Yanıtlarınızdan, hekiminize gösterebileceğiniz bir ön görüşme notu hazırlıyoruz. Bu not tanı koymaz; yalnızca sizin anlattıklarınıza dayanır.
 
 Hangi bilgiler:
-Yanıtlarınız, görüşmenin hangi bölümlerden geçtiği ve hazırlanan not. «Hakkımda öğrendikleri» listesinde sizin doğruladığınız bilgiler de bunlara girer. Bunlar sağlık verisidir. Adınız, telefon numaranız ve kimlik numaranız bu kayıtlarda yer almaz. Kaydınız bir takma kimlikle tutulur.
+Yanıtlarınız, görüşmenin hangi bölümlerden geçtiği ve hazırlanan not. «Hakkımda öğrendikleri» listesinde sizin doğruladığınız bilgiler de bunlara girer. Bunlar sağlık verisidir. Bu kayıtlarda adınız, telefon numaranız ya da kimlik numaranız için ayrı bir alan yoktur. Bunları yanıtlarınıza kendiniz yazarsanız, yanıtlarınızda yer alırlar. Kaydınız bir takma kimlikle tutulur.
 
 Kimler görür:
-Siz görürsünüz. Hekiminiz notunuzu yalnızca siz paylaşırsanız görür. Paylaşım için her seferinde ayrıca onayınız istenir. Bunun dışında bilgileriniz yalnızca hizmeti çalıştıran kendi sistemlerimizde işlenir.
+Siz görürsünüz. Hekiminiz notunuzu yalnızca siz paylaşırsanız görür. Paylaşım için her seferinde ayrıca onayınız istenir. Yanıtlarınız acil bir durum işareti verirse, klinik personeli paylaşım beklemeden bir uyarı görür. Bu uyarıda yanıtlarınız yer almaz. Yalnızca kayıt numaraları, çalışan kuralın kodu ve zamanı yer alır. Hastanede olduğunuzu söylediyseniz, bu bilgi de uyarıya eklenir. Bunun dışında bilgileriniz yalnızca hizmeti çalıştıran sistemlerimizde işlenir. Bu sistemler, sunucu hizmeti veren Amazon Web Services (AWS) üzerinde çalışır.
 
 Nerede:
 Bu test ortamı, ABD'deki bir Amazon Web Services (AWS) sunucusunda çalışır. Bilgileriniz Türkiye dışında işlenir ve saklanır.

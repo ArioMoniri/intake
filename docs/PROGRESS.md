@@ -29,7 +29,14 @@
   - INT-428's data-class reader and `ENV` line are reused, not duplicated;
   - a coupling test fails the moment a hosted provider's egress row is listed while the voice, core or documents text still says no outside company receives the data;
   - 2836 tests pass on the merged tree (evidence §9.1).
-- Next: the independent legal-reviewer verifies; the coordinator pushes and opens the PR (body at `.scratch/pr-529.md`). Follow-ups F1–F8 are in the evidence file.
+- Round 2: the independent legal-reviewer approved with verdict B, and nine text fixes followed (evidence §11).
+  - Safety-inbox and AWS-hosting sentences were added; the quarantine, link-holder, "uyarlamak" and redaction wording was corrected.
+  - `aydinlatma.app` is reframed around Netgsm (INT-358, INT-535).
+  - The coupling test now also trips on any non-SMS `phi_path` row.
+  - HB-C17 is routed to the INT-432 lane, and the KSVY limb to the D25 lane.
+  - A counsel question on KVKK m.7 deletion after withdrawal is added.
+  - 123 tests pass; PolicyGuard finds nothing in 273 sentences.
+- Next: the coordinator pushes and opens the PR (body at `.scratch/pr-529.md`). Follow-ups F1–F10 are in the evidence file; F1 is now INT-536 (#903) and F2 is INT-537 (#904).
 - LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
