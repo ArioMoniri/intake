@@ -71,7 +71,7 @@ describe("the stage under the live dialogue", () => {
     const dialogue = source(DIALOGUE);
     expect(dialogue.match(/<PresenceOrb\b/g)).toHaveLength(1);
     expect(dialogue).toMatch(
-      /const stageMotion = stageOrbMotion\(orbState, \{ reduce: reduceMotion, redPresented: false \}\)/,
+      /const stageMotion = stageOrbMotion\(orbState, \{\s*reduce: reduceMotion,\s*redPresented: stopsDialogue,?\s*\}\)/,
     );
     expect(dialogue).toMatch(/<PresenceOrb\b[\s\S]*?stage=\{\{[\s\S]*?motion: stageMotion/);
     // The level reaches the stage orb as the sampler's shared value, through a

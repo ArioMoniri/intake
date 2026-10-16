@@ -1432,6 +1432,13 @@ export const tr = {
     "Hâlâ burada mısınız? Bilgilerinizi korumak için oturum birazdan kapanacak.",
   "kiosk.idle.extend": "Devam edin",
   "kiosk.idle.extendHint": "Oturumu açık tutar.",
+  // INT-446 — the controls around a RED. The RED's own words are never here:
+  // they come verbatim from the rule's `tr` (invariant 10). Inside RED the
+  // bare imperative plural is the register, because ambiguity is the harm.
+  "red.call112": "112'yi arayın",
+  "red.location.yes": "Evet",
+  "red.location.no": "Hayır",
+  "red.doNots": "Lütfen yapmayın",
 } as const;
 
 export type MessageKey = keyof typeof tr;

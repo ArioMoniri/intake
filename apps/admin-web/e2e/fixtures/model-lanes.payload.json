@@ -1,0 +1,321 @@
+{
+  "schema": "intake.admin.model_lanes.v1",
+  "generated_at": "2026-10-02T00:00:00+00:00",
+  "state": "known",
+  "reason": null,
+  "deployment": {
+    "declared": "synthetic",
+    "bound": "synthetic",
+    "effective": "synthetic",
+    "hosted_lanes": true,
+    "data_class_mismatch": false
+  },
+  "control": {
+    "state": "known",
+    "reason": null,
+    "revision": 3,
+    "hosted_disabled": false,
+    "changed_at": null,
+    "changed_by": null,
+    "approved_by": null,
+    "last_change": null
+  },
+  "lanes": [
+    {
+      "role": "llm",
+      "lane": "llm",
+      "inherits": false,
+      "setting": {
+        "route": "hosted:openai",
+        "model": "gpt-4o-mini",
+        "fallback": null,
+        "fallback_model": null
+      },
+      "serving": {
+        "available": false,
+        "reason": "hosted_egress_not_listed",
+        "provider": null,
+        "route": null,
+        "fallback": false,
+        "model": null,
+        "qualified": false,
+        "clinical_evidence": false
+      },
+      "self_hosted": {
+        "identity": "unreachable",
+        "expected": {
+          "source": "self_hosted",
+          "provider": "self_hosted",
+          "model_id": "Qwen/Qwen3.6-35B-A3B",
+          "version": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+          "wire": "Qwen/Qwen3.6-35B-A3B",
+          "sha256": "f2a760a0526b61e12e785a1cdeb7cfbbbc034f7c613b28731d2d6af2957c6077",
+          "component": "qwen3.6-35b-a3b",
+          "key": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0"
+        }
+      },
+      "usage": []
+    },
+    {
+      "role": "asr",
+      "lane": "asr",
+      "inherits": false,
+      "setting": {
+        "route": "self_hosted",
+        "model": null,
+        "fallback": null,
+        "fallback_model": null
+      },
+      "serving": {
+        "available": false,
+        "reason": "self_hosted_unhealthy",
+        "provider": null,
+        "route": null,
+        "fallback": false,
+        "model": null,
+        "qualified": false,
+        "clinical_evidence": false
+      },
+      "self_hosted": {
+        "identity": "unconfigured",
+        "expected": null
+      },
+      "usage": []
+    },
+    {
+      "role": "tts",
+      "lane": "tts",
+      "inherits": false,
+      "setting": {
+        "route": "self_hosted",
+        "model": null,
+        "fallback": "openai",
+        "fallback_model": null
+      },
+      "serving": {
+        "available": false,
+        "reason": "hosted_egress_not_listed",
+        "provider": null,
+        "route": null,
+        "fallback": false,
+        "model": null,
+        "qualified": false,
+        "clinical_evidence": false
+      },
+      "self_hosted": {
+        "identity": "unconfigured",
+        "expected": {
+          "source": "self_hosted",
+          "provider": "self_hosted",
+          "model_id": "openbmb/VoxCPM2",
+          "version": "32279effe8c19989596f05d353d1447f51d9e915",
+          "wire": "openbmb/VoxCPM2",
+          "sha256": "c0b23bd0f4784d86e5e0adae0e25ffe240f332f3c0eef54ddc083ea91a828fe0",
+          "component": "voxcpm2-tts",
+          "key": "openbmb/VoxCPM2@32279effe8c19989596f05d353d1447f51d9e915"
+        }
+      },
+      "usage": []
+    }
+  ],
+  "roles": [
+    {
+      "role": "llm.council.chair",
+      "lane": "llm",
+      "inherits": false,
+      "setting": {
+        "route": "self_hosted",
+        "model": null,
+        "fallback": null,
+        "fallback_model": null
+      },
+      "serving": {
+        "available": false,
+        "reason": "self_hosted_unhealthy",
+        "provider": null,
+        "route": null,
+        "fallback": false,
+        "model": null,
+        "qualified": false,
+        "clinical_evidence": false
+      },
+      "self_hosted": {
+        "identity": "unreachable",
+        "expected": {
+          "source": "self_hosted",
+          "provider": "self_hosted",
+          "model_id": "Qwen/Qwen3.6-35B-A3B",
+          "version": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+          "wire": "Qwen/Qwen3.6-35B-A3B",
+          "sha256": "f2a760a0526b61e12e785a1cdeb7cfbbbc034f7c613b28731d2d6af2957c6077",
+          "component": "qwen3.6-35b-a3b",
+          "key": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0"
+        }
+      }
+    }
+  ],
+  "models": {
+    "llm": {
+      "gated": true,
+      "self_hosted": [
+        {
+          "component": "qwen3.6-35b-a3b",
+          "pinned": true,
+          "attested": true,
+          "jurisdiction": null,
+          "model": {
+            "source": "self_hosted",
+            "provider": "self_hosted",
+            "model_id": "Qwen/Qwen3.6-35B-A3B",
+            "version": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+            "wire": "Qwen/Qwen3.6-35B-A3B",
+            "sha256": "f2a760a0526b61e12e785a1cdeb7cfbbbc034f7c613b28731d2d6af2957c6077",
+            "component": "qwen3.6-35b-a3b",
+            "key": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0"
+          },
+          "identity": "unreachable",
+          "qualified": false
+        },
+        {
+          "component": "qwen3.5-9b",
+          "pinned": false,
+          "attested": false,
+          "jurisdiction": null,
+          "model": null,
+          "identity": "unattested",
+          "qualified": false
+        }
+      ],
+      "hosted": [
+        {
+          "provider": "openai",
+          "model": {
+            "source": "hosted",
+            "provider": "openai",
+            "model_id": "gpt-4o-mini",
+            "version": "2024-07-18",
+            "wire": "gpt-4o-mini-2024-07-18",
+            "sha256": null,
+            "component": null,
+            "key": "gpt-4o-mini"
+          },
+          "default": true,
+          "probe": {
+            "state": "skipped",
+            "reason": "hosted_egress_not_listed"
+          },
+          "qualified": false
+        }
+      ]
+    },
+    "asr": {
+      "gated": true,
+      "self_hosted": [
+        {
+          "component": "whisper-tr-medical",
+          "pinned": false,
+          "attested": false,
+          "jurisdiction": null,
+          "model": null,
+          "identity": "unconfigured",
+          "qualified": false
+        }
+      ],
+      "hosted": [
+        {
+          "provider": "openai",
+          "model": {
+            "source": "hosted",
+            "provider": "openai",
+            "model_id": "gpt-4o-mini-transcribe",
+            "version": "2025-12-15",
+            "wire": "gpt-4o-mini-transcribe-2025-12-15",
+            "sha256": null,
+            "component": null,
+            "key": "gpt-4o-mini-transcribe"
+          },
+          "default": true,
+          "probe": {
+            "state": "skipped",
+            "reason": "hosted_egress_not_listed"
+          },
+          "qualified": false
+        }
+      ]
+    },
+    "tts": {
+      "gated": false,
+      "self_hosted": [
+        {
+          "component": "voxcpm2-tts",
+          "pinned": true,
+          "attested": true,
+          "jurisdiction": null,
+          "model": {
+            "source": "self_hosted",
+            "provider": "self_hosted",
+            "model_id": "openbmb/VoxCPM2",
+            "version": "32279effe8c19989596f05d353d1447f51d9e915",
+            "wire": "openbmb/VoxCPM2",
+            "sha256": "c0b23bd0f4784d86e5e0adae0e25ffe240f332f3c0eef54ddc083ea91a828fe0",
+            "component": "voxcpm2-tts",
+            "key": "openbmb/VoxCPM2@32279effe8c19989596f05d353d1447f51d9e915"
+          },
+          "identity": "unconfigured",
+          "qualified": true
+        },
+        {
+          "component": "freya-tts",
+          "pinned": false,
+          "attested": false,
+          "jurisdiction": null,
+          "model": null,
+          "identity": "unconfigured",
+          "qualified": true
+        }
+      ],
+      "hosted": [
+        {
+          "provider": "openai",
+          "model": {
+            "source": "hosted",
+            "provider": "openai",
+            "model_id": "gpt-4o-mini-tts",
+            "version": "2025-12-15",
+            "wire": "gpt-4o-mini-tts-2025-12-15",
+            "sha256": null,
+            "component": null,
+            "key": "gpt-4o-mini-tts"
+          },
+          "default": true,
+          "probe": {
+            "state": "skipped",
+            "reason": "hosted_egress_not_listed"
+          },
+          "qualified": true
+        }
+      ]
+    }
+  },
+  "providers": [
+    {
+      "provider": "openai",
+      "egress_row": "openai-api",
+      "listed": false,
+      "self_hostable": false,
+      "phi_path": false,
+      "key": {
+        "state": "unconfigured",
+        "last4": null,
+        "set_at": null
+      },
+      "ready": {
+        "state": "blocked",
+        "reason": "hosted_egress_not_listed"
+      }
+    }
+  ],
+  "usage_window": "24h",
+  "usage_reason": "prometheus_unconfigured",
+  "pending": []
+}

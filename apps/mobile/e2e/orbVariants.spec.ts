@@ -89,7 +89,7 @@ describe("the lens is the orb (ADR-039 amendment: orb=lens)", () => {
   it("the dialogue hands the orb the S1 motion untouched, and the build's body beside it", () => {
     const dialogue = source(DIALOGUE);
     expect(dialogue).toMatch(
-      /const stageMotion = stageOrbMotion\(orbState, \{ reduce: reduceMotion, redPresented: false \}\)/,
+      /const stageMotion = stageOrbMotion\(orbState, \{\s*reduce: reduceMotion,\s*redPresented: stopsDialogue,?\s*\}\)/,
     );
     expect(dialogue).toMatch(/stage=\{\{[\s\S]*?motion: stageMotion,[\s\S]*?variant: ORB_VARIANT,/);
     expect(dialogue).toMatch(/import \{ ORB_VARIANT \} from "@\/lib\/stage\/expoOrbVariant";/);

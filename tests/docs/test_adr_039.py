@@ -168,8 +168,8 @@ def test_registered_in_the_index_and_the_state_file() -> None:
     assert "adr/ADR-039-" in INDEX.read_text(encoding="utf-8")
     state = STATE.read_text(encoding="utf-8")
     decisions = _section(state, "## 3. Decisions")
-    row = next((line for line in decisions.splitlines() if line.startswith("| **D23**")), None)
-    assert row is not None, "files/00 §3 has no D23 row"
+    row = next((line for line in decisions.splitlines() if line.startswith("| **D33**")), None)
+    assert row is not None, "files/00 §3 has no D33 row"
     assert "ADR-039" in row and OWNER_QUOTE in row
 
 
