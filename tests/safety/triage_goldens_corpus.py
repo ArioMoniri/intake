@@ -333,6 +333,8 @@ class GoldenCase:
     action_show_112: bool | None = None
     action_tr: str | None = None
     ask_one_tr: str | None = None
+    # INT-494: the do-not list, exact and in order (CD-111 decided it per location).
+    do_nots_tr: tuple[str, ...] | None = None
     evidence_contains: tuple[tuple[str, str], ...] = ()
     candidates: int = 0
     expect_error: type[Exception] | None = None
@@ -425,6 +427,14 @@ def _check_action(case: GoldenCase, action: object, rule_sets: RuleSets) -> list
         spoken = carried.get(DEFAULT_LOCALE) if isinstance(carried, Mapping) else carried
         if spoken != want:
             mismatches.append(f"action.{attr}[{DEFAULT_LOCALE}] {spoken!r} != {want!r}")
+    if case.do_nots_tr is not None:
+        # INT-494: a re-added, dropped or reordered do-not line is a script change.
+        carried_lines = getattr(action, "do_nots_tr", None)
+        lines = tuple(carried_lines.get(DEFAULT_LOCALE, ())) if carried_lines else ()
+        if lines != case.do_nots_tr:
+            mismatches.append(
+                f"action.do_nots_tr[{DEFAULT_LOCALE}] {lines!r} != {case.do_nots_tr!r}"
+            )
     return mismatches
 
 

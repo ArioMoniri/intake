@@ -290,9 +290,13 @@ rules:
           tr: "Hemen **112**'yi arayın."
         do_nots_tr:
           tr:
-            - "Kendi aracınızla yola çıkmayın."
-            - "Bir şey yiyip içmeyin."
-            - "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
+            - "Hastaneye kendiniz araba kullanarak gitmeyin."
+            - "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin."
+        # ^ CD-111 (INT-468, applied by INT-494; D18, simulated patients only): the
+        #   decided REMOTE list, in record order. The driving line is the sourced
+        #   one (NHS). The nil-by-mouth line is removed: first aid gives aspirin by
+        #   mouth while help is awaited (RCUK/ERC 2025) and NICE CG95 has a
+        #   clinician offer it as soon as possible. No medicine line replaces it.
         why_tr:
           tr: >-
             Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla
@@ -315,7 +319,8 @@ rules:
           tr:
             - "Poliklinik sırasında beklemeyin."
             - "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
-            - "Bir şey yiyip içmeyin."
+        # ^ CD-111 (INT-494): the decided ON_SITE list. Both lines are kept as
+        #   written; the nil-by-mouth line is removed here too.
         why_tr:
           tr: >-
             Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste

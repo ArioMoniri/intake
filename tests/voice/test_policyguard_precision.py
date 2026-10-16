@@ -138,8 +138,9 @@ def test_the_commonest_sentence_in_the_product_can_be_spoken(guard: PolicyGuard)
         "Ağzını veya boğazını açıp bakmayın.",
         "Acil Servis'e gidin.",
         "Bugün içinde bir acil servise başvurun.",
-        "Kendi aracınızla yola çıkmayın.",
-        "Tek başınıza kalmayın.",
+        # INT-494: CD-111's two changed cardiac REMOTE lines replace the retired ones.
+        "Hastaneye kendiniz araba kullanarak gitmeyin.",
+        "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin.",
         "Su, yiyecek ya da ilaç vermeyin.",
         "Çocuğunuzu sırtüstü yatırmayın.",
         "Yanından ayrılmayın.",

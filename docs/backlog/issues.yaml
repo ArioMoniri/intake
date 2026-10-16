@@ -6612,10 +6612,13 @@
   # branch (#796), which edits the same action block. The row depends on
   # INT-432 (the register and CD-24) because INT-465 is not yet on main; it
   # also waits on INT-465 (#796) for the application and its goldens, and it
-  # stays doing until CD-111's independent verdict lands.
+  # stays doing until CD-111's independent verdict lands. Done: the verdict
+  # is agree (round 3, 4 Oct 2026), and INT-494 (#844, stacked on #796 and
+  # #813) applies both locations with goldens, near-miss controls and make
+  # safety, as #844's acceptance states.
   depends_on: [INT-432]
   labels: [area:protocols, risk:clinical]
-  status: doing
+  status: done
   evidence: docs/evidence/INT-468.md
   acceptance:
     - "a decision record (CD-111) gives each a sourced outcome (guideline or openEHR, verbatim snapshot) and an independent verifier verdict; anything unsupported stays draft_needs_source with the invariant-17 literal, never a plausible number"
@@ -6759,3 +6762,28 @@
     - "the served red rule set is signed with an ed25519 test key held non-exportable in OpenBao Transit on the synthetic AWS host, never in the repo or a log; a synthetic tenant config serves it only with a valid test-key signature over its exact bytes; a test proves any non-synthetic tenant config rejects the test-key signature; the production signing path (INT-058, cosign) and its key are untouched"
   tests: [tests/protocols/test_generic_red.py, tests/protocols/test_red_render.py, tests/protocols/test_red_signature.py, tests/protocols/test_red_rule_set_signature_cli.py, tests/safety/test_generic_red_goldens.py, tests/api/test_triage_hop.py, tests/api/test_triage_tenant_kind.py, tests/infra/test_red_signing_infra.py, tests/voice/test_red_winner.py]
   sec_row: "triage"
+- id: INT-494
+  epic: E03-protocols
+  phase: P1
+  title: "apply CD-111 to the served cardiac RED rule — decided do-not lists, re-signed synthetic rule set"
+  # GitHub #844. Stacked on INT-465 (#796) and INT-468 (#813): CD-111 decides
+  # the do-not lines of rf.chest_pain_cardiac_features (D18, simulated
+  # patients only; independently verified, agree, 4 Oct 2026). This row
+  # applies both locations' decided lists together, in record order, through
+  # files/protocols/base.life_threat.yaml, and re-signs the synthetic host's
+  # rule set with the D23 test key (runbook docs/runbooks/red-rule-set-signing.md);
+  # a real tenant still refuses it. depends_on names INT-432 (merged: the
+  # register and CD-24) because INT-465 and INT-468 are not yet on main. With
+  # it, INT-468's row is done (#844 acceptance).
+  depends_on: [INT-432]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-494.md
+  acceptance:
+    - "files/protocols/base.life_threat.yaml carries both locations' decided lists together, in record order (CD-111's application pin: original or decided per location, same state; removed lines gone)"
+    - "invariants 7 and 21 hold (no level/route/register/location change; every location resolves; ON_SITE no 112); RED copy bare imperative plural, PolicyGuard-clean, numerals expanded (invariant 22)"
+    - "golden tests with near-miss controls; make safety green; the synthetic rule set re-signed with the test key (real tenant still refuses)"
+    - "files/02 §5.3 worked example, the INT-314 tr baseline fixture and the PolicyGuard precision list updated"
+    - "clinical-reviewer APPROVE (blocker-only) before merge; INT-468 row flips to done"
+  tests: [tests/safety/test_cd111_cardiac_goldens.py, tests/safety/test_triage_goldens.py, tests/protocols/test_red_clinical_values.py, tests/protocols/test_migration_is_identity_for_tr.py, tests/voice/test_policyguard_precision.py]
+  sec_row: "clinical-content"

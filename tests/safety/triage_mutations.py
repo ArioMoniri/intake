@@ -103,6 +103,31 @@ def _pack_rule(pack: dict[str, Any], rule_id: str) -> dict[str, Any]:
     raise MutationTargetError(f"pack rule {rule_id!r} not found")
 
 
+def _do_nots(document: dict[str, Any], rule_id: str, location: str) -> list[str]:
+    """The authored Turkish do-not list of one location, as the editable list."""
+    lines = _life_rule(document, rule_id)["action"][location]["do_nots_tr"]["tr"]
+    if not lines:
+        raise MutationTargetError(f"{rule_id} {location} carries no do-not lines")
+    return lines  # type: ignore[no-any-return]
+
+
+def _cd111_readd_nil_by_mouth(document: dict[str, Any]) -> None:
+    _do_nots(document, "rf.chest_pain_cardiac_features", "REMOTE").append("Bir şey yiyip içmeyin.")
+
+
+def _cd111_on_site_unapplied(document: dict[str, Any]) -> None:
+    lines = _do_nots(document, "rf.chest_pain_cardiac_features", "ON_SITE")
+    lines[:] = [
+        "Poliklinik sırasında beklemeyin.",
+        "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.",
+        "Bir şey yiyip içmeyin.",
+    ]
+
+
+def _cd111_remote_reordered(document: dict[str, Any]) -> None:
+    _do_nots(document, "rf.chest_pain_cardiac_features", "REMOTE").reverse()
+
+
 def _drop_pack_rule(pack: dict[str, Any], rule_id: str) -> None:
     before = len(pack.get("red_flags", ()))
     pack["red_flags"] = [rule for rule in pack.get("red_flags", ()) if rule["id"] != rule_id]
@@ -312,6 +337,32 @@ MUTATIONS: tuple[Mutation, ...] = (
             '&& (chest_pain.character in {"baskı", "sıkışma", "ağırlık"}\n'
             '    || chest_pain.radiation in {"kol", "çene", "sırt"})',
         ),
+    ),
+    # INT-494: CD-111's decided do-not lists are a RED script (invariant 10). Each
+    # near miss below keeps the gate, the axes and the action line, so only the
+    # do-not pin on the C1 axis goldens can see it.
+    Mutation(
+        id="cd111_nil_by_mouth_readded",
+        kind="change a RED do-not script",
+        target="rf.chest_pain_cardiac_features",
+        description="the removed nil-by-mouth line is appended to the REMOTE do-nots "
+        "again, contradicting CD-111 (aspirin by mouth while help is awaited)",
+        life_edit=_cd111_readd_nil_by_mouth,
+    ),
+    Mutation(
+        id="cd111_on_site_left_unapplied",
+        kind="change a RED do-not script",
+        target="rf.chest_pain_cardiac_features",
+        description="ON_SITE keeps its original three lines while REMOTE is applied — "
+        "the partial application CD-111's pin forbids",
+        life_edit=_cd111_on_site_unapplied,
+    ),
+    Mutation(
+        id="cd111_remote_reordered",
+        kind="change a RED do-not script",
+        target="rf.chest_pain_cardiac_features",
+        description="the two decided REMOTE lines swap order; CD-111 decides them in record order",
+        life_edit=_cd111_remote_reordered,
     ),
 )
 

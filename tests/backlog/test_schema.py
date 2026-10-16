@@ -174,7 +174,9 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-440 voice end-to-end test, GitHub #756).
     # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
-    assert len(ids) == 345
+    # + INT-494 (CD-111 applied to the served cardiac RED rule, and the synthetic
+    # rule set re-signed; GitHub #844).
+    assert len(ids) == 346
     import re
 
     for i in ids:

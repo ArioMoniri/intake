@@ -371,11 +371,12 @@ def test_each_wrong_location_rule_fails(
 
 
 def application_problems(
-    served: Mapping[str, Sequence[str]], value: Mapping[str, Any]
+    served: Mapping[str, Sequence[str]], value: Mapping[str, Any], *, applied: bool = False
 ) -> list[str]:
     """Each location's served list is either its original list (the ``from`` texts
     in record order) or its decided list, and both locations are in the same
-    state, so no partial application (a removal alone included) passes."""
+    state, so no partial application (a removal alone included) passes. With
+    ``applied`` (INT-494 has landed the decision) only the decided state passes."""
     original = {
         loc: [line["from"] for line in value["do_nots"] if line["location"] == loc]
         for loc in LOCATIONS
@@ -392,11 +393,32 @@ def application_problems(
             problems.append(f"{loc}: {listed} is neither the original nor the decided list")
     if len(states) > 1:
         problems.append("one location is applied and the other is not")
+    if applied and "original" in states:
+        problems.append("CD-111 is applied (INT-494): the original list is no longer served")
     return problems
 
 
 def test_the_served_rule_is_either_unapplied_or_exactly_the_decision() -> None:
     assert application_problems(_rule_do_nots(), _cd111()) == []
+
+
+def test_the_served_rule_is_exactly_the_decision() -> None:
+    """INT-494 (#844) applied CD-111 to both locations together, in record order,
+    so the pin now holds the decided state only."""
+    assert application_problems(_rule_do_nots(), _cd111(), applied=True) == []
+
+
+def test_once_applied_the_original_lists_and_a_reordering_fail() -> None:
+    value = _cd111()
+    original = {
+        loc: [line["from"] for line in value["do_nots"] if line["location"] == loc]
+        for loc in LOCATIONS
+    }
+    assert application_problems(original, value) == []
+    assert application_problems(original, value, applied=True)
+    reordered = {loc: list(value["decided_lists"][loc]) for loc in LOCATIONS}
+    reordered["REMOTE"].reverse()
+    assert application_problems(reordered, value, applied=True)
 
 
 def test_a_partial_application_keeping_a_removed_line_fails() -> None:
