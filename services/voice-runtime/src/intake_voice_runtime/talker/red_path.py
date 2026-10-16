@@ -69,6 +69,7 @@ from typing import Annotated, Literal, Protocol, runtime_checkable
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult, TriageLevel
+from intake_platform.safety_inbox.metrics import CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL
 from protocols.generic_red import GENERIC_RED_SCRIPT_IDS
 from pydantic import Field, StringConstraints
 
@@ -390,7 +391,10 @@ class RedPreemption:
     route runs **first**. §4.3 lists it last, but its port has no awaitable
     member, so running it first costs the stop nothing and buys the one
     guarantee worth buying — a RED reaches a human even if the media plane,
-    the data channel and both budgets fail in the same instant.
+    the data channel and both budgets fail in the same instant. The converse
+    holds too (INT-531): a route that raises is logged by work id and counted,
+    the outcome records that the clinician was not told, and the stop and the
+    trigger still go.
     """
 
     canceller: PlaybackCanceller
@@ -427,20 +431,28 @@ class RedPreemption:
         delivery = REGISTER_DELIVERY[register]
         rule_ids = tuple(fire.id for fire in triage.rules)
 
-        self.clinic.notify(
-            RedNotification(
-                work_id=result.work_id,
-                rule_ids=rule_ids,
-                register=register,
-                location=location,
-                evaluated_at_ms=evaluated_at_ms,
-                patient_facing=delivery.triggers_device,
-                # A pure lookup, so the clinician route still runs first.
-                silent_generic=delivery.triggers_device
-                and register is RedRegister.SILENT
-                and self._script_for(triage) is None,
+        notified_clinician = True
+        try:
+            self.clinic.notify(
+                RedNotification(
+                    work_id=result.work_id,
+                    rule_ids=rule_ids,
+                    register=register,
+                    location=location,
+                    evaluated_at_ms=evaluated_at_ms,
+                    patient_facing=delivery.triggers_device,
+                    # A pure lookup, so the clinician route still runs first.
+                    silent_generic=delivery.triggers_device
+                    and register is RedRegister.SILENT
+                    and self._script_for(triage) is None,
+                )
             )
-        )
+        except Exception:  # the clinic's route must never cost the patient the RED
+            # INT-531 round 2: logged by id and counted on the series Layer B's
+            # own route uses (it pages), and the stop and the trigger still go.
+            notified_clinician = False
+            CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL.inc()
+            logger.error("red clinic route failed", extra={"work_id": result.work_id})
 
         violations: list[RedViolation] = []
         if result.presentation.speech_tr is not None:
@@ -474,7 +486,7 @@ class RedPreemption:
             evaluated_at_ms=evaluated_at_ms,
             stopped_at_ms=stopped_at_ms,
             script_started_at_ms=script_started_at_ms,
-            notified_clinician=True,
+            notified_clinician=notified_clinician,
             media_plane_unreachable=media_plane_unreachable,
             stop_overran=stop_overran,
             violations=tuple(violations),

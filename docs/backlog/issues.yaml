@@ -7035,5 +7035,5 @@
     - "Only a rules-engine RED can take this path (invariant 9: priority preempt); the Talker still never awaits Backend Work and keeps six tools."
     - "Fake-clock tests: RED evaluated mid-silence, mid-patient-speech, mid-TTS; delivered once; budget held; near miss (YELLOW, GREEN) never takes the path."
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
-  tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py]
+  tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"

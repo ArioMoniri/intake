@@ -36,6 +36,12 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Backlog: INT-531 row added (`area:voice`, depends on INT-521, `voice-runtime`); the three pins go from 357 to 358; files/11 regenerated.
 - Blocked on: nothing. Residuals in evidence (no production worker runs a session yet, no alert on the RED series, the barge-in path's own `red_in_flight` is not wired).
+- Round 2 (the runtime review blocked `fc18a197`):
+  - **B1:** an INTERJECT item's speech could start after the RED script (the cancel awaited, then the emit, with no latch check). Now every egress start is gated on the latch, and only spoken items are reported delivered.
+  - **B2:** an unexpected error on the RED path killed the watch silently. Now it is logged by id and error class and counted (`red_watch_failures_total`); the watch serves on, and the next turn retries the RED and raises `RedDeliveryFailed` ahead of the stopped-intake return. An unexpected watch exit is counted by a done-callback.
+  - **The session ending mid-delivery:** this no longer cuts the trigger, because the delivery runs in its own task that the watch only shields. A delivery the loop cancels is recorded and retried like B2.
+  - **A clinician route that raises in the RED path:** this is now logged and counted, and the stop and trigger still go.
+  - Tests: `tests/voice/test_red_watch_failures.py` (10, with the reviewer's probes lifted). RED on `fc18a197`: 8 failed, 2 passed (the near misses). GREEN: 10 passed. Mutations: 15/15 caught. `make safety` exit 0 (98.32 %, 2178 passed). runtime-sim exit 0 on both profiles and with parity.
 
 ### 2026-10-16T16:30:00Z · INT-521 · done (committed locally, not pushed; stacked on INT-518 and INT-441)
 - Goal: after INT-518 every base.intake code slot binds, but no production module called `evaluate_triage` in a session and no handler set `triage_update`, so a chest-pain RED could not fire from the conversation. Behind it: the Talker recorded a drained preempt and nothing delivered it, composition never bound the RED path, and the queue's pinned rule ids did not include the session's own rules.

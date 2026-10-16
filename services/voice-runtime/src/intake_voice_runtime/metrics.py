@@ -26,6 +26,7 @@ __all__ = [
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
     "PREEMPT_RED_VIOLATIONS_TOTAL",
+    "RED_WATCH_FAILURES_TOTAL",
     "TALKER_TOOL_CALLS_TOTAL",
     "TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL",
     "VENDOR_BREAKER_STATE",
@@ -198,6 +199,18 @@ PREEMPT_RED_VIOLATIONS_TOTAL = Counter(
     "preempt_red_violations_total",
     "Rules-engine REDs delivered with a budget, speech or script violation, by violation.",
     ["violation"],
+)
+
+#: INT-531 round 2: the Talker's between-turn RED watch could not do its job.
+#: ``kind`` is closed: ``delivery`` (a pushed RED's path raised something other
+#: than a violation or a refusal), ``cancelled`` (the event loop cancelled a
+#: delivery before it finished) or ``exit`` (the watch itself ended other than
+#: by being cancelled). The first two are retried, and raised, on the next turn.
+#: Any increase means a RED may not have reached the patient.
+RED_WATCH_FAILURES_TOTAL = Counter(
+    "red_watch_failures_total",
+    "Between-turn RED watch failures: a pushed RED undelivered, or the watch ended, by kind.",
+    ["kind"],
 )
 
 
