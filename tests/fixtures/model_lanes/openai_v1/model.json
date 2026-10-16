@@ -1,0 +1,7 @@
+{
+  "_comment": "TEST FIXTURE (INT-428). A recorded-shape model record, the identity probe's answer. Invented; no call was made.",
+  "id": "gpt-4o-mini-2024-07-18",
+  "object": "model",
+  "created": 1721172741,
+  "owned_by": "system"
+}

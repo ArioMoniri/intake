@@ -17,6 +17,7 @@ import contextlib
 import json
 import logging
 import os
+import threading
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -41,17 +42,20 @@ from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
 from intake_platform.health import ReadinessCheck, mount_health
 from intake_platform.metrics import mount_http_metrics
+from intake_platform.model_lanes.wiring import ModelLanesWiring, model_lanes_from_env
 from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.release_freeze import release_freeze_store_from_env
 from intake_platform.safety_inbox import (
+    PUMP_INTERVAL,
     SafetyInbox,
+    SafetyInboxOutbox,
     mark_inbox_unreadable,
     safety_inbox_store_from_env,
     sweep_forever,
 )
 from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.security import SecurityHeadersMiddleware
-from intake_platform.voice_control import voice_control_store_from_env
+from intake_platform.voice_control import VoiceControlStore, voice_control_store_from_env
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -72,6 +76,7 @@ from intake_api import (
     previsit_output,
     profile_routes,
     record_items,
+    red_notify,
     satisfaction,
     taxonomy_routes,
     triage_hop,
@@ -373,6 +378,7 @@ def _admin_from_env() -> AdminWiring | None:
         release_freeze=release_freeze,
         identity=_identity_from_env(),
         safety_inbox=_safety_inbox_from_env(),
+        model_lanes=_model_lanes_from_env(voice_controls),
     )
 
 
@@ -387,6 +393,31 @@ def _safety_inbox_from_env() -> SafetyInbox | None:
         logger.warning("safety inbox unconfigured: the store URL is not a redis URL")
         return None
     return SafetyInbox(store=store) if store is not None else None
+
+
+def _model_lanes_from_env(voice_controls: VoiceControlStore | None) -> ModelLanesWiring | None:
+    """INT-428 (ADR-035): the model-lane control store, the router and the
+    hosted adapters. No ``INTAKE_MODEL_LANES_REDIS_URL`` leaves the module
+    unconfigured — its mutations answer 503 and its tiles read unknown. The
+    INT-182 voice kill switch, when wired, disables hosted lanes for its
+    tenant; an unreadable one reads as engaged (fail closed). A policy file
+    that does not load (the allow-list, the provider catalogue, the transfer
+    bases) leaves the module unconfigured rather than half-built."""
+    kill_switch = None
+    if voice_controls is not None:
+        store = voice_controls
+
+        def kill_switch(tenant_id: str) -> bool:
+            return store.read(tenant_id).kill_switch
+
+    try:
+        return model_lanes_from_env(
+            os.environ, kv=SecretsProvider.from_env, kill_switch=kill_switch
+        )
+    except (OSError, ValueError) as err:
+        # the class name says what failed; no path or value is logged
+        logger.warning("model lanes unconfigured: %s", type(err).__name__)
+        return None
 
 
 def _identity_from_env() -> IdentityWiring | None:
@@ -464,6 +495,37 @@ def wiring_from_env() -> ApiWiring:
     )
 
 
+@dataclass(frozen=True)
+class _RedPump:
+    """INT-475: the thread writing the RED path's outbox into the shared store."""
+
+    outbox: SafetyInboxOutbox
+    thread: threading.Thread
+
+    @classmethod
+    def start(cls, state: ApiState) -> _RedPump | None:
+        """No inbox, no pump: a hop RED then counts a route failure, which pages."""
+        if state.red_outbox is None or state.safety_inbox is None:
+            return None
+        thread = threading.Thread(
+            target=state.red_outbox.pump,
+            args=(state.safety_inbox.store,),
+            name="safety-inbox-pump",
+            daemon=True,
+        )
+        thread.start()
+        return cls(outbox=state.red_outbox, thread=thread)
+
+    def stop(self) -> None:
+        """One last pass; what the store still refuses is counted, never named."""
+        self.outbox.stop()
+        self.thread.join(timeout=PUMP_INTERVAL.total_seconds() * 5)
+        left = len(self.outbox.pending())
+        if left:
+            # a count only (invariant 6); the entries' age already pages
+            logger.error("safety inbox entries unwritten at stop", extra={"count": left})
+
+
 def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     _setup_observability()
     w = wiring if wiring is not None else wiring_from_env()
@@ -479,6 +541,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
         safety_inbox=w.safety_inbox,
+        # INT-475: the RED path's outbox, wired exactly when the inbox is
+        red_outbox=SafetyInboxOutbox() if w.safety_inbox is not None else None,
     )
 
     @asynccontextmanager
@@ -517,6 +581,10 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
             mark_inbox_unreadable()
         else:
             sweeper = asyncio.create_task(sweep_forever(inbox, clock=lambda: datetime.now(UTC)))
+        # INT-475: the outbox pump — the triage hop's RED and the on-site staff
+        # notification are put in-process and written to the shared store here,
+        # as the voice runtime's are (INT-406).
+        pump = _RedPump.start(state)
         try:
             yield
         finally:
@@ -524,6 +592,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                 sweeper.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await sweeper
+            if pump is not None:
+                pump.stop()
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state
@@ -616,6 +686,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(profile_routes.router)
     app.include_router(taxonomy_routes.router)
     app.include_router(triage_hop.router)
+    app.include_router(red_notify.router)
     app.include_router(dsar.router)
     app.include_router(satisfaction.router)
     app.include_router(notification_prefs.router)

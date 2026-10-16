@@ -1565,6 +1565,8 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
     "the barge-in level meter's sampling interval: it listens, it limits nothing",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
+  "src/lib/red/locationReport.ts":
+    "the retry backoff and request deadline of the location answer's delivery to the server (INT-475): they delay or abandon a request, and the patient's answer and screen are already final",
   "src/lib/records/extraction.ts":
     "the backoff between asks about a document still being read: when it stops, the reading line stays and nothing is taken",
 };

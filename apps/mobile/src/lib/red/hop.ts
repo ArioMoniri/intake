@@ -16,6 +16,9 @@
  * Identifiers and axes only: the words come from the catalog fetched BEFORE
  * any evaluation could return a RED, never at RED time (invariant 21).
  *
+ * The request names the session and the visit (INT-475; ids only), so a RED the
+ * engine returns raises the clinic's Safety-inbox entry for them on the server.
+ *
  * Pure: the transport is injected. Nothing here logs, and nothing it returns
  * carries a slot value (invariant 6).
  */
@@ -70,8 +73,22 @@ export type HopOutcome =
    * an answer this decoder refuses. Never read as GREEN. */
   | { readonly kind: "unevaluated" };
 
-/** The request body: bound values keyed by slot, the location axis, the clock. */
+/**
+ * The session and the visit a RED belongs to (INT-475): ids only. The clinic's
+ * Safety-inbox entry names them, and the patient's answer to the location
+ * question names them back. On the device a visit is a session row (INT-197):
+ * the hop sends the visit id for both, and the voice lane's session id is the
+ * visit's uuid (the room is `intake-<sessionId>`).
+ */
+export interface RedOrigin {
+  readonly sessionId: string;
+  readonly visitId: string;
+}
+
+/** The request body: the ids, bound values keyed by slot, the location axis, the clock. */
 export interface TriageRequest {
+  readonly session_id: string;
+  readonly visit_id: string;
   readonly location: RedLocation;
   readonly reference_time: string;
   readonly answers: Readonly<Record<string, string | readonly string[]>>;
@@ -87,6 +104,7 @@ export function triageRequest(
   answers: readonly Answer[],
   location: RedLocation,
   referenceTime: Date,
+  origin: RedOrigin,
 ): TriageRequest {
   const slots: Record<string, string | readonly string[]> = {};
   for (const answer of answers) {
@@ -96,7 +114,13 @@ export function triageRequest(
     }
     slots[answer.questionId] = values.length === 1 ? values[0] : values;
   }
-  return { location, reference_time: referenceTime.toISOString(), answers: slots };
+  return {
+    session_id: origin.sessionId,
+    visit_id: origin.visitId,
+    location,
+    reference_time: referenceTime.toISOString(),
+    answers: slots,
+  };
 }
 
 /** The same request, as a stable string: equal bodies need no second hop. */

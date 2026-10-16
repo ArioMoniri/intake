@@ -77,7 +77,7 @@ OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}")
 # INT-528: the SMS vendor is Netgsm (owner decision, INT-358). Its credentials
 # are one OpenBao KV v2 document, never env-file keys (invariant 14):
 # netgsm_secrets.sh writes it with the root token, and the API reads it with
-# its own token through the intake-api policy's one grant under secret/.
+# its own token through the intake-api policy's read grant on that document.
 SMS_KV_PATH="api/netgsm"
 SMS_KV_FIELDS=(usercode password msgheader)
 
@@ -656,9 +656,10 @@ unseal_openbao() {
 }
 
 configure_openbao() {
-  # transit engine, the KV v2 engine (INT-528), the intake-api policy, the
-  # restart-probe KEK and the API's periodic token. The token id is the host-generated OPENBAO_TOKEN, so the
-  # env file is complete before OpenBao exists. Each step is create-if-absent.
+  # transit engine, the KV v2 engine (INT-428 model lanes, INT-528 SMS), the
+  # intake-api policy, the restart-probe KEK and the API's periodic token. The
+  # token id is the host-generated OPENBAO_TOKEN, so the env file is complete
+  # before OpenBao exists. Each step is create-if-absent.
   local root api_token
   root=$(init_field root_token)
   if ! bao_as "$root" secrets list -format=json |
@@ -666,6 +667,8 @@ configure_openbao() {
     bao_as "$root" secrets enable transit >/dev/null
     log "transit engine enabled"
   fi
+  # INT-428 (ADR-035), INT-528: KV v2 at secret/ holds the hosted-lane provider
+  # keys (model-lanes/*) and the SMS vendor's document (api/netgsm).
   ensure_secret_kv "$root"
   bao_as "$root" policy write intake-api - <"$STAGING_DIR/openbao/intake-api-policy.hcl" >/dev/null
   if ! bao_as "$root" read -format=json "transit/keys/${PROBE_KEK}" >/dev/null 2>&1; then

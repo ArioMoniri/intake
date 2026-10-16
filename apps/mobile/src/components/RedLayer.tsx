@@ -23,7 +23,9 @@
  * the rule's REMOTE branch (CD-24; HB-C25). After that wait the question stays
  * open below the 112 control, and a late answer still moves the RED (LD-05).
  * When the RED changes under the patient, the screen reader's focus moves to its
- * words (`useRedFocus`), never on first paint.
+ * words (`useRedFocus`), never on first paint. The patient's answer, on time or
+ * late, is posted to the server (`useLocationReports`, INT-475), so an ON_SITE
+ * answer notifies staff; the screen never waits for that request.
  */
 import { useEffect, useRef, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import { AccessibilityInfo, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -35,6 +37,7 @@ import { deviceClock, todayIso } from "@/lib/clock";
 import { t } from "@/lib/i18n";
 import type { HopTransport } from "@/lib/red/hop";
 import { deriveRedLocation } from "@/lib/red/location";
+import { createLocationReporter, subscribeLocationReports } from "@/lib/red/locationReport";
 import { startNoAnswerClock } from "@/lib/red/noAnswerClock";
 import {
   createRedHop,
@@ -92,6 +95,16 @@ function useRulesEngineHop(): void {
       void hop.current?.onAnswers(visitId, note.answers, location);
     }
   }, [notes, visits, kioskActive]);
+}
+
+/**
+ * The patient's answer to the location question reaches the server (INT-475), so
+ * an ON_SITE answer notifies staff. Fire-and-forget with retry, subscribed to the
+ * store beside the screen: the RED has already painted from the store, and
+ * nothing on it waits for this request (lib/red/locationReport.ts).
+ */
+function useLocationReports(): void {
+  useEffect(() => subscribeLocationReports(redStore, createLocationReporter({ transport })), []);
 }
 
 /**
@@ -225,6 +238,7 @@ function RedButton({
  */
 export function RedLayer() {
   useRulesEngineHop();
+  useLocationReports();
   const theme = useTheme();
   const screen = useRedScreen();
   // CD-24 generic_red_unknown_no_answer_goes_remote: an unanswered location

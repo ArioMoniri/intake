@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { GENERIC_RED_SCRIPT_IDS } from "../livekit/red";
-import { decodeRedCatalog, type PrePositionedRed } from "./hop";
+import { decodeRedCatalog, type PrePositionedRed, type RedOrigin } from "./hop";
 import { startNoAnswerClock, type NoAnswerTimers } from "./noAnswerClock";
 import { createRedStore, redScreen, UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS } from "./store";
 
@@ -23,6 +23,7 @@ const FIXTURES = join(__dirname, "..", "..", "..", "..", "..", "tests", "fixture
 const CATALOG = decodeRedCatalog(
   new Uint8Array(readFileSync(join(FIXTURES, "red_catalog.json"))),
 ) as PrePositionedRed;
+const ORIGIN: RedOrigin = { sessionId: "visit-1", visitId: "visit-1" };
 
 /** A fake clock: timers run only when the test advances time. */
 function fakeTimers(): NoAnswerTimers & { advance: (ms: number) => void } {
@@ -61,6 +62,7 @@ function asked(register: "ALERT" | "CALM" | "SILENT") {
       scriptId: "rf.not.on.device.unknown",
     },
     CATALOG,
+    ORIGIN,
   );
   return store;
 }

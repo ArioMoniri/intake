@@ -246,6 +246,14 @@ class EgressPurpose(StrEnum):
     #: refuses every hostname. The two policies therefore reach disjoint sets
     #: of destinations and neither is a route around the other.
     CLINICAL_RECORD_READ = "clinical_record_read"
+    #: INT-428 / ADR-035. A hosted model lane (LLM, ASR or TTS) — the owner's
+    #: temporary relaxation of invariant 19 until the GPU lanes are healthy.
+    #: Its rows sit in the ``dev`` tier with ``phi_allowed: false``: a
+    #: synthetic tenant's traffic is ``NON_PERSONAL`` and clears them, and a
+    #: real PHI tenant's traffic is ``PHI`` and is refused here as a second,
+    #: independent key behind the ADR-035 guard. A vendor LLM host on the PHI
+    #: tier stays impossible (:func:`assert_dev_only_vendors`).
+    HOSTED_MODEL_INFERENCE = "hosted_model_inference"
 
 
 class DataClass(StrEnum):
