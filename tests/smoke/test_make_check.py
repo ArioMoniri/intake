@@ -323,10 +323,12 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
+    # + INT-500 (lockfile advisories upgraded so the vulnerabilities gate stops
+    # blocking every merge, GitHub #851); grows only with a stated reason.
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785); grows only
     # with a stated reason.
-    assert len(ids) == 343, f"expected 175 blueprint + 168 added issues, got {len(ids)}"
+    assert len(ids) == 344, f"expected 175 blueprint + 169 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

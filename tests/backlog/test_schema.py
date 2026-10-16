@@ -166,10 +166,12 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
     # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
     # three, each with its own user, daemon and network namespace, GitHub #799).
+    # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
+    # vulnerabilities gate stops blocking every merge; GitHub #851).
     # order of 3 Oct 2026, GitHub #790).
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785).
-    assert len(ids) == 343
+    assert len(ids) == 344
     import re
 
     for i in ids:
