@@ -27,6 +27,7 @@ gates are pinned in ``test_base_intake_gate_values.py``.
 from __future__ import annotations
 
 import json
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,7 @@ from protocols.compile import (
     LifeThreatSet,
     RefusalCode,
     compile_bundle,
+    load_life_threat_set,
     resolve_protocol,
 )
 from protocols.compile.gate_values import code_gate_comparisons, gate_value_refusals
@@ -364,6 +366,12 @@ def test_the_compile_command_reads_the_value_sets_it_is_given(
 
     monkeypatch.chdir(REPO_ROOT)  # the CLI's other defaults are repo-root relative
     monkeypatch.setattr(cli, "compile_bundle", _record)
+    # The SENTETİK signed set cites a tests/fixtures snapshot, which the CLI
+    # refuses (INT-465). The test opts in here, in test code, never in the CLI,
+    # as tests/protocols/test_compiler_emitters.py does.
+    monkeypatch.setattr(
+        cli, "load_life_threat_set", partial(load_life_threat_set, allow_fixture_snapshots=True)
+    )
     path = tmp_path / "valuesets.yaml"
     path.write_text(
         "kind: valueset_table\nvaluesets: {vs.sentetik_rol: {members: [a], source: s}}\n",

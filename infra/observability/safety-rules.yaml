@@ -47,9 +47,11 @@ groups:
         The entry keeps the RED's own timestamp and lands when the store
         returns.
       runbook: docs/runbooks/red-acknowledgement.md#inbox-entry-late
-  # Layer B's clinician route raised before any entry existed
-  # (intake_voice_runtime.clinical_agent.work_queue). The RED was delivered;
-  # the clinic was not told, and there is no entry to age.
+  # A clinician route raised before any entry existed: Layer B's
+  # (intake_voice_runtime.clinical_agent.work_queue), or since INT-475 the API
+  # triage hop's or the on-site location answer's (intake_api.red_notify),
+  # an unwired inbox included. The RED was delivered; the clinic was not
+  # told, and there is no entry to age.
   - alert: RedInboxRouteFailed
     expr: increase(clinic_red_inbox_route_failures_total[5m]) > 0
     labels:
@@ -57,8 +59,10 @@ groups:
     annotations:
       summary: 'a RED fired and its clinician route made no Safety inbox entry'
       description: >-
-        Layer B handed a rules-engine RED to the clinician route and the route
-        raised. The RED reached the patient path; it did not reach the clinic.
+        A rules-engine RED (from Layer B or the app's triage hop), or a
+        patient's on-site answer to one, reached a clinician route that
+        raised or was not wired. The RED reached the patient path; it did
+        not reach the clinic.
       runbook: docs/runbooks/red-acknowledgement.md#route-failed
   # INT-521: the live session's rules-engine evaluation faulted, or a handler's
   # own determination disagreed with it (intake_voice_runtime.clinical_agent.

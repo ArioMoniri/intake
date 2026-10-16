@@ -462,7 +462,17 @@ class TalkerSession:
     # --- the six tools, as methods -------------------------------------------------
 
     def protocol_next(self) -> NextStep | None:
-        """A lock-free atomic attribute read (files/12 §7.2)."""
+        """A lock-free atomic attribute read (files/12 §7.2).
+
+        After a patient-facing RED it offers nothing (CD-24 ``generic_red_stops_
+        intake``; files/03 §4.6). The Talker calls this tool directly, outside the
+        turn loop, so the gate belongs here rather than only in :meth:`take_turn`:
+        a question asked after a life threat is the failure the preemption
+        exists to prevent.
+        """
+        if self._red_stopped:
+            self._last_step = None
+            return None
         snapshot = self.engine.snapshot
         if snapshot.next_step is None:
             self._last_step = None

@@ -98,6 +98,66 @@ components:
     usage_note: no catalogued host-uptime series
     price: {usd_per_unit: null, source: null, as_of: null}
 
+  - component: hosted_llm_input
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: llm, provider: openai, direction: input}
+    usage_note: null
+    price: {usd_per_unit: 6, source: "synthetic test rate, not a price", as_of: 2026-10-02}
+
+  - component: hosted_llm_output
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: llm, provider: openai, direction: output}
+    usage_note: null
+    price: {usd_per_unit: 6, source: "synthetic test rate, not a price", as_of: 2026-10-02}
+
+  - component: hosted_asr_input
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: asr, provider: openai, direction: input}
+    usage_note: null
+    price: {usd_per_unit: 6, source: "synthetic test rate, not a price", as_of: 2026-10-02}
+
+  - component: hosted_asr_output
+    vendor: openai
+    vendor_note: null
+    unit: token
+    profiles: []
+    usage:
+      metric: model_lane_tokens_total
+      aggregation: counter_increase
+      selector: {lane: asr, provider: openai, direction: output}
+    usage_note: null
+    price: {usd_per_unit: 6, source: "synthetic test rate, not a price", as_of: 2026-10-02}
+
+  - component: hosted_tts
+    vendor: openai
+    vendor_note: null
+    unit: character
+    profiles: []
+    usage:
+      metric: model_lane_characters_total
+      aggregation: counter_increase
+      selector: {lane: tts, provider: openai}
+    usage_note: null
+    price: {usd_per_unit: 6, source: "synthetic test rate, not a price", as_of: 2026-10-02}
+
 budgets:
   - budget_id: all-vendors-day
     scope: all_vendors
@@ -139,3 +199,13 @@ budgets:
     vendor: aws
     period: month
     limit: {usd: null, source: null, as_of: null}
+  - budget_id: openai-day
+    scope: vendor
+    vendor: openai
+    period: day
+    limit: {usd: 900, source: "synthetic test limit, not a budget", as_of: 2026-10-02}
+  - budget_id: openai-month
+    scope: vendor
+    vendor: openai
+    period: month
+    limit: {usd: 9000, source: "synthetic test limit, not a budget", as_of: 2026-10-02}

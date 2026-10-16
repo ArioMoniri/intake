@@ -40,6 +40,8 @@ from clinical_schemas.common import FrozenModel, JsonScalar
 from pydantic import Field, JsonValue, StringConstraints, ValidationError, model_validator
 
 from protocols.dsl import RedFlagRule, RuleId, TrText
+from protocols.source_snapshots import source_snapshot_problem
+from protocols.types import RuleStatus
 
 __all__ = [
     "PENDING_WORK_KEY",
@@ -360,15 +362,27 @@ def _split_rule(raw: object, index: int) -> dict[str, Any]:
     return annotations
 
 
-def load_life_threat_set(path: Path) -> LifeThreatSet:
+def load_life_threat_set(
+    path: Path, *, data: bytes | None = None, allow_fixture_snapshots: bool = False
+) -> LifeThreatSet:
     """Load and schema-validate the ``kind: life_threat_set`` document.
 
     A chain pack is refused here for the same reason ``load_pack`` refuses a
     life-threat set: the two documents have different safety semantics and
     neither may impersonate the other (files/12 §1).
+
+    ``data`` (INT-465) parses bytes the caller already holds instead of
+    reading ``path`` again, so a signature checked over those bytes covers
+    exactly what is parsed; ``path`` then names the document in errors only.
+
+    ``allow_fixture_snapshots`` (INT-465) admits a source citing a snapshot under
+    tests/fixtures. Only tests and SENTETİK sets pass it; a served set never does.
     """
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8") if data is None else data.decode("utf-8")
+        raw = yaml.safe_load(text)
+    except UnicodeDecodeError as exc:
+        raise LifeThreatSetError(f"{path}: life-threat set is not UTF-8") from exc
     except OSError as exc:
         raise LifeThreatSetError(f"{path}: life-threat set not readable: {exc}") from exc
     except yaml.YAMLError as exc:
@@ -394,6 +408,37 @@ def load_life_threat_set(path: Path) -> LifeThreatSet:
         raise LifeThreatSetError(f"{path}: rules must be a list (files/12 §1)")
     payload["rules"] = [_split_rule(rule, index) for index, rule in enumerate(rules)]
     try:
-        return LifeThreatSet.model_validate(payload)
+        loaded = LifeThreatSet.model_validate(payload)
     except ValidationError as exc:
         raise LifeThreatSetError(f"{path}: {exc}") from exc
+    _check_sources_against_snapshots(path, loaded, allow_fixture_snapshots)
+    return loaded
+
+
+def _check_sources_against_snapshots(
+    path: Path, life_threat: LifeThreatSet, allow_fixture_snapshots: bool
+) -> None:
+    """INT-465: every cited snapshot agrees with its source block, and every
+    ``active`` rule cites one (CLAUDE.md clinical content rules: "against a
+    committed verbatim snapshot"). A draft rule may not have one yet: it says
+    what it waits for instead. dsl.SourceBlock names this check."""
+    for entry in life_threat.rules:
+        rule = entry.rule
+        source = rule.source
+        if source is None or source.quote_snapshot is None:
+            if rule.status is RuleStatus.ACTIVE:
+                raise LifeThreatSetError(
+                    f"{path}: {rule.id} is active and cites no committed snapshot"
+                )
+            continue
+        problem = source_snapshot_problem(
+            quote_snapshot=source.quote_snapshot,
+            guideline_id=source.guideline_id,
+            quote=source.quote,
+            url=source.url,
+            retrieved_on=source.retrieved_on,
+            version_or_date=source.version_or_date,
+            allow_fixture_snapshots=allow_fixture_snapshots,
+        )
+        if problem is not None:
+            raise LifeThreatSetError(f"{path}: {rule.id}: {problem}")

@@ -1565,8 +1565,19 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
     "the barge-in level meter's sampling interval: it listens, it limits nothing",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
+  "src/lib/red/locationReport.ts":
+    "the retry backoff and request deadline of the location answer's delivery to the server (INT-475): they delay or abandon a request, and the patient's answer and screen are already final",
   "src/lib/records/extraction.ts":
     "the backoff between asks about a document still being read: when it stops, the reading line stays and nothing is taken",
+};
+
+/**
+ * Time limits under WCAG 2.2 SC 2.2.1's Essential Exception, each with its reason.
+ * Kept to the one entry by a test below: adding one is an accessibility decision.
+ */
+const ESSENTIAL_TIME_LIMITS: Record<string, string> = {
+  "src/lib/red/noAnswerClock.ts":
+    "SC 2.2.1 Essential Exception: a RED's unanswered location question takes the rule's no-answer branch (REMOTE, with the 112 control) after the wait; extending it would hold back emergency guidance from a patient who cannot answer (CD-24 generic_red_unknown_no_answer_goes_remote; INT-465). The wait is an unsigned engineering value until the physician of record decides it (HUMAN_BLOCKERS HB-C25). The wait takes nothing away: the question stays on screen after it, and the patient's own late answer still moves the RED to the answered location (LD-05, INT-471 #800)",
 };
 
 /** Time limits the patient meets → the warning machine each one's timer is handed to. */
@@ -1618,7 +1629,7 @@ function timingFindings(file: string, source: string): TimingFinding[] {
   const text = code(source);
   const lineAt = (at: number) => text.slice(0, at).split("\n").length;
   const timers = [...text.matchAll(TIMER_CALL)].map((m) => m.index);
-  if (timers.length === 0 || file in NOT_A_TIME_LIMIT) {
+  if (timers.length === 0 || file in NOT_A_TIME_LIMIT || file in ESSENTIAL_TIME_LIMITS) {
     return [];
   }
   const machine = WARNED_TIME_LIMITS[file];
@@ -1649,8 +1660,21 @@ describe("BK13 / SC 2.2.1 — a time limit warns before it acts and can be exten
   });
 
   it("every classified timer still exists — the register holds no stale entry", () => {
-    const named = [...Object.keys(NOT_A_TIME_LIMIT), ...Object.keys(WARNED_TIME_LIMITS)];
+    const named = [
+      ...Object.keys(NOT_A_TIME_LIMIT),
+      ...Object.keys(WARNED_TIME_LIMITS),
+      ...Object.keys(ESSENTIAL_TIME_LIMITS),
+    ];
     expect(named.filter((name) => !TIMED_SCRIPTS.includes(name))).toEqual([]);
+  });
+
+  it("the Essential-Exception register holds the RED no-answer clock and nothing else", () => {
+    expect(Object.keys(ESSENTIAL_TIME_LIMITS)).toEqual(["src/lib/red/noAnswerClock.ts"]);
+    // LD-05: the exception rests on the late answer being honoured (store.test.ts).
+    expect(ESSENTIAL_TIME_LIMITS["src/lib/red/noAnswerClock.ts"]).toContain("LD-05");
+    for (const reason of Object.values(ESSENTIAL_TIME_LIMITS)) {
+      expect(reason.startsWith("SC 2.2.1 Essential Exception:")).toBe(true);
+    }
   });
 
   it("no screen or component owns a timer but the resend cooldown", () => {
