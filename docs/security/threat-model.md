@@ -57,6 +57,7 @@ acknowledgement) turned out to have no section carrying them.
 | Visit creation / SMS screenshot OCR | `visits` | `OCR` |
 | Voice intake (runtime) | `intake-voice`, `voice-runtime` | `DTLS-SRTP` |
 | Typed intake | `intake-typed` | `input limits` |
+| Council verifier (`llm-boundary`; INT-430, ADR-036) | `llm-boundary` | `INT-430 (ADR-036): the council verifier` |
 | Triage RED / YELLOW | `triage` | `set me green` |
 | Wellbeing screening & observer lanes | `wellbeing`, `observer-lanes` | `biometric drift` |
 | Records upload & ingestion | `records` | `ClamAV` |
@@ -849,6 +850,12 @@ it or whose tests exercise it.
   INT-406, with `clinic_red_inbox_pending_age_s` and `clinic_red_inbox_route_failures_total`
   for the 60 s half; the last three page through `infra/observability/safety-rules.yaml`
   (`docs/runbooks/red-acknowledgement.md`), and the latency histogram is the measurement.
+- **Generic RED and the synthetic serve path (INT-465, D23 with D18).** The generic escalation
+  is CD-24's copy, active, with per-location sources checked against committed snapshots and no
+  112 in any ON_SITE carrier; RED text is rendered (markers removed, tenant segment resolved or
+  dropped) before any screen or TTS. On the synthetic host only, a test-key signature stands in
+  for the physician sign-off (HB-C1 unchanged for every real tenant); draft rules are never
+  served. Tests: `tests/safety/test_generic_red_goldens.py`, `tests/protocols/test_generic_red.py`.
 - **Tests:** golden suite with near-miss negatives and mutation tests land with INT-059;
   preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is owned by
   INT-406: `tests/safety/test_red_acknowledgement_sla.py` (fake clocks: entry ≤ 60 s with no
@@ -987,6 +994,19 @@ it or whose tests exercise it.
   INT-058/INT-184.
 - **Tests:** load-time signature verification lands with INT-058; quarantine drill with the
   pack-lifecycle issues.
+- **Synthetic-only test key (INT-465, D23).** [S/E] a test signature trusted where a real
+  patient may be. Control: the red rule set of the synthetic AWS host is signed by an ed25519
+  key held non-exportable in OpenBao Transit there, used only through a sign-only token; the
+  public half is the only key in `packages/protocols/signing/trusted_keys.yaml`, whose one scope
+  is `synthetic_test`. `intake_platform.red_signature.admitted_scopes` is an allow-list keyed on
+  the synthetic tenant kind alone and runs before any cryptography, and the API refuses to boot
+  with a synthetic tenant unless `INTAKE_ENV` is explicitly `dev` or `staging`. The signature
+  binds the exact bytes parsed (each document read once), the served rule list and the one host
+  it is for (`deployment`, which a synthetic tenant config must name). This is not
+  the production path (cosign, INT-058, untouched). Signal: a refusal logs its id-shaped code
+  (`intake_api.triage_rules`). Tests: `tests/protocols/test_red_signature.py` (every
+  non-synthetic tenant config rejects the key), `tests/api/test_triage_tenant_kind.py`,
+  `tests/api/test_triage_hop.py`, `tests/infra/test_red_signing_infra.py`.
 
 ## `llm-boundary` — model calls behind gateways
 
@@ -1030,6 +1050,37 @@ it or whose tests exercise it.
   taking exactly the same virtual time as an unmetered one on the fake clock (invariant
   9), and the price book refusing rather than returning a zero. The adversarial suite
   RT-09…14 in `make safety` plus the nightly red-team job still land with INT-102.
+- **INT-430 (ADR-036): the council verifier.** The owner asked for an agent council of
+  self-hosted or API models. Two binding challenger reviews reduced it to a verifier, and
+  this row now covers it. The verifier runs only after the primary single-pass extraction
+  has bound the answer, so RED never waits on it.
+  - **Scope.** It reads red-flag and numeric slots only. Tense anchors, `text_only`
+    safeguarding slots, identity slots and instrument items are unreachable by type.
+  - **What a member returns.** A closed schema: a verbatim evidence span for every reading,
+    a Turkish hedge enum, and no confidence field.
+  - **What it can do.** Adjudication is asymmetric. It may only *append* the slot's own
+    scripted re-ask or confirm-back, compare-and-swapped on the slot revision. It never
+    clears, skips, reorders or overwrites, and its candidate flags are add-only at
+    YELLOW_REVIEW and go to the clinician alone.
+  - **Excessive agency (LLM06)** is closed by that action set.
+  - **Prompt injection (LLM01).** Every transcript crosses the INT-083 fence, and readings
+    for any slot outside scope are dropped before adjudication.
+  - **Unbounded consumption (LLM10).** Each verification is an *elective* charge, refused
+    while HB-O8 is open. A process-wide admission gate sheds a verification when saturated,
+    and stragglers abstain at a deadline set on the injected clock.
+  - **Disclosure (LLM02).**
+    - Every proposal is logged as an event of ids and closed codes.
+    - Spans use the closed `LlmSpan` field set (`kind=verification`).
+    - Each session carries its own `cache_salt` for the shared prefix cache.
+    - A hosted member is unrepresentable on a real-PHI deployment, and an unset data class
+      reads as real PHI.
+  - **Signals:** `council_member_latency_ms`, `council_member_agreement_total`,
+    `council_verifications_total`, `council_actions_total` and
+    `council_readings_dropped_total`, all catalogued `live`.
+  - **Tests:** the `tests/voice/test_council_*.py` suites, each must-have with a near-miss
+    control. They cover a 30 s stall measured on the fake clock, the injection corpus, the
+    Turkish negation set, permutation determinism, CAS on a mid-flight correction, replay
+    with refusal of a wrong-lane recording, and the span PHI scan.
 
 - **INT-428 — hosted model lanes (ADR-035).** The owner's decision of 2 Oct 2026 puts a hosted
   provider behind the `llm`, `asr` and `tts` lanes until the GPU lanes are healthy, narrowed by the

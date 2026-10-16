@@ -41,7 +41,7 @@ which is the one choke point that already attaches them.
 from __future__ import annotations
 
 import enum
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Callable, Mapping, MutableMapping
 from datetime import timedelta
 
 from intake_platform.admin.actions import SAFETY_FLAG_ENABLE
@@ -63,10 +63,12 @@ __all__ = [
     "ChangeReasonMissing",
     "ChangeReasonTooShort",
     "ClinicalSemanticSurface",
+    "DeviceFunctionsPreconditionUnmet",
     "DisableRoleIneligible",
     "FlagChangeReason",
     "FlagGovernanceRefused",
     "FlagGovernor",
+    "GenericRedPrecondition",
     "NotASafetyFlag",
     "SafetyKeyInGenericStore",
     "build_flag_change_justification",
@@ -158,6 +160,25 @@ class NotASafetyFlag(FlagGovernanceRefused):
     """The safety-flag ceremony was asked to govern an operational flag."""
 
     code = "flag_not_a_safety_flag"
+
+
+class DeviceFunctionsPreconditionUnmet(FlagGovernanceRefused):
+    """INT-453: ``device_functions`` turns RED on the patient's device on, and a
+    RED whose own script cannot be addressed is shown as the generic escalation.
+    While that generic copy is absent or ``draft_needs_source`` (CD-24), a blank
+    generic could reach a live tenant, so the flag cannot be enabled."""
+
+    code = "flag_device_functions_generic_red_unservable"
+
+
+#: Why the generic RED is not servable; empty means servable. Wired from
+#: ``protocols.generic_red.generic_red_refusals`` over the served document. The
+#: default is the fail-closed answer: nothing wired means nothing is servable.
+GenericRedPrecondition = Callable[[], tuple[str, ...]]
+
+
+def _no_generic_red_wired() -> tuple[str, ...]:
+    return ("generic_red_absent",)
 
 
 class DisableRoleIneligible(FlagGovernanceRefused):
@@ -257,8 +278,13 @@ class FlagGovernor:
     """
 
     def __init__(
-        self, four_eyes: FourEyesService, *, store: MutableMapping[str, bool] | None = None
+        self,
+        four_eyes: FourEyesService,
+        *,
+        store: MutableMapping[str, bool] | None = None,
+        generic_red_precondition: GenericRedPrecondition = _no_generic_red_wired,
     ) -> None:
+        self._generic_red_precondition = generic_red_precondition
         seed = dict(store or {})
         planted = scan_generic_store(seed)
         if planted:
@@ -299,6 +325,7 @@ class FlagGovernor:
         guard_flag_key(key)
         _require_safety(key)
         _require_reason(justification)
+        self._require_enable_precondition(key)
         return self._four_eyes.open(
             action=SAFETY_FLAG_ENABLE,
             actor=actor,
@@ -314,8 +341,20 @@ class FlagGovernor:
         the :class:`FourEyesService`'s; a one-person attempt raises before the
         flip, so the flag stays in its safe state."""
         approved = self._four_eyes.approve(pending_id, approver=approver, assertion_id=assertion_id)
+        # Re-checked at the flip: the generic copy can be withdrawn between the
+        # two keys, and the flag must not land on a state that no longer holds.
+        self._require_enable_precondition(approved.evidence["flag"])
         self._safety[approved.evidence["flag"]] = True
         return True
+
+    def _require_enable_precondition(self, key: str) -> None:
+        if key != "device_functions":
+            return
+        if self._generic_red_precondition():
+            raise DeviceFunctionsPreconditionUnmet(
+                "device_functions stays off while the generic RED copy is absent or "
+                "draft_needs_source (INT-453, CD-24)"
+            )
 
     # -- safety flags, disable: the safe direction, one key (F17) ----------
 

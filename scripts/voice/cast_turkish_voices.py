@@ -81,6 +81,7 @@ from voice_clips.gateway import (
     ENV_ELEVENLABS_KEY,
     ENV_EVAL_BUDGET_USD,
     ElevenLabsClipGenGateway,
+    assert_numeral_free,
     assert_speakable_tr,
     tts_gateway_from_env,
 )
@@ -212,7 +213,9 @@ def synthesise_aligned(
         raise CastRefused("audio tags are a v3 delivery only (ADR-034 amendment)")
     if profile.tags and profile.tags != delivery_profile(profile.context).tags:
         raise CastRefused(f"tags {profile.tags} are not the served table's for {profile.context}")
-    assert_speakable_tr(profile.wire_prefix + text_tr)
+    # the wire text: the tags are markup by construction, so only its numeral
+    # half is checked here (invariant 22); text_tr passed the whole gate above
+    assert_numeral_free(profile.wire_prefix + text_tr)
     response = client.post(
         f"/v1/text-to-speech/{voice_id}/with-timestamps",
         params={"output_format": f"pcm_{ELEVENLABS_PCM_RATE_HZ}"},

@@ -103,6 +103,19 @@ services:
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
       TWILIO_FROM: ${TWILIO_FROM}
+      # INT-465: this host serves synthetic patients only, so its triage tenant
+      # is synthetic. Its red rule set is base.life_threat, signed with the
+      # synthetic-only test key (owner decision, 3 Oct 2026, with D18; the
+      # signer is redset_signer.sh). Only the signed active rules are served.
+      # The API refuses a synthetic tenant outside dev and staging, and every
+      # other tenant rejects this signature.
+      INTAKE_API_TRIAGE_TENANT_KIND: synthetic
+      # The host the signature names (review round 2). Declared, not attested:
+      # the same compose on another host would claim this id, which is why the
+      # API also refuses a synthetic tenant outside dev and staging.
+      INTAKE_API_TRIAGE_DEPLOYMENT: i-0e489e48739f5de98
+      INTAKE_API_TRIAGE_RULES: files/protocols/base.life_threat.yaml
+      INTAKE_API_TRIAGE_SIGNATURE: packages/protocols/signing/red_rule_set.synthetic.json
       # INT-421: the admin console (INT-180). The API verifies every console
       # bearer against the realm's issuer, the `api` audience and a key set
       # mirrored onto the host by deploy.sh, so no request depends on Keycloak

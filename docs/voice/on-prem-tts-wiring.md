@@ -1,6 +1,7 @@
 # Wiring the delivery profiles to the self-hosted `residency_tr` TTS
 
-Status: guide (INT-415, 27 Sep 2026). Nothing in this document is wired yet. The profiles
+Status: guide (INT-415, 27 Sep 2026; profiles v2, text-side pacing and the sample render added
+by INT-424, 2 Oct 2026). The self-hosted mapping is not wired yet. The profiles
 already drive the ElevenLabs clip lane (ADR-028 offline build and the INT-326 dev route). This
 guide says how to give the same seven profiles to the self-hosted TTS that `residency_tr`, the
 one production voice profile, actually runs. It names only models pinned in files/03 §4.9.1,
@@ -88,23 +89,45 @@ guidance control.
 
 ## 3. The mapping
 
-These are **candidate** values for the listening test in §7. They are voice tuning, not
+These are **candidate** values for the listening test in §8. They are voice tuning, not
 clinical values, and the owner's listening review decides them. Write instructions in English,
 as every README example is. Whether a Turkish instruction works better is itself a listening-test
 question.
 
-| context           | ElevenLabs v1 (live today) stability / style / speed | VoxCPM2 style instruction (candidate)       | VoxCPM2 `cfg_value` | Freya   |
+| context           | ElevenLabs v2 (live today) stability / style / speed | VoxCPM2 style instruction (candidate)       | VoxCPM2 `cfg_value` | Freya   |
 | ----------------- | ---------------------------------------------------- | ------------------------------------------- | ------------------- | ------- |
-| `welcome`         | 0.40 / 0.20 / 0.98                                   | `(warm, friendly, unhurried)`               | 2.0                 | neutral |
+| `welcome`         | 0.38 / 0.30 / 0.98                                   | `(warm, friendly, unhurried)`               | 2.0                 | neutral |
 | `routine`         | 0.55 / 0.05 / 1.00                                   | `(calm, neutral, clear)`                    | 2.0                 | neutral |
 | `sensitive`       | 0.65 / 0.00 / 0.92                                   | `(calm, gentle, slightly slower)`           | 2.0                 | neutral |
-| `instrument`      | 0.80 / 0.00 / 0.95                                   | `(steady, neutral, clear, slightly slower)` | 2.0                 | neutral |
-| `acknowledgement` | 0.48 / 0.15 / 1.02                                   | `(warm, brief)`                             | 2.0                 | neutral |
-| `red`             | 0.85 / 0.00 / 0.95                                   | `(steady, clear, calm)`                     | 2.0                 | neutral |
+| `instrument`      | 0.85 / 0.00 / 0.93                                   | `(steady, neutral, clear, slightly slower)` | 2.0                 | neutral |
+| `acknowledgement` | 0.45 / 0.15 / 1.00                                   | `(warm, brief)`                             | 2.0                 | neutral |
+| `red`             | 0.90 / 0.00 / 0.92                                   | `(steady, clear, calm)`                     | 2.0                 | neutral |
 | `closing`         | 0.42 / 0.20 / 0.97                                   | `(warm, friendly)`                          | 2.0                 | neutral |
 
 Every ElevenLabs row also carries `similarity_boost` 0.75 and `use_speaker_boost` true, on
-`eleven_multilingual_v2`.
+`eleven_multilingual_v2`. The rows are profile version 2 (INT-424), so every key is
+`delivery.<context>@v2`. The v1 values (INT-415), the candidates each v2 row was picked from, and
+the listening notes are in `docs/evidence/INT-424.md`. §8 (the sample render) says how to render and review them.
+
+### Text-side pacing (INT-424)
+
+On `eleven_multilingual_v2`, text paces itself through punctuation: the comma, the full stop, the
+semicolon, the question mark, the ellipsis `…` and the dash `—`. That is the only text-side
+control we use, and only where invariant 10 allows it:
+
+- **Delivery lead-ins only.** A lead-in is device-composed copy (INT-414): a welcome line, an
+  acknowledgement such as a short thanks, a closing line. Its punctuation is copy, chosen when the
+  copy is written. A scripted question item, a RED script or an instrument item is spoken
+  byte-for-byte as compiled, with no added mark.
+- **A lead-in is its own utterance.** It is spoken in its own context (`acknowledgement`,
+  `welcome`, `closing`) and is never glued into the item's string. So the item's `text_tr`, its
+  `clip_text_hash` and its clip stay unchanged.
+- **No SSML and no audio tags, anywhere.** The `<break time="…"/>` tag would carry a duration
+  numeral (invariant 22), and an audio tag is a word the protocol did not author (invariant 10).
+  `assert_speakable_tr` refuses `<`, `>`, `[` and `]` (`MarkupInScriptError`), and the dev route
+  answers 422 `not_speakable`. Expressive models and tags are ADR-034 (Accepted 3 Oct 2026: stay on
+  `eleven_multilingual_v2`).
+- **No numerals.** A lead-in passes the same `assert_speakable_tr` gate as an item.
 
 Rules for the instruction strings:
 
@@ -239,8 +262,8 @@ the cut-over is where it bites.
 
 ## 8. Listening-test protocol
 
-The owner's listening review is owed for the ElevenLabs v1 table already, and it is required
-before any self-hosted mapping ships.
+The owner's listening review of the ElevenLabs table runs through the sample render at the end of this section. A review on this protocol
+is required before any self-hosted mapping ships.
 
 1. **Corpus.** Use compiled catalogue sentences only: scripted `text_tr` from served or fixture
    packs. Never a patient answer and never patient audio. Take five sentences per context.
@@ -266,9 +289,46 @@ before any self-hosted mapping ships.
    outcome in `docs/evidence/<id>.md`, described as a measurement and never as a property of the
    product (invariant 20). A change to any value bumps that profile's `version`.
 
+### The ElevenLabs sample render (owner, INT-424)
+
+This renders the sample set the owner listens to. It uses catalogue sentences only, on the v1
+row and three candidates per context, through the existing ADR-028 gateway.
+
+1. **Run one line** from the repository root. It reads the key and the base URL from the owner's
+   secrets file, and the tool never prints either:
+
+   ```sh
+   set -a; . ~/.intake-secrets.env; set +a; EVAL_BUDGET_USD=5 uv run python scripts/voice/render_delivery_samples.py --live
+   ```
+
+   Without `--live`, the tool dials nothing. It prints the clip count, the characters and the
+   estimate (80 clips and 3,424 characters as of INT-424).
+
+2. **Budget cap.** The run refuses before any request when the estimate is above
+   `EVAL_BUDGET_USD` or above the tool's own 5 USD ceiling. The estimate uses a deliberately high
+   0.30 USD per 1,000 characters. The vendor's published API rate on 2 Oct 2026 was 0.08. Anything
+   above 20 USD needs the owner (CLAUDE.md).
+3. **Listen.** The samples land in `.cache/voice-samples/int-424/`, which is gitignored and
+   never committed:
+   - `index.html` is labelled, with each setting shown beside the player;
+   - `blind.html` is shuffled, with each clip identified by a code;
+   - `index.json` maps each code to its setting and holds the signal statistics.
+
+   Open `blind.html` first and note a preference per context by code, then check the codes in
+   `index.json`. `uv run python scripts/voice/render_delivery_samples.py --analyse` rebuilds the
+   pages and statistics from the WAVs without the key.
+
+4. **Feed the choice back.** Edit the chosen row in `voice_clips.delivery.DELIVERY_PROFILES` to
+   the chosen candidate's values, and bump `PROFILE_VERSION`. The version is in every clip key,
+   so the bump re-synthesises instead of replaying the old tuning.
+   `tests/voice/test_render_delivery_samples.py` requires every shipped row to be one of the
+   rendered candidates, so a value nobody heard cannot ship. To try new values, add them to
+   `CANDIDATES` in the script and render again. Record the date, the listener, the choice and the
+   spend in the issue's evidence file. Rebuild the clip cache with `make clips VOICE=<voice>`.
+
 ## 9. Cut-over checklist
 
-- [ ] The listening review of the ElevenLabs v1 table is recorded (owner).
+- [ ] The owner's listening review of the ElevenLabs v2 table is recorded (§8, the sample render; INT-424).
 - [ ] `freya-tts` registry row completed: `model_id@revision`, `weights_sha256`,
       `licence_verified_at` from a raw LICENSE blob (§5).
 - [ ] `voxcpm2-tts` controls re-checked against the pinned `voxcpm==2.0.3`: the instruction
@@ -294,12 +354,16 @@ before any self-hosted mapping ships.
 
 ## 10. Options that need an ADR, not a profile edit
 
-- **`eleven_v3` audio tags** (`[whispers]` and similar) could express warmth per phrase on the
-  cloud lane.
-  - v3 drops `speed`, `similarity_boost` and speaker boost.
-  - Its tags would be text sent to the model, so they fall under the same closed-table and
-    round-trip rules as the VoxCPM2 instruction.
-  - Changing the pinned model needs an ADR, and the gateway refuses a profile tuned for another
-    model.
+- **`eleven_v3` / `eleven_v4` audio tags** (`[whispers]` and similar) could express warmth per
+  phrase on the cloud lane. ADR-034 (Accepted by the owner on 3 Oct 2026, INT-424) evaluates them against invariants 10, 21
+  and 22, ADR-028 and the latency budget. It recommends staying on `eleven_multilingual_v2` and
+  lists the gates that would come first.
+  - Per the vendor's product guide, retrieved 2 Oct 2026, v3 keeps style only, and v4 keeps
+    stability and similarity only. Neither reads SSML.
+  - Tags would be text sent to the model, so they fall under the same closed-table and round-trip
+    rules as the VoxCPM2 instruction. They never go inside `text_tr`, and the markup gate
+    enforces that.
+  - Changing the pinned model needs the ADR ratified. The gateway refuses a profile tuned for
+    another model.
 - **A different self-hosted TTS** is a files/03 §4.9.1 row change, with its registry row and
   licence verification, before any profile is mapped to it.

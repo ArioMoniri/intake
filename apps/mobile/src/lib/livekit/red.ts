@@ -131,11 +131,67 @@ export function decodeRedTrigger(payload: Uint8Array): RedTrigger | null {
 }
 
 /**
+ * The generic escalation's script ids (INT-453), one per location. These mirror
+ * `intake_voice_runtime.talker.red_path.GENERIC_RED_SCRIPT_IDS`, and
+ * tests/voice/test_red_winner.py pins the two together.
+ */
+export const GENERIC_RED_SCRIPT_IDS = {
+  REMOTE: "base.generic_red.remote",
+  ON_SITE: "base.generic_red.on_site",
+  UNKNOWN: "base.generic_red.unknown",
+} as const satisfies Record<RedLocation, string>;
+
+/** CD-24's generic copy, with words, for the two locations that act. */
+export interface GenericRedCopy {
+  readonly REMOTE: RedScript;
+  readonly ON_SITE: RedScript;
+}
+
+const worded = (script: RedScript | undefined): script is RedScript =>
+  script !== undefined && script.actionTr.trim().length > 0;
+
+/**
+ * The generic copy, or null when the catalog cannot say it (INT-465; CD-24
+ * `generic_red_silent_is_never_wordless`). A wordless generic is a failure,
+ * never a state to render: the catalog decoder refuses such a catalog, and a
+ * voice session refuses to start without it.
+ */
+export function genericRedCopy(catalog: RedScriptCatalog): GenericRedCopy | null {
+  const remote = catalog[GENERIC_RED_SCRIPT_IDS.REMOTE];
+  const onSite = catalog[GENERIC_RED_SCRIPT_IDS.ON_SITE];
+  return worded(remote) && worded(onSite) ? { REMOTE: remote, ON_SITE: onSite } : null;
+}
+
+/**
+ * The RED a patient sees when the trigger's own script is not on the device
+ * (INT-453; CD-24): never nothing, and never wordless.
+ * - Register: the trigger's own, which is the engine result's (CD-24
+ *   carry_engine_register), never a fixed ALERT.
+ * - Location: a known one only. Under UNKNOWN the location question comes first
+ *   and carries no script (ask-first, files/04 §8.1 rule 7); the RED store
+ *   resolves the answer before it asks for a presentation (INT-465).
+ * - Words: CD-24's generic copy. ON_SITE carries no 112.
+ */
+export function genericRed(
+  trigger: RedTrigger & { readonly location: Exclude<RedLocation, "UNKNOWN"> },
+  copy: GenericRedCopy,
+): RedPresentation {
+  const script = trigger.location === "ON_SITE" ? copy.ON_SITE : copy.REMOTE;
+  return {
+    ruleId: trigger.ruleId,
+    register: trigger.register,
+    location: trigger.location,
+    script,
+    show112: trigger.location === "ON_SITE" ? false : script.show112,
+  };
+}
+
+/**
  * Resolve a trigger against the pre-positioned catalog.
  *
- * Returns null when the script is not on the device — an honest "we cannot
- * render this" that the caller surfaces as the generic escalation, rather
- * than inventing clinical words (invariant 17: never a plausible value).
+ * Returns null when the script is not on the device. The caller shows
+ * `genericRed` instead, and never invents clinical words (invariant 17: never
+ * a plausible value).
  */
 export function resolveRed(trigger: RedTrigger, catalog: RedScriptCatalog): RedPresentation | null {
   const script = catalog[trigger.scriptId];
