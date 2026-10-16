@@ -47,6 +47,7 @@ from typing import Any
 import pytest
 import test_extraction_valuesets as int518
 import test_live_triage as int521
+from clinic_item_harness import RecordingClinicItems
 from clinical_schemas.observers import InteractionState, Lane
 from clinical_schemas.triage import RedLocation, RedRegister
 from intake_voice_runtime.composition import (
@@ -188,6 +189,7 @@ def _rig(
         "clock": clock,
         "screen": screen,
         "red": RedWiring(location=location, channel=channel, scripts=int521._scripts()),
+        "clinic_items": RecordingClinicItems(),
     }
     if profile is VoiceProfile.TYPED:
         return Rig(build_typed_session(**common), clock, channel, clinic, None, screen)

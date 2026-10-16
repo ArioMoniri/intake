@@ -45,10 +45,12 @@ from datetime import datetime, timedelta, timezone
 import pytest
 import test_extraction_valuesets as int518
 import test_live_triage as int521
+from clinic_item_harness import RecordingClinicItems
 from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult, TriageLevel
 from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
+from intake_voice_runtime.clinical_agent.clinic_items import ClinicItemRoute
 from intake_voice_runtime.composition import (
     RedWiring,
     build_residency_tr_session,
@@ -197,9 +199,12 @@ def _rig(
     reference_time: datetime = NOW,
     anchor_choices: AnchorChoiceTable | None = None,
     answer_states: AnswerStateTable | None = None,
+    clinic_items: ClinicItemRoute | None = None,
 ) -> Rig:
     """INT-521's composition, with the reference time, the CD-05 table and
-    the CD-04 table (INT-540) the caller's to inject."""
+    the CD-04 table (INT-540) the caller's to inject, and the CD-08 item route
+    (INT-547) a recording one unless handed in."""
+    items = RecordingClinicItems() if clinic_items is None else clinic_items
     clock = FakeClock()
     channel = RecordingDataChannel(clock=clock)
     clinic = RecordingClinicNotifier()
@@ -220,6 +225,7 @@ def _rig(
             red=red,
             anchor_choices=anchor_choices,
             answer_states=answer_states,
+            clinic_items=items,
         )
         return Rig(stack, clock, channel, clinic, None, None, screen, stack.anchors)
     sink = RecordingSink(clock=clock)
@@ -242,6 +248,7 @@ def _rig(
         red=red,
         anchor_choices=anchor_choices,
         answer_states=answer_states,
+        clinic_items=items,
     )
     return Rig(stack, clock, channel, clinic, sink, synthesizer, screen, stack.anchors)
 

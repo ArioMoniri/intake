@@ -23,6 +23,17 @@ business hours"*: :attr:`AckSlaPolicy.per_tenant` is where an owner-set value
 lands. It ships empty, so every tenant is on the default until someone sets
 one, and a value that is not a positive duration is refused at construction —
 there is no state in which a tenant has no SLA and therefore never pages.
+
+**A CD-08 clinic item has no SLA here, by decision** (INT-547). The
+clinician-only items the clinical decisions raise (CD-04's, first) are not
+REDs, so files/02 §8.2's RED clock is not theirs, and CD-08 leaves their
+acknowledgement SLA,
+out-of-hours cover and escalation ``draft_needs_source`` (the invariant-17
+literal in ``packages/protocols/decisions/CD-08.yaml``). Lending them the RED
+SLA would be inventing one. :meth:`AckSlaPolicy.sla_for_entry` is ``None`` for
+them, so they carry no deadline and no age band, never breach and never join
+``clinic_red_unacknowledged_total``; CD-08's ``fail_closed_while_draft`` holds
+because a missing SLA neither drops nor delays the entry.
 """
 
 from __future__ import annotations
@@ -78,10 +89,21 @@ class AckSlaPolicy:
     def sla_for(self, tenant_id: str) -> timedelta:
         return self.per_tenant.get(tenant_id, self.default)
 
-    def deadline(self, entry: InboxEntry) -> datetime:
-        return entry.created_at + self.sla_for(entry.tenant_id)
+    def sla_for_entry(self, entry: InboxEntry) -> timedelta | None:
+        """The entry's SLA: the tenant's RED SLA, or ``None`` for a CD-08 clinic
+        item, whose SLA CD-08 leaves undecided."""
+        if entry.kind.is_clinic_item:
+            return None
+        return self.sla_for(entry.tenant_id)
 
-    def band(self, entry: InboxEntry, now: datetime) -> AgeBand:
+    def deadline(self, entry: InboxEntry) -> datetime | None:
+        sla = self.sla_for_entry(entry)
+        return None if sla is None else entry.created_at + sla
+
+    def band(self, entry: InboxEntry, now: datetime) -> AgeBand | None:
         """Past the SLA is strictly later than the deadline: at the deadline
-        the entry is still inside it."""
-        return AgeBand.PAST_SLA if now > self.deadline(entry) else AgeBand.WITHIN_SLA
+        the entry is still inside it. ``None`` where the entry has no SLA."""
+        deadline = self.deadline(entry)
+        if deadline is None:
+            return None
+        return AgeBand.PAST_SLA if now > deadline else AgeBand.WITHIN_SLA

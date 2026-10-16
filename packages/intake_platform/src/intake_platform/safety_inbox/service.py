@@ -88,10 +88,12 @@ class SweepReport:
 @dataclass(frozen=True)
 class QueueRow:
     """One console row: the entry and its clock against the tenant SLA.
-    ``band`` is ``None`` once acknowledged — an answered entry has no age."""
+    ``band`` is ``None`` once acknowledged — an answered entry has no age —
+    and both ``sla`` and ``band`` are ``None`` for a CD-08 clinic item, whose
+    SLA CD-08 leaves undecided (INT-547)."""
 
     entry: InboxEntry
-    sla: timedelta
+    sla: timedelta | None
     elapsed: timedelta
     band: AgeBand | None
 
@@ -132,6 +134,10 @@ class SafetyInbox:
     def acknowledge(self, *, tenant_id: str, entry_id: str, by: str, at: datetime) -> InboxEntry:
         acked = self.store.acknowledge(tenant_id, entry_id, by=by, at=at)
         assert acked.acknowledged_at is not None  # noqa: S101 - the store just set it
+        if acked.kind.is_clinic_item:
+            # INT-547: a CD-08 clinic item is not a RED; its answer is not a
+            # RED's acknowledgement latency (files/02 §8.2)
+            return acked
         latency = acked.acknowledged_at - acked.created_at
         CLINIC_RED_ACK_LATENCY_MIN.observe(latency.total_seconds() / 60.0)
         return acked
@@ -147,6 +153,11 @@ class SafetyInbox:
         breaches: list[Breach] = []
         for entry in open_entries:
             band = self.policy.band(entry, now)
+            deadline = self.policy.deadline(entry)
+            if band is None or deadline is None:
+                # INT-547: a CD-08 clinic item has no SLA while CD-08's is
+                # draft, so it is neither banded, counted as a RED, nor breached
+                continue
             counts[(entry.tenant_id, band)] += 1
             if band is AgeBand.PAST_SLA:
                 breaches.append(
@@ -154,7 +165,7 @@ class SafetyInbox:
                         tenant_id=entry.tenant_id,
                         entry_id=entry.entry_id,
                         kind=entry.kind,
-                        overdue_by=now - self.policy.deadline(entry),
+                        overdue_by=now - deadline,
                     )
                 )
         CLINIC_RED_UNACKNOWLEDGED_TOTAL.clear()
@@ -176,7 +187,7 @@ class SafetyInbox:
         rows = [
             QueueRow(
                 entry=entry,
-                sla=self.policy.sla_for(entry.tenant_id),
+                sla=self.policy.sla_for_entry(entry),
                 elapsed=(entry.acknowledged_at or now) - entry.created_at,
                 band=self.policy.band(entry, now) if entry.is_open else None,
             )

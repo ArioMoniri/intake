@@ -14,7 +14,7 @@ kinds and instants. So that is the whole field set:
   the kind and the source (the RED's content-addressed ``work_id``, or the
   transition's id), so a re-derived RED — files/03 §4.6 invariant 6 — lands on
   the entry already there instead of opening a second clock for one event.
-- **Four kinds, and only these.** ``red`` is the RED itself. Two are files/02
+- **Four RED kinds, and only these.** ``red`` is the RED itself. Two are files/02
   §2b's rule that *"``rescheduled`` or ``cancelled`` on a RED visit raises a
   clinic inbox entry regardless of connector presence"*: each is its own entry
   with its own clock, because the moved visit is new news to the clinic even
@@ -27,6 +27,16 @@ kinds and instants. So that is the whole field set:
   It is the one record of the RED location axis (ids and the kind only), and
   it does not index the visit — files/02 §2b reads a visit's REDs, and this is
   not one.
+- **Clinician-only clinic items, which are not REDs** (INT-547). CD-08
+  routes the items the clinical decisions raise to the booked clinic's inbox;
+  ``chest_pain_arms_unresolved`` is CD-04's (a chest-pain slot still UNCLEAR
+  after its follow-up). An item entry names the item by its own reference,
+  which the session derives from itself and the kind, so an item is one entry
+  per session however often it is raised. The rule ids are the chest-pain
+  rules the item concerns, never a fired RED. No item kind carries a register
+  or indexes the visit, and while CD-08 leaves their SLA
+  ``draft_needs_source`` none has an acknowledgement SLA
+  (:meth:`~intake_platform.safety_inbox.sla.AckSlaPolicy.sla_for_entry`).
 - **The clock is ``created_at``.** It is stamped where the entry is made — on
   the RED path, in-process — and nothing later moves it: a store that was
   down when the RED fired writes the entry late, but the clinic's clock still
@@ -56,6 +66,7 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validat
 __all__ = [
     "ID_SHAPE",
     "RULE_ID_SHAPE",
+    "CLINIC_ITEM_KINDS",
     "AlreadyAcknowledged",
     "EntryKind",
     "InboxEntry",
@@ -138,6 +149,17 @@ class EntryKind(enum.StrEnum):
     VISIT_CANCELLED = "visit_cancelled"
     #: INT-475: the RED's patient is on site; staff are notified (files/04 §8.1 rule 7).
     RED_ON_SITE = "red_on_site"
+    #: INT-547 (CD-04, CD-08): a chest-pain slot still UNCLEAR after its follow-up.
+    CHEST_PAIN_ARMS_UNRESOLVED = "chest_pain_arms_unresolved"
+
+    @property
+    def is_clinic_item(self) -> bool:
+        """A CD-08 clinician-only item: not a RED, and no SLA while CD-08's is draft."""
+        return self in CLINIC_ITEM_KINDS
+
+
+#: The CD-08 clinic items (INT-547). Never a RED.
+CLINIC_ITEM_KINDS: Final = frozenset({EntryKind.CHEST_PAIN_ARMS_UNRESOLVED})
 
 
 class VisitTransition(enum.StrEnum):
@@ -194,7 +216,7 @@ class InboxEntry(BaseModel):
     visit_id: _Id
     kind: EntryKind
     rule_ids: tuple[_RuleId, ...] = Field(min_length=1)
-    #: The RED's ``work_id``, or the visit transition's id.
+    #: The RED's ``work_id``, the visit transition's id, or a clinic item's reference.
     source_ref: _Id
     created_at: datetime
     acknowledged_at: datetime | None = None
@@ -286,6 +308,37 @@ class InboxEntry(BaseModel):
             kind=transition.kind,
             rule_ids=rule_ids,
             source_ref=transition_id,
+            created_at=at,
+        )
+
+    @classmethod
+    def for_clinic_item(
+        cls,
+        *,
+        tenant_id: str,
+        session_id: str,
+        visit_id: str,
+        kind: EntryKind,
+        item_ref: str,
+        rule_ids: tuple[str, ...],
+        at: datetime,
+    ) -> InboxEntry:
+        """A CD-08 clinic item (INT-547), named by its own reference.
+
+        ``item_ref`` is derived by the session from itself and the kind, so the
+        entry id (tenant, kind, reference) is one per session and kind: a second
+        raise lands on the first entry and its clock.
+        """
+        if not kind.is_clinic_item:
+            raise ValueError("a RED-family kind is never raised as a clinic item")
+        return cls(
+            entry_id=entry_id_for(tenant_id, kind, item_ref),
+            tenant_id=tenant_id,
+            session_id=session_id,
+            visit_id=visit_id,
+            kind=kind,
+            rule_ids=rule_ids,
+            source_ref=item_ref,
             created_at=at,
         )
 

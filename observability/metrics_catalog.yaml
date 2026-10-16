@@ -801,9 +801,11 @@ metrics:
       such as a data channel that failed), `cancelled` (the event loop cancelled
       a delivery before it finished) or `exit` (the watch itself ended other
       than by being cancelled; the next turn starts a new one). The first two
-      are retried and raised on the session's next turn. Emitted by
-      intake_voice_runtime.talker.session. A RED may not have reached the
-      patient, so any increase matters.
+      are retried and raised on the session's next turn. `unreached` (INT-545)
+      counts a RED of the first two kinds still undelivered when the session
+      ended, which no next turn will retry: the clinician route is then told
+      the device was not reached. Emitted by intake_voice_runtime.talker.session.
+      A RED may not have reached the patient, so any increase matters.
   - name: talker_tool_calls_total
     id: talker.tool_calls_total
     type: counter
@@ -1033,6 +1035,42 @@ metrics:
       could not be routed (api.triage.red_unrouted). The notification went
       ahead; on the location-answer route the device retries until the row
       lands. Constructed by intake_platform.safety_inbox.metrics.
+  # INT-547: the CD-08 clinician-only clinic-inbox items the live session
+  # raises (CD-04 chest_pain_arms_unresolved). Not REDs: no SLA while CD-08's
+  # is draft. `kind` is the closed protocols.clinic_items.ClinicItemKind value.
+  - name: clinic_inbox_items_raised_total
+    type: counter
+    labels: [kind]
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      CD-08 clinic-inbox items a live session raised into the Safety inbox,
+      by kind, once per session and kind (such as a chest-pain slot still
+      UNCLEAR after its follow-up). Constructed by
+      intake_platform.safety_inbox.metrics.
+  - name: clinic_inbox_item_route_failures_total
+    type: counter
+    labels: [kind]
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      CD-08 clinic-inbox items whose route into the Safety inbox raised. CD-08
+      counts an inbox delivery failure as an SLA breach and makes the breach an
+      emitted event: this is that event, and it pages. The item is raised again
+      on the session's next state Work. Constructed by
+      intake_platform.safety_inbox.metrics.
+  - name: clinic_inbox_item_unaudited_total
+    type: counter
+    labels: [kind]
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      CD-08 clinic-inbox items put in the Safety inbox whose audit row
+      (voice.clinic_item.raised, invariant 4) could not be appended. The item
+      went ahead. Constructed by intake_platform.safety_inbox.metrics.
   # --- files/08 §4 F. Experience & satisfaction
   # INT-240 made these four live: intake_metrics.metrics constructs them and
   # intake_metrics.rollups feeds them. Every value is published for a named

@@ -10,6 +10,8 @@ Selection rules, from LOOP.md verbatim:
 
 from __future__ import annotations
 
+import json
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,9 +21,48 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[2]
 ISSUES_FILE = REPO / "docs" / "backlog" / "issues.yaml"
+# INT-452: the GitHub state the roadmap renders from, captured offline by
+# `make roadmap-snapshot` (scripts/backlog/roadmap_snapshot.py), plus the row
+# floor: every id that had a row when the snapshot was taken.
+SNAPSHOT_FILE = REPO / "docs" / "backlog" / "github_snapshot.json"
+# The count the three hard-coded pins held on main 6cd8c988 (16 Oct 2026),
+# counted three ways in docs/evidence/INT-452.md. It may be raised; lowering it
+# is the one way to shrink the floor, and it is a reviewed diff.
+ROW_FLOOR_MINIMUM = 343
 
 PHASE_ORDER = ["P0", "P1", "P2", "P3"]
 DEP_SATISFIED_STATUSES = {"done", "awaiting-human", "withdrawn"}
+
+
+def load_snapshot(path: Path | None = None) -> dict[str, Any]:
+    data: dict[str, Any] = json.loads((path or SNAPSHOT_FILE).read_text(encoding="utf-8"))
+    return data
+
+
+def row_floor_violations(
+    ids: list[str], floor: list[str], minimum: int = ROW_FLOOR_MINIMUM
+) -> list[str]:
+    """INT-452: the derived replacement for the hard-coded row-count pins.
+
+    Ids are unique; every id in the snapshot's row floor still has a row (a row
+    is withdrawn, never removed); and the floor itself is not smaller than
+    `minimum`. A new row needs no edit anywhere, so rows stop colliding.
+    """
+    out: list[str] = []
+    dupes = sorted(i for i, n in Counter(ids).items() if n > 1)
+    if dupes:
+        out.append("duplicate row ids: " + ", ".join(dupes))
+    present = set(ids)
+    out += [
+        f"{iid} is in the snapshot's row floor but has no row (rows are withdrawn, never removed)"
+        for iid in sorted(set(floor) - present)
+    ]
+    if len(set(floor)) < minimum:
+        out.append(
+            f"the snapshot's row floor holds {len(set(floor))} ids, below the minimum of "
+            f"{minimum} (backlog_lib.ROW_FLOOR_MINIMUM only rises)"
+        )
+    return out
 
 
 def evidence_path(issue_id: str) -> str:
