@@ -72,7 +72,7 @@ export interface ChipSlot {
 }
 
 /**
- * The redesign's check slot (INT-492, behind `progressMicro`): reserved in
+ * The answer chip's check slot (INT-492): reserved in
  * both states, so selecting a chip never widens it and never reflows the
  * chips after it. Empty, a ring in the control boundary colour; selected, a
  * disc in the tint with the check on it. It appears instantly: a selection

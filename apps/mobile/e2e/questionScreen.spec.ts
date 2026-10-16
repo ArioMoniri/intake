@@ -1,8 +1,9 @@
 /**
  * INT-433: the question screen as source facts (docs/design/question-screen.md).
  *
- * - Progress is one native control: a thin determinate bar and a "Soru N / M"
- *   line, announced as a single progressbar with a value. The dot row is gone.
+ * - Progress is one native control, announced as a single progressbar with a
+ *   value. The dot row is gone. Since INT-492 (owner, 16 Oct 2026) it draws
+ *   as a solid segmented capsule with the "Soru N / M" count inside it.
  * - The numerals are display-only: the progress module is reachable from the
  *   typed screen alone, never from the spoken lane (invariant 22).
  * - The answer field is filled, with a focus ring and no resting outline.
@@ -66,6 +67,7 @@ describe("progress is one native control, not a row of dots", () => {
     const intake = source(INTAKE);
     expect(intake).toContain("<QuestionProgress");
     expect(intake).toMatch(/questionPosition\(applicable, question\.id, flowCanGrow\)/);
+    expect(intake).toMatch(/<QuestionProgress\s+position=[\s\S]*?flow=\{applicable\}/);
   });
 
   it("is announced as one progressbar carrying a value", () => {
@@ -77,9 +79,10 @@ describe("progress is one native control, not a row of dots", () => {
     expect(bar).toMatch(/<View\s+accessible\b/);
   });
 
-  it("the bar is a thin capsule over a track, the line uses tabular figures", () => {
+  it("the segments sit in a capsule, the count uses tabular figures", () => {
     const bar = source(PROGRESS);
-    expect(bar).toMatch(/track:\s*\{[^}]*height:\s*TRACK[^}]*borderRadius/s);
+    expect(bar).toMatch(/capsule:\s*\{[^}]*borderRadius:\s*radius\.chip/s);
+    expect(bar).toMatch(/segment:\s*\{[^}]*height:\s*SEGMENT[^}]*borderRadius/s);
     expect(bar).toContain('fontVariant: ["tabular-nums"]');
     // The line wraps rather than leaving the screen: nothing clips it.
     expect(bar).not.toMatch(/numberOfLines|ellipsizeMode|adjustsFontSizeToFit/);
@@ -92,7 +95,7 @@ describe("progress is one native control, not a row of dots", () => {
     expect(progressbar).toBeGreaterThan(-1);
     expect(grows).toBeGreaterThan(-1);
     // The grouped element closes before the growth line opens.
-    const closing = bar.indexOf("</View>", bar.indexOf("styles.count"));
+    const closing = bar.indexOf("</View>", bar.indexOf("<CapsuleBody"));
     expect(grows).toBeGreaterThan(closing);
   });
 });
@@ -152,7 +155,8 @@ describe("chips are filled capsules with a selected state", () => {
       /accessibilityRole="checkbox"[\s\S]{0,200}accessibilityState=\{\{ checked: on \}\}/,
     );
     expect(intake).toMatch(/const look = chipChrome\(theme, on\)/);
-    expect(intake).toMatch(/look\.check \? \(\s*<Icon\s+name="checkmark"/);
+    // INT-492: the check sits in a slot reserved in both states.
+    expect(intake).toMatch(/<ChipSlot selected=\{on\} \/>/);
     expect(intake).toContain("backgroundColor: look.backgroundColor");
   });
 });

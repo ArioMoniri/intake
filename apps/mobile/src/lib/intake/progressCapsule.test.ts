@@ -2,8 +2,9 @@
  * INT-492: the segmented question capsule, as data (GitHub #839).
  *
  * The owner asked for the "Soru N / M" progress to be redesigned after
- * spaceui.one, as a segmented capsule with an animated number. This suite
- * holds the parts that are rules rather than looks:
+ * spaceui.one. The owner then kept the within-bounds parts and declined the
+ * rolling number (16 Oct 2026), so the capsule ships with a still count. This
+ * suite holds the parts that are rules rather than looks:
  *
  * - one segment per section of the flow (the HPI dimensions, medicines and
  *   allergies, the history block, the closing note), each as wide as its
@@ -11,9 +12,7 @@
  *   fraction and a section change is the next segment becoming current;
  * - the count is display-only (invariant 22): one non-breaking atom, never
  *   grouped, and refused by the TTS guard if it ever travelled there;
- * - a screen reader hears ONE value, worded, never digit by digit and never
- *   a frame of the roll;
- * - the roll (approval needed) re-keys only the digits that changed.
+ * - a screen reader hears ONE value, worded, never digit by digit.
  */
 import { describe, expect, it } from "vitest";
 
@@ -28,8 +27,6 @@ import {
   capsuleCount,
   capsuleTrack,
   countParts,
-  rollDigits,
-  rollGranted,
   type CapsuleItem,
 } from "./progressCapsule";
 import { positionSpoken, questionPosition } from "./questionScreen";
@@ -144,6 +141,15 @@ describe("the count is display-only (invariant 22)", () => {
     expect(count).not.toMatch(/[ \t\n\r\u1680\u2000-\u200B\u2028\u2029\u205F\u3000]/);
   });
 
+  it("is the catalogue word plus the two numbers, in either language", () => {
+    const flow = Array.from({ length: 9 }, (_, i) => item(`q${i}`));
+    const position = questionPosition(flow, "q2", false);
+    expect(capsuleCount(position, word)).toBe(`Soru${NBSP}3${NBSP}/${NBSP}9`);
+    expect(capsuleCount(position, en["intake.progress.question"])).toBe(
+      `Question${NBSP}3${NBSP}/${NBSP}9`,
+    );
+  });
+
   it("never groups digits, in either catalogue (useGrouping: false)", () => {
     const flow = Array.from({ length: 12345 }, (_, i) => item(`q${i}`));
     const position = questionPosition(flow, "q1233", false);
@@ -181,63 +187,6 @@ describe("a screen reader hears one value", () => {
     const spoken = positionSpoken(questionPosition(flow, "q11", false), word, of);
     expect(spoken).toBe("Soru 12, toplam 18");
     expect(spoken).not.toBe("Soru 1 2, toplam 1 8");
-  });
-
-  it("depends on the final position only: no roll frame can reach it", () => {
-    // The roll is a list of glyphs keyed for the view; the value takes no
-    // argument from it, so every intermediate frame announces the same.
-    const before = positionSpoken(at("m1"), word, of);
-    rollDigits(capsuleCount(at("m1"), word), capsuleCount(at("m2"), word));
-    expect(positionSpoken(at("m1"), word, of)).toBe(before);
-  });
-});
-
-describe("the roll re-keys only what changed (approval needed)", () => {
-  const word = tr["intake.progress.question"];
-  const count = (id: string, flow: readonly CapsuleItem[] = FLOW) =>
-    capsuleCount(questionPosition(flow, id, false), word);
-
-  it("one digit changes: one glyph rolls, the rest keep their keys", () => {
-    const glyphs = rollDigits(count("m1"), count("m2"));
-    expect(glyphs.map((g) => g.char).join("")).toBe(count("m2"));
-    expect(glyphs.filter((g) => g.rolls).map((g) => g.char)).toEqual(["6"]);
-    const prev = rollDigits(null, count("m1"));
-    const kept = glyphs.filter((g) => !g.rolls).map((g) => g.key);
-    expect(prev.map((g) => g.key)).toEqual(expect.arrayContaining(kept));
-  });
-
-  it("9 to 10 rolls the ones and the new tens digit, never the total", () => {
-    const flow = Array.from({ length: 12 }, (_, i) => item(`q${i}`));
-    const glyphs = rollDigits(count("q8", flow), count("q9", flow));
-    expect(glyphs.filter((g) => g.rolls).map((g) => g.char)).toEqual(["1", "0"]);
-  });
-
-  it("the word and the slash never roll", () => {
-    const glyphs = rollDigits(count("a"), count("h2"));
-    for (const g of glyphs.filter((x) => !/\d/.test(x.char))) {
-      expect(g.rolls, JSON.stringify(g)).toBe(false);
-    }
-  });
-
-  it("the first frame rolls nothing", () => {
-    expect(rollDigits(null, count("m2")).some((g) => g.rolls)).toBe(false);
-  });
-
-  it("only a forward step of one rolls (Astryx's stepper rule)", () => {
-    const flow = Array.from({ length: 12 }, (_, i) => item(`q${i}`));
-    const p = (id: string, f: readonly CapsuleItem[] = flow) => questionPosition(f, id, false);
-    expect(rollGranted(p("q3"), p("q4"))).toBe(true);
-    // Near misses: back, a jump, the first frame, the same step, a total that changed.
-    expect(rollGranted(p("q4"), p("q3"))).toBe(false);
-    expect(rollGranted(p("q3"), p("q5"))).toBe(false);
-    expect(rollGranted(null, p("q4"))).toBe(false);
-    expect(rollGranted(p("q4"), p("q4"))).toBe(false);
-    const grown = [...flow, item("gate")];
-    expect(rollGranted(p("q3"), p("q4", grown))).toBe(false);
-  });
-
-  it("near miss: the same count rolls nothing", () => {
-    expect(rollDigits(count("m2"), count("m2")).some((g) => g.rolls)).toBe(false);
   });
 });
 

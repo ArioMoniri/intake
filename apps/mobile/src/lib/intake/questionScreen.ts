@@ -21,7 +21,7 @@ export interface QuestionPosition {
 }
 
 /**
- * The bar and the "Soru N / M" line, from the pack layer's applicable list.
+ * The capsule and its "Soru N / M" count, from the pack layer's applicable list.
  *
  * An id outside the list (an edit reopening a question a later answer gated
  * out) sits at the first place rather than at zero, so the bar never renders
@@ -39,16 +39,9 @@ export function questionPosition(
 }
 
 /**
- * The visible line, "Soru 3 / 9". Integers are printed as one run of digits
- * (no grouping separator), and the slash is typography, not a word.
- */
-export function positionLabel(position: QuestionPosition, word: string): string {
-  return `${word} ${digits(position.position)} / ${digits(position.total)}`;
-}
-
-/**
  * What a screen reader hears as the progressbar's value, "Soru 3, toplam 9":
- * worded, because a slash is read aloud as a symbol.
+ * worded, because a slash is read aloud as a symbol. The visible count,
+ * "Soru 3 / 9", is lib/intake/progressCapsule.ts `capsuleCount` (INT-492).
  */
 export function positionSpoken(position: QuestionPosition, word: string, of: string): string {
   return `${word} ${digits(position.position)}, ${of} ${digits(position.total)}`;

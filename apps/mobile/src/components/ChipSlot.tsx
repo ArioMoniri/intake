@@ -1,5 +1,5 @@
 /**
- * The answer chip's check slot (INT-492, behind `progressMicro`): a ring when
+ * The answer chip's check slot (INT-492): a ring when
  * the chip is empty, a tinted disc with a check when it is selected, always
  * the same size, so a tap never widens the chip or reflows the chips after
  * it. The chat stage's answer cards already draw their check this way

@@ -31,7 +31,6 @@ import { AppText, useFontScale, useTheme } from "@/components/Themed";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { verticalSlop } from "@/lib/a11y/target";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
-import { flags } from "@/lib/featureFlags";
 import { t } from "@/lib/i18n";
 import type { VoiceIntakeAction } from "@/lib/intake/voiceFirst";
 import { loadingIndicator } from "@/lib/motion/micro";
@@ -51,10 +50,10 @@ interface DialogueGateProps {
 export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
-  // INT-492 (flag): the wait sits in a filled capsule, and under Reduce
-  // Motion it shows a still glyph, so nothing on the screen moves.
+  // INT-492: the wait sits in a filled capsule, and under Reduce Motion it
+  // shows a still glyph, so nothing on the screen moves.
   const reduceMotion = useReducedMotion();
-  const waiting = loadingIndicator({ micro: flags.progressMicro, reduce: reduceMotion });
+  const waiting = loadingIndicator({ reduce: reduceMotion });
   // INT-284: the gate reserved `GLASS_BAR_CLEARANCE` for a bar it does not
   // render — intake.tsx shows the gate, the dialogue OR the typed steps, and
   // only the latter two carry a bar, so that was padding with no referent.
@@ -98,11 +97,7 @@ export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
         tone="status"
         merged
         message={t("voiceFirst.checking")}
-        style={
-          flags.progressMicro
-            ? [styles.statusRow, styles.statusCapsule, { backgroundColor: theme.surface }]
-            : styles.statusRow
-        }
+        style={[styles.statusRow, { backgroundColor: theme.surface }]}
       >
         {waiting === "still" ? (
           <Icon name="ellipsis" size={scaledSize("label", fontScale)} tintColor={theme.primary} />
@@ -141,15 +136,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.screen,
   },
+  // INT-492: the wait as a filled capsule, sized to its words.
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     gap: spacing.sm,
     marginTop: spacing.sm,
-  },
-  // INT-492 (flag): the wait as a filled capsule, sized to its words.
-  statusCapsule: {
-    alignSelf: "flex-start",
     minHeight: 44,
     paddingHorizontal: spacing.md,
     borderRadius: radius.chip,

@@ -23,8 +23,6 @@
  * - The count, "Soru 3 / 9", is one non-breaking atom with no grouping
  *   separator. It is only ever shown; the reader hears the worded value
  *   (lib/intake/questionScreen.ts `positionSpoken`).
- * - The roll (approval needed, lib/flags.ts) keys each digit by its place and
- *   its value, so only a digit that changed is re-mounted and rolls in.
  *
  * Nothing here animates and nothing here is glass: the intake is a
  * capture-protected screen, so the capsule is solid (INT-477).
@@ -129,63 +127,6 @@ export function countParts(count: string): { readonly head: string; readonly tai
   return cut < 0
     ? { head: count, tail: "" }
     : { head: count.slice(0, cut), tail: count.slice(cut) };
-}
-
-/**
- * Whether a change of position may roll at all (approval needed): only a
- * forward step of one, with the total unchanged. Going back, a jump (an edit
- * from the review), the first frame and a total a gate just changed all
- * swap instantly. The rule is Astryx's Stepper's (MIT), which animates its
- * connector only for a forward move of one step.
- */
-export function rollGranted(previous: QuestionPosition | null, next: QuestionPosition): boolean {
-  return (
-    previous !== null && next.total === previous.total && next.position === previous.position + 1
-  );
-}
-
-/** One glyph of the rolling count. */
-export interface RollGlyph {
-  /** Place and value for a digit, so a changed digit is a new element. */
-  readonly key: string;
-  readonly char: string;
-  /** Which part of the count: 0 the word, 1 the position, 2 the slash, 3 the total. */
-  readonly part: number;
-  /** The digit is new since `previous`, so it rolls in. */
-  readonly rolls: boolean;
-}
-
-/**
- * The count as glyphs. A digit is keyed by its place from the right and its
- * value, so a step that changes one digit re-mounts that one element and no
- * other; the word, the slash and the spaces never change their keys and
- * never roll. With no previous count (the first frame) nothing rolls.
- */
-export function rollDigits(previous: string | null, next: string): RollGlyph[] {
-  const before = previous === null ? null : previous.split(NBSP);
-  const glyphs: RollGlyph[] = [];
-  next.split(NBSP).forEach((part, index) => {
-    if (index > 0) {
-      glyphs.push({ key: `${index}:space`, char: NBSP, part: index, rolls: false });
-    }
-    if (!/^\d+$/.test(part)) {
-      glyphs.push({ key: `${index}:text:${part}`, char: part, part: index, rolls: false });
-      return;
-    }
-    const old = before?.[index] ?? null;
-    for (let i = 0; i < part.length; i += 1) {
-      const place = part.length - 1 - i;
-      const char = part[i];
-      const was = old === null ? null : (old[old.length - 1 - place] ?? "");
-      glyphs.push({
-        key: `${index}:${place}:${char}`,
-        char,
-        part: index,
-        rolls: before !== null && was !== char,
-      });
-    }
-  });
-  return glyphs;
 }
 
 /** The capsule's paint: opaque theme colours only, never a material. */

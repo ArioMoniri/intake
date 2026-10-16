@@ -44,7 +44,6 @@ import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 import { AnnouncedRegion, AnnouncedText } from "@/components/Announced";
 import { GlassBar, useGlassBarClearance, withGlassNav, withStageNav } from "@/components/GlassBar";
 import { useGlassMode } from "@/components/glassMode";
-import { Icon } from "@/components/Icon";
 import { QuestionProgress } from "@/components/QuestionProgress";
 import {
   AppText,
@@ -72,7 +71,6 @@ import { MIN_TAP } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { voiceDiagnostic } from "@/lib/dev/voiceDiagnostic";
-import { flags } from "@/lib/featureFlags";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
 import {
@@ -614,7 +612,7 @@ function StepFlow({
         ) : null}
         <QuestionProgress
           position={questionPosition(applicable, question.id, flowCanGrow)}
-          capsule={flags.progressMicro ? { flow: applicable, flags } : undefined}
+          flow={applicable}
         />
         {/* INT-339 (MOTION-10, C16): the question, and only the question.
             The progress above and the glass-bar CTA below swap instantly
@@ -751,17 +749,9 @@ function StepFlow({
                       }}
                       style={[styles.chip, { backgroundColor: look.backgroundColor }]}
                     >
-                      {/* INT-492 (flag): the check slot is reserved in both
+                      {/* INT-492: the check slot is reserved in both
                           states, so a tap never reflows the chips. */}
-                      {flags.progressMicro ? (
-                        <ChipSlot selected={on} />
-                      ) : look.check ? (
-                        <Icon
-                          name="checkmark"
-                          size={scaledSize("label", fontScale)}
-                          tintColor={theme.primary}
-                        />
-                      ) : null}
+                      <ChipSlot selected={on} />
                       <AppText role="label" color={look.textColor} style={styles.chipLabel}>
                         {t(o.labelKey)}
                       </AppText>
@@ -872,7 +862,7 @@ function StepFlow({
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
-            pressScale={flags.progressMicro}
+            pressScale
             // INT-286: on an open step, words are an answer — the CTA opens
             // on either, so a patient who described it in a sentence is not
             // held at the screen until they also tap a chip.
@@ -885,7 +875,7 @@ function StepFlow({
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
-            pressScale={flags.progressMicro}
+            pressScale
             // A card tap commits on its own (above); this bar exists for the
             // answer given only in words. Disabled until there are some, so
             // it can never record an empty answer by being tapped through.
@@ -898,7 +888,7 @@ function StepFlow({
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
-            pressScale={flags.progressMicro}
+            pressScale
             onPress={() => commit(text.trim().length > 0 ? [text.trim()] : [])}
           />
         </GlassBar>
@@ -907,7 +897,7 @@ function StepFlow({
         <GlassBar onHeight={setBarHeight}>
           <PrimaryButton
             label={ctaLabel}
-            pressScale={flags.progressMicro}
+            pressScale
             // Disabled until the control has been MOVED: where a stepper
             // opens is an affordance, not an answer, and tapping through
             // must not be able to record one.

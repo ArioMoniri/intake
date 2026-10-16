@@ -316,9 +316,8 @@ interface PrimaryButtonProps extends ButtonProps {
  * 12-pt continuous corner. The accent is spent here, once per screen.
  *
  * INT-492: a call site may opt in to ADR-037 P1's press scale
- * (`pressScale`), and only the typed steps' actions and the send do, under
- * the `progressMicro` flag. Without the opt-in the button is the bare
- * Pressable it always was.
+ * (`pressScale`), and only the typed steps' actions and the send do. Without
+ * the opt-in the button is the bare Pressable it always was.
  */
 export function PrimaryButton(props: PrimaryButtonProps) {
   const { label, onPress, disabled = false, hint, ref, pressScale = false } = props;

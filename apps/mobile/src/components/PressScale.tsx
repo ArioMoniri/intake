@@ -2,7 +2,7 @@
  * ADR-037 P1 (INT-492): the frame that lets a filled action give under the
  * finger. PrimaryButton renders its Pressable through it only when the call
  * site opts in (`pressScale`), and only the typed steps' actions and the send
- * do, under the `progressMicro` flag; e2e/progressMicro.spec.ts holds that no
+ * do; e2e/progressMicro.spec.ts holds that no
  * consent, gate, RED or instrument control can.
  *
  * The frame scales; the Pressable inside keeps its own instant opacity step,

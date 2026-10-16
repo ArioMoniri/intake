@@ -41,6 +41,7 @@ import { describe, expect, it } from "vitest";
 
 import { readFontMetrics } from "./fontMetrics";
 import { en } from "@/lib/i18n/en";
+import { capsuleCount } from "@/lib/intake/progressCapsule";
 import { tr } from "@/lib/i18n/tr";
 import { scaledSize, spacing } from "@/lib/theme";
 
@@ -412,6 +413,10 @@ describe("a row that pins an item to the far end can break a line", () => {
  * The line is still asserted from both ends: it is stacked rather than set
  * beside the bar, and it fits the narrowest phone at the largest step, in
  * either catalogue, measured in the shipped face rather than assumed.
+ *
+ * INT-492 (owner, 16 Oct 2026) puts the count inside a segmented capsule,
+ * beside the segments at the everyday sizes and under them at the large
+ * ones. Both layouts are measured against the capsule's inner width.
  */
 describe("the progress line is never pushed off the screen", () => {
   const metrics = readFontMetrics(
@@ -419,12 +424,16 @@ describe("the progress line is never pushed off the screen", () => {
   );
   const progress = file("src/components/QuestionProgress.tsx");
 
-  it("stacks the line under the bar instead of beside it", () => {
-    const block = /\n\s{2}block:\s*\{([\s\S]*?)\n\s{2}\}/.exec(progress);
-    expect(block, "the progress block no longer owns a box of its own").not.toBeNull();
-    expect(block![1]).not.toContain('flexDirection: "row"');
-    // The track spans the content width, so the bar never wraps or shrinks.
-    expect(progress).toMatch(/track:\s*\{[^}]*alignSelf: "stretch"/s);
+  it("moves the count under the segments at the large steps, so neither is squeezed", () => {
+    // INT-492: the count sits beside the segments in a capsule at the
+    // everyday sizes and under them from STACK_AT up.
+    expect(progress).toMatch(/const STACK_AT = 1\.35;/);
+    expect(progress).toMatch(/stacked \? styles\.capsuleStacked : null/);
+    const stacked = /\n\s{2}capsuleStacked:\s*\{([\s\S]*?)\n\s{2}\}/.exec(progress);
+    expect(stacked, "the stacked capsule").not.toBeNull();
+    expect(stacked![1]).toContain('flexDirection: "column"');
+    // The segments take the width the count leaves, and never wrap.
+    expect(progress).toMatch(/segments:\s*\{[^}]*flexGrow: 1[^}]*flexDirection: "row"/s);
   });
 
   it("fits the narrowest phone at the largest step, in both catalogues", () => {
@@ -435,11 +444,23 @@ describe("the progress line is never pushed off the screen", () => {
       ["tr", tr],
       ["en", en],
     ] as const) {
-      const line = `${catalogue["intake.progress.question"]} 99 / 99`;
-      const width = metrics.advance(line, scaledSize("caption", 2.0));
-      const available = 375 - 2 * spacing.screen;
-      if (width > available) {
-        tooWide.push(`${locale}: ${width.toFixed(1)} pt against ${available} pt`);
+      const line = capsuleCount(
+        { position: 99, total: 99, fraction: 1, mayGrow: false },
+        catalogue["intake.progress.question"],
+      );
+      // Inside the capsule: the screen margins and the capsule's own padding.
+      const inner = 375 - 2 * spacing.screen - 2 * spacing.md;
+      // Stacked (2.0): the count has the capsule's whole inner width.
+      const stacked = metrics.advance(line, scaledSize("caption", 2.0));
+      if (stacked > inner) {
+        tooWide.push(`${locale} stacked: ${stacked.toFixed(1)} pt against ${inner} pt`);
+      }
+      // Side by side, just under STACK_AT: the count, the gap and six
+      // narrowest segments with their gaps.
+      const beside =
+        metrics.advance(line, scaledSize("caption", 1.34)) + spacing.sm + 6 * 8 + 5 * 3;
+      if (beside > inner) {
+        tooWide.push(`${locale} beside: ${beside.toFixed(1)} pt against ${inner} pt`);
       }
     }
     expect(tooWide).toEqual([]);

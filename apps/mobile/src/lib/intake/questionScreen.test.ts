@@ -19,7 +19,6 @@ import {
   FOCUS_RING,
   chipChrome,
   filledFieldChrome,
-  positionLabel,
   positionSpoken,
   questionPosition,
 } from "./questionScreen";
@@ -74,19 +73,6 @@ describe("the progress position (Soru N / M)", () => {
 });
 
 describe("the numerals are display-only (invariant 22)", () => {
-  it("the visible line is the catalogue word plus the two numbers", () => {
-    const position = questionPosition(ids("a", "b", "c", "d", "e", "f", "g", "h", "i"), "c", false);
-    expect(positionLabel(position, tr["intake.progress.question"])).toBe("Soru 3 / 9");
-    expect(positionLabel(position, en["intake.progress.question"])).toBe("Question 3 / 9");
-  });
-
-  it("no number is grouped: a long flow prints its digits as one run", () => {
-    const many = Array.from({ length: 1200 }, (_, i) => ({ id: `q${i}` }));
-    const label = positionLabel(questionPosition(many, "q1199", false), "Soru");
-    expect(label).toBe("Soru 1200 / 1200");
-    expect(label).not.toMatch(/\d[.,  ]\d{3}/u);
-  });
-
   it("the reader hears one progress value, worded rather than slashed", () => {
     const position = questionPosition(ids("a", "b", "c", "d", "e", "f", "g", "h", "i"), "c", false);
     expect(positionSpoken(position, tr["intake.progress.question"], tr["intake.progress.of"])).toBe(
