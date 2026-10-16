@@ -1,5 +1,28 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T22:30:00+03:00 · INT-538 round 3 · done (branch pushed, no PR yet, not run against the host)
+- Goal: the owner's first console sign-in as `ariomoniri` was refused with "Invalid username or password". The temporary password had already been revealed and deleted, and create refuses an existing user.
+- Plan:
+  - Diagnose from the code.
+  - Add `staff_user.sh --reset <username>`: a new temporary password plus the `webauthn-register` and `UPDATE_PASSWORD` required actions, same secret rules, an unknown user refused.
+  - The reveal prints the value alone, then `paste exactly; <n> characters`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staff_user_reset.py` (25): reset, an unknown user, malformed and mistyped flags, a waiting parameter, both failed steps, IAM, unanswered.
+  - Reveal-format and byte-equality tests in `test_staff_user.py`.
+  - Red: 19 failed against `2ccd07ee`. Green: 124 passed. 6 of 6 mutations caught.
+- Result: shellcheck and ruff clean; the touched suites green; no_placeholders, evidence_check and sec_row linkage OK.
+- Invariants touched and still passing:
+  - 6 (no credential or email printed);
+  - 14 (secrets never in argv, the command or a log);
+  - 16 (Sec-Row `platform`).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Root cause:
+  - No byte mismatch exists in the code. Both ends shape-check 64 hex, and the reveal equals the stored credential.
+  - The realm refuses email sign-in. An unknown name reads exactly like a wrong password and counts no failure, which matches the "0 failures".
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The owner runs `--reset ariomoniri` and signs in with the username.
+- Next: the owner resets and signs in; then a PR for this branch.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T13:45:00Z · INT-522 · done (committed locally, not pushed; stacked on #910 INT-521, INT-518, INT-441)
 - Goal: `chest_pain.onset_at`, the tense anchor of K2 and its SARI sibling, is a date answered by four closed choices. Extraction offered `format: date`, gave no reference date and forbade inference, so a spoken choice bound nothing, the anchor read Unknown and K2 could not fire live. INT-518/521 passed only on a recorded ISO date.
   - Acceptance (GitHub #888): build CD-05's choice-to-date resolution exactly; the reference date from the injected runtime clock, never the model; each choice to its CD-05 window, hedged answers Unknown, near misses; `make safety` and runtime-sim green.

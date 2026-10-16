@@ -135,12 +135,14 @@ it or whose tests exercise it.
   a new user joins the platform_owner's org and a differing org is refused; only the very first
   user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
   role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
-  step rolls the user back.
+  step rolls the user back. `--reset <username>` re-issues a temporary password for an existing
+  user under the same rules and refuses an unknown one; the reveal prints the value alone with
+  its length.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
   console and INT-205 in the SIEM.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
   tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
-  tests/infra/test_staff_user_host.py.
+  tests/infra/test_staff_user_host.py; tests/infra/test_staff_user_reset.py.
 
 ## `cicd` — pipeline, artefacts and gate integrity
 
