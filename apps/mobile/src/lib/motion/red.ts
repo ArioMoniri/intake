@@ -136,6 +136,15 @@ const YIELDS: Readonly<Record<RedPresentationMode, RedYield>> = {
 };
 
 /**
+ * The yield of a RED of this register: the same table `redFirstPaint` sizes
+ * the first paint from. A screen that holds only the register reads it here
+ * (INT-551: the dialogue's presence orb, through lib/red/store `redOrb`).
+ */
+export function redYield(register: RedRegister): RedYield {
+  return YIELDS[redPresentationMode(register)];
+}
+
+/**
  * The patient's answer to the one location question (UNKNOWN only).
  * `noAnswer`: the question was asked and went unanswered (INT-465; CD-24
  * `generic_red_unknown_no_answer_goes_remote`). The rule's own `on_no_answer`
@@ -207,7 +216,7 @@ export function redFirstPaint(presentation: RedPresentation, context: RedContext
   return {
     mode,
     motion: RED_MOTION,
-    yields: YIELDS[mode],
+    yields: redYield(presentation.register),
     affordances: redAffordances(presentation, "unanswered"),
   };
 }

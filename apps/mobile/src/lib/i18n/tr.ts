@@ -594,9 +594,13 @@ export const tr = {
   "intake.hpi.bowelRelief": "Tuvalet sonrası",
   "intake.opt.itEases": "Azalıyor",
   "intake.opt.itIncreases": "Artıyor",
-  // The flow length follows the answers, so the progress row counts what is
-  // answered and says plainly that more questions may follow (INT-239).
-  "intake.progress.answered": "soru yanıtlandı",
+  // INT-433: "Soru N / M" over the applicable flow, with N and M inserted at
+  // render (display-only, invariant 22), and the reader's worded value
+  // "Soru N, toplam M". The growth line says plainly that more questions may
+  // follow while a gate could still open (INT-239).
+  "intake.progress.name": "İlerleme",
+  "intake.progress.question": "Soru",
+  "intake.progress.of": "toplam",
   "intake.progress.grows": "Yanıtlarınıza göre birkaç soru daha gelebilir.",
   "voice.speakToAdd": "Konuşarak ekleyin",
   "voice.listening": "Dinliyor… durdurmak için dokunun",
@@ -678,6 +682,7 @@ export const tr = {
   "dialogue.sheetHint": "Öneriler siz onayladıktan sonra nota eklenir.",
   "dialogue.close": "Kapatın",
   "dialogue.send": "Gönderin",
+  "dialogue.mic": "Konuşarak yanıtlayın",
   "intake.next": "Devam edin",
   "intake.finish": "Özeti görün",
 
@@ -713,6 +718,9 @@ export const tr = {
   "review.edit": "Düzenleyin",
   "review.shared": "Paylaşılıyor",
   "review.notShared": "Paylaşılmıyor",
+  // INT-472: the share switch row's steady label; the state stays in words
+  // under it (review.shared / review.notShared).
+  "review.shareSwitch": "Hekimle paylaşılsın",
   "review.send": "Hekiminize gönderin",
   "review.sentInfo": "Notunuz gönderildi. Hekiminiz görüntülediğinde durumu burada görürsünüz.",
   "review.empty": "Henüz yanıt yok. Önce birkaç soruyu yanıtlayın.",
@@ -871,6 +879,7 @@ export const tr = {
   "a11y.dialogue.bargeInHint": "Sözü kesip konuşmaya başlamak için iki kez dokunun.",
   "a11y.dialogue.stopHint": "Konuşmanızı bitirmek için iki kez dokunun.",
   "a11y.dialogue.composerHint": "Konuşmak yerine buraya yazabilirsiniz.",
+  "a11y.dialogue.micHint": "Mikrofonu açar.",
   "a11y.dialogue.sectionsHint": "Nota işlenen bölümleri görmek için iki kez dokunun.",
   "a11y.dialogue.exitHint": "Konuşmadan çıkıp yazarak devam etmek için iki kez dokunun.",
   // ── INT-141 · Bildirimler ────────────────────────────────────────────

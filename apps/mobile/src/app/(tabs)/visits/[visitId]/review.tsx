@@ -37,40 +37,41 @@
  * reference the clinician redeems under their own auth with the scope checked
  * AT REDEMPTION — and nothing in files/ specifies that flow yet. So no link
  * format is invented here; §6 of the spec fails the build if one appears.
+ *
+ * INT-472 (section 4 of the native pass): the screen is iOS Settings grouped
+ * inset lists. Each note section is one group under its title, with the
+ * answer lines as rows, the share control as a switch row (its state also in
+ * words) and edits as navigation rows; the share summary is a metadata group;
+ * after send the ladder has its own group. `lib/intake/reviewRows` decides
+ * the rows, so the frozen state of a sent note is a tested rule. No motion.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 import { AnnouncedText, useNews } from "@/components/Announced";
 import { BiometricGate } from "@/components/BiometricGate";
 import { CarriedFactReview } from "@/components/CarriedFacts";
 import { CsatPrompt } from "@/components/CsatPrompt";
-import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
+import { GlassBar, useGlassBarClearance, withGlassNav } from "@/components/GlassBar";
+import { useGlassMode } from "@/components/glassMode";
 import { Kicker } from "@/components/Kicker";
+import { ListGroup, ListRow, MetadataRow } from "@/components/ListRow";
 import { StatusLadder } from "@/components/StatusLadder";
-import {
-  AppText,
-  Card,
-  Hairline,
-  PrimaryButton,
-  Screen,
-  useStackHeader,
-  useTheme,
-} from "@/components/Themed";
-import { joinParts, withContext } from "@/lib/a11y/labels";
-import { verticalSlop } from "@/lib/a11y/target";
+import { SwitchRow } from "@/components/SwitchRow";
+import { AppText, PrimaryButton, Screen, useStackHeader } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { closingDelivery } from "@/lib/dialogue/deliveryPlan";
 import { t } from "@/lib/i18n";
-import type { CarriedFactKind } from "@/lib/intake/carriedFacts";
 import { buildNote, effectiveStatus } from "@/lib/intake/note";
 import { missingQuestions, packForVisit } from "@/lib/intake/questions";
+import { reviewSectionRows, shareSummaryRows } from "@/lib/intake/reviewRows";
 import { shareSummary } from "@/lib/intake/share";
 import { useCompanionOutcome } from "@/lib/profile/store";
 import { useSession } from "@/lib/session";
-import { radius, spacing } from "@/lib/theme";
+import { spacing } from "@/lib/theme";
 
 export default function ReviewAndSendGated() {
   // Note/share screen: capture blocking + biometric re-gate (10 §2, INT-131).
@@ -85,25 +86,20 @@ export default function ReviewAndSendGated() {
 // With the top bar shown, the header owns the top inset (design pass 6).
 const FLOW_EDGES = ["left", "right"] as const;
 
-/**
- * Which carried-fact kind each note section reviews (INT-256). A section not
- * listed here shows no review block at all, so a fact can never be answered
- * under the wrong heading.
- */
-const CARRIED_IN_SECTION: Record<string, CarriedFactKind | undefined> = {
-  medications: "medication",
-  allergies: "allergy",
-};
-
 function ReviewAndSend() {
   const router = useRouter();
-  const theme = useTheme();
   const headerOptions = useStackHeader();
   // The bar reports its own height (INT-284); until it has, the clearance
   // falls back to the one-CTA floor. Declared above every early return —
   // hooks may not be conditional.
   const [barHeight, setBarHeight] = useState<number | null>(null);
   const barClearance = useGlassBarClearance(barHeight);
+  // INT-451: the note scrolls between two glass bars and clears the top one
+  // by the header's own height. The empty state keeps the solid bar: it has
+  // nothing to scroll under it.
+  const headerHeight = useHeaderHeight();
+  // The bar's ground follows the live glass mode (lib/a11y/glass navBarChrome).
+  const glass = useGlassMode();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { account, notes, updateNote, visits } = useSession();
   // Who is answering the carried-fact question — INT-133's derived
@@ -183,12 +179,16 @@ function ReviewAndSend() {
       {/* Design pass 6: back-only top bar (every Oura flow carries a
           top-left way out — Mobbin 11265937, b67baac0); the serif line in
           the body stays the title, so the bar is untitled. */}
-      <Stack.Screen options={headerOptions("")} />
+      <Stack.Screen options={withGlassNav(headerOptions(""), glass)} />
       {/* Focused flow (design pass 4): the tab rail unmounts here, so the
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
         <ScrollView
-          contentContainerStyle={[styles.content, sent ? null : { paddingBottom: barClearance }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: headerHeight + spacing.screen },
+            sent ? null : { paddingBottom: barClearance },
+          ]}
         >
           {/* The top bar is deliberately untitled (design pass 6), so this
               serif line is the screen's only title — and therefore the one
@@ -211,167 +211,113 @@ function ReviewAndSend() {
             // v2-partial (02 §34): the note as it stands, with an explicit
             // eksik list naming what was not asked, and resume offered —
             // the session ended by the clinic's clock, not the patient's.
-            <Card>
-              <Kicker label={t("review.eksik.title")} />
-              <Hairline />
-              <AppText role="caption" color="inkSoft">
-                {t("review.checkpointInfo")}
-              </AppText>
-              {missing.length > 0 ? (
-                <>
-                  <AppText role="caption" color="inkFaint">
-                    {t("review.eksik.intro")}
+            <View style={styles.group}>
+              <Kicker label={t("review.eksik.title")} inset />
+              <ListGroup>
+                <View style={styles.cell}>
+                  <AppText role="caption" color="inkSoft">
+                    {t("review.checkpointInfo")}
                   </AppText>
-                  {missing.map((q) => (
-                    <AppText key={q.id} role="body" color="inkSoft">
-                      {t(q.titleKey)}
+                  {missing.length > 0 ? (
+                    <AppText role="caption" color="inkFaint">
+                      {t("review.eksik.intro")}
                     </AppText>
-                  ))}
-                </>
-              ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("review.resume")}
-                hitSlop={verticalSlop(18)}
-                onPress={() => {
-                  if (visitId) {
-                    updateNote(visitId, { type: "resume" });
-                    router.push(`/(tabs)/visits/${visitId}/intake`);
-                  }
-                }}
-              >
-                <AppText role="caption" color="primary">
-                  {t("review.resume")}
-                </AppText>
-              </Pressable>
-            </Card>
+                  ) : null}
+                </View>
+                {missing.map((q) => (
+                  <ListRow key={q.id} label={t(q.titleKey)} />
+                ))}
+                <ListRow
+                  label={t("review.resume")}
+                  chevron
+                  onPress={() => {
+                    if (visitId) {
+                      updateNote(visitId, { type: "resume" });
+                      router.push(`/(tabs)/visits/${visitId}/intake`);
+                    }
+                  }}
+                />
+              </ListGroup>
+            </View>
           ) : null}
           {sections.map((section) => {
             const shared = note.scopes[section.id] !== false;
-            // which intake question the pencil reopens; medications come from
-            // the profile fixture and have no question to edit
-            const editTarget =
-              section.id === "chief_complaint"
-                ? "complaint"
-                : section.id === "hpi"
-                  ? "duration"
-                  : null;
+            const { rows, footerKey } = reviewSectionRows(section, { shared, sent });
             return (
-              <Card key={section.id}>
-                <View style={styles.sectionHeader}>
-                  <Kicker label={t(section.titleKey)} />
-                  <View style={styles.actionRow}>
-                    {!sent && editTarget ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        // Visible word first (SC 2.5.3): a voice-control
-                        // user says "Düzenleyin", and the section name is
-                        // the context the eye gets from the card header.
-                        accessibilityLabel={withContext(t("review.edit"), t(section.titleKey))}
-                        hitSlop={verticalSlop(26)}
+              <View key={section.id} style={styles.group}>
+                <Kicker label={t(section.titleKey)} inset />
+                <ListGroup footer={footerKey === null ? undefined : t(footerKey)}>
+                  {rows.map((row, index) => {
+                    if (row.kind === "line") {
+                      return <ListRow key={`line-${index}`} label={row.text} />;
+                    }
+                    if (row.kind === "facts") {
+                      // INT-247: the answer that makes a carried fact current —
+                      // or records that the patient retracted it. Nothing here
+                      // is preselected (invariant 12). INT-256 files each kind
+                      // under its own section, so an allergy is never reviewed
+                      // inside the medication list.
+                      return (
+                        <View key="facts" style={styles.cell}>
+                          <CarriedFactReview
+                            facts={account.carriedFacts.filter(
+                              (fact) => fact.kind === row.factKind,
+                            )}
+                            review={note.factReview}
+                            asserter={{ role: "patient", attribution: companion.attribution }}
+                            disabled={sent}
+                            rule={false}
+                            onDecide={(factId, decision) =>
+                              visitId && updateNote(visitId, { type: "fact", factId, decision })
+                            }
+                          />
+                        </View>
+                      );
+                    }
+                    if (row.kind === "share") {
+                      // The switch row (INT-260): one element with the switch
+                      // role, its state in words under the label as well as in
+                      // the knob (02 §8.2), and the section's name spoken with
+                      // it so three switches stay apart in the rotor (INT-144).
+                      return (
+                        <SwitchRow
+                          key="share"
+                          label={t("review.shareSwitch")}
+                          sublabel={row.shared ? t("review.shared") : t("review.notShared")}
+                          checked={row.shared}
+                          labelContext={t(section.titleKey)}
+                          hint={t("a11y.shareHint")}
+                          disabled={row.readOnly}
+                          onChange={(next) =>
+                            visitId &&
+                            updateNote(visitId, {
+                              type: "scope",
+                              sectionId: section.id,
+                              shared: next,
+                            })
+                          }
+                        />
+                      );
+                    }
+                    // An edit reopens the question the line came from; a sent
+                    // note offers none (reviewRows).
+                    return (
+                      <ListRow
+                        key={`edit-${row.target}`}
+                        label={t(row.labelKey)}
+                        labelContext={t(section.titleKey)}
+                        chevron
                         onPress={() =>
-                          visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${editTarget}`)
+                          visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${row.target}`)
                         }
-                        // Oura tag register (design pass 6): chips are
-                        // filled and borderless, never outlined.
-                        style={[styles.scopeChip, { backgroundColor: theme.surfaceRaised }]}
-                      >
-                        <AppText role="caption" color="inkSoft">
-                          {t("review.edit")}
-                        </AppText>
-                      </Pressable>
-                    ) : null}
-                    <Pressable
-                      accessibilityRole="switch"
-                      // Before INT-144 this control's whole name was
-                      // "Paylaşılıyor" — the same three controls, one per
-                      // section, indistinguishable in the rotor. The
-                      // section it governs is now part of the name.
-                      accessibilityLabel={withContext(
-                        shared ? t("review.shared") : t("review.notShared"),
-                        t(section.titleKey),
-                      )}
-                      accessibilityHint={t("a11y.shareHint")}
-                      accessibilityState={{ checked: shared, disabled: sent }}
-                      hitSlop={verticalSlop(26)}
-                      disabled={sent}
-                      onPress={() =>
-                        visitId &&
-                        updateNote(visitId, {
-                          type: "scope",
-                          sectionId: section.id,
-                          shared: !shared,
-                        })
-                      }
-                      style={[
-                        styles.scopeChip,
-                        // Filled tonal state chip (design pass 6): shared
-                        // keeps the accent wash, off sits on the raised
-                        // tone — the label carries the state (02 §8.2),
-                        // the outline is gone (Oura tags are borderless).
-                        {
-                          backgroundColor: shared ? theme.primarySoft : theme.surfaceRaised,
-                        },
-                      ]}
-                    >
-                      <AppText role="caption" color={shared ? "primary" : "inkSoft"}>
-                        {shared ? t("review.shared") : t("review.notShared")}
-                      </AppText>
-                    </Pressable>
-                  </View>
-                </View>
-                <Hairline />
-                {section.lines.map((line) => (
-                  <AppText key={line} role="body">
-                    {line}
-                  </AppText>
-                ))}
-                {section.id === "hpi" && !sent ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={withContext(t("review.edit"), t("review.hpi.patientNote"))}
-                    hitSlop={verticalSlop(18)}
-                    onPress={() =>
-                      visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=extra`)
-                    }
-                  >
-                    <AppText role="caption" color="primary">
-                      {t("review.edit")}: {t("review.hpi.patientNote")}
-                    </AppText>
-                  </Pressable>
-                ) : null}
-                {section.id === "medications" ? (
-                  <AppText role="caption" color="inkFaint">
-                    {t("review.medsNote")}
-                  </AppText>
-                ) : null}
-                {/* INT-247: the answer that makes a carried fact current —
-                    or records that the patient retracted it. Nothing here is
-                    preselected (invariant 12). INT-256 files each kind under
-                    its own section, so an allergy is never reviewed inside
-                    the medication list. */}
-                {CARRIED_IN_SECTION[section.id] === undefined ? null : (
-                  <CarriedFactReview
-                    facts={account.carriedFacts.filter(
-                      (fact) => fact.kind === CARRIED_IN_SECTION[section.id],
-                    )}
-                    review={note.factReview}
-                    asserter={{ role: "patient", attribution: companion.attribution }}
-                    disabled={sent}
-                    onDecide={(factId, decision) =>
-                      visitId && updateNote(visitId, { type: "fact", factId, decision })
-                    }
-                  />
-                )}
-                {section.id === "device_health" ? (
-                  <AppText role="caption" color="inkFaint">
-                    {t("review.healthProvenance")}
-                  </AppText>
-                ) : null}
-              </Card>
+                      />
+                    );
+                  })}
+                </ListGroup>
+              </View>
             );
           })}
-          <AppText role="caption" color="inkFaint">
+          <AppText role="caption" color="inkFaint" style={styles.pageFooter}>
             {t("review.provenance")}
           </AppText>
           {sent ? null : (
@@ -380,36 +326,14 @@ function ReviewAndSend() {
                hangs off. It states the anchor and not a countdown — the device
                holds no appointment time, and 02 §2 forbids an issue-time
                clock, so there is no timestamp to render. */
-            <Card>
-              <Kicker label={t("review.consent.title")} />
-              <Hairline />
-              <AppText role="caption" color="inkSoft">
-                {t("review.consent.sections")}
-              </AppText>
-              {summary.sections.length === 0 ? (
-                <AppText role="body">{t("review.consent.nothing")}</AppText>
-              ) : (
-                summary.sections.map((titleKey) => (
-                  <AppText key={titleKey} role="body">
-                    {t(titleKey)}
-                  </AppText>
-                ))
-              )}
-              {summary.recipient === null ? null : (
-                <>
-                  <AppText role="caption" color="inkSoft">
-                    {t("review.consent.recipient")}
-                  </AppText>
-                  <AppText role="body">
-                    {joinParts(summary.recipient.hospital, summary.recipient.department)}
-                  </AppText>
-                </>
-              )}
-              <AppText role="caption" color="inkSoft">
-                {t("review.consent.until")}
-              </AppText>
-              <AppText role="body">{t("review.consent.untilValue")}</AppText>
-            </Card>
+            <View style={styles.group}>
+              <Kicker label={t("review.consent.title")} inset />
+              <ListGroup>
+                {shareSummaryRows(summary).map((row) => (
+                  <MetadataRow key={row.label} label={row.label} values={row.values} />
+                ))}
+              </ListGroup>
+            </View>
           )}
           {sent ? (
             <>
@@ -424,11 +348,14 @@ function ReviewAndSend() {
                   send handler replaced the route with the visit detail, so
                   this surface — and the CSAT question below it — was never
                   seen at the moment it is about. */}
-              <Card>
-                <Kicker label={t("visits.detail.noteStatus")} />
-                <Hairline />
-                <StatusLadder current={ladderStatus} />
-              </Card>
+              <View style={styles.group}>
+                <Kicker label={t("visits.detail.noteStatus")} inset />
+                <ListGroup>
+                  <View style={styles.cell}>
+                    <StatusLadder current={ladderStatus} />
+                  </View>
+                </ListGroup>
+              </View>
               {/* Owns its own files/06 §2 `satisfaction` gate and renders
                   nothing without it. It sits after the send by construction,
                   which is what makes "never blocks send" structural here
@@ -457,24 +384,12 @@ function ReviewAndSend() {
 const styles = StyleSheet.create({
   screenFlush: { padding: 0 },
   body: { flex: 1 },
-  content: { gap: spacing.md, padding: spacing.screen, paddingBottom: spacing.xl },
-  // INT-284: the eyebrow and the scope chips are the card's two ends, and RN
-  // flex children do not shrink by default — so at the largest text step the
-  // chips were pushed off the right edge, where "Paylaşılıyor" was clipped and
-  // "Düzenleyin" could not be tapped at all. Wrapping drops the chips onto
-  // their own line instead; at every smaller step the row is unchanged,
-  // because there is nothing to wrap.
-  sectionHeader: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, alignItems: "center" },
-  scopeChip: {
-    borderRadius: radius.chip,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-  },
+  content: { gap: spacing.lg, padding: spacing.screen, paddingBottom: spacing.xl },
+  // A group: its header (outside the group, iOS Settings) over the group.
+  // The header's inset matches the rows' text inset.
+  group: { gap: spacing.sm },
+  // A free cell inside a group (a block, the ladder): the rows' own inset.
+  cell: { gap: spacing.xs, padding: spacing.md },
+  // The page's own note under the groups, at the rows' text inset.
+  pageFooter: { paddingHorizontal: spacing.md },
 });

@@ -1,11 +1,14 @@
 /**
- * Themed primitives (INT-130, premium pass INT-193): the only place
- * components read the palette, fontScale and type roles. Screens compose
- * these; none of them hardcode a colour or a font size, so the 02 §5.2
- * rules (single accent, dynamic type, no ALL-CAPS transforms) hold by
- * construction. Hero and title text carry the serif display face (the
- * Oura/Tiimo signature); light-mode cards float on a soft wide shadow,
- * dark mode separates tonally.
+ * Themed primitives (INT-130; native refresh INT-422,
+ * docs/design/system-refresh.md): the only place components read the
+ * palette, fontScale and type roles. Screens compose these; none of them
+ * hardcode a colour or a font size, so the 02 §5.2 rules (single accent,
+ * dynamic type, no ALL-CAPS transforms) hold by construction.
+ *
+ * The register is Apple's: the platform face at Dynamic Type sizes, cells on
+ * a grouped ground with no shadow, 12-pt continuous corners, the tinted
+ * filled button for the one focal action and the grey button for the rest.
+ * The colours follow the in-app theme AND the OS Increase Contrast request.
  */
 import { type ComponentProps, type ReactNode, type Ref } from "react";
 import {
@@ -23,22 +26,19 @@ import {
 import { Stack } from "expo-router";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
+import { useIncreasedContrast } from "@/lib/a11y/prefs";
 import { getLocale } from "@/lib/i18n";
-import {
-  CTA_MIN_HEIGHT,
-  effectiveFontScale,
-  isLargeText,
-  resolveScheme,
-} from "@/lib/prefs/appearance";
+import { CTA_MIN_HEIGHT, effectiveFontScale, resolveScheme } from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
 import {
+  colorsFor,
   fonts,
   lineHeight,
   motion,
-  palette,
   radius,
+  ROUNDED_ROLES,
+  roleWeight,
   scaledSize,
-  shadow,
   spacing,
   type ColorScheme,
   type ThemeColors,
@@ -57,30 +57,14 @@ import {
  */
 const SPEECH_LANGUAGE = { tr: "tr-TR", en: "en-GB" } as const;
 
-// The faces are guaranteed loaded before the tree renders (root layout gates
-// on useFonts); the platform serif remains only as a defensive fallback.
-const DISPLAY_FONT = fonts.display ?? Platform.select(fonts.displayFallback);
-
 /**
- * Sans roles carry Inter (design pass 4, Oura register). Custom fonts on iOS
- * do not synthesize weights, so the effective fontWeight in the flattened
- * style picks the loaded family and the weight itself is dropped.
+ * SF Pro Rounded on iOS, the system sans elsewhere, for the roles
+ * `ROUNDED_ROLES` names: a screen's Large Title and the one numeral. The
+ * rounded design is the warmth the refresh keeps (SwiftUI's
+ * `.fontDesign(.rounded)`), and it is a face, not a flourish. Every other
+ * role takes the platform face, which synthesises no weight.
  */
-function sansFamily(weight: TextStyle["fontWeight"]): string {
-  switch (weight) {
-    case "600":
-    case "700":
-    case "bold":
-    case 600:
-    case 700:
-      return fonts.sansSemiBold;
-    case "500":
-    case 500:
-      return fonts.sansMedium;
-    default:
-      return fonts.sans;
-  }
-}
+const ROUNDED_FONT = Platform.select(fonts.rounded);
 
 /**
  * The scheme to render (INT-260). This is the ONLY place the app asks the OS,
@@ -95,8 +79,14 @@ export function useScheme(): ColorScheme {
   return resolveScheme(prefs.theme, os);
 }
 
+/**
+ * The colours to render: the resolved scheme (the patient's Tema choice or
+ * the OS) and the OS Increase Contrast request (INT-422). The one place a
+ * palette is chosen, so a component that takes its colours from here follows
+ * both settings, live.
+ */
 export function useTheme(): ThemeColors {
-  return palette[useScheme()];
+  return colorsFor(useScheme(), useIncreasedContrast());
 }
 
 /**
@@ -116,12 +106,12 @@ export function useFontScale(): number {
   return effectiveFontScale(prefs.textStep, os);
 }
 
-type StackScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>["options"]>;
+export type StackScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>["options"]>;
 
 /**
- * Oura-register top bar for pushed screens (design pass 5): centred
- * body-sized semibold sans title, "‹" back with no label, ground-coloured and
- * shadowless so it reads as part of the page, not chrome. Screens that use
+ * The top bar for pushed screens: the iOS inline navigation bar, a centred
+ * body-sized semibold title and a "‹" back with no label, on the grouped
+ * ground and shadowless so it reads as part of the page. Screens that use
  * it drop the top safe edge — the header owns that inset.
  *
  * INT-260: the size was a hardcoded 17 while react-navigation's own
@@ -138,7 +128,7 @@ export function useStackHeader(): (title: string) => StackScreenOptions {
     title,
     headerTitleAlign: "center",
     headerTitleStyle: {
-      fontFamily: fonts.sansSemiBold,
+      fontWeight: "600",
       fontSize: scaledSize("body", fontScale),
       color: theme.ink,
     },
@@ -206,20 +196,19 @@ export function AppText({
 }: AppTextProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
-  const display = role === "display" || role === "hero" || role === "title";
+  // The role's Dynamic Type size and weight in the platform face; the one
+  // Large Title and the numeral take SF Pro Rounded. A caller's own weight
+  // still wins.
   const flat: TextStyle = StyleSheet.flatten([
     {
       color: theme[color],
       fontSize: scaledSize(role, fontScale),
       lineHeight: lineHeight(role, fontScale),
+      fontWeight: roleWeight[role],
     },
-    display ? { fontFamily: DISPLAY_FONT } : null,
+    ROUNDED_ROLES.includes(role) ? { fontFamily: ROUNDED_FONT } : null,
     style,
   ]);
-  if (!display) {
-    flat.fontFamily = sansFamily(flat.fontWeight);
-    delete flat.fontWeight;
-  }
   return (
     // Sizes come from scaledSize; RN's own multiplier is disabled so the
     // 2.0 cap (layout-survival, 02 §8.2) is applied in exactly one place.
@@ -271,38 +260,21 @@ export function Screen({
 interface CardProps {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
-  /** Soft semantic wash behind the content (Oura's tinted cards). */
+  /** A tinted fill behind the content, for the one card a screen is about. */
   wash?: "none" | "primary";
 }
 
 export function Card({ children, style, wash = "none" }: CardProps) {
-  const scheme = useScheme();
-  const theme = palette[scheme];
-  const depth = shadow[scheme];
-  // INT-260: at the large-text scale a card gives its MEASURE priority over
-  // its air. 00 §2's own arithmetic is that a long Turkish word can need more
-  // width than a 200 % line has, and React Native breaks a word it cannot fit
-  // — "İç Hastalıkları" rendered as "Hastalıkla / rı" on the visit card, which
-  // is the mid-word break that ruling exists to prevent. Sixteen points back
-  // from each side is the cheapest width there is, and unlike shrinking the
-  // text it takes nothing away from the patient who chose the size.
-  const tight = isLargeText(useFontScale());
+  const theme = useTheme();
+  // A grouped cell: the surface on the grouped ground, with no edge and no
+  // shadow, in both schemes; the tone step carries the separation. Its padding is the 16 pt content margin at
+  // every text size, so a long Turkish word keeps the card's whole measure
+  // at 200 % (INT-260: "Hastalıkla / rı" is the break 00 §2 forbids).
   return (
     <View
       style={[
         styles.card,
-        tight ? styles.cardTight : null,
-        {
-          backgroundColor: wash === "primary" ? theme.primarySoft : theme.surface,
-          // Dark cards are borderless — tonal surface against near-black
-          // ground carries the separation (Oura register, design pass 3);
-          // light keeps the hairline under its soft shadow.
-          borderColor: scheme === "dark" ? "transparent" : theme.border,
-          shadowColor: depth.color,
-          shadowOpacity: depth.opacity,
-          shadowRadius: depth.radius,
-          shadowOffset: { width: 0, height: depth.offsetY },
-        },
+        { backgroundColor: wash === "primary" ? theme.primarySoft : theme.surface },
         style,
       ]}
     >
@@ -312,14 +284,14 @@ export function Card({ children, style, wash = "none" }: CardProps) {
 }
 
 /**
- * Hairline row divider INSIDE cards (Oura settings rhythm, design pass 3):
- * quieter than the border token so it separates without boxing.
+ * Hairline row divider INSIDE cards and groups: the iOS separator, quieter
+ * than the control border so it separates without boxing.
  */
 export function Hairline({ style }: { style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
   return (
     <View
-      style={[styles.hairline, { backgroundColor: theme.border }, style]}
+      style={[styles.hairline, { backgroundColor: theme.separator }, style]}
       accessibilityElementsHidden
       importantForAccessibility="no"
     />
@@ -344,11 +316,9 @@ interface ButtonProps {
 }
 
 /**
- * The ONE focal CTA a screen gets — full-width pill on the NEUTRAL `cta`
- * tone (design pass 6: Oura's forward action is a bone pill on dark in
- * every Mobbin capture — d1c03e40, 19cf723a, 96fb49c7 — never a saturated
- * slab; light mode carries the inverse ink pill). The teal accent (02 §5.2:
- * single accent) now lives in selection, progress and status moments.
+ * The ONE focal action a screen gets: the tinted, filled button (SwiftUI's
+ * `.borderedProminent`, UIKit's filled configuration) at full width, with a
+ * 12-pt continuous corner. The accent is spent here, once per screen.
  */
 export function PrimaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
   const theme = useTheme();
@@ -380,10 +350,9 @@ export function PrimaryButton({ label, onPress, disabled = false, hint, ref }: B
 }
 
 /**
- * Oura-register quiet pill for secondary actions: a tonal FILL one step
- * above the ground, borderless (design pass 6 measurement — Oura's quiet
- * buttons and tag chips are filled, never outlined; the pass-5 hairline
- * outline was our invention).
+ * Every other action: the grey button with a tinted label (SwiftUI's
+ * `.bordered`), so a secondary action reads as one without competing with
+ * the focal one.
  */
 export function SecondaryButton({ label, onPress, disabled = false, hint, ref }: ButtonProps) {
   const theme = useTheme();
@@ -404,7 +373,7 @@ export function SecondaryButton({ label, onPress, disabled = false, hint, ref }:
         },
       ]}
     >
-      <AppText role="body" color="ink" style={styles.buttonLabel}>
+      <AppText role="body" color="primary" style={styles.buttonLabel}>
         {label}
       </AppText>
     </Pressable>
@@ -415,29 +384,25 @@ const styles = StyleSheet.create({
   screen: { flex: 1, padding: spacing.screen },
   card: {
     borderRadius: radius.card,
-    borderWidth: 1,
-    // lg padding (design pass 4): Oura's card interiors breathe at ~24, and
-    // 16 read cramped once the radius went to 24.
-    padding: spacing.lg,
+    borderCurve: "continuous",
+    padding: spacing.md,
     gap: spacing.sm,
   },
-  cardTight: { padding: spacing.md },
   hairline: {
     height: StyleSheet.hairlineWidth,
     alignSelf: "stretch",
-    opacity: 0.9,
   },
   primaryButton: {
     borderRadius: radius.control,
+    borderCurve: "continuous",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     alignItems: "center",
-    // Touch target ≥48dp (02 §8.2); 56 with a body-size semibold label is
-    // the Oura CTA register (design pass 4). INT-284 moved the number to
+    // Touch target ≥48dp (02 §8.2). INT-284 moved the number to
     // lib/prefs/appearance.ts, because the glass bar's clearance has to
     // predict this height and a second copy of it would drift.
     minHeight: CTA_MIN_HEIGHT,
     justifyContent: "center",
   },
-  buttonLabel: { fontWeight: "600", letterSpacing: 0.2 },
+  buttonLabel: { fontWeight: "600" },
 });

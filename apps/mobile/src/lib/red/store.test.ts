@@ -13,6 +13,7 @@ import type { Answer } from "../intake/note";
 import { GENERIC_RED_SCRIPT_IDS, type RedLocation, type RedRegister } from "../livekit/red";
 import type { RedTrigger } from "../livekit/types";
 import { RED_LOCATIONS, RED_MOTION, RED_REGISTERS, type LocationAnswer } from "../motion/red";
+import { orbStateFor } from "../motion/orb";
 import {
   decodeRedCatalog,
   evaluateBoundAnswers,
@@ -31,6 +32,7 @@ import {
   RedCatalogIncomplete,
   redCoversNavigator,
   redFocusKey,
+  redOrb,
   redScreen,
   redStopsDialogue,
   UNSIGNED_LOCATION_NO_ANSWER_WAIT_MS,
@@ -607,5 +609,62 @@ describe("the location axis (files/02 §5.3 Axis 3)", () => {
     expect(deriveRedLocation({ mode: "hizli", visitDate: "2026-09-02", today, kiosk: true })).toBe(
       "UNKNOWN",
     );
+  });
+});
+
+/*
+ * INT-551 (the RED-UI review of #842, item 4): the dialogue's presence orb
+ * follows ADR-033's yield. It used to hold at idle under every RED the
+ * patient sees, where the yield (lib/motion/red.ts) unmounts it under an
+ * ALERT or CALM takeover: the orb is the barge-in visual, and the emergency
+ * script has no barge-in (intake-voice-motion-spec RED-3, RED-12).
+ */
+describe("the orb under a RED (ADR-033 §5's yield)", () => {
+  const DIALOGUE = {
+    lane: "voice",
+    playing: true,
+    voiceMuted: false,
+    transport: "connected",
+  } as const;
+
+  it("a takeover unmounts it, SILENT holds it at idle, at every location and answer", () => {
+    for (const location of RED_LOCATIONS) {
+      for (const answer of ANSWERS) {
+        for (const register of ["ALERT", "CALM"] as const) {
+          const red = state(register, location, answer);
+          expect(redOrb(red), `${register}/${location}/${answer}`).toBe("unmount");
+          for (const turnPhase of ["speaking", "listening", "confirming"] as const) {
+            expect(orbStateFor({ ...DIALOGUE, turnPhase, red: redOrb(red) })).toBe("hidden");
+          }
+        }
+        const silent = state("SILENT", location, answer);
+        expect(redOrb(silent), `SILENT/${location}/${answer}`).toBe("idle");
+        expect(orbStateFor({ ...DIALOGUE, turnPhase: "speaking", red: redOrb(silent) })).toBe(
+          "idle",
+        );
+      }
+    }
+  });
+
+  it("near misses: with no RED, or one meant for the clinician only, the orb follows the dialogue", () => {
+    expect(redOrb(null)).toBeNull();
+    for (const location of RED_LOCATIONS) {
+      for (const answer of ANSWERS) {
+        const deferred = state("DEFERRED_CLINICIAN", location, answer);
+        expect(redOrb(deferred), `${location}/${answer}`).toBeNull();
+        expect(orbStateFor({ ...DIALOGUE, turnPhase: "speaking", red: redOrb(deferred) })).toBe(
+          "speaking",
+        );
+      }
+    }
+  });
+
+  it("the orb's RED is the stopped dialogue's: one exactly when the other", () => {
+    for (const register of RED_REGISTERS) {
+      for (const location of RED_LOCATIONS) {
+        const red = state(register, location, "unanswered");
+        expect(redOrb(red) !== null, `${register}/${location}`).toBe(redStopsDialogue(red));
+      }
+    }
   });
 });

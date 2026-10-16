@@ -68,3 +68,6 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-029 Embeddable white-label handshake](adr/ADR-029-embeddable-white-label-handshake.md)
 - [ADR-035 Hosted model lanes for the synthetic deployment until the GPU lanes are healthy](adr/ADR-035-hosted-model-lanes-for-the-synthetic-deployment.md)
 - [ADR-036 The council is a verifier, and the deterministic engine decides](adr/ADR-036-the-council-is-a-verifier-the-engine-decides.md) *(accepted by the owner, 3 Oct 2026)*
+- [ADR-037 Amendment to ADR-033: press response and native glass](adr/ADR-037-motion-amendment-press-and-glass-response.md) *(ratified by the owner, 3 Oct 2026; INT-451)*
+- [ADR-038 Amendment to ADR-033: spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets](adr/ADR-038-motion-amendment-bubbles-selection-haptics-in-tree-sheets.md) *(ratified by the owner, 3 Oct 2026; INT-461)*
+- [ADR-039 The chat stage: orb motion, ambient gradient, Liquid Glass controls, larger radii, stage palette](adr/ADR-039-chat-stage-orb-motion-ambient-gradient-liquid-glass-controls.md) *(ratified by the owner, 3 Oct 2026; INT-466)*

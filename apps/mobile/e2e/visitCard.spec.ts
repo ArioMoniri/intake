@@ -8,8 +8,10 @@
  * "Kadın Hastalıkları ve Doğum" wrapped straight under the arrow (int-demo
  * 01e224a2). The card now reserves the chevron's width. This file proves the
  * reservation is layout rather than paint, and measures what it costs the
- * department name in the face the title ships in (Newsreader 500,
- * `fonts.display`), with the INT-295 reader.
+ * department name with the INT-295 reader. Since INT-422 the title ships in
+ * SF Pro Semibold, which is not redistributable; it is measured in Inter
+ * SemiBold, whose advances run wider (docs/evidence/INT-422.md), so a word
+ * that fits here fits on the device.
  *
  * React Native has no DOM, so, as in overflow.spec.ts, the tree proves the
  * wiring and arithmetic proves the fit. The card geometry the arithmetic uses
@@ -44,17 +46,18 @@ function code(text: string): string {
 const NARROWEST = 320;
 /** The narrowest iPhone the app supports (SE, 2nd and 3rd generation). */
 const IPHONE_SE = 375;
-/** Themed.tsx `card.borderWidth`, asserted below. */
-const CARD_BORDER = 1;
+/** Themed.tsx's card draws no border since INT-422 (asserted below). */
+const CARD_BORDER = 0;
 
-/** Themed.tsx's Card: lg padding, md from the large-text scale (asserted below). */
-function cardPadding(scale: number): number {
-  return isLargeText(scale) ? spacing.md : spacing.lg;
+/** Themed.tsx's Card: the 16 pt content margin at every scale (asserted below). */
+function cardPadding(): number {
+  return spacing.md;
 }
 
 /** The card's content box on a screen `width` points wide. */
-function contentWidth(width: number, scale: number): number {
-  return width - 2 * spacing.screen - 2 * CARD_BORDER - 2 * cardPadding(scale);
+/** The card's content box: the same at every scale since INT-422. */
+function contentWidth(width: number, _scale: number): number {
+  return width - 2 * spacing.screen - 2 * CARD_BORDER - 2 * cardPadding();
 }
 
 /** What the department name may use once the chevron has its room. */
@@ -64,7 +67,7 @@ function titleMeasure(width: number, scale: number): number {
 }
 
 const titleFace = readFontMetrics(
-  join(MOBILE, "node_modules/@expo-google-fonts/newsreader/500Medium/Newsreader_500Medium.ttf"),
+  join(MOBILE, "node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf"),
 );
 const captionFace = readFontMetrics(
   join(MOBILE, "node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf"),
@@ -102,7 +105,8 @@ function brokenByTheChevron(width: number, scale: number): string[] {
  * scale. This list may only shrink.
  */
 const COLUMN_RESIDUAL: Readonly<Record<string, readonly string[]>> = {
-  [`${NARROWEST}@1.3`]: ["Gastroenteroloji", "Endokrinolojisi", "Hidroklimatoloji"],
+  // Emptied by INT-422: the 16 pt margins and the Title 3 size give the
+  // card 254 pt at 320 pt, and every subspecialty word now keeps its line.
 };
 
 describe("the visit card reserves the chevron's width", () => {
@@ -122,9 +126,8 @@ describe("the visit card reserves the chevron's width", () => {
 
   it("measures the card Themed.tsx actually draws", () => {
     const themed = code(source("src/components/Themed.tsx"));
-    expect(themed).toMatch(/ {2}card: \{[^}]*borderWidth: 1,[^}]*padding: spacing\.lg,/);
-    expect(themed).toContain("cardTight: { padding: spacing.md }");
-    expect(themed).toContain("const tight = isLargeText(useFontScale());");
+    expect(themed).toMatch(/ {2}card: \{[^}]*padding: spacing\.md,/);
+    expect(themed).not.toMatch(/ {2}card: \{[^}]*borderWidth/);
     expect(themed).toContain("screen: { flex: 1, padding: spacing.screen }");
   });
 

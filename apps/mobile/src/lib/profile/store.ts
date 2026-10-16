@@ -15,6 +15,7 @@
  */
 import { useSyncExternalStore } from "react";
 
+import { appHaptics } from "../motion/appHaptics";
 import {
   resolveAttribution,
   SELF_ALONE,
@@ -64,6 +65,13 @@ export function setCompanionDeclaration(next: Partial<AttributionInput>): void {
     merged.acknowledged = false;
   }
   declaration = merged;
+  // INT-340 (motion S-3): anyone but the patient alone makes the session
+  // silent for good. A buzz on the table is the cue a third party notices,
+  // and taking the declaration back does not take that back.
+  const outcome = resolveAttribution(merged);
+  if (outcome.thirdPartyPresent || outcome.attribution !== "self_report") {
+    appHaptics.markSilentOrThirdParty();
+  }
   emit();
 }
 

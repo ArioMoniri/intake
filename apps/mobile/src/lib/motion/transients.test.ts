@@ -23,10 +23,17 @@
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { code } from "../../../e2e/motionSource";
-import { packForVisit } from "../intake/questions";
+import { sectionLabelKey, sectionPanelModel } from "../dialogue/sectionPanel";
+import {
+  dialogueStreamReducer,
+  initialDialogueStreamState,
+  type DialogueStreamAction,
+  type DialogueStreamState,
+} from "../dialogue/stream";
+import { intakeQuestions, packForVisit } from "../intake/questions";
 import {
   voiceIntakeReducer,
   type VoiceIntakeAction,
@@ -34,7 +41,22 @@ import {
 } from "../intake/voiceFirst";
 import { reducedMotion } from "../prefs/appearance";
 import { motion } from "../theme";
-import { typedFallback, typedStep, type TypedStep } from "./transients";
+import {
+  WORK,
+  dialogueScene,
+  fadeOf,
+  initialDialogueMotion,
+  nodeKey,
+  releaseDialogueMotion,
+  revealId,
+  sameScene,
+  stepDialogueMotion,
+  typedFallback,
+  typedStep,
+  type DialogueMotion,
+  type DialogueScene,
+  type TypedStep,
+} from "./transients";
 
 const MOBILE = join(__dirname, "..", "..", "..");
 
@@ -372,7 +394,14 @@ describe("MOTION-10 — a typed step change (C16)", () => {
       expect(EXIT.test(code(sample)), sample).toBe(true);
     }
     expect(EXIT.test(code("<Animated.View entering={fade} />"))).toBe(false);
-    expect(APP_SOURCE.filter((f) => EXIT.test(code(f.source))).map((f) => f.name)).toEqual([]);
+    // ADR-038 A3 (INT-473) grants one exit: the detent sheet's dismissal by
+    // the patient settles on A1's spring. Its exit comes from the policy, which
+    // makes a privacy close, a RED close and Reduce Motion instant.
+    const SHEET = "src/components/DetentSheet.tsx";
+    expect(APP_SOURCE.filter((f) => EXIT.test(code(f.source))).map((f) => f.name)).toEqual([SHEET]);
+    expect(code(APP_SOURCE.find((f) => f.name === SHEET)!.source)).toMatch(
+      /exiting=\{sheetExiting\(sheetClose\(closeReason, \{ reduce \}\), height\)\}/,
+    );
 
     // The typed step's body is one element keyed by the question, entering
     // from the plan, under a skipEntering config so the first step arrives
@@ -401,7 +430,7 @@ describe("MOTION-10 — a typed step change (C16)", () => {
     expect(inside(body, at("t(question.titleKey)"))).toBe(true);
     expect(inside(body, at("question.options!.map"))).toBe(true);
     // …and the progress and the CTA are not: they swap instantly with the step (C9, C16).
-    expect(inside(body, at("styles.progressRow"))).toBe(false);
+    expect(inside(body, at("<QuestionProgress"))).toBe(false);
     const bars = [...flow.matchAll(/<GlassBar\b/g)];
     expect(bars.length).toBeGreaterThan(0);
     expect(bars.filter((m) => inside(body, m.index))).toEqual([]);
@@ -507,5 +536,418 @@ describe("MOTION-10 — completion (C14)", () => {
       stagger(read(name)).map((what) => `${name}: ${what}`),
     );
     expect(offenders).toEqual([]);
+  });
+});
+/* ------------------------------------------------------------------ */
+/* MOTION-8 — dialogue transients wired to the arbiter (INT-337)       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * docs/design/motion/motion-verification.md §4 MOTION-8; intake-voice-motion-
+ * spec.md C1, C3–C10 and §3.3; ADR-033 §2 (Proposed). The dialogue's motion is
+ * one pure reducer over "scenes" derived from the conversation state: each new
+ * element is a commit to the INT-334 arbiter, and the arbiter's answer is the
+ * only thing that decides whether it fades. These tests drive the real
+ * dialogue reducer through a whole conversation and read every frame.
+ */
+
+const PACK = intakeQuestions;
+
+type Step =
+  | DialogueStreamAction
+  | { readonly type: "composer"; readonly focused: boolean }
+  /** The running fade ended (the device reports it; see useDialogueMotion). */
+  | { readonly type: "fade_ended" };
+
+interface Frame {
+  readonly state: DialogueStreamState;
+  readonly scene: DialogueScene;
+  readonly motion: DialogueMotion;
+  /** Every element fading in on this frame. */
+  readonly fading: readonly string[];
+}
+
+/** DialogueIntake's own rule: option chips show on a confirm turn that is not free text. */
+function chipsOpenIn(state: DialogueStreamState): boolean {
+  const { turn } = state;
+  return turn.phase === "confirming" && PACK[turn.step]?.kind !== "text";
+}
+
+function sceneOf(state: DialogueStreamState, composerFocused: boolean): DialogueScene {
+  const { filled, total } = sectionPanelModel(PACK, state, []);
+  return dialogueScene(state, {
+    composerFocused,
+    chipsOpen: chipsOpenIn(state),
+    strip: { filled, total },
+  });
+}
+
+/** Every element id the dialogue can show: bubbles, their revealed text, the chips, the work ring. */
+function idsOf(scene: DialogueScene): string[] {
+  return [
+    ...scene.entries.flatMap((e) => [e.key, revealId(e.key)]),
+    ...(scene.chips === null ? [] : [scene.chips]),
+    WORK,
+  ];
+}
+
+interface Player {
+  readonly frame: (step: Step) => Frame;
+}
+
+function player(reduce = false): Player {
+  let state = initialDialogueStreamState(PACK);
+  let focused = false;
+  let m = initialDialogueMotion(sceneOf(state, focused));
+  return {
+    frame(step) {
+      if (step.type === "composer") {
+        focused = step.focused;
+      } else if (step.type === "fade_ended") {
+        const id = m.arbiter.running?.id;
+        if (id !== undefined) {
+          m = releaseDialogueMotion(m, id);
+        }
+      } else {
+        state = dialogueStreamReducer(PACK, state, step);
+      }
+      const scene = sceneOf(state, focused);
+      if (!sameScene(m.scene, scene)) {
+        m = stepDialogueMotion(m, scene, { reduce });
+      }
+      const fading = idsOf(scene).filter((id) => fadeOf(m, id, { reduce }) !== undefined);
+      return { state, scene, motion: m, fading };
+    },
+  };
+}
+
+function play(steps: readonly Step[], reduce = false): Frame[] {
+  const p = player(reduce);
+  return steps.map((step) => p.frame(step));
+}
+
+const HEADACHE = { values: ["headache"], quote: "başım ağrıyor" };
+const DAYS = { values: ["days"], quote: "iki gündür" };
+
+/** One whole conversation: ask-ahead, a typed answer, two retroactive confirm turns, a re-ask. */
+const CONVO: readonly Step[] = [
+  { type: "speech_done" }, // 0: listening, complaint
+  { type: "utterance", workId: 1 }, // 1: speaking duration; w-1 transcribing; work starts
+  { type: "fade_ended" }, // 2
+  { type: "speech_done" }, // 3: listening, duration (window shut)
+  { type: "transcript_ready", workId: 1, text: "başım ağrıyor" }, // 4: reveal waits
+  { type: "utterance", workId: 2 }, // 5: speaking extra; the window opens
+  { type: "fade_ended" }, // 6
+  { type: "speech_done" }, // 7: listening, extra
+  { type: "composer", focused: true }, // 8
+  { type: "typed", workId: 3, text: "başka bir şey yok" }, // 9: settling
+  { type: "composer", focused: false }, // 10
+  { type: "extract_settled", workId: 1, candidates: { complaint: HEADACHE } }, // 11: confirm turn
+  { type: "fade_ended" }, // 12
+  { type: "transcript_ready", workId: 2, text: "iki gündür" }, // 13: reveal at once
+  { type: "fade_ended" }, // 14
+  { type: "speech_done" }, // 15: confirming; the chips enter
+  { type: "fade_ended" }, // 16
+  { type: "confirm", values: ["headache"] }, // 17: settling
+  { type: "extract_settled", workId: 2, candidates: { duration: DAYS } }, // 18: confirm turn
+  { type: "fade_ended" }, // 19
+  { type: "speech_done" }, // 20: confirming
+  { type: "confirm", values: ["days"] }, // 21: settling
+  { type: "extract_settled", workId: 3, candidates: {} }, // 22: re-ask extra
+];
+
+const FRAMES = play(CONVO);
+
+/** The scene key of the newest agent bubble in a frame. */
+function newestAgent(frame: Frame): string {
+  const agents = frame.scene.entries.filter((e) => e.kind === "agent");
+  return agents[agents.length - 1].key;
+}
+
+/** Hand-built scenes, for the window rules the reducer reaches only by timing. */
+function scene(over: Partial<DialogueScene>): DialogueScene {
+  return {
+    entries: [{ key: "w-1", kind: "transcribing" }],
+    chips: null,
+    working: false,
+    strip: { filled: 0, total: 3 },
+    windowOpen: false,
+    ...over,
+  };
+}
+
+describe("MOTION-8 — content (C1, C4, C5, C7, C8)", () => {
+  it("content enters with a 120 ms out-fade, opacity only, delay 0", () => {
+    const confirm = FRAMES[11];
+    const key = newestAgent(confirm);
+    expect(key.startsWith("agent_confirm:")).toBe(true);
+    expect(confirm.fading).toEqual([key]);
+    expect(fadeOf(confirm.motion, key, { reduce: false })).toEqual(FADE);
+    // Under reduce-motion the same conversation shows the same elements, still.
+    const still = play(CONVO, true);
+    for (const [i, frame] of still.entries()) {
+      expect(frame.fading, `frame ${i}`).toEqual([]);
+      expect(frame.motion.arbiter.running, `frame ${i}`).toBeNull();
+      expect(Object.keys(frame.motion.entered).sort(), `frame ${i}`).toEqual(
+        Object.keys(FRAMES[i].motion.entered).sort(),
+      );
+    }
+  });
+
+  it("content is never deferred by the commit window", () => {
+    // The composer holds focus while a typed answer brings the next question.
+    const focused = play([
+      { type: "speech_done" },
+      { type: "composer", focused: true },
+      { type: "typed", workId: 1, text: "başım ağrıyor" },
+    ]);
+    const last = focused[2];
+    expect(last.scene.windowOpen).toBe(false);
+    expect(last.motion.entered[newestAgent(last)]).toBe("animate");
+    // Every agent bubble and every chip group is on screen in the frame that adds it.
+    for (const [i, frame] of [...FRAMES, ...focused].entries()) {
+      for (const e of frame.scene.entries.filter((x) => x.kind === "agent")) {
+        expect(frame.motion.entered[e.key], `frame ${i} ${e.key}`).toBeDefined();
+      }
+      if (frame.scene.chips !== null) {
+        expect(frame.motion.entered[frame.scene.chips], `frame ${i}`).toBeDefined();
+      }
+      expect(frame.motion.arbiter.deferred.filter((c) => c.cls === "content")).toEqual([]);
+    }
+  });
+
+  it("the patient's own typed message renders instantly", () => {
+    const typed = FRAMES[9];
+    expect(typed.scene.windowOpen).toBe(false);
+    for (const id of ["w-3", revealId("w-3")]) {
+      expect(typed.motion.entered[id], id).toBe("instant");
+      expect(typed.fading).not.toContain(id);
+    }
+    expect(typed.motion.arbiter.deferred.map((c) => c.id)).not.toContain(revealId("w-3"));
+  });
+
+  it("confirm chips enter as one group; bar actions are instant", () => {
+    const chips = FRAMES[15];
+    expect(chips.state.turn.phase).toBe("confirming");
+    expect(chips.scene.chips).not.toBeNull();
+    // One element for the whole group, however many options it holds; the bar's
+    // buttons are not elements of the motion layer at all.
+    expect(chips.fading).toEqual([chips.scene.chips]);
+    expect(PACK[0].options!.length).toBeGreaterThan(1);
+    expect(idsOf(chips.scene).filter((id) => id.startsWith("chips:"))).toHaveLength(1);
+  });
+
+  it("chip selection is instant in both lanes, and a pre-selected suggestion carries no emphasis motion", () => {
+    // The selection is not an input to either lane's motion: the dialogue's
+    // scene is the conversation, the composer focus, the chips' presence and
+    // the strip; the typed step is keyed by its question alone.
+    const chips = FRAMES[15];
+    const again = sceneOf(chips.state, false);
+    expect(sameScene(chips.scene, again)).toBe(true);
+    expect(stepDialogueMotion(chips.motion, again, { reduce: false })).toEqual(chips.motion);
+    expect(typedStep("complaint", { reduce: false })).toEqual(
+      typedStep("complaint", { reduce: false }),
+    );
+    // The suggestion arrives inside the one chip group: nothing else of its own moves.
+    expect(chips.fading).toHaveLength(1);
+  });
+
+  it("confirm commit adds no motion of its own", () => {
+    const before = FRAMES[16];
+    const after = FRAMES[17];
+    expect(after.state.turn.phase).toBe("settling");
+    expect(after.scene.chips).toBeNull();
+    // The chips leave in the commit that removes them, and nothing fades.
+    expect(after.fading).toEqual([]);
+    expect(Object.keys(after.motion.entered).filter((k) => k.startsWith("chips:"))).toEqual([]);
+    expect(Object.keys(after.motion.entered).length).toBeLessThan(
+      Object.keys(before.motion.entered).length,
+    );
+    // The next element is the next turn's content.
+    expect(FRAMES[18].fading).toEqual([newestAgent(FRAMES[18])]);
+  });
+
+  it("a section change adds no separate animated element", () => {
+    const frame = FRAMES[5];
+    const asked = frame.scene.entries.filter((e) => e.kind === "agent").map((e) => e.key);
+    const [prevQ, nextQ] = asked
+      .slice(-2)
+      .map((key) => PACK.find((q) => key.includes(`:${q.id}:`))!);
+    expect(sectionLabelKey(prevQ)).not.toBe(sectionLabelKey(nextQ));
+    const added = frame.scene.entries.filter((e) =>
+      FRAMES[4].scene.entries.every((p) => p.key !== e.key),
+    );
+    expect(added.map((e) => e.kind).sort()).toEqual(["agent", "transcribing"]);
+    expect(frame.fading.length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("MOTION-8 — commit-window classes (C3, C9, C10)", () => {
+  it("transcript reveal is rail-class: deferred while listening or composing, flushed at the next window", () => {
+    // Listening: the words wait, and the bubble keeps its transcribing line.
+    const waiting = FRAMES[4];
+    expect(waiting.state.turn.phase).toBe("listening");
+    expect(waiting.motion.entered[revealId("w-1")]).toBeUndefined();
+    expect(waiting.motion.arbiter.deferred).toContainEqual(
+      expect.objectContaining({ cls: "railCommit", id: revealId("w-1") }),
+    );
+    // The next window applies it, never drops it.
+    expect(FRAMES[5].motion.entered[revealId("w-1")]).toBeDefined();
+    expect(FRAMES[5].fading).toEqual([revealId("w-1")]);
+    // Composing shuts the window too, on an agent turn.
+    const composing = play([
+      { type: "speech_done" },
+      { type: "utterance", workId: 1 },
+      { type: "composer", focused: true },
+      { type: "transcript_ready", workId: 1, text: "başım ağrıyor" },
+      { type: "composer", focused: false },
+    ]);
+    expect(composing[3].state.turn.phase).toBe("speaking");
+    expect(composing[3].motion.entered[revealId("w-1")]).toBeUndefined();
+    expect(composing[4].motion.entered[revealId("w-1")]).toBeDefined();
+    // With the window open, it is applied at once.
+    expect(FRAMES[13].motion.entered[revealId("w-2")]).toBeDefined();
+  });
+
+  it("transcript reveal animates the new text only, never the bubble frame", () => {
+    for (const i of [5, 13]) {
+      const frame = FRAMES[i];
+      const [id] = frame.fading;
+      expect(id.endsWith(":text"), `frame ${i}`).toBe(true);
+      const bubble = id.slice(0, -":text".length);
+      expect(frame.fading).not.toContain(bubble);
+      // The bubble entered instantly at the microphone and keeps its node.
+      expect(frame.motion.entered[bubble]).toBe("instant");
+      expect(nodeKey(frame.motion, bubble)).toBe(nodeKey(FRAMES[i - 1].motion, bubble));
+    }
+  });
+
+  it("progress numerals are never tweened; the strip count is rail-class", () => {
+    const frames = play([
+      { type: "speech_done" },
+      { type: "utterance", workId: 1 },
+      { type: "speech_done" }, // listening
+      {
+        type: "extract_settled",
+        workId: 1,
+        candidates: { complaint: HEADACHE },
+      },
+      { type: "confirm_pending", questionId: "complaint" }, // a panel-row confirm while listening
+      { type: "utterance", workId: 2 }, // the next window
+    ]);
+    const shut = frames[4];
+    expect(shut.scene.windowOpen).toBe(false);
+    expect(shut.scene.strip.filled).toBe(1);
+    expect(shut.motion.strip.filled).toBe(0);
+    expect(frames[5].motion.strip).toEqual(frames[5].scene.strip);
+    // Only true counts are ever shown, and the strip is never an animated element.
+    const seen = frames.map((f) => JSON.stringify(f.scene.strip));
+    for (const f of frames) {
+      expect(seen).toContain(JSON.stringify(f.motion.strip));
+      expect(f.fading.filter((id) => id.includes("strip"))).toEqual([]);
+    }
+  });
+
+  it("work chips outrank rail commits and wait for the window", () => {
+    // The work indicator and a transcript both land while the patient talks…
+    let m = initialDialogueMotion(scene({}));
+    m = stepDialogueMotion(
+      m,
+      scene({ entries: [{ key: "w-1", kind: "patient" }], working: true }),
+      { reduce: false },
+    );
+    expect(m.ring).toBe(false);
+    expect(m.arbiter.deferred.map((c) => c.cls).sort()).toEqual(["railCommit", "workChip"]);
+    // …and at the window the work chip animates, the reveal renders instantly.
+    m = stepDialogueMotion(
+      m,
+      scene({
+        entries: [{ key: "w-1", kind: "patient" }],
+        working: true,
+        windowOpen: true,
+      }),
+      { reduce: false },
+    );
+    expect(m.ring).toBe(true);
+    expect(m.arbiter.running?.id).toBe(WORK);
+    expect(m.entered[revealId("w-1")]).toBe("instant");
+  });
+
+  it("a work indicator withdrawn before the window is never rendered, and leaves at once", () => {
+    let m = initialDialogueMotion(scene({}));
+    m = stepDialogueMotion(m, scene({ working: true }), { reduce: false });
+    m = stepDialogueMotion(m, scene({ working: false }), { reduce: false });
+    m = stepDialogueMotion(m, scene({ working: false, windowOpen: true }), {
+      reduce: false,
+    });
+    expect(m.ring).toBe(false);
+    expect(m.arbiter.deferred).toEqual([]);
+    // Shown, then finished: it goes at the next window, with no fade out.
+    m = stepDialogueMotion(m, scene({ working: true, windowOpen: true }), {
+      reduce: false,
+    });
+    expect(m.ring).toBe(true);
+    m = stepDialogueMotion(m, scene({ working: false, windowOpen: false }), {
+      reduce: false,
+    });
+    expect(m.ring).toBe(true);
+    m = stepDialogueMotion(m, scene({ working: false, windowOpen: true }), {
+      reduce: false,
+    });
+    expect(m.ring).toBe(false);
+    expect(fadeOf(m, WORK, { reduce: false })).toBeUndefined();
+  });
+});
+
+describe("MOTION-8 — one element at a time, nothing waits on motion", () => {
+  it("no frame shows two questions, and nothing fades out", () => {
+    for (const [i, frame] of FRAMES.entries()) {
+      expect(frame.fading.length, `frame ${i}`).toBeLessThanOrEqual(1);
+      const keys = frame.scene.entries.map((e) => e.key);
+      expect(new Set(keys).size, `frame ${i}`).toBe(keys.length);
+      // A removed element has no fade: every fading id is on screen now.
+      for (const id of frame.fading) {
+        expect(idsOf(frame.scene)).toContain(id);
+      }
+    }
+    // The re-ask brings its line and the question together, as one turn.
+    const reask = FRAMES[22];
+    const kinds = reask.scene.entries.slice(-2).map((e) => e.key.split(":")[0]);
+    expect(kinds).toEqual(["agent_unclear", "agent_question"]);
+    expect(reask.fading.length).toBeLessThanOrEqual(1);
+  });
+
+  describe("on a fake clock", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("a fade stalled 30 s never defers content or delays a turn", () => {
+      // The same conversation with every fade end lost: the device never
+      // reports one, and 30 s pass before every event.
+      const steps = CONVO.filter((s) => s.type !== "fade_ended");
+      const live = play(CONVO).filter((_, i) => CONVO[i].type !== "fade_ended");
+      const stalled = player();
+      for (const [i, step] of steps.entries()) {
+        vi.advanceTimersByTime(30_000);
+        const at = Date.now();
+        const frame = stalled.frame(step);
+        expect(Date.now() - at).toBe(0);
+        // The turn is the reducer's alone, and every new bubble is on screen.
+        expect(frame.state.turn, `step ${i}`).toEqual(live[i].state.turn);
+        expect(frame.scene.entries).toEqual(live[i].scene.entries);
+        for (const e of frame.scene.entries.filter((x) => x.kind === "agent")) {
+          expect(frame.motion.entered[e.key], `step ${i} ${e.key}`).toBeDefined();
+        }
+        // Nothing ever fades beside the stuck element.
+        expect(frame.fading.length).toBeLessThanOrEqual(1);
+      }
+      expect(vi.getTimerCount()).toBe(0);
+      expect(Date.now()).toBe(steps.length * 30_000);
+    });
   });
 });

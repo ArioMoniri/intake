@@ -27,8 +27,9 @@
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppText, useFontScale, useTheme } from "@/components/Themed";
+import { withContext } from "@/lib/a11y/labels";
 import { isLargeText } from "@/lib/prefs/appearance";
-import { motion, scaledControl, spacing } from "@/lib/theme";
+import { motion, rowPressFill, scaledControl, spacing, switchTrackToken } from "@/lib/theme";
 
 interface SwitchRowProps {
   label: string;
@@ -38,9 +39,25 @@ interface SwitchRowProps {
   onChange: (next: boolean) => void;
   /** Spoken after the name; what flipping it does. */
   hint?: string;
+  /**
+   * Context spoken after the visible label (INT-472): which section a review
+   * switch governs, so several identical switches stay apart in the rotor.
+   * The visible label still comes first (SC 2.5.3).
+   */
+  labelContext?: string;
+  /** Read-only: the state stays visible and spoken, and a press does nothing. */
+  disabled?: boolean;
 }
 
-export function SwitchRow({ label, sublabel, checked, onChange, hint }: SwitchRowProps) {
+export function SwitchRow({
+  label,
+  sublabel,
+  checked,
+  onChange,
+  hint,
+  labelContext,
+  disabled = false,
+}: SwitchRowProps) {
   const theme = useTheme();
   const fontScale = useFontScale();
   const stacked = isLargeText(fontScale);
@@ -48,51 +65,64 @@ export function SwitchRow({ label, sublabel, checked, onChange, hint }: SwitchRo
   const trackHeight = scaledControl(28, fontScale);
   const inset = scaledControl(3, fontScale);
   const knob = trackHeight - inset * 2;
+  // Read-only (a sent note): the control dims as the app dims every inactive
+  // control, and the words stay at full ink: what was shared is information
+  // the patient still reads. A disabled Pressable never reports a press, so
+  // the press fill needs no guard of its own.
+  const dimmed = disabled ? { opacity: motion.press.disabledOpacity } : null;
   return (
     <Pressable
       accessibilityRole="switch"
-      accessibilityLabel={label}
-      accessibilityHint={hint}
-      accessibilityState={{ checked }}
+      accessibilityLabel={withContext(label, labelContext)}
+      accessibilityHint={disabled ? undefined : hint}
+      accessibilityState={{ checked, disabled }}
+      disabled={disabled}
       onPress={() => onChange(!checked)}
       style={({ pressed }) => [
         styles.row,
         stacked ? styles.rowStacked : null,
-        { opacity: pressed ? motion.press.rowOpacity : 1 },
+        pressed ? { backgroundColor: theme[rowPressFill] } : null,
       ]}
     >
-      <View style={stacked ? styles.labelsStacked : styles.labels}>
-        <AppText role="body">{label}</AppText>
-        {sublabel ? (
-          <AppText role="caption" color="inkFaint">
-            {sublabel}
-          </AppText>
-        ) : null}
-      </View>
-      <View
-        style={[
-          styles.track,
-          {
-            width: trackWidth,
-            height: trackHeight,
-            borderRadius: trackHeight / 2,
-            padding: inset,
-            backgroundColor: checked ? theme.primary : theme.surfaceRaised,
-            // Position, not only fill — the knob sitting left or right is the
-            // half of the signal that survives a colour deficiency.
-            alignItems: checked ? "flex-end" : "flex-start",
-          },
-        ]}
-      >
-        <View
-          style={{
-            width: knob,
-            height: knob,
-            borderRadius: knob / 2,
-            backgroundColor: checked ? theme.onPrimary : theme.inkFaint,
-          }}
-        />
-      </View>
+      {({ pressed }) => (
+        <>
+          <View style={stacked ? styles.labelsStacked : styles.labels}>
+            <AppText role="body">{label}</AppText>
+            {sublabel ? (
+              <AppText role="caption" color="inkFaint">
+                {sublabel}
+              </AppText>
+            ) : null}
+          </View>
+          <View
+            style={[
+              dimmed,
+              styles.track,
+              {
+                width: trackWidth,
+                height: trackHeight,
+                borderRadius: trackHeight / 2,
+                padding: inset,
+                // The off track steps off the pressed row fill, which shares
+                // its resting colour (lib/theme switchTrackToken).
+                backgroundColor: theme[switchTrackToken({ checked, pressed })],
+                // Position, not only fill — the knob sitting left or right is the
+                // half of the signal that survives a colour deficiency.
+                alignItems: checked ? "flex-end" : "flex-start",
+              },
+            ]}
+          >
+            <View
+              style={{
+                width: knob,
+                height: knob,
+                borderRadius: knob / 2,
+                backgroundColor: checked ? theme.onPrimary : theme.inkFaint,
+              }}
+            />
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }

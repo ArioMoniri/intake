@@ -5412,7 +5412,8 @@
   title: "Motion: dialogue transients wired to the arbiter"
   depends_on: [INT-334, INT-335, INT-336]
   labels: [area:mobile]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-337.md
   acceptance:
     - "content enters with a 120 ms opacity-only fade at delay 0 and is never deferred; the patient's own typed message renders instantly; no frame shows two questions"
     - "transcript reveal and work chips are commit-window classes, deferred while listening or composing and flushed at the next window; chip selection and confirm commits add no motion"
@@ -5449,7 +5450,8 @@
   title: "Haptics: one policy, sticky suppression, server-confirmed success"
   depends_on: [INT-332, INT-333]
   labels: [area:mobile, risk:legal]
-  status: todo
+  status: done
+  evidence: docs/evidence/INT-340.md
   acceptance:
     - "no haptic while the voice session is active or the microphone is hot (read at fire time), for any RED register, or for the rest of a session in which a SILENT RED or a third party occurred"
     - "no haptic for consent, errors or intake chips; success fires only on a server-confirmed outcome; HapticCall has no error, warning or heavy member"
@@ -7171,3 +7173,240 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"
+- id: INT-422
+  epic: E08-mobile
+  phase: P1
+  title: "Design system refresh: native Apple feel, restrained palette, SF Symbols, no AI-generic styling"
+  # GitHub #714. Owner request, 27 Sep 2026: the visual system looked
+  # AI-generated. RED surfaces unchanged (ADR-033); no copy changed.
+  depends_on: [INT-412]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-422.md
+  acceptance:
+    - "theme tokens revised to one restrained accent with Apple system semantics (grouped backgrounds, label ladder, fill, separator) and their Material roles, a Dynamic Type scale, an 8-pt grid, 12-pt continuous corners and materials on the functional chrome only; no gradient, glow, shadow or decorative illustration"
+    - "every glyph is an SF Symbol on iOS and a Material Symbol on Android through the one icon layer, pinned by a guard test"
+    - "WCAG contrast is tested in light, dark and Increase Contrast: AA for every text pair, AAA for clinical text, 3:1 for control boundaries; RED colours are unchanged in every mode"
+    - "before/after simulator captures and the rationale are in docs/design/system-refresh.md"
+  tests: [apps/mobile/src/lib/theme.test.ts, apps/mobile/src/lib/a11y/contrast.test.ts, apps/mobile/e2e/designSystem.spec.ts, apps/mobile/src/lib/symbols.test.ts]
+  sec_row: "mobile"
+- id: INT-423
+  epic: E08-mobile
+  phase: P1
+  title: "Chat interface: natural rhythm and Liquid Glass materials (HIG), content stays solid"
+  # GitHub #718. Owner request, 2 Oct 2026. Builds on INT-422's tokens; RED,
+  # copy (INT-414) and motion (ADR-033, INT-336/337) untouched.
+  depends_on: [INT-422]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-423.md
+  acceptance:
+    - "system materials (glass/blur) only on chrome and floating controls (composer, bars); bubbles and text on solid fills; Reduce Transparency falls back to solid"
+    - "natural rhythm: consecutive turns grouped with the tail on a run's last bubble, a readable measure, and Dynamic Type up to the AX sizes with no question word broken; the listening state follows ADR-033 motion; RED unchanged"
+    - "contrast tests cover the chat pairs in light, dark and increased contrast; before/after captures and the rationale in docs/design/"
+  tests: [apps/mobile/src/lib/dialogue/rhythm.test.ts, apps/mobile/src/lib/dialogue/chatContrast.test.ts, apps/mobile/e2e/chatRhythm.spec.ts]
+  sec_row: "mobile"
+- id: INT-433
+  epic: E08-mobile
+  phase: P1
+  title: "Question screen redesign: native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)"
+  # GitHub #739. Owner review of the store shot, 2 Oct 2026. Builds on
+  # INT-422's tokens and INT-423's materials; question text, instruments and
+  # RED surfaces unchanged.
+  depends_on: [INT-422, INT-423]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-433.md
+  acceptance:
+    - "the dot row is replaced with a native progress treatment (a thin determinate bar and a 'Soru 3 / 12' style line over the applicable flow); the numerals are display-only (invariant 22) and the control is announced as one progress value"
+    - "iOS-native filled fields with no heavy outline and a focus ring; filled capsule choice chips with a tinted, checked selected state; a Liquid Glass bottom action bar and nav bar with content on solid fills; Reduce Transparency falls back to solid"
+    - "Mobbin references (best-in-class health and onboarding questionnaire screens) are cited in docs/design/question-screen.md, with before/after captures"
+    - "question text is unchanged (invariant 10), RED surfaces are untouched, contrast tests pass and Dynamic Type works up to AX5"
+  tests: [apps/mobile/src/lib/intake/questionScreen.test.ts, apps/mobile/e2e/questionScreen.spec.ts, apps/mobile/e2e/overflow.spec.ts, apps/mobile/e2e/typed_intake.spec.ts]
+  sec_row: "mobile"
+- id: INT-451
+  epic: E08-mobile
+  phase: P1
+  title: "Mobile interaction patterns from the owner-listed libraries and Mobbin, within ADR-033 and Liquid Glass"
+  # GitHub #764. Owner request, 3 Oct 2026. Builds on INT-422, INT-423 and
+  # INT-433 (open PRs #725, #728, #740, merged into this branch). RED, legal
+  # text, question text and copy unchanged; motion beyond ADR-033 is the
+  # ADR-037 proposal and does not ship.
+  depends_on: [INT-433]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-451.md
+  acceptance:
+    - "docs/design/interaction-patterns.md records what was adopted, adapted or rejected from kobra.systems, beautifului.dev, kinetics.colorion.co, beui.dev, transitions.dev, astryx.atmeta.com, reverseui.com and Mobbin, with sources cited and each licence verified; no library code is copied"
+    - "the adopted patterns ship within ADR-033 (no spring, scale, translate or duration added; nothing on RED): rows show a press with an instant highlight fill that keeps their text at full ink, and the visit's pushed screens ride the glass nav bar on chrome only, solid under Reduce Transparency"
+    - "contrast tests hold every row pair on the pressed fill in light, dark and both Increase Contrast palettes, with a near-miss for the old dim; question text, RED surfaces and copy are unchanged"
+    - "every spring or scale the survey recommends is an ADR-033 amendment proposal (ADR-037, Proposed) with a clinical-safety rationale, and none of it ships"
+    - "before/after simulator captures are in docs/design/interaction-patterns/"
+  tests: [apps/mobile/src/lib/a11y/rowPress.test.ts, apps/mobile/e2e/interactionPatterns.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/nativeChrome.spec.ts]
+  sec_row: "mobile"
+- id: INT-461
+  epic: E00-governance
+  phase: P1
+  title: "ADR-038: amendment to ADR-033 — spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets under the RED root layer"
+  # GitHub #786. Owner, 3 Oct 2026, in chat: "yes approve 1-3". The native
+  # pass (INT-462 onwards) asked for three things ADR-033 forbids; this ADR
+  # bounds each and the owner ratified them. Merge after #571 (ADR-033).
+  depends_on: [INT-332]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-461.md
+  acceptance:
+    - "docs/adr/ADR-038 records the amendment as Accepted, quotes the owner, and bounds each exception by number, surface and guard: spring-in bubbles never on RED with a 120 ms fade under Reduce Motion; selection haptics on answer chips and the mic through INT-340's gate, never while a voice session is active and never on RED; in-tree detent sheets under the RED root layer, with no UIKit-presented sheet and no zoom transition"
+    - "files/00_STATE.md §3 gains the D-row (next free number) and docs/index.md registers the ADR"
+    - "a docs test pins the status, the owner quote and each bound"
+  tests: [tests/docs/test_adr_038.py]
+  sec_row: "mobile"
+- id: INT-462
+  epic: E08-mobile
+  phase: P1
+  title: "Native chat: a Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips"
+  # GitHub #787. Owner feedback, 3 Oct 2026: the app reads as AI-generated.
+  # Section 1 of the native pass. Spec: docs/design/library-patterns.md
+  # (P1-P5, PR #784). Built on INT-422/423/433/451 (#725, #728, #740, #771)
+  # and INT-336/337/340 (#716, #717, #710), merged into this branch; motion
+  # and haptics under ADR-038 (#788). RED, question text and siz copy kept.
+  depends_on: [INT-433, INT-337, INT-340, INT-461]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-462.md
+  acceptance:
+    - "the composer is one filled capsule on the glass bar (INT-433's field rule: solid fill, tint focus ring, no resting outline, the boundary back under Increase Contrast) with one trailing control inside it; glass stays on chrome, content on solid fills"
+    - "an empty composer shows a mic that opens the microphone only on tap, through the session's barge-in or spoken-correction path, with an accessible name and hint; it swaps to send once text is typed and to stop while listening; RED behaviour is unchanged"
+    - "a new agent bubble the arbiter grants rises 8 pt on the critically damped spring (ADR-038 A1), keeps only the 120 ms fade under Reduce Motion and never moves while a RED shows; typing, listening and transcribing read as static lines beside the presence orb"
+    - "confirm chips are filled capsules (44 pt) whose selected state is tinted and checked, so it is not colour alone"
+    - "selection haptics on answer chips and the mic go through INT-340's gate, never while agent speech plays or the mic is hot, never on RED, never on instrument options (ADR-038 A2)"
+    - "contrast holds in light, dark and Increase Contrast; question text is verbatim; no numeral reaches spoken text; the spoken lane never imports the question module"
+  tests: [apps/mobile/src/lib/dialogue/composer.test.ts, apps/mobile/src/lib/motion/bubbles.test.ts, apps/mobile/src/lib/motion/haptics.test.ts, apps/mobile/e2e/nativeChat.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/chatRhythm.spec.ts]
+  sec_row: "mobile"
+- id: INT-466
+  epic: E08-mobile
+  phase: P1
+  title: "Chat stage: ADR-039 (owner-approved orb motion, gradient, glass controls, radii, palette) and the live chat on it"
+  # GitHub #795. Owner, 3 Oct 2026: the chat still looked old; a bold,
+  # Oura-like redesign. Prototype approved ("yes to all"); Apple's Liquid
+  # Glass guidance (docs/design/liquid-glass-research.md) keeps glass on the
+  # control layer. Stacked on INT-462 (#792). RED, haptics, announcements,
+  # verbatim text and the siz register unchanged.
+  depends_on: [INT-462, INT-461]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-466.md
+  acceptance:
+    - "ADR-039 is Accepted with the owner's quote and a D-row, bounds each of the six approved items by number and surface, and names the test that pins each; the design-rule guards move to those bounds and keep their near misses"
+    - "the live dialogue draws on the stage: a still ambient backdrop, the one presence orb in a SwiftUI body that breathes, turns and follows the voice level only while something is happening, large rounded question text, solid messages and answer cards, and Liquid Glass on the control layer only (native bar, composer, turn actions in one GlassContainer)"
+    - "RED, haptics, the one live announcement, verbatim question text, the siz register and the turn logic are unchanged; the orb is still under Reduce Motion and on RED; Reduce Transparency draws solid fills and a flat wash; Increase Contrast strengthens secondary text and gives cards a boundary"
+    - "every text colour reaches WCAG AA on every wash stop and on the cards in light and dark; glass labels are held to a modelled veil and measured on the captures"
+    - "the dev prototype route is deleted; before/after captures in light and dark and an orb gif are in docs/design/chat-stage/"
+  tests: [apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/palette.test.ts, apps/mobile/src/lib/stage/shape.test.ts, apps/mobile/e2e/chatStage.spec.ts, tests/docs/test_adr_039.py]
+  sec_row: "mobile"
+- id: INT-464
+  epic: E08-mobile
+  phase: P1
+  title: "Native welcome and sign-in in the stage language: iOS setup layout, still mark, filled fields, static large titles"
+  # GitHub #793. Section 2 of the native pass (owner, 3 Oct 2026: the app read
+  # as AI-generated). The owner's "yes to all" on INT-466 took this section
+  # into the chat stage's visual language, so ADR-039 S7 replaces the first
+  # draft's "no gradient": the still stage backdrop, the stage orb drawn still
+  # as the mark, glass only on the actions and inert. Stacked on INT-466 (#797).
+  depends_on: [INT-466, INT-433]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-464.md
+  acceptance:
+    - "ADR-039 S7 bounds welcome, phone entry and OTP entry on the stage: nothing moves (the OTP step is a gate), the welcome mark is the stage orb drawn still, the actions are inert glass, the fields are filled stage fields, the bar stays solid, the consent screen is untouched; each bound is pinned by a named test"
+    - "welcome uses the iOS setup layout: the still mark, the static large title (a heading) and the tagline over the still stage backdrop; the phone sign-in and the disclaimer in a tray at the bottom; the development accounts as a grouped inset list, development builds only"
+    - "phone and OTP entry keep a solid native bar with only the back chevron; the step title is a static large-title heading in the content; each field is a filled stage field with no card around it, no resting outline, the accent ring while focused and a boundary under Increase Contrast, and it stands apart from the whole wash"
+    - "no copy changes, every visible line is an existing key; Dynamic Type at AX5 scrolls with nothing clipped; every label measured on the captures reaches AA in light and dark; before/after captures in light and dark are committed"
+  tests: [apps/mobile/e2e/authStage.spec.ts, apps/mobile/src/lib/stage/field.test.ts, apps/mobile/src/lib/stage/nav.test.ts, apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/palette.test.ts, tests/docs/test_adr_039.py]
+  sec_row: "mobile"
+- id: INT-472
+  epic: E08-mobile
+  phase: P1
+  title: "Review and send as iOS grouped inset lists: section rows, share switch rows, a metadata summary"
+  # GitHub #802. Section 4 of the native pass (owner, 3 Oct 2026: the app read
+  # as AI-generated). iOS Settings grouped inset lists (library-patterns §5.2
+  # "Review and summary"); never-blocks-send, scope semantics and the
+  # no-network rule unchanged. Stacked on INT-464 (#801).
+  depends_on: [INT-464, INT-137]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-472.md
+  acceptance:
+    - "each note section is one grouped inset list: the section title as its header outside the group, the answer lines as rows, the share control as a switch row (Hekimle paylaşılsın, the state in words under it, named with its section, read-only once sent), editing as a navigation row with a chevron (absent once sent), and the section's note as the group's footer"
+    - "a checkpointed partial note shows an Eksik kalanlar group with the info, the unanswered questions as rows and resume as a navigation row; the share summary is a metadata group above Gönder (what, who, until when, each label over its values); after send the ladder has its own group and CSAT is unchanged"
+    - "never blocks send: the CTA carries no condition, no disabled state and no await; the screen reaches no network; no Doctor Link payload; the send handler and the scope semantics are unchanged; one new string (review.shareSwitch, tr and en, siz-safe); no motion is added"
+    - "the bottom bar is never see-through: where iOS draws no Liquid Glass it is still a frosted bar; contrast holds in light and dark; AX5 scrolls with nothing clipped; before/after simulator captures are committed"
+  tests: [apps/mobile/src/lib/intake/reviewRows.test.ts, apps/mobile/e2e/reviewGrouped.spec.ts, apps/mobile/e2e/review_send.spec.ts]
+  sec_row: "mobile"
+- id: INT-473
+  epic: E08-mobile
+  phase: P1
+  title: "In-tree detent sheet (ADR-038 A3) for the dialogue's section sheet: no presented sheet over RED"
+  # GitHub #807. Section 5 of the native pass. The dialogue's section sheet was
+  # a React Native Modal, a window of its own; ADR-038 A3 (accepted, #788)
+  # makes every sheet an in-tree view so the RED root layer always paints above
+  # it. Stacked on INT-472 (#806).
+  depends_on: [INT-472, INT-461]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-473.md
+  acceptance:
+    - "the section sheet is an in-tree DetentSheet, never a Modal, formSheet or modal presentation or portal; e2e/sheets.spec.ts holds that nothing in src presents a window of its own, so a RED root layer after the navigator paints above any open sheet"
+    - "two detents (medium, and large under the screen's own bar) with a grabber; a drag follows the finger, a release settles where the throw points or closes past the threshold; a tap on the grabber moves to the other detent (SC 2.5.7); presenting and settling use A1's critically damped spring; a patient's dismissal settles, a privacy or RED close is instant"
+    - "Reduce Motion: the 120 ms fade on presenting, an instant close, and a release that snaps without a spring; the detents, settle rule and per-reason motion are pure and unit-tested in lib/motion/sheet; the motion guard allows the sheet's one spring module by name"
+    - "the sheet's content and copy are unchanged; focus stays in the sheet and the VoiceOver escape and Android back close it; no new strings; before/after simulator captures in light and dark are committed"
+  tests: [apps/mobile/src/lib/motion/sheet.test.ts, apps/mobile/e2e/sheets.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/e2e/a11y.spec.ts]
+  sec_row: "mobile"
+- id: INT-491
+  epic: E08-mobile
+  phase: P1
+  title: "The lens is the orb: the refined glass lens replaces the sphere inside ADR-039 S1's bounds, every orb layer turns one way"
+  # GitHub #838. Owner request, 4 Oct 2026: explore the blob, the question
+  # count and the other parts against spaceui.one and the motion libraries.
+  # Three bodies were built behind a development flag (a fluid blob, a
+  # particle field, a refined glass lens). Owner decision, 16 Oct 2026, in
+  # chat: "orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N
+  # LD6Y" -> the lens ships as the orb, the sphere's counter-turn is fixed,
+  # nothing on the approval list ships (ADR-039 amendment, D29). Stacked on
+  # INT-473 (#808).
+  depends_on: [INT-328, INT-131]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-491.md
+  acceptance:
+    - "every component page of spaceui.one, and the orb, particle, glass and counter pages of kinetics, beUI, transitions.dev, reverseui and kobra, are mined with each licence read from its raw blob and its sha256 recorded; the Siri, ChatGPT and Gemini voice orbs and Mobbin voice screens are surveyed; nothing is copied and no dependency is added"
+    - "the lens is the orb on the dialogue and, still, on the welcome mark, through the ADR-039 S1 policy: breath at most 1.06x, swell at most +10 % while listening, no breath under 1.2 s, no turn under 3 s; still in idle, rest and retry, under Reduce Motion and under any RED; the clear lens only over glass, never on a capture-protected screen"
+    - "every orb layer turns one way: the sphere's second layer and the lens's rim lights repeat their pattern below the 0.15-0.25 Hz band around 0.2 Hz, pinned with a near miss (counter-turning falls inside it); the sphere's body is pinned by sha256"
+    - "the flag only lets a development or preview build name `classic`; production always draws the lens; the blob and the particle field leave no runtime code and their captures are archived in docs/design/orb-variants/; nothing on the approval list ships"
+    - "an ADR-039 amendment, Accepted, quotes the owner's reply and date; D29 and a changelog line in files/00_STATE.md; light and dark captures of the lens listening, speaking and thinking"
+  tests: [apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/orbVariants.test.ts, apps/mobile/e2e/orbVariants.spec.ts, apps/mobile/e2e/releaseConfig.spec.ts, apps/mobile/e2e/chatStage.spec.ts, tests/docs/test_adr_039.py]
+  sec_row: "mobile"
+- id: INT-551
+  epic: E08-mobile
+  phase: P1
+  title: "RED in the app: the sheet closes instantly at runtime, haptics hold under RED, the mic cannot reopen under RED"
+  # GitHub #933, from the RED-UI review of #842 (the design stack refresh,
+  # APPROVE), 17 Oct 2026. Four follow-ups: the detent sheet's RED and privacy
+  # close sprang for 0.2-0.35 s because Reanimated reads `exiting` only at
+  # mount and update; the haptic gate's RED hold had no caller; a frozen
+  # agent bubble stayed a barge-in control and a clip prepared before a RED
+  # could still play and open the microphone (blocks releasing the voice
+  # lane); the orb held at idle under ALERT/CALM where ADR-033's yield
+  # unmounts it. Stacked on INT-491 (#842).
+  depends_on: [INT-491, INT-473, INT-446]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-551.md
+  acceptance:
+    - "DetentSheet: a RED or privacy (non-patient) close is instant at runtime; the Animated subtree stays mounted one commit with display none and no exit registered, then unmounts; that commit is tested; the doc claims in DetentSheet.tsx and lib/motion/sheet.ts say what the code does"
+    - "haptics: a redStore subscriber in the root layout calls appHaptics.presentRed for ALERT and CALM and markSilentOrThirdParty for SILENT, so no success haptic fires under RED and none fires after a SILENT RED; DEFERRED_CLINICIAN holds nothing (near miss); tests"
+    - "mic under RED: under stopsDialogue liveAgentIndex is -1 (no barge-in control on the frozen bubble) and every dialogue driver (listening, speaking and its clip prepare, armBargeInWatch) is guarded on closedRef; tests for a RED landing mid-speaking and mid-clip-prepare"
+    - "orb under ALERT/CALM: the orb follows ADR-033's yield (unmount), derived from the table redFirstPaint uses, or ADR-033 and the orb docs are amended; the choice keeps every existing RED spec green and states why"
+    - "every existing RED spec (red, chatStage, orbVariants, motion, a11y, releaseConfig) stays green with no weakened assertion; invariants 9 and 21"
+  tests: [apps/mobile/src/lib/motion/sheet.test.ts, apps/mobile/src/lib/red/hapticHold.test.ts, apps/mobile/src/lib/dialogue/drivers.test.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/src/lib/motion/red.test.ts, apps/mobile/e2e/sheets.spec.ts, apps/mobile/e2e/red.spec.ts]
+  sec_row: "mobile"

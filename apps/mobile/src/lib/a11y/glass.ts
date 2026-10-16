@@ -31,3 +31,29 @@ export function glassMode({ liquidGlass, reduceTransparency }: GlassInputs): Gla
   }
   return liquidGlass ? "liquid" : "blur";
 }
+
+/**
+ * What a navigation bar over a scrolling screen draws behind its items.
+ *
+ * - `systemMaterial` (iOS 26): UIKit draws the bar's own chrome material
+ *   (`headerBlurEffect: "systemChromeMaterial"`), which frosts the content
+ *   that passes under the title and the back button and follows the bar's
+ *   light or dark style. The app paints nothing.
+ * - `blur`: the app's blur under the `glassFallback` wash (iOS below 26,
+ *   Android, where the native-stack blur does not exist).
+ * - `solid`: the page ground, for Reduce Transparency or an unanswered OS.
+ *
+ * Never Liquid Glass across the whole bar and never a clear bar. Both were
+ * tried on the INT451-16e simulator (iOS 26.1, Expo Go): a full-bar GlassView
+ * let scrolled content draw straight through the bar title and the back
+ * chevron, and a clear bar asking UIKit for its scroll-edge effect did the
+ * same, because the effect did not attach to the screen's scroller. The
+ * system chrome material separated them in both schemes.
+ */
+export interface NavBarChrome {
+  readonly background: "systemMaterial" | "blur" | "solid";
+}
+
+export function navBarChrome(mode: GlassMode): NavBarChrome {
+  return { background: mode === "liquid" ? "systemMaterial" : mode };
+}

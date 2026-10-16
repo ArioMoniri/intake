@@ -31,8 +31,10 @@ import {
   RED_MOTION,
   redAffordances,
   redPresentationMode,
+  redYield,
   type LocationAnswer,
   type RedMotion,
+  type RedYield,
 } from "../motion/red";
 import {
   evaluateBoundAnswers,
@@ -289,6 +291,21 @@ function genericScreen(
 export function redStopsDialogue(state: RedState | null): boolean {
   const kind = redScreen(state).kind;
   return kind === "ask" || kind === "act";
+}
+
+/**
+ * What the RED the patient is shown does to the dialogue's presence orb
+ * (INT-551): ADR-033 §5's yield, read from the table the first paint is sized
+ * from (lib/motion/red `redYield`). An ALERT or CALM takeover unmounts it (the
+ * orb is the barge-in visual, and the emergency script has none), SILENT holds
+ * it at idle beside its in-flow guidance, and with nothing shown — no RED, or
+ * a DEFERRED_CLINICIAN finding — it is null and the orb follows the dialogue.
+ */
+export function redOrb(state: RedState | null): RedYield["orb"] | null {
+  if (state === null || !redStopsDialogue(state)) {
+    return null;
+  }
+  return redYield(state.trigger.register).orb;
 }
 
 export interface RedStore {

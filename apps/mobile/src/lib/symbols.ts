@@ -48,6 +48,10 @@ export const SYMBOLS = {
   "chevron.right": { ios: "chevron.right", android: "chevron_right" },
   "chevron.up": { ios: "chevron.up", android: "keyboard_arrow_up" },
   "arrow.up": { ios: "arrow.up", android: "arrow_upward" },
+  // The chat composer's trailing control (INT-462): the mic in an empty
+  // composer, and stop while the patient is talking.
+  "mic.fill": { ios: "mic.fill", android: "mic" },
+  "stop.fill": { ios: "stop.fill", android: "stop" },
   checkmark: { ios: "checkmark", android: "check" },
   // Row and primer marks.
   "person.2": { ios: "person.2", android: "group" },
