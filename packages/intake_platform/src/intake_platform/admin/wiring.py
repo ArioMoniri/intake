@@ -470,11 +470,12 @@ class AdminWiring:
     #: INT-366: Keycloak, OpenBao and the other console systems. ``None``
     #: leaves the review and offboarding answering 503 (fail closed).
     identity: IdentityWiring | None = None
-    #: INT-428 (ADR-035): the model-lane control store, the router over it and
-    #: the hosted adapters. ``None`` = unconfigured: the model-lane mutations
-    #: answer 503 and the module's tiles read unknown (fail closed).
-    model_lanes: ModelLanesWiring | None = None
     #: INT-406: the clinic Safety inbox (``INTAKE_SAFETY_INBOX_REDIS_URL``, the
     #: store the voice runtime writes). ``None`` leaves the Safety queue
     #: answering 503 and the inbox reported unreadable, which pages.
     safety_inbox: SafetyInbox | None = None
+
+    #: INT-428 (ADR-035): the model-lane control store, the router over it and
+    #: the hosted adapters. ``None`` = unconfigured: the model-lane mutations
+    #: answer 503 and the module's tiles read unknown (fail closed).
+    model_lanes: ModelLanesWiring | None = None

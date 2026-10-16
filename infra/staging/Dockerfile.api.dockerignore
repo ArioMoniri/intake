@@ -11,6 +11,10 @@
 !observability/
 !infra/
 !docs/legal/
+# INT-465: the life-threat set the synthetic host serves under the test-key
+# signature (INTAKE_API_TRIAGE_RULES). Only this one file from files/: the
+# signature binds its exact bytes, and the rest of files/ is the spec.
+!files/protocols/base.life_threat.yaml
 # INT-187: the SLO files, which the release gate deploy.sh runs reads to
 # evaluate the error budget (and the reliability console reads for its tiles).
 !docs/slo/

@@ -132,6 +132,16 @@ FREEZE_BRIEF_READERS = (
     FREEZE_ACTORS | FREEZE_LIFT_REQUESTERS | FREEZE_LIFT_APPROVERS | {AdminRole.AUDITOR}
 )
 
+#: INT-406 — the Safety queue (files/08 §3: "acknowledge
+#: (`tenant_clinical_responsible`)"). Read by the acknowledger, the all-tenant
+#: clinical lead, the platform owner and the auditor (read-only evidence).
+SAFETY_QUEUE_ACKNOWLEDGERS = frozenset({AdminRole.TENANT_CLINICAL_RESPONSIBLE})
+SAFETY_QUEUE_READERS = SAFETY_QUEUE_ACKNOWLEDGERS | {
+    AdminRole.CLINICAL_LEAD,
+    AdminRole.PLATFORM_OWNER,
+    AdminRole.AUDITOR,
+}
+
 #: INT-428 (ADR-035): narrowing is one key, widening is two.
 LANES_SAFE_ACTORS = frozenset(
     {
@@ -146,15 +156,6 @@ LANES_APPROVERS = frozenset(
     {AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER, AdminRole.COMPLIANCE_OFFICER}
 )
 LANES_BRIEF_READERS = LANES_SAFE_ACTORS | LANES_REQUESTERS | LANES_APPROVERS | {AdminRole.AUDITOR}
-#: INT-406 — the Safety queue (files/08 §3: "acknowledge
-#: (`tenant_clinical_responsible`)"). Read by the acknowledger, the all-tenant
-#: clinical lead, the platform owner and the auditor (read-only evidence).
-SAFETY_QUEUE_ACKNOWLEDGERS = frozenset({AdminRole.TENANT_CLINICAL_RESPONSIBLE})
-SAFETY_QUEUE_READERS = SAFETY_QUEUE_ACKNOWLEDGERS | {
-    AdminRole.CLINICAL_LEAD,
-    AdminRole.PLATFORM_OWNER,
-    AdminRole.AUDITOR,
-}
 
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,

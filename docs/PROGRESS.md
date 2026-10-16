@@ -1,5 +1,8 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
+- Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).
+
 ### 2026-10-03T23:55:00+03:00 · INT-443 · awaiting-human (PR #775 open, stacked on #772; the cast take on the wire)
 - Goal: #772 (INT-449, owner decision D20) pinned the cast take E04 — `eleven_v3`, every row v4, closed-table tags at Natural 0.5, RED and instrument Robust 1.0 and untagged — and left this lane one change: send `profile.wire_prefix + text_tr`. Make that change so the tags come only from the served table and every refusal reads the script alone.
 - Plan:
@@ -17,29 +20,258 @@
 ### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
 - Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
 - Plan:
-  - D20 records the pick, and the ADR-034 render-time-tags amendment is Accepted.
-  - `voice_clips.delivery` pins `CLIPGEN_VOICE_ID` `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, with every row at v4.
-  - Tagged contexts sit at Natural stability. RED and instrument sit at Robust and are never tagged.
-  - The gateway prepends the profile's tags on the wire only, and the dev route speaks E04.
-  - `render_cast_clips.py` re-renders INT-440's set behind a quota check and spend gates.
-- Tests added: E04 table tests; tag rules (a tag on RED or instrument refused, `[pause]` and malformed tags refused); a request test that the text is the tags plus the verbatim line, with no tag on RED or instrument; a numeral refused with a tag in front; and 15 re-render tests (quota short or unreadable, stop on refusal, resume).
-  - Near miss: a George-era `@v1` recording is refused.
-  - RED: an ImportError, plus 9 clip-gen failures.
-  - GREEN: voice-clips lane 1,190 (99.74 %); voice-runtime lane 1,676 (98.65 %); API voice tests 60; backlog, smoke and docs 94; ruff and the check-py `mypy --strict` set clean; text gates OK.
+  - Set `OAUTH2_PROXY_REQUEST_LOGGING` and `OAUTH2_PROXY_AUTH_LOGGING` to `"false"` on `oauth2-proxy` in infra/staging/compose.yaml, with a comment saying why. This is the same pair INT-481 sets on `oauth2-proxy-grafana`, which runs the same image digest.
+  - Pin both in `TestLoginGate`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staging_admin_tier.py::TestLoginGate`: both switches pinned.
+  - Near-misses refused by the same check: the default (both keys absent), one key alone, and either key set to `"true"`.
+  - Red: 1 failed, 39 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Green: tests/infra unit lane 754 passed. The 17 `integration` errors are the edge tier (HB-I13).
+  - tests/backlog and tests/smoke green, with counts at 342.
+  - files/11 regenerated.
+  - `make safety` exit 0. Local security: gitleaks found no leaks; trivy config on infra/staging gave rc 0.
+  - Full check-py, check-ts and check-integration, and the full `make security`, run on the PR's AWS runner.
+- Invariants touched and still passing:
+  - 6 (no staff email or IP in the gate's logs);
+  - 14 (image pin unchanged);
+  - 16 (Sec-Row `admin-console`, threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
+- Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
+- Plan:
+  - Merge main.
+  - Build the staging Keycloak from INT-390's pin plus the jar, checked against pin `91da1232…`.
+  - Switch the live realm's WebAuthn step in `deploy.sh` (an import never re-runs) and re-check it in `smoke.sh`.
+  - Make staff enrol a security key or passkey.
+- Tests added: `tests/infra/test_staging_keycloak_provider.py`. Updated: `test_staging_admin_tier.py` and `test_staging_compose.py`.
+  - Near-misses: a foreign reference or two providers are refused; the password never follows the command; the base URL is http(s) only.
+  - RED: 1 failed (staging flows ≠ dev flows) after the merge.
+  - GREEN: below.
+- Result: docs/evidence/INT-421.md §7.
+  - On a real Keycloak 26.7.4 with the host's flags, the sync refused the host's state, took four steps, settled, and was idempotent.
+  - A WebAuthn login through the synced realm was admitted, and through an unsynced copy refused.
+- Invariants touched and still passing: 6 (ids only; the password on stdin), 14 (every base pinned by digest, the jar pinned by sha256, the licence read raw), 15, 17.
+- Decisions / ADRs / `00_STATE.md` rows: this branch's D18 becomes **D19**, because main's D18 (INT-432) landed first. No new decision. The TOTP alternative is untouched (INT-389, the owner's).
+- Blocked on: nothing. The merge queue deploys after merge. No deploy was made here.
+- Next: the queue's parity-checked deploy; then smoke check 7 on the host.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:20:00Z · INT-421 · doing (admin tier live; PR #723 open, not merged)
+- Goal: continue INT-421 after the owner's `aws login`:
+  - deploy the admin tier;
+  - retire the "deneme hastası" fixture, audited;
+  - re-run smoke;
+  - apply the owner's decision of 2 Oct 2026, *"dont make admin access ip restricted"*.
+- Tests added:
+  - `tests/infra/test_staging_admin_tier.py`: the explicit allow-all, with an empty list as the near miss (admits nobody); the two-factor flow kept; the edge recreated on each deploy, with `wait_healthy caddy` as the near miss.
 - Result:
-  - The coordinator ran the render: 226 of 226 lines, 16,963 characters, about 5.09 USD at the planning rate.
-  - Every address is the set's own hash, and no RED or instrument clip is present.
-  - Clips are in `.cache/bundled-clips-e04/`. Copying them into the app is INT-440's gitignored dev-build step (#768).
-- Invariants touched and still passing: 10 (tags never in `text_tr`), 19 (offline lane), 20, 21 (RED is the most stable and untagged), 22 (numerals refused before the wire).
-- Decisions / ADRs / `00_STATE.md` rows: D20, and the ADR-034 amendment Accepted.
-  - Open amendment gates: 2 (registry row and vendor terms), 3 (vendor numeral fixture), 5 (round-trip ASR) and 7 (a Robust RED or instrument take to listen to).
-- Blocked on: nothing for INT-449. INT-319's ask (a), the vendor's commercial-use terms, stays open.
-- Next: #768 copies the clips and switches its renderer to the pin after #772. #775 sends `wire_prefix`. #734 and #768 conflict on `delivery.py`, and whichever lands second takes v4.
+  - Release `7d2cc23d` is live with 9 services up. `smoke.sh` passed 19 checks, sbom_digest `sha256:80d9eed4…`.
+  - The fixture was retired (consents 3, patient 1, tenant 1), audited as chain entries 5 to 9, and 0 rows remain.
+  - George answers 404.
+  - Two first-run defects were found and fixed: caddy kept the previous release's Caddyfile, and the caddy wait used a healthcheck caddy does not declare.
+- Decisions / ADRs / `00_STATE.md` rows: **D19** (owner, 2 Oct 2026; numbered D18 until main's INT-432 took that number).
+  - HB-A16's ranges half is closed. Its tenant→deployment map half stays open.
+- Blocked on owner:
+  - HB-A3 (Apple, Google), an Expo token;
+  - an SMS vendor with a DPA;
+  - INT-408 (workers);
+  - Keycloak staff accounts.
+  - Hosted lanes are INT-428.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T12:00:00Z · INT-421 · doing (PR open, not merged; AWS session expired mid-iteration)
+- Goal: acceptance verbatim (GitHub #713):
+  - *"The AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis). The SBOM stamp and smoke/probe results are recorded in the evidence. Nothing but simulated patients reaches us-east-1."*
+  - *"The EAS production profiles build from main with the Önvizit identity and the production API URL. Anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask."*
+  - *"A release checklist in docs/ runs end to end."*
+- Plan: deploy main and fix what stops it; add the admin tier (Keycloak, oauth2-proxy, admin-web) to the host compose; owner directive "no deneme hastası in production"; EAS production profile; the checklist.
+- Tests added (with near-miss controls):
+  - `tests/api/test_dev_fixture_production.py`: no seed outside dev; retirement removes exactly the fixture, audited by id; it refuses in dev and when the tenant holds a session, a second patient or a foreign consent. RED: 3 failed, 11 passed.
+  - `tests/api/test_dev_voice_hardening.py`: the George route is absent on staging, STAGING and test. RED: 3 failed.
+  - `tests/infra/test_staging_admin_tier.py` (35): pins, the realm, the access-token bearer, the unrouted paths, the allow-list key, the cookie-secret form, and the key-set validity near-misses.
+  - `apps/mobile/e2e/releaseConfig.spec.ts` and `src/lib/profile/badge.test.ts`.
+- Result:
+  - Main `7ca881c8` failed closed on the host at migration 0014: there was no pgvector, and the host kept `7d926d73`.
+  - Integration `c155a0d3` (main + the pgvector image) is live. Smoke is green, sbom_digest `sha256:eddaaeb1…`.
+  - The admin-tier deploy (`21097828`) stopped at upload, because the AWS CLI session had expired.
+  - `tests/api` passed 530. `tests/infra` and `tests/backlog` are green, and shellcheck is clean.
+  - Mobile: 2447 vitest tests green, and both production exports built.
+- Invariants touched and still passing: 4, 6, 14, 15, 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: main could not migrate on the host (pgvector); the API seeded the synthetic dev patient on every non-dev boot; the George route was mounted on staging; release builds labelled real accounts "Sentetik deneme hesabı".
+- Blocked on owner:
+  - the AWS re-login;
+  - HB-A3 (Apple, Google), an Expo token;
+  - HB-A16 (console ranges);
+  - an SMS vendor with a DPA;
+  - a decision and an ADR for hosted model lanes (invariant 19);
+  - INT-408 (workers).
+  - The asks are in docs/release/production-checklist.md §6. No HB id is minted here.
+- Next: the owner runs `aws login`; then deploy `21097828` or later, run `dev_fixture_retire` on the host, and record both in docs/evidence/INT-421.md.
+
+### 2026-10-03T17:00:00Z · INT-463 · awaiting-human (PR open, not merged; the owner's workflow commit 66cc6f91 is on it)
+- Goal: the acceptance, verbatim (GitHub #790):
+  - a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; ephemeral, re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker for that user is rootless only.
+  - every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml.
+  - on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner.
+- Plan:
+  - Install the runner over SSM from `infra/ci/aws-runner`:
+    - a root, unsandboxed supervisor (`cycle.sh`) runs the guards, registers with `--ephemeral`, runs one job in the sandboxed `intake-aws-ci-job.service`, then wipes;
+    - rootless Docker runs in its own sandboxed unit;
+    - everything sits on the instance-store NVMe, under a resource slice.
+  - Declare the pool.
+  - Write the test.
+  - Hand the workflow change to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/ci/test_aws_runner.py`, with a hosted-name near-miss control.
+  - `tests/infra/test_ci_no_phi.py` is updated for the declared pool. The TR-DC label still fails closed, and a declared pool with no collected heartbeat reports Failed, not healthy.
+  - Red run: 40 failed, 37 passed. After the pool was declared: 39 failed (the 13 jobs × 3 `runs-on` assertions the owner patch fixes) and 113 passed.
+  - The patch was checked with `git apply --check` plus a YAML parse on `main` and on #643's branch: 13/13 jobs on intake-aws-ci.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local: the touched lanes, backlog counts and smoke counts (334, after main added INT-407 and INT-432), shellcheck, and no_placeholders (staged).
+  - The full check-py, check-ts, check-integration and security gates run on the PR, on the AWS runner, after the owner commit.
+  - Host isolation was measured as ghrunner (docs/evidence/INT-463.md).
+- Invariants touched and still passing:
+  - 6: no PHI in CI. The pool is phi_path false, and the six-surface policy is unchanged.
+  - 13: the ci-runners probe now reports a missing heartbeat rather than Skipped.
+  - 14: every gate still runs, with the same tools and pins; only the machine changes.
+  - 17.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - The owner's order of 3 Oct 2026 answers HB-I7's spend for a non-TR pool. The note is on HB-I7.
+  - The TR-DC pool stays open (HB-L11).
+  - No ADR was minted: no invariant is relaxed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - The owner applied `owner-ci-aws-runners.patch` as 66cc6f91 (security.yml is hook-protected; the classifier refuses workflow edits from an agent).
+  - The runner stays ephemeral (INT-206). The host registrar reads the admin token from SSM as root and mints a registration token before every registration; the persistent-runner alternative was refused by the classifier as a security weakening.
+  - owner: the SSM SecureString `/intake/staging/gh_runner_admin_pat` holds 16 words of prose, not a token. Overwrite it with the raw fine-grained token, so the host's registrar mints a registration token before every job. HB-I7.
+- Result on #791 (aa07c3b2): 12 of 12 jobs ran on intake-aws-ci-1, re-registering by itself after each (the last ten via the SSM registrar); 11 green. gitleaks found no leaks but failed its SARIF upload because the workspace sat beside $HOME; fixed in-repo (workspace under home), awaiting a host reinstall.
+- Next: `scripts/ci/aws_runner.sh install` once host changes are cleared, then re-run #791.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T12:00:00+03:00 · INT-475 · done (PR open, stacked on #796, not merged, not deployed)
+- Goal: acceptance verbatim (GitHub #814). (1) The hop's RED branch raises the Safety-inbox entry with tenant, session, visit and work ids only (no PHI), exactly once per RED; near miss: GREEN/YELLOW raise none. (2) The device sends the location answer (on time or late) to the server; ON_SITE fires the staff notification; REMOTE does not; a late ON_SITE answer after REMOTE fires it then. Ids only. (3) The INT-465 tripwire tests are retired in the same PR, and finding 6 in docs/evidence/INT-465.md closes. (4) Consent scope checked and the notification audited (invariant 4); no PHI in logs (invariant 6).
+- Plan:
+  - Branch `int-475-red-staff-notify` from `origin/int-465-generic-red-active` (`0bea050d`; #796 is not on main).
+  - Reuse INT-406's path: `InboxEntry` → process `SafetyInboxOutbox` → pump → the shared store. Add one entry kind, `red_on_site`, for the staff notification.
+  - The hop takes `session_id`/`visit_id`, derives the work id from tenant, session, visit and the winning rule, puts the entries before answering, and audits after.
+  - A new `POST /v1/triage/red-location` takes the patient's answer; the device posts it fire-and-forget with retry from a store subscriber.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/api/test_red_notify.py`, `apps/mobile/src/lib/red/locationReport.test.ts`.
+  - Extended: `test_triage_hop.py` (ids; tripwire retired), `test_safety_inbox.py`, `test_safety_inbox_notifier.py`, `test_staging_compose.py`, `store.test.ts`, `hop.test.ts`, `session.test.ts`, `e2e/red.spec.ts`, `e2e/a11y.spec.ts` (the retry backoff registered as not a time limit).
+  - Near misses: GREEN and YELLOW raise nothing; REMOTE and UNKNOWN notify no staff; "hayır" posts REMOTE and notifies none; the no-answer expiry posts nothing; a RED at a known location posts nothing; another visit is another RED; a 422 is not retried.
+  - RED run: Python 39 failed + 1 collection error; mobile 5 failed + 1 load error; the e2e failed to load.
+  - Review round (a code-review agent; resumed 16 Oct after the 4 Oct API-limit cut-off): the answer route takes only a served KIRMIZI rule; the hop's ids are optional so an old app build keeps its RED (unrouted, counted, audited); device ids are kept as a server UUID or a keyed pseudonym, never raw (a synced visit id carries the hospital patient number, invariant 14); the INT-406 outbox counts an in-flight write as waiting and survives any store fault; each device request has a 10 s deadline. Red run: API 6 failed, outbox 2 failed, mobile 1 failed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0: triage 601 passed at 100 % branch, 18/18 mutants, voice-runtime 1639 passed at 98.66 %, adversarial 121 passed.
+  - The `check-py` pytest lane ran to 85 % of 10 380 tests with no failure before the two-hour limit stopped it (load average above 300); the rest passed without coverage (security, sim, smoke 620; voice in `make safety`); the doc-reading suites 1440 passed after the last edit.
+  - `red_notify.py` 100 % branch. `mypy --strict` (537 files), ruff and format clean.
+  - Mobile 2689 passed; tsc, eslint and prettier clean.
+  - Backlog pins 336 → 337; files/11 regenerated. `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 4, 6, 9, 13, 17, 21 (the RED never waits on the store, the audit chain or the location request).
+- Decisions / ADRs / `00_STATE.md` rows: none. Two engineering bounds, named as such: `LOCATION_REPORT_MAX_ATTEMPTS = 20`, `LOCATION_REPORT_TIMEOUT_MS = 10_000`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. The synthetic host needs its next deploy to pick up `INTAKE_SAFETY_INBOX_REDIS_URL` (no deploy here).
+- Next: PR `INT-475: …` (Closes #814, Sec-Row clinical-core, label approval:human-clinical), stacked on #796, which merges first.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T21:30:00Z · INT-465 · done (PR open, not merged, not deployed)
+- Goal: acceptance verbatim (GitHub #794). (1) generic_red.yaml is active with CD-24's own source blocks, every location entry stating its location and `carry_engine_register`, and no 112 in any ON_SITE carrier. (2) The ON_SITE bold markers and the tenant segment are expanded before the screen and before TTS, and 112 becomes "yüz on iki". (3) The generic RED goldens pass in tests/safety, and `make safety` is green. (4) The served red rule set is signed with a non-exportable OpenBao test key on the synthetic AWS host, and every non-synthetic tenant config rejects it.
+- Plan:
+  - Start from `int-453-red-path-winner` merged with main `3bffb58d` (CD-24).
+  - Write `protocols.red_render`, `intake_platform.red_signature` and `intake_platform.red_tenant`.
+  - Make the generic RED document active, checked against CD-24.
+  - Add the API tenant kind and the signature interlock.
+  - Run the signer script on the host over SSM: the root token once, then a scoped token.
+- Tests added: `test_red_render.py`, `test_red_signature.py`, `test_red_rule_set_signature_cli.py`, `test_generic_red.py` (rewritten), `tests/safety/test_generic_red_goldens.py` (G01–G10), `test_triage_tenant_kind.py`, `test_red_signing_infra.py`, and the synthetic-tier cases in `test_triage_hop.py` and `test_red_winner.py`. Each has a near miss; examples:
+  - REMOTE carries 112 and ON_SITE does not;
+  - the exemplar's `why_tr` names an organ and the generic's does not;
+  - the authored line carries markup;
+  - a synthetic tenant accepts and every other kind refuses;
+  - ALERT+ALERT stays ALERT.
+  - RED run: 5 collection errors plus 30 failed. GREEN: the targeted lanes pass. M1–M4 mutation proofs are all detected.
+- Result:
+  - `make safety` exit 0: triage 100 % branch (600 passed), 18/18 mutants detected, voice 1631 passed at 98.65 %, adversarial 121 passed.
+  - ruff, format and `mypy --strict` are clean.
+  - Mobile tsc and eslint are clean, and vitest RED lanes pass (95).
+  - Backlog pins move 335 → 336, and files/11 is regenerated.
+  - Host: key `redset-synthetic-test` v1 (ed25519, exportable false); envelope verified for synthetic, refused for real.
+  - Review round (clinical and security reviewer agents): every block's `supports` now matches CD-24, so the generic RED was re-signed (`3bbd3fdd…`). Also fixed: both-order mixed-register goldens with the silent clinic notice, HB-C12b-independent near misses, the G10 tripwire, an explicit `INTAKE_ENV`, read-once parsing, an existing-key check, token renewal before signing, logged refusals, threat-model rows, and malformed-envelope tests.
+  - Review round 2 (coordinator, CHANGES REQUIRED): the cardiac why lines were rewritten through **CD-25** (D18, agent author, verifier agreed; HB-C12b stays open); the source fields were fixed and snapshot checks added to `load_life_threat_set`; the device gained a no-answer path (unsigned 30 s wait, Essential-Exception time limit); the generic is never wordless (decoder, store and session refuse); intake stops for `protocol_next` and on the device; the signature is bound to the host; RED clip rows refuse digits. Re-signed once (`c33a737f…`).
+  - Review round 3 (orchestrator, REQUEST_CHANGES), all fixed test-first with near misses:
+    - no question or commit control in any lane while a RED stands, and the navigator is hidden
+      from assistive technology under the root RED layer;
+    - `on_no_answer` is REMOTE only (DSL, API and device decoder);
+    - the generic copy is in the PolicyGuard sweep;
+    - `version_or_date` is checked against the snapshot;
+    - fixture snapshots sit behind an explicit flag;
+    - ON_SITE 112 is checked over every RED rule;
+    - LiveKit RED goes through the RED store;
+    - REMOTE shows 112 as selectable text;
+    - HB-C25 (the unsigned no-answer wait) was added;
+    - a late location answer after the wait is honoured (LD-05, INT-471 #800), and BK13
+      cites it.
+    Recorded, not built: the hop notifies no clinic, and the cardiac do-not lines are unsourced.
+    Rule bytes are unchanged, so there was no re-sign.
+  - Review round 4 (orchestrator, REQUEST_CHANGES), test-first with near misses:
+    - the privacy self-check is gated on `live`;
+    - the hop-lane notification gap is held by two tripwire tests and owned by INT-475 (#814);
+      `depends_on` is back to [INT-432, INT-446, INT-453];
+    - focus moves to the RED's words when it changes (never on first paint);
+    - the section sheet cannot open or commit under a RED;
+    - the 112 block near miss is added;
+    - HB-C25 carries the five LD-05 physician questions;
+    - `on_yes`/`on_no` are narrowed;
+    - the kiosk/RED-store observation is recorded under INT-476 (#815).
+    No rule bytes changed, so there was no re-sign.
+  - Review round 5 (orchestrator, REQUEST_CHANGES), test-first:
+    - the 422 tripwire's near miss now dates the tense anchor, with an engine positive
+      control (booleans fire RED), so type is the only blocker;
+    - HB-C25 asks (vi) about the SILENT focus move on expiry;
+    - the section sheet is never visible over a RED and leaves in 0 ms;
+    - the device decoder types yes ON_SITE and no REMOTE.
+- Invariants touched and still passing: 1, 2, 7, 10, 14, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: CD-25 (decision register); D23 (owner, 3 Oct 2026, read with D18). D17 and HB-C1 are unchanged, and INT-058 (cosign) is untouched.
+- Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b, HB-C25). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).
+- Next: PR `INT-465: …` (Closes #794, Sec-Row triage), stacked on #773; a protocol CODEOWNER review is required. Do not merge and do not deploy.
 - LOOP_STATUS: DONE
 
-### 2026-10-03T01:30:00Z · INT-449 · awaiting-human (PR open, the owner's pick)
-- Goal: acceptance verbatim (GitHub #762): *"Native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines. The owner picks from a blind page."* and *"The chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered. Intonation continuity between words is measured."*
+### 2026-10-04T00:30:00Z · INT-453 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #767): *"The RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr. A multi-rule test with a near-miss control is included."* and *"`make safety` passes, with triage at 100% branch coverage."* Found by INT-446 (#766).
+- Plan (after review round 1 on #773, CHANGES-REQUESTED):
+  - (a) The engine names its RED in `RulesTriageResult.red_rule_id` (schemas and codegen updated), so the path reads it and never re-derives it. Only that RED rule must be addressable, so a YELLOW rule beside it is irrelevant.
+  - (b) An unaddressable RED still triggers a device-visible generic escalation: ALERT, at the result's own location, so 112 is absent under ON_SITE and a generic UNKNOWN asks the question before any 112. It fails loudly.
+  - A replay of an unaddressable RED re-sends the device trigger.
+  - Device: `genericRed`; the session emits `red`, never nothing.
+- Tests added: `tests/voice/test_red_winner.py` (rewritten), the schema validation test, the engine `red_rule_id` and `winning_red_rule` tests, and the device generic-RED tests. Near misses: `rules[0]`'s script is never sent; the YELLOW rule has no script; a replay after a delivered RED is a no-op; ON_SITE shows no 112.
+  - RED (`rules[0]` restored): 4 failed, including the rewritten severity test. The previous #773 path fails at collection.
+  - GREEN: 1211 Python tests; mobile 2529.
+- Result: docs/evidence/INT-453.md.
+  - `make safety` exit 0: triage at 100 % branch (568 passed); `red_path.py` at 100 %; the mutation report DETECTED every mutant.
+  - typecheck, ruff and `mypy --strict` are clean.
+  - Pins 330 → 331; files/11 regenerated.
+- Invariants touched and still passing: 1, 9 (only a rules-engine RED preempts), 10 (the named rule's own `text_tr`), 17 (generic copy is `draft_needs_source`, nothing invented), 21 (no 112 under ON_SITE).
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-24 (INT-432; `packages/protocols/decisions/CD-24.yaml` on #757; D18, simulated-patient testing only) is verified and applied. The generic carries the engine result's own register (`carry_engine_register`), never a fixed ALERT. The committed `generic_red.yaml` carries CD-24's copy but stays draft_needs_source until #757 is on main, so nothing is served and device_functions stays off. SILENT and mixed registers stay draft; the floor is stop-intake plus the `silent_generic` clinic notice.
+- Blocked on: nothing for merge. Changes under packages/protocols, packages/clinical-schemas and packages/intake_platform need CODEOWNER review. Until #757 (CD-24) is on main, /v1/triage serves nothing and device_functions stays off.
+- Next: PR `INT-453: …` (Closes #767, Sec-Row triage). Do not merge.
+
+### 2026-10-03T23:30:00Z · INT-446 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #756): *"Every bound answer on the typed and voice lanes passes through the deterministic rules engine (invariant 1). A RED result mounts the pre-positioned RED screen and script with no media transport (invariant 21). Its register (ALERT, CALM, SILENT or DEFERRED_CLINICIAN) and location (REMOTE, ON_SITE or UNKNOWN) are honoured, and on ON_SITE the 112 affordance is absent."* and *"An end-to-end test proves that a red-flag answer reaches the RED screen on both lanes, with a near-miss control that does not. The time from answer to RED is measured."*
 - Plan:
+  - API `/v1/triage/evaluate` runs `evaluate_triage` over the served set and returns the data-channel packet; `/v1/triage/red-scripts` is the pre-positioned catalog. Both fail closed with 503 while no signed set exists (HB-C1).
+  - Device: `lib/red/{hop,store,location}.ts`, plus `RedLayer` mounted after the navigator, where the hop runs on every note answer. SILENT renders in flow on both lanes, and the dialogue stops on a RED.
+- Tests added: `tests/api/test_triage_hop.py`, `e2e/red.spec.ts`, `lib/red/store.test.ts` and the MOTION-4 pin. Every RED case has a near miss: one differing value, or the right value undated.
+  - RED: 23 API tests failed with the router unmounted; both mobile files failed to load.
+  - GREEN: 26 API tests; mobile 2583; `make safety` exit 0 (triage 100 % branch).
+- Result: docs/evidence/INT-446.md. Typed RED verified in the iOS simulator against the real route over the SENTETİK set; there are four screenshots, including the near miss and ON_SITE with no 112. Measured answer→RED: server p50 5.9 ms and p95 12.1 ms over HTTP; device 0.30 ms. Pins 328 → 329; files/11 regenerated (this drops a stale INT-395 row with no YAML row).
+- Invariants touched and still passing: 1 (no rule on the device), 6 (nothing logged), 10 (verbatim `tr`), 14 (schema-constrained decode, input bounded), 17 (fail closed, nothing invented), 21 (no media on the RED path; 112 absent under ON_SITE).
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 Q2's fail-closed default (no RED haptic) holds; INT-340's `presentRed` belongs in RedLayer when #710 merges.
+- Blocked on: HB-C1. No signed `base.life_threat` exists, so no RED fires in a real session; that is the designed state. Generic copy for an unrenderable RED is a clinical and legal string and is not authored.
+- Next: PR `INT-446: …` (Closes #756, Sec-Row triage). Do not merge.
+
   - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
   - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
   - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
@@ -176,6 +408,103 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. The verifier's `aaguid` rule is unchanged.
 - Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
 - Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619; #598 landed on main during the iteration. After merge, the owner deploys the provider (runbook §3).
+
+### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
+- Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
+- Plan:
+  - D20 records the pick, and the ADR-034 render-time-tags amendment is Accepted.
+  - `voice_clips.delivery` pins `CLIPGEN_VOICE_ID` `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, with every row at v4.
+  - Tagged contexts sit at Natural stability. RED and instrument sit at Robust and are never tagged.
+  - The gateway prepends the profile's tags on the wire only, and the dev route speaks E04.
+  - `render_cast_clips.py` re-renders INT-440's set behind a quota check and spend gates.
+- Tests added: E04 table tests; tag rules (a tag on RED or instrument refused, `[pause]` and malformed tags refused); a request test that the text is the tags plus the verbatim line, with no tag on RED or instrument; a numeral refused with a tag in front; and 15 re-render tests (quota short or unreadable, stop on refusal, resume).
+  - Near miss: a George-era `@v1` recording is refused.
+  - RED: an ImportError, plus 9 clip-gen failures.
+  - GREEN: voice-clips lane 1,190 (99.74 %); voice-runtime lane 1,676 (98.65 %); API voice tests 60; backlog, smoke and docs 94; ruff and the check-py `mypy --strict` set clean; text gates OK.
+- Result:
+  - The coordinator ran the render: 226 of 226 lines, 16,963 characters, about 5.09 USD at the planning rate.
+  - Every address is the set's own hash, and no RED or instrument clip is present.
+  - Clips are in `.cache/bundled-clips-e04/`. Copying them into the app is INT-440's gitignored dev-build step (#768).
+- Invariants touched and still passing: 10 (tags never in `text_tr`), 19 (offline lane), 20, 21 (RED is the most stable and untagged), 22 (numerals refused before the wire).
+- Decisions / ADRs / `00_STATE.md` rows: D20, and the ADR-034 amendment Accepted.
+  - Open amendment gates: 2 (registry row and vendor terms), 3 (vendor numeral fixture), 5 (round-trip ASR) and 7 (a Robust RED or instrument take to listen to).
+- Blocked on: nothing for INT-449. INT-319's ask (a), the vendor's commercial-use terms, stays open.
+- Next: #768 copies the clips and switches its renderer to the pin after #772. #775 sends `wire_prefix`. #734 and #768 conflict on `delivery.py`, and whichever lands second takes v4.
+- LOOP_STATUS: DONE
+
+### 2026-10-03T01:30:00Z · INT-449 · awaiting-human (PR open, the owner's pick)
+- Goal: acceptance verbatim (GitHub #762): *"Native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines. The owner picks from a blind page."* and *"The chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered. Intonation continuity between words is measured."*
+- Plan:
+  - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
+  - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
+  - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
+- Tests added: `tests/voice/test_cast_turkish_voices.py` (33).
+  - Near-miss controls: a line one word off its source refuses the whole run; a George-era `@v1` recording is refused once the pin lands (in the prepared change).
+  - RED: collection error with the modules absent, then 5 failures (a property called as a method; a verified accent overriding the voice's own).
+  - GREEN: 33 passed.
+- Result: docs/evidence/INT-449.md and docs/voice/casting-2026-10.md.
+  - The coordinator ran the render: 6,516 characters, 1.95 USD at the planning rate, all 108 takes aligned.
+  - Cavit ranks first on both models; Mine (v3) and Toprak (v2) follow among the native voices.
+  - George on v2 ranks third, so the continuity figures do not hear accent and the owner's blind ear decides.
+  - Pins 330 → 331; files/11 regenerated. The check-py lanes touched are green; `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 10 (catalogue text only, verbatim against its source, markup refused), 19 (offline lane only, ADR-028), 20 (measurements of these takes, not properties), 22 (`assert_speakable_tr` before the wire; normaliser off).
+- Decisions / ADRs / `00_STATE.md` rows: none taken. A v3 pick is a model change recorded as the owner's decision in ADR-034 (PR #734).
+- Blocked on: the owner's pick of a blind code (Ario Moniri: *"Which coded row should the clip set be built with?"*). This answers docs/backlog/blockers.md INT-319 ask (c); ask (a), the vendor's commercial-use terms, stays open.
+- Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T12:00:00Z · INT-460 · done (PR open, not merged)
+- Goal (GitHub #785, owner request): give the owner a way to add one real second admin approver on the synthetic staging host without weakening the four-eyes rule. Acceptance verbatim: *"docs/runbooks/second-admin.md, at most 15 lines, gives the owner's exact steps … it names INT-378 (#643) as the prerequisite and no dev variable"* and *"tests hold the facts the runbook rests on … each behaviour pin is mutation-checked"*.
+- Plan: investigate first. The console admits only Keycloak tokens (INT-180), and a dev token set outside dev refuses the boot (INT-325). So the brief's second dev-bearer admin could not approve anything and would stop the staging API. The existing path is a second Keycloak user, so no product code changes. Write the runbook and pin it.
+- Tests added: `tests/admin/test_second_admin_runbook.py` (15).
+  - Near-miss: the same staging environment without the dev variable boots.
+  - RED: 6 failed (runbook absent), 9 passed (pins of existing behaviour).
+  - Mutations: 4 of 4 caught (self-approval, the org rule, dev flags outside dev, a bearer fallback at the gate).
+  - GREEN: 15 passed.
+- Result: docs/evidence/INT-460.md. Pins 330 → 331; files/11 regenerated. `no_placeholders` OK after staging. `make check-py`: ruff, format and mypy clean; whole-tree pytest 9826 passed at 95.65 %, and the 4 deid-cache failures pass once the cache is linked. check-integration is CI-only.
+- Invariants touched and still passing: 4 and 14 (four eyes and the second factor unchanged; no secret generated or stored), 6 (the boot refusal names the variable, never its value), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The brief's dev-bearer design is rejected because it would weaken INT-325 and the INT-180 gate. Its Sec-Row `auth` does not exist; `admin-console` is used.
+- Blocked on: PR #643 (INT-378) merged and live in the host's Keycloak. Until then the console refuses every staff token. Owner: #644 (INT-389) TOTP vs WebAuthn.
+- Next: PR `INT-460: second admin approver for synthetic staging` (Closes #785, Sec-Row admin-console), unmerged. The coordinator should know that the provider must also be mounted into #723's staging Keycloak and switched on in the live realm.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T23:30:00+03:00 · INT-430 · doing (PR open, not merged; the verifier ships, five split rows remain)
+- Goal: the acceptance verbatim (GitHub #732):
+  - *"A council orchestrator (provider-agnostic, through the INT-428 lanes) runs N configurable member models, each in a named role … Disagreement is resolved by a deterministic rule, and an unresolved disagreement falls back to asking the patient."*
+  - *"The deterministic IntakeEngine stays the only authority on the next question … LLM output may carry only candidate_flags, capped at YELLOW_REVIEW … the council never blocks a turn (fake-clock test)."*
+  - *"Facts carried from documents need patient confirmation before they fill a slot."*
+  - *"The admin panel picks the council members … with 4-eyes and audit, and shows per-member latency, cost and agreement rates."*
+  - *"Tests: recorded fixtures only, an injection corpus over documents, the fail-closed real-PHI egress guard, and determinism of the adjudication."*
+  - The binding medical and AI/ML challenger reviews (2 Oct 2026) narrowed this to a post-bind **verifier**. ADR-036 records the reshaping.
+- Plan:
+  - Primary extraction stays single-pass and feeds triage.
+  - The verifier reads red-flag and numeric slots only, adjudicates asymmetrically and deterministically, and can only append the slot's own scripted re-ask or confirm-back, compare-and-swapped on the slot revision.
+  - It runs as Backend Work behind the budget and an admission gate. Late verdicts become addenda and re-run triage.
+  - Members are pinned per session through the INT-428 role port. Hosted and mock members are unrepresentable on a PHI deployment.
+- Tests added (with the near-miss negative for any safety rule):
+  - Five suites, 123 tests: `tests/voice/test_council_{contract,adjudication,lanes,timing,ledger}.py`.
+  - Every review must-have that is in scope has its near-miss. The mapping table is in `docs/evidence/INT-430.md`.
+  - RED: 5 collection errors with the package absent, plus the `StateEffect` lane-invariant failure, which was fixed by reverting my change rather than the test.
+- Result: see the gates in `docs/evidence/INT-430.md`.
+- Invariants touched and still passing: 1, 2, 6, 9, 10, 12, 13, 14, 17, 19, 20, 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-036, accepted by the owner on 3 Oct 2026 ("im giving u approval").
+- Blocked on: nothing for the ADR, which the owner accepted on 3 Oct 2026. The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8 (INT-439).
+- Next: five split rows, with ids to be allocated by the coordinator: the admin Council section; production composition; the Loop-2 `yield_table` proposal; the document rules on `parse_document`; the red-flag lexicon, speaker attribution and the backchannel lexicon. Evidence-gated studies are listed in the evidence file.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T22:48:00Z · INT-442 · awaiting-human (PR open, stacked on #751; owner egress commit + deploy pending)
+- Goal: acceptance verbatim (GitHub #752): *"A forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts. INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment."* and *"Tests prove an unlisted host is refused. Deployed and smoked."*
+- Plan: render a second squid config from the one allow-list (hosted_model_inference rows only) and run it as `egress-proxy` on the staging compose, the API's one route out. Read the variable through a guard that refuses it outside the synthetic deployment, and probe it live from the API container on every deploy.
+- Tests added: `tests/infra/test_staging_egress.py` (40). It covers topology; the variable's single setter; the boot refusal outside synthetic, with a near miss; the config; host-for-host parity with the in-process guard; the renderer on a fake list with hosted rows; and the probe's five outcomes.
+  - RED: 32 failed and 6 errors against the base renderer and compose.
+  - GREEN: 284 targeted, then 723 over the egress, platform, admin and voice lane suites, and 482 observability.
+- Result: docs/evidence/INT-442.md. Pins 329 → 330; files/11 regenerated.
+- Invariants touched and still passing: 14 (egress allow-list, digest-pinned image), 19 (no vendor on the PHI path: the proxy and its variable exist only in the synthetic deployment), 6 (the CONNECT log is host:port only).
+- Decisions / ADRs / `00_STATE.md` rows: none. The vendor rows are the owner's protected change (07 §F rule 2), prepared unstaged.
+- Blocked on:
+  - the owner's commit of `infra/security/egress-allowlist.yaml` and the three files that move with it. Until then the proxy admits nothing.
+  - the deploy. The classifier refused my upload of the corrected artefact. The host still runs `1785dd58`, and `/opt/intake` needs restoring from the earliest `/opt/intake.prev-*`.
+- Next: INT-443 (ElevenLabs hosted TTS), stacked on this.
 
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
@@ -3368,4 +3697,199 @@
 - Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
+
+### 2026-10-03T01:30:00+03:00 · INT-424 · done (PR #734 open, not merged)
+- Goal: acceptance verbatim (GitHub #719):
+  - *"delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"*
+  - *"an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"*
+  - *"RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"*
+- Plan:
+  - Bump the table to `PROFILE_VERSION = 2`, with each row picked from the rendered candidate grid by a stated rule (hard checks, then level evenness, then the context's intent).
+  - Add a sample-render tool through the existing gateway: verbatim catalogue lines, a spend cap, and labelled and blind pages in `.cache/voice-samples/`.
+  - Refuse SSML and audio tags inside scripted text.
+  - Write ADR-034. It was proposed, then accepted by the owner on 3 Oct 2026.
+  - Add the v2 table, the pacing rules and the owner's render steps to the wiring guide.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_render_delivery_samples.py`.
+  - Extended: `test_delivery_profiles.py` (v2 table, key bump per context, retired `@v1` take), `test_elevenlabs_clipgen.py` (markup refused), `tests/api/test_dev_voice_george.py` (markup → 422).
+  - Near misses:
+    - the same settings under a new version still change the key;
+    - the ellipsis, dash, semicolon and comma reach the wire unchanged;
+    - a gap under 150 ms is not a pause.
+  - RED run: 2 collection errors (`PROFILE_VERSION`, `MarkupInScriptError` absent) and 2 API failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9684 passed at 95.77 %; voice-clips 99.73 %; every floor met).
+  - `make safety` exit 0 (triage 534 at 100 % branch; 18/18 mutations; voice-runtime 1626 at 98.68 %; red-team 121).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, and backlog/smoke/docs/evidence 122 passed.
+  - `make security` is in the evidence file.
+  - No TS changed.
+  - The samples were rendered by the coordinator with the owner's permission on 3 Oct: 80 clips, 3,424 characters, 0.27 USD at the published rate. Offline transcripts show the words intact in 80/80, and the peak is 26,781 of 32,767.
+  - v2: welcome c, routine v1, sensitive v1, instrument c, acknowledgement b, red c, closing v1.
+- Invariants touched and still passing: 6 (the key is never printed), 10 (markup refused), 17, 19, 20 (no claims), 21 (RED most stable, style 0), 22 (SSML breaks refused).
+- Decisions / ADRs / `00_STATE.md` rows: ADR-034 Accepted. The owner, 3 Oct 2026, relayed by the coordinator: "eleven labs is yes", so the model stays `eleven_multilingual_v2`. The `00_STATE.md` §3 row is left to the coordinator. No metric, no threat-row change.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+  - The owner delegated the listening review on 3 Oct ("do this by yourself, I'm giving permission").
+  - The review is by measurement and transcript; no human ear was involved.
+  - The blockers.md entry is removed.
+- Next: PR #734, `INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal` (Closes #719, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)
+- Goal: a pool of three ephemeral intake-aws-ci runners (GitHub #799), each with exactly runner 1's isolation. Acceptance quoted in docs/backlog/issues.yaml and docs/evidence/INT-467.md.
+- Plan:
+  - Measure the proposed netns design on the host first, with runner 2's own identity, leaving runner 1 untouched.
+  - Write the tests: re-pin the INT-463 contract onto unit templates, and pin the pool contract in a new file.
+  - Implement: an identity per instance, templated units, the job in its daemon's detached network namespace with port driver none, peer ACLs, a drain-first installer with the single-runner migration, and the isolation probe.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/ci/test_aws_runner_pool.py (37 tests). Re-pinned: tests/ci/test_aws_runner.py.
+  - Near misses: instance values 0, 4, 01, a, "1 2", "1;true", ../1 and the empty string are refused; a runner's own CI root and run directory are never in its denied set.
+  - Red run: 49 failed, 73 passed. Green: 122 passed; 9 of 9 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local lanes only (no Docker on the laptop): the runner tests 122 passed; all of tests/ci with test_ci_no_phi 362 passed (after Renovate learned the probe image's digest pin); tests/backlog and smoke 74 passed; shellcheck, ruff 0.16.4, prettier and no_placeholders (staged) clean.
+  - The full gates run on the PR in CI.
+- Invariants touched and still passing: 14 (no credential read or printed; the registrar is unchanged), 16 (Sec-Row cicd), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The nsenter-into-the-userns variant was measured and not taken (uid 0, CapEff 000001ffffffffff); systemd NetworkNamespacePath keeps the job's own uid with CapEff 0.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — run (or allow a session to run) `scripts/ci/aws_runner.sh install` from this branch, so the pool replaces the single runner; this session's permission classifier refused it (HB-I7). Also apply the `.github/renovate.json` owner patch (issue-drafts/owner-int467-renovate-probe-image.patch), which the classifier refused to stage; until then check-py fails on the digest-reachability test.
+- Next: after the install, `scripts/ci/aws_runner.sh probe` for the per-runner isolation, then two overlapping check-integration runs; record both in docs/evidence/INT-467.md.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T04:10:00+03:00 · INT-500 · done (PR open)
+- Goal: clear the required vulnerabilities job, which went red on main 3afc5a29 and blocked every merge (GitHub #851), by upgrading rather than ignoring. Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Reproduce with CI's own scanners: trivy 0.70.0 from the sha256-verified release tarball, and osv-scanner 2.5.1.
+  - Pin the fixed versions in tests/ci/test_security_gates.py first.
+  - Raise the transitive packages with root pnpm.overrides floors and next by its direct pin; fix anything else osv reports the same way.
+- Tests added (with the near-miss negative for any safety rule):
+  - In tests/ci/test_security_gates.py:
+    - FIXED_VERSIONS gains shell-quote, compression, source-map-js and next.
+    - New PYPI_FIXED_VERSIONS (mako) over uv.lock.
+    - The override selectors and next's exact pin are pinned.
+    - The no-suppression sweep covers the fifteen INT-500 ids.
+  - Near miss: the lockfile reader catches a planted `shell-quote@1.10.0` and a peer-suffixed `next@16.3.6(...)`, and does not match `shell-quote-word` or a scoped `@scope/compression`.
+  - Red run: 3 failed, 7 passed. Green run: 10 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - trivy 0.70.0: before, exit 1 with pnpm-lock.yaml at 4 (1 CRITICAL, 3 HIGH); after, exit 0 with every target at 0.
+  - osv-scanner 2.5.1: before, exit 1 with 5 packages and 10 vulnerabilities, including mako in uv.lock; after, exit 0 with "No issues found".
+  - pnpm -r typecheck and lint: 0 errors.
+  - vitest: mobile 2650, admin-web 327, clinical-schemas 6, embed-sdk 14, embed-sample-partner 9.
+  - admin-web next build: green on Next.js 16.3.8.
+  - tests/api: 590 passed.
+  - Licence gate: 971 node packages and 94 Python distributions, OK.
+  - test_security_gates plus test_dependency_updates: 85 passed. tests/backlog and smoke: 74 passed.
+  - no_placeholders, phi-scan and claims-scan (staged): OK.
+  - check-integration, safety and the full security fan-out run in CI on intake-aws-ci.
+- Invariants touched and still passing:
+  - 14: no gate skipped or weakened, and the suppression pins are unchanged.
+  - 16: Sec-Row is cicd. The issue's "supply-chain" names no threat-model row.
+  - 17 and 19: licences read from the raw blobs.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T10:20:00+03:00 · INT-524 · doing (owner commit pending)
+- Goal: a new push to a pull request cancels that PR's superseded CI runs, so the three intake-aws-ci runners build only current heads, and a push to main is never cancelled (GitHub #890). Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Read GitHub's concurrency semantics from docs.github.com and pin the source in the evidence.
+  - Write tests/ci/test_workflow_concurrency.py first: pin the block in both workflows, model the documented semantics, and add near misses.
+  - Ship the workflow change as an owner patch, because .github/** is owner-only.
+- Tests added (with the near-miss negative for any safety rule):
+  - The block is pinned in ci.yml and security.yml, and no job sets its own concurrency.
+  - A seven-run model: a PR's runs share a group and cancel; two PRs never share one; main never cancels and nothing joins its group; two tags on one commit stay apart; ci and security never meet.
+  - Near misses (11): the issue's ref-less group (a v* tag would replace main's waiting security run), cancel always, cancel inverted, ref-only, sha-for-PRs, workflow-only, no workflow prefix, missing block, `queue: max`, an unmodelled trigger, an expression outside the model.
+  - Red run: 3 failed, 15 passed. Green run, with the patch applied: 18 passed; tests/ci 308 passed; with the workflow readers, backlog and smoke, 482 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - check-py lanes above pass; ruff check and format are clean; no_placeholders, phi_scan and claims_scan are OK after staging.
+  - check-jsonschema validates both patched workflows; gitleaks and semgrep p/ci pass on them.
+  - check-integration is CI-only (HB-I1).
+- Invariants touched and still passing: 14 (CI gates never skipped; the patch only adds a concurrency block). 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: the group carries the ref beyond the issue's key, so that security.yml's v* tag runs cannot replace or join main's group (evidence §The block).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — apply and commit issue-drafts/owner-524-concurrency.patch with its .msg on this branch, then push; standing .github/** ownership, so no new HB id.
+- Next: after the owner commit is pushed, open the PR from .scratch/pr-524.md and check that a superseded run shows `cancelled` on its run history.
+
+### 2026-10-16T06:40:00+03:00 · INT-501 · done (PR open; owner patch pending)
+- Goal: before the time-boxed node-forge, braces and http-cache-semantics scanner exceptions expire (1–2 Nov 2026), upgrade each package so its exception is no longer needed (GitHub #853).
+- Plan:
+  - Reproduce the vulnerabilities job with CI's scanners: trivy 0.70.0 from the sha256-verified release tarball, and osv-scanner 2.5.1. Run them with and without the three exceptions.
+  - Check npm, the OSV API and the upstream repositories for a release that clears each advisory.
+  - Pin the floor first, upgrade by override, and hand the exception removal to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - In tests/ci/test_security_gates.py, FIXED_VERSIONS and OVERRIDE_FLOORS gain http-cache-semantics 4.3.0.
+  - New test_every_override_floor_is_its_fixed_version.
+  - Near miss: a selector `<4.2.0` or a floor `^4.2.0` is refused.
+  - Red run: 2 failed, 10 passed. Green run: 12 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Scanners with all three exceptions removed:
+    - main: trivy reports 2 HIGH (braces, node-forge); osv reports 3 (adds http-cache-semantics).
+    - PR: both scanners report only braces and node-forge.
+  - With the owner-501 patch applied, both scanners exit 0. With the owner-508 renewal also applied, both still exit 0.
+  - pnpm -r typecheck and lint: 0 errors.
+  - vitest: mobile 2650, admin-web 327, clinical-schemas 6, embed-sdk 14, embed-sample-partner 9.
+  - admin-web next build: green.
+  - Licence gate: 971 node packages and 94 Python distributions, OK.
+  - tests/ci: 292 passed. tests/backlog and smoke: 74 passed.
+  - no_placeholders, phi-scan and claims-scan (staged): OK.
+  - check-integration, safety and the full security fan-out run in CI.
+- Invariants touched and still passing:
+  - 14: no gate weakened, and no exception added or extended by this PR.
+  - 16: Sec-Row is cicd.
+  - 17: no fork or git-ref override is forced for the two packages with no fix.
+  - 19: licence read from the raw blob (BSD-2-Clause).
+- Decisions / ADRs / `00_STATE.md` rows:
+  - Split on the orchestrator's decision: node-forge and braces go to INT-508 (GitHub #865, todo). On 16 Oct neither had a release that clears its advisory: digitalbazaar/forge#1152 and the micromatch/braces fix PRs are unmerged.
+  - http-cache-semantics 4.3.0 clears GHSA-ch52 by the record's range (last_affected 4.2.0), not by a max-stale code change. The maintainer disputes the report. This is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner, routine: apply issue-drafts/owner-501-remove-exceptions.patch, which drops the http-cache-semantics osv entry and lowers the osv pin from 4 to 3. The exception files are owner-only.
+  - Owner decision for INT-508: apply issue-drafts/owner-508-renew-exceptions.patch, which renews node-forge and braces to 31 Dec 2026, or accept a red vulnerabilities gate from 1 Nov.
+  - No HUMAN_BLOCKERS id was minted.
+- Next: merge once CI is green. The owner patches follow. INT-508 rechecks upstream weekly.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #724):
+  - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*
+  - *"The admin panel has a model-routing module: per-lane provider (hosted provider / self-hosted GPU / mock), a key entry written only to OpenBao and never shown back, a 4-eyes switch with audit, live lane health and cost, and an instant fallback to the self-hosted lane when it is healthy."*
+  - *"Gateways route through the existing adapter interfaces. Egress allow-list rows are added per provider. No PHI is logged. Numbers are normalised before TTS (invariant 22)."*
+  - *"Tests cover the routing decision, the fail-closed real-PHI guard, the key never being echoed, and the audit row on every switch."*
+  - Narrowed by the binding medical (finding 12) and AI/ML reviews, and extended by the owner to model selection per lane. These remove the DPA branch and mock, split the deployment, attest models, freeze the model per session, and gate swaps on red-flag goldens.
+- Plan: ADR-035.
+  - A vendor-free platform (`intake_platform.model_lanes`): guard, catalogue, qualifications, decision table, identity health, the `ModelResolver` / `SessionLanes`, and dispatch.
+  - Synthetic-image-only adapters (`packages/hosted-lanes`) behind the existing interfaces.
+  - Five DangerousActions and ten audited routes, plus the admin-web module.
+  - Catalogued metrics and owner-filled cost rows.
+  - The terminal key route and its deploy hook.
+- Tests added (each safety rule with its near miss):
+  - `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment}.py`
+  - `tests/voice/test_model_lane_shims.py`
+  - `tests/admin/test_model_lanes_routes.py`
+  - `tests/infra/test_put_provider_key.py`
+  - 58 admin-web specs.
+  - The named four are `mock_hosted_unrepresentable_for_phi_tenant`, `lane_swap_requires_green_rf_extraction_goldens`, `model_pin_frozen_in_session` and `synthetic_flag_immutable`.
+  - RED: 4 failed (route drives, RBAC rows, cost budgets and fixtures). Every guard was then mutated, and each mutation was RED (5/5).
+- Result:
+  - check-py: ruff, format and `mypy --strict` (537 files) are clean. Whole tree: 9779 passed at 94.73 %, and every scoped lane is at its floor.
+  - check-ts: lint and typecheck are clean. vitest: admin-web 385, mobile 2413.
+  - safety: 18/18 mutations detected.
+  - security: the staged diff and the branch range have no leaks. semgrep, bandit, trivy config, checkov, licences, the PHI scan and the claims scan are clean. `trivy fs` and osv flag lockfile advisories already on main.
+  - no_placeholders (staged): OK. The vendor-call gate: OK.
+- Invariants touched and still passing: 1, 2, 3, 6, 13, 14, 17, 19 (relaxed for the synthetic deployment only, ADR-035), 20 and 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-035 (number allocated by the coordinator).
+  - The egress allow-list row was refused by the permission classifier (a hook-protected file), reported, and not routed around.
+  - The OpenBao `model-lanes` grant was restored at the coordinator's request and is flagged for review.
+- Blocked on:
+  - owner: "Add the `openai-api` egress row and its INT-001 gate exception under ADR-035";
+  - owner: "Give the synthetic host an egress route to the provider";
+  - clinical: "Which golden set and sensitivity floor qualify an llm/asr model version (medical review, physician decision 8)?".
+  - No HB id is minted here.
+- Next: split rows for the coordinator:
+  1. guarded transport for the self-hosted extraction clients;
+  2. `/identity` on the GPU servers;
+  3. a drift canary;
+  4. model@revision recording keys;
+  5. a schema-keyword lint;
+  6. an egress proxy for the synthetic host;
+  7. lanes in the mobile release build;
+  8. ElevenLabs as a hosted TTS provider, and the George route on the synthetic host;
+  9. MonthlySpendLedger in dispatch.
+- LOOP_STATUS: WAITING_HUMAN
+

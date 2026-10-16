@@ -168,6 +168,13 @@ def taxonomy_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "taxonomy_unconfigured"})
 
 
+def triage_unconfigured() -> HTTPException:
+    """No servable red-flag rule set (INT-446): the rules-engine hop fails
+    CLOSED. "No rule fired" is not an answer a server without rules can give,
+    so this is never a GREEN and never an empty RED-script catalog."""
+    return HTTPException(status_code=503, detail={"error": "triage_unconfigured"})
+
+
 def dev_auth_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "dev_auth_unconfigured"})
 

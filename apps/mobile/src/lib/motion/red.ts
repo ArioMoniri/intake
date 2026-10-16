@@ -104,7 +104,7 @@ export interface RedMotion {
   };
 }
 
-const RED_MOTION: RedMotion = {
+export const RED_MOTION: RedMotion = {
   enterMs: 0,
   delayMs: 0,
   exitMs: 0,
@@ -135,8 +135,14 @@ const YIELDS: Readonly<Record<RedPresentationMode, RedYield>> = {
   none: { snapTransients: false, stopAmbient: false, closeModals: false, orb: "unchanged" },
 };
 
-/** The patient's answer to the one location question (UNKNOWN only). */
-export type LocationAnswer = "unanswered" | "inHospital" | "notInHospital";
+/**
+ * The patient's answer to the one location question (UNKNOWN only).
+ * `noAnswer`: the question was asked and went unanswered (INT-465; CD-24
+ * `generic_red_unknown_no_answer_goes_remote`). The rule's own `on_no_answer`
+ * decides where it goes, which is REMOTE in every committed rule (files/04 §8.1
+ * rule 7): never silence and never ON_SITE by default.
+ */
+export type LocationAnswer = "unanswered" | "inHospital" | "notInHospital" | "noAnswer";
 
 /** The location-dependent controls a RED mounts. */
 export interface RedAffordances {
@@ -171,7 +177,10 @@ export function redAffordances(
       if (answer === "unanswered") {
         return { call112: false, askLocation: true };
       }
-      return { call112: answer === "notInHospital" && authorised, askLocation: false };
+      return {
+        call112: (answer === "notInHospital" || answer === "noAnswer") && authorised,
+        askLocation: false,
+      };
   }
 }
 

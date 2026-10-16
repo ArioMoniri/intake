@@ -1,0 +1,14 @@
+{
+  "data_sha256": "d86f83489a94953d575f8b9a333ea0eefbc8340abd01396b6be3021e0164b915",
+  "finish": "stop",
+  "model": "sentetik/verifier@r1",
+  "prompt_version": "council.verify.v1",
+  "provider": "vllm-tr",
+  "sample": 0,
+  "text": "{\"readings\": [{\"ref\": \"oyku.sentetik_belirti\", \"reading\": \"qualified_present\", \"evidence\": {\"start\": 23, \"end\": 37, \"quote\": \"bazen var gibi\"}}]}",
+  "usage": {
+    "input_tokens": 412,
+    "output_tokens": 38
+  },
+  "weights_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+}

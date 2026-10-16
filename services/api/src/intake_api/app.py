@@ -17,6 +17,7 @@ import contextlib
 import json
 import logging
 import os
+import threading
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -45,7 +46,9 @@ from intake_platform.model_lanes.wiring import ModelLanesWiring, model_lanes_fro
 from intake_platform.otel import JsonLogFormatter, setup_otel
 from intake_platform.release_freeze import release_freeze_store_from_env
 from intake_platform.safety_inbox import (
+    PUMP_INTERVAL,
     SafetyInbox,
+    SafetyInboxOutbox,
     mark_inbox_unreadable,
     safety_inbox_store_from_env,
     sweep_forever,
@@ -73,8 +76,10 @@ from intake_api import (
     previsit_output,
     profile_routes,
     record_items,
+    red_notify,
     satisfaction,
     taxonomy_routes,
+    triage_hop,
     visit_lifecycle,
     visits,
     visits_acibadem,
@@ -365,9 +370,22 @@ def _admin_from_env() -> AdminWiring | None:
         voice_controls=voice_controls,
         release_freeze=release_freeze,
         identity=_identity_from_env(),
-        model_lanes=_model_lanes_from_env(voice_controls),
         safety_inbox=_safety_inbox_from_env(),
+        model_lanes=_model_lanes_from_env(voice_controls),
     )
+
+
+def _safety_inbox_from_env() -> SafetyInbox | None:
+    """INT-406: the clinic Safety inbox, from the store the voice runtime
+    writes. Unset or malformed, the Safety queue answers 503 and the inbox is
+    reported unreadable at boot, which pages (fail closed, never a default
+    address). The SLA is files/02 §8.2's default; no tenant SLA is set here."""
+    try:
+        store = safety_inbox_store_from_env(os.environ)
+    except ValueError:
+        logger.warning("safety inbox unconfigured: the store URL is not a redis URL")
+        return None
+    return SafetyInbox(store=store) if store is not None else None
 
 
 def _model_lanes_from_env(voice_controls: VoiceControlStore | None) -> ModelLanesWiring | None:
@@ -393,19 +411,6 @@ def _model_lanes_from_env(voice_controls: VoiceControlStore | None) -> ModelLane
         # the class name says what failed; no path or value is logged
         logger.warning("model lanes unconfigured: %s", type(err).__name__)
         return None
-
-
-def _safety_inbox_from_env() -> SafetyInbox | None:
-    """INT-406: the clinic Safety inbox, from the store the voice runtime
-    writes. Unset or malformed, the Safety queue answers 503 and the inbox is
-    reported unreadable at boot, which pages (fail closed, never a default
-    address). The SLA is files/02 §8.2's default; no tenant SLA is set here."""
-    try:
-        store = safety_inbox_store_from_env(os.environ)
-    except ValueError:
-        logger.warning("safety inbox unconfigured: the store URL is not a redis URL")
-        return None
-    return SafetyInbox(store=store) if store is not None else None
 
 
 def _identity_from_env() -> IdentityWiring | None:
@@ -484,6 +489,37 @@ def wiring_from_env() -> ApiWiring:
     )
 
 
+@dataclass(frozen=True)
+class _RedPump:
+    """INT-475: the thread writing the RED path's outbox into the shared store."""
+
+    outbox: SafetyInboxOutbox
+    thread: threading.Thread
+
+    @classmethod
+    def start(cls, state: ApiState) -> _RedPump | None:
+        """No inbox, no pump: a hop RED then counts a route failure, which pages."""
+        if state.red_outbox is None or state.safety_inbox is None:
+            return None
+        thread = threading.Thread(
+            target=state.red_outbox.pump,
+            args=(state.safety_inbox.store,),
+            name="safety-inbox-pump",
+            daemon=True,
+        )
+        thread.start()
+        return cls(outbox=state.red_outbox, thread=thread)
+
+    def stop(self) -> None:
+        """One last pass; what the store still refuses is counted, never named."""
+        self.outbox.stop()
+        self.thread.join(timeout=PUMP_INTERVAL.total_seconds() * 5)
+        left = len(self.outbox.pending())
+        if left:
+            # a count only (invariant 6); the entries' age already pages
+            logger.error("safety inbox entries unwritten at stop", extra={"count": left})
+
+
 def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     _setup_observability()
     w = wiring if wiring is not None else wiring_from_env()
@@ -499,15 +535,22 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
         safety_inbox=w.safety_inbox,
+        # INT-475: the RED path's outbox, wired exactly when the inbox is
+        red_outbox=SafetyInboxOutbox() if w.safety_inbox is not None else None,
     )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if w.bootstrap:
-            try:
-                await ensure_dev_fixture(w.engine, w.bootstrap_engine)
-            except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
-                logger.warning("dev fixture bootstrap deferred: database not ready")
+            # INT-421 (owner, 27 Sep 2026: "in production don't include deneme
+            # hastası"): the synthetic dev tenant, patient and consents are the
+            # dev environment's only. Anywhere else nothing is seeded, and what
+            # earlier boots left is removed by intake_api.dev_fixture_retire.
+            if w.settings.dev_tier_expected:
+                try:
+                    await ensure_dev_fixture(w.engine, w.bootstrap_engine)
+                except Exception:  # noqa: BLE001 — readiness reports the state; ids-only log
+                    logger.warning("dev fixture bootstrap deferred: database not ready")
             if w.auth is not None:
                 try:
                     # INT-131: consumer tenant for real OTP accounts (tenant
@@ -532,6 +575,10 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
             mark_inbox_unreadable()
         else:
             sweeper = asyncio.create_task(sweep_forever(inbox, clock=lambda: datetime.now(UTC)))
+        # INT-475: the outbox pump — the triage hop's RED and the on-site staff
+        # notification are put in-process and written to the shared store here,
+        # as the voice runtime's are (INT-406).
+        pump = _RedPump.start(state)
         try:
             yield
         finally:
@@ -539,6 +586,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                 sweeper.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await sweeper
+            if pump is not None:
+                pump.stop()
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state
@@ -630,6 +679,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(consents.router)
     app.include_router(profile_routes.router)
     app.include_router(taxonomy_routes.router)
+    app.include_router(triage_hop.router)
+    app.include_router(red_notify.router)
     app.include_router(dsar.router)
     app.include_router(satisfaction.router)
     app.include_router(notification_prefs.router)
