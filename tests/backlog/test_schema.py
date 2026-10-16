@@ -153,6 +153,24 @@ def test_ids_unique_and_well_formed() -> None:
     # move; found by INT-406's PR, whose visit_transition had no caller, #684).
     # + INT-432 (the clinical decisions register under owner decision D18,
     # agent-authored and independently agent-verified; GitHub #735).
+    # + INT-378 (the Keycloak provider that writes the aaguid and credential_id
+    # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
+    # owner decision, GitHub #644).
+    # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
+    # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
+    # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
+    # three, each with its own user, daemon and network namespace, GitHub #799).
+    # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
+    # vulnerabilities gate stops blocking every merge; GitHub #851).
+    # order of 3 Oct 2026, GitHub #790).
+    # + INT-460 (a second admin approver on the synthetic host is a second
+    # Keycloak user, not a dev bearer; owner request, GitHub #785).
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
     # script, not rule_ids[0]; found by INT-446, GitHub #767).
     # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
@@ -160,7 +178,7 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-440 voice end-to-end test, GitHub #756).
     # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
-    assert len(ids) == 336
+    assert len(ids) == 347
     import re
 
     for i in ids:

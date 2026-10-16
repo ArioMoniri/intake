@@ -104,10 +104,21 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-426 (CI on AWS: gate runner via S3 + SSM, aws-ci commit status, GitHub #721)
     # + INT-407 (the 02 §2b visit lifecycle state machine, GitHub #684)
     # + INT-432 (clinical decisions register under owner decision D18, GitHub #735)
+    # + INT-378 (WebAuthn session-notes provider, GitHub #621) and INT-389 (its
+    # TOTP clause as an owner decision, GitHub #644)
+    # + INT-448 (#642 packet items under D18, GitHub #759)
+    # + INT-414 (conversational delivery around verbatim questions, GitHub #705)
+    # + INT-447 (INT-414's delivery lines verified under D18, GitHub #758)
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762)
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
+    # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
+    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
+    # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
+    # + INT-460 (second admin approver: a second Keycloak user, GitHub #785)
     # + INT-453 (RED path triggers the winning rule's script, found by INT-446, GitHub #767)
     # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
     # + INT-465 (generic RED active from CD-24; synthetic-only test-key signature, GitHub #794)
-    assert len(actions) == 336
+    assert len(actions) == 347
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

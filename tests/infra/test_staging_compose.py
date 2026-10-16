@@ -89,6 +89,11 @@ SMOKE = STAGING / "smoke.sh"
 PROBE = STAGING / "staging_probe.py"
 REVISION = STAGING / "REVISION"
 GITATTRIBUTES = STAGING / ".gitattributes"
+#: INT-421: the admin tier (Keycloak, oauth2-proxy, the console image).
+ADMIN_DOCKERFILE = STAGING / "Dockerfile.admin-web"
+ADMIN_DOCKERIGNORE = STAGING / "Dockerfile.admin-web.dockerignore"
+REALM = STAGING / "keycloak" / "intake-realm.json"
+OAUTH2_PROXY_CONFIG = STAGING / "oauth2-proxy" / "alpha.yaml"
 RUNBOOK = REPO / "docs" / "runbooks" / "staging.md"
 MIGRATIONS = REPO / "migrations" / "versions"
 
@@ -107,10 +112,25 @@ ARTEFACT = (
     PROBE,
     REVISION,
     GITATTRIBUTES,
+    ADMIN_DOCKERFILE,
+    ADMIN_DOCKERIGNORE,
+    REALM,
+    OAUTH2_PROXY_CONFIG,
 )
 
 PROJECT = "intake-staging"
-SERVICES = {"api", "postgres", "redis", "openbao", "minio", "caddy"}
+SERVICES = {
+    "api",
+    "postgres",
+    "redis",
+    "openbao",
+    "minio",
+    "caddy",
+    # INT-421: the admin tier
+    "keycloak",
+    "oauth2-proxy",
+    "admin-web",
+}
 STAGING_ENV = "staging"
 
 #: The dev-gate prefix, derived from the API's own gate names instead of being
@@ -202,6 +222,11 @@ SMS_KEYS = ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM")
 #: closed on it.
 OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS, *SMS_KEYS}
 
+#: INT-421: generated as base64url of 32 bytes (oauth2-proxy's key form),
+#: not gen_secret's 64 hex.
+COOKIE_SECRET_KEYS = {"OAUTH2_PROXY_COOKIE_SECRET"}
+COOKIE_SECRET_FORM = re.compile(r"[A-Za-z0-9_-]{43}")
+
 #: The phone-tokenization key: without it the OTP tier answers 503.
 TOKENIZATION_KEY = api_settings.ENV_TOKENIZATION_KEY
 
@@ -280,6 +305,12 @@ STAMP_FALLBACK = re.compile(
 
 #: The one build statement: its SBOM digest cannot exist yet (see lib.sh).
 BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api'
+#: INT-421: the console image, built from the same commit, with the same
+#: build-time value (it is not a digest either).
+ADMIN_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web'
+#: INT-378: the staff Keycloak, INT-390's pin plus the checked WebAuthn provider jar, built
+#: from the same commit with the same build-time value.
+KEYCLOAK_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build keycloak'
 
 #: The docker shim's built image and commit, and the SPDX document its syft
 #: prints (the shape syft's spdx-json output takes, trimmed).
@@ -1213,7 +1244,8 @@ class TestNonDevCredentials:
         assert set(generated) == set(_env_template()) - OWNER_SUPPLIED
         secrets = {k: v for k, v in generated.items() if k not in OPERATOR_SUPPLIED}
         for key, value in secrets.items():
-            assert re.fullmatch(r"[0-9a-f]{64}", value), key
+            form = COOKIE_SECRET_FORM if key in COOKIE_SECRET_KEYS else re.compile(r"[0-9a-f]{64}")
+            assert form.fullmatch(value), key
         assert len(set(secrets.values())) == len(secrets), "each secret is its own"
         assert stat.S_IMODE(env_file.stat().st_mode) == 0o600
         second = _generate_env_file(env_file)
@@ -1726,7 +1758,7 @@ class TestSbomStamp:
             for line in _code(path).splitlines()
             if re.search(r"\bcompose build\b", line)
         ]
-        assert builds == [BUILD_STATEMENT]
+        assert builds == [BUILD_STATEMENT, ADMIN_BUILD_STATEMENT, KEYCLOAK_BUILD_STATEMENT]
 
     def test_deploy_runs_exactly_the_image_the_sbom_describes(self) -> None:
         ups = re.findall(r"^compose up .*$", _code(DEPLOY), re.M)

@@ -27,7 +27,12 @@ from intake_api.dev_voice import (
 from intake_api.dev_voice_guard import ScriptedCatalogue, load_scripted_catalogue
 from protocols.dsl import clip_text_hash
 from voice_clips.audio import SynthesisedSpeech
-from voice_clips.delivery import DELIVERY_CONTEXTS, DeliveryProfile, delivery_profile
+from voice_clips.delivery import (
+    CLIPGEN_VOICE_ID,
+    DELIVERY_CONTEXTS,
+    DeliveryProfile,
+    delivery_profile,
+)
 from voice_clips.gateway import (
     ENV_ELEVENLABS_BASE,
     ENV_ELEVENLABS_KEY,
@@ -100,8 +105,8 @@ def test_cache_miss_calls_gateway_once_and_returns_playable_wav(tmp_path: Path) 
     assert res.headers["x-george-cache"] == "miss"
     assert res.content[:4] == b"RIFF" and res.content[8:12] == b"WAVE"
     assert gateway.calls == 1
-    # George's voice id, not a client-chosen one
-    assert gateway.seen[0][1] == GEORGE_VOICE_ID
+    # the pinned cast voice (INT-449, E04), not a client-chosen one and no longer George
+    assert gateway.seen[0][1] == CLIPGEN_VOICE_ID != GEORGE_VOICE_ID
     # addressed on disk by the delivery profile (INT-415) and sha256(text_tr),
     # with no audio-typed file extension; no context sent means routine
     routine = delivery_profile("routine")
