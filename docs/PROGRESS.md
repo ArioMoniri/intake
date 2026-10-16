@@ -1,5 +1,24 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T09:30:00Z · INT-545 · done (PR open on main after #920 INT-531 + INT-540)
+- Goal: from the runtime review of the #920 merge, `VoiceSessionRouter.end()` queued the close and stopped the RED watch at once, so a RED the close raised (or a last queued answer) reached the clinician route and never the device. Reproduced on both profiles: clinic told of K2, nothing published.
+- Plan:
+  - The router keeps a `_closing` map; `end()` records the close and keeps the watch running (starting it where a loop runs and no turn did).
+  - `poll()` first releases a closing session once its close is settled on two consecutive polls and it is quiescent: the Backend's engine lock free and `TalkerSession.red_watch_idle` (`RedMailbox.empty`, no delivery in flight).
+  - A session already sealed at `end()` is released at once only when quiescent — the issue's "at once" lost the RED when `end()` followed the pump in the same step (measured).
+  - `RedNotification.delivery` (`pending` / `withheld` / `not_reached`, no default); `TalkerSession.end_red_watch()` tells the clinician `not_reached` for a RED whose delivery failed and that no next turn will retry, counted on `red_watch_failures_total{kind="unreached"}`.
+  - The worker contract (INT-542 item 1) in the `session_router` docstring; `closing()` shows the pile.
+- Tests added: `tests/voice/test_red_watch_outlives_close.py` (42) with the acceptance test (2 profiles × 3 locations) and its near misses (quiet close, sealed-and-delivered, close not yet run); `test_red_push.py`'s watch-stops test now pumps and polls twice first.
+  - RED (on `3007d03a`): the reviewer's probe, `published: []` on both profiles; the issue's literal sealed branch, `cancelled: True, published: [], posted: True`; the suite failed to collect.
+  - GREEN: the script starts 50 ms after the evaluation, no violation; one poll leaves the watch running, the second cancels it. 25/25 mutations caught.
+- Result (docs/evidence/INT-545.md): `make safety` exit 0 (voice-runtime 98.41 %, 2408 passed; the touched router, mailbox and path modules at 100 %); runtime-sim exit 0 for every runnable scenario on both profiles and parity (RT-06 withdrawn, exit 2); ruff, ruff format and `mypy --strict` over the check-py trees clean; `tests/voice` under `-W error` for RuntimeWarning and unraisable exceptions, 1884 passed.
+- Invariants touched and still passing: 1, 6, 9, 13, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-545 row added (`area:voice`, depends on INT-531 and INT-540, `voice-runtime`); the three pins go from 364 to 365; files/11 regenerated.
+- Blocked on: nothing.
+- Residuals in evidence: the Safety inbox entry does not store the delivery (platform lane); a failed RED is reported, not retried, after the end; the turn path's own channel failure; a data channel that never resolves holds the session; INT-542 item 1's wording.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.

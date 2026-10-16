@@ -7171,3 +7171,28 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"
+- id: INT-545
+  epic: E05-voice
+  phase: P0
+  title: "A RED the session close raises reaches the patient's device"
+  # GitHub #921, from the runtime review of the #920 merge (INT-531 +
+  # INT-540), 17 Oct 2026. VoiceSessionRouter.end() queued the close and then
+  # stopped the RED watch at once, so a RED raised by the close (or by a last
+  # queued answer) reached only the clinician route. Reproduced on both
+  # profiles. The watch now outlives the close and is released once the close
+  # has settled on two polls and the watch is idle; the clinician route is told
+  # when the device was not reached. Must land before any worker calls end()
+  # on a normal finish (INT-515). Built on #920.
+  depends_on: [INT-531, INT-540]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-545.md
+  acceptance:
+    - "test_a_red_the_close_raises_after_end_reaches_the_device (profile x location): watch alive after end(); pump -> published == [(K2, location)] with the script <= 300 ms after evaluation; one poll -> still running; second poll -> cancelled, nothing left closing."
+    - "Near misses: a quiet close releases the watch after two polls; a session already sealed at end() stops the watch at once."
+    - "Update test_red_push.py test_the_watch_stops_when_the_session_ends (pump + two polls first)."
+    - "The clinic inbox notification states when the device was not reached (RedNotification.patient_facing describes the register, not delivery)."
+    - "Contract documented: the worker that composes sessions must run router.watch()/poll(), or ended sessions pile up in _closing (INT-542 item 1)."
+    - "Invariants 9, 21; make safety and runtime-sim green."
+  tests: [tests/voice/test_red_watch_outlives_close.py, tests/voice/test_red_push.py, tests/voice/test_red_preemption.py, tests/voice/test_safety_inbox_notifier.py]
+  sec_row: "voice-runtime"

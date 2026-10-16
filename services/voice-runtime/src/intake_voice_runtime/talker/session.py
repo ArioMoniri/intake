@@ -809,6 +809,44 @@ class TalkerSession:
         if watch is not None and not watch.done():
             watch.cancel()
 
+    @property
+    def red_watch_idle(self) -> bool:
+        """True when the watch has nothing left to do (INT-545): no RED posted
+        and not yet taken, and no RED it took still in delivery.
+
+        The session router reads this before it lets an ended session's watch
+        go. A session with no mailbox has nothing to watch, so it is idle. A
+        RED whose delivery failed is not in flight; :meth:`end_red_watch` tells
+        the clinician of it.
+        """
+        mailbox = self.red_mailbox
+        return (mailbox is None or mailbox.empty) and not self._red_deliveries
+
+    def end_red_watch(self) -> tuple[str, ...]:
+        """The session is over: stop the watch and tell the clinician of every
+        RED it could not deliver (INT-545). Returns their work ids. Idempotent;
+        awaits nothing.
+
+        The router calls this once the watch is idle, so what is left is
+        exactly the REDs whose delivery failed and were waiting for the next
+        turn to retry them — and an ended session takes no next turn. Each goes
+        to the clinician route again, stating that the device was not reached;
+        each is counted (``red_watch_failures_total{kind="unreached"}``) and
+        logged by work id.
+        """
+        self.stop_red_watch()
+        preemption = self.preemption
+        if preemption is None:
+            # No RED path: the watch never ran, so no delivery of its can have failed.
+            return ()
+        unreached = tuple(result for result, _ in self._red_failed.values())
+        self._red_failed.clear()
+        for result in unreached:
+            RED_WATCH_FAILURES_TOTAL.labels(kind="unreached").inc()
+            logger.error("red never reached the device", extra={"work_id": result.work_id})
+            preemption.not_reached(result, evaluated_at_ms=self._evaluated_at(result))
+        return tuple(result.work_id for result in unreached)
+
     async def watch_reds(self) -> None:
         """The Talker's own between-turn loop: a RED reaches the patient now.
 

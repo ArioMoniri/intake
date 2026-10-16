@@ -35,6 +35,10 @@ appends under a lock and asks the Talker's loop, via
 loop that has gone away keeps the RED in the mailbox, and the session's next
 turn drains the same settled RED from the queue in any case: the push is the
 fast route, never the only one.
+
+**An ended session has no next turn** (INT-545). There the push is the only
+route, so the session router keeps the watch running past the session's end
+until the close it queued has settled and :attr:`RedMailbox.empty` holds.
 """
 
 from __future__ import annotations
@@ -95,6 +99,17 @@ class RedMailbox:
             # that takes, and the queue still holds it for the next turn's drain.
             with contextlib.suppress(RuntimeError):
                 loop.call_soon_threadsafe(wake.set)
+
+    @property
+    def empty(self) -> bool:
+        """True when nothing posted is waiting to be taken (INT-545).
+
+        Read under the post's lock, so it is true from any thread only once
+        every RED posted so far has been taken by the watch. The router reads
+        it before it lets an ended session's watch go.
+        """
+        with self._lock:
+            return not self._posted
 
     async def take(self) -> tuple[BackendResult, ...]:
         """Park until a RED is posted, then take every RED posted so far."""
