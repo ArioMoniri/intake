@@ -37,9 +37,9 @@ register_tiebreak          3   equal-severity RED winner is total and stable
 green_baseline             1   the life set alone, empty context
 type_mismatch_unknown      6   cross-type comparison is Unknown, never False
 anchor_choices             10  CD-05: each onset choice's day, near miss 3 days
-anchor_hedges              13  CD-04: each hedge on the onset → UNCLEAR → ref. day
+anchor_hedges              14  CD-04: each hedge on the onset → UNCLEAR → ref. day
 ======================  =====  ==================================================
-total                     231
+total                     232
 
 Rule levels available in merged content today: KIRMIZI_K2 (rf.synthetic_
 kirmizi, rf.synthetic_kirmizi.genis, rf.chest_pain_cardiac_features),
@@ -207,7 +207,7 @@ FAMILY_COUNTS: tuple[tuple[str, int], ...] = (
     ("green_baseline", 1),
     ("type_mismatch_unknown", 6),
     ("anchor_choices", 10),
-    ("anchor_hedges", 13),
+    ("anchor_hedges", 14),
 )
 
 

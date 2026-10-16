@@ -1,5 +1,27 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T10:00:00Z · INT-547 · done (PR opened; split from INT-543 F3, #917)
+- Goal: CD-04 (active, verified) raises a CD-08 clinic-inbox item, `chest_pain_arms_unresolved`, when a CD-01 chest-pain slot is still UNCLEAR after its follow-up was asked once. Nothing built it, so the golden `hedge/c2-karakter-belirsiz` ended GREEN with both arms silent and the clinic never told (INT-540 clinical review F3).
+- Plan:
+  - Read the trigger from CD-04, CD-01 and CD-08 into `protocols.clinic_items`.
+  - Add a clinic-item kind to the Safety inbox, with no SLA while CD-08's is draft.
+  - Add `ClinicItemWatch`, wrapping `extract_slots` and `close_session` in both roots and observing which follow-ups were spoken.
+  - Add a `ClinicItemNotifier` route that puts the entry, then audits it.
+  - Pin the item in the golden.
+- Tests added: `tests/protocols/test_clinic_item_rules.py` (41), `tests/platform/test_clinic_inbox_items.py` (19), `tests/admin/test_safety_queue_clinic_items.py` (2), `tests/voice/test_clinic_items.py` (45), four golden-checker tests, and one golden near miss (corpus 231 → 232).
+  - RED (on `ab9b8819`): 9 collection errors.
+  - GREEN: 695 passed on the red-run set.
+- Result (docs/evidence/INT-547.md):
+  - `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.12 %, every touched runtime module 100 %.
+  - Protocols lane 97.67 %.
+  - runtime-sim: every scenario, both profiles and parity exit 0, with RT-06 withdrawn as before.
+  - ruff and mypy strict clean; no_placeholders, PHI and claims gates OK.
+- Invariants touched and still passing: 1, 4, 6, 9, 13, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-547 row added; the three pins go from 364 to 365; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane: CD-08's SLA, cover and escalation (already open); CD-08's "leaves both arms Unknown" wording against CD-04's trigger; an outcome vocabulary for "closes only on a recorded clinician outcome"; CD-04 round 3 (INT-519, pending, being applied by INT-546).
+- Residuals: pinned to the note is INT-548 (#928), blocked on a live note. No production session builder constructs the notifier yet. Non-anchor slots still take two follow-ups (INT-543 F8).
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.

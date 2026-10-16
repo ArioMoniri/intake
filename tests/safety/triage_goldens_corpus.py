@@ -29,13 +29,21 @@ The checker (:func:`run_case`) is deliberately shared between the golden
 test and the mutation harness: a mutation "fails the suite" exactly when
 :func:`run_case` reports a mismatch (or the rule set refuses to build) for
 at least one golden.
+
+A golden may also pin the CD-08 clinic-inbox items its answer state raises
+(INT-547): ``clinic_items`` is the expectation, ``None`` where a case
+asserts none, and ``follow_ups_asked`` is the one input the answers cannot
+carry — how often each slot's ``follow_up_tr`` was asked. The checker reads
+the items through ``protocols.clinic_items``, from CD-04 itself, beside the
+level; an item is never a level and the two are checked apart.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +57,7 @@ from clinical_schemas.triage import (
     TriageLevel,
 )
 from protocols import RedFlagRule, load_pack, resolve_red_flags
+from protocols.clinic_items import ClinicItemRules, load_clinic_item_rules
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
 from protocols.triage import SlotAnswer, TriageContext, evaluate_triage, with_candidates
@@ -336,6 +345,10 @@ class GoldenCase:
     evidence_contains: tuple[tuple[str, str], ...] = ()
     candidates: int = 0
     expect_error: type[Exception] | None = None
+    #: INT-547: how often each slot's follow_up_tr was asked (CD-04's trigger).
+    follow_ups_asked: Mapping[str, int] = field(default_factory=dict)
+    #: INT-547: the CD-08 item kinds this state raises; ``None`` asserts none.
+    clinic_items: tuple[str, ...] | None = None
 
     def context(self) -> TriageContext:
         return TriageContext(reference_time=REF_TIME, answers=dict(self.answers))
@@ -383,7 +396,24 @@ def run_case(case: GoldenCase, rule_sets: RuleSets) -> list[str]:
             mismatches.append(f"evidence[{rule_id}] lacks {fragment!r}")
     if case.candidates:
         mismatches.extend(_check_candidates(case, evaluation))
+    if case.clinic_items is not None:
+        mismatches.extend(_check_clinic_items(case, _clinic_item_rules()))
     return mismatches
+
+
+@cache
+def _clinic_item_rules() -> ClinicItemRules:
+    return load_clinic_item_rules()
+
+
+def _check_clinic_items(case: GoldenCase, rules: ClinicItemRules) -> list[str]:
+    """INT-547: the CD-04 item the case's answer state raises, if any."""
+    states = {slot: answer.state for slot, answer in case.answers.items()}
+    unresolved = rules.arms.unresolved(states, case.follow_ups_asked)
+    raised = (rules.arms.kind.value,) if unresolved else ()
+    if raised != case.clinic_items:
+        return [f"clinic items {raised} != {case.clinic_items}"]
+    return []
 
 
 def _check_action(case: GoldenCase, action: object, rule_sets: RuleSets) -> list[str]:

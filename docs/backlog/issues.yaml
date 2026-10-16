@@ -7171,3 +7171,25 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"
+- id: INT-547
+  epic: E05-voice
+  phase: P1
+  title: "The clinic Safety inbox is told once when chest-pain arms stay unresolved (CD-04's CD-08 item chest_pain_arms_unresolved)"
+  # GitHub #927, split from INT-543 (#917) finding F3, 17 Oct 2026. CD-04
+  # (active, verified) raises a CD-08 clinic-inbox item when a CD-01
+  # chest-pain slot is still UNCLEAR after its follow_up_tr was asked once;
+  # nothing built it, so the golden hedge/c2-karakter-belirsiz ended GREEN with
+  # both arms silent and the clinic never told. Pinning the item to the
+  # pre-visit note is INT-548 (#928), blocked on a live note.
+  depends_on: [INT-540]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-547.md
+  acceptance:
+    - "CD-04's CD-08 item chest_pain_arms_unresolved is built exactly as decided (a CD-01 slot still UNCLEAR after its follow_up_tr was asked once), read from the decisions, raised from the live session into the clinic Safety inbox once per session, ids and closed kinds only (invariant 6), audited (invariant 4)."
+    - "It is never a RED: no priority, no preempt, no change to the Work's determination (invariant 1); CD-08's draft SLA is not invented (no RED SLA, no breach, no RED gauge)."
+    - "The golden hedge/c2-karakter-belirsiz cites the item and asserts it; a near miss (the follow-up answered) raises nothing."
+    - "Both profiles; near misses (a resolved arm, a follow-up not yet spent, an anchor closed before its follow-up was asked, an UNCLEAR slot CD-04 does not name); a failed route is counted, paged and retried."
+    - "make safety and runtime-sim (both profiles, PARITY=1) green; every new metric catalogued (invariant 13)."
+  tests: [tests/voice/test_clinic_items.py, tests/protocols/test_clinic_item_rules.py, tests/platform/test_clinic_inbox_items.py, tests/admin/test_safety_queue_clinic_items.py, tests/safety/test_triage_goldens.py]
+  sec_row: "clinical-core"

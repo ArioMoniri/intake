@@ -79,3 +79,19 @@ groups:
         raised (kind="fault"), or a handler's determination disagreed with the
         engine's (kind="conflict"). A RED may be missing from this session.
       runbook: docs/runbooks/red-acknowledgement.md#live-triage-unevaluated
+  # INT-547: a CD-08 clinic-inbox item (such as a chest-pain slot left
+  # unresolved) whose route raised. CD-08 counts an inbox delivery failure as
+  # an SLA breach and makes the breach an emitted event; the session raises
+  # the item again on its next Work, so a page that clears on its own means it
+  # landed.
+  - alert: ClinicInboxItemRouteFailed
+    expr: increase(clinic_inbox_item_route_failures_total[5m]) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'a CD-08 clinic item ({{ $labels.kind }}) did not reach the clinic inbox'
+      description: >-
+        A live session raised a clinician-only item CD-08 routes to the
+        clinic inbox, and its route raised. The item is retried on the
+        session's next Work; a session that ended meanwhile never delivered it.
+      runbook: docs/runbooks/red-acknowledgement.md#clinic-item-route-failed
