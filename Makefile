@@ -122,6 +122,7 @@ admin-fixtures:
 	uv run python scripts/dev/record_voice_fixture.py
 	uv run python scripts/dev/record_cicd_fixture.py
 	uv run python scripts/dev/record_access_fixture.py
+	uv run python scripts/dev/record_analytics_fixture.py
 
 check-ts:
 	pnpm -r lint

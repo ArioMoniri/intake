@@ -2052,6 +2052,43 @@ metrics:
       analytics_view_refused_total it is the refusal rate the learning loop is
       operating at.
 
+  # --- INT-490: the research and improvement analytics release (LD-06). The
+  # same rule as INT-171's two families above: a label is the view KIND
+  # (funnel, triage, locale, platform, question_*) and a reason class, never a
+  # protocol, version, question or week — a withheld view labelled with its
+  # cohort would publish to Prometheus the very cell the release withheld
+  # (inv. 6; tests/observability/test_analytics_dimension_keys.py checks the
+  # values actually incremented, not just the keys).
+  - name: analytics_research_view_shown_total
+    type: counter
+    labels: [view]
+    owner: learning
+    unit: "count"
+    description: >-
+      Research analytics views shown in a release, by view kind. Emitted by
+      intake_platform.analytics.research.release once per view instance each
+      time the admin Analytics page computes a release.
+  - name: analytics_research_view_withheld_total
+    type: counter
+    labels: [view, reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      Research analytics views withheld from a release, by view kind and
+      reason class (below_k: a cell held 1..k-1 people; cross_view: showing
+      it would let a small group be recovered by arithmetic across views).
+      A view whose population is under the floor is not listed and not
+      counted here, so it cannot be told apart from an empty one.
+  - name: analytics_research_tenant_refused_total
+    type: counter
+    labels: [reason]
+    owner: learning
+    unit: "count"
+    description: >-
+      Registry tenants left out of a research analytics release, by reason
+      class (tenant_unknown; processor_without_dpa_authorisation, LD-06's
+      hospital-deployment rule). Emitted by the admin Analytics read.
+
   # --- INT-172: the Inspector -> Architect pipeline itself. files/10 §9's
   # learning row names "proposals, rejections, k-anonymity refusals,
   # rollbacks" as the console signals; the first two are here, the third is

@@ -1,0 +1,405 @@
+{
+  "schema": "intake.admin.analytics.v1",
+  "generated_at": "2026-10-16T09:00:00+00:00",
+  "k": 10,
+  "grain": "iso_week",
+  "period": {
+    "id": "2026-W41",
+    "start": "2026-10-05T00:00:00+00:00",
+    "end": "2026-10-12T00:00:00+00:00",
+    "previous": "2026-W40",
+    "following": null
+  },
+  "tenants": {
+    "state": "configured",
+    "admitted": 1,
+    "refused": 0
+  },
+  "retention": {
+    "aggregates": {
+      "state": "undecided"
+    },
+    "raw_telemetry": {
+      "state": "undecided"
+    }
+  },
+  "views": [
+    {
+      "kind": "funnel",
+      "partition": "stage",
+      "dimensions": {
+        "protocol": "base.intake",
+        "protocol_version": "1.0.0"
+      },
+      "state": "withheld",
+      "reason": "below_k"
+    },
+    {
+      "kind": "funnel",
+      "partition": "stage",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "invited",
+          "subjects": 14
+        },
+        {
+          "value": "started",
+          "subjects": 14
+        },
+        {
+          "value": "finished",
+          "subjects": 10
+        },
+        {
+          "value": "shared",
+          "subjects": 23
+        }
+      ]
+    },
+    {
+      "kind": "locale",
+      "partition": "locale",
+      "dimensions": {
+        "protocol": "base.intake",
+        "protocol_version": "1.0.0"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "tr",
+          "subjects": 16
+        }
+      ]
+    },
+    {
+      "kind": "locale",
+      "partition": "locale",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "tr",
+          "subjects": 61
+        }
+      ]
+    },
+    {
+      "kind": "platform",
+      "partition": "platform",
+      "dimensions": {
+        "protocol": "base.intake",
+        "protocol_version": "1.0.0"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "ios",
+          "subjects": 0
+        },
+        {
+          "value": "android",
+          "subjects": 0
+        },
+        {
+          "value": "web",
+          "subjects": 16
+        }
+      ]
+    },
+    {
+      "kind": "platform",
+      "partition": "platform",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "ios",
+          "subjects": 47
+        },
+        {
+          "value": "android",
+          "subjects": 14
+        },
+        {
+          "value": "web",
+          "subjects": 0
+        }
+      ]
+    },
+    {
+      "kind": "question_outcome",
+      "partition": "outcome",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.chief_complaint"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "answered",
+          "subjects": 47
+        },
+        {
+          "value": "skipped",
+          "subjects": 0
+        },
+        {
+          "value": "abandoned",
+          "subjects": 0
+        }
+      ]
+    },
+    {
+      "kind": "question_outcome",
+      "partition": "outcome",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.medications"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "answered",
+          "subjects": 23
+        },
+        {
+          "value": "skipped",
+          "subjects": 10
+        },
+        {
+          "value": "abandoned",
+          "subjects": 0
+        }
+      ]
+    },
+    {
+      "kind": "question_outcome",
+      "partition": "outcome",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.onset"
+      },
+      "state": "withheld",
+      "reason": "below_k"
+    },
+    {
+      "kind": "question_mode",
+      "partition": "input_mode",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.chief_complaint"
+      },
+      "state": "withheld",
+      "reason": "cross_view"
+    },
+    {
+      "kind": "question_mode",
+      "partition": "input_mode",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.medications"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "typed",
+          "subjects": 23
+        },
+        {
+          "value": "voice",
+          "subjects": 0
+        }
+      ]
+    },
+    {
+      "kind": "question_mode",
+      "partition": "input_mode",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.onset"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "typed",
+          "subjects": 10
+        },
+        {
+          "value": "voice",
+          "subjects": 23
+        }
+      ]
+    },
+    {
+      "kind": "question_repeat",
+      "partition": "repeat_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.chief_complaint"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "none",
+          "subjects": 24
+        },
+        {
+          "value": "one_or_more",
+          "subjects": 23
+        }
+      ]
+    },
+    {
+      "kind": "question_repeat",
+      "partition": "repeat_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.medications"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "none",
+          "subjects": 33
+        },
+        {
+          "value": "one_or_more",
+          "subjects": 0
+        }
+      ]
+    },
+    {
+      "kind": "question_repeat",
+      "partition": "repeat_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.onset"
+      },
+      "state": "withheld",
+      "reason": "cross_view"
+    },
+    {
+      "kind": "question_time",
+      "partition": "time_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.chief_complaint"
+      },
+      "state": "withheld",
+      "reason": "cross_view"
+    },
+    {
+      "kind": "question_time",
+      "partition": "time_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.medications"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "under_10s",
+          "subjects": 0
+        },
+        {
+          "value": "10s_to_30s",
+          "subjects": 0
+        },
+        {
+          "value": "30s_to_60s",
+          "subjects": 0
+        },
+        {
+          "value": "over_60s",
+          "subjects": 23
+        }
+      ]
+    },
+    {
+      "kind": "question_time",
+      "partition": "time_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.onset"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "under_10s",
+          "subjects": 0
+        },
+        {
+          "value": "10s_to_30s",
+          "subjects": 33
+        },
+        {
+          "value": "30s_to_60s",
+          "subjects": 0
+        },
+        {
+          "value": "over_60s",
+          "subjects": 0
+        }
+      ]
+    },
+    {
+      "kind": "question_asr",
+      "partition": "asr_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.chief_complaint"
+      },
+      "state": "withheld",
+      "reason": "cross_view"
+    },
+    {
+      "kind": "question_asr",
+      "partition": "asr_band",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev",
+        "question": "visit.onset"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "high",
+          "subjects": 23
+        },
+        {
+          "value": "medium",
+          "subjects": 0
+        },
+        {
+          "value": "low",
+          "subjects": 0
+        }
+      ]
+    }
+  ],
+  "not_collected": []
+}

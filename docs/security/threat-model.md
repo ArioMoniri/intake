@@ -365,6 +365,20 @@ it or whose tests exercise it.
   `admin.audit_external_anchor_age_min` (files/10 §9) — land with INT-016, INT-023, INT-025.
 - **Tests:** tests/platform/test_redaction.py; tests/security/test_trace_redaction.py;
   inv. 36 and the flip-and-repair test (inv. 40) land with INT-016 and the console issues.
+- **INT-490 — research and improvement analytics (LD-06, D28).** The admin Analytics page
+  is a telemetry surface over patient sessions.
+  - **Threats:** [I/Dd] a small cell, or one recovered by subtracting another view
+    (LD-06 `across_views`); [I] a cohort leaking into metric labels; [I] a second staff
+    read path to patient content.
+  - **Controls:** a population under 10 is not listed. A view with a cell of 1-9 is
+    withheld whole. A cross-view check withholds any view that lets a group of 1-9 people
+    be recovered by arithmetic over shown counts. The API scans its own answer, and the
+    answer is `no-store`. Metric labels are view kinds only. Only row metadata is read; the
+    encrypted previsit document is never decrypted for the triage share.
+  - **Signals:** `analytics_research_view_withheld_total{view,reason}`,
+    `analytics_research_tenant_refused_total{reason}`.
+  - **Tests:** tests/analytics/, tests/admin/test_analytics_console.py,
+    tests/observability/test_analytics_dimension_keys.py.
 
 ## `audit` — the hash-chained audit log
 

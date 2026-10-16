@@ -1,0 +1,125 @@
+{
+  "schema": "intake.admin.analytics.v1",
+  "generated_at": "2026-10-16T09:00:00+00:00",
+  "k": 10,
+  "grain": "iso_week",
+  "period": {
+    "id": "2026-W41",
+    "start": "2026-10-05T00:00:00+00:00",
+    "end": "2026-10-12T00:00:00+00:00",
+    "previous": "2026-W40",
+    "following": null
+  },
+  "tenants": {
+    "state": "configured",
+    "admitted": 1,
+    "refused": 0
+  },
+  "retention": {
+    "aggregates": {
+      "state": "undecided"
+    },
+    "raw_telemetry": {
+      "state": "undecided"
+    }
+  },
+  "views": [
+    {
+      "kind": "funnel",
+      "partition": "stage",
+      "dimensions": {
+        "protocol": "base.intake",
+        "protocol_version": "1.0.0"
+      },
+      "state": "withheld",
+      "reason": "below_k"
+    },
+    {
+      "kind": "funnel",
+      "partition": "stage",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "invited",
+          "subjects": 14
+        },
+        {
+          "value": "started",
+          "subjects": 14
+        },
+        {
+          "value": "finished",
+          "subjects": 10
+        },
+        {
+          "value": "shared",
+          "subjects": 23
+        }
+      ]
+    },
+    {
+      "kind": "locale",
+      "partition": "locale",
+      "dimensions": {
+        "protocol": "base.intake",
+        "protocol_version": "1.0.0"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "tr",
+          "subjects": 16
+        }
+      ]
+    },
+    {
+      "kind": "locale",
+      "partition": "locale",
+      "dimensions": {
+        "protocol": "previsit.dev.visit",
+        "protocol_version": "int197-dev"
+      },
+      "state": "shown",
+      "cells": [
+        {
+          "value": "tr",
+          "subjects": 61
+        }
+      ]
+    }
+  ],
+  "not_collected": [
+    {
+      "kind": "triage",
+      "reason": "triage_level_not_recorded"
+    },
+    {
+      "kind": "platform",
+      "reason": "raw_telemetry_retention_undecided"
+    },
+    {
+      "kind": "question_outcome",
+      "reason": "raw_telemetry_retention_undecided"
+    },
+    {
+      "kind": "question_mode",
+      "reason": "raw_telemetry_retention_undecided"
+    },
+    {
+      "kind": "question_repeat",
+      "reason": "raw_telemetry_retention_undecided"
+    },
+    {
+      "kind": "question_time",
+      "reason": "raw_telemetry_retention_undecided"
+    },
+    {
+      "kind": "question_asr",
+      "reason": "raw_telemetry_retention_undecided"
+    }
+  ]
+}

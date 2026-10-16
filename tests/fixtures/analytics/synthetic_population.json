@@ -1,0 +1,112 @@
+{
+  "_comment": "INT-490. A SYNTHETIC population of simulated people for the admin Analytics fixtures (scripts/dev/record_analytics_fixture.py). Counts only: no names, no identifiers, no answers. Each group is `count` people with the same record; the recorder gives each one an opaque in-process key.",
+  "period": "2026-W41",
+  "measured_at": "2026-10-16T09:00:00+00:00",
+  "groups": [
+    {
+      "protocol": "previsit.dev.visit",
+      "version": "int197-dev",
+      "count": 14,
+      "stage": "invited",
+      "platform": "ios"
+    },
+    {
+      "protocol": "previsit.dev.visit",
+      "version": "int197-dev",
+      "count": 11,
+      "stage": "started",
+      "platform": "android",
+      "questions": {
+        "visit.chief_complaint": {
+          "outcome": "answered",
+          "repeat": "none",
+          "input_mode": "voice",
+          "time_band": "10s_to_30s",
+          "asr_band": "high"
+        },
+        "visit.onset": { "outcome": "abandoned", "repeat": "one_or_more" }
+      }
+    },
+    {
+      "protocol": "previsit.dev.visit",
+      "version": "int197-dev",
+      "count": 3,
+      "stage": "started",
+      "platform": "android",
+      "questions": {
+        "visit.chief_complaint": {
+          "outcome": "answered",
+          "repeat": "none",
+          "input_mode": "typed",
+          "time_band": "under_10s"
+        },
+        "visit.onset": { "outcome": "skipped", "repeat": "none" }
+      }
+    },
+    {
+      "protocol": "previsit.dev.visit",
+      "version": "int197-dev",
+      "count": 10,
+      "stage": "finished",
+      "platform": "ios",
+      "questions": {
+        "visit.chief_complaint": {
+          "outcome": "answered",
+          "repeat": "none",
+          "input_mode": "typed",
+          "time_band": "under_10s"
+        },
+        "visit.onset": {
+          "outcome": "answered",
+          "repeat": "none",
+          "input_mode": "typed",
+          "time_band": "10s_to_30s"
+        },
+        "visit.medications": { "outcome": "skipped", "repeat": "none" }
+      }
+    },
+    {
+      "protocol": "previsit.dev.visit",
+      "version": "int197-dev",
+      "count": 23,
+      "stage": "shared",
+      "platform": "ios",
+      "questions": {
+        "visit.chief_complaint": {
+          "outcome": "answered",
+          "repeat": "one_or_more",
+          "input_mode": "voice",
+          "time_band": "30s_to_60s",
+          "asr_band": "medium"
+        },
+        "visit.onset": {
+          "outcome": "answered",
+          "repeat": "none",
+          "input_mode": "voice",
+          "time_band": "10s_to_30s",
+          "asr_band": "high"
+        },
+        "visit.medications": {
+          "outcome": "answered",
+          "repeat": "none",
+          "input_mode": "typed",
+          "time_band": "over_60s"
+        }
+      }
+    },
+    {
+      "protocol": "base.intake",
+      "version": "1.0.0",
+      "count": 12,
+      "stage": "invited",
+      "platform": "web"
+    },
+    {
+      "protocol": "base.intake",
+      "version": "1.0.0",
+      "count": 4,
+      "stage": "shared",
+      "platform": "web"
+    }
+  ]
+}

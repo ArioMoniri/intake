@@ -175,6 +175,37 @@
 - Next: orchestrator's word to push and open the PR.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-16T10:30:00Z · INT-490 · done (PR open; not merged, not deployed)
+- Goal: the build half of the owner's 4 Oct request ("metrics and telemetry of users and questions as legal agent allows for research and enhancement purposes"), strictly within LD-06, which the owner accepted on 16 Oct as D28. The acceptance, verbatim:
+  - "Per question / protocol version: completion and drop-off; time-to-answer; repeat/clarify rate; typed vs voice share; ASR quality bands; share of sessions reaching RED / YELLOW / GREEN; device and locale. Funnels: invited → started → finished → shared."
+  - "Small-cell suppression enforced server-side with tests (near miss: a cell of 9 is suppressed, 10 shows; a dimension combination that isolates fewer than 10 is suppressed)."
+  - "Invariant 6 label-set scan; every metric in metrics_catalog.yaml (inv 15); feeds services/learning Loop-2 proposal evidence only (inv 12)."
+  - "Retention periods stay as LD-06 leaves them (draft until the owner decides)."
+- Plan: `intake_platform.analytics.research`, with these parts:
+  - a closed vocabulary;
+  - in-memory person-week records;
+  - the release, with listing, whole-view and cross-view gates; the cross-view check is an exact row-space search;
+  - a boundary scan;
+  - retention configuration with no default;
+  - tenant admission;
+  - row-metadata sources;
+  - a Loop-2 bridge.
+
+  On top of it: `GET /admin/analytics` as an INT-180 descriptor route, the learning evidence adapter, and the admin-web Analytics page (tr/en).
+- Tests added: `tests/analytics/` (release, payload, sources, config), `tests/admin/test_analytics_console.py`, `tests/learning/test_research_evidence.py`, `tests/observability/test_analytics_dimension_keys.py`, `apps/admin-web/e2e/analytics.spec.ts`.
+  - Near misses: 9 withheld and 10 shown; a population of 9 unlisted and 10 listed; a thin version and a thin question outcome; a cross-view subtraction found and confirmed by an exhaustive independent oracle; free text, a UUID, a person key, a thin cell and a withheld view with cells all refused.
+  - RED: 7 collection errors (modules absent).
+  - GREEN: 110 targeted; 1983 across analytics, admin, learning, observability and data; admin-web 344.
+- Result: docs/evidence/INT-490.md §8–§9.
+- Invariants touched and still passing: 4, 6, 12 (the `proposal_scope` closure gate caught the first wiring; fixed), 13/15, 18 (no new field), 20.
+- Decisions / ADRs / `00_STATE.md` rows: no new decision. D28 (owner) is applied as stated. The fail-closed retention reading is recorded in the evidence, §4: unset keeps nothing, and the live read is not refused.
+- Blocked on: the owner, for the two retention periods. The evidence recommends 24 months for anonymised aggregates and 30 days for raw telemetry.
+  - Per-question and platform metrics need an opt-in consent text naming the purpose (D28; HB-L26).
+  - The triage share needs a content-free record of the rules-engine level.
+  - No INT or HB id is minted for either.
+- Next: deploy with `INTAKE_ANALYTICS_TENANTS_PATH` naming the synthetic tenant; three screenshots after the deploy.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:

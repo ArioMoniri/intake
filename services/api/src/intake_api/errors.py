@@ -11,6 +11,7 @@ __all__ = [
     "InsufficientUserAuthentication",
     "admin_console_unconfigured",
     "admin_refused",
+    "analytics_refused",
     "benchmark_refused",
     "age_gate_refused",
     "break_glass_refused",
@@ -436,6 +437,17 @@ def safety_inbox_refused(status: int, code: str) -> HTTPException:
     (another tenant's entry is not found too); 409 — already acknowledged;
     422 — a body field the acknowledgement does not take. ``code`` is
     machine-shaped and echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
+def analytics_refused(status: int, code: str) -> HTTPException:
+    """INT-490: the Analytics read refused. 400 — a parameter it does not take
+    (it takes ``period`` and nothing else: no free-form filter, LD-06), a
+    period that is not an ISO week, a week that has not closed, or a tenant
+    named for a release that is platform-wide; 503 — the retention or tenant
+    configuration is set but unusable, or a stored row cannot be counted as it
+    stands. ``code`` is machine-shaped and echoes no submitted value
+    (invariant 6)."""
     return HTTPException(status_code=status, detail={"error": code})
 
 

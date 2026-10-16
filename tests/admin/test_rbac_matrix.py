@@ -156,6 +156,15 @@ LANES_APPROVERS = frozenset(
     {AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER, AdminRole.COMPLIANCE_OFFICER}
 )
 LANES_BRIEF_READERS = LANES_SAFE_ACTORS | LANES_REQUESTERS | LANES_APPROVERS | {AdminRole.AUDITOR}
+ANALYTICS_READERS = frozenset(
+    {
+        AdminRole.RESEARCHER,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.QMS_OWNER,
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.AUDITOR,
+    }
+)
 
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
@@ -204,6 +213,8 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
     ("GET", "/admin/safety-queue"): SAFETY_QUEUE_READERS,
     ("POST", "/admin/safety-queue/{entry_id}/acknowledge"): SAFETY_QUEUE_ACKNOWLEDGERS,
+    # INT-490 — the Analytics page: the all-tenant aggregate roles (LD-06)
+    ("GET", "/admin/analytics"): ANALYTICS_READERS,
 }
 
 
