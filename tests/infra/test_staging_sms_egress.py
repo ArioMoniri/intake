@@ -201,3 +201,61 @@ def test_the_api_names_the_one_proxy_egress_admits_and_keeps_no_route_of_its_own
     for name, service in _compose()["services"].items():
         if name != "api":
             assert "INTAKE_SMS_EGRESS_PROXY_URL" not in (service.get("environment") or {}), name
+
+
+# --- INT-442 x ADR-042: two proxies on one host, and neither carries the other -----------
+
+EGRESS_RENDERER = REPO / "scripts" / "security" / "render_egress_proxy_conf.py"
+
+
+def _egress_renderer() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("render_egress_proxy_conf_x528", EGRESS_RENDERER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["render_egress_proxy_conf_x528"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_each_proxy_renders_its_own_purpose_and_never_the_other_s(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One list holding both an SMS row and a hosted-model row: the SMS proxy
+    admits the SMS host alone, the hosted proxy the hosted host alone."""
+    hosted_row = {
+        "name": "vendor-a",
+        "host": "api.vendor-a.example",
+        "port": 443,
+        "protocol": "https",
+        "purpose_id": EgressPurpose.HOSTED_MODEL_INFERENCE.value,
+        "purpose": "test row",
+        "basis": "test row",
+        "phi_allowed": False,
+    }
+    path = tmp_path / "egress-allowlist.yaml"
+    path.write_text(
+        yaml.safe_dump({"version": 1, "tiers": {"dev": [hosted_row], "phi_path": [_sms_row()]}}),
+        encoding="utf-8",
+    )
+    sms = "\n".join(_directives(_renderer().render(path)))
+    assert "api.netgsm.com.tr" in sms and "vendor-a" not in sms
+    egress = _egress_renderer()
+    monkeypatch.setattr(egress, "ALLOWLIST", path)
+    hosted = "\n".join(_directives(egress.render_synthetic()))
+    assert "api.vendor-a.example" in hosted and "netgsm" not in hosted
+    assert "netgsm" not in egress.render_build()
+
+
+def test_the_two_proxies_share_no_network_and_each_inner_one_only_with_the_api() -> None:
+    compose = _compose()
+    sms, shared = set(_service("sms-egress")["networks"]), set(_service("egress-proxy")["networks"])
+    assert sms.isdisjoint(shared), "neither proxy may reach the other's network"
+    members = {
+        net: {name for name, svc in compose["services"].items() if net in svc.get("networks", [])}
+        for net in ("sms-out", "outbound")
+    }
+    assert members == {"sms-out": {"api", "sms-egress"}, "outbound": {"api", "egress-proxy"}}
+    api = _service("api")
+    assert {"sms-out", "outbound"} <= set(api["networks"])
+    assert api["depends_on"]["sms-egress"] == {"condition": "service_started"}
+    assert api["depends_on"]["egress-proxy"] == {"condition": "service_started"}

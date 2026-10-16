@@ -89,6 +89,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 __all__ = [
     "DEDICATED_PERSONAL_PROXIES",
     "DENIED_RANGES",
+    "PURPOSE_PROXIES",
     "VENDOR_LLM_DOMAINS",
     "AllowlistEntry",
     "Authorization",
@@ -844,6 +845,22 @@ DEDICATED_PERSONAL_PROXIES: Final[Mapping[EgressPurpose, str]] = MappingProxyTyp
     {EgressPurpose.SMS_OTP_DELIVERY: "http://sms-egress:3128"}
 )
 
+#: INT-442 x ADR-042: the synthetic host has two forward proxies, and a purpose
+#: that rides one rides only its own, whatever the data class. The SMS call
+#: rides ``sms-egress`` (above); a hosted-model call (ADR-035) rides
+#: ``egress-proxy``, the default-deny proxy rendered from the allow-list's
+#: hosted rows. Either may also go direct, where the process resolves and pins
+#: itself. A dedicated proxy carries nothing but its own purpose, so the SMS
+#: proxy refuses a hosted-model call even though that call is not personal data,
+#: and the shared proxy never carries the SMS call. Each proxy's rendered config
+#: refuses the other's host at the network as well.
+PURPOSE_PROXIES: Final[Mapping[EgressPurpose, str]] = MappingProxyType(
+    {
+        **DEDICATED_PERSONAL_PROXIES,
+        EgressPurpose.HOSTED_MODEL_INFERENCE: "http://egress-proxy:3128",
+    }
+)
+
 
 def _refuse_personal_proxy(context: EgressContext, proxy: str | None) -> None:
     """A personal-data transport may not delegate its pin (INT-203), except the
@@ -857,6 +874,29 @@ def _refuse_personal_proxy(context: EgressContext, proxy: str | None) -> None:
             "its phi_path tier is empty, so this call would lose the in-process "
             "resolve-and-pin and gain nothing (files/10 §4; ADR-025)"
         )
+
+
+def _refuse_crossed_proxy(context: EgressContext, proxy: str | None) -> None:
+    """A routed purpose rides only its own proxy, and a dedicated proxy carries
+    only its own purpose (:data:`PURPOSE_PROXIES`), whatever the data class."""
+    if proxy is None:
+        return
+    bound = PURPOSE_PROXIES.get(context.purpose)
+    if bound is not None and proxy != bound:
+        raise ValueError(
+            f"a {context.purpose} transport rides only its own forward proxy "
+            "(PURPOSE_PROXIES; ADR-042, INT-442), never another"
+        )
+    if bound is None and proxy in DEDICATED_PERSONAL_PROXIES.values():
+        raise ValueError(
+            "this forward proxy is dedicated to another purpose and carries no "
+            f"{context.purpose} call (DEDICATED_PERSONAL_PROXIES; ADR-042)"
+        )
+
+
+def _refuse_proxy(context: EgressContext, proxy: str | None) -> None:
+    _refuse_personal_proxy(context, proxy)
+    _refuse_crossed_proxy(context, proxy)
 
 
 def guarded_transport(
@@ -897,8 +937,13 @@ def guarded_transport(
     surfaces where it is made instead of in a receipt. The one exception is
     :data:`DEDICATED_PERSONAL_PROXIES` (ADR-042): the SMS purpose through the
     SMS-only proxy, which renders that purpose's row and resolves at connect.
+
+    **A routed purpose rides only its own proxy** (:data:`PURPOSE_PROXIES`):
+    the SMS call only ``sms-egress``, a hosted-model call only
+    ``egress-proxy``, whatever the data class; and the SMS proxy carries no
+    other purpose at all.
     """
-    _refuse_personal_proxy(context, proxy)
+    _refuse_proxy(context, proxy)
     if inner is None:
         inner = httpx.HTTPTransport(proxy=proxy) if proxy else httpx.HTTPTransport()
     return _GuardedTransport(
@@ -948,11 +993,12 @@ def guarded_async_transport(
     """:func:`guarded_transport` for an async caller (INT-329).
 
     Same parameters, same refusals — a personal-data transport may not take
-    ``proxy`` — and the same admission step. ``inner`` is an async transport:
+    ``proxy`` except ADR-042's pair, and a routed purpose rides only its own —
+    and the same admission step. ``inner`` is an async transport:
     tests pass ``httpx.MockTransport``; the default is a standard
     ``httpx.AsyncHTTPTransport``.
     """
-    _refuse_personal_proxy(context, proxy)
+    _refuse_proxy(context, proxy)
     if inner is None:
         inner = httpx.AsyncHTTPTransport(proxy=proxy) if proxy else httpx.AsyncHTTPTransport()
     return _GuardedAsyncTransport(

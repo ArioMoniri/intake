@@ -138,3 +138,74 @@ def test_the_in_process_checks_still_run_behind_the_dedicated_proxy(
     with pytest.raises(EgressDenied):
         run(post("https://api.netgsm.com.tr/sms/rest/v2/otp"))
     assert calls == []
+
+
+# --- INT-442 x ADR-042: two proxies, and neither carries the other's purpose -------------
+
+HOSTED = EgressPurpose.HOSTED_MODEL_INFERENCE
+
+
+def test_each_routed_purpose_is_bound_to_its_one_proxy() -> None:
+    """The SMS call rides only sms-egress; a hosted-model call only egress-proxy."""
+    from intake_platform import egress
+
+    assert dict(egress.PURPOSE_PROXIES) == {
+        EgressPurpose.SMS_OTP_DELIVERY: SMS_PROXY,
+        HOSTED: SHARED_PROXY,
+    }
+
+
+@pytest.mark.parametrize("data_class", list(DataClass), ids=str)
+@pytest.mark.parametrize(
+    "purpose",
+    sorted(set(EgressPurpose) - {EgressPurpose.SMS_OTP_DELIVERY}, key=str),
+    ids=str,
+)
+def test_the_sms_proxy_carries_no_other_purpose_whatever_its_class(
+    purpose: EgressPurpose, data_class: DataClass
+) -> None:
+    """Non-personal included: a hosted-model call is not personal data, and the
+    SMS proxy refuses it anyway, in process as well as at the network."""
+    context = EgressContext(purpose=purpose, data_class=data_class)
+    with pytest.raises(ValueError):
+        guarded_transport(_policy(), context, proxy=SMS_PROXY)
+    with pytest.raises(ValueError):
+        guarded_async_client(_policy(), context, proxy=SMS_PROXY)
+
+
+@pytest.mark.parametrize("data_class", list(DataClass), ids=str)
+@pytest.mark.parametrize(
+    "proxy",
+    [SHARED_PROXY, "http://egress-proxy.evil.example:3128", "http://sms-egress:3129"],
+    ids=["shared-proxy", "lookalike", "other-port"],
+)
+def test_the_sms_purpose_rides_no_other_proxy_whatever_its_class(
+    proxy: str, data_class: DataClass
+) -> None:
+    context = EgressContext(purpose=EgressPurpose.SMS_OTP_DELIVERY, data_class=data_class)
+    with pytest.raises(ValueError):
+        guarded_transport(_policy(), context, proxy=proxy)
+    with pytest.raises(ValueError):
+        guarded_async_client(_policy(), context, proxy=proxy)
+
+
+@pytest.mark.parametrize(
+    "proxy",
+    [SMS_PROXY, "http://egress-proxy.evil.example:3128", "http://egress-proxy:3129"],
+    ids=["sms-proxy", "lookalike", "other-port"],
+)
+def test_a_hosted_model_call_rides_no_proxy_but_the_shared_one(proxy: str) -> None:
+    context = EgressContext(purpose=HOSTED, data_class=DataClass.NON_PERSONAL)
+    with pytest.raises(ValueError):
+        guarded_transport(_policy(), context, proxy=proxy)
+    with pytest.raises(ValueError):
+        guarded_async_client(_policy(), context, proxy=proxy)
+
+
+def test_the_near_misses_still_construct() -> None:
+    """The controls: each purpose on its own proxy, and either one direct."""
+    hosted = EgressContext(purpose=HOSTED, data_class=DataClass.NON_PERSONAL)
+    guarded_transport(_policy(), hosted, proxy=SHARED_PROXY)
+    guarded_transport(_policy(), hosted)
+    guarded_transport(_policy(), SMS, proxy=SMS_PROXY)
+    guarded_transport(_policy(), SMS)

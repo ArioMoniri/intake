@@ -51,6 +51,17 @@ The deployment around it:
 - The API joins `sms-out` and names the proxy in `INTAKE_SMS_EGRESS_PROXY_URL`. Only the Netgsm
   wiring reads that variable, and it refuses any other value.
 
+**Two proxies, neither carrying the other's purpose.** INT-442 (#774) put the shared proxy on
+the same host as `egress-proxy`, on its own `outbound` and `vendor` networks. The two coexist:
+
+- the API sits on `outbound` and `sms-out`, and nothing else shares either;
+- the two proxies share no network;
+- `intake_platform.egress.PURPOSE_PROXIES` binds each routed purpose to its one proxy, whatever
+  the data class: the SMS call only `sms-egress`, a hosted-model call only `egress-proxy`. The
+  SMS proxy carries no other purpose at all, even a non-personal one;
+- at the network, each proxy's config is rendered from its own purpose's rows, so neither admits
+  the other's host.
+
 ## Consequences
 
 **Easier.** SMS can go live on the synthetic host without giving the API a general route out.
@@ -64,10 +75,12 @@ re-renders it when the SMS row lands.
 
 - `tests/security/test_egress_sms_proxy.py`: the one admitted pair; every near miss refused (the
   shared proxy, another port, scheme or lookalike host, another purpose, a pseudonymous call); the
-  in-process checks still running behind it.
+  in-process checks still running behind it; each routed purpose bound to its own proxy, and the
+  SMS proxy refusing every other purpose in every data class.
 - `tests/infra/test_staging_sms_egress.py`: only the SMS host on 443; nothing without the row;
   other purposes never rendered; cache and denied-range directives; a content-free log; the
-  service's privileges; no other service on `sms-out`; the API naming exactly the admitted URL.
+  service's privileges; no other service on `sms-out`; the API naming exactly the admitted URL;
+  the two proxies on disjoint networks, each rendering only its own purpose's host.
 
 `observability/registry.yaml` carries `sms-egress` (invariant 13): self-hostable, a
 `tcp_connect` probe, the squid licence record, and `self_hosted_now: false` until a deploy carrying
