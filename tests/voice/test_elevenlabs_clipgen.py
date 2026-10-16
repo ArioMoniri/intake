@@ -28,11 +28,14 @@ from voice_clips.gateway import (
     CloudClipGenNotBudgetedError,
     DeliveryProfileMismatchError,
     ElevenLabsClipGenGateway,
+    MarkupInScriptError,
     NumeralInScriptError,
     TtsNotConfiguredError,
     TtsRefusedError,
     TtsUnavailableError,
+    assert_numeral_free,
     tts_gateway_from_env,
+    wire_text,
 )
 
 _SECRET = "sk-do-not-log-me"  # noqa: S105 - a fake key for the fixture, never a real one
@@ -126,6 +129,82 @@ def test_a_numeral_is_refused_before_the_wire() -> None:
 
     with pytest.raises(NumeralInScriptError):
         _gateway(handler).synthesise(text_tr="2 mg.", voice_id="el-tr-voice", profile=ROUTINE)
+
+
+@pytest.mark.parametrize(
+    "text_tr",
+    [
+        "Merhaba. <break/> Nasılsınız?",  # SSML: the v2 break tag
+        "<speak>Merhaba.</speak>",
+        "[whispers] Merhaba.",  # an audio tag (eleven_v3 / eleven_v4)
+        "Merhaba [pause] nasılsınız?",
+        "Merhaba.]",
+    ],
+)
+def test_markup_is_refused_before_the_wire(text_tr: str) -> None:
+    """INT-424: no SSML and no audio tag ever rides inside scripted text. A tag
+    is words the model was not given by the protocol (invariant 10), and the
+    SSML break carries a duration numeral (invariant 22). Refused, not stripped."""
+
+    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover - never reached
+        return httpx.Response(200, content=b"\x00\x00")
+
+    with pytest.raises(MarkupInScriptError):
+        _gateway(handler).synthesise(text_tr=text_tr, voice_id="el-tr-voice", profile=ROUTINE)
+
+
+# --- the one composer of the wire text (INT-443 with INT-449, D20) -----------
+
+
+@pytest.mark.parametrize(
+    ("context", "wire"),
+    [
+        ("welcome", "[warmly] Merhaba."),
+        ("routine", "[calm] Merhaba."),
+        ("sensitive", "[softly] [reassuring] Merhaba."),
+        ("acknowledgement", "[gently] Merhaba."),
+        ("closing", "[warmly] Merhaba."),
+        ("instrument", "Merhaba."),
+        ("red", "Merhaba."),
+    ],
+)
+def test_the_wire_text_is_the_rows_tags_then_the_script(context: str, wire: str) -> None:
+    assert wire_text("Merhaba.", delivery_profile(context)) == wire
+
+
+@pytest.mark.parametrize(
+    ("text_tr", "error"),
+    [
+        ("[warmly] Merhaba.", MarkupInScriptError),  # a tag never rides inside the script
+        ("Merhaba. [laughs]", MarkupInScriptError),
+        ("Merhaba 5.", NumeralInScriptError),
+    ],
+)
+def test_the_script_is_gated_before_any_tag_exists(text_tr: str, error: type[Exception]) -> None:
+    with pytest.raises(error):
+        wire_text(text_tr, ROUTINE)
+
+
+def test_the_numeral_gate_reads_the_wire_text_and_admits_the_tags() -> None:
+    assert_numeral_free("[softly] [reassuring] Merhaba.")  # tags are not numerals
+    with pytest.raises(NumeralInScriptError):
+        assert_numeral_free("[calm] Merhaba ½.")  # near miss: one vulgar fraction
+
+
+def test_punctuation_pacing_is_not_markup() -> None:
+    """Near-miss control: the ellipsis, the dash, the semicolon and the comma are
+    how text paces itself on this model, and they reach the wire unchanged,
+    after the profile's own tag (INT-449: the tag is on the wire only)."""
+    text = "Peki… Şikâyetiniz — kısaca — ne zaman başladı; dün mü, bugün mü?"
+    seen: dict[str, Any] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, content=b"\x01\x00")
+
+    _gateway(handler).synthesise(text_tr=text, voice_id="el-tr-voice", profile=ROUTINE)
+    assert seen["body"]["text"] == ROUTINE.wire_prefix + text
+    assert seen["body"]["text"].endswith(text)
 
 
 def test_a_non_2xx_answer_is_a_refusal_that_does_not_echo_the_key() -> None:

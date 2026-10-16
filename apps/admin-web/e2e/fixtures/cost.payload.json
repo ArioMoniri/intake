@@ -2,7 +2,7 @@
   "currency": "USD",
   "config": {
     "path": "infra/costs/unit-prices.yaml",
-    "sha256": "ad96a1162363f38454dffbad87a9dd819ee21034316f0dee180469fd05664e0d",
+    "sha256": "89859692c05dbafe08a1ceb838ed4273a87df6fc2321d6b3d36f520675fe4083",
     "blocker": "HB-O8"
   },
   "source": {
@@ -18,9 +18,7 @@
       "vendor_note": null,
       "unit": "audio_second",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr"
-      ],
+      "profiles": ["residency_tr"],
       "usage_metric": "voice_stt_audio_s",
       "usage_metric_status": "planned",
       "usage_note": null,
@@ -37,9 +35,7 @@
       "vendor_note": null,
       "unit": "character",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr"
-      ],
+      "profiles": ["residency_tr"],
       "usage_metric": "voice_tts_chars",
       "usage_metric_status": "live",
       "usage_note": null,
@@ -56,10 +52,7 @@
       "vendor_note": null,
       "unit": "token",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr",
-        "typed"
-      ],
+      "profiles": ["residency_tr", "typed"],
       "usage_metric": "voice_talker_tokens",
       "usage_metric_status": "planned",
       "usage_note": null,
@@ -76,10 +69,7 @@
       "vendor_note": null,
       "unit": "token",
       "attribution": "direct",
-      "profiles": [
-        "residency_tr",
-        "typed"
-      ],
+      "profiles": ["residency_tr", "typed"],
       "usage_metric": null,
       "usage_metric_status": null,
       "usage_note": "the INT-101 session ledger counts extract_slots tokens per session, and no catalogued series exports them (docs/evidence/INT-101.md F1)",
@@ -151,6 +141,91 @@
       "usage_metric": null,
       "usage_metric_status": null,
       "usage_note": "no catalogued host-uptime series exists on main",
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "hosted_llm_input",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "hosted_llm_output",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "hosted_asr_input",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "hosted_asr_output",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "hosted_tts",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "character",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_characters_total",
+      "usage_metric_status": "live",
+      "usage_note": "the speech route reports no usage; characters sent are what is metered, so the owner's per-character price is derived from the provider's invoice for the same period",
       "price": {
         "state": "not_configured",
         "usd_per_unit": null,
@@ -299,6 +374,81 @@
           ]
         },
         {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
           "component": "llm_talker",
           "vendor": "self-hosted",
           "profile": "typed",
@@ -392,6 +542,81 @@
             "usage not metered: no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
         }
       ],
       "by_vendor": [
@@ -400,39 +625,40 @@
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "asr",
-            "tts_dynamic",
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
           "missing": [
-            "gpu_host_onvizit_api"
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         },
         {
@@ -440,37 +666,40 @@
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
           "missing": [
-            "gpu_host_onvizit_api"
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         }
       ],
@@ -487,7 +716,12 @@
             "clip_synthesis",
             "sms",
             "gpu_host_onvizit_api",
-            "gpu_host_team"
+            "gpu_host_team",
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         },
         {
@@ -500,7 +734,12 @@
             "clip_synthesis",
             "sms",
             "gpu_host_onvizit_api",
-            "gpu_host_team"
+            "gpu_host_team",
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         }
       ],
@@ -607,6 +846,71 @@
           "reasons": [
             "price not configured",
             "usage not metered: no catalogued host-uptime series exists on main"
+          ]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
         }
       ]
@@ -750,6 +1054,81 @@
           ]
         },
         {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
           "component": "llm_talker",
           "vendor": "self-hosted",
           "profile": "typed",
@@ -843,6 +1222,81 @@
             "usage not metered: no catalogued host-uptime series exists on main",
             "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
           ]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
         }
       ],
       "by_vendor": [
@@ -851,39 +1305,40 @@
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "asr",
-            "tts_dynamic",
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "residency_tr",
           "state": "incomplete",
           "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
           "missing": [
-            "gpu_host_onvizit_api"
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         },
         {
@@ -891,37 +1346,40 @@
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "llm_talker",
-            "llm_extraction"
-          ]
+          "missing": ["llm_talker", "llm_extraction"]
         },
         {
           "vendor": "elevenlabs",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "clip_synthesis"
-          ]
+          "missing": ["clip_synthesis"]
         },
         {
           "vendor": null,
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
-          "missing": [
-            "sms",
-            "gpu_host_team"
-          ]
+          "missing": ["sms", "gpu_host_team"]
         },
         {
           "vendor": "aws",
           "profile": "typed",
           "state": "incomplete",
           "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
           "missing": [
-            "gpu_host_onvizit_api"
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         }
       ],
@@ -938,7 +1396,12 @@
             "clip_synthesis",
             "sms",
             "gpu_host_onvizit_api",
-            "gpu_host_team"
+            "gpu_host_team",
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         },
         {
@@ -951,7 +1414,12 @@
             "clip_synthesis",
             "sms",
             "gpu_host_onvizit_api",
-            "gpu_host_team"
+            "gpu_host_team",
+            "hosted_llm_input",
+            "hosted_llm_output",
+            "hosted_asr_input",
+            "hosted_asr_output",
+            "hosted_tts"
           ]
         }
       ],
@@ -1059,6 +1527,71 @@
             "price not configured",
             "usage not metered: no catalogued host-uptime series exists on main"
           ]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "unit": "character",
+          "usage_state": "source_unavailable",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "price not configured",
+            "no Prometheus source is configured for the console, so no usage is read: every quantity is unavailable, not zero"
+          ]
         }
       ]
     }
@@ -1087,12 +1620,15 @@
         "clip_synthesis",
         "sms",
         "gpu_host_onvizit_api",
-        "gpu_host_team"
+        "gpu_host_team",
+        "hosted_llm_input",
+        "hosted_llm_output",
+        "hosted_asr_input",
+        "hosted_asr_output",
+        "hosted_tts"
       ],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "all-vendors-month",
@@ -1117,12 +1653,15 @@
         "clip_synthesis",
         "sms",
         "gpu_host_onvizit_api",
-        "gpu_host_team"
+        "gpu_host_team",
+        "hosted_llm_input",
+        "hosted_llm_output",
+        "hosted_asr_input",
+        "hosted_asr_output",
+        "hosted_tts"
       ],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "self-hosted-day",
@@ -1139,16 +1678,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "asr",
-        "tts_dynamic",
-        "llm_talker",
-        "llm_extraction"
-      ],
+      "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "self-hosted-month",
@@ -1165,16 +1697,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "asr",
-        "tts_dynamic",
-        "llm_talker",
-        "llm_extraction"
-      ],
+      "missing": ["asr", "tts_dynamic", "llm_talker", "llm_extraction"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "elevenlabs-day",
@@ -1191,13 +1716,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "clip_synthesis"
-      ],
+      "missing": ["clip_synthesis"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "elevenlabs-month",
@@ -1214,13 +1735,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "clip_synthesis"
-      ],
+      "missing": ["clip_synthesis"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "aws-day",
@@ -1237,13 +1754,9 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
-      "missing": [
-        "gpu_host_onvizit_api"
-      ],
+      "missing": ["gpu_host_onvizit_api"],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
     },
     {
       "budget_id": "aws-month",
@@ -1260,13 +1773,59 @@
       "spend_state": "unknown",
       "spend_usd": null,
       "status": "not_configured",
+      "missing": ["gpu_host_onvizit_api"],
+      "reason": "budget not configured",
+      "alerts": ["CostBudgetNotConfigured"]
+    },
+    {
+      "budget_id": "openai-day",
+      "scope": "vendor",
+      "vendor": "openai",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
       "missing": [
-        "gpu_host_onvizit_api"
+        "hosted_llm_input",
+        "hosted_llm_output",
+        "hosted_asr_input",
+        "hosted_asr_output",
+        "hosted_tts"
       ],
       "reason": "budget not configured",
-      "alerts": [
-        "CostBudgetNotConfigured"
-      ]
+      "alerts": ["CostBudgetNotConfigured"]
+    },
+    {
+      "budget_id": "openai-month",
+      "scope": "vendor",
+      "vendor": "openai",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": [
+        "hosted_llm_input",
+        "hosted_llm_output",
+        "hosted_asr_input",
+        "hosted_asr_output",
+        "hosted_tts"
+      ],
+      "reason": "budget not configured",
+      "alerts": ["CostBudgetNotConfigured"]
     }
   ],
   "alerts": {
@@ -1310,6 +1869,16 @@
       {
         "alert": "CostBudgetNotConfigured",
         "budget_id": "aws-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "openai-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "openai-month",
         "severity": "ticket"
       }
     ]

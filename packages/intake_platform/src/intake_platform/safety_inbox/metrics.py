@@ -4,9 +4,10 @@ files/08 §4 E: *"``triage.events_total`` counts REDs that fired; these two
 count REDs nobody answered, which is the number that decides an outcome."*
 The first two families are those two; the other two are the ones this issue
 adds so the 60 s half of files/02 §8.2 is paged too, not only the SLA half — an
-entry waiting too long for the store, and a RED whose route never made one. Every
-family is catalogued in observability/metrics_catalog.yaml (invariant 13) and
-alerted in infra/observability/safety-rules.yaml.
+entry waiting too long for the store, and a RED whose route never made one. Those
+four are catalogued in observability/metrics_catalog.yaml (invariant 13) and
+alerted in infra/observability/safety-rules.yaml. INT-475 adds a fifth, catalogued
+too: a notification the API raised whose audit row could not be appended.
 
 Label discipline (invariant 6): ``tenant`` is a tenant id and ``age_band`` a
 closed :class:`~intake_platform.safety_inbox.sla.AgeBand` member. No session,
@@ -25,6 +26,7 @@ __all__ = [
     "CLINIC_RED_ACK_LATENCY_MIN",
     "CLINIC_RED_INBOX_PENDING_AGE_S",
     "CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL",
+    "CLINIC_RED_NOTIFICATION_UNAUDITED_TOTAL",
     "CLINIC_RED_UNACKNOWLEDGED_TOTAL",
     "UNREADABLE_TENANT",
     "mark_inbox_unreadable",
@@ -65,6 +67,17 @@ CLINIC_RED_INBOX_PENDING_AGE_S = Gauge(
 CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL = Counter(
     "clinic_red_inbox_route_failures_total",
     "REDs whose clinician route into the Safety inbox raised, so no entry was made.",
+)
+
+#: INT-475: an audit row (invariant 4) the API owed for a RED's clinic route —
+#: a RED or on-site staff notification it put in the inbox, or a RED it could
+#: not route — that could not be appended. The notification is never held back
+#: for its paperwork (a RED answer does not wait on the audit chain), so the
+#: missing row is counted here instead of passing silently.
+CLINIC_RED_NOTIFICATION_UNAUDITED_TOTAL = Counter(
+    "clinic_red_notification_unaudited_total",
+    "Audit rows the API owed for a RED's clinic route (a RED or on-site staff "
+    "notification raised, or a RED it could not route) that could not be written.",
 )
 
 #: The ``tenant`` value that means "the inbox could not be read". A sweep that

@@ -11,7 +11,8 @@ near-miss control:
   and has a confidential console client whose secret and redirect are
   host-generated values substituted at import.
 - oauth2-proxy injects the session's access token, never the ID token, as
-  the console's bearer. Only GET /healthz skips the login.
+  the console's bearer. Only GET /healthz skips the login. Its request and
+  auth logs are off, because both name the signed-in staff email.
 - Caddy never routes Keycloak's admin console, the master realm or its
   management endpoints.
 - The API's admin gate reads the realm's issuer, the `api` audience and a
@@ -58,6 +59,8 @@ OAUTH2_PROXY_IMAGE = "/".join(("quay.io", "oauth2-proxy", "oauth2-proxy")) + (
 )
 PINNED = re.compile(r"^[a-z0-9./_-]+:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$")
 REQUIRED = re.compile(r"\$\{([A-Z_][A-Z0-9_]*):\?[^}]+\}")
+#: oauth2-proxy writes both logs unless told not to, and both name the signed-in email.
+EMAIL_LOGS = ("OAUTH2_PROXY_REQUEST_LOGGING", "OAUTH2_PROXY_AUTH_LOGGING")
 
 
 def _compose() -> dict[str, Any]:
@@ -71,6 +74,10 @@ def _service(name: str) -> dict[str, Any]:
 def _env(name: str) -> dict[str, str]:
     env = _service(name).get("environment", {})
     return {str(k): str(v) for k, v in env.items()}
+
+
+def _email_logs_off(env: dict[str, str]) -> bool:
+    return all(env.get(key) == "false" for key in EMAIL_LOGS)
 
 
 def _realm() -> dict[str, Any]:
@@ -201,6 +208,17 @@ class TestLoginGate:
         assert env["OAUTH2_PROXY_SKIP_AUTH_ROUTES"] == "GET=^/healthz$$"
         assert env["OAUTH2_PROXY_COOKIE_SECURE"] == "true"
         assert REQUIRED.fullmatch(env["OAUTH2_PROXY_COOKIE_SECRET"])
+
+    def test_no_log_line_names_the_signed_in_staff_member(self) -> None:
+        assert _email_logs_off(_env("oauth2-proxy"))
+
+    def test_near_miss_the_default_logging_fails_the_same_check(self) -> None:
+        env = _env("oauth2-proxy")
+        default = {k: v for k, v in env.items() if k not in EMAIL_LOGS}
+        assert not _email_logs_off(default), "oauth2-proxy logs both unless told not to"
+        for key in EMAIL_LOGS:
+            assert not _email_logs_off({**default, key: "false"}), "one log alone still names"
+            assert not _email_logs_off({**env, key: "true"})
 
 
 # --- the edge --------------------------------------------------------------------------------
