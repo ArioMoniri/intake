@@ -178,7 +178,9 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-440 voice end-to-end test, GitHub #756).
     # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
-    assert len(ids) == 347
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads; GitHub #890).
+    assert len(ids) == 348
     import re
 
     for i in ids:

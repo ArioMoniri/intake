@@ -3502,3 +3502,24 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-16T10:20:00+03:00 · INT-524 · doing (owner commit pending)
+- Goal: a new push to a pull request cancels that PR's superseded CI runs, so the three intake-aws-ci runners build only current heads, and a push to main is never cancelled (GitHub #890). Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Read GitHub's concurrency semantics from docs.github.com and pin the source in the evidence.
+  - Write tests/ci/test_workflow_concurrency.py first: pin the block in both workflows, model the documented semantics, and add near misses.
+  - Ship the workflow change as an owner patch, because .github/** is owner-only.
+- Tests added (with the near-miss negative for any safety rule):
+  - The block is pinned in ci.yml and security.yml, and no job sets its own concurrency.
+  - A seven-run model: a PR's runs share a group and cancel; two PRs never share one; main never cancels and nothing joins its group; two tags on one commit stay apart; ci and security never meet.
+  - Near misses (11): the issue's ref-less group (a v* tag would replace main's waiting security run), cancel always, cancel inverted, ref-only, sha-for-PRs, workflow-only, no workflow prefix, missing block, `queue: max`, an unmodelled trigger, an expression outside the model.
+  - Red run: 3 failed, 15 passed. Green run, with the patch applied: 18 passed; tests/ci 308 passed; with the workflow readers, backlog and smoke, 482 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - check-py lanes above pass; ruff check and format are clean; no_placeholders, phi_scan and claims_scan are OK after staging.
+  - check-jsonschema validates both patched workflows; gitleaks and semgrep p/ci pass on them.
+  - check-integration is CI-only (HB-I1).
+- Invariants touched and still passing: 14 (CI gates never skipped; the patch only adds a concurrency block). 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: the group carries the ref beyond the issue's key, so that security.yml's v* tag runs cannot replace or join main's group (evidence §The block).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — apply and commit issue-drafts/owner-524-concurrency.patch with its .msg on this branch, then push; standing .github/** ownership, so no new HB id.
+- Next: after the owner commit is pushed, open the PR from .scratch/pr-524.md and check that a superseded run shows `cancelled` on its run history.
+- LOOP_STATUS: WAITING_HUMAN
