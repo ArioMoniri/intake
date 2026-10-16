@@ -6,7 +6,10 @@
 # named tenant-<tenant_id>. It posts to transit/keys/<name> before every wrap:
 # that is create the first time and update after. It never rotates, exports or
 # destroys a key from the API, so no capability for those exists here.
-# Nothing outside transit/ is granted.
+# Outside transit/, one grant (INT-428, ADR-035): the hosted-lane provider
+# keys under secret/model-lanes/. The console writes a staged key, promotes it
+# on approval and destroys the staged copy; the API reads a key to call the
+# provider. No other KV path is reachable.
 #
 # Caveat: OpenBao's trailing glob also matches the key's sub-paths, such as
 # /config. Tightening that needs a per-tenant path list, which the staging
@@ -26,4 +29,12 @@ path "transit/decrypt/tenant-*" {
 
 path "transit/rewrap/tenant-*" {
   capabilities = ["update"]
+}
+
+path "secret/data/model-lanes/*" {
+  capabilities = ["create", "update", "read"]
+}
+
+path "secret/metadata/model-lanes/*" {
+  capabilities = ["read", "list", "delete"]
 }

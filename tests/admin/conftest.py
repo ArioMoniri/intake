@@ -20,3 +20,7 @@ if str(_TESTS_DIR / "api") not in sys.path:
 # a second, drifting copy of them.
 if str(_TESTS_DIR / "voice") not in sys.path:
     sys.path.append(str(_TESTS_DIR / "voice"))
+# INT-428: the Model lanes suite composes routers with the platform suite's
+# model-lane fakes rather than a second, drifting copy of them.
+if str(_TESTS_DIR / "platform") not in sys.path:
+    sys.path.append(str(_TESTS_DIR / "platform"))

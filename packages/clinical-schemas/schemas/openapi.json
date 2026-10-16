@@ -2267,6 +2267,19 @@
             "default": null,
             "description": "RED location axis — required on RED with no permitted default (CLAUDE.md invariant 21; files/02 §5.3 Axis 3); absent on GREEN/YELLOW."
           },
+          "red_rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "RED only: the fired rule whose register and action script this RED delivers, as the rules engine chose it (INT-453). ``rules`` is ordered by severity then id, which is not the engine's winner order, so a consumer reads this and never a position. The engine sets it on every RED; absent elsewhere.",
+            "title": "Red Rule Id"
+          },
           "register": {
             "anyOf": [
               {

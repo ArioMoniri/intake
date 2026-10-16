@@ -67,27 +67,40 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Final
+from typing import Final, Protocol
 
 from protocols.dsl import Slot
 
 from intake_voice_runtime.adapters.pins import ModelPin
 from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect
+from intake_voice_runtime.extraction.boundary import PatientData
 from intake_voice_runtime.extraction.errors import CodeSlotUnbound
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
 from intake_voice_runtime.extraction.schema import unbound_code_slots
 from intake_voice_runtime.extraction.work import ExtractionContext, ExtractionOutcome
 from intake_voice_runtime.extraction.work import run_extraction as _run_extraction
-from intake_voice_runtime.ports import Clock, work_key
+from intake_voice_runtime.ports import Clock, WorkRequest, work_key
 from intake_voice_runtime.transcript import TranscriptSource
 
-__all__ = ["UNPINNED_REVISION", "ExtractSlotsHandler"]
+__all__ = ["UNPINNED_REVISION", "ExtractSlotsHandler", "VerificationSink"]
 
 #: What goes on a span when the §4.9.1 row's registry entry carries no
 #: structured ``model_id@revision``. Deliberately not hash-shaped: an auditor
 #: reading a trace must see a gap, not a value they might try to look up
 #: (files/HUMAN_BLOCKERS.md Rule 1).
 UNPINNED_REVISION: Final = "unpinned"
+
+
+class VerificationSink(Protocol):
+    """Where an answer goes *after* it has been bound (INT-430; ADR-036).
+
+    One synchronous, non-blocking method. The primary extraction above has
+    already applied its result — the binding triage reads — so nothing the
+    verifier does, or fails to do, can delay or alter it: RED never waits on
+    the council.
+    """
+
+    def request_verification(self, request: WorkRequest, data: PatientData) -> None: ...
 
 
 def _session_id_hash(session_id: str) -> str:
@@ -111,6 +124,9 @@ class ExtractSlotsHandler:
     clock: Clock
     tenant_id: str
     valuesets: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    #: INT-430. ``None`` — the state of every session composed today — means no
+    #: verifier runs; the primary extraction is unchanged either way.
+    verifier: VerificationSink | None = None
     outcomes: list[ExtractionOutcome] = field(default_factory=list, init=False)
 
     def __post_init__(self) -> None:
@@ -155,6 +171,8 @@ class ExtractSlotsHandler:
         self.outcomes.append(outcome)
         if outcome.result is not None:
             context.engine.apply_extraction(**outcome.result.as_engine_call())
+        if self.verifier is not None:
+            self.verifier.request_verification(request, data)
         return StateEffect()
 
     def _declared_slots(self, context: StateContext) -> Mapping[str, Slot]:

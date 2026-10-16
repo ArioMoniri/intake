@@ -23,7 +23,11 @@ import httpx
 import numpy as np
 import pytest
 from voice_clips.delivery import delivery_profile
-from voice_clips.gateway import ElevenLabsClipGenGateway, NumeralInScriptError
+from voice_clips.gateway import (
+    ElevenLabsClipGenGateway,
+    MarkupInScriptError,
+    NumeralInScriptError,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO / "scripts" / "voice"
@@ -127,7 +131,8 @@ def test_a_line_not_in_its_source_refuses_the_whole_run() -> None:
 def test_numerals_and_markup_are_refused_before_anything_is_sent() -> None:
     with pytest.raises(NumeralInScriptError):
         cast.verify_lines([cast.CatalogueLine("red", "Hemen 112'yi arayın.", cast.TR_TS)])
-    with pytest.raises(cast.CastRefused, match="markup"):
+    # markup meets the shared gate first (INT-424), the tool's own check after
+    with pytest.raises((MarkupInScriptError, cast.CastRefused), match="markup"):
         cast.verify_lines([cast.CatalogueLine("welcome", "[warmly] Hoş geldiniz.", cast.TR_TS)])
 
 

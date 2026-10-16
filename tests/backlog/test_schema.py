@@ -171,10 +171,35 @@ def test_ids_unique_and_well_formed() -> None:
     # order of 3 Oct 2026, GitHub #790).
     # + INT-460 (a second admin approver on the synthetic host is a second
     # Keycloak user, not a dev bearer; owner request, GitHub #785).
+    # + INT-453 (the voice-runtime RED path triggers the winning rule's own
+    # script, not rule_ids[0]; found by INT-446, GitHub #767).
+    # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
+    # both lanes and the pre-positioned RED screen mounted; found by the
+    # INT-440 voice end-to-end test, GitHub #756).
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads; GitHub #890).
+    # + INT-501 (http-cache-semantics lifted out of its advisory before its
+    # osv exception expires, GitHub #853) and INT-508 (node-forge and braces
+    # have no upstream fix: renew or replace before 1 Nov 2026, GitHub #865).
+    # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
+    # the expressive-model ADR proposal; owner request, GitHub #719).
+    # order of 3 Oct 2026, GitHub #790).
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews; owner request, GitHub #732).
+    # + INT-428 (hosted model lanes for the synthetic deployment, switchable
+    # from the admin panel with a GPU switch-over; owner decision, ADR-035,
+    # GitHub #724).
+    # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
+    # location answer reaches the server, so ON_SITE notifies staff; found by
+    # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
+    # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
+    # invariant 6, GitHub #830).
     # + INT-518 (live extraction gets the committed value table, so the code
     # slots the active life-threat rules read can bind; from the INT-441
     # clinical review, GitHub #884).
-    assert len(ids) == 345
+    assert len(ids) == 356
     import re
 
     for i in ids:
