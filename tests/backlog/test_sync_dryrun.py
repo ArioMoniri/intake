@@ -113,9 +113,10 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
+    # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
     # + INT-453 (RED path triggers the winning rule's script, found by INT-446, GitHub #767)
     # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
-    assert len(actions) == 344
+    assert len(actions) == 345
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

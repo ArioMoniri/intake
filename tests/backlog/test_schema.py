@@ -166,12 +166,14 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
     # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
     # three, each with its own user, daemon and network namespace, GitHub #799).
+    # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
+    # vulnerabilities gate stops blocking every merge; GitHub #851).
     # + INT-453 (the voice-runtime RED path triggers the winning rule's own
     # script, not rule_ids[0]; found by INT-446, GitHub #767).
     # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
     # both lanes and the pre-positioned RED screen mounted; found by the
     # INT-440 voice end-to-end test, GitHub #756).
-    assert len(ids) == 344
+    assert len(ids) == 345
     import re
 
     for i in ids:

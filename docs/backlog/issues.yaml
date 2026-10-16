@@ -6692,6 +6692,25 @@
     - "tests/ci/test_aws_runner.py pins the pool contract (every INT-463 isolation assertion, per instance, plus the netns and peer isolation); on the PR, jobs are picked up by more than one runner and two check-integration jobs run concurrently on two runners and pass (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/ci/test_aws_runner_pool.py]
   sec_row: "cicd"
+- id: INT-500
+  epic: E13-infra
+  phase: P0
+  title: "Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako"
+  # GitHub #851. On 16 Oct 2026 the required vulnerabilities job went red on
+  # main 3afc5a29. Trivy found four advisories, all with fixed releases, and
+  # every PR was blocked. osv-scanner also flagged mako in uv.lock. Each one is
+  # upgraded, not ignored (the INT-429 pattern). The issue body's "supply-chain"
+  # names no threat-model row, so the row is cicd, as it was for INT-429.
+  depends_on: [INT-429]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-500.md
+  acceptance:
+    - "shell-quote, compression and source-map-js are raised by root pnpm.overrides floors and next by admin-web's exact pin, all to their fixed releases; mako is raised in uv.lock; no .trivyignore.yaml or osv-scanner.toml entry is added, and tests/ci/test_security_gates.py pins every floor and the absence of any suppression"
+    - "trivy 0.70.0 and osv-scanner 2.5.1, run with the vulnerabilities job's own invocations, report no finding on the PR tree (evidence, before and after)"
+    - "the mobile, admin-web and package vitest suites, pnpm -r typecheck and lint, and admin-web's next build pass; the licence gate passes for the changed packages"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
 - id: INT-453
   epic: E05-voice
   phase: P0
