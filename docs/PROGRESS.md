@@ -173,6 +173,8 @@
 - Backlog: PR #867 carries the INT-441 and INT-489 rows; this PR adds none.
 - Blocked on: D18 for four review-queue cluster gates now refused (`cluster.mental_health` ×2 on `'kendim'`, `cluster.medical` and `cluster.womens_health` on `'hayir'`); push waits on the orchestrator.
 - Next: orchestrator's word to push and open the PR.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-04T00:30:00Z · INT-481 · done (PR open; deploys through the merge queue)
 - Goal: the owner's request of 4 Oct 2026, *"have grafana or related better options or more detailed things for the admin panel and all telemetrics measurements"* (GitHub #824).
 - Plan:
