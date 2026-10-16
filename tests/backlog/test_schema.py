@@ -201,7 +201,7 @@ def test_ids_unique_and_well_formed() -> None:
     # clinical review, GitHub #884).
     # + INT-521 (the live session evaluates triage on every bound answer, so a
     # RED fires from the conversation; from INT-518, GitHub #887).
-    assert len(ids) == 357
+    assert len(ids) == 358
     import re
 
     for i in ids:
