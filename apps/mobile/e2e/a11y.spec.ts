@@ -1562,7 +1562,7 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
     "request deadlines on synthesis; a late lane is skipped, nothing is taken from the patient",
   "src/lib/dialogue/ttsLane.ts": "deadlines on the TTS lane's health probe and synthesis request",
   "src/lib/dialogue/useDialogueSession.ts":
-    "the barge-in and end-of-turn level meters' sampling intervals, and the holding line's readiness window (INT-497): they listen and take nothing — a turn that ends itself loses no word (ask-ahead transcribes and extracts it), speaking again reopens the floor, a premature end widens every later wait, and the tap still ends a turn",
+    "the barge-in and end-of-turn level meters' sampling intervals, and the holding line's readiness window (INT-497): they listen and take nothing the patient cannot get back — a turn ends itself only where a spoken turn follows, that turn reopens the microphone first so later words land in the next recording (the native stop-to-record gap is measured on device after deploy), speaking again reopens the floor, a premature end widens every later wait, and the tap still ends a turn",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
   "src/lib/records/extraction.ts":

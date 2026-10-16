@@ -74,6 +74,7 @@ import { BARGE_IN_SAMPLE_MS, createSpeechOnsetDetector } from "./bargeIn";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
 import type { IntakeQuestion } from "../intake/questions";
 import { discardRecording, transcribeRecording } from "../voice";
+import { answerShapeOf, autoEndAllowed } from "./autoEnd";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { lastDeliveryKey, readCue, type DeliveryCue, type Utterance } from "./delivery";
 import { deliveryClipName, leadSources, settleTurnClips, shownDelivery } from "./deliveryClips";
@@ -514,7 +515,11 @@ export function useDialogueSession({
       }
       if (endpointer.sample(level, Date.now()) === "ended") {
         clearInterval(timer);
-        void takeTurn("auto");
+        // Asked again: a suggestion that landed during the listen can change
+        // what the taking leads to. If it no longer speaks, the tap ends it.
+        if (autoEndAllowed(questions, stateRef.current)) {
+          void takeTurn("auto");
+        }
       }
     }, ENDPOINT_SAMPLE_MS);
     endpointWatchRef.current = timer;
@@ -611,6 +616,7 @@ export function useDialogueSession({
     questionClip: Promise<string>,
     isStale: () => boolean,
     done: () => void,
+    onStarted: () => void,
   ): Promise<void> => {
     const uri = readyLeadsRef.current.get(
       deliveryClipName(holding.key as DeliveryKey, holding.deliveryContext),
@@ -627,6 +633,9 @@ export function useDialogueSession({
         done();
       }
     });
+    // Runtime review: interruptible from the holding line's first word, not
+    // from the late question's.
+    onStarted();
     let questionUri: string;
     try {
       questionUri = await questionClip;
@@ -755,6 +764,22 @@ export function useDialogueSession({
       if (stale) {
         return;
       }
+      // INT-497 runtime review: reopen the microphone FIRST. The turn before
+      // this one may have ended itself, which stopped the recorder, and
+      // anything the patient adds after that pause must land in the next
+      // recording rather than in a closed microphone. A failure here costs
+      // barge-in and nothing else, exactly as in armBargeInWatch; the
+      // listening driver tries again and owns the hard failure.
+      if (!recorder.isRecording) {
+        try {
+          await openMicrophone();
+        } catch {
+          // barge-in only — see above
+        }
+      }
+      if (stale) {
+        return;
+      }
       if (!shouldAttemptSpeech({ voiceMuted, voiceRetryIn })) {
         // Silent, and a cooldown is still owed: do not spend an admission on
         // this turn to rediscover it. The question text is on screen; move
@@ -830,8 +855,14 @@ export function useDialogueSession({
           stopPlayback();
           dispatch({ type: "speech_done" });
         };
+        // The agent is audible from here: the caption says so and the barge-in
+        // watch arms — for the holding line as for any first clip.
+        const started = () => {
+          setPlaying(true);
+          void armBargeInWatch(() => stale);
+        };
         if (holding !== null) {
-          await speakWithHolding(holding, planned.index, questionClip, () => stale, done);
+          await speakWithHolding(holding, planned.index, questionClip, () => stale, done, started);
         } else {
           // Never the same line twice in a row: a planned line the previous
           // turn already said (as its holding line) is not said again.
@@ -863,9 +894,8 @@ export function useDialogueSession({
           // strictly in order with no player switch between them, and a
           // barge-in stops the queue — and so the turn — in one call.
           playQueue([...turnClips.leads, turnClips.question], () => stale, done);
+          started();
         }
-        setPlaying(true);
-        await armBargeInWatch(() => stale);
       } catch {
         // Audio output only — the conversation is unaffected and goes on.
         if (!stale) {
@@ -909,11 +939,12 @@ export function useDialogueSession({
         }
         return;
       }
-      if (!stale) {
-        // INT-497: the turn ends when they stop. A free-text question invites
-        // a narrative, so it gets the long wait from the first word.
-        const shape = questions[listening.step]?.kind === "text" ? "narrative" : "short";
-        armEndpointWatch(() => stale, speakingAt, shape);
+      // INT-497: the turn ends when they stop — but only where taking it leads
+      // to a spoken turn, whose driver reopens the microphone (autoEnd.ts). On
+      // the last question the tap ends the turn. A free-text or RED-adjacent
+      // question gets the long wait from the first word.
+      if (!stale && autoEndAllowed(questions, stateRef.current)) {
+        armEndpointWatch(() => stale, speakingAt, answerShapeOf(questions[listening.step]));
       }
     })();
     return () => {

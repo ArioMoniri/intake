@@ -51,10 +51,13 @@
  * ending: a missing reading is skipped, a loud room raises the bar to the
  * ceiling and no higher, and the tap is always still there. What it can do is
  * end a turn during a pause longer than its wait — the measured trade, stated
- * in docs/evidence/INT-497.md. Nothing is lost when it does: the words already
- * said are transcribed and extracted against every open question (ask-ahead),
- * and speaking over the next question is a barge-in that reopens the floor and
- * widens the wait.
+ * in docs/evidence/INT-497.md. When it does, the words already said are
+ * transcribed and extracted against every open question (ask-ahead). The next
+ * turn reopens the microphone before anything else, so words added after the
+ * pause land in the next recording, and speaking over the question is a
+ * barge-in that reopens the floor and widens the wait. What remains is the
+ * native stop → record gap, measured on a device after deploy. The caller arms
+ * this only where taking the turn leads to a spoken turn (autoEnd.ts).
  *
  * Invariants 3 and 11: the input is a level the platform already computes;
  * nothing here reads, keeps or writes audio, and nothing here is an observer

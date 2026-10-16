@@ -146,6 +146,21 @@ describe("playTurnQueue — a clip that arrives while the turn is speaking", () 
     expect(h.queue.append("file:///q")).toBe(false);
     expect(h.playlist.sources).toHaveLength(1);
   });
+
+  it("never drops an appended question for a finish the player sent before the append", () => {
+    // Runtime review: the native end of the holding line can be emitted before
+    // `add` lands and arrive after it. That finish counts one track fewer than
+    // the queue now holds — it is stale: the question still plays and the turn
+    // is not over.
+    const h = harness(["file:///holding"]);
+    expect(h.queue.append("file:///q")).toBe(true);
+    h.playlist.emit({ didJustFinish: true, playing: false, currentIndex: 0, trackCount: 1 });
+    expect(h.events).not.toContain("finish");
+    expect(h.queue.finished).toBe(false);
+    expect(h.playlist.played).toBe(2); // started again, so the question plays
+    h.playlist.emit({ didJustFinish: true, playing: false, currentIndex: 1, trackCount: 2 });
+    expect(h.events).toContain("finish");
+  });
 });
 
 describe("playTurnQueue — stop is immediate and final (the barge-in guarantee)", () => {

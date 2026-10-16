@@ -15,7 +15,8 @@
  * A clip that is made while the turn is already speaking — the question
  * behind a holding line (holdingLine.ts) — joins the same playlist, so it
  * follows without a seam; one made after the playlist ran dry is refused, and
- * the caller starts a new queue for it.
+ * the caller starts a new queue for it. A finish the player sent before an
+ * append landed counts fewer tracks than the queue holds, and is not the end.
  *
  * The playlist is injected (`PlaylistFactory`), so this logic is node-tested
  * against a fake; the hook passes expo-audio's `createAudioPlaylist`. Only a
@@ -71,6 +72,8 @@ export function playTurnQueue(
   const clock = createTrackClock();
   let started = false;
   let finished = false;
+  /** Tracks this queue holds, as far as JS has told the player. */
+  let queued = uris.length;
   let stopped = false;
 
   playlist.addListener("playlistStatusUpdate", (status) => {
@@ -91,6 +94,13 @@ export function playTurnQueue(
     if (seen.join !== undefined) {
       hooks.onJoin(seen.join);
     }
+    if (status.didJustFinish && status.trackCount < queued) {
+      // Runtime review: the end of an earlier track, emitted before an `add`
+      // landed and delivered after it. The appended clip has not played, so
+      // the turn is not over: start the player again and wait for the real end.
+      playlist.play();
+      return;
+    }
     if (status.didJustFinish) {
       finished = true;
       hooks.onFinish();
@@ -104,6 +114,7 @@ export function playTurnQueue(
         return false;
       }
       playlist.add({ uri });
+      queued += 1;
       return true;
     },
     stop() {
