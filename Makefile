@@ -73,12 +73,13 @@ check-py:
 	uv run pytest tests/learning --cov=services/learning/src --cov-branch --cov-fail-under=90 -q -m "not integration" -o addopts=""
 
 # INT-544: check-py as CI runs it on the intake-aws-ci pool. Three
-# check-py-shard jobs on separate runners run the suite once, every floored
-# source measured in every shard; shard 1 also runs check-py-static (check-py's
-# first three lines, word for word) and shard 2 the triage lane above, word for
-# word. check-py-combine then enforces every floor above on the combined data.
-# scripts/ci/py_shards.py holds the split; tests/ci/test_py_shards.py pins the
-# static lines and the floors to check-py's own.
+# check-py-shard jobs on separate runners share check-py's nine pytest lines:
+# the first (the whole suite) split by file, each of the other eight run whole,
+# word for word; shard 1 also runs check-py-static (check-py's first three
+# lines, word for word). check-py-combine then enforces every floor above on the
+# data it is measured on here: the first line's on the shares' combined data,
+# each other on its own line's data only. scripts/ci/py_shards.py holds the
+# split; tests/ci/test_py_shards.py pins its lines to check-py's own.
 check-py-static:
 	uv run ruff check .
 	uv run ruff format --check .

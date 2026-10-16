@@ -1,36 +1,37 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
-### 2026-10-16T16:55:00Z · INT-544 · done (PR open; owner patch and host install pending)
+### 2026-10-16T17:45:00Z · INT-544 · done (PR #923 open, round 2; owner patch and host install pending)
 - Goal: a pull request clears CI in under 20 minutes on the intake-aws-ci pool (GitHub #919, P0, Sec-Row cicd). The acceptance is quoted verbatim in docs/evidence/INT-544.md.
 - Plan:
   - Measure ten ci and ten security runs per job (queued and running) and name the critical path.
-  - Shard check-py three ways and enforce every floor on the combined coverage.
+  - Shard check-py three ways. Round 2, at the coordinator's order: keep each floor on the data make check-py measures it on.
   - Add a conservative path filter with a tested mapping.
   - Add a per-runner cache seed: built by the registrar between jobs and read-only to jobs.
   - Collapse queued main runs.
-  - Write the owner's headroom and runners 4-6 commands.
+  - Write the owner's headroom command, and runners 4-5 with a higher pool ceiling.
   - Ship the workflow half as an owner patch.
 - Tests added (with the near-miss negative for any safety rule):
-  - tests/ci/test_py_shards.py: floors pinned to the Makefile's check-py lines; the triage lane word for word; partition, determinism and balance; median weight for unrecorded files. Two shards that each miss a branch combine to 100 %. Near misses: a combined miss, a missing shard, a shard with failures.
+  - tests/ci/test_py_shards.py: all nine check-py lines pinned word for word, with the basis: subset lanes run whole, and only the whole-suite line is split and combined. Partition, determinism and balance of files and lanes; median weight for an unrecorded file; an unrecorded lane is refused. Near misses: a subset floor that the whole suite's data would rescue fails; a missing share or lane fails; a share with failures fails.
   - tests/ci/test_lanes.py: the mapping; decisions on real merge commits (a move out of a workspace still runs check-ts). Every lane step runs unless its lane is exactly false. Near misses: `== 'true'`, an unconditional step, a shallow checkout, a conditional decision, a job-level `if`. Security jobs and gates carry no condition.
   - tests/ci/test_ci_seed.py: restore, no seed, a changed file, an added file, a forged manifest, an unpinned deid asset, an unknown part.
   - tests/ci/test_aws_runner_seed.py: sha256 pins; the build in the job sandbox; the refresh order in prepare. Root refuses absolute or escaping links, pipes and setuid. Bundles hold only lockfiles; the inputs are denied to every runner; headroom only reads.
   - tests/ci/test_workflow_concurrency.py: the workflow-plus-ref group, with INT-524's per-sha group kept as a near miss.
-  - Red run: 2 collection errors, then 28 failed and 149 passed.
+  - Red run: 2 collection errors, then 28 failed and 149 passed. Round 2: the new test file against round 1's py_shards fails at collection (no `Lane`).
 - Result (`make check` / `make safety` / `make security` summary):
-  - With the owner patch applied, on origin/main 33047ed1: three shards, 12117 passed. check-py-combine: every floor met (94.74 / 97.53 / 97.62 / 99.51 / 95.23 / 98.27 / 98.19 / 99.39; triage 100.00 in its own lane). check-py-static: clean.
+  - Round 2, with the owner patch applied, on origin/main 33047ed1: three shards ran the 12117-test whole suite and the eight subset lanes. check-py-combine passes, every floor on its own data: whole-suite 94.74, schemas 92.35, protocols 97.57, triage 100.00, voice-clips 99.51, connectors 95.19, voice-runtime 98.27, metrics 95.09, learning 99.39. ruff is clean and check-py-static is clean.
   - safety: triage 612 passed at 100.00 %, mutations 18/18 detected, voice-runtime 2185 passed at 98.27 %, adversarial and nightly plan 121 passed.
   - security: hooks, bandit, checkov (258/0), trivy config, shellcheck, no_placeholders, phi_scan, claims_scan and vendor calls are clean. check-jsonschema and actionlint pass on the patched workflows.
   - check-integration is CI-only (HB-I1).
 - Invariants touched and still passing:
   - 6: no PHI in the artefacts; dist/check-py is declared.
-  - 8: floors unchanged; the triage floor keeps its own run.
+  - 8: floors and their basis unchanged; every floor reads what its make check-py line reads.
   - 14: no gate skipped; actions SHA-pinned.
   - 17: no placeholders.
-- Decisions / ADRs / `00_STATE.md` rows: none taken here. Two are left to the owner: the main-run collapse trade-off (evidence §5) and runners 4-6 (evidence §6). Seven floors now count every test's execution, not only their own directories'; the numbers are unchanged and the measurement is in evidence §2.
+- Decisions / ADRs / `00_STATE.md` rows: none taken here. Left to the owner: the main-run collapse trade-off (evidence §5). Runners 4-5 and the 20G / 22G / 700 % ceiling follow the coordinator's host reading of 16 Oct 17:12Z (evidence §6).
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner, standing .github/** ownership, so no new HB id:
   - apply and commit issue-drafts/owner-544-ci-speed.patch with its .msg on this branch;
-  - after merge, run `scripts/ci/aws_runner.sh install`, then `seed`, then `probe`.
+  - after merge, run `scripts/ci/aws_runner.sh install`, then `seed`, then `probe`;
+  - then apply owner-544-runners-4-5.patch, merge, and run `install`, `seed`, `probe` and `headroom`.
 - Next: record the after times from this PR's own runs once the owner commit is on it. Proposed follow-up: fold the eight sub-minute security jobs into fewer jobs, which would save about 10 runner-minutes per pull request.
 - LOOP_STATUS: WAITING_HUMAN
 

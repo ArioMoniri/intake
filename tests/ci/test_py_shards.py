@@ -1,15 +1,16 @@
-"""INT-544 — check-py in three shards, with every coverage floor on the combined data.
+"""INT-544 — check-py in three shards, every coverage floor on its own lane's data.
 
 Acceptance lines under test (docs/backlog/issues.yaml, INT-544):
   - check-py runs as three pytest shards in parallel across runners, split
     deterministically;
-  - the shards' coverage is combined in a final job that enforces every
-    coverage floor of invariant 8 on the combined data;
+  - a final job enforces every coverage floor of invariant 8, each measured
+    exactly as `make check-py` measures it: the api floor on the whole suite,
+    each other floor on its own directory subset, never on combined data;
   - the required check `check-py` stays satisfiable.
 
-scripts/ci/py_shards.py is the split, the run and the combination. The floors
-it enforces are read back from the Makefile's check-py recipe here, so the two
-cannot drift; the triage floor keeps its own lane, word for word.
+scripts/ci/py_shards.py is the split, the run and the enforcement. Its nine
+lanes are read back from the Makefile's check-py recipe here, word for word, so
+neither the numbers nor the basis can drift.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ import py_shards  # noqa: E402
 WORKFLOWS = REPO / ".github" / "workflows"
 
 
-# --- the floors are the Makefile's ------------------------------------------------------
+# --- the lanes are the Makefile's, word for word ----------------------------------------
 
 
 def _recipe(target: str) -> list[str]:
@@ -41,54 +42,60 @@ def _recipe(target: str) -> list[str]:
     return [line.strip() for line in body.splitlines()[1:] if line.startswith("\t")]
 
 
-def _makefile_floors() -> list[tuple[tuple[str, ...], tuple[str, ...], int]]:
-    """(test paths, --cov roots, --cov-fail-under) of every check-py pytest line."""
+def _makefile_lanes() -> list[tuple[str, ...]]:
+    """Every pytest line of check-py with a floor, as the shell hands it to pytest."""
     out = []
     for line in _recipe("check-py"):
-        if "--cov-fail-under=" not in line:
-            continue
-        argv = shlex.split(line)
-        assert argv[:3] == ["uv", "run", "pytest"], line
-        paths = tuple(a for a in argv[3:] if not a.startswith("-") and "=" not in a)
-        roots = tuple(a.split("=", 1)[1] for a in argv if a.startswith("--cov="))
-        minimum = int(next(a for a in argv if a.startswith("--cov-fail-under=")).split("=")[1])
-        out.append((paths, roots, minimum))
+        if "--cov-fail-under=" in line:
+            argv = shlex.split(line)
+            assert argv[:3] == ["uv", "run", "pytest"], line
+            out.append(tuple(argv[2:]))
     return out
 
 
-def test_every_floor_of_check_py_is_enforced_on_the_combined_data() -> None:
-    triage_root = ("packages/protocols/src/protocols/triage",)
-    floors = [(roots, minimum) for _, roots, minimum in _makefile_floors()]
-    assert [minimum for roots, minimum in floors if roots == triage_root] == [100]
-    combined = [(roots, minimum) for roots, minimum in floors if roots != triage_root]
-    assert [(f.roots, f.minimum) for f in py_shards.FLOORS] == combined
+def test_every_check_py_line_is_a_lane_word_for_word() -> None:
+    lanes = [py_shards.WHOLE_SUITE, *py_shards.LANES]
+    assert [lane.argv for lane in lanes] == _makefile_lanes()
+    assert len({lane.name for lane in lanes}) == len(lanes) == 9
 
 
-def test_the_triage_floor_keeps_its_own_lane_word_for_word() -> None:
+def test_the_triage_lane_is_also_make_safetys_line() -> None:
     line = next(line for line in _recipe("check-py") if "protocols/triage" in line)
-    assert tuple(shlex.split(line)[2:]) == py_shards.TRIAGE_LANE
-    # `make safety` runs the same line, so the two gates cannot diverge either
-    assert line in _recipe("safety")
+    assert line in _recipe("safety"), "the two gates cannot diverge"
 
 
-def test_every_floored_source_is_measured_in_every_shard() -> None:
-    roots = {root for floor in py_shards.FLOORS for root in floor.roots}
-    assert set(py_shards.SOURCES) == roots
-    command = py_shards.shard_command(["tests/a/test_x.py"], 1)
-    assert [a for a in command if a.startswith("--cov=")] == [
-        f"--cov={s}" for s in py_shards.SOURCES
-    ]
-    assert "--cov-branch" in command
-    assert not any(a.startswith("--cov-fail-under") for a in command), "floors are combined"
+def test_each_floor_is_measured_on_its_own_subset_not_on_combined_data() -> None:
+    """The basis, pinned: only the whole-suite lane is split and combined; every
+    other lane runs whole, with its directories and only its own source."""
+    for lane in py_shards.LANES:
+        options_with_values = {"-m", "-o"}
+        argv = list(lane.argv[1:])
+        paths = [
+            a
+            for i, a in enumerate(argv)
+            if not a.startswith("-") and (i == 0 or argv[i - 1] not in options_with_values)
+        ]
+        assert paths and all(p.startswith("tests/") for p in paths), lane.name
+        assert py_shards.lane_command(lane)[3:] == list(lane.argv[1:]), "run as written"
+        assert len(lane.floor.roots) == 1, lane.name
+    whole = py_shards.whole_suite_command(["tests/a/test_x.py"], 1)
+    assert [a for a in whole if a.startswith("--cov=")] == [
+        f"--cov={root}" for root in py_shards.WHOLE_SUITE.floor.roots
+    ], "a whole-suite share measures the api floor's sources and nothing else"
+    assert not any(a.startswith("--cov-fail-under") for a in whole), "enforced on the shares"
 
 
 def test_the_floors_meet_invariant_8() -> None:
-    by_root = {root: floor.minimum for floor in py_shards.FLOORS for root in floor.roots}
+    by_root = {
+        root: lane.floor.minimum
+        for lane in (py_shards.WHOLE_SUITE, *py_shards.LANES)
+        for root in lane.floor.roots
+    }
     assert by_root["services/api/src"] >= 85
     assert by_root["packages/protocols/src"] >= 95
+    assert by_root["packages/protocols/src/protocols/triage"] == 100
     assert by_root["packages/clinical-schemas/src"] >= 90
     assert by_root["services/voice-runtime/src"] >= 90
-    assert "--cov-fail-under=100" in py_shards.TRIAGE_LANE
 
 
 # --- the split ---------------------------------------------------------------------------
@@ -120,69 +127,85 @@ def test_no_conftest_collects_files_the_split_cannot_see() -> None:
     assert [h for h in hooks if h.endswith("conftest.py")] == []
 
 
+LANE_A = py_shards.Lane("a", ("pytest", "tests/a", "--cov=pkg/a", "--cov-fail-under=90"))
+LANE_B = py_shards.Lane("b", ("pytest", "tests/b", "--cov=pkg/b", "--cov-fail-under=90"))
 DURATIONS = py_shards.Durations(
     files={"t/a.py": 50.0, "t/b.py": 40.0, "t/c.py": 30.0, "t/d.py": 20.0, "t/e.py": 10.0},
+    lanes={"a": 45.0, "b": 5.0},
     static_s=15.0,
-    triage_lane_s=5.0,
 )
 
 
-def test_the_plan_is_a_partition() -> None:
+def _plan(files: list[str], shards: int = 3) -> list[py_shards.ShardPlan]:
+    return py_shards.plan(files, DURATIONS, shards, lanes=(LANE_A, LANE_B))
+
+
+def test_the_plan_places_every_file_and_every_lane_exactly_once() -> None:
     files = [*DURATIONS.files, "t/new.py"]
-    shards = py_shards.plan(files, DURATIONS, 3)
-    flat = [f for shard in shards for f in shard]
+    shards = _plan(files)
+    flat = [f for shard in shards for f in shard.files]
     assert sorted(flat) == sorted(files) and len(flat) == len(set(flat))
+    assert sorted(name for shard in shards for name in shard.lanes) == ["a", "b"]
 
 
 def test_the_plan_is_deterministic_whatever_the_input_order() -> None:
     files = list(DURATIONS.files)
-    assert py_shards.plan(files, DURATIONS, 3) == py_shards.plan(files[::-1], DURATIONS, 3)
+    assert _plan(files) == _plan(files[::-1])
 
 
-def test_the_plan_balances_within_one_file_and_counts_the_reserved_work() -> None:
-    shards = py_shards.plan(list(DURATIONS.files), DURATIONS, 3)
-    loads = [sum(DURATIONS.files[f] for f in shard) for shard in shards]
+def test_the_plan_balances_within_one_item_and_counts_the_static_work() -> None:
+    shards = _plan(list(DURATIONS.files))
+    loads = [
+        sum(DURATIONS.files[f] for f in s.files) + sum(DURATIONS.lanes[n] for n in s.lanes)
+        for s in shards
+    ]
     loads[py_shards.STATIC_SHARD - 1] += DURATIONS.static_s
-    loads[py_shards.TRIAGE_SHARD - 1] += DURATIONS.triage_lane_s
-    assert max(loads) - min(loads) <= max(DURATIONS.files.values())
-    # longest first: a.py (50) to the emptiest shard, which is shard 3
-    assert shards[2][0] == "t/a.py"
+    assert max(loads) - min(loads) <= max(*DURATIONS.files.values(), *DURATIONS.lanes.values())
+    # longest first: a.py (50) to shard 2 (shard 1 carries the static 15), lane a
+    # (45) to shard 3, the emptiest one left
+    assert shards[1].files[0] == "t/a.py" and shards[2].lanes == ("a",)
 
 
-def test_an_unrecorded_file_weighs_the_median() -> None:
-    durations = py_shards.Durations({"t/a.py": 1.0, "t/b.py": 2.0, "t/c.py": 300.0}, 0.0, 0.0)
-    shards = py_shards.plan(["t/a.py", "t/b.py", "t/c.py", "t/new.py"], durations, 2)
-    # median 2.0: the new file joins a.py and b.py, not c.py's shard
-    assert ["t/c.py"] in shards
+def test_an_unrecorded_file_weighs_the_median_and_an_unrecorded_lane_is_refused() -> None:
+    durations = py_shards.Durations({"t/a.py": 1.0, "t/b.py": 2.0, "t/c.py": 300.0}, {}, 0.0)
+    shards = py_shards.plan(["t/a.py", "t/b.py", "t/c.py", "t/new.py"], durations, 2, lanes=())
+    assert ("t/c.py",) in [shard.files for shard in shards]  # new.py weighs 2.0, not 300
+    with pytest.raises(ValueError, match="no recorded seconds for lanes"):
+        py_shards.plan(["t/a.py"], durations, 2, lanes=(LANE_A,))
 
 
-def test_the_committed_plan_splits_the_suite_three_ways_evenly() -> None:
+def test_the_committed_plan_splits_the_work_three_ways_evenly() -> None:
     durations = py_shards.load_durations()
-    files = py_shards.collected_files()
-    shards = py_shards.plan(files, durations, py_shards.SHARDS)
+    assert set(durations.lanes) == {lane.name for lane in py_shards.LANES}
+    shards = py_shards.committed_plan()
     assert len(shards) == py_shards.SHARDS == 3
-    assert all(shards)
-    weights = {f: durations.files.get(f, 0.0) for f in files}
-    loads = [sum(weights[f] for f in shard) for shard in shards]
-    assert max(loads) - min(loads) <= max(weights.values()) + durations.static_s
+    assert all(shard.files for shard in shards)
+    median = sorted(durations.files.values())[len(durations.files) // 2]
+    loads = [
+        sum(durations.files.get(f, median) for f in s.files)
+        + sum(durations.lanes[n] for n in s.lanes)
+        for s in shards
+    ]
+    loads[py_shards.STATIC_SHARD - 1] += durations.static_s
+    assert max(loads) - min(loads) <= max(durations.lanes.values())
 
 
-def test_a_shard_walks_the_testpaths_and_ignores_the_other_shards() -> None:
+def test_a_share_walks_the_testpaths_and_ignores_the_other_shards() -> None:
     """Passing a shard's files to pytest loads every conftest.py up front, and
     tests/research's `from conftest import` then imports another directory's."""
-    files, others = py_shards.shard_files(1)
-    command = py_shards.shard_command(others, 1)
+    shards = py_shards.committed_plan()
+    others = sorted(f for shard in shards[1:] for f in shard.files)
+    command = py_shards.whole_suite_command(others, 1)
     positional = [a for a in command[3:] if not a.startswith("-")]
     assert positional == [], "no path: pytest walks the configured testpaths"
     assert [a for a in command if a.startswith("--ignore=")] == [f"--ignore={f}" for f in others]
-    assert not set(files) & set(others)
-    assert sorted([*files, *others]) == py_shards.collected_files()
+    assert sorted([*shards[0].files, *others]) == py_shards.collected_files()
 
 
 def test_the_durations_file_is_well_formed() -> None:
     raw = json.loads(py_shards.DURATIONS.read_text(encoding="utf-8"))
-    assert set(raw) >= {"files", "reserved", "recorded"}
-    assert raw["reserved"]["static"] > 0 and raw["reserved"]["triage_lane"] > 0
+    assert set(raw) >= {"files", "lanes", "reserved", "recorded", "reserved_source"}
+    assert raw["reserved"]["static"] > 0 and all(v > 0 for v in raw["lanes"].values())
     assert all(isinstance(v, int | float) and v >= 0 for v in raw["files"].values())
     assert raw["recorded"], "say where and when the seconds were measured"
 
@@ -207,7 +230,7 @@ def test_junit_cases_map_to_their_file_and_not_to_a_prefix(tmp_path: Path) -> No
     assert seconds == {"tests/a/test_x.py": 3.5, "tests/a/test_x_y.py": 4.0}
 
 
-# --- combining -----------------------------------------------------------------------------
+# --- every floor on its own data ---------------------------------------------------------
 
 MODULE = textwrap.dedent(
     """\
@@ -217,19 +240,19 @@ MODULE = textwrap.dedent(
         return "b"
     """
 )
+WHOLE = py_shards.Lane("whole-suite", ("pytest", "--cov=pkg/src", "--cov-fail-under=100"))
+SUBSET = py_shards.Lane("subset", ("pytest", "tests/sub", "--cov=pkg/src", "--cov-fail-under=100"))
 
 
-def _shard_data(work: Path, shard: int, flag: bool) -> None:
-    """One shard's coverage data: the module run with one side of its branch."""
+def _data(work: Path, name: str, *flags: bool) -> None:
+    """A coverage data file: the module run with the given sides of its branch."""
     script = (
         "import coverage, sys\n"
-        f"cov = coverage.Coverage(data_file='out/coverage.shard-{shard}', branch=True,"
+        f"cov = coverage.Coverage(data_file='out/coverage.{name}', branch=True,"
         " source=['pkg/src'], config_file='.coveragerc')\n"
         "cov.start()\n"
         "sys.path.insert(0, 'pkg/src')\n"
-        "import m\n"
-        f"m.pick({flag})\n"
-        "cov.stop(); cov.save()\n"
+        "import m\n" + "".join(f"m.pick({flag})\n" for flag in flags) + "cov.stop(); cov.save()\n"
     )
     subprocess.run([sys.executable, "-c", script], cwd=work, check=True)
 
@@ -241,52 +264,63 @@ def _junit(path: Path, failures: int = 0) -> None:
 
 
 @pytest.fixture
-def two_shards(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Two shards that each cover one side of a branch, from different checkouts."""
+def run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Two whole-suite shares from different checkouts, each covering one side of
+    a branch, and a subset lane that covers both."""
     for name in ("one", "two"):
         work = tmp_path / name
         (work / "pkg" / "src").mkdir(parents=True)
         (work / "pkg" / "src" / "m.py").write_text(MODULE)
         (work / ".coveragerc").write_text("[run]\nrelative_files = True\n")
-    for name in ("one", "two"):
-        (tmp_path / name / "out").mkdir()
-    _shard_data(tmp_path / "one", 1, True)
-    _shard_data(tmp_path / "two", 2, False)
+        (work / "out").mkdir()
+    _data(tmp_path / "one", "whole-suite-1", True)
+    _data(tmp_path / "two", "whole-suite-2", False)
     out = tmp_path / "two" / "out"
-    (tmp_path / "one" / "out" / "coverage.shard-1").rename(out / "coverage.shard-1")
+    (tmp_path / "one" / "out" / "coverage.whole-suite-1").rename(out / "coverage.whole-suite-1")
+    _data(tmp_path / "two", "lane-subset", True)
     _junit(out / "junit-1.xml")
     _junit(out / "junit-2.xml")
     monkeypatch.chdir(tmp_path / "two")
     return out
 
 
-def test_each_shard_alone_misses_a_branch_the_combination_covers(two_shards: Path) -> None:
-    full = [py_shards.Floor(("pkg/src",), 100)]
-    alone = py_shards.check_floors(two_shards / "coverage.shard-2", full)
-    assert not alone[0].passed and alone[0].total < 100
-    assert py_shards.combine(2, two_shards, full) == 0
-    combined = py_shards.check_floors(two_shards / "coverage.combined", full)
-    assert combined[0].passed and combined[0].total == 100.0
+def _subset_covers_both_sides(out: Path) -> None:
+    _data(out.parent, "lane-subset", True, False)
 
 
-def test_a_floor_the_combined_data_misses_fails_the_job(two_shards: Path) -> None:
-    (two_shards / "coverage.shard-1").unlink()
-    (two_shards / "coverage.shard-2").rename(two_shards / "coverage.shard-1")
-    _shard_data(two_shards.parent, 2, False)  # both shards took the same side
-    assert py_shards.combine(2, two_shards, [py_shards.Floor(("pkg/src",), 100)]) == 2
+def test_the_whole_suite_floor_holds_only_on_its_shares_combined(run: Path) -> None:
+    _subset_covers_both_sides(run)
+    total, passed = py_shards.check_floor(run / "coverage.whole-suite-2", WHOLE.floor)
+    assert not passed and total < 100, "one share alone misses a branch"
+    assert py_shards.combine(run, [1, 2], lanes=(SUBSET,), whole_suite=WHOLE) == 0
 
 
-def test_a_missing_shard_fails_the_job(
-    two_shards: Path, capsys: pytest.CaptureFixture[str]
+def test_a_subset_floor_is_not_rescued_by_the_whole_suites_data(
+    run: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    (two_shards / "coverage.shard-2").unlink()
-    assert py_shards.combine(2, two_shards, [py_shards.Floor(("pkg/src",), 0)]) == 1
-    assert "shard 2 left no coverage data" in capsys.readouterr().out
+    """The near miss the basis exists for: the whole suite covers both sides, the
+    subset lane covers one. On combined data the floor would pass; it must not."""
+    assert py_shards.combine(run, [1, 2], lanes=(SUBSET,), whole_suite=WHOLE) == 2
+    out = capsys.readouterr().out
+    assert "ok   whole-suite" in out and "FAIL subset" in out
 
 
-def test_a_shard_with_failed_tests_fails_the_job(two_shards: Path) -> None:
-    _junit(two_shards / "junit-1.xml", failures=2)
-    assert py_shards.combine(2, two_shards, [py_shards.Floor(("pkg/src",), 0)]) == 1
+def test_a_missing_share_or_lane_fails_the_job(
+    run: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _subset_covers_both_sides(run)
+    (run / "coverage.whole-suite-2").unlink()
+    (run / "coverage.lane-subset").unlink()
+    assert py_shards.combine(run, [1, 2], lanes=(SUBSET,), whole_suite=WHOLE) == 1
+    out = capsys.readouterr().out
+    assert "shard 2 left no whole-suite coverage data" in out
+    assert "lane subset left no coverage data" in out
+
+
+def test_a_share_with_failed_tests_fails_the_job(run: Path) -> None:
+    _subset_covers_both_sides(run)
+    _junit(run / "junit-1.xml", failures=2)
+    assert py_shards.combine(run, [1, 2], lanes=(SUBSET,), whole_suite=WHOLE) == 1
 
 
 # --- the workflow -----------------------------------------------------------------------------
@@ -317,7 +351,7 @@ def test_the_shards_are_one_matrix_job_that_never_cancels_its_siblings() -> None
     assert upload["with"]["name"] == "check-py-shard-${{ matrix.shard }}"
 
 
-def test_the_required_check_py_job_combines_and_fails_with_any_shard() -> None:
+def test_the_required_check_py_job_enforces_and_fails_with_any_shard() -> None:
     job = _ci_jobs()["check-py"]
     assert job["needs"] == "check-py-shard"
     assert job["if"] == "${{ !cancelled() }}", "it must run, and fail, when a shard failed"

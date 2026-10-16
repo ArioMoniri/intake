@@ -335,10 +335,19 @@
     "tests/voice/test_voice_runtime_service.py": 7.5,
     "tests/voice/test_work_queue.py": 0.8
   },
+  "lanes": {
+    "connectors": 6,
+    "learning": 14,
+    "metrics": 40,
+    "protocols": 289,
+    "schemas": 6,
+    "triage": 34,
+    "voice-clips": 311,
+    "voice-runtime": 329
+  },
   "recorded": "16 Oct 2026: per-file test-case seconds from one local run of the whole suite (macOS, origin/main f7f6b6ee, 11361 passed, 1047 s wall), scaled by the wall ratio of CI's whole-suite run (1826.6 s, run 38912722585) so they are commensurate with the reserved seconds; refresh from the shards' junit reports with py_shards.py record",
   "reserved": {
-    "static": 82,
-    "triage_lane": 34
+    "static": 82
   },
-  "reserved_source": "CI run 38912722585, job 117012322590 (check-py, 16 Oct 2026): ruff check, ruff format --check and mypy --strict took 82 s; the triage lane (tests/safety, triage floor 100) took 34 s"
+  "reserved_source": "CI run 38912722585, job 117012322590 (check-py, 16 Oct 2026): ruff check, ruff format --check and mypy --strict took 82 s; each subset lane's seconds are its line's start to end in the same log (schemas 6, protocols+safety 4:49, triage 34, voice-clips 5:11, connectors 6, voice-runtime 5:29, metrics 40, learning 14)"
 }

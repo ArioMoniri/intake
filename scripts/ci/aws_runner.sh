@@ -28,7 +28,7 @@
 #   scripts/ci/aws_runner.sh headroom
 #       INT-544: reads, and changes nothing: CPU, memory and IO pressure, the
 #       pool slice's ceiling and peak, staging's containers, and both disks.
-#       What it prints decides whether runners 4-6 fit (docs/evidence/INT-544.md).
+#       What it prints decides how many runners fit (docs/evidence/INT-544.md).
 #
 # A credential never appears on a command line, in an SSM command, in a log or
 # in the repository. It travels from a pipe into SSM Parameter Store as a

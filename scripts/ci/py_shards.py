@@ -1,32 +1,31 @@
-"""INT-544 — check-py as parallel pytest shards whose coverage is combined.
+"""INT-544 — check-py as parallel pytest shards, every floor on its own lane's data.
 
-`make check-py` runs the whole suite once for the api floor and then re-runs
-eight directory subsets, one per coverage floor: about 30 + 17 minutes on the
-intake-aws-ci pool, all on one runner. In CI the suite instead runs once,
-split into SHARDS jobs on separate runners, with every floored source measured
-in every shard. A final job combines the shards' data and enforces every floor
-of invariant 8 on the combined data:
+`make check-py` runs nine pytest lines: the whole suite once for the api floor
+(the "whole-suite" lane), then eight directory subsets, one per coverage floor.
+On one intake-aws-ci runner that is about 30 + 17 minutes. In CI the same nine
+lines run across SHARDS jobs on separate runners:
 
-    plan      print each shard's test files and their recorded seconds
-    run       run one shard: pytest over its files, every floored source
-              measured; the triage shard also runs the triage lane exactly as
-              `make check-py` and `make safety` do
-    combine   combine the shards' coverage data and enforce every floor
+  - the whole-suite lane is split by file: each shard runs its share with the
+    api floor's two sources measured, and the shares' data are combined;
+  - each subset lane runs whole, word for word as the Makefile has it, in the
+    shard the packing gives it, with its own coverage data file.
+
+The combining job then enforces every floor exactly where `make check-py`
+does: the api floor on the whole suite's combined data, and each subset floor
+on its own lane's data only. A test outside a lane's directories never counts
+toward that lane's floor (invariant 8: the basis is pinned, not just the
+numbers; tests/ci/test_py_shards.py pins both to the Makefile's lines).
+
+    plan      print each shard's files, lanes and recorded seconds
+    run       run one shard's share of the whole suite and its lanes
+    combine   enforce every floor on its own data
     record    rewrite the recorded per-file seconds from junit reports
 
-What changes, and what does not (docs/evidence/INT-544.md):
-  - the floors are the Makefile's numbers, pinned to it by tests/ci/test_py_shards.py;
-  - the api floor is measured exactly as before: every test, default addopts;
-  - the other floors were measured on their own directories' tests only; on
-    the combined data any test's execution counts toward them;
-  - the triage floor stays on tests/safety alone (100 % branch), because it is
-    the one floor that proves the safety goldens, not just any test, reach
-    every triage branch.
-
-The split is deterministic: every tracked file pytest would collect goes to
-exactly one shard, by greedy longest-first packing over the recorded seconds
-(scripts/ci/py_shard_durations.json); a file with no record weighs the median.
-Every shard computes the same plan from the same commit.
+The split is deterministic: every tracked file pytest would collect, and every
+subset lane, goes to exactly one shard by greedy longest-first packing over the
+recorded seconds (scripts/ci/py_shard_durations.json). A file with no record
+weighs the median; a lane with no record is refused. Shard 1 also carries the
+static checks (ci.yml). Every shard computes the same plan from the same commit.
 """
 
 from __future__ import annotations
@@ -56,28 +55,13 @@ DURATIONS: Final = REPO / "scripts" / "ci" / "py_shard_durations.json"
 OUT_DIR: Final = Path("dist") / "check-py"
 
 SHARDS: Final = 3
-#: ruff, ruff format and mypy run in shard 1 (ci.yml); the triage lane in shard 2.
+#: ruff, ruff format and mypy run in shard 1 (ci.yml `make check-py-static`).
 STATIC_SHARD: Final = 1
-TRIAGE_SHARD: Final = 2
-
-#: Every source a coverage floor of `make check-py` measures. The triage
-#: package sits inside packages/protocols/src and is measured with it.
-SOURCES: Final = (
-    "packages/intake_platform/src",
-    "services/api/src",
-    "packages/clinical-schemas/src",
-    "packages/protocols/src",
-    "packages/voice-clips/src",
-    "packages/connectors/src",
-    "services/voice-runtime/src",
-    "services/metrics/src",
-    "services/learning/src",
-)
 
 
 @dataclass(frozen=True)
 class Floor:
-    """One `--cov-fail-under` of `make check-py`: its sources and its minimum."""
+    """One `--cov-fail-under`: the sources it totals and its minimum."""
 
     roots: tuple[str, ...]
     minimum: int
@@ -87,29 +71,79 @@ class Floor:
         return " + ".join(self.roots)
 
 
-#: The floors enforced on the combined data, in the Makefile's order. The
-#: triage floor is not here: TRIAGE_LANE enforces it exactly as before.
-FLOORS: Final = (
-    Floor(("packages/intake_platform/src", "services/api/src"), 85),
-    Floor(("packages/clinical-schemas/src",), 90),
-    Floor(("packages/protocols/src",), 95),
-    Floor(("packages/voice-clips/src",), 95),
-    Floor(("packages/connectors/src",), 95),
-    Floor(("services/voice-runtime/src",), 90),
-    Floor(("services/metrics/src",), 90),
-    Floor(("services/learning/src",), 90),
+@dataclass(frozen=True)
+class Lane:
+    """One pytest line of `make check-py`, after `uv run`, word for word."""
+
+    name: str
+    argv: tuple[str, ...]
+
+    @property
+    def floor(self) -> Floor:
+        roots = tuple(a.split("=", 1)[1] for a in self.argv if a.startswith("--cov="))
+        minimum = [a for a in self.argv if a.startswith("--cov-fail-under=")]
+        if not roots or len(minimum) != 1:
+            raise ValueError(f"lane {self.name}: no --cov root or no single --cov-fail-under")
+        return Floor(roots, int(minimum[0].split("=", 1)[1]))
+
+
+#: The first line: every test, default addopts, the api floor. Split by file.
+WHOLE_SUITE: Final = Lane(
+    "whole-suite",
+    (
+        "pytest",
+        "--cov=packages/intake_platform/src",
+        "--cov=services/api/src",
+        "--cov-branch",
+        "--cov-fail-under=85",
+    ),
 )
 
-#: `make check-py`'s triage line, word for word (tests/ci/test_py_shards.py).
-TRIAGE_LANE: Final = (
-    "pytest",
-    "tests/safety",
-    "--cov=packages/protocols/src/protocols/triage",
-    "--cov-branch",
-    "--cov-fail-under=100",
-    "-q",
-    "-o",
-    "addopts=",
+_SUBSET = ("--cov-branch",)
+_TAIL = ("-q", "-o", "addopts=")  # the Makefile's `-o addopts=""` once the shell has run
+
+#: The eight subset lines, in the Makefile's order. Each runs whole.
+LANES: Final = (
+    Lane(
+        "schemas",
+        ("pytest", "tests/schemas", "--cov=packages/clinical-schemas/src", *_SUBSET)
+        + ("--cov-fail-under=90", *_TAIL),
+    ),
+    Lane(
+        "protocols",
+        ("pytest", "tests/protocols", "tests/safety", "--cov=packages/protocols/src", *_SUBSET)
+        + ("--cov-fail-under=95", *_TAIL),
+    ),
+    Lane(
+        "triage",
+        ("pytest", "tests/safety", "--cov=packages/protocols/src/protocols/triage", *_SUBSET)
+        + ("--cov-fail-under=100", *_TAIL),
+    ),
+    Lane(
+        "voice-clips",
+        ("pytest", "tests/voice", "--cov=packages/voice-clips/src", *_SUBSET)
+        + ("--cov-fail-under=95", *_TAIL),
+    ),
+    Lane(
+        "connectors",
+        ("pytest", "tests/connectors", "--cov=packages/connectors/src", *_SUBSET)
+        + ("--cov-fail-under=95", *_TAIL),
+    ),
+    Lane(
+        "voice-runtime",
+        ("pytest", "tests/voice", "tests/engine", "tests/ai", "tests/lanes")
+        + ("--cov=services/voice-runtime/src", *_SUBSET, "--cov-fail-under=90", *_TAIL),
+    ),
+    Lane(
+        "metrics",
+        ("pytest", "tests/experience", "--cov=services/metrics/src", *_SUBSET)
+        + ("--cov-fail-under=90", *_TAIL),
+    ),
+    Lane(
+        "learning",
+        ("pytest", "tests/learning", "--cov=services/learning/src", *_SUBSET)
+        + ("--cov-fail-under=90", "-q", "-m", "not integration", "-o", "addopts="),
+    ),
 )
 
 
@@ -152,101 +186,127 @@ def collected_files(repo: Path = REPO) -> list[str]:
 @dataclass(frozen=True)
 class Durations:
     files: Mapping[str, float]
+    lanes: Mapping[str, float]
     static_s: float
-    triage_lane_s: float
 
 
 def load_durations(path: Path = DURATIONS) -> Durations:
     raw = json.loads(path.read_text(encoding="utf-8"))
     files = {str(k): float(v) for k, v in raw["files"].items()}
-    if any(v < 0 for v in files.values()):
+    lanes = {str(k): float(v) for k, v in raw["lanes"].items()}
+    if any(v < 0 for v in (*files.values(), *lanes.values())):
         raise ValueError(f"{path}: a negative duration")
-    return Durations(files, float(raw["reserved"]["static"]), float(raw["reserved"]["triage_lane"]))
+    return Durations(files, lanes, float(raw["reserved"]["static"]))
 
 
-def plan(files: Sequence[str], durations: Durations, shards: int = SHARDS) -> list[list[str]]:
-    """Greedy longest-first packing; ties go to the lower shard, then the lower path."""
+@dataclass(frozen=True)
+class ShardPlan:
+    files: tuple[str, ...]
+    lanes: tuple[str, ...]
+
+
+def plan(
+    files: Sequence[str],
+    durations: Durations,
+    shards: int = SHARDS,
+    lanes: Sequence[Lane] = LANES,
+) -> list[ShardPlan]:
+    """Greedy longest-first packing of files and lanes; ties go to the lower shard."""
     if shards < 1:
         raise ValueError("at least one shard")
+    missing = [lane.name for lane in lanes if lane.name not in durations.lanes]
+    if missing:
+        raise ValueError(f"no recorded seconds for lanes {missing}")
     known = [durations.files[f] for f in files if f in durations.files]
     fallback = statistics.median(known) if known else 1.0
-    weight = {f: durations.files.get(f, fallback) for f in files}
+    items = [(durations.lanes[lane.name], f"lane:{lane.name}") for lane in lanes]
+    items += [(durations.files.get(f, fallback), f) for f in set(files)]
     load = [0.0] * shards
     load[(STATIC_SHARD - 1) % shards] += durations.static_s
-    load[(TRIAGE_SHARD - 1) % shards] += durations.triage_lane_s
-    out: list[list[str]] = [[] for _ in range(shards)]
-    for f in sorted(set(files), key=lambda f: (-weight[f], f)):
+    out: list[tuple[list[str], list[str]]] = [([], []) for _ in range(shards)]
+    for weight, item in sorted(items, key=lambda x: (-x[0], x[1])):
         target = min(range(shards), key=lambda i: (load[i], i))
-        out[target].append(f)
-        load[target] += weight[f]
-    return [sorted(shard) for shard in out]
+        if item.startswith("lane:"):
+            out[target][1].append(item.removeprefix("lane:"))
+        else:
+            out[target][0].append(item)
+        load[target] += weight
+    order = {lane.name: i for i, lane in enumerate(lanes)}
+    return [ShardPlan(tuple(sorted(f)), tuple(sorted(n, key=order.__getitem__))) for f, n in out]
 
 
-def shard_files(shard: int, shards: int = SHARDS, repo: Path = REPO) -> tuple[list[str], list[str]]:
-    """Shard `shard`'s files, and every file of the other shards."""
-    if not 1 <= shard <= shards:
-        raise ValueError(f"shard {shard} is not one of 1..{shards}")
-    planned = plan(collected_files(repo), load_durations(), shards)
-    others = sorted(f for k, files in enumerate(planned, start=1) if k != shard for f in files)
-    return planned[shard - 1], others
+def committed_plan(shards: int = SHARDS, repo: Path = REPO) -> list[ShardPlan]:
+    return plan(collected_files(repo), load_durations(), shards)
 
 
 # --- one shard -----------------------------------------------------------------------
 
 
-def shard_command(others: Sequence[str], shard: int) -> list[str]:
-    """pytest as `make check-py` runs it, minus the other shards' files.
+def whole_suite_command(others: Sequence[str], shard: int) -> list[str]:
+    """The whole-suite line, minus its floor and the other shards' files.
 
     No path is passed: pytest walks the configured testpaths exactly as the
     whole-suite run does and leaves out the other shards' files with
     --ignore. Passing this shard's files instead would load every directory's
     conftest.py up front, and the test modules that `from conftest import`
     would then import the wrong one (tests/research, measured 16 Oct 2026).
+    The floor is enforced on the shares' combined data, not per share.
     """
+    keep = [a for a in WHOLE_SUITE.argv[1:] if not a.startswith("--cov-fail-under=")]
     return [
         sys.executable,
         "-m",
         "pytest",
         *(f"--ignore={path}" for path in others),
-        *(f"--cov={source}" for source in SOURCES),
-        "--cov-branch",
+        *keep,
         "--cov-report=",
         f"--junitxml={OUT_DIR / f'junit-{shard}.xml'}",
     ]
 
 
-def triage_command() -> list[str]:
-    # The Makefile's `-o addopts=""` reaches pytest as `addopts=` once the
-    # shell has removed the quotes, which is what TRIAGE_LANE holds.
-    return [sys.executable, "-m", *TRIAGE_LANE]
+def lane_command(lane: Lane) -> list[str]:
+    return [sys.executable, "-m", *lane.argv]
+
+
+def _run(command: list[str], data_file: Path) -> int:
+    env = {**os.environ, "COVERAGE_FILE": str(data_file)}
+    # this interpreter, a fixed argv built above
+    return subprocess.run(command, cwd=REPO, env=env, check=False).returncode  # noqa: S603
 
 
 def run_shard(shard: int, shards: int = SHARDS) -> int:
-    files, others = shard_files(shard, shards)
+    if not 1 <= shard <= shards:
+        raise ValueError(f"shard {shard} is not one of 1..{shards}")
+    planned = committed_plan(shards)
+    mine = planned[shard - 1]
+    others = sorted(f for k, p in enumerate(planned, start=1) if k != shard for f in p.files)
     durations = load_durations()
-    expected = sum(durations.files.get(f, 0.0) for f in files)
+    seconds = sum(durations.files.get(f, 0.0) for f in mine.files)
+    seconds += sum(durations.lanes[name] for name in mine.lanes)
     print(
-        f"py_shards: shard {shard}/{shards}: {len(files)} files, ~{expected / 60:.1f} min recorded"
+        f"py_shards: shard {shard}/{shards}: {len(mine.files)} whole-suite files and lanes "
+        f"{', '.join(mine.lanes) or 'none'}, ~{seconds / 60:.1f} min recorded",
+        flush=True,
     )
     (REPO / OUT_DIR).mkdir(parents=True, exist_ok=True)
-    env = {**os.environ, "COVERAGE_FILE": str(OUT_DIR / f"coverage.shard-{shard}")}
-    command = shard_command(others, shard)
-    status = subprocess.run(command, cwd=REPO, env=env, check=False).returncode  # noqa: S603
-    if shard == TRIAGE_SHARD:
-        print("py_shards: the triage lane, as make check-py and make safety run it")
-        lane_env = {**os.environ, "COVERAGE_FILE": str(OUT_DIR / "coverage.triage-lane")}
-        lane = subprocess.run(  # noqa: S603  # nosec B603 — this interpreter, fixed argv
-            triage_command(), cwd=REPO, env=lane_env, check=False
-        ).returncode
-        status = status or lane
-    return status
+    statuses = []
+    if mine.files:
+        statuses.append(
+            _run(whole_suite_command(others, shard), OUT_DIR / f"coverage.whole-suite-{shard}")
+        )
+    by_name = {lane.name: lane for lane in LANES}
+    for name in mine.lanes:
+        print(f"py_shards: lane {name}, as make check-py runs it", flush=True)
+        statuses.append(_run(lane_command(by_name[name]), OUT_DIR / f"coverage.lane-{name}"))
+    return next((status for status in statuses if status), 0)
 
 
-# --- the combined floors -------------------------------------------------------------
+# --- every floor on its own data -----------------------------------------------------
 
 
 @dataclass(frozen=True)
 class FloorResult:
+    lane: str
     floor: Floor
     total: float
     passed: bool
@@ -258,47 +318,53 @@ def _junit_failures(path: Path) -> int:
     return sum(int(s.get("failures", 0)) + int(s.get("errors", 0)) for s in suites)
 
 
-def check_floors(data_file: Path, floors: Iterable[Floor] = FLOORS) -> list[FloorResult]:
-    """Every floor over one (combined) coverage data file."""
+def check_floor(data_file: Path, floor: Floor) -> tuple[float, bool]:
+    """One floor over one coverage data file, as pytest-cov totals it."""
     cov = Coverage(data_file=str(data_file))
     cov.load()
-    precision = int(cov.config.precision)
-    results: list[FloorResult] = []
-    for floor in floors:
-        total = cov.report(include=[f"{root}/*" for root in floor.roots], file=io.StringIO())
-        results.append(
-            FloorResult(floor, total, not should_fail_under(total, floor.minimum, precision))
-        )
-    return results
+    total = cov.report(include=[f"{root}/*" for root in floor.roots], file=io.StringIO())
+    return total, not should_fail_under(total, floor.minimum, int(cov.config.precision))
 
 
 def combine(
-    shards: int = SHARDS, out_dir: Path = REPO / OUT_DIR, floors: Sequence[Floor] = FLOORS
+    out_dir: Path,
+    whole_suite_shards: Sequence[int],
+    lanes: Sequence[Lane] = LANES,
+    whole_suite: Lane = WHOLE_SUITE,
 ) -> int:
+    """The whole-suite floor on its shares' combined data; each lane's on its own."""
     problems: list[str] = []
-    data = [out_dir / f"coverage.shard-{k}" for k in range(1, shards + 1)]
-    for k, path in enumerate(data, start=1):
-        if not path.is_file():
-            problems.append(f"shard {k} left no coverage data ({path.name})")
+    shares = [out_dir / f"coverage.whole-suite-{k}" for k in whole_suite_shards]
+    for k, path in zip(whole_suite_shards, shares, strict=True):
         junit = out_dir / f"junit-{k}.xml"
+        if not path.is_file():
+            problems.append(f"shard {k} left no whole-suite coverage data ({path.name})")
         if not junit.is_file():
             problems.append(f"shard {k} left no junit report ({junit.name})")
         elif _junit_failures(junit):
             problems.append(f"shard {k} reports {_junit_failures(junit)} failed tests")
+    for lane in lanes:
+        if not (out_dir / f"coverage.lane-{lane.name}").is_file():
+            problems.append(f"lane {lane.name} left no coverage data")
     if problems:
         for problem in problems:
             print(f"py_shards: FAIL — {problem}")
         return 1
-    combined = out_dir / "coverage.combined"
+    combined = out_dir / "coverage.whole-suite"
     cov = Coverage(data_file=str(combined))
-    cov.combine([str(path) for path in data], strict=True, keep=True)
+    cov.combine([str(path) for path in shares], strict=True, keep=True)
     cov.save()
-    results = check_floors(combined, floors)
+    results = [
+        FloorResult(whole_suite.name, whole_suite.floor, *check_floor(combined, whole_suite.floor))
+    ]
+    for lane in lanes:
+        data = out_dir / f"coverage.lane-{lane.name}"
+        results.append(FloorResult(lane.name, lane.floor, *check_floor(data, lane.floor)))
     for result in results:
         verdict = "ok  " if result.passed else "FAIL"
         print(
-            f"py_shards: {verdict} {result.floor.name}: {result.total:.2f} % "
-            f"(floor {result.floor.minimum} %)"
+            f"py_shards: {verdict} {result.lane}: {result.floor.name} {result.total:.2f} % "
+            f"(floor {result.floor.minimum} %, on this lane's own data)"
         )
     return 0 if all(result.passed for result in results) else 2
 
@@ -353,14 +419,20 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "plan":
         durations = load_durations()
-        for k, files in enumerate(plan(collected_files(), durations, args.shards), start=1):
-            seconds = sum(durations.files.get(f, 0.0) for f in files)
-            print(f"shard {k}: {len(files)} files, ~{seconds / 60:.1f} min")
+        for k, shard in enumerate(committed_plan(args.shards), start=1):
+            seconds = sum(durations.files.get(f, 0.0) for f in shard.files)
+            seconds += sum(durations.lanes[name] for name in shard.lanes) + (
+                durations.static_s if k == STATIC_SHARD else 0.0
+            )
+            lanes = ", ".join(shard.lanes) or "none"
+            print(f"shard {k}: {len(shard.files)} files, lanes {lanes}, ~{seconds / 60:.1f} min")
         return 0
     if args.command == "run":
         return run_shard(args.shard, args.shards)
     if args.command == "combine":
-        return combine(args.shards)
+        planned = committed_plan(args.shards)
+        with_files = [k for k, shard in enumerate(planned, start=1) if shard.files]
+        return combine(REPO / OUT_DIR, with_files)
     record(args.reports, args.scale_to_s, args.note)
     return 0
 
