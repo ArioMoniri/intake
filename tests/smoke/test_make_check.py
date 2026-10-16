@@ -335,7 +335,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # only with a stated reason.
     # + INT-494 (CD-111 applied to the served cardiac RED rule, and the synthetic
     # rule set re-signed, GitHub #844); grows only with a stated reason.
-    assert len(ids) == 347, f"expected 175 blueprint + 172 added issues, got {len(ids)}"
+    # + INT-500 (lockfile advisories upgraded so the vulnerabilities gate stops
+    # blocking every merge, GitHub #851); grows only with a stated reason.
+    assert len(ids) == 348, f"expected 175 blueprint + 173 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -118,7 +118,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
     # + INT-465 (generic RED active from CD-24; synthetic-only test-key signature, GitHub #794)
     # + INT-494 (CD-111 applied to the cardiac RED rule, set re-signed, GitHub #844)
-    assert len(actions) == 347
+    # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
+    assert len(actions) == 348
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

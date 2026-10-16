@@ -177,7 +177,9 @@ def test_ids_unique_and_well_formed() -> None:
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
     # + INT-494 (CD-111 applied to the served cardiac RED rule, and the synthetic
     # rule set re-signed; GitHub #844).
-    assert len(ids) == 347
+    # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
+    # vulnerabilities gate stops blocking every merge; GitHub #851).
+    assert len(ids) == 348
     import re
 
     for i in ids:
