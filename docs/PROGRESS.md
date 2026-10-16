@@ -3586,6 +3586,64 @@
 - Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-16T10:20:00+03:00 · INT-524 · doing (owner commit pending)
+- Goal: a new push to a pull request cancels that PR's superseded CI runs, so the three intake-aws-ci runners build only current heads, and a push to main is never cancelled (GitHub #890). Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Read GitHub's concurrency semantics from docs.github.com and pin the source in the evidence.
+  - Write tests/ci/test_workflow_concurrency.py first: pin the block in both workflows, model the documented semantics, and add near misses.
+  - Ship the workflow change as an owner patch, because .github/** is owner-only.
+- Tests added (with the near-miss negative for any safety rule):
+  - The block is pinned in ci.yml and security.yml, and no job sets its own concurrency.
+  - A seven-run model: a PR's runs share a group and cancel; two PRs never share one; main never cancels and nothing joins its group; two tags on one commit stay apart; ci and security never meet.
+  - Near misses (11): the issue's ref-less group (a v* tag would replace main's waiting security run), cancel always, cancel inverted, ref-only, sha-for-PRs, workflow-only, no workflow prefix, missing block, `queue: max`, an unmodelled trigger, an expression outside the model.
+  - Red run: 3 failed, 15 passed. Green run, with the patch applied: 18 passed; tests/ci 308 passed; with the workflow readers, backlog and smoke, 482 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - check-py lanes above pass; ruff check and format are clean; no_placeholders, phi_scan and claims_scan are OK after staging.
+  - check-jsonschema validates both patched workflows; gitleaks and semgrep p/ci pass on them.
+  - check-integration is CI-only (HB-I1).
+- Invariants touched and still passing: 14 (CI gates never skipped; the patch only adds a concurrency block). 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: the group carries the ref beyond the issue's key, so that security.yml's v* tag runs cannot replace or join main's group (evidence §The block).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — apply and commit issue-drafts/owner-524-concurrency.patch with its .msg on this branch, then push; standing .github/** ownership, so no new HB id.
+- Next: after the owner commit is pushed, open the PR from .scratch/pr-524.md and check that a superseded run shows `cancelled` on its run history.
+
+### 2026-10-16T06:40:00+03:00 · INT-501 · done (PR open; owner patch pending)
+- Goal: before the time-boxed node-forge, braces and http-cache-semantics scanner exceptions expire (1–2 Nov 2026), upgrade each package so its exception is no longer needed (GitHub #853).
+- Plan:
+  - Reproduce the vulnerabilities job with CI's scanners: trivy 0.70.0 from the sha256-verified release tarball, and osv-scanner 2.5.1. Run them with and without the three exceptions.
+  - Check npm, the OSV API and the upstream repositories for a release that clears each advisory.
+  - Pin the floor first, upgrade by override, and hand the exception removal to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - In tests/ci/test_security_gates.py, FIXED_VERSIONS and OVERRIDE_FLOORS gain http-cache-semantics 4.3.0.
+  - New test_every_override_floor_is_its_fixed_version.
+  - Near miss: a selector `<4.2.0` or a floor `^4.2.0` is refused.
+  - Red run: 2 failed, 10 passed. Green run: 12 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Scanners with all three exceptions removed:
+    - main: trivy reports 2 HIGH (braces, node-forge); osv reports 3 (adds http-cache-semantics).
+    - PR: both scanners report only braces and node-forge.
+  - With the owner-501 patch applied, both scanners exit 0. With the owner-508 renewal also applied, both still exit 0.
+  - pnpm -r typecheck and lint: 0 errors.
+  - vitest: mobile 2650, admin-web 327, clinical-schemas 6, embed-sdk 14, embed-sample-partner 9.
+  - admin-web next build: green.
+  - Licence gate: 971 node packages and 94 Python distributions, OK.
+  - tests/ci: 292 passed. tests/backlog and smoke: 74 passed.
+  - no_placeholders, phi-scan and claims-scan (staged): OK.
+  - check-integration, safety and the full security fan-out run in CI.
+- Invariants touched and still passing:
+  - 14: no gate weakened, and no exception added or extended by this PR.
+  - 16: Sec-Row is cicd.
+  - 17: no fork or git-ref override is forced for the two packages with no fix.
+  - 19: licence read from the raw blob (BSD-2-Clause).
+- Decisions / ADRs / `00_STATE.md` rows:
+  - Split on the orchestrator's decision: node-forge and braces go to INT-508 (GitHub #865, todo). On 16 Oct neither had a release that clears its advisory: digitalbazaar/forge#1152 and the micromatch/braces fix PRs are unmerged.
+  - http-cache-semantics 4.3.0 clears GHSA-ch52 by the record's range (last_affected 4.2.0), not by a max-stale code change. The maintainer disputes the report. This is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner, routine: apply issue-drafts/owner-501-remove-exceptions.patch, which drops the http-cache-semantics osv entry and lowers the osv pin from 4 to 3. The exception files are owner-only.
+  - Owner decision for INT-508: apply issue-drafts/owner-508-renew-exceptions.patch, which renews node-forge and braces to 31 Dec 2026, or accept a red vulnerabilities gate from 1 Nov.
+  - No HUMAN_BLOCKERS id was minted.
+- Next: merge once CI is green. The owner patches follow. INT-508 rechecks upstream weekly.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #724):
   - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*

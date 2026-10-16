@@ -118,11 +118,14 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-453 (RED path triggers the winning rule's script, found by INT-446, GitHub #767)
     # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
     # + INT-465 (generic RED active from CD-24; synthetic-only test-key signature, GitHub #794)
+    # + INT-524 (a pull request's superseded CI runs are cancelled, GitHub #890)
+    # + INT-501 (http-cache-semantics lifted before its exception expires, GitHub #853)
+    # + INT-508 (node-forge and braces: no upstream fix, split from INT-501, GitHub #865)
     # + INT-424 (delivery profiles v2 + expressive-model ADR proposal, GitHub #719)
     # + INT-430 (the agent council as a post-bind verifier, GitHub #732)
     # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
     # + INT-475 (hop RED to the Safety inbox; location answer to the server, GitHub #814)
-    assert len(actions) == 351
+    assert len(actions) == 354
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
