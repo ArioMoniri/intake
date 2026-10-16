@@ -6755,3 +6755,26 @@
     - "make safety green; runtime-sim green; invariants 1, 7, 9, 21."
   tests: [tests/voice/test_extraction_valuesets.py, tests/engine/test_plan_valuesets.py, tests/protocols/test_base_intake_valuesets.py]
   sec_row: "clinical-core"
+- id: INT-521
+  epic: E05-voice
+  phase: P0
+  title: "The live voice and typed session evaluates triage on every bound answer, so a RED fires from the conversation"
+  # GitHub #887, from INT-518 (#884), 16 Oct 2026. After INT-518 every
+  # base.intake code slot binds in a live session, but no production module
+  # called evaluate_triage during a session and no handler set triage_update:
+  # the answers bound and nothing evaluated them, and the queue's RED path was
+  # fed only by tests. #766 (INT-446) evaluates on the app's API hop, #773
+  # (INT-453) chooses the winning rule's script inside the RED path and #855
+  # (INT-475) notifies staff; none evaluates inside the voice runtime or hands a
+  # drained RED to the path. Stacked on INT-518 (#884) and INT-441 (#750).
+  depends_on: [INT-518, INT-093]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-521.md
+  acceptance:
+    - "Every completed Work that binds a slot read by a served red-flag rule triggers a rules-engine evaluation (packages/protocols/triage only; invariant 1); a RED result reaches the existing RED path (pre-positioned script over the data channel, priority preempt only from the rules engine; invariants 9, 21)."
+    - "The Talker never awaits the evaluation (fake-clock test)."
+    - "End-to-end test over the committed base.intake + base.life_threat on both profiles: a chest-pain character or radiation answer alone yields RED at the rule's register and location; near misses do not."
+    - "make safety, runtime-sim (both profiles, PARITY=1) green."
+  tests: [tests/voice/test_live_triage.py]
+  sec_row: "clinical-core"

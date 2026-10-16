@@ -194,6 +194,20 @@ class IntakeEngine:
         """The bound value, or ``None`` where nothing is bound."""
         return self._values.get(step_id)
 
+    def answered(self) -> dict[str, tuple[AnswerState, JsonValue]]:
+        """Every bound answer, ``{step_id: (state, value)}`` (INT-521).
+
+        Only ``ASKED_PRESENT`` / ``ASKED_ABSENT`` carry a value — the reading
+        :meth:`_lookup` and ``protocols.triage.context`` share — so a step in
+        any other state is absent and reads Unknown. A fresh dict each call:
+        reading it cannot write the engine.
+        """
+        return {
+            step_id: (state, self._values.get(step_id))
+            for step_id, state in self._states.items()
+            if state in {AnswerState.ASKED_PRESENT, AnswerState.ASKED_ABSENT}
+        }
+
     def frontier(self) -> tuple[Step, ...]:
         """The offered steps, sorted ``(priority_class, order, id)``.
 

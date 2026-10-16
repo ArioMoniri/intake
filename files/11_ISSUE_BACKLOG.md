@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**345 issues.** By phase: P0 169 · P1 122 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 230 · todo 73 · withdrawn 1.
+**346 issues.** By phase: P0 170 · P1 122 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 231 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -180,6 +180,7 @@
 | INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | INT-352 | area:infra | doing |
 | INT-500 | Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako | E13-infra | INT-429 | area:security | done |
 | INT-518 | Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind | E03-protocols | INT-083, INT-432 | area:protocols | done |
+| INT-521 | The live voice and typed session evaluates triage on every bound answer, so a RED fires from the conversation | E05-voice | INT-518, INT-093 | area:voice | done |
 
 ## P1
 

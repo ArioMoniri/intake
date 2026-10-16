@@ -48,6 +48,19 @@ through :func:`~intake_voice_runtime.talker.preemption.authorise_preempt`; a
 RED naming a rule outside the session's pinned pack **fails the Work** rather
 than being downgraded, because speaking a RED as routine is the worse error.
 
+**The rules engine runs here, after the Work, never inside a handler**
+(INT-521). A queue handed a
+:class:`~intake_voice_runtime.clinical_agent.live_triage.SessionTriage`
+compares the answers the served rules read before and after each state-lane
+Work; when the Work completed and bound one, it asks the rules engine for a
+determination and passes it through as that Work's ``triage_update``. So every
+answer that can change a red-flag rule is evaluated, by whichever handler it
+was bound, and a determination a handler returned itself is passed through
+untouched rather than overwritten. The moment the determination was in hand
+travels on a ``preempt`` result as ``evaluated_at_ms``, because files/02 §8.2
+measures the RED budgets from rule evaluation and the Talker must not stamp a
+RED on arrival.
+
 **The queue is PHI-free by construction** (CLAUDE.md invariant 6).
 :class:`~intake_voice_runtime.ports.WorkRequest` carries ``input_hash``, not
 the transcript, so there is no patient text in a record, a log line or a
@@ -95,6 +108,7 @@ from intake_platform.safety_inbox.metrics import CLINIC_RED_INBOX_ROUTE_FAILURES
 from pydantic import Field, ValidationError
 
 from intake_voice_runtime.clinical_agent.fsm import EngineError, IntakeEngine
+from intake_voice_runtime.clinical_agent.live_triage import BoundReads, SessionTriage
 from intake_voice_runtime.metrics import (
     WORK_FAILED_TOTAL,
     WORK_LATENCY_MS,
@@ -271,6 +285,10 @@ class BackendAgent:
     #: ``None`` is the unit-level default only; both composition roots require
     #: one (``intake_voice_runtime.composition``).
     clinic: ClinicNotifier | None = None
+    #: INT-521: the session's served red-flag rules, evaluated after every
+    #: state-lane Work that binds a slot one of them reads. ``None`` where the
+    #: pinned protocol serves no rule; composition binds one wherever it does.
+    triage: SessionTriage | None = None
     _queue_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _engine_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _state_handlers: dict[WorkType, StateHandler] = field(default_factory=dict, init=False)
@@ -558,8 +576,10 @@ class BackendAgent:
     def _execute_state(self, work_id: str) -> None:
         record = self._records[work_id]
         handler = self._state_handlers[record.request.work_type]
+        before = self.triage.bound(self.engine) if self.triage is not None else ()
         try:
             effect = handler(StateContext(request=record.request, engine=self.engine))
+            triage_update = self._determination(effect, before, work_id)
         except Exception as err:  # a handler fault is a receipt, not a crashed pump
             self._finish_failed(WorkLane.STATE, work_id, err)
             return
@@ -569,10 +589,27 @@ class BackendAgent:
             inline=effect.inline,
             speech_tr=effect.speech_tr,
             speech_numerics=effect.speech_numerics,
-            triage_update=effect.triage_update,
+            triage_update=triage_update,
             candidate_flags=(),
             effect_class=effect.effect_class,
+            determined_at_ms=self.clock.now_ms(),
         )
+
+    def _determination(
+        self, effect: StateEffect, before: BoundReads, work_id: str
+    ) -> RulesTriageResult | None:
+        """The Work's ``triage_update``: the handler's own, else the rules engine's.
+
+        INT-521: the rules engine runs when this Work bound or changed an
+        answer a served rule reads, and only then — still under the engine
+        lock, so it reads exactly the state the Work left. A handler that
+        returned a determination keeps it; the evaluation never replaces one.
+        """
+        if effect.triage_update is not None or self.triage is None:
+            return effect.triage_update
+        if self.triage.bound(self.engine) == before:
+            return None
+        return self.triage.evaluate(self.engine, work_id=work_id)
 
     def _execute_background(self, work_id: str) -> None:
         record = self._records[work_id]
@@ -596,6 +633,7 @@ class BackendAgent:
             triage_update=None,
             candidate_flags=effect.candidate_flags,
             effect_class=effect.effect_class,
+            determined_at_ms=self.clock.now_ms(),
         )
 
     def _finish(
@@ -609,6 +647,7 @@ class BackendAgent:
         triage_update: RulesTriageResult | None,
         candidate_flags: tuple[CandidateFlag, ...],
         effect_class: EffectClass,
+        determined_at_ms: float,
     ) -> None:
         delivery_class, priority = _delivery_of(triage_update, effect_class)
         suppressed = priority is Priority.NORMAL and work_id in self._cancelling
@@ -631,6 +670,7 @@ class BackendAgent:
             delivery_class=delivery_class,
             presentation=presentation,
             priority=priority,
+            evaluated_at_ms=determined_at_ms if priority is Priority.PREEMPT else None,
         )
         if priority is Priority.PREEMPT:
             try:
@@ -657,18 +697,23 @@ class BackendAgent:
             return
         try:
             triage = result.presentation.triage_update
+            stamp = result.evaluated_at_ms
             if not isinstance(triage, RulesTriageResult) or (
-                triage.register is None or triage.location is None
+                triage.register is None or triage.location is None or stamp is None
             ):
-                # unreachable past authorise_preempt; counted, never raised here
-                raise TypeError("an authorised RED carries a rules result with both axes")
+                # unreachable past authorise_preempt and _finish's stamp; counted,
+                # never raised here
+                raise TypeError(
+                    "an authorised RED carries a rules result with both axes and the "
+                    "moment it was determined"
+                )
             self.clinic.notify(
                 RedNotification(
                     work_id=result.work_id,
                     rule_ids=tuple(fire.id for fire in triage.rules),
                     register=triage.register,
                     location=triage.location,
-                    evaluated_at_ms=self.clock.now_ms(),
+                    evaluated_at_ms=stamp,
                     patient_facing=REGISTER_DELIVERY[triage.register].triggers_device,
                 )
             )

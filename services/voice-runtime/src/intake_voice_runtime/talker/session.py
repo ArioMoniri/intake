@@ -22,7 +22,8 @@ What this module deliberately does **not** contain:
   flush → cancel → pre-positioned-clip sequence over the data channel is
   INT-093, and files/03 §4.6 invariant 4 requires that path to touch no media
   transport at all — which is precisely why it is not plumbed through this
-  audio sink.
+  audio sink. A turn hands a drained RED to that path before it schedules or
+  asks anything (INT-521), and asks nothing once it has stopped the intake.
 - **an LLM.** Dynamic text arrives as a string from Layer B or from the
   Talker's small model behind ADR-006's gateway; this module routes and guards
   it. There is no model call here to mock.
@@ -35,6 +36,7 @@ What this module deliberately does **not** contain:
 from __future__ import annotations
 
 import enum
+import logging
 from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
@@ -121,6 +123,8 @@ __all__ = [
     "TurnHold",
     "TurnOutcome",
 ]
+
+logger = logging.getLogger("intake_voice_runtime.talker.session")
 
 
 class TurnHold(enum.StrEnum):
@@ -684,6 +688,20 @@ class TalkerSession:
             if register is not None and REGISTER_DELIVERY[register].stops_intake:
                 self._red_stopped = True
 
+    def _evaluated_at(self, result: BackendResult) -> float:
+        """When the rules engine made this RED's determination (INT-521).
+
+        Layer B stamps every ``preempt`` it settles. A RED from another source
+        carries no stamp; it is delivered all the same, measured from the
+        moment it was drained, because a patient shown nothing is the one
+        outcome the RED path must never produce — and the gap is logged by
+        work id so the unmeasured hop is visible rather than silent.
+        """
+        if result.evaluated_at_ms is not None:
+            return result.evaluated_at_ms
+        logger.warning("red drained without an evaluation stamp", extra={"work_id": result.work_id})
+        return self.clock.now_ms()
+
     @property
     def red_stopped(self) -> bool:
         """True once a patient-facing RED stopped the intake (files/03 §4.6:
@@ -734,9 +752,26 @@ class TalkerSession:
             work_id = self.submit_utterance(answered.step_id, transcript).work_id
 
         drained = self.backend.drain_results()
+        reds: list[BackendResult] = []
         for result in drained:
             if isinstance(result, BackendResult):
                 self.accept_result(result)
+                if result.priority is Priority.PREEMPT:
+                    reds.append(result)
+
+        # INT-521: a rules-engine RED is delivered the turn it is drained,
+        # before anything is scheduled or asked (files/03 §4.3: preempt, stop
+        # intake). The path cancels the agent's audio and triggers the
+        # pre-positioned script over the data channel; it awaits no Backend Work.
+        for result in reds:
+            await self.deliver_preempt(result, evaluated_at_ms=self._evaluated_at(result))
+        if self._red_stopped:
+            return TurnOutcome(
+                work_id=work_id,
+                drained_results=len(drained),
+                held=TurnHold.INTAKE_STOPPED,
+                elapsed_ms=self.clock.now_ms() - started_ms,
+            )
 
         delivered: list[str] = []
         for decision in self.scheduler.tick(self.duplex, now_ms=self.clock.now_ms()):

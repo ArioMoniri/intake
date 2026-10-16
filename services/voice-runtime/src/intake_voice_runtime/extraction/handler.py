@@ -40,11 +40,13 @@ Four things this handler deliberately does **not** do:
   inventing a Turkish acknowledgement would be patient copy no human signed
   off.
 - **It sets no ``triage_update``.** The rules engine is
-  ``packages/protocols/triage`` and running it from here is INT-096's scope,
-  not this issue's; ``StateEffect.triage_update`` stays ``None`` so the
-  queue's RED derivation has nothing to derive from. CLAUDE.md invariant 1 is
-  untouched in the safe direction: an extraction cannot mint a level at all,
-  and ``candidate_flags`` — the only triage-shaped material it produces — are
+  ``packages/protocols/triage``, and the queue runs it after this handler
+  returns, whenever the Work bound an answer a served red-flag rule reads
+  (:mod:`intake_voice_runtime.clinical_agent.live_triage`, INT-521). So
+  ``StateEffect.triage_update`` stays ``None`` here and the determination is
+  the rules engine's, never this handler's. CLAUDE.md invariant 1 holds in the
+  safe direction: an extraction cannot mint a level at all, and
+  ``candidate_flags`` — the only triage-shaped material it produces — are
   clinician-facing and reach the note, never routing.
 - **It never widens what the model may answer.** The declared slot set is the
   Work's own step plus whatever the engine currently lists as ``awaiting``
