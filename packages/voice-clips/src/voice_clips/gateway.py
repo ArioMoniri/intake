@@ -81,6 +81,7 @@ __all__ = [
     "DeliveryProfileMismatchError",
     "ElevenLabsClipGenGateway",
     "HttpTtsGateway",
+    "MarkupInScriptError",
     "NumeralInScriptError",
     "RecordedSpeechMismatchError",
     "RecordedSpeechMissingError",
@@ -90,8 +91,11 @@ __all__ = [
     "TtsNotConfiguredError",
     "TtsRefusedError",
     "TtsUnavailableError",
+    "UnspeakableScriptError",
+    "assert_numeral_free",
     "assert_speakable_tr",
     "tts_gateway_from_env",
+    "wire_text",
 ]
 
 ENV_TTS_ENDPOINT: Final = "INTAKE_TTS_ENDPOINT"
@@ -153,8 +157,16 @@ class RecordedSpeechMismatchError(TtsError):
     """A recording exists but was made for other text, or another voice."""
 
 
-class NumeralInScriptError(TtsError):
+class UnspeakableScriptError(TtsError):
+    """Scripted text that no TTS may be handed as it stands. Refused, never fixed."""
+
+
+class NumeralInScriptError(UnspeakableScriptError):
     """A manifest string still carries a numeral (CLAUDE.md invariant 22)."""
+
+
+class MarkupInScriptError(UnspeakableScriptError):
+    """Scripted text carries SSML or an audio tag (INT-424, invariant 10)."""
 
 
 class CloudClipGenNotBudgetedError(TtsNotConfiguredError):
@@ -177,14 +189,23 @@ class TtsGateway(Protocol):
     ) -> SynthesisedSpeech: ...
 
 
-def assert_speakable_tr(text_tr: str) -> None:
-    """Refuse any Unicode number character. Never rewrite one.
+#: The two markup syntaxes the vendor reads inside ``text``: SSML (``<break
+#: time=... />`` on eleven_multilingual_v2) and audio tags (``[whispers]`` on
+#: eleven_v3 and eleven_v4). Punctuation is not markup: the comma, full stop,
+#: semicolon, ellipsis and dash are how text paces itself and stay admitted.
+_MARKUP_CHARS: Final = frozenset("<>[]")
 
-    The whole ``N`` category, not just ASCII digits: Arabic-Indic digits and
-    vulgar fractions reach a TTS normaliser exactly as a ``5`` does, and the
-    compiler's expansion is supposed to have removed all of them.
+
+def assert_numeral_free(text: str) -> None:
+    """Refuse any Unicode number character (invariant 22). Never rewrite one.
+
+    The numeral half of :func:`assert_speakable_tr`, on its own so it can run on
+    the exact text a request carries: ``text_tr`` plus a profile's closed-table
+    tags (INT-449). The tags are markup by construction, so the whole wire text
+    can never pass the markup half; it must still carry no numeral, because the
+    wire text is what reaches the model.
     """
-    offenders = sorted({char for char in text_tr if unicodedata.category(char).startswith("N")})
+    offenders = sorted({char for char in text if unicodedata.category(char).startswith("N")})
     if offenders:
         raise NumeralInScriptError(
             f"scripted text still carries {''.join(offenders)!r} — the compiler expands "
@@ -193,6 +214,51 @@ def assert_speakable_tr(text_tr: str) -> None:
             "does not normalise, because a second normaliser is a second opinion "
             "about a dose"
         )
+
+
+def assert_speakable_tr(text_tr: str) -> None:
+    """Refuse any Unicode number character, and any markup. Never rewrite either.
+
+    The whole ``N`` category, not just ASCII digits: Arabic-Indic digits and
+    vulgar fractions reach a TTS normaliser exactly as a ``5`` does, and the
+    compiler's expansion is supposed to have removed all of them.
+
+    Markup is refused for the same reason in the other direction (INT-424). An
+    audio tag is words the protocol did not author, and the model may voice it
+    or turn it into a sound, so it breaks verbatim delivery (invariant 10). An
+    SSML break carries a duration numeral (invariant 22). Pacing lives in the
+    profile and in punctuation; an expressive-markup model is an ADR question
+    (docs/adr/ADR-034), not a string edit.
+    """
+    assert_numeral_free(text_tr)
+    markup = sorted(_MARKUP_CHARS.intersection(text_tr))
+    if markup:
+        raise MarkupInScriptError(
+            f"scripted text carries markup {''.join(markup)!r} — no SSML and no audio tag "
+            "rides inside verbatim text_tr (CLAUDE.md invariants 10 and 22); the gate "
+            "refuses and never strips"
+        )
+
+
+def wire_text(text_tr: str, profile: DeliveryProfile) -> str:
+    """The exact ``text`` an ElevenLabs request carries (INT-449, D20).
+
+    ``text_tr`` passes the whole :func:`assert_speakable_tr` gate first, so a
+    tag, an SSML element or a numeral inside the script is refused before any
+    tag exists. Then the profile's closed-table tags (its ``wire_prefix``) go
+    in front, and the composed text is checked once more for a numeral, since
+    it is what reaches the model (invariant 22). The tags come from the served
+    delivery table only: a caller names a context, never a tag. RED and
+    instrument rows carry none, so their wire text is the script alone.
+
+    The offline clip-gen gateway (ADR-028, which rendered the bundled set) and
+    the hosted lane (INT-443) both compose through here, so the two can never
+    send different words for the same row.
+    """
+    assert_speakable_tr(text_tr)
+    text = profile.wire_prefix + text_tr
+    assert_numeral_free(text)
+    return text
 
 
 @dataclass(frozen=True)
@@ -329,7 +395,7 @@ class ElevenLabsClipGenGateway:
                     json={
                         # INT-449: the profile's closed-table tags, on the wire
                         # only; text_tr itself is the script, verbatim (inv. 10)
-                        "text": profile.wire_prefix + text_tr,
+                        "text": wire_text(text_tr, profile),
                         "model_id": self.model_id,
                         # invariant 22: disable the vendor normaliser — the
                         # compiler already expanded every numeral to orthography.

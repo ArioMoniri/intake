@@ -123,7 +123,9 @@ def compiled_dist(root: Path, *, voice: str) -> Path:
     bundle = compile_bundle(
         pack_id=FIXTURE_PACK_ID,
         registry=load_registry(_COMPILE_FIXTURES / "tree"),
-        life_threat=load_life_threat_set(_COMPILE_FIXTURES / "life_threat_signed.yaml"),
+        life_threat=load_life_threat_set(
+            _COMPILE_FIXTURES / "life_threat_signed.yaml", allow_fixture_snapshots=True
+        ),
         template=load_opt(_COMMITTED_OPT),
         voice=voice,
     )

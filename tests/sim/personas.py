@@ -313,7 +313,7 @@ def _answer(transcript: str, **updates: JsonValue) -> ScriptedAnswer:
 
 _BASELINE: Mapping[str, ScriptedAnswer] = {
     "ziyaret.bildiren_rol": _answer(
-        "Kendim için yanıtlıyorum.", **{"ziyaret.bildiren_rol": "kendim"}
+        "Kendim için yanıtlıyorum.", **{"ziyaret.bildiren_rol": "kendim için"}
     ),
     "ziyaret.basvuru_nedeni": _answer(
         "Sentetik sakin neden.", **{"ziyaret.basvuru_nedeni": "sentetik_sakin"}
@@ -433,7 +433,7 @@ _ALL: tuple[Persona, ...] = (
         subject_role=SubjectRole.PROXY,
         answers=_script(
             ziyaret__bildiren_rol=_answer(
-                "Çocuğum için yanıtlıyorum.", **{"ziyaret.bildiren_rol": "yakinim"}
+                "Çocuğum için yanıtlıyorum.", **{"ziyaret.bildiren_rol": "yakınım adına"}
             )
         ),
     ),
@@ -449,7 +449,7 @@ _ALL: tuple[Persona, ...] = (
         overlay_refs=("overlay.cognitive_impairment",),
         answers=_script(
             ziyaret__bildiren_rol=_answer(
-                "Babam için yanıtlıyorum.", **{"ziyaret.bildiren_rol": "yakinim"}
+                "Babam için yanıtlıyorum.", **{"ziyaret.bildiren_rol": "yakınım adına"}
             )
         ),
     ),

@@ -82,6 +82,10 @@ value:
   match_order: "hedge entries first (longest surface first), plain negatives last"
   present_qualified_evaluates_as: present
   unclear_evaluates_as: unknown
+  # The decision's "triggers the slot's follow_up_tr once", machine-readable
+  # (INT-540): how many times an UNCLEAR answer's follow_up_tr is asked before
+  # the slot stays UNCLEAR. A restatement, not a new value.
+  unclear_follow_up_tr_asks: 1
   entries:
     - surface_tr: "ağrım yok değil hani"
       gloss_en: "it is not that I have no pain, you know (double negation affirms the pain)"

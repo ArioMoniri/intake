@@ -59,6 +59,7 @@ from voice_clips.delivery import (
     DELIVERY_CONTEXTS,
     DELIVERY_PROFILES,
     MAX_STYLE,
+    PROFILE_VERSION,
     SPEED_MAX,
     SPEED_MIN,
     DeliveryProfile,
@@ -149,6 +150,102 @@ class TestEveryContextResolves:
                 isinstance(request[name], float)
                 for name in ("stability", "similarity_boost", "style", "speed")
             )
+
+
+# ------------------------------------------- earlier tables (INT-424, INT-449)
+
+
+#: The INT-415 rows as merged (v1), spelled out once: (stability, style, speed).
+V1_SETTINGS = {
+    "welcome": (0.40, 0.20, 0.98),
+    "routine": (0.55, 0.05, 1.00),
+    "sensitive": (0.65, 0.00, 0.92),
+    "instrument": (0.80, 0.00, 0.95),
+    "acknowledgement": (0.48, 0.15, 1.02),
+    "red": (0.85, 0.00, 0.95),
+    "closing": (0.42, 0.20, 0.97),
+}
+
+#: The INT-424 rows (v2), George on eleven_multilingual_v2: (stability, style,
+#: speed). The cast (INT-449, D20) replaced them; no v2 clip may answer for v4.
+V2_SETTINGS = {
+    "welcome": (0.38, 0.30, 0.98),
+    "routine": (0.55, 0.05, 1.00),
+    "sensitive": (0.65, 0.00, 0.92),
+    "instrument": (0.85, 0.00, 0.93),
+    "acknowledgement": (0.45, 0.15, 1.00),
+    "red": (0.90, 0.00, 0.92),
+    "closing": (0.42, 0.20, 0.97),
+}
+#: George and the model the earlier tables were tuned on.
+GEORGE = "JBFqnCBsd6RMkjVDRZzb"
+EARLIER_MODEL = "eleven_multilingual_v2"
+
+
+def _earlier(
+    version: int, table: dict[str, tuple[float, float, float]], context: str
+) -> DeliveryProfile:
+    """The row ``context`` as an earlier table had it: George, the old model,
+    no tags, that table's settings, that version."""
+    current = delivery_profile(context)
+    stability, style, speed = table[context]
+    return dataclasses.replace(
+        current,
+        version=version,
+        model_id=EARLIER_MODEL,
+        voice_id=GEORGE,
+        tags=(),
+        voice_settings=dataclasses.replace(
+            current.voice_settings, stability=stability, style=style, speed=speed
+        ),
+    )
+
+
+class TestTheTableVersion:
+    """INT-424 bumped the table to v2 and the cast (INT-449, D20) to v4, so every
+    clip made under an earlier table is a cache miss rather than a stale replay."""
+
+    def test_the_table_is_version_four(self) -> None:
+        assert PROFILE_VERSION == 4
+        assert {profile.version for profile in DELIVERY_PROFILES.values()} == {PROFILE_VERSION}
+
+    @pytest.mark.parametrize("context", SEVEN)
+    def test_every_context_resolves_to_a_v4_key(self, context: str) -> None:
+        assert delivery_profile(context).key == f"delivery.{context}@v4"
+
+    @pytest.mark.parametrize("context", ["red", "instrument"])
+    def test_red_and_instrument_are_never_less_stable_than_an_earlier_table(
+        self, context: str
+    ) -> None:
+        settings = delivery_profile(context).voice_settings
+        assert settings.style == 0.0
+        assert settings.stability >= V1_SETTINGS[context][0]
+        assert settings.stability >= V2_SETTINGS[context][0]
+
+    @pytest.mark.parametrize("context", SEVEN)
+    @pytest.mark.parametrize(("version", "table"), [(1, V1_SETTINGS), (2, V2_SETTINGS)])
+    def test_every_earlier_table_is_another_clip_key(
+        self,
+        context: str,
+        version: int,
+        table: dict[str, tuple[float, float, float]],
+        bundle: CompiledBundle,
+    ) -> None:
+        current, older = delivery_profile(context), _earlier(version, table, context)
+        entry = bundle.clip_manifest[0].entry
+        assert older.key == f"delivery.{context}@v{version}" != current.key
+        assert clip_object_key(entry, profile=older) != clip_object_key(entry, profile=current)
+
+    def test_the_same_settings_under_a_new_version_are_still_a_new_key(
+        self, bundle: CompiledBundle
+    ) -> None:
+        """Near-miss control: the key moves on the version alone, so a row whose
+        values a review kept is still re-synthesised under the new version."""
+        profile = delivery_profile("routine")
+        older = dataclasses.replace(profile, version=PROFILE_VERSION - 1)
+        entry = bundle.clip_manifest[0].entry
+        assert older.voice_settings == profile.voice_settings
+        assert clip_object_key(entry, profile=older) != clip_object_key(entry, profile=profile)
 
 
 # ------------------------------------------------------------ the principles
@@ -459,16 +556,26 @@ class TestARecordingIsBoundToItsProfile:
         )
 
     def test_a_recording_for_another_profile_is_refused(self, tmp_path: Path) -> None:
-        self._record(tmp_path, "delivery.welcome@v1")
+        welcome = delivery_profile("welcome").key
+        self._record(tmp_path, welcome)
         with pytest.raises(RecordedSpeechMismatchError) as raised:
             RecordedTtsGateway(root=tmp_path).synthesise(
                 text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
             )
-        assert "delivery.welcome@v1" in str(raised.value)
+        assert welcome in str(raised.value)
+
+    def test_a_take_made_under_the_retired_version_is_refused(self, tmp_path: Path) -> None:
+        """INT-424: the v2 bump retires every v1 take, even for the same context."""
+        self._record(tmp_path, "delivery.red@v1")
+        with pytest.raises(RecordedSpeechMismatchError):
+            RecordedTtsGateway(root=tmp_path).synthesise(
+                text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
+            )
 
     def test_a_george_era_recording_is_refused_after_the_cast(self, tmp_path: Path) -> None:
-        """INT-449 near miss: same context and text, the version George was made under."""
-        self._record(tmp_path, "delivery.red@v1")
+        """INT-449 near miss: same context and text, the last version George was
+        made under (v2, INT-424); the cast bumped every row to v4."""
+        self._record(tmp_path, "delivery.red@v2")
         with pytest.raises(RecordedSpeechMismatchError):
             RecordedTtsGateway(root=tmp_path).synthesise(
                 text_tr="Merhaba.", voice_id=VOICE, profile=delivery_profile("red")
