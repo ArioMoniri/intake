@@ -34,6 +34,14 @@ What it holds to:
 - **Only a bound answer is a value.** ``ASKED_PRESENT`` and ``ASKED_ABSENT``
   carry their value; every other state is absent from the context and reads
   Unknown (files/12 §1.1), the same reading the engine's own gates use.
+- **One exception, decided by CD-05: an UNCLEAR onset anchor** (INT-522). An
+  answer that never fitted a closed onset choice is recorded UNCLEAR, and
+  CD-05 ``unresolved_answer`` resolves it to the more acute reading, the
+  reference day. Where the session carries
+  :class:`~intake_voice_runtime.clinical_agent.anchors.SessionAnchors`, such
+  an anchor is read as that day — before and after every Work, so the Work
+  that spent the last clarification is evaluated — and every other UNCLEAR
+  slot still reads Unknown.
 - **A read is spelled ``<section>.<slot>`` or bare ``<slot>``** (files/12
   §2.4). Each spelling is mapped to the step it names; a bare name two
   sections share names neither and reads Unknown, because guessing between
@@ -60,6 +68,7 @@ from protocols.compile.rule_reads import rule_reads
 from protocols.dsl import RedFlagRule
 from protocols.triage import SlotAnswer, TriageContext, evaluate_triage
 
+from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 
 __all__ = [
@@ -115,12 +124,19 @@ class SessionTriage:
     location: RedLocation
     #: ``{spelling a rule uses: step_id}``, for every spelling that resolves.
     spellings: Mapping[str, str]
+    #: CD-05's anchors (INT-522), so an UNCLEAR onset reads its decided day.
+    anchors: SessionAnchors | None = None
     #: Content-addressed Work ids, in the order they were evaluated.
     evaluated: list[str] = field(default_factory=list, init=False)
 
     @classmethod
     def for_protocol(
-        cls, protocol: ResolvedProtocol, *, location: RedLocation, reference_time: datetime
+        cls,
+        protocol: ResolvedProtocol,
+        *,
+        location: RedLocation,
+        reference_time: datetime,
+        anchors: SessionAnchors | None = None,
     ) -> SessionTriage:
         """Pin the protocol's served rules. Refuses what the engine would refuse.
 
@@ -145,7 +161,12 @@ class SessionTriage:
             for section in protocol.sections
             for resolved in section.slots
         }
-        triage = cls(rules=rules, location=location, spellings=step_spellings(spellings, step_ids))
+        triage = cls(
+            rules=rules,
+            location=location,
+            spellings=step_spellings(spellings, step_ids),
+            anchors=anchors,
+        )
         evaluate_triage(rules, TriageContext(reference_time=reference_time, answers={}), location)
         return triage
 
@@ -156,14 +177,14 @@ class SessionTriage:
 
     def bound(self, engine: IntakeEngine) -> BoundReads:
         """The read slots' bound answers, for the queue's before/after compare."""
-        answered = engine.answered()
+        answered = self._answered(engine)
         return tuple(
             (step_id, *answered[step_id]) for step_id in sorted(self.reads) if step_id in answered
         )
 
     def context(self, engine: IntakeEngine) -> TriageContext:
         """The engine's bound answers, keyed by each spelling the rules use."""
-        answered = engine.answered()
+        answered = self._answered(engine)
         answers: dict[str, SlotAnswer] = {}
         for spelling, step_id in self.spellings.items():
             if step_id in answered:
@@ -174,5 +195,22 @@ class SessionTriage:
     def evaluate(self, engine: IntakeEngine, *, work_id: str) -> RulesTriageResult:
         """The rules engine's determination over the session's answers now."""
         result = evaluate_triage(self.rules, self.context(engine), self.location).result
+        if self.anchors is not None:
+            for resolution in self.anchors.unclear_readings(engine, self.reads).values():
+                self.anchors.note(resolution)
         self.evaluated.append(work_id)
         return result
+
+    def _answered(self, engine: IntakeEngine) -> dict[str, tuple[AnswerState, JsonValue]]:
+        """The engine's bound answers, plus each UNCLEAR anchor read as CD-05 decides.
+
+        An UNCLEAR anchor carries the day CD-05 ``unresolved_answer`` resolves
+        it to, as a value-bearing answer: the record of the slot is still
+        UNCLEAR (``engine.state_of``), and ``SessionAnchors.record`` labels the
+        day ``unresolved_answer``.
+        """
+        answered = engine.answered()
+        if self.anchors is not None:
+            for step_id, resolution in self.anchors.unclear_readings(engine, self.reads).items():
+                answered[step_id] = (AnswerState.ASKED_PRESENT, resolution.resolved_on)
+        return answered

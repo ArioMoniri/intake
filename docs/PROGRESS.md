@@ -1,5 +1,18 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T13:45:00Z · INT-522 · done (committed locally, not pushed; stacked on #910 INT-521, INT-518, INT-441)
+- Goal: `chest_pain.onset_at`, the tense anchor of K2 and its SARI sibling, is a date answered by four closed choices. Extraction offered `format: date`, gave no reference date and forbade inference, so a spoken choice bound nothing, the anchor read Unknown and K2 could not fire live. INT-518/521 passed only on a recorded ISO date.
+  - Acceptance (GitHub #888): build CD-05's choice-to-date resolution exactly; the reference date from the injected runtime clock, never the model; each choice to its CD-05 window, hedged answers Unknown, near misses; `make safety` and runtime-sim green.
+- Plan: read CD-05 through the clinical-decisions register into `protocols.anchor_choices`, refusing anything it cannot follow; offer the model the authored choices as an enum; the handler swaps the choice for its day against the engine's `reference_time`; an UNCLEAR anchor reads CD-05's unresolved day in `SessionTriage`; composition refuses a closed-choice date without a decided day for every choice.
+- Tests added: `tests/protocols/test_anchor_choices.py` (64), `tests/voice/test_onset_anchor.py` (72), golden family `anchor_choices` (10) with a near miss for each active rule; INT-518/521 now answer the onset with the authored choice.
+  - RED (on `1ba358ff`): collection errors; every choice refused `wrong_type`, onset pending, GREEN for "baskı"; INT-518/521 with the choice: 89 failed.
+  - GREEN: 136 passed; three bands × three locations × two profiles fire K2 at ALERT over the data channel; "üç günden daha önce" quiet; three unfitting answers → UNCLEAR → reference day → K2. 11/11 mutations caught.
+- Result (docs/evidence/INT-522.md): `make safety` exit 0 (triage 100 %, 18/18 mutations, voice-runtime 98.25 %, 98.27 % on re-run); protocols lane 97.57 % (`anchor_choices.py` 100 %); runtime-sim every scenario, both profiles, parity, exit 0 (RT-06 withdrawn as before); mypy strict clean.
+- Invariants touched and still passing: 1, 7, 9, 10, 14 (the model picks a choice, never a day), 17 (only CD-05's own open literal), 21, 22, 6.
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-05 unchanged.
+- Backlog: INT-522 row added (`area:protocols`, depends on INT-518 and INT-521, `clinical-core`); the three pins go from 357 to 358; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane (no new item): CD-05's own open final resolution of the twelve-to-seventy-two-hour band; and whether the first "bilmiyorum" should resolve before the engine's two scripted follow-ups. Residuals in evidence: the app's API hop would need the resolved day if the app ever asks the onset; the reference time's producer is the composing caller.
+
 ### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
 - Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).
 - Plan:
