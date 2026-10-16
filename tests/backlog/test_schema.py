@@ -168,7 +168,9 @@ def test_ids_unique_and_well_formed() -> None:
     # three, each with its own user, daemon and network namespace, GitHub #799).
     # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
     # vulnerabilities gate stops blocking every merge; GitHub #851).
-    assert len(ids) == 343
+    # + INT-490 (research and improvement analytics in the admin panel, the
+    # build half of the owner's 4 Oct request within LD-06; GitHub #837).
+    assert len(ids) == 344
     import re
 
     for i in ids:

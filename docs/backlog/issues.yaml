@@ -6711,3 +6711,30 @@
     - "the mobile, admin-web and package vitest suites, pnpm -r typecheck and lint, and admin-web's next build pass; the licence gate passes for the changed packages"
   tests: [tests/ci/test_security_gates.py]
   sec_row: "cicd"
+- id: INT-490
+  epic: E12-admin
+  phase: P1
+  title: "Research and improvement analytics: aggregate, anonymised question and user metrics in the admin panel (within LD-06)"
+  # GitHub #837. The build half of the owner's request of 4 Oct 2026; the
+  # legal half is INT-484 (#827, LD-06), accepted by the owner on 16 Oct 2026
+  # as D28: anonymised aggregates only, no new consent purpose, nothing
+  # record-level without an opt-in consent naming the purpose (HB-L26). The
+  # funnel and the language are computed from stored row metadata; the triage
+  # level (stored only inside the encrypted previsit document) and every
+  # per-question and platform view (needing per-person raw telemetry under
+  # D28's opt-in consent) are built, gated and reported not collected with
+  # their reason. Both LD-06 retention periods stay configuration with no
+  # default, failing closed; the owner's recommendation is in the evidence.
+  depends_on: [INT-171, INT-180]
+  labels: [area:observability]
+  status: done
+  evidence: docs/evidence/INT-490.md
+  acceptance:
+    - "per closed ISO week and protocol version, the funnel (invited, started, finished, shared) and the language are computed server-side from stored row metadata; completion and drop-off, time-to-answer, repeat/clarify, typed vs voice, measured recognition-quality bands, the RED/YELLOW/GREEN share and the device platform exist as views with the same gates, and each is reported not collected, with its reason class, until a content-free source exists"
+    - "small-cell suppression is enforced server-side: a population under 10 is not listed, a view with any cell of 1-9 is withheld whole, and a cross-view check withholds any view that would let a group of 1-9 people be recovered by arithmetic over shown counts; near misses: a cell of 9 withheld and 10 shown, a combination isolating fewer than 10 withheld, a cross-view subtraction recovering nothing (checked by an independent exhaustive oracle)"
+    - "no free text, identifier or drill-down reaches the response (the API scans its own answer); dimension keys and metric label values pass the invariant-6 refusal rule; the three metric families are catalogued; the admin read is role-checked and audited; services/learning receives the gated release as Loop-2 evidence only"
+    - "both LD-06 retention periods are configuration with no default: unset keeps nothing (no snapshot, no export, no evidence bundle; no-store answers), and a malformed value is refused"
+    - "the admin-web Analytics page (tr/en) renders the release in the native shell with no style attribute, withheld tables as <10 without a figure"
+  tests: [tests/analytics/test_research_release.py, tests/analytics/test_research_payload.py, tests/analytics/test_research_sources.py, tests/analytics/test_research_config.py, tests/admin/test_analytics_console.py, tests/learning/test_research_evidence.py, tests/observability/test_analytics_dimension_keys.py, apps/admin-web/e2e/analytics.spec.ts]
+  legal: "KVKK-4,KVKK-7,DEST-2017,KSVY-16"
+  sec_row: "observability-pipeline"
