@@ -110,7 +110,13 @@ import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
-import { dialogueFrozenAt, dialogueShown, redStopsDialogue, redStore } from "@/lib/red/store";
+import {
+  dialogueFrozenAt,
+  dialogueShown,
+  redOrb,
+  redStopsDialogue,
+  redStore,
+} from "@/lib/red/store";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { haptic } from "@/lib/motion/appHaptics";
 import { bubbleEntrance, bubbleGranted } from "@/lib/motion/bubbles";
@@ -460,16 +466,17 @@ export function DialogueIntake({
 
   // INT-336: the orb's one input. This lane is the dev dialogue over HTTP:
   // it has no media transport to lose, so that input is honestly "connected".
-  // Its RED channel is the root store (INT-446): while a RED the patient sees
-  // stands, the orb holds at idle (lib/motion/red.ts, the in-flow yield; a
-  // root-layer RED covers the navigator above it).
+  // Its RED channel is the root store (INT-446), read as ADR-033 §5's yield
+  // (INT-551, lib/red/store `redOrb`): an ALERT or CALM takeover unmounts the
+  // orb, the barge-in visual the emergency script has none of; SILENT holds it
+  // at idle beside its in-flow guidance; DEFERRED_CLINICIAN changes nothing.
   const orbState = orbStateFor({
     lane: "voice",
     turnPhase: turn.phase,
     playing: session.playing,
     voiceMuted: state.voiceMuted,
     transport: "connected",
-    red: stopsDialogue ? "idle" : null,
+    red: redOrb(red),
   });
   // ADR-039 S1: the stage orb's motion, from the same state; still while a
   // RED the patient sees stands.
@@ -485,7 +492,9 @@ export function DialogueIntake({
   const stripLabel = joinParts(t("dialogue.noteForming"), stripTitle);
 
   // While the agent speaks, the LAST logged agent turn is the live bubble.
-  const liveAgentIndex = turn.phase === "speaking" ? state.stream.length - 1 : -1;
+  // INT-551: under a RED the stream is frozen and the agent silenced, so no
+  // bubble is live: a tap on the frozen one must not barge in and open the mic.
+  const liveAgentIndex = !stopsDialogue && turn.phase === "speaking" ? state.stream.length - 1 : -1;
 
   // INT-423: the rhythm. Consecutive turns from one speaker group, and the
   // tail belongs to a run's last bubble; the open-mic turn is the patient's,

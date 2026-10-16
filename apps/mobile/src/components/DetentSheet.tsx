@@ -12,7 +12,11 @@
  *   header follows the finger; a release settles where the throw points, or
  *   closes past the threshold (lib/motion/sheet).
  * - It presents, settles and falls away on A1's critically damped spring
- *   (lib/motion/native/sheetMotion). A privacy or RED close is instant.
+ *   (lib/motion/native/sheetMotion). A privacy or RED close is instant: the
+ *   commit that closes it hides the sheet and registers no exit, and the next
+ *   commit unmounts it (INT-551). Reanimated reads an exit when a view mounts
+ *   or updates, never when it unmounts, so unmounting in the closing commit
+ *   would play the patient's spring that the open sheet registered.
  * - Reduce Motion: a 120 ms fade on presenting, an instant close, and a
  *   release that snaps to its detent.
  * - Focus stays inside (`accessibilityViewIsModal`). The VoiceOver escape
@@ -37,10 +41,12 @@ import {
   nextDetent,
   settleTarget,
   sheetClose,
+  sheetMount,
   sheetPresent,
   sheetSettle,
   type Detent,
   type SheetCloseReason,
+  type SheetMount,
 } from "@/lib/motion/sheet";
 import { radius, spacing } from "@/lib/theme";
 
@@ -83,6 +89,19 @@ export function DetentSheet({
   const [detent, setDetent] = useState<Detent>("medium");
   const position = useSharedValue(0);
   const dragStart = useRef(0);
+  // INT-551: what the last commit drew, so an instant close can take its one
+  // hidden commit before the unmount (lib/motion/sheet `sheetMount`). The
+  // layout effect stores it, which renders the parked sheet once more, gone.
+  const [drawn, setDrawn] = useState<SheetMount>("closed");
+  const mount = sheetMount(drawn, {
+    visible: visible && height !== null,
+    close: sheetClose(closeReason, { reduce }),
+  });
+  useLayoutEffect(() => {
+    if (mount !== drawn) {
+      setDrawn(mount);
+    }
+  }, [mount, drawn]);
 
   // Every opening starts at the medium detent, placed before the first paint.
   useLayoutEffect(() => {
@@ -148,7 +167,7 @@ export function DetentSheet({
 
   const placed = useAnimatedStyle(() => ({ transform: [{ translateY: position.get() }] }));
 
-  if (height === null || !visible) {
+  if (height === null || mount === "closed") {
     return (
       <View
         pointerEvents="none"
@@ -158,20 +177,26 @@ export function DetentSheet({
     );
   }
 
+  // Parked: mounted for this one commit so the update registers the close's
+  // own exit, which is none; hidden from sight, touch and assistive technology.
+  const parked = mount === "parked";
   return (
     <View
+      pointerEvents={parked ? "none" : "auto"}
       style={StyleSheet.absoluteFill}
       onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={closeLabel}
-        accessibilityHint={closeHint}
-        onPress={close}
-        style={[StyleSheet.absoluteFill, styles.backdrop]}
-      />
+      {parked ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={closeLabel}
+          accessibilityHint={closeHint}
+          onPress={close}
+          style={[StyleSheet.absoluteFill, styles.backdrop]}
+        />
+      )}
       <Animated.View
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, parked ? styles.parked : null]}
         pointerEvents="box-none"
         entering={sheetEntering(sheetPresent({ reduce }), height)}
         exiting={sheetExiting(sheetClose(closeReason, { reduce }), height)}
@@ -224,6 +249,8 @@ export function DetentSheet({
 const styles = StyleSheet.create({
   // The dim behind the sheet; its floor is declared, not inherited (SC 2.5.8).
   backdrop: { backgroundColor: "rgba(0, 0, 0, 0.4)", minHeight: MIN_TAP },
+  // The one commit an instant close keeps the sheet for (INT-551).
+  parked: { display: "none" },
   sheet: {
     position: "absolute",
     left: 0,

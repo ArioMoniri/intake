@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**375 issues.** By phase: P0 180 · P1 141 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 257 · todo 72 · withdrawn 1.
+**376 issues.** By phase: P0 180 · P1 142 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 258 · todo 72 · withdrawn 1.
 
 ## P0
 
@@ -337,6 +337,7 @@
 | INT-472 | Review and send as iOS grouped inset lists: section rows, share switch rows, a metadata summary | E08-mobile | INT-464, INT-137 | area:mobile | done |
 | INT-473 | In-tree detent sheet (ADR-038 A3) for the dialogue's section sheet: no presented sheet over RED | E08-mobile | INT-472, INT-461 | area:mobile | done |
 | INT-491 | The lens is the orb: the refined glass lens replaces the sphere inside ADR-039 S1's bounds, every orb layer turns one way | E08-mobile | INT-328, INT-131 | area:mobile | done |
+| INT-551 | RED in the app: the sheet closes instantly at runtime, haptics hold under RED, the mic cannot reopen under RED | E08-mobile | INT-491, INT-473, INT-446 | area:mobile | done |
 
 ## P2
 

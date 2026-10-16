@@ -52,6 +52,12 @@
  * patient's words; the cue that picks it is read from the patient's last
  * action on this device and never awaited; and a lead-in whose clip is not
  * made yet is dropped for that turn, so the question is never late for it.
+ *
+ * INT-551: once the dialogue has closed (a RED the patient sees, a leave, a
+ * terminal turn) no driver reaches the microphone or the speaker. Under a RED
+ * the turn never moves, so each driver reads the closed flag after every
+ * await as well as its own turn's staleness, and `leave` stops whatever
+ * microphone is open (./drivers.ts, which drivers.test.ts holds await by await).
  */
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
@@ -70,6 +76,13 @@ import { appHaptics } from "../motion/appHaptics";
 import { discardRecording, transcribeRecording } from "../voice";
 import { clearDialogueClips, createDialogueTtsLaneSelector, dialogueClipStore } from "./clips";
 import { readCue, type DeliveryCue, type Utterance } from "./delivery";
+import {
+  closeDialogue,
+  openMicrophone,
+  speakTurn,
+  watchMayArm,
+  type MicrophonePort,
+} from "./drivers";
 import { deliveryClipName, leadSources, settleTurnClips, shownDelivery } from "./deliveryClips";
 import type { DeliveryContext } from "./deliveryContext";
 import {
@@ -310,19 +323,25 @@ export function useDialogueSession({
     }
   };
 
+  /** The dialogue has closed: a RED the patient sees, a leave, a terminal turn. */
+  const closed = () => closedRef.current;
+
   /**
-   * Open the microphone. One `prepareToRecordAsync` per turn, wherever the
-   * turn started it — the speaking driver when the clip begins, the listening
-   * driver when there was no clip.
+   * The microphone, as the drivers reach it (./drivers.ts `openMicrophone`).
+   * One `prepareToRecordAsync` per turn, wherever the turn started it — the
+   * speaking driver when the clip begins, the listening driver when there was
+   * no clip — and never once the dialogue has closed (INT-551).
    */
-  const openMicrophone = async () => {
-    await AudioModule.setAudioModeAsync({
-      allowsRecording: true,
-      playsInSilentMode: true,
-      shouldRouteThroughEarpiece: false,
-    });
-    await recorder.prepareToRecordAsync();
-    recorder.record();
+  const microphone: MicrophonePort = {
+    isRecording: () => recorder.isRecording,
+    allowRecording: () =>
+      AudioModule.setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        shouldRouteThroughEarpiece: false,
+      }),
+    prepare: () => recorder.prepareToRecordAsync(),
+    record: () => recorder.record(),
   };
 
   /**
@@ -334,32 +353,25 @@ export function useDialogueSession({
    * `getStatus()` returns the platform's own meter reading — no buffer is read
    * here, and nothing new is written (invariant 3).
    *
-   * The watch is torn down by the same `stale` flag the clip is: the effect's
-   * cleanup runs on every turn change, so a timer can never outlive the clip
-   * it was watching.
+   * The watch is torn down by the same `halted` read the clip is: the
+   * effect's cleanup runs on every turn change, and `leave` closes the
+   * dialogue, so a timer can never outlive the clip it was watching.
    */
-  const armBargeInWatch = async (isStale: () => boolean) => {
+  const armBargeInWatch = async (halted: () => boolean) => {
     clearBargeInWatch(); // at most one watch is ever referenced
-    if (!recorder.isRecording) {
-      // A mic denial already ended the session upstream; a failure to open it
-      // HERE costs barge-in and nothing else, so the turn goes on silently
-      // interruptible by tap, which is where the product was before INT-291.
-      try {
-        await openMicrophone();
-      } catch {
-        return;
-      }
-    }
-    if (isStale()) {
-      // The turn moved on while the microphone was opening. Arming now would
-      // leave a timer watching a clip that is no longer playing — it would
-      // stop itself on its first tick, but only after the next turn's watch
-      // had already been created, and then two detectors would be live.
+    // The microphone opens here when the turn has not opened it, never once
+    // the dialogue has closed (INT-551). A mic denial already ended the session
+    // upstream; a failure to open it HERE costs barge-in and nothing else, so
+    // the turn goes on interruptible by tap, where the product was before
+    // INT-291. A turn that moved on while the microphone was opening arms no
+    // watch: it would watch a clip that is no longer playing, and two
+    // detectors would be live (./drivers.ts `watchMayArm`).
+    if (!(await watchMayArm(microphone, { halted, closed }))) {
       return;
     }
     const detector = createSpeechOnsetDetector();
     const timer = setInterval(() => {
-      if (stateRef.current.turn.phase !== "speaking") {
+      if (halted() || stateRef.current.turn.phase !== "speaking") {
         clearInterval(timer);
         return;
       }
@@ -526,18 +538,23 @@ export function useDialogueSession({
     }
     const question = questions[speaking.step];
     let stale = false;
+    // INT-551: the driver stops where it stands once its turn has moved on OR
+    // the dialogue has closed. Under a RED the turn never moves (the stream
+    // freezes where it landed), so `stale` alone let a clip made after the RED
+    // play, and its barge-in watch open the microphone (./drivers.ts).
+    const halted = () => stale || closedRef.current;
     (async () => {
       let store: ClipStore;
       try {
         store = await clipStore();
       } catch {
         // No microphone: this is the one that ends the conversation.
-        if (!stale) {
+        if (!halted()) {
           dispatch({ type: "failure" });
         }
         return;
       }
-      if (stale) {
+      if (halted()) {
         return;
       }
       if (!shouldAttemptSpeech({ voiceMuted, voiceRetryIn })) {
@@ -554,99 +571,103 @@ export function useDialogueSession({
         dispatch({ type: "speech_skipped" });
         return;
       }
-      try {
-        const speech =
-          speaking.intent === "question"
-            ? questionSpeechTr(question)
-            : confirmSpeechTr(question, speaking.candidate.values);
-        const name =
-          speaking.intent === "question"
-            ? clipName("question", question.id)
-            : question.kind === "text"
-              ? clipName("confirm", question.id) // generic clip — free text never names a file
-              : clipName("confirm", question.id, speaking.candidate.values);
-        // INT-414: a question turn is said as its planned utterances — the
-        // lead-in or acknowledgement first, the question verbatim last. A
-        // confirm turn is a read-back and carries none.
-        const planned =
-          speaking.intent === "question"
-            ? plannedTurn(question.id)
-            : { index: -1, utterances: [] as readonly Utterance[] };
-        const turnPlan = planned.utterances;
-        // INT-415: the question (and its read-back) is spoken in the
-        // question's own context — the same one the pre-warm made it in.
-        const questionContext = questionDeliveryContextOf(question);
-        // INT-261: the ladder may take as long as it likes; the patient may
-        // not be made to wait more than this clip's own worth of work. A
-        // lead-in whose clip is not made yet is dropped for this turn rather
-        // than waited for (deliveryClips.ts) — only the opening waits for its
-        // own welcome, which IS that turn's content.
-        const turnClips = await settleTurnClips(
-          withDeadline(store.ensure(name, speech, questionContext), clipDeadlineMs(speech)),
-          leadClipsFor(store, turnPlan),
-          {
-            awaitLeads: turnPlan.some((utterance) => utterance.deliveryContext === "welcome"),
-            deadlineMs: clipDeadlineMs(speech),
+      // Every step below reads `halted` after each await (./drivers.ts
+      // `speakTurn`): the clip prepare, the session switch, then play and watch.
+      await speakTurn(
+        {
+          prepare: async () => {
+            const speech =
+              speaking.intent === "question"
+                ? questionSpeechTr(question)
+                : confirmSpeechTr(question, speaking.candidate.values);
+            const name =
+              speaking.intent === "question"
+                ? clipName("question", question.id)
+                : question.kind === "text"
+                  ? clipName("confirm", question.id) // generic clip — free text never names a file
+                  : clipName("confirm", question.id, speaking.candidate.values);
+            // INT-414: a question turn is said as its planned utterances — the
+            // lead-in or acknowledgement first, the question verbatim last. A
+            // confirm turn is a read-back and carries none.
+            const planned =
+              speaking.intent === "question"
+                ? plannedTurn(question.id)
+                : { index: -1, utterances: [] as readonly Utterance[] };
+            const turnPlan = planned.utterances;
+            // INT-415: the question (and its read-back) is spoken in the
+            // question's own context — the same one the pre-warm made it in.
+            const questionContext = questionDeliveryContextOf(question);
+            // INT-261: the ladder may take as long as it likes; the patient may
+            // not be made to wait more than this clip's own worth of work. A
+            // lead-in whose clip is not made yet is dropped for this turn rather
+            // than waited for (deliveryClips.ts) — only the opening waits for its
+            // own welcome, which IS that turn's content.
+            const turnClips = await settleTurnClips(
+              withDeadline(store.ensure(name, speech, questionContext), clipDeadlineMs(speech)),
+              leadClipsFor(store, turnPlan),
+              {
+                awaitLeads: turnPlan.some((utterance) => utterance.deliveryContext === "welcome"),
+                deadlineMs: clipDeadlineMs(speech),
+              },
+            );
+            return { index: planned.index, turnClips };
           },
-        );
-        const queue = [...turnClips.leads, turnClips.question];
-        if (stale) {
-          return;
-        }
-        // The transcript shows what is about to be said and nothing else: a
-        // lead-in dropped above is dropped from the screen too.
-        if (planned.index >= 0) {
-          const said = turnClips.spoken;
-          setSpokenLines((before) => new Map(before).set(planned.index, said));
-        }
-        // `allowsRecording: true` while the agent speaks is the whole change.
-        // On iOS this is the `.playAndRecord` category, which is the only one
-        // that admits simultaneous play and capture; `shouldRouteThroughEarpiece:
-        // false` is stated rather than left to the default because the same
-        // category is what puts audio on the receiver, and answering "the voice
-        // sounds bad" with a quieter voice would be its own defect.
-        await AudioModule.setAudioModeAsync({
-          allowsRecording: true,
-          playsInSilentMode: true,
-          shouldRouteThroughEarpiece: false,
-        });
-        if (stale) {
-          return;
-        }
-        // One player at a time, always cleared before the next clip, so the
-        // utterances of a turn play strictly in order and never overlap. A
-        // barge-in clears `playerRef`, which is what stops the chain: the
-        // finished clip's listener no longer owns the player and plays nothing.
-        const playNext = () => {
-          const uri = queue.shift();
-          if (uri === undefined) {
-            return;
-          }
-          const last = queue.length === 0;
-          stopPlayback();
-          const player = createAudioPlayer({ uri });
-          playerRef.current = player;
-          player.addListener("playbackStatusUpdate", (status) => {
-            if (status.didJustFinish && !stale && playerRef.current === player) {
-              if (last) {
-                stopPlayback();
-                dispatch({ type: "speech_done" });
-              } else {
-                playNext();
-              }
+          // The transcript shows what is about to be said and nothing else: a
+          // lead-in dropped above is dropped from the screen too.
+          show: ({ index, turnClips }) => {
+            if (index >= 0) {
+              const said = turnClips.spoken;
+              setSpokenLines((before) => new Map(before).set(index, said));
             }
-          });
-          player.play();
-        };
-        playNext();
-        setPlaying(true);
-        await armBargeInWatch(() => stale);
-      } catch {
-        // Audio output only — the conversation is unaffected and goes on.
-        if (!stale) {
-          dispatch({ type: "speech_unavailable" });
-        }
-      }
+          },
+          // `allowsRecording: true` while the agent speaks is the whole change.
+          // On iOS this is the `.playAndRecord` category, which is the only one
+          // that admits simultaneous play and capture; `shouldRouteThroughEarpiece:
+          // false` is stated rather than left to the default because the same
+          // category is what puts audio on the receiver, and answering "the voice
+          // sounds bad" with a quieter voice would be its own defect.
+          allowPlayback: () =>
+            AudioModule.setAudioModeAsync({
+              allowsRecording: true,
+              playsInSilentMode: true,
+              shouldRouteThroughEarpiece: false,
+            }),
+          // One player at a time, always cleared before the next clip, so the
+          // utterances of a turn play strictly in order and never overlap. A
+          // barge-in clears `playerRef`, which is what stops the chain: the
+          // finished clip's listener no longer owns the player and plays nothing.
+          play: ({ turnClips }) => {
+            const queue = [...turnClips.leads, turnClips.question];
+            const playNext = () => {
+              const uri = queue.shift();
+              if (uri === undefined) {
+                return;
+              }
+              const last = queue.length === 0;
+              stopPlayback();
+              const player = createAudioPlayer({ uri });
+              playerRef.current = player;
+              player.addListener("playbackStatusUpdate", (status) => {
+                if (status.didJustFinish && !halted() && playerRef.current === player) {
+                  if (last) {
+                    stopPlayback();
+                    dispatch({ type: "speech_done" });
+                  } else {
+                    playNext();
+                  }
+                }
+              });
+              player.play();
+            };
+            playNext();
+            setPlaying(true);
+          },
+          watch: () => armBargeInWatch(halted),
+          // Audio output only — the conversation is unaffected and goes on.
+          unavailable: () => dispatch({ type: "speech_unavailable" }),
+        },
+        halted,
+      );
     })();
     return () => {
       stale = true;
@@ -656,10 +677,11 @@ export function useDialogueSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- speaking is a fresh object per turn entry; questions is stable for the session, and the voice fields are set by the same dispatch that sets the turn, so this closure always reads the current values
   }, [speaking]);
 
-  // Listening driver: the mic opens when the machine says listen.
+  // Listening driver: the mic opens when the machine says listen, and never
+  // once the dialogue has closed, whatever its turn says (INT-551).
   const listening = state.turn.phase === "listening" ? state.turn : null;
   useEffect(() => {
-    if (listening === null) {
+    if (listening === null || closedRef.current) {
       return;
     }
     finishingRef.current = false; // a fresh listen re-arms the stop guard
@@ -675,9 +697,9 @@ export function useDialogueSession({
         if (recorder.isRecording) {
           return;
         }
-        await openMicrophone();
+        await openMicrophone(microphone, closed);
       } catch {
-        if (!stale) {
+        if (!stale && !closedRef.current) {
           dispatch({ type: "failure" });
         }
       }
@@ -858,6 +880,9 @@ export function useDialogueSession({
   const bargeIn = () => {
     clearBargeInWatch();
     stopPlayback(); // synchronous — playback halts before anything else runs
+    if (closedRef.current) {
+      return; // INT-551: a closed dialogue never moves to listening again
+    }
     // INT-414: they cut in, so the next question comes with less, not more.
     pendingCueRef.current = "barge_in";
     dispatch({ type: "barge_in" });
@@ -876,16 +901,22 @@ export function useDialogueSession({
     dispatch({ type: "confirm", values });
   };
 
-  const leave = async () => {
-    closedRef.current = true;
-    clearBargeInWatch();
-    stopPlayback();
-    abortRef.current?.abort();
-    if (stateRef.current.turn.phase === "listening") {
-      await stopAndDiscardRecording();
-    }
-    await clearDialogueClips();
-  };
+  /** Leave the dialogue: a RED the patient sees, or the patient's way to the
+   * steps (./drivers.ts `closeDialogue`). Whatever microphone is open is
+   * stopped and discarded, the speaking turn's barge-in one included (INT-551). */
+  const leave = () =>
+    closeDialogue({
+      markClosed: () => {
+        closedRef.current = true;
+      },
+      stopWatch: clearBargeInWatch,
+      stopPlayback,
+      abort: () => abortRef.current?.abort(),
+      recording: () => recorder.isRecording,
+      listening: () => stateRef.current.turn.phase === "listening",
+      stopAndDiscard: stopAndDiscardRecording,
+      clearClips: clearDialogueClips,
+    });
 
   return {
     state,
@@ -898,6 +929,9 @@ export function useDialogueSession({
     confirm,
     confirmPending: (questionId) => dispatch({ type: "confirm_pending", questionId }),
     speakCorrection: () => {
+      if (closedRef.current) {
+        return; // INT-551: a closed dialogue never moves to listening again
+      }
       pendingCueRef.current = "revised"; // they are correcting what we suggested
       dispatch({ type: "speak" });
     },

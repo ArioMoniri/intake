@@ -13,6 +13,10 @@
  * - Presenting and settling use A1's critically damped spring, which cannot
  *   overshoot. A patient's dismissal settles with it too. A privacy close and
  *   a RED close are instant at every setting: RED never waits for a sheet.
+ *   Instant takes two commits (INT-551, `sheetMount`): Reanimated reads a
+ *   view's exit when it mounts or updates, never when it unmounts, so the
+ *   commit that closes hides the sheet and registers no exit, and the next
+ *   one unmounts it with nothing left to play.
  * - Reduce Motion: the 120 ms fade on presenting, an instant close, and a
  *   release that snaps without a spring. The drag itself still follows the
  *   finger, because that is direct manipulation, not motion the app adds.
@@ -111,4 +115,33 @@ export function sheetClose(
     return "instant";
   }
   return "spring";
+}
+
+/**
+ * What the sheet draws in a commit: shown, parked (mounted, hidden, no exit
+ * registered), or gone.
+ */
+export type SheetMount = "open" | "parked" | "closed";
+
+/**
+ * What this commit draws, given what the last one drew (INT-551).
+ *
+ * Reanimated reads a view's `exiting` in componentDidMount and
+ * componentDidUpdate, never in componentWillUnmount, so an unmount plays the
+ * exit the commit before it registered. The open sheet registers the
+ * patient's spring, and a RED hides the sheet in the same render that says
+ * why it closes; unmounting in that commit played the spring under the RED.
+ * An instant close therefore parks the sheet for one commit: still mounted,
+ * hidden, and updated with the close's own exit, which is none. The next
+ * commit unmounts it. A patient's spring close unmounts at once, on the exit
+ * the open sheet already registered.
+ */
+export function sheetMount(
+  drawn: SheetMount,
+  { visible, close }: { readonly visible: boolean; readonly close: "spring" | "instant" },
+): SheetMount {
+  if (visible) {
+    return "open";
+  }
+  return drawn === "open" && close === "instant" ? "parked" : "closed";
 }

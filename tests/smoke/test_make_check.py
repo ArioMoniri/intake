@@ -404,7 +404,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
     # stated reason.
     # + INT-491 (the lens is the orb, owner request and decision, GitHub #838);
-    assert len(ids) == 375, f"expected 175 blueprint + 200 added issues, got {len(ids)}"
+    # + INT-551 (RED in the app: instant sheet close, haptics hold, no mic under
+    # RED; from the RED-UI review of #842, GitHub #933); grows only with a
+    # stated reason.
+    assert len(ids) == 376, f"expected 175 blueprint + 201 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

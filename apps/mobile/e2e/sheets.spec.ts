@@ -116,6 +116,38 @@ describe("DetentSheet", () => {
     expect(source(SHEET)).not.toMatch(/withSpring/);
   });
 
+  // INT-551 (the RED-UI review of #842, item 1): Reanimated reads `exiting`
+  // when a view mounts or updates, never when it unmounts. The commit that
+  // closes the sheet keeps it mounted and hidden, registering the close's own
+  // exit (none, for an instant close), and the next commit unmounts it. The
+  // two-commit rule itself is proved in src/lib/motion/sheet.test.ts.
+  it("an instant close keeps the sheet one commit, hidden and with no exit, then unmounts it", () => {
+    const sheet = source(SHEET);
+    // What the last commit drew feeds the pure rule; a layout effect stores it.
+    expect(sheet).toMatch(/const \[drawn, setDrawn\] = useState<SheetMount>\("closed"\);/);
+    expect(sheet).toMatch(
+      /const mount = sheetMount\(drawn, \{\s*visible: visible && height !== null,\s*close: sheetClose\(closeReason, \{ reduce \}\),?\s*\}\);/,
+    );
+    expect(sheet).toMatch(
+      /useLayoutEffect\(\(\) => \{\s*if \(mount !== drawn\) \{\s*setDrawn\(mount\);\s*\}\s*\}, \[mount, drawn\]\);/,
+    );
+    // Only a closed mount unmounts the sheet; the commit that closes never does.
+    expect(sheet).toMatch(/if \(height === null \|\| mount === "closed"\) \{\s*return \(/);
+    expect(sheet).not.toMatch(/if \(height === null \|\| !visible\)/);
+    // The parked commit is hidden from sight, touch and assistive technology,
+    // and it registers the close's exit, which for an instant close is none.
+    expect(sheet).toMatch(/const parked = mount === "parked";/);
+    expect(sheet).toMatch(/parked: \{ display: "none" \}/);
+    expect(sheet).toMatch(
+      /<Animated\.View\s+style=\{\[StyleSheet\.absoluteFill, parked \? styles\.parked : null\]\}/,
+    );
+    expect(sheet).toMatch(/pointerEvents=\{parked \? "none" : "auto"\}/);
+    expect(sheet).toMatch(/\{parked \? null : \(\s*<Pressable\b/);
+    expect(sheet).toMatch(
+      /exiting=\{sheetExiting\(sheetClose\(closeReason, \{ reduce \}\), height\)\}/,
+    );
+  });
+
   it("the sheet takes the side and bottom insets itself", () => {
     expect(source(SHEET)).toMatch(/paddingLeft: insets\.left/);
     expect(source(SHEET)).toMatch(/paddingRight: insets\.right/);

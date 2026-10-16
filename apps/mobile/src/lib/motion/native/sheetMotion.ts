@@ -9,8 +9,10 @@
  * - `sheetEntering`: the sheet rises from below the frame on the spring, or,
  *   under Reduce Motion, fades in for 120 ms.
  * - `sheetExiting`: a patient's dismissal falls away on the spring; an
- *   instant close (privacy, RED, Reduce Motion) registers no exit, so the
- *   sheet is gone in the commit that closes it.
+ *   instant close (privacy, RED, Reduce Motion) registers no exit. Reanimated
+ *   reads the exit when the view mounts or updates, so DetentSheet hides the
+ *   sheet in the commit that closes it, which registers this none, and
+ *   unmounts it in the next (INT-551, ../sheet `sheetMount`).
  * - `settleTo`: after a drag, the sheet settles on the spring, or snaps.
  *
  * Every animation runs with `ReduceMotion.Never`: the policy in ../sheet.ts

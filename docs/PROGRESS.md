@@ -4482,3 +4482,33 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-16T23:25:00+03:00 · INT-551 · done (PR open; stacked on #842)
+- Goal: GitHub #933, four RED-in-the-app follow-ups from the RED-UI review of #842. A RED or privacy sheet close is instant at runtime. Haptics hold under a RED. The microphone cannot reopen under a RED, which blocks releasing the voice lane. The orb follows ADR-033's yield under ALERT and CALM.
+- Plan: tests first, then pure modules with injected ports for every async step (`lib/motion/sheet` `sheetMount`, `lib/red/hapticHold`, `lib/dialogue/drivers`, `redYield`/`redOrb`). The components and the hook only adapt to them. Each source-wiring check is a spec assertion.
+- Tests added, each with its near miss:
+  - `src/lib/motion/sheet.test.ts`: the two-commit close, modelled on Reanimated's mount/update rule. The pre-fix rule's defect is kept as a record. The near miss is the patient's spring close.
+  - `src/lib/red/hapticHold.test.ts` (new) runs the real store and the real gate. The near miss is DEFERRED_CLINICIAN. A spy pins the exact calls.
+  - `src/lib/dialogue/drivers.test.ts` (new) lands the RED mid session switch, mid prepare, mid-clip-prepare and mid-speaking (end to end). The near misses are a failing clip with no RED, a stale turn, and a barge-in during the open.
+  - `src/lib/motion/red.test.ts`: `redYield` is the first paint's yield.
+  - `src/lib/red/store.test.ts`: `redOrb` and the orb state. The near misses are DEFERRED_CLINICIAN and no RED.
+  - `e2e/sheets.spec.ts` and `e2e/red.spec.ts`: the wiring.
+  - Red run: 7 files, 13 failed; 2 files could not load.
+  - 19 mutants: 18 killed, and the survivor is the equivalent refactor.
+- Result:
+  - mobile vitest: 160 files, 3383 tests (baseline 158 and 3333).
+  - The RED specs together: 17 files, 515 tests.
+  - `pnpm -r typecheck` clean. Mobile lint: 0 errors.
+  - Backlog, smoke and docs pytest green at count 376. files/11 regenerated.
+  - `make safety` and `make security` are not affected by a mobile-only diff and are left to CI. no_placeholders was run after staging.
+- Invariants touched and still passing:
+  - 9: no barge-in control and no mic under a RED.
+  - 21: the RED path is untouched. The hold runs synchronously in the store's notify pass and adds no wait to first paint, and MOTION-4's pinned list is unchanged.
+  - 3: whatever mic is open at a RED is stopped and its recording discarded.
+  - 6 and 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. Item 4 derives from ADR-033's yield rather than amending it, so no doc is weakened. The reason is in docs/evidence/INT-551.md.
+- Blocked on: nothing.
+- Next, outside this issue's scope:
+  - The polite live announcement can still say "speaking/preparing" once after a mid-speech RED.
+  - The clip pre-warm does not read the closed flag (agent clips only).
+- LOOP_STATUS: CONTINUE
+

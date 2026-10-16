@@ -149,7 +149,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
     # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
     # + INT-491 (the lens is the orb, owner request and decision, GitHub #838)
-    assert len(actions) == 375
+    # + INT-551 (RED in the app, from the RED-UI review of #842, GitHub #933)
+    assert len(actions) == 376
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

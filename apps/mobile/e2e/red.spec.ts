@@ -743,6 +743,79 @@ describe("INT-446 — the RED path", () => {
     expect(strip).toMatch(/disabled=\{onPress === undefined\}/);
   });
 
+  // INT-551 (the RED-UI review of #842, item 3; invariants 9 and 21). The
+  // async half is proved in src/lib/dialogue/drivers.test.ts; this holds the
+  // wiring that makes the hook use it, and the frozen bubble's control.
+  it("under a RED the frozen agent bubble is no barge-in control", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    expect(dialogue).toMatch(
+      /const liveAgentIndex =\s*!stopsDialogue && turn\.phase === "speaking" \? state\.stream\.length - 1 : -1;/,
+    );
+    expect(dialogue).toMatch(/const live = index === liveAgentIndex;/);
+    // The bubble's barge-in is the one press on it, and it exists only when live.
+    expect(dialogue.match(/onPress=\{session\.bargeIn\}/g)).toHaveLength(1);
+    const render = dialogue.slice(dialogue.indexOf("const renderAgentBubble"));
+    const press = render.indexOf("onPress={session.bargeIn}");
+    expect(render.slice(0, press)).toMatch(/if \(!live\) \{\s*return \(\s*<View\b/);
+  });
+
+  it("no dialogue driver reaches the microphone or the speaker once the dialogue has closed", () => {
+    const hook = code(readFileSync(join(SRC, "lib/dialogue/useDialogueSession.ts"), "utf8"));
+    // One way to the microphone: the guarded open, reached through one port.
+    expect(hook.match(/\brecorder\.record\(\)/g)).toHaveLength(1);
+    expect(hook).toMatch(/record: \(\) => recorder\.record\(\),/);
+    expect(hook).toMatch(/const closed = \(\) => closedRef\.current;/);
+    // The listening driver: a closed dialogue opens nothing, whatever its turn says.
+    expect(hook).toMatch(/if \(listening === null \|\| closedRef\.current\) \{\s*return;\s*\}/);
+    expect(hook).toMatch(/await openMicrophone\(microphone, closed\);/);
+    // The speaking driver and its clip prepare halt on a closed dialogue as on
+    // a stale turn, after every await (drivers.ts speakTurn).
+    const speaking = hook.slice(
+      hook.indexOf("const speaking ="),
+      hook.indexOf("const listening ="),
+    );
+    expect(speaking).toMatch(/const halted = \(\) => stale \|\| closedRef\.current;/);
+    expect(speaking).toMatch(/await speakTurn\(/);
+    expect(speaking).not.toMatch(/\bif \(!?stale\)/);
+    // The barge-in watch opens and arms only while the dialogue is open.
+    expect(hook).toMatch(/if \(!\(await watchMayArm\(microphone, \{ halted, closed \}\)\)\) \{/);
+    expect(hook).toMatch(/if \(halted\(\) \|\| stateRef\.current\.turn\.phase !== "speaking"\) \{/);
+    // The two presses that would move the turn to listening do nothing once closed.
+    for (const head of ["const bargeIn = () => {", "speakCorrection: () => {"]) {
+      const body = hook.slice(hook.indexOf(head));
+      const dispatch = body.indexOf("dispatch(");
+      expect(dispatch, head).toBeGreaterThan(0);
+      expect(body.slice(0, dispatch), head).toMatch(/if \(closedRef\.current\) \{\s*return;/);
+    }
+    // leave() stops whatever microphone is open, the speaking turn's included.
+    expect(hook).toMatch(/const leave = \(\) =>\s*closeDialogue\(\{/);
+    expect(hook).toMatch(/recording: \(\) => recorder\.isRecording,/);
+    expect(hook).toMatch(/listening: \(\) => stateRef\.current\.turn\.phase === "listening",/);
+  });
+
+  // INT-551 item 2: the haptic gate's RED hold has its caller.
+  it("the root layout holds every haptic while a RED the patient sees stands", () => {
+    const layout = code(readFileSync(join(SRC, "app/_layout.tsx"), "utf8"));
+    expect(layout).toMatch(
+      /useEffect\(\(\) => holdHapticsUnderRed\(redStore, appHaptics\), \[\]\);/,
+    );
+    // It is the gate's one RED caller…
+    const hold = code(readFileSync(join(SRC, "lib/red/hapticHold.ts"), "utf8"));
+    expect(hold).toMatch(/\bgate\.presentRed\(/);
+    expect(hold).toMatch(/\bgate\.markSilentOrThirdParty\(\)/);
+    // …and it holds, it never plays: it reaches no media or haptics module.
+    const reached = [...reachedPackages(join(SRC, "lib/red/hapticHold.ts"))];
+    expect(reached.filter((p) => MEDIA.test(p))).toEqual([]);
+    expect(code(hold)).not.toMatch(/\brequest\(|\bhaptic\(/);
+  });
+
+  // INT-551 item 4: ADR-033's yield reaches the orb.
+  it("the dialogue's orb reads ADR-033's yield: a takeover unmounts it, SILENT holds it at idle", () => {
+    const dialogue = code(readFileSync(join(SRC, "components/DialogueIntake.tsx"), "utf8"));
+    expect(dialogue).toMatch(/red: redOrb\(red\),/);
+    expect(dialogue).not.toMatch(/stopsDialogue \? "idle"/);
+  });
+
   it("the navigator is hidden from assistive technology under the root RED layer (Android and iOS)", () => {
     const layout = code(readFileSync(join(SRC, "app/_layout.tsx"), "utf8"));
     expect(layout).toMatch(/<RedCoveredNavigator>\s*<KioskGate>/);

@@ -21,8 +21,11 @@ import { RedCoveredNavigator, RedLayer } from "@/components/RedLayer";
 import { useScheme, useTheme } from "@/components/Themed";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { navigationThemeFor } from "@/lib/navigationTheme";
+import { appHaptics } from "@/lib/motion/appHaptics";
 import { routeClassOf, transitionFor } from "@/lib/motion/transitions";
 import { AppearanceProvider } from "@/lib/prefs/AppearanceProvider";
+import { holdHapticsUnderRed } from "@/lib/red/hapticHold";
+import { redStore } from "@/lib/red/store";
 import { SessionProvider, useSession } from "@/lib/session";
 import { clientTelemetry, installCrashHandler } from "@/lib/telemetry/expoTelemetry";
 
@@ -96,6 +99,10 @@ export default function RootLayout() {
     installCrashHandler();
     clientTelemetry().noteColdStart(Date.now() - APP_START_MS);
   }, []);
+  // INT-551: while a RED the patient sees stands no haptic is felt (ALERT,
+  // CALM), and after a SILENT one none is felt again this session. The gate
+  // decides; this tells it a RED is there (lib/red/hapticHold).
+  useEffect(() => holdHapticsUnderRed(redStore, appHaptics), []);
   return (
     // INT-260: outermost, because the scheme, the text scale and the motion
     // policy are read by the navigators themselves — a provider inside the

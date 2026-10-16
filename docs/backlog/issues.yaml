@@ -7386,3 +7386,27 @@
     - "an ADR-039 amendment, Accepted, quotes the owner's reply and date; D29 and a changelog line in files/00_STATE.md; light and dark captures of the lens listening, speaking and thinking"
   tests: [apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/orbVariants.test.ts, apps/mobile/e2e/orbVariants.spec.ts, apps/mobile/e2e/releaseConfig.spec.ts, apps/mobile/e2e/chatStage.spec.ts, tests/docs/test_adr_039.py]
   sec_row: "mobile"
+- id: INT-551
+  epic: E08-mobile
+  phase: P1
+  title: "RED in the app: the sheet closes instantly at runtime, haptics hold under RED, the mic cannot reopen under RED"
+  # GitHub #933, from the RED-UI review of #842 (the design stack refresh,
+  # APPROVE), 17 Oct 2026. Four follow-ups: the detent sheet's RED and privacy
+  # close sprang for 0.2-0.35 s because Reanimated reads `exiting` only at
+  # mount and update; the haptic gate's RED hold had no caller; a frozen
+  # agent bubble stayed a barge-in control and a clip prepared before a RED
+  # could still play and open the microphone (blocks releasing the voice
+  # lane); the orb held at idle under ALERT/CALM where ADR-033's yield
+  # unmounts it. Stacked on INT-491 (#842).
+  depends_on: [INT-491, INT-473, INT-446]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-551.md
+  acceptance:
+    - "DetentSheet: a RED or privacy (non-patient) close is instant at runtime; the Animated subtree stays mounted one commit with display none and no exit registered, then unmounts; that commit is tested; the doc claims in DetentSheet.tsx and lib/motion/sheet.ts say what the code does"
+    - "haptics: a redStore subscriber in the root layout calls appHaptics.presentRed for ALERT and CALM and markSilentOrThirdParty for SILENT, so no success haptic fires under RED and none fires after a SILENT RED; DEFERRED_CLINICIAN holds nothing (near miss); tests"
+    - "mic under RED: under stopsDialogue liveAgentIndex is -1 (no barge-in control on the frozen bubble) and every dialogue driver (listening, speaking and its clip prepare, armBargeInWatch) is guarded on closedRef; tests for a RED landing mid-speaking and mid-clip-prepare"
+    - "orb under ALERT/CALM: the orb follows ADR-033's yield (unmount), derived from the table redFirstPaint uses, or ADR-033 and the orb docs are amended; the choice keeps every existing RED spec green and states why"
+    - "every existing RED spec (red, chatStage, orbVariants, motion, a11y, releaseConfig) stays green with no weakened assertion; invariants 9 and 21"
+  tests: [apps/mobile/src/lib/motion/sheet.test.ts, apps/mobile/src/lib/red/hapticHold.test.ts, apps/mobile/src/lib/dialogue/drivers.test.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/src/lib/motion/red.test.ts, apps/mobile/e2e/sheets.spec.ts, apps/mobile/e2e/red.spec.ts]
+  sec_row: "mobile"

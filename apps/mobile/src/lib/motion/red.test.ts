@@ -29,6 +29,7 @@ import {
   redAffordances,
   redFirstPaint,
   redPresentationMode,
+  redYield,
   type LocationAnswer,
   type RedMotion,
 } from "./red";
@@ -301,5 +302,18 @@ describe("RED motion contract (MOTION-4)", () => {
       // The same input gives the same answer: nothing reads a clock or state.
       expect(redFirstPaint(p, row)).toEqual(paint);
     }
+  });
+
+  // INT-551: the dialogue's orb reads the yield by register, from the store,
+  // and must read the very table the first paint is sized from.
+  it("redYield is the first paint's yield, for every register, location and script", () => {
+    for (const row of ROWS) {
+      const paint = redFirstPaint(presented(row.register, row.location, row.scriptId), row);
+      expect(redYield(row.register), JSON.stringify(row)).toEqual(paint.yields);
+    }
+    expect(redYield("ALERT").orb).toBe("unmount");
+    expect(redYield("CALM").orb).toBe("unmount");
+    expect(redYield("SILENT").orb).toBe("idle");
+    expect(redYield("DEFERRED_CLINICIAN").orb).toBe("unchanged");
   });
 });

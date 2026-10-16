@@ -13,7 +13,9 @@
  * - every owner of the microphone or the voice session: `appHaptics.register`
  *   in a mount effect, released on unmount;
  * - the companion declaration: `appHaptics.markSilentOrThirdParty()`;
- * - the RED layer (INT-135): `appHaptics.presentRed(register)` while it shows.
+ * - the RED store's one subscriber, mounted by the root layout (INT-551,
+ *   lib/red/hapticHold.ts): `appHaptics.presentRed(register)` while an ALERT
+ *   or CALM stands, and `markSilentOrThirdParty()` for a SILENT RED.
  */
 import { createHapticGate, type HapticGate, type HapticRequest } from "./hapticGate";
 import type { HapticEvent } from "./haptics";

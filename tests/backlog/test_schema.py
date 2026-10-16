@@ -238,7 +238,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget; INT-521 residual 1, GitHub #898).
     # + INT-491 (the lens is the orb, owner request and decision; GitHub #838).
-    assert len(ids) == 375
+    # + INT-551 (RED in the app: instant sheet close, haptics hold, no mic
+    # under RED; from the RED-UI review of #842, GitHub #933).
+    assert len(ids) == 376
     import re
 
     for i in ids:
