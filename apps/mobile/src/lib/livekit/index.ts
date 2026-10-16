@@ -83,7 +83,7 @@ export {
   noopMetricSink,
 } from "./metrics";
 export type { MetricSample, MetricSink } from "./metrics";
-export { decodeRedTrigger, resolveRed } from "./red";
+export { decodeRedTrigger, GENERIC_RED_SCRIPT_IDS, genericRed, resolveRed } from "./red";
 export type { RedLocation, RedPresentation, RedRegister, RedScript, RedScriptCatalog } from "./red";
 export { MAX_ATTEMPTS, TOKEN_REFRESH_MARGIN_MS, nextReconnect } from "./reconnect";
 export { createVoiceSession } from "./session";

@@ -104,7 +104,7 @@ export interface RedMotion {
   };
 }
 
-const RED_MOTION: RedMotion = {
+export const RED_MOTION: RedMotion = {
   enterMs: 0,
   delayMs: 0,
   exitMs: 0,

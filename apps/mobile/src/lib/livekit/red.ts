@@ -131,11 +131,56 @@ export function decodeRedTrigger(payload: Uint8Array): RedTrigger | null {
 }
 
 /**
+ * The generic escalation's script ids (INT-453), one per location. These mirror
+ * `intake_voice_runtime.talker.red_path.GENERIC_RED_SCRIPT_IDS`, and
+ * tests/voice/test_red_winner.py pins the two together.
+ */
+export const GENERIC_RED_SCRIPT_IDS = {
+  REMOTE: "base.generic_red.remote",
+  ON_SITE: "base.generic_red.on_site",
+  UNKNOWN: "base.generic_red.unknown",
+} as const satisfies Record<RedLocation, string>;
+
+/**
+ * What a generic RED shows when even the generic script is not on this device:
+ * no words, never invented ones (invariant 17). The serve precondition keeps a
+ * served catalog from ever lacking CD-24's generic copy, so this is the
+ * worst-case device skew on the LiveKit lane, not a state a served session
+ * reaches. The RED still shows, with the location-correct affordance.
+ */
+const UNWORDED_GENERIC: RedScript = {
+  primary: "GENERIC_ESCALATION",
+  show112: true,
+  actionTr: "",
+  doNotsTr: [],
+  whyTr: null,
+};
+
+/**
+ * The RED a patient sees when the trigger's own script is not on the device
+ * (INT-453; CD-24): never nothing.
+ * - Register: the trigger's own, which is the engine result's (CD-24
+ *   carry_engine_register), never a fixed ALERT.
+ * - Location: the trigger's own, so ON_SITE carries no 112.
+ * - Words: the catalog's generic script, CD-24's copy.
+ */
+export function genericRed(trigger: RedTrigger, catalog: RedScriptCatalog): RedPresentation {
+  const script = catalog[GENERIC_RED_SCRIPT_IDS[trigger.location]] ?? UNWORDED_GENERIC;
+  return {
+    ruleId: trigger.ruleId,
+    register: trigger.register,
+    location: trigger.location,
+    script,
+    show112: trigger.location === "ON_SITE" ? false : script.show112,
+  };
+}
+
+/**
  * Resolve a trigger against the pre-positioned catalog.
  *
- * Returns null when the script is not on the device — an honest "we cannot
- * render this" that the caller surfaces as the generic escalation, rather
- * than inventing clinical words (invariant 17: never a plausible value).
+ * Returns null when the script is not on the device. The caller shows
+ * `genericRed` instead, and never invents clinical words (invariant 17: never
+ * a plausible value).
  */
 export function resolveRed(trigger: RedTrigger, catalog: RedScriptCatalog): RedPresentation | null {
   const script = catalog[trigger.scriptId];

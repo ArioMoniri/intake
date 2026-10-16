@@ -203,6 +203,15 @@ class ApiSettings:
     previsit_output_recipients_path: Path = field(
         default_factory=lambda: Path("infra/previsit_output/recipients.yaml")
     )
+    # INT-446: the served life-threat rule set the rules-engine hop evaluates
+    # (packages/protocols/triage). None — the shipped state while every rule is
+    # draft_needs_source (HB-C1) — makes /v1/triage answer 503, never GREEN.
+    triage_rules_path: Path | None = None
+    # INT-453: the generic RED escalation document. The committed one is
+    # draft_needs_source until CD-24 lands, so it refuses and nothing is served.
+    triage_generic_red_path: Path | None = field(
+        default_factory=lambda: Path("packages/protocols/generic/generic_red.yaml")
+    )
     # INT-325: the normalised INTAKE_ENV, set by from_env. The single source
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).
@@ -269,6 +278,15 @@ class ApiSettings:
             previsit_output_recipients_path=Path(
                 os.environ.get("INTAKE_PREVISIT_OUTPUT_RECIPIENTS")
                 or "infra/previsit_output/recipients.yaml"
+            ),
+            triage_rules_path=(
+                Path(os.environ["INTAKE_API_TRIAGE_RULES"])
+                if os.environ.get("INTAKE_API_TRIAGE_RULES")
+                else None
+            ),
+            triage_generic_red_path=Path(
+                os.environ.get("INTAKE_API_TRIAGE_GENERIC_RED")
+                or "packages/protocols/generic/generic_red.yaml"
             ),
             environment=environment_name(os.environ),
         )

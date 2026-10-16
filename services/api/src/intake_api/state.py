@@ -25,6 +25,7 @@ from intake_api.audit import AuditWriter
 from intake_api.record_feed import ExtractionSource, NoExtractionSource, RecordDecisions
 from intake_api.settings import ApiSettings
 from intake_api.taxonomy_feed import LoadedTaxonomy, load_taxonomy_feed
+from intake_api.triage_rules import ServedRedRules, load_served_red_rules
 
 if TYPE_CHECKING:
     from intake_connectors.acibadem import AcibademAppointmentsClient
@@ -132,6 +133,10 @@ class ApiState:
     # taxonomy is: a broken or absent registry must surface as a per-request
     # 503, never as a startup crash that takes the whole API down with it.
     _recipients: RecipientRegistry | None = field(init=False, default=None)
+    # INT-446: the served red-flag rule set, lazy like the taxonomy, so an
+    # unservable set is a per-request 503 on /v1/triage, never a startup crash.
+    _red_rules: ServedRedRules | None = field(init=False, default=None)
+    _red_rules_loaded: bool = field(init=False, default=False)
 
     def __post_init__(self) -> None:
         self.consent_catalog = _catalog_from_settings(self.settings)
@@ -154,6 +159,15 @@ class ApiState:
             self._taxonomy = load_taxonomy_feed(self.settings.taxonomy_path)
             self._taxonomy_loaded = True
         return self._taxonomy
+
+    def served_red_rules(self) -> ServedRedRules | None:
+        """The served rule set, loaded once; ``None`` means fail closed (503)."""
+        if not self._red_rules_loaded:
+            self._red_rules = load_served_red_rules(
+                self.settings.triage_rules_path, self.settings.triage_generic_red_path
+            )
+            self._red_rules_loaded = True
+        return self._red_rules
 
 
 def get_state(request: Request) -> ApiState:

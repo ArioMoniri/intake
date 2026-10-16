@@ -1,0 +1,71 @@
+{
+  "_comment": "SENTETİK TEST VERİSİ (INT-446). Recorded /v1/triage/evaluate exchanges over tests/fixtures/protocols/compile/life_threat_signed.yaml. tests/api/test_triage_hop.py asserts each response IS the route's output; apps/mobile/src/lib/red/red.e2e.test.ts replays them. No clinical meaning.",
+  "exchanges": [
+    {
+      "name": "red_remote",
+      "request": {
+        "location": "REMOTE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "sure_dakika": "2026-08-29", "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": {
+        "kind": "red_trigger",
+        "ruleId": "rf.sentetik_yasamsal",
+        "register": "ALERT",
+        "location": "REMOTE",
+        "scriptId": "rf.sentetik_yasamsal.remote"
+      }
+    },
+    {
+      "name": "red_on_site",
+      "request": {
+        "location": "ON_SITE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "sure_dakika": "2026-08-29", "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": {
+        "kind": "red_trigger",
+        "ruleId": "rf.sentetik_yasamsal",
+        "register": "ALERT",
+        "location": "ON_SITE",
+        "scriptId": "rf.sentetik_yasamsal.on_site"
+      }
+    },
+    {
+      "name": "red_unknown",
+      "request": {
+        "location": "UNKNOWN",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "sure_dakika": "2026-08-29", "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": {
+        "kind": "red_trigger",
+        "ruleId": "rf.sentetik_yasamsal",
+        "register": "ALERT",
+        "location": "UNKNOWN",
+        "scriptId": "rf.sentetik_yasamsal.unknown"
+      }
+    },
+    {
+      "name": "near_miss_value",
+      "request": {
+        "location": "REMOTE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": {
+          "sure_dakika": "2026-08-29",
+          "ziyaret.basvuru_nedeni": "sentetik_yasamsal_degil"
+        }
+      },
+      "response": { "kind": "triage_level", "level": "GREEN" }
+    },
+    {
+      "name": "near_miss_undated",
+      "request": {
+        "location": "REMOTE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": { "kind": "triage_level", "level": "GREEN" }
+    }
+  ]
+}

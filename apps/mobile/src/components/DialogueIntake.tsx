@@ -42,7 +42,7 @@
  */
 import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -60,6 +60,7 @@ import {
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
+import { RedInFlow } from "@/components/RedLayer";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import {
   AppText,
@@ -80,6 +81,7 @@ import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
+import { redStopsDialogue, redStore } from "@/lib/red/store";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
 import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
@@ -199,6 +201,18 @@ export function DialogueIntake({
   });
   const { state } = session;
   const { turn } = state;
+
+  // INT-446: a RED the patient is shown preempts the dialogue instead of
+  // advancing it — the agent stops mid-word and the microphone closes, for
+  // every register the patient sees (SILENT included: no audio, ever).
+  const red = useSyncExternalStore(redStore.subscribe, redStore.getSnapshot);
+  const stopsDialogue = redStopsDialogue(red);
+  useEffect(() => {
+    if (stopsDialogue) {
+      void session.leave();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- leave() is stable in effect; the RED is the trigger
+  }, [stopsDialogue]);
 
   // On-screen selection for the live confirm turn (seeded pre-selected).
   const [selected, setSelected] = useState<string[]>([]);
@@ -692,6 +706,9 @@ export function DialogueIntake({
               })}
             </View>
           ) : null}
+
+          {/* INT-446: a SILENT RED, where the next turn would be. */}
+          <RedInFlow />
 
           <Pressable
             accessibilityRole="button"

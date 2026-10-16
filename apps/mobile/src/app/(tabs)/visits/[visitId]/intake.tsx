@@ -50,6 +50,7 @@ import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
 import { InstrumentStep } from "@/components/InstrumentStep";
+import { RedInFlow } from "@/components/RedLayer";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
@@ -838,6 +839,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             ) : null}
           </Animated.View>
         </LayoutAnimationConfig>
+        {/* INT-446: a SILENT RED, in the flow — outside the step's entering
+            animation, so it has no motion of its own. */}
+        <RedInFlow />
       </ScrollView>
       {question.kind === "chips" && !instrumentStep ? (
         <GlassBar onHeight={setBarHeight}>

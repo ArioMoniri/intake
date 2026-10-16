@@ -56,6 +56,7 @@ from intake_voice_runtime.talker.preemption import (
 )
 from intake_voice_runtime.talker.red_path import (
     E2E_BUDGET_MS,
+    GENERIC_RED_SCRIPT_IDS,
     REGISTER_DELIVERY,
     STOP_BUDGET_MS,
     MappingRedScriptIndex,
@@ -363,14 +364,17 @@ class TestAMissedBudgetFailsLoudly:
         assert outcome.notified_clinician is True
 
     def test_an_unaddressable_script_raises_rather_than_inventing_one(self) -> None:
-        """No pre-positioned script for this rule at this location means there
-        is nothing to render. The path refuses to derive an id — a guessed
-        script id addresses the wrong words on the device."""
+        """No pre-positioned script for this rule at this location. The path
+        refuses to derive an id — a guessed script id addresses the wrong words
+        on the device — and fails loudly. It still shows the patient a RED: the
+        generic escalation (INT-453; tests/voice/test_red_winner.py)."""
         rig = Rig(scripts=MappingRedScriptIndex(entries={}))
         with pytest.raises(RedPathViolation) as excinfo:
             rig.trigger(red_result(), evaluated_at_ms=0.0)
         assert RedViolation.SCRIPT_UNADDRESSABLE in excinfo.value.violations
-        assert rig.channel.published == []
+        assert [message.script_id for message in rig.channel.published] == [
+            GENERIC_RED_SCRIPT_IDS[RedLocation.REMOTE]
+        ]
         # The intake still stops and the clinician is still told.
         assert rig.media.calls == ["cancel"]
         assert len(rig.clinic.notifications) == 1
@@ -665,7 +669,10 @@ class TestNoPhiOnTheRedPath:
             "location",
             "evaluated_at_ms",
             "patient_facing",
+            # INT-453 / CD-24 delivery floor: a boolean, no patient material.
+            "silent_generic",
         }
+        assert isinstance(dumped["silent_generic"], bool)
         assert "sentetik_yanit" not in json.dumps(dumped, ensure_ascii=False)
 
 

@@ -9,7 +9,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createVoiceSession, type AppLifecycle, type VoiceSessionDeps } from "./session";
 import type { VoiceSessionEvent } from "./events";
-import type { RedScriptCatalog } from "./red";
+import { redAffordances } from "../motion/red";
+import { GENERIC_RED_SCRIPT_IDS, genericRed, type RedScriptCatalog } from "./red";
 import type { RoomAdapter, RoomCredentials, RuntimeEnvironment, TransportSample } from "./types";
 
 const SESSION_ID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
@@ -491,23 +492,104 @@ describe("RED over the data channel (invariant 21)", () => {
     expect(red.presentation.show112).toBe(false);
   });
 
-  it("says so honestly when the script is not pre-positioned", async () => {
-    const adapter = new FakeAdapter();
-    const { deps } = harness({}, adapter);
-    const session = createVoiceSession(deps);
-    await session.start();
-    const events = collect(session);
+  // INT-453: a RED whose script is not on this device is still a RED on screen.
+  it.each([
+    ["REMOTE", true],
+    ["UNKNOWN", true],
+    ["ON_SITE", false],
+  ] as const)(
+    "shows the generic RED when the script is not pre-positioned (%s → 112 %s)",
+    async (location, show112) => {
+      const adapter = new FakeAdapter();
+      const { deps } = harness({}, adapter);
+      const session = createVoiceSession(deps);
+      await session.start();
+      const events = collect(session);
 
-    adapter.pushData({
-      kind: "red_trigger",
-      ruleId: "life_threat.unknown",
-      register: "CALM",
-      location: "REMOTE",
-      scriptId: "life_threat.not.on.this.device",
+      adapter.pushData({
+        kind: "red_trigger",
+        ruleId: "life_threat.unknown",
+        register: "CALM",
+        location,
+        scriptId: "life_threat.not.on.this.device",
+      });
+
+      const red = events.find((e) => e.type === "red");
+      if (red?.type !== "red") {
+        throw new Error("expected a red event: the patient must be shown a RED");
+      }
+      // CD-24: the trigger's own register and location; no invented words.
+      expect(red.presentation.register).toBe("CALM");
+      expect(red.presentation.location).toBe(location);
+      expect(red.presentation.show112).toBe(show112);
+      expect(red.presentation.script.actionTr).toBe("");
+    },
+  );
+
+  it("a generic RED is told in the engine result's own register, never a fixed ALERT (CD-24)", () => {
+    for (const register of ["ALERT", "CALM", "SILENT"] as const) {
+      for (const scriptId of [GENERIC_RED_SCRIPT_IDS.REMOTE, "life_threat.not.on.this.device"]) {
+        const shown = genericRed(
+          {
+            kind: "red_trigger",
+            ruleId: "life_threat.unknown",
+            register,
+            location: "REMOTE",
+            scriptId,
+          },
+          {},
+        );
+        expect(shown.register).toBe(register);
+      }
+    }
+  });
+
+  it("a generic RED under UNKNOWN asks the one location question before any 112 (files/04 §8.1 rule 7)", () => {
+    const at = (location: "REMOTE" | "ON_SITE" | "UNKNOWN") =>
+      genericRed(
+        {
+          kind: "red_trigger",
+          ruleId: "life_threat.unknown",
+          register: "ALERT",
+          location,
+          scriptId: GENERIC_RED_SCRIPT_IDS[location],
+        },
+        {},
+      );
+    // UNKNOWN: the question first, never a guessed 112…
+    expect(redAffordances(at("UNKNOWN"), "unanswered")).toEqual({
+      call112: false,
+      askLocation: true,
     });
+    expect(redAffordances(at("UNKNOWN"), "notInHospital").call112).toBe(true);
+    expect(redAffordances(at("UNKNOWN"), "inHospital").call112).toBe(false);
+    // …REMOTE shows it at once, and ON_SITE never does (near misses).
+    expect(redAffordances(at("REMOTE"), "unanswered").call112).toBe(true);
+    expect(redAffordances(at("ON_SITE"), "notInHospital")).toEqual({
+      call112: false,
+      askLocation: false,
+    });
+  });
 
-    expect(events).toContainEqual({ type: "red_unrenderable", ruleId: "life_threat.unknown" });
-    expect(events.some((e) => e.type === "red")).toBe(false);
+  it("uses the generic script's own words once one is pre-positioned (near miss: none invented)", () => {
+    const signed = {
+      primary: "GENERIC_ESCALATION",
+      show112: true,
+      actionTr: "Sentetik genel yönerge.",
+      doNotsTr: [],
+      whyTr: null,
+    };
+    const trigger = {
+      kind: "red_trigger" as const,
+      ruleId: "life_threat.unknown",
+      register: "SILENT" as const,
+      location: "ON_SITE" as const,
+      scriptId: "life_threat.not.on.this.device",
+    };
+    const shown = genericRed(trigger, { [GENERIC_RED_SCRIPT_IDS.ON_SITE]: signed });
+    expect(shown.script).toBe(signed);
+    expect(shown.show112).toBe(false); // ON_SITE clamps even a script that authorises 112
+    expect(genericRed(trigger, {}).script.actionTr).toBe("");
   });
 
   it("ignores non-RED and malformed traffic without emitting anything", async () => {
