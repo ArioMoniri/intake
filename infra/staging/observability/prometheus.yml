@@ -54,7 +54,7 @@ scrape_configs:
     metric_relabel_configs:
       - &labelkeep
         action: labelkeep
-        regex: "__name__|action|actor|adapter|age_band|alertname|alertstate|asn|blocker|branch|budget_id|change|channel|class|code|complete|component|conclusion|control|cpu|data_class|direction|document_type|endpoint|event|experiment|field|from_component|from_state|gate|gateway|generation|gpu_index|group|guardrail|head_sha|host_id|implementation|instance|instrument|job|key|kind|lane|le|level|locale|major|message_class|method|minor|mode|new_level|outcome|pack|patchlevel|period|phase|pr|privileged|profile|quantile|queue|reason|reason_class|route|rule|run_number|scope|section|service|severity|signal|slo|source|spec|stage|state|status|step|stream|subject_count|tag|target|tenant|to|to_component|to_state|tool|trigger|type|under_grant|vendor|version|view|vital|voice|window|workflow"
+        regex: "__name__|action|actor|adapter|age_band|agreement|alertname|alertstate|asn|blocker|branch|budget_id|cache|change|channel|class|code|complete|component|conclusion|control|cpu|data_class|direction|document_type|endpoint|event|experiment|field|from_component|from_state|gate|gateway|generation|gpu_index|group|guardrail|head_sha|host_id|implementation|instance|instrument|job|key|kind|lane|le|level|locale|major|member|message_class|method|minor|mode|new_level|outcome|pack|patchlevel|period|phase|pr|privileged|profile|provider|quantile|queue|reason|reason_class|result|route|rule|run_number|scope|section|service|severity|signal|slo|source|spec|stage|state|status|step|stream|subject_count|tag|target|tenant|to|to_component|to_state|tool|trigger|type|under_grant|vendor|version|view|violation|vital|voice|window|workflow"
 
   - job_name: node
     sample_limit: 2000
