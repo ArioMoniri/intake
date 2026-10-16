@@ -6731,3 +6731,26 @@
     - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
   tests: [tests/admin/test_second_admin_runbook.py]
   sec_row: "admin-console"
+- id: INT-524
+  epic: E13-infra
+  phase: P1
+  title: "CI cancels a pull request's superseded runs (concurrency group), so the three-runner pool runs only current heads"
+  # GitHub #890, 16 Oct 2026. ci.yml and security.yml had no concurrency
+  # group. Each push to a PR branch, including every merge-from-main sync that
+  # the backlog count pins force, queued a full new run while the superseded
+  # run stayed queued. The three intake-aws-ci runners spent hours on dead
+  # heads. The group adds the ref to the issue's workflow + PR-number-or-sha
+  # key. Without it, a v* tag that security.yml runs for the commit main just
+  # pushed would share main's group and replace that run while it waits.
+  # .github/** is owner-only, so the workflow half is the owner's commit on
+  # this branch (patch owner-524-concurrency).
+  depends_on: [INT-467]
+  labels: [area:ci, approval:human-infra]
+  status: done
+  evidence: docs/evidence/INT-524.md
+  acceptance:
+    - "ci.yml and security.yml each declare one workflow-level concurrency block: the group is the workflow name, the pull request number (the sha outside a pull request) and the ref; cancel-in-progress is true only for pull_request events; no job sets its own concurrency"
+    - "tests/ci/test_workflow_concurrency.py pins the block in both workflows and checks it against GitHub's documented semantics (cited in the evidence): a pull request's superseded run is cancelled, queued or in progress; a push to main never cancels in progress and shares its group with no other run, so nothing can replace it while it waits; near-miss blocks, including the ref-less group, are caught"
+    - ".github/** is owner-only: the workflow change ships as an owner patch with a commit-message file, and the test, evidence and backlog row are committed on the issue branch; scripts/ci/security_workflow.yml no longer exists, and tests/ci/test_security_gates.py passes with the patch applied"
+  tests: [tests/ci/test_workflow_concurrency.py]
+  sec_row: "cicd"
