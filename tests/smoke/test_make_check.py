@@ -344,7 +344,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # from INT-501, GitHub #865); grows only with a stated reason.
     # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
     # proposal, owner request, GitHub #719); grows only with a stated reason.
-    assert len(ids) == 351, f"expected 175 blueprint + 176 added issues, got {len(ids)}"
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews, owner request, GitHub #732); grows
+    # only with a stated reason.
+    assert len(ids) == 352, f"expected 175 blueprint + 177 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

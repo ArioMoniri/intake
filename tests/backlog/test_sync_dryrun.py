@@ -122,7 +122,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-501 (http-cache-semantics lifted before its exception expires, GitHub #853)
     # + INT-508 (node-forge and braces: no upstream fix, split from INT-501, GitHub #865)
     # + INT-424 (delivery profiles v2 + expressive-model ADR proposal, GitHub #719)
-    assert len(actions) == 351
+    # + INT-430 (the agent council as a post-bind verifier, GitHub #732)
+    assert len(actions) == 352
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

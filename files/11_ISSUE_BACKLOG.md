@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**351 issues.** By phase: P0 171 · P1 126 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 235 · todo 74 · withdrawn 1.
+**352 issues.** By phase: P0 172 · P1 126 · P2 47 · P3 7. By status: awaiting-human 35 · doing 7 · done 235 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -182,6 +182,7 @@
 | INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done |
 | INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
 | INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
+| INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models | E05-voice | INT-081, INT-083, INT-092, INT-095, INT-101 | area:voice, risk:clinical | doing |
 
 ## P1
 

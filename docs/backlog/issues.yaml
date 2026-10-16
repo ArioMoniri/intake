@@ -6879,3 +6879,22 @@
     - "RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"
   tests: [tests/voice/test_delivery_profiles.py, tests/voice/test_render_delivery_samples.py, tests/voice/test_elevenlabs_clipgen.py, tests/api/test_dev_voice_george.py]
   sec_row: "cloud-clipgen"
+- id: INT-430
+  epic: E05-voice
+  phase: P0
+  title: "Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models"
+  # GitHub #732. Owner request, 2 Oct 2026, reshaped by the binding medical
+  # and AI/ML challenger reviews into a verifier (ADR-036): the free follow-up
+  # ranker and the critic are cut, the document reader stays parse_document.
+  depends_on: [INT-081, INT-083, INT-092, INT-095, INT-101]
+  labels: [area:voice, risk:clinical]
+  status: doing
+  evidence: docs/evidence/INT-430.md
+  acceptance:
+    - "ADR-036 records the owner request verbatim, the verifier design both reviews required, why the deterministic IntakeEngine stays the only authority on the next question, the asymmetric adjudication rule, the latency budget (primary extraction single-pass feeds triage; the verifier never blocks a turn; the Talker never awaits it) and self-hosted/API payload parity"
+    - "the verifier reads only red-flag and numeric slots of the served pack; tense anchors, text_only (safeguarding) slots, identity slots and instrument items are unreachable at the type level; member output is a closed Pydantic schema with a verbatim evidence span per reading, no confidence field and a Turkish hedge enum; inputs are fenced data"
+    - "adjudication is deterministic and asymmetric: one arming reading re-asks the positive question from ask_tr, a numeric doubt appends the slot's own confirm_tr, nothing is ever cleared, skipped or reordered; every append is a compare-and-swap on the slot revision and never overwrites a direct answer; contested fields keep both attributed values; candidate flags are add-only and capped at YELLOW_REVIEW; a red-flag slot is never offered as a delta confirm"
+    - "members resolve per session through the INT-428 role router (llm.council.<member>), mock and hosted members are unrepresentable on a real-PHI deployment, the pin is frozen per session, the policy binds each member by hash, multi-member mode needs recorded independence and calibration studies, the run is an elective charge refused while HB-O8 is open, a saturated verifier sheds, every proposal is a PHI-free event, spans use the closed LlmSpan field set and each session carries its own cache_salt"
+    - "a fake-clock test shows a verifier stalled 30 s leaves Talker turn latency, the asked order and a rules-engine RED unchanged; a late verdict after session end or a RED seal becomes a clinician addendum and re-runs triage; replay reads recorded outputs and a wrong-lane recording is refused"
+  tests: [tests/voice/test_council_contract.py, tests/voice/test_council_adjudication.py, tests/voice/test_council_lanes.py, tests/voice/test_council_timing.py, tests/voice/test_council_ledger.py]
+  sec_row: "llm-boundary"

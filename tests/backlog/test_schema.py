@@ -185,7 +185,10 @@ def test_ids_unique_and_well_formed() -> None:
     # have no upstream fix: renew or replace before 1 Nov 2026, GitHub #865).
     # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
     # the expressive-model ADR proposal; owner request, GitHub #719).
-    assert len(ids) == 351
+    # order of 3 Oct 2026, GitHub #790).
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews; owner request, GitHub #732).
+    assert len(ids) == 352
     import re
 
     for i in ids:
