@@ -45,6 +45,7 @@ from clinical_schemas.session import AnswerState
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.triage.context import canonical_scalar
 from protocols.triage.expr import Truth
+from protocols.valuesets import NO_VALUESETS, ValueSetTable
 
 from intake_voice_runtime.clinical_agent.appends import AppendOutcome, VerificationKind
 from intake_voice_runtime.clinical_agent.coverage import MustAskCoverage
@@ -122,8 +123,12 @@ class IntakeEngine:
         protocol: ResolvedProtocol,
         reference_time: datetime,
         overlay_facts: PatientOverlay | None = None,
+        valuesets: ValueSetTable = NO_VALUESETS,
     ) -> None:
-        self._plan = build_plan(protocol)
+        # INT-518: the gates are re-checked against the table the session runs
+        # with, so a document that reached the engine without the compiler is
+        # refused here rather than run with a gate that can never open.
+        self._plan = build_plan(protocol, valuesets)
         self._by_id = self._plan.by_id
         self._reference_time = reference_time
         self._delta = decide_delta(plan=self._plan, overlay_facts=overlay_facts, now=reference_time)
@@ -205,6 +210,20 @@ class IntakeEngine:
     def value_of(self, step_id: str) -> JsonValue:
         """The bound value, or ``None`` where nothing is bound."""
         return self._values.get(step_id)
+
+    def answered(self) -> dict[str, tuple[AnswerState, JsonValue]]:
+        """Every bound answer, ``{step_id: (state, value)}`` (INT-521).
+
+        Only ``ASKED_PRESENT`` / ``ASKED_ABSENT`` carry a value — the reading
+        :meth:`_lookup` and ``protocols.triage.context`` share — so a step in
+        any other state is absent and reads Unknown. A fresh dict each call:
+        reading it cannot write the engine.
+        """
+        return {
+            step_id: (state, self._values.get(step_id))
+            for step_id, state in self._states.items()
+            if state in {AnswerState.ASKED_PRESENT, AnswerState.ASKED_ABSENT}
+        }
 
     def slot_revision(self, step_id: str) -> int:
         """How many times this slot's state or value has changed (ADR-036 CAS)."""

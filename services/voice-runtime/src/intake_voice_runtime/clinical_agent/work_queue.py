@@ -48,6 +48,31 @@ through :func:`~intake_voice_runtime.talker.preemption.authorise_preempt`; a
 RED naming a rule outside the session's pinned pack **fails the Work** rather
 than being downgraded, because speaking a RED as routine is the worse error.
 
+**The rules engine runs here, after the Work, never inside a handler**
+(INT-521). A queue handed a
+:class:`~intake_voice_runtime.clinical_agent.live_triage.SessionTriage`
+compares the answers the served rules read before and after each state-lane
+Work; when the Work bound or changed one, it asks the rules engine for a
+determination and passes it on as that Work's ``triage_update``. So every
+answer that can change a red-flag rule is evaluated, by whichever handler it
+was bound. Three ways a RED could be lost are closed:
+
+- a handler that returns its own determination is checked against the rules
+  engine whenever the session serves rules; where the two disagree, the
+  engine's stands and the disagreement pages
+  (``triage_live_evaluation_failures_total{kind="conflict"}``);
+- an evaluation that raises fails the Work, pages
+  (``{kind="fault"}``, an ids-only error log), and leaves the evaluation
+  owed, so the next state-lane Work evaluates whether or not it binds a read
+  slot;
+- a RED already raised for this session is not raised again by a later
+  re-evaluation, so a RED that leaves the intake running does not re-notify
+  the clinic on every answer.
+
+The moment the determination was in hand travels on a ``preempt`` result as
+``evaluated_at_ms``, because files/02 §8.2 measures the RED budgets from rule
+evaluation and the Talker must not stamp a RED on arrival.
+
 **The queue is PHI-free by construction** (CLAUDE.md invariant 6).
 :class:`~intake_voice_runtime.ports.WorkRequest` carries ``input_hash``, not
 the transcript, so there is no patient text in a record, a log line or a
@@ -95,7 +120,9 @@ from intake_platform.safety_inbox.metrics import CLINIC_RED_INBOX_ROUTE_FAILURES
 from pydantic import Field, ValidationError
 
 from intake_voice_runtime.clinical_agent.fsm import EngineError, IntakeEngine
+from intake_voice_runtime.clinical_agent.live_triage import BoundReads, SessionTriage
 from intake_voice_runtime.metrics import (
+    TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL,
     WORK_FAILED_TOTAL,
     WORK_LATENCY_MS,
     WORK_QUEUE_DEPTH,
@@ -103,6 +130,7 @@ from intake_voice_runtime.metrics import (
 from intake_voice_runtime.ports import (
     Clock,
     EngineSnapshot,
+    QueueSealed,
     SystemClock,
     WorkRequest,
     WorkState,
@@ -156,10 +184,6 @@ LANE_OF: Final[Mapping[WorkType, WorkLane]] = {
     WorkType.PARSE_DOCUMENT: WorkLane.BACKGROUND,
     WorkType.RETRIEVE_RECORDS: WorkLane.BACKGROUND,
 }
-
-
-class QueueSealed(RuntimeError):
-    """files/12 §7.1: on RED the queue is sealed and admits nothing more."""
 
 
 class UnregisteredWorkType(LookupError):
@@ -271,6 +295,10 @@ class BackendAgent:
     #: ``None`` is the unit-level default only; both composition roots require
     #: one (``intake_voice_runtime.composition``).
     clinic: ClinicNotifier | None = None
+    #: INT-521: the session's served red-flag rules, evaluated after every
+    #: state-lane Work that binds a slot one of them reads. ``None`` where the
+    #: pinned protocol serves no rule; composition binds one wherever it does.
+    triage: SessionTriage | None = None
     _queue_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _engine_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _state_handlers: dict[WorkType, StateHandler] = field(default_factory=dict, init=False)
@@ -286,6 +314,13 @@ class BackendAgent:
     _asked: deque[str] = field(default_factory=deque, init=False, repr=False)
     _refused_asks: list[str] = field(default_factory=list, init=False, repr=False)
     _sealed: bool = field(default=False, init=False)
+    #: INT-521: an evaluation faulted and is still owed; the next state Work
+    #: evaluates whether or not it binds a read slot.
+    _evaluation_owed: bool = field(default=False, init=False, repr=False)
+    #: INT-521: the REDs this session already raised, by what they determine.
+    _raised_reds: set[tuple[str, frozenset[str], str, str]] = field(
+        default_factory=set, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         self._queues = {lane: deque() for lane in WorkLane}
@@ -559,9 +594,19 @@ class BackendAgent:
         record = self._records[work_id]
         handler = self._state_handlers[record.request.work_type]
         try:
+            before = self.triage.bound(self.engine) if self.triage is not None else ()
+        except Exception as err:  # the evaluation cannot be prepared: fail closed, loudly
+            self._evaluation_failed(work_id, err)
+            return
+        try:
             effect = handler(StateContext(request=record.request, engine=self.engine))
         except Exception as err:  # a handler fault is a receipt, not a crashed pump
             self._finish_failed(WorkLane.STATE, work_id, err)
+            return
+        try:
+            triage_update = self._determination(effect, before, work_id)
+        except Exception as err:  # the answer is bound and unevaluated: fail closed, loudly
+            self._evaluation_failed(work_id, err)
             return
         self._finish(
             WorkLane.STATE,
@@ -569,10 +614,62 @@ class BackendAgent:
             inline=effect.inline,
             speech_tr=effect.speech_tr,
             speech_numerics=effect.speech_numerics,
-            triage_update=effect.triage_update,
+            triage_update=triage_update,
             candidate_flags=(),
             effect_class=effect.effect_class,
+            determined_at_ms=self.clock.now_ms(),
         )
+
+    def _determination(
+        self, effect: StateEffect, before: BoundReads, work_id: str
+    ) -> RulesTriageResult | None:
+        """The Work's ``triage_update`` (INT-521).
+
+        With no served rules, a handler's own determination passes through.
+        Otherwise the rules engine runs — under the engine lock, over exactly
+        the state the Work left — when the Work bound or changed an answer a
+        served rule reads, when an earlier evaluation is still owed, or when
+        the handler returned a determination of its own. The engine's stands;
+        a handler's that disagrees with it is refused and pages. A RED this
+        session already raised is not raised again.
+        """
+        triage = self.triage
+        if triage is None:
+            return effect.triage_update
+        changed = self._evaluation_owed or triage.bound(self.engine) != before
+        if not changed and effect.triage_update is None:
+            return None
+        determined = triage.evaluate(self.engine, work_id=work_id)
+        self._evaluation_owed = False
+        handed = effect.triage_update
+        if handed is not None and _determines(handed) != _determines(determined):
+            TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL.labels(kind="conflict").inc()
+            logger.error(
+                "triage determination conflict",
+                extra={"session_id": self.session_id, "work_id": work_id},
+            )
+        if determined.level is TriageLevel.RED and _determines(determined) in self._raised_reds:
+            return None
+        return determined
+
+    def _evaluation_failed(self, work_id: str, err: Exception) -> None:
+        """The rules engine could not evaluate this Work: fail closed, loudly.
+
+        The Work fails, the evaluation stays owed so the next state Work runs
+        it again whatever it binds, and the fault pages with ids only
+        (invariant 6): an answer may be bound that a RED depends on.
+        """
+        self._evaluation_owed = True
+        TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL.labels(kind="fault").inc()
+        logger.error(
+            "triage evaluation failed",
+            extra={
+                "session_id": self.session_id,
+                "work_id": work_id,
+                "error": type(err).__name__,
+            },
+        )
+        self._finish_failed(WorkLane.STATE, work_id, err)
 
     def _execute_background(self, work_id: str) -> None:
         record = self._records[work_id]
@@ -596,6 +693,7 @@ class BackendAgent:
             triage_update=None,
             candidate_flags=effect.candidate_flags,
             effect_class=effect.effect_class,
+            determined_at_ms=self.clock.now_ms(),
         )
 
     def _finish(
@@ -609,6 +707,7 @@ class BackendAgent:
         triage_update: RulesTriageResult | None,
         candidate_flags: tuple[CandidateFlag, ...],
         effect_class: EffectClass,
+        determined_at_ms: float,
     ) -> None:
         delivery_class, priority = _delivery_of(triage_update, effect_class)
         suppressed = priority is Priority.NORMAL and work_id in self._cancelling
@@ -631,6 +730,7 @@ class BackendAgent:
             delivery_class=delivery_class,
             presentation=presentation,
             priority=priority,
+            evaluated_at_ms=determined_at_ms if priority is Priority.PREEMPT else None,
         )
         if priority is Priority.PREEMPT:
             try:
@@ -639,8 +739,10 @@ class BackendAgent:
                 self._finish_failed(lane, work_id, err)
                 return
             self._notify_clinic(result)
+            if isinstance(triage_update, RulesTriageResult):
+                self._raised_reds.add(_determines(triage_update))
         self._settle(lane, work_id, WorkState.COMPLETED, result, error=None)
-        if priority is Priority.PREEMPT:
+        if priority is Priority.PREEMPT and _stops_intake(triage_update):
             self._seal()
 
     def _notify_clinic(self, result: BackendResult) -> None:
@@ -657,18 +759,23 @@ class BackendAgent:
             return
         try:
             triage = result.presentation.triage_update
+            stamp = result.evaluated_at_ms
             if not isinstance(triage, RulesTriageResult) or (
-                triage.register is None or triage.location is None
+                triage.register is None or triage.location is None or stamp is None
             ):
-                # unreachable past authorise_preempt; counted, never raised here
-                raise TypeError("an authorised RED carries a rules result with both axes")
+                # unreachable past authorise_preempt and _finish's stamp; counted,
+                # never raised here
+                raise TypeError(
+                    "an authorised RED carries a rules result with both axes and the "
+                    "moment it was determined"
+                )
             self.clinic.notify(
                 RedNotification(
                     work_id=result.work_id,
                     rule_ids=tuple(fire.id for fire in triage.rules),
                     register=triage.register,
                     location=triage.location,
-                    evaluated_at_ms=self.clock.now_ms(),
+                    evaluated_at_ms=stamp,
                     patient_facing=REGISTER_DELIVERY[triage.register].triggers_device,
                 )
             )
@@ -727,6 +834,11 @@ class BackendAgent:
     def _seal(self) -> None:
         """files/12 §7.1: on RED, cancel everything queued and admit no more.
 
+        Only a RED whose register stops the intake seals (INT-521). A
+        ``DEFERRED_CLINICIAN`` RED leaves the patient surface unchanged and the
+        session running (files/02 §5.3; files/03 §15b), so sealing behind it
+        would refuse every later answer the intake still asks for.
+
         The allowed set files/12 names — ``{note_finalize, clinic_notify,
         audit_flush}`` — has no member in :class:`WorkType` on this branch, so
         the seal admits nothing at all. When those Work types exist they are
@@ -751,6 +863,20 @@ class BackendAgent:
                 counts[self._records[work_id].request.work_type] += 1
         for work_type, count in counts.items():
             WORK_QUEUE_DEPTH.labels(type=work_type.value).set(count)
+
+
+def _determines(triage: RulesTriageResult) -> tuple[str, frozenset[str], str, str]:
+    """What a determination decides: its level, the rules that fired, and for a
+    RED its register and location. Evidence text is not part of it."""
+    register = triage.register.value if triage.register is not None else ""
+    location = triage.location.value if triage.location is not None else ""
+    return (triage.level.value, frozenset(fire.id for fire in triage.rules), register, location)
+
+
+def _stops_intake(triage: RulesTriageResult | None) -> bool:
+    """Does this RED's register stop the intake (files/02 §5.3)?"""
+    register = triage.register if triage is not None else None
+    return register is not None and REGISTER_DELIVERY[register].stops_intake
 
 
 def _delivery_of(

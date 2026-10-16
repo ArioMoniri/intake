@@ -196,9 +196,16 @@ def test_ids_unique_and_well_formed() -> None:
     # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
     # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
     # invariant 6, GitHub #830).
+    # + INT-518 (live extraction gets the committed value table, so the code
+    # slots the active life-threat rules read can bind; from the INT-441
+    # clinical review, GitHub #884).
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation; from INT-518, GitHub #887).
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live; from INT-518, GitHub #888).
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
-    assert len(ids) == 356
+    assert len(ids) == 360
     import re
 
     for i in ids:

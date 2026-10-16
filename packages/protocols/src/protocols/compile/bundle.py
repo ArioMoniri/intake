@@ -33,6 +33,7 @@ from protocols.data_register import DataCategoryRegister
 from protocols.licences import LicenceTable
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
+from protocols.valuesets import ValueSetTable
 
 __all__ = ["DIST_ROOT", "CompiledBundle", "compile_bundle", "write_bundle"]
 
@@ -102,10 +103,13 @@ def compile_bundle(
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
     data_register: DataCategoryRegister | None = None,
+    valuesets: ValueSetTable | None = None,
 ) -> CompiledBundle:
     """Resolve, project, and hash. Raises :class:`CompileError` on any refusal.
 
-    ``data_register`` gates tagged slots (INT-349); omitted, it has no rows."""
+    ``data_register`` gates tagged slots (INT-349); omitted, it has no rows.
+    ``valuesets`` gates code-slot comparisons (INT-441); omitted, none is
+    committed."""
     document = resolve_protocol(
         pack_id=pack_id,
         registry=registry,
@@ -115,6 +119,7 @@ def compile_bundle(
         licences=licences,
         locale=locale,
         data_register=data_register,
+        valuesets=valuesets,
     )
     clips, prompts, clip_refusals = clip_manifest(document, voice, locale=locale)
     doc, fhir_refusals = questionnaire(document, prompts)

@@ -354,10 +354,18 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
     # invariant 6, GitHub #830); grows only with a stated reason.
+    # + INT-518 (live extraction gets the committed value table so code slots
+    # bind, GitHub #884); grows only with a stated reason.
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation, GitHub #887); grows only with a stated
+    # reason.
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live, GitHub #888); grows only with
+    # a stated reason.
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358, GitHub #895); grows only with a
     # stated reason.
-    assert len(ids) == 356, f"expected 175 blueprint + 181 added issues, got {len(ids)}"
+    assert len(ids) == 360, f"expected 175 blueprint + 185 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
