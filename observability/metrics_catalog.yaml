@@ -801,9 +801,11 @@ metrics:
       such as a data channel that failed), `cancelled` (the event loop cancelled
       a delivery before it finished) or `exit` (the watch itself ended other
       than by being cancelled; the next turn starts a new one). The first two
-      are retried and raised on the session's next turn. Emitted by
-      intake_voice_runtime.talker.session. A RED may not have reached the
-      patient, so any increase matters.
+      are retried and raised on the session's next turn. `unreached` (INT-545)
+      counts a RED of the first two kinds still undelivered when the session
+      ended, which no next turn will retry: the clinician route is then told
+      the device was not reached. Emitted by intake_voice_runtime.talker.session.
+      A RED may not have reached the patient, so any increase matters.
   - name: talker_tool_calls_total
     id: talker.tool_calls_total
     type: counter

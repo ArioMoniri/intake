@@ -536,8 +536,10 @@ def test_a_turn_starts_the_watch() -> None:
 
 def test_the_watch_stops_when_the_session_ends() -> None:
     """The watch never returns on its own. The router's end of a session
-    cancels it, so an ended session leaves nothing parked on its mailbox;
-    stopping twice, or ending a session the router does not know, is a no-op."""
+    cancels it once the close it queued has run (INT-545: a RED the close
+    raises must still reach the device), so an ended session leaves nothing
+    parked on its mailbox; stopping twice, or ending a session the router does
+    not know, is a no-op."""
     store = int182._store()
     int182._set(store, int518.TENANT, default_profile="residency_tr")
     rig = int521._rig(VoiceProfile.RESIDENCY_TR, {})
@@ -549,19 +551,29 @@ def test_the_watch_stops_when_the_session_ends() -> None:
     )
     session = rig.stack.session
 
-    async def scenario() -> tuple[bool, bool, bool]:
+    async def scenario() -> tuple[bool, bool, bool, bool]:
         watch = session.ensure_red_watch()
         assert watch is not None
         await asyncio.sleep(0)
         running = not watch.done()
         router.end(int518.SESSION)
         await asyncio.sleep(0)
+        held_for_the_close = not watch.done()
+        rig.stack.agent.run_pending()  # the Backend pump runs the close
+        router.poll()
+        router.poll()
+        await asyncio.sleep(0)
         ended_by_the_router = watch.cancelled()
         router.end("bilinmeyen-oturum")
         session.stop_red_watch()  # again: a no-op
-        return running, ended_by_the_router, router.live() == ()
+        return (
+            running,
+            held_for_the_close,
+            ended_by_the_router,
+            router.live() == () and router.closing() == (),
+        )
 
-    assert rig.clock.run(scenario()) == (True, True, True)
+    assert rig.clock.run(scenario()) == (True, True, True, True)
 
 
 def _push_after(session: TalkerSession, clock: FakeClock, *reds: BackendResult) -> None:

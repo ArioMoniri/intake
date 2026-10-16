@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,10 @@ from intake_probes.registry import RegistryEntry, load_registry
 from pydantic import ValidationError
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "scripts" / "backlog"))
+
+from roadmap_lib import blank_generated_section  # noqa: E402
+
 INFRA = REPO / "infra"
 REGISTRY = REPO / "observability" / "registry.yaml"
 OBJECT_STORE_COMPONENT = "minio"
@@ -79,6 +84,10 @@ HISTORICAL_PREFIXES = (
     "docs/backlog/",
     "files/11_ISSUE_BACKLOG.md",
 )
+#: INT-452: files/05's live status section is generated from the same backlog
+#: rows as files/11, so that section alone is blanked; the hand-written rest of
+#: files/05 is scanned like any other file.
+ROADMAP = "files/05_ROADMAP.md"
 
 
 def _withdrawn_pattern() -> re.Pattern[str]:
@@ -120,9 +129,10 @@ def _tracked_text_files() -> tuple[tuple[str, str], ...]:
         if not path.is_file():
             continue
         try:
-            out.append((rel, path.read_text(encoding="utf-8")))
+            text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
+        out.append((rel, blank_generated_section(text) if rel == ROADMAP else text))
     return tuple(out)
 
 

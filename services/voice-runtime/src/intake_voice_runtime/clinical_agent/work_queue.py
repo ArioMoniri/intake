@@ -157,7 +157,12 @@ from intake_voice_runtime.talker.preemption import (
     Priority,
     authorise_preempt,
 )
-from intake_voice_runtime.talker.red_path import REGISTER_DELIVERY, ClinicNotifier, RedNotification
+from intake_voice_runtime.talker.red_path import (
+    REGISTER_DELIVERY,
+    ClinicNotifier,
+    RedNotification,
+    delivery_before_trigger,
+)
 from intake_voice_runtime.talker.red_push import RedPush
 
 __all__ = [
@@ -819,6 +824,8 @@ class BackendAgent:
                     location=triage.location,
                     evaluated_at_ms=stamp,
                     patient_facing=REGISTER_DELIVERY[triage.register].triggers_device,
+                    # INT-545: the determination, ahead of the Talker and the device.
+                    delivery=delivery_before_trigger(triage.register),
                 )
             )
         except Exception:  # the route must never cost the RED; the failure pages
