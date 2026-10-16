@@ -25,6 +25,7 @@ __all__ = [
     "LANE_DROPPED_FRAMES",
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
+    "PREEMPT_RED_VIOLATIONS_TOTAL",
     "TALKER_TOOL_CALLS_TOTAL",
     "TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL",
     "VENDOR_BREAKER_STATE",
@@ -186,6 +187,17 @@ PREEMPT_RED_LATENCY_MS = Histogram(
     "preempt_red_latency_ms",
     "Rules-engine RED preemption latency, rule evaluation to script start, in milliseconds.",
     buckets=(50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 1_000.0, float("inf")),
+)
+
+#: INT-531: every violation a delivered RED carried, by the closed
+#: ``RedViolation`` value. The path raises ``RedPathViolation`` after delivering;
+#: a RED the Talker's between-turn watch handed to the path has no caller for
+#: that raise to reach, so the count is how an operator sees it. A late stop is
+#: counted here and nowhere else (the latency histogram is the trigger's).
+PREEMPT_RED_VIOLATIONS_TOTAL = Counter(
+    "preempt_red_violations_total",
+    "Rules-engine REDs delivered with a budget, speech or script violation, by violation.",
+    ["violation"],
 )
 
 

@@ -7014,3 +7014,26 @@
     - "make safety, runtime-sim (both profiles, PARITY=1) green."
   tests: [tests/voice/test_live_triage.py]
   sec_row: "clinical-core"
+- id: INT-531
+  epic: E05-voice
+  phase: P0
+  title: "A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn"
+  # GitHub #898, INT-521 residual 1, 16 Oct 2026. The Talker drained Layer B
+  # only when it took a turn, so a RED evaluated between turns waited for the
+  # next one and, when that was late, was delivered and then raised a budget
+  # violation measured from the evaluation. Layer B now posts each settled RED
+  # to the session's mailbox (one non-awaitable member) and the Talker's own
+  # between-turn watch hands it to the RED path at once; the path waits for
+  # the agent's audio to stop only until the stop budget runs out (INT-520
+  # item 1, also named in INT-534). Stacked on INT-521 (#910).
+  depends_on: [INT-521]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-531.md
+  acceptance:
+    - "A rules-engine RED result reaches the RED path (pre-positioned script triggered over the data channel) within the 300 ms budget measured from evaluation, whether or not a turn is in progress, including while the patient is speaking and while TTS plays (barge-in semantics for RED only)."
+    - "Only a rules-engine RED can take this path (invariant 9: priority preempt); the Talker still never awaits Backend Work and keeps six tools."
+    - "Fake-clock tests: RED evaluated mid-silence, mid-patient-speech, mid-TTS; delivered once; budget held; near miss (YELLOW, GREEN) never takes the path."
+    - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
+  tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py]
+  sec_row: "voice-runtime"

@@ -49,6 +49,15 @@ with :class:`RedWiringMissing`:
   never refuses a RED the session's own rules produced, which would fail the
   Work and drop the RED.
 
+Wherever the RED path is bound, one
+:class:`~intake_voice_runtime.talker.red_push.RedMailbox` joins the two
+layers between turns (INT-531): the ``BackendAgent`` posts each RED it
+settles, and the ``TalkerSession``'s own watch takes it and hands it to the
+path at once, so a RED evaluated while no turn is running still reaches the
+patient within files/02 §8.2's 300 ms. The Talker starts the watch on its
+first turn; a worker may start it earlier with
+:meth:`~intake_voice_runtime.talker.session.TalkerSession.ensure_red_watch`.
+
 The location axis is the caller's (:attr:`RedWiring.location`), derived from
 the visit lifecycle and the mode (files/02 §5.3 Axis 3) and never defaulted.
 A protocol that serves no rule composes exactly as before: no evaluator, and
@@ -120,6 +129,7 @@ from intake_voice_runtime.talker.red_path import (
     RedPreemption,
     RedScriptIndex,
 )
+from intake_voice_runtime.talker.red_push import RedMailbox
 from intake_voice_runtime.talker.session import TalkerConfig, TalkerSession
 from intake_voice_runtime.transcript import SessionTranscripts
 from intake_voice_runtime.typed.affordance import SlotFacts, slot_facts
@@ -468,6 +478,8 @@ def _compose(
         # the quantities it divides describe the same sessions. Counted only
         # once composition can no longer refuse (INT-518).
         meter.count_session()
+    # INT-531: the between-turn push, wherever there is a RED path to push to.
+    mailbox = RedMailbox() if red is not None else None
     agent = BackendAgent(
         session_id=session_id,
         engine=engine,
@@ -475,6 +487,7 @@ def _compose(
         clock=ticking,
         clinic=clinic,
         triage=triage,
+        red_push=mailbox,
     )
     agent.register_state(WorkType.EXTRACT_SLOTS, handler)
 
@@ -491,6 +504,7 @@ def _compose(
         screen=screen,
         transcripts=transcripts,
         preemption=_red_path(red, sink=sink, clinic=clinic, clock=ticking),
+        red_mailbox=mailbox,
     )
     return SessionStack(
         engine=engine,

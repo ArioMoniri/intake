@@ -23,6 +23,20 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
 
+### 2026-10-16T18:30:00Z · INT-531 · done (committed locally, not pushed; stacked on INT-521)
+- Goal: GitHub #898, INT-521 residual 1. The Talker drained Layer B only when it took a turn, so a RED evaluated between turns waited for the next turn; measured on `1ba358ff`, a RED evaluated mid-silence reached the device 3 050 ms after the evaluation (5 050 ms with a 2 s sink cancel) and the next turn raised both budget violations.
+  - Acceptance (verbatim, GitHub #898): a rules-engine RED reaches the RED path within 300 ms of evaluation whether or not a turn is in progress, including mid-patient-speech and mid-TTS (barge-in for RED only); only a rules-engine RED takes the path, the Talker never awaits Backend Work and keeps six tools; fake-clock tests mid-silence, mid-patient-speech, mid-TTS, delivered once, budget held, YELLOW/GREEN near misses; `make safety` and runtime-sim (both profiles, PARITY=1) green.
+- Plan: tests first (behaviour end to end over INT-521's served session, then the parts); then `RedPush`/`RedMailbox`, the queue's post after settle and seal, the Talker's own between-turn watch started by `take_turn`, the stop latch before the path's first await, the turn stopping after a RED that cut its speech, the stop bounded by the stop budget (INT-520 item 1), one mailbox per session at composition, `preempt_red_violations_total`.
+- Tests added: `tests/voice/test_red_between_turns.py`, `tests/voice/test_red_push.py`.
+  - RED: `test_red_push.py` collection `ModuleNotFoundError`; `test_red_between_turns.py` 13 failed, 6 passed (nothing published between turns; the passing six are the drain-first, GREEN near-miss and watch-cost controls).
+  - GREEN: 55 passed; 24/24 mutations caught (evidence).
+- Also: `VoiceSessionRouter.end()` stops the ended session's watch (`stop_red_watch()`), so no task stays parked on its mailbox.
+- Result (docs/evidence/INT-531.md): `make safety` exit 0 (voice-runtime 98.27 %, 2168 passed); runtime-sim exit 0 for every runnable scenario on both profiles and parity (RT-06 withdrawn, exit 2); ruff, ruff format and `mypy --strict` over the check-py trees clean.
+- Invariants touched and still passing: 9 (six tools; the push is one non-awaitable member; the watch awaits no Backend Work; only a rules-engine RED is posted, re-checked by the mailbox and the Talker), 21 (pre-positioned script over the data channel; the cancel is the only media call), 11 (lanes stalled 30 s change nothing), 17 (refusals and violations on the watch are logged by id and counted, never swallowed), 6 (ids and closed values only), 13 (the new metric is catalogued).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-531 row added (`area:voice`, depends on INT-521, `voice-runtime`); the three pins go from 357 to 358; files/11 regenerated.
+- Blocked on: nothing. Residuals in evidence (no production worker runs a session yet, no alert on the RED series, the barge-in path's own `red_in_flight` is not wired).
+
 ### 2026-10-16T16:30:00Z · INT-521 · done (committed locally, not pushed; stacked on INT-518 and INT-441)
 - Goal: after INT-518 every base.intake code slot binds, but no production module called `evaluate_triage` in a session and no handler set `triage_update`, so a chest-pain RED could not fire from the conversation. Behind it: the Talker recorded a drained preempt and nothing delivered it, composition never bound the RED path, and the queue's pinned rule ids did not include the session's own rules.
   - Acceptance (verbatim, GitHub #887): every completed Work that binds a slot a served rule reads triggers a rules-engine evaluation and a RED reaches the existing RED path; the Talker never awaits it (fake clock); end to end on both profiles a character or radiation answer alone gives RED at the rule's register and location, near misses do not; `make safety` and runtime-sim (both profiles, PARITY=1) green.

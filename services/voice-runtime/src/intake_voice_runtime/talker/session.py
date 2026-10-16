@@ -15,6 +15,19 @@ step. Every step in that list is non-blocking with respect to Backend Work,
 which is the whole point of ADR-009 and the reason the turn budget survives a
 stalled backend.
 
+**A RED does not wait for a turn** (INT-531). Beside the turns the Talker runs
+one loop of its own, :meth:`TalkerSession.watch_reds`, parked on the session's
+:class:`~intake_voice_runtime.talker.red_push.RedMailbox`. Layer B posts every
+rules-engine RED it settles there — a non-blocking post, from whichever thread
+its pump runs on — and the watch hands it to the RED path the moment it lands:
+mid-silence, while the patient is speaking, while the agent's own audio plays.
+The path stops that audio within the stop budget and then triggers. A turn
+that was speaking returns stopped without recording its cut question as asked.
+The watch awaits the mailbox and the RED path, never Backend Work, and the
+first turn starts it on the turn's own event loop. The turn's drain still
+delivers any RED the watch has not, and each RED reaches the path once
+whichever route sees it first.
+
 What this module deliberately does **not** contain:
 
 - **the RED preemption path.** Only its authorisation gate lives here
@@ -36,6 +49,7 @@ What this module deliberately does **not** contain:
 
 from __future__ import annotations
 
+import asyncio
 import enum
 import logging
 from dataclasses import dataclass, field
@@ -81,15 +95,18 @@ from intake_voice_runtime.talker.policy_guard import (
 )
 from intake_voice_runtime.talker.preemption import (
     BackendResult,
+    PreemptRefused,
     Priority,
     authorise_preempt,
 )
 from intake_voice_runtime.talker.red_path import (
     REGISTER_DELIVERY,
     RedPathNotWired,
+    RedPathViolation,
     RedPreemption,
     RedPreemptionOutcome,
 )
+from intake_voice_runtime.talker.red_push import RedMailbox
 from intake_voice_runtime.talker.speculation import PreemptiveGeneration
 from intake_voice_runtime.talker.speech import SpeechRouter
 from intake_voice_runtime.talker.tools import (
@@ -285,6 +302,10 @@ class TalkerSession:
     screen: ScreenSink | None = None
     policy_guard: PolicyGuard | None = None
     preemption: RedPreemption | None = None
+    #: The Talker's end of the between-turn push (INT-531): Layer B posts each
+    #: rules-engine RED here and :meth:`watch_reds` takes it. ``None`` where no
+    #: RED path is bound, and then a RED waits for the turn's drain.
+    red_mailbox: RedMailbox | None = None
     #: Where a deposited transcript lives while its Work is queued. Layer A
     #: holds the **deposit** half only — it cannot read one back — and the
     #: queue still carries nothing but the digest (CLAUDE.md invariants 6, 14).
@@ -317,6 +338,11 @@ class TalkerSession:
     _permissions: dict[str, PermissionRequest] = field(default_factory=dict, init=False)
     _playback: list[tuple[float, float]] = field(default_factory=list, init=False)
     _red_stopped: bool = field(default=False, init=False)
+    #: INT-531: the work ids of the REDs handed to the path, by either route.
+    #: A RED is settled once and seen twice — pushed and drained — so the
+    #: second sighting is dropped here.
+    _reds_seen: set[str] = field(default_factory=set, init=False, repr=False)
+    _red_watch: asyncio.Task[None] | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         # The Backend agent is the ledger when it is one — one object, one
@@ -694,29 +720,111 @@ class TalkerSession:
             )
         triage = result.presentation.triage_update
         register = getattr(triage, "register", None)
-        try:
-            return await self.preemption.trigger(result, evaluated_at_ms=evaluated_at_ms)
-        finally:
-            if register is not None and REGISTER_DELIVERY[register].stops_intake:
-                self._red_stopped = True
+        if register is not None and REGISTER_DELIVERY[register].stops_intake:
+            # INT-531: latched before the path awaits anything, so a turn that
+            # resumes while the stop and the trigger are in flight asks nothing.
+            self._red_stopped = True
+        return await self.preemption.trigger(result, evaluated_at_ms=evaluated_at_ms)
 
     async def _drain_and_deliver(self) -> tuple[object, ...]:
         """Drain Layer B and hand every rules-engine RED to the RED path.
 
         Every result is accepted first (provenance gate, insertion scheduler),
         then each preempt is delivered. Draining never blocks; delivering
-        awaits only the RED path's cancel and data-channel trigger.
+        awaits only the RED path's cancel and data-channel trigger. A RED the
+        between-turn watch already handed to the path is skipped (INT-531).
         """
         drained = self.backend.drain_results()
         reds: list[BackendResult] = []
         for result in drained:
-            if isinstance(result, BackendResult):
-                self.accept_result(result)
-                if result.priority is Priority.PREEMPT:
-                    reds.append(result)
+            if not isinstance(result, BackendResult):
+                continue
+            if result.priority is Priority.PREEMPT and result.work_id in self._reds_seen:
+                continue
+            self.accept_result(result)
+            if result.priority is Priority.PREEMPT:
+                self._reds_seen.add(result.work_id)
+                reds.append(result)
         for result in reds:
             await self.deliver_preempt(result, evaluated_at_ms=self._evaluated_at(result))
         return drained
+
+    # --- the between-turn RED watch (INT-531) ------------------------------------------
+
+    def ensure_red_watch(self) -> asyncio.Task[None] | None:
+        """Start :meth:`watch_reds` on the running event loop, once per loop.
+
+        :meth:`take_turn` calls this on entry, so a session that has taken a
+        turn is watching; a worker may call it at session start to cover the
+        moments before the first turn too. ``None`` where no push is wired —
+        no mailbox, or no RED path to hand a RED to.
+        """
+        if self.red_mailbox is None or self.preemption is None:
+            return None
+        running = asyncio.get_running_loop()
+        watch = self._red_watch
+        if watch is None or watch.done() or watch.get_loop() is not running:
+            watch = running.create_task(self.watch_reds(), name="talker-red-watch")
+            self._red_watch = watch
+        return watch
+
+    def stop_red_watch(self) -> None:
+        """Cancel the between-turn watch when the session ends. Idempotent.
+
+        The watch never returns on its own, so an ended session that left it
+        parked on its mailbox would keep the session alive until its event
+        loop closed. Awaits nothing.
+        """
+        watch, self._red_watch = self._red_watch, None
+        if watch is not None and not watch.done():
+            watch.cancel()
+
+    async def watch_reds(self) -> None:
+        """The Talker's own between-turn loop: a RED reaches the patient now.
+
+        Parks on the session's mailbox and hands each RED Layer B posts to the
+        preemption path the moment it lands, whether or not a turn is running.
+        It awaits the mailbox and the path — the cancel of the agent's audio,
+        bounded by the stop budget, then the trigger over the data channel —
+        and nothing of Layer B's. It never returns; cancel the task to stop it.
+        """
+        mailbox = self.red_mailbox
+        if mailbox is None or self.preemption is None:
+            raise RedPathNotWired(
+                "the between-turn RED watch needs both the session's mailbox and its "
+                "RED preemption path; refusing to watch for a RED it could not deliver "
+                "(CLAUDE.md invariant 21)"
+            )
+        while True:
+            for result in await mailbox.take():
+                await self._deliver_pushed(result)
+
+    async def _deliver_pushed(self, result: BackendResult) -> None:
+        """One pushed RED: the same gate and path as a drained one, once.
+
+        The watch has no caller to raise to, so a refusal and a violation are
+        each logged by work id (the violation is also counted by the path) and
+        the watch serves the next RED. A refused RED is not marked seen: the
+        turn's drain meets it again and raises.
+        """
+        if result.work_id in self._reds_seen:
+            return
+        try:
+            self.accept_result(result)
+        except PreemptRefused:
+            logger.error("pushed red refused", extra={"work_id": result.work_id})
+            return
+        self._reds_seen.add(result.work_id)
+        try:
+            await self.deliver_preempt(result, evaluated_at_ms=self._evaluated_at(result))
+        except RedPathViolation as violation:
+            logger.error(
+                "red path violation",
+                extra={
+                    "work_id": result.work_id,
+                    "violations": [value.value for value in violation.violations],
+                },
+            )
 
     def _evaluated_at(self, result: BackendResult) -> float:
         """When the rules engine made this RED's determination (INT-521).
@@ -756,6 +864,9 @@ class TalkerSession:
     async def take_turn(self, transcript: str | None) -> TurnOutcome:
         """One conversational turn. Nothing here awaits Backend Work."""
         started_ms = self.clock.now_ms()
+        # INT-531: the between-turn RED watch runs beside every turn from the
+        # first one on. Starting it awaits nothing.
+        self.ensure_red_watch()
         if self._red_stopped:
             # The intake stopped when the RED was delivered. Asking the next
             # question after a life threat is the failure the preemption
@@ -815,6 +926,16 @@ class TalkerSession:
             if isinstance(decision, Speak) and decision.item.presentation.speech_tr is not None:
                 await self._speak_backend(decision)
                 delivered.append(decision.item.work_id)
+        if self._red_stopped:
+            # INT-531: a RED reached the path while Layer B's speech was going
+            # out; the path cut it, and nothing is asked after a life threat.
+            return TurnOutcome(
+                work_id=work_id,
+                drained_results=len(drained),
+                delivered_work_ids=tuple(delivered),
+                held=TurnHold.INTAKE_STOPPED,
+                elapsed_ms=self.clock.now_ms() - started_ms,
+            )
 
         # files/03 §4.4b: a handover gap is a turn boundary, never silence and
         # never an answer. Asking over an open patient turn is the mirror of
@@ -837,7 +958,13 @@ class TalkerSession:
             )
             outcome = await self.speak_step(step, paraphrase)
             spoken, from_clip = outcome.spoken_text, outcome.from_clip
-            self._note_asked(step)
+            if self._red_stopped:
+                # INT-531: a RED reached the path while this question was going
+                # out. The path cut it; the patient heard at most part of it,
+                # so it is not recorded as asked and the turn reports the stop.
+                held = TurnHold.INTAKE_STOPPED
+            else:
+                self._note_asked(step)
 
         return TurnOutcome(
             step_id=step.step_id if step else None,

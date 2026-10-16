@@ -73,6 +73,15 @@ The moment the determination was in hand travels on a ``preempt`` result as
 ``evaluated_at_ms``, because files/02 §8.2 measures the RED budgets from rule
 evaluation and the Talker must not stamp a RED on arrival.
 
+**A RED does not wait for the Talker's next turn** (INT-531). Once a RED has
+settled (and sealed the queue, where its register stops the intake) the queue
+posts it through :class:`~intake_voice_runtime.talker.red_push.RedPush` — one
+member, not awaitable — to the session's mailbox, which wakes the Talker's
+own between-turn loop. Nothing here calls into the Talker or waits on it. The
+post is the fast route, not the only one: the RED stays in the results for
+the turn's drain, and a post that raises is logged by id and costs the RED
+nothing.
+
 **The queue is PHI-free by construction** (CLAUDE.md invariant 6).
 :class:`~intake_voice_runtime.ports.WorkRequest` carries ``input_hash``, not
 the transcript, so there is no patient text in a record, a log line or a
@@ -149,6 +158,7 @@ from intake_voice_runtime.talker.preemption import (
     authorise_preempt,
 )
 from intake_voice_runtime.talker.red_path import REGISTER_DELIVERY, ClinicNotifier, RedNotification
+from intake_voice_runtime.talker.red_push import RedPush
 
 __all__ = [
     "LANE_OF",
@@ -299,6 +309,10 @@ class BackendAgent:
     #: state-lane Work that binds a slot one of them reads. ``None`` where the
     #: pinned protocol serves no rule; composition binds one wherever it does.
     triage: SessionTriage | None = None
+    #: INT-531: where a settled RED is posted for the Talker's between-turn
+    #: watch. ``None`` where no RED path is bound; the turn's drain still
+    #: delivers it then.
+    red_push: RedPush | None = None
     _queue_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _engine_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _state_handlers: dict[WorkType, StateHandler] = field(default_factory=dict, init=False)
@@ -742,8 +756,33 @@ class BackendAgent:
             if isinstance(triage_update, RulesTriageResult):
                 self._raised_reds.add(_determines(triage_update))
         self._settle(lane, work_id, WorkState.COMPLETED, result, error=None)
-        if priority is Priority.PREEMPT and _stops_intake(triage_update):
-            self._seal()
+        if priority is Priority.PREEMPT:
+            if _stops_intake(triage_update):
+                self._seal()
+            self._push_red(result)
+
+    def _push_red(self, result: BackendResult) -> None:
+        """INT-531: post a settled, authorised RED for the Talker's watch.
+
+        After the settle (so the turn's drain has it too) and after the seal
+        (so the Talker never hears of a stopping RED while the queue still
+        admits Work). The port's one member returns at once. A post that
+        raises is logged by id and error class (invariant 6) and costs the RED
+        nothing: it is settled, and the next turn's drain delivers it.
+        """
+        if self.red_push is None:
+            return
+        try:
+            self.red_push.push(result)
+        except Exception as err:  # the post must never cost the RED
+            logger.error(
+                "red push failed",
+                extra={
+                    "session_id": self.session_id,
+                    "work_id": result.work_id,
+                    "error": type(err).__name__,
+                },
+            )
 
     def _notify_clinic(self, result: BackendResult) -> None:
         """Invariant 49: hand an authorised RED to the clinician route.

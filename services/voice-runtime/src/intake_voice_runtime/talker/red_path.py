@@ -39,7 +39,17 @@ and a missing row raises.
 files/02 §8.2: *"Barge-in stop ≤ 150 ms. RED preemption ≤ 300 ms from rule
 evaluation."* Raising at the first breach would abandon the patient to police
 a number, so the path always completes and then raises
-:class:`RedPathViolation` carrying the whole outcome.
+:class:`RedPathViolation` carrying the whole outcome, and counts each
+violation on ``preempt_red_violations_total`` (INT-531), because a RED that
+reached the path between turns has no caller for the raise to reach.
+
+**A slow media plane cannot hold the trigger** (INT-531; INT-520 item 1). The
+cancel runs as its own task and the path waits for it only until
+:data:`STOP_BUDGET_MS` after the evaluation, on the session clock. Past that
+the trigger goes, the stop is a violation, and the cancel keeps running behind
+it until the agent's audio has stopped. A live SFU tearing a room down over
+HTTP is the case this exists for: it can take seconds, and the device's
+pre-positioned script does not need it to finish.
 
 What is deliberately **not** here: the Work queue's RED seal, which
 files/12 §7.1 places on Layer B and INT-092 built — a second implementation
@@ -49,6 +59,7 @@ has no backlog issue and is recorded in docs/evidence/INT-093.md.
 
 from __future__ import annotations
 
+import asyncio
 import enum
 import logging
 import warnings
@@ -61,7 +72,7 @@ from clinical_schemas.triage import RedLocation, RedRegister, RulesTriageResult,
 from protocols.generic_red import GENERIC_RED_SCRIPT_IDS
 from pydantic import Field, StringConstraints
 
-from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS
+from intake_voice_runtime.metrics import PREEMPT_RED_LATENCY_MS, PREEMPT_RED_VIOLATIONS_TOTAL
 from intake_voice_runtime.ports import Clock
 from intake_voice_runtime.talker.preemption import BackendResult, Priority
 
@@ -346,6 +357,13 @@ class RedPreemptionOutcome(FrozenModel):
         description="The cancel could not run. Nothing was playing to stop — the "
         "case files/03 §4.6 invariant 4 exists for, not a failure of the RED.",
     )
+    stop_overran: bool = Field(
+        default=False,
+        description="The cancel had not returned when the stop budget ran out, so "
+        "the trigger went without waiting for it (INT-531). ``stopped_at_ms`` is then "
+        "unset; the cancel keeps running behind the trigger, and the stop is a "
+        "STOP_BUDGET violation.",
+    )
     violations: tuple[RedViolation, ...] = Field(default=())
 
     @property
@@ -381,6 +399,9 @@ class RedPreemption:
     scripts: RedScriptIndex
     clock: Clock
     _delivered: dict[str, RedPreemptionOutcome] = field(default_factory=dict, init=False)
+    #: Cancels still running after their RED triggered without them (INT-531),
+    #: held so the event loop cannot drop a task the agent's audio depends on.
+    _stopping: set[asyncio.Task[bool]] = field(default_factory=set, init=False, repr=False)
 
     async def trigger(
         self, result: BackendResult, *, evaluated_at_ms: float
@@ -429,14 +450,11 @@ class RedPreemption:
 
         stopped_at_ms: float | None = None
         media_plane_unreachable = False
+        stop_overran = False
         if delivery.stops_intake:
-            try:
-                await self.canceller.cancel()
-            except Exception:  # the media plane is the least reliable thing here
-                media_plane_unreachable = True
-                logger.warning("red stop found no reachable media plane", exc_info=False)
-            stopped_at_ms = self.clock.now_ms()
-            if stopped_at_ms - evaluated_at_ms > STOP_BUDGET_MS:
+            stopped_at_ms, media_plane_unreachable = await self._stop(evaluated_at_ms)
+            stop_overran = stopped_at_ms is None
+            if stopped_at_ms is None or stopped_at_ms - evaluated_at_ms > STOP_BUDGET_MS:
                 violations.append(RedViolation.STOP_BUDGET)
 
         script_id: str | None = None
@@ -458,12 +476,43 @@ class RedPreemption:
             script_started_at_ms=script_started_at_ms,
             notified_clinician=True,
             media_plane_unreachable=media_plane_unreachable,
+            stop_overran=stop_overran,
             violations=tuple(violations),
         )
         self._delivered[result.work_id] = outcome
         if violations:
+            _count(violations)
             raise RedPathViolation(outcome)
         return outcome
+
+    async def _stop(self, evaluated_at_ms: float) -> tuple[float | None, bool]:
+        """Stop the agent's audio, waiting no longer than the stop budget has left.
+
+        Returns when it stopped (``None`` if the budget ran out first) and
+        whether the media plane was unreachable. The bound is the session
+        clock's, so a fake clock measures the same bound production enforces;
+        a RED that is already past its stop budget does not wait at all.
+        """
+        cancel = asyncio.ensure_future(self._cancel())
+        left_ms = max(STOP_BUDGET_MS - (self.clock.now_ms() - evaluated_at_ms), 0.0)
+        budget = asyncio.ensure_future(self.clock.sleep(left_ms / 1000.0))
+        await asyncio.wait((cancel, budget), return_when=asyncio.FIRST_COMPLETED)
+        budget.cancel()
+        if not cancel.done():
+            self._stopping.add(cancel)
+            cancel.add_done_callback(self._stopping.discard)
+            logger.warning("red stop overran its budget; triggering without it")
+            return None, False
+        return self.clock.now_ms(), cancel.result()
+
+    async def _cancel(self) -> bool:
+        """Cancel the agent's audio. True when the media plane was unreachable."""
+        try:
+            await self.canceller.cancel()
+        except Exception:  # the media plane is the least reliable thing here
+            logger.warning("red stop found no reachable media plane", exc_info=False)
+            return True
+        return False
 
     async def _to_device(
         self, triage: RulesTriageResult, evaluated_at_ms: float
@@ -530,12 +579,20 @@ class RedPreemption:
         )
         self._delivered[recorded.work_id] = outcome
         if outcome.violations:
+            # the kept violations were counted when they happened
+            _count(device_violations)
             raise RedPathViolation(outcome)
         return outcome
 
     @property
     def delivered_work_ids(self) -> tuple[str, ...]:
         return tuple(self._delivered)
+
+
+def _count(violations: list[RedViolation]) -> None:
+    """One count per violation, by its closed value (invariant 6: no ids)."""
+    for violation in violations:
+        PREEMPT_RED_VIOLATIONS_TOTAL.labels(violation=violation.value).inc()
 
 
 def _rules_engine_red(result: BackendResult) -> RulesTriageResult:

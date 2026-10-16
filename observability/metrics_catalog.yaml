@@ -772,6 +772,22 @@ metrics:
       started on the device. Only patient-facing registers observe it: a
       DEFERRED_CLINICIAN RED has no patient-facing latency to report, and
       inventing a zero for it would flatter the p99 that pages.
+  # INT-531: the RED path's violations, counted where the path raises them. A
+  # RED the Talker's between-turn watch hands to the path has no caller for the
+  # raise to reach, so this count is how an operator sees one.
+  - name: preempt_red_violations_total
+    type: counter
+    labels: [violation]
+    owner: voice-runtime
+    unit: "count"
+    status: live
+    description: >-
+      Rules-engine REDs the path delivered with a violation, by the closed
+      RedViolation value: stop_budget (the agent's audio was not stopped
+      within 150 ms of the evaluation, including a cancel the path stopped
+      waiting for), e2e_budget, server_side_speech or script_unaddressable.
+      Emitted by intake_voice_runtime.talker.red_path when it raises
+      RedPathViolation, after the RED reached the device and the clinician.
   - name: talker_tool_calls_total
     id: talker.tool_calls_total
     type: counter
