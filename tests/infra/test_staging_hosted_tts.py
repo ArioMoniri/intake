@@ -33,7 +33,11 @@ def test_the_api_declares_the_lane_and_its_persistent_cache() -> None:
     api = _api()
     assert api["environment"][ENV_HOSTED_TTS] == "elevenlabs"
     assert api["environment"][ENV_HOSTED_TTS_CACHE_DIR] == CACHE_DIR
-    assert api["volumes"] == [f"george-clips:{CACHE_DIR}"]
+    # the cache is the one writable mount; every other mount is read-only
+    # (INT-421's mirrored Keycloak key set is the other one, `:ro`)
+    assert f"george-clips:{CACHE_DIR}" in api["volumes"]
+    others = [v for v in api["volumes"] if v != f"george-clips:{CACHE_DIR}"]
+    assert all(v.endswith(":ro") for v in others), others
     assert api["read_only"] is True, "the volume is the one writable path"
     assert not any(k.startswith("INTAKE_DEV_") for k in api["environment"])
 

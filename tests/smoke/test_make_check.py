@@ -354,6 +354,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
     # invariant 6, GitHub #830); grows only with a stated reason.
+    # + INT-518 (live extraction gets the committed value table so code slots
+    # bind, GitHub #884); grows only with a stated reason.
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation, GitHub #887); grows only with a stated
+    # reason.
     # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
     # GitHub #752); grows only with a stated reason.
     # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
@@ -366,7 +371,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # INT-428, GitHub #753); grows only with a stated reason.
     # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
     # with a stated reason.
-    assert len(ids) == 357, f"expected 175 blueprint + 182 added issues, got {len(ids)}"
+    assert len(ids) == 359, f"expected 175 blueprint + 184 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

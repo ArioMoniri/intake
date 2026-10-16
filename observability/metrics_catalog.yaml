@@ -687,6 +687,21 @@ metrics:
       Member readings dropped before adjudication: out_of_scope,
       no_verbatim_evidence or number_on_non_numeric. Emitted by
       intake_voice_runtime.clinical_agent.council.orchestrator.
+  # INT-521: the live session's rules-engine evaluation, run by the Work queue
+  # after every state Work that binds a slot a served red-flag rule reads.
+  - name: triage_live_evaluation_failures_total
+    type: counter
+    labels: [kind]
+    owner: safety
+    unit: "count"
+    status: live
+    description: >-
+      Live-session rules-engine evaluations that could not stand, by kind:
+      `fault` (the evaluation raised; the Work failed and the next state Work
+      evaluates again) or `conflict` (a handler's own determination disagreed
+      with the rules engine over the served rules; the engine's stood).
+      Emitted by intake_voice_runtime.clinical_agent.work_queue. A RED may be
+      missing from a live session, so any increase pages.
   # files/10 §9 observer-lane row: `lane.dropped_frames` is one of the signals
   # that row says lands with INT-110. files/03 §4.7.6 makes it a metric AND a
   # recorded field on every lane signal, so the same number appears here and on

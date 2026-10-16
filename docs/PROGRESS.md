@@ -39,6 +39,50 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
+
+### 2026-10-16T16:30:00Z · INT-521 · done (committed locally, not pushed; stacked on INT-518 and INT-441)
+- Goal: after INT-518 every base.intake code slot binds, but no production module called `evaluate_triage` in a session and no handler set `triage_update`, so a chest-pain RED could not fire from the conversation. Behind it: the Talker recorded a drained preempt and nothing delivered it, composition never bound the RED path, and the queue's pinned rule ids did not include the session's own rules.
+  - Acceptance (verbatim, GitHub #887): every completed Work that binds a slot a served rule reads triggers a rules-engine evaluation and a RED reaches the existing RED path; the Talker never awaits it (fake clock); end to end on both profiles a character or radiation answer alone gives RED at the rule's register and location, near misses do not; `make safety` and runtime-sim (both profiles, PARITY=1) green.
+- Plan: read #766, #773, #855 first (none evaluates in the runtime or delivers a drained RED); tests first; then `SessionTriage` (served rules of the pinned protocol, their reads, the caller's location), the queue's before/after compare and evaluation, the RED stamp, `take_turn` delivery, and `RedWiring` required at composition wherever rules are served.
+- Tests added: `tests/voice/test_live_triage.py` (95).
+  - RED: collection `ImportError`; behaviour on `d7f8bf3b`: every answer bound, `evaluate_triage` over the same state says RED, the session carried no determination, nothing preempted, and the next turn asked the next question.
+  - GREEN: 95 passed; end to end K2 RED (`ALERT`, the session's location) delivered over the data channel for each of the rule's six cardiac literals alone, under REMOTE, ON_SITE and UNKNOWN, both profiles, each asserting the rule's own action for that location (ON_SITE: no 112, `notify_staff_immediate: true`); every other pair of committed choices evaluated and quiet. Mutation check in evidence.
+- Result (docs/evidence/INT-521.md): `make safety` and runtime-sim (every runnable scenario, both profiles, parity) exit 0; voice-runtime coverage in evidence.
+- Invariants touched and still passing: 1 (level from `protocols.triage` only), 9 (six tools, Talker holds no evaluator, 30 s stall costs the turn nothing), 17 (refuses at composition, no default location), 21 (rule's register, session's location, pre-positioned script over the data channel), 6 (ids only).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-521 row added (`area:voice`, depends on INT-518 and INT-093, `clinical-core`); the three pins go from 345 to 346; files/11 regenerated.
+- Blocked on: nothing for this row. Residuals for the orchestrator (evidence §Residuals): the Talker drains only per turn (no Layer B → Layer A push between turns); no production data-channel adapter or script index in the runtime, and no shared script-id function with the API; the RED location is fixed for the session; CD-05 onset resolution is INT-522.
+- Round 2 (runtime review blocked `fc3289f4`): the RED fired only on a turn with no transcript, because `take_turn` submitted before it drained and the RED had sealed the queue (`QueueSealed`, nothing triggered). Now the turn drains and delivers first, returns `INTAKE_STOPPED` before the submit, and catches a `QueueSealed` from a RED that sealed between the drain and the submit. Also: a handler's own determination no longer skips the evaluation (the engine's stands; a disagreement pages); an evaluation fault fails the Work, pages and stays owed for the next Work; only a RED that stops the intake seals, and a RED already raised is not raised again. New `triage_live_evaluation_failures_total{kind}`, catalogued, with the `LiveTriageEvaluationFailed` page and runbook section. Tests 121: canonical-loop delivery on both profiles × 3 locations, the race, the fake-clock and late-drain tests with transcript-bearing turns, masking, fault and DEFERRED_CLINICIAN on the real queue. RED: the reviewer's probe, and 65 failed over round 1's queue and Talker; GREEN: 121 passed.
+
+### 2026-10-16T13:30:00Z · INT-518 · done (committed locally, not pushed; stacked on INT-441)
+- Goal: composition handed extraction `dict(valuesets or {})` and no production caller passed a table. The first question's Work (`subject_role`, a code slot) was refused, the slot stayed awaiting, and every later Work declared it and was refused too: a live session bound nothing after question one. `chest_pain.character` and `chest_pain.radiation`, the code inputs of the two active life-threat rules, never bound.
+  - Acceptance (verbatim, GitHub #884): composition loads the committed table and a test pins it; value sets for every base code slot, copied byte for byte from `choices_tr`; every code slot a red-flag rule reads binds from an authored choice, near miss a slot with no set; plan build re-checks gate values; `make safety` and runtime-sim green.
+- Plan: tests first (voice end to end, engine plan build, committed sets); then seven value sets; `load_committed_valuesets()` found from the package; both roots default to it; the handler refuses an unbound code slot at composition; `build_plan` runs `gate_value_refusals`; refusals before the INT-190 session count.
+- Tests added: `tests/voice/test_extraction_valuesets.py`, `tests/engine/test_plan_valuesets.py`, `tests/protocols/test_base_intake_valuesets.py`; one near miss in `test_sessions_metered.py`; `test_fsm.py` engine-seam pin lists `valuesets` (a frozen data model); `test_bare_gates._base_engine()` passes the committed table.
+  - RED: on `469c6195` the same assertions give 25 failed; end to end, all five Works `failed`, nothing bound, triage GREEN for "baskı" and for "kol".
+  - GREEN: 158 passed in the seven touched suites; end to end, all Works `completed`, K2 RED (`ALERT`, REMOTE) on character alone and on radiation alone; near misses bind and stay quiet. 12/12 single-change mutations caught.
+- Result (docs/evidence/INT-518.md): `make safety` exits 0 (triage 100 %, 18/18, voice-runtime 98.65 %); runtime-sim exits 0 on every runnable scenario, both profiles and parity; protocols 97.48 %; full suite green after the two environment reruns.
+- Invariants touched and still passing: 1 (level from `protocols.triage` only), 7 (no rule touched), 9 (Talker untouched; refusals at composition), 21 (RED resolves register and location), 5/10 (no Turkish string changed), 17 (missing set refuses, never defaults).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-518 row added (`area:protocols`, depends on INT-083 and INT-432, `clinical-core`); the three pins go from 344 to 345; files/11 regenerated.
+- Blocked on: nothing for this row. Residuals for the orchestrator (evidence §Residuals): no production module calls `evaluate_triage` in session; `chest_pain.onset_at` (the K2 tense anchor) has no CD-05 choice-to-date resolution in the runtime; `live_smoke.py` omits the required `clinic`.
+- Next: orchestrator's word to push and open the PR (body ready).
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T11:00:00Z · INT-441 · done (committed locally, not pushed; part of INT-489 item 1)
+- Goal: `base.intake` gated `proxy_reported` on `subject_role != 'kendim'` and `lmp_date` on `pregnancy_status != 'hayir'`. Neither literal is an answer the slot offers, so the first opened for a patient answering "kendim için" and the second could never close. No value set was committed, so nothing showed it.
+  - Acceptance (verbatim, GitHub #750): each gate compares against a value its slot can carry; `proxy_reported` opens only on "yakınım adına"; `lmp_date` keeps its behaviour with authored literals; both project to `enableWhen`; a literal test with near misses `'kendim'` and an ASCII-folded choice; engine tests with the authored strings.
+  - INT-489 (#836) item 1: commit `vs.subject_role` and refuse a gate literal outside a code slot's value set.
+- Plan: tests first (engine, compiler, base.intake); then the committed value sets, a loader, a compiler check with three refusal codes wired through `resolve_protocol`, `compile_bundle` and `protocols compile --valuesets`; then the two gate literals.
+- Tests added: `tests/protocols/test_gate_values.py`, `tests/protocols/test_base_intake_gate_values.py`; `tests/engine/test_bare_gates.py` now answers only with `choices_tr` strings; `test_base_intake_pack.py` compiles with the committed sets.
+  - RED: 1 failed on main `be6c09c1` ("kendim için" opened `proxy_reported`), plus the missing-module collection error.
+  - GREEN: 78 passed in the three files; 1674 across protocols, engine, sim and ai. Nine single-change mutations each caught.
+- Result (docs/evidence/INT-441.md): `make safety` exits 0 (triage 100 %, 18/18 mutations). Protocols coverage 97.48 %. No Turkish string changed.
+- Invariants touched and still passing: 1 and 7 (gates only; no rule touched; every red-flag code literal is already an authored choice), 5 (tr choices are the source of the members), 17 (ambiguous cluster gates refused, not guessed).
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-100 spec_basis T1 quote updated to the new verbatim line; its `supports` text corrected. Listed for D18.
+- Backlog: PR #867 carries the INT-441 and INT-489 rows; this PR adds none.
+- Blocked on: D18 for four review-queue cluster gates now refused (`cluster.mental_health` ×2 on `'kendim'`, `cluster.medical` and `cluster.womens_health` on `'hayir'`); push waits on the orchestrator.
+- Next: orchestrator's word to push and open the PR.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)

@@ -120,10 +120,13 @@ sections:
         follow_up_tr:
           tr: "Kendiniz için mi, yoksa başka biri adına mı konuşuyorsunuz?"
       proxy_reported:
+        # INT-441: the gate compared against 'kendim', which no answer equals, so it
+        # opened for a patient answering "kendim için" too. It now opens only on the
+        # authored proxy choice (vs.subject_role, base/valuesets.yaml).
         type: boolean
         required: false
         must_ask: false
-        ask_if: "subject_role != 'kendim'"
+        ask_if: "subject_role == 'yakınım adına'"
         openehr_deferred_reason: >-
           proxy provenance travels on the note (04 §5 PreVisitNote.screening.provenance),
           not as an openEHR entry; no archetype in 03 §7 hosts it.
@@ -718,11 +721,16 @@ sections:
           tr: "Emin değilseniz emin değilim diyebilirsiniz."
       lmp_date:
         # HB-C6 addition 2 of 6, and the ONLY one of the six the DSL can gate today.
+        # INT-441: the gate compared against 'hayir', which no answer equals, so the
+        # LMP was asked after every answer. That behaviour is kept, now spelled with
+        # the three authored choices (vs.pregnancy_status) so the FHIR enableWhen
+        # says what the engine does. Whether "hayır" may skip the LMP is a clinical
+        # decision (HB-C6; files/13 §4 asks it universally) and is not made here.
         type: date
         required: false
         must_ask: false
         delivery: text_first
-        ask_if: "pregnancy_status != 'hayir'"
+        ask_if: "pregnancy_status == 'evet' || pregnancy_status == 'hayır' || pregnancy_status == 'emin değilim'"
         openehr_deferred_reason: >-
           03 §7 names no archetype for menstrual history; deferred to INT-032.
         ask_tr:

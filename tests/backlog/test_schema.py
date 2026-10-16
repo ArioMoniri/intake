@@ -196,6 +196,11 @@ def test_ids_unique_and_well_formed() -> None:
     # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
     # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
     # invariant 6, GitHub #830).
+    # + INT-518 (live extraction gets the committed value table, so the code
+    # slots the active life-threat rules read can bind; from the INT-441
+    # clinical review, GitHub #884).
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation; from INT-518, GitHub #887).
     # + INT-442 (the synthetic AWS host's egress forward proxy, split from
     # INT-428, GitHub #752).
     # + INT-428 (hosted model lanes for the synthetic deployment, switchable
@@ -209,7 +214,7 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-428, GitHub #753).
     # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
     # request, GitHub #762).
-    assert len(ids) == 357
+    assert len(ids) == 359
     import re
 
     for i in ids:
