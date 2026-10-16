@@ -356,7 +356,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # invariant 6, GitHub #830); grows only with a stated reason.
     # + INT-518 (live extraction gets the committed value table so code slots
     # bind, GitHub #884); grows only with a stated reason.
-    assert len(ids) == 357, f"expected 175 blueprint + 182 added issues, got {len(ids)}"
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation, GitHub #887); grows only with a stated
+    # reason.
+    assert len(ids) == 358, f"expected 175 blueprint + 183 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

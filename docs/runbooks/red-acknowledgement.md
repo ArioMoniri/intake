@@ -99,6 +99,24 @@ patient's on-site location answer).
 4. Otherwise open an incident: the route is built to be unable to fail (an
    in-memory append of an id-shaped entry), so a failure is a defect.
 
+## Live triage unevaluated
+
+`LiveTriageEvaluationFailed` — Layer B ran the rules engine after an answer a
+served red-flag rule reads, and either the evaluation raised
+(`triage_live_evaluation_failures_total{kind="fault"}`) or a handler's own
+determination disagreed with the engine's (`{kind="conflict"}`) (INT-521).
+
+1. A RED this session should have raised may be missing from the patient path
+   and from the Safety inbox. Find the session from the runtime's error log
+   line `triage evaluation failed` or `triage determination conflict`, which
+   carries the session id and work id only (and, for a fault, the error class).
+2. Tell the tenant's `tenant_clinical_responsible` directly, by that session
+   id, that its red-flag evaluation is not to be relied on.
+3. For a fault the session keeps evaluating on each later answer, so a RED can
+   still fire; it is not a recovery. Open an incident: the evaluation is a pure
+   function of the pinned rules and the bound answers, so a fault or a
+   conflict is a defect.
+
 ## Owner values
 
 These are not set anywhere in the repository and must not be guessed:
