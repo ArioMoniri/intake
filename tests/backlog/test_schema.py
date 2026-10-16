@@ -221,7 +221,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-540 (the onset anchor always resolves: CD-04's UNCLEAR states, a
     # defined clarification_needed and the session's close; from the INT-522
     # clinical review, GitHub #913).
-    assert len(ids) == 363
+    # + INT-531 (a RED evaluated between turns reaches the patient within the
+    # 300 ms budget; INT-521 residual 1, GitHub #898).
+    assert len(ids) == 364
     import re
 
     for i in ids:
