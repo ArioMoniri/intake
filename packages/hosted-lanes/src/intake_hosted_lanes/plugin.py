@@ -12,10 +12,13 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from functools import partial
 from pathlib import Path
-from typing import Final
 
 from intake_platform.egress import DataClass, EgressAllowlist, EgressPolicy
-from intake_platform.model_lanes.guard import deployment_data_class
+from intake_platform.model_lanes.guard import (
+    ENV_EGRESS_PROXY_URL,
+    deployment_data_class,
+    egress_proxy_url,
+)
 from intake_platform.model_lanes.hosted import HostedBackend, HostedLanes
 from intake_platform.model_lanes.keys import ProviderKeyVault
 from intake_platform.model_lanes.model import ProviderId, TenantDataClass
@@ -24,8 +27,6 @@ from intake_hosted_lanes.catalogue import PROVIDERS_DEFAULT, load_provider_catal
 from intake_hosted_lanes.openai_compat import OpenAICompatibleProvider
 
 __all__ = ["ENV_EGRESS_PROXY_URL", "HostedLanesRefused", "hosted_lanes_from_env"]
-
-ENV_EGRESS_PROXY_URL: Final = "INTAKE_EGRESS_PROXY_URL"
 
 
 class HostedLanesRefused(RuntimeError):
@@ -60,7 +61,9 @@ def hosted_lanes_from_env(
     backends: dict[ProviderId, HostedBackend] = {}
     if keys is not None:
         policy_for = _policy_for(allowlist)
-        proxy = env.get(ENV_EGRESS_PROXY_URL, "").strip() or None
+        # INT-442: the one reader of the proxy variable, which refuses it
+        # anywhere but the synthetic deployment
+        proxy = egress_proxy_url(env)
         for provider_id, resolved in catalogue.resolved.items():
             backends[provider_id] = OpenAICompatibleProvider(
                 resolved,

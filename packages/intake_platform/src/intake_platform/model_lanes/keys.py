@@ -27,7 +27,7 @@ from typing import Any, Final, Protocol
 
 import httpx
 
-from intake_platform.model_lanes.model import ProviderId
+from intake_platform.model_lanes.model import KeyHolder, ProviderId
 
 __all__ = [
     "KEY_PATH_PREFIX",
@@ -139,11 +139,11 @@ class ProviderKeyVault:
         self._ttl = cache_ttl_s
         self._clock = clock
         self._now = now if now is not None else (lambda: datetime.now(tz=UTC))
-        self._cache: dict[ProviderId, tuple[float, ProviderApiKey | None, KeyStatus]] = {}
+        self._cache: dict[KeyHolder, tuple[float, ProviderApiKey | None, KeyStatus]] = {}
 
     # -- reads -----------------------------------------------------------------------
 
-    def _load(self, provider: ProviderId) -> tuple[ProviderApiKey | None, KeyStatus]:
+    def _load(self, provider: KeyHolder) -> tuple[ProviderApiKey | None, KeyStatus]:
         cached = self._cache.get(provider)
         if cached is not None and self._clock() - cached[0] < self._ttl:
             return cached[1], cached[2]
@@ -167,17 +167,17 @@ class ProviderKeyVault:
         self._cache[provider] = (self._clock(), key, status)
         return key, status
 
-    def status(self, provider: ProviderId) -> KeyStatus:
+    def status(self, provider: KeyHolder) -> KeyStatus:
         """Never raises: an unreachable store is the ``unknown`` state."""
         try:
             return self._load(provider)[1]
         except KeyVaultUnavailable:
             return KeyStatus("unknown")
 
-    def is_set(self, provider: ProviderId) -> bool:
+    def is_set(self, provider: KeyHolder) -> bool:
         return self.status(provider).is_set
 
-    def key_for_call(self, provider: ProviderId) -> ProviderApiKey:
+    def key_for_call(self, provider: KeyHolder) -> ProviderApiKey:
         key, _ = self._load(provider)
         if key is None:
             raise ProviderKeyNotSet("no key is set for this provider")

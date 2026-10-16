@@ -1971,6 +1971,15 @@ metrics:
   # counter would let a Prometheus scrape — which is not consent-scoped and
   # which retains what it sees — reconstruct one clinician's reading of one
   # patient's note (inv. 6).
+  - name: api_clip_lane_total
+    type: counter
+    labels: [lane, cache]
+    owner: api
+    unit: "count"
+    description: >-
+      Scripted clips the George route served (INT-443), by the lane that spoke
+      them (elevenlabs, or self_hosted after a vendor failure) and by cache
+      (hit or miss). Emitted by intake_api.dev_voice; no text, no principal.
   - name: doctor_link_events_total
     type: counter
     labels: [event]

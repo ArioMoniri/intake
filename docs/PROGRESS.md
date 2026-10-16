@@ -39,8 +39,56 @@
 - Backlog: INT-522 row added (`area:protocols`, depends on INT-518 and INT-521, `clinical-core`); the three pins go from 357 to 358; files/11 regenerated.
 - Blocked on: nothing for this row. D18 lane (no new item): CD-05's own open final resolution of the twelve-to-seventy-two-hour band; and whether the first "bilmiyorum" should resolve before the engine's two scripted follow-ups. Residuals in evidence: the app's API hop would need the resolved day if the app ever asks the onset; the reference time's producer is the composing caller.
 
+### 2026-10-16T18:00:00+03:00 · INT-538 · done (PR open, not merged, not run against the host)
+- Goal: GitHub #906. The owner gets one laptop command that creates a staff user in realm `intake` on the synthetic host: first themselves (`platform_owner`), then the second approver (`qms_owner`). It replaces the manual steps of `docs/runbooks/second-admin.md` (INT-460).
+- Plan:
+  - `scripts/ops/staff_user.sh` prompts and validates.
+  - A read-only probe over SSM asks whether a `platform_owner` exists. Only when none does is the user (who must then be the `platform_owner`) asked, once, for the organisation id, a slug.
+  - The temporary password goes into an SSM SecureString through a 0600 request file. `infra/staging/staff_user_host.sh` goes base64-wrapped over SSM with no secret in the command.
+  - On the host, the script names the IAM statement to add if the instance role may not read the staff_tmp parameters. It reads the bootstrap password locally and logs kcadm in on stdin with a throwaway `--config`.
+  - It refuses an existing username or email, inherits the owner's org (refusing a differing one), creates the user with `webauthn-register` + `UPDATE_PASSWORD`, grants the role, and sets the temporary password from SSM. A failed step rolls back.
+  - The command prints `created` and the reveal-once command.
+  - Round 2 (orchestrator review) replaced round 1's realm-config route for the first org with the probe and the prompt.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staff_user.py` (63, laptop flows end to end) and `tests/infra/test_staff_user_host.py` (33, host half and the scripts as files), against fake `aws`/`docker`/`openssl`.
+  - 20 input near misses and 12 org-slug near misses make nothing, and slugs at the edges are accepted.
+  - The org rule holds both ways. The IAM refusal line is pinned. No secret appears in any argv, the command or the output. The kcadm config is deleted on every path.
+  - 13 of 13 mutations were caught.
+  - Red: round 1, 66 failed; round 2 against the round-1 scripts, 53 failed. Green: 96 passed; 111 with INT-460's runbook pins.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean; shellcheck clean.
+  - tests/backlog, tests/smoke and tests/security green, with counts at 356.
+  - files/11 regenerated.
+  - no_placeholders, evidence_check and sec_row linkage OK.
+  - The full fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing:
+  - 6 (no email or credential in any output);
+  - 14 (secrets never in argv, logs or the SSM command; nothing committed);
+  - 16 (Sec-Row `platform`, threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none. No org value is defined anywhere, so the owner types it once, on the very first run. No org is invented.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The instance role's read of `/intake/staging/staff_tmp/*` was verified by the orchestrator from the host on 16 Oct 2026 (`ParameterNotFound`, not `AccessDenied`).
+- Next: merge. Then the owner runs the command twice, typing the org id on the first run.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
 - Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).
+
+### 2026-10-03T23:55:00+03:00 · INT-443 · awaiting-human (PR #775 open, stacked on #772; the cast take on the wire)
+- Goal: #772 (INT-449, owner decision D20) pinned the cast take E04 — `eleven_v3`, every row v4, closed-table tags at Natural 0.5, RED and instrument Robust 1.0 and untagged — and left this lane one change: send `profile.wire_prefix + text_tr`. Make that change so the tags come only from the served table and every refusal reads the script alone.
+- Plan:
+  - Merge `origin/main`, then `origin/int-449-turkish-voice-casting`, resolving from git's conflict list and validating before each commit.
+  - Tests first: the tags on the wire per context, none for instrument and RED, a client tag refused, v2 against v4 keys, `eleven_v3` on the wire, the hosted request equal to the offline one.
+  - Then one composer of the wire text, used by both ElevenLabs paths.
+- Tests added (with the near-miss negative for any safety rule): tests/platform/test_elevenlabs_hosted_tts.py (wire tags per context, instrument alone, a tag inside text_tr refused even when catalogued, forged rows and another voice refused, offline continuity), tests/api/test_hosted_clip_lane.py (route tags per context, five client tag or setting bodies refused, a v2-era clip never served against a v4 hit), tests/api/test_george_prebake.py (wire characters billed, v2 not cached, the v4 key printed), tests/voice/test_elevenlabs_clipgen.py (`wire_text`). Red: 18 and 9 failed. Green: 47, 54 and 39 passed.
+- Result (`make check` / `make safety` / `make security` summary): `make check-py` exit 0 (main 10573 passed at 94.71 %; voice-clips 99.51 %; voice-runtime 98.48 %; every floor met); `make safety` exit 0 (triage 100 % branch, 18/18 mutations); no_placeholders, vendor-call, PHI and claims scans OK; gitleaks clean on the range; `make security` not re-run (no lockfile, image or IaC change).
+- Invariants touched and still passing: 10 (`text_tr` verbatim; the tags exist on the wire only), 21 (RED refused on this lane and never tagged), 22 (the numeral gate runs on `text_tr` and again on the wire text), 6 (codes only), 19 (synthetic deployment only, unchanged).
+- Decisions / ADRs / `00_STATE.md` rows: D20 is merged in from #772. ADR-034 records the D20 amendment, ADR-035 names the v4 rows on `eleven_v3`, and the `cloud-clipgen` threat row gains render-time tags. The INT-443 acceptance states the D20 pins.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): unchanged from the first entry. The owner's egress commit (the `elevenlabs-api` row) and a deploy are still pending; then `george_prebake plan` and `apply --max-characters N` bake the v4 cache.
+- Next: #772 lands first, then this PR; merge `origin/main` once more before the merge queue takes it.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
+- Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
 - Plan:
   - Set `OAUTH2_PROXY_REQUEST_LOGGING` and `OAUTH2_PROXY_AUTH_LOGGING` to `"false"` on `oauth2-proxy` in infra/staging/compose.yaml, with a comment saying why. This is the same pair INT-481 sets on `oauth2-proxy-grafana`, which runs the same image digest.
   - Pin both in `TestLoginGate`.
@@ -337,6 +385,67 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 Q2's fail-closed default (no RED haptic) holds; INT-340's `presentRed` belongs in RedLayer when #710 merges.
 - Blocked on: HB-C1. No signed `base.life_threat` exists, so no RED fires in a real session; that is the designed state. Generic copy for an unrenderable RED is a clinical and legal string and is not authored.
 - Next: PR `INT-446: …` (Closes #756, Sec-Row triage). Do not merge.
+
+  - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
+  - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
+  - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
+- Tests added: `tests/voice/test_cast_turkish_voices.py` (33).
+  - Near-miss controls: a line one word off its source refuses the whole run; a George-era `@v1` recording is refused once the pin lands (in the prepared change).
+  - RED: collection error with the modules absent, then 5 failures (a property called as a method; a verified accent overriding the voice's own).
+  - GREEN: 33 passed.
+- Result: docs/evidence/INT-449.md and docs/voice/casting-2026-10.md.
+  - The coordinator ran the render: 6,516 characters, 1.95 USD at the planning rate, all 108 takes aligned.
+  - Cavit ranks first on both models; Mine (v3) and Toprak (v2) follow among the native voices.
+  - George on v2 ranks third, so the continuity figures do not hear accent and the owner's blind ear decides.
+  - Pins 330 → 331; files/11 regenerated. The check-py lanes touched are green; `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 10 (catalogue text only, verbatim against its source, markup refused), 19 (offline lane only, ADR-028), 20 (measurements of these takes, not properties), 22 (`assert_speakable_tr` before the wire; normaliser off).
+- Decisions / ADRs / `00_STATE.md` rows: none taken. A v3 pick is a model change recorded as the owner's decision in ADR-034 (PR #734).
+- Blocked on: the owner's pick of a blind code (Ario Moniri: *"Which coded row should the clip set be built with?"*). This answers docs/backlog/blockers.md INT-319 ask (c); ask (a), the vendor's commercial-use terms, stays open.
+- Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T23:13:00Z · INT-443 · awaiting-human (PR open, stacked on INT-442 and #734)
+- Goal: acceptance verbatim (GitHub #753): *"An ElevenLabs adapter in the hosted TTS lane that speaks catalogue or scripted text only, using the v2 profiles and eleven_multilingual_v2. The cache is keyed by profile@version."* and *"It is the default TTS on the synthetic host once its key and egress row exist. The mobile client plays it gaplessly, and voice-e2e confirms the lane."* The coordinator's George-on-AWS checklist was added to it.
+- Plan: make the George route the synthetic host's hosted clip lane.
+  - ElevenLabs through the allow-list row, the INT-442 proxy and the OpenBao key.
+  - Admit the app's own scripted texts from a generated, staleness-tested catalogue.
+  - Key the cache by profile@version on a persistent volume, and pre-bake it.
+  - Fall back to self-hosted on a vendor failure, recorded per clip.
+  - Charge misses and refusals, never hits.
+  - Mount on the synthetic host only.
+- Tests added: 22 for the adapter, 35 for the route and its wiring, 6 for the pre-bake, 5 for infra and 6 for the mobile catalogue; two hardening tests adapted.
+  - RED: collection errors (no modules) and no mobile tests.
+  - GREEN: 101 on the George route, 629 on platform, infra and admin, 1151 on voice, 250 on mobile dialogue.
+- Result: docs/evidence/INT-443.md. ADR-035 amended: the clip vendor is not a model lane, and the dated-snapshot rule is stated, not waived, for the AI/ML reviewer. Pins 331 → 332; files/11 regenerated.
+- Invariants touched and still passing:
+  - 3 (agent speech only, encoded in voice_clips);
+  - 6 (codes only);
+  - 10 (verbatim catalogue text);
+  - 14 (OpenBao key, egress allow-list);
+  - 19 (synthetic deployment only; PHI never mounts it);
+  - 21 (RED never fetched);
+  - 22 (numerals and markup refused before the wire).
+- Decisions / ADRs / `00_STATE.md` rows: the ADR-035 amendment. Owner self-approval of lane switches (coordinator, D19) was refused by the permission classifier and is not in this change.
+- Blocked on: the owner's egress commit (INT-442). The mobile half is INT-440's branch.
+- Deploy: not done. The permission classifier refused my upload of the corrected merged
+  artefact. The host still runs `1785dd58`; see the evidence's deploy section.
+- Next: the owner's egress commit, then a deploy, the pre-bake and the smoke clip
+  (owner or coordinator).
+
+### 2026-10-02T22:48:00Z · INT-442 · awaiting-human (PR open, stacked on #751; owner egress commit + deploy pending)
+- Goal: acceptance verbatim (GitHub #752): *"A forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts. INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment."* and *"Tests prove an unlisted host is refused. Deployed and smoked."*
+- Plan: render a second squid config from the one allow-list (hosted_model_inference rows only) and run it as `egress-proxy` on the staging compose, the API's one route out. Read the variable through a guard that refuses it outside the synthetic deployment, and probe it live from the API container on every deploy.
+- Tests added: `tests/infra/test_staging_egress.py` (40). It covers topology; the variable's single setter; the boot refusal outside synthetic, with a near miss; the config; host-for-host parity with the in-process guard; the renderer on a fake list with hosted rows; and the probe's five outcomes.
+  - RED: 32 failed and 6 errors against the base renderer and compose.
+  - GREEN: 284 targeted, then 723 over the egress, platform, admin and voice lane suites, and 482 observability.
+- Result: docs/evidence/INT-442.md. Pins 329 → 330; files/11 regenerated.
+- Invariants touched and still passing: 14 (egress allow-list, digest-pinned image), 19 (no vendor on the PHI path: the proxy and its variable exist only in the synthetic deployment), 6 (the CONNECT log is host:port only).
+- Decisions / ADRs / `00_STATE.md` rows: none. The vendor rows are the owner's protected change (07 §F rule 2), prepared unstaged.
+- Blocked on:
+  - the owner's commit of `infra/security/egress-allowlist.yaml` and the three files that move with it. Until then the proxy admits nothing.
+  - the deploy. The classifier refused my upload of the corrected artefact. The host still runs `1785dd58`, and `/opt/intake` needs restoring from the earliest `/opt/intake.prev-*`.
+- Next: INT-443 (ElevenLabs hosted TTS), stacked on this.
+
 ### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
 - **Goal.** The acceptance, verbatim (GitHub #721):
   - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*
@@ -496,6 +605,21 @@
 - Blocked on: nothing for the ADR, which the owner accepted on 3 Oct 2026. The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8 (INT-439).
 - Next: five split rows, with ids to be allocated by the coordinator: the admin Council section; production composition; the Loop-2 `yield_table` proposal; the document rules on `parse_document`; the red-flag lexicon, speaker attribution and the backchannel lexicon. Evidence-gated studies are listed in the evidence file.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T22:48:00Z · INT-442 · awaiting-human (PR open, stacked on #751; owner egress commit + deploy pending)
+- Goal: acceptance verbatim (GitHub #752): *"A forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts. INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment."* and *"Tests prove an unlisted host is refused. Deployed and smoked."*
+- Plan: render a second squid config from the one allow-list (hosted_model_inference rows only) and run it as `egress-proxy` on the staging compose, the API's one route out. Read the variable through a guard that refuses it outside the synthetic deployment, and probe it live from the API container on every deploy.
+- Tests added: `tests/infra/test_staging_egress.py` (40). It covers topology; the variable's single setter; the boot refusal outside synthetic, with a near miss; the config; host-for-host parity with the in-process guard; the renderer on a fake list with hosted rows; and the probe's five outcomes.
+  - RED: 32 failed and 6 errors against the base renderer and compose.
+  - GREEN: 284 targeted, then 723 over the egress, platform, admin and voice lane suites, and 482 observability.
+- Result: docs/evidence/INT-442.md. Pins 329 → 330; files/11 regenerated.
+- Invariants touched and still passing: 14 (egress allow-list, digest-pinned image), 19 (no vendor on the PHI path: the proxy and its variable exist only in the synthetic deployment), 6 (the CONNECT log is host:port only).
+- Decisions / ADRs / `00_STATE.md` rows: none. The vendor rows are the owner's protected change (07 §F rule 2), prepared unstaged.
+- Blocked on:
+  - the owner's commit of `infra/security/egress-allowlist.yaml` and the three files that move with it. Until then the proxy admits nothing.
+  - the deploy. The classifier refused my upload of the corrected artefact. The host still runs `1785dd58`, and `/opt/intake` needs restoring from the earliest `/opt/intake.prev-*`.
+- Next: INT-443 (ElevenLabs hosted TTS), stacked on this.
+
 ### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
 - Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
 - Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
@@ -3512,6 +3636,90 @@
   - No new metric.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #724):
+  - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*
+  - *"The admin panel has a model-routing module: per-lane provider (hosted provider / self-hosted GPU / mock), a key entry written only to OpenBao and never shown back, a 4-eyes switch with audit, live lane health and cost, and an instant fallback to the self-hosted lane when it is healthy."*
+  - *"Gateways route through the existing adapter interfaces. Egress allow-list rows are added per provider. No PHI is logged. Numbers are normalised before TTS (invariant 22)."*
+  - *"Tests cover the routing decision, the fail-closed real-PHI guard, the key never being echoed, and the audit row on every switch."*
+  - Narrowed by the binding medical (finding 12) and AI/ML reviews, and extended by the owner to model selection per lane. These remove the DPA branch and mock, split the deployment, attest models, freeze the model per session, and gate swaps on red-flag goldens.
+- Plan: ADR-035.
+  - A vendor-free platform (`intake_platform.model_lanes`): guard, catalogue, qualifications, decision table, identity health, the `ModelResolver` / `SessionLanes`, and dispatch.
+  - Synthetic-image-only adapters (`packages/hosted-lanes`) behind the existing interfaces.
+  - Five DangerousActions and ten audited routes, plus the admin-web module.
+  - Catalogued metrics and owner-filled cost rows.
+  - The terminal key route and its deploy hook.
+- Tests added (each safety rule with its near miss):
+  - `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment}.py`
+  - `tests/voice/test_model_lane_shims.py`
+  - `tests/admin/test_model_lanes_routes.py`
+  - `tests/infra/test_put_provider_key.py`
+  - 58 admin-web specs.
+  - The named four are `mock_hosted_unrepresentable_for_phi_tenant`, `lane_swap_requires_green_rf_extraction_goldens`, `model_pin_frozen_in_session` and `synthetic_flag_immutable`.
+  - RED: 4 failed (route drives, RBAC rows, cost budgets and fixtures). Every guard was then mutated, and each mutation was RED (5/5).
+- Result:
+  - check-py: ruff, format and `mypy --strict` (537 files) are clean. Whole tree: 9779 passed at 94.73 %, and every scoped lane is at its floor.
+  - check-ts: lint and typecheck are clean. vitest: admin-web 385, mobile 2413.
+  - safety: 18/18 mutations detected.
+  - security: the staged diff and the branch range have no leaks. semgrep, bandit, trivy config, checkov, licences, the PHI scan and the claims scan are clean. `trivy fs` and osv flag lockfile advisories already on main.
+  - no_placeholders (staged): OK. The vendor-call gate: OK.
+- Invariants touched and still passing: 1, 2, 3, 6, 13, 14, 17, 19 (relaxed for the synthetic deployment only, ADR-035), 20 and 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-035 (number allocated by the coordinator).
+  - The egress allow-list row was refused by the permission classifier (a hook-protected file), reported, and not routed around.
+  - The OpenBao `model-lanes` grant was restored at the coordinator's request and is flagged for review.
+- Blocked on:
+  - owner: "Add the `openai-api` egress row and its INT-001 gate exception under ADR-035";
+  - owner: "Give the synthetic host an egress route to the provider";
+  - clinical: "Which golden set and sensitivity floor qualify an llm/asr model version (medical review, physician decision 8)?".
+  - No HB id is minted here.
+- Next: split rows for the coordinator:
+  1. guarded transport for the self-hosted extraction clients;
+  2. `/identity` on the GPU servers;
+  3. a drift canary;
+  4. model@revision recording keys;
+  5. a schema-keyword lint;
+  6. an egress proxy for the synthetic host;
+  7. lanes in the mobile release build;
+  8. ElevenLabs as a hosted TTS provider, and the George route on the synthetic host;
+  9. MonthlySpendLedger in dispatch.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T01:30:00+03:00 · INT-424 · done (PR #734 open, not merged)
+- Goal: acceptance verbatim (GitHub #719):
+  - *"delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"*
+  - *"an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"*
+  - *"RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"*
+- Plan:
+  - Bump the table to `PROFILE_VERSION = 2`, with each row picked from the rendered candidate grid by a stated rule (hard checks, then level evenness, then the context's intent).
+  - Add a sample-render tool through the existing gateway: verbatim catalogue lines, a spend cap, and labelled and blind pages in `.cache/voice-samples/`.
+  - Refuse SSML and audio tags inside scripted text.
+  - Write ADR-034. It was proposed, then accepted by the owner on 3 Oct 2026.
+  - Add the v2 table, the pacing rules and the owner's render steps to the wiring guide.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_render_delivery_samples.py`.
+  - Extended: `test_delivery_profiles.py` (v2 table, key bump per context, retired `@v1` take), `test_elevenlabs_clipgen.py` (markup refused), `tests/api/test_dev_voice_george.py` (markup → 422).
+  - Near misses:
+    - the same settings under a new version still change the key;
+    - the ellipsis, dash, semicolon and comma reach the wire unchanged;
+    - a gap under 150 ms is not a pause.
+  - RED run: 2 collection errors (`PROFILE_VERSION`, `MarkupInScriptError` absent) and 2 API failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9684 passed at 95.77 %; voice-clips 99.73 %; every floor met).
+  - `make safety` exit 0 (triage 534 at 100 % branch; 18/18 mutations; voice-runtime 1626 at 98.68 %; red-team 121).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, and backlog/smoke/docs/evidence 122 passed.
+  - `make security` is in the evidence file.
+  - No TS changed.
+  - The samples were rendered by the coordinator with the owner's permission on 3 Oct: 80 clips, 3,424 characters, 0.27 USD at the published rate. Offline transcripts show the words intact in 80/80, and the peak is 26,781 of 32,767.
+  - v2: welcome c, routine v1, sensitive v1, instrument c, acknowledgement b, red c, closing v1.
+- Invariants touched and still passing: 6 (the key is never printed), 10 (markup refused), 17, 19, 20 (no claims), 21 (RED most stable, style 0), 22 (SSML breaks refused).
+- Decisions / ADRs / `00_STATE.md` rows: ADR-034 Accepted. The owner, 3 Oct 2026, relayed by the coordinator: "eleven labs is yes", so the model stays `eleven_multilingual_v2`. The `00_STATE.md` §3 row is left to the coordinator. No metric, no threat-row change.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+  - The owner delegated the listening review on 3 Oct ("do this by yourself, I'm giving permission").
+  - The review is by measurement and transcript; no human ear was involved.
+  - The blockers.md entry is removed.
+- Next: PR #734, `INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal` (Closes #719, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-03T18:00:00+03:00 · INT-432 · done (PR #757 open, not merged)

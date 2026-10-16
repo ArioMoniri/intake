@@ -54,6 +54,8 @@ __all__ = [
     "ModelLanesControl",
     "ModelLanesRefused",
     "ModelRole",
+    "ClipVendor",
+    "KeyHolder",
     "ProviderId",
     "RouteKind",
     "TenantDataClass",
@@ -104,6 +106,20 @@ class ProviderId(enum.StrEnum):
     question, so a new one is a reviewed change — never a typed string."""
 
     OPENAI = "openai"
+
+
+class ClipVendor(enum.StrEnum):
+    """Hosted vendors of scripted-clip speech (INT-443, ADR-035), synthetic
+    image only. Not a model lane: a clip vendor speaks the server's scripted
+    catalogue and nothing else, so it has no catalogue row, no lane default
+    and no route a console can switch to. Its key sits beside the providers'
+    (``model-lanes/providers/<vendor>``) and is read the same way."""
+
+    ELEVENLABS = "elevenlabs"
+
+
+#: Whose key the provider-key vault holds.
+KeyHolder = ProviderId | ClipVendor
 
 
 class TenantDataClass(enum.StrEnum):

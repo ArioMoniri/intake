@@ -43,6 +43,9 @@
 #   openbao     MPL-2.0
 #   minio       AGPL-3.0, verified from the raw LICENSE blob (INT-347)
 #   caddy       Apache-2.0
+#   squid       GPL-2.0-or-later (ubuntu/squid; INT-018 recorded the licence in
+#               observability/registry.yaml; the digest below was resolved
+#               from Docker Hub's v2 API on 3 Oct 2026, INT-442)
 name: intake-staging
 
 x-logging: &logging
@@ -84,6 +87,18 @@ services:
       # class is NOT set here: the synthetic image bakes it, so no compose or
       # env edit can turn this host into something else.
       INTAKE_MODEL_LANES_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
+      # INT-442 (ADR-035): the synthetic host's one route out, the egress-proxy
+      # service below. Read only through intake_platform.model_lanes.guard.
+      # egress_proxy_url, which refuses the boot if this is set in a
+      # deployment that is not synthetic. It is never set in the PHI
+      # deployment (tests/infra/test_staging_egress.py pins that).
+      INTAKE_EGRESS_PROXY_URL: http://egress-proxy:3128
+      # INT-443 (ADR-035): ElevenLabs is this synthetic host's default TTS for
+      # scripted clips. Honoured only because the image bakes the synthetic
+      # data class; the vendor is reached only once its allow-list row exists
+      # and its key is in OpenBao (secret/model-lanes/providers/elevenlabs).
+      INTAKE_HOSTED_TTS: elevenlabs
+      INTAKE_HOSTED_TTS_CACHE_DIR: /var/lib/intake/george-clips
       # The object store: the minio service below, over the internal backend
       # network. The API creates its buckets itself on first use, the audit
       # bucket with object lock, so nothing here pre-creates one.
@@ -140,6 +155,9 @@ services:
     volumes:
       # written by deploy.sh (mirror_keycloak_jwks) before the api starts
       - /etc/intake-staging/keycloak-jwks.json:/run/intake/keycloak-jwks.json:ro
+      # INT-443: the George clip cache survives redeploys, so a pre-baked clip
+      # is served without a vendor call for as long as its profile version stands
+      - george-clips:/var/lib/intake/george-clips
     depends_on:
       postgres:
         condition: service_healthy
@@ -149,8 +167,14 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    # both networks are internal: the API has no route to the internet
-    networks: [backend, edge]
+      # started, not healthy: a proxy that is down fails the hosted calls
+      # closed, and nothing else in the API needs it
+      egress-proxy:
+        condition: service_started
+    # every network is internal: the API has no route to the internet. Its one
+    # way out is `outbound`, to the egress proxy, which answers only for the
+    # allow-list's hosted-model rows (INT-442).
+    networks: [backend, edge, outbound]
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -392,6 +416,42 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # INT-442 (ADR-035): the synthetic deployment's forward proxy. Default deny:
+  # its config is rendered from infra/security/egress-allowlist.yaml's
+  # hosted_model_inference rows (scripts/security/render_egress_proxy_conf.py
+  # --profile synthetic), so it admits exactly the vendor hosts the in-process
+  # guard admits and nothing else. With no such row it admits nothing. It runs
+  # as the image's unprivileged `proxy` user (uid 13) from the start, so it
+  # needs no capability to drop privileges and can open /dev/stdout for the
+  # CONNECT log (host:port only, never a path or a query).
+  egress-proxy:
+    image: ubuntu/squid:6.6-24.04_edge@sha256:8a3baed477e2c282ab8aa5edad442f69873246964f225c5c2ae8364b6610963c
+    user: "13:13"
+    volumes:
+      - ./egress/squid.conf:/etc/squid/squid.conf:ro
+    # outbound: the API's only way to it; vendor: its only way off the host
+    networks: [outbound, vendor]
+    read_only: true
+    tmpfs:
+      - /tmp:uid=13,gid=13
+      - /run:uid=13,gid=13
+      - /var/spool/squid:uid=13,gid=13
+      - /var/log/squid:uid=13,gid=13
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ulimits:
+      core: 0
+    healthcheck:
+      # the listener answers; `squid -k check` needs a pid file this config
+      # does not write
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/3128"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+    logging: *logging
+
   caddy:
     image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
     environment:
@@ -426,6 +486,11 @@ networks:
     internal: true
   backend:
     internal: true
+  # INT-442: the API and the egress proxy, nothing else
+  outbound:
+    internal: true
+  # the egress proxy's route off the host, and nothing else on it
+  vendor: {}
 
 volumes:
   pgdata: {}
@@ -434,3 +499,4 @@ volumes:
   minio-data: {}
   caddy-data: {}
   caddy-config: {}
+  george-clips: {}

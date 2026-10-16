@@ -25,7 +25,7 @@ from typing import Any
 
 import pytest
 import yaml
-from intake_platform.egress import DENIED_RANGES, load_allowlist
+from intake_platform.egress import DENIED_RANGES, EgressPurpose, load_allowlist
 
 REPO = Path(__file__).resolve().parents[2]
 COMPOSE_PATH = REPO / "infra" / "docker-compose.egress.yml"
@@ -34,6 +34,7 @@ ALLOWLIST_PATH = REPO / "infra" / "security" / "egress-allowlist.yaml"
 RENDERER = REPO / "scripts" / "security" / "render_egress_proxy_conf.py"
 
 PROXY_SERVICE = "egress-proxy"
+HOSTED = EgressPurpose.HOSTED_MODEL_INFERENCE
 PHI_NETWORK = "phi"
 BUILD_NETWORK = "build"
 EGRESS_NETWORK = "egress"
@@ -181,9 +182,12 @@ def test_every_allowlisted_host_reaches_the_config_and_nothing_else_does() -> No
         for line in lines
         if line.startswith("acl vendor_glob dstdom_regex ")
     ]
-    expected_exact = {e.host for e in allowlist.tiers.dev if not e.glob}
+    # INT-442: the build proxy renders the tooling rows; the hosted-model rows
+    # belong to the synthetic host's proxy (tests/infra/test_staging_egress.py)
+    tooling = [e for e in allowlist.tiers.dev if e.purpose_id is not HOSTED]
+    expected_exact = {e.host for e in tooling if not e.glob}
     assert exact == expected_exact
-    assert len(regexes) == len([e for e in allowlist.tiers.dev if e.glob])
+    assert len(regexes) == len([e for e in tooling if e.glob])
 
 
 @pytest.mark.parametrize(
