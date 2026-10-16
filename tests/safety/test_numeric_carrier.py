@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import ast as python_ast
 import inspect
+import json
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -52,8 +53,8 @@ from protocols.dsl import Slot
 from protocols.triage import SlotAnswer, TriageContext, canonical_scalar, evaluate_triage
 from protocols.triage import context as triage_context
 from protocols.types import SlotType
-from pydantic import TypeAdapter
-from synthetic_triage import ANCHOR, ctx, make_rule, present
+from pydantic import TypeAdapter, ValidationError
+from synthetic_triage import ANCHOR, REF_TIME, ctx, make_rule, present
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -327,3 +328,65 @@ class TestTheWireTagNeverReachesAHuman:
             carried = _through_the_wire(spoken)
             assert carried == spoken
             assert not isinstance(carried, Decimal)
+
+
+class TestAMalformedUnitMapIsRefusedWhenTheContextIsBuilt:
+    """INT-416. ``TriageContext.units`` was ``dict[str, str]`` while the
+    ``EvidenceSlot.unit`` it feeds is ``min_length=1``. An empty unit built a
+    context without complaint and then raised ``ValidationError`` out of
+    ``evaluate_triage`` on the first firing KIRMIZI rule that read the slot:
+    a RED evaluation that fails instead of returning RED, the failure
+    invariant 1 exists to prevent. The bound sits on the context, so the same
+    mistake is refused where the context is built and evaluation has nothing
+    left to refuse."""
+
+    def _context(self, units: dict[str, str]) -> TriageContext:
+        return TriageContext(
+            reference_time=REF_TIME,
+            answers={ANCHOR: present("2026-08-28"), FEVER: present(Decimal("38.5"))},
+            units=units,
+        )
+
+    def test_an_empty_unit_is_refused_at_construction(self) -> None:
+        with pytest.raises(ValidationError) as raised:
+            self._context({FEVER: ""})
+        (error,) = raised.value.errors()
+        assert error["loc"] == ("units", FEVER)
+        assert error["type"] == "string_too_short"
+
+    def test_an_empty_unit_arriving_as_json_is_refused_too(self) -> None:
+        """The JSON path into the model is the same boundary, not a second one."""
+        payload = self._context({}).model_dump(mode="json")
+        payload["units"] = {FEVER: ""}
+        with pytest.raises(ValidationError):
+            TriageContext.model_validate_json(json.dumps(payload))
+
+    def test_an_empty_unit_on_a_slot_no_rule_reads_is_refused_as_well(self) -> None:
+        """The map is malformed whatever a rule reads; refusing only the slots a
+        firing rule touches would put the failure back inside evaluation."""
+        with pytest.raises(ValidationError):
+            self._context({"sentetik.okunmayan": ""})
+
+    def test_near_miss_a_well_formed_unit_still_returns_red(self) -> None:
+        evaluation = evaluate_triage(
+            (FEVER_RULE,), self._context({FEVER: "°C"}), RedLocation.REMOTE
+        )
+        assert evaluation.result.level is TriageLevel.RED
+        (fire,) = evaluation.result.rules
+        units = {part.slot: part.unit for part in fire.evidence_slots}
+        assert units[FEVER] == "°C"
+        assert units[ANCHOR] is None
+
+    def test_near_miss_a_one_character_unit_is_the_shortest_accepted(self) -> None:
+        evaluation = evaluate_triage((FEVER_RULE,), self._context({FEVER: "c"}), RedLocation.REMOTE)
+        assert evaluation.result.level is TriageLevel.RED
+
+    def test_an_absent_unit_still_returns_red(self) -> None:
+        evaluation = evaluate_triage((FEVER_RULE,), self._context({}), RedLocation.REMOTE)
+        assert evaluation.result.level is TriageLevel.RED
+
+    def test_the_bound_is_the_type_of_the_field_and_not_a_check_at_evaluation(self) -> None:
+        """The acceptance names the type: the schema a reader of the model sees
+        carries the bound, so it cannot drift back into the engine."""
+        schema = TriageContext.model_json_schema()
+        assert schema["properties"]["units"]["additionalProperties"]["minLength"] == 1

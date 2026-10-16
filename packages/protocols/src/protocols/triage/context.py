@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Annotated
 
 from clinical_schemas.common import FrozenModel, JsonValue
 from clinical_schemas.session import AnswerState
@@ -103,13 +104,16 @@ class TriageContext(FrozenModel):
         description="Answers keyed by the dotted slot reference exactly as the "
         "rule's when predicate spells it (files/03 §6 atoms).",
     )
-    units: dict[str, str] = Field(
+    units: dict[str, Annotated[str, Field(min_length=1)]] = Field(
         default_factory=dict,
         description="The declared unit of each quantity slot (files/03 §6 ``unit:``), "
         "keyed like ``answers``. Evidence only: it travels with the value into "
         "``RuleFire.evidence_slots`` so a reader sees number and unit as one atom "
         "(CLAUDE.md invariant 22; INT-404). No predicate reads it, because a rule "
-        "compares the bare magnitude.",
+        "compares the bare magnitude. Each unit is non-empty, the same bound as "
+        "``EvidenceSlot.unit``, so a malformed map is refused when the context is "
+        "built and never inside a RED evaluation (INT-416). A slot with no unit "
+        "is absent from the map.",
     )
 
     def candidate_values(self, ref: str) -> tuple[JsonValue, ...] | None:
