@@ -203,7 +203,9 @@ def test_ids_unique_and_well_formed() -> None:
     # RED fires from the conversation; from INT-518, GitHub #887).
     # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
     # CD-05, so the K2 tense anchor is known live; from INT-518, GitHub #888).
-    assert len(ids) == 359
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host; owner order, GitHub #906).
+    assert len(ids) == 360
     import re
 
     for i in ids:

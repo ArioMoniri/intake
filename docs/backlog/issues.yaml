@@ -7054,3 +7054,27 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; protocols coverage >= 95 %, voice-runtime >= 90 %; goldens updated with a near-miss negative control."
   tests: [tests/protocols/test_anchor_choices.py, tests/voice/test_onset_anchor.py, tests/safety/test_triage_goldens.py]
   sec_row: "clinical-core"
+- id: INT-538
+  epic: E13-infra
+  phase: P1
+  title: "One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required"
+  # GitHub #906. Owner order, 16 Oct 2026, after the staging deploy (main
+  # f7f6b6ee): the realm `intake` has no users, and agents never create
+  # accounts. The owner runs scripts/ops/staff_user.sh from the laptop, first
+  # for themselves (platform_owner), then for the second approver (qms_owner).
+  # It replaces the manual steps of docs/runbooks/second-admin.md (INT-460),
+  # which stay as the fallback. No org value is defined anywhere, so the
+  # owner types it once, as a slug, on the very first run; every later user
+  # joins the platform_owner's org.
+  depends_on: [INT-460]
+  labels: [area:infra]
+  status: done
+  evidence: docs/evidence/INT-538.md
+  acceptance:
+    - "scripts/ops/staff_user.sh prompts for username, email and role; only platform_owner or qms_owner is accepted; each answer is validated and an empty one refused before any call; near misses (role typo, bad email, empty or unsafe username) send nothing"
+    - "a read-only probe over the same SSM path asks the host whether a platform_owner exists; if none does, the user must be the platform_owner and the script prompts once for the organisation id, a slug (a-z, 0-9, '-', 2-40 characters), with near misses refused before anything is made; if one exists it never prompts, the new user inherits their org, and the host refuses an org argument that differs"
+    - "the temporary password goes from openssl straight into the SSM SecureString /intake/staging/staff_tmp/<username> through a 0600 request file, never in an argv, output or history, and a waiting one is never overwritten; each send-command carries infra/staging/staff_user_host.sh base64-wrapped plus plain values and no secret"
+    - "on the host: an instance role that may not read /intake/staging/staff_tmp/* is refused in one line naming the IAM statement to add; KEYCLOAK_ADMIN_PASSWORD is read from /etc/intake-staging/.env and reaches kcadm on stdin; kcadm logs in with a throwaway --config that is deleted on every outcome; an existing username or email is refused; the user is enabled, emailVerified, with requiredActions webauthn-register and UPDATE_PASSWORD, the role, and the temporary password read from SSM on the host (temporary=true); a failed step rolls the user back"
+    - "the laptop prints only created (or the refusal reason) and the one aws command that reveals the temporary password once and deletes the parameter; docs/runbooks/second-admin.md points to the command and keeps the manual steps as fallback; tests drive both scripts end to end with fake aws, docker and openssl"
+  tests: [tests/infra/test_staff_user.py, tests/infra/test_staff_user_host.py, tests/admin/test_second_admin_runbook.py]
+  sec_row: "platform"
