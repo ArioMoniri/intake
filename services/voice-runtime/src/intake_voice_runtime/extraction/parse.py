@@ -35,6 +35,13 @@ Two levels of strictness, and the split is deliberate:
 Numbers are read with ``parse_float=Decimal`` so a decimal literal never
 touches binary floating point on the way in (files/13 §9.5).
 
+**Every declared slot gets exactly one reading** (INT-540):
+:meth:`~intake_voice_runtime.extraction.result.ExtractionResult.outcome_of`
+says ``CLARIFY``, ``BOUND``, ``REFUSED`` or ``SILENT``. That is the runtime
+half of the contract the instructions define for ``clarification_needed``; a
+slot left ``SILENT`` is one the model neither recorded nor asked about, which
+the runtime does not read as an answer.
+
 **No message here names a value.** Keys, refs and counts only (invariant 6).
 """
 
@@ -192,6 +199,7 @@ def parse_extraction(
         candidate_flags=candidate_flags,
         clarification_needed=clarification_needed,
         flags=tuple(flags),
+        declared=frozenset(slots),
     )
 
 

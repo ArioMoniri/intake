@@ -63,6 +63,18 @@ before the engine sees it, and records the choice beside the day once it has
 bound. A session whose closed-choice date has no decided day for every choice
 is refused when composed (:class:`~intake_voice_runtime.extraction.errors.AnchorChoicesUnresolved`).
 
+**An asked anchor answered unfit is UNCLEAR at once** (INT-540). For a Work
+answering a tense anchor that is asked and unanswered — its question or its
+follow-up — a CD-04 hedge (read from the decision, beating any choice the model
+guessed) or an answer that bound no authored choice is UNCLEAR whatever
+``clarification_needed`` said: the anchor's choice, if any, is withheld, the
+rest of the extraction binds as reported, and the anchor gets the
+clarification the model did not ask for. The engine holds CD-04's bound for
+the anchor, so that is its ``follow_up_tr`` the first time and UNCLEAR — which
+CD-05 resolves to the reference day, and which the queue then evaluates — once
+the bound is spent. A no-slot-no-flag completion can no longer leave the
+anchor silently pending (the INT-522 clinical review's F1).
+
 **A refusal is an outcome, not a crash.** A parser refusal (the model answered
 off-schema, or obeyed a planted instruction) leaves the slots unbound and the
 question unanswered — the state files/13 §11.1 already knows how to act on. A
@@ -79,14 +91,17 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
+from clinical_schemas.session import AnswerState
 from protocols.dsl import Slot
 
 from intake_voice_runtime.adapters.pins import ModelPin
 from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
+from intake_voice_runtime.clinical_agent.fsm import EngineError
 from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect
 from intake_voice_runtime.extraction.boundary import PatientData
 from intake_voice_runtime.extraction.errors import AnchorChoicesUnresolved, CodeSlotUnbound
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
+from intake_voice_runtime.extraction.result import ExtractionResult, SlotOutcome
 from intake_voice_runtime.extraction.schema import closed_choice_dates, unbound_code_slots
 from intake_voice_runtime.extraction.work import ExtractionContext, ExtractionOutcome
 from intake_voice_runtime.extraction.work import run_extraction as _run_extraction
@@ -201,11 +216,57 @@ class ExtractSlotsHandler:
             now_ms=self.clock.now_ms,
         )
         self.outcomes.append(outcome)
+        unclear = self._unclear_anchor(context, outcome.result, data.text)
+        clarified = False
         if outcome.result is not None:
-            self._apply(context, outcome.result.as_engine_call())
+            call = outcome.result.as_engine_call()
+            if unclear is not None:
+                call["slot_updates"] = {
+                    ref: value for ref, value in call["slot_updates"].items() if ref != unclear
+                }
+            clarified = bool(call["clarification_needed"])
+            self._apply(context, call)
+        if unclear is not None and not clarified:
+            self._clarify(context, unclear)
         if self.verifier is not None:
             self.verifier.request_verification(request, data)
         return StateEffect()
+
+    def _unclear_anchor(
+        self, context: StateContext, result: ExtractionResult | None, text: str
+    ) -> str | None:
+        """The asked tense anchor this Work answered unfit, or ``None`` (INT-540).
+
+        Only a Work answering an anchor that is asked and unanswered — its own
+        question or its follow-up. A CD-04 hedge is UNCLEAR even under a
+        choice the model guessed; with none, any answer that bound no
+        authored choice is (a narrative, a refused value or document, a
+        completion with no slot and no flag).
+        """
+        anchors, engine = self.anchors, context.engine
+        if anchors is None:
+            return None
+        try:
+            origin = engine.origin_of(context.request.step_id)
+        except EngineError:
+            return None
+        if origin not in anchors.refs or engine.state_of(origin) is not AnswerState.ASKED_PENDING:
+            return None
+        chose = result is not None and result.outcome_of(origin) is SlotOutcome.BOUND
+        return origin if anchors.unclear_cause(origin, text, chose) is not None else None
+
+    @staticmethod
+    def _clarify(context: StateContext, anchor: str) -> None:
+        """Ask the anchor's follow-up — or, its bound spent, record UNCLEAR.
+
+        The engine holds CD-04's bound for the anchor; this is the
+        ``clarification_needed`` the model did not set. It answers the
+        follow-up being answered when that is still queued, else the anchor;
+        an anchor the extraction just invalidated is dropped by the engine.
+        """
+        engine = context.engine
+        step = context.request.step_id
+        engine.apply_extraction(step if step in engine.follow_ups else anchor, {}, True)
 
     def _apply(self, context: StateContext, call: dict[str, Any]) -> None:
         """Bind the extraction, each anchor's choice replaced by its CD-05 day."""

@@ -7124,3 +7124,51 @@
     - "the mobile client plays it gaplessly over a DPoP-authenticated fetch (INT-440's branch), and voice-e2e confirms the lane"
   tests: [tests/api/test_hosted_clip_lane.py, tests/api/test_george_prebake.py, tests/platform/test_elevenlabs_hosted_tts.py, tests/infra/test_staging_hosted_tts.py, tests/api/test_dev_voice_hardening.py, apps/mobile/src/lib/dialogue/scriptedCatalogue.test.ts]
   sec_row: "cloud-clipgen"
+- id: INT-540
+  epic: E05-voice
+  phase: P0
+  title: "The onset anchor always resolves, so K2 cannot stay silent"
+  # GitHub #913, from the INT-522 (#888) clinical review, 16 Oct 2026, findings
+  # F1 and F2. The extraction instructions never said when to set
+  # clarification_needed, so for "bilmiyorum" or a narrative the model could
+  # return no slot and no flag and chest_pain.onset_at stayed ASKED_PENDING
+  # for the whole session; the same if the session was abandoned
+  # mid-clarification. CD-04 (active, verified) makes a hedge UNCLEAR at once
+  # with one follow_up_tr; the build waited for the engine's generic two.
+  # Stacked on INT-522 (#915).
+  depends_on: [INT-522]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-540.md
+  acceptance:
+    - "Build CD-04's answer states exactly as decided (no re-decision; anything CD-04 leaves open stays the invariant-17 literal under draft_needs_source and goes to the D18 lane); its hedge list is read from the decision, not hard-coded."
+    - "The extraction contract defines clarification_needed (instructions and parse); a model output with no slot and no flag for an asked tense anchor is treated per CD-04, never left silently pending."
+    - "A pending tense anchor cannot outlive the session: on abandonment, session end or spent follow-ups it resolves per CD-05/CD-04 and triage is evaluated by the rules engine only (invariant 1); a RED takes the existing path."
+    - "The tense anchor's follow-up bound is CD-04's once-only follow-up, one number read from the decision, until the D18 amendment on INT-519 item 5 lands."
+    - "Tests on both profiles: bilmiyorum, emin değilim, an off-choice narrative, a no-slot-no-flag output, abandonment mid-clarification and session end each end with the anchor resolved and K2 evaluated; near misses; fake clock."
+    - "make safety and runtime-sim (both profiles, PARITY=1) green; goldens updated with a near-miss negative control; coverage floors held."
+  tests: [tests/voice/test_anchor_unclear.py, tests/protocols/test_answer_states.py, tests/engine/test_clarification_bounds.py, tests/ai/test_clarification_contract.py, tests/safety/test_triage_goldens.py]
+  sec_row: "clinical-core"
+- id: INT-531
+  epic: E05-voice
+  phase: P0
+  title: "A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn"
+  # GitHub #898, INT-521 residual 1, 16 Oct 2026. The Talker drained Layer B
+  # only when it took a turn, so a RED evaluated between turns waited for the
+  # next one and, when that was late, was delivered and then raised a budget
+  # violation measured from the evaluation. Layer B now posts each settled RED
+  # to the session's mailbox (one non-awaitable member) and the Talker's own
+  # between-turn watch hands it to the RED path at once; the path waits for
+  # the agent's audio to stop only until the stop budget runs out (INT-520
+  # item 1, also named in INT-534). Stacked on INT-521 (#910).
+  depends_on: [INT-521]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-531.md
+  acceptance:
+    - "A rules-engine RED result reaches the RED path (pre-positioned script triggered over the data channel) within the 300 ms budget measured from evaluation, whether or not a turn is in progress, including while the patient is speaking and while TTS plays (barge-in semantics for RED only)."
+    - "Only a rules-engine RED can take this path (invariant 9: priority preempt); the Talker still never awaits Backend Work and keeps six tools."
+    - "Fake-clock tests: RED evaluated mid-silence, mid-patient-speech, mid-TTS; delivered once; budget held; near miss (YELLOW, GREEN) never takes the path."
+    - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
+  tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
+  sec_row: "voice-runtime"
