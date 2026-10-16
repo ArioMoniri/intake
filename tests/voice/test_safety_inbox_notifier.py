@@ -137,7 +137,9 @@ class TestLayerBTellsTheClinicAtTheDetermination:
         before = REGISTRY.get_sample_value("clinic_red_inbox_route_failures_total") or 0.0
         with caplog.at_level(logging.ERROR):
             assert _run(agent) is WorkState.COMPLETED
-        assert agent.sealed
+        # INT-521: a DEFERRED_CLINICIAN RED leaves the intake running, so it
+        # settles without sealing; a RED that stops the intake still seals.
+        assert agent.sealed is False
         assert len(agent.drain_results()) == 1
         assert "sentetik arıza" not in caplog.text
         assert "red clinic route failed" in caplog.text

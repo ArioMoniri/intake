@@ -40,8 +40,10 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from collections.abc import Mapping, Sequence
+import logging
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 import pytest
 import test_extraction_valuesets as int518
@@ -56,7 +58,11 @@ from clinical_schemas.triage import (
 )
 from intake_voice_runtime.clinical_agent import live_triage
 from intake_voice_runtime.clinical_agent.live_triage import SessionTriage, served_rules
-from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect
+from intake_voice_runtime.clinical_agent.work_queue import (
+    BackendAgent,
+    StateContext,
+    StateEffect,
+)
 from intake_voice_runtime.composition import (
     RedWiring,
     RedWiringMissing,
@@ -66,7 +72,13 @@ from intake_voice_runtime.composition import (
     protocol_slots,
 )
 from intake_voice_runtime.extraction.gateway import Completion, ExtractionCall
-from intake_voice_runtime.ports import WorkState, WorkType
+from intake_voice_runtime.ports import (
+    QueueSealed,
+    WorkRequest,
+    WorkState,
+    WorkTicket,
+    WorkType,
+)
 from intake_voice_runtime.profiles import VoiceProfile
 from intake_voice_runtime.talker.delivery import DeliveryClass
 from intake_voice_runtime.talker.preemption import BackendResult, Presentation, Priority
@@ -81,6 +93,7 @@ from intake_voice_runtime.talker.red_path import (
 from intake_voice_runtime.talker.registry import assert_six_tool_surface
 from intake_voice_runtime.talker.session import TalkerSession, TurnHold
 from intake_voice_runtime.talker.tools import build_talker_tools
+from prometheus_client import REGISTRY
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.dsl import LocationAction, RedFlagRule, UnknownAction
 from protocols.triage import DraftRuleError, SlotAnswer, TriageContext, evaluate_triage
@@ -245,14 +258,76 @@ def _drive(rig: Rig, steps: Sequence[str] = STEPS) -> dict[str, str]:
     for step_id in steps:
         rig.stack.session.ask_ledger.note_asked(step_id)
         work_ids[step_id] = rig.stack.session.submit_utterance(
-            step_id, transcripts[step_id]
+            step_id, transcripts.get(step_id, f"Sentetik yanıt, {step_id}.")
         ).work_id
         rig.stack.agent.run_pending()
     return work_ids
 
 
-def _turn(rig: Rig) -> object:
-    return rig.clock.run(rig.stack.session.take_turn(None))
+#: What the patient says next, in every turn after a question: synthetic
+#: (files/04 §7). The recorded model answers by the declared slot, not by this.
+NEXT_ANSWER = "Sentetik bir yanıt daha."
+
+
+def _turn(rig: Rig, transcript: str | None = NEXT_ANSWER) -> object:
+    """One Talker turn. It carries the patient's next answer by default: the
+    turn that delivers a RED is the one the patient speaks in (INT-521 round 2:
+    a RED that sealed the queue must not be stranded behind that answer)."""
+    return rig.clock.run(rig.stack.session.take_turn(transcript))
+
+
+#: What the patient says to each chest-pain question (INT-518's synthetic lines).
+SAID = dict(int518.TRANSCRIPTS)
+
+
+class _Spoken(int518.AnswerTable):
+    """The model answers from what the patient said, and only that.
+
+    In the canonical loop a Work declares its own step and every step still
+    awaiting, so a table keyed by slot would answer a question before the
+    patient heard it. Keyed by the transcript, each line answers its own
+    question: the onset binds in the turn the patient answers the onset.
+    """
+
+    def __init__(self, by_line: Mapping[str, Mapping[str, JsonValue]]) -> None:
+        super().__init__({})
+        self.by_line = {line: dict(values) for line, values in by_line.items()}
+
+    def complete(self, call: ExtractionCall) -> Completion:
+        self.calls.append(call)
+        declared = call.json_schema["properties"]["slots"]["properties"]
+        said = self.by_line.get(call.data.text, {})
+        values = {ref: said[ref] for ref in declared if ref in said}
+        return Completion(text=int518._completion(values), input_tokens=11, output_tokens=13)
+
+
+def _spoken_rig(
+    profile: VoiceProfile,
+    character: str,
+    radiation: str,
+    *,
+    location: RedLocation = RedLocation.REMOTE,
+) -> Rig:
+    answers = int518._model_answers(character, radiation)
+    model = _Spoken({SAID[step]: {step: answers[step]} for step in STEPS})
+    return _rig(profile, answers, location=location, gateway=model)
+
+
+def _converse_until_asked(rig: Rig, step_id: str, *, limit: int = 80) -> list[str | None]:
+    """The canonical loop, ``session_harness.turn``'s shape: ``take_turn(transcript)``
+    then Layer B's pump, until the Talker has spoken ``step_id``. Every turn after
+    the first carries the patient's answer to the question asked in the turn
+    before it. Returns the step each turn asked."""
+    asked: list[str | None] = []
+    transcript: str | None = None
+    for _ in range(limit):
+        outcome = rig.clock.run(rig.stack.session.take_turn(transcript))
+        rig.stack.agent.run_pending()
+        asked.append(outcome.step_id)
+        transcript = SAID.get(outcome.step_id or "", NEXT_ANSWER)
+        if outcome.step_id == step_id:
+            return asked
+    raise AssertionError(f"{step_id} was never asked")
 
 
 # --- 1 · every Work that binds a read slot is evaluated, by the rules engine only -----
@@ -581,52 +656,181 @@ def test_near_miss_the_cardiac_answer_without_its_onset_does_not_fire(
     assert rig.stack.session.red_stopped is False
 
 
-# --- 3 · the Talker never awaits the evaluation, and keeps six tools --------------------
+# --- 3 · the canonical loop: the RED is delivered in the turn the patient speaks --------
 
 
-def _stalled_turns(profile: VoiceProfile, stall_s: float) -> tuple[Rig, object, list[str], object]:
-    """The onset answer is submitted through the Talker's tool; Layer B is
-    stalled ``stall_s`` of virtual time before it runs the Work. One turn runs
-    meanwhile, then the next turn after the stall."""
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+@pytest.mark.parametrize("location", list(RedLocation))
+@pytest.mark.parametrize(
+    ("character", "radiation"),
+    [
+        pytest.param("baskı", "yok", id="character-alone"),
+        pytest.param("başka bir his", "kol", id="radiation-alone"),
+    ],
+)
+def test_the_canonical_loop_delivers_the_red_and_asks_nothing_after_it(
+    profile: VoiceProfile, location: RedLocation, character: str, radiation: str
+) -> None:
+    """``take_turn(transcript)`` then the pump, every turn, as the worker runs it.
+
+    The Talker itself asks every question up to the onset, the patient answers
+    each in the next turn, and Layer B evaluates behind. The RED settles and
+    seals the queue after the onset answer; the next turn — in which the
+    patient is speaking again — delivers it before it submits that answer,
+    asks nothing, and every later turn stays stopped. Before INT-521 round 2
+    that turn raised ``QueueSealed`` and the RED stayed in the queue.
+    """
+    rig = _spoken_rig(profile, character, radiation, location=location)
+    asked = _converse_until_asked(rig, ONSET)
+    assert [step for step in asked if step in READ_STEPS] == list(READ_STEPS)
+    session, agent = rig.stack.session, rig.stack.agent
+
+    answering = rig.clock.run(session.take_turn(SAID[ONSET]))  # the onset answer
+    agent.run_pending()  # Layer B: the onset Work binds, the engine says RED, the queue seals
+    assert answering.work_id is not None
+    assert agent.record(answering.work_id).state is WorkState.COMPLETED
+    assert agent.sealed is True
+    assert rig.channel.published == []
+    played = len(rig.sink.played) if rig.sink is not None else 0
+    rendered = len(rig.screen.rendered)
+
+    delivering = _turn(rig)  # the patient speaks again; nothing is submitted
+    assert delivering.held is TurnHold.INTAKE_STOPPED  # type: ignore[attr-defined]
+    assert (delivering.step_id, delivering.spoken_text) == (None, "")  # type: ignore[attr-defined]
+    assert delivering.work_id is None  # type: ignore[attr-defined]
+    assert rig.channel.published == [
+        RedTriggerMessage(
+            rule_id=K2,
+            register=RedRegister.ALERT,
+            location=location,
+            script_id=f"{K2}.{location.value.lower()}",
+        )
+    ]
+    [red] = session.preempts
+    assert red.work_id == answering.work_id
+    assert session.red_stopped is True
+    # nothing asked, spoken or rendered after it; on voice the audio was cancelled
+    for _ in range(2):
+        assert _turn(rig).held is TurnHold.INTAKE_STOPPED  # type: ignore[attr-defined]
+    assert len(rig.screen.rendered) == rendered
+    if rig.sink is not None:
+        assert len(rig.sink.played) == played
+        assert rig.sink.cancels == 1
+    assert len(rig.channel.published) == 1
+    assert {n.work_id for n in rig.clinic.notifications} == {answering.work_id}
+
+
+@dataclass
+class _RacingBackend:
+    """The real queue, with Layer B finishing a Work between the Talker's drain
+    and its submit — the order a worker thread can produce. ``_settle`` puts a
+    RED in the results before ``_seal``, so the submit that follows is refused
+    with the RED already waiting."""
+
+    agent: BackendAgent
+
+    def submit(self, request: WorkRequest) -> WorkTicket:
+        return self.agent.submit(request)
+
+    def cancel(self, work_id: str, reason: str) -> WorkTicket:
+        return self.agent.cancel(work_id, reason)
+
+    def note_asked(self, step_id: str) -> None:
+        self.agent.note_asked(step_id)
+
+    def drain_results(self) -> tuple[object, ...]:
+        drained = self.agent.drain_results()
+        self.agent.run_pending()
+        return drained
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_a_red_that_seals_between_the_drain_and_the_submit_is_still_delivered(
+    profile: VoiceProfile,
+) -> None:
     rig = _rig(profile, int518._model_answers("baskı", "yok"))
     _drive(rig, STEPS[:-1])
     session, agent = rig.stack.session, rig.stack.agent
     session.ask_ledger.note_asked(ONSET)
+    session.submit_utterance(ONSET, dict(int518.TRANSCRIPTS)[ONSET])  # queued, not run
+    session.backend = _RacingBackend(agent)
+    outcome = _turn(rig)
+    assert agent.sealed is True
+    assert outcome.held is TurnHold.INTAKE_STOPPED  # type: ignore[attr-defined]
+    assert [message.rule_id for message in rig.channel.published] == [K2]
+    assert session.red_stopped is True
+
+
+def test_near_miss_a_seal_with_no_red_behind_it_is_raised() -> None:
+    """The Talker catches ``QueueSealed`` only to deliver the RED that sealed
+    the queue. A seal with nothing behind it is a defect, and is raised."""
+
+    @dataclass
+    class _Sealed:
+        def submit(self, request: WorkRequest) -> WorkTicket:
+            raise QueueSealed("sealed with no RED in the results")
+
+        def cancel(self, work_id: str, reason: str) -> WorkTicket:
+            return WorkTicket(work_id=work_id, state=WorkState.CANCELLED)
+
+        def drain_results(self) -> tuple[object, ...]:
+            return ()
+
+    clock = FakeClock()
+    session = build_session(clock, steps=[scripted_step()], backend=_Sealed())
+    with pytest.raises(QueueSealed):
+        clock.run(session.take_turn(NEXT_ANSWER))
+
+
+# --- 4 · the Talker never awaits the evaluation, and keeps six tools --------------------
+
+
+def _stalled_turns(
+    profile: VoiceProfile, stall_s: float
+) -> tuple[Rig, object, list[str], object, float]:
+    """The canonical loop up to the onset question; then the turn that carries
+    the onset answer runs while Layer B is stalled ``stall_s`` of virtual time
+    before it runs that Work; then the patient's next turn."""
+    rig = _spoken_rig(profile, "baskı", "yok")
+    _converse_until_asked(rig, ONSET)
+    session, agent = rig.stack.session, rig.stack.agent
+    started_at = rig.clock.now_ms()
 
     async def layer_b() -> None:
         await rig.clock.sleep(stall_s)
         agent.run_pending()
 
     async def scenario() -> tuple[object, list[str], object]:
-        session.submit_utterance(ONSET, dict(int518.TRANSCRIPTS)[ONSET])
         backend = asyncio.ensure_future(layer_b())
-        during = await session.take_turn(None)
+        during = await session.take_turn(SAID[ONSET])  # the onset answer
         evaluated_during = list(rig.triage.evaluated)
         await backend
-        after = await session.take_turn(None)
+        after = await session.take_turn(NEXT_ANSWER)  # the patient speaks again
         return during, evaluated_during, after
 
     during, evaluated_during, after = rig.clock.run(scenario())
-    return rig, during, evaluated_during, after
+    return rig, during, evaluated_during, after, started_at
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))
 def test_the_talker_never_awaits_the_evaluation(profile: VoiceProfile) -> None:
     """With Layer B stalled thirty virtual seconds before it evaluates, the
-    turn costs exactly what it costs with Layer B instant; the evaluation has
-    not run when the turn returns; the next turn delivers the RED."""
-    fast, fast_turn, _, _ = _stalled_turns(profile, 0.0)
-    slow, slow_turn, evaluated_during, slow_after = _stalled_turns(profile, 30.0)
+    turn that carries the answer costs exactly what it costs with Layer B
+    instant; the evaluation has not run when it returns; the patient's next
+    turn delivers the RED."""
+    fast, fast_turn, _, _, fast_start = _stalled_turns(profile, 0.0)
+    slow, slow_turn, evaluated_during, slow_after, slow_start = _stalled_turns(profile, 30.0)
     assert slow_turn.elapsed_ms == fast_turn.elapsed_ms  # type: ignore[attr-defined]
     assert slow_turn.held is None  # type: ignore[attr-defined]
+    assert slow_turn.work_id is not None  # type: ignore[attr-defined]
     assert len(evaluated_during) == len(READ_STEPS) - 1
     assert len(slow.triage.evaluated) == len(READ_STEPS)
     assert slow_after.held is TurnHold.INTAKE_STOPPED  # type: ignore[attr-defined]
     assert [message.rule_id for message in slow.channel.published] == [K2]
     # the budget is measured from the evaluation, after the stall
     [red] = slow.stack.session.preempts
-    assert red.evaluated_at_ms == 30_000.0
-    assert fast.stack.session.preempts[0].evaluated_at_ms == 0.0
+    assert red.evaluated_at_ms == slow_start + 30_000.0
+    assert fast.stack.session.preempts[0].evaluated_at_ms == fast_start
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))
@@ -636,18 +840,23 @@ def test_a_red_drained_late_is_delivered_and_its_budget_breach_is_loud(
     """The budgets run from the evaluation, not from the drain (files/02 §8.2).
 
     The Talker drains Layer B only when it takes a turn. Two virtual seconds
-    pass between the evaluation and the next turn here: the RED is still
-    delivered and the intake still stops, and the path then raises with both
-    budgets breached, because the two seconds are on the RED's clock. A
-    Talker that stamped the RED on arrival would report it inside budget.
+    pass between the evaluation and the patient's next turn here: the RED is
+    still delivered in that turn and the intake still stops, and the path then
+    raises with both budgets breached, because the two seconds are on the RED's
+    clock. A Talker that stamped the RED on arrival would report it in budget.
     """
-    rig = _rig(profile, int518._model_answers("baskı", "yok"))
-    _drive(rig)
+    rig = _spoken_rig(profile, "baskı", "yok")
+    _converse_until_asked(rig, ONSET)
+    rig.clock.run(rig.stack.session.take_turn(SAID[ONSET]))  # the onset answer
+    rig.stack.agent.run_pending()
+    evaluated_at = rig.clock.now_ms()
     rig.clock.run(rig.clock.sleep(2.0))
     with pytest.raises(RedPathViolation) as breach:
         _turn(rig)
     outcome = breach.value.outcome
-    assert outcome.evaluated_at_ms == 0.0
+    [red] = rig.stack.session.preempts
+    assert outcome.evaluated_at_ms == red.evaluated_at_ms == evaluated_at
+    assert outcome.e2e_ms is not None and outcome.e2e_ms >= 2_000.0
     assert set(breach.value.violations) == {RedViolation.STOP_BUDGET, RedViolation.E2E_BUDGET}
     assert [message.rule_id for message in rig.channel.published] == [K2]
     assert rig.stack.session.red_stopped is True
@@ -748,25 +957,200 @@ def test_a_draft_rule_cannot_be_pinned_into_a_session(profile: VoiceProfile) -> 
 # --- the queue and the Talker, unit level ---------------------------------------------------
 
 
-@pytest.mark.parametrize("profile", list(VoiceProfile))
-def test_a_determination_a_handler_returns_is_never_overwritten(profile: VoiceProfile) -> None:
-    """The evaluator fills an absent determination; it never replaces one."""
-    rig = _rig(profile, int518._model_answers("başka bir his", "yok"))
-    handed = RulesTriageResult(
-        level=TriageLevel.YELLOW, rules=(RuleFire(id=SARI, evidence="sentetik"),)
-    )
+def _failures(kind: str) -> float:
+    value = REGISTRY.get_sample_value("triage_live_evaluation_failures_total", {"kind": kind})
+    return value or 0.0
+
+
+def _handing(rig: Rig, handed: Callable[[StateContext], RulesTriageResult | None]) -> None:
+    """Wrap the production handler so it also returns a determination of its own."""
     inner = rig.stack.agent.state_handlers[WorkType.EXTRACT_SLOTS]
 
     def handler(context: StateContext) -> StateEffect:
         inner(context)
-        return StateEffect(triage_update=handed)
+        return StateEffect(triage_update=handed(context))
 
     rig.stack.agent.register_state(WorkType.EXTRACT_SLOTS, handler)
+
+
+GREEN = RulesTriageResult(level=TriageLevel.GREEN)
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_a_handlers_green_cannot_mask_the_engines_red(
+    profile: VoiceProfile, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A handler that says GREEN on the onset Work is checked against the rules
+    engine; the engine's RED stands, is delivered, and the disagreement pages."""
+    rig = _rig(profile, int518._model_answers("baskı", "yok"))
+    _handing(rig, lambda _: GREEN)
+    before = _failures("conflict")
+    with caplog.at_level(logging.ERROR, logger="intake_voice_runtime.clinical_agent.work_queue"):
+        work_ids = _drive(rig)
+    assert _failures("conflict") - before == 1  # the four GREENs agreed; the onset did not
+    [conflict] = [r for r in caplog.records if r.getMessage() == "triage determination conflict"]
+    assert (conflict.session_id, conflict.work_id) == (int518.SESSION, work_ids[ONSET])  # type: ignore[attr-defined]
+    assert rig.stack.agent.sealed is True
+    _turn(rig)
+    [red] = rig.stack.session.preempts
+    assert red.work_id == work_ids[ONSET]
+    assert [message.rule_id for message in rig.channel.published] == [K2]
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_a_handlers_determination_that_disagrees_is_refused_for_the_engines(
+    profile: VoiceProfile,
+) -> None:
+    """A handler's YELLOW where the engine says GREEN: the engine's stands,
+    even on a Work that bound nothing a rule reads."""
+    rig = _rig(profile, int518._model_answers("başka bir his", "yok"))
+    handed = RulesTriageResult(
+        level=TriageLevel.YELLOW, rules=(RuleFire(id=SARI, evidence="sentetik"),)
+    )
+    _handing(rig, lambda _: handed)
+    before = _failures("conflict")
     _drive(rig, (SUBJECT, PRESENT))
-    [_, present] = rig.stack.agent.drain_results()
-    assert isinstance(present, BackendResult)
-    assert present.presentation.triage_update == handed
-    assert rig.triage.evaluated == []
+    results = [r for r in rig.stack.agent.drain_results() if isinstance(r, BackendResult)]
+    assert [r.presentation.triage_update for r in results] == [GREEN, GREEN]
+    assert _failures("conflict") - before == 2
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_near_miss_a_handlers_determination_that_agrees_raises_nothing(
+    profile: VoiceProfile,
+) -> None:
+    rig = _rig(profile, int518._model_answers("baskı", "yok"))
+    _handing(
+        rig,
+        lambda context: (
+            rig.triage.context(context.engine)
+            and _independent_evaluation(rig.stack, RedLocation.REMOTE).result
+        ),
+    )
+    before = _failures("conflict")
+    _drive(rig)
+    assert _failures("conflict") == before
+    assert rig.stack.agent.sealed is True
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_an_evaluation_fault_fails_the_work_pages_and_is_owed(
+    profile: VoiceProfile, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The engine raises on the onset Work: that Work fails, the fault pages
+    with ids only, and the next state Work evaluates although it binds no slot
+    a rule reads — so the RED fires there instead of being lost."""
+    rig = _rig(profile, int518._model_answers("baskı", "yok"))
+    real = live_triage.evaluate_triage
+    calls = {"n": 0}
+
+    def flaky(*args: Any, **kwargs: Any) -> TriageEvaluation:
+        calls["n"] += 1
+        if calls["n"] == len(READ_STEPS):  # the onset Work's evaluation
+            raise ArithmeticError("synthetic evaluation fault")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(live_triage, "evaluate_triage", flaky)
+    before = _failures("fault")
+    with caplog.at_level(logging.ERROR, logger="intake_voice_runtime.clinical_agent.work_queue"):
+        work_ids = _drive(rig)
+    agent = rig.stack.agent
+    assert agent.record(work_ids[ONSET]).state is WorkState.FAILED
+    assert agent.record(work_ids[ONSET]).error == "ArithmeticError"
+    assert rig.stack.engine.state_of(ONSET) is AnswerState.ASKED_PRESENT  # bound, unevaluated
+    assert _failures("fault") - before == 1
+    [fault] = [r for r in caplog.records if r.getMessage() == "triage evaluation failed"]
+    assert {key: getattr(fault, key) for key in ("session_id", "work_id", "error")} == {
+        "session_id": int518.SESSION,
+        "work_id": work_ids[ONSET],
+        "error": "ArithmeticError",
+    }
+    assert agent.sealed is False
+    # the next Work binds nothing a rule reads, and still evaluates: the RED fires
+    retry = _drive(rig, ("identity_check.consent_recap_confirmed",))
+    assert rig.stack.engine.state_of("identity_check.consent_recap_confirmed") is (
+        AnswerState.ASKED_PENDING
+    )
+    assert agent.sealed is True
+    _turn(rig)
+    [red] = rig.stack.session.preempts
+    assert red.work_id == retry["identity_check.consent_recap_confirmed"]
+    assert [message.rule_id for message in rig.channel.published] == [K2]
+
+
+def test_a_fault_preparing_the_evaluation_fails_closed_too(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The read-slot snapshot taken before the handler raises: the Work fails
+    loudly and the handler does not run, rather than the pump crashing."""
+    rig = _rig(VoiceProfile.TYPED, int518._model_answers("baskı", "yok"))
+
+    def broken(self: SessionTriage, engine: object) -> object:
+        raise LookupError("synthetic snapshot fault")
+
+    monkeypatch.setattr(SessionTriage, "bound", broken)
+    before = _failures("fault")
+    work_ids = _drive(rig, (SUBJECT,))
+    assert rig.stack.agent.record(work_ids[SUBJECT]).state is WorkState.FAILED
+    assert rig.stack.engine.state_of(SUBJECT) is AnswerState.ASKED_PENDING  # handler never ran
+    assert _failures("fault") - before == 1
+
+
+def _deferred_rule() -> RedFlagRule:
+    """A synthetic copy of K2 at DEFERRED_CLINICIAN: same gate, same anchor."""
+    k2 = next(rule for rule in _served_rules() if rule.id == K2)
+    return k2.model_copy(
+        update={"id": "rf.sentetik_deferred", "register": RedRegister.DEFERRED_CLINICIAN}
+    )
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_a_deferred_clinician_red_leaves_the_queue_open_and_is_raised_once(
+    profile: VoiceProfile,
+) -> None:
+    """The real queue: a DEFERRED_CLINICIAN RED tells the clinic, changes
+    nothing on the patient's surface and does not seal, so the intake's later
+    answers are still taken. A re-evaluation that finds the same RED does not
+    raise it again (files/02 §5.3; files/03 §15b)."""
+    answers = {**int518._model_answers("baskı", "yok"), "associated.diaphoresis": False}
+    rig = _rig(profile, answers, protocol=_served_protocol((_deferred_rule(),)))
+    work_ids = _drive(rig)
+    agent, session = rig.stack.agent, rig.stack.session
+    assert agent.sealed is False
+    assert [(n.work_id, n.register) for n in rig.clinic.notifications] == [
+        (work_ids[ONSET], RedRegister.DEFERRED_CLINICIAN)
+    ]
+
+    outcome = _turn(rig)  # delivered: no trigger, the intake runs on, the answer is taken
+    assert rig.channel.published == []
+    assert session.red_stopped is False
+    assert outcome.held is None  # type: ignore[attr-defined]
+    assert outcome.work_id is not None  # type: ignore[attr-defined]
+    assert outcome.step_id is not None  # type: ignore[attr-defined]
+    [red] = session.preempts
+    assert red.work_id == work_ids[ONSET]
+
+    # a later answer a rule reads binds and is evaluated; the same RED is not raised twice
+    evaluations = len(rig.triage.evaluated)
+    later = _drive(rig, ("associated.diaphoresis",))
+    while agent.run_pending():  # the turn's own submission ran first; finish the queue
+        continue
+    assert agent.record(later["associated.diaphoresis"]).state is WorkState.COMPLETED
+    assert rig.stack.engine.state_of("associated.diaphoresis") is AnswerState.ASKED_ABSENT
+    assert len(rig.triage.evaluated) == evaluations + 1
+    assert agent.sealed is False
+    _turn(rig)
+    assert len(session.preempts) == 1
+    assert {n.work_id for n in rig.clinic.notifications} == {work_ids[ONSET]}
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_near_miss_a_red_that_stops_the_intake_seals_the_queue(profile: VoiceProfile) -> None:
+    rig = _rig(profile, int518._model_answers("baskı", "yok"))
+    _drive(rig)
+    assert rig.stack.agent.sealed is True
+    with pytest.raises(QueueSealed):
+        rig.stack.session.submit_utterance(SUBJECT, NEXT_ANSWER)
 
 
 def test_a_non_red_result_carries_no_evaluation_stamp() -> None:

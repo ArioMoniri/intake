@@ -60,3 +60,18 @@ groups:
         Layer B handed a rules-engine RED to the clinician route and the route
         raised. The RED reached the patient path; it did not reach the clinic.
       runbook: docs/runbooks/red-acknowledgement.md#route-failed
+  # INT-521: the live session's rules-engine evaluation faulted, or a handler's
+  # own determination disagreed with it (intake_voice_runtime.clinical_agent.
+  # work_queue). The answer is bound; a RED it should have raised may be
+  # missing from the patient path and from the clinic.
+  - alert: LiveTriageEvaluationFailed
+    expr: increase(triage_live_evaluation_failures_total[5m]) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'a live session could not evaluate its red-flag rules ({{ $labels.kind }})'
+      description: >-
+        Layer B ran the rules engine after a bound answer and the evaluation
+        raised (kind="fault"), or a handler's determination disagreed with the
+        engine's (kind="conflict"). A RED may be missing from this session.
+      runbook: docs/runbooks/red-acknowledgement.md#live-triage-unevaluated
