@@ -22,6 +22,7 @@ __all__ = [
     "ADMIN_DEPLOY_FREEZE_CHANGES_TOTAL",
     "ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL",
     "ADMIN_MODEL_BENCHMARK_REQUESTED_TOTAL",
+    "ADMIN_MODEL_LANE_CHANGES_TOTAL",
     "ADMIN_OFFBOARDING_TOTAL",
     "ADMIN_PENDING_ACTION_EXPIRED_TOTAL",
     "ADMIN_VOICE_CONTROL_CHANGES_TOTAL",
@@ -115,4 +116,15 @@ ADMIN_OFFBOARDING_TOTAL = Counter(
     "admin_offboarding_total",
     "Offboardings run, by trigger and by whether every system was closed.",
     ["trigger", "complete"],
+)
+
+
+#: INT-428 (ADR-035): the Model lanes module's changes, by control
+#: (route_switch, self_hosted_engage, hosted_disable, hosted_release, key_set)
+#: and outcome (requested, applied, unchanged, refused). The alert of the five
+#: model-lane DangerousActions; who acted is on the audit chain, never a label.
+ADMIN_MODEL_LANE_CHANGES_TOTAL = Counter(
+    "admin_model_lane_changes_total",
+    "Model lanes module control changes, by control and outcome.",
+    ["control", "outcome"],
 )

@@ -137,7 +137,9 @@ class TestLayerBTellsTheClinicAtTheDetermination:
         before = REGISTRY.get_sample_value("clinic_red_inbox_route_failures_total") or 0.0
         with caplog.at_level(logging.ERROR):
             assert _run(agent) is WorkState.COMPLETED
-        assert agent.sealed
+        # INT-521: a DEFERRED_CLINICIAN RED leaves the intake running, so it
+        # settles without sealing; a RED that stops the intake still seals.
+        assert agent.sealed is False
         assert len(agent.drain_results()) == 1
         assert "sentetik arıza" not in caplog.text
         assert "red clinic route failed" in caplog.text
@@ -193,6 +195,31 @@ class TestTheAdapterIsInProcess:
         assert entry.tenant_id == TENANT
         assert entry.source_ref == "w_red"
         assert entry.created_at == T0
+
+    @pytest.mark.parametrize("register", list(RedRegister))
+    def test_an_on_site_red_also_notifies_staff_in_the_same_put(
+        self, register: RedRegister
+    ) -> None:
+        """INT-475: files/04 §8.1 rule 7 — under ON_SITE the staff notification
+        fires automatically with the RED, and every KIRMIZI rule's ON_SITE action
+        carries notify_staff_immediate (protocols.dsl), whatever its register."""
+        outbox = SafetyInboxOutbox(clock=lambda: T0)
+        _bound_notifier(outbox).notify(
+            _notification(location=RedLocation.ON_SITE, register=register)
+        )
+        red, on_site = outbox.pending()
+        assert red.kind is EntryKind.RED
+        assert on_site.kind is EntryKind.RED_ON_SITE
+        assert on_site.source_ref == red.source_ref == "w_red"
+        assert on_site.rule_ids == (PINNED_RULE,)
+        assert on_site.register is None
+        assert (on_site.session_id, on_site.visit_id) == (SESSION, SESSION)
+
+    @pytest.mark.parametrize("location", [RedLocation.REMOTE, RedLocation.UNKNOWN])
+    def test_near_miss_a_red_off_site_notifies_no_staff(self, location: RedLocation) -> None:
+        outbox = SafetyInboxOutbox(clock=lambda: T0)
+        _bound_notifier(outbox).notify(_notification(location=location))
+        assert [entry.kind for entry in outbox.pending()] == [EntryKind.RED]
 
     def test_a_mis_wired_notifier_fails_at_composition_not_at_the_red(self) -> None:
         with pytest.raises(ValueError):
@@ -269,12 +296,16 @@ def _bound_notifier(outbox: SafetyInboxOutbox) -> SafetyInboxNotifier:
     )
 
 
-def _notification() -> RedNotification:
+def _notification(
+    *,
+    location: RedLocation = RedLocation.REMOTE,
+    register: RedRegister = RedRegister.ALERT,
+) -> RedNotification:
     return RedNotification(
         work_id="w_red",
         rule_ids=(PINNED_RULE,),
-        register=RedRegister.ALERT,
-        location=RedLocation.REMOTE,
+        register=register,
+        location=location,
         evaluated_at_ms=0.0,
-        patient_facing=True,
+        patient_facing=register is not RedRegister.DEFERRED_CLINICIAN,
     )

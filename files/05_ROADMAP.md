@@ -25,12 +25,12 @@
 
 | phase | rows | done | in flight | blocked | todo | withdrawn | open PRs, no row on main | open issues, no row anywhere |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| P0 | 172 | 133 | 4 | 10 | 25 | 0 | 8 | 0 |
-| P1 | 142 | 81 | 4 | 25 | 32 | 0 | 34 | 7 |
+| P0 | 183 | 143 | 5 | 11 | 24 | 0 | 3 | 0 |
+| P1 | 150 | 86 | 4 | 27 | 33 | 0 | 30 | 5 |
 | P2 | 47 | 14 | 5 | 3 | 24 | 1 | 1 | 3 |
 | P3 | 7 | 2 | 1 | 1 | 3 | 0 | 0 | 0 |
-| — | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 0 |
-| **all** | **368** | **230** | **14** | **39** | **84** | **1** | **53** | **10** |
+| — | 0 | 0 | 0 | 0 | 0 | 0 | 9 | 0 |
+| **all** | **387** | **245** | **15** | **42** | **84** | **1** | **43** | **8** |
 
 ### Live · P0 — Foundation
 
@@ -39,21 +39,21 @@
 | E00-governance | 5 | 0 | 0 | 0 |
 | E01-platform | 23 | 0 | 1 | 0 |
 | E02-data | 12 | 1 | 1 | 0 |
-| E03-protocols | 13 | 1 | 1 | 14 |
+| E03-protocols | 17 | 1 | 1 | 13 |
 | E04-engines | 9 | 0 | 0 | 1 |
-| E05-voice | 12 | 0 | 1 | 1 |
+| E05-voice | 16 | 1 | 2 | 1 |
 | E06-lanes | 1 | 0 | 1 | 2 |
 | E07-records | 4 | 0 | 0 | 0 |
-| E08-mobile | 37 | 0 | 1 | 0 |
+| E08-mobile | 38 | 0 | 1 | 0 |
 | E09-clinician | 2 | 0 | 0 | 1 |
 | E11-learning | 2 | 0 | 0 | 0 |
 | E12-admin | 4 | 0 | 0 | 0 |
-| E13-infra | 6 | 2 | 1 | 1 |
+| E13-infra | 7 | 2 | 1 | 1 |
 | E14-legal | 2 | 0 | 3 | 4 |
 | E16-experience | 1 | 0 | 0 | 0 |
 | E17-release | 0 | 0 | 0 | 1 |
 
-Remaining, in file order (39):
+Remaining, in file order (40):
 
 | id | title | epic | state | PR · blocker · dependencies | owner |
 |---|---|---|---|---|---|
@@ -93,9 +93,10 @@ Remaining, in file order (39):
 | INT-376 | Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved | E13-infra | todo | ready | agent · sre-reviewer |
 | INT-394 | Owner decision — the database role that runs erasure and retention | E02-data | blocked | no blocker record | owner — no blocker record names it |
 | INT-416 | triage context refuses an empty unit at construction, so RED evaluation can never raise mid-rule | E04-engines | todo | ready | agent · clinical-reviewer |
-| INT-441 | base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date) | E03-protocols | todo | ready | agent · clinical-reviewer |
 | INT-454 | spoken-answer loop end to end on the hosted lanes (ASR → extract → next question), measured | E05-voice | todo | ready | agent · runtime-reviewer |
 | INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | in flight | doing; no open PR | agent · sre-reviewer |
+| INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-ba… | E05-voice | in flight | #741 `int-430-agent-council` conflicting | agent · runtime-reviewer |
+| INT-428 | Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over | E05-voice | blocked | no blocker record · PR #751 `int-428-hosted-lanes` | owner — no blocker record names it |
 
 ### Live · P1 — Fast mode, device-off
 
@@ -106,20 +107,20 @@ Remaining, in file order (39):
 | E02-data | 5 | 0 | 1 | 0 |
 | E03-protocols | 5 | 1 | 1 | 6 |
 | E04-engines | 2 | 0 | 0 | 0 |
-| E05-voice | 6 | 0 | 2 | 4 |
+| E05-voice | 7 | 0 | 4 | 4 |
 | E06-lanes | 0 | 0 | 3 | 0 |
 | E07-records | 4 | 0 | 4 | 2 |
 | E08-mobile | 23 | 0 | 1 | 8 |
-| E09-clinician | 0 | 0 | 0 | 2 |
+| E09-clinician | 1 | 0 | 0 | 2 |
 | E10-connectors | 3 | 1 | 1 | 0 |
 | E11-learning | 1 | 0 | 0 | 1 |
 | E12-admin | 14 | 0 | 4 | 2 |
-| E13-infra | 5 | 1 | 4 | 1 |
+| E13-infra | 8 | 1 | 4 | 2 |
 | E14-legal | 5 | 0 | 2 | 4 |
 | E16-experience | 3 | 0 | 0 | 0 |
 | E17-release | 1 | 0 | 0 | 1 |
 
-Remaining, in file order (61):
+Remaining, in file order (64):
 
 | id | title | epic | state | PR · blocker · dependencies | owner |
 |---|---|---|---|---|---|
@@ -184,6 +185,9 @@ Remaining, in file order (61):
 | INT-493 | proxy mechanism follow-ups before any proxy content lands (from the INT-483 review) | E03-protocols | todo | ready | agent · clinical-reviewer |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | blocked | HB-I7 | owner |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | blocked | HB-I7 | owner |
+| INT-508 | node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents befor… | E13-infra | todo | ready | agent · security-reviewer |
+| INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | blocked | no blocker record · PR #774 `int-442-egress-proxy` | owner — no blocker record names it |
+| INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | blocked | no blocker record · PR #775 `int-443-elevenlabs-hosted-tts` | owner — no blocker record names it |
 
 ### Live · P2 — Hospital pilot
 
@@ -272,25 +276,17 @@ Remaining, in file order (5):
 | #725 (conflicting) | INT-422 | P1 | `int-422-design-system-refresh` | INT-422 | INT-422: design system refresh — native Apple feel, restrained palette, SF Symbols, no AI-generic styling |
 | #728 | INT-423 | P1 | `int-423-chat-rhythm` | INT-422, INT-423 | INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid |
 | #729 | INT-420 | P0 | `int-420-onvizit-rebrand` | INT-420 | INT-420: Önvizit everywhere — finish the Vizite→Önvizit rebrand on main |
-| #734 | INT-424 | P1 | `int-424-voice-profiles-v2` | INT-424 | INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal |
 | #737 | INT-427 | P1 | `int-427-specialty-wave` | INT-427 | INT-427: dynamic department question sets — next specialty/cluster wave (author, verifier, engineer) |
 | #738 | INT-425 | P1 | `int-425-store-screenshots` | INT-422, INT-423, INT-425, INT-433 | INT-425: App Store / Play screenshots — story-led, real captures, app-store-screenshots skill |
 | #740 | INT-433 | P1 | `int-433-question-screen` | INT-422, INT-423, INT-433 | INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-… |
-| #741 (conflicting) | INT-430 | P0 | `int-430-agent-council` | INT-430 | INT-430: agent council for dynamic questioning — answers + documents drive follow-ups, deterministic engine a… |
-| #751 | INT-428 | P0 | `int-428-hosted-lanes` | INT-428 | INT-428: hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over |
 | #761 | INT-439 | P0 | `int-439-spend-cap` | INT-428, INT-439 | INT-439: HB-O8 closed — 80 USD/month elective model-spend cap (warn at 80 %), every hosted call charged, sour… |
-| #766 | INT-446 | P0 | `int-446-red-e2e` | INT-446 | INT-446: RED end to end in the app — rules-engine hop on both lanes, pre-positioned RED screen mounted |
 | #768 | INT-440 | P0 | `int-440-voice-first-e2e` | INT-440 | INT-440: Voice-first end-to-end test on the iOS simulator + fixes |
 | #771 (conflicting) | INT-451 | P1 | `int-451-mobile-interactions` | INT-422, INT-423, INT-433, INT-451 | INT-451: mobile interaction patterns within ADR-033 — row press highlight, glass nav bar, ADR-037 proposal |
-| #773 | INT-453 | P0 | `int-453-red-path-winner` | INT-446, INT-453 | INT-453: voice-runtime RED path triggers the winning rule's own script, not rule_ids[0] |
-| #774 | INT-442 | P1 | `int-442-egress-proxy` | INT-428, INT-442 | INT-442: egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) |
-| #775 | INT-443 | P1 | `int-443-elevenlabs-hosted-tts` | INT-424, INT-428, INT-442, INT-443 | INT-443: ElevenLabs as hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) |
 | #776 | INT-450 | P1 | `int-450-admin-ui` | INT-450 | INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked) |
 | #782 (conflicting) | INT-455 | — | `int-455-tr-numeral-suffix` | INT-455 | INT-455: expand_tr expands a numeral's apostrophe suffix (112'yi), so the life-threat RED REMOTE script compi… |
 | #784 | INT-459 | P1 | `int-459-admin-premium` | INT-450, INT-459 | INT-459: admin-web premium redesign |
 | #788 (conflicting) | INT-461 | — | `int-461-adr-038-motion-amendment` | INT-461 | INT-461: ADR-038 — ADR-033 amendment: spring-in bubbles, selection haptics on chips and the mic, in-tree dete… |
 | #792 | INT-462 | — | `int-462-native-chat` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462 | INT-462: native chat — Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked cap… |
-| #796 (conflicting) | INT-465 | P0 | `int-465-generic-red-active` | INT-446, INT-453, INT-465 | INT-465: generic RED active from CD-24, and the red rule set signed with a synthetic-only test key |
 | #797 | INT-466 | — | `int-466-chat-stage` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-466 | INT-466: chat stage — ADR-039 and the live dialogue on the new visual language |
 | #801 | INT-464 | — | `int-464-native-welcome` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466 | INT-464: native welcome and sign-in in the stage language (ADR-039 S7) |
 | #804 (conflicting) | INT-470 | P1 | `int-470-owner-question-clinical` | INT-470 | INT-470: resolve INT-448's owner questions — clinical ones under D18 (CD-110), product and data ones by owner… |
@@ -304,14 +300,12 @@ Remaining, in file order (5):
 | #821 | INT-478 | P1 | `int-478-capture-protection-refcount` | INT-478 | INT-478: hold screen-capture protection until the last protected screen closes |
 | #828 | INT-482 | P1 | `int-482-store-listing` | INT-482 | INT-482: store listing readiness — EAS metadata, privacy answers, review notes, as Önvizit |
 | #833 | INT-483 | P1 | `int-483-self-proxy` | INT-483 | INT-483: self/proxy answering — ADR-040 and the subject_role addressing mechanism |
-| #834 (conflicting) | INT-485 | — | `int-485-admin-proxy-no-email-logs` | INT-485 | INT-485: admin oauth2-proxy logs no staff email or client IP (invariant 6) |
 | #835 | INT-484 | P1 | `int-484-ld06` | INT-470, INT-471, INT-484 | INT-484: LD-06 — what admin research and improvement analytics may hold (step 1, synthetic/test scope) |
 | #840 | INT-481 | P1 | `int-481-observability-stack` | INT-481 | INT-481: staff observability stack — Grafana dashboards and admin alerts on the AWS host |
 | #842 | INT-491 | P1 | `int-491-orb-variants` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466, INT-472, INT-473, INT-491 | INT-491: the lens is the orb — every orb layer turns one way (ADR-039 amendment, D29) |
 | #843 | INT-492 | P1 | `int-492-progress-micro` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466, INT-472, INT-473, INT-492 | INT-492: question progress and micro-interactions — segmented capsule, chip check slot, press response, still… |
 | #845 (conflicting) | INT-486 | — | `int-486-ops-prom-label-fullmatch` | INT-486 | INT-486: ops_prom label check uses fullmatch, so a trailing newline is refused |
 | #854 | INT-496 | P2 | `int-496-play-later` | INT-482, INT-496 | INT-496: Google Play deferred — the list of everything Play will need |
-| #855 | INT-475 | P1 | `int-475-red-staff-notify` | INT-446, INT-453, INT-465, INT-475 | INT-475: RED staff notification on the typed hop and the device's location answer reach the server |
 | #860 | INT-495 | P1 | `int-495-asc-listing` | INT-482, INT-495, INT-496, INT-502 | INT-495: App Store listing for Önvizit — the App Store Connect draft writer and the promoted App Store copy |
 | #861 | INT-494 | P1 | `int-494-apply-cd111` | INT-446, INT-453, INT-465, INT-468, INT-494 | INT-494: apply CD-111 to the served cardiac RED rule — decided do-not lists, re-signed synthetic rule set |
 | #863 | INT-490 | P1 | `int-490-research-analytics` | INT-490 | INT-490: research and improvement analytics in the admin panel, anonymised aggregates within LD-06 |
@@ -332,19 +326,17 @@ Remaining, in file order (5):
 | #829 | INT-488 | P1 | INT-488: store-review sign-in path for release builds (synthetic tenant only), security-reviewed |
 | #850 | INT-498 | P1 | INT-498: feature audit on the AWS synthetic stack — every requested feature working end to end, nothing demo |
 | #849 | INT-499 | P1 | INT-499: apply ADR-039 and the Liquid Glass research to the remaining screens — visits list, documents, share… |
-| #853 | INT-501 | P1 | INT-501: fix node-forge, braces and http-cache-semantics before their time-boxed scanner exceptions expire (1… |
 | #857 | INT-503 | P1 | INT-503: RED staff-notification follow-ups (from the INT-475 approval) — three must land before the voice lan… |
 | #862 | INT-506 | P2 | INT-506: App Store listing follow-ups from the INT-495 legal approval (non-blocking) |
 | #864 | INT-507 | P1 | INT-507: per-question, platform and triage-share analytics from anonymous-at-source counters (no per-person r… |
-| #865 | INT-508 | P1 | INT-508: node-forge and braces have no upstream fix — renew their time-boxed exceptions or replace the depend… |
 
 ### Drift the generator sees — reported here, never repaired by it
 
-- **`done` rows whose GitHub issue is still open** (68; `make backlog-sync` closes them, and the live sync is the operator's): INT-016 (#14), INT-018 (#16), INT-022 (#20), INT-023 (#21), INT-024 (#22), INT-025 (#23), INT-030 (#24), INT-031 (#25), INT-032 (#26), INT-033 (#27), INT-034 (#28), INT-035 (#29), INT-036 (#30), INT-037 (#31), INT-038 (#32), INT-040 (#33), INT-041 (#34), INT-042 (#35), INT-057 (#50), INT-059 (#52), INT-060 (#53), INT-080 (#67), INT-081 (#68), INT-082 (#69), INT-083 (#70), INT-084 (#71), INT-085 (#72), INT-090 (#73), INT-091 (#74), INT-092 (#75), INT-093 (#76), INT-094 (#77), INT-096 (#79), INT-102 (#85), INT-103 (#86), INT-110 (#87), INT-120 (#95), INT-131 (#101), INT-132 (#102), INT-133 (#103), INT-134 (#104), INT-136 (#106), INT-137 (#107), INT-139 (#109), INT-140 (#110), INT-141 (#111), INT-145 (#115), INT-150 (#117), INT-160 (#121), INT-170 (#125), INT-171 (#126), INT-172 (#127), INT-175 (#130), INT-228 (#252), INT-180 (#131), INT-205 (#149), INT-223 (#165), INT-224 (#166), INT-230 (#170), INT-240 (#172), INT-241 (#173), INT-242 (#174), INT-253 (#178), INT-254 (#291), INT-255 (#328), INT-263 (#364), INT-353 (#559), INT-452 (#765)
+- **`done` rows whose GitHub issue is still open** (76; `make backlog-sync` closes them, and the live sync is the operator's): INT-016 (#14), INT-018 (#16), INT-022 (#20), INT-023 (#21), INT-024 (#22), INT-025 (#23), INT-030 (#24), INT-031 (#25), INT-032 (#26), INT-033 (#27), INT-034 (#28), INT-035 (#29), INT-036 (#30), INT-037 (#31), INT-038 (#32), INT-040 (#33), INT-041 (#34), INT-042 (#35), INT-057 (#50), INT-059 (#52), INT-060 (#53), INT-080 (#67), INT-081 (#68), INT-082 (#69), INT-083 (#70), INT-084 (#71), INT-085 (#72), INT-090 (#73), INT-091 (#74), INT-092 (#75), INT-093 (#76), INT-094 (#77), INT-096 (#79), INT-102 (#85), INT-103 (#86), INT-110 (#87), INT-120 (#95), INT-131 (#101), INT-132 (#102), INT-133 (#103), INT-134 (#104), INT-136 (#106), INT-137 (#107), INT-139 (#109), INT-140 (#110), INT-141 (#111), INT-145 (#115), INT-150 (#117), INT-160 (#121), INT-170 (#125), INT-171 (#126), INT-172 (#127), INT-175 (#130), INT-228 (#252), INT-180 (#131), INT-205 (#149), INT-223 (#165), INT-224 (#166), INT-230 (#170), INT-240 (#172), INT-241 (#173), INT-242 (#174), INT-253 (#178), INT-254 (#291), INT-255 (#328), INT-263 (#364), INT-353 (#559), INT-452 (#765), INT-453 (#767), INT-446 (#756), INT-465 (#794), INT-501 (#853), INT-424 (#719), INT-475 (#814), INT-485 (#830), INT-441 (#750)
 - **`todo`/`doing` rows with a merged INT PR** (8; `scripts/backlog/reconcile.py` decides whether they are done): INT-202 (#321), INT-317 (#602), INT-320 (#485, #486, #489), INT-330 (#553), INT-336 (#702), INT-341 (#572), INT-349 (#564), INT-421 (#723)
 - **`todo` rows with an open PR** (8; shown in flight above): INT-058, INT-332, INT-336, INT-337, INT-338, INT-340, INT-342, INT-350
 - **`doing` rows with no open PR** (5): INT-317, INT-320, INT-327, INT-349, INT-421
-- **`awaiting-human` rows no blocker record names** (10): INT-144, INT-347, INT-356, INT-358, INT-389, INT-402, INT-403, INT-408, INT-398, INT-394
+- **`awaiting-human` rows no blocker record names** (13): INT-144, INT-347, INT-356, INT-358, INT-389, INT-402, INT-403, INT-408, INT-398, INT-394, INT-428, INT-442, INT-443
 
 <!-- END generated live status -->
 

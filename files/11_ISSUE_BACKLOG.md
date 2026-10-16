@@ -8,7 +8,7 @@
 > live status with GitHub state and named blocker owners is the generated
 > section of `files/05_ROADMAP.md` (INT-452).
 
-**368 issues.** By phase: P0 172 · P1 142 · P2 47 · P3 7. By status: awaiting-human 37 · doing 6 · done 230 · todo 94 · withdrawn 1.
+**387 issues.** By phase: P0 183 · P1 150 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 245 · todo 94 · withdrawn 1.
 
 ## P0
 
@@ -177,7 +177,6 @@
 | INT-382 | The compiler refuses a chain pack's suppress_slot that removes a slot a red-flag rule reads | E03-protocols | INT-258 | area:protocols, risk:clinical | done | agent · clinical-reviewer |
 | INT-394 | Owner decision — the database role that runs erasure and retention | E02-data | INT-392 | area:data, risk:security | awaiting-human | owner — no blocker record names it |
 | INT-416 | triage context refuses an empty unit at construction, so RED evaluation can never raise mid-rule | E04-engines | INT-404 | area:protocols | todo | agent · clinical-reviewer |
-| INT-441 | base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date) | E03-protocols | INT-043 | area:protocols, risk:clinical | todo | agent · clinical-reviewer |
 | INT-454 | spoken-answer loop end to end on the hosted lanes (ASR → extract → next question), measured | E05-voice | — | area:voice | todo | agent · runtime-reviewer |
 | INT-429 | Unblock the vulnerabilities gate: brace-expansion + urllib3 upgrades, time-boxed node-forge exception | E13-infra | — | area:ci | done | agent · security-reviewer |
 | INT-395 | DSAR erasure and export cover every patient-deletable table (notification preferences, Doctor Links) | E02-data | INT-037, INT-141, INT-150, INT-393 | area:data, risk:legal | done | agent · legal-reviewer |
@@ -186,6 +185,18 @@
 | INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done | agent · clinical-reviewer |
 | INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | INT-352 | area:infra | doing | agent · sre-reviewer |
 | INT-500 | Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako | E13-infra | INT-429 | area:security | done | agent · security-reviewer |
+| INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done | agent · runtime-reviewer |
+| INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done | agent (mobile) |
+| INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done | agent · clinical-reviewer |
+| INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models | E05-voice | INT-081, INT-083, INT-092, INT-095, INT-101 | area:voice, risk:clinical | doing | agent · runtime-reviewer |
+| INT-428 | Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over | E05-voice | INT-182, INT-187, INT-018 | area:api, area:voice, risk:security | awaiting-human | owner — no blocker record names it |
+| INT-485 | Admin oauth2-proxy logs no staff email or client IP (invariant 6) | E13-infra | INT-421 | area:infra | done | agent · sre-reviewer |
+| INT-441 | base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date) | E03-protocols | INT-043 | area:protocols, risk:clinical | done | agent · clinical-reviewer |
+| INT-518 | Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind | E03-protocols | INT-083, INT-432 | area:protocols | done | agent · clinical-reviewer |
+| INT-521 | The live voice and typed session evaluates triage on every bound answer, so a RED fires from the conversation | E05-voice | INT-518, INT-093 | area:voice | done | agent · runtime-reviewer |
+| INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done | agent · clinical-reviewer |
+| INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done | agent · runtime-reviewer |
+| INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done | agent · runtime-reviewer |
 
 ## P1
 
@@ -333,6 +344,14 @@
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human | owner (infrastructure) |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human | owner (infrastructure) |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done | agent · security-reviewer |
+| INT-524 | CI cancels a pull request's superseded runs (concurrency group), so the three-runner pool runs only current heads | E13-infra | INT-467 | area:ci, approval:human-infra | done | agent · security-reviewer; sign-off: owner (infrastructure) |
+| INT-501 | http-cache-semantics lifted to 4.3.0, so its time-boxed osv exception can go before it expires | E13-infra | INT-500 | area:security | done | agent · security-reviewer |
+| INT-508 | node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents before 1 Nov 2026 | E13-infra | INT-500 | area:security | todo | agent · security-reviewer |
+| INT-424 | ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal | E05-voice | INT-415 | area:voice | done | agent · runtime-reviewer |
+| INT-475 | RED staff notification on the typed hop and the device's location answer reach the server | E09-clinician | INT-432 | area:api, risk:clinical | done | agent · sre-reviewer |
+| INT-538 | One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required | E13-infra | INT-460 | area:infra | done | agent · sre-reviewer |
+| INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human | owner — no blocker record names it |
+| INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human | owner — no blocker record names it |
 
 ## P2
 
