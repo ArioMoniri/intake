@@ -680,10 +680,11 @@ def test_the_osv_exception_names_one_advisory_and_expires() -> None:
         assert must in reason, f"the reason must say {must!r}"
 
 
-# INT-426 follow-up: the two advisories OSV reissued on 2 Oct with no fix.
+# INT-426 follow-up: the advisory OSV reissued on 2 Oct with no fix. Its sibling,
+# http-cache-semantics 4.2.0 (GHSA-ch52-4w7c-c8xp), went in INT-501 once 4.3.0
+# cleared it by version; ADVISORY_IDS keeps it from coming back as a mute.
 OSV_NO_FIX_ROWS = {
     "GHSA-vfj7-8cjw-p6xm": ("braces 3.0.3", "micromatch 4.0.8", "metro-file-map"),
-    "GHSA-ch52-4w7c-c8xp": ("http-cache-semantics 4.2.0", "@expo/ngrok", "--tunnel"),
 }
 
 # INT-378: the one OSV record keycloak-services 26.7.4 still matches. Its range is open,
@@ -943,6 +944,9 @@ ADVISORY_IDS = (
     "GHSA-mcj8-r9mp-w47p",
     "PYSEC-2026-4243",
     "GHSA-5639-2j2p-m4mx",
+    # INT-501: cleared by http-cache-semantics 4.3.0, never to return as a mute
+    "GHSA-ch52-4w7c-c8xp",
+    "CVE-2026-93748",
 )
 
 # Every suppression mechanism the two lockfile/filesystem scanners in
@@ -1003,7 +1007,10 @@ OSV_SUPPRESSION_FILES = (
 # - It expires on 2 Nov 2026
 #   (test_the_keycloak_osv_exception_is_bounded_reasoned_and_expires).
 # - The trivy pin does not move, because trivy reports nothing for that pom.
-MAX_OSV_SUPPRESSIONS = 4
+#
+# INT-501 lowers it from 4 to 3. http-cache-semantics resolves to 4.3.0, outside
+# GHSA-ch52-4w7c-c8xp's range, so its entry is gone (owner-501-remove-exceptions).
+MAX_OSV_SUPPRESSIONS = 3
 # The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
 # the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
 # owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
