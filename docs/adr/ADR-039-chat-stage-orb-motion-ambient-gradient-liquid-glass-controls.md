@@ -14,7 +14,7 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 
 ### S1 — The voice orb moves (amends ADR-033 §1)
 
-- The one presence orb (INT-336) gets a stage body: a SwiftUI sphere of two counter-turning angular gradients under a clear lens. Its state still comes only from `orbStateFor`. The orb is the dialogue's one PresenceOrb.
+- The one presence orb (INT-336) gets a stage body: a SwiftUI sphere of two counter-turning angular gradients under a clear lens. Its state still comes only from `orbStateFor`. The orb is the dialogue's one PresenceOrb. (Amended by INT-491, 16 Oct 2026: the body is now the lens, and every layer turns one way. See the amendment at the end.)
 - **Breathing:** at most 1.06×, while speaking (a 1.2 s period) and listening (2.4 s). No period is shorter than 1.2 s.
 - **Turning:** the gradient turns once every 3 s (thinking), 7 s (speaking) or 10 s (listening). A full turn never takes less than 3 s.
 - **Voice level:** at most +10 % scale, listening only. The level comes from INT-336's sampler as a Reanimated shared value, so a sample renders no React tree.
@@ -95,3 +95,41 @@ On 3 Oct 2026 the owner reviewed PR #792 and said the chat still looked old: not
 - **Harder.** Five allow-lists grow by named stage files and may only shrink afterwards. A device check of the glass on each iOS major version is owed, and timings go to `docs/evidence/` with a device and a date (invariant 20).
 - **Not done.** A tilt-following highlight would need `expo-sensors`. Its pedometer code needs a motion-permission string, which is a store artefact for legal review, and the simulator has no gyroscope to test it on. The highlight is still.
 - **Records.** `files/00_STATE.md` §3 row **D23**. No HUMAN_BLOCKERS id is minted.
+
+## Amendment — the lens is the orb, and its layers turn one way (INT-491, 16 Oct 2026)
+
+Amendment status: Accepted (owner, 16 Oct 2026, in chat). The owner's reply, verbatim: "orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y". It reached this ADR through the orchestrator, from the main conversation where the owner answered in chat. "orb=lens", "O2N" to "O9N" and "FIXY" answer INT-491's list (`docs/design/library-patterns.md` §6.4). "P1N" to "P5N" and "LD6Y" answer other agents' items and change nothing here.
+
+**Context.** INT-491 (GitHub #838) explored the orb against spaceui.one, the motion libraries and the Siri, ChatGPT and Gemini voice orbs. It built three bodies behind a development flag: a fluid blob, a particle field and a refined glass lens. It also found that the sphere's two layers turned against each other. Their combined pattern then repeated every 6.2 s while listening (0.16 Hz) and every 4.3 s while speaking (0.23 Hz). Both rates sit near the 0.2 Hz that S1 cites from Apple.
+
+**Decision.**
+
+- **The lens is the orb.** It is a deep sphere lit from the top left, with a darker rim and a light that travels round the rim. A fainter, slower light follows it the same way. It has a crisp edge, the still specular highlight, the glow, and the clear Liquid Glass lens over it. It replaces the sphere of S1's first bullet, on the dialogue and on the welcome mark (S7, drawn still).
+  - The lens keeps every S1 bound, because its plan (`lensPlan`) is built from the S1 motion: breathing at most 1.06×, a voice level of at most +10 % while listening only, no breath under 1.2 s and no turn under 3 s.
+  - It is still in idle, rest and retry, still under Reduce Motion and still while a RED is presented.
+  - S3 is unchanged: the lens is the one clear glass, drawn only where glass is drawn at all. Under Reduce Transparency, and on a capture-protected screen, the lens is not drawn.
+- **Every layer turns one way.** The sphere's second layer now turns the same way as the first, 1.6× slower (`STAGE_ORB_SECOND_LAYER`), and so do the lens's two rim lights. Their pattern repeats at most every 8 s (0.125 Hz, thinking), and every 26.7 s while listening. Both are below the 0.15–0.25 Hz band (`OSCILLATION_BAND_HZ`) around Apple's 0.2 Hz.
+- **The flag stays for development only.** `EXPO_PUBLIC_ORB_VARIANT` → `extra.orbVariant`. Unset, empty or unknown is the lens. `classic` names the earlier sphere, now turning one way, for comparison in a development or preview build. The production profile never carries a value, so a store build always draws the lens.
+- **Not shipped (O2–O9: no).** The blob and the particle field are not shipped and leave no runtime code. Their captures are archived in `docs/design/orb-variants/`. Nothing on the approval list ships:
+  - speaking that follows the agent's voice;
+  - glow beyond the orb's circle;
+  - a swell above +10 %;
+  - motion at rest;
+  - a per-state tint;
+  - a morph between states, or a noise-driven shape;
+  - travelling entrances;
+  - a rolling question count, or a gooey send button.
+
+**Where each bound is enforced.**
+
+| Bound | Test |
+|---|---|
+| The second layer turns the same way; the beat stays below the band in every moving state; near miss: counter-turning falls inside the band while listening and speaking | `apps/mobile/src/lib/stage/orb.test.ts` |
+| The lens keeps S1's numbers, its rim lights turn one way below the band, it is still under Reduce Motion and RED (near miss: listening, no RED, moves), and it draws the clear lens only over glass | `apps/mobile/src/lib/stage/orbVariants.test.ts` |
+| The lens is the default on the dialogue and the welcome mark; `classic` only by name; the sphere's second layer reads its direction from the policy; its body is pinned by sha256; the blob and the field left no code; their captures are archived | `apps/mobile/e2e/orbVariants.spec.ts` |
+| Production never carries a body name, so a store build draws the lens | `apps/mobile/e2e/releaseConfig.spec.ts` |
+| This amendment and its D-row | `tests/docs/test_adr_039.py` |
+
+**Unchanged.** RED is still a root layer above the stage, with zero motion (invariant 21). The orb is still decoration, never the only signal, and announced once. Question text is verbatim, and there are no new strings. S2's gradient files, S4 to S7's bounds and the capture-protection amendment (INT-477) stand.
+
+**Records.** `files/00_STATE.md` §3 row **D29**. No HUMAN_BLOCKERS id is minted.

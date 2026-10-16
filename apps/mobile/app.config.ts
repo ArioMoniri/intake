@@ -22,11 +22,12 @@
  *   does not grow. Expo writes the block as `tools:node="remove"`, which wins
  *   over any library's declaration in the manifest merge, and drops the
  *   permission from `android.permissions` if app.json ever asks for it.
- * - INT-491: `extra.orbVariant` is the orb variant flag, and its ONLY source
- *   is `EXPO_PUBLIC_ORB_VARIANT`. Empty means off: the ADR-039 sphere. The
- *   production profile never carries a variant, so none reaches a store build
- *   before the owner picks one and the ADR records it. The app parses the
- *   value with lib/stage/orbVariants.ts, where anything unknown is off.
+ * - INT-491: `extra.orbVariant` names the orb's body, and its ONLY source is
+ *   `EXPO_PUBLIC_ORB_VARIANT`. Empty is the lens, the orb ADR-039 names since
+ *   the owner's "orb=lens" (16 Oct 2026); a development or preview build may
+ *   name `classic`, the earlier sphere. The production profile never carries
+ *   a value, so a store build always draws the lens. The app parses the value
+ *   with lib/stage/orbVariants.ts, where anything unknown is the lens.
  * - INT-421: the production profile carries no dev-only lane. `extra.asrHosts`
  *   and `extra.ttsLanes` are the LAN and loopback hosts of the `__DEV__` voice
  *   lanes, so they resolve to empty lists there, and the release config names
@@ -37,7 +38,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 /** The EAS variable the owner sets for a store build (public, not a secret). */
 export const API_BASE_ENV = "EXPO_PUBLIC_API_BASE_URL";
 
-/** The orb variant a development or preview build draws (INT-491). */
+/** The orb body a development or preview build may name (INT-491). */
 export const ORB_VARIANT_ENV = "EXPO_PUBLIC_ORB_VARIANT";
 
 /** EAS Build sets this to the eas.json profile being built. */

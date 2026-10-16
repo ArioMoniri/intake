@@ -12,7 +12,15 @@ import { describe, expect, it } from "vitest";
 
 import { ORB_STATES } from "@/lib/motion/orb";
 
-import { STAGE_ORB_BOUNDS, levelScale, stageOrbMotion, stillOrb } from "./orb";
+import {
+  OSCILLATION_BAND_HZ,
+  STAGE_ORB_BOUNDS,
+  STAGE_ORB_SECOND_LAYER,
+  layerBeatHz,
+  levelScale,
+  stageOrbMotion,
+  stillOrb,
+} from "./orb";
 
 const LIVE = { reduce: false, redPresented: false } as const;
 const MOVING = ["speaking", "listening", "thinking"] as const;
@@ -96,6 +104,45 @@ describe("stage orb motion (ADR-039 S1)", () => {
     expect(stageOrbMotion("retry", LIVE).glowOpacity).toBeLessThan(
       stageOrbMotion("idle", LIVE).glowOpacity,
     );
+  });
+});
+
+describe("one-way turns (ADR-039 amendment, INT-491, owner 16 Oct 2026: FIXY)", () => {
+  it("the band is the one S1 cites from Apple: sustained oscillation near 0.2 Hz", () => {
+    expect(OSCILLATION_BAND_HZ.low).toBeLessThan(0.2);
+    expect(OSCILLATION_BAND_HZ.high).toBeGreaterThan(0.2);
+    expect(OSCILLATION_BAND_HZ).toEqual({ low: 0.15, high: 0.25 });
+  });
+
+  it("the second layer turns the same way as the first, 1.6x slower", () => {
+    expect(STAGE_ORB_SECOND_LAYER).toEqual({ periodFactor: 1.6, direction: 1 });
+  });
+
+  it("in every moving state the two layers repeat their pattern below the band", () => {
+    for (const state of MOVING) {
+      const turn = stageOrbMotion(state, LIVE).rotationPeriodS!;
+      const beat = layerBeatHz(
+        turn,
+        turn * STAGE_ORB_SECOND_LAYER.periodFactor,
+        STAGE_ORB_SECOND_LAYER.direction === 1,
+      );
+      expect(beat, state).toBeLessThan(OSCILLATION_BAND_HZ.low);
+    }
+  });
+
+  it("near miss: turned against each other, listening and speaking fall inside the band", () => {
+    for (const state of ["listening", "speaking"] as const) {
+      const turn = stageOrbMotion(state, LIVE).rotationPeriodS!;
+      const beat = layerBeatHz(turn, turn * STAGE_ORB_SECOND_LAYER.periodFactor, false);
+      expect(beat, state).toBeGreaterThanOrEqual(OSCILLATION_BAND_HZ.low);
+      expect(beat, state).toBeLessThanOrEqual(OSCILLATION_BAND_HZ.high);
+    }
+  });
+
+  it("the beat is the difference of the rates one way and their sum the other", () => {
+    expect(layerBeatHz(10, 16, true)).toBeCloseTo(1 / 10 - 1 / 16);
+    expect(layerBeatHz(10, 16, false)).toBeCloseTo(1 / 10 + 1 / 16);
+    expect(layerBeatHz(16, 10, true)).toBeCloseTo(1 / 10 - 1 / 16);
   });
 });
 

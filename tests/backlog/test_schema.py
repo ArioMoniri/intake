@@ -180,7 +180,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
     # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
     # three, each with its own user, daemon and network namespace, GitHub #799).
-    # + INT-491 (orb variants behind a flag, owner request; GitHub #838).
+    # + INT-491 (the lens is the orb, owner request and decision; GitHub #838).
     assert len(ids) == 353
     import re
 

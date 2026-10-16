@@ -344,7 +344,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
     # 3 Oct 2026, GitHub #790); grows only with a stated reason.
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
-    # + INT-491 (orb variants behind a flag, owner request, GitHub #838);
+    # + INT-491 (the lens is the orb, owner request and decision, GitHub #838);
     # grows only with a stated reason.
     assert len(ids) == 353, f"expected 175 blueprint + 178 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids

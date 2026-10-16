@@ -31,10 +31,10 @@
  * state is still `orbStateFor`'s, the orb is still decoration, and it still
  * reports nothing back.
  *
- * INT-491: the stage also names the body's variant (lib/stage/orbVariants),
- * which the build's flag chose. The orb only hands it on: the variant draws
- * from the same S1 motion and the same level scale, so every bound and every
- * still state above holds for it too. Off, it is the sphere.
+ * INT-491: the stage also names the body (lib/stage/orbVariants): the lens,
+ * the orb ADR-039 names, or in a development build the earlier sphere. The
+ * orb only hands it on: either body draws from the same S1 motion and the
+ * same level scale, so every bound and every still state above holds.
  */
 import { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
@@ -93,7 +93,7 @@ interface PresenceOrbProps {
     readonly motion: StageOrbMotion;
     readonly palette: StagePalette;
     readonly glass: boolean;
-    /** The body the build's flag chose (INT-491); `classic` is the sphere. */
+    /** The build's body (INT-491): the lens, or `classic` in development. */
     readonly variant: OrbVariant;
   };
 }

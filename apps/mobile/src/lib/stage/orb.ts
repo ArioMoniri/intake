@@ -26,6 +26,33 @@ export const STAGE_ORB_BOUNDS = {
   minTurnPeriodS: 3,
 } as const;
 
+/**
+ * The band S1 cites from Apple: sustained oscillation near 0.2 Hz. No two
+ * turning layers of the orb may repeat their combined pattern inside it
+ * (ADR-039 amendment, INT-491; owner, 16 Oct 2026: "FIXY").
+ */
+export const OSCILLATION_BAND_HZ = { low: 0.15, high: 0.25 } as const;
+
+/**
+ * The sphere's second gradient layer: 1.6× slower than the first, and the
+ * same way. Turned against each other, the two layers repeated their pattern
+ * every 6.2 s while listening (0.16 Hz) and every 4.3 s while speaking
+ * (0.23 Hz), inside the band; one way, the slowest repeat is every 26.7 s and
+ * the fastest every 8 s (thinking).
+ */
+export const STAGE_ORB_SECOND_LAYER = { periodFactor: 1.6, direction: 1 } as const;
+
+/**
+ * How often two layers with these full-turn periods (seconds) repeat their
+ * combined pattern, in Hz: the difference of their rates when they turn the
+ * same way, the sum when they turn against each other.
+ */
+export function layerBeatHz(periodA: number, periodB: number, sameWay: boolean): number {
+  const a = 1 / periodA;
+  const b = 1 / periodB;
+  return sameWay ? Math.abs(a - b) : a + b;
+}
+
 export interface StageOrbContext {
   readonly reduce: boolean;
   readonly redPresented: boolean;

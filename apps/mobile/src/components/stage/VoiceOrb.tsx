@@ -4,8 +4,8 @@
  * Compose version is drawn. PresenceOrb renders it and scales it by the voice
  * level, as it does on iOS.
  *
- * INT-491: the flag's variant bodies are SwiftUI drawings too, so off iOS
- * every variant is this same still disc.
+ * INT-491: the lens (the orb ADR-039 now names) and the development build's
+ * `classic` sphere are SwiftUI drawings, so off iOS both are this still disc.
  */
 import { View } from "react-native";
 

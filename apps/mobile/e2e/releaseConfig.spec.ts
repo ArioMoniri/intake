@@ -22,11 +22,11 @@
  *   George dev clip route stays unreachable in a release build. app.json
  *   carries the store identity INT-420 does not own: the Android package, the
  *   export-compliance answer and the owner's EAS project.
- * - INT-491: the orb variant flag is build-time config too. `app.config.ts`
- *   copies `EXPO_PUBLIC_ORB_VARIANT` into `extra.orbVariant`, it is empty
- *   (the ADR-039 sphere) unless someone sets it, and the production profile
- *   never carries one: no variant reaches a store build until the owner picks
- *   one and the ADR says so.
+ * - INT-491: the orb's body is build-time config too. `app.config.ts` copies
+ *   `EXPO_PUBLIC_ORB_VARIANT` into `extra.orbVariant`. Empty is the lens, the
+ *   orb ADR-039 names since the owner's "orb=lens" (16 Oct 2026); a
+ *   development or preview build may name `classic`, the earlier sphere. The
+ *   production profile never carries a value, so a store build draws the lens.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join, sep } from "node:path";
@@ -453,41 +453,43 @@ describe("INT-421 · the store identity app.json carries", () => {
   });
 });
 
-describe("INT-491 · the orb variant flag is off by default and never ships to production", () => {
+describe("INT-491 · the orb is the lens; the flag only lets a development build name the sphere", () => {
   it("names the variable a development build sets", () => {
     expect(ORB_VARIANT_ENV).toBe("EXPO_PUBLIC_ORB_VARIANT");
   });
 
-  it("is empty when unset: the app draws the ADR-039 sphere", () => {
+  it("is empty when unset: the app draws the lens, the orb ADR-039 now names", () => {
     expect(resolveAppConfig(appJson(), {}).extra?.orbVariant).toBe("");
     expect(JSON.stringify(appJson())).not.toContain("orbVariant");
   });
 
-  it("copies the variable into extra.orbVariant for a development or preview build", () => {
+  it("a development or preview build may name the earlier sphere", () => {
     expect(
-      resolveAppConfig(appJson(), { EXPO_PUBLIC_ORB_VARIANT: " blob " }).extra?.orbVariant,
-    ).toBe("blob");
+      resolveAppConfig(appJson(), { EXPO_PUBLIC_ORB_VARIANT: " classic " }).extra?.orbVariant,
+    ).toBe("classic");
     expect(
-      resolveAppConfig(appJson(), { EAS_BUILD_PROFILE: "preview", EXPO_PUBLIC_ORB_VARIANT: "lens" })
-        .extra?.orbVariant,
-    ).toBe("lens");
+      resolveAppConfig(appJson(), {
+        EAS_BUILD_PROFILE: "preview",
+        EXPO_PUBLIC_ORB_VARIANT: "classic",
+      }).extra?.orbVariant,
+    ).toBe("classic");
   });
 
-  it("the production profile never carries a variant, whatever the environment or app.json says", () => {
+  it("the production profile never carries a value, so a store build always draws the lens", () => {
     expect(
-      resolveAppConfig(appJson(), { ...PRODUCTION, EXPO_PUBLIC_ORB_VARIANT: "field" }).extra
+      resolveAppConfig(appJson(), { ...PRODUCTION, EXPO_PUBLIC_ORB_VARIANT: "classic" }).extra
         ?.orbVariant,
     ).toBe("");
-    const smuggled = { ...appJson(), extra: { ...appJson().extra, orbVariant: "blob" } };
+    const smuggled = { ...appJson(), extra: { ...appJson().extra, orbVariant: "classic" } };
     expect(resolveAppConfig(smuggled, PRODUCTION).extra?.orbVariant).toBe("");
     // Near miss: the same environment outside production is honoured.
     expect(
-      resolveAppConfig(appJson(), { EXPO_PUBLIC_ORB_VARIANT: "field" }).extra?.orbVariant,
-    ).toBe("field");
+      resolveAppConfig(appJson(), { EXPO_PUBLIC_ORB_VARIANT: "classic" }).extra?.orbVariant,
+    ).toBe("classic");
   });
 
-  it("the environment is the only source: app.json cannot switch a variant on", () => {
-    const smuggled = { ...appJson(), extra: { ...appJson().extra, orbVariant: "blob" } };
+  it("the environment is the only source: app.json cannot switch the body", () => {
+    const smuggled = { ...appJson(), extra: { ...appJson().extra, orbVariant: "classic" } };
     expect(resolveAppConfig(smuggled, {}).extra?.orbVariant).toBe("");
   });
 });

@@ -196,9 +196,11 @@ All eight are React DOM, and no code was copied. The constants this pass cites c
 
 ## 6. The voice orb and the question count: spaceui.one and the motion libraries (INT-491, 4 Oct 2026)
 
-The owner asked, on 4 Oct 2026, for the blob, the question count and the other parts to be explored against [spaceui.one](https://www.spaceui.one/), together with kobra and the other motion sites. Three designer agents read every spaceui.one component page (88), the motion libraries' orb, particle, glass, loader and counter pages, the Siri, ChatGPT and Gemini voice orbs, and Mobbin's voice screens. This section records what they found, what INT-491 built, and what stays with the owner.
+The owner asked, on 4 Oct 2026, for the blob, the question count and the other parts to be explored against [spaceui.one](https://www.spaceui.one/), together with kobra and the other motion sites. Three designer agents read every spaceui.one component page (88), the motion libraries' orb, particle, glass, loader and counter pages, the Siri, ChatGPT and Gemini voice orbs, and Mobbin's voice screens. This section records what they found, what INT-491 built, and what the owner decided.
 
-**Nothing was copied.** Every variant is drawn from scratch in SwiftUI through `@expo/ui`, in `apps/mobile/src/components/stage/VoiceOrb.ios.tsx` (with its plain parts in `VoiceOrbParts.tsx`), from a pure plan in `apps/mobile/src/lib/stage/orbVariants.ts`. The libraries are web code (WebGPU, WebGL, SVG filters, Motion), so only their anatomy and numbers informed the work. No dependency was added.
+**The owner's decision (16 Oct 2026, in chat):** "orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y". The lens is the orb. Every orb layer now turns one way. Nothing on the approval list (§6.4) ships. This is recorded as an ADR-039 amendment and D29 in `files/00_STATE.md`.
+
+**Nothing was copied.** Every variant was drawn from scratch in SwiftUI through `@expo/ui`. The shipped lens is in `apps/mobile/src/components/stage/VoiceOrb.ios.tsx`, drawn from a pure plan in `apps/mobile/src/lib/stage/orbVariants.ts`. The libraries are web code (WebGPU, WebGL, SVG filters, Motion), so only their anatomy and numbers informed the work. No dependency was added.
 
 ### 6.1 Licences, read from the raw blob on 4 Oct 2026
 
@@ -214,9 +216,9 @@ The owner asked, on 4 Oct 2026, for the blob, the question count and the other p
 | [reverseui.com](https://reverseui.com/pricing) | None published | — | Proprietary. Anatomy only |
 | [kobra.systems](https://kobra.systems/terms) | Terms forbid feeding its source to a model | — | Proprietary. Anatomy only, and its source never goes into an agent |
 
-### 6.2 The three variants (built, behind a flag, default off)
+### 6.2 The three variants: the lens shipped, the blob and the field archived
 
-`EXPO_PUBLIC_ORB_VARIANT` = `blob`, `field` or `lens` in a development or preview build (`app.config.ts` → `extra.orbVariant` → `lib/stage/expoOrbVariant.ts`). Unset, empty or unknown is the ADR-039 sphere, drawn byte-for-byte as before. The production profile never carries a variant. Each variant takes its plan from the S1 motion, so it is still in idle, rest and retry, under Reduce Motion and while a RED shows. It keeps S1's numbers: breath ≤ 1.06×, swell ≤ +10 % (listening only), no breath under 1.2 s, no turn under 3 s. Every part stays inside the orb's circle, and every part turns the same way, so no two parts repeat their pattern faster than 0.15 Hz. Under Reduce Transparency and on a capture-protected screen (INT-477), no variant draws glass.
+**The lens is the orb** (ADR-039 amendment, D29). It is drawn on the dialogue and, still, on the welcome mark. `EXPO_PUBLIC_ORB_VARIANT` stays for development only (`app.config.ts` → `extra.orbVariant` → `lib/stage/expoOrbVariant.ts`). Unset, empty or unknown is the lens, and `classic` names the earlier sphere, which now turns one way. The production profile never carries a value. **The blob and the field are not shipped.** No runtime code is left for them. Their captures are archived in [`docs/design/orb-variants/`](orb-variants/): light and dark stills of each one listening and at rest, and a dark state-cycle gif of each. The table below records what all three were. Each variant took its plan from the S1 motion, so it is still in idle, rest and retry, under Reduce Motion and while a RED shows. It keeps S1's numbers: breath ≤ 1.06×, swell ≤ +10 % (listening only), no breath under 1.2 s, no turn under 3 s. Every part stays inside the orb's circle, and every part turns the same way, so no two parts repeat their pattern faster than 0.15 Hz. Under Reduce Transparency and on a capture-protected screen (INT-477), no variant draws glass.
 
 | Variant | What it is | Listening · speaking · thinking | Sources that informed it |
 |---|---|---|---|
@@ -224,7 +226,13 @@ The owner asked, on 4 Oct 2026, for the blob, the question count and the other p
 | `field`, a particle field | 46 points on four face-on rings round a soft nucleus; the inner rings turn a little faster, so the field shears into a slow vortex | Rings turn at 10–14.5 s, breath, voice swell · 7–10.2 s, breath · 3–4.4 s | spaceui [Thinking](https://www.spaceui.one/components/thinking) ("orbits" and "ring" modes); reverseui [Particle Vortex](https://reverseui.com/components/particle-vortex) and [Speedy Circles](https://reverseui.com/components/speedy-circles); [Perplexity's particle sphere](https://mobbin.com/screens/4d791135-61ef-4369-a598-cf6f6898a9dd); [Oura's sparkle ring](https://mobbin.com/screens/bc347c89-5f60-4d84-bdc7-a747dff863fb) |
 | `lens`, a refined glass lens | A deep sphere lit from the top left, a darker rim, a rim light low on the right and a fainter, slower one, a crisp edge, and the clear Liquid Glass lens | The rim lights travel round the rim at 10 s and 16 s, breath, voice swell · 7 s and 11.2 s, breath · 3 s and 4.8 s | spaceui [Smooth](https://www.spaceui.one/components/smooth) and [Silk Gradient](https://www.spaceui.one/components/silk-gradient); kinetics Caustic Glass and Specular Orbit; [ElevenReader's glass sphere](https://mobbin.com/screens/d9a14bbf-8a4a-4536-ab0a-92a16d67fd6b); WWDC25 *Meet Liquid Glass* |
 
-Captures (iOS 26.1 simulator, a temporary harness that draws the real `VoiceOrb` over the real `AmbientBackdrop` at 180 pt; the dialogue draws it at 84–116 pt): light and dark stills, solid-surface stills and a 21 s state-cycle gif per variant, in the owner's drafts folder `issue-drafts/design-491/` (listed in `docs/evidence/INT-491.md`).
+Captures were taken on the iOS 26.1 simulator through a temporary harness. It draws the real `VoiceOrb` over the real `AmbientBackdrop` at 180 pt; the dialogue draws it at 84–116 pt.
+
+- The exploration: light and dark stills, solid-surface stills and a 21 s state-cycle gif per variant, in the owner's drafts folder `issue-drafts/design-491/`.
+- The shipped lens: listening, speaking and thinking in light and dark, in `issue-drafts/design-491-final/`.
+- The blob and the field: archived in `docs/design/orb-variants/`.
+
+Each set is listed in `docs/evidence/INT-491.md`.
 
 ### 6.3 Component → screen map
 
@@ -246,7 +254,7 @@ Captures (iOS 26.1 simulator, a temporary harness that draws the real `VoiceOrb`
 
 ### 6.4 For the owner
 
-**Approval needed before any of these ship** (each goes beyond ADR-039 or ADR-033 as written):
+**Answered by the owner on 16 Oct 2026.** Item 1 is "orb=lens". Items 2 to 9 are "O2N" to "O9N", so none of them ships. The list stays as the record of what was asked (each goes beyond ADR-039 or ADR-033 as written):
 
 1. **Picking a variant.** S1 describes the sphere. Choosing `blob`, `field` or `lens` for patients needs the owner's pick and an ADR-039 amendment; until then the production build cannot carry one.
 2. **Speaking that follows the agent's voice** (ChatGPT, Gemini Live, LiveKit). S1 allows the level while listening only.
@@ -258,6 +266,6 @@ Captures (iOS 26.1 simulator, a temporary harness that draws the real `VoiceOrb`
 8. **Travelling entrances**: Siri iOS 27 coming down from the Dynamic Island, Gemini's pill rising.
 9. **A rolling question count**, and the composer's gooey send button.
 
-**A finding on the shipped sphere.** Its two layers turn against each other, so the pattern they make repeats every 6.2 s while listening (0.16 Hz) and every 4.3 s while speaking (0.23 Hz), in the band ADR-039 cites from Apple. The variants avoid it by turning every part one way. Changing the sphere is an S1 change, so INT-491 leaves it as it is and pins it.
+**A finding on the sphere, fixed (the owner's "FIXY").** Its two layers turned against each other, so the pattern they made repeated every 6.2 s while listening (0.16 Hz) and every 4.3 s while speaking (0.23 Hz). Both are in the band ADR-039 cites from Apple. Every orb layer now turns one way: the sphere's second layer and the lens's rim lights. The fastest repeat is now 0.125 Hz (thinking), below the 0.15–0.25 Hz band. `orb.test.ts` pins it, and its near miss shows that counter-turning would fall back inside the band.
 
 **An open point.** WCAG 2.2.2 covers automatic motion longer than 5 s. A long answer keeps the listening turn running; Reduce Motion stops it, as it does for the sphere.

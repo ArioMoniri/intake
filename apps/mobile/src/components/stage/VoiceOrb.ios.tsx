@@ -2,10 +2,17 @@
  * The stage orb's body, drawn natively in SwiftUI (ADR-039 S1 and S2,
  * INT-466). PresenceOrb renders it; it decides nothing itself.
  *
- * It is a sphere of two counter-turning angular gradients, softened by blur,
- * with a soft glow behind it, a still specular highlight and a clear Liquid
- * Glass lens over it. The lens is the one clear glass on the stage: it sits
- * on its own gradient with nothing on top.
+ * The orb is the lens (ADR-039 amendment, INT-491; owner, 16 Oct 2026:
+ * "orb=lens"): a deep sphere lit from the top left, a darker rim, a light that
+ * travels round the rim and a fainter, slower one the same way, a crisp edge,
+ * a still specular highlight, a soft glow behind it, and a clear Liquid Glass
+ * lens over it. The lens is the one clear glass on the stage: it sits on its
+ * own gradient with nothing on top, and only where the plan says glass.
+ *
+ * `classic` (a development build only, lib/stage/orbVariants) draws the
+ * earlier sphere: two angular gradients, softened by blur, now turning the
+ * same way (the owner's "FIXY"), so their pattern repeats below the 0.2 Hz
+ * band S1 cites.
  *
  * Every period comes from the S1 policy (`stageOrbMotion`), and none is a
  * literal of its own. SwiftUI runs the loops on the render server, so a busy
@@ -16,27 +23,18 @@
  * Decoration only: hidden from the accessibility tree. The turn state is
  * written on screen and announced.
  *
- * INT-491: behind the build's flag (lib/stage/orbVariants, off by default)
- * the same orb can draw one of three other bodies: a fluid blob, a particle
- * field or a refined glass lens. Each takes its plan from `orbVariantPlan`,
- * built from the same S1 motion, so each is still whenever the sphere is
- * (idle, rest, retry, Reduce Motion, a RED) and keeps the same bounds; every
- * period is the plan's. Off, the sphere is drawn exactly as before. Every
- * gradient, glow and lens of the variants is drawn here, so gradients stay in
- * the two stage drawing files (ADR-039 S2); their plain parts (the loops, a
- * lobe, a ring of points) are in VoiceOrbParts.tsx. Only the lens draws the
- * clear lens, and only where the plan says glass.
+ * The lens takes its plan from `lensPlan`, built from the same S1 motion, so
+ * it is still whenever the sphere was (idle, rest, retry, Reduce Motion, a
+ * RED) and keeps the same bounds; every period is the plan's.
  */
-import { Circle, Host, Mask, Rectangle, ZStack } from "@expo/ui/swift-ui";
+import { Circle, Host, Mask, ZStack } from "@expo/ui/swift-ui";
 import {
   Animation,
   animation,
   blur,
-  contrast,
   foregroundStyle,
   frame,
   glassEffect,
-  luminanceToAlpha,
   offset,
   opacity,
   rotationEffect,
@@ -46,27 +44,12 @@ import {
 import { useState } from "react";
 import { View } from "react-native";
 
-import type { StageOrbMotion } from "@/lib/stage/orb";
-import {
-  ORB_VARIANT_OFF,
-  orbVariantPlan,
-  type BlobBody as BlobPlan,
-  type DrawnVariant,
-  type FieldBody as FieldPlan,
-  type LensBody as LensPlan,
-  type OrbVariant,
-  type Turn,
-  type VariantPlan,
-} from "@/lib/stage/orbVariants";
+import { STAGE_ORB_SECOND_LAYER, type StageOrbMotion } from "@/lib/stage/orb";
+import { ORB_VARIANT_DEFAULT, lensPlan, type OrbVariant, type Turn } from "@/lib/stage/orbVariants";
 import type { StagePalette } from "@/lib/stage/palette";
-
-import { Lobe, Orbit, angleOf, breathLoop, turnLoop } from "./VoiceOrbParts";
 
 /** Loops run until the view goes away; SwiftUI takes a finite count. */
 const FOREVER = 100_000;
-
-/** The counter-turning layer turns this much slower than the front one. */
-const COUNTER_TURN = 1.6;
 
 /** The glow's blur radius, in points. */
 const GLOW_BLUR = 18;
@@ -77,7 +60,7 @@ interface VoiceOrbProps {
   readonly palette: StagePalette;
   /** False under Reduce Transparency: no lens, no glow. */
   readonly glass: boolean;
-  /** INT-491: the body the build's flag chose; absent or `classic` is the sphere. */
+  /** INT-491: the build's body; absent is the lens, `classic` the earlier sphere. */
   readonly variant?: OrbVariant;
 }
 
@@ -88,11 +71,11 @@ export function VoiceOrb(props: VoiceOrbProps) {
   // periods) is its own native view, and a new state starts its loops fresh.
   const { rotationPeriodS, breathe } = props.motion;
   const loops = `${rotationPeriodS ?? "still"}:${breathe?.periodS ?? "still"}`;
-  const variant = props.variant ?? ORB_VARIANT_OFF;
-  if (variant === ORB_VARIANT_OFF) {
+  const variant = props.variant ?? ORB_VARIANT_DEFAULT;
+  if (variant === "classic") {
     return <OrbBody key={loops} {...props} />;
   }
-  return <VariantBody key={`${variant}:${loops}`} {...props} variant={variant} />;
+  return <LensOrb key={`lens:${loops}`} {...props} />;
 }
 
 function OrbBody({ size, motion, palette, glass }: VoiceOrbProps) {
@@ -125,12 +108,16 @@ function OrbBody({ size, motion, palette, glass }: VoiceOrbProps) {
             turn,
           ),
         ];
-  const counterSpin =
+  // The second layer turns the same way, slower (the owner's "FIXY"): turned
+  // against the first, the pair repeated near 0.2 Hz.
+  const secondSpin =
     motion.rotationPeriodS === null
       ? []
       : [
           animation(
-            Animation.linear({ duration: motion.rotationPeriodS * COUNTER_TURN }).repeat({
+            Animation.linear({
+              duration: motion.rotationPeriodS * STAGE_ORB_SECOND_LAYER.periodFactor,
+            }).repeat({
               repeatCount: FOREVER,
               autoreverses: false,
             }),
@@ -207,8 +194,8 @@ function OrbBody({ size, motion, palette, glass }: VoiceOrbProps) {
               }),
               frame({ width: size * 0.82, height: size * 0.82 }),
               blur(size * 0.08),
-              rotationEffect(-turn),
-              ...counterSpin,
+              rotationEffect(turn * STAGE_ORB_SECOND_LAYER.direction),
+              ...secondSpin,
             ]}
           />
           <Circle
@@ -241,29 +228,61 @@ function OrbBody({ size, motion, palette, glass }: VoiceOrbProps) {
   );
 }
 
-const CENTRE = { x: 0.5, y: 0.5 };
-
-interface PartProps {
-  readonly size: number;
-  readonly palette: StagePalette;
-  readonly appeared: boolean;
+/** Loops of the lens: linear and endless, each period the plan's. */
+function turnLoop(turn: Turn | null, value: number) {
+  if (turn === null) {
+    return [];
+  }
+  const { periodS } = turn;
+  return [
+    animation(
+      Animation.linear({ duration: periodS }).repeat({
+        repeatCount: FOREVER,
+        autoreverses: false,
+      }),
+      value,
+    ),
+  ];
 }
 
-/** INT-491: a variant's body, drawn from its plan. */
-function VariantBody(props: VoiceOrbProps & { readonly variant: DrawnVariant }) {
-  const { size, motion, palette, glass, variant } = props;
+/** A breath: eased out and back, its full period the plan's. */
+function breathLoop(periodS: number | null, value: boolean) {
+  if (periodS === null) {
+    return [];
+  }
+  return [
+    animation(
+      Animation.easeInOut({ duration: periodS / 2 }).repeat({
+        repeatCount: FOREVER,
+        autoreverses: true,
+      }),
+      value,
+    ),
+  ];
+}
+
+/** Where a light stands: at rest, or one full turn on once it moves. */
+function angleOf(turn: Turn | null, appeared: boolean): number {
+  return appeared && turn !== null ? 360 : 0;
+}
+
+const CENTRE = { x: 0.5, y: 0.5 };
+
+/** INT-491: the lens, the orb ADR-039 names, drawn from its plan. */
+function LensOrb({ size, motion, palette, glass }: VoiceOrbProps) {
   // The loops start once SwiftUI has laid the view out, as the sphere's do.
   const [appeared, setAppeared] = useState(false);
-  const plan = orbVariantPlan(variant, motion, { glass });
+  const plan = lensPlan(motion, { glass });
   if (!plan.visible) {
     return null;
   }
   const glowBox = size * 1.8;
   const box = glowBox + GLOW_BLUR * 4;
-  const breathPeriodS = plan.breathe?.periodS ?? null;
   const breath = appeared && plan.breathe !== null;
-  const part = { size, palette, appeared };
-  const { body } = plan;
+  const [a, b, c, d] = palette.orb;
+  const sweep = angleOf(plan.sweep, appeared);
+  const caustic = angleOf(plan.caustic, appeared);
+  const square = frame({ width: size, height: size });
   return (
     <View
       pointerEvents="none"
@@ -279,7 +298,7 @@ function VariantBody(props: VoiceOrbProps & { readonly variant: DrawnVariant }) 
         <ZStack
           modifiers={[
             scaleEffect(breath && plan.breathe !== null ? plan.breathe.scale : 1),
-            ...breathLoop(breathPeriodS, breath),
+            ...breathLoop(plan.breathe?.periodS ?? null, breath),
           ]}
         >
           {palette.glow !== null ? (
@@ -298,214 +317,78 @@ function VariantBody(props: VoiceOrbProps & { readonly variant: DrawnVariant }) 
               ]}
             />
           ) : null}
-          {body.kind === "blob" ? (
-            <BlobBody body={body} breathPeriodS={breathPeriodS} {...part} />
-          ) : body.kind === "field" ? (
-            <FieldBody body={body} {...part} />
-          ) : (
-            <LensBody body={body} plan={plan} {...part} />
-          )}
+          <Circle
+            modifiers={[
+              foregroundStyle({
+                type: "radialGradient",
+                colors: [d, c, b, a],
+                center: { x: 0.36, y: 0.3 },
+                startRadius: 0,
+                endRadius: size * 0.82,
+              }),
+              square,
+            ]}
+          />
+          <Circle
+            modifiers={[
+              foregroundStyle({
+                type: "radialGradient",
+                colors: [`${a}00`, `${a}00`, `${a}66`],
+                center: CENTRE,
+                startRadius: 0,
+                endRadius: size * 0.5,
+              }),
+              square,
+            ]}
+          />
+          {/* The rim light rests low on the right, opposite the sheen, where a
+              lit glass ball catches the light coming through it. */}
+          <RimLight
+            size={size}
+            width={size * 0.08}
+            colors={[
+              "#FFFFFF00",
+              "#FFFFFFD9",
+              "#FFFFFF00",
+              "#FFFFFF00",
+              "#FFFFFF00",
+              "#FFFFFF00",
+              "#FFFFFF00",
+            ]}
+            angle={sweep}
+            turn={plan.sweep}
+          />
+          <RimLight
+            size={size}
+            width={size * 0.05}
+            colors={[`${d}00`, `${d}00`, `${d}00`, `${d}B3`, `${d}00`, `${d}00`]}
+            angle={caustic}
+            turn={plan.caustic}
+          />
+          <Sheen size={size} />
+          <Circle
+            modifiers={[
+              foregroundStyle("#FFFFFF00"),
+              square,
+              strokeBorder({
+                shape: "circle",
+                color: "#FFFFFF8C",
+                style: { lineWidth: size * plan.rim },
+              }),
+            ]}
+          />
+          {plan.lens ? (
+            <Circle
+              modifiers={[
+                foregroundStyle("#FFFFFF01"),
+                square,
+                glassEffect({ glass: { variant: "clear" }, shape: "circle" }),
+              ]}
+            />
+          ) : null}
         </ZStack>
       </Host>
     </View>
-  );
-}
-
-/**
- * The fluid blob: the sphere's turning colour, cut to a shape that flows.
- * The shape is a core and four lobes in white on black, melted by a blur and
- * cut again by a steep contrast, then read as the mask's alpha.
- */
-function BlobBody({
-  body,
-  breathPeriodS,
-  size,
-  palette,
-  appeared,
-}: PartProps & { readonly body: BlobPlan; readonly breathPeriodS: number | null }) {
-  const [a, b, c, d, e] = palette.orb;
-  const fill = angleOf(body.fill, appeared);
-  const second = angleOf(body.secondFill, appeared);
-  const square = frame({ width: size, height: size });
-  const core = size * body.core * 2;
-  return (
-    <Mask modifiers={[square]}>
-      <ZStack modifiers={[square]}>
-        <Circle
-          modifiers={[
-            foregroundStyle({ type: "angularGradient", colors: [a, b, c, d, e], center: CENTRE }),
-            square,
-            blur(size * 0.06),
-            rotationEffect(fill),
-            ...turnLoop(body.fill, fill),
-          ]}
-        />
-        <Circle
-          modifiers={[
-            foregroundStyle({
-              type: "angularGradient",
-              colors: [d, `${b}00`, c, `${d}00`, b, d],
-              center: CENTRE,
-            }),
-            frame({ width: size * 0.82, height: size * 0.82 }),
-            blur(size * 0.08),
-            rotationEffect(second),
-            ...turnLoop(body.secondFill, second),
-          ]}
-        />
-        <Sheen size={size} />
-      </ZStack>
-      <Mask.Content>
-        <ZStack
-          modifiers={[
-            square,
-            blur(size * body.softness),
-            contrast(body.edge),
-            luminanceToAlpha(),
-            // SwiftUI blurs at a lower resolution, and the steep contrast
-            // shows its steps; a hairline blur smooths the cut edge again.
-            blur(size * body.smoothing),
-          ]}
-        >
-          <Rectangle modifiers={[foregroundStyle("#000000"), square]} />
-          <Circle modifiers={[foregroundStyle("#FFFFFF"), frame({ width: core, height: core })]} />
-          {body.lobes.map((lobe) => (
-            <Lobe
-              key={lobe.angle}
-              lobe={lobe}
-              size={size}
-              appeared={appeared}
-              breathPeriodS={breathPeriodS}
-            />
-          ))}
-        </ZStack>
-      </Mask.Content>
-    </Mask>
-  );
-}
-
-/** The particle field: face-on rings of points turning round a soft nucleus. */
-function FieldBody({ body, size, palette, appeared }: PartProps & { readonly body: FieldPlan }) {
-  const [a, b, c, d] = palette.orb;
-  // The ring inks are the orb's stops that hold up on both washes; the
-  // palest stop is the nucleus's light.
-  const inks = [c, b, c, a];
-  const nucleus = size * body.nucleus;
-  return (
-    <ZStack modifiers={[frame({ width: size, height: size })]}>
-      <Circle
-        modifiers={[
-          foregroundStyle({
-            type: "radialGradient",
-            colors: [d, `${b}B3`, `${a}00`],
-            center: CENTRE,
-            startRadius: 0,
-            endRadius: nucleus,
-          }),
-          frame({ width: nucleus * 2, height: nucleus * 2 }),
-          blur(size * 0.02),
-        ]}
-      />
-      {body.orbits.map((orbit, i) => (
-        <Orbit
-          key={orbit.radius}
-          orbit={orbit}
-          ink={inks[i % inks.length]}
-          size={size}
-          appeared={appeared}
-        />
-      ))}
-    </ZStack>
-  );
-}
-
-/**
- * The refined lens: a deep sphere lit from above, a light that sweeps its rim
- * and a fainter, slower one, a crisp edge, and the clear lens over it.
- */
-function LensBody({
-  body,
-  plan,
-  size,
-  palette,
-  appeared,
-}: PartProps & { readonly body: LensPlan; readonly plan: VariantPlan }) {
-  const [a, b, c, d] = palette.orb;
-  const sweep = angleOf(body.sweep, appeared);
-  const caustic = angleOf(body.caustic, appeared);
-  const square = frame({ width: size, height: size });
-  return (
-    <ZStack modifiers={[square]}>
-      <Circle
-        modifiers={[
-          foregroundStyle({
-            type: "radialGradient",
-            colors: [d, c, b, a],
-            center: { x: 0.36, y: 0.3 },
-            startRadius: 0,
-            endRadius: size * 0.82,
-          }),
-          square,
-        ]}
-      />
-      <Circle
-        modifiers={[
-          foregroundStyle({
-            type: "radialGradient",
-            colors: [`${a}00`, `${a}00`, `${a}66`],
-            center: CENTRE,
-            startRadius: 0,
-            endRadius: size * 0.5,
-          }),
-          square,
-        ]}
-      />
-      {/* The rim light rests low on the right, opposite the sheen, where a
-          lit glass ball catches the light coming through it. */}
-      <RimLight
-        size={size}
-        width={size * 0.08}
-        colors={[
-          "#FFFFFF00",
-          "#FFFFFFD9",
-          "#FFFFFF00",
-          "#FFFFFF00",
-          "#FFFFFF00",
-          "#FFFFFF00",
-          "#FFFFFF00",
-        ]}
-        angle={sweep}
-        turn={body.sweep}
-      />
-      <RimLight
-        size={size}
-        width={size * 0.05}
-        colors={[`${d}00`, `${d}00`, `${d}00`, `${d}B3`, `${d}00`, `${d}00`]}
-        angle={caustic}
-        turn={body.caustic}
-      />
-      <Sheen size={size} />
-      <Circle
-        modifiers={[
-          foregroundStyle("#FFFFFF00"),
-          square,
-          strokeBorder({
-            shape: "circle",
-            color: "#FFFFFF8C",
-            style: { lineWidth: size * body.rim },
-          }),
-        ]}
-      />
-      {plan.lens ? (
-        <Circle
-          modifiers={[
-            foregroundStyle("#FFFFFF01"),
-            square,
-            glassEffect({ glass: { variant: "clear" }, shape: "circle" }),
-          ]}
-        />
-      ) : null}
-    </ZStack>
   );
 }
 

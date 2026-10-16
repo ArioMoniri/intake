@@ -3789,3 +3789,30 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. The owner's approval list is `library-patterns.md` §6.4.
 - Next: the owner reviews the gifs and picks a variant, or none.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T03:20:00+03:00 · INT-491 · done (PR #842 open, not merged; stacked on #808; owner decision applied)
+- Goal: the owner's reply, 16 Oct 2026, via the orchestrator: "orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y":
+  - the lens ships as the orb;
+  - the sphere's counter-turn beat is fixed;
+  - nothing on the approval list ships, and the blob and the field leave no code;
+  - an ADR-039 amendment and D29.
+- Plan:
+  - Merge origin/main (3afc5a29) into the branch: keep both sides; counts 353; regenerate files/11.
+  - Tests first, then the policy (one-way layers, the band, the lens plan), the drawing, the welcome mark, the deletions, the archive and the records.
+- Tests added (with the near-miss negative for any safety rule):
+  - `orb.test.ts` (near miss: counter-turning falls inside the 0.15–0.25 Hz band while listening and speaking);
+  - `orbVariants.test.ts` (near miss: listening with no RED moves);
+  - `orbVariants.spec.ts` (near misses: a written-back counter-turn and a leftover body would be caught);
+  - `test_adr_039.py` (the amendment and D29);
+  - RED run: 31 failed / 70 passed; docs 2 failed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - mobile vitest 152 files, 3164 tests; typecheck clean; lint 0 errors; docs, backlog and smoke tests pass; `no_placeholders` after staging;
+  - `check-integration` CI-only.
+- Invariants touched and still passing:
+  - 9 (spirit): the orb awaits nothing.
+  - 21: RED makes the orb still; no RED file reads the stage.
+  - 2, 10 and 22: no copy changes.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-039 amendment (Accepted, 16 Oct 2026); **D29**.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: merge after #808; CI runs once the stack is mergeable.
+- LOOP_STATUS: DONE

@@ -1,28 +1,32 @@
 /**
- * INT-491: the orb variants' wiring (GitHub #838).
+ * INT-491: the orb's body, wired (GitHub #838; ADR-039 amendment, owner
+ * 16 Oct 2026: "orb=lens … FIXY").
  *
- * The bounds are proved on the pure plan in lib/stage/orbVariants.test.ts.
- * This spec holds what the source alone can show:
+ * The bounds are proved on the pure plans in lib/stage/orb.test.ts and
+ * lib/stage/orbVariants.test.ts. This spec holds what the source alone can
+ * show:
  *
- * - flag off, the orb is unchanged: the sphere's body is byte-for-byte the
- *   ADR-039 one, the dialogue still passes the S1 motion untouched, and the
- *   welcome mark never takes a variant;
+ * - the lens is the orb: the default body, on the dialogue and on the welcome
+ *   mark, and the only one a production build can draw; `classic` names the
+ *   earlier sphere for development only;
+ * - the sphere's two layers turn one way, read from the policy, and its body
+ *   is pinned by its sha256;
  * - the flag is read in one place, through the pure parser, from build-time
  *   config;
- * - a variant body draws only from its plan: every period is the plan's,
- *   the clear lens is drawn only where the plan says, and it is decoration
- *   that nothing waits on;
- * - every gradient of the variants is drawn in the one orb drawing file, so
- *   the gradient allow-list (ADR-039 S2) does not grow; their plain parts
- *   (VoiceOrbParts.tsx) draw no gradient and no glass, and only the iOS orb
- *   imports them.
+ * - the lens draws only from its plan: every period is the plan's, the clear
+ *   lens is drawn only where the plan says, and it is decoration nothing waits
+ *   on;
+ * - the blob and the particle field the exploration built left no runtime
+ *   code; their captures live in docs/design/orb-variants/;
+ * - every gradient stays in the two stage drawing files (ADR-039 S2).
  */
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const MOBILE = join(__dirname, "..");
+const REPO = join(MOBILE, "..", "..");
 
 /** Code only: comments explain what a file avoids, and a guard reads what it does. */
 const code = (text: string): string =>
@@ -48,12 +52,12 @@ const TREE = walk(join(MOBILE, "src"))
 
 const ORB_IOS = "src/components/stage/VoiceOrb.ios.tsx";
 const ORB_OTHER = "src/components/stage/VoiceOrb.tsx";
-const PARTS = "src/components/stage/VoiceOrbParts.tsx";
 const PRESENCE = "src/components/PresenceOrb.tsx";
 const DIALOGUE = "src/components/DialogueIntake.tsx";
 const WELCOME = "src/app/(auth)/welcome.tsx";
 const POLICY = "src/lib/stage/orbVariants.ts";
 const FLAG = "src/lib/stage/expoOrbVariant.ts";
+const ARCHIVE = join(REPO, "docs", "design", "orb-variants");
 
 /**
  * The top-level function `name` in `text`, through its closing line: up to a
@@ -69,31 +73,20 @@ function topLevel(text: string, name: string): string {
 
 const sha256 = (text: string): string => createHash("sha256").update(text).digest("hex");
 
-describe("flag off: the orb is the ADR-039 sphere, unchanged", () => {
-  it("the sphere's body is byte-for-byte the one ADR-039 shipped", () => {
-    // Pinned on INT-491's base (#808). A change to the sphere is a change to
-    // ADR-039 S1, not a side effect of a variant: update this hash only with
-    // that decision.
-    const body = topLevel(raw(ORB_IOS), "OrbBody");
-    expect(sha256(body)).toBe("18d54e06da8767e031d1fdf478f8f2e2718dee961157fa556ce65ad994ecb758");
-    const orb = source(ORB_IOS);
-    expect(orb).toMatch(/const FOREVER = 100_000;/);
-    expect(orb).toMatch(/const COUNTER_TURN = 1\.6;/);
-    expect(orb).toMatch(/const GLOW_BLUR = 18;/);
-  });
-
-  it("the classic variant renders that body, keyed as before, with the motion it was given", () => {
+describe("the lens is the orb (ADR-039 amendment: orb=lens)", () => {
+  it("an absent variant is the lens; only `classic` draws the sphere", () => {
     const voice = topLevel(source(ORB_IOS), "VoiceOrb");
-    expect(voice).toMatch(/props\.variant \?\? ORB_VARIANT_OFF/);
+    expect(voice).toMatch(/props\.variant \?\? ORB_VARIANT_DEFAULT/);
     expect(voice).toMatch(
-      /if \(variant === ORB_VARIANT_OFF\) \{\s*return <OrbBody key=\{loops\} \{\.\.\.props\} \/>;/,
+      /if \(variant === "classic"\) \{\s*return <OrbBody key=\{loops\} \{\.\.\.props\} \/>;/,
     );
+    expect(voice).toMatch(/return <LensOrb key=\{`lens:\$\{loops\}`\} \{\.\.\.props\} \/>;/);
     expect(voice).toMatch(
       /const loops = `\$\{rotationPeriodS \?\? "still"\}:\$\{breathe\?\.periodS \?\? "still"\}`;/,
     );
   });
 
-  it("the dialogue still hands the orb the S1 motion untouched, and the variant beside it", () => {
+  it("the dialogue hands the orb the S1 motion untouched, and the build's body beside it", () => {
     const dialogue = source(DIALOGUE);
     expect(dialogue).toMatch(
       /const stageMotion = stageOrbMotion\(orbState, \{ reduce: reduceMotion, redPresented: false \}\)/,
@@ -103,16 +96,43 @@ describe("flag off: the orb is the ADR-039 sphere, unchanged", () => {
     expect(source(PRESENCE)).toMatch(/variant=\{stage\.variant\}/);
   });
 
-  it("the welcome mark never takes a variant: it is the sphere drawn still (ADR-039 S7)", () => {
+  it("the welcome mark is the same orb drawn still (ADR-039 S7)", () => {
     const welcome = source(WELCOME);
-    expect(welcome).toMatch(/<VoiceOrb\b/);
-    expect(welcome).not.toMatch(/\bvariant\b|orbVariant|ORB_VARIANT/);
+    expect(welcome).toMatch(/<VoiceOrb\b[^>]*motion=\{stillOrb\(\)\}[^>]*variant=\{ORB_VARIANT\}/);
+    expect(welcome).toMatch(/import \{ ORB_VARIANT \} from "@\/lib\/stage\/expoOrbVariant";/);
   });
 
-  it("off iOS the orb stays the still disc for every variant", () => {
+  it("off iOS the orb stays the still disc, whatever the body", () => {
     const other = source(ORB_OTHER);
-    expect(other).not.toMatch(/orbVariantPlan|\bvariant ===/);
+    expect(other).not.toMatch(/lensPlan|\bvariant ===/);
     expect(other).toMatch(/backgroundColor: palette\.orb\[1\]/);
+  });
+});
+
+describe("the sphere's layers turn one way (ADR-039 amendment: FIXY)", () => {
+  it("the second layer reads its factor and its direction from the policy", () => {
+    const sphere = topLevel(source(ORB_IOS), "OrbBody");
+    expect(sphere).not.toMatch(/rotationEffect\(-/);
+    expect(sphere).toMatch(/rotationEffect\(turn \* STAGE_ORB_SECOND_LAYER\.direction\)/);
+    expect(sphere).toMatch(
+      /duration: motion\.rotationPeriodS \* STAGE_ORB_SECOND_LAYER\.periodFactor/,
+    );
+    expect(source(ORB_IOS)).not.toMatch(/\bCOUNTER_TURN\b/);
+  });
+
+  it("near miss: a counter-turn written back would be caught", () => {
+    const bad = "rotationEffect(-turn),";
+    expect(bad).toMatch(/rotationEffect\(-/);
+  });
+
+  it("the sphere's body is pinned: a change to it is a change to ADR-039 S1", () => {
+    // Pinned after the owner's FIXY (16 Oct 2026). Update this hash only with
+    // an ADR-039 decision.
+    const body = topLevel(raw(ORB_IOS), "OrbBody");
+    expect(sha256(body)).toBe("02373dde5bcac515d041c9fecfd13f7e61233a68462a320114b664c68ebdd304");
+    const orb = source(ORB_IOS);
+    expect(orb).toMatch(/const FOREVER = 100_000;/);
+    expect(orb).toMatch(/const GLOW_BLUR = 18;/);
   });
 });
 
@@ -139,63 +159,77 @@ describe("the flag is read once, from build-time config, through the pure parser
   });
 });
 
-describe("a variant draws only from its plan", () => {
-  it("the variant body takes its plan from orbVariantPlan and the S1 motion", () => {
-    const body = topLevel(source(ORB_IOS), "VariantBody");
-    expect(body).toMatch(/orbVariantPlan\(variant, motion, \{ glass \}\)/);
-    expect(body).toMatch(/if \(!plan\.visible\) \{\s*return null;/);
+describe("the lens draws only from its plan", () => {
+  it("it takes its plan from lensPlan and the S1 motion", () => {
+    const lens = topLevel(source(ORB_IOS), "LensOrb");
+    expect(lens).toMatch(/lensPlan\(motion, \{ glass \}\)/);
+    expect(lens).toMatch(/if \(!plan\.visible\) \{\s*return null;/);
   });
 
-  it("every loop's period is read from the plan, never written", () => {
-    const orb = source(ORB_IOS) + source(PARTS);
+  it("every loop's period is read from the policy or the plan, never written", () => {
+    const orb = source(ORB_IOS);
     expect(orb).not.toMatch(/duration:\s*\d/);
     const durations = [...orb.matchAll(/duration:\s*([^,}\n]+)/g)].map((m) => m[1].trim());
     expect(durations.length).toBeGreaterThan(2);
     for (const value of durations) {
       expect(value).toMatch(
-        /^(?:motion\.rotationPeriodS(?: \* COUNTER_TURN)?|motion\.breathe\.periodS \/ 2|periodS(?: \/ 2)?)$/,
+        /^(?:motion\.rotationPeriodS(?: \* STAGE_ORB_SECOND_LAYER\.periodFactor)?|motion\.breathe\.periodS \/ 2|periodS(?: \/ 2)?)$/,
       );
     }
   });
 
-  it("the clear lens is drawn by the sphere under `glass` and by a variant only under plan.lens", () => {
+  it("the clear lens is drawn by the sphere under `glass` and by the lens only under plan.lens", () => {
     const orb = source(ORB_IOS);
     expect(orb.match(/glassEffect\(/g)).toHaveLength(2);
-    const sphere = topLevel(orb, "OrbBody");
-    expect(sphere).toMatch(/\{glass \? \(\s*<Circle[\s\S]*?glassEffect\(/);
-    const lens = topLevel(orb, "LensBody");
-    expect(lens).toMatch(/\{plan\.lens \? \(\s*<Circle[\s\S]*?glassEffect\(/);
-    for (const name of ["BlobBody", "FieldBody"]) {
-      expect(topLevel(orb, name), name).not.toMatch(/glassEffect\(/);
-    }
-    expect(source(PARTS)).not.toMatch(/glassEffect\(/);
+    expect(topLevel(orb, "OrbBody")).toMatch(/\{glass \? \(\s*<Circle[\s\S]*?glassEffect\(/);
+    expect(topLevel(orb, "LensOrb")).toMatch(/\{plan\.lens \? \(\s*<Circle[\s\S]*?glassEffect\(/);
   });
 
-  it("a variant is decoration: hidden from the accessibility tree, not pressable, and nothing waits on it", () => {
-    const body = topLevel(source(ORB_IOS), "VariantBody");
-    expect(body).toMatch(/pointerEvents="none"/);
-    expect(body).toMatch(/\baccessibilityElementsHidden\b/);
-    expect(body).toMatch(/importantForAccessibility="no-hide-descendants"/);
-    const orb = source(ORB_IOS) + source(PARTS);
+  it("the lens is decoration: hidden from the accessibility tree, not pressable, nothing waits on it", () => {
+    const lens = topLevel(source(ORB_IOS), "LensOrb");
+    expect(lens).toMatch(/pointerEvents="none"/);
+    expect(lens).toMatch(/\baccessibilityElementsHidden\b/);
+    expect(lens).toMatch(/importantForAccessibility="no-hide-descendants"/);
+    const orb = source(ORB_IOS);
     expect(orb).not.toMatch(/\bPressable\b|\bonPress\b|\bawait\b|\.then\(|\bPromise\b/);
     // The only callback is the Host's first layout, which starts the loops.
     const callbacks = [...orb.matchAll(/\b(on[A-Z]\w*)=/g)].map((m) => m[1]);
     expect(new Set(callbacks)).toEqual(new Set(["onLayoutContent"]));
   });
 
-  it("every variant gradient is drawn in the orb's one drawing file, so the gradient allow-list does not grow", () => {
+  it("gradients stay in the two stage drawing files (ADR-039 S2)", () => {
     const GRADIENT = /\b(?:linear|radial|angular)Gradient\b|\bLinearGradient\b/;
     const drawing = TREE.filter((f) => GRADIENT.test(code(f.source))).map((f) => f.name);
     expect(drawing.sort()).toEqual(
       ["src/components/stage/AmbientBackdrop.ios.tsx", ORB_IOS].sort(),
     );
-    expect(GRADIENT.test(source(PARTS))).toBe(false);
+  });
+});
+
+describe("the blob and the particle field are not shipped (owner: O2-O9 N)", () => {
+  it("no runtime code is left for them", () => {
+    const LEFTOVER =
+      /\b(?:BlobBody|FieldBody|fieldDots|FieldOrbit|BlobLobe|VoiceOrbParts)\b|"blob"|"field"/;
+    expect(TREE.filter((f) => LEFTOVER.test(code(f.source))).map((f) => f.name)).toEqual([]);
+    expect(existsSync(join(MOBILE, "src/components/stage/VoiceOrbParts.tsx"))).toBe(false);
   });
 
-  it("the plain parts are the iOS orb's alone", () => {
-    const importers = TREE.filter((f) =>
-      /from "\.\/VoiceOrbParts"|stage\/VoiceOrbParts"/.test(code(f.source)),
-    ).map((f) => f.name);
-    expect(importers).toEqual([ORB_IOS]);
+  it("near miss: a leftover body would be found", () => {
+    expect(/\bBlobBody\b/.test("function BlobBody() {}")).toBe(true);
+  });
+
+  it("their captures are archived in the docs, and library-patterns §6 points at them", () => {
+    for (const name of [
+      "blob-listening-light.jpg",
+      "blob-listening-dark.jpg",
+      "field-listening-light.jpg",
+      "field-listening-dark.jpg",
+      "blob-cycle-dark.gif",
+      "field-cycle-dark.gif",
+    ]) {
+      expect(existsSync(join(ARCHIVE, name)), name).toBe(true);
+    }
+    const map = readFileSync(join(REPO, "docs", "design", "library-patterns.md"), "utf8");
+    expect(map).toContain("docs/design/orb-variants/");
   });
 });

@@ -21,6 +21,12 @@ RESEARCH = REPO / "docs" / "design" / "liquid-glass-research.md"
 
 OWNER_QUOTE = '"yes to all"'
 
+# INT-491 (GitHub #838): the owner's reply of 16 Oct 2026, verbatim.
+LENS_QUOTE = '"orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N LD6Y"'
+LENS_HEADING = (
+    "## Amendment — the lens is the orb, and its layers turn one way (INT-491, 16 Oct 2026)"
+)
+
 
 def _adr() -> str:
     matches = sorted(ADR_DIR.glob("ADR-039-*.md"))
@@ -165,3 +171,43 @@ def test_registered_in_the_index_and_the_state_file() -> None:
     row = next((line for line in decisions.splitlines() if line.startswith("| **D23**")), None)
     assert row is not None, "files/00 §3 has no D23 row"
     assert "ADR-039" in row and OWNER_QUOTE in row
+
+
+def test_amendment_the_lens_orb_and_one_way_turns() -> None:
+    """INT-491: the owner chose the lens and the one-way fix, and said no to the rest."""
+    amendment = _section(_adr(), LENS_HEADING)
+    for needle in (
+        "Accepted",
+        "16 Oct 2026",
+        LENS_QUOTE,
+        "orchestrator",
+        "lens",
+        "one way",
+        "0.2 Hz",
+        "0.15",
+        "1.06",
+        "+10 %",
+        "Reduce Motion",
+        "RED",
+        "`classic`",
+        "production",
+        "blob",
+        "particle field",
+        "not shipped",
+        "D29",
+        "orb.test.ts",
+        "orbVariants.test.ts",
+        "orbVariants.spec.ts",
+        "releaseConfig.spec.ts",
+    ):
+        assert needle in amendment, f"the INT-491 amendment lost {needle!r}"
+
+
+def test_d29_records_the_lens_orb() -> None:
+    state = STATE.read_text(encoding="utf-8")
+    decisions = _section(state, "## 3. Decisions")
+    row = next((line for line in decisions.splitlines() if line.startswith("| **D29**")), None)
+    assert row is not None, "files/00 §3 has no D29 row"
+    assert "ADR-039" in row and LENS_QUOTE in row and "INT-491" in row
+    changelog = _section(state, "## 8. Changelog")
+    assert "D29" in changelog

@@ -27,6 +27,10 @@
  * tagline) over the still stage backdrop; the phone sign-in and the
  * disclaimer in a tray at the bottom; the synthetic accounts as a grouped
  * inset list on the stage card. Nothing moves: the glass action is inert.
+ *
+ * INT-491: the mark is the same orb the dialogue shows, drawn still: the lens
+ * (ADR-039 amendment, owner 16 Oct 2026: "orb=lens"), or in a development
+ * build that names it, the earlier sphere.
  */
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -44,6 +48,7 @@ import { verticalSlop } from "@/lib/a11y/target";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
 import { appLocaleChooser, chooseFromChooser } from "@/lib/locale/chooser";
 import { useSession } from "@/lib/session";
+import { ORB_VARIANT } from "@/lib/stage/expoOrbVariant";
 import { stillOrb } from "@/lib/stage/orb";
 import type { StagePalette } from "@/lib/stage/palette";
 import { radius, spacing } from "@/lib/theme";
@@ -174,6 +179,7 @@ export default function Welcome() {
             motion={stillOrb()}
             palette={palette}
             glass={glassMode === "liquid"}
+            variant={ORB_VARIANT}
           />
           <AppText role="hero" heading style={[styles.centred, { color: palette.ink }]}>
             {t("app.name")}

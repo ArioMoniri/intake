@@ -6886,20 +6886,24 @@
 - id: INT-491
   epic: E08-mobile
   phase: P1
-  title: "Orb variants behind a flag: a fluid blob, a particle field and a refined glass lens, inside ADR-039 S1's bounds"
+  title: "The lens is the orb: the refined glass lens replaces the sphere inside ADR-039 S1's bounds, every orb layer turns one way"
   # GitHub #838. Owner request, 4 Oct 2026: explore the blob, the question
   # count and the other parts against spaceui.one and the motion libraries.
-  # Three bodies for the stage orb, chosen by a build-time flag that is off by
-  # default and never reaches a production build; the sphere is unchanged.
-  # Stacked on INT-473 (#808).
+  # Three bodies were built behind a development flag (a fluid blob, a
+  # particle field, a refined glass lens). Owner decision, 16 Oct 2026, in
+  # chat: "orb=lens O2N O3N O4N O5N O6N O7N O8N O9N FIXY P1N P2N P3N P4N P5N
+  # LD6Y" -> the lens ships as the orb, the sphere's counter-turn is fixed,
+  # nothing on the approval list ships (ADR-039 amendment, D29). Stacked on
+  # INT-473 (#808).
   depends_on: [INT-328, INT-131]
   labels: [area:mobile]
   status: done
   evidence: docs/evidence/INT-491.md
   acceptance:
-    - "every component page of spaceui.one, and the orb, particle, glass and counter pages of kinetics, beUI, transitions.dev, reverseui and kobra, are mined with each licence read from its raw blob and its sha256 recorded; the Siri, ChatGPT and Gemini voice orbs and Mobbin voice screens are surveyed; nothing is copied, every variant is rebuilt in SwiftUI with no new dependency"
-    - "three variants (blob, field, lens) map listening, speaking and thinking to motion through the ADR-039 S1 policy: breath at most 1.06x, swell at most +10 % while listening, no breath under 1.2 s, no turn under 3 s, every part inside the orb's circle, every part turning one way; still in idle, rest and retry, under Reduce Motion and under any RED"
-    - "the flag is EXPO_PUBLIC_ORB_VARIANT through extra.orbVariant, read once; unset, empty or unknown is the sphere, whose body is pinned byte for byte; the production profile never carries a variant; no variant draws glass on a solid surface (Reduce Transparency, capture-protected screens); RED and the verbatim question text are untouched"
-    - "light and dark captures and a state-cycle gif per variant; a component-to-screen map with source URLs in docs/design/library-patterns.md section 6, with every motion beyond the bounds listed for the owner as approval needed"
-  tests: [apps/mobile/src/lib/stage/orbVariants.test.ts, apps/mobile/e2e/orbVariants.spec.ts, apps/mobile/e2e/releaseConfig.spec.ts, apps/mobile/e2e/chatStage.spec.ts]
+    - "every component page of spaceui.one, and the orb, particle, glass and counter pages of kinetics, beUI, transitions.dev, reverseui and kobra, are mined with each licence read from its raw blob and its sha256 recorded; the Siri, ChatGPT and Gemini voice orbs and Mobbin voice screens are surveyed; nothing is copied and no dependency is added"
+    - "the lens is the orb on the dialogue and, still, on the welcome mark, through the ADR-039 S1 policy: breath at most 1.06x, swell at most +10 % while listening, no breath under 1.2 s, no turn under 3 s; still in idle, rest and retry, under Reduce Motion and under any RED; the clear lens only over glass, never on a capture-protected screen"
+    - "every orb layer turns one way: the sphere's second layer and the lens's rim lights repeat their pattern below the 0.15-0.25 Hz band around 0.2 Hz, pinned with a near miss (counter-turning falls inside it); the sphere's body is pinned by sha256"
+    - "the flag only lets a development or preview build name `classic`; production always draws the lens; the blob and the particle field leave no runtime code and their captures are archived in docs/design/orb-variants/; nothing on the approval list ships"
+    - "an ADR-039 amendment, Accepted, quotes the owner's reply and date; D29 and a changelog line in files/00_STATE.md; light and dark captures of the lens listening, speaking and thinking"
+  tests: [apps/mobile/src/lib/stage/orb.test.ts, apps/mobile/src/lib/stage/orbVariants.test.ts, apps/mobile/e2e/orbVariants.spec.ts, apps/mobile/e2e/releaseConfig.spec.ts, apps/mobile/e2e/chatStage.spec.ts, tests/docs/test_adr_039.py]
   sec_row: "mobile"

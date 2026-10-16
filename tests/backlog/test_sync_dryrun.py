@@ -123,7 +123,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
-    # + INT-491 (orb variants behind a flag, owner request, GitHub #838)
+    # + INT-491 (the lens is the orb, owner request and decision, GitHub #838)
     assert len(actions) == 353
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
