@@ -849,6 +849,12 @@ it or whose tests exercise it.
   INT-406, with `clinic_red_inbox_pending_age_s` and `clinic_red_inbox_route_failures_total`
   for the 60 s half; the last three page through `infra/observability/safety-rules.yaml`
   (`docs/runbooks/red-acknowledgement.md`), and the latency histogram is the measurement.
+- **Generic RED and the synthetic serve path (INT-465, D23 with D18).** The generic escalation
+  is CD-24's copy, active, with per-location sources checked against committed snapshots and no
+  112 in any ON_SITE carrier; RED text is rendered (markers removed, tenant segment resolved or
+  dropped) before any screen or TTS. On the synthetic host only, a test-key signature stands in
+  for the physician sign-off (HB-C1 unchanged for every real tenant); draft rules are never
+  served. Tests: `tests/safety/test_generic_red_goldens.py`, `tests/protocols/test_generic_red.py`.
 - **Tests:** golden suite with near-miss negatives and mutation tests land with INT-059;
   preemption timing with INT-093. `red_acknowledgement_sla_guard` (inv. 49) is owned by
   INT-406: `tests/safety/test_red_acknowledgement_sla.py` (fake clocks: entry ≤ 60 s with no
@@ -987,6 +993,19 @@ it or whose tests exercise it.
   INT-058/INT-184.
 - **Tests:** load-time signature verification lands with INT-058; quarantine drill with the
   pack-lifecycle issues.
+- **Synthetic-only test key (INT-465, D23).** [S/E] a test signature trusted where a real
+  patient may be. Control: the red rule set of the synthetic AWS host is signed by an ed25519
+  key held non-exportable in OpenBao Transit there, used only through a sign-only token; the
+  public half is the only key in `packages/protocols/signing/trusted_keys.yaml`, whose one scope
+  is `synthetic_test`. `intake_platform.red_signature.admitted_scopes` is an allow-list keyed on
+  the synthetic tenant kind alone and runs before any cryptography, and the API refuses to boot
+  with a synthetic tenant unless `INTAKE_ENV` is explicitly `dev` or `staging`. The signature
+  binds the exact bytes parsed (each document read once), the served rule list and the one host
+  it is for (`deployment`, which a synthetic tenant config must name). This is not
+  the production path (cosign, INT-058, untouched). Signal: a refusal logs its id-shaped code
+  (`intake_api.triage_rules`). Tests: `tests/protocols/test_red_signature.py` (every
+  non-synthetic tenant config rejects the key), `tests/api/test_triage_tenant_kind.py`,
+  `tests/api/test_triage_hop.py`, `tests/infra/test_red_signing_infra.py`.
 
 ## `llm-boundary` — model calls behind gateways
 

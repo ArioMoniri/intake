@@ -113,8 +113,14 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
     # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
+    # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
+    # + INT-460 (second admin approver: a second Keycloak user, GitHub #785)
+    # + INT-453 (RED path triggers the winning rule's script, found by INT-446, GitHub #767)
+    # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
+    # + INT-465 (generic RED active from CD-24; synthetic-only test-key signature, GitHub #794)
+    # + INT-424 (delivery profiles v2 + expressive-model ADR proposal, GitHub #719)
     # + INT-430 (the agent council as a post-bind verifier, GitHub #732)
-    assert len(actions) == 343
+    assert len(actions) == 349
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -23,6 +23,7 @@ import httpx
 import numpy as np
 import pytest
 from voice_clips.delivery import DeliveryProfileError, delivery_profile
+from voice_clips.gateway import MarkupInScriptError
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO / "scripts" / "voice"
@@ -115,7 +116,8 @@ def test_the_casting_table_is_the_served_table() -> None:
 def test_no_tag_is_in_the_catalogue_and_a_tagged_line_is_still_refused() -> None:
     assert not any("[" in line.text_tr for line in cast.LINES)
     tagged = cast.CatalogueLine("welcome", "[warmly] " + cast.LINES[0].text_tr, cast.TR_TS)
-    with pytest.raises(cast.CastRefused, match="markup"):
+    # the shared gate refuses markup first (INT-424), the tool's own check after
+    with pytest.raises((MarkupInScriptError, cast.CastRefused), match="markup"):
         cast.verify_lines([tagged], read_ref=lambda ref, path: None)
 
 

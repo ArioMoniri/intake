@@ -20,7 +20,11 @@ import numpy as np
 import pytest
 from protocols.dsl import clip_text_hash
 from voice_clips.delivery import CLIPGEN_VOICE_ID, delivery_profile
-from voice_clips.gateway import ElevenLabsClipGenGateway, NumeralInScriptError
+from voice_clips.gateway import (
+    ElevenLabsClipGenGateway,
+    MarkupInScriptError,
+    NumeralInScriptError,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO / "scripts" / "voice"
@@ -142,7 +146,8 @@ def test_the_set_is_loaded_and_every_entry_checked(tmp_path: Path) -> None:
 def test_an_entry_outside_the_rules_refuses_the_whole_set(
     tmp_path: Path, entry: dict[str, str], error: str
 ) -> None:
-    with pytest.raises(rcc.RenderRefused, match=error):
+    # markup meets the shared gate first (INT-424), the tool's own check after
+    with pytest.raises((MarkupInScriptError, rcc.RenderRefused), match=error):
         rcc.load_set(_set_file(tmp_path, [*SET, entry]))
 
 

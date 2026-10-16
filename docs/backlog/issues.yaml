@@ -6692,6 +6692,129 @@
     - "tests/ci/test_aws_runner.py pins the pool contract (every INT-463 isolation assertion, per instance, plus the netns and peer isolation); on the PR, jobs are picked up by more than one runner and two check-integration jobs run concurrently on two runners and pass (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/ci/test_aws_runner_pool.py]
   sec_row: "cicd"
+- id: INT-500
+  epic: E13-infra
+  phase: P0
+  title: "Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako"
+  # GitHub #851. On 16 Oct 2026 the required vulnerabilities job went red on
+  # main 3afc5a29. Trivy found four advisories, all with fixed releases, and
+  # every PR was blocked. osv-scanner also flagged mako in uv.lock. Each one is
+  # upgraded, not ignored (the INT-429 pattern). The issue body's "supply-chain"
+  # names no threat-model row, so the row is cicd, as it was for INT-429.
+  depends_on: [INT-429]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-500.md
+  acceptance:
+    - "shell-quote, compression and source-map-js are raised by root pnpm.overrides floors and next by admin-web's exact pin, all to their fixed releases; mako is raised in uv.lock; no .trivyignore.yaml or osv-scanner.toml entry is added, and tests/ci/test_security_gates.py pins every floor and the absence of any suppression"
+    - "trivy 0.70.0 and osv-scanner 2.5.1, run with the vulnerabilities job's own invocations, report no finding on the PR tree (evidence, before and after)"
+    - "the mobile, admin-web and package vitest suites, pnpm -r typecheck and lint, and admin-web's next build pass; the licence gate passes for the changed packages"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
+- id: INT-460
+  epic: E12-admin
+  phase: P1
+  title: "Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer"
+  # GitHub #785. Owner request, 3 Oct 2026. The brief proposed a second
+  # INT-197 dev-bearer admin. The investigation found that the console admits
+  # only Keycloak tokens (INT-180), and that INT-325 refuses a non-dev boot
+  # with any dev flag set. That design could not add an approver and would
+  # stop the staging API. The existing path is a second Keycloak user, so no
+  # product code changes. Prerequisite outside this row: the INT-378 provider
+  # (PR #643). Without it the console refuses every staff token.
+  depends_on: [INT-180, INT-325, INT-365]
+  labels: [area:admin, risk:security]
+  status: done
+  evidence: docs/evidence/INT-460.md
+  acceptance:
+    - "docs/runbooks/second-admin.md, at most 15 lines, gives the owner's exact steps: a second Keycloak user in the owner's org with an approver role and a WebAuthn second factor; a one-time password created in SSM as a SecureString from $(openssl rand -hex 32) without printing it, set on the host without echoing it, handed over once via aws ssm get-parameter --with-decryption and then deleted; it names INT-378 (#643) as the prerequisite and no dev variable"
+    - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
+  tests: [tests/admin/test_second_admin_runbook.py]
+  sec_row: "admin-console"
+- id: INT-453
+  epic: E05-voice
+  phase: P0
+  title: "voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script"
+  # GitHub #767. Found by INT-446 (#766), 3 Oct 2026. RulesTriageResult.rules
+  # is ordered by severity then id; the engine breaks a severity tie on
+  # register restrictiveness, so with several RED rules firing rule_ids[0]
+  # could address another rule's script beside the winner's register. The
+  # engine now names the winner (protocols.triage.winning_red_rule) and the
+  # path asks it over the pack's own rules; anything less is unaddressable.
+  depends_on: [INT-080, INT-093]
+  labels: [area:voice, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-453.md
+  acceptance:
+    - "the RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr; a multi-rule test with a near-miss control is included"
+    - "make safety passes with triage at 100 % branch coverage"
+  tests: [tests/voice/test_red_winner.py, tests/safety/test_triage_engine.py]
+  sec_row: "triage"
+- id: INT-446
+  epic: E08-mobile
+  phase: P0
+  title: "RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted"
+  # GitHub #756. Found by the INT-440 voice end-to-end test, 3 Oct 2026: no
+  # screen mounted livekit/red.ts and no lane called the rules engine, so a
+  # RED could not fire anywhere in the app. The hop is services/api
+  # /v1/triage (packages/protocols evaluate_triage, never a mobile copy of a
+  # rule); the screen is components/RedLayer.tsx. No signed rule set exists
+  # (HB-C1), so the shipped state is 503 and no RED — the mechanism is proved
+  # over the committed signed SENTETİK fixture (docs/evidence/INT-446.md).
+  depends_on: [INT-080, INT-103, INT-333]
+  labels: [area:mobile, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-446.md
+  acceptance:
+    - "every bound answer on the typed and voice lanes passes through the deterministic rules engine (invariant 1); a RED result mounts the pre-positioned RED screen and script with no media transport (invariant 21); its register and location are honoured, and on ON_SITE the 112 affordance is absent"
+    - "an end-to-end test proves a red-flag answer reaches the RED screen on both lanes, with a near-miss control that does not; the answer-to-RED time is measured"
+  tests: [tests/api/test_triage_hop.py, apps/mobile/e2e/red.spec.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"
+- id: INT-465
+  epic: E03-protocols
+  phase: P0
+  title: "generic RED active from CD-24, and the red rule set signed with a synthetic-only test key"
+  # GitHub #794. Follows INT-453 (#767) and INT-446 (#756) once INT-432's
+  # CD-24 reached main (PR #757). Owner decision D23, 3 Oct 2026, read with
+  # D18: a non-exportable OpenBao test key on the synthetic AWS host signs the
+  # rule set that host serves to simulated patients, and every non-synthetic
+  # tenant rejects it. D17 and HB-C1 are unchanged; INT-058 (cosign) is the
+  # production path and is untouched. Follow-up, not a prerequisite: INT-475
+  # (GitHub #814) makes the API triage hop raise the clinic Safety-inbox entry
+  # and sends the device's location answer to the server, so the ON_SITE line
+  # "Görevlilere haber verildi." holds on every lane (finding 6 in
+  # docs/evidence/INT-465.md). Until then the round-4 tripwire tests in
+  # tests/api/test_triage_hop.py prove no served RED rule can fire through the
+  # hop. INT-476 (GitHub #815) owns the kiosk-wipe / RED-store finding.
+  depends_on: [INT-432, INT-446, INT-453]
+  labels: [area:protocols, risk:clinical, risk:security]
+  status: done
+  evidence: docs/evidence/INT-465.md
+  acceptance:
+    - "generic_red.yaml is active with CD-24's own source blocks, each quote verbatim in a committed snapshot under packages/protocols/sources/; every location entry (REMOTE, ON_SITE, UNKNOWN) states its location and the CD-24 register policy (carry_engine_register); no ON_SITE text, number or action code carries 112; each with a near-miss test"
+    - "the ON_SITE bold markers and the [ — {{tenant.acil_location_tr}}] segment are expanded before the screen and TTS: markup-free, the segment resolved from the tenant's value or dropped when unset, never defaulted; every spoken generic string passes expand_tr (112 → yüz on iki) with no digit, markup or placeholder; each with a near-miss test"
+    - "the generic RED goldens (CD-24's near-miss tests) are in tests/safety and make safety is green"
+    - "the served red rule set is signed with an ed25519 test key held non-exportable in OpenBao Transit on the synthetic AWS host, never in the repo or a log; a synthetic tenant config serves it only with a valid test-key signature over its exact bytes; a test proves any non-synthetic tenant config rejects the test-key signature; the production signing path (INT-058, cosign) and its key are untouched"
+  tests: [tests/protocols/test_generic_red.py, tests/protocols/test_red_render.py, tests/protocols/test_red_signature.py, tests/protocols/test_red_rule_set_signature_cli.py, tests/safety/test_generic_red_goldens.py, tests/api/test_triage_hop.py, tests/api/test_triage_tenant_kind.py, tests/infra/test_red_signing_infra.py, tests/voice/test_red_winner.py]
+  sec_row: "triage"
+- id: INT-424
+  epic: E05-voice
+  phase: P1
+  title: "ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal"
+  # GitHub #719. Owner request, 2 Oct 2026: questions should sound more natural
+  # and emotionally attuned while staying medical and professional. Voice
+  # tuning, not clinical values (docs/evidence/INT-424.md). The owner ran the
+  # render, delegated the listening review on 3 Oct 2026 and accepted ADR-034.
+  depends_on: [INT-415]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-424.md
+  acceptance:
+    - "delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"
+    - "an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"
+    - "RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"
+  tests: [tests/voice/test_delivery_profiles.py, tests/voice/test_render_delivery_samples.py, tests/voice/test_elevenlabs_clipgen.py, tests/api/test_dev_voice_george.py]
+  sec_row: "cloud-clipgen"
 - id: INT-430
   epic: E05-voice
   phase: P0

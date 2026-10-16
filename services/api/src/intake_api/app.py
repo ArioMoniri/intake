@@ -74,6 +74,7 @@ from intake_api import (
     record_items,
     satisfaction,
     taxonomy_routes,
+    triage_hop,
     visit_lifecycle,
     visits,
     visits_acibadem,
@@ -607,6 +608,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(consents.router)
     app.include_router(profile_routes.router)
     app.include_router(taxonomy_routes.router)
+    app.include_router(triage_hop.router)
     app.include_router(dsar.router)
     app.include_router(satisfaction.router)
     app.include_router(notification_prefs.router)
