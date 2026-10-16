@@ -164,10 +164,13 @@ def test_ids_unique_and_well_formed() -> None:
     # request, GitHub #762).
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
     # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
-    # order of 3 Oct 2026, GitHub #790).
+    # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
+    # three, each with its own user, daemon and network namespace, GitHub #799).
+    # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
+    # vulnerabilities gate stops blocking every merge; GitHub #851).
     # + INT-481 (staff observability stack and admin alerts on the AWS host;
     # owner request of 4 Oct 2026, GitHub #824).
-    assert len(ids) == 342
+    assert len(ids) == 344
     import re
 
     for i in ids:

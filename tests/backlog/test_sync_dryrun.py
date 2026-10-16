@@ -112,8 +112,10 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-449 (Turkish voice casting, owner request, GitHub #762)
     # + INT-421 (production release: the admin tier on the AWS host, GitHub #713)
     # + INT-463 (all CI jobs on the AWS self-hosted runner, GitHub #790)
+    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799)
+    # + INT-500 (lockfile advisories upgraded, not ignored, GitHub #851)
     # + INT-481 (staff observability stack and admin alerts, GitHub #824)
-    assert len(actions) == 342
+    assert len(actions) == 344
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

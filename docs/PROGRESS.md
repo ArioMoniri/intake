@@ -3366,3 +3366,56 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)
+- Goal: a pool of three ephemeral intake-aws-ci runners (GitHub #799), each with exactly runner 1's isolation. Acceptance quoted in docs/backlog/issues.yaml and docs/evidence/INT-467.md.
+- Plan:
+  - Measure the proposed netns design on the host first, with runner 2's own identity, leaving runner 1 untouched.
+  - Write the tests: re-pin the INT-463 contract onto unit templates, and pin the pool contract in a new file.
+  - Implement: an identity per instance, templated units, the job in its daemon's detached network namespace with port driver none, peer ACLs, a drain-first installer with the single-runner migration, and the isolation probe.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/ci/test_aws_runner_pool.py (37 tests). Re-pinned: tests/ci/test_aws_runner.py.
+  - Near misses: instance values 0, 4, 01, a, "1 2", "1;true", ../1 and the empty string are refused; a runner's own CI root and run directory are never in its denied set.
+  - Red run: 49 failed, 73 passed. Green: 122 passed; 9 of 9 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local lanes only (no Docker on the laptop): the runner tests 122 passed; all of tests/ci with test_ci_no_phi 362 passed (after Renovate learned the probe image's digest pin); tests/backlog and smoke 74 passed; shellcheck, ruff 0.16.4, prettier and no_placeholders (staged) clean.
+  - The full gates run on the PR in CI.
+- Invariants touched and still passing: 14 (no credential read or printed; the registrar is unchanged), 16 (Sec-Row cicd), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The nsenter-into-the-userns variant was measured and not taken (uid 0, CapEff 000001ffffffffff); systemd NetworkNamespacePath keeps the job's own uid with CapEff 0.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — run (or allow a session to run) `scripts/ci/aws_runner.sh install` from this branch, so the pool replaces the single runner; this session's permission classifier refused it (HB-I7). Also apply the `.github/renovate.json` owner patch (issue-drafts/owner-int467-renovate-probe-image.patch), which the classifier refused to stage; until then check-py fails on the digest-reachability test.
+- Next: after the install, `scripts/ci/aws_runner.sh probe` for the per-runner isolation, then two overlapping check-integration runs; record both in docs/evidence/INT-467.md.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T04:10:00+03:00 · INT-500 · done (PR open)
+- Goal: clear the required vulnerabilities job, which went red on main 3afc5a29 and blocked every merge (GitHub #851), by upgrading rather than ignoring. Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Reproduce with CI's own scanners: trivy 0.70.0 from the sha256-verified release tarball, and osv-scanner 2.5.1.
+  - Pin the fixed versions in tests/ci/test_security_gates.py first.
+  - Raise the transitive packages with root pnpm.overrides floors and next by its direct pin; fix anything else osv reports the same way.
+- Tests added (with the near-miss negative for any safety rule):
+  - In tests/ci/test_security_gates.py:
+    - FIXED_VERSIONS gains shell-quote, compression, source-map-js and next.
+    - New PYPI_FIXED_VERSIONS (mako) over uv.lock.
+    - The override selectors and next's exact pin are pinned.
+    - The no-suppression sweep covers the fifteen INT-500 ids.
+  - Near miss: the lockfile reader catches a planted `shell-quote@1.10.0` and a peer-suffixed `next@16.3.6(...)`, and does not match `shell-quote-word` or a scoped `@scope/compression`.
+  - Red run: 3 failed, 7 passed. Green run: 10 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - trivy 0.70.0: before, exit 1 with pnpm-lock.yaml at 4 (1 CRITICAL, 3 HIGH); after, exit 0 with every target at 0.
+  - osv-scanner 2.5.1: before, exit 1 with 5 packages and 10 vulnerabilities, including mako in uv.lock; after, exit 0 with "No issues found".
+  - pnpm -r typecheck and lint: 0 errors.
+  - vitest: mobile 2650, admin-web 327, clinical-schemas 6, embed-sdk 14, embed-sample-partner 9.
+  - admin-web next build: green on Next.js 16.3.8.
+  - tests/api: 590 passed.
+  - Licence gate: 971 node packages and 94 Python distributions, OK.
+  - test_security_gates plus test_dependency_updates: 85 passed. tests/backlog and smoke: 74 passed.
+  - no_placeholders, phi-scan and claims-scan (staged): OK.
+  - check-integration, safety and the full security fan-out run in CI on intake-aws-ci.
+- Invariants touched and still passing:
+  - 14: no gate skipped or weakened, and the suppression pins are unchanged.
+  - 16: Sec-Row is cicd. The issue's "supply-chain" names no threat-model row.
+  - 17 and 19: licences read from the raw blobs.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
+- LOOP_STATUS: CONTINUE

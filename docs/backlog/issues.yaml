@@ -6672,6 +6672,45 @@
     - "on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner (evidence)"
   tests: [tests/ci/test_aws_runner.py, tests/infra/test_ci_no_phi.py]
   sec_row: "cicd"
+- id: INT-467
+  epic: E13-infra
+  phase: P1
+  title: "A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is"
+  # GitHub #799. Follow-up to INT-463 (#790, PR #791): one runner serializes
+  # every PR's 13 jobs. Two runners on one user and one rootless daemon are not
+  # isolated: each post-job wipe removes the other's containers, and
+  # check-integration's fixed host-loopback ports collide across PRs. The pool
+  # is built and tested; the host install waits for the owner (blockers.md).
+  depends_on: [INT-463]
+  labels: [area:ci, approval:human-infra]
+  status: awaiting-human
+  evidence: docs/evidence/INT-467.md
+  acceptance:
+    - "three ephemeral runners intake-aws-ci-1..3 run on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, from templated units intake-aws-ci-{runner,job,dockerd,diskwatch}@N; each has its own unprivileged user ghrunnerN with a subordinate id range that overlaps no other, its own CI root on the NVMe volume, rootless Docker daemon and owner-match egress chain, all under the one intake-aws-ci.slice ceiling; the root registrar mints a registration token before every registration of every runner"
+    - "each runner's job runs in its rootless daemon's network namespace, as its own uid; rootlesskit's port driver is none, so a published container port never reaches the host loopback and two concurrent check-integration jobs with the fixed ports do not collide; a runner's post-job wipe touches only its own daemon, processes and tree"
+    - "each runner's isolation is measured as INT-463's was, as that runner's user inside its job sandbox: staging files, the OpenBao tokens, the host Docker socket, the metadata service, staging containers, host-local listeners and root-disk writes blocked; every other runner's tree, Docker socket and published ports blocked; DNS, public HTTPS, rootless Docker and its own published port reachable (evidence)"
+    - "tests/ci/test_aws_runner.py pins the pool contract (every INT-463 isolation assertion, per instance, plus the netns and peer isolation); on the PR, jobs are picked up by more than one runner and two check-integration jobs run concurrently on two runners and pass (evidence)"
+  tests: [tests/ci/test_aws_runner.py, tests/ci/test_aws_runner_pool.py]
+  sec_row: "cicd"
+- id: INT-500
+  epic: E13-infra
+  phase: P0
+  title: "Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako"
+  # GitHub #851. On 16 Oct 2026 the required vulnerabilities job went red on
+  # main 3afc5a29. Trivy found four advisories, all with fixed releases, and
+  # every PR was blocked. osv-scanner also flagged mako in uv.lock. Each one is
+  # upgraded, not ignored (the INT-429 pattern). The issue body's "supply-chain"
+  # names no threat-model row, so the row is cicd, as it was for INT-429.
+  depends_on: [INT-429]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-500.md
+  acceptance:
+    - "shell-quote, compression and source-map-js are raised by root pnpm.overrides floors and next by admin-web's exact pin, all to their fixed releases; mako is raised in uv.lock; no .trivyignore.yaml or osv-scanner.toml entry is added, and tests/ci/test_security_gates.py pins every floor and the absence of any suppression"
+    - "trivy 0.70.0 and osv-scanner 2.5.1, run with the vulnerabilities job's own invocations, report no finding on the PR tree (evidence, before and after)"
+    - "the mobile, admin-web and package vitest suites, pnpm -r typecheck and lint, and admin-web's next build pass; the licence gate passes for the changed packages"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
 - id: INT-481
   epic: E01-platform
   phase: P1
