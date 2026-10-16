@@ -130,12 +130,20 @@ class WorkType(enum.StrEnum):
     ``RETRIEVE_RECORDS`` (INT-123) is files/03 §4.3's ``retrieve_records(query)``
     and files/12 §7.4 puts it in the background lane: it reads the patient's
     record index and hands citations to the note, and it can write nothing.
+
+    ``CLOSE_SESSION`` (INT-540) is not the Talker's: the session's end submits
+    it (``SessionStack.close``), behind the answers already queued, so that a
+    tense anchor still asked and unanswered is resolved and evaluated before
+    the session is gone. Like ``PLAN_FOLLOW_UPS`` from the council desk, it is
+    Layer B Work no Talker tool can name — ``submit_utterance`` submits
+    ``EXTRACT_SLOTS`` and nothing else.
     """
 
     EXTRACT_SLOTS = "extract_slots"
     PLAN_FOLLOW_UPS = "plan_follow_ups"
     PARSE_DOCUMENT = "parse_document"
     RETRIEVE_RECORDS = "retrieve_records"
+    CLOSE_SESSION = "close_session"
 
 
 class WorkState(enum.StrEnum):

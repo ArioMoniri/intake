@@ -120,14 +120,27 @@ it or whose tests exercise it.
 - **Assets:** source tree, Makefile entry points, compose dev tier, developer credentials.
 - **Trust boundaries:** developer workstation ↔ repo ↔ package registries ↔ container images.
 - **Threats (STRIDE/LINDDUN):** [T] malicious dependency or lockfile drift entering the tree;
-  [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change.
+  [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change;
+  [I] **an operator script putting a secret where others read it** (INT-538's staff-user
+  command: a temporary password or the Keycloak bootstrap password in an argv, the SSM command
+  history, a log or the terminal); [E] **a staff account created with the wrong role or org**.
 - **Controls (files/10):** §8 pre-commit set (gitleaks, Semgrep+Bandit, dependency review,
   Renovate with lockfiles); CLAUDE.md invariant 14 (gates never skipped); Makefile as the only
-  entry point so gates cannot be sidestepped by ad-hoc commands.
+  entry point so gates cannot be sidestepped by ad-hoc commands. **INT-538**
+  (`scripts/ops/staff_user.sh` with `infra/staging/staff_user_host.sh`): the temporary password
+  goes from openssl into an SSM SecureString through a 0600 request file, the bootstrap password
+  stays on the host and reaches kcadm on stdin, kcadm's throwaway `--config` is deleted on every
+  outcome, the send-command carries no secret, and output is `created` plus the reveal-once
+  command. Only `platform_owner` and `qms_owner` are offered. A read-only probe decides the org:
+  a new user joins the platform_owner's org and a differing org is refused; only the very first
+  user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
+  role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
+  step rolls the user back.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
   console and INT-205 in the SIEM.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
-  tests/ci/test_coverage_floors.py.
+  tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
+  tests/infra/test_staff_user_host.py.
 
 ## `cicd` — pipeline, artefacts and gate integrity
 
@@ -1228,6 +1241,19 @@ it or whose tests exercise it.
     the catalogue pins it server-side (invariant 21).
   - An instrument item is served only as `instrument`.
   - The profile id and version are part of every clip key.
+
+  **Render-time tags** (INT-449, D20; on the hosted lane INT-443). [T] A tag is words the
+  protocol did not author, so a tag from anywhere but the table would change what is said:
+  - The tags are a closed per-context table in `voice_clips.delivery` (one lowercase word in
+    brackets, never `[pause]`); RED and instrument rows can carry none, by construction.
+  - `voice_clips.gateway.wire_text` is the one composer: `text_tr` passes the numeral and
+    markup gate first, so a tag inside the script is refused; then the row's tags go in front;
+    then the composed text is checked for a numeral again. Both ElevenLabs paths use it, so the
+    hosted request is field for field the request the bundled clips were rendered with.
+  - The hosted lane refuses a profile that is not exactly the served row (tags, settings,
+    version, voice) and a voice id that is not the row's, before the wire.
+  - The cast moved every row to v4, so a v2-era (George) clip is another address and is never
+    served or counted as cached.
 - **Signals:** build-time tool, so its runtime evidence is a NEGATIVE — the per-session egress
   socket count for TTS stays zero (shared with `cloud-boundary`/`observer-lanes`) and the clip
   cache serves the fixed set (`voice.clip_cache_hit_ratio` high, no runtime synth for scripted
@@ -1241,7 +1267,11 @@ it or whose tests exercise it.
   tests/api/test_dev_voice_hardening.py (the dev route's four doors, each proven with the vendor
   fake at zero calls, near-miss catalogue controls included); tests/voice/
   test_delivery_profiles.py and tests/api/test_dev_voice_george.py (INT-415: the profile table,
-  `voice_settings` in the body, the RED and instrument pins, the profile in the cache key). The live
+  `voice_settings` in the body, the RED and instrument pins, the profile in the cache key);
+  tests/platform/test_elevenlabs_hosted_tts.py and tests/api/test_hosted_clip_lane.py (INT-443
+  with D20: each tagged context's tags on the wire and none for instrument or RED, a tag inside
+  `text_tr` refused even when catalogued, a forged row or another voice refused, the hosted
+  request equal to the offline one, a v2-era clip never served). The live
   small-run validation (7 Turkish questions, 229 characters) is recorded in
   docs/evidence/INT-319.md with its date and named corpus, described as a measurement (invariant
   20).

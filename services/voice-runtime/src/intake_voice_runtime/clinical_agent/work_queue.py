@@ -193,6 +193,9 @@ LANE_OF: Final[Mapping[WorkType, WorkLane]] = {
     WorkType.PLAN_FOLLOW_UPS: WorkLane.STATE,
     WorkType.PARSE_DOCUMENT: WorkLane.BACKGROUND,
     WorkType.RETRIEVE_RECORDS: WorkLane.BACKGROUND,
+    #: INT-540: it may resolve an anchor, so it holds the engine lock, in FIFO
+    #: order behind the session's last answers.
+    WorkType.CLOSE_SESSION: WorkLane.STATE,
 }
 
 
