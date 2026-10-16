@@ -517,3 +517,22 @@ coordinator decision, not one an agent mints.
 | issue | status | who | the one sentence they must answer | HB id |
 |---|---|---|---|---|
 | INT-465 | awaiting-human (the wait and the late answer; the no-answer branch is fixed at REMOTE, and since LD-05 a late answer still moves the RED; the device runs both on synthetic tenants only) | physician of record (**Dr Efe Onganer**) | How long may an unanswered "Şu anda hastanede misiniz?" stand before the RED takes its REMOTE branch — and may a late answer move the RED, may a later "hayır" restore REMOTE, should the screen say why 112 is gone, is a SILENT RED's large 112 right, and under SILENT may the screen reader's focus move to the RED's action when the no-answer wait expires, or only after the patient's own answer? | HB-C25 |
+
+## INT-529 — nine synthetic legal texts wait for a value no file declares
+
+**Raised:** 16 Oct 2026 · **Named human:** the owner, with the physician of record for the crisis carve-out.
+
+The owner's yes covers synthetic tenants only. Seven açık rıza texts are built in
+`docs/legal/synthetic/`. The nine below stay listed `awaiting_human` in that index and refuse as
+missing. Each would have to state a value that no file in the repository declares, and
+retention, recipients and new data categories are the owner's to decide. `docs/evidence/INT-529.md`
+§4 has the table.
+
+| issue | status | who | the one sentence they must answer | HB id |
+|---|---|---|---|---|
+| INT-529 | awaiting-human (`aydinlatma.app`) | owner, with counsel | What is INTAKE's registered legal entity (title, MERSİS number, address, KEP and e-mail), which SMS vendor sends the sign-in code, and on which KVKK m.9 ground may testers' real phone numbers sit on the us-east-1 synthetic host? | HB-L21 (e); INT-358 |
+| INT-529 | awaiting-human (`aydinlatma.kiosk`, `aydinlatma.clinician`, `aydinlatma.web`) | owner | Which hospital or partner tenant, under which DPA, does the synthetic host's kiosk, clinician or web channel speak for — or does the synthetic host have none of these channels? | HB-L27 |
+| INT-529 | awaiting-human (`aydinlatma.admin`) | owner | What personal data does the admin console collect from a patient, and for which tenant? | HB-L27 |
+| INT-529 | awaiting-human (`acik_riza.lane.linguistic`) | physician of record (**Dr Efe Onganer**) + counsel | Which Turkish phrases trigger the consent-independent safety response the files/06 §2.1 carve-out must disclose, and is it signposting or an instrument? | HB-C17 |
+| INT-529 | awaiting-human (`acik_riza.learning.personal`, `acik_riza.learning.service_improvement`) | owner (retention); the legal lane under D25, or counsel (ground) | How long is what each learning loop keeps retained, and which KVKK m.6(3) ground carries each loop over health data, given that the registry's service-performance and de-identified-opt-out grounds are not m.6(3) grounds? | HB-L27 |
+| INT-529 | awaiting-human (`acik_riza.research`) | owner + counsel | What retention and which recipients does the study's ethics protocol fix, and which KSVY m.16 limb does a consented export ride? | HB-L26, HB-I8 (site: HB-L1) |

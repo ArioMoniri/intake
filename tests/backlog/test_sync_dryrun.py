@@ -119,7 +119,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
     # + INT-465 (generic RED active from CD-24; synthetic-only test-key signature, GitHub #794)
     # + INT-524 (a pull request's superseded CI runs are cancelled, GitHub #890)
-    assert len(actions) == 348
+    # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
+    assert len(actions) == 349
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**348 issues.** By phase: P0 171 · P1 123 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 233 · todo 73 · withdrawn 1.
+**349 issues.** By phase: P0 171 · P1 124 · P2 47 · P3 7. By status: awaiting-human 36 · doing 6 · done 233 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -310,6 +310,7 @@
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
 | INT-524 | CI cancels a pull request's superseded runs (concurrency group), so the three-runner pool runs only current heads | E13-infra | INT-467 | area:ci, approval:human-infra | done |
+| INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
 
 ## P2
 

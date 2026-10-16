@@ -180,7 +180,9 @@ def test_ids_unique_and_well_formed() -> None:
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
     # + INT-524 (a pull request's superseded CI runs are cancelled, so the
     # runner pool builds only current heads; GitHub #890).
-    assert len(ids) == 348
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
+    assert len(ids) == 349
     import re
 
     for i in ids:

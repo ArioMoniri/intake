@@ -339,7 +339,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-524 (a pull request's superseded CI runs are cancelled, so the
     # runner pool builds only current heads, GitHub #890); grows only with a
     # stated reason.
-    assert len(ids) == 348, f"expected 175 blueprint + 173 added issues, got {len(ids)}"
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host, GitHub #896); grows only with a stated
+    # reason.
+    assert len(ids) == 349, f"expected 175 blueprint + 174 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

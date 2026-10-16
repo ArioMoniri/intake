@@ -1,5 +1,32 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T14:30:00Z · INT-529 · awaiting-human (7 of 16 synthetic texts built; committed locally, not pushed)
+- Goal: the owner's yes of 16 Oct 2026 (INT-498 P6), as the legal-author half of D25. The legal lane writes texts for synthetic tenants only, so the synthetic host can exercise voice, documents and sharing. The real-tenant index stays empty until counsel signs (HB-L27, G3).
+- Plan:
+  - Build a separate index at `docs/legal/synthetic/`, hash-bound the INT-210 way.
+  - Put a visible "Sentetik test metni" marker on the first line of every text.
+  - Load the index only when the image bakes `INTAKE_DEPLOYMENT_DATA_CLASS=synthetic`.
+  - Build a text only where every value it states is already declared in the repo.
+- Tests added: `tests/legal/test_synthetic_legal_index.py` and `tests/api/test_synthetic_consent_grant.py`.
+  - Near misses: an unmarked text, and a marker in the front matter, in a comment or below line one. Also a moved byte, version drift, a claim, an id outside the sixteen, and a non-synthetic index.
+  - Boot refusals in both directions, by env and by settings object. An unbuilt purpose's grant gets 409.
+  - RED: `ModuleNotFoundError`, then 67 failed / 45 passed.
+  - GREEN: 119 passed.
+  - Mutation: 6 of 6 caught.
+- Result: docs/evidence/INT-529.md §7–§9.
+  - ruff, format and mypy --strict are clean. The check-py coverage gate passes at 95.58% (floor 85%). Its only failures were the four `test_deid_ner` cases, because this fresh worktree has no model cache; they pass with `INTAKE_DEID_MODEL_DIR` pointed at an existing copy.
+  - The legal, api, infra, embed and inventory suites pass: 1718.
+  - The claims, PHI and placeholder scans pass. PolicyGuard finds nothing in 261 sentences.
+- Invariants touched and still passing: 4 (a grant binds the synthetic hash), 6 (refusals carry ids and paths), 17 (gaps are declared, not filled), 18 (hash binding, real index untouched, no fixed string created), 20 (claims gate at render and in CI).
+- Decisions / ADRs / `00_STATE.md` rows: none minted. The owner's decision is in GitHub #896. D25 is not on main yet (PR #809).
+- Blocked on: nine ids, listed in `docs/backlog/blockers.md` under INT-529:
+  - the five aydınlatma texts: legal entity (HB-L21(e)), SMS vendor and transfer ground (INT-358), the hospital or partner tenant;
+  - `lane:linguistic`: the crisis carve-out (HB-C17);
+  - the two learning purposes: KVKK m.6(3) ground and retention;
+  - `research`: ethics protocol (HB-L26).
+- Next: the independent legal-reviewer verifies; the coordinator pushes and opens the PR (body at `.scratch/pr-529.md`). Follow-ups F1–F5 in the evidence file: app chrome contradicting the texts, no app grant for `core`, the claims-scanner gap, PR #751's vendor sentences, and the satisfaction annotations.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:
