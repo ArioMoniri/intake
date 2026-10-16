@@ -138,8 +138,9 @@ def test_the_commonest_sentence_in_the_product_can_be_spoken(guard: PolicyGuard)
         "Ağzını veya boğazını açıp bakmayın.",
         "Acil Servis'e gidin.",
         "Bugün içinde bir acil servise başvurun.",
-        "Kendi aracınızla yola çıkmayın.",
-        "Tek başınıza kalmayın.",
+        # INT-494: CD-111's two changed cardiac REMOTE lines replace the retired ones.
+        "Hastaneye kendiniz araba kullanarak gitmeyin.",
+        "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin.",
         "Su, yiyecek ya da ilaç vermeyin.",
         "Çocuğunuzu sırtüstü yatırmayın.",
         "Yanından ayrılmayın.",
@@ -164,6 +165,23 @@ def test_the_whole_life_threat_pack_passes(guard: PolicyGuard) -> None:
         found = _classes(guard, value) & CLINICAL
         offenders.extend((path, cls) for cls in found)
     assert offenders == []
+
+
+def test_the_generic_red_copy_passes(guard: PolicyGuard) -> None:
+    """INT-465: CD-24's generic RED copy, rendered as the device shows it, passes the
+    guard's clinical and register classes. Before round 3 only base.life_threat was swept."""
+    from protocols.generic_red import generic_red_strings, load_generic_red
+    from protocols.red_render import render_red_text
+
+    copy = load_generic_red(_REPO / "packages/protocols/generic/generic_red.yaml")
+    rendered = [render_red_text(s, acil_location_tr=None) for s in generic_red_strings(copy)]
+    assert rendered
+    offenders = [(text, sorted(_classes(guard, text) & CLINICAL)) for text in rendered]
+    assert [o for o in offenders if o[1]] == []
+    # Near miss: a known diagnosis claim run through the same sweep is still flagged.
+    assert ViolationClass.DIAGNOSIS in _classes(
+        guard, render_red_text("Kalp krizi geçiriyorsunuz.", acil_location_tr=None)
+    )
 
 
 # --- near-miss positive controls: the guard still catches the real thing --------------

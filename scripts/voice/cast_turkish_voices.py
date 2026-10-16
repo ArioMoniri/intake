@@ -134,9 +134,12 @@ LINES: Final[tuple[CatalogueLine, ...]] = (
         TR_TS,
         INT414_REF,
     ),
+    # INT-494: CD-111 retired the round-1 RED line ("Tek başınıza kalmayın; …",
+    # as docs/voice/casting-2026-10.md records it rendered); its decided
+    # replacement is the served line now, so a later round speaks that.
     CatalogueLine(
         "red",
-        "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin.",
+        "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin.",
         "files/protocols/base.life_threat.yaml",
     ),
 )

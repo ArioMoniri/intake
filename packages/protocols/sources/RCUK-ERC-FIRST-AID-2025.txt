@@ -1,0 +1,61 @@
+# guideline_id: RCUK-ERC-FIRST-AID-2025
+# title: First Aid Guidelines (Resuscitation Council UK, based on the European Resuscitation Council Guidelines 2025 First Aid)
+# publisher: Resuscitation Council UK; ERC source: Djärv T, Rogers J, Semeraro F, et al. European Resuscitation Council Guidelines 2025 First Aid. Resuscitation 2025;215 (Suppl 1):110752, doi 10.1016/j.resuscitation.2025.110752
+# version_or_date: published 27 October 2025 (as printed on the page)
+# url: https://www.resus.org.uk/print/pdf/node/36662
+# retrieved_on: 2026-10-03
+# retrieval: curl (HTTP 200, application/pdf, 105247 bytes, sha256 ba6fd4b2cb81337371a10892326b3d3dc6fa873510d1fa2b4535935ea25e3584); text extracted with pdftotext (poppler, reading order, no -layout), page-break form feeds removed; the ERC article itself returned HTTP 403 at both publisher URLs, so the RCUK guideline that reproduces its recommendations is the snapshot
+# scope: verbatim excerpt - title, authors, publication line, the ERC reference, the first key point, the first two sentences of the introduction, 'Expectations of a first aid provider', the first cardiac-arrest sentence and the 'Chest pain' section; nothing paraphrased or edited; omissions marked [...]. pdftotext joins a line-end hyphen ('self-' + 'administering' prints as 'selfadministering'); no quote crosses that join. 999 is the UK number; 112 is Türkiye's.
+---
+First Aid Guidelines
+Authors
+Barry Klaassen
+Lynn Thomas
+Nigel Barraclough
+Connor Gilronan
+Adam Mellett-Smith
+Jessica Rogers
+Isabelle Hamilton-Bower
+Adam Benson Clarke
+Published 27 October 2025
+[...]
+References
+ERC Authors: Djärv T, Rogers J, Semeraro F, Brädde L, Cassan P, Cimpoesu D,
+van Goor S, Klaassen B, Laermans J, Meyran D, Singletary EM, Mellett-Smith A,
+Thilakasiri K, Zideman D.
+European Resuscitation Council Guidelines 2025 First Aid. Resuscitation 2025;215
+(Suppl 1):110752. https://doi.org/10.1016/j.resuscitation.2025.110752.
+
+Key points
+Expectations of a first aid provider: Always call for help early and,
+ideally, use a speakerphone, especially if alone. As a general principle, only
+use equipment and medications you have been trained to use.
+[...]
+Introduction
+First aid is described as a helping behaviour by anyone, for any emergency
+condition, in any situation, including self-care. Its provision typically involves
+[...]
+Expectations of a first aid provider
+
+As a first aid provider, you may minimise further injury, improve health and
+prevent death by following these three key principles:
+1. Check for scene safety.
+2. Call 999.
+3. Only use available equipment or medications you have been trained to use.
+There are occasions when a first aider may be directed to use equipment by
+the emergency services that they may not have previously had in-depth
+[...]
+Cardiac arrest
+If you suspect a cardiac arrest, call 999 and follow the call handler’s
+instructions on how to perform cardiopulmonary resuscitation (CPR).
+[...]
+Chest pain
+
+Reassure the person and sit or lie them in a comfortable position.
+Call 999.
+Encourage and assist a person with cardiac sounding chest pain in selfadministering 300 mg of aspirin (ideally chewable or dissolvable) as soon as
+possible, whilst awaiting emergency assistance (but not to adults with a
+known aspirin allergy).
+Assist a person with known angina to self-administer their nitroglycerine
+spray or tablets.
+Stay with the person until help arrives.

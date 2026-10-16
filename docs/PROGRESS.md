@@ -1,5 +1,109 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T05:00:00Z · INT-494 · done (PR open, stacked on #796 and #813; not merged, not deployed)
+- Goal: acceptance verbatim (GitHub #844). Both locations of `rf.chest_pain_cardiac_features` carry CD-111's decided do-not lists together, in record order (removed lines gone); invariants 7 and 21 hold; the RED copy is a bare imperative plural, PolicyGuard-clean and numeral-free; goldens with near-miss controls; `make safety` green; the synthetic rule set re-signed with the test key (a real tenant still refuses); files/02 §5.3, the INT-314 baseline and the PolicyGuard precision list updated; INT-468's row flips to done.
+- Plan: branch from #796 (`0bea050d`), merge #813 (then its verdict commit and its `7a404926` head); write the goldens first; change the two lists in `files/protocols/base.life_threat.yaml`; re-sign over SSM with the scoped sign-only token per the INT-465 runbook.
+- Tests added (with the near-miss negative for any safety rule): `tests/safety/test_cd111_cardiac_goldens.py` C01–C07 on the served catalog (original or reordered list not served; REMOTE carries 112 and ON_SITE does not; the removed line and an aspirin line trip the by-mouth check; four wrong do-nots fail; restored old text is refused by the signature; the paediatric worked example proves the parser). The C1 axis goldens pin `do_nots_tr`, and three mutations (nil-by-mouth re-added, ON_SITE unapplied, REMOTE reordered) are detected. CD-111's pin asserts the decided state. Red run: 10 failed, 24 errors; green after the re-signature.
+- Result: `make safety` exit 0 (triage 100 % branch, 615 passed; 21/21 mutations detected; voice-runtime 1725 passed at 98.66 %; adversarial 120). Full pytest lane exit 0 at 95.72 %; protocols lane 1906 passed at 97.33 %. The voice-casting catalogue carried the retired REMOTE line 3 and now carries its CD-111 replacement. ruff, format and `mypy --strict` clean. Re-signed: life-threat `371380c8…7e73609e6b`, generic `3bbd3fdd…25f1ffee` unchanged, key `redset-synthetic-test@1`; `verify` synthetic `verified`, real `refused: key_scope_not_admitted_for_tenant`.
+- Invariants touched and still passing: 2, 7, 10, 17, 21, 22 (docs/evidence/INT-494.md).
+- Decisions / ADRs / `00_STATE.md` rows: applies CD-111 (INT-468); a 16 Oct changelog row records the application and the new digest under D23.
+- Blocked on: nothing for the synthetic host. A licensed physician's review is still required before any real patient (D18, HB-C1); HB-C12b (the worked example's "Neden" and the paediatric line) stays with Dr Efe Onganer.
+- Next: independent clinical-reviewer (blocker-only); merge after #796 and #813. The new envelope reaches the host only at its next deploy.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T21:30:00Z · INT-465 · done (PR open, not merged, not deployed)
+- Goal: acceptance verbatim (GitHub #794). (1) generic_red.yaml is active with CD-24's own source blocks, every location entry stating its location and `carry_engine_register`, and no 112 in any ON_SITE carrier. (2) The ON_SITE bold markers and the tenant segment are expanded before the screen and before TTS, and 112 becomes "yüz on iki". (3) The generic RED goldens pass in tests/safety, and `make safety` is green. (4) The served red rule set is signed with a non-exportable OpenBao test key on the synthetic AWS host, and every non-synthetic tenant config rejects it.
+- Plan:
+  - Start from `int-453-red-path-winner` merged with main `3bffb58d` (CD-24).
+  - Write `protocols.red_render`, `intake_platform.red_signature` and `intake_platform.red_tenant`.
+  - Make the generic RED document active, checked against CD-24.
+  - Add the API tenant kind and the signature interlock.
+  - Run the signer script on the host over SSM: the root token once, then a scoped token.
+- Tests added: `test_red_render.py`, `test_red_signature.py`, `test_red_rule_set_signature_cli.py`, `test_generic_red.py` (rewritten), `tests/safety/test_generic_red_goldens.py` (G01–G10), `test_triage_tenant_kind.py`, `test_red_signing_infra.py`, and the synthetic-tier cases in `test_triage_hop.py` and `test_red_winner.py`. Each has a near miss; examples:
+  - REMOTE carries 112 and ON_SITE does not;
+  - the exemplar's `why_tr` names an organ and the generic's does not;
+  - the authored line carries markup;
+  - a synthetic tenant accepts and every other kind refuses;
+  - ALERT+ALERT stays ALERT.
+  - RED run: 5 collection errors plus 30 failed. GREEN: the targeted lanes pass. M1–M4 mutation proofs are all detected.
+- Result:
+  - `make safety` exit 0: triage 100 % branch (600 passed), 18/18 mutants detected, voice 1631 passed at 98.65 %, adversarial 121 passed.
+  - ruff, format and `mypy --strict` are clean.
+  - Mobile tsc and eslint are clean, and vitest RED lanes pass (95).
+  - Backlog pins move 335 → 336, and files/11 is regenerated.
+  - Host: key `redset-synthetic-test` v1 (ed25519, exportable false); envelope verified for synthetic, refused for real.
+  - Review round (clinical and security reviewer agents): every block's `supports` now matches CD-24, so the generic RED was re-signed (`3bbd3fdd…`). Also fixed: both-order mixed-register goldens with the silent clinic notice, HB-C12b-independent near misses, the G10 tripwire, an explicit `INTAKE_ENV`, read-once parsing, an existing-key check, token renewal before signing, logged refusals, threat-model rows, and malformed-envelope tests.
+  - Review round 2 (coordinator, CHANGES REQUIRED): the cardiac why lines were rewritten through **CD-25** (D18, agent author, verifier agreed; HB-C12b stays open); the source fields were fixed and snapshot checks added to `load_life_threat_set`; the device gained a no-answer path (unsigned 30 s wait, Essential-Exception time limit); the generic is never wordless (decoder, store and session refuse); intake stops for `protocol_next` and on the device; the signature is bound to the host; RED clip rows refuse digits. Re-signed once (`c33a737f…`).
+  - Review round 3 (orchestrator, REQUEST_CHANGES), all fixed test-first with near misses:
+    - no question or commit control in any lane while a RED stands, and the navigator is hidden
+      from assistive technology under the root RED layer;
+    - `on_no_answer` is REMOTE only (DSL, API and device decoder);
+    - the generic copy is in the PolicyGuard sweep;
+    - `version_or_date` is checked against the snapshot;
+    - fixture snapshots sit behind an explicit flag;
+    - ON_SITE 112 is checked over every RED rule;
+    - LiveKit RED goes through the RED store;
+    - REMOTE shows 112 as selectable text;
+    - HB-C25 (the unsigned no-answer wait) was added;
+    - a late location answer after the wait is honoured (LD-05, INT-471 #800), and BK13
+      cites it.
+    Recorded, not built: the hop notifies no clinic, and the cardiac do-not lines are unsourced.
+    Rule bytes are unchanged, so there was no re-sign.
+  - Review round 4 (orchestrator, REQUEST_CHANGES), test-first with near misses:
+    - the privacy self-check is gated on `live`;
+    - the hop-lane notification gap is held by two tripwire tests and owned by INT-475 (#814);
+      `depends_on` is back to [INT-432, INT-446, INT-453];
+    - focus moves to the RED's words when it changes (never on first paint);
+    - the section sheet cannot open or commit under a RED;
+    - the 112 block near miss is added;
+    - HB-C25 carries the five LD-05 physician questions;
+    - `on_yes`/`on_no` are narrowed;
+    - the kiosk/RED-store observation is recorded under INT-476 (#815).
+    No rule bytes changed, so there was no re-sign.
+  - Review round 5 (orchestrator, REQUEST_CHANGES), test-first:
+    - the 422 tripwire's near miss now dates the tense anchor, with an engine positive
+      control (booleans fire RED), so type is the only blocker;
+    - HB-C25 asks (vi) about the SILENT focus move on expiry;
+    - the section sheet is never visible over a RED and leaves in 0 ms;
+    - the device decoder types yes ON_SITE and no REMOTE.
+- Invariants touched and still passing: 1, 2, 7, 10, 14, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: CD-25 (decision register); D23 (owner, 3 Oct 2026, read with D18). D17 and HB-C1 are unchanged, and INT-058 (cosign) is untouched.
+- Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b, HB-C25). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).
+- Next: PR `INT-465: …` (Closes #794, Sec-Row triage), stacked on #773; a protocol CODEOWNER review is required. Do not merge and do not deploy.
+- LOOP_STATUS: DONE
+
+### 2026-10-04T00:30:00Z · INT-453 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #767): *"The RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr. A multi-rule test with a near-miss control is included."* and *"`make safety` passes, with triage at 100% branch coverage."* Found by INT-446 (#766).
+- Plan (after review round 1 on #773, CHANGES-REQUESTED):
+  - (a) The engine names its RED in `RulesTriageResult.red_rule_id` (schemas and codegen updated), so the path reads it and never re-derives it. Only that RED rule must be addressable, so a YELLOW rule beside it is irrelevant.
+  - (b) An unaddressable RED still triggers a device-visible generic escalation: ALERT, at the result's own location, so 112 is absent under ON_SITE and a generic UNKNOWN asks the question before any 112. It fails loudly.
+  - A replay of an unaddressable RED re-sends the device trigger.
+  - Device: `genericRed`; the session emits `red`, never nothing.
+- Tests added: `tests/voice/test_red_winner.py` (rewritten), the schema validation test, the engine `red_rule_id` and `winning_red_rule` tests, and the device generic-RED tests. Near misses: `rules[0]`'s script is never sent; the YELLOW rule has no script; a replay after a delivered RED is a no-op; ON_SITE shows no 112.
+  - RED (`rules[0]` restored): 4 failed, including the rewritten severity test. The previous #773 path fails at collection.
+  - GREEN: 1211 Python tests; mobile 2529.
+- Result: docs/evidence/INT-453.md.
+  - `make safety` exit 0: triage at 100 % branch (568 passed); `red_path.py` at 100 %; the mutation report DETECTED every mutant.
+  - typecheck, ruff and `mypy --strict` are clean.
+  - Pins 330 → 331; files/11 regenerated.
+- Invariants touched and still passing: 1, 9 (only a rules-engine RED preempts), 10 (the named rule's own `text_tr`), 17 (generic copy is `draft_needs_source`, nothing invented), 21 (no 112 under ON_SITE).
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-24 (INT-432; `packages/protocols/decisions/CD-24.yaml` on #757; D18, simulated-patient testing only) is verified and applied. The generic carries the engine result's own register (`carry_engine_register`), never a fixed ALERT. The committed `generic_red.yaml` carries CD-24's copy but stays draft_needs_source until #757 is on main, so nothing is served and device_functions stays off. SILENT and mixed registers stay draft; the floor is stop-intake plus the `silent_generic` clinic notice.
+- Blocked on: nothing for merge. Changes under packages/protocols, packages/clinical-schemas and packages/intake_platform need CODEOWNER review. Until #757 (CD-24) is on main, /v1/triage serves nothing and device_functions stays off.
+- Next: PR `INT-453: …` (Closes #767, Sec-Row triage). Do not merge.
+
+### 2026-10-03T23:30:00Z · INT-446 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #756): *"Every bound answer on the typed and voice lanes passes through the deterministic rules engine (invariant 1). A RED result mounts the pre-positioned RED screen and script with no media transport (invariant 21). Its register (ALERT, CALM, SILENT or DEFERRED_CLINICIAN) and location (REMOTE, ON_SITE or UNKNOWN) are honoured, and on ON_SITE the 112 affordance is absent."* and *"An end-to-end test proves that a red-flag answer reaches the RED screen on both lanes, with a near-miss control that does not. The time from answer to RED is measured."*
+- Plan:
+  - API `/v1/triage/evaluate` runs `evaluate_triage` over the served set and returns the data-channel packet; `/v1/triage/red-scripts` is the pre-positioned catalog. Both fail closed with 503 while no signed set exists (HB-C1).
+  - Device: `lib/red/{hop,store,location}.ts`, plus `RedLayer` mounted after the navigator, where the hop runs on every note answer. SILENT renders in flow on both lanes, and the dialogue stops on a RED.
+- Tests added: `tests/api/test_triage_hop.py`, `e2e/red.spec.ts`, `lib/red/store.test.ts` and the MOTION-4 pin. Every RED case has a near miss: one differing value, or the right value undated.
+  - RED: 23 API tests failed with the router unmounted; both mobile files failed to load.
+  - GREEN: 26 API tests; mobile 2583; `make safety` exit 0 (triage 100 % branch).
+- Result: docs/evidence/INT-446.md. Typed RED verified in the iOS simulator against the real route over the SENTETİK set; there are four screenshots, including the near miss and ON_SITE with no 112. Measured answer→RED: server p50 5.9 ms and p95 12.1 ms over HTTP; device 0.30 ms. Pins 328 → 329; files/11 regenerated (this drops a stale INT-395 row with no YAML row).
+- Invariants touched and still passing: 1 (no rule on the device), 6 (nothing logged), 10 (verbatim `tr`), 14 (schema-constrained decode, input bounded), 17 (fail closed, nothing invented), 21 (no media on the RED path; 112 absent under ON_SITE).
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 Q2's fail-closed default (no RED haptic) holds; INT-340's `presentRed` belongs in RedLayer when #710 merges.
+- Blocked on: HB-C1. No signed `base.life_threat` exists, so no RED fires in a real session; that is the designed state. Generic copy for an unrenderable RED is a clinical and legal string and is not authored.
+- Next: PR `INT-446: …` (Closes #756, Sec-Row triage). Do not merge.
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:
@@ -3340,6 +3444,48 @@
 - Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
 - Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
+### 2026-10-04T00:30:00+03:00 · INT-468 (renumbered from INT-472) · doing (PR open, verifier verdict pending)
+- Goal: decide, under D18, the cardiac RED rule's three unsourced do-not lines and the wait before an unanswered "Şu anda hastanede misiniz?" resolves to REMOTE.
+- Plan: tests first for the decided lines and the wait (no number without a source); CD-111 against four new verbatim snapshots (NHS heart attack page, RCUK First Aid Guidelines 2025 from ERC 2025, NICE CG95 1.2.3, EENA silent-calls v2.0); decision recorded, application routed into #796 (INT-465), which edits the same action block.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_red_clinical_values.py (a kept or re-worded nil-by-mouth line, an aspirin line, a numeral, diagnosis language, a third wording in the served rule, a plausible unsourced wait, a wait that resolves anywhere but REMOTE with 112 each fail; 20 near-miss cases). Red run: 6 failed, 21 passed.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-468.md; `make safety` exit 0; the only red test is CD-111's pending verdict, by design.
+- Invariants touched and still passing: 2, 7 and 21 (only do-not copy is decided; gate, level, route, register and all three locations untouched), 17 (the wait is the sanctioned literal), 22.
+- Decisions / ADRs / `00_STATE.md` rows: CD-111 added to the clinical decisions register; none in 00_STATE.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none; the wait value stays draft_needs_source (no source states one).
+- Next: record CD-111's independent verdict; the orchestrator routes the application into #796.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T02:30:00+03:00 · INT-468 (renumbered from INT-472) · round 2 (verifier verdict pending re-verification)
+- Goal: renumber the issue (#805 is INT-468; INT-472 is #802's) and answer CD-111's round-1 request for changes (1 blocking, 3 medium, 5 low, 2 notes).
+- Plan: tests first for each finding in tests/protocols/test_red_clinical_values.py, then CD-111 round 2; new branch int-468-red-clinical-values and a new PR, #812 closed.
+- Tests added (with the near-miss negative for any safety rule): every decided do-not line must be a -mAyIn prohibition (the round-1 line 3 fails); the location rule equals the served rule and CD-24 (4 near misses); a partial application keeping a removed line fails; by-mouth near misses widened, and "için"/"içinde" no longer flagged. Red run: 7 failed, 40 passed; green 47 passed.
+- Result: see docs/evidence/INT-468.md; the only red test is CD-111's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none; the row is doing until the verdict lands and waits on INT-465 (#796) for the application.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-111; the orchestrator routes the application into #796.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T05:30:00+03:00 · INT-468 · round 3 (PR #813, verifier verdict pending re-verification)
+- Goal: answer CD-111's round 2 (nothing clinical blocks: INT-447's sec_row restored, NICE clause, stale NHS supports, a removal-only partial application, four notes).
+- Plan: tests first in tests/protocols/test_red_clinical_values.py, then CD-111 round 3.
+- Tests added (with the near-miss negative for any safety rule): the pin checks each location is its original or decided list in the same state (removal-only and one-location near misses); CD-24 at ON_SITE fails; served REMOTE shows 112; three more by-mouth forms. Red run: 4 failed, 53 passed; green 57 passed.
+- Result: see docs/evidence/INT-468.md (round 3); the only red test is CD-111's pending verdict.
+- Invariants touched and still passing: 2, 7, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: re-verification of CD-111; the application rides #796.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T07:30:00+03:00 · INT-468 · final verdict (PR #813, CD-111 agree)
+- Goal: record the independent verifier's round-3 verdict (approve) and fix its wording notes in the verdict commit.
+- Plan: test first (the verdict test asserts agree with round 3 in the history), then CD-111, the md twin and the evidence.
+- Tests added (with the near-miss negative for any safety rule): the verdict test now requires agree, the role and the date, and a round 3 whose per-item keys match round 2's and are all agree. Red run: 1 failed, 56 passed; green 90 passed.
+- Result: CD-111 verifier agree (independent D18 clinical verifier (agent), 2026-10-04); `make safety` exit 0; protocols, safety, backlog and smoke lanes 1816 passed, 0 failed; see docs/evidence/INT-468.md (Final verdict).
+- Invariants touched and still passing: 2, 7, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none new.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+- Next: merge #813 when the merge queue reaches it; the row stays doing until #796 applies the decided lists.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)

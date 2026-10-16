@@ -12,10 +12,6 @@
       {
         "authored": "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.",
         "expanded": "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
-      },
-      {
-        "authored": "Bir şey yiyip içmeyin.",
-        "expanded": "Bir şey yiyip içmeyin."
       }
     ],
     "rules/0/action/REMOTE/action_tr": {
@@ -24,16 +20,12 @@
     },
     "rules/0/action/REMOTE/do_nots_tr": [
       {
-        "authored": "Kendi aracınızla yola çıkmayın.",
-        "expanded": "Kendi aracınızla yola çıkmayın."
+        "authored": "Hastaneye kendiniz araba kullanarak gitmeyin.",
+        "expanded": "Hastaneye kendiniz araba kullanarak gitmeyin."
       },
       {
-        "authored": "Bir şey yiyip içmeyin.",
-        "expanded": "Bir şey yiyip içmeyin."
-      },
-      {
-        "authored": "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin.",
-        "expanded": "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
+        "authored": "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin.",
+        "expanded": "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin."
       }
     ],
     "rules/0/action/UNKNOWN/ask_one_tr": {

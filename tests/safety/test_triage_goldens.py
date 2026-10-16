@@ -281,9 +281,11 @@ class TestMutationProof:
             "drop a location axis (ON_SITE semantics)",
             "change the route axis",
             "relax acuity",
+            # INT-494: CD-111's decided do-not lists (re-added, unapplied, reordered).
+            "change a RED do-not script",
         }
         red_outcomes = [item for item in outcomes if item.mutation.kind in red_kinds]
-        assert len(red_outcomes) >= 13
+        assert len(red_outcomes) >= 16
         assert all(item.detected for item in red_outcomes)
 
     def test_all_three_red_axes_have_a_mutation(self) -> None:

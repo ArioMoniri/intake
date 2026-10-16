@@ -1,0 +1,43 @@
+# guideline_id: NHS-HEART-ATTACK-2026
+# title: Heart attack (NHS website, Health A to Z)
+# publisher: NHS England (nhs.uk)
+# version_or_date: page last reviewed 31 March 2026; next review due 31 March 2029 (as printed on the page)
+# url: https://www.nhs.uk/conditions/heart-attack/
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200; sha256 of the HTML 5892e74aa33a4942f5ac1afbbc0ee6033739a9fa581fc01733a02acadf47a450); HTML (utf-8) text-extracted with a block-level parser: scripts and styles dropped, tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed, blank lines dropped
+# scope: verbatim excerpt - the page title and lead, the symptoms list, the 999 call-out with its information box, the 'While you're waiting for medical help' section, and the review dates; nothing paraphrased or edited; omissions marked [...]. Public health information of the national health service, cited beside NICE CG95 and the ERC/RCUK first aid guideline, not in place of a guideline. 999 is the UK number; 112 is Türkiye's.
+---
+Heart attack
+A heart attack happens when blood flow to your heart is blocked. It can be life-threatening and needs emergency treatment in hospital.
+Symptoms of a heart attack
+Symptoms of a heart attack may include:
+chest pain which may feel like crushing or squeezing on your chest – the pain may also spread to your arm, neck and jaw
+feeling short of breath
+feeling sick (nausea) or being sick (vomiting)
+feeling like you have indigestion – you may have a burning feeling in your chest and feel full or bloated
+sweating
+pale, blue or grey skin – on black or brown skin this may be easier to see on the palms of the hands
+Immediate action required: Call 999 if:
+you have chest pain that feels tight or like squeezing on your chest
+you have chest pain that's spreading to your arms, neck or jaw
+you're having severe difficulty breathing – you're gasping, choking or not able to get words out
+your lips or skin are pale, blue or grey – on brown or black skin this may be easier to see on the palms of the hands
+someone has passed out and is not responding normally
+Information:
+Do not drive yourself to A&E.
+The person you speak to at 999 will give you advice about what to do.
+Urgent advice: Call NHS 111 if:
+you're suddenly more short of breath than usual
+you have chest pain and you feel sick or are being sick
+you have chest pain and you feel like your heart is racing, going too slowly, skipping a beat or have a fluttering feeling in your chest
+While you're waiting for medical help
+If you think you or someone else is having a heart attack, there are some things you can do while you wait for help.
+Sit and rest on the floor in a comfortable position, with your knees bent and your back supported. If you cannot do this, you can also sit on a chair.
+Take aspirin (300mg) if you have any – do not give aspirin to someone who has an aspirin allergy.
+If you have angina, take your glyceryl trinitrate (GTN) spray if you have it with you.
+Keep checking someone who may be having a heart attack to make sure they're still responding and breathing.
+If someone stops responding to you and stops breathing, start CPR.
+Find out how to do CPR on the St John Ambulance website.
+[...]
+Page last reviewed: 31 March 2026
+Next review due: 31 March 2029

@@ -176,9 +176,10 @@ def _equal_arity_or_silent(
 
     Where entries do exist the arity rule is the stricter one, and for a harder
     reason than ``choices_tr``'s: each line of a do-not list is a separate
-    instruction — *Kendi aracınızla yola çıkmayın* is not a rephrasing of *Bir
-    şey yiyip içmeyin* — so a locale carrying fewer of them has dropped a
-    safety instruction rather than translated one.
+    instruction — *Hastaneye kendiniz araba kullanarak gitmeyin* is not a
+    rephrasing of *Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin*
+    — so a locale carrying fewer of them has dropped a safety instruction
+    rather than translated one.
     """
     if not value:
         return value

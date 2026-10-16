@@ -290,16 +290,23 @@ rules:
           tr: "Hemen **112**'yi arayın."
         do_nots_tr:
           tr:
-            - "Kendi aracınızla yola çıkmayın."
-            - "Bir şey yiyip içmeyin."
-            - "Tek başınıza kalmayın; yanınızdaki kişiye durumu söyleyin."
+            - "Hastaneye kendiniz araba kullanarak gitmeyin."
+            - "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin."
+        # ^ CD-111 (INT-468, applied by INT-494; D18, simulated patients only): the
+        #   decided REMOTE list, in record order. The driving line is the sourced
+        #   one (NHS). The nil-by-mouth line is removed: first aid gives aspirin by
+        #   mouth while help is awaited (RCUK/ERC 2025) and NICE CG95 has a
+        #   clinician offer it as soon as possible. No medicine line replaces it.
         why_tr:
           tr: >-
-            Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir.
-            112 ile gelen hastalar acil serviste triyaj için bekletilmez.
-        # ^ Tebliğ MADDE 8(5). A statement about the service, not about the patient's
-        #   condition — safe in every register, and the argument that actually stops
-        #   "I'll just drive there myself".
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla
+            getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.
+        # ^ CD-25 (INT-465; D18, simulated patients only): the action and the service,
+        #   never the patient's condition. The line it replaced named the heart
+        #   (HB-C12b, still open for the physician of record) and used "triyaj".
+        #   Second sentence: Tebliğ MADDE 8(5), with triyaj rendered through MADDE
+        #   4(1)(p) — a statement about the service, safe in every register, and the
+        #   argument that actually stops "I'll just drive there myself".
       ON_SITE:
         primary: GO_TO_IN_HOUSE_ACIL
         show_112: false          # ⛔ never suggest an ambulance to someone inside the hospital
@@ -312,13 +319,15 @@ rules:
           tr:
             - "Poliklinik sırasında beklemeyin."
             - "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin."
-            - "Bir şey yiyip içmeyin."
+        # ^ CD-111 (INT-494): the decided ON_SITE list. Both lines are kept as
+        #   written; the nil-by-mouth line is removed here too.
         why_tr:
           tr: >-
-            Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin
-            hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil
-            kabul edilen hastalar sıra beklemez.
-        # ^ EK-4 door-triage fact, the ON_SITE counterpart of the MADDE 8(5) line above.
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste
+            hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden
+            içeri alınır.
+        # ^ CD-25 (INT-465; D18): the door-triage service fact, Tebliğ MADDE 8(3) with
+        #   EK-4 Kategori 1 — the ON_SITE counterpart of the MADDE 8(5) line above.
         #   The MADDE 8(5) line must NOT be reused here: the patient is not travelling.
       UNKNOWN:
         ask_one_tr:
@@ -342,9 +351,12 @@ rules:
         Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
         Hakkında Tebliğ, EK-4
       version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
-      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-6.htm"
-      retrieved_on: 2026-08-25
-      quote: "kardiyak ağrıya benzer göğüs ağrısı"
+      # INT-465: the snapshot's url_annex (EK-4 is the annex PDF) and its retrieval
+      # date; the earlier -6.htm URL returned 404 (snapshot header, note). The quote
+      # is as EK-4 prints it. load_life_threat_set checks all three against the header.
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Kardiyak ağrıya benzer göğüs ağrısı"
       quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
       note: >-
         EK-4 splits chest pain three ways (04 §3), which is why this rule and
@@ -456,9 +468,9 @@ rules:
         Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
         Hakkında Tebliğ, EK-4
       version_or_date: "RG 13/9/2022 s. 31952"
-      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-6.htm"
-      retrieved_on: 2026-08-25
-      quote: "kardiyak öykü ile uyumlu olmayan göğüs ağrısı"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"  # INT-465, as above
+      retrieved_on: 2026-10-02
+      quote: "Kardiyak öykü ile uyumlu olmayan göğüs ağrısı"
       quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
 
     excluded_criteria:

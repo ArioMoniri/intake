@@ -221,12 +221,11 @@ Location is derived from the visit lifecycle state in **§2b** plus the mode. It
 > **Lütfen yapmayın**
 > • Poliklinik sırasında beklemeyin.
 > • Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.
-> • Bir şey yiyip içmeyin.
 >
 > **Neden**
 > Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil kabul edilen hastalar sıra beklemez.
 
-Note what is **not** in it: no 112, no ambulance, no *"en yakın acil"* map, no diagnosis. It names one destination, one timing instruction and one thing to say at the door.
+Note what is **not** in it: no 112, no ambulance, no *"en yakın acil"* map, no diagnosis. It names one destination, one timing instruction and one thing to say at the door. It also gives no food, drink or medicine instruction: CD-111 (INT-468; D18, simulated patients only) removed the nil-by-mouth line in both locations and put no medicine line in its place, because that advice is the 112 call handler's or the acil servis's to give (applied by INT-494).
 
 **What happens after a RED — unconditional, in every register:**
 - **Persistent state on the visit card**, not a transient modal. A RED that can be dismissed and forgotten was never an alert. It stays visible until resolved, and it is the state that `§2b` refuses to let a reschedule move silently.

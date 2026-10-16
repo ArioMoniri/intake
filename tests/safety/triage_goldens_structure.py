@@ -35,6 +35,8 @@ from triage_goldens_corpus import (
 from triage_goldens_fixtures import (
     BK_ONSITE_TR,
     BK_REMOTE_TR,
+    C1_ONSITE_DO_NOTS,
+    C1_REMOTE_DO_NOTS,
     C1_REMOTE_TR,
     green,
     lt01n,
@@ -127,11 +129,13 @@ def red_axes_locations() -> list[GoldenCase]:
             lt01p(),
             (C1,),
             C1,
-            "LT-01-P REMOTE: CALL_112, show_112, the verbatim Turkish script",
+            "LT-01-P REMOTE: CALL_112, show_112, the verbatim Turkish script and "
+            "CD-111's decided do-not list (INT-494)",
             location=RedLocation.REMOTE,
             action_primary="CALL_112",
             action_show_112=True,
             action_tr=C1_REMOTE_TR,
+            do_nots_tr=C1_REMOTE_DO_NOTS,
         ),
         red(
             "axes/c1-onsite",
@@ -139,10 +143,12 @@ def red_axes_locations() -> list[GoldenCase]:
             lt01p(),
             (C1,),
             C1,
-            "LT-01-P ON_SITE: in-house acil, staff notified, 112 absent",
+            "LT-01-P ON_SITE: in-house acil, staff notified, 112 absent, and "
+            "CD-111's decided do-not list (INT-494)",
             location=RedLocation.ON_SITE,
             action_primary="GO_TO_IN_HOUSE_ACIL",
             action_show_112=False,
+            do_nots_tr=C1_ONSITE_DO_NOTS,
         ),
         red(
             "axes/c1-unknown",

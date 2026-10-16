@@ -24,6 +24,16 @@ from triage_goldens_corpus import ANCHOR, CP_ANCHOR, TODAY, GoldenCase, d, p
 BK_REMOTE_TR = "Hemen yardım isteyin."
 BK_ONSITE_TR = "Görevlilere haber verin ve bekleyin."
 C1_REMOTE_TR = "Hemen **112**'yi arayın."
+# CD-111's decided do-not lists (INT-468), applied by INT-494: each location's
+# list, exact and in record order. The removed nil-by-mouth line is in neither.
+C1_REMOTE_DO_NOTS = (
+    "Hastaneye kendiniz araba kullanarak gitmeyin.",
+    "Yanınızda biri varsa sizi yalnız bırakmasına izin vermeyin.",
+)
+C1_ONSITE_DO_NOTS = (
+    "Poliklinik sırasında beklemeyin.",
+    "Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.",
+)
 
 # Every active RED in merged content routes EMERGENCY_NOW, so the route
 # axis is pinned by default on every RED golden; a case overrides it the

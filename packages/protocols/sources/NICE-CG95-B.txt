@@ -1,0 +1,25 @@
+# guideline_id: NICE-CG95
+# title: Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Clinical guideline CG95; published 24 March 2010; last updated 30 November 2016
+# url: https://www.nice.org.uk/guidance/cg95/chapter/Recommendations
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200; sha256 of the HTML 4578ebb58e32e362b766961e1db8070a693ab1ab2cd5c94e0e3d4e65a9c07358); HTML (utf-8) text-extracted with a block-level parser: one line per HTML block, whitespace runs collapsed, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header and section 1.2.3 (its lead sentence and recommendations 1.2.3.1-1.2.3.2); nothing paraphrased or edited; omissions marked [...]. A second excerpt beside NICE-CG95.txt, which does not carry section 1.2.3.
+---
+Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis
+Clinical guideline
+Reference number: CG95
+Published:
+24 March 2010
+Last updated:
+30 November 2016
+[...]
+1.2.3 Immediate management of a suspected acute coronary syndrome
+Management of ACS should start as soon as it is suspected, but should not delay transfer to hospital. The recommendations in this section should be carried out in the order appropriate to the circumstances.
+1.2.3.1
+Offer pain relief as soon as possible. This may be achieved with GTN (sublingual or buccal), but offer intravenous opioids such as morphine, particularly if an acute myocardial infarction (MI) is suspected. [2010]
+1.2.3.2
+Offer people a single loading dose of 300 mg aspirin as soon as possible unless there is clear evidence that they are allergic to it.
+If aspirin is given before arrival at hospital, send a written record that it has been given with the person.
+Only offer other antiplatelet agents in hospital. Follow the NICE guideline on acute coronary syndromes. [2010]

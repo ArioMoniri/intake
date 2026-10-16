@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**343 issues.** By phase: P0 168 · P1 121 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 228 · todo 73 · withdrawn 1.
+**348 issues.** By phase: P0 172 · P1 122 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 233 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -177,8 +177,12 @@
 | INT-406 | RED acknowledgement: clinic Safety inbox within 60 s, acknowledgement clock and SLA paging (invariant 49) | E09-clinician | INT-025, INT-080, INT-092, INT-093, INT-180 | area:clinician, risk:clinical | done |
 | INT-432 | Clinical decisions register — guideline/openEHR-sourced, agent-authored, independently agent-verified (owner decision D18) | E03-protocols | INT-353 | area:protocols, risk:clinical | done |
 | INT-448 | Clinical decisions batch 3 — resolve the #642 sign-off packet items (197) from sourced guidelines | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
+| INT-468 | RED clinical values under D18 — the cardiac do-not lines and the unanswered location wait (CD-111) | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
 | INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | INT-352 | area:infra | doing |
 | INT-500 | Lockfile advisories since 4 Oct: shell-quote, compression, source-map-js and next upgraded, plus mako | E13-infra | INT-429 | area:security | done |
+| INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done |
+| INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
+| INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
 
 ## P1
 
@@ -305,6 +309,7 @@
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
+| INT-494 | apply CD-111 to the served cardiac RED rule — decided do-not lists, re-signed synthetic rule set | E03-protocols | INT-432 | area:protocols, risk:clinical | done |
 
 ## P2
 
