@@ -456,6 +456,9 @@ siem-down:
 # INT-018: the forward egress proxy. `egress-conf` re-renders squid.conf from
 # infra/security/egress-allowlist.yaml — the allow-list is the only file anyone
 # edits, and tests/infra/test_egress_proxy.py fails when the render is stale.
+# INT-442: it renders two proxies from that one list — the build proxy
+# (infra/security/squid/squid.conf, tooling rows) and the synthetic AWS host's
+# proxy (infra/staging/egress/squid.conf, hosted_model_inference rows only).
 .PHONY: egress egress-down egress-conf egress-conf-check
 
 egress-conf:

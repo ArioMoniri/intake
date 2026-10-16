@@ -38,6 +38,7 @@ from protocols.compile.data_categories import (
     slot_category_refusals,
 )
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
+from protocols.compile.gate_values import gate_value_refusals
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
 from protocols.compile.rule_reads import rule_read_refusals
@@ -64,6 +65,7 @@ from protocols.pack_locale import selectable_locales
 from protocols.triage.expr import WhenGrammarError, parse_when
 from protocols.types import CrisisNumber, Delivery, Maturity, PackLayer, RuleStatus
 from protocols.validator import FindingCode, resolve_red_flags, validate_packs
+from protocols.valuesets import NO_VALUESETS, ValueSetTable
 
 __all__ = [
     "ResolvedProtocol",
@@ -732,6 +734,7 @@ def resolve_protocol(
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
     data_register: DataCategoryRegister | None = None,
+    valuesets: ValueSetTable | None = None,
 ) -> ResolvedProtocol:
     """Resolve one pack into the document the emitters project from.
 
@@ -743,9 +746,13 @@ def resolve_protocol(
     ``data_register`` is the per-category register (INT-349). Omitted, it has
     no rows, so a slot tagged with anything but ``general_health`` refuses.
 
+    ``valuesets`` is the committed value-set table (INT-441). Omitted, nothing
+    is committed, so every gate that compares a code slot refuses.
+
     Raises :class:`CompileError` carrying **every** reason it refused.
     """
     register = NO_REGISTER if data_register is None else data_register
+    committed = NO_VALUESETS if valuesets is None else valuesets
     refusals: list[Refusal] = list(_signoff_refusals(life_threat))
     refusals.extend(_rule_refusals([r.rule for r in life_threat.rules]))
     target = registry.maybe(pack_id)
@@ -923,6 +930,12 @@ def resolve_protocol(
             )
         )
     refusals.extend(_gate_ref_refusals(sections))
+    refusals.extend(
+        gate_value_refusals(
+            ((section.id, slot.key, slot.slot) for section in sections for slot in section.slots),
+            committed,
+        )
+    )
     if merged:
         refusals.extend(
             rule_read_refusals(

@@ -125,8 +125,21 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-430 (the agent council as a post-bind verifier, GitHub #732)
     # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
     # + INT-475 (hop RED to the Safety inbox; location answer to the server, GitHub #814)
+    # + INT-485 (the admin oauth2-proxy logs no staff email, GitHub #830)
+    # + INT-518 (live extraction gets the committed value table, GitHub #884)
+    # + INT-521 (the live session evaluates triage on every bound answer, GitHub #887)
+    # + INT-522 (the onset binds from its closed-choice answer by CD-05, GitHub #888)
+    # + INT-538 (one laptop command creates a staff user, GitHub #906)
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428, GitHub #752)
+    # + INT-428 (hosted model lanes, synthetic deployment only; ADR-035, GitHub #724)
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428, GitHub #752)
+    # + INT-424 (delivery profiles v2 + expressive-model ADR proposal, GitHub #719)
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from INT-428, GitHub #753)
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762)
+    # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
+    # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
     # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
-    assert len(actions) == 355
+    assert len(actions) == 365
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

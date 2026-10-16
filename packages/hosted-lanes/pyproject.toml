@@ -9,6 +9,9 @@ requires-python = ">=3.12"
 # through intake_platform.model_lanes.hosted's Protocol, never by import.
 dependencies = [
     "intake-platform",
+    # INT-443: the hosted clip lane is a voice_clips TtsGateway (the PHI-path
+    # package it implements; the dependency points away from the PHI closure)
+    "intake-voice-clips",
     "httpx>=0.27",
     "pydantic>=2.8",
     "pyyaml>=6.0",

@@ -75,6 +75,7 @@ def _fixture(name: str) -> dict[str, Any]:
 def _test_allowlist() -> EgressAllowlist:
     """The shipped list plus the row ADR-035 asks a human to add."""
     shipped = load_allowlist(SHIPPED_ALLOWLIST)
+    tooling = [e for e in shipped.tiers.dev if e.name != "openai-api"]
     row = AllowlistEntry(
         name="openai-api",
         host=OPENAI_HOST,
@@ -86,7 +87,7 @@ def _test_allowlist() -> EgressAllowlist:
     )
     allowlist = EgressAllowlist(
         version=shipped.version,
-        tiers=shipped.tiers.model_copy(update={"dev": [*shipped.tiers.dev, row]}),
+        tiers=shipped.tiers.model_copy(update={"dev": [*tooling, row]}),
     )
     assert_dev_only_vendors(allowlist)
     return allowlist
@@ -243,8 +244,17 @@ class TestTheAudioRoutesAndTheProbe:
 
 
 class TestTheEgressGuardDecidesTwice:
-    def test_the_shipped_allow_list_has_no_row_so_the_provider_is_unlisted(self) -> None:
-        catalogue = load_provider_catalogue(PROVIDERS, load_allowlist(SHIPPED_ALLOWLIST))
+    def test_without_the_row_the_provider_is_unlisted(self) -> None:
+        # the list without the provider's row, whatever the shipped list holds
+        # (the row is the owner's protected change, INT-442)
+        shipped = load_allowlist(SHIPPED_ALLOWLIST)
+        without = EgressAllowlist(
+            version=shipped.version,
+            tiers=shipped.tiers.model_copy(
+                update={"dev": [e for e in shipped.tiers.dev if e.name != "openai-api"]}
+            ),
+        )
+        catalogue = load_provider_catalogue(PROVIDERS, without)
         assert isinstance(catalogue, ProviderCatalogue)
         assert ProviderId.OPENAI in catalogue.unlisted
         assert catalogue.info()[ProviderId.OPENAI].listed is False

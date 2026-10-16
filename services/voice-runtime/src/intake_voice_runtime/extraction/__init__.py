@@ -16,7 +16,9 @@ from intake_voice_runtime.extraction.boundary import (
     wrap_patient_data,
 )
 from intake_voice_runtime.extraction.errors import (
+    AnchorChoicesUnresolved,
     BoundaryEscape,
+    CodeSlotUnbound,
     ExtractionNotConfigured,
     ExtractionRefused,
     ExtractionUnavailable,
@@ -42,6 +44,7 @@ from intake_voice_runtime.extraction.result import (
     ExtractionFlag,
     ExtractionResult,
     FlagReason,
+    SlotOutcome,
     SlotUpdate,
     SlotValue,
 )
@@ -51,6 +54,7 @@ from intake_voice_runtime.extraction.schema import (
     TOP_LEVEL_KEYS,
     build_instructions,
     slot_output_schema,
+    unbound_code_slots,
 )
 from intake_voice_runtime.extraction.work import (
     CANDIDATE_FLAG_LEVEL,
@@ -75,7 +79,9 @@ __all__ = [
     "PROMPT_VERSION",
     "SENTINEL_PREFIX",
     "TOP_LEVEL_KEYS",
+    "AnchorChoicesUnresolved",
     "BoundaryEscape",
+    "CodeSlotUnbound",
     "Completion",
     "ExtractionCall",
     "ExtractionContext",
@@ -92,6 +98,7 @@ __all__ = [
     "RecordedExtractionGateway",
     "RecordedExtractionMismatchError",
     "RecordedExtractionMissingError",
+    "SlotOutcome",
     "SlotUpdate",
     "SlotValue",
     "VendorEndpointRefused",
@@ -103,5 +110,6 @@ __all__ = [
     "render_request_payload",
     "run_extraction",
     "slot_output_schema",
+    "unbound_code_slots",
     "wrap_patient_data",
 ]

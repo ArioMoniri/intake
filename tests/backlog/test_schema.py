@@ -194,9 +194,38 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
     # location answer reaches the server, so ON_SITE notifies staff; found by
     # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
+    # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
+    # invariant 6, GitHub #830).
+    # + INT-518 (live extraction gets the committed value table, so the code
+    # slots the active life-threat rules read can bind; from the INT-441
+    # clinical review, GitHub #884).
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation; from INT-518, GitHub #887).
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live; from INT-518, GitHub #888).
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host; owner order, GitHub #906).
+    # + INT-442 (the synthetic AWS host's egress forward proxy, split from
+    # INT-428, GitHub #752).
+    # + INT-428 (hosted model lanes for the synthetic deployment, switchable
+    # from the admin panel with a GPU switch-over; owner decision, ADR-035,
+    # GitHub #724).
+    # + INT-442 (the synthetic AWS host's egress forward proxy, split from
+    # INT-428, GitHub #752).
+    # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
+    # the expressive-model ADR proposal; owner request, GitHub #719).
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
+    # INT-428, GitHub #753).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    # + INT-540 (the onset anchor always resolves: CD-04's UNCLEAR states, a
+    # defined clarification_needed and the session's close; from the INT-522
+    # clinical review, GitHub #913).
+    # + INT-531 (a RED evaluated between turns reaches the patient within the
+    # 300 ms budget; INT-521 residual 1, GitHub #898).
     # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
     # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
-    assert len(ids) == 355
+    assert len(ids) == 365
     import re
 
     for i in ids:

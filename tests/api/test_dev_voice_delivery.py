@@ -27,6 +27,7 @@ from george_harness import (
 from intake_api.dev_voice import GEORGE_CLIP_PATH
 from intake_api.dev_voice_delivery import DELIVERY_TR, delivery_text_hashes
 from intake_api.dev_voice_guard import (
+    ENV_APP_CATALOGUE,
     ENV_GEORGE_CLIP_DIST,
     load_scripted_catalogue,
     scripted_catalogue_from_env,
@@ -139,4 +140,7 @@ def test_delivery_lines_never_make_an_empty_manifest_set_configured(
     empty = tmp_path / "dist"
     empty.mkdir()
     monkeypatch.setenv(ENV_GEORGE_CLIP_DIST, str(empty))
+    # INT-443 admits the app's catalogue beside the manifests; with neither,
+    # the delivery lines alone must still leave the lane unconfigured
+    monkeypatch.setenv(ENV_APP_CATALOGUE, str(tmp_path / "no-app-catalogue.json"))
     assert scripted_catalogue_from_env() is None

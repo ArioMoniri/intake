@@ -25,7 +25,10 @@ __all__ = [
     "LANE_DROPPED_FRAMES",
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
+    "PREEMPT_RED_VIOLATIONS_TOTAL",
+    "RED_WATCH_FAILURES_TOTAL",
     "TALKER_TOOL_CALLS_TOTAL",
+    "TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL",
     "VENDOR_BREAKER_STATE",
     "VENDOR_BREAKER_TRANSITIONS_TOTAL",
     "VENDOR_FAILOVERS_TOTAL",
@@ -91,6 +94,17 @@ WORK_FAILED_TOTAL = Counter(
     "work_failed_total",
     "Backend Work that ended in the failed state, by work type.",
     ["type"],
+)
+
+#: INT-521: the session's rules-engine evaluation could not stand. ``kind`` is
+#: closed: ``fault`` (the evaluation raised; the Work fails and the next state
+#: Work evaluates again) or ``conflict`` (a handler's own determination
+#: disagreed with the rules engine's over the served rules; the engine's
+#: stands). Either pages: a RED may be missing from a live session.
+TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL = Counter(
+    "triage_live_evaluation_failures_total",
+    "Live-session rules-engine evaluations that faulted or disagreed with a handler, by kind.",
+    ["kind"],
 )
 
 
@@ -174,6 +188,29 @@ PREEMPT_RED_LATENCY_MS = Histogram(
     "preempt_red_latency_ms",
     "Rules-engine RED preemption latency, rule evaluation to script start, in milliseconds.",
     buckets=(50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 1_000.0, float("inf")),
+)
+
+#: INT-531: every violation a delivered RED carried, by the closed
+#: ``RedViolation`` value. The path raises ``RedPathViolation`` after delivering;
+#: a RED the Talker's between-turn watch handed to the path has no caller for
+#: that raise to reach, so the count is how an operator sees it. A late stop is
+#: counted here and nowhere else (the latency histogram is the trigger's).
+PREEMPT_RED_VIOLATIONS_TOTAL = Counter(
+    "preempt_red_violations_total",
+    "Rules-engine REDs delivered with a budget, speech or script violation, by violation.",
+    ["violation"],
+)
+
+#: INT-531 round 2: the Talker's between-turn RED watch could not do its job.
+#: ``kind`` is closed: ``delivery`` (a pushed RED's path raised something other
+#: than a violation or a refusal), ``cancelled`` (the event loop cancelled a
+#: delivery before it finished) or ``exit`` (the watch itself ended other than
+#: by being cancelled). The first two are retried, and raised, on the next turn.
+#: Any increase means a RED may not have reached the patient.
+RED_WATCH_FAILURES_TOTAL = Counter(
+    "red_watch_failures_total",
+    "Between-turn RED watch failures: a pushed RED undelivered, or the watch ended, by kind.",
+    ["kind"],
 )
 
 

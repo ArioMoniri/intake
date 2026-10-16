@@ -15,6 +15,19 @@ step. Every step in that list is non-blocking with respect to Backend Work,
 which is the whole point of ADR-009 and the reason the turn budget survives a
 stalled backend.
 
+**A RED does not wait for a turn** (INT-531). Beside the turns the Talker runs
+one loop of its own, :meth:`TalkerSession.watch_reds`, parked on the session's
+:class:`~intake_voice_runtime.talker.red_push.RedMailbox`. Layer B posts every
+rules-engine RED it settles there — a non-blocking post, from whichever thread
+its pump runs on — and the watch hands it to the RED path the moment it lands:
+mid-silence, while the patient is speaking, while the agent's own audio plays.
+The path stops that audio within the stop budget and then triggers. A turn
+that was speaking returns stopped without recording its cut question as asked.
+The watch awaits the mailbox and the RED path, never Backend Work, and the
+first turn starts it on the turn's own event loop. The turn's drain still
+delivers any RED the watch has not, and each RED reaches the path once
+whichever route sees it first.
+
 What this module deliberately does **not** contain:
 
 - **the RED preemption path.** Only its authorisation gate lives here
@@ -22,7 +35,9 @@ What this module deliberately does **not** contain:
   flush → cancel → pre-positioned-clip sequence over the data channel is
   INT-093, and files/03 §4.6 invariant 4 requires that path to touch no media
   transport at all — which is precisely why it is not plumbed through this
-  audio sink.
+  audio sink. A turn drains Layer B and hands any RED to that path before it
+  submits, schedules or asks anything (INT-521), and once the intake has
+  stopped it submits and asks nothing.
 - **an LLM.** Dynamic text arrives as a string from Layer B or from the
   Talker's small model behind ADR-006's gateway; this module routes and guards
   it. There is no model call here to mock.
@@ -34,13 +49,16 @@ What this module deliberately does **not** contain:
 
 from __future__ import annotations
 
+import asyncio
 import enum
+import logging
 from dataclasses import dataclass, field
 
 from clinical_schemas.common import FrozenModel
 from intake_platform.locale import DEFAULT_LOCALE
 from pydantic import Field, model_validator
 
+from intake_voice_runtime.metrics import RED_WATCH_FAILURES_TOTAL
 from intake_voice_runtime.ports import (
     AskLedger,
     AudioSink,
@@ -50,6 +68,7 @@ from intake_voice_runtime.ports import (
     PatientMemoryKey,
     PatientMemoryStore,
     PatientRecord,
+    QueueSealed,
     ScreenSink,
     SpeechSynthesizer,
     WorkRequest,
@@ -77,15 +96,18 @@ from intake_voice_runtime.talker.policy_guard import (
 )
 from intake_voice_runtime.talker.preemption import (
     BackendResult,
+    PreemptRefused,
     Priority,
     authorise_preempt,
 )
 from intake_voice_runtime.talker.red_path import (
     REGISTER_DELIVERY,
     RedPathNotWired,
+    RedPathViolation,
     RedPreemption,
     RedPreemptionOutcome,
 )
+from intake_voice_runtime.talker.red_push import RedMailbox
 from intake_voice_runtime.talker.speculation import PreemptiveGeneration
 from intake_voice_runtime.talker.speech import SpeechRouter
 from intake_voice_runtime.talker.tools import (
@@ -116,11 +138,14 @@ __all__ = [
     "UNMEASURED_JITTER",
     "AskLedgerNotWired",
     "ProfileNotWired",
+    "RedDeliveryFailed",
     "TalkerConfig",
     "TalkerSession",
     "TurnHold",
     "TurnOutcome",
 ]
+
+logger = logging.getLogger("intake_voice_runtime.talker.session")
 
 
 class TurnHold(enum.StrEnum):
@@ -145,6 +170,23 @@ class TurnHold(enum.StrEnum):
 #: waiting room, which §4.5.2 names as the reason the drop is conditional at
 #: all.
 UNMEASURED_JITTER = TurnYieldPolicy(uplink_jitter_p95_ms=ADAPTIVE_JITTER_THRESHOLD_MS)
+
+
+class RedDeliveryFailed(RuntimeError):
+    """A RED the between-turn watch could not deliver (INT-531 round 2).
+
+    Raised by the session's next turn, after that turn has tried the RED again,
+    and ahead of the stopped-intake return: the watch has no caller of its own,
+    and a RED that never reached the patient must reach somebody. Carries the
+    work ids only (invariant 6); the first failure is the ``__cause__``.
+    """
+
+    def __init__(self, work_ids: tuple[str, ...]) -> None:
+        self.work_ids = work_ids
+        super().__init__(
+            f"the between-turn RED watch could not deliver {list(work_ids)}; this turn "
+            "tried again, and any that failed again is tried and raised on the next"
+        )
 
 
 class AskLedgerNotWired(RuntimeError):
@@ -279,6 +321,10 @@ class TalkerSession:
     screen: ScreenSink | None = None
     policy_guard: PolicyGuard | None = None
     preemption: RedPreemption | None = None
+    #: The Talker's end of the between-turn push (INT-531): Layer B posts each
+    #: rules-engine RED here and :meth:`watch_reds` takes it. ``None`` where no
+    #: RED path is bound, and then a RED waits for the turn's drain.
+    red_mailbox: RedMailbox | None = None
     #: Where a deposited transcript lives while its Work is queued. Layer A
     #: holds the **deposit** half only — it cannot read one back — and the
     #: queue still carries nothing but the digest (CLAUDE.md invariants 6, 14).
@@ -311,6 +357,20 @@ class TalkerSession:
     _permissions: dict[str, PermissionRequest] = field(default_factory=dict, init=False)
     _playback: list[tuple[float, float]] = field(default_factory=list, init=False)
     _red_stopped: bool = field(default=False, init=False)
+    #: INT-531: the work ids of the REDs handed to the path, by either route.
+    #: A RED is settled once and seen twice — pushed and drained — so the
+    #: second sighting is dropped here.
+    _reds_seen: set[str] = field(default_factory=set, init=False, repr=False)
+    _red_watch: asyncio.Task[None] | None = field(default=None, init=False, repr=False)
+    #: INT-531 round 2: deliveries in flight, held apart from the watch so the
+    #: session ending mid-delivery cannot cut a RED between its stop and its
+    #: trigger.
+    _red_deliveries: set[asyncio.Task[None]] = field(default_factory=set, init=False, repr=False)
+    #: REDs the watch could not deliver, by work id, with what stopped them.
+    #: The next turn tries each again and raises :class:`RedDeliveryFailed`.
+    _red_failed: dict[str, tuple[BackendResult, BaseException]] = field(
+        default_factory=dict, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         # The Backend agent is the ledger when it is one — one object, one
@@ -688,11 +748,183 @@ class TalkerSession:
             )
         triage = result.presentation.triage_update
         register = getattr(triage, "register", None)
+        if register is not None and REGISTER_DELIVERY[register].stops_intake:
+            # INT-531: latched before the path awaits anything, so a turn that
+            # resumes while the stop and the trigger are in flight asks nothing.
+            self._red_stopped = True
+        return await self.preemption.trigger(result, evaluated_at_ms=evaluated_at_ms)
+
+    async def _drain_and_deliver(self) -> tuple[object, ...]:
+        """Drain Layer B and hand every rules-engine RED to the RED path.
+
+        Every result is accepted first (provenance gate, insertion scheduler),
+        then each preempt is delivered. Draining never blocks; delivering
+        awaits only the RED path's cancel and data-channel trigger. A RED the
+        between-turn watch already handed to the path is skipped (INT-531).
+        """
+        drained = self.backend.drain_results()
+        reds: list[BackendResult] = []
+        for result in drained:
+            if not isinstance(result, BackendResult):
+                continue
+            if result.priority is Priority.PREEMPT and result.work_id in self._reds_seen:
+                continue
+            self.accept_result(result)
+            if result.priority is Priority.PREEMPT:
+                self._reds_seen.add(result.work_id)
+                reds.append(result)
+        for result in reds:
+            await self.deliver_preempt(result, evaluated_at_ms=self._evaluated_at(result))
+        return drained
+
+    # --- the between-turn RED watch (INT-531) ------------------------------------------
+
+    def ensure_red_watch(self) -> asyncio.Task[None] | None:
+        """Start :meth:`watch_reds` on the running event loop, once per loop.
+
+        :meth:`take_turn` calls this on entry, so a session that has taken a
+        turn is watching; a worker may call it at session start to cover the
+        moments before the first turn too. ``None`` where no push is wired —
+        no mailbox, or no RED path to hand a RED to.
+        """
+        if self.red_mailbox is None or self.preemption is None:
+            return None
+        running = asyncio.get_running_loop()
+        watch = self._red_watch
+        if watch is None or watch.done() or watch.get_loop() is not running:
+            watch = running.create_task(self.watch_reds(), name="talker-red-watch")
+            watch.add_done_callback(self._red_watch_ended)
+            self._red_watch = watch
+        return watch
+
+    def stop_red_watch(self) -> None:
+        """Cancel the between-turn watch when the session ends. Idempotent.
+
+        The watch never returns on its own, so an ended session that left it
+        parked on its mailbox would keep the session alive until its event
+        loop closed. A delivery already in flight is not cancelled with it: it
+        runs apart from the watch and still reaches the device. Awaits nothing.
+        """
+        watch, self._red_watch = self._red_watch, None
+        if watch is not None and not watch.done():
+            watch.cancel()
+
+    async def watch_reds(self) -> None:
+        """The Talker's own between-turn loop: a RED reaches the patient now.
+
+        Parks on the session's mailbox and hands each RED Layer B posts to the
+        preemption path the moment it lands, whether or not a turn is running.
+        It awaits the mailbox and the path — the cancel of the agent's audio,
+        bounded by the stop budget, then the trigger over the data channel —
+        and nothing of Layer B's. It never returns; cancel the task to stop it.
+
+        Each batch is delivered in a task of its own that the watch only
+        shields: cancelling the watch — the session ending, say — never cuts a
+        RED between its stop and its trigger (INT-531 round 2).
+        """
+        mailbox = self.red_mailbox
+        if mailbox is None or self.preemption is None:
+            raise RedPathNotWired(
+                "the between-turn RED watch needs both the session's mailbox and its "
+                "RED preemption path; refusing to watch for a RED it could not deliver "
+                "(CLAUDE.md invariant 21)"
+            )
+        while True:
+            batch = await mailbox.take()
+            delivery = asyncio.ensure_future(self._deliver_batch(batch))
+            self._red_deliveries.add(delivery)
+            delivery.add_done_callback(self._red_deliveries.discard)
+            await asyncio.shield(delivery)
+
+    async def _deliver_batch(self, batch: tuple[BackendResult, ...]) -> None:
+        for result in batch:
+            await self._deliver_pushed(result)
+
+    async def _deliver_pushed(self, result: BackendResult) -> None:
+        """One pushed RED: the same gate and path as a drained one, once.
+
+        The watch has no caller to raise to. A provenance refusal and a
+        violation are each logged by work id (the violation is also counted by
+        the path) and the watch serves the next RED; a refused RED is not marked
+        seen, so the turn's drain meets it again and raises. Anything else the
+        path raises — a data channel that fails, the event loop cancelling the
+        delivery — leaves the RED undelivered: it is logged by work id and
+        error class, counted, and tried again and raised by the next turn.
+        """
+        if result.work_id in self._reds_seen:
+            return
         try:
-            return await self.preemption.trigger(result, evaluated_at_ms=evaluated_at_ms)
-        finally:
-            if register is not None and REGISTER_DELIVERY[register].stops_intake:
-                self._red_stopped = True
+            self.accept_result(result)
+        except PreemptRefused:
+            logger.error("pushed red refused", extra={"work_id": result.work_id})
+            return
+        self._reds_seen.add(result.work_id)
+        try:
+            await self.deliver_preempt(result, evaluated_at_ms=self._evaluated_at(result))
+        except RedPathViolation as violation:
+            logger.error(
+                "red path violation",
+                extra={
+                    "work_id": result.work_id,
+                    "violations": [value.value for value in violation.violations],
+                },
+            )
+        except asyncio.CancelledError as cancelled:
+            self._red_undelivered(result, cancelled, kind="cancelled")
+            raise
+        except Exception as err:  # the watch must outlive any one RED's failure
+            self._red_undelivered(result, err, kind="delivery")
+
+    def _red_undelivered(self, result: BackendResult, error: BaseException, *, kind: str) -> None:
+        """Record a RED the watch did not deliver, for the next turn to retry and raise."""
+        self._reds_seen.discard(result.work_id)
+        self._red_failed[result.work_id] = (result, error)
+        RED_WATCH_FAILURES_TOTAL.labels(kind=kind).inc()
+        logger.error(
+            "pushed red delivery cancelled"
+            if kind == "cancelled"
+            else "pushed red delivery failed",
+            extra={"work_id": result.work_id, "error": type(error).__name__},
+        )
+
+    def _red_watch_ended(self, watch: asyncio.Task[None]) -> None:
+        """The watch's done-callback: an end other than a cancel is a failure.
+
+        Counted and logged by error class; the next turn starts a new watch.
+        """
+        if watch.cancelled():
+            return
+        RED_WATCH_FAILURES_TOTAL.labels(kind="exit").inc()
+        logger.error("red watch exited", extra={"error": type(watch.exception()).__name__})
+
+    async def _retry_undelivered_reds(self) -> None:
+        """Try every RED the watch could not deliver again, then raise.
+
+        Runs at the top of a turn, ahead of the stopped-intake return: the RED
+        latched the intake before it failed, so without this the turn would
+        return stopped with the RED never shown. A RED that fails again is
+        recorded again, so the next turn tries it and raises again.
+        """
+        failed = dict(self._red_failed)
+        self._red_failed.clear()
+        for result, _ in failed.values():
+            await self._deliver_pushed(result)
+        first = next(iter(failed.values()))[1]
+        raise RedDeliveryFailed(tuple(failed)) from first
+
+    def _evaluated_at(self, result: BackendResult) -> float:
+        """When the rules engine made this RED's determination (INT-521).
+
+        Layer B stamps every ``preempt`` it settles. A RED from another source
+        carries no stamp; it is delivered all the same, measured from the
+        moment it was drained, because a patient shown nothing is the one
+        outcome the RED path must never produce — and the gap is logged by
+        work id so the unmeasured hop is visible rather than silent.
+        """
+        if result.evaluated_at_ms is not None:
+            return result.evaluated_at_ms
+        logger.warning("red drained without an evaluation stamp", extra={"work_id": result.work_id})
+        return self.clock.now_ms()
 
     @property
     def red_stopped(self) -> bool:
@@ -718,6 +950,13 @@ class TalkerSession:
     async def take_turn(self, transcript: str | None) -> TurnOutcome:
         """One conversational turn. Nothing here awaits Backend Work."""
         started_ms = self.clock.now_ms()
+        # INT-531: the between-turn RED watch runs beside every turn from the
+        # first one on. Starting it awaits nothing.
+        self.ensure_red_watch()
+        if self._red_failed:
+            # A RED the watch could not deliver is tried again and raised
+            # before anything else, the stopped-intake return included.
+            await self._retry_undelivered_reds()
         if self._red_stopped:
             # The intake stopped when the RED was delivered. Asking the next
             # question after a life threat is the failure the preemption
@@ -730,6 +969,21 @@ class TalkerSession:
         # the engine exactly once, and `test_talker_never_awaits` counts it.
         step = self.protocol_next()
 
+        # INT-521: a rules-engine RED is drained and delivered before this turn
+        # submits anything (files/03 §4.3: preempt, stop intake). A RED that
+        # stops the intake seals Layer B's queue, so the patient's next answer
+        # cannot be submitted; submitting first is how a RED came to sit
+        # undelivered behind a QueueSealed. The path cancels the agent's audio
+        # and triggers the pre-positioned script over the data channel; it
+        # awaits no Backend Work.
+        drained = list(await self._drain_and_deliver())
+        if self._red_stopped:
+            return TurnOutcome(
+                drained_results=len(drained),
+                held=TurnHold.INTAKE_STOPPED,
+                elapsed_ms=self.clock.now_ms() - started_ms,
+            )
+
         # files/03 §4.5: the transcript answers the question that was
         # SPOKEN, which after INT-095 is no longer whatever the frontier
         # happens to be offering — the engine has already moved on to the next
@@ -741,18 +995,40 @@ class TalkerSession:
         answered = self._asked_step or step
         work_id: str | None = None
         if transcript is not None and answered is not None:
-            work_id = self.submit_utterance(answered.step_id, transcript).work_id
-
-        drained = self.backend.drain_results()
-        for result in drained:
-            if isinstance(result, BackendResult):
-                self.accept_result(result)
+            try:
+                work_id = self.submit_utterance(answered.step_id, transcript).work_id
+            except QueueSealed:
+                # A RED sealed the queue between the drain above and this
+                # submit: Layer B settles it into its results before it seals,
+                # so it is waiting there now. Deliver it; a seal with no RED
+                # behind it is a defect and is raised.
+                drained.extend(await self._drain_and_deliver())
+                if not self._red_stopped:
+                    raise
+                return TurnOutcome(
+                    drained_results=len(drained),
+                    held=TurnHold.INTAKE_STOPPED,
+                    elapsed_ms=self.clock.now_ms() - started_ms,
+                )
 
         delivered: list[str] = []
         for decision in self.scheduler.tick(self.duplex, now_ms=self.clock.now_ms()):
-            if isinstance(decision, Speak) and decision.item.presentation.speech_tr is not None:
-                await self._speak_backend(decision)
+            if (
+                isinstance(decision, Speak)
+                and decision.item.presentation.speech_tr is not None
+                and await self._speak_backend(decision)
+            ):
                 delivered.append(decision.item.work_id)
+        if self._red_stopped:
+            # INT-531: a RED reached the path while Layer B's speech was going
+            # out; the path cut it, and nothing is asked after a life threat.
+            return TurnOutcome(
+                work_id=work_id,
+                drained_results=len(drained),
+                delivered_work_ids=tuple(delivered),
+                held=TurnHold.INTAKE_STOPPED,
+                elapsed_ms=self.clock.now_ms() - started_ms,
+            )
 
         # files/03 §4.4b: a handover gap is a turn boundary, never silence and
         # never an answer. Asking over an open patient turn is the mirror of
@@ -775,7 +1051,13 @@ class TalkerSession:
             )
             outcome = await self.speak_step(step, paraphrase)
             spoken, from_clip = outcome.spoken_text, outcome.from_clip
-            self._note_asked(step)
+            if self._red_stopped:
+                # INT-531: a RED reached the path while this question was going
+                # out. The path cut it; the patient heard at most part of it,
+                # so it is not recorded as asked and the turn reports the stop.
+                held = TurnHold.INTAKE_STOPPED
+            else:
+                self._note_asked(step)
 
         return TurnOutcome(
             step_id=step.step_id if step else None,
@@ -837,6 +1119,8 @@ class TalkerSession:
         emitted = await self._emit(
             verdict.text_tr, clip_id=self._clip_for(verdict.text_tr), label=step.step_id
         )
+        if emitted is None:
+            return TurnOutcome(step_id=step.step_id, elapsed_ms=self.clock.now_ms() - started_ms)
         self._record_playback(started_ms)
         return TurnOutcome(
             step_id=step.step_id,
@@ -857,11 +1141,11 @@ class TalkerSession:
         clip_id = self.config.safe_bridge_clip_id
         if clip_id is None:
             return TurnOutcome(step_id=step.step_id, elapsed_ms=self.clock.now_ms() - started_ms)
-        await self.router.emit("", clip_id=clip_id, label="safe_bridge")
-        self._record_playback(started_ms)
+        if await self._emit("", clip_id=clip_id, label="safe_bridge") is not None:
+            self._record_playback(started_ms)
         return TurnOutcome(step_id=step.step_id, elapsed_ms=self.clock.now_ms() - started_ms)
 
-    async def _speak_backend(self, decision: Speak) -> None:
+    async def _speak_backend(self, decision: Speak) -> bool:
         """Deliver Layer B's material at the window it earned.
 
         The scheduler is the same on both profiles and so is this method: the
@@ -869,6 +1153,11 @@ class TalkerSession:
         are clinical delivery semantics, not audio ones. A YELLOW that expires
         unheard must reach the note whether the patient was listening or
         reading, which is why none of it is skipped on ``typed``.
+
+        Returns whether anything was spoken. An INTERJECT item awaits the
+        cancel of the agent's other playback first, and a RED can latch the
+        intake during that cancel; :meth:`_emit` then starts nothing, and the
+        item is not reported delivered (INT-531 round 2).
         """
         started_ms = self.clock.now_ms()
         if decision.cancel_non_red_playback:
@@ -876,15 +1165,18 @@ class TalkerSession:
         text = decision.item.presentation.speech_tr or ""
         verdict = self.guard.filter(text, scripted=False)
         if not verdict.text_tr:
-            return
-        await self._emit(
+            return False
+        emitted = await self._emit(
             verdict.text_tr,
             clip_id=self._clip_for(verdict.text_tr),
             label=decision.item.work_id,
         )
+        if emitted is None:
+            return False
         self._record_playback(started_ms)
+        return True
 
-    async def _emit(self, text_tr: str, *, clip_id: str | None, label: str) -> Emission:
+    async def _emit(self, text_tr: str, *, clip_id: str | None, label: str) -> Emission | None:
         """Hand one sentence to the egress — and, if no voice is left, to the screen.
 
         INT-100. files/03 §4.9.4 row 11 ends *"then to ``typed``"*: when the
@@ -901,7 +1193,17 @@ class TalkerSession:
         refuses one. A session with no screen re-raises from
         :meth:`fall_back_to_typed` as ``KillSwitchNotArmed``, chained to the
         exhaustion: loud, rather than a session that goes silent mid-intake.
+
+        **Nothing starts after a RED** (CLAUDE.md invariant 21; INT-531 round
+        2). Every egress start — a step's question, the safe bridge, Layer B's
+        speech — comes through here, and once a patient-facing RED has latched
+        the intake it returns ``None`` and emits nothing. Up to the egress's
+        own playback there is no await, so the gate holds until the frame is
+        handed over; a RED that lands after that cuts the playback through
+        the RED path's cancel.
         """
+        if self._red_stopped:
+            return None
         try:
             return await self.router.emit(text_tr, clip_id=clip_id, label=label)
         except SpeechLanesExhausted:

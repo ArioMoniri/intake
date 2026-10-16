@@ -352,10 +352,40 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
     # location answer reaches the server, INT-465 finding 6, GitHub #814);
     # grows only with a stated reason.
+    # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
+    # invariant 6, GitHub #830); grows only with a stated reason.
+    # + INT-518 (live extraction gets the committed value table so code slots
+    # bind, GitHub #884); grows only with a stated reason.
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation, GitHub #887); grows only with a stated
+    # reason.
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live, GitHub #888); grows only with
+    # a stated reason.
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host, owner order, GitHub #906); grows only with a stated reason.
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
+    # GitHub #752); grows only with a stated reason.
+    # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
+    # GitHub #724); grows only with a stated reason.
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
+    # GitHub #752); grows only with a stated reason.
+    # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
+    # proposal, owner request, GitHub #719); grows only with a stated reason.
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
+    # INT-428, GitHub #753); grows only with a stated reason.
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
+    # with a stated reason.
+    # + INT-540 (the onset anchor always resolves — CD-04's UNCLEAR states, a
+    # defined clarification_needed, the session's close — so K2 cannot stay
+    # silent, GitHub #913); grows only with a stated reason.
+    # + INT-531 (a RED evaluated between turns reaches the patient within the
+    # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
+    # stated reason.
     # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
     # loaded only on the synthetic host, GitHub #896); grows only with a stated
     # reason.
-    assert len(ids) == 355, f"expected 175 blueprint + 180 added issues, got {len(ids)}"
+    assert len(ids) == 365, f"expected 175 blueprint + 190 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

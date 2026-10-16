@@ -27,6 +27,7 @@ from intake_platform.legal.synthetic import (
     deployment_data_class,
     refuse_legal_paths_for,
 )
+from intake_platform.model_lanes.guard import egress_proxy_url
 from intake_platform.red_tenant import TenantKind
 
 __all__ = [
@@ -346,6 +347,9 @@ class ApiSettings:
         refuse_dev_config_outside_dev(os.environ)
         # INT-465: only dev and the synthetic host may trust the test key
         refuse_synthetic_tenant_outside_synthetic_host(os.environ)
+        # INT-442: a forward proxy is the synthetic deployment's alone; one named
+        # anywhere else refuses the boot (never in the PHI deployment)
+        egress_proxy_url(os.environ)
         # INT-529: only dev and the synthetic host may load the synthetic texts
         refuse_synthetic_data_class_outside_synthetic_host(os.environ)
         data_class = deployment_data_class(os.environ)
