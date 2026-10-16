@@ -178,6 +178,11 @@ def test_ids_unique_and_well_formed() -> None:
     # INT-440 voice end-to-end test, GitHub #756).
     # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
     # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads; GitHub #890).
+    # + INT-501 (http-cache-semantics lifted out of its advisory before its
+    # osv exception expires, GitHub #853) and INT-508 (node-forge and braces
+    # have no upstream fix: renew or replace before 1 Nov 2026, GitHub #865).
     # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
     # the expressive-model ADR proposal; owner request, GitHub #719).
     # order of 3 Oct 2026, GitHub #790).
@@ -186,7 +191,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-428 (hosted model lanes for the synthetic deployment, switchable
     # from the admin panel with a GPU switch-over; owner decision, ADR-035,
     # GitHub #724).
-    assert len(ids) == 350
+    assert len(ids) == 353
     import re
 
     for i in ids:
