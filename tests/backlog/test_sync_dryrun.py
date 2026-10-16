@@ -129,7 +129,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-518 (live extraction gets the committed value table, GitHub #884)
     # + INT-521 (the live session evaluates triage on every bound answer, GitHub #887)
     # + INT-522 (the onset binds from its closed-choice answer by CD-05, GitHub #888)
-    assert len(actions) == 358
+    # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
+    assert len(actions) == 359
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

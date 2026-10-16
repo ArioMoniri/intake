@@ -1,5 +1,31 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
+- Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
+  - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.
+  - An abandoned session left the anchor pending too.
+  - CD-04's UNCLEAR-at-once with one `follow_up_tr` was not built, so the engine's generic two applied, and a choice the model guessed beat the patient's hedge.
+- Plan:
+  - Read CD-04's table into `protocols.answer_states`, with the bound as the decision's own number.
+  - Define `clarification_needed` in the instructions (`extraction.v2`) and in the parse (`SlotOutcome`).
+  - For an asked anchor, treat a hedge or no recorded choice as UNCLEAR and give the engine CD-04's per-step bound.
+  - Add a `close_session` state Work, from `SessionStack.close()` and `VoiceSessionRouter.end()`, that resolves an asked, unanswered anchor; the rules engine then evaluates it.
+- Tests added: `tests/voice/test_anchor_unclear.py` (71), `tests/protocols/test_answer_states.py` (75), `tests/engine/test_clarification_bounds.py` (15) and `tests/ai/test_clarification_contract.py` (11); golden family `anchor_hedges` (13) with near misses for both active rules. INT-521/522 tests were updated to CD-04's once.
+  - RED (on `64e6aef7`): collection errors; 15 failed on the engine; INT-521's near miss failed twice (no follow-up). The probe showed the onset pending, GREEN, and no clinic for "Bilmiyorum." and for abandonment, on both profiles.
+  - GREEN: the four unfit answers × 3 locations × 2 profiles all end UNCLEAR → reference day → K2 at ALERT over the data channel. Abandonment and session end do the same through the close. Near misses stay quiet. Tables saying 0 or 2 change the session as data. 14/14 mutations caught.
+- Result (docs/evidence/INT-540.md):
+  - `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.32 % with every touched module at 100 %.
+  - Protocols lane 97.63 % (`answer_states.py` 100 %).
+  - runtime-sim: every scenario, both profiles and parity exit 0, with RT-06 withdrawn as before.
+  - ruff and mypy strict clean.
+- Invariants touched and still passing: 1, 6, 7, 9, 10, 14, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-04 gains only `unclear_follow_up_tr_asks: 1`, a machine-readable restatement of its own "once". CD-05 is unchanged.
+- Backlog: INT-540 row added (`area:voice`, depends on INT-522, `clinical-core`); the three pins go from 358 to 359; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane:
+  - INT-519 items 5, 6 and 7 are unchanged, and item 5's amendment is now one number in CD-04.
+  - New items: a hedge plus a choice in one answer; a plain negative to the onset question; a never-asked anchor at session end; CD-05's own wording for "asked, never answered at close".
+- Residuals in evidence: the CD-08 inbox kind `chest_pain_arms_unresolved` is unbuilt; CD-04 is not applied to non-anchor slots; no production worker pumps the close yet.
+
 ### 2026-10-16T13:45:00Z · INT-522 · done (committed locally, not pushed; stacked on #910 INT-521, INT-518, INT-441)
 - Goal: `chest_pain.onset_at`, the tense anchor of K2 and its SARI sibling, is a date answered by four closed choices. Extraction offered `format: date`, gave no reference date and forbade inference, so a spoken choice bound nothing, the anchor read Unknown and K2 could not fire live. INT-518/521 passed only on a recorded ISO date.
   - Acceptance (GitHub #888): build CD-05's choice-to-date resolution exactly; the reference date from the injected runtime clock, never the model; each choice to its CD-05 window, hedged answers Unknown, near misses; `make safety` and runtime-sim green.

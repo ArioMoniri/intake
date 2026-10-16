@@ -75,6 +75,16 @@ active life-threat rules, never bound at all. Omitted, ``valuesets`` is now
 (whose plan build re-checks every gate against it) and to the handler (which
 refuses a code slot with no set when the session is composed). A table passed
 in is used as given, and is held to the same two checks.
+
+**The onset anchor always resolves** (INT-540, GitHub #913). Wherever CD-05's
+anchors are composed, CD-04 is too (``answer_states``, the committed register
+by default): the handler reads an asked anchor's unfit answer as UNCLEAR at
+once, and the engine is handed CD-04's follow-up bound for each anchor, so the
+scripted ``follow_up_tr`` is asked that many times before CD-05 resolves the
+anchor. ``close_session`` is registered on every session beside
+``extract_slots``, and :meth:`SessionStack.close` submits it: an anchor still
+asked and unanswered when the session ends is recorded UNCLEAR, resolved and
+evaluated by the rules engine like any other answer.
 """
 
 from __future__ import annotations
@@ -86,6 +96,7 @@ from datetime import datetime
 from clinical_schemas.overlay import PatientOverlay
 from clinical_schemas.triage import RedLocation
 from protocols.anchor_choices import AnchorChoiceTable, load_anchor_choice_table
+from protocols.answer_states import AnswerStateTable, load_answer_state_table
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.dsl import Slot
 from protocols.valuesets import ValueSetTable, load_committed_valuesets
@@ -94,6 +105,7 @@ from intake_voice_runtime.adapters.pins import ModelPin, ModelStackRow, resolve_
 from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.live_triage import SessionTriage, served_rules
+from intake_voice_runtime.clinical_agent.session_close import SessionCloseHandler, close_request
 from intake_voice_runtime.clinical_agent.work_queue import BackendAgent
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
 from intake_voice_runtime.extraction.handler import ExtractSlotsHandler
@@ -108,9 +120,11 @@ from intake_voice_runtime.ports import (
     ClipStore,
     Clock,
     PatientMemoryStore,
+    QueueSealed,
     ScreenSink,
     SpeechSynthesizer,
     SystemClock,
+    WorkTicket,
     WorkType,
 )
 from intake_voice_runtime.profiles import VoiceProfile
@@ -233,6 +247,22 @@ class SessionStack:
         beside it, because the kill switch changes it mid-run."""
         return self.session.config.profile
 
+    def close(self) -> WorkTicket | None:
+        """The session is over: queue its close behind its last answers (INT-540).
+
+        Returns at once with the close's ticket — the same one however often
+        it is asked for — and the Backend pump runs it in FIFO order. ``None``
+        when a RED already sealed the queue: the session's escalation has been
+        made and nothing more is admitted (files/12 §7.1).
+        """
+        request = close_request(
+            session_id=self.agent.session_id, protocol_hash=self.session.config.protocol_hash
+        )
+        try:
+            return self.agent.submit(request)
+        except QueueSealed:
+            return None
+
 
 #: The name INT-095 gave the stack, kept so its evidence and its callers still
 #: read true. There was only ever one shape; INT-096 gave it the name it has.
@@ -264,6 +294,7 @@ def build_residency_tr_session(
     meter: SessionMeter | None = None,
     red: RedWiring | None = None,
     anchor_choices: AnchorChoiceTable | None = None,
+    answer_states: AnswerStateTable | None = None,
 ) -> SessionStack:
     """Compose one ``residency_tr`` session and close the three joints.
 
@@ -300,6 +331,10 @@ def build_residency_tr_session(
     loaded wherever the protocol declares a date answered by a closed choice.
     Handed one, it is used as given; either way a closed-choice date with no
     decided day for every choice refuses the composition.
+
+    ``answer_states`` omitted is CD-04 read from the committed register
+    (:func:`protocols.answer_states.load_answer_state_table`, INT-540), loaded
+    wherever CD-05's anchors are; handed one, it is used as given.
     """
     return _compose(
         protocol=protocol,
@@ -332,6 +367,7 @@ def build_residency_tr_session(
         meter=meter,
         red=red,
         anchor_choices=anchor_choices,
+        answer_states=answer_states,
     )
 
 
@@ -355,6 +391,7 @@ def build_typed_session(
     meter: SessionMeter | None = None,
     red: RedWiring | None = None,
     anchor_choices: AnchorChoiceTable | None = None,
+    answer_states: AnswerStateTable | None = None,
 ) -> SessionStack:
     """Compose one ``typed`` session — the same three joints, no audio.
 
@@ -371,7 +408,8 @@ def build_typed_session(
     root: the typed lane binds a tapped choice through the same handler, so a
     typed session without the table could not record a code answer either
     (INT-518). ``anchor_choices`` likewise: a tapped onset choice binds its
-    CD-05 day through the same handler (INT-522).
+    CD-05 day through the same handler (INT-522), and ``answer_states``: an
+    unfit typed onset answer is UNCLEAR at once, as a spoken one is (INT-540).
 
     ``deadlines`` survives the change of channel deliberately. files/12 §6's
     ladder decides whether a YELLOW result is delivered or expires into the
@@ -404,6 +442,7 @@ def build_typed_session(
         meter=meter,
         red=red,
         anchor_choices=anchor_choices,
+        answer_states=answer_states,
     )
 
 
@@ -432,6 +471,7 @@ def _compose(
     meter: SessionMeter | None = None,
     red: RedWiring | None = None,
     anchor_choices: AnchorChoiceTable | None = None,
+    answer_states: AnswerStateTable | None = None,
 ) -> SessionStack:
     """Both profiles, composed once.
 
@@ -465,7 +505,8 @@ def _compose(
     slots = protocol_slots(protocol)
     # INT-522: CD-05 wherever a date is answered by a closed choice. The
     # handler refuses one whose choices are not all resolved to a day.
-    anchors = _session_anchors(slots, anchor_choices)
+    # INT-540: CD-04 beside it — the hedges and the follow-up bound.
+    anchors = _session_anchors(slots, anchor_choices, answer_states)
     handler = ExtractSlotsHandler(
         transcripts=transcripts,
         gateway=gateway,
@@ -481,6 +522,7 @@ def _compose(
         reference_time=reference_time,
         overlay_facts=overlay_facts,
         valuesets=table,
+        clarification_bounds=anchors.follow_up_bounds(slots) if anchors is not None else None,
     )
     # INT-521: the evaluator over the served rules, refused here (before the
     # session is counted) when the session could not deliver the RED it finds.
@@ -501,6 +543,9 @@ def _compose(
         triage=triage,
     )
     agent.register_state(WorkType.EXTRACT_SLOTS, handler)
+    agent.register_state(
+        WorkType.CLOSE_SESSION, SessionCloseHandler(anchors=anchors, steps=frozenset(slots))
+    )
 
     session = TalkerSession(
         config=config.model_copy(update={"rule_ids": pinned}),
@@ -530,17 +575,20 @@ def _compose(
 
 
 def _session_anchors(
-    slots: Mapping[str, Slot], anchor_choices: AnchorChoiceTable | None
+    slots: Mapping[str, Slot],
+    anchor_choices: AnchorChoiceTable | None,
+    answer_states: AnswerStateTable | None,
 ) -> SessionAnchors | None:
-    """CD-05 for this session, or ``None`` where no date is a closed choice.
+    """CD-05 and CD-04 for this session, or ``None`` where no date is a closed choice.
 
     Handed a table, it is used as given; otherwise the committed register's
-    CD-05 is read (provenance-checked) only when the protocol needs it.
+    decision is read (provenance-checked) only when the protocol needs it.
     """
     if anchor_choices is None and not closed_choice_dates(slots):
         return None
     return SessionAnchors(
-        table=load_anchor_choice_table() if anchor_choices is None else anchor_choices
+        table=load_anchor_choice_table() if anchor_choices is None else anchor_choices,
+        answer_states=load_answer_state_table() if answer_states is None else answer_states,
     )
 
 

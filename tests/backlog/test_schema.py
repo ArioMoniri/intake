@@ -203,7 +203,10 @@ def test_ids_unique_and_well_formed() -> None:
     # RED fires from the conversation; from INT-518, GitHub #887).
     # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
     # CD-05, so the K2 tense anchor is known live; from INT-518, GitHub #888).
-    assert len(ids) == 358
+    # + INT-540 (the onset anchor always resolves: CD-04's UNCLEAR states, a
+    # defined clarification_needed and the session's close; from the INT-522
+    # clinical review, GitHub #913).
+    assert len(ids) == 359
     import re
 
     for i in ids:
