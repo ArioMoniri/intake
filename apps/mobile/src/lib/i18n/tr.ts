@@ -110,6 +110,18 @@ export const tr = {
     "Mesajdaki tarihten randevunuzun hangi gün olduğunu kesin anlayamadık. Tarihi aşağıya siz yazın.",
   "visits.new.smsUnreadable": "Bu mesajı okuyamadık. Bilgileri elle girebilirsiniz.",
   "visits.new.ocrUnavailable": "Görüntüden okuma henüz açık değil. Mesajı metin olarak yapıştırın.",
+  // INT-537 — vizit başlangıcında temel hizmet izni, yerinde sorulur. Yalnızca
+  // arayüz metnidir; onay metninin kendisi docs/legal'den, damgasıyla gelir.
+  "visits.new.core.kicker": "İzin gerekli",
+  "visits.new.core.title": "Vizit eklemek için temel hizmet izni gerekir",
+  "visits.new.core.body":
+    "Bu izin olmadan ön görüşme yapılamaz. İzin metnini okuyup karar verebilirsiniz. İzni istediğiniz an geri çekebilirsiniz.",
+  "visits.new.core.staleBody":
+    "Temel hizmet izninin metni güncellendi. Vizit eklemek için yeni metni okuyup yeniden onay vermeniz gerekir.",
+  "visits.new.core.pendingBody":
+    "Bu izin olmadan ön görüşme yapılamaz. İzin metni henüz hazırlanıyor. Metin yayımlanınca okuyup karar verebilirsiniz.",
+  "visits.new.core.cta": "İzin metnini okuyun",
+  "visits.new.core.pendingCta": "İzin sayfasına gidin",
   // Vizit türleri — files/09 §1
   "visits.type.first": "İlk başvuru",
   "visits.type.followup": "Kontrol",
@@ -160,6 +172,8 @@ export const tr = {
   "records.err.session": "Oturumunuz sona erdi. Lütfen yeniden giriş yapın.",
   "records.err.consent":
     "Belge izniniz kapalı görünüyor. İzinlerinizi Profilim sayfasından açabilirsiniz.",
+  "records.err.coreConsent":
+    "Temel hizmet izniniz kapalı görünüyor. İzinlerinizi Profilim sayfasından açabilirsiniz.",
   "records.err.scanUnavailable":
     "Belge taraması şu anda yapılamıyor. Lütfen daha sonra tekrar deneyin.",
   "records.err.rejected": "Belge güvenlik taramasını geçemedi ve açılmayacak.",
@@ -784,8 +798,6 @@ export const tr = {
   "consent.who.satisfaction":
     "Yanıtlarınız hizmeti değerlendirmek için kullanılır; hekiminize gitmez.",
   "consent.who.research": "Verileriniz araştırmada yalnızca siz onay verirseniz kullanılır.",
-  "consent.basis.service":
-    "Bu, hizmetin kendisidir; ayrı bir düğmesi yoktur. Vizite'yi kullanmayı bırakırsanız sona erer.",
   "consent.basis.explicit":
     "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
   "consent.basis.learningPersonal":
@@ -794,7 +806,6 @@ export const tr = {
     "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir; bu yüzden açık gelir. Kapatmak hiçbir özelliği kısıtlamaz.",
   "consent.state.pending": "Metin hazırlanıyor",
   "consent.state.stale": "Yeniden onay gerekli",
-  "consent.state.service": "Hizmetin temeli",
   "consent.pending.body":
     "Bu iznin metni hazırlanıyor. Metin yayımlanmadan izin açılamaz; hazır olduğunda burada görünür.",
   "consent.stale.body":

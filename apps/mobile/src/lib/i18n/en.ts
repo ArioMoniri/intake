@@ -107,6 +107,16 @@ export const en: Record<MessageKey, string> = {
   "visits.new.smsUnreadable": "We could not read this message. You can enter the details yourself.",
   "visits.new.ocrUnavailable":
     "Reading from an image is not available yet. Please paste the message as text.",
+  "visits.new.core.kicker": "Permission needed",
+  "visits.new.core.title": "Adding a visit needs the core service permission",
+  "visits.new.core.body":
+    "Without this permission the pre-visit interview cannot take place. You can read the permission text and decide. You can withdraw the permission at any moment.",
+  "visits.new.core.staleBody":
+    "The text of the core service permission was updated. To add a visit, you need to read the new text and approve again.",
+  "visits.new.core.pendingBody":
+    "Without this permission the pre-visit interview cannot take place. The permission text is still being prepared. Once it is published, you can read it and decide.",
+  "visits.new.core.cta": "Read the permission text",
+  "visits.new.core.pendingCta": "Go to the permission page",
   "visits.type.first": "First visit",
   "visits.type.followup": "Follow-up",
   "visits.type.preop": "Before surgery",
@@ -156,6 +166,8 @@ export const en: Record<MessageKey, string> = {
   "records.err.session": "Your session has ended. Please sign in again.",
   "records.err.consent":
     "Your documents permission looks off. You can turn it on from the Profile page.",
+  "records.err.coreConsent":
+    "Your core service permission looks off. You can turn it on from the Profile page.",
   "records.err.scanUnavailable":
     "Document scanning is not available right now. Please try again later.",
   "records.err.rejected": "The document failed the security scan and will not open.",
@@ -756,8 +768,6 @@ export const en: Record<MessageKey, string> = {
   "consent.who.satisfaction":
     "Your answers are used to evaluate the service; they do not go to your doctor.",
   "consent.who.research": "Your data is used in research only if you approve.",
-  "consent.basis.service":
-    "This is the service itself; it has no switch. It ends when you stop using Vizite.",
   "consent.basis.explicit":
     "Based on your explicit consent. You can withdraw at any moment; withdrawal takes effect immediately.",
   "consent.basis.learningPersonal":
@@ -766,7 +776,6 @@ export const en: Record<MessageKey, string> = {
     "The service is improved with aggregated data separated from your identity; that is why it comes switched on. Turning it off restricts no feature.",
   "consent.state.pending": "Text in preparation",
   "consent.state.stale": "Needs new approval",
-  "consent.state.service": "Basis of the service",
   "consent.pending.body":
     "The text for this permission is being prepared. It cannot be switched on before the text is published; it will appear here once ready.",
   "consent.stale.body":

@@ -58,6 +58,8 @@ export interface ServerVisit {
 
 export type RecordsErrorKind =
   | "consent"
+  /** INT-537: the server visit itself needs `core` — a different switch. */
+  | "core_consent"
   | "session"
   | "network"
   | "not_found"
@@ -152,7 +154,9 @@ async function parseBody(response: Response): Promise<Record<string, unknown>> {
 function mapError(status: number, body: Record<string, unknown>): RecordsApiError {
   const code = typeof body.error === "string" ? body.error : "";
   if (status === 403 && code === "consent_required") {
-    return new RecordsApiError("consent");
+    // the refusal names its scope id (and nothing else); a visit route
+    // refuses on core, which the patient grants on another switch
+    return new RecordsApiError(body.scope === "core" ? "core_consent" : "consent");
   }
   if (status === 404) {
     return new RecordsApiError("not_found");

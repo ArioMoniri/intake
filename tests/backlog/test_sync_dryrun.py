@@ -139,8 +139,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
     # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
     # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
+    # + INT-537 (the app grants the core consent visits and notes need, GitHub #904)
     # + INT-536 (consent-screen copy true for the host, GitHub #903)
-    assert len(actions) == 366
+    assert len(actions) == 367
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

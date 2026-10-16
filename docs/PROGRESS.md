@@ -1,6 +1,55 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
-### 2026-10-17T00:45:00Z · INT-536 · done (PR open, stacked on #911 INT-529)
+### 2026-10-17T08:00:00Z · INT-537 · done (round 2 on PR #940; the legal review's B1 and B2 fixed)
+- Goal: clear the legal review's two blocks. B1: a core withdrawal left both learning purposes `default_on` and processing, against the core text. B2: `consent.who.core` hid the RED staff alert.
+- Plan:
+  - The core cascade writes each default-on purpose's opt-out (audited, listed); the app's spare goes.
+  - Use the reviewer's wording for the who-row.
+  - Comment fix in `purposes.ts`. Visit-start copy for a tenant with no core text.
+  - Merge #911 as refreshed (`2cf0d5f3`).
+- Tests added:
+  - API: cascade inverted, re-grant re-opens nothing, voice near miss, no second opt-out.
+  - Legal: service test and sweep repair.
+  - ledger: inverted, plus the voice near miss. gate: a `no_text` reason. consent and visits specs pin the copy.
+  - RED: 13 mobile and 5 Python failed.
+  - Mutations caught: M1 5, M2 1, M3 3.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2848 tests.
+  - api, legal, research, release, backlog and platform: 2219 passed.
+  - mypy --strict is clean on `intake_platform`.
+  - Details are in `docs/evidence/INT-537.md` §8.
+- Invariants touched and still passing: 4 (opt-outs audited as `consent.cascade`, chain verified), 5, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The default-on question goes to INT-556 (the coordinator files it).
+- Blocked on: nothing.
+- Next: the legal-reviewer re-check.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T21:00:00Z · INT-537 · done (PR stacked on #911; legal-reviewer pass to follow)
+- Goal: a signed-in account can start a visit end to end on the synthetic host. The server makes `core` açık rıza, and every visit and note route requires it. The app showed `core` as information and could not grant it (INT-529 finding F2).
+- Plan:
+  - Offer `core` through the existing İzinleriniz flow, like every açık rıza purpose. It is granted against its loaded text with version and hash, and withdrawn in one tap with the server's cascade.
+  - Gate the new-visit screen on the ledger's `core` answer. The refusal is B1 copy with one action, which opens the core text.
+  - Pin the server side end to end on the synthetic stack configuration.
+- Tests added:
+  - `gate.test.ts`: 8 tests.
+  - `ledger.test.ts`: 4 tests. Near miss: an undecided default-on purpose survives a core withdrawal, as the server leaves it.
+  - `store.test.ts`: 3 tests. `consent.spec`: 3 tests, plus 1 rewritten. `visits.spec`: 4 tests. `records/api.test`: 2 tests. `records/screen.test`: 2 tests.
+  - `tests/api/test_core_consent_visit_start.py`: 9 tests. Near misses: a wrong hash, and a real tenant with no text.
+  - RED: 19 failed, plus `gate.test.ts` failing to load.
+  - The API pin passed on its first run, because the server already enforced everything. Its mutation (the core guard removed from visit create) was caught: 5 failed.
+  - App mutation (the cascade spares nothing): 3 failed.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2838 tests pass, lint has 0 errors, typecheck is clean.
+  - `make check-i18n`: 192 passed, with no new recorded finding.
+  - i18n, legal and touched API suites: 853 passed.
+  - Backlog and smoke: green. Placeholder, PHI and claims scans: clean.
+  - Details are in `docs/evidence/INT-537.md`.
+- Invariants touched and still passing: 4 (grant and withdraw audited, chain verified), 5 (tr first, two orphans deleted), 6 (ids only in refusals and audit), 18 (text from docs/legal with hash; no text, no grant), 20 (no figures).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Findings G1–G3 are in the evidence file. G1: `consent.who.core` still undersells the core text (INT-536). G2: the session mirror is never reconciled after a restart (pre-existing). G3: the learning purposes under a core withdrawal.
+- Next: the legal-reviewer pass; this PR merges after #911.
+### 2026-10-17T00:45:00Z · INT-536 · done (PR #946 open, stacked on #940 INT-537, which contains #911 INT-529)
 - Goal: GitHub #903, from the INT-529 legal-author findings, D25 legal lane, synthetic scope.
   - F1: the consent-screen lines contradicted the texts and the host. "Türkiye'de kalır" is false on us-east-1, and the affect and linguistic lines said the doctor sees the cues, which never reach the doctor. INT-537 G1 adds the core line.
   - F3: the render-time claims scanner missed "doğruluğu" beside a figure, which CI catches.
@@ -26,9 +75,9 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Backlog: INT-536 row added; the three pins go from 365 to 366; files/11 regenerated. COUNSEL_BRIEF §2.9 and §3.6 note that the basis half is reconciled.
 - Blocked on: nothing for this row. For the legal-reviewer (evidence §8):
-  - G3: a core withdrawal leaves undecided default-on learning purposes in effect, but the text says all other permissions close.
+  - G3 is fixed server-side by #940, which this PR now stacks on: a core withdrawal writes opt-outs for undecided default-on purposes.
   - The voice lane's temporary file and its GPU-box route need re-verifying when INT-515 ships.
-- Next: the independent legal-reviewer pass; retarget to main once #911 merges.
+- Next: legal-approved. #940 merged in on the reviewer's ruling (core who-line kept; consent.spec pin aligned; pins at 367). Retarget to main once #911 and #940 merge.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
