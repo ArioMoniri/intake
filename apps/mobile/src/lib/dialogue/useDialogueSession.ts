@@ -939,10 +939,10 @@ export function useDialogueSession({
         }
         return;
       }
-      // INT-497: the turn ends when they stop — but only where taking it leads
-      // to a spoken turn, whose driver reopens the microphone (autoEnd.ts). On
-      // the last question the tap ends the turn. A free-text or RED-adjacent
-      // question gets the long wait from the first word.
+      // INT-497: the turn ends when they stop — but only where a question turn
+      // follows (through any confirm turns), whose driver reopens the
+      // microphone (autoEnd.ts). On the last question the tap ends the turn.
+      // A free-text or RED-adjacent question gets the long wait from the start.
       if (!stale && autoEndAllowed(questions, stateRef.current)) {
         armEndpointWatch(() => stale, speakingAt, answerShapeOf(questions[listening.step]));
       }
@@ -960,6 +960,14 @@ export function useDialogueSession({
     if (state.turn.phase === "done") {
       closedRef.current = true;
       abortRef.current?.abort();
+      // INT-497 runtime review: a confirm turn reopens the microphone, and the
+      // dialogue can end straight after one. A recording still running here is
+      // nobody's answer: discarded, never left in the cache (invariant 3). The
+      // guard is required — without it the discard would reach the last
+      // answer's file, which may still be uploading for transcription.
+      if (recorder.isRecording) {
+        void stopAndDiscardRecording();
+      }
       void clearDialogueClips();
       onDone();
     } else if (state.turn.phase === "failed") {
@@ -971,6 +979,9 @@ export function useDialogueSession({
     } else if (state.turn.phase === "handoff") {
       closedRef.current = true;
       abortRef.current?.abort();
+      if (recorder.isRecording) {
+        void stopAndDiscardRecording(); // as for done, above
+      }
       void clearDialogueClips();
       onHandoff(stateRef.current.pending);
     }

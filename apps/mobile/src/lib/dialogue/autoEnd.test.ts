@@ -47,6 +47,38 @@ describe("autoEndAllowed — only a listen whose taking leads to a spoken turn",
     expect(autoEndAllowed(general, last)).toBe(false);
   });
 
+  it("refuses the last question even when a suggestion's confirm turn comes first", () => {
+    // Re-check of the runtime review: complaint → duration → extra, with the
+    // duration suggestion landing while the patient answers `extra`. The
+    // taking opens a CONFIRM turn, and after its confirm the dialogue settles
+    // — no question turn follows to keep the microphone's recording in use.
+    const last = run(
+      general,
+      { type: "speech_done" },
+      { type: "utterance", workId: 1 },
+      { type: "speech_done" },
+      { type: "utterance", workId: 2 },
+      { type: "speech_done" },
+      {
+        type: "extract_settled",
+        workId: 2,
+        candidates: { duration: { values: ["days"], quote: "birkaç gündür" } },
+      },
+    );
+    expect(last.turn).toEqual({ phase: "listening", step: general.length - 1 });
+    expect(last.pending.duration).toBeDefined();
+    expect(autoEndAllowed(general, last)).toBe(false);
+  });
+
+  it("allows a mid-flow listen whose confirm turn is followed by an unasked question", () => {
+    const listening = run(general, { type: "speech_done" });
+    const withSuggestion = {
+      ...listening,
+      pending: { complaint: { values: ["pain"], quote: "başım ağrıyor" } },
+    };
+    expect(autoEndAllowed(general, withSuggestion)).toBe(true);
+  });
+
   it("refuses the only question of a one-question pack", () => {
     const one = [general[0]];
     expect(autoEndAllowed(one, run(one, { type: "speech_done" }))).toBe(false);

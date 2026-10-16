@@ -38,6 +38,22 @@ describe("an automatic end loses no word to a closed microphone", () => {
     expect(reopen).toBeLessThan(speaking.indexOf("shouldAttemptSpeech("));
   });
 
+  it("discards a recording still running when the dialogue ends or hands over (invariant 3)", () => {
+    // A confirm turn reopens the microphone too, and a dialogue can end or
+    // hand over straight after one. The guard on `isRecording` is required:
+    // without it the discard would delete the last answer's file while it
+    // may still be uploading for transcription.
+    const ending = between(HOOK, "// Session end:", "// Unmount:");
+    for (const phase of ['"done"', '"handoff"']) {
+      const branch = ending.slice(ending.indexOf(phase));
+      const guard = branch.indexOf("if (recorder.isRecording)");
+      expect(guard, phase).toBeGreaterThanOrEqual(0);
+      expect(branch.indexOf("stopAndDiscardRecording()", guard), phase).toBeGreaterThan(guard);
+      const nextBranch = branch.indexOf("} else");
+      expect(guard, phase).toBeLessThan(nextBranch === -1 ? branch.length : nextBranch);
+    }
+  });
+
   it("still opens it through the one call site (bargeIn.spec.ts's pin)", () => {
     expect(HOOK.split("recorder.prepareToRecordAsync(").length - 1).toBe(1);
   });
