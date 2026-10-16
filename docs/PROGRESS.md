@@ -1,5 +1,40 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T03:30:00Z · INT-452 · done (PR open, not merged)
+- Goal: the owner's 16 Oct restatement of GitHub #765. Finish the roadmap so every phase is complete and it stays dynamic. files/11 and the roadmap must show done, in-flight and blocked items, each with an owner. They are regenerated from issues.yaml plus GitHub state by a script, checked in CI, and never edited by hand. The three count pins stop colliding.
+- Plan:
+  - Survey the renderer, the roadmap, the pins and the sync.
+  - Verify the counter before replacing the pins.
+  - Take an offline GitHub snapshot with `make roadmap-snapshot`.
+  - Render a generated section of files/05 with a pytest check.
+  - Add the missing rows, but never where an agent may be adding one.
+  - Write the per-phase work plan.
+- Tests added: `tests/backlog/test_roadmap.py` (32).
+  - Near-misses:
+    - a hand edit fails the check;
+    - a vanished row fails the floor, and a new row never does;
+    - a shrunken floor or a duplicated id fails;
+    - a closed HB row is never an owner;
+    - a blocked row with no record is named as drift;
+    - the renderer runs with `subprocess` refusing every call.
+  - The pins in `test_schema.py`, `test_sync_dryrun.py` and `test_make_check.py` are now derived.
+  - RED: 3 collection errors (no `render_roadmap`, no `load_snapshot`).
+  - GREEN: 209 passed across tests/backlog, smoke, docs, the two infra scans, no_placeholders, threat model and evidence check.
+- Result: `docs/evidence/INT-452.md`.
+  - The counter was right: 343 four ways.
+  - 24 rows were added (343 → 367), inserted mid-file so they do not collide with end-of-file appends.
+  - 12 issues an agent may hold are listed, not added.
+  - The live snapshot holds 64 open PRs, 256 open INT issues and a row floor of 367.
+  - No status was changed. INT-421 stays `doing`: reconcile says done, but its evidence says the workers process does not exist.
+- Invariants touched and still passing:
+  - 6: the snapshot and renderings hold titles and ids only, and phi_scan is clean.
+  - 16: Sec-Row `compliance-evidence`.
+  - 17: no placeholders, no skipped tests.
+- Decisions / ADRs / `00_STATE.md` rows: none new. §6 now points at the generated status.
+- Blocked on: the 3 Oct body's "admin Roadmap module" does not exist on any branch. The ask, for the orchestrator to file as its own admin-console issue, is in evidence §8.
+- Next: the orchestrator runs `make roadmap-snapshot` after merges and works the order in evidence §7.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:

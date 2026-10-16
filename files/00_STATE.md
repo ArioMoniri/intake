@@ -359,6 +359,8 @@ Numbers that keep circulating wrongly. Each is checked; do not restate a differe
 
 ## 6. Work queue
 
+> **The live work queue is generated (INT-452, 16 Oct 2026).** The live status section of `files/05_ROADMAP.md` lists every phase's done, in-flight, blocked and todo items with their owners. It is rendered from `docs/backlog/issues.yaml`, the blocker registers and a committed GitHub snapshot: `make roadmap-snapshot` refreshes GitHub state, `make backlog-render` re-renders, and a test fails when it is stale. The ordered per-phase plan is `docs/evidence/INT-452.md` §7. The lists below are the August design-review queue, kept as history.
+
 ### Landed and applied
 - ✅ **Product/market review applied** to `01`, `02` — MoH named as the real competitor (`01 §3b`), window-closes responses (`§4b`), moat re-argued with the record stated as *weak*, marketing-law contradiction as the first `§5` risk with B2B2C adopted; personas + Fears column, `§2b` visit lifecycle, `§5.2a` rail rules, `§5.3` four RED registers, `§7` consent temporal unbundling, `§8` NFR restructure
 - ✅ **Observer-lane hardening applied** to `03`, `04`, `06`, `10` — one-stream collapse (`03 §4.7.2`), diarization gate (`§4.7.3`), four-module boundary (`§4.7.1`, `06 §0.6`), investigational-device route (`§4.7.4`, `06 §0.7`), AI Act (`06 §10`), crash-artefact hardening (`10 §3`), replay determinism (`03 §4.8`), per-lane consent (`06 §2.1–2.4`), **18 new invariants 12–29** catalogued in `10 §9.1`

@@ -1,0 +1,3145 @@
+{
+ "base": "6cd8c988af667f3b049631378a998beb76079dd1",
+ "captured_at": "2026-10-16T02:43:16Z",
+ "merged_prs": {
+  "INT-001": [
+   2
+  ],
+  "INT-002": [
+   182,
+   186
+  ],
+  "INT-003": [
+   183
+  ],
+  "INT-004": [
+   184
+  ],
+  "INT-010": [
+   187
+  ],
+  "INT-011": [
+   188
+  ],
+  "INT-012": [
+   189
+  ],
+  "INT-013": [
+   192
+  ],
+  "INT-014": [
+   193
+  ],
+  "INT-015": [
+   190
+  ],
+  "INT-016": [
+   205,
+   386
+  ],
+  "INT-017": [
+   191
+  ],
+  "INT-018": [
+   214,
+   404
+  ],
+  "INT-019": [
+   233
+  ],
+  "INT-020": [
+   217,
+   680
+  ],
+  "INT-021": [
+   212,
+   685
+  ],
+  "INT-022": [
+   221
+  ],
+  "INT-023": [
+   225
+  ],
+  "INT-024": [
+   284
+  ],
+  "INT-025": [
+   247
+  ],
+  "INT-030": [
+   227
+  ],
+  "INT-031": [
+   249
+  ],
+  "INT-032": [
+   362
+  ],
+  "INT-033": [
+   286
+  ],
+  "INT-034": [
+   230
+  ],
+  "INT-035": [
+   262
+  ],
+  "INT-036": [
+   251
+  ],
+  "INT-037": [
+   311
+  ],
+  "INT-038": [
+   256
+  ],
+  "INT-040": [
+   264
+  ],
+  "INT-041": [
+   309
+  ],
+  "INT-042": [
+   282
+  ],
+  "INT-043": [
+   317
+  ],
+  "INT-057": [
+   293
+  ],
+  "INT-059": [
+   299
+  ],
+  "INT-060": [
+   319
+  ],
+  "INT-080": [
+   276
+  ],
+  "INT-081": [
+   382
+  ],
+  "INT-082": [
+   428
+  ],
+  "INT-083": [
+   392
+  ],
+  "INT-084": [
+   398
+  ],
+  "INT-085": [
+   418
+  ],
+  "INT-090": [
+   254
+  ],
+  "INT-091": [
+   325
+  ],
+  "INT-092": [
+   388
+  ],
+  "INT-093": [
+   396
+  ],
+  "INT-094": [
+   408
+  ],
+  "INT-095": [
+   412
+  ],
+  "INT-096": [
+   430
+  ],
+  "INT-100": [
+   581
+  ],
+  "INT-101": [
+   454
+  ],
+  "INT-102": [
+   456
+  ],
+  "INT-103": [
+   307
+  ],
+  "INT-110": [
+   400
+  ],
+  "INT-111": [
+   518
+  ],
+  "INT-112": [
+   416
+  ],
+  "INT-120": [
+   243
+  ],
+  "INT-121": [
+   450
+  ],
+  "INT-122": [
+   460,
+   663
+  ],
+  "INT-123": [
+   670
+  ],
+  "INT-124": [
+   634
+  ],
+  "INT-130": [
+   194
+  ],
+  "INT-131": [
+   258,
+   260
+  ],
+  "INT-132": [
+   266
+  ],
+  "INT-133": [
+   331
+  ],
+  "INT-134": [
+   297
+  ],
+  "INT-136": [
+   444
+  ],
+  "INT-137": [
+   438
+  ],
+  "INT-138": [
+   458,
+   660
+  ],
+  "INT-139": [
+   452
+  ],
+  "INT-140": [
+   426
+  ],
+  "INT-141": [
+   340
+  ],
+  "INT-142": [
+   505
+  ],
+  "INT-143": [
+   508
+  ],
+  "INT-144": [
+   323
+  ],
+  "INT-145": [
+   334
+  ],
+  "INT-150": [
+   446
+  ],
+  "INT-160": [
+   466
+  ],
+  "INT-161": [
+   472
+  ],
+  "INT-162": [
+   488
+  ],
+  "INT-163": [
+   513
+  ],
+  "INT-170": [
+   394
+  ],
+  "INT-171": [
+   344
+  ],
+  "INT-172": [
+   378
+  ],
+  "INT-173": [
+   506
+  ],
+  "INT-175": [
+   336,
+   424
+  ],
+  "INT-176": [
+   199,
+   203
+  ],
+  "INT-177": [
+   202
+  ],
+  "INT-178": [
+   204
+  ],
+  "INT-179": [
+   200,
+   687
+  ],
+  "INT-180": [
+   470
+  ],
+  "INT-181": [
+   612
+  ],
+  "INT-182": [
+   632
+  ],
+  "INT-183": [
+   475
+  ],
+  "INT-184": [
+   507
+  ],
+  "INT-185": [
+   509
+  ],
+  "INT-186": [
+   511
+  ],
+  "INT-187": [
+   667
+  ],
+  "INT-188": [
+   487
+  ],
+  "INT-189": [
+   490
+  ],
+  "INT-190": [
+   580
+  ],
+  "INT-192": [
+   512
+  ],
+  "INT-193": [
+   207
+  ],
+  "INT-194": [
+   210
+  ],
+  "INT-195": [
+   219
+  ],
+  "INT-196": [
+   232
+  ],
+  "INT-197": [
+   240
+  ],
+  "INT-198": [
+   235
+  ],
+  "INT-199": [
+   237,
+   268,
+   274
+  ],
+  "INT-202": [
+   321
+  ],
+  "INT-203": [
+   479
+  ],
+  "INT-205": [
+   348
+  ],
+  "INT-206": [
+   370
+  ],
+  "INT-208": [
+   239,
+   419
+  ],
+  "INT-209": [
+   245
+  ],
+  "INT-210": [
+   476
+  ],
+  "INT-215": [
+   585
+  ],
+  "INT-221": [
+   515
+  ],
+  "INT-223": [
+   295
+  ],
+  "INT-224": [
+   372
+  ],
+  "INT-226": [
+   583
+  ],
+  "INT-228": [
+   305
+  ],
+  "INT-229": [
+   272
+  ],
+  "INT-230": [
+   374
+  ],
+  "INT-231": [
+   516
+  ],
+  "INT-232": [
+   270
+  ],
+  "INT-233": [
+   278
+  ],
+  "INT-234": [
+   280
+  ],
+  "INT-235": [
+   290
+  ],
+  "INT-236": [
+   288
+  ],
+  "INT-237": [
+   313
+  ],
+  "INT-238": [
+   301
+  ],
+  "INT-239": [
+   303
+  ],
+  "INT-240": [
+   338
+  ],
+  "INT-241": [
+   358
+  ],
+  "INT-242": [
+   346
+  ],
+  "INT-243": [
+   315
+  ],
+  "INT-244": [
+   327
+  ],
+  "INT-245": [
+   406
+  ],
+  "INT-246": [
+   352
+  ],
+  "INT-247": [
+   354
+  ],
+  "INT-248": [
+   350
+  ],
+  "INT-249": [
+   356
+  ],
+  "INT-253": [
+   342
+  ],
+  "INT-254": [
+   329
+  ],
+  "INT-255": [
+   384
+  ],
+  "INT-256": [
+   360
+  ],
+  "INT-257": [
+   677
+  ],
+  "INT-258": [
+   368
+  ],
+  "INT-260": [
+   380
+  ],
+  "INT-261": [
+   366
+  ],
+  "INT-262": [
+   504
+  ],
+  "INT-263": [
+   436
+  ],
+  "INT-282": [
+   390
+  ],
+  "INT-284": [
+   402
+  ],
+  "INT-285": [
+   376
+  ],
+  "INT-286": [
+   414
+  ],
+  "INT-291": [
+   410
+  ],
+  "INT-293": [
+   422
+  ],
+  "INT-294": [
+   442
+  ],
+  "INT-295": [
+   434
+  ],
+  "INT-296": [
+   440
+  ],
+  "INT-297": [
+   468
+  ],
+  "INT-298": [
+   448
+  ],
+  "INT-299": [
+   464
+  ],
+  "INT-300": [
+   501
+  ],
+  "INT-301": [
+   510
+  ],
+  "INT-303": [
+   432
+  ],
+  "INT-304": [
+   497
+  ],
+  "INT-305": [
+   499
+  ],
+  "INT-310": [
+   473
+  ],
+  "INT-311": [
+   503
+  ],
+  "INT-312": [
+   462
+  ],
+  "INT-313": [
+   691
+  ],
+  "INT-314": [
+   478
+  ],
+  "INT-317": [
+   602
+  ],
+  "INT-318": [
+   616
+  ],
+  "INT-319": [
+   483
+  ],
+  "INT-320": [
+   485,
+   486,
+   489
+  ],
+  "INT-321": [
+   492
+  ],
+  "INT-322": [
+   493
+  ],
+  "INT-323": [
+   495
+  ],
+  "INT-324": [
+   520
+  ],
+  "INT-325": [
+   521
+  ],
+  "INT-326": [
+   522
+  ],
+  "INT-328": [
+   546
+  ],
+  "INT-329": [
+   574
+  ],
+  "INT-330": [
+   553
+  ],
+  "INT-331": [
+   570
+  ],
+  "INT-333": [
+   696
+  ],
+  "INT-334": [
+   697
+  ],
+  "INT-335": [
+   578
+  ],
+  "INT-336": [
+   702
+  ],
+  "INT-339": [
+   599
+  ],
+  "INT-341": [
+   572
+  ],
+  "INT-344": [
+   551
+  ],
+  "INT-345": [
+   549
+  ],
+  "INT-346": [
+   548
+  ],
+  "INT-347": [
+   554
+  ],
+  "INT-349": [
+   564
+  ],
+  "INT-351": [
+   562
+  ],
+  "INT-352": [
+   618
+  ],
+  "INT-353": [
+   563
+  ],
+  "INT-355": [
+   566
+  ],
+  "INT-357": [
+   573
+  ],
+  "INT-360": [
+   639
+  ],
+  "INT-361": [
+   597
+  ],
+  "INT-362": [
+   600
+  ],
+  "INT-363": [
+   622
+  ],
+  "INT-365": [
+   598
+  ],
+  "INT-366": [
+   651
+  ],
+  "INT-367": [
+   624
+  ],
+  "INT-368": [
+   625
+  ],
+  "INT-370": [
+   611
+  ],
+  "INT-372": [
+   610
+  ],
+  "INT-373": [
+   619
+  ],
+  "INT-377": [
+   617
+  ],
+  "INT-378": [
+   643
+  ],
+  "INT-382": [
+   636
+  ],
+  "INT-385": [
+   637
+  ],
+  "INT-386": [
+   657
+  ],
+  "INT-387": [
+   658
+  ],
+  "INT-390": [
+   652
+  ],
+  "INT-391": [
+   656
+  ],
+  "INT-392": [
+   648
+  ],
+  "INT-393": [
+   653
+  ],
+  "INT-395": [
+   674
+  ],
+  "INT-396": [
+   661
+  ],
+  "INT-397": [
+   662
+  ],
+  "INT-400": [
+   669
+  ],
+  "INT-404": [
+   679
+  ],
+  "INT-405": [
+   678
+  ],
+  "INT-406": [
+   683
+  ],
+  "INT-407": [
+   770
+  ],
+  "INT-409": [
+   693
+  ],
+  "INT-410": [
+   694
+  ],
+  "INT-412": [
+   699
+  ],
+  "INT-413": [
+   701
+  ],
+  "INT-414": [
+   726
+  ],
+  "INT-415": [
+   715
+  ],
+  "INT-421": [
+   723
+  ],
+  "INT-426": [
+   749
+  ],
+  "INT-429": [
+   730
+  ],
+  "INT-431": [
+   736
+  ],
+  "INT-432": [
+   757
+  ],
+  "INT-447": [
+   760
+  ],
+  "INT-448": [
+   777
+  ],
+  "INT-449": [
+   772
+  ],
+  "INT-463": [
+   791
+  ],
+  "INT-467": [
+   803
+  ],
+  "INT-500": [
+   852
+  ]
+ },
+ "open_issues": [
+  {
+   "number": 14,
+   "phase": "P0",
+   "title": "INT-016: Hash-chained audit log + WORM export + daily verifier"
+  },
+  {
+   "number": 16,
+   "phase": "P0",
+   "title": "INT-018: Egress proxy with vendor allow-list + transfer log"
+  },
+  {
+   "number": 17,
+   "phase": "P0",
+   "title": "INT-019: security.yml CI job: full gate set + signing"
+  },
+  {
+   "number": 20,
+   "phase": "P0",
+   "title": "INT-022: services/probes: synthetic checks + self-hosting registry + release gate"
+  },
+  {
+   "number": 21,
+   "phase": "P0",
+   "title": "INT-023: Observability stack profile: OTel+Prom+Loki+Tempo+Grafana (or SigNoz), Unleash, Keycloak, GlitchTip"
+  },
+  {
+   "number": 22,
+   "phase": "P0",
+   "title": "INT-024: k6 smoke + lk load-test recipe + chaos harness (vendor kill -> typed <=2s)"
+  },
+  {
+   "number": 23,
+   "phase": "P0",
+   "title": "INT-025: Metrics catalogue as code + completeness test"
+  },
+  {
+   "number": 24,
+   "phase": "P0",
+   "title": "INT-030: Postgres schema + Alembic + RLS per tenant + pgaudit"
+  },
+  {
+   "number": 25,
+   "phase": "P0",
+   "title": "INT-031: clinical-schemas: pydantic models + TS codegen + event schemas"
+  },
+  {
+   "number": 26,
+   "phase": "P3",
+   "title": "INT-032: EHRbase export tier: OPT templates + client + roundtrip (P3 export per D8)"
+  },
+  {
+   "number": 27,
+   "phase": "P0",
+   "title": "INT-033: HAPI FHIR exchange: mappers internal<->R4 + validation"
+  },
+  {
+   "number": 28,
+   "phase": "P0",
+   "title": "INT-034: MinIO document store: signed URLs + AV hook + WORM audit bucket"
+  },
+  {
+   "number": 29,
+   "phase": "P0",
+   "title": "INT-035: Redis streams event bus + consumer framework + DLQ"
+  },
+  {
+   "number": 30,
+   "phase": "P0",
+   "title": "INT-036: Retention & destruction engine (policy as code, 6-month periodic destruction, logs)"
+  },
+  {
+   "number": 31,
+   "phase": "P0",
+   "title": "INT-037: DSAR endpoints: export (FHIR+PDF), delete (crypto-shred, 30-day grace), rectify + 30-day SLA tracker"
+  },
+  {
+   "number": 32,
+   "phase": "P0",
+   "title": "INT-038: Consent service: versioned objects, consent_guard middleware, re-prompt on change"
+  },
+  {
+   "number": 33,
+   "phase": "P0",
+   "title": "INT-040: Protocol DSL: schema, loader, validator (extends, monotonic red flags, voice fields)"
+  },
+  {
+   "number": 34,
+   "phase": "P0",
+   "title": "INT-041: Compiler: FHIR Questionnaire + openEHR bindings + Pydantic + TS + clip manifest, deterministic"
+  },
+  {
+   "number": 35,
+   "phase": "P0",
+   "title": "INT-042: Taxonomy: all MHRS branches + clusters + visit types + coverage CLI"
+  },
+  {
+   "number": 36,
+   "phase": "P0",
+   "title": "INT-043: base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175"
+  },
+  {
+   "number": 37,
+   "phase": "P0",
+   "title": "INT-044: Cluster pack: medical"
+  },
+  {
+   "number": 38,
+   "phase": "P0",
+   "title": "INT-045: Cluster pack: surgical"
+  },
+  {
+   "number": 39,
+   "phase": "P0",
+   "title": "INT-046: Cluster pack: sensory"
+  },
+  {
+   "number": 40,
+   "phase": "P0",
+   "title": "INT-047: Cluster pack: womens_health"
+  },
+  {
+   "number": 41,
+   "phase": "P0",
+   "title": "INT-048: Cluster pack: child_health (guardian proxy, age bands)"
+  },
+  {
+   "number": 42,
+   "phase": "P0",
+   "title": "INT-049: Cluster pack: mental_health"
+  },
+  {
+   "number": 43,
+   "phase": "P0",
+   "title": "INT-050: Cluster pack: dental"
+  },
+  {
+   "number": 44,
+   "phase": "P0",
+   "title": "INT-051: Cluster pack: allied_and_reports"
+  },
+  {
+   "number": 45,
+   "phase": "P0",
+   "title": "INT-052: Cluster excluded: Acil refusal + 112 routing copy"
+  },
+  {
+   "number": 46,
+   "phase": "P0",
+   "title": "INT-053: Deep pack: internal_medicine"
+  },
+  {
+   "number": 47,
+   "phase": "P0",
+   "title": "INT-054: Deep pack: gastroenterology + overlay.oncology_patient"
+  },
+  {
+   "number": 48,
+   "phase": "P0",
+   "title": "INT-055: Deep pack: rheumatology"
+  },
+  {
+   "number": 49,
+   "phase": "P0",
+   "title": "INT-056: Patient overlays set (8) + overlay_monotonicity property test"
+  },
+  {
+   "number": 50,
+   "phase": "P0",
+   "title": "INT-057: Protocol Authoring Agent: L0 drafts for every branch + no-serve guard"
+  },
+  {
+   "number": 51,
+   "phase": "P0",
+   "title": "INT-058: Signed protocol bundles: cosign sign + runtime verification + per-session hash pin"
+  },
+  {
+   "number": 52,
+   "phase": "P0",
+   "title": "INT-059: Triage golden suite >=200 + mutation tests"
+  },
+  {
+   "number": 53,
+   "phase": "P0",
+   "title": "INT-060: Clip cache builder per voice + MinIO + coverage test"
+  },
+  {
+   "number": 54,
+   "phase": "P2",
+   "title": "INT-061: Deep pack: cardiology"
+  },
+  {
+   "number": 55,
+   "phase": "P2",
+   "title": "INT-062: Deep pack: neurology"
+  },
+  {
+   "number": 56,
+   "phase": "P2",
+   "title": "INT-063: Deep pack: endocrinology"
+  },
+  {
+   "number": 57,
+   "phase": "P2",
+   "title": "INT-064: Deep pack: urology"
+  },
+  {
+   "number": 58,
+   "phase": "P2",
+   "title": "INT-065: Deep pack: ophthalmology"
+  },
+  {
+   "number": 59,
+   "phase": "P2",
+   "title": "INT-066: Deep pack: ent"
+  },
+  {
+   "number": 60,
+   "phase": "P2",
+   "title": "INT-067: Deep pack: orthopaedics"
+  },
+  {
+   "number": 61,
+   "phase": "P2",
+   "title": "INT-068: Deep pack: dermatology"
+  },
+  {
+   "number": 62,
+   "phase": "P2",
+   "title": "INT-069: Deep pack: obgyn"
+  },
+  {
+   "number": 63,
+   "phase": "P2",
+   "title": "INT-070: Deep pack: paediatrics"
+  },
+  {
+   "number": 64,
+   "phase": "P2",
+   "title": "INT-071: Deep pack: psychiatry"
+  },
+  {
+   "number": 65,
+   "phase": "P2",
+   "title": "INT-072: Deep pack: oncology"
+  },
+  {
+   "number": 66,
+   "phase": "P2",
+   "title": "INT-073: Deep pack: dentistry_general"
+  },
+  {
+   "number": 67,
+   "phase": "P0",
+   "title": "INT-080: Deterministic triage engine (levels, monotonic merge, action scripts)"
+  },
+  {
+   "number": 68,
+   "phase": "P0",
+   "title": "INT-081: IntakeEngine FSM: step kinds, ask-ahead/reconcile-behind, delta mode, overlays"
+  },
+  {
+   "number": 69,
+   "phase": "P0",
+   "title": "INT-082: Patient simulator: personas + scenarios IM-01..IM-14 headless"
+  },
+  {
+   "number": 70,
+   "phase": "P0",
+   "title": "INT-083: Extraction Work: schema-constrained LLM behind gateway + data boundary + eval set"
+  },
+  {
+   "number": 71,
+   "phase": "P0",
+   "title": "INT-084: Note composer + renderers (SOAP, PDF watermark-ready, FHIR bundle) + provenance + disclaimer"
+  },
+  {
+   "number": 72,
+   "phase": "P0",
+   "title": "INT-085: Patient summary (B1 Turkish) + reading-level check"
+  },
+  {
+   "number": 73,
+   "phase": "P0",
+   "title": "INT-090: LiveKit server+TURN dev; per-session tokens (10-min minimal grants); audio_retention_guard"
+  },
+  {
+   "number": 74,
+   "phase": "P0",
+   "title": "INT-091: Talker: six-tool registry + introspection test + streaming PolicyGuard + insertion-window scheduler + clip player"
+  },
+  {
+   "number": 75,
+   "phase": "P0",
+   "title": "INT-092: Backend Agent: FIFO Work queue, serialized SessionState, delivery semantics, idempotent"
+  },
+  {
+   "number": 76,
+   "phase": "P0",
+   "title": "INT-093: RED preemption path: stop <=150ms, e2e <=300ms (fake clocks)"
+  },
+  {
+   "number": 77,
+   "phase": "P0",
+   "title": "INT-094: Runtime invariants 1-11 + RT-01..08 + latency harness"
+  },
+  {
+   "number": 78,
+   "phase": "P1",
+   "title": "INT-095: Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke"
+  },
+  {
+   "number": 79,
+   "phase": "P0",
+   "title": "INT-096: Profile typed (full parity fallback)"
+  },
+  {
+   "number": 80,
+   "phase": "P3",
+   "title": "INT-097: residency_tr_models tier on GPU: compose.residency, node sizing, on-hardware latency evidence"
+  },
+  {
+   "number": 81,
+   "phase": "P2",
+   "title": "INT-098: WITHDRAWN - Profile s2s_cloud. Replaced by a test that proves no S2S/cloud profile can be constructed"
+  },
+  {
+   "number": 82,
+   "phase": "P1",
+   "title": "INT-099: Backchannels + ack styles + preemptive generation + per-profile NFR harness in CI"
+  },
+  {
+   "number": 84,
+   "phase": "P0",
+   "title": "INT-101: Session budgets + cost metering per component/profile"
+  },
+  {
+   "number": 85,
+   "phase": "P1",
+   "title": "INT-102: Adversarial suite RT-09..14 in make safety + nightly LLM red-team job"
+  },
+  {
+   "number": 86,
+   "phase": "P1",
+   "title": "INT-103: Mobile voice client: LiveKit RN, permissions, network-quality per turn, reconnect, background"
+  },
+  {
+   "number": 87,
+   "phase": "P0",
+   "title": "INT-110: Lane framework: budgets, backpressure, ObserverState, per-lane consent, type-level read-only"
+  },
+  {
+   "number": 89,
+   "phase": "P0",
+   "title": "INT-112: linguistic lane: TR lexicons + prosody stats + crisis bypass to triage"
+  },
+  {
+   "number": 90,
+   "phase": "P1",
+   "title": "INT-113: asr_quality lane: shadow-STT disagreement + confirm-by-card trigger"
+  },
+  {
+   "number": 91,
+   "phase": "P1",
+   "title": "INT-114: engagement lane -> satisfaction proxies + pacing hints"
+  },
+  {
+   "number": 92,
+   "phase": "P2",
+   "title": "INT-115: acoustic lane (M3, investigational device module): our own ordinal head, in-memory window, zeroing, study assertion"
+  },
+  {
+   "number": 93,
+   "phase": "P0",
+   "title": "INT-116: Wellbeing engine: PHQ-2/GAD-2 -> PHQ-9/GAD-7 -> C-SSRS, crisis script, verbatim items, clinician-only outputs"
+  },
+  {
+   "number": 94,
+   "phase": "P0",
+   "title": "INT-117: device_functions flag: MDSW boundary enforced (Stage A non-device vs investigation mode)"
+  },
+  {
+   "number": 95,
+   "phase": "P0",
+   "title": "INT-120: Upload pipeline: ClamAV, sniffing, limits, sandboxed OCR"
+  },
+  {
+   "number": 101,
+   "phase": "P0",
+   "title": "INT-131: Onboarding & auth: OTP + attestation + DPoP + biometrics + SecureStore + pinning + FLAG_SECURE"
+  },
+  {
+   "number": 102,
+   "phase": "P0",
+   "title": "INT-132: Consent UI: layered, versioned, lane sub-toggles, learning, satisfaction; who-sees-what"
+  },
+  {
+   "number": 103,
+   "phase": "P0",
+   "title": "INT-133: Profiles, companions, guardian flows (minors), proxy acknowledgement"
+  },
+  {
+   "number": 104,
+   "phase": "P0",
+   "title": "INT-134: Visits: create (manual + MHRS SMS OCR), branch picker from taxonomy, visit types"
+  },
+  {
+   "number": 105,
+   "phase": "P1",
+   "title": "INT-135: Voice intake UI (Hizli): states, recording indicator, inline cards, barge-in, RED UI, typed fallback"
+  },
+  {
+   "number": 106,
+   "phase": "P0",
+   "title": "INT-136: Typed intake UI (Detayli) + chips + instruments verbatim"
+  },
+  {
+   "number": 107,
+   "phase": "P0",
+   "title": "INT-137: Review & send + Doctor Link QR + CSAT prompt"
+  },
+  {
+   "number": 109,
+   "phase": "P0",
+   "title": "INT-139: Share centre: active shares, revoke <=1min, access log"
+  },
+  {
+   "number": 110,
+   "phase": "P0",
+   "title": "INT-140: Me: consents, connectors, language, security, export/delete, learned facts"
+  },
+  {
+   "number": 111,
+   "phase": "P1",
+   "title": "INT-141: Notifications: content-free reminders, quiet hours, opt-out; transactional-only"
+  },
+  {
+   "number": 114,
+   "phase": "P1",
+   "title": "INT-144: Accessibility WCAG 2.2 AA pass + TR screen-reader labels + conformance report"
+  },
+  {
+   "number": 115,
+   "phase": "P1",
+   "title": "INT-145: Client telemetry: GlitchTip crash (PHI-scrubbed), perf, RUM web"
+  },
+  {
+   "number": 116,
+   "phase": "P1",
+   "title": "INT-146: EAS builds + OTA code signing + MobSF gate + store listings/privacy labels"
+  },
+  {
+   "number": 117,
+   "phase": "P0",
+   "title": "INT-150: Doctor Link: 128-bit token + OTP + expiry + view limit + revoke + watermark + access log + no-index"
+  },
+  {
+   "number": 118,
+   "phase": "P0",
+   "title": "INT-151: Note views: SOAP, red flags (mode-aware), provenance, consented wellbeing, AI labels + 1-click feedback"
+  },
+  {
+   "number": 119,
+   "phase": "P1",
+   "title": "INT-152: Clinic console: today list, statuses, read receipts, tenant isolation, SSO"
+  },
+  {
+   "number": 120,
+   "phase": "P1",
+   "title": "INT-153: Clinician feedback -> Langfuse annotation queues + acceptance metrics"
+  },
+  {
+   "number": 121,
+   "phase": "P1",
+   "title": "INT-160: Connector framework: adapters, OpenBao creds, idempotency, receipts, allow-listed endpoints, mTLS"
+  },
+  {
+   "number": 122,
+   "phase": "P1",
+   "title": "INT-161: FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth)"
+  },
+  {
+   "number": 125,
+   "phase": "P0",
+   "title": "INT-170: PatientOverlay: store, confirmation rules, /me/learned API, engine integration"
+  },
+  {
+   "number": 126,
+   "phase": "P2",
+   "title": "INT-171: De-identified analytics views + k-anonymity helper + rollups"
+  },
+  {
+   "number": 127,
+   "phase": "P2",
+   "title": "INT-172: services/learning Inspector->Architect + proposal schema + evidence bundles + PR bot (open-not-merge)"
+  },
+  {
+   "number": 129,
+   "phase": "P2",
+   "title": "INT-174: DSPy+GEPA offline optimisation (extraction, note modules only) with clinician-edit metric + held-out"
+  },
+  {
+   "number": 130,
+   "phase": "P1",
+   "title": "INT-175: Langfuse self-hosted + annotation queues (note_quality, hallucination_audit, false_red_review) + CI experiment gate"
+  },
+  {
+   "number": 131,
+   "phase": "P0",
+   "title": "INT-180: Admin shell: Keycloak RBAC/ABAC, audit on every action, IP allow-list, 4-eyes primitives"
+  },
+  {
+   "number": 137,
+   "phase": "P1",
+   "title": "INT-186: Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export)"
+  },
+  {
+   "number": 142,
+   "phase": "P2",
+   "title": "INT-191: Tenants module + onboarding flow"
+  },
+  {
+   "number": 144,
+   "phase": "P2",
+   "title": "INT-200: Residency compose profile (GPU) + runbooks"
+  },
+  {
+   "number": 145,
+   "phase": "P2",
+   "title": "INT-201: k8s: k3s + Argo CD + Kyverno/Sigstore admission + PSS restricted + default-deny + Harbor"
+  },
+  {
+   "number": 146,
+   "phase": "P1",
+   "title": "INT-202: Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence"
+  },
+  {
+   "number": 148,
+   "phase": "P2",
+   "title": "INT-204: Mesh mTLS (Linkerd) + default-deny NetworkPolicies"
+  },
+  {
+   "number": 149,
+   "phase": "P1",
+   "title": "INT-205: Wazuh + Falco deployment + rules + console feed"
+  },
+  {
+   "number": 150,
+   "phase": "P1",
+   "title": "INT-206: GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy"
+  },
+  {
+   "number": 151,
+   "phase": "P2",
+   "title": "INT-207: Chaos suite (monthly) + load to pilot x3 + autoscaling rules"
+  },
+  {
+   "number": 152,
+   "phase": "P0",
+   "title": "INT-210: Legal document set v1 (tr primary): aydinlatma x5, acik riza per purpose, gizlilik, kullanim kosullari, KVKK basvuru formu, cookie"
+  },
+  {
+   "number": 153,
+   "phase": "P0",
+   "title": "INT-211: VERBIS registration pack + data inventory generated from schema annotations + irtibat kisisi"
+  },
+  {
+   "number": 154,
+   "phase": "P0",
+   "title": "INT-212: Retention & destruction policy doc (DEST-2017) bound to the engine"
+  },
+  {
+   "number": 155,
+   "phase": "P1",
+   "title": "INT-213: DPIA v1 + vendor transfer register + SCC set + Board notification workflow (5 business days) + hospital DPA template"
+  },
+  {
+   "number": 156,
+   "phase": "P1",
+   "title": "INT-214: Breach machinery: KVKK 72h Board form automation + data-subject notices + USOM report (7545) + hospital notices"
+  },
+  {
+   "number": 158,
+   "phase": "P0",
+   "title": "INT-216: MDSW file: intended purpose, qualification (MDCG 2019-11 Rev.1), Rule 11 classification (Class IIb), device/non-device boundary table"
+  },
+  {
+   "number": 159,
+   "phase": "P1",
+   "title": "INT-217: QMS core (ISO 13485): quality manual, design controls, ISO 14971 risk file, IEC 62304 class B plan, IEC 62366-1 usability, IEC 81001-5-1 security lifecycle, PMS plan, PRRC"
+  },
+  {
+   "number": 160,
+   "phase": "P1",
+   "title": "INT-218: Clinical investigation package: protocol + ICF(tr) + KAEK ethics submission + TITCK application + insurance + registration"
+  },
+  {
+   "number": 161,
+   "phase": "P2",
+   "title": "INT-219: Technical documentation (Annex II/III) + clinical evaluation (MDCG 2020-1) + PMCF + notified-body selection"
+  },
+  {
+   "number": 162,
+   "phase": "P2",
+   "title": "INT-220: Registrations: UTS (TCKKD-KLVZ-03) + UDI; KTS (SBYS) pack; BTK yer saglayici; traffic-log retention 5651"
+  },
+  {
+   "number": 164,
+   "phase": "P2",
+   "title": "INT-222: Consumer/commercial: mesafeli sozlesme pre-info + withdrawal (if paid tier), IYS integration for marketing, Turkish-language compliance"
+  },
+  {
+   "number": 165,
+   "phase": "P0",
+   "title": "INT-223: Minor & guardian rules engine (age gates, guardian consent, adolescent policy) as code"
+  },
+  {
+   "number": 166,
+   "phase": "P1",
+   "title": "INT-224: Store compliance: Apple health guidelines + Google Play Health policy + Data safety/privacy labels + IARC"
+  },
+  {
+   "number": 167,
+   "phase": "P3",
+   "title": "INT-225: ISO 27001 ISMS: scope, SoA, risk register, policies, internal audit, certification audit"
+  },
+  {
+   "number": 169,
+   "phase": "P2",
+   "title": "INT-227: AI governance file: model cards, TR bias/fairness eval (dialect, gender, age), transparency labels, EU AI Act readiness note"
+  },
+  {
+   "number": 170,
+   "phase": "P2",
+   "title": "INT-230: Research data pipeline: anonymisation (KSVY-16), research consent gating, export for studies"
+  },
+  {
+   "number": 171,
+   "phase": "P2",
+   "title": "INT-231: Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quality, psychiatric-signal validation)"
+  },
+  {
+   "number": 172,
+   "phase": "P0",
+   "title": "INT-240: CSAT/NPS/clinician-pulse events + endpoints + rollups"
+  },
+  {
+   "number": 173,
+   "phase": "P1",
+   "title": "INT-241: Wait-time metrics end-to-end + SDS-01 style exports"
+  },
+  {
+   "number": 174,
+   "phase": "P1",
+   "title": "INT-242: NPS scheduling + clinician pulse survey cadence"
+  },
+  {
+   "number": 175,
+   "phase": "P2",
+   "title": "INT-250: Tenant onboarding: config, branding, packs, DPA signature via KEP/e-imza, runbook"
+  },
+  {
+   "number": 176,
+   "phase": "P3",
+   "title": "INT-251: Billing: hospital e-Fatura via provider; patient subscription via PSP (iyzico/PayTR); never store PAN"
+  },
+  {
+   "number": 177,
+   "phase": "P1",
+   "title": "INT-252: Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in console"
+  },
+  {
+   "number": 178,
+   "phase": "P1",
+   "title": "INT-253: Localization completeness: tr 100 percent, en 100 percent; ar planned P3 with RTL audit"
+  },
+  {
+   "number": 252,
+   "phase": "P1",
+   "title": "INT-228: Tokenizer pseudonyms exceed DocumentStore key-segment bound: integrate or widen the shape"
+  },
+  {
+   "number": 291,
+   "phase": null,
+   "title": "INT-254: Voice-first silent-take gate: peak metering fails a dead-input take at stop time, before the upload leg"
+  },
+  {
+   "number": 328,
+   "phase": null,
+   "title": "INT-255: Model the eleven life-threat delivery annotations the DSL still refuses"
+  },
+  {
+   "number": 364,
+   "phase": "P0",
+   "title": "INT-263: OTP request budgets are fixed hourly windows, so a caller gets twice the limit across a boundary while files/10 §2 says per hour"
+  },
+  {
+   "number": 480,
+   "phase": null,
+   "title": "INT-316 — A paired row has no flex contract, so the label collapses while the trailing control keeps its width"
+  },
+  {
+   "number": 526,
+   "phase": "P1",
+   "title": "INT-327: Specialty-pack generator assembles the pending-value marker so no_placeholders stays green"
+  },
+  {
+   "number": 531,
+   "phase": "P1",
+   "title": "INT-332: ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer)"
+  },
+  {
+   "number": 535,
+   "phase": "P2",
+   "title": "INT-336: Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners"
+  },
+  {
+   "number": 536,
+   "phase": "P2",
+   "title": "INT-337: Motion: dialogue transients wired to the arbiter"
+  },
+  {
+   "number": 537,
+   "phase": "P2",
+   "title": "INT-338: Motion: section sheet — measured fade budget, instant privacy and RED closes"
+  },
+  {
+   "number": 539,
+   "phase": "P2",
+   "title": "INT-340: Haptics: one policy, sticky suppression, server-confirmed success"
+  },
+  {
+   "number": 541,
+   "phase": "P3",
+   "title": "INT-342: Motion: content reveal and a static skeleton"
+  },
+  {
+   "number": 542,
+   "phase": "P1",
+   "title": "INT-343: Mobile George client authenticates and requests only compiled-pack clip text"
+  },
+  {
+   "number": 552,
+   "phase": "P0",
+   "title": "INT-348: Play Integrity verification and a real-device OTP login smoke on TestFlight and Play"
+  },
+  {
+   "number": 556,
+   "phase": "P0",
+   "title": "INT-350: CI part 2: check-integration builds the pinned edge plugin; osv findings fixed"
+  },
+  {
+   "number": 559,
+   "phase": "P1",
+   "title": "INT-353: Land the specialty review queue, generator and verification trail on main"
+  },
+  {
+   "number": 560,
+   "phase": "P0",
+   "title": "INT-354: Consolidate int-demo into main; main becomes the TestFlight build source"
+  },
+  {
+   "number": 568,
+   "phase": "P0",
+   "title": "INT-356: Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject notice)"
+  },
+  {
+   "number": 576,
+   "phase": "P0",
+   "title": "INT-358: SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery"
+  },
+  {
+   "number": 584,
+   "phase": "P1",
+   "title": "INT-359: Accessibility device audit (DA-01..DA-08) and the statement published in-app and web"
+  },
+  {
+   "number": 591,
+   "phase": "P1",
+   "title": "INT-364: Board 2018/10 organisational measures: the owner's evidence and counsel's four readings"
+  },
+  {
+   "number": 596,
+   "phase": "P1",
+   "title": "INT-369: schemathesis API fuzzing runs in CI instead of being recorded as deferred"
+  },
+  {
+   "number": 605,
+   "phase": "P1",
+   "title": "INT-371: Intake flow — Bitirdim finishes to review, the open hint shows once, typed-to-handoff proven"
+  },
+  {
+   "number": 608,
+   "phase": "P1",
+   "title": "INT-374: Step-up WebAuthn for privileged console actions outside the patient-content roles"
+  },
+  {
+   "number": 609,
+   "phase": "P1",
+   "title": "INT-375: The protocol compiler enforces the files/13 §9.5 ask-order rule: no gate reads a later slot"
+  },
+  {
+   "number": 613,
+   "phase": "P0",
+   "title": "INT-376: Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved"
+  },
+  {
+   "number": 623,
+   "phase": "P1",
+   "title": "INT-379: Question-set generator capabilities the verifiers asked for: duration=omit, code answers, skip_if"
+  },
+  {
+   "number": 626,
+   "phase": "P1",
+   "title": "INT-380: Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3)"
+  },
+  {
+   "number": 627,
+   "phase": "P1",
+   "title": "INT-381: On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s)"
+  },
+  {
+   "number": 630,
+   "phase": "P1",
+   "title": "INT-383: Generated red-flag stubs anchor their timing on a duration slot the engine cannot read"
+  },
+  {
+   "number": 631,
+   "phase": "P1",
+   "title": "INT-384: Admin console reads the API's flat refusal code, so an IP or unconfigured refusal is named as itself"
+  },
+  {
+   "number": 641,
+   "phase": "P1",
+   "title": "INT-388: Physician sign-off packet per department, generated from the review queue and verification trail"
+  },
+  {
+   "number": 644,
+   "phase": "P1",
+   "title": "INT-389: Owner decision — second factor for console roles outside the patient-content set (TOTP vs aaguid)"
+  },
+  {
+   "number": 650,
+   "phase": "P0",
+   "title": "INT-394: Owner decision — the database role that runs erasure and retention"
+  },
+  {
+   "number": 664,
+   "phase": "P1",
+   "title": "INT-398: Document engine for records (files/03 rows 20–21): choose, verify the licence, register, sandbox"
+  },
+  {
+   "number": 665,
+   "phase": "P1",
+   "title": "INT-399: Real e-Nabız export and MHRS SMS samples for the import parsers (HB-A1, Ask 2)"
+  },
+  {
+   "number": 668,
+   "phase": "P1",
+   "title": "INT-401: Rollback from the console (4-eyes) once a CD target exists"
+  },
+  {
+   "number": 671,
+   "phase": "P1",
+   "title": "INT-402: Record-embedding model for the patient record index (files/03 §4.9.1)"
+  },
+  {
+   "number": 672,
+   "phase": "P1",
+   "title": "INT-403: What withdrawing documents consent does to the patient's record vectors"
+  },
+  {
+   "number": 686,
+   "phase": "P1",
+   "title": "INT-408: Workers tier SLOs — the owner decides the tier and its targets"
+  },
+  {
+   "number": 692,
+   "phase": "P1",
+   "title": "INT-411: Backups on the production host: first run, and the second location and retention (HB-I8)"
+  },
+  {
+   "number": 707,
+   "phase": "P0",
+   "title": "INT-416: triage context refuses an empty unit at construction, so RED evaluation can never raise mid-rule"
+  },
+  {
+   "number": 708,
+   "phase": "P1",
+   "title": "INT-417: share centre never shows another visit's grants, and an unreachable read never prints the empty-log footer"
+  },
+  {
+   "number": 709,
+   "phase": "P1",
+   "title": "INT-418: privacy hide — the 'gizle' control and the third-party auto-hide (02 §5.2a rule 6)"
+  },
+  {
+   "number": 711,
+   "phase": "P1",
+   "title": "INT-419: licence gate verifies native (Maven/CocoaPods) dependencies against the raw LICENSE, not only package.json"
+  },
+  {
+   "number": 712,
+   "phase": "P0",
+   "title": "INT-420: Önvizit everywhere — finish the Vizite→Önvizit rebrand on main"
+  },
+  {
+   "number": 714,
+   "phase": "P1",
+   "title": "INT-422: design system refresh — native Apple feel, restrained palette, SF Symbols, no AI-generic styling"
+  },
+  {
+   "number": 718,
+   "phase": "P1",
+   "title": "INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid"
+  },
+  {
+   "number": 719,
+   "phase": "P1",
+   "title": "INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal"
+  },
+  {
+   "number": 720,
+   "phase": "P1",
+   "title": "INT-425: App Store / Play screenshots — story-led, real captures, app-store-screenshots skill"
+  },
+  {
+   "number": 722,
+   "phase": "P1",
+   "title": "INT-427: dynamic department question sets — next specialty/cluster wave (author, verifier, engineer)"
+  },
+  {
+   "number": 724,
+   "phase": "P0",
+   "title": "INT-428: hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over"
+  },
+  {
+   "number": 732,
+   "phase": "P0",
+   "title": "INT-430: agent council for dynamic questioning — answers + documents drive follow-ups, deterministic engine adjudicates, on-prem or API models"
+  },
+  {
+   "number": 739,
+   "phase": "P1",
+   "title": "INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)"
+  },
+  {
+   "number": 742,
+   "phase": "P1",
+   "title": "INT-434: admin Council section — member selection with 4-eyes via flag_governance, per-member latency/tokens/agreement"
+  },
+  {
+   "number": 743,
+   "phase": "P1",
+   "title": "INT-435: council production composition — ModelAssignment adapter, triage re-run, clinician inbox sink, CD-07 binding"
+  },
+  {
+   "number": 744,
+   "phase": "P1",
+   "title": "INT-436: offline Loop-2 yield_table proposal (replaces the cut runtime ranker)"
+  },
+  {
+   "number": 745,
+   "phase": "P1",
+   "title": "INT-437: document rules on the parse_document path — add/arm only, staleness, contested, identity match"
+  },
+  {
+   "number": 746,
+   "phase": "P1",
+   "title": "INT-438: deterministic red-flag lexicon, speaker attribution and backchannel lexicon"
+  },
+  {
+   "number": 747,
+   "phase": "P0",
+   "title": "INT-439: HB-O8 — model spend cap 80 USD/month + sourced price book"
+  },
+  {
+   "number": 748,
+   "phase": "P0",
+   "title": "INT-440: voice-first end-to-end test on the iOS simulator + fixes"
+  },
+  {
+   "number": 750,
+   "phase": "P0",
+   "title": "INT-441: base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date)"
+  },
+  {
+   "number": 752,
+   "phase": "P1",
+   "title": "INT-442: egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors)"
+  },
+  {
+   "number": 753,
+   "phase": "P1",
+   "title": "INT-443: ElevenLabs as hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles)"
+  },
+  {
+   "number": 754,
+   "phase": "P1",
+   "title": "INT-444: model identity & drift hardening — /identity, drift canary, model@revision recording keys, schema lint, guarded extraction transport"
+  },
+  {
+   "number": 755,
+   "phase": "P1",
+   "title": "INT-445: hosted/self-hosted lanes wired into the mobile release build"
+  },
+  {
+   "number": 756,
+   "phase": "P0",
+   "title": "INT-446: RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted"
+  },
+  {
+   "number": 763,
+   "phase": "P1",
+   "title": "INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked)"
+  },
+  {
+   "number": 764,
+   "phase": "P1",
+   "title": "INT-451: mobile interaction patterns from owner-listed libraries + Mobbin, within ADR-033 and Liquid Glass"
+  },
+  {
+   "number": 765,
+   "phase": "P1",
+   "title": "INT-452: roadmap refresh — every in-flight item visible in the backlog and admin Roadmap module"
+  },
+  {
+   "number": 767,
+   "phase": "P0",
+   "title": "INT-453: voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script"
+  },
+  {
+   "number": 769,
+   "phase": "P0",
+   "title": "INT-454: spoken-answer loop end to end on the hosted lanes (ASR → extract → next question), measured"
+  },
+  {
+   "number": 778,
+   "phase": null,
+   "title": "INT-455: expand_tr refuses a numeral with an apostrophe suffix (112'yi), so the life-threat RED REMOTE script cannot compile to a clip"
+  },
+  {
+   "number": 779,
+   "phase": null,
+   "title": "INT-456: Spoken clip text carries markdown emphasis and an unresolved {{tenant.acil_location_tr}} placeholder into the TTS request"
+  },
+  {
+   "number": 780,
+   "phase": null,
+   "title": "INT-457: ON_SITE 112 gate checks the flag, numbers and action codes but not the spoken script text (decision: INT-432/owner)"
+  },
+  {
+   "number": 781,
+   "phase": null,
+   "title": "INT-458: expand_tr passes ½ through unexpanded, and an over-long digit run crashes the build instead of refusing"
+  },
+  {
+   "number": 783,
+   "phase": "P1",
+   "title": "INT-459: admin-web premium redesign"
+  },
+  {
+   "number": 785,
+   "phase": "P1",
+   "title": "INT-460: second admin approver for synthetic staging"
+  },
+  {
+   "number": 786,
+   "phase": null,
+   "title": "INT-461: ADR-038 — ADR-033 amendment: spring-in bubbles, selection haptics on chips and mic, in-tree detent sheets under the RED root layer"
+  },
+  {
+   "number": 787,
+   "phase": null,
+   "title": "INT-462: native chat — Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips"
+  },
+  {
+   "number": 793,
+   "phase": null,
+   "title": "INT-464: native welcome and sign-in — iOS setup layout, calm hero, filled fields, static large titles"
+  },
+  {
+   "number": 794,
+   "phase": "P0",
+   "title": "INT-465: generic RED active from CD-24, and the red rule set signed with a synthetic-only test key"
+  },
+  {
+   "number": 795,
+   "phase": null,
+   "title": "INT-466: chat stage — ADR-039 (owner-approved motion, glass, gradient, radius, palette) and the live chat on the new visual language"
+  },
+  {
+   "number": 798,
+   "phase": "P1",
+   "title": "INT-470: INT-448 follow-up — decide the clinical owner_questions under D18"
+  },
+  {
+   "number": 800,
+   "phase": "P1",
+   "title": "INT-471: legal lane — sourced legal-author agent + independent legal-reviewer decide legal items (synthetic/test scope)"
+  },
+  {
+   "number": 802,
+   "phase": null,
+   "title": "INT-472: review and send as iOS grouped inset lists — section rows, share switch rows, metadata summary"
+  },
+  {
+   "number": 805,
+   "phase": "P1",
+   "title": "INT-468: RED clinical values — the unanswered location question wait and the cardiac do-not lines, sourced under D18"
+  },
+  {
+   "number": 807,
+   "phase": null,
+   "title": "INT-473: in-tree detent sheet (ADR-038 A3) for the dialogue's section sheet — no presented sheet over RED"
+  },
+  {
+   "number": 810,
+   "phase": "P1",
+   "title": "INT-469: Adli Tıp pack drops the allied report-purpose item (rapor_amaci), per LD-01"
+  },
+  {
+   "number": 811,
+   "phase": "P1",
+   "title": "INT-474: deployment-role gate for relatives', household and partner data categories before any register row is filled"
+  },
+  {
+   "number": 814,
+   "phase": "P1",
+   "title": "INT-475: RED staff notification on the typed hop and the device's location answer reach the server"
+  },
+  {
+   "number": 815,
+   "phase": "P1",
+   "title": "INT-476: kiosk wipe clears the RED store, and the RED screen-reader cover does not hide the kiosk idle warning"
+  },
+  {
+   "number": 817,
+   "phase": "P1",
+   "title": "INT-477: solid chrome on capture-protected screens (owner: \"solid\"), never Liquid Glass"
+  },
+  {
+   "number": 820,
+   "phase": "P1",
+   "title": "INT-478: screen-capture protection is released for every screen when the first protected screen closes"
+  },
+  {
+   "number": 822,
+   "phase": "P2",
+   "title": "INT-479: INT-465 RED review follow-ups (non-blocking, from the round-5 approval)"
+  },
+  {
+   "number": 823,
+   "phase": "P2",
+   "title": "INT-480: legal lane follow-ups (non-blocking, from the INT-471 round-3 approval)"
+  },
+  {
+   "number": 824,
+   "phase": "P1",
+   "title": "INT-481: staff observability stack — Grafana-class dashboards and alerts for the admin panel (AWS host)"
+  },
+  {
+   "number": 825,
+   "phase": "P1",
+   "title": "INT-482: store listing readiness — EAS metadata, privacy labels / data safety answers, review notes, as Önvizit"
+  },
+  {
+   "number": 826,
+   "phase": "P1",
+   "title": "INT-483: self/proxy answering — ADR-040 and the subject_role mechanism (owner D24 answer 1Y)"
+  },
+  {
+   "number": 827,
+   "phase": "P1",
+   "title": "INT-484: research and improvement analytics in the admin panel — LD-06 first, then aggregate de-identified question and user metrics"
+  },
+  {
+   "number": 829,
+   "phase": "P1",
+   "title": "INT-488: store-review sign-in path for release builds (synthetic tenant only), security-reviewed"
+  },
+  {
+   "number": 830,
+   "phase": null,
+   "title": "INT-485: admin oauth2-proxy logs no staff email or client IP (invariant 6)"
+  },
+  {
+   "number": 831,
+   "phase": null,
+   "title": "INT-486: ops_prom label check uses fullmatch, so a trailing newline is refused (invariant 6)"
+  },
+  {
+   "number": 832,
+   "phase": null,
+   "title": "INT-487: probe emitters use fullmatch for id, ref and sha shapes (invariant 6)"
+  },
+  {
+   "number": 836,
+   "phase": "P1",
+   "title": "INT-489: proxy-path gaps outside the packs — subject_role literal mismatch, mid-session speaker switch, carer route in the profile flow"
+  },
+  {
+   "number": 837,
+   "phase": "P1",
+   "title": "INT-490: research and improvement analytics build — aggregate, anonymised question and user metrics in the admin panel (within LD-06)"
+  },
+  {
+   "number": 838,
+   "phase": "P1",
+   "title": "INT-491: orb / voice motion variants behind a flag — fluid blob, particle/ribbon field, refined glass lens"
+  },
+  {
+   "number": 839,
+   "phase": "P1",
+   "title": "INT-492: question progress and micro-interactions behind a flag — segmented capsule with number roll, chips, confirm/send, section change, empty/loading"
+  },
+  {
+   "number": 841,
+   "phase": "P1",
+   "title": "INT-493: proxy mechanism follow-ups before any proxy content lands (from the INT-483 review)"
+  },
+  {
+   "number": 844,
+   "phase": "P1",
+   "title": "INT-494: apply CD-111 to the served cardiac RED rule — decided do-not lists, re-signed synthetic rule set"
+  },
+  {
+   "number": 846,
+   "phase": "P1",
+   "title": "INT-495: App Store listing for Önvizit — every iOS asset from the new design, filled in App Store Connect as an editable draft"
+  },
+  {
+   "number": 847,
+   "phase": "P2",
+   "title": "INT-496: Google Play listing — deferred by the owner; reminder of everything Play will need"
+  },
+  {
+   "number": 848,
+   "phase": "P1",
+   "title": "INT-497: voice experience — natural, emotional, seamless; first audio < 800 ms p50 / 1.2 s p95, no gaps, live feel"
+  },
+  {
+   "number": 849,
+   "phase": "P1",
+   "title": "INT-499: apply ADR-039 and the Liquid Glass research to the remaining screens — visits list, documents, share centre, settings"
+  },
+  {
+   "number": 850,
+   "phase": "P1",
+   "title": "INT-498: feature audit on the AWS synthetic stack — every requested feature working end to end, nothing demo"
+  },
+  {
+   "number": 853,
+   "phase": "P1",
+   "title": "INT-501: fix node-forge, braces and http-cache-semantics before their time-boxed scanner exceptions expire (1–2 Nov 2026)"
+  },
+  {
+   "number": 856,
+   "phase": "P1",
+   "title": "INT-502: capture the App Store header and screenshots from the merged design stack and upload them to App Store Connect (split from INT-495)"
+  },
+  {
+   "number": 857,
+   "phase": "P1",
+   "title": "INT-503: RED staff-notification follow-ups (from the INT-475 approval) — three must land before the voice lane is wired or real patients"
+  },
+  {
+   "number": 858,
+   "phase": "P1",
+   "title": "INT-504: prefetch bundled E04 clips for the next likely questions (after INT-440 #768)"
+  },
+  {
+   "number": 859,
+   "phase": "P1",
+   "title": "INT-505: streaming TTS on the hosted lane for anything not pre-rendered (after INT-443 #775)"
+  },
+  {
+   "number": 862,
+   "phase": "P2",
+   "title": "INT-506: App Store listing follow-ups from the INT-495 legal approval (non-blocking)"
+  }
+ ],
+ "open_prs": [
+  {
+   "branch": "int-43-flat",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 185,
+   "rows_added": [],
+   "title": "INT-043: base.intake pack (tr/en) — DRAFT for clinical sign-off"
+  },
+  {
+   "branch": "int-316-paired-row",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 481,
+   "rows_added": [
+    "INT-316"
+   ],
+   "title": "INT-316: A paired row has no flex contract, so the label collapses while the trailing control keeps its width"
+  },
+  {
+   "branch": "fix-catalogue-connector-inbound-metric",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 514,
+   "rows_added": [],
+   "title": "fix(observability): catalogue connector_inbound_messages_total (INT-162 follow-up)"
+  },
+  {
+   "branch": "int-332-motion-adr",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 571,
+   "rows_added": [],
+   "title": "INT-332: ADR — Motion system v1 (ratified by the owner, 2026-09-27)"
+  },
+  {
+   "branch": "int-058-signed-bundles",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 579,
+   "rows_added": [],
+   "title": "INT-058: signed protocol bundles — cosign sign, runtime verification, per-session hash pin"
+  },
+  {
+   "branch": "int-353-sibling-rebinds",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 582,
+   "rows_added": [],
+   "title": "INT-353: sibling slot-id rebinds from cluster verification §F"
+  },
+  {
+   "branch": "int-371-intake-finish-to-review",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 615,
+   "rows_added": [
+    "INT-371"
+   ],
+   "title": "INT-371: Intake flow — Bitirdim finishes to review, the open hint shows once, typed-to-handoff proven"
+  },
+  {
+   "branch": "int-375-compiler-ask-order",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 620,
+   "rows_added": [
+    "INT-375"
+   ],
+   "title": "INT-375: protocol compiler refuses a gate that reads a later slot (files/13 §9.5)"
+  },
+  {
+   "branch": "int-379-generator-capabilities",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 628,
+   "rows_added": [
+    "INT-379"
+   ],
+   "title": "INT-379: generator capabilities — duration=omit, code answers, skip_if"
+  },
+  {
+   "branch": "int-384-admin-flat-error-code",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 633,
+   "rows_added": [
+    "INT-384"
+   ],
+   "title": "INT-384: Admin console reads the API's flat refusal code, so an IP or unconfigured refusal is named as itself"
+  },
+  {
+   "branch": "int-388-signoff-packets",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 642,
+   "rows_added": [
+    "INT-388"
+   ],
+   "title": "INT-388: physician sign-off packets per department from the review queue and verification trail"
+  },
+  {
+   "branch": "int-202-restore-drill",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 682,
+   "rows_added": [
+    "INT-411"
+   ],
+   "title": "INT-202: encrypted PITR backups, object-store replication and an automated restore drill"
+  },
+  {
+   "branch": "int-338-section-sheet",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 703,
+   "rows_added": [],
+   "title": "INT-338: Motion: section sheet — measured fade budget, instant privacy and RED closes"
+  },
+  {
+   "branch": "int-342-content-reveal",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 704,
+   "rows_added": [],
+   "title": "INT-342: Motion: content reveal and a static skeleton"
+  },
+  {
+   "branch": "int-340-haptics-policy",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 710,
+   "rows_added": [],
+   "title": "INT-340: Haptics: one policy, sticky suppression, server-confirmed success"
+  },
+  {
+   "branch": "int-336-presence-orb",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 716,
+   "rows_added": [],
+   "title": "INT-336: Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners"
+  },
+  {
+   "branch": "int-337-dialogue-transients",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 717,
+   "rows_added": [],
+   "title": "INT-337: Motion: dialogue transients wired to the arbiter"
+  },
+  {
+   "branch": "int-422-design-system-refresh",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 725,
+   "rows_added": [
+    "INT-422"
+   ],
+   "title": "INT-422: design system refresh — native Apple feel, restrained palette, SF Symbols, no AI-generic styling"
+  },
+  {
+   "branch": "int-423-chat-rhythm",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 728,
+   "rows_added": [
+    "INT-422",
+    "INT-423"
+   ],
+   "title": "INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid"
+  },
+  {
+   "branch": "int-420-onvizit-rebrand",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 729,
+   "rows_added": [
+    "INT-420"
+   ],
+   "title": "INT-420: Önvizit everywhere — finish the Vizite→Önvizit rebrand on main"
+  },
+  {
+   "branch": "int-350-ci-edge-plugin-tests",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 731,
+   "rows_added": [],
+   "title": "INT-350: CI part 2: check-integration builds the pinned edge plugin; osv findings fixed"
+  },
+  {
+   "branch": "int-424-voice-profiles-v2",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 734,
+   "rows_added": [
+    "INT-424"
+   ],
+   "title": "INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal"
+  },
+  {
+   "branch": "int-427-specialty-wave",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 737,
+   "rows_added": [
+    "INT-427"
+   ],
+   "title": "INT-427: dynamic department question sets — next specialty/cluster wave (author, verifier, engineer)"
+  },
+  {
+   "branch": "int-425-store-screenshots",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 738,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-425",
+    "INT-433"
+   ],
+   "title": "INT-425: App Store / Play screenshots — story-led, real captures, app-store-screenshots skill"
+  },
+  {
+   "branch": "int-433-question-screen",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 740,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433"
+   ],
+   "title": "INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-referenced)"
+  },
+  {
+   "branch": "int-430-agent-council",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 741,
+   "rows_added": [
+    "INT-430"
+   ],
+   "title": "INT-430: agent council for dynamic questioning — answers + documents drive follow-ups, deterministic engine adjudicates, on-prem or API models"
+  },
+  {
+   "branch": "int-428-hosted-lanes",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 751,
+   "rows_added": [
+    "INT-428"
+   ],
+   "title": "INT-428: hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over"
+  },
+  {
+   "branch": "int-439-spend-cap",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 761,
+   "rows_added": [
+    "INT-428",
+    "INT-439"
+   ],
+   "title": "INT-439: HB-O8 closed — 80 USD/month elective model-spend cap (warn at 80 %), every hosted call charged, sourced price book"
+  },
+  {
+   "branch": "int-446-red-e2e",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 766,
+   "rows_added": [
+    "INT-446"
+   ],
+   "title": "INT-446: RED end to end in the app — rules-engine hop on both lanes, pre-positioned RED screen mounted"
+  },
+  {
+   "branch": "int-440-voice-first-e2e",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 768,
+   "rows_added": [
+    "INT-440"
+   ],
+   "title": "INT-440: Voice-first end-to-end test on the iOS simulator + fixes"
+  },
+  {
+   "branch": "int-451-mobile-interactions",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 771,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451"
+   ],
+   "title": "INT-451: mobile interaction patterns within ADR-033 — row press highlight, glass nav bar, ADR-037 proposal"
+  },
+  {
+   "branch": "int-453-red-path-winner",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 773,
+   "rows_added": [
+    "INT-446",
+    "INT-453"
+   ],
+   "title": "INT-453: voice-runtime RED path triggers the winning rule's own script, not rule_ids[0]"
+  },
+  {
+   "branch": "int-442-egress-proxy",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 774,
+   "rows_added": [
+    "INT-428",
+    "INT-442"
+   ],
+   "title": "INT-442: egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors)"
+  },
+  {
+   "branch": "int-443-elevenlabs-hosted-tts",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 775,
+   "rows_added": [
+    "INT-424",
+    "INT-428",
+    "INT-442",
+    "INT-443"
+   ],
+   "title": "INT-443: ElevenLabs as hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles)"
+  },
+  {
+   "branch": "int-450-admin-ui",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 776,
+   "rows_added": [
+    "INT-450"
+   ],
+   "title": "INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked)"
+  },
+  {
+   "branch": "int-455-tr-numeral-suffix",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 782,
+   "rows_added": [
+    "INT-455"
+   ],
+   "title": "INT-455: expand_tr expands a numeral's apostrophe suffix (112'yi), so the life-threat RED REMOTE script compiles to a clip"
+  },
+  {
+   "branch": "int-459-admin-premium",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 784,
+   "rows_added": [
+    "INT-450",
+    "INT-459"
+   ],
+   "title": "INT-459: admin-web premium redesign"
+  },
+  {
+   "branch": "int-461-adr-038-motion-amendment",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 788,
+   "rows_added": [
+    "INT-461"
+   ],
+   "title": "INT-461: ADR-038 — ADR-033 amendment: spring-in bubbles, selection haptics on chips and the mic, in-tree detent sheets"
+  },
+  {
+   "branch": "int-460-second-admin-approver",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 789,
+   "rows_added": [
+    "INT-460"
+   ],
+   "title": "INT-460: second admin approver for synthetic staging"
+  },
+  {
+   "branch": "int-462-native-chat",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 792,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462"
+   ],
+   "title": "INT-462: native chat — Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked capsule chips"
+  },
+  {
+   "branch": "int-465-generic-red-active",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 796,
+   "rows_added": [
+    "INT-446",
+    "INT-453",
+    "INT-465"
+   ],
+   "title": "INT-465: generic RED active from CD-24, and the red rule set signed with a synthetic-only test key"
+  },
+  {
+   "branch": "int-466-chat-stage",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 797,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462",
+    "INT-466"
+   ],
+   "title": "INT-466: chat stage — ADR-039 and the live dialogue on the new visual language"
+  },
+  {
+   "branch": "int-464-native-welcome",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 801,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462",
+    "INT-464",
+    "INT-466"
+   ],
+   "title": "INT-464: native welcome and sign-in in the stage language (ADR-039 S7)"
+  },
+  {
+   "branch": "int-470-owner-question-clinical",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 804,
+   "rows_added": [
+    "INT-470"
+   ],
+   "title": "INT-470: resolve INT-448's owner questions — clinical ones under D18 (CD-110), product and data ones by owner decision D24"
+  },
+  {
+   "branch": "int-472-review-grouped",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 806,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462",
+    "INT-464",
+    "INT-466",
+    "INT-472"
+   ],
+   "title": "INT-472: review and send as iOS grouped inset lists"
+  },
+  {
+   "branch": "int-473-detent-sheet",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 808,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462",
+    "INT-464",
+    "INT-466",
+    "INT-472",
+    "INT-473"
+   ],
+   "title": "INT-473: in-tree detent sheet (ADR-038 A3) for the dialogue's section sheet"
+  },
+  {
+   "branch": "int-471-legal-lane",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 809,
+   "rows_added": [
+    "INT-470",
+    "INT-471"
+   ],
+   "title": "INT-471: legal lane — sourced legal-author agent and independent legal reviewer decide legal items (D25, synthetic/test scope)"
+  },
+  {
+   "branch": "int-468-red-clinical-values",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 813,
+   "rows_added": [
+    "INT-468"
+   ],
+   "title": "INT-468: CD-111 — the cardiac RED do-not lines and the unanswered location wait, sourced under D18"
+  },
+  {
+   "branch": "int-469-adli-tip-no-report-purpose",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 816,
+   "rows_added": [
+    "INT-469"
+   ],
+   "title": "INT-469: Adli Tıp pack drops the allied report-purpose item (rapor_amaci), per LD-01"
+  },
+  {
+   "branch": "int-474-deployment-role-gate",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 818,
+   "rows_added": [
+    "INT-474"
+   ],
+   "title": "INT-474: deployment-role gate for relatives', household and partner data categories before any register row is filled"
+  },
+  {
+   "branch": "int-477-capture-solid-chrome",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 819,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462",
+    "INT-464",
+    "INT-466",
+    "INT-472",
+    "INT-473",
+    "INT-477"
+   ],
+   "title": "INT-477: solid chrome on capture-protected screens (owner: \"solid\"), never Liquid Glass"
+  },
+  {
+   "branch": "int-478-capture-protection-refcount",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 821,
+   "rows_added": [
+    "INT-478"
+   ],
+   "title": "INT-478: hold screen-capture protection until the last protected screen closes"
+  },
+  {
+   "branch": "int-482-store-listing",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 828,
+   "rows_added": [
+    "INT-482"
+   ],
+   "title": "INT-482: store listing readiness — EAS metadata, privacy answers, review notes, as Önvizit"
+  },
+  {
+   "branch": "int-483-self-proxy",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 833,
+   "rows_added": [
+    "INT-483"
+   ],
+   "title": "INT-483: self/proxy answering — ADR-040 and the subject_role addressing mechanism"
+  },
+  {
+   "branch": "int-485-admin-proxy-no-email-logs",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 834,
+   "rows_added": [
+    "INT-485"
+   ],
+   "title": "INT-485: admin oauth2-proxy logs no staff email or client IP (invariant 6)"
+  },
+  {
+   "branch": "int-484-ld06",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 835,
+   "rows_added": [
+    "INT-470",
+    "INT-471",
+    "INT-484"
+   ],
+   "title": "INT-484: LD-06 — what admin research and improvement analytics may hold (step 1, synthetic/test scope)"
+  },
+  {
+   "branch": "int-481-observability-stack",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 840,
+   "rows_added": [
+    "INT-481"
+   ],
+   "title": "INT-481: staff observability stack — Grafana dashboards and admin alerts on the AWS host"
+  },
+  {
+   "branch": "int-491-orb-variants",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 842,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462",
+    "INT-464",
+    "INT-466",
+    "INT-472",
+    "INT-473",
+    "INT-491"
+   ],
+   "title": "INT-491: the lens is the orb — every orb layer turns one way (ADR-039 amendment, D29)"
+  },
+  {
+   "branch": "int-492-progress-micro",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 843,
+   "rows_added": [
+    "INT-422",
+    "INT-423",
+    "INT-433",
+    "INT-451",
+    "INT-461",
+    "INT-462",
+    "INT-464",
+    "INT-466",
+    "INT-472",
+    "INT-473",
+    "INT-492"
+   ],
+   "title": "INT-492: question progress and micro-interactions — segmented capsule, chip check slot, press response, still loading glyph"
+  },
+  {
+   "branch": "int-486-ops-prom-label-fullmatch",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 845,
+   "rows_added": [
+    "INT-486"
+   ],
+   "title": "INT-486: ops_prom label check uses fullmatch, so a trailing newline is refused"
+  },
+  {
+   "branch": "int-496-play-later",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 854,
+   "rows_added": [
+    "INT-482",
+    "INT-496"
+   ],
+   "title": "INT-496: Google Play deferred — the list of everything Play will need"
+  },
+  {
+   "branch": "int-475-red-staff-notify",
+   "draft": false,
+   "mergeable": "CONFLICTING",
+   "number": 855,
+   "rows_added": [
+    "INT-446",
+    "INT-453",
+    "INT-465",
+    "INT-475"
+   ],
+   "title": "INT-475: RED staff notification on the typed hop and the device's location answer reach the server"
+  },
+  {
+   "branch": "int-495-asc-listing",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 860,
+   "rows_added": [
+    "INT-482",
+    "INT-495",
+    "INT-496",
+    "INT-502"
+   ],
+   "title": "INT-495: App Store listing for Önvizit — the App Store Connect draft writer and the promoted App Store copy"
+  },
+  {
+   "branch": "int-494-apply-cd111",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "number": 861,
+   "rows_added": [
+    "INT-446",
+    "INT-453",
+    "INT-465",
+    "INT-468",
+    "INT-494"
+   ],
+   "title": "INT-494: apply CD-111 to the served cardiac RED rule — decided do-not lists, re-signed synthetic rule set"
+  }
+ ],
+ "repo": "ArioMoniri/intake",
+ "row_floor": [
+  "INT-001",
+  "INT-002",
+  "INT-003",
+  "INT-004",
+  "INT-010",
+  "INT-011",
+  "INT-012",
+  "INT-013",
+  "INT-014",
+  "INT-015",
+  "INT-016",
+  "INT-017",
+  "INT-018",
+  "INT-019",
+  "INT-020",
+  "INT-021",
+  "INT-022",
+  "INT-023",
+  "INT-024",
+  "INT-025",
+  "INT-030",
+  "INT-031",
+  "INT-032",
+  "INT-033",
+  "INT-034",
+  "INT-035",
+  "INT-036",
+  "INT-037",
+  "INT-038",
+  "INT-040",
+  "INT-041",
+  "INT-042",
+  "INT-043",
+  "INT-044",
+  "INT-045",
+  "INT-046",
+  "INT-047",
+  "INT-048",
+  "INT-049",
+  "INT-050",
+  "INT-051",
+  "INT-052",
+  "INT-053",
+  "INT-054",
+  "INT-055",
+  "INT-056",
+  "INT-057",
+  "INT-058",
+  "INT-059",
+  "INT-060",
+  "INT-061",
+  "INT-062",
+  "INT-063",
+  "INT-064",
+  "INT-065",
+  "INT-066",
+  "INT-067",
+  "INT-068",
+  "INT-069",
+  "INT-070",
+  "INT-071",
+  "INT-072",
+  "INT-073",
+  "INT-080",
+  "INT-081",
+  "INT-082",
+  "INT-083",
+  "INT-084",
+  "INT-085",
+  "INT-090",
+  "INT-091",
+  "INT-092",
+  "INT-093",
+  "INT-094",
+  "INT-095",
+  "INT-096",
+  "INT-097",
+  "INT-098",
+  "INT-099",
+  "INT-100",
+  "INT-101",
+  "INT-102",
+  "INT-103",
+  "INT-110",
+  "INT-111",
+  "INT-112",
+  "INT-113",
+  "INT-114",
+  "INT-115",
+  "INT-116",
+  "INT-117",
+  "INT-120",
+  "INT-121",
+  "INT-122",
+  "INT-123",
+  "INT-124",
+  "INT-130",
+  "INT-131",
+  "INT-132",
+  "INT-133",
+  "INT-134",
+  "INT-135",
+  "INT-136",
+  "INT-137",
+  "INT-138",
+  "INT-139",
+  "INT-140",
+  "INT-141",
+  "INT-142",
+  "INT-143",
+  "INT-144",
+  "INT-145",
+  "INT-146",
+  "INT-150",
+  "INT-151",
+  "INT-152",
+  "INT-153",
+  "INT-160",
+  "INT-161",
+  "INT-162",
+  "INT-163",
+  "INT-170",
+  "INT-171",
+  "INT-172",
+  "INT-173",
+  "INT-174",
+  "INT-175",
+  "INT-176",
+  "INT-177",
+  "INT-178",
+  "INT-179",
+  "INT-180",
+  "INT-181",
+  "INT-182",
+  "INT-183",
+  "INT-184",
+  "INT-185",
+  "INT-186",
+  "INT-187",
+  "INT-188",
+  "INT-189",
+  "INT-190",
+  "INT-191",
+  "INT-192",
+  "INT-193",
+  "INT-194",
+  "INT-195",
+  "INT-196",
+  "INT-197",
+  "INT-198",
+  "INT-199",
+  "INT-200",
+  "INT-201",
+  "INT-202",
+  "INT-203",
+  "INT-204",
+  "INT-205",
+  "INT-206",
+  "INT-207",
+  "INT-208",
+  "INT-209",
+  "INT-210",
+  "INT-211",
+  "INT-212",
+  "INT-213",
+  "INT-214",
+  "INT-215",
+  "INT-216",
+  "INT-217",
+  "INT-218",
+  "INT-219",
+  "INT-220",
+  "INT-221",
+  "INT-222",
+  "INT-223",
+  "INT-224",
+  "INT-225",
+  "INT-226",
+  "INT-227",
+  "INT-228",
+  "INT-229",
+  "INT-230",
+  "INT-231",
+  "INT-232",
+  "INT-233",
+  "INT-234",
+  "INT-235",
+  "INT-236",
+  "INT-237",
+  "INT-238",
+  "INT-239",
+  "INT-240",
+  "INT-241",
+  "INT-242",
+  "INT-243",
+  "INT-244",
+  "INT-245",
+  "INT-246",
+  "INT-247",
+  "INT-248",
+  "INT-249",
+  "INT-250",
+  "INT-251",
+  "INT-252",
+  "INT-253",
+  "INT-254",
+  "INT-255",
+  "INT-256",
+  "INT-257",
+  "INT-258",
+  "INT-260",
+  "INT-261",
+  "INT-262",
+  "INT-263",
+  "INT-282",
+  "INT-284",
+  "INT-285",
+  "INT-286",
+  "INT-291",
+  "INT-293",
+  "INT-294",
+  "INT-295",
+  "INT-296",
+  "INT-297",
+  "INT-298",
+  "INT-299",
+  "INT-300",
+  "INT-301",
+  "INT-302",
+  "INT-303",
+  "INT-304",
+  "INT-305",
+  "INT-306",
+  "INT-307",
+  "INT-308",
+  "INT-309",
+  "INT-310",
+  "INT-311",
+  "INT-312",
+  "INT-313",
+  "INT-314",
+  "INT-315",
+  "INT-317",
+  "INT-318",
+  "INT-319",
+  "INT-320",
+  "INT-321",
+  "INT-322",
+  "INT-323",
+  "INT-324",
+  "INT-325",
+  "INT-326",
+  "INT-327",
+  "INT-328",
+  "INT-329",
+  "INT-330",
+  "INT-331",
+  "INT-332",
+  "INT-333",
+  "INT-334",
+  "INT-335",
+  "INT-336",
+  "INT-337",
+  "INT-338",
+  "INT-339",
+  "INT-340",
+  "INT-341",
+  "INT-342",
+  "INT-343",
+  "INT-344",
+  "INT-345",
+  "INT-346",
+  "INT-347",
+  "INT-348",
+  "INT-349",
+  "INT-350",
+  "INT-351",
+  "INT-352",
+  "INT-353",
+  "INT-354",
+  "INT-355",
+  "INT-356",
+  "INT-357",
+  "INT-358",
+  "INT-359",
+  "INT-360",
+  "INT-361",
+  "INT-362",
+  "INT-363",
+  "INT-364",
+  "INT-365",
+  "INT-366",
+  "INT-367",
+  "INT-368",
+  "INT-369",
+  "INT-370",
+  "INT-372",
+  "INT-373",
+  "INT-374",
+  "INT-376",
+  "INT-377",
+  "INT-378",
+  "INT-380",
+  "INT-381",
+  "INT-382",
+  "INT-383",
+  "INT-385",
+  "INT-386",
+  "INT-387",
+  "INT-389",
+  "INT-390",
+  "INT-391",
+  "INT-392",
+  "INT-393",
+  "INT-394",
+  "INT-395",
+  "INT-396",
+  "INT-397",
+  "INT-398",
+  "INT-399",
+  "INT-400",
+  "INT-401",
+  "INT-402",
+  "INT-403",
+  "INT-404",
+  "INT-405",
+  "INT-406",
+  "INT-407",
+  "INT-408",
+  "INT-409",
+  "INT-410",
+  "INT-412",
+  "INT-413",
+  "INT-414",
+  "INT-415",
+  "INT-416",
+  "INT-417",
+  "INT-418",
+  "INT-419",
+  "INT-421",
+  "INT-426",
+  "INT-429",
+  "INT-431",
+  "INT-432",
+  "INT-434",
+  "INT-435",
+  "INT-436",
+  "INT-437",
+  "INT-438",
+  "INT-441",
+  "INT-444",
+  "INT-445",
+  "INT-447",
+  "INT-448",
+  "INT-449",
+  "INT-452",
+  "INT-454",
+  "INT-456",
+  "INT-457",
+  "INT-458",
+  "INT-463",
+  "INT-467",
+  "INT-476",
+  "INT-487",
+  "INT-489",
+  "INT-493",
+  "INT-500"
+ ],
+ "schema": 1
+}
