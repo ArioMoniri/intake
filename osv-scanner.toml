@@ -7,11 +7,18 @@
 # passes, osv-scanner reports that advisory again, and the gate turns red
 # until a fix ships or the dependency is gone.
 # Removing an entry sooner is always correct.
+#
+# INT-508: the owner renewed both entries once, to 31 Dec 2026, because
+# neither package had a fixed release on 16 Oct 2026 (docs/evidence/INT-501.md).
 
 [[IgnoredVulns]]
 id = "GHSA-86w9-cpqp-85rv"
-ignoreUntil = 2026-11-01T00:00:00Z
+ignoreUntil = 2026-12-31T00:00:00Z
 reason = """\
+RENEWED ONCE, by the owner's own commit of owner-508-renew-exceptions.patch \
+(INT-508), from 1 Nov to 31 Dec 2026: node-forge 1.4.0 is still the newest \
+release, its fix (digitalbazaar/forge#1152) is unmerged, and every @expo/cli \
+through 58.1.9 depends on node-forge (docs/evidence/INT-501.md). \
 OWNER-APPROVED, TIME-BOXED EXCEPTION for node-forge 1.4.0 only. The owner \
 approved a narrow 30-day exception for just that package on 2 Oct 2026 \
 (owner, in chat, 2 Oct 2026: "i approve node-forge ignore"; commit authorised in chat: "commit the node-forge exception files"). This is the advisory trivy reports as \
@@ -38,14 +45,20 @@ Android `expo export` bundles carry no node-forge code \
 
 [[IgnoredVulns]]
 id = "GHSA-vfj7-8cjw-p6xm"
-ignoreUntil = 2026-11-02T00:00:00Z
+ignoreUntil = 2026-12-31T00:00:00Z
 reason = """\
+RENEWED ONCE, by the owner's own commit of owner-508-renew-exceptions.patch \
+(INT-508), from 2 Nov to 31 Dec 2026: braces 3.0.3 and micromatch 4.0.8 are \
+still the newest releases, the fix pull requests on micromatch/braces are \
+unmerged, and every metro-file-map through 0.87.1 needs micromatch \
+(docs/evidence/INT-501.md). \
 OWNER-APPROVED, TIME-BOXED EXCEPTION for braces 3.0.3 only (owner, in chat, \
 3 Oct 2026: "approve for the two osv exceptions"; CVE-2026-93687, \
 stack-exhaustion denial of service through deeply nested patterns). \
 braces 3.0.3 is in pnpm-lock.yaml only under micromatch 4.0.8, under \
 metro-file-map 0.84.5, which is Metro's build-time file crawler (via metro \
-and @expo/metro, importer apps/mobile). It expands glob patterns written by \
+and @expo/metro, importer apps/mobile), and under @expo/metro-file-map \
+57.0.2, Expo's copy of it. It expands glob patterns written by \
 the repository's own build configuration, never patient input. It is not in \
 either production `expo export` bundle, and no server runtime image installs \
 npm packages: infra/staging/Dockerfile.api is Python only, and no admin-web \
