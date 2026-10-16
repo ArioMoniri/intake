@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**361 issues.** By phase: P0 178 · P1 129 · P2 47 · P3 7. By status: awaiting-human 36 · doing 7 · done 243 · todo 74 · withdrawn 1.
+**363 issues.** By phase: P0 178 · P1 131 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 243 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -322,6 +322,8 @@
 | INT-424 | ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal | E05-voice | INT-415 | area:voice | done |
 | INT-475 | RED staff notification on the typed hop and the device's location answer reach the server | E09-clinician | INT-432 | area:api, risk:clinical | done |
 | INT-538 | One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required | E13-infra | INT-460 | area:infra | done |
+| INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
+| INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 | INT-528 | Netgsm OTP SMS adapter behind the INT-329 SMS port, recorded fixtures only, fail-closed until the owner's credentials land | E01-platform | INT-329, INT-358 | area:api, risk:security, risk:legal | done |
 
 ## P2

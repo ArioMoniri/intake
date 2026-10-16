@@ -132,6 +132,8 @@ SERVICES = {
     "keycloak",
     "oauth2-proxy",
     "admin-web",
+    # INT-442: the synthetic host's forward proxy (tests/infra/test_staging_egress.py)
+    "egress-proxy",
     # INT-528 / ADR-042: the SMS vendor's own forward proxy
     # (tests/infra/test_staging_sms_egress.py)
     "sms-egress",

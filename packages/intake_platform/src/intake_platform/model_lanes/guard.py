@@ -25,6 +25,17 @@ can turn a deployment that held real patients into a synthetic one.
 
 Synthetic and hosted runs never count as clinical evidence (files/04 §8.3):
 see :attr:`~intake_platform.model_lanes.router.ModelAssignment.clinical_evidence`.
+
+**The forward proxy is the synthetic deployment's alone** (INT-442). The
+synthetic host's API sits on internal networks only; the hosted lanes' one
+route out is the default-deny forward proxy rendered from the allow-list's
+hosted rows (``infra/staging/egress/squid.conf``), named by
+``INTAKE_EGRESS_PROXY_URL``. (The OTP tier's SMS call has a proxy of its own,
+``sms-egress``, which carries no other purpose: ADR-042.)
+:func:`egress_proxy_url` is the only reader of that variable, and it refuses —
+the process does not boot — when the variable is set in a deployment that is
+not synthetic: a PHI deployment has no vendor row to reach and no business
+naming a proxy that leads to one.
 """
 
 from __future__ import annotations
@@ -32,21 +43,32 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Final
+from urllib.parse import urlsplit
 
 from intake_platform.egress import DataClass
 from intake_platform.model_lanes.model import ProviderId, TenantDataClass
 
 __all__ = [
     "ENV_DEPLOYMENT_DATA_CLASS",
+    "ENV_EGRESS_PROXY_URL",
+    "EgressProxyRefused",
     "HostedLaneRefused",
     "HostedPermit",
     "TenantDataClass",
     "check_hosted_permitted",
     "deployment_data_class",
     "effective_data_class",
+    "egress_proxy_url",
 ]
 
 ENV_DEPLOYMENT_DATA_CLASS: Final = "INTAKE_DEPLOYMENT_DATA_CLASS"
+#: INT-442: the synthetic host's forward proxy (``http://egress-proxy:3128``).
+ENV_EGRESS_PROXY_URL: Final = "INTAKE_EGRESS_PROXY_URL"
+
+
+class EgressProxyRefused(RuntimeError):
+    """``INTAKE_EGRESS_PROXY_URL`` is set where it may not be, or is not a bare
+    ``http://host:port``. The message names the variable, never its value."""
 
 
 class HostedLaneRefused(Exception):
@@ -98,3 +120,39 @@ def check_hosted_permitted(*, data_class: TenantDataClass, provider: ProviderId)
     if data_class is not TenantDataClass.SYNTHETIC:
         raise HostedLaneRefused("hosted_lane_real_phi_refused")
     return HostedPermit(provider=provider, tenant=data_class)
+
+
+def egress_proxy_url(env: Mapping[str, str]) -> str | None:
+    """The synthetic deployment's forward proxy, ``None`` when none is named.
+
+    Raises :class:`EgressProxyRefused` when the variable is set in a deployment
+    that is not synthetic (INT-442: never in the PHI deployment), or when it is
+    anything but ``http://<host>:<port>`` — no credentials, no path, no query.
+    The proxy speaks CONNECT on an internal network; TLS runs end to end
+    through it, so the scheme to the proxy itself is plain ``http``.
+    """
+    raw = env.get(ENV_EGRESS_PROXY_URL, "").strip()
+    if not raw:
+        return None
+    if deployment_data_class(env) is not TenantDataClass.SYNTHETIC:
+        raise EgressProxyRefused(
+            f"{ENV_EGRESS_PROXY_URL} is set in a deployment that is not synthetic; the "
+            "forward proxy belongs to the synthetic deployment only (INT-442, ADR-035)"
+        )
+    try:
+        parts = urlsplit(raw)
+        port = parts.port
+    except ValueError:
+        raise EgressProxyRefused(f"{ENV_EGRESS_PROXY_URL} is not a URL") from None
+    if (
+        parts.scheme != "http"
+        or not parts.hostname
+        or port is None
+        or parts.username is not None
+        or parts.password is not None
+        or parts.path not in ("", "/")
+        or parts.query
+        or parts.fragment
+    ):
+        raise EgressProxyRefused(f"{ENV_EGRESS_PROXY_URL} must be exactly http://<host>:<port>")
+    return f"http://{parts.hostname}:{port}"

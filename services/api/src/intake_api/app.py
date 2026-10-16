@@ -89,7 +89,7 @@ from intake_api.auth import AUTH_TIER_HEADER
 from intake_api.db import build_engine
 from intake_api.dev_fixture import ensure_dev_fixture
 from intake_api.dev_voice import GeorgeWiring, george_wiring_from_env
-from intake_api.dev_voice_guard import intake_env_is_prod
+from intake_api.dev_voice_guard import george_route_mountable
 from intake_api.doctor_link.common import NOINDEX
 from intake_api.doctor_link.service import (
     DoctorLinkService,
@@ -99,7 +99,7 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings, is_dev_env
+from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
 
 if TYPE_CHECKING:
@@ -487,7 +487,8 @@ def wiring_from_env() -> ApiWiring:
         auth=_auth_from_settings(settings),
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
-        george=george_wiring_from_env(redis_url=settings.redis_url),
+        # INT-443: on the synthetic host the vendor key comes from OpenBao
+        george=george_wiring_from_env(redis_url=settings.redis_url, kv=SecretsProvider.from_env),
         acibadem=visits_acibadem.acibadem_client_from_registry(settings.clinical_sources_path),
         # INT-407: the same store the console's queue reads and the voice
         # runtime writes (INTAKE_SAFETY_INBOX_REDIS_URL)
@@ -696,9 +697,8 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(embed.router)
     # INT-326: the dev George route reaches a paid US vendor, so in production
     # it is not mounted at all (404) — whatever the dev flags or wiring say.
-    # INT-421: the same holds on every non-dev host. The AWS host runs
-    # INTAKE_ENV=staging, and only the dev environment (INT-325's one
-    # definition, is_dev_env) mounts the route.
-    if is_dev_env(os.environ) and not intake_env_is_prod():
+    # INT-443: outside dev, only the synthetic deployment that declares its
+    # hosted clip lane mounts it; a PHI deployment never does.
+    if george_route_mountable(os.environ):
         app.include_router(dev_voice.router)
     return app

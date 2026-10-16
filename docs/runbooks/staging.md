@@ -243,11 +243,13 @@ tokenization key. Nothing else is set by editing a file by hand:
   API starts an OTP login, and sends a code, only for a number on the list. A
   number off it gets `422 phone_invalid`, has no code minted and causes no
   SMS. A list that is empty, unreadable or malformed admits nobody.
-- **The route out (ADR-042).** The API's networks are all internal. Its one
-  way out is the `sms-egress` proxy on the internal `sms-out` network, which
-  only the API shares. The proxy admits CONNECT to the allow-list's SMS host
-  on 443 and nothing else, and logs `host:port` only; TLS runs end to end.
-  Only the Netgsm client uses it (`INTAKE_SMS_EGRESS_PROXY_URL`).
+- **The route out (ADR-042).** The API's networks are all internal. Its
+  SMS way out is the `sms-egress` proxy on the internal `sms-out` network,
+  which only the API shares. The proxy admits CONNECT to the allow-list's SMS
+  host on 443 and nothing else, and logs `host:port` only; TLS runs end to
+  end. Only the Netgsm client uses it (`INTAKE_SMS_EGRESS_PROXY_URL`). The
+  hosted lanes have their own, `egress-proxy` on `outbound` (INT-442); each
+  proxy refuses the other's purpose, in process and at the network.
 - The scripts print field and key names, never values or numbers. Their SSM
   commands carry only a script path. Run them through `aws ssm start-session`
   with `AWS-StartInteractiveCommand`; nothing secret ever goes into
