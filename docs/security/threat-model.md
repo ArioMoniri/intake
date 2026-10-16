@@ -120,14 +120,27 @@ it or whose tests exercise it.
 - **Assets:** source tree, Makefile entry points, compose dev tier, developer credentials.
 - **Trust boundaries:** developer workstation ↔ repo ↔ package registries ↔ container images.
 - **Threats (STRIDE/LINDDUN):** [T] malicious dependency or lockfile drift entering the tree;
-  [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change.
+  [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change;
+  [I] **an operator script putting a secret where others read it** (INT-538's staff-user
+  command: a temporary password or the Keycloak bootstrap password in an argv, the SSM command
+  history, a log or the terminal); [E] **a staff account created with the wrong role or org**.
 - **Controls (files/10):** §8 pre-commit set (gitleaks, Semgrep+Bandit, dependency review,
   Renovate with lockfiles); CLAUDE.md invariant 14 (gates never skipped); Makefile as the only
-  entry point so gates cannot be sidestepped by ad-hoc commands.
+  entry point so gates cannot be sidestepped by ad-hoc commands. **INT-538**
+  (`scripts/ops/staff_user.sh` with `infra/staging/staff_user_host.sh`): the temporary password
+  goes from openssl into an SSM SecureString through a 0600 request file, the bootstrap password
+  stays on the host and reaches kcadm on stdin, kcadm's throwaway `--config` is deleted on every
+  outcome, the send-command carries no secret, and output is `created` plus the reveal-once
+  command. Only `platform_owner` and `qms_owner` are offered. A read-only probe decides the org:
+  a new user joins the platform_owner's org and a differing org is refused; only the very first
+  user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
+  role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
+  step rolls the user back.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
   console and INT-205 in the SIEM.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
-  tests/ci/test_coverage_floors.py.
+  tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
+  tests/infra/test_staff_user_host.py.
 
 ## `cicd` — pipeline, artefacts and gate integrity
 

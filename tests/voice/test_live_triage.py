@@ -27,9 +27,11 @@ and the committed active ``base.life_threat`` rules:
 4. A session that can fire a RED cannot be composed without the means to
    deliver one, and a draft rule cannot be pinned into a session.
 
-``chest_pain.onset_at`` — the K2 rule's tense anchor — binds here from the
-recorded completion's ISO date, exactly as INT-518's test does. Resolving the
-four closed onset choices to a date (CD-05) is INT-522 (#888), not this issue.
+``chest_pain.onset_at`` — the K2 rule's tense anchor — is answered here as a
+patient answers it, with the authored choice 'şu anda var', and binds the day
+CD-05 resolves it to against the session's reference time (INT-522, #888;
+``tests/voice/test_onset_anchor.py``). Before INT-522 this suite's recorded
+completion carried an ISO date the model was never given the means to compute.
 
 The gateway is a table standing in for the model; nothing dials a model. The
 transcripts are synthetic (files/04 §7). Script ids are synthetic test data in

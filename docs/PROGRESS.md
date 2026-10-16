@@ -1,5 +1,49 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T13:45:00Z · INT-522 · done (committed locally, not pushed; stacked on #910 INT-521, INT-518, INT-441)
+- Goal: `chest_pain.onset_at`, the tense anchor of K2 and its SARI sibling, is a date answered by four closed choices. Extraction offered `format: date`, gave no reference date and forbade inference, so a spoken choice bound nothing, the anchor read Unknown and K2 could not fire live. INT-518/521 passed only on a recorded ISO date.
+  - Acceptance (GitHub #888): build CD-05's choice-to-date resolution exactly; the reference date from the injected runtime clock, never the model; each choice to its CD-05 window, hedged answers Unknown, near misses; `make safety` and runtime-sim green.
+- Plan: read CD-05 through the clinical-decisions register into `protocols.anchor_choices`, refusing anything it cannot follow; offer the model the authored choices as an enum; the handler swaps the choice for its day against the engine's `reference_time`; an UNCLEAR anchor reads CD-05's unresolved day in `SessionTriage`; composition refuses a closed-choice date without a decided day for every choice.
+- Tests added: `tests/protocols/test_anchor_choices.py` (64), `tests/voice/test_onset_anchor.py` (72), golden family `anchor_choices` (10) with a near miss for each active rule; INT-518/521 now answer the onset with the authored choice.
+  - RED (on `1ba358ff`): collection errors; every choice refused `wrong_type`, onset pending, GREEN for "baskı"; INT-518/521 with the choice: 89 failed.
+  - GREEN: 136 passed; three bands × three locations × two profiles fire K2 at ALERT over the data channel; "üç günden daha önce" quiet; three unfitting answers → UNCLEAR → reference day → K2. 11/11 mutations caught.
+- Result (docs/evidence/INT-522.md): `make safety` exit 0 (triage 100 %, 18/18 mutations, voice-runtime 98.25 %, 98.27 % on re-run); protocols lane 97.57 % (`anchor_choices.py` 100 %); runtime-sim every scenario, both profiles, parity, exit 0 (RT-06 withdrawn as before); mypy strict clean.
+- Invariants touched and still passing: 1, 7, 9, 10, 14 (the model picks a choice, never a day), 17 (only CD-05's own open literal), 21, 22, 6.
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-05 unchanged.
+- Backlog: INT-522 row added (`area:protocols`, depends on INT-518 and INT-521, `clinical-core`); the three pins go from 357 to 358; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane (no new item): CD-05's own open final resolution of the twelve-to-seventy-two-hour band; and whether the first "bilmiyorum" should resolve before the engine's two scripted follow-ups. Residuals in evidence: the app's API hop would need the resolved day if the app ever asks the onset; the reference time's producer is the composing caller.
+
+### 2026-10-16T18:00:00+03:00 · INT-538 · done (PR open, not merged, not run against the host)
+- Goal: GitHub #906. The owner gets one laptop command that creates a staff user in realm `intake` on the synthetic host: first themselves (`platform_owner`), then the second approver (`qms_owner`). It replaces the manual steps of `docs/runbooks/second-admin.md` (INT-460).
+- Plan:
+  - `scripts/ops/staff_user.sh` prompts and validates.
+  - A read-only probe over SSM asks whether a `platform_owner` exists. Only when none does is the user (who must then be the `platform_owner`) asked, once, for the organisation id, a slug.
+  - The temporary password goes into an SSM SecureString through a 0600 request file. `infra/staging/staff_user_host.sh` goes base64-wrapped over SSM with no secret in the command.
+  - On the host, the script names the IAM statement to add if the instance role may not read the staff_tmp parameters. It reads the bootstrap password locally and logs kcadm in on stdin with a throwaway `--config`.
+  - It refuses an existing username or email, inherits the owner's org (refusing a differing one), creates the user with `webauthn-register` + `UPDATE_PASSWORD`, grants the role, and sets the temporary password from SSM. A failed step rolls back.
+  - The command prints `created` and the reveal-once command.
+  - Round 2 (orchestrator review) replaced round 1's realm-config route for the first org with the probe and the prompt.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staff_user.py` (63, laptop flows end to end) and `tests/infra/test_staff_user_host.py` (33, host half and the scripts as files), against fake `aws`/`docker`/`openssl`.
+  - 20 input near misses and 12 org-slug near misses make nothing, and slugs at the edges are accepted.
+  - The org rule holds both ways. The IAM refusal line is pinned. No secret appears in any argv, the command or the output. The kcadm config is deleted on every path.
+  - 13 of 13 mutations were caught.
+  - Red: round 1, 66 failed; round 2 against the round-1 scripts, 53 failed. Green: 96 passed; 111 with INT-460's runbook pins.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean; shellcheck clean.
+  - tests/backlog, tests/smoke and tests/security green, with counts at 356.
+  - files/11 regenerated.
+  - no_placeholders, evidence_check and sec_row linkage OK.
+  - The full fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing:
+  - 6 (no email or credential in any output);
+  - 14 (secrets never in argv, logs or the SSM command; nothing committed);
+  - 16 (Sec-Row `platform`, threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none. No org value is defined anywhere, so the owner types it once, on the very first run. No org is invented.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The instance role's read of `/intake/staging/staff_tmp/*` was verified by the orchestrator from the host on 16 Oct 2026 (`ParameterNotFound`, not `AccessDenied`).
+- Next: merge. Then the owner runs the command twice, typing the org id on the first run.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
 - Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).
 

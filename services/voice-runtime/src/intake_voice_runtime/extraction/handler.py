@@ -55,6 +55,14 @@ Four things this handler deliberately does **not** do:
   could not bind, so offering it to the model would be inviting an answer the
   engine is about to drop.
 
+**A closed onset choice binds its decided day** (INT-522). For a date slot
+answered by a closed choice the model may answer only an authored choice; the
+handler replaces it with the day CD-05 resolves it to against the engine's
+``reference_time`` (:class:`~intake_voice_runtime.clinical_agent.anchors.SessionAnchors`)
+before the engine sees it, and records the choice beside the day once it has
+bound. A session whose closed-choice date has no decided day for every choice
+is refused when composed (:class:`~intake_voice_runtime.extraction.errors.AnchorChoicesUnresolved`).
+
 **A refusal is an outcome, not a crash.** A parser refusal (the model answered
 off-schema, or obeyed a planted instruction) leaves the slots unbound and the
 question unanswered — the state files/13 §11.1 already knows how to act on. A
@@ -69,16 +77,17 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Final, Protocol
+from typing import Any, Final, Protocol
 
 from protocols.dsl import Slot
 
 from intake_voice_runtime.adapters.pins import ModelPin
+from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
 from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect
 from intake_voice_runtime.extraction.boundary import PatientData
-from intake_voice_runtime.extraction.errors import CodeSlotUnbound
+from intake_voice_runtime.extraction.errors import AnchorChoicesUnresolved, CodeSlotUnbound
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
-from intake_voice_runtime.extraction.schema import unbound_code_slots
+from intake_voice_runtime.extraction.schema import closed_choice_dates, unbound_code_slots
 from intake_voice_runtime.extraction.work import ExtractionContext, ExtractionOutcome
 from intake_voice_runtime.extraction.work import run_extraction as _run_extraction
 from intake_voice_runtime.ports import Clock, WorkRequest, work_key
@@ -129,6 +138,10 @@ class ExtractSlotsHandler:
     #: INT-430. ``None`` — the state of every session composed today — means no
     #: verifier runs; the primary extraction is unchanged either way.
     verifier: VerificationSink | None = None
+    #: INT-522. CD-05's resolution of each closed-choice date (the onset
+    #: anchor); required wherever the slots declare one, so such a choice
+    #: always binds a day.
+    anchors: SessionAnchors | None = None
     outcomes: list[ExtractionOutcome] = field(default_factory=list, init=False)
 
     def __post_init__(self) -> None:
@@ -148,6 +161,23 @@ class ExtractSlotsHandler:
                 "code slot only to a member, so these could never be answered; commit "
                 "each set in packages/protocols/base/valuesets.yaml (INT-518)"
             )
+        unresolved = self._unresolved_dates()
+        if unresolved:
+            raise AnchorChoicesUnresolved(
+                "date slot(s) answered by closed choices with no decided day for every "
+                f"choice: {', '.join(unresolved)}. Such a choice could never bind, so the "
+                "anchor would read Unknown for the whole session; the resolution is a "
+                "clinical decision (CD-05, INT-522), never a default"
+            )
+
+    def _unresolved_dates(self) -> list[str]:
+        """Each closed-choice date whose choices are not exactly a decided table's."""
+        anchors = self.anchors
+        return [
+            ref
+            for ref, choices in closed_choice_dates(self.slots).items()
+            if anchors is None or ref not in anchors.refs or anchors.table.choice_texts != choices
+        ]
 
     def __call__(self, context: StateContext) -> StateEffect:
         request = context.request
@@ -172,10 +202,23 @@ class ExtractSlotsHandler:
         )
         self.outcomes.append(outcome)
         if outcome.result is not None:
-            context.engine.apply_extraction(**outcome.result.as_engine_call())
+            self._apply(context, outcome.result.as_engine_call())
         if self.verifier is not None:
             self.verifier.request_verification(request, data)
         return StateEffect()
+
+    def _apply(self, context: StateContext, call: dict[str, Any]) -> None:
+        """Bind the extraction, each anchor's choice replaced by its CD-05 day."""
+        engine = context.engine
+        if self.anchors is None:
+            engine.apply_extraction(**call)
+            return
+        updates, resolutions = self.anchors.resolve_choices(
+            call["slot_updates"], engine.reference_time
+        )
+        revisions = {r.anchor: engine.slot_revision(r.anchor) for r in resolutions}
+        engine.apply_extraction(**{**call, "slot_updates": updates})
+        self.anchors.note_bound(resolutions, engine, revisions)
 
     def _declared_slots(self, context: StateContext) -> Mapping[str, Slot]:
         """The Work's own step plus every step the engine is awaiting.

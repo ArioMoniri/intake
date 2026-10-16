@@ -16,6 +16,7 @@ from intake_voice_runtime.extraction.boundary import (
     wrap_patient_data,
 )
 from intake_voice_runtime.extraction.errors import (
+    AnchorChoicesUnresolved,
     BoundaryEscape,
     CodeSlotUnbound,
     ExtractionNotConfigured,
@@ -77,6 +78,7 @@ __all__ = [
     "PROMPT_VERSION",
     "SENTINEL_PREFIX",
     "TOP_LEVEL_KEYS",
+    "AnchorChoicesUnresolved",
     "BoundaryEscape",
     "CodeSlotUnbound",
     "Completion",
