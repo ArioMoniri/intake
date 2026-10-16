@@ -201,9 +201,13 @@ def test_ids_unique_and_well_formed() -> None:
     # clinical review, GitHub #884).
     # + INT-521 (the live session evaluates triage on every bound answer, so a
     # RED fires from the conversation; from INT-518, GitHub #887).
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live; from INT-518, GitHub #888).
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host; owner order, GitHub #906).
     # + INT-442 (the synthetic AWS host's egress forward proxy, split from
     # INT-428, GitHub #752).
-    assert len(ids) == 359
+    assert len(ids) == 361
     import re
 
     for i in ids:

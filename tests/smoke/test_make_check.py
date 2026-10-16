@@ -359,9 +359,14 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-521 (the live session evaluates triage on every bound answer, so a
     # RED fires from the conversation, GitHub #887); grows only with a stated
     # reason.
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live, GitHub #888); grows only with
+    # a stated reason.
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host, owner order, GitHub #906); grows only with a stated reason.
     # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
     # GitHub #752); grows only with a stated reason.
-    assert len(ids) == 359, f"expected 175 blueprint + 184 added issues, got {len(ids)}"
+    assert len(ids) == 361, f"expected 175 blueprint + 186 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

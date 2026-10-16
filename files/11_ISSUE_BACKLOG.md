@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**359 issues.** By phase: P0 177 · P1 128 · P2 47 · P3 7. By status: awaiting-human 37 · doing 7 · done 240 · todo 74 · withdrawn 1.
+**361 issues.** By phase: P0 178 · P1 129 · P2 47 · P3 7. By status: awaiting-human 37 · doing 7 · done 242 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -188,6 +188,7 @@
 | INT-441 | base.intake gates compare code slots against values the slot can carry (proxy_reported, lmp_date) | E03-protocols | INT-043 | area:protocols, risk:clinical | done |
 | INT-518 | Live extraction gets the committed value table, so every code slot a red-flag rule reads can bind | E03-protocols | INT-083, INT-432 | area:protocols | done |
 | INT-521 | The live voice and typed session evaluates triage on every bound answer, so a RED fires from the conversation | E05-voice | INT-518, INT-093 | area:voice | done |
+| INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done |
 
 ## P1
 
@@ -320,6 +321,7 @@
 | INT-508 | node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents before 1 Nov 2026 | E13-infra | INT-500 | area:security | todo |
 | INT-424 | ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal | E05-voice | INT-415 | area:voice | done |
 | INT-475 | RED staff notification on the typed hop and the device's location answer reach the server | E09-clinician | INT-432 | area:api, risk:clinical | done |
+| INT-538 | One laptop command creates a staff user on the synthetic host: temporary password via SSM, passkey registration required | E13-infra | INT-460 | area:infra | done |
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 
 ## P2

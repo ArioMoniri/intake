@@ -85,16 +85,19 @@ from datetime import datetime
 
 from clinical_schemas.overlay import PatientOverlay
 from clinical_schemas.triage import RedLocation
+from protocols.anchor_choices import AnchorChoiceTable, load_anchor_choice_table
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.dsl import Slot
 from protocols.valuesets import ValueSetTable, load_committed_valuesets
 
 from intake_voice_runtime.adapters.pins import ModelPin, ModelStackRow, resolve_pin
+from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.live_triage import SessionTriage, served_rules
 from intake_voice_runtime.clinical_agent.work_queue import BackendAgent
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
 from intake_voice_runtime.extraction.handler import ExtractSlotsHandler
+from intake_voice_runtime.extraction.schema import closed_choice_dates
 from intake_voice_runtime.metering import (
     MeteredExtractionGateway,
     MeteredSpeechSynthesizer,
@@ -219,6 +222,10 @@ class SessionStack:
     #: because the tenant and branch labels are the caller's to supply and a
     #: guessed label is a wrong dimension on a real series.
     meter: SessionMeter | None = None
+    #: CD-05 at runtime (INT-522): each closed onset choice's day, and the
+    #: record of the choice beside the day it bound. ``None`` where the pinned
+    #: protocol declares no date answered by a closed choice.
+    anchors: SessionAnchors | None = None
 
     @property
     def profile(self) -> VoiceProfile:
@@ -256,6 +263,7 @@ def build_residency_tr_session(
     screen: ScreenSink | None = None,
     meter: SessionMeter | None = None,
     red: RedWiring | None = None,
+    anchor_choices: AnchorChoiceTable | None = None,
 ) -> SessionStack:
     """Compose one ``residency_tr`` session and close the three joints.
 
@@ -286,6 +294,12 @@ def build_residency_tr_session(
     ``red`` is required wherever the pinned protocol serves a red-flag rule: a
     session that could fire a RED and not deliver it is not composed
     (:class:`RedWiringMissing`, INT-521).
+
+    ``anchor_choices`` omitted is CD-05 read from the committed register
+    (:func:`protocols.anchor_choices.load_anchor_choice_table`, INT-522),
+    loaded wherever the protocol declares a date answered by a closed choice.
+    Handed one, it is used as given; either way a closed-choice date with no
+    decided day for every choice refuses the composition.
     """
     return _compose(
         protocol=protocol,
@@ -317,6 +331,7 @@ def build_residency_tr_session(
         screen=screen,
         meter=meter,
         red=red,
+        anchor_choices=anchor_choices,
     )
 
 
@@ -339,6 +354,7 @@ def build_typed_session(
     extraction_row: ModelStackRow = ModelStackRow.TALKER_LLM,
     meter: SessionMeter | None = None,
     red: RedWiring | None = None,
+    anchor_choices: AnchorChoiceTable | None = None,
 ) -> SessionStack:
     """Compose one ``typed`` session — the same three joints, no audio.
 
@@ -354,7 +370,8 @@ def build_typed_session(
     ``valuesets`` omitted is the committed table, as it is for the voice
     root: the typed lane binds a tapped choice through the same handler, so a
     typed session without the table could not record a code answer either
-    (INT-518).
+    (INT-518). ``anchor_choices`` likewise: a tapped onset choice binds its
+    CD-05 day through the same handler (INT-522).
 
     ``deadlines`` survives the change of channel deliberately. files/12 §6's
     ladder decides whether a YELLOW result is delivered or expires into the
@@ -386,6 +403,7 @@ def build_typed_session(
         screen=screen,
         meter=meter,
         red=red,
+        anchor_choices=anchor_choices,
     )
 
 
@@ -413,6 +431,7 @@ def _compose(
     screen: ScreenSink | None = None,
     meter: SessionMeter | None = None,
     red: RedWiring | None = None,
+    anchor_choices: AnchorChoiceTable | None = None,
 ) -> SessionStack:
     """Both profiles, composed once.
 
@@ -443,14 +462,19 @@ def _compose(
     table = load_committed_valuesets() if valuesets is None else valuesets
     transcripts = SessionTranscripts()
     pin = resolve_pin(extraction_row)
+    slots = protocol_slots(protocol)
+    # INT-522: CD-05 wherever a date is answered by a closed choice. The
+    # handler refuses one whose choices are not all resolved to a day.
+    anchors = _session_anchors(slots, anchor_choices)
     handler = ExtractSlotsHandler(
         transcripts=transcripts,
         gateway=gateway,
-        slots=protocol_slots(protocol),
+        slots=slots,
         pin=pin,
         clock=ticking,
         tenant_id=tenant_id,
         valuesets=table.member_map(),
+        anchors=anchors,
     )
     engine = IntakeEngine(
         protocol=protocol,
@@ -460,7 +484,7 @@ def _compose(
     )
     # INT-521: the evaluator over the served rules, refused here (before the
     # session is counted) when the session could not deliver the RED it finds.
-    triage = _session_triage(protocol, reference_time=reference_time, red=red)
+    triage = _session_triage(protocol, reference_time=reference_time, red=red, anchors=anchors)
     pinned = rule_ids | {rule.id for rule in served_rules(protocol)}
     if meter is not None:
         # INT-190: the session is counted where it is composed, by the meter
@@ -501,11 +525,31 @@ def _compose(
         extraction_pin=pin,
         slot_affordances=slot_facts(protocol),
         meter=meter,
+        anchors=anchors,
+    )
+
+
+def _session_anchors(
+    slots: Mapping[str, Slot], anchor_choices: AnchorChoiceTable | None
+) -> SessionAnchors | None:
+    """CD-05 for this session, or ``None`` where no date is a closed choice.
+
+    Handed a table, it is used as given; otherwise the committed register's
+    CD-05 is read (provenance-checked) only when the protocol needs it.
+    """
+    if anchor_choices is None and not closed_choice_dates(slots):
+        return None
+    return SessionAnchors(
+        table=load_anchor_choice_table() if anchor_choices is None else anchor_choices
     )
 
 
 def _session_triage(
-    protocol: ResolvedProtocol, *, reference_time: datetime, red: RedWiring | None
+    protocol: ResolvedProtocol,
+    *,
+    reference_time: datetime,
+    red: RedWiring | None,
+    anchors: SessionAnchors | None,
 ) -> SessionTriage | None:
     """The evaluator over the protocol's served rules, or ``None`` if it serves none.
 
@@ -524,7 +568,7 @@ def _session_triage(
             "and pre-positioned scripts to deliver one (invariant 21; INT-521)"
         )
     return SessionTriage.for_protocol(
-        protocol, location=red.location, reference_time=reference_time
+        protocol, location=red.location, reference_time=reference_time, anchors=anchors
     )
 
 
