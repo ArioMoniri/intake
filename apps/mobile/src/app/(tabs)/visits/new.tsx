@@ -12,6 +12,13 @@
  * never empty. Screenshot OCR is wired but fail-closed (see
  * `ocrImportAvailable`) — the OCR layer has no verified licence yet
  * (files/03 §4.9.2(f)), and a fake reader would be worse than none.
+ *
+ * INT-537: a visit and its note are processed under the `core` açık rıza
+ * consent, and the server refuses both without it. So this is where core is
+ * asked for, in context: while the ledger has no honoured core grant the
+ * form gives way to one plain explanation and one action, which opens the
+ * core text. Nothing here grants anything — the grant happens next to the
+ * text, on the consent screen, and the form returns when it has.
  */
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useReducer, useState } from "react";
@@ -19,6 +26,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 
 import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
+import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -32,6 +40,9 @@ import {
 } from "@/components/Themed";
 import { joinParts } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
+import { coreGate } from "@/lib/consent/gate";
+import { purposeParam } from "@/lib/consent/purposes";
+import { ledgerSeededFor, seedLedgerForAccount, useConsentLedger } from "@/lib/consent/store";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { branchById, intakeBranches, visibleBranches } from "@/lib/taxonomy/branches";
@@ -66,11 +77,20 @@ export default function NewVisit() {
   const theme = useTheme();
   const headerOptions = useStackHeader();
   const fontScale = useFontScale();
-  const { addVisit, consents } = useSession();
+  const { account, addVisit, consents } = useSession();
+  const ledger = useConsentLedger();
   const [form, dispatch] = useReducer(newVisitFormReducer, undefined, emptyNewVisitForm);
   const [taxonomy, setTaxonomy] = useState(cachedTaxonomy);
   const [query, setQuery] = useState("");
   const [picking, setPicking] = useState(true);
+  // Hoisted above the gate's early return: hooks run in the same order.
+  const tabBarClearance = useTabBarClearance();
+
+  useEffect(() => {
+    if (account !== null) {
+      seedLedgerForAccount(account.id, consents);
+    }
+  }, [account, consents]);
 
   useEffect(() => {
     let live = true;
@@ -116,7 +136,15 @@ export default function NewVisit() {
     setPicking(true);
   };
 
+  const gate = coreGate(ledger);
+  // Refuse only on this account's own answer: an unseeded ledger is a fresh
+  // one, and would refuse an account that holds core.
+  const coreRefused = account !== null && ledgerSeededFor(account.id) && !gate.open;
+
   const save = () => {
+    if (!gate.open) {
+      return; // the refusal below is on screen; no visit without core
+    }
     const input = formToInput(form);
     const check = validateNewVisit(input);
     if (!check.ok) {
@@ -127,11 +155,35 @@ export default function NewVisit() {
     router.replace(`/(tabs)/visits/${visit.id}`);
   };
 
+  if (coreRefused) {
+    return (
+      <Screen edges={["left", "right"]}>
+        <Stack.Screen options={headerOptions(t("visits.new.title"))} />
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+          <GuidanceBlock
+            accent
+            icon="checkmark.shield"
+            kickerKey="visits.new.core.kicker"
+            titleKey="visits.new.core.title"
+            // a moved text is asked for again, never as if it were the first time
+            bodyKey={
+              !gate.open && gate.stale ? "visits.new.core.staleBody" : "visits.new.core.body"
+            }
+          />
+          <PrimaryButton
+            label={t("visits.new.core.cta")}
+            onPress={() => router.push(`/(tabs)/me/consents/${purposeParam("core")}`)}
+          />
+        </ScrollView>
+      </Screen>
+    );
+  }
+
   return (
     <Screen edges={["left", "right"]}>
       <Stack.Screen options={headerOptions(t("visits.new.title"))} />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
         keyboardShouldPersistTaps="handled"
         // SC 1.3.4 (INT-360): each field scrolls clear of the keyboard, which
         // takes about half of a landscape window.

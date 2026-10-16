@@ -107,6 +107,60 @@ describe("the OCR path sits behind the documents consent, fail closed", () => {
 });
 
 /**
+ * INT-537 (GitHub #904). Visits and notes require the `core` açık rıza scope
+ * (services/api visits.py and notes.py declare it), and nothing in the app
+ * granted it. Acceptance: without core, visit start refuses with a clear B1
+ * message that leads to the consent control; with it, a visit starts.
+ */
+describe("visit start needs the core consent, and leads to it (INT-537)", () => {
+  const screen = () => read(APP, "(tabs)/visits/new.tsx");
+
+  it("the screen reads the consent ledger, seeded for this account", () => {
+    const source = screen();
+    expect(source).toContain("useConsentLedger()");
+    expect(source).toContain("seedLedgerForAccount(account.id, consents)");
+    // a ledger nobody seeded yet is not this account's answer
+    expect(source).toContain("ledgerSeededFor(account.id)");
+    expect(source).toContain("coreGate(ledger)");
+  });
+
+  it("save refuses before a visit is added while the gate is shut", () => {
+    const source = screen();
+    const start = source.indexOf("const save = ");
+    const save = source.slice(start, source.indexOf("\n  };", start));
+    expect(save).toContain("!gate.open");
+    expect(save.indexOf("!gate.open")).toBeLessThan(save.indexOf("addVisit("));
+  });
+
+  it("the refusal is B1 copy from the catalogue and its one action opens the core text", () => {
+    const source = screen();
+    for (const key of [
+      "visits.new.core.kicker",
+      "visits.new.core.title",
+      "visits.new.core.body",
+      "visits.new.core.staleBody",
+      "visits.new.core.cta",
+    ]) {
+      expect(source).toContain(`"${key}"`);
+      expect(read(SRC, "lib", "i18n", "tr.ts")).toContain(`"${key}"`);
+      expect(read(SRC, "lib", "i18n", "en.ts")).toContain(`"${key}"`);
+    }
+    expect(source).toContain('router.push(`/(tabs)/me/consents/${purposeParam("core")}`)');
+  });
+
+  it("the gate asks for core and for nothing optional (files/02 §7)", () => {
+    const gate = read(SRC, "lib", "consent", "gate.ts");
+    const body = gate.slice(gate.indexOf("export function coreGate"));
+    expect(body).toContain('"core"');
+    for (const optional of ["voice", "wellbeing", "documents", "satisfaction", "research"]) {
+      expect(body).not.toContain(`"${optional}"`);
+    }
+    // the screen has one consent question, and it is this one
+    expect(screen()).not.toContain("viewOf(");
+  });
+});
+
+/**
  * INT-370 (INT-354 slice S3, int-demo 148a7dbd). Acceptance, verbatim:
  * "Vizitlerim offers a calendar view and a Geçmiş list of past visits, built
  * on the existing visits store with no new data field".

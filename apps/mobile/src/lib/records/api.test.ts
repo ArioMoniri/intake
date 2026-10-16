@@ -422,6 +422,26 @@ describe("ensureServerVisit — match first, create only when asked", () => {
     await expect(ensureServerVisit(LOCAL, { create: false })).resolves.toBeNull();
     expect(mocks.authedFetch).toHaveBeenCalledTimes(1);
   });
+
+  it("a visit start the server refuses for core is the core kind, not the documents one (INT-537)", async () => {
+    // visits require `core`; telling this patient their DOCUMENT consent is
+    // off would send them to the wrong switch
+    mocks.authedFetch
+      .mockResolvedValueOnce(json(200, []))
+      .mockResolvedValueOnce(json(403, { error: "consent_required", scope: "core" }));
+    await expect(ensureServerVisit(LOCAL, { create: true })).rejects.toMatchObject({
+      kind: "core_consent",
+    });
+  });
+
+  it("the visit list refused for core is the core kind too (INT-537)", async () => {
+    mocks.authedFetch.mockResolvedValueOnce(
+      json(403, { error: "consent_required", scope: "core" }),
+    );
+    await expect(ensureServerVisit(LOCAL, { create: false })).rejects.toMatchObject({
+      kind: "core_consent",
+    });
+  });
 });
 
 describe("pickUploadVisit — the 'exactly one upcoming' rule", () => {
