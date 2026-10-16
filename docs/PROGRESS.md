@@ -1,5 +1,27 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T16:00:00Z · INT-553 · done (PR opened; stacked on #932 INT-525, head c89f303c)
+- Goal: the #931/#932 clinical review (#937) found that the CD-08 clinic-item watch could skip a K2 evaluation (F1: a watch fault was a handler fault) or delay it (F2: the audit row was written on the state lane before the determination; `AuditChain` had no lock). It also found the inbox sorted items above newer REDs (F3), no page for unaudited items (F5), and four smaller gaps (F4, F8, F9, F11/F12).
+- Plan:
+  - Make the watch the Work queue's `StateWatch`, run before the handler and again once the Work has settled; the queue counts and logs a look that raises; check the session id at composition.
+  - Queue the audit row in a bounded `ClinicItemAuditOutbox` with its own worker; lock `AuditChain`.
+  - Sort open REDs first; page `clinic_inbox_item_unaudited_total` and the new `work_watch_faults_total`.
+  - Pin and sort `AnswerState`; check CD-01's slot and literal; keep `slot_refs` and `decision_ids` on the entry and the console row; fix the two texts.
+- Tests added: `tests/voice/test_clinic_items_never_block_triage.py` (31), protocols +7, platform +11, admin +2 assertions, audit chain +2, alert pins +3; INT-547's voice suite moved onto the queue watch and the outbox.
+  - RED (on `8d48d514`): 72 failed, 136 passed. The K2 Work FAILED and was never evaluated when the item could not be built; eight writers forked the audit chain at seq 1. A throw-away probe on the #932 API showed a 5 s audit write moving K2's `evaluated_at_ms` by 5000 ms, and the older item above the newer RED.
+  - GREEN: 263 passed on the red set plus the INT-547 voice suite.
+- Result (docs/evidence/INT-553.md):
+  - `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.48 % (2492 passed, after rebasing onto #932's new head `c89f303c`).
+  - Protocols lane 97.69 % (2155 passed).
+  - runtime-sim: every scenario, both profiles and parity exit 0, with RT-06 withdrawn as before.
+  - ruff and strict mypy clean; 1586 passed across the platform, admin, API, security, connector, observability and backlog suites that read the inbox or the chain.
+- Invariants touched and still passing: 1, 4, 6, 9, 13.
+- Decisions / ADRs / `00_STATE.md` rows: none. The two entry fields are protocol ids, the same category as `rule_ids`, so not a new data category.
+- Backlog: INT-553 row added (done); no count pin to move (INT-452 derives the counts); files/11 regenerated.
+- Blocked on: nothing.
+- Residuals: F10 (a close-Work route failure has no later Work to retry on) was not in the brief and stays paged and runbooked. The audit outbox's worker is started by the builder that wires the notifier (INT-515), and none does yet.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T23:30:00Z · INT-519 · D18 verifier round, agree on all four records (committed locally, not pushed)
 - Goal: the independent D18 clinical verifier's round on the author's `9034f8b9` (CD-112 round 1, CD-04 and CD-05 round 3, CD-100 round 4).
 - Result: **agree, no blocker**, on all four records.

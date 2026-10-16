@@ -50,6 +50,9 @@ SESSION = "11111111-2222-4333-8444-555555555555"
 ITEM_REF = "ci_" + "a" * 32
 RULES = ("rf.chest_pain_cardiac_features", "rf.chest_pain_no_cardiac_history")
 ACKER = "kc-sub-tenant-clinical-responsible"
+#: INT-553 F9: the slot the item is about and the decisions that raise it.
+SLOTS = ("chest_pain.character",)
+DECISIONS = ("CD-04", "CD-08")
 WELL_PAST = DEFAULT_ACK_SLA * 3
 
 
@@ -66,6 +69,8 @@ def _item(
         kind=kind,
         item_ref=item_ref,
         rule_ids=RULES,
+        slot_refs=SLOTS,
+        decision_ids=DECISIONS,
         at=at,
     )
 
@@ -155,6 +160,8 @@ def test_an_item_records_no_register() -> None:
     [
         ("item_ref", "göğüs ağrısı belirsiz"),
         ("session_id", "Ayşe Yılmaz"),
+        ("slot_refs", "göğsümde baskı var"),
+        ("decision_ids", "Kardiyoloji kararı"),
     ],
 )
 def test_ids_are_ids_never_prose(field: str, prose: str) -> None:
@@ -166,9 +173,38 @@ def test_ids_are_ids_never_prose(field: str, prose: str) -> None:
             kind=EntryKind.CHEST_PAIN_ARMS_UNRESOLVED,
             item_ref=prose if field == "item_ref" else ITEM_REF,
             rule_ids=RULES,
+            slot_refs=(prose,) if field == "slot_refs" else SLOTS,
+            decision_ids=(prose,) if field == "decision_ids" else DECISIONS,
             at=T0,
         )
     assert prose not in str(raised.value)
+
+
+# --- 1b · the entry keeps the item's slots and decisions (INT-553 F9) ----------------------
+
+
+@pytest.mark.parametrize("kind", sorted(CLINIC_ITEM_KINDS))
+def test_an_item_entry_keeps_which_slot_and_which_decisions(kind: EntryKind) -> None:
+    """The clinician reading the queue sees which chest-pain slot was left
+    unresolved or unasked and which decisions raised it — protocol ids only."""
+    entry = _item(kind)
+    assert (entry.slot_refs, entry.decision_ids) == (SLOTS, DECISIONS)
+    again = _inbox().store.add(entry)
+    assert (again.slot_refs, again.decision_ids) == (SLOTS, DECISIONS)
+
+
+@pytest.mark.parametrize("field", ["slot_refs", "decision_ids"])
+def test_an_item_entry_without_its_slots_or_decisions_is_refused(field: str) -> None:
+    with pytest.raises(ValidationError, match=field):
+        InboxEntry.model_validate({**_item().model_dump(), field: ()})
+
+
+@pytest.mark.parametrize("field", ["slot_refs", "decision_ids"])
+def test_near_miss_a_red_entry_carries_no_slots_and_no_decisions(field: str) -> None:
+    red = _red()
+    assert (red.slot_refs, red.decision_ids) == ((), ())
+    with pytest.raises(ValidationError, match="clinic item"):
+        InboxEntry.model_validate({**red.model_dump(), field: _item().model_dump()[field]})
 
 
 def test_the_store_keeps_one_entry_per_item_and_never_indexes_the_visit() -> None:
@@ -240,6 +276,48 @@ def test_the_console_row_shows_the_item_with_no_sla_and_no_band() -> None:
     assert item_row.elapsed == timedelta(hours=1)
     assert rows[EntryKind.RED].sla == DEFAULT_ACK_SLA  # near miss
     assert rows[EntryKind.RED].band is AgeBand.WITHIN_SLA
+
+
+# --- 2b · unacknowledged REDs first (files/08 §3; INT-553 F3) ---------------------------------
+
+
+def _on_site(at: datetime) -> InboxEntry:
+    return InboxEntry.for_on_site(
+        tenant_id=TENANT,
+        session_id=SESSION,
+        visit_id=SESSION,
+        work_id="w_on_site",
+        rule_ids=(RULES[0],),
+        at=at,
+    )
+
+
+def test_an_open_red_is_shown_above_an_older_open_item() -> None:
+    """Items never auto-clear and have no SLA, so oldest-first would pile them
+    above every newer RED. files/08 §3: "unacknowledged REDs first"."""
+    inbox = _inbox()
+    item = inbox.store.add(_item(at=T0))
+    red = inbox.store.add(_red(at=T0 + timedelta(hours=2)))
+    on_site = inbox.store.add(_on_site(at=T0 + timedelta(hours=3)))
+    rows = inbox.queue(TENANT, T0 + timedelta(hours=4))
+    assert [row.entry.entry_id for row in rows] == [red.entry_id, on_site.entry_id, item.entry_id]
+
+
+def test_near_miss_open_items_beside_no_red_stay_oldest_first() -> None:
+    inbox = _inbox()
+    newer = inbox.store.add(_item(EntryKind.PROXY_CHEST_PAIN_SCREEN_UNASKED, at=T0))
+    older = inbox.store.add(_item(item_ref="ci_" + "c" * 32, at=T0 - timedelta(hours=1)))
+    rows = inbox.queue(TENANT, T0 + timedelta(hours=1))
+    assert [row.entry.entry_id for row in rows] == [older.entry_id, newer.entry_id]
+
+
+def test_near_miss_an_answered_red_goes_below_an_open_item() -> None:
+    inbox = _inbox()
+    red = inbox.store.add(_red(at=T0 + timedelta(hours=1)))
+    inbox.acknowledge(tenant_id=TENANT, entry_id=red.entry_id, by=ACKER, at=T0 + timedelta(hours=2))
+    item = inbox.store.add(_item(at=T0))
+    rows = inbox.queue(TENANT, T0 + timedelta(hours=3))
+    assert [row.entry.entry_id for row in rows] == [item.entry_id, red.entry_id]
 
 
 # --- 3 · acknowledged like any entry, not as a RED ---------------------------------------------

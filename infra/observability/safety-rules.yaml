@@ -95,3 +95,33 @@ groups:
         clinic inbox, and its route raised. The item is retried on the
         session's next Work; a session that ended meanwhile never delivered it.
       runbook: docs/runbooks/red-acknowledgement.md#clinic-item-route-failed
+  # INT-553 (F5): a CD-08 clinic item went to the clinic inbox and its audit
+  # row (voice.clinic_item.raised) never reached the chain: the chain refused
+  # it, or the runtime's bounded audit outbox was full. Invariant 4: every
+  # share of clinical data is audited.
+  - alert: ClinicInboxItemUnaudited
+    expr: increase(clinic_inbox_item_unaudited_total[5m]) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'a CD-08 clinic item ({{ $labels.kind }}) was shared with no audit row'
+      description: >-
+        A live session put a clinician-only item in the clinic inbox and its
+        audit row could not be appended. The item reached the clinic; the
+        hash-chained audit log does not record the share (invariant 4).
+      runbook: docs/runbooks/red-acknowledgement.md#clinic-item-unaudited
+  # INT-553: the clinic-item watch the Work queue runs around each state Work
+  # raised. The Work and its triage evaluation went ahead; an item the watch
+  # was due to raise may be missing from the clinic inbox.
+  - alert: ClinicItemWatchFailed
+    expr: increase(work_watch_faults_total[5m]) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'the clinic-item watch faulted ({{ $labels.step }}); a CD-08 item may be missing'
+      description: >-
+        The CD-08 clinic-item watch raised when it looked at a live session's
+        engine. The Work completed and its red-flag rules were evaluated; a
+        chest-pain item the watch was due to raise may not have reached the
+        clinic inbox.
+      runbook: docs/runbooks/red-acknowledgement.md#clinic-item-watch-failed

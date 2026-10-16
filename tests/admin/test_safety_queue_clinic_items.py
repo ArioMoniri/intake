@@ -31,6 +31,8 @@ TENANT = "tenant-a"
 SESSION = "11111111-2222-4333-8444-555555555555"
 RULES = ("rf.chest_pain_cardiac_features", "rf.chest_pain_no_cardiac_history")
 QUEUE = "/admin/safety-queue"
+SLOTS = ("chest_pain.character", "chest_pain.radiation")
+DECISIONS = ("CD-04", "CD-08")
 
 
 def _item(kind: EntryKind, *, minutes_ago: int = 5) -> InboxEntry:
@@ -41,6 +43,8 @@ def _item(kind: EntryKind, *, minutes_ago: int = 5) -> InboxEntry:
         kind=kind,
         item_ref="ci_" + "b" * 32,
         rule_ids=RULES,
+        slot_refs=SLOTS,
+        decision_ids=DECISIONS,
         at=datetime.now(UTC) - timedelta(minutes=minutes_ago),
     )
 
@@ -67,6 +71,9 @@ def test_the_queue_shows_the_item_by_kind_and_ids_with_no_sla(
     assert row["entry_id"] == entry.entry_id
     assert row["kind"] == kind.value
     assert row["rule_ids"] == list(RULES)
+    # INT-553 F9: which slots, and which decisions raised it — ids only
+    assert row["slot_refs"] == list(SLOTS)
+    assert row["decision_ids"] == list(DECISIONS)
     assert row["sla_minutes"] is None
     assert row["age_band"] is None
     assert row["elapsed_minutes"] >= 299

@@ -65,15 +65,15 @@ from intake_voice_runtime.clinical_agent.clinic_items import (
     ClinicItemWatch,
     clinic_item_id,
 )
-from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect
+from intake_voice_runtime.clinical_agent.work_queue import StateWatch
 from intake_voice_runtime.composition import (
     RedWiring,
     build_residency_tr_session,
     build_typed_session,
 )
-from intake_voice_runtime.ports import WorkRequest, WorkState, WorkType
+from intake_voice_runtime.ports import WorkState
 from intake_voice_runtime.profiles import VoiceProfile
-from intake_voice_runtime.safety_inbox import ClinicItemNotifier
+from intake_voice_runtime.safety_inbox import ClinicItemAuditOutbox, ClinicItemNotifier
 from intake_voice_runtime.talker.preemption import Priority
 from prometheus_client import REGISTRY
 from protocols.clinic_items import ClinicItemKind, SubjectAge, load_clinic_item_rules
@@ -374,27 +374,16 @@ def test_near_miss_an_onset_closed_before_its_follow_up_was_asked_raises_nothing
 # --- 2 · the item is not a RED -----------------------------------------------------------------
 
 
-def test_the_watch_returns_the_handlers_own_effect_and_adds_nothing_to_it() -> None:
-    """Invariant 1: the watch wraps a state handler and hands back the very
-    effect object the handler returned — it has no way to add a
-    determination, and a StateEffect has no priority field to set."""
+def test_the_watch_looks_at_the_engine_and_hands_the_queue_nothing() -> None:
+    """Invariant 1: the watch is the queue's StateWatch, not a handler. It is
+    handed the engine alone and each look returns nothing, so it has no way
+    to add a determination or a priority to a Work (INT-553)."""
     rig = int522._rig(VoiceProfile.TYPED, _model())
-    effect = StateEffect()
-
-    def inner(context: StateContext) -> StateEffect:
-        return effect
-
-    wrapped = _watch(rig).wrap(inner)
-    request = WorkRequest(
-        session_id=int518.SESSION,
-        work_type=WorkType.EXTRACT_SLOTS,
-        step_id=SUBJECT,
-        input_hash="0" * 64,
-        protocol_hash=int518.HASH,
-        engine_version=0,
-    )
-    context = StateContext(request=request, engine=rig.stack.engine)
-    assert wrapped(context) is effect
+    watch = _watch(rig)
+    assert isinstance(watch, StateWatch)
+    assert rig.stack.agent.watch is watch
+    assert watch.before_work(rig.stack.engine) is None  # type: ignore[func-returns-value]
+    assert watch.after_work(rig.stack.engine) is None  # type: ignore[func-returns-value]
 
 
 @pytest.mark.parametrize("profile", list(VoiceProfile))
@@ -616,9 +605,11 @@ TENANT = int518.TENANT
 
 
 def _notifier(audit: AuditChain, outbox: SafetyInboxOutbox) -> ClinicItemNotifier:
+    """The production route over ``audit``; its rows wait in the audit outbox
+    until the outbox's worker (here, the test) flushes them (INT-553)."""
     return ClinicItemNotifier(
         outbox=outbox,
-        audit=audit,
+        audit=ClinicItemAuditOutbox(audit),
         tenant_id=TENANT,
         session_id=int518.SESSION,
         visit_id=int518.SESSION,
@@ -629,7 +620,10 @@ def test_the_notifier_puts_one_entry_and_appends_one_audit_row() -> None:
     audit = AuditChain(InMemoryAuditStore())
     outbox = SafetyInboxOutbox()
     item = _item()
-    _notifier(audit, outbox).raise_item(item)
+    notifier = _notifier(audit, outbox)
+    notifier.raise_item(item)
+    assert audit.head == GENESIS_PREV_HASH  # queued, not written on the caller's lane
+    assert notifier.audit.flush() == 1
     [entry] = outbox.pending()
     assert entry.kind is EntryKind.CHEST_PAIN_ARMS_UNRESOLVED
     assert (entry.source_ref, entry.rule_ids, entry.session_id) == (
@@ -637,6 +631,7 @@ def test_the_notifier_puts_one_entry_and_appends_one_audit_row() -> None:
         CHEST_RULES,
         int518.SESSION,
     )
+    assert (entry.slot_refs, entry.decision_ids) == (item.slot_refs, item.decision_ids)
     [row] = audit.export_worm().decode().splitlines()[:-1]
     assert '"action":"voice.clinic_item.raised"' in row
     assert f'"resource_ref":"safety_inbox:{TENANT}:{entry.entry_id}"' in row
@@ -660,6 +655,9 @@ class _BrokenAudit:
     def append(self, **_: str) -> object:
         raise RuntimeError("synthetic audit store fault")
 
+    def flush(self) -> int:
+        raise AssertionError("an outbox flushes, a chain does not")
+
 
 class _BrokenOutbox(SafetyInboxOutbox):
     def put(self, entry: object) -> None:  # type: ignore[override]
@@ -671,23 +669,20 @@ def test_a_failed_audit_append_is_counted_and_the_entry_is_still_put() -> None:
     not be written is counted rather than holding the item back."""
     outbox = SafetyInboxOutbox()
     before = _unaudited(ARMS)
-    notifier = ClinicItemNotifier(
-        outbox=outbox,
-        audit=cast(AuditChain, _BrokenAudit()),
-        tenant_id=TENANT,
-        session_id=int518.SESSION,
-        visit_id=int518.SESSION,
-    )
+    notifier = _notifier(cast(AuditChain, _BrokenAudit()), outbox)
     notifier.raise_item(_item())
     assert len(outbox.pending()) == 1
+    assert notifier.audit.flush() == 0
     assert _unaudited(ARMS) - before == 1
 
 
 def test_a_failed_put_raises_and_writes_no_audit_row() -> None:
     """No entry, no share to audit: the watch counts the failure and retries."""
     audit = AuditChain(InMemoryAuditStore())
+    notifier = _notifier(audit, _BrokenOutbox())
     with pytest.raises(RuntimeError):
-        _notifier(audit, _BrokenOutbox()).raise_item(_item())
+        notifier.raise_item(_item())
+    assert notifier.audit.pending() == 0
     assert audit.head == GENESIS_PREV_HASH
 
 
@@ -695,7 +690,7 @@ def test_a_failed_put_raises_and_writes_no_audit_row() -> None:
 def test_the_notifier_refuses_a_mis_shaped_binding(field: str) -> None:
     kwargs: dict[str, Any] = {
         "outbox": SafetyInboxOutbox(),
-        "audit": AuditChain(InMemoryAuditStore()),
+        "audit": ClinicItemAuditOutbox(AuditChain(InMemoryAuditStore())),
         "tenant_id": TENANT,
         "session_id": int518.SESSION,
         "visit_id": int518.SESSION,
@@ -723,15 +718,18 @@ def test_end_to_end_the_item_reaches_the_console_queue_with_no_sla(
     the audit row or a log line (invariant 6)."""
     audit = AuditChain(InMemoryAuditStore())
     outbox = SafetyInboxOutbox()
-    rig = int522._rig(profile, _model(), clinic_items=_notifier(audit, outbox))
+    notifier = _notifier(audit, outbox)
+    rig = int522._rig(profile, _model(), clinic_items=notifier)
     with caplog.at_level(logging.DEBUG):
         _to_character(rig)
         _hedge_until_unclear(rig, CHARACTER)
+        assert notifier.audit.flush() == 1
     store = RedisSafetyInboxStore(fakeredis.FakeStrictRedis())
     outbox.flush(store)
     [row] = SafetyInbox(store=store).queue(TENANT, datetime.now(UTC))
     assert row.entry.kind is EntryKind.CHEST_PAIN_ARMS_UNRESOLVED
     assert row.entry.rule_ids == CHEST_RULES
+    assert row.entry.slot_refs == (CHARACTER,) and row.entry.decision_ids == ("CD-04", "CD-08")
     assert row.sla is None and row.band is None
     assert audit.verify().ok
     spoken = (HEDGE, STILL_HEDGED, LAST_HEDGE, *int522.SAID.values())

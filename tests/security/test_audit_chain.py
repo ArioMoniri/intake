@@ -26,6 +26,8 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import threading
+import time
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -459,3 +461,52 @@ def test_daily_verifier_accepts_an_expected_head_for_fork_detection() -> None:
     result = run_daily_verifier(store, expected_head=anchored_head)
     assert not result.ok
     assert "running head" in result.reason
+
+
+# --- one writer at a time (INT-553 F2) ---------------------------------------------
+
+
+class _SlowStore(InMemoryAuditStore):
+    """An INSERT that yields the interpreter mid-write, as a database call does."""
+
+    def append(self, entry: AuditEntry) -> None:
+        time.sleep(0.002)
+        super().append(entry)
+
+
+def _append_together(chain: AuditChain, writers: int) -> None:
+    start = threading.Barrier(writers)
+
+    def write(index: int) -> None:
+        start.wait()
+        chain.append(
+            actor="svc:voice-runtime",
+            action="voice.clinic_item.raised",
+            resource_ref=f"safety_inbox:tenant-a:sx_{index:032x}",
+            consent_scope_ref="scope:core",
+        )
+
+    threads = [threading.Thread(target=write, args=(index,)) for index in range(writers)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10.0)
+
+
+def test_writers_on_several_threads_extend_one_chain() -> None:
+    """The clinic-item audit worker and any other writer may share a chain: a
+    seq read by one writer while another is mid-INSERT would fork it."""
+    store = _SlowStore()
+    chain = _chain(store)
+    _append_together(chain, writers=8)
+    entries = store.entries()
+    assert [entry.seq for entry in entries] == list(range(1, 9))
+    assert chain.verify().ok
+    assert chain.head == entries[-1].entry_hash
+
+
+def test_near_miss_one_writer_alone_is_unchanged() -> None:
+    store = _SlowStore()
+    chain = _chain(store)
+    _append_together(chain, writers=1)
+    assert [entry.seq for entry in store.entries()] == [1] and chain.verify().ok

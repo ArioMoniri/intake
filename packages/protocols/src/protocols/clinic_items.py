@@ -26,6 +26,11 @@ This module builds those two triggers and nothing else:
   pins that.
 - **The follow-up bound is CD-04's "once"**, which the decision carries
   machine-readable as ``unclear_follow_up_tr_asks`` (INT-540).
+- **The proxy reading is a slot and a literal**, both read from CD-01's
+  ``raised_when`` (``<slot> is '<value>'``) into
+  :attr:`ProxyScreenRule.readings` (INT-553). A ``raised_when`` that states
+  no such reading is refused, and :meth:`ProxyScreenRule.names_reading`
+  checks the pair, never a substring of the prose.
 - **No SLA is stated.** CD-08 leaves it draft; :attr:`ClinicItemRules.sla_decided`
   says only whether the D18 lane has decided it, never what it is.
 - **A trigger yields slot ids and a kind**, never a level, a register or a
@@ -43,6 +48,7 @@ build reads; the trigger is rounds 1 and 2 as verified.
 from __future__ import annotations
 
 import enum
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -83,6 +89,11 @@ CLINIC_INBOX_CHANNEL: Final = "clinic_inbox"
 
 #: CD-08 keys this build reads, each of which must be decided (active).
 _ROUTING_KEYS: Final = ("applies_to", "item_kind_notes", "channel")
+#: A reading CD-01's ``raised_when`` states: a dotted slot, ``is``, a quoted
+#: literal (INT-553). The slot and the literal are both read from the decision.
+_READING: Final = re.compile(
+    r"(?<![a-z0-9_.])(?P<ref>[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*) is '(?P<literal>[^']+)'"
+)
 
 
 class ClinicItemError(ValueError):
@@ -141,12 +152,20 @@ class ProxyScreenRule:
     #: The one CD-01 slot asked of every session; the other six open on its yes.
     screen: str
     decision_ids: tuple[str, ...]
-    #: CD-01's ``raised_when``, kept to check which reading the stop-gap rests on.
+    #: The readings ``raised_when`` states, ``(slot, literal)``: what makes a
+    #: session a proxy one (INT-553).
+    readings: frozenset[tuple[str, str]]
+    #: CD-01's ``raised_when``, the text the readings are read from.
     raised_when: str = field(repr=False)
 
-    def names_reading(self, ref: str) -> bool:
-        """Whether CD-01 names ``ref`` in the condition that makes a session a proxy one."""
-        return ref in self.raised_when
+    def names_reading(self, ref: str, literal: object) -> bool:
+        """Whether CD-01 makes a session a proxy one when ``ref`` is ``literal``.
+
+        The slot and the literal together: a stop-gap that compared CD-01's
+        slot to any other value would skip the screen for a session that is
+        not a proxy one (INT-553).
+        """
+        return isinstance(literal, str) and (ref, literal) in self.readings
 
     def raised(self, *, screen_skipped: bool, slots_unasked: bool, subject_age: SubjectAge) -> bool:
         """The screen skipped for a proxy, the seven unasked, the subject not known
@@ -258,12 +277,18 @@ def _arms(decision: ClinicalDecision, seven: frozenset[str]) -> ArmsUnresolvedRu
 def _proxy(decision: ClinicalDecision, seven: frozenset[str], screen: str) -> ProxyScreenRule:
     kind = ClinicItemKind.PROXY_CHEST_PAIN_SCREEN_UNASKED
     node = _item(decision, "proxy_unasked_inbox_item", kind)
+    raised_when = _text(node.get("raised_when"), decision.id, "raised_when")
+    readings = frozenset(
+        (match["ref"], match["literal"]) for match in _READING.finditer(raised_when)
+    )
+    _require(bool(readings), decision.id, "raised_when names no slot compared to a value")
     return ProxyScreenRule(
         kind=kind,
         slots=seven,
         screen=screen,
         decision_ids=(decision.id, ROUTING_DECISION_ID),
-        raised_when=_text(node.get("raised_when"), decision.id, "raised_when"),
+        readings=readings,
+        raised_when=raised_when,
     )
 
 

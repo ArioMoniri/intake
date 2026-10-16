@@ -98,12 +98,14 @@ evaluated by the rules engine like any other answer.
 **The clinic hears of unresolved or unasked chest-pain arms** (INT-547,
 INT-525). Wherever a served rule reads a CD-01 chest-pain slot, both roots
 require a ``clinic_items`` route (:class:`ClinicItemRouteMissing` otherwise)
-and wrap ``extract_slots`` and ``close_session`` in a
-:class:`~intake_voice_runtime.clinical_agent.clinic_items.ClinicItemWatch`:
+and bind a
+:class:`~intake_voice_runtime.clinical_agent.clinic_items.ClinicItemWatch` to
+the session's Work queue, which looks around every state Work — never inside
+a handler, and its second look only once the Work has settled (INT-553):
 CD-04's ``chest_pain_arms_unresolved`` and CD-01's
 ``proxy_chest_pain_screen_unasked`` reach the clinic inbox once each, by ids,
-and never touch the Work's determination. The production route is
-:class:`~intake_voice_runtime.safety_inbox.ClinicItemNotifier`.
+behind the Work's determination and never in front of it. The production
+route is :class:`~intake_voice_runtime.safety_inbox.ClinicItemNotifier`.
 """
 
 from __future__ import annotations
@@ -588,10 +590,12 @@ def _compose(
         clinic=clinic,
         triage=triage,
         red_push=mailbox,
+        # INT-553: the queue looks around each state Work; no handler is wrapped
+        watch=watch,
     )
     close = SessionCloseHandler(anchors=anchors, steps=frozenset(slots))
-    agent.register_state(WorkType.EXTRACT_SLOTS, handler if watch is None else watch.wrap(handler))
-    agent.register_state(WorkType.CLOSE_SESSION, close if watch is None else watch.wrap(close))
+    agent.register_state(WorkType.EXTRACT_SLOTS, handler)
+    agent.register_state(WorkType.CLOSE_SESSION, close)
 
     session = TalkerSession(
         config=config.model_copy(update={"rule_ids": pinned}),

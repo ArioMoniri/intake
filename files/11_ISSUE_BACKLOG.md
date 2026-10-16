@@ -8,7 +8,7 @@
 > live status with GitHub state and named blocker owners is the generated
 > section of `files/05_ROADMAP.md` (INT-452).
 
-**392 issues.** By phase: P0 185 · P1 153 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 249 · todo 95 · withdrawn 1.
+**393 issues.** By phase: P0 186 · P1 153 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 250 · todo 95 · withdrawn 1.
 
 ## P0
 
@@ -199,6 +199,7 @@
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done | agent · runtime-reviewer |
 | INT-545 | A RED the session close raises reaches the patient's device | E05-voice | INT-531, INT-540 | area:voice | done | agent · runtime-reviewer |
 | INT-525 | A proxy session that skips the chest-pain screen raises the CD-01/CD-08 clinician inbox item proxy_chest_pain_screen_unasked | E05-voice | INT-518, INT-547 | area:api | done | agent · sre-reviewer |
+| INT-553 | Clinic inbox items can never delay or skip a triage evaluation | E05-voice | INT-547, INT-525 | area:voice | done | agent · runtime-reviewer |
 
 ## P1
 

@@ -31,9 +31,10 @@ test and the mutation harness: a mutation "fails the suite" exactly when
 at least one golden.
 
 A golden may also pin the CD-08 clinic-inbox items its answer state raises
-(INT-547): ``clinic_items`` is the expectation, ``None`` where a case
-asserts none, and ``follow_ups_asked`` is the one input the answers cannot
-carry — how often each slot's ``follow_up_tr`` was asked. The checker reads
+(INT-547): ``clinic_items`` is the expectation — ``()`` asserts that no item
+is raised, and ``None`` leaves the items unchecked — and ``follow_ups_asked``
+is the one input the answers cannot carry: how often each slot's
+``follow_up_tr`` was asked. The checker reads
 the items through ``protocols.clinic_items``, from CD-04 itself, beside the
 level; an item is never a level and the two are checked apart.
 """
@@ -347,7 +348,8 @@ class GoldenCase:
     expect_error: type[Exception] | None = None
     #: INT-547: how often each slot's follow_up_tr was asked (CD-04's trigger).
     follow_ups_asked: Mapping[str, int] = field(default_factory=dict)
-    #: INT-547: the CD-08 item kinds this state raises; ``None`` asserts none.
+    #: INT-547: the CD-08 item kinds this state raises. ``()`` asserts none is
+    #: raised; ``None`` leaves the items unchecked (INT-553 F12).
     clinic_items: tuple[str, ...] | None = None
 
     def context(self) -> TriageContext:

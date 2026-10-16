@@ -7638,3 +7638,26 @@
     - "Once note.compose has a production caller, both items (chest_pain_arms_unresolved, proxy_chest_pain_screen_unasked) are pinned to the session's pre-visit note and shown there while unreviewed at visit start, never dropped (CD-04, CD-01, CD-08)."
     - "Ids and closed kinds only (invariant 6); the note never shows the item to the patient (CD-08 never_shown_to_patient)."
   sec_row: "clinical-core"
+- id: INT-553
+  epic: E05-voice
+  phase: P0
+  title: "Clinic inbox items can never delay or skip a triage evaluation"
+  # GitHub #937, from the clinical review of #931 (INT-547) and #932 (INT-525),
+  # 17 Oct 2026. Not reachable live (no production builder constructs
+  # ClinicItemNotifier) but HIGH once wired (INT-515 host worker): the watch
+  # ran inside the state handler, so a watch fault skipped the Work's rules
+  # evaluation (F1) and the item's audit row was written on the state lane
+  # before the Work's determination (F2). Must land before any production
+  # builder wires ClinicItemNotifier.
+  depends_on: [INT-547, INT-525]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-553.md
+  acceptance:
+    - "F1: the ClinicItemWatch never runs inside a handler; the Work queue looks before the handler and again only once the Work has settled (after its determination, clinician route and RED push). A watch fault is logged by ids, counted (catalogued) and paged, never fails the Work, never skips its evaluation and leaves _evaluation_owed intact; the session id is checked at composition. Test: an item that cannot be built in the same Work as a K2-firing answer, K2 still evaluated and delivered on time."
+    - "F2: the item's audit row is queued (bounded, never waiting) and appended by a worker off the state lane; AuditChain serialises its writers. Test: a slow audit write leaves the item-beside-K2 Work's evaluated_at_ms and RED budget unchanged (fake clock)."
+    - "F3: open Safety inbox entries show unacknowledged REDs first (files/08 §3), then clinic items; near miss included. F5: clinic_inbox_item_unaudited_total pages with a runbook anchor."
+    - "F4: the AnswerState member set is pinned and sorted whole into unasked and asked; F8: the screen's skip_if must compare CD-01's slot to CD-01's literal; F9: the inbox entry keeps slot_refs and decision_ids (ids only); F11/F12: the INT-525 evidence wording and the corpus comment are corrected."
+    - "make safety and make runtime-sim (both profiles, PARITY=1) green; voice-runtime coverage at least 90 %; every new metric catalogued."
+  tests: [tests/voice/test_clinic_items_never_block_triage.py, tests/voice/test_clinic_items.py, tests/protocols/test_clinic_item_rules.py, tests/platform/test_clinic_inbox_items.py, tests/admin/test_safety_queue.py, tests/admin/test_safety_queue_clinic_items.py, tests/security/test_audit_chain.py, tests/safety/test_red_acknowledgement_sla.py]
+  sec_row: "clinical-core"

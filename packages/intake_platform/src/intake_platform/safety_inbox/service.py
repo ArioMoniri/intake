@@ -180,8 +180,15 @@ class SafetyInbox:
         return SweepReport(readable=True, open_count=len(open_entries), breaches=tuple(breaches))
 
     def queue(self, tenant_id: str | None, now: datetime) -> tuple[QueueRow, ...]:
-        """The console's rows: unacknowledged first (oldest first), then the
-        answered ones, newest answer first. ``None`` reads every tenant."""
+        """The console's rows: unacknowledged first, then the answered ones,
+        newest answer first. ``None`` reads every tenant.
+
+        Among the unacknowledged, every RED-family entry comes before every
+        clinic item, each oldest first (INT-553): files/08 §3 shows
+        *"unacknowledged REDs first"*, and a CD-08 item never clears by itself
+        and has no SLA, so ordering by age alone would pile items above every
+        newer RED.
+        """
         tenants = (tenant_id,) if tenant_id is not None else self.store.tenants()
         entries = [entry for tenant in tenants for entry in self.store.tenant_entries(tenant)]
         rows = [
@@ -193,15 +200,16 @@ class SafetyInbox:
             )
             for entry in entries
         ]
-        waiting = sorted((row for row in rows if row.entry.is_open), key=_created)
+        waiting = sorted((row for row in rows if row.entry.is_open), key=_waiting)
         answered = sorted(
             (row for row in rows if not row.entry.is_open), key=_answered, reverse=True
         )
         return (*waiting, *answered)
 
 
-def _created(row: QueueRow) -> datetime:
-    return row.entry.created_at
+def _waiting(row: QueueRow) -> tuple[bool, datetime]:
+    """REDs before clinic items (``False`` sorts first), then oldest first."""
+    return (row.entry.kind.is_clinic_item, row.entry.created_at)
 
 
 def _answered(row: QueueRow) -> datetime:

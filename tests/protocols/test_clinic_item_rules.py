@@ -66,6 +66,8 @@ CHARACTER = "chest_pain.character"
 SUBJECT = "identity_check.subject_role"
 RADIATION = "chest_pain.radiation"
 ONSET = "chest_pain.onset_at"
+#: CD-01's proxy literal, which ``raised_when`` quotes (INT-553 F8).
+PROXY_LITERAL = "yakınım adına"
 
 
 def _raw(decision_id: str) -> dict[str, Any]:
@@ -137,9 +139,28 @@ def test_the_screen_is_cd01s_one_slot_asked_of_every_session() -> None:
 
 
 def test_cd01_names_the_subject_role_reading_the_proxy_item_rests_on() -> None:
+    """INT-553 F8: the reading is CD-01's slot compared to CD-01's literal,
+    both read from ``raised_when``; naming the slot alone is not enough."""
     proxy = _rules().proxy
-    assert proxy.names_reading(SUBJECT) is True
-    assert proxy.names_reading("identity_check.proxy_reported") is False  # near miss
+    assert proxy.names_reading(SUBJECT, PROXY_LITERAL) is True
+    assert proxy.readings == frozenset({(SUBJECT, PROXY_LITERAL)})
+
+
+@pytest.mark.parametrize(
+    ("ref", "literal"),
+    [
+        pytest.param(SUBJECT, "kendim için", id="the-self-literal"),
+        pytest.param(SUBJECT, "yakınım", id="a-prefix-of-the-literal"),
+        pytest.param(SUBJECT, True, id="not-a-string"),
+        pytest.param("identity_check.subject", PROXY_LITERAL, id="a-prefix-of-the-slot"),
+        pytest.param("identity_check.proxy_reported", PROXY_LITERAL, id="another-slot"),
+        pytest.param("rf.chest_pain_cardiac_features", PROXY_LITERAL, id="a-rule-it-names"),
+    ],
+)
+def test_near_miss_a_reading_cd01_does_not_name_is_not_its_reading(
+    ref: str, literal: object
+) -> None:
+    assert _rules().proxy.names_reading(ref, literal) is False
 
 
 def test_the_arms_slots_are_cd04s_and_every_one_is_cd01s() -> None:
@@ -352,6 +373,11 @@ REFUSALS = [
     pytest.param("chest_pain", _set((*PROXY, "decision_ref"), "CD-03"), id="proxy-elsewhere"),
     pytest.param("chest_pain", _set((*PROXY, "pinned_to_note"), False), id="proxy-not-pinned"),
     pytest.param("chest_pain", _set((*PROXY, "raised_when"), ""), id="proxy-no-condition"),
+    pytest.param(
+        "chest_pain",
+        _set((*PROXY, "raised_when"), "the patient is spoken for by a relative"),
+        id="proxy-condition-names-no-reading",
+    ),
     pytest.param("chest_pain", _drop(PROXY), id="proxy-no-item"),
     pytest.param("chest_pain", _ungate_character, id="proxy-two-screens"),
     pytest.param("chest_pain", _gate_every_slot, id="proxy-no-screen"),

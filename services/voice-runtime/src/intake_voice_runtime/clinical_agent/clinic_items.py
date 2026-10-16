@@ -16,21 +16,32 @@ INT-525 nothing raised either (GitHub #927, split from #917 finding F3; #891):
 :class:`ClinicItemWatch` raises them, and holds to this:
 
 - **It is not a RED, and it cannot become one** (invariants 1 and 9). The
-  watch wraps a state handler and hands back the handler's own effect
-  object, so it cannot add a determination; the queue still derives
-  ``priority`` from a rules-engine RED and nothing else, and evaluates triage
-  after the Work exactly as before. A :class:`ClinicItem` has no level,
-  register, location or priority field to carry.
+  watch is the Work queue's
+  :class:`~intake_voice_runtime.clinical_agent.work_queue.StateWatch`, not a
+  handler: it is handed the engine and nothing else, and nothing it returns
+  is read, so it cannot add a determination; the queue still derives
+  ``priority`` from a rules-engine RED and nothing else. A
+  :class:`ClinicItem` has no level, register, location or priority field to
+  carry.
+- **It can never delay or skip a triage evaluation** (INT-553). The queue
+  looks once before the handler and again only once the Work has settled —
+  after the rules engine's determination, the clinician route and the RED
+  push — so an item is raised behind the RED, never in front of it. A look
+  that raises is counted (``work_watch_faults_total``, which pages) and costs
+  the Work nothing: it completes, and its evaluation runs. The session id is
+  checked at composition, so an item cannot be refused for its id later.
 - **Exactly when the decision says, once per session.** The arms item is
   raised when :meth:`protocols.clinic_items.ArmsUnresolvedRule.unresolved` says so:
   the slot UNCLEAR, and its scripted follow-up (a ``follow_up`` re-entry)
   observed asked at least CD-04's "once". The watch observes the engine
-  before and after every state Work it wraps — a re-entry the engine still
+  before and after every state Work — a re-entry the engine still
   holds and no longer offers has been spoken — so the close Work counts a
   follow-up spoken and never answered. The proxy item is raised when the
   screen's ``skip_if`` reads TRUE, the seven slots are unasked and the subject
   is not known to be outside the adult band; the voice runtime holds no age
-  fact, so the age is unknown, which CD-01 raises for. Each kind is raised
+  fact, so the age is unknown, which CD-01 raises for. The ``skip_if`` must
+  compare CD-01's own proxy slot to CD-01's own literal (INT-553): a screen
+  skipped on anything else is refused at composition. Each kind is raised
   once: the item id is derived from the session and the kind, and the watch
   records each kind the route took.
 - **Never dropped** (CD-08). A route that raises costs the Work nothing: the
@@ -50,9 +61,11 @@ item (invariant 4).
 **What ADR-040 (#833) changes.** Today a proxy session is read from the
 subject-role answer, through the screen's stop-gap ``skip_if``. #833 starts a
 proxy-skipped step in ``NOT_ASKED_PROXY``; the one line it needs here is that
-state joining :data:`_UNASKED`. Its proxy path refuses the stop-gap until
-CD-01's proxy copy is spoken, and a spoken screen closes the gap this item
-reports.
+state joining :data:`_UNASKED`. Every :class:`AnswerState` is sorted into
+:data:`_UNASKED` or :data:`_ASKED`, and a session does not compose while one
+is in neither (INT-553), so the new state cannot arrive unsorted and quietly
+read as asked. Its proxy path refuses the stop-gap until CD-01's proxy copy
+is spoken, and a spoken screen closes the gap this item reports.
 """
 
 from __future__ import annotations
@@ -70,7 +83,13 @@ from intake_platform.safety_inbox.metrics import (
     CLINIC_INBOX_ITEM_ROUTE_FAILURES_TOTAL,
     CLINIC_INBOX_ITEMS_RAISED_TOTAL,
 )
-from intake_platform.safety_inbox.model import ID_SHAPE, RULE_ID_SHAPE
+from intake_platform.safety_inbox.model import (
+    DECISION_ID_SHAPE,
+    ID_SHAPE,
+    RULE_ID_SHAPE,
+    SLOT_REF_SHAPE,
+    require_id,
+)
 from protocols.clinic_items import (
     ClinicItemKind,
     ClinicItemRules,
@@ -81,13 +100,21 @@ from protocols.compile.resolve import ResolvedProtocol
 from protocols.compile.rule_reads import rule_reads
 from protocols.gates import SlotNamespace, qualify_gate
 from protocols.triage.context import canonical_scalar
-from protocols.triage.expr import Lookup, Truth, WhenNode, evaluate_node, parse_when
+from protocols.triage.expr import (
+    Compare,
+    Lit,
+    Lookup,
+    Ref,
+    Truth,
+    WhenNode,
+    evaluate_node,
+    parse_when,
+)
 from protocols.triage.expr import referenced_slots as _referenced
 from pydantic import ConfigDict, Field, StringConstraints
 
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.live_triage import served_rules, step_spellings
-from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect, StateHandler
 from intake_voice_runtime.steps import StepKind
 
 __all__ = [
@@ -103,12 +130,25 @@ logger = logging.getLogger("intake_voice_runtime.clinical_agent.clinic_items")
 
 #: The states that leave a slot unasked. ADR-040 (#833) adds NOT_ASKED_PROXY.
 _UNASKED: Final = frozenset({AnswerState.NOT_ASKED})
+#: Every other state: the slot was asked, answered or not (INT-553). With
+#: :data:`_UNASKED` it must cover :class:`AnswerState` whole, or no session
+#: composes — a new state is sorted by a person, never read as asked by default.
+_ASKED: Final = frozenset(
+    {
+        AnswerState.ASKED_PENDING,
+        AnswerState.ASKED_PRESENT,
+        AnswerState.ASKED_ABSENT,
+        AnswerState.UNCLEAR,
+        AnswerState.DECLINED,
+        AnswerState.CONTESTED,
+    }
+)
 
 type _Id = Annotated[str, StringConstraints(pattern=ID_SHAPE)]
 type _ItemId = Annotated[str, StringConstraints(pattern=r"^ci_[0-9a-f]{32}$")]
-type _StepId = Annotated[str, StringConstraints(pattern=r"^[a-z0-9_]+\.[a-z0-9_]+$")]
+type _StepId = Annotated[str, StringConstraints(pattern=SLOT_REF_SHAPE)]
 type _RuleId = Annotated[str, StringConstraints(pattern=RULE_ID_SHAPE)]
-type _DecisionId = Annotated[str, StringConstraints(pattern=r"^CD-\d{2,3}$")]
+type _DecisionId = Annotated[str, StringConstraints(pattern=DECISION_ID_SHAPE)]
 
 
 def clinic_item_id(session_id: str, kind: ClinicItemKind) -> str:
@@ -147,7 +187,9 @@ class ClinicItemRouteMissing(ValueError):
 
 
 class ClinicItemWiringError(ValueError):
-    """The protocol skips the chest-pain screen on a reading CD-01 does not name."""
+    """The session cannot be watched as CD-01/CD-04 decide: the protocol skips
+    the chest-pain screen on a reading CD-01 does not name, or an answer
+    state is sorted neither unasked nor asked."""
 
 
 @dataclass
@@ -185,7 +227,11 @@ class ClinicItemWatch:
 
         ``None`` where no served rule reads a CD-01 slot: the session has no
         chest-pain arms to leave unresolved or unasked. Otherwise the route is required
-        (:class:`ClinicItemRouteMissing`), as the RED's is.
+        (:class:`ClinicItemRouteMissing`), as the RED's is, and the session id
+        must be one an item can carry (INT-553): a session the watch could not
+        raise an item for is refused here, not at the Work that is due one.
+        Every other id an item carries is the protocol's or the decisions',
+        whose shapes the DSL and the register already hold.
         """
         served = served_rules(protocol)
         if not served:
@@ -218,6 +264,8 @@ class ClinicItemWatch:
                 f"handed in: a session that can raise a CD-08 item ({kinds}) needs the "
                 "clinic route to raise it on (CD-08: never dropped; INT-547)"
             )
+        require_id(session_id)
+        _require_states_sorted()
         return cls(
             session_id=session_id,
             route=route,
@@ -228,17 +276,16 @@ class ClinicItemWatch:
             screen_skip=_screen_skip(protocol, decided, SlotNamespace(pairs)),
         )
 
-    def wrap(self, handler: StateHandler) -> StateHandler:
-        """``handler``, watched: its own effect is returned, untouched."""
+    # --- the Work queue's StateWatch (INT-553) ---------------------------------------
 
-        def watched(context: StateContext) -> StateEffect:
-            self._observe(context.engine)
-            effect = handler(context)
-            self._observe(context.engine)
-            self._raise_due(context.engine)
-            return effect
+    def before_work(self, engine: IntakeEngine) -> None:
+        """Ahead of the handler: note the follow-ups the engine offers now."""
+        self._observe(engine)
 
-        return watched
+    def after_work(self, engine: IntakeEngine) -> None:
+        """Once the Work has settled: note what was spoken, raise what is due."""
+        self._observe(engine)
+        self._raise_due(engine)
 
     # --- internals -------------------------------------------------------------------
 
@@ -323,15 +370,41 @@ def _lookup(engine: IntakeEngine) -> Lookup:
     return lookup
 
 
+def _require_states_sorted() -> None:
+    """Every answer state is unasked or asked, and none is both (INT-553)."""
+    unsorted = sorted(state.value for state in set(AnswerState) - _UNASKED - _ASKED)
+    if unsorted or _UNASKED & _ASKED:
+        raise ClinicItemWiringError(
+            f"answer state(s) {', '.join(unsorted) or 'in both sets'} sorted neither "
+            "unasked nor asked: the proxy item reads the seven chest-pain slots as unasked, "
+            "so a new state is sorted before a session composes (ADR-040)"
+        )
+
+
+def _reading(node: WhenNode) -> tuple[str, object] | None:
+    """``(slot, literal)`` when ``node`` is one equality of a slot to a literal."""
+    if not isinstance(node, Compare) or node.op != "==":
+        return None
+    left, right = node.left, node.right
+    if isinstance(left, Ref) and isinstance(right, Lit):
+        return left.name, right.value
+    if isinstance(left, Lit) and isinstance(right, Ref):
+        return right.name, left.value
+    return None
+
+
 def _screen_skip(
     protocol: ResolvedProtocol, rules: ClinicItemRules, namespace: SlotNamespace
 ) -> WhenNode | None:
     """The screen's ``skip_if``, qualified, when it is CD-01's proxy stop-gap.
 
     A screen with no ``skip_if`` is asked of every session, so nothing can be
-    raised for it. One whose ``skip_if`` reads a slot CD-01 does not name as
-    the proxy reading is refused: retiring the screen on anything else would
-    raise a proxy item for a session that is not a proxy one.
+    raised for it. Otherwise the ``skip_if`` must be exactly one comparison,
+    CD-01's proxy slot ``==`` CD-01's own literal (INT-553). Anything else is
+    refused — another slot, another value, an inequality, a negation or a
+    second condition — because retiring the screen on anything but CD-01's
+    reading would raise a proxy item for a session that is not a proxy one,
+    or skip the screen for one that is not.
     """
     screen = rules.proxy.screen
     for section in protocol.sections:
@@ -339,13 +412,12 @@ def _screen_skip(
             if f"{section.id}.{resolved.key}" != screen or resolved.slot.skip_if is None:
                 continue
             node, issues = qualify_gate(parse_when(resolved.slot.skip_if), namespace)
-            unnamed = sorted(
-                ref for ref in _referenced(node) if issues or not rules.proxy.names_reading(ref)
-            )
-            if unnamed:
+            reading = None if issues else _reading(node)
+            if reading is None or not rules.proxy.names_reading(*reading):
                 raise ClinicItemWiringError(
-                    f"{screen}: its skip_if reads {', '.join(unnamed)}, which "
-                    f"{rules.proxy.decision_ids[0]} does not name as the proxy reading"
+                    f"{screen}: its skip_if reads {', '.join(sorted(_referenced(node)))}, "
+                    f"which is not the proxy reading {rules.proxy.decision_ids[0]} names "
+                    "(its slot compared with == to its own value)"
                 )
             return node
     return None

@@ -35,7 +35,11 @@ kinds and instants. So that is the whole field set:
   names the item by its own reference,
   which the session derives from itself and the kind, so an item is one entry
   per session however often it is raised. The rule ids are the chest-pain
-  rules the item concerns, never a fired RED. No item kind carries a register
+  rules the item concerns, never a fired RED. An item entry also keeps the
+  protocol slot ids it is about and the decision ids that raise and route it
+  (INT-553): which slot was left unresolved or unasked is what the clinician
+  acts on, and both are protocol identifiers, never an answer. No other kind
+  carries either. No item kind carries a register
   or indexes the visit, and while CD-08 leaves their SLA
   ``draft_needs_source`` none has an acknowledgement SLA
   (:meth:`~intake_platform.safety_inbox.sla.AckSlaPolicy.sla_for_entry`).
@@ -66,9 +70,11 @@ from clinical_schemas.triage import RedRegister
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
+    "CLINIC_ITEM_KINDS",
+    "DECISION_ID_SHAPE",
     "ID_SHAPE",
     "RULE_ID_SHAPE",
-    "CLINIC_ITEM_KINDS",
+    "SLOT_REF_SHAPE",
     "AlreadyAcknowledged",
     "EntryKind",
     "InboxEntry",
@@ -91,6 +97,12 @@ _ID: Final = re.compile(ID_SHAPE)
 #: which every rules-engine rule id (``rf.<segments>``) already satisfies.
 RULE_ID_SHAPE: Final = r"^[a-z0-9][a-z0-9._-]{0,127}$"
 _RULE: Final = re.compile(RULE_ID_SHAPE)
+#: A protocol slot id, ``<section>.<slot>`` (INT-553): what a clinic item is about.
+SLOT_REF_SHAPE: Final = r"^[a-z0-9_]+\.[a-z0-9_]+$"
+_SLOT_REF: Final = re.compile(SLOT_REF_SHAPE)
+#: A clinical decision id of the D18 register (``CD-04``): what raised an item.
+DECISION_ID_SHAPE: Final = r"^CD-\d{2,3}$"
+_DECISION: Final = re.compile(DECISION_ID_SHAPE)
 #: A console subject, the id shape the audit chain accepts (files/08 §8.1).
 _SUBJECT: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$")
 _ENTRY: Final = re.compile(r"^sx_[0-9a-f]{32}$")
@@ -135,6 +147,8 @@ type _TenantId = Annotated[str, _shaped(_TENANT, "tenant_id")]
 type _Id = Annotated[str, _shaped(_ID, "id")]
 type _RuleId = Annotated[str, _shaped(_RULE, "rule id")]
 type _Subject = Annotated[str, _shaped(_SUBJECT, "subject")]
+type _SlotRef = Annotated[str, _shaped(_SLOT_REF, "slot ref")]
+type _DecisionId = Annotated[str, _shaped(_DECISION, "decision id")]
 type _EntryId = Annotated[str, _shaped(_ENTRY, "entry_id")]
 
 
@@ -229,6 +243,10 @@ class InboxEntry(BaseModel):
     acknowledged_by: _Subject | None = None
     #: INT-407: how the RED was told (files/02 §5.3 Axis 2), for the §2b re-show.
     register: RedRegister | None = None
+    #: INT-553: a clinic item's protocol slot ids; empty for every other kind.
+    slot_refs: tuple[_SlotRef, ...] = ()
+    #: INT-553: the decisions that raise and route a clinic item; empty otherwise.
+    decision_ids: tuple[_DecisionId, ...] = ()
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -237,6 +255,10 @@ class InboxEntry(BaseModel):
             raise ValueError("entry_id is derived from tenant, kind and source, never chosen")
         if self.register is not None and self.kind is not EntryKind.RED:
             raise ValueError("only a RED entry records a register; a transition was told nothing")
+        if self.kind.is_clinic_item and not (self.slot_refs and self.decision_ids):
+            raise ValueError("a clinic item entry carries its slot_refs and its decision_ids")
+        if not self.kind.is_clinic_item and (self.slot_refs or self.decision_ids):
+            raise ValueError("only a clinic item records slot refs and decision ids")
         if (self.acknowledged_at is None) != (self.acknowledged_by is None):
             raise ValueError("an acknowledgement names both who and when, or neither")
         if self.acknowledged_at is not None:
@@ -327,13 +349,16 @@ class InboxEntry(BaseModel):
         kind: EntryKind,
         item_ref: str,
         rule_ids: tuple[str, ...],
+        slot_refs: tuple[str, ...],
+        decision_ids: tuple[str, ...],
         at: datetime,
     ) -> InboxEntry:
         """A CD-08 clinic item (INT-547), named by its own reference.
 
         ``item_ref`` is derived by the session from itself and the kind, so the
         entry id (tenant, kind, reference) is one per session and kind: a second
-        raise lands on the first entry and its clock.
+        raise lands on the first entry and its clock. ``slot_refs`` and
+        ``decision_ids`` are the item's own (INT-553): which slot, which decision.
         """
         if not kind.is_clinic_item:
             raise ValueError("a RED-family kind is never raised as a clinic item")
@@ -346,6 +371,8 @@ class InboxEntry(BaseModel):
             rule_ids=rule_ids,
             source_ref=item_ref,
             created_at=at,
+            slot_refs=slot_refs,
+            decision_ids=decision_ids,
         )
 
     @property

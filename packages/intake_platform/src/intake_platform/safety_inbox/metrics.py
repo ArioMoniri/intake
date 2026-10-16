@@ -10,7 +10,7 @@ alerted in infra/observability/safety-rules.yaml. INT-475 adds a fifth, catalogu
 too: a notification the API raised whose audit row could not be appended.
 INT-547 adds three for the CD-08 clinic items, which are not REDs:
 raised, route failures (paged: CD-08 makes a delivery failure an SLA breach)
-and unaudited.
+and unaudited (paged since INT-553: invariant 4).
 
 Label discipline (invariant 6): ``tenant`` is a tenant id and ``age_band`` a
 closed :class:`~intake_platform.safety_inbox.sla.AgeBand` member. No session,
@@ -105,8 +105,10 @@ CLINIC_INBOX_ITEM_ROUTE_FAILURES_TOTAL = Counter(
     ["kind"],
 )
 
-#: Invariant 4: the audit row a raised item owes, which could not be appended.
-#: The entry is put first and never held back for its paperwork (INT-475's order).
+#: Invariant 4: the audit row a raised item owes, which could not be appended
+#: (the chain refused it, or the runtime's bounded audit outbox was full,
+#: INT-553). The entry is put first and never held back for its paperwork
+#: (INT-475's order). Paged by ``ClinicInboxItemUnaudited``.
 CLINIC_INBOX_ITEM_UNAUDITED_TOTAL = Counter(
     "clinic_inbox_item_unaudited_total",
     "CD-08 clinic-inbox items put in the Safety inbox whose audit row could not be "

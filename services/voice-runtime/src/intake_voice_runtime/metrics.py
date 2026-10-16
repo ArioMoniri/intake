@@ -41,6 +41,7 @@ __all__ = [
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
     "WORK_QUEUE_DEPTH",
+    "WORK_WATCH_FAULTS_TOTAL",
 ]
 
 # The client's `_created` companion series would sit next to every counter
@@ -105,6 +106,17 @@ TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL = Counter(
     "triage_live_evaluation_failures_total",
     "Live-session rules-engine evaluations that faulted or disagreed with a handler, by kind.",
     ["kind"],
+)
+
+#: INT-553: the session's state-Work watch (the CD-08 clinic-item watch)
+#: raised when it looked at the engine. ``step`` is closed: ``before`` (ahead
+#: of the handler) or ``after`` (once the Work settled). The Work is never
+#: failed for it and its evaluation always runs; an item the watch could not
+#: raise may be missing from the clinic inbox, so any increase pages.
+WORK_WATCH_FAULTS_TOTAL = Counter(
+    "work_watch_faults_total",
+    "State-Work watch looks that raised, by step; the Work and its evaluation went ahead.",
+    ["step"],
 )
 
 
