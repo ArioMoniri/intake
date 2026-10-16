@@ -136,8 +136,10 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-424 (delivery profiles v2 + expressive-model ADR proposal, GitHub #719)
     # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from INT-428, GitHub #753)
     # + INT-449 (Turkish voice casting, owner request, GitHub #762)
+    # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
+    # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
     # + INT-420 (Önvizit everywhere: the rebrand finished on main, GitHub #712)
-    assert len(actions) == 363
+    assert len(actions) == 365
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -66,7 +66,9 @@ __all__ = [
 MAX_CLARIFICATION_ATTEMPTS = 2
 """files/13 §11.1: *"bounded at 2 attempts … There is no third attempt: an
 unbounded clarification loop is both a turn-budget bomb and a CSAT
-failure."* After the second, the slot is ``UNCLEAR`` and enters the gaps."""
+failure."* After the second, the slot is ``UNCLEAR`` and enters the gaps.
+It is a ceiling: a slot may be handed a tighter bound (INT-540, CD-04's once
+for a tense anchor), never a looser one."""
 
 
 class EngineError(ValueError):
@@ -124,6 +126,7 @@ class IntakeEngine:
         reference_time: datetime,
         overlay_facts: PatientOverlay | None = None,
         valuesets: ValueSetTable = NO_VALUESETS,
+        clarification_bounds: Mapping[str, int] | None = None,
     ) -> None:
         # INT-518: the gates are re-checked against the table the session runs
         # with, so a document that reached the engine without the compiler is
@@ -144,6 +147,12 @@ class IntakeEngine:
         self._asked_reentries: set[str] = set()
         self._revisions: dict[str, int] = {}
         self._version = 0
+        self._bounds = dict(clarification_bounds or {})
+        for step_id, bound in self._bounds.items():
+            if step_id not in self._by_id or isinstance(bound, bool):
+                raise EngineError(f"a clarification bound for {step_id!r} the plan cannot hold")
+            if not 0 <= bound <= MAX_CLARIFICATION_ATTEMPTS:
+                raise EngineError(f"{step_id!r}: a bound outside 0..{MAX_CLARIFICATION_ATTEMPTS}")
 
     # --- reads -------------------------------------------------------------
 
@@ -224,6 +233,15 @@ class IntakeEngine:
             for step_id, state in self._states.items()
             if state in {AnswerState.ASKED_PRESENT, AnswerState.ASKED_ABSENT}
         }
+
+    def clarification_bound(self, step_id: str) -> int:
+        """How many clarifications ``step_id`` gets before it is ``UNCLEAR``."""
+        self.state_of(step_id)
+        return self._bounds.get(step_id, MAX_CLARIFICATION_ATTEMPTS)
+
+    def origin_of(self, step_id: str) -> str:
+        """The plan step a step id or a queued re-entry answers."""
+        return self._origin_of(step_id)
 
     def slot_revision(self, step_id: str) -> int:
         """How many times this slot's state or value has changed (ADR-036 CAS)."""
@@ -335,7 +353,7 @@ class IntakeEngine:
         if any(entry.origin == step_id for entry in self._reentries.values()):
             return AppendOutcome.ALREADY_QUEUED
         attempts = self._clarify_attempts.get(step_id, 0)
-        if attempts >= MAX_CLARIFICATION_ATTEMPTS:
+        if attempts >= self.clarification_bound(step_id):
             return AppendOutcome.EXHAUSTED
         step = self._by_id[step_id]
         if kind is VerificationKind.REASK:
@@ -388,6 +406,19 @@ class IntakeEngine:
             self._bind(slot_updates)
         self._sweep_invalidated()
 
+    def close_unanswered(self, step_id: str) -> None:
+        """The session ended with ``step_id`` asked and unanswered (INT-540).
+
+        Records what a spent clarification records — files/13 §11.1's
+        ``UNCLEAR`` and its gap — and drops any queued re-entry. Only an
+        ``ASKED_PENDING`` step: one never asked binds nothing (files/13 §9.6),
+        and an answer the patient gave is not overwritten by the session ending.
+        """
+        if self.state_of(step_id) is not AnswerState.ASKED_PENDING:
+            raise EngineError(f"{step_id!r} is not asked and unanswered, so nothing closes")
+        self._give_up(step_id)
+        self._version += 1
+
     # --- internals ---------------------------------------------------------
 
     def _lookup(self, ref: str) -> bool | Decimal | str | None:
@@ -438,7 +469,7 @@ class IntakeEngine:
         self._drop_reentry(consumed)
         step = self._by_id[origin]
         attempts = self._clarify_attempts.get(origin, 0)
-        if step.follow_up_tr is None or attempts >= MAX_CLARIFICATION_ATTEMPTS:
+        if step.follow_up_tr is None or attempts >= self.clarification_bound(origin):
             # no follow_up_tr means no verbatim text to speak, and invariant
             # 10 leaves no improvised alternative — the honest move is the gap
             self._give_up(origin)

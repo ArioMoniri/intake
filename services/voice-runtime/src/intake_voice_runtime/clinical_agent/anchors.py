@@ -31,12 +31,30 @@ clinical-decisions register):
   the unresolved answer — so a reader can always tell a resolution that is
   still draft from a decided one.
 
+**An unfit answer is UNCLEAR at once, and the anchor cannot outlive the
+session** (INT-540, the INT-522 review's F1 and F2). CD-04 decides that a
+hedged answer — its table, read here as
+:class:`protocols.answer_states.AnswerStateTable` — is UNCLEAR, reads Unknown
+and triggers the slot's ``follow_up_tr`` once. :meth:`SessionAnchors.unclear_cause`
+is how the extraction handler asks, for an asked anchor, whether this answer
+is such a one: a CD-04 hedge (which beats a choice the model guessed), or no
+authored choice recorded at all — a narrative, a refused value, a completion
+with no slot and no flag (CD-04: an unmatched hedge is UNCLEAR; CD-05: an
+answer fitting no choice). :meth:`SessionAnchors.follow_up_bounds` hands the
+engine CD-04's number for each anchor, so the follow-up is asked that many
+times and then the engine records UNCLEAR, which CD-05 resolves. When the
+session closes with an anchor still asked and unanswered, the close records
+it UNCLEAR too (:mod:`intake_voice_runtime.clinical_agent.session_close`).
+:attr:`SessionAnchors.unclear` keeps each such reading and its cause — ids and
+CD-04 qualifiers, never the patient's words.
+
 Nothing here produces a triage level (invariant 1): it dates an anchor; the
 rules engine alone decides whether the date and the gate fire a rule.
 """
 
 from __future__ import annotations
 
+import enum
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -44,24 +62,97 @@ from datetime import datetime
 from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from protocols.anchor_choices import AnchorChoiceError, AnchorChoiceTable, AnchorResolution
+from protocols.answer_states import AnswerStateError, AnswerStateTable, HedgeState
 
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 
-__all__ = ["SessionAnchors"]
+__all__ = ["SessionAnchors", "UnclearAnswer", "UnclearCause"]
+
+
+class UnclearCause(enum.StrEnum):
+    """Why an asked anchor was read UNCLEAR (INT-540)."""
+
+    #: A CD-04 table entry read UNCLEAR on the anchor.
+    HEDGE = "hedge"
+    #: No authored choice was recorded: CD-04's unmatched hedge, CD-05's
+    #: answer fitting no choice.
+    NO_CHOICE = "no_choice"
+    #: The session closed with the anchor asked and unanswered.
+    SESSION_CLOSED = "session_closed"
+
+
+@dataclass(frozen=True, repr=False)
+class UnclearAnswer:
+    """One UNCLEAR reading of an asked anchor, in the order it was read."""
+
+    anchor: str
+    cause: UnclearCause
+    #: The CD-04 entry's qualifier, for a hedge; otherwise ``None``.
+    qualifier: str | None
+    decision_id: str
+
+    def __repr__(self) -> str:
+        return (
+            f"UnclearAnswer(anchor={self.anchor!r}, cause={self.cause.value!r}, "
+            f"decision_id={self.decision_id!r})"
+        )
+
+    def __str__(self) -> str:
+        return self.__repr__()
 
 
 @dataclass
 class SessionAnchors:
-    """One session's CD-05 table and the record of what each anchor resolved to."""
+    """One session's CD-05 and CD-04 tables, and the record of each anchor."""
 
     table: AnchorChoiceTable
+    #: CD-04 (INT-540): which answers are UNCLEAR, and the follow-up bound.
+    answer_states: AnswerStateTable
     #: ``{anchor step id: its latest resolution}`` — the choice beside the day.
     record: dict[str, AnchorResolution] = field(default_factory=dict, init=False)
+    #: Every UNCLEAR reading of an anchor, in order (INT-540).
+    unclear: list[UnclearAnswer] = field(default_factory=list, init=False)
+
+    def __post_init__(self) -> None:
+        """A tense anchor is a date: CD-04 may read it UNCLEAR, never present."""
+        named = sorted(self.answer_states.present_qualified_slots & self.refs)
+        if named:
+            raise AnswerStateError(
+                f"{self.answer_states.decision_id} gives a present-qualified reading to "
+                f"the tense anchor(s) {', '.join(named)}, which a date cannot carry"
+            )
 
     @property
     def refs(self) -> frozenset[str]:
         """The step ids CD-05 resolves: its active anchors."""
         return self.table.anchors
+
+    def follow_up_bounds(self, steps: Collection[str]) -> dict[str, int]:
+        """CD-04's follow-up bound for each anchor among ``steps``."""
+        asks = self.answer_states.unclear_follow_up_tr_asks
+        return {ref: asks for ref in sorted(self.refs.intersection(steps))}
+
+    def unclear_cause(self, anchor: str, text: str, chose: bool) -> UnclearCause | None:
+        """Why this answer to the asked ``anchor`` is UNCLEAR, or ``None``.
+
+        ``chose`` says whether the extraction bound an authored choice. A
+        CD-04 hedge is UNCLEAR whatever the model chose; with no hedge, an
+        answer that bound no choice is UNCLEAR too. The reading is recorded.
+        """
+        reading = self.answer_states.read(anchor, text)
+        if reading is not None and reading.state is HedgeState.UNCLEAR:
+            self.unclear.append(
+                UnclearAnswer(anchor, UnclearCause.HEDGE, reading.qualifier, reading.decision_id)
+            )
+            return UnclearCause.HEDGE
+        if chose:
+            return None
+        self.note_unclear(anchor, UnclearCause.NO_CHOICE)
+        return UnclearCause.NO_CHOICE
+
+    def note_unclear(self, anchor: str, cause: UnclearCause) -> None:
+        """Record an UNCLEAR reading CD-05 decides the resolution of."""
+        self.unclear.append(UnclearAnswer(anchor, cause, None, self.table.decision_id))
 
     def resolve_choices(
         self, updates: Mapping[str, JsonValue], reference_time: datetime
