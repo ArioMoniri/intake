@@ -333,10 +333,16 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-446 (RED end to end in the app — the rules-engine hop on both lanes
     # and the RED screen mounted, found by INT-440, GitHub #756); grows only
     # with a stated reason.
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only test key, D23, GitHub #794); grows
+    # only with a stated reason.
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads, GitHub #890); grows only with a
+    # stated reason.
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358, GitHub #895); grows only with a
     # stated reason.
-    assert len(ids) == 347, f"expected 175 blueprint + 172 added issues, got {len(ids)}"
+    assert len(ids) == 349, f"expected 175 blueprint + 174 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -22,6 +22,8 @@
 import type { Answer } from "../intake/note";
 import {
   decodeRedTrigger,
+  GENERIC_RED_SCRIPT_IDS,
+  genericRedCopy,
   type RedLocation,
   type RedScript,
   type RedScriptCatalog,
@@ -40,8 +42,14 @@ export type HopTransport = (
 /** The UNKNOWN branch: the rule's one question and where each answer goes. */
 export interface RedLocationQuestion {
   readonly askTr: string;
-  readonly onYes: Exclude<RedLocation, "UNKNOWN">;
-  readonly onNo: Exclude<RedLocation, "UNKNOWN">;
+  /** Yes, in the hospital: ON_SITE. No: REMOTE. A catalog that swaps them is refused whole. */
+  readonly onYes: "ON_SITE";
+  readonly onNo: "REMOTE";
+  /**
+   * The rule's own branch when the question goes unanswered. Always REMOTE
+   * (INT-465; files/04 §8.1 rule 7): a catalog that says otherwise is refused whole.
+   */
+  readonly onNoAnswer: "REMOTE";
 }
 
 /** Everything a RED can show, on the device before the RED. */
@@ -142,8 +150,6 @@ export async function evaluateBoundAnswers(
   return { kind: "unevaluated" };
 }
 
-const LOCATED: ReadonlySet<unknown> = new Set(["REMOTE", "ON_SITE"]);
-
 function decodeScript(value: unknown): RedScript | null {
   if (!isRecord(value)) {
     return null;
@@ -167,19 +173,21 @@ function decodeQuestion(value: unknown): RedLocationQuestion | null {
   if (!isRecord(value)) {
     return null;
   }
-  const { askTr, onYes, onNo } = value;
+  const { askTr, onYes, onNo, onNoAnswer } = value;
   if (
     typeof askTr !== "string" ||
     askTr.length === 0 ||
-    !LOCATED.has(onYes) ||
-    !LOCATED.has(onNo)
+    onYes !== "ON_SITE" ||
+    onNo !== "REMOTE" ||
+    onNoAnswer !== "REMOTE"
   ) {
     return null;
   }
   return {
     askTr,
-    onYes: onYes as RedLocationQuestion["onYes"],
-    onNo: onNo as RedLocationQuestion["onNo"],
+    onYes,
+    onNo,
+    onNoAnswer,
   };
 }
 
@@ -208,6 +216,12 @@ export function decodeRedCatalog(bytes: Uint8Array): PrePositionedRed | null {
       return null;
     }
     questions[id] = question;
+  }
+  // INT-465: a catalog that cannot say CD-24's generic RED with words, or ask its
+  // location question, is refused whole (CD-24 generic_red_silent_is_never_wordless).
+  // The hop sends no answer without a catalog, so no RED can arrive wordless.
+  if (genericRedCopy(scripts) === null || questions[GENERIC_RED_SCRIPT_IDS.UNKNOWN] === undefined) {
+    return null;
   }
   return { scripts, questions };
 }

@@ -117,8 +117,10 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-460 (second admin approver: a second Keycloak user, GitHub #785)
     # + INT-453 (RED path triggers the winning rule's script, found by INT-446, GitHub #767)
     # + INT-446 (RED end to end in the app: rules-engine hop + RED screen, GitHub #756)
+    # + INT-465 (generic RED active from CD-24; synthetic-only test-key signature, GitHub #794)
+    # + INT-524 (a pull request's superseded CI runs are cancelled, GitHub #890)
     # + INT-528 (Netgsm OTP SMS adapter behind the INT-329 port, GitHub #895)
-    assert len(actions) == 347
+    assert len(actions) == 349
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -176,9 +176,13 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
     # both lanes and the pre-positioned RED screen mounted; found by the
     # INT-440 voice end-to-end test, GitHub #756).
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads; GitHub #890).
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
-    assert len(ids) == 347
+    assert len(ids) == 349
     import re
 
     for i in ids:

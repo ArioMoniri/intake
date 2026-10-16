@@ -141,31 +141,42 @@ export const GENERIC_RED_SCRIPT_IDS = {
   UNKNOWN: "base.generic_red.unknown",
 } as const satisfies Record<RedLocation, string>;
 
+/** CD-24's generic copy, with words, for the two locations that act. */
+export interface GenericRedCopy {
+  readonly REMOTE: RedScript;
+  readonly ON_SITE: RedScript;
+}
+
+const worded = (script: RedScript | undefined): script is RedScript =>
+  script !== undefined && script.actionTr.trim().length > 0;
+
 /**
- * What a generic RED shows when even the generic script is not on this device:
- * no words, never invented ones (invariant 17). The serve precondition keeps a
- * served catalog from ever lacking CD-24's generic copy, so this is the
- * worst-case device skew on the LiveKit lane, not a state a served session
- * reaches. The RED still shows, with the location-correct affordance.
+ * The generic copy, or null when the catalog cannot say it (INT-465; CD-24
+ * `generic_red_silent_is_never_wordless`). A wordless generic is a failure,
+ * never a state to render: the catalog decoder refuses such a catalog, and a
+ * voice session refuses to start without it.
  */
-const UNWORDED_GENERIC: RedScript = {
-  primary: "GENERIC_ESCALATION",
-  show112: true,
-  actionTr: "",
-  doNotsTr: [],
-  whyTr: null,
-};
+export function genericRedCopy(catalog: RedScriptCatalog): GenericRedCopy | null {
+  const remote = catalog[GENERIC_RED_SCRIPT_IDS.REMOTE];
+  const onSite = catalog[GENERIC_RED_SCRIPT_IDS.ON_SITE];
+  return worded(remote) && worded(onSite) ? { REMOTE: remote, ON_SITE: onSite } : null;
+}
 
 /**
  * The RED a patient sees when the trigger's own script is not on the device
- * (INT-453; CD-24): never nothing.
+ * (INT-453; CD-24): never nothing, and never wordless.
  * - Register: the trigger's own, which is the engine result's (CD-24
  *   carry_engine_register), never a fixed ALERT.
- * - Location: the trigger's own, so ON_SITE carries no 112.
- * - Words: the catalog's generic script, CD-24's copy.
+ * - Location: a known one only. Under UNKNOWN the location question comes first
+ *   and carries no script (ask-first, files/04 §8.1 rule 7); the RED store
+ *   resolves the answer before it asks for a presentation (INT-465).
+ * - Words: CD-24's generic copy. ON_SITE carries no 112.
  */
-export function genericRed(trigger: RedTrigger, catalog: RedScriptCatalog): RedPresentation {
-  const script = catalog[GENERIC_RED_SCRIPT_IDS[trigger.location]] ?? UNWORDED_GENERIC;
+export function genericRed(
+  trigger: RedTrigger & { readonly location: Exclude<RedLocation, "UNKNOWN"> },
+  copy: GenericRedCopy,
+): RedPresentation {
+  const script = trigger.location === "ON_SITE" ? copy.ON_SITE : copy.REMOTE;
   return {
     ruleId: trigger.ruleId,
     register: trigger.register,
