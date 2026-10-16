@@ -11,6 +11,334 @@
 > **The single most consequential correction: the medical-device classification is Class IIb, not Class IIa** (`06 §0.3`). That re-prices Stage B and should be resolved before anything else is budgeted.
 >
 > **v2.1 reconciliation, 27 Aug 2026.** Four things this plan still assumed have changed, and each is corrected in place below rather than removed: **(1) all models are self-hosted** — `cascade_fast` and `s2s_cloud` cease to exist, so P1's profile is `residency_tr` and the `s2s_cloud → P3` line becomes a withdrawal; **(2) `03 §4.9.1` is the single source of truth for the model stack**, so no phase, KPI or assumption row here pins a model — where one did, it now points at a row number; **(3) Kintsugi DAM is dropped (D14)** — the `acoustic` lane survives, the model does not, which changes what the Turkish validation track is *for*; **(4) the P2 integration counterparty is the hospital group's own technology arm**, already corrected under the phase table. Phase **gates** — the evidence that ends a phase — are now stated explicitly in **§1a**, because "the exit artefact" was a column and needed to be a checklist.
+>
+> **Live status, 16 Oct 2026 (INT-452).** The counts in §0 and §1 below are the v2.0 analysis of 25 Aug 2026 and are kept as the reasoning record. Where each phase stands today — done, in flight, blocked and todo, each with its owner — is the generated section that follows. It is rendered from the backlog and a committed GitHub snapshot, and a test fails when it is stale, so it is never edited by hand.
+
+---
+
+<!-- BEGIN generated live status (scripts/backlog/render_roadmap.py) — do not edit by hand -->
+## Live status — generated from the backlog and GitHub
+
+> **Generated; do not edit this section by hand.** `scripts/backlog/render_roadmap.py` renders it from `docs/backlog/issues.yaml`, `docs/backlog/epics.yaml`, `files/HUMAN_BLOCKERS.md`, `docs/backlog/blockers.md` and the GitHub snapshot `docs/backlog/github_snapshot.json`, captured **2026-10-16T03:13:48Z** against main `be6c09c1e03c`. `make roadmap-snapshot` refreshes the GitHub state and is the only step that calls GitHub; `make backlog-render` re-renders; `tests/backlog/test_roadmap.py` fails CI when this section is stale.
+>
+> **States.** done · in flight (an open PR names the id, or the row is `doing`) · blocked (`awaiting-human`/`blocked`, or a `blocked:*` label) · todo (`ready` when every dependency is satisfied, LOOP.md step 1) · withdrawn. **Owner** is who acts next: for a blocked item the named human from its blocker record, otherwise the agent role its area implies plus any human sign-off (`scripts/backlog/roadmap_lib.py`).
+
+| phase | rows | done | in flight | blocked | todo | withdrawn | open PRs, no row on main | open issues, no row anywhere |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| P0 | 184 | 144 | 5 | 11 | 24 | 0 | 3 | 0 |
+| P1 | 151 | 87 | 4 | 27 | 33 | 0 | 30 | 5 |
+| P2 | 47 | 14 | 5 | 3 | 24 | 1 | 1 | 3 |
+| P3 | 7 | 2 | 1 | 1 | 3 | 0 | 0 | 0 |
+| — | 0 | 0 | 0 | 0 | 0 | 0 | 9 | 0 |
+| **all** | **389** | **247** | **15** | **42** | **84** | **1** | **43** | **8** |
+
+### Live · P0 — Foundation
+
+| epic | done | in flight | blocked | todo |
+|---|---:|---:|---:|---:|
+| E00-governance | 5 | 0 | 0 | 0 |
+| E01-platform | 23 | 0 | 1 | 0 |
+| E02-data | 12 | 1 | 1 | 0 |
+| E03-protocols | 17 | 1 | 1 | 13 |
+| E04-engines | 9 | 0 | 0 | 1 |
+| E05-voice | 17 | 1 | 2 | 1 |
+| E06-lanes | 1 | 0 | 1 | 2 |
+| E07-records | 4 | 0 | 0 | 0 |
+| E08-mobile | 38 | 0 | 1 | 0 |
+| E09-clinician | 2 | 0 | 0 | 1 |
+| E11-learning | 2 | 0 | 0 | 0 |
+| E12-admin | 4 | 0 | 0 | 0 |
+| E13-infra | 7 | 2 | 1 | 1 |
+| E14-legal | 2 | 0 | 3 | 4 |
+| E16-experience | 1 | 0 | 0 | 0 |
+| E17-release | 0 | 0 | 0 | 1 |
+
+Remaining, in file order (40):
+
+| id | title | epic | state | PR · blocker · dependencies | owner |
+|---|---|---|---|---|---|
+| INT-019 | security.yml CI job: full gate set + signing | E01-platform | blocked | HB-O6 | HB-O6: owner (protected path) |
+| INT-043 | base.intake pack (tr/en) complete per 04 §1 - FRONT-LOADED: unblocks 78 of 175 | E03-protocols | blocked | HB-C1 · HB-C5 · HB-C6 · PR #185 `int-43-flat` conflicting | HB-C1: Dr Efe Onganer (physician of record) + a paediatrician for the paedia… |
+| INT-044 | Cluster pack: medical | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-045 | Cluster pack: surgical | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-046 | Cluster pack: sensory | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-047 | Cluster pack: womens_health | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-048 | Cluster pack: child_health (guardian proxy, age bands) | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-049 | Cluster pack: mental_health | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-050 | Cluster pack: dental | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-051 | Cluster pack: allied_and_reports | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-052 | Cluster excluded: Acil refusal + 112 routing copy | E03-protocols | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-053 | Deep pack: internal_medicine | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-054 | Deep pack: gastroenterology + overlay.oncology_patient | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-055 | Deep pack: rheumatology | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-056 | Patient overlays set (8) + overlay_monotonicity property test | E03-protocols | todo | ready | agent · clinical-reviewer |
+| INT-058 | Signed protocol bundles: cosign sign + runtime verification + per-session hash pin | E03-protocols | in flight | #579 `int-058-signed-bundles` conflicting | agent · clinical-reviewer |
+| INT-101 | Session budgets + cost metering per component/profile | E05-voice | blocked | HB-O8 | HB-O8: owner (both) |
+| INT-112 | linguistic lane: TR lexicons + prosody stats + crisis bypass to triage | E06-lanes | blocked | HB-C16 | physician of record (Dr Efe Onganer) + a Turkish-speaking clinical ps… |
+| INT-116 | Wellbeing engine: PHQ-2/GAD-2 -> PHQ-9/GAD-7 -> C-SSRS, crisis script, verbatim items, clinician-only outputs | E06-lanes | todo | ready | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-117 | device_functions flag: MDSW boundary enforced (Stage A non-device vs investigation mode) | E06-lanes | todo | waits on INT-116 | agent · legal-reviewer; sign-off: counsel |
+| INT-151 | Note views: SOAP, red flags (mode-aware), provenance, consented wellbeing, AI labels + 1-click feedback | E09-clinician | todo | waits on INT-117 | agent |
+| INT-210 | Legal document set v1 (tr primary): aydinlatma x5, acik riza per purpose, gizlilik, kullanim kosullari, KVKK… | E14-legal | blocked | HB-L27 | Turkish counsel (KVKK / health-law), instructed by the owner |
+| INT-211 | VERBIS registration pack + data inventory generated from schema annotations + irtibat kisisi | E14-legal | todo | ready | agent · legal-reviewer; sign-off: counsel |
+| INT-212 | Retention & destruction policy doc (DEST-2017) bound to the engine | E14-legal | todo | ready | agent · legal-reviewer; sign-off: counsel |
+| INT-216 | MDSW file: intended purpose, qualification (MDCG 2019-11 Rev.1), Rule 11 classification (Class IIb), device/n… | E14-legal | todo | waits on INT-117 | agent · legal-reviewer; sign-off: counsel |
+| INT-302 | Which language binds: the legal status of a translated aydınlatma metni, and what the app may show when they… | E14-legal | todo | ready | agent · legal-reviewer; sign-off: counsel |
+| INT-347 | Replace the withdrawn minio/minio image with an owner-approved, digest-pinned S3-compatible store | E13-infra | blocked | no blocker record | owner — no blocker record names it |
+| INT-348 | Play Integrity verification and a real-device OTP login smoke on TestFlight and Play | E08-mobile | blocked | HB-A3 | HB-A3: owner |
+| INT-349 | Sensitive slot categories: per-slot data-category tag, encrypted storage, fail-closed register gate | E02-data | in flight | doing; no open PR | agent · legal-reviewer |
+| INT-350 | CI part 2: check-integration builds the pinned edge plugin; osv findings fixed | E13-infra | in flight | #731 `int-350-ci-edge-plugin-tests` | agent · security-reviewer |
+| INT-354 | Consolidate int-demo into main; main becomes the TestFlight build source | E17-release | todo | ready | agent (mobile) |
+| INT-356 | Counsel completes the data-category register (basis, retention, recipients, consent scope, other-subject noti… | E14-legal | blocked | no blocker record | owner — no blocker record names it |
+| INT-358 | SMS vendor decision: DPA, KVKK cross-border mechanism and the egress allow-list row for OTP delivery | E14-legal | blocked | no blocker record | owner — no blocker record names it |
+| INT-376 | Move the production API host to Frankfurt (eu-central-1) when the GPU quota is approved | E13-infra | todo | ready | agent · sre-reviewer |
+| INT-394 | Owner decision — the database role that runs erasure and retention | E02-data | blocked | no blocker record | owner — no blocker record names it |
+| INT-416 | triage context refuses an empty unit at construction, so RED evaluation can never raise mid-rule | E04-engines | todo | ready | agent · clinical-reviewer |
+| INT-454 | spoken-answer loop end to end on the hosted lanes (ASR → extract → next question), measured | E05-voice | todo | ready | agent · runtime-reviewer |
+| INT-421 | Production release: full stack from main on the AWS host + EAS store builds | E13-infra | in flight | doing; no open PR | agent · sre-reviewer |
+| INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-ba… | E05-voice | in flight | #741 `int-430-agent-council` conflicting | agent · runtime-reviewer |
+| INT-428 | Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over | E05-voice | blocked | no blocker record · PR #751 `int-428-hosted-lanes` | owner — no blocker record names it |
+
+### Live · P1 — Fast mode, device-off
+
+| epic | done | in flight | blocked | todo |
+|---|---:|---:|---:|---:|
+| E00-governance | 3 | 1 | 0 | 1 |
+| E01-platform | 1 | 0 | 2 | 0 |
+| E02-data | 5 | 0 | 1 | 0 |
+| E03-protocols | 6 | 1 | 1 | 6 |
+| E04-engines | 2 | 0 | 0 | 0 |
+| E05-voice | 7 | 0 | 4 | 4 |
+| E06-lanes | 0 | 0 | 3 | 0 |
+| E07-records | 4 | 0 | 4 | 2 |
+| E08-mobile | 23 | 0 | 1 | 8 |
+| E09-clinician | 1 | 0 | 0 | 2 |
+| E10-connectors | 3 | 1 | 1 | 0 |
+| E11-learning | 1 | 0 | 0 | 1 |
+| E12-admin | 14 | 0 | 4 | 2 |
+| E13-infra | 8 | 1 | 4 | 2 |
+| E14-legal | 5 | 0 | 2 | 4 |
+| E16-experience | 3 | 0 | 0 | 0 |
+| E17-release | 1 | 0 | 0 | 1 |
+
+Remaining, in file order (64):
+
+| id | title | epic | state | PR · blocker · dependencies | owner |
+|---|---|---|---|---|---|
+| INT-095 | Profile residency_tr with real self-hosted adapters (03 §4.9.1 rows 1-2, 7, 10-11) + on-hardware smoke | E05-voice | blocked | HB-I10 | owner |
+| INT-099 | Backchannels + ack styles + preemptive generation + per-profile NFR harness in CI | E05-voice | todo | ready | agent · runtime-reviewer |
+| INT-111 | affect lane: self-hosted SER on the agent worker (03 §4.9.1 row 14) + Turkish eval set | E06-lanes | blocked | HB-C11 | physician of record (Dr Efe Onganer) + owner (corpus collection & lab… |
+| INT-113 | asr_quality lane: shadow-STT disagreement + confirm-by-card trigger | E06-lanes | blocked | HB-L22 | counsel + owner |
+| INT-114 | engagement lane -> satisfaction proxies + pacing hints | E06-lanes | blocked | HB-L22 | counsel + owner |
+| INT-135 | Voice intake UI (Hizli): states, recording indicator, inline cards, barge-in, RED UI, typed fallback | E08-mobile | todo | waits on INT-117 | agent (mobile) |
+| INT-144 | Accessibility WCAG 2.2 AA pass + TR screen-reader labels + conformance report | E08-mobile | blocked | no blocker record | owner — no blocker record names it |
+| INT-146 | EAS builds + OTA code signing + MobSF gate + store listings/privacy labels | E08-mobile | todo | ready | agent (mobile); sign-off: counsel |
+| INT-152 | Clinic console: today list, statuses, read receipts, tenant isolation, SSO | E09-clinician | todo | waits on INT-151 | agent |
+| INT-153 | Clinician feedback -> Langfuse annotation queues + acceptance metrics | E09-clinician | todo | waits on INT-151 | agent |
+| INT-161 | FHIR push adapter (hospital FHIR/HAPI; SMART backend services auth) | E10-connectors | blocked | HB-A17 | HB-A17: owner (from the hospital) + counsel (the scope, from the DPA) |
+| INT-186 | Experience & satisfaction module (CSAT/NPS/pulse/waits + SDS-01 export) | E12-admin | blocked | blockers.md | owner + compliance_officer |
+| INT-190 | Cost module | E12-admin | blocked | HB-O8 | owner |
+| INT-202 | Backups: pgBackRest PITR encrypted + MinIO replication + automated restore drill + evidence | E13-infra | in flight | #682 `int-202-restore-drill` conflicting | agent · sre-reviewer |
+| INT-203 | Edge: Traefik + Coraza CRS + CrowdSec + cert-manager + prod egress proxy | E13-infra | blocked | HB-I13 · HB-I14 | owner |
+| INT-206 | GitHub Actions self-hosted runners in TR DC + no-PHI-in-CI policy | E13-infra | blocked | HB-I7 | HB-I7: owner (spend + the choice of facility); counsel for the residency cla… |
+| INT-213 | DPIA v1 + vendor transfer register + SCC set + Board notification workflow (5 business days) + hospital DPA t… | E14-legal | todo | ready | agent · legal-reviewer; sign-off: counsel |
+| INT-214 | Breach machinery: KVKK 72h Board form automation + data-subject notices + USOM report (7545) + hospital notic… | E14-legal | todo | ready | agent · legal-reviewer |
+| INT-217 | QMS core (ISO 13485): quality manual, design controls, ISO 14971 risk file, IEC 62304 class B plan, IEC 62366… | E14-legal | todo | waits on INT-216 | agent · legal-reviewer; sign-off: counsel |
+| INT-218 | Clinical investigation package: protocol + ICF(tr) + KAEK ethics submission + TITCK application + insurance +… | E14-legal | todo | waits on INT-217 | agent · legal-reviewer; sign-off: counsel |
+| INT-252 | Release process: semver, changelog, signed artifacts, store submission checklist, release-gate checklist in c… | E17-release | todo | ready | agent · legal-reviewer |
+| INT-308 | carrier/geo sanity checks against SMS pumping are named in the security spec and implemented nowhere | E01-platform | blocked | blockers.md § | named in blockers.md § INT-308 |
+| INT-317 | previsit output store + hospital read-back: one frozen versioned document per completed previsit, fetched by… | E10-connectors | in flight | doing; no open PR | agent · sre-reviewer |
+| INT-319 | Dev on-prem expressive-TTS lane for scripted questions + latency assessment harness | E05-voice | blocked | blockers.md § | owner (the target GPU host) |
+| INT-327 | Specialty-pack generator assembles the pending-value marker so no_placeholders stays green | E03-protocols | in flight | doing; no open PR | agent · clinical-reviewer |
+| INT-330 | Motion: native-stack transition policy — 120 ms on every stack, legal instant, intake gesture-locked | E08-mobile | todo | ready | agent (mobile) |
+| INT-332 | ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root… | E00-governance | in flight | #571 `int-332-motion-adr` conflicting | agent (mobile); sign-off: owner |
+| INT-343 | Mobile George client authenticates and requests only compiled-pack clip text | E08-mobile | todo | ready | agent (mobile) |
+| INT-359 | Accessibility device audit (DA-01..DA-08) and the statement published in-app and web | E14-legal | blocked | HB-L9 | owner |
+| INT-364 | Board 2018/10 organisational measures: the owner's evidence and counsel's four readings | E14-legal | blocked | blockers.md | owner |
+| INT-369 | schemathesis API fuzzing runs in CI instead of being recorded as deferred | E13-infra | todo | ready | agent · sre-reviewer |
+| INT-389 | Owner decision: second factor for console roles outside the patient-content set (TOTP vs aaguid) | E12-admin | blocked | no blocker record | owner — no blocker record names it |
+| INT-380 | Extraction eval score on a named, dated, licensed corpus (INT-121 clause 3) | E07-records | blocked | HB-A13 · HB-A10 · HB-A2 | owner, with the DPO/counsel |
+| INT-381 | On-hardware latency and live smoke for the row-9 extraction model (INT-124 clause: target < 3 s) | E07-records | todo | ready | agent · legal-reviewer; sign-off: owner (the target GPU host) |
+| INT-401 | Rollback from the console (4-eyes) once a CD target exists | E12-admin | blocked | blockers.md § | named in blockers.md § INT-401 |
+| INT-402 | Record-embedding model for the patient record index (files/03 §4.9.1) | E07-records | blocked | no blocker record | owner — no blocker record names it |
+| INT-403 | What withdrawing documents consent does to the patient's record vectors | E02-data | blocked | no blocker record | owner — no blocker record names it |
+| INT-408 | Workers tier SLOs: the owner decides the tier and its targets | E01-platform | blocked | no blocker record | owner — no blocker record names it |
+| INT-398 | Document engine for records (files/03 rows 20-21): choose, verify the licence, register, sandbox | E07-records | blocked | no blocker record | owner — no blocker record names it |
+| INT-399 | Real e-Nabiz export and MHRS SMS samples for the import parsers (HB-A1, Ask 2) | E07-records | blocked | HB-A1 | HB-A1: owner only — it is a citizen login |
+| INT-374 | Step-up WebAuthn for privileged console actions outside the patient-content roles | E12-admin | todo | ready | agent · security-reviewer |
+| INT-383 | Generated red-flag stubs anchor their timing on a duration slot the engine cannot read | E03-protocols | blocked | HB-C1 | HB-C1: Dr Efe Onganer (physician of record) + a paediatrician for the paedia… |
+| INT-417 | share centre never shows another visit's grants, and an unreachable read never prints the empty-log footer | E08-mobile | todo | ready | agent (mobile) |
+| INT-418 | privacy hide — the 'gizle' control and the third-party auto-hide (02 §5.2a rule 6) | E08-mobile | todo | waits on INT-338 | agent (mobile) |
+| INT-419 | licence gate verifies native (Maven/CocoaPods) dependencies against the raw LICENSE, not only package.json | E00-governance | todo | ready | agent · security-reviewer |
+| INT-434 | admin Council section — member selection with 4-eyes via flag_governance, per-member latency/tokens/agreement | E05-voice | todo | ready | agent · security-reviewer |
+| INT-435 | council production composition — ModelAssignment adapter, triage re-run, clinician inbox sink, CD-07 binding | E05-voice | todo | ready | agent · sre-reviewer |
+| INT-436 | offline Loop-2 yield_table proposal (replaces the cut runtime ranker) | E11-learning | todo | ready | agent · clinical-reviewer |
+| INT-437 | document rules on the parse_document path — add/arm only, staleness, contested, identity match | E07-records | todo | ready | agent · sre-reviewer |
+| INT-438 | deterministic red-flag lexicon, speaker attribution and backchannel lexicon | E03-protocols | todo | ready | agent · clinical-reviewer |
+| INT-444 | model identity & drift hardening — /identity, drift canary, model@revision recording keys, schema lint, guard… | E05-voice | todo | ready | agent · sre-reviewer |
+| INT-445 | hosted/self-hosted lanes wired into the mobile release build | E08-mobile | todo | ready | agent (mobile) |
+| INT-456 | Spoken clip text carries markdown emphasis and an unresolved {{tenant.acil_location_tr}} placeholder into the… | E03-protocols | todo | ready | agent · clinical-reviewer |
+| INT-457 | ON_SITE 112 gate checks the flag, numbers and action codes but not the spoken script text (decision: INT-432/… | E03-protocols | todo | ready | agent · clinical-reviewer |
+| INT-458 | expand_tr passes ½ through unexpanded, and an over-long digit run crashes the build instead of refusing | E03-protocols | todo | ready | agent · clinical-reviewer |
+| INT-476 | kiosk wipe clears the RED store, and the RED screen-reader cover does not hide the kiosk idle warning | E08-mobile | todo | ready | agent (mobile) |
+| INT-487 | probe emitters use fullmatch for id, ref and sha shapes (invariant 6) | E12-admin | todo | ready | agent · security-reviewer |
+| INT-489 | proxy-path gaps outside the packs — subject_role literal mismatch, mid-session speaker switch, carer route in… | E03-protocols | todo | ready | agent · clinical-reviewer |
+| INT-493 | proxy mechanism follow-ups before any proxy content lands (from the INT-483 review) | E03-protocols | todo | ready | agent · clinical-reviewer |
+| INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | blocked | HB-I7 | owner |
+| INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | blocked | HB-I7 | owner |
+| INT-508 | node-forge and braces have no upstream fix: renew their time-boxed exceptions or replace the dependents befor… | E13-infra | todo | ready | agent · security-reviewer |
+| INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | blocked | no blocker record · PR #774 `int-442-egress-proxy` | owner — no blocker record names it |
+| INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | blocked | no blocker record · PR #775 `int-443-elevenlabs-hosted-tts` | owner — no blocker record names it |
+
+### Live · P2 — Hospital pilot
+
+| epic | done | in flight | blocked | todo |
+|---|---:|---:|---:|---:|
+| E01-platform | 1 | 0 | 0 | 0 |
+| E03-protocols | 0 | 0 | 0 | 13 |
+| E06-lanes | 0 | 0 | 1 | 0 |
+| E07-records | 1 | 0 | 0 | 0 |
+| E08-mobile | 3 | 4 | 0 | 0 |
+| E10-connectors | 3 | 1 | 0 | 0 |
+| E11-learning | 3 | 0 | 0 | 1 |
+| E12-admin | 1 | 0 | 0 | 1 |
+| E13-infra | 0 | 0 | 0 | 4 |
+| E14-legal | 0 | 0 | 1 | 4 |
+| E15-research | 2 | 0 | 1 | 0 |
+| E17-release | 0 | 0 | 0 | 1 |
+
+Remaining, in file order (32):
+
+| id | title | epic | state | PR · blocker · dependencies | owner |
+|---|---|---|---|---|---|
+| INT-061 | Deep pack: cardiology | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-062 | Deep pack: neurology | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-063 | Deep pack: endocrinology | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-064 | Deep pack: urology | E03-protocols | todo | waits on INT-045 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-065 | Deep pack: ophthalmology | E03-protocols | todo | waits on INT-046 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-066 | Deep pack: ent | E03-protocols | todo | waits on INT-046 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-067 | Deep pack: orthopaedics | E03-protocols | todo | waits on INT-045 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-068 | Deep pack: dermatology | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-069 | Deep pack: obgyn | E03-protocols | todo | waits on INT-047 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-070 | Deep pack: paediatrics | E03-protocols | todo | waits on INT-048 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-071 | Deep pack: psychiatry | E03-protocols | todo | waits on INT-049 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-072 | Deep pack: oncology | E03-protocols | todo | waits on INT-044 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-073 | Deep pack: dentistry_general | E03-protocols | todo | waits on INT-050 | agent · clinical-reviewer; sign-off: physician of record (D18 agent lane for simulated patients) |
+| INT-115 | acoustic lane (M3, investigational device module): our own ordinal head, in-memory window, zeroing, study ass… | E06-lanes | blocked | no blocker record | physician of record (D18 agent lane for simulated patients) |
+| INT-174 | DSPy+GEPA offline optimisation (extraction, note modules only) with clinician-edit metric + held-out | E11-learning | todo | waits on INT-153 | agent |
+| INT-191 | Tenants module + onboarding flow | E12-admin | todo | waits on INT-250 | agent · security-reviewer |
+| INT-200 | Residency compose profile (GPU) + runbooks | E13-infra | todo | waits on INT-097 | agent · sre-reviewer; sign-off: owner (the target GPU host) |
+| INT-201 | k8s: k3s + Argo CD + Kyverno/Sigstore admission + PSS restricted + default-deny + Harbor | E13-infra | todo | ready | agent · sre-reviewer; sign-off: owner (infrastructure) |
+| INT-204 | Mesh mTLS (Linkerd) + default-deny NetworkPolicies | E13-infra | todo | waits on INT-201 | agent · sre-reviewer |
+| INT-207 | Chaos suite (monthly) + load to pilot x3 + autoscaling rules | E13-infra | todo | waits on INT-201 | agent · sre-reviewer |
+| INT-219 | Technical documentation (Annex II/III) + clinical evaluation (MDCG 2020-1) + PMCF + notified-body selection | E14-legal | todo | waits on INT-217 | agent · legal-reviewer; sign-off: counsel |
+| INT-220 | Registrations: UTS (TCKKD-KLVZ-03) + UDI; KTS (SBYS) pack; BTK yer saglayici; traffic-log retention 5651 | E14-legal | todo | waits on INT-219 | agent · legal-reviewer; sign-off: counsel |
+| INT-221 | Public-hospital pack: Genelge 2019/12 residency attestation + DDO Rehber mapping + USVS conformance | E14-legal | blocked | HB-L11 · HB-L27 | Turkish counsel (KVKK / health-law), instructed by the owner |
+| INT-222 | Consumer/commercial: mesafeli sozlesme pre-info + withdrawal (if paid tier), IYS integration for marketing, T… | E14-legal | todo | ready | agent · legal-reviewer; sign-off: counsel |
+| INT-227 | AI governance file: model cards, TR bias/fairness eval (dialect, gender, age), transparency labels, EU AI Act… | E14-legal | todo | waits on INT-116 | agent · legal-reviewer |
+| INT-231 | Study tooling: instruments + analysis notebooks for tracks 1-6 (voice vs typed, triage validation, note quali… | E15-research | blocked | HB-R1 · HB-L1 | owner + counsel, after HB-L1 |
+| INT-250 | Tenant onboarding: config, branding, packs, DPA signature via KEP/e-imza, runbook | E17-release | todo | waits on INT-213 | agent · legal-reviewer |
+| INT-320 | Embeddable white-label integration: partner 'Start pre-visit' button + tenant handshake (ADR + scaffold) | E10-connectors | in flight | doing; no open PR | agent · legal-reviewer; sign-off: counsel |
+| INT-336 | Motion: presence orb — one UI-thread state visual replacing PulseDot and the dialogue spinners | E08-mobile | in flight | #716 `int-336-presence-orb` conflicting | agent (mobile) |
+| INT-337 | Motion: dialogue transients wired to the arbiter | E08-mobile | in flight | #717 `int-337-dialogue-transients` conflicting | agent (mobile) |
+| INT-338 | Motion: section sheet — measured fade budget, instant privacy and RED closes | E08-mobile | in flight | #703 `int-338-section-sheet` | agent (mobile) |
+| INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | in flight | #710 `int-340-haptics-policy` conflicting | agent (mobile) |
+
+### Live · P3 — The record that travels
+
+| epic | done | in flight | blocked | todo |
+|---|---:|---:|---:|---:|
+| E02-data | 2 | 0 | 0 | 0 |
+| E05-voice | 0 | 0 | 1 | 0 |
+| E08-mobile | 0 | 1 | 0 | 1 |
+| E14-legal | 0 | 0 | 0 | 1 |
+| E17-release | 0 | 0 | 0 | 1 |
+
+Remaining, in file order (5):
+
+| id | title | epic | state | PR · blocker · dependencies | owner |
+|---|---|---|---|---|---|
+| INT-097 | residency_tr_models tier on GPU: compose.residency, node sizing, on-hardware latency evidence | E05-voice | blocked | HB-I5 | HB-I5: owner |
+| INT-225 | ISO 27001 ISMS: scope, SoA, risk register, policies, internal audit, certification audit | E14-legal | todo | ready | agent · legal-reviewer; sign-off: counsel |
+| INT-251 | Billing: hospital e-Fatura via provider; patient subscription via PSP (iyzico/PayTR); never store PAN | E17-release | todo | waits on INT-222 | agent · legal-reviewer; sign-off: counsel |
+| INT-341 | Motion: press-opacity tokens | E08-mobile | todo | waits on INT-330 | agent (mobile) |
+| INT-342 | Motion: content reveal and a static skeleton | E08-mobile | in flight | #704 `int-342-content-reveal` | agent (mobile) |
+
+### Open PRs whose id has no row on main
+
+| PR | id | phase | branch | rows the branch adds | title |
+|---|---|---|---|---|---|
+| #481 (conflicting) | INT-316 | — | `int-316-paired-row` | INT-316 | INT-316: A paired row has no flex contract, so the label collapses while the trailing control keeps its width |
+| #615 (conflicting) | INT-371 | P1 | `int-371-intake-finish-to-review` | INT-371 | INT-371: Intake flow — Bitirdim finishes to review, the open hint shows once, typed-to-handoff proven |
+| #620 (conflicting) | INT-375 | P1 | `int-375-compiler-ask-order` | INT-375 | INT-375: protocol compiler refuses a gate that reads a later slot (files/13 §9.5) |
+| #628 (conflicting) | INT-379 | P1 | `int-379-generator-capabilities` | INT-379 | INT-379: generator capabilities — duration=omit, code answers, skip_if |
+| #633 (conflicting) | INT-384 | P1 | `int-384-admin-flat-error-code` | INT-384 | INT-384: Admin console reads the API's flat refusal code, so an IP or unconfigured refusal is named as itself |
+| #642 (conflicting) | INT-388 | P1 | `int-388-signoff-packets` | INT-388 | INT-388: physician sign-off packets per department from the review queue and verification trail |
+| #725 (conflicting) | INT-422 | P1 | `int-422-design-system-refresh` | INT-422 | INT-422: design system refresh — native Apple feel, restrained palette, SF Symbols, no AI-generic styling |
+| #728 | INT-423 | P1 | `int-423-chat-rhythm` | INT-422, INT-423 | INT-423: chat interface — natural rhythm and Liquid Glass materials (HIG), content stays solid |
+| #729 | INT-420 | P0 | `int-420-onvizit-rebrand` | INT-420 | INT-420: Önvizit everywhere — finish the Vizite→Önvizit rebrand on main |
+| #737 | INT-427 | P1 | `int-427-specialty-wave` | INT-427 | INT-427: dynamic department question sets — next specialty/cluster wave (author, verifier, engineer) |
+| #738 | INT-425 | P1 | `int-425-store-screenshots` | INT-422, INT-423, INT-425, INT-433 | INT-425: App Store / Play screenshots — story-led, real captures, app-store-screenshots skill |
+| #740 | INT-433 | P1 | `int-433-question-screen` | INT-422, INT-423, INT-433 | INT-433: question screen redesign — native progress, filled inputs, capsule chips, Liquid Glass bars (Mobbin-… |
+| #761 | INT-439 | P0 | `int-439-spend-cap` | INT-428, INT-439 | INT-439: HB-O8 closed — 80 USD/month elective model-spend cap (warn at 80 %), every hosted call charged, sour… |
+| #768 | INT-440 | P0 | `int-440-voice-first-e2e` | INT-440 | INT-440: Voice-first end-to-end test on the iOS simulator + fixes |
+| #771 (conflicting) | INT-451 | P1 | `int-451-mobile-interactions` | INT-422, INT-423, INT-433, INT-451 | INT-451: mobile interaction patterns within ADR-033 — row press highlight, glass nav bar, ADR-037 proposal |
+| #776 | INT-450 | P1 | `int-450-admin-ui` | INT-450 | INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked) |
+| #782 (conflicting) | INT-455 | — | `int-455-tr-numeral-suffix` | INT-455 | INT-455: expand_tr expands a numeral's apostrophe suffix (112'yi), so the life-threat RED REMOTE script compi… |
+| #784 | INT-459 | P1 | `int-459-admin-premium` | INT-450, INT-459 | INT-459: admin-web premium redesign |
+| #788 (conflicting) | INT-461 | — | `int-461-adr-038-motion-amendment` | INT-461 | INT-461: ADR-038 — ADR-033 amendment: spring-in bubbles, selection haptics on chips and the mic, in-tree dete… |
+| #792 | INT-462 | — | `int-462-native-chat` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462 | INT-462: native chat — Liquid Glass capsule composer with mic and send inside, spring-in bubbles, checked cap… |
+| #797 | INT-466 | — | `int-466-chat-stage` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-466 | INT-466: chat stage — ADR-039 and the live dialogue on the new visual language |
+| #801 | INT-464 | — | `int-464-native-welcome` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466 | INT-464: native welcome and sign-in in the stage language (ADR-039 S7) |
+| #804 (conflicting) | INT-470 | P1 | `int-470-owner-question-clinical` | INT-470 | INT-470: resolve INT-448's owner questions — clinical ones under D18 (CD-110), product and data ones by owner… |
+| #806 | INT-472 | — | `int-472-review-grouped` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466, INT-472 | INT-472: review and send as iOS grouped inset lists |
+| #808 | INT-473 | — | `int-473-detent-sheet` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466, INT-472, INT-473 | INT-473: in-tree detent sheet (ADR-038 A3) for the dialogue's section sheet |
+| #809 (conflicting) | INT-471 | P1 | `int-471-legal-lane` | INT-470, INT-471 | INT-471: legal lane — sourced legal-author agent and independent legal reviewer decide legal items (D25, synt… |
+| #813 | INT-468 | P1 | `int-468-red-clinical-values` | INT-468 | INT-468: CD-111 — the cardiac RED do-not lines and the unanswered location wait, sourced under D18 |
+| #816 | INT-469 | P1 | `int-469-adli-tip-no-report-purpose` | INT-469 | INT-469: Adli Tıp pack drops the allied report-purpose item (rapor_amaci), per LD-01 |
+| #818 | INT-474 | P1 | `int-474-deployment-role-gate` | INT-474 | INT-474: deployment-role gate for relatives', household and partner data categories before any register row i… |
+| #819 | INT-477 | P1 | `int-477-capture-solid-chrome` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466, INT-472, INT-473, INT-477 | INT-477: solid chrome on capture-protected screens (owner: "solid"), never Liquid Glass |
+| #821 | INT-478 | P1 | `int-478-capture-protection-refcount` | INT-478 | INT-478: hold screen-capture protection until the last protected screen closes |
+| #828 | INT-482 | P1 | `int-482-store-listing` | INT-482 | INT-482: store listing readiness — EAS metadata, privacy answers, review notes, as Önvizit |
+| #833 | INT-483 | P1 | `int-483-self-proxy` | INT-483 | INT-483: self/proxy answering — ADR-040 and the subject_role addressing mechanism |
+| #835 | INT-484 | P1 | `int-484-ld06` | INT-470, INT-471, INT-484 | INT-484: LD-06 — what admin research and improvement analytics may hold (step 1, synthetic/test scope) |
+| #840 | INT-481 | P1 | `int-481-observability-stack` | INT-481 | INT-481: staff observability stack — Grafana dashboards and admin alerts on the AWS host |
+| #842 | INT-491 | P1 | `int-491-orb-variants` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466, INT-472, INT-473, INT-491 | INT-491: the lens is the orb — every orb layer turns one way (ADR-039 amendment, D29) |
+| #843 | INT-492 | P1 | `int-492-progress-micro` | INT-422, INT-423, INT-433, INT-451, INT-461, INT-462, INT-464, INT-466, INT-472, INT-473, INT-492 | INT-492: question progress and micro-interactions — segmented capsule, chip check slot, press response, still… |
+| #845 (conflicting) | INT-486 | — | `int-486-ops-prom-label-fullmatch` | INT-486 | INT-486: ops_prom label check uses fullmatch, so a trailing newline is refused |
+| #854 | INT-496 | P2 | `int-496-play-later` | INT-482, INT-496 | INT-496: Google Play deferred — the list of everything Play will need |
+| #860 | INT-495 | P1 | `int-495-asc-listing` | INT-482, INT-495, INT-496, INT-502 | INT-495: App Store listing for Önvizit — the App Store Connect draft writer and the promoted App Store copy |
+| #861 | INT-494 | P1 | `int-494-apply-cd111` | INT-446, INT-453, INT-465, INT-468, INT-494 | INT-494: apply CD-111 to the served cardiac RED rule — decided do-not lists, re-signed synthetic rule set |
+| #863 | INT-490 | P1 | `int-490-research-analytics` | INT-490 | INT-490: research and improvement analytics in the admin panel, anonymised aggregates within LD-06 |
+| #866 | INT-497 | P1 | `int-497-voice-experience` | INT-497, INT-504, INT-505 | INT-497: voice experience — the turn ends on silence, one queue per turn, one loudness, measured |
+
+### Open PRs that name no backlog id
+
+| PR | branch | title |
+|---|---|---|
+| #514 | `fix-catalogue-connector-inbound-metric` | fix(observability): catalogue connector_inbound_messages_total (INT-162 follow-up) |
+
+### Open issues with no row on main or on any open PR branch
+
+| issue | id | phase | title |
+|---|---|---|---|
+| #822 | INT-479 | P2 | INT-479: INT-465 RED review follow-ups (non-blocking, from the round-5 approval) |
+| #823 | INT-480 | P2 | INT-480: legal lane follow-ups (non-blocking, from the INT-471 round-3 approval) |
+| #829 | INT-488 | P1 | INT-488: store-review sign-in path for release builds (synthetic tenant only), security-reviewed |
+| #850 | INT-498 | P1 | INT-498: feature audit on the AWS synthetic stack — every requested feature working end to end, nothing demo |
+| #849 | INT-499 | P1 | INT-499: apply ADR-039 and the Liquid Glass research to the remaining screens — visits list, documents, share… |
+| #857 | INT-503 | P1 | INT-503: RED staff-notification follow-ups (from the INT-475 approval) — three must land before the voice lan… |
+| #862 | INT-506 | P2 | INT-506: App Store listing follow-ups from the INT-495 legal approval (non-blocking) |
+| #864 | INT-507 | P1 | INT-507: per-question, platform and triage-share analytics from anonymous-at-source counters (no per-person r… |
+
+### Drift the generator sees — reported here, never repaired by it
+
+- **`done` rows whose GitHub issue is still open** (76; `make backlog-sync` closes them, and the live sync is the operator's): INT-016 (#14), INT-018 (#16), INT-022 (#20), INT-023 (#21), INT-024 (#22), INT-025 (#23), INT-030 (#24), INT-031 (#25), INT-032 (#26), INT-033 (#27), INT-034 (#28), INT-035 (#29), INT-036 (#30), INT-037 (#31), INT-038 (#32), INT-040 (#33), INT-041 (#34), INT-042 (#35), INT-057 (#50), INT-059 (#52), INT-060 (#53), INT-080 (#67), INT-081 (#68), INT-082 (#69), INT-083 (#70), INT-084 (#71), INT-085 (#72), INT-090 (#73), INT-091 (#74), INT-092 (#75), INT-093 (#76), INT-094 (#77), INT-096 (#79), INT-102 (#85), INT-103 (#86), INT-110 (#87), INT-120 (#95), INT-131 (#101), INT-132 (#102), INT-133 (#103), INT-134 (#104), INT-136 (#106), INT-137 (#107), INT-139 (#109), INT-140 (#110), INT-141 (#111), INT-145 (#115), INT-150 (#117), INT-160 (#121), INT-170 (#125), INT-171 (#126), INT-172 (#127), INT-175 (#130), INT-228 (#252), INT-180 (#131), INT-205 (#149), INT-223 (#165), INT-224 (#166), INT-230 (#170), INT-240 (#172), INT-241 (#173), INT-242 (#174), INT-253 (#178), INT-254 (#291), INT-255 (#328), INT-263 (#364), INT-353 (#559), INT-452 (#765), INT-453 (#767), INT-446 (#756), INT-465 (#794), INT-501 (#853), INT-424 (#719), INT-475 (#814), INT-485 (#830), INT-441 (#750)
+- **`todo`/`doing` rows with a merged INT PR** (8; `scripts/backlog/reconcile.py` decides whether they are done): INT-202 (#321), INT-317 (#602), INT-320 (#485, #486, #489), INT-330 (#553), INT-336 (#702), INT-341 (#572), INT-349 (#564), INT-421 (#723)
+- **`todo` rows with an open PR** (8; shown in flight above): INT-058, INT-332, INT-336, INT-337, INT-338, INT-340, INT-342, INT-350
+- **`doing` rows with no open PR** (5): INT-317, INT-320, INT-327, INT-349, INT-421
+- **`awaiting-human` rows no blocker record names** (13): INT-144, INT-347, INT-356, INT-358, INT-389, INT-402, INT-403, INT-408, INT-398, INT-394, INT-428, INT-442, INT-443
+
+<!-- END generated live status -->
 
 ---
 
