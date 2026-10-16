@@ -61,7 +61,19 @@ decision: >-
   pregnancy gate are owner parts. Renamed slots take a new id whenever the old id names the part
   removed, so a stale reader fails at compile time instead of misreading. Generated
   soru_N ids after a removed item are pinned with explicit slot= names so no other
-  id moves.
+  id moves. Round 4 amendment (INT-519 item 4, 16 Oct 2026), T1 re-read on the
+  corrected premise. Base lmp_date never closed on a plain "hayır": its 'hayir'
+  literal matched no answer, and since INT-441 its gate names the three authored
+  answers. So base already asks the last menstrual period after every answer to
+  pregnancy_status, in every chain, and the base step T1 asked for is met for every
+  patient who answers. The three-answer gate stays and is never narrowed to
+  != 'hayır'. The remaining gap is a pregnancy_status that is unanswered, declined or
+  UNCLEAR: every term of the gate is then Unknown and the LMP is not asked. CD-110's
+  population guard (PR #804) closes it as an extra OR term on the three-answer gate,
+  so the guard only ever adds askers. While CD-110's age bounds are draft, the age
+  atom, which can only narrow, is left out. The kadın Q2 son_adet_tarihi goes once
+  that OR term is applied. CD-112 item 3 gives the T4(b) gate its authored literal,
+  pregnancy_status != 'hayır'.
 status: active
 scope: simulated_patient_stress_testing
 scope_note: >-
@@ -1443,8 +1455,67 @@ value:
         a parent's concern, including height. Both stay.
       sources: [NICE-NG75]
       status: active
+  # Round 4: amendments after the round-3 verdict. Each keeps the item it amends
+  # unchanged above (its history) and says what now applies. The verifier's
+  # round-4 verdict is pending until the independent verifier records it.
+  amendments:
+    - round: 4
+      date: 2026-10-16
+      issue: "INT-519 (GitHub #885) item 4"
+      item: "docs/evidence/verification/near-twin-sweep-582.md#L94"
+      ref: T1
+      amends: owner_part
+      premise_corrected: >-
+        T1's owner part assumed base lmp_date carried pregnancy_status != 'hayir' and so
+        closed on a plain "hayır". It never closed: 'hayir' matched no answer, and since
+        INT-441 the gate names the three authored answers. Base asks the LMP after every
+        answer to pregnancy_status, in every chain.
+      re_read: >-
+        The base step T1 asked for ("base lmp_date is asked without that gate in this
+        chain") is met for every patient who answers pregnancy_status. The three-answer
+        gate stays and is never narrowed to != 'hayır': a woman who answers "hayır" may
+        still be pregnant (NG126 1.4.5), and a missed period is a common ectopic symptom
+        (NG126 1.4.3). The remaining gap is a pregnancy_status that is unanswered,
+        declined or UNCLEAR (an off-choice answer that T4(c)'s hedge mapping does not
+        reach). Every term of the three-answer gate is then Unknown, an Unknown gate opens
+        nothing (files/13 §9.2), and the LMP is not asked.
+      decision: >-
+        The gap is closed by CD-110's population guard (PR #804, INT-470), re-spelled as
+        an extra OR term on the three-answer gate (gate_shape), never on != 'hayır' or
+        'hayir'. The guard decides only when pregnancy_status is Unknown, so it only ever
+        adds askers and never removes the LMP after any of the three answers. This keeps
+        what CD-110's gate does as written ('hayir' matches no answer, so its first term
+        is true after every answer). It does not carry CD-110's prose reading that a
+        plain "hayır" from a recorded male sex at birth or a recorded age outside the
+        bounds skips the LMP: under the corrected premise that would ask fewer patients
+        than base asks today, and its age bounds are draft_needs_source in CD-110. While
+        those bounds are draft, the age atom is left out, because it can only narrow
+        (gate_shape_while_age_bounds_draft). The atoms are bound as CD-110 says: two-valued,
+        from recorded demographics, false when nothing is recorded, never through the slot
+        lookup.
+      gate_shape: "pregnancy_status == 'evet' || pregnancy_status == 'hayır' || pregnancy_status == 'emin değilim' || (recorded_male_sex_at_birth == false && recorded_age_outside_bounds == false)"
+      gate_shape_while_age_bounds_draft: "pregnancy_status == 'evet' || pregnancy_status == 'hayır' || pregnancy_status == 'emin değilim' || (recorded_male_sex_at_birth == false)"
+      applies_when: "CD-110 (PR #804, INT-470) has landed and its guard prerequisites exist (the GuardExpr function sex_at_birth and the two-valued atom binding); until then base keeps the three-answer gate and the gap stays open"
+      kadin_q2: "son_adet_tarihi (proposal Q2) leaves the kadın chain once the OR term is applied; until then it stays, because it is the only ask that reaches a woman whose pregnancy_status is Unknown"
+      respelling: "whichever of INT-519 and INT-470 merges second re-spells CD-110's gate_shape and opens_on to this form, and CD-110's and CD-100.md's quotes to the authored literals"
+      paediatric_note: "no paediatric extrapolation: every under-18 session is refused (INT-223, HB-L20), so no child is asked the LMP through this gate until the guardian path and its proxy copy exist, and the age atom's bounds stay CD-110's open literal"
+      safety_direction: "never fewer askers than today: every answer still opens the LMP, and the guard adds the patients whose pregnancy answer is missing or UNCLEAR unless a recorded fact excludes them"
+      red_flag_gate_input: "lmp_date gates the pregnancy family (rf.pregnancy_bleeding_pain, HB-C6), so applying the OR term runs the goldens with near-miss controls and make safety in the same change (CD-110 T1 (5))"
+      sources: [NICE-NG126]
+      status: active
+    - round: 4
+      date: 2026-10-16
+      issue: "INT-519 (GitHub #885) item 3"
+      item: "docs/evidence/verification/near-twin-sweep-582.md#L97"
+      ref: T4
+      amends: "change (b)"
+      decision: "T4 (b)'s five items are gated on pregnancy_status != 'hayır', the authored literal CD-112 item 3 decides; the 'hayir' spelling in change (b) above is the pre-INT-441 one and is history"
+      gate: "pregnancy_status != 'hayır'"
+      decided_in: CD-112
+      sources: [NICE-NG126]
+      status: active
 verifier:
-  verdict: agree
+  verdict: pending
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree (2026-10-03). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-519 amendment, T1 owner part re-read and the T4(b) literal, 16 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

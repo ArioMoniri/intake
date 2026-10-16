@@ -7063,3 +7063,26 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; goldens updated with a near-miss negative control; coverage floors held."
   tests: [tests/voice/test_anchor_unclear.py, tests/protocols/test_answer_states.py, tests/engine/test_clarification_bounds.py, tests/ai/test_clarification_contract.py, tests/safety/test_triage_goldens.py]
   sec_row: "clinical-core"
+- id: INT-519
+  epic: E03-protocols
+  phase: P1
+  title: "D18 decisions — review-queue cluster gate literals (CD-112), CD-100 T1 on the corrected premise, CD-04/CD-05 amendments for the onset anchor"
+  # GitHub #885, from the INT-441 (#750) clinical review, with items 5 to 12
+  # added from the INT-522 (#888) and INT-540 (#913) clinical reviews, 16 Oct
+  # 2026. D18 lane: a sourced medical author agent and an independent
+  # verifier; the reviewers' recommendations are inputs, not decisions.
+  # Decisions only: no gate, pack, rule or runtime code changes here, and the
+  # engineering each decision needs is listed in the evidence. Stacked on
+  # INT-540 (PR #918).
+  depends_on: [INT-432, INT-448, INT-522, INT-540]
+  labels: [area:protocols, risk:clinical]
+  status: done
+  evidence: docs/evidence/INT-519.md
+  acceptance:
+    - "Items 1 to 3 (the cluster gate literals) are decided in one new record, CD-112, each literal a member of its slot's committed value set; item 1 applies only once ADR-040 (#833) lands."
+    - "Item 4 (CD-100 T1 owner part) is a CD-100 amendment re-read on the corrected premise; items 5 to 12 are CD-04 and CD-05 amendments that keep every decided value they do not change, with item 5's split carried as machine-readable per-cause keys."
+    - "Items 6, 7 and 10 are decided only where they can be sourced; anything left open stays the invariant-17 literal under draft_needs_source with the missing source or clinician input named."
+    - "Every value cites a primary source against a committed verbatim snapshot (url, version, date, retrieved_on), states its safety direction, and carries no paediatric extrapolation without the caveat; each record carries an independent verifier verdict."
+    - "tests/protocols/test_int519_decisions.py pins that the decisions are machine-readable and internally consistent, with near-miss controls; the register's provenance tests stay green."
+  tests: [tests/protocols/test_int519_decisions.py, tests/protocols/test_clinical_decisions.py, tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"

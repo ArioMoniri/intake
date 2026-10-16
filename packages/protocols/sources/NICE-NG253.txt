@@ -1,0 +1,52 @@
+# guideline_id: NICE-NG253
+# title: Suspected sepsis in people aged 16 or over: recognition, assessment and early management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG253; published 19 November 2025; last updated 23 September 2026 (Update information: September 2026, January 2026, November 2025)
+# url: https://www.nice.org.uk/guidance/ng253/chapter/Could-this-be-sepsis
+# url_update_information: https://www.nice.org.uk/guidance/ng253/chapter/Update-information
+# retrieved_on: 2026-10-16
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags removed, one line per block element, whitespace runs collapsed to single spaces
+# scope: verbatim excerpt of the 'Could this be sepsis?' chapter page header, recommendations 1.1.4, 1.1.10 and 1.2.1, then the first three entries of the Update information page; nothing paraphrased or edited. '[...]' marks an omission between excerpts. Cited for INT-519 (CD-112 item 2).
+---
+Reference number: NG253
+Published:
+19 November 2025
+Last updated:
+23 September 2026
+[...]
+1.1 When to suspect sepsis
+1.1.4
+Assess people who might have sepsis with extra care if there is difficulty in taking their history, for example people with English as a second language or people with communication challenges (such as those associated with neurodiversity, cognitive impairment, learning disabilities, severe mental health conditions or brain injury). [2016, amended 2025]
+[...]
+1.1.10
+Suspect neutropenic sepsis in people who become unwell and:
+are having or have had systemic anticancer treatment within the last 30 days
+are receiving or have received immunosuppressant treatment for reasons unrelated to cancer; use clinical judgement (based on the person's specific condition, medical history, or both, and on the treatment they received) to determine whether any past treatment may still be likely to cause neutropenia. [2016, amended 2024]
+[...]
+1.2 People who are most vulnerable to sepsis
+1.2.1
+Take into account the factors that may increase the risk of developing sepsis or sepsis not being identified promptly. These include:
+age: being 75 or over
+ethnicity: being from an ethnic minority background
+clinical features such as:
+frailty
+multimorbidities or severe chronic conditions
+impaired immune function because of illness or medical treatment
+surgery or invasive procedures in the past 6 weeks
+indwelling catheters
+repeated antibiotic use
+breach of skin integrity
+communication challenges, such as with people:
+with learning disabilities
+with cognitive impairment
+who need an interpreter
+drugs or alcohol misuse
+social, economic or environmental factors such as:
+homelessness
+living in deprived areas
+See also recommendation 1.1.10 on when to suspect neutropenic sepsis . [2025]
+[...]
+Update information
+September 2026: We have updated recommendations 1.8.2 and 1.8.16 based on a review of the evidence on procalcitonin testing. This updated content is marked [2026] .
+January 2026: We have amended the recommendations to refer to 'learning disabilities' rather than 'learning difficulties'.
+November 2025 : We have split the sepsis guideline, that covered all age groups, into 3 guidelines (including this one). See also NICE's guidelines on suspected sepsis in under 16s: recognition, diagnosis and early management and suspected sepsis in pregnant or recently pregnant people .

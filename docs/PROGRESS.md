@@ -1,5 +1,25 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-16T21:30:00Z · INT-519 · done, verifier pending (committed locally, not pushed; stacked on #918 INT-540)
+- Goal: the D18 lane's twelve items on #885.
+  - Items 1–4 come from the INT-441 clinical review: three review-queue cluster gates compare a code slot against a string no answer holds, and CD-100 T1 rested on a premise INT-441 corrected.
+  - Items 5–12 come from the INT-522 and INT-540 reviews: how the onset anchor resolves when the patient hedges, says "yok", straddles two bands, or the session ends.
+- Plan: decisions only, authored by a sourced medical agent; the independent verifier follows.
+  - Items 1–3 go into a new record, CD-112.
+  - Item 4 is a CD-100 round-4 amendment.
+  - Items 5–12 are CD-04 and CD-05 round-3 amendments that keep every decided value they do not change.
+  - Two new verbatim snapshots: NICE NG253 and NICE CG178.
+- Tests added: `tests/protocols/test_int519_decisions.py` (19). RED: 19 failed (`KeyError: 'CD-112'`). GREEN: 19 passed, the register loads with every quote verbatim, and the runtime suites that read CD-04 and CD-05 are unchanged (283 passed).
+- Result (docs/evidence/INT-519.md):
+  - Decided: items 1 (applies once #833 lands), 2, 3, 4 (once #804 lands), 5, 7, 8, 9, 10, 11 and 12 (author note for the verifier).
+  - Left open: item 6. The 12–72 h band's EK-4 level and register have no committed source; it is the signing clinician's (HB-C1), and the exact missing pieces are recorded in CD-05.
+  - The register's two verdict tests fail until the verifier records its rounds, by design (CD-110 precedent).
+  - Protocols lane 97.63 % (2082 passed, plus those two). `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.32 %. Placeholder, PHI, claims and evidence gates OK.
+- Invariants touched and still passing: 1, 7, 10, 17 (only CD-05's own open literal), 21.
+- Decisions / ADRs / `00_STATE.md` rows: CD-112 (new, id allocated by the orchestrator); CD-04 and CD-05 round 3; CD-100 round 4. No other id minted.
+- Backlog: INT-519 row added (`area:protocols`, `risk:clinical`, depends on INT-432, INT-448, INT-522 and INT-540, `clinical-content`); the three pins go from 359 to 360; files/11 regenerated.
+- Blocked on: the independent D18 verifier's verdicts (four records). Engineering each decision requires is listed in the evidence, with no ids minted.
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.

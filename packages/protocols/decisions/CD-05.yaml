@@ -2,11 +2,11 @@ kind: clinical_decision
 id: CD-05
 title: "Tense anchor per RED rule and the scripted anchor question"
 question: "For each RED rule, which slot anchors its tense, how is the anchor asked as a scripted closed choice, how does each choice resolve against the session reference time, and how do NICE CG95's twelve-hour and seventy-two-hour windows map onto the engine's calendar-day tenses?"
-decision: "Only the two active chest-pain rules are evaluable; both anchor on chest_pain.onset_at, which holds the time of the most recent episode (NICE CG95 1.2.1.1 asks when the last episode was). The paediatric-airway and crisis rules are draft and their anchors stay draft_needs_source. The anchor is asked as one scripted closed choice whose four non-overlapping bands are NICE's own: 'şu anda var', 'son on iki saat içinde', 'on iki saatten önce ama son üç gün içinde', 'üç günden daha önce'. The illustrative calendar words of the physician review (şu an / bugün / bu hafta / daha önce) are not used, because 'bugün' cannot express a twelve-hour band that crosses midnight and 'bu hafta' changes meaning with the weekday. The engine's tense windows are calendar days, with now and today both equal to the reference day (context.py temporal_within). 'şu anda var' and 'son on iki saat içinde' resolve to the reference day: NICE refers both for emergency assessment when an ECG is not available, which is every pre-visit session, so the now-tensed K2 rule may fire even when the twelve hours began the previous calendar day. 'üç günden daha önce' resolves to the reference day minus three, the most acute day consistent with 'more than seventy-two hours ago'; neither active rule fires, matching NICE 1.2.1.10, which sends that patient to detailed clinical assessment rather than emergency or same-day referral. The final resolution of 'on iki saatten önce ama son üç gün içinde' (twelve to seventy-two hours) stays draft_needs_source: NICE 1.2.1.8 asks for urgent same-day assessment, the K2 rule has only tense now (resolving to the reference day sends the patient to 112 for a pain one or two days old, the over-alarm files/04 §8.1 rule 4 warns against), resolving to an earlier day fires nothing (under-triage against NICE), and the Tense enum has no seventy-two-hour member. While it is draft the band is never left Unknown: it resolves to the reference day, accepting over-triage as the fail-closed direction inside D18's simulated scope, and the record labels the resolution as the while-draft one. An answer that fits no choice, or 'bilmiyorum', is recorded UNCLEAR and resolved to the more acute reading, the reference day. The council never fills an anchor and a document never feeds one."
+decision: "Only the two active chest-pain rules are evaluable; both anchor on chest_pain.onset_at, which holds the time of the most recent episode (NICE CG95 1.2.1.1 asks when the last episode was). The paediatric-airway and crisis rules are draft and their anchors stay draft_needs_source. The anchor is asked as one scripted closed choice whose four non-overlapping bands are NICE's own: 'şu anda var', 'son on iki saat içinde', 'on iki saatten önce ama son üç gün içinde', 'üç günden daha önce'. The illustrative calendar words of the physician review (şu an / bugün / bu hafta / daha önce) are not used, because 'bugün' cannot express a twelve-hour band that crosses midnight and 'bu hafta' changes meaning with the weekday. The engine's tense windows are calendar days, with now and today both equal to the reference day (context.py temporal_within). 'şu anda var' and 'son on iki saat içinde' resolve to the reference day: NICE refers both for emergency assessment when an ECG is not available, which is every pre-visit session, so the now-tensed K2 rule may fire even when the twelve hours began the previous calendar day. 'üç günden daha önce' resolves to the reference day minus three, the most acute day consistent with 'more than seventy-two hours ago'; neither active rule fires, matching NICE 1.2.1.10, which sends that patient to detailed clinical assessment rather than emergency or same-day referral. The final resolution of 'on iki saatten önce ama son üç gün içinde' (twelve to seventy-two hours) stays draft_needs_source: NICE 1.2.1.8 asks for urgent same-day assessment, the K2 rule has only tense now (resolving to the reference day sends the patient to 112 for a pain one or two days old, the over-alarm files/04 §8.1 rule 4 warns against), resolving to an earlier day fires nothing (under-triage against NICE), and the Tense enum has no seventy-two-hour member. While it is draft the band is never left Unknown: it resolves to the reference day, accepting over-triage as the fail-closed direction inside D18's simulated scope, and the record labels the resolution as the while-draft one. An answer that fits no choice, or 'bilmiyorum', is recorded UNCLEAR and resolved to the more acute reading, the reference day. The council never fills an anchor and a document never feeds one. Round 3 amendment (INT-519, 16 Oct 2026). The unresolved answer names every cause it covers: a hedge, alone or beside a choice, resolved at once (CD-04 round 3); an answer that fits no choice, a plain 'yok' or 'olmadı' among them, after its one follow-up; and an anchor question asked but never answered when the session closes, recorded with the label session_closed. An anchor never asked when the session closes, while chest_pain.present reads true, stays NOT_ASKED and is shown as not asked; the rules engine evaluates it once, at close, as the reference day (label never_asked_at_close), and a CD-08 clinic-inbox item records that the episode was never dated. NICE CG95 1.2.1.1 asks first whether the pain is current, and an unasked anchor cannot exclude that. An answer that fits two bands is a no-choice answer and takes its one follow-up; if it still fits two, it resolves to the more acute of them, and where the build cannot tell which bands it fits, to the unresolved answer, which is never less acute. The final resolution of the twelve-to-seventy-two-hour band stays open: closing it needs a seventy-two-hour tense, a same-day cardiac arm whose EK-4 level and register no committed source fixes, and a resolution that the now and today arms do not both read as the reference day."
 status: active
 scope: simulated_patient_stress_testing
 author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
-inference_disclosure: "Resolving an ambiguous or unknown anchor to the more acute band is a design rule from the 2 Oct 2026 physician pre-review (design change 4), which is not a committed repository file; NICE CG84's 'if in doubt' sentence is cited as the nearest NICE statement of the same direction, from a guideline on gastroenteritis in children under five, not as a chest-pain source. Mapping each band onto calendar days (reference_day for both twelve-hour bands, reference day minus three for 'more than seventy-two hours') and resolving the twelve-to-seventy-two-hour band to the reference day while it is draft are this author's operationalisation; the latter accepts over-triage only within D18's simulated scope."
+inference_disclosure: "Resolving an ambiguous or unknown anchor to the more acute band is a design rule from the 2 Oct 2026 physician pre-review (design change 4), which is not a committed repository file; NICE CG84's 'if in doubt' sentence is cited as the nearest NICE statement of the same direction, from a guideline on gastroenteritis in children under five, not as a chest-pain source. Mapping each band onto calendar days (reference_day for both twelve-hour bands, reference day minus three for 'more than seventy-two hours') and resolving the twelve-to-seventy-two-hour band to the reference day while it is draft are this author's operationalisation; the latter accepts over-triage only within D18's simulated scope. Round 3 (INT-519): evaluating a never-asked anchor at close as the reference day applies the same more-acute rule to the case of least information; NICE CG95 1.2.1.1 orders the check (current pain first) but says nothing about a session that ends before it, so the extension is this author's. It over-triages a patient whose affirmed pain was long past (for example CD-04's 'eskiden vardı'); the qualifier travels to the clinician with the label. Ordering the bands by NICE's referral urgency to break a straddle is this author's operationalisation."
 spec_basis:
   - file: packages/protocols/src/protocols/triage/context.py
     section: "temporal_within docstring"
@@ -20,6 +20,22 @@ spec_basis:
     section: "How we work"
     quote: "build the mechanism, wire the gate, make it fail closed, leave the content empty."
     supports: "choices (twelve-to-seventy-two-hour band): while_draft"
+  - file: packages/protocols/src/protocols/types.py
+    section: "Tense"
+    quote: 'WITHIN_7D = "within_7d"'
+    supports: "choices (twelve-to-seventy-two-hour band): final_resolution_needs, the nearest tense past today is seven days (round 3)"
+  - file: packages/protocols/src/protocols/types.py
+    section: "RedFlagRoute"
+    quote: 'SAME_DAY_ACIL = "SAME_DAY_ACIL"'
+    supports: "choices (twelve-to-seventy-two-hour band): final_route (round 3)"
+  - file: docs/evidence/INT-540.md
+    section: "Left to the D18 lane, 6"
+    quote: "K2 cannot fire, and must-ask coverage reports the gap."
+    supports: "never_asked_at_close (round 3): what happens today"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§11.2 Contradiction — and it can never lower triage"
+    quote: "Monotonic: a contradiction can never lower a level"
+    supports: "unresolved_answer.applies_to (round 3): a plain 'yok' to the onset question never retracts chest_pain.present"
 sources:
   - kind: guideline
     guideline_id: NICE-CG95
@@ -78,6 +94,36 @@ sources:
     snapshot: packages/protocols/sources/NICE-CG84.txt
     supports: "unresolved_answer, ambiguity"
     caveat: "Paediatric gastroenteritis scope (children under five, dehydration and shock). Cited only for the direction NICE takes under doubt (manage as the more severe category), not as a chest-pain or timing source; the snapshot is a byte-identical copy of the one committed for CD-07..CD-10."
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    section: "1.2.1.1"
+    quote: "Check immediately whether people currently have chest pain."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+    supports: "never_asked_at_close and unresolved_answer (round 3): the first question is whether the pain is current, which an unanswered or unasked anchor cannot exclude"
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    section: "1.2.1.8"
+    quote: "If an ACS is suspected (see recommendation 1.2.1.3) and there are no reasons for emergency referral, refer people for urgent same-day assessment if:"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+    supports: "choices (twelve-to-seventy-two-hour band): final_route (round 3); straddle: the bands are ordered by NICE's referral urgency"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kardiyak ağrıya benzer göğüs ağrısı"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "choices (twelve-to-seventy-two-hour band): final_resolution_needs (round 3), EK-4 grades chest pain at the door by its character, not by when it last occurred"
+    caveat: "EK-4 is the acil servis door-triage table; it carries no time since the last episode, so it cannot by itself set a level for a pain-free patient whose last episode was twelve to seventy-two hours ago."
 value:
   anchors:
     - rule: rf.chest_pain_cardiac_features
@@ -127,8 +173,16 @@ value:
         record_label: "while_draft_resolution"
         never_unknown: true
       status: draft_needs_source
-      source_gap: "NICE CG95 1.2.1.8 gives this band urgent same-day assessment. rf.chest_pain_cardiac_features has only tense now, so a final resolution to the reference day routes the patient to EMERGENCY_NOW (the over-alarm files/04 §8.1 rule 4 warns against), and resolving to any earlier day fires neither active rule (under-triage against NICE). Closing it needs a same-day cardiac-features arm and a tense member for seventy-two hours, both rule and DSL changes for the signing clinician."
-      sources: [NICE-CG95]
+      source_gap: "NICE CG95 1.2.1.8 gives this band urgent same-day assessment. rf.chest_pain_cardiac_features has only tense now, so a final resolution to the reference day routes the patient to EMERGENCY_NOW (the over-alarm files/04 §8.1 rule 4 warns against), and resolving to any earlier day fires neither active rule (under-triage against NICE). Closing it needs a same-day cardiac-features arm and a tense member for seventy-two hours, both rule and DSL changes for the signing clinician. Round 3 (INT-519 item 6): the route is sourced (urgent same-day assessment is the product's SAME_DAY_ACIL), but the arm's EK-4 level and register are not: EK-4 grades chest pain at the acil door by its character ('Kardiyak ağrıya benzer göğüs ağrısı'), with no time since the last episode, and no committed Turkish or NICE source sets a level for a pain-free patient whose last episode was twelve to seventy-two hours ago. That choice belongs to the signing clinician (HB-C1), with goldens."
+      # Round 3 (INT-519 item 6): what closing the band needs, so the open literal
+      # above says exactly what is missing rather than only that something is.
+      final_route: SAME_DAY_ACIL
+      final_resolution_needs:
+        - "a Tense member covering seventy-two hours; the nearest past today is within_7d (a DSL change)"
+        - "a cardiac-features arm for this band with route SAME_DAY_ACIL (NICE CG95 1.2.1.8), as a new base.life_threat rule with goldens and a near-miss control at both band edges (invariant 7; make safety; CODEOWNER)"
+        - "that arm's EK-4 level and register, which no committed source fixes (EK-4 has no time axis): the signing clinician's choice (HB-C1)"
+        - "a representation in which the now (K2) and today (K1) arms do not both read this band as the reference day: while the rules read one calendar day, any day either fires K2 or neither cardiac arm, and moving off the reference day also stops K1 for a non-cardiac pain in the band; so the band reaches the rules as a band, or K2's window is set in hours"
+      sources: [NICE-CG95, TR-EK4-2022]
     - choice_tr: "üç günden daha önce"
       nice_band: "last episode more than seventy-two hours ago (CG95 1.2.1.10, detailed clinical assessment; referral by clinical judgement)"
       resolves_to: reference_day_minus_3
@@ -136,17 +190,103 @@ value:
       status: active
       sources: [NICE-CG95]
   unresolved_answer:
-    applies_to: "an answer matching no choice, or 'bilmiyorum'"
+    # Round 3 (INT-519 items 9 and 11): the first line is rounds 1 and 2; the rest
+    # name each case it already covered or now covers, by the cause the runtime
+    # records (INT-540 UnclearCause).
+    applies_to:
+      - "an answer matching no choice, or 'bilmiyorum'"
+      - "a CD-04 hedge, alone or beside a choice: resolved at once, with no follow-up (cause hedge; CD-04 round 3, INT-519 items 5 and 8)"
+      - "an answer that binds no choice and that no CD-04 entry reads, a plain 'yok' or 'olmadı' among them, after its one follow-up (cause no_choice; INT-519 item 9); it never retracts chest_pain.present"
+      - "the anchor question asked and never answered when the session closes (cause session_closed; INT-519 item 11)"
+    causes: [hedge, no_choice, session_closed]
+    record_label_by_cause:
+      hedge: hedge
+      no_choice: no_choice
+      session_closed: session_closed
     answer_state: UNCLEAR
     resolves_to: reference_day
     basis: "more-acute rule of the 2 Oct 2026 physician pre-review (inference_disclosure); NICE CG84's 'if in doubt' direction, cited with its paediatric-scope caveat"
     status: active
     sources: [NICE-CG84, NICE-CG95]
+  # Round 3 (INT-519 item 10): the anchor the session never reached.
+  never_asked_at_close:
+    applies_to: "an active anchor still NOT_ASKED when the session closes (end, abandonment or time-out) while chest_pain.present reads true, qualified or not"
+    answer_state: NOT_ASKED
+    rendered: "Sorulmadı"
+    evaluated_as: reference_day
+    evaluated_when: "once, at close, by the rules engine only (invariant 1); nothing is bound to the slot"
+    record_label: never_asked_at_close
+    inbox_item:
+      decision_ref: CD-08
+      kind: chest_pain_arms_unresolved
+      pinned_to_note: true
+      never_dropped: true
+    not_applied_when: "chest_pain.present is absent, not asked or UNCLEAR: no chest-pain rule can fire, and CD-04's own trigger covers an UNCLEAR present"
+    patient_delivery: "a RED that fires at close takes the existing RED path (INT-540 close_session); notify_clinic is always for both chest-pain rules; this decision changes no RED delivery"
+    basis: "NICE CG95 1.2.1.1 asks first whether the pain is current, and an unasked anchor cannot exclude it; the more-acute rule of unresolved_answer, applied to the case of least information (inference_disclosure)"
+    status: active
+    sources: [NICE-CG95, NICE-CG84]
+  # Round 3 (INT-519 item 7): an answer that fits two bands.
+  straddle:
+    applies_to: "an answer that fits two or more of the authored bands and binds none, for example 'iki üç gün önce' across the seventy-two-hour edge"
+    answer_state: UNCLEAR
+    follow_up_cause: no_choice
+    tie_break: more_acute
+    order: "by NICE CG95 referral urgency: 'şu anda var' and 'son on iki saat içinde' (1.2.1.7, emergency), then 'on iki saatten önce ama son üç gün içinde' (1.2.1.8, urgent same-day), then 'üç günden daha önce' (1.2.1.10, clinical judgement)"
+    resolves_to: "the day of the more acute of the bands the answer still fits after its one follow-up"
+    fallback: unresolved_answer
+    fallback_when: "the build cannot tell which bands the answer fits"
+    record_label: straddle_more_acute
+    note: "while the twelve-to-seventy-two-hour band resolves to the reference day, every straddle resolves to the reference day, the same day as the fallback; the tie-break first changes an outcome when that band's final resolution lands"
+    status: active
+    sources: [NICE-CG95, NICE-CG84]
   ambiguity: more_acute
   document_may_feed_anchor: false
   council_may_fill: false
+  # Round 3: what changed, item by item. The verifier's round-3 verdict is pending
+  # until the independent verifier records it in `verifier`.
+  amendments:
+    - round: 3
+      date: 2026-10-16
+      issue: "INT-519 (GitHub #885)"
+      origin: "INT-522 (#888) and INT-540 (#913) clinical reviews; the reviewers' recommendations were inputs, not decisions"
+      items:
+        - item: 5
+          decision: "the anchor's follow-up bound is CD-04's tense_anchor_follow_up_tr_asks: none for a hedge, one for a no-choice answer; unresolved_answer then resolves it"
+          keys: [unresolved_answer.applies_to, unresolved_answer.causes]
+          sources: [NICE-CG95, NICE-CG84]
+          status: active
+        - item: 6
+          decision: "not decided: the band's final resolution stays the invariant-17 literal under draft_needs_source, and its while-draft resolution (the reference day, labelled while_draft_resolution) is unchanged. Recorded now: the route it needs (SAME_DAY_ACIL, NICE CG95 1.2.1.8) and exactly what else is missing (final_resolution_needs), chiefly the arm's EK-4 level and register, which no committed source fixes."
+          keys: [choices.final_route, choices.final_resolution_needs]
+          safety_direction: "unchanged while draft: over-triage (K2 can fire for this band), accepted only within D18's simulated scope"
+          sources: [NICE-CG95, TR-EK4-2022]
+          status: draft_needs_source
+          source_gap: "the EK-4 level and register of a same-day cardiac arm for a pain-free patient whose last episode was twelve to seventy-two hours ago: EK-4 has no time axis and no committed NICE, ESC or Turkish source sets one; it is the signing clinician's (HB-C1), with the rule and DSL changes in final_resolution_needs"
+        - item: 7
+          decision: "an answer that fits two bands takes the no-choice follow-up and, if it still fits two, resolves to the more acute of them; where the build cannot tell which bands it fits, unresolved_answer applies (straddle)"
+          keys: [straddle]
+          safety_direction: "never less acute than any band the answer fits, and never less acute than the fallback the build has today"
+          sources: [NICE-CG95, NICE-CG84]
+          status: active
+        - item: 9
+          decision: "a plain 'yok' or 'olmadı' to the onset question is UNCLEAR with cause no_choice under unresolved_answer, never ASKED_ABSENT, and never retracts chest_pain.present (CD-04 round 3)"
+          keys: [unresolved_answer.applies_to]
+          sources: [NICE-CG95]
+          status: active
+        - item: 10
+          decision: "an anchor never asked when the session closes, while chest_pain.present reads true, stays NOT_ASKED, is evaluated once at close as the reference day (label never_asked_at_close) and raises a CD-08 chest_pain_arms_unresolved inbox item (never_asked_at_close)"
+          keys: [never_asked_at_close]
+          safety_direction: "more acute than today, where the anchor stays Unknown and neither chest-pain rule can fire; over-triages an affirmed pain that was long past, and the qualifier travels with the label"
+          sources: [NICE-CG95, NICE-CG84]
+          status: active
+        - item: 11
+          decision: "an anchor question asked and never answered when the session closes is named in unresolved_answer.applies_to and recorded with the label session_closed; CD-04's anchor_trigger raises the inbox item at close"
+          keys: [unresolved_answer.applies_to, unresolved_answer.record_label_by_cause]
+          sources: [NICE-CG95, NICE-CG84]
+          status: active
 verifier:
-  verdict: agree
+  verdict: pending
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree_with_changes; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 3 (INT-519 amendment, items 5, 6, 7, 9, 10 and 11, 16 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

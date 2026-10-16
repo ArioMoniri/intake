@@ -365,7 +365,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-540 (the onset anchor always resolves — CD-04's UNCLEAR states, a
     # defined clarification_needed, the session's close — so K2 cannot stay
     # silent, GitHub #913); grows only with a stated reason.
-    assert len(ids) == 359, f"expected 175 blueprint + 184 added issues, got {len(ids)}"
+    # + INT-519 (D18 decisions: the review-queue cluster gate literals in
+    # CD-112, CD-100 T1 on the corrected premise, CD-04 and CD-05 amendments
+    # for the onset anchor, GitHub #885); grows only with a stated reason.
+    assert len(ids) == 360, f"expected 175 blueprint + 185 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

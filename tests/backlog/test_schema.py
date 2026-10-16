@@ -206,7 +206,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-540 (the onset anchor always resolves: CD-04's UNCLEAR states, a
     # defined clarification_needed and the session's close; from the INT-522
     # clinical review, GitHub #913).
-    assert len(ids) == 359
+    # + INT-519 (D18 decisions: the review-queue cluster gate literals in
+    # CD-112, CD-100 T1 on the corrected premise, CD-04 and CD-05 amendments
+    # for the onset anchor; GitHub #885).
+    assert len(ids) == 360
     import re
 
     for i in ids:
