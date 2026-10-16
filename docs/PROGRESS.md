@@ -3409,3 +3409,33 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
 - Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-16T07:55:00+03:00 · INT-511 · done (PR open, not merged; trigger staged for the owner)
+- Goal: the synthetic host follows main. From the INT-498 audit (#850, §5 P2), GitHub #873. Acceptance, verbatim from the issue: "the job refuses an unmerged sha, a frozen state and a red smoke; the host revision equals main after a run". The brief adds a refusal for a sha whose /version parity fails, a commit status, a configurable trigger (nightly by default, the owner picks), a dry run, and no workflow edited by an agent.
+- Plan:
+  - A driver, `scripts/ci/staging_follow_main.sh`, on the INT-426 path (git archive, the private bucket, a presigned URL, SSM AWS-RunShellScript).
+  - A host half, `scripts/ci/staging_follow_host.sh`, that runs checklist §1 step 4 from the verified archive.
+  - Pure decisions in `staging_follow_lib.py`, with `staging_follow_cli.py` as their command line.
+  - The trigger in `infra/staging/follow-main.conf`, and `make staging-follow-main`.
+  - The workflow staged in `scripts/ci`, the OIDC role's two policy documents, and an owner patch that installs the workflow.
+- Tests added: `tests/ci/test_staging_follow_{lib,host,driver,wiring}.py`, 159 tests.
+  - Every refusal has a near miss beside it: an allowed gate deploys and a frozen one refuses; a green smoke is recorded and a red one is not; a job named `staging-follow-main-extra` counts as red where the job's own runs do not; a 422 from GitHub is off main, while a 502 is no answer.
+  - The simulated run, with fakes of GitHub, AWS and the host, leaves the host's REVISION and recorded revision equal to the sha.
+  - A mutation check broke 14 refusals in place. All 14 were caught.
+  - RED: collection errors, then 28 failed and 18 errors. A second red, for the lineage fix, gave 15 failed. GREEN: 159 passed.
+- Result:
+  - The first live read-only dry run found a real defect. The host runs `1785dd58`, which GitHub has never seen (422), so a fail-closed order check would have refused forever. Now a commit GitHub does not hold is off main, and no answer is still refused.
+  - Live dry run for main `6cd8c988` (13 checks green): the plan prints, nothing ships. `REF=1785dd58` is refused as unmerged.
+  - Lint: ruff 0.16.4 over the tree is clean (1467 files formatted). mypy 2.3.1 --strict is clean on the two new modules. shellcheck is clean. The INT-206 workflow policy finds 0 findings with the staged file installed.
+  - Tests: tests/ci, backlog, smoke, infra, docs and the threat-model tests pass. no_placeholders, phi-scan and claims-scan pass on the staged tree.
+- Invariants touched and still passing:
+  - 6 and 14: no secret is read, printed or put in argv. The presigned URL reaches python through the environment and SSM through a 0600 file.
+  - 14 and 16: Sec-Row is cicd. The role trusts one environment and may write one prefix and run one document on one instance.
+  - 17: no placeholder.
+  - The INT-187 freeze is read before the host changes. deploy.sh's own gate still runs and remains the console's enforcement point.
+- Decisions / ADRs / `00_STATE.md` rows: none. The trigger is recorded in the config as `default-pending-owner`; a value other than nightly needs `owner:<date>`. No HB id was minted.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner: apply `owner-511-workflow.patch`; create the role from `infra/staging/follow-main.{trust,policy}.json`; create the `synthetic-staging` environment limited to main, with `STAGING_FOLLOW_ROLE_ARN`.
+  - Owner: "nightly or after each green merge?" Until then it is nightly. No HUMAN_BLOCKERS id.
+- Next: merge. The next deploy, by the queue or by `make staging-follow-main REF=<sha>` from the owner's laptop, moves the host off the unpushed `1785dd58`.
+- LOOP_STATUS: CONTINUE

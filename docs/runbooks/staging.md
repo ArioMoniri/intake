@@ -266,6 +266,74 @@ A refused deploy has changed nothing on the host: nothing was restarted.
 `docs/runbooks/deploy-freeze.md` explains each refusal and how a freeze is
 lifted (two people). Do not work around the gate on the host.
 
+## Following main
+
+INT-511. `make staging-follow-main` runs steps 2 and 3 above for one commit
+of main, with no hands on the host. It ships a `git archive` of the commit to
+the private deploy bucket, presigns it for 30 minutes, and sends an SSM
+`AWS-RunShellScript`. That script verifies the archive's sha256 and runs
+`scripts/ci/staging_follow_host.sh` from it. The host script points
+`/opt/intake` at the new release under `/opt/onvizit-releases/` and runs
+`./init.sh`, `./deploy.sh` and `./smoke.sh`. The job posts the smoke verdict
+as the commit status `staging-smoke`.
+
+```bash
+make staging-follow-main DRY_RUN=1           # the plan for main's head; ships nothing
+make staging-follow-main REF=<40-hex sha>    # deploy that commit of main
+```
+
+**What it refuses (exit 3).** A refusal posts no status, except on the host.
+- An **unmerged** sha: GitHub's compare does not put it on main. The host
+  ran unmerged `1785dd58` from 2 Oct; this is the refusal that would have
+  stopped it.
+- A **red** sha: a check run on it failed. The job's own runs do not count.
+  While checks still run, the job waits (exit 0).
+- A host whose `/version` lacks `X-Intake-Environment: staging-synthetic-only`.
+  The job deploys only to the synthetic host. It never touches real-patient
+  configuration, and it never reads `/etc/intake-staging`.
+- A **backwards** move: the host already runs a newer commit of main. A host
+  already on the sha is left alone (exit 0).
+- An archive whose `infra/staging/REVISION` is not the sha, because
+  `/version` could not name it then.
+- On the host, a **frozen** state (INT-187). The release gate is read in the
+  running api container before anything changes, because `./init.sh` starts
+  the data tier before `./deploy.sh`'s own gate runs. That gate still runs too.
+  Also refused on the host: a second run while one holds the lock, and an
+  `/opt/intake` that is not a symlink.
+
+**What red means (exit 1).**
+- `./init.sh` or `./deploy.sh` fails: `/opt/intake` points back at the
+  previous release, which is what still serves.
+- `smoke` is red: the pointer stays on the new release, because `./deploy.sh`
+  restarted onto it. The sha is not written to
+  `/var/lib/intake-staging-follow/revision`, and the status is `failure`.
+  Roll back by hand (docs/release/production-checklist.md §4).
+- Smoke is green, but the public `/version` does not report the sha, a build
+  time and an SBOM digest: the status is `failure`.
+
+After a green run, releases other than the three newest and the previous one
+are removed, together with their `intake-staging/*:<sha>` images.
+
+**The trigger is a config value.** `FOLLOW_TRIGGER` in
+`infra/staging/follow-main.conf` is `nightly` (`FOLLOW_NIGHTLY_CRON`, UTC)
+until the owner picks. `green_merge` deploys each push to main once all its
+checks are green. Moving to `green_merge` needs
+`FOLLOW_TRIGGER_DECIDED_BY=owner:<date>` in the same commit, or the job
+refuses to start.
+
+**Where it runs.** On the owner's laptop it uses the `aws login` session. On
+the `intake-aws-ci` runner it uses the staged workflow
+`scripts/ci/staging_follow_main_workflow.yml`. The owner moves that file into
+`.github/workflows/`, because no agent edits `.github/**`. The runner has no
+instance role, so the workflow assumes a deploy role through GitHub's OIDC
+token. The owner sets this up once:
+1. Create the IAM role from `infra/staging/follow-main.trust.json` and
+   `infra/staging/follow-main.policy.json`. It trusts only this repository's
+   `synthetic-staging` environment. It may write one S3 prefix and run one
+   SSM document on this instance.
+2. Create the GitHub environment `synthetic-staging`, limited to `main`.
+3. Set the environment variable `STAGING_FOLLOW_ROLE_ARN` to the role's ARN.
+
 ## Known gaps, stated rather than hidden
 
 - **`/readyz` answers 503 on main as of 730e9288.** The response is

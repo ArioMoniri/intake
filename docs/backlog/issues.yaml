@@ -6731,3 +6731,25 @@
     - "tests hold the facts the runbook rests on: a dev bearer does not open the console; a second dev admin token refuses a non-dev boot and the error names the variable, never its value; two staff in one org approve each other's tier-2 request and neither approves their own; every granted role is a tier-2 second key; each behaviour pin is mutation-checked"
   tests: [tests/admin/test_second_admin_runbook.py]
   sec_row: "admin-console"
+- id: INT-511
+  epic: E13-infra
+  phase: P1
+  title: "The synthetic host follows main: deploy, smoke and a commit status, refusing unmerged, red, frozen or unparitied"
+  # GitHub #873. From the INT-498 feature audit (#850, PR #870, docs/evidence/INT-498.md
+  # §5 P2): the host ran 1785dd58 from 2 Oct, a commit that was never pushed, and nothing
+  # deployed main. The job rides the INT-426 S3 + SSM path. No agent edits .github/**, so
+  # the workflow that fires it on the intake-aws-ci runner is staged in scripts/ci and the
+  # owner installs it (owner patch owner-511-workflow), with the OIDC deploy role and the
+  # synthetic-staging environment. The trigger is a config value, nightly until the owner
+  # picks (infra/staging/follow-main.conf).
+  depends_on: [INT-426, INT-187]
+  labels: [area:observability]
+  status: done
+  evidence: docs/evidence/INT-511.md
+  acceptance:
+    - "make staging-follow-main [REF=<sha>] deploys one commit of main to the synthetic host over S3 + a presigned URL + SSM AWS-RunShellScript (checklist §1), runs init.sh, deploy.sh and smoke.sh there, and posts the smoke verdict as the commit status staging-smoke; DRY_RUN=1 prints the plan and ships nothing"
+    - "it refuses an unmerged sha, a red sha, a host that does not declare itself synthetic-only, a backwards move, an archive whose REVISION is not the sha, a frozen state (INT-187, read in the running api before the host changes) and a concurrent run; a red smoke is never recorded as the host's revision; a green smoke whose public /version does not name the sha is a failure; each refusal is mutation-checked"
+    - "the trigger is a config value, nightly by default; any other value needs a recorded owner decision; the workflow that fires it on the intake-aws-ci runner is staged with least-privilege permissions, an OIDC role pinned to one environment, prefix, document and instance, and an owner patch that installs it"
+    - "a simulated run, with fakes of GitHub, AWS and the host, leaves the host's revision equal to the sha; secrets stay in /etc/intake-staging, and the presigned URL is never printed and never in argv"
+  tests: [tests/ci/test_staging_follow_lib.py, tests/ci/test_staging_follow_host.py, tests/ci/test_staging_follow_driver.py, tests/ci/test_staging_follow_wiring.py]
+  sec_row: "cicd"
