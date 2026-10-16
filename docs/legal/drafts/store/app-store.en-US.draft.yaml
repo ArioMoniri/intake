@@ -1,0 +1,78 @@
+# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+#
+# INT-482 (GitHub #825) — App Store listing copy for Önvizit, English.
+# Prepared 2026-10-04 by a drafting agent for the legal lane. Not published and
+# not served: no loader reads this directory (tests/legal/test_legal_drafts.py).
+#
+# Promotion (docs/legal/drafts/README.md §5): after the legal-lane review, and once
+# HB-L21 (a) and (e) are answered, the owner moves this file in a separate PR to
+# docs/legal/store/listing/app-store.en-US.yaml, deletes this draft and runs `make store-config`.
+#
+# Every line of `fields` cites its source under `sources`; a line with no source, or
+# a source path that does not exist, fails tests/legal/test_store_listing_drafts.py.
+provenance:
+  issue: INT-482
+  store: app-store
+  locale: en-US
+  status: pending legal-lane review
+  prepared_on: "2026-10-04"
+fields:
+  title: Önvizit
+  subtitle: "Your note before the visit"
+  promoText: "What you tell us reaches your doctor before the visit."
+  keywords: "doctor,visit,clinic,hospital,complaints,health,pre-visit,note,reports,lab results,voice note"
+  description: |-
+    Önvizit is made for describing your complaints before a medical visit.
+    From what you say, a structured pre-visit note is prepared for your doctor.
+    The note is organised with the help of AI and shown to you before it is sent.
+
+    • You can speak or type your answers.
+    • Only one question is asked at a time.
+    • You can read and edit your note before you send it.
+    • What gets shared is your decision.
+    • You can stop a share at any time.
+    • You can upload your own reports and lab results.
+    • If you wish, you can also add step, sleep and resting heart rate summaries from your phone.
+
+    Your voice is turned into text; the audio is not written to your phone or to our servers.
+
+    Önvizit does not diagnose and does not recommend treatment.
+    What you tell it does not replace a doctor's assessment.
+    Önvizit is not an emergency service.
+    In an emergency, call 112 or go to the nearest emergency department.
+sources:
+  title: "docs/backlog/issues.yaml — INT-421 acceptance names the Önvizit identity; the store name is GitHub #825"
+  subtitle: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"pre-visit note\")"
+  promoText: "apps/mobile/src/lib/i18n/en.ts app.tagline, verbatim"
+  keywords: "apps/mobile/src/lib/i18n/en.ts — each keyword names what the app is used for (welcome.body, review.title, records.title)"
+  description:
+    - text: "Önvizit is made for describing your complaints before a medical visit."
+      source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"collects your complaints … before the visit\")"
+    - text: "From what you say, a structured pre-visit note is prepared for your doctor."
+      source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"a structured pre-visit note\")"
+    - text: "The note is organised with the help of AI and shown to you before it is sent."
+      source: "files/06_COMPLIANCE_TR.md §7 note footer; apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
+    - text: "You can speak or type your answers."
+      source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"by voice or text\")"
+    - text: "Only one question is asked at a time."
+      source: "CLAUDE.md invariant 2 (one question per turn); files/03_ARCHITECTURE.md §4.2"
+    - text: "You can read and edit your note before you send it."
+      source: "apps/mobile/src/lib/i18n/en.ts review.edit, review.send"
+    - text: "What gets shared is your decision."
+      source: "apps/mobile/src/lib/i18n/en.ts review.intro, second sentence verbatim"
+    - text: "You can stop a share at any time."
+      source: "apps/mobile/src/lib/i18n/en.ts shares.guide.body (\"You can stop one at any time.\")"
+    - text: "You can upload your own reports and lab results."
+      source: "apps/mobile/src/app/(tabs)/records.tsx; apps/mobile/src/lib/i18n/en.ts records.upload, records.guide.title"
+    - text: "If you wish, you can also add step, sleep and resting heart rate summaries from your phone."
+      source: "apps/mobile/src/lib/health/healthKitConnector.ts (steps, resting heart rate, sleep; read-only)"
+    - text: "Your voice is turned into text; the audio is not written to your phone or to our servers."
+      source: "CLAUDE.md invariant 3; tests/voice/test_audio_retention_guard.py"
+    - text: "Önvizit does not diagnose and does not recommend treatment."
+      source: "apps/mobile/src/lib/i18n/en.ts app.disclaimer; files/06_COMPLIANCE_TR.md §0.4"
+    - text: "What you tell it does not replace a doctor's assessment."
+      source: "apps/mobile/src/lib/i18n/en.ts app.disclaimer"
+    - text: "Önvizit is not an emergency service."
+      source: "files/06_COMPLIANCE_TR.md §0.3 Stage A (no automated patient-facing urgency advice)"
+    - text: "In an emergency, call 112 or go to the nearest emergency department."
+      source: "files/06_COMPLIANCE_TR.md §7 static safety line, rendered in English"

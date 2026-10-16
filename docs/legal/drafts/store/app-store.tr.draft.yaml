@@ -1,0 +1,78 @@
+# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+#
+# INT-482 (GitHub #825) — App Store listing copy for Önvizit, Turkish; the Turkish text governs (805 s. Kanun).
+# Prepared 2026-10-04 by a drafting agent for the legal lane. Not published and
+# not served: no loader reads this directory (tests/legal/test_legal_drafts.py).
+#
+# Promotion (docs/legal/drafts/README.md §5): after the legal-lane review, and once
+# HB-L21 (a) and (e) are answered, the owner moves this file in a separate PR to
+# docs/legal/store/listing/app-store.tr.yaml, deletes this draft and runs `make store-config`.
+#
+# Every line of `fields` cites its source under `sources`; a line with no source, or
+# a source path that does not exist, fails tests/legal/test_store_listing_drafts.py.
+provenance:
+  issue: INT-482
+  store: app-store
+  locale: tr
+  status: pending legal-lane review
+  prepared_on: "2026-10-04"
+fields:
+  title: Önvizit
+  subtitle: "Muayeneden önce ön notunuz"
+  promoText: "Muayeneden önce, anlattıklarınız hekiminize ulaşsın."
+  keywords: "muayene,hekim,doktor,hastane,poliklinik,şikâyet,sağlık,ön not,rapor,tahlil,sesli not"
+  description: |-
+    Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı.
+    Anlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır.
+    Not, yapay zekâ desteğiyle düzenlenir ve gönderilmeden önce size gösterilir.
+
+    • Şikâyetinizi sesli ya da yazılı olarak anlatabilirsiniz.
+    • Her seferinde yalnızca bir soru sorulur.
+    • Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz.
+    • Neyin paylaşılacağına siz karar verirsiniz.
+    • Bir paylaşımı dilediğiniz an durdurabilirsiniz.
+    • Raporlarınızı ve tahlil sonuçlarınızı yükleyebilirsiniz.
+    • İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz.
+
+    Sesiniz yazıya dökülür; ses kaydı telefonunuza ya da sunucularımıza yazılmaz.
+
+    Önvizit tanı koymaz ve tedavi önermez.
+    Anlattıklarınız hekim değerlendirmesinin yerine geçmez.
+    Önvizit bir acil durum hizmeti değildir.
+    Acil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun.
+sources:
+  title: "docs/backlog/issues.yaml — INT-421 acceptance names the Önvizit identity; the store name is GitHub #825"
+  subtitle: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"ön not\")"
+  promoText: "apps/mobile/src/lib/i18n/tr.ts app.tagline, verbatim"
+  keywords: "apps/mobile/src/lib/i18n/tr.ts — each keyword names what the app is used for (welcome.body, review.title, records.title)"
+  description:
+    - text: "Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı."
+      source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"muayeneden önce şikâyetlerinizi … toplar\")"
+    - text: "Anlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır."
+      source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"hekiminize düzenli bir ön not iletir\")"
+    - text: "Not, yapay zekâ desteğiyle düzenlenir ve gönderilmeden önce size gösterilir."
+      source: "files/06_COMPLIANCE_TR.md §7 note footer (\"yapay zekâ desteğiyle yapılandırılmıştır\"); apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
+    - text: "Şikâyetinizi sesli ya da yazılı olarak anlatabilirsiniz."
+      source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"sesli ya da yazılı\")"
+    - text: "Her seferinde yalnızca bir soru sorulur."
+      source: "CLAUDE.md invariant 2 (one question per turn); files/03_ARCHITECTURE.md §4.2"
+    - text: "Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz."
+      source: "apps/mobile/src/lib/i18n/tr.ts review.title, review.edit, review.send"
+    - text: "Neyin paylaşılacağına siz karar verirsiniz."
+      source: "apps/mobile/src/lib/i18n/tr.ts review.intro, second sentence verbatim"
+    - text: "Bir paylaşımı dilediğiniz an durdurabilirsiniz."
+      source: "apps/mobile/src/lib/i18n/tr.ts shares.guide.body (\"Dilediğiniz an durdurabilirsiniz.\")"
+    - text: "Raporlarınızı ve tahlil sonuçlarınızı yükleyebilirsiniz."
+      source: "apps/mobile/src/app/(tabs)/records.tsx; apps/mobile/src/lib/i18n/tr.ts records.upload, records.guide.title"
+    - text: "İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz."
+      source: "apps/mobile/src/lib/health/healthKitConnector.ts (steps, resting heart rate, sleep; read-only); apps/mobile/src/lib/i18n/tr.ts health.rhr.label"
+    - text: "Sesiniz yazıya dökülür; ses kaydı telefonunuza ya da sunucularımıza yazılmaz."
+      source: "CLAUDE.md invariant 3; tests/voice/test_audio_retention_guard.py"
+    - text: "Önvizit tanı koymaz ve tedavi önermez."
+      source: "apps/mobile/src/lib/i18n/tr.ts app.disclaimer; files/06_COMPLIANCE_TR.md §0.4"
+    - text: "Anlattıklarınız hekim değerlendirmesinin yerine geçmez."
+      source: "apps/mobile/src/lib/i18n/tr.ts app.disclaimer, second sentence verbatim"
+    - text: "Önvizit bir acil durum hizmeti değildir."
+      source: "files/06_COMPLIANCE_TR.md §0.3 Stage A (no automated patient-facing urgency advice)"
+    - text: "Acil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun."
+      source: "files/06_COMPLIANCE_TR.md §7 static safety line, verbatim"

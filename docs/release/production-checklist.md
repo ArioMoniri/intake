@@ -97,7 +97,34 @@ These run from `apps/mobile`, using `eas.json`'s `production` profile.
 5. **Submit:**
    - command: `eas submit --profile production --platform ios`, then `--platform android`, with Android going to the internal track first;
    - the App Store Connect API key and the Play service-account key are supplied at submit time, from the owner's machine or EAS. They are never committed.
-6. **Store listing:** blocked until HB-L21 (the store-listing determinations) and HB-A12 (the store-artefact snapshots) close. `docs/legal/store/listing/` is empty, and the loader fails closed.
+6. **Store listing (INT-482):** the copy and the answers are drafted and wait for the legal lane. Nothing is served yet. `docs/legal/store/listing/` is empty, so `make store-config` stops with exit 3 and writes no `store.config.json`. The table below lists every artefact. All of them are drafts in `docs/legal/drafts/store/` and are pending legal-lane review.
+
+   | artefact | draft | where it goes after review |
+   |---|---|---|
+   | App Store listing for Önvizit, Turkish | `app-store.tr.draft.yaml` | `docs/legal/store/listing/app-store.tr.yaml` |
+   | App Store listing for Önvizit, English | `app-store.en-US.draft.yaml` | `docs/legal/store/listing/app-store.en-US.yaml` |
+   | Google Play listing, Turkish (same text as the App Store) | `google-play.tr.draft.yaml` | `docs/legal/store/listing/google-play.tr.yaml`, pasted into the Google Play Console |
+   | Google Play listing, English | `google-play.en-US.draft.yaml` | `docs/legal/store/listing/google-play.en-US.yaml`, pasted into the Google Play Console |
+   | App Store category, age rating (`advisory`) and App Review notes | `app-store.submission.draft.yaml` | `docs/legal/store/submission/app-store.yaml` |
+   | Play App access text, IARC facts, Health apps facts | `google-play.submission.draft.yaml` | pasted into the Google Play Console |
+   | App Privacy and Data safety answers, one row per inventory fact | `privacy-answers.draft.yaml` | entered by hand in App Store Connect and the Google Play Console |
+   | what must hold before submission, the reviewer account, the 112 behaviour | `app-review-notes.draft.md` | stays as the owner's guide |
+
+   - **Render.** After promotion, `make store-config` runs `scripts/release/render_store_config.py`. It writes `apps/mobile/store.config.json` from the served files only, and prints each field it had to leave out together with the blocker that owes it. `make store-config-check` fails on drift. The file pins `automaticRelease: false`, so an approval never publishes the app by itself. It never carries a reviewer contact or a reviewer sign-in.
+   - **Then:** `eas metadata:push`, run from `apps/mobile` and only after `eas submit` has uploaded a binary.
+   - **Before you submit for review,** each item in `app-review-notes.draft.md` §1 must hold. Three of them matter most:
+     - INT-117 must render the static 112 notice from the signed fixed strings (HB-L27). The notes say the app shows it, and today it does not.
+     - A reviewer must be able to sign in. Phone sign-in cannot reach a reviewer, and INT-488 (#829) builds the reviewer path.
+     - Voice intake must be reachable in a release build through the streaming path (`lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`intake.tsx`). Owed by INT-440 (#768) and INT-454 (#769). The listing describes voice, so it waits for this.
+   - **Still open:** HB-L21 (a) audio as collected, (b) the Play Health apps policy, (c) the IARC answers, (e) the seller's identity. Also HB-L27 (the signed `gizlilik` and fixed strings) and HB-A12 (the vendor snapshots).
+   - **Synthetic scope.** The host receives simulated patients only (HB-I5, HB-L11). Builds go to TestFlight internal testing and the Play internal track. No public release goes live while that scope holds.
+   - **Screenshots** come from INT-425 (PR #738, open) and are not copied here. Once #738 merges, the INT-482 tests run its captions through the same gates as the listing.
+
+7. **Owner asks for the stores, one line each:**
+   1. Expo: run `eas login` on the build machine, or set `EXPO_TOKEN` to an Expo access token for project `307d4cf2-c447-4855-8110-da59fb5ed170`.
+   2. Apple: give App Store Connect access (App Manager or Admin) for app `6814005465` under an Apple Developer Program membership (HB-A3).
+   3. Google: give Google Play Console access to the app `com.ariomoniri.intakemobile` (HB-A3).
+   4. Rename: after INT-420 (PR #729) merges, set the name to Önvizit in App Store Connect (App Information, both `tr` and `en-US`) and in the Google Play Console (Main store listing, App name).
 
 ## 6. Owner-only steps
 

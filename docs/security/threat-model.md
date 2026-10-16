@@ -1766,6 +1766,9 @@ it or whose tests exercise it.
   [Dd] a draft outliving its session; [L/Dd] another account's draft surfacing on a shared
   device; [T] a tampered blob read as a sound draft; [D] silent data loss when a local edit
   meets a newer server copy.
+  **Store artefacts (INT-224, INT-482):** [R/I] a published listing that claims a
+  performance figure or a device function, or a privacy declaration that disagrees with the
+  data inventory; [I] a reviewer sign-in committed to the repo or to `store.config.json`.
 - **Controls (files/10):** §4 mobile — SecureStore with biometrics, FLAG_SECURE, EAS Update
   code signing, MobSF on every build, jailbreak/root as a soft signal degrading to typed
   mode, native ATS/`network_security_config` pinning with a documented rotation recovery
@@ -1776,12 +1779,20 @@ it or whose tests exercise it.
   `WHEN_UNLOCKED_THIS_DEVICE_ONLY`; the GCM tag fails the open on tamper; a deterministic
   last-writer-wins rule that preserves the losing copy, so no loss is silent; account-scoped
   hydration; visit-id path sanitisation; crypto-shred of the blobs and the DEK on sign-out.
+  **Store artefacts (INT-482):** listing copy is a legal draft until promoted under
+  `docs/legal/store`; both listing gates, the strict claims scan and PolicyGuard run on every
+  line; `store.config.json` is rendered only from served, hash-bound copy and drift-checked;
+  the privacy answers are derived from the inventory and drift-checked; links bind to a signed
+  docs/legal document by sha256; `automaticRelease` is pinned false; reviewer sign-in lives
+  only in the store consoles.
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
   design (§9); the crash-free rate covers them (INT-145).
 - **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
   drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
-  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`.
+  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`. Store
+  artefacts: `tests/legal/test_store_labels.py`, `tests/legal/test_store_listing_drafts.py`,
+  `tests/legal/test_store_submission_drafts.py`, `tests/legal/test_store_privacy_answers.py`.
 
 ## `experience` — satisfaction and wait-time measurement
 

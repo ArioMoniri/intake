@@ -1,0 +1,50 @@
+# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+#
+# INT-482 (GitHub #825) — what Google Play asks for beyond the listing copy:
+# the reviewer's App access instructions, the facts the IARC content-rating
+# answers draw on, and the facts behind the Health apps declaration. Prepared
+# 2026-10-04 by a drafting agent for the legal lane.
+#
+# Play has no EAS Metadata file, so nothing renders this: the owner pastes it
+# into the Play Console. The Data safety answers are the shared sheet in
+# privacy-answers.draft.yaml. The IARC questions and the Health apps policy text
+# are not recalled here (HB-A12); the answers built from these facts are
+# counsel's (HB-L21 (b), (c)). The reviewer sign-in goes into the Play Console
+# App access section at submission and is never written here.
+provenance:
+  issue: INT-482
+  store: google-play
+  status: pending legal-lane review
+  prepared_on: "2026-10-04"
+app_access_instructions: |-
+  Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.
+
+  What the app does not do: it does not diagnose, it does not recommend treatment, and it does not tell the user how urgent a complaint is. It makes no claim about how well it measures anything.
+
+  Emergencies: Önvizit is not an emergency service. The app shows a fixed notice telling the user to call 112, the emergency number in Türkiye, or to go to the nearest emergency department.
+
+  Health Connect: with the user's permission, the app reads steps, resting heart rate and sleep. It only reads. The data stays on the device unless the user adds a summary to their note, and it is never used for advertising.
+
+  Test environment and sign-in: this build connects to a test environment that holds simulated patients only. No real patient data is present. The reviewer account is a simulated patient, and its sign-in details are in the App access section of this release.
+content_rating_owner: "HB-L21(c): the IARC answers are legal statements and are counsel's; the questionnaire wording is not recalled (HB-A12). The facts below are what those answers draw on."
+content_rating_facts:
+  - fact: "The base intake asks whether the patient smokes and whether they drink alcohol."
+    source: "packages/protocols/base/intake.yaml"
+  - fact: "Two specialty intakes may ask about substance use, one about sexual-health symptoms and one about personal safety; none is served until counsel completes its row."
+    source: "docs/legal/data-categories.yaml"
+  - fact: "Users never see each other. A patient's answers go only to the clinician the patient shares the note with."
+    source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
+  - fact: "The app requests no location; the location permissions are removed from the merged Android manifest."
+    source: "apps/mobile/plugins/withVoiceAudio.js"
+  - fact: "The app sells nothing and shows no advertising."
+    source: "apps/mobile/package.json"
+  - fact: "The in-app browser opens only the patient's own uploaded document."
+    source: "apps/mobile/src/app/(tabs)/records.tsx"
+health_apps_owner: "HB-L21(b): whether Google Play's Health apps policy applies to this app, and what it requires, is the owner's and counsel's determination; the policy text is not recalled (HB-A12)."
+health_apps_facts:
+  - fact: "The app reads steps, resting heart rate and sleep from Health Connect, read only."
+    source: "apps/mobile/app.json"
+  - fact: "The two device functions (automated urgency direction, automated instrument interpretation) default off (flags.py, device_functions: False); INT-117 (open) adds the CE-record gate test."
+    source: "packages/intake_platform/src/intake_platform/flags.py"
+  - fact: "The patient can request deletion of their account and data in the app."
+    source: "apps/mobile/src/lib/dsar/requests.ts"

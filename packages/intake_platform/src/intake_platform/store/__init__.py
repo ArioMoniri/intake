@@ -15,7 +15,11 @@ nothing else:
   gated for performance claims (invariant 20 / App Review 1.4.1) and for
   `device_functions` claims (invariant 18);
 - :mod:`~intake_platform.store.checklist` — the automatable rows, and the rows
-  that are blocked because a published vendor requirement may not be recalled.
+  that are blocked because a published vendor requirement may not be recalled;
+- :mod:`~intake_platform.store.answers` (INT-482) — the privacy answers in our
+  own words, one row per inventory fact, before any vendor vocabulary;
+- :mod:`~intake_platform.store.eas_metadata` (INT-482) — ``store.config.json``
+  for EAS Metadata, rendered only from served, hash-bound copy.
 """
 
 from __future__ import annotations

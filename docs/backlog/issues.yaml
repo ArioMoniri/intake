@@ -7171,3 +7171,27 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"
+- id: INT-482
+  epic: E08-mobile
+  phase: P1
+  title: "Store listing readiness: EAS metadata, privacy labels / data safety answers, review notes, as Önvizit"
+  # GitHub #825 (orchestrator backlog item 6). The copy and the answers are
+  # drafts for the legal lane in docs/legal/drafts/store: HB-L21 keeps
+  # publishing blocked, so nothing is served, and apps/mobile/store.config.json
+  # renders only from promoted, hash-bound copy (make store-config exits 3 until
+  # then). Before submission: INT-117's static 112 notice (HB-L27 strings), a
+  # reviewer sign-in path, HB-L21 (a)(e); the synthetic scope (HB-I5, HB-L11)
+  # keeps releases on internal tracks. Screenshots stay with INT-425 (#738).
+  depends_on: [INT-224, INT-421]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-482.md
+  acceptance:
+    - "EAS Metadata config (store.config.json) for the App Store listing in Turkish and English under the name Önvizit, generated from repo sources (no invented claims; invariant 20: no accuracy/performance claims; legal strings only from docs/legal with hash binding); Play listing text in the same source"
+    - "App Privacy (nutrition label) and Google Play Data safety answers derived from the data inventory annotations (invariant 18), synthetic-scope caveat stated; reviewed by the legal lane (legal-reviewer) before use"
+    - "App Review notes for a health app (Apple guideline 1.4.1 / 5.1.x; Play health apps policy): no diagnosis claims, emergency-number behaviour explained, demo access path for reviewers that uses synthetic data only (no real credentials committed)"
+    - "screenshot set wired from INT-425's captures; age rating questionnaire answers recorded"
+    - "docs/release/production-checklist.md §5 links the above; the owner's remaining asks (Expo token, Apple/Google access, store rename) listed as exact one-line steps"
+  tests: [tests/legal/test_store_listing_drafts.py, tests/legal/test_store_submission_drafts.py, tests/legal/test_store_privacy_answers.py]
+  legal: "STORE"
+  sec_row: "mobile"

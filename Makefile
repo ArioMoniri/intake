@@ -326,6 +326,16 @@ release-gate:
 	uv run python -m intake_probes.runner --once --out $(PROBE_RESULTS_FILE)
 	uv run python scripts/release/release_gate.py --registry observability/registry.yaml --results $(PROBE_RESULTS_FILE)
 
+# INT-482: apps/mobile/store.config.json (EAS Metadata) is rendered from the served,
+# hash-bound copy under docs/legal/store and never written by hand. Exit 3 means nothing
+# is served yet (HB-L21), the fail-closed state; store-config-check fails on drift.
+.PHONY: store-config store-config-check
+store-config:
+	uv run python scripts/release/render_store_config.py
+
+store-config-check:
+	uv run python scripts/release/render_store_config.py --check
+
 # INT-023: local observability stack — compose profile `obs` (Prometheus,
 # Grafana, Loki, Tempo, OTel collector, Unleash, Keycloak, GlitchTip).
 # Dev tier only: loopback ports, dev-only credentials overridable via env.
