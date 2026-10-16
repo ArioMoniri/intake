@@ -16,6 +16,10 @@
 # runners never collide on one. The namespace's only uplink is slirp4netns, a
 # host process of ghrunner%i, so the owner-match egress chain still applies; its
 # resolver is slirp4netns's forwarder.
+#
+# INT-544: the runner's cache seed ($CI_ROOT/seed, root-owned, seed.sh) is bound
+# read-only, if it exists. A job copies what it needs into its own temp
+# (scripts/ci/ci_seed.sh); nothing a job does can reach the seed itself.
 [Unit]
 Description=One ephemeral job of intake-aws-ci Actions runner %i (INT-463, INT-467)
 After=network-online.target intake-aws-ci-dockerd@%i.service
@@ -49,5 +53,6 @@ BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/home
 BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/tmp:/tmp
 BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/tmp:/var/tmp
 BindReadOnlyPaths=/usr/local/lib/intake-aws-ci-runner/resolv.conf:/etc/resolv.conf
+BindReadOnlyPaths=-/opt/dlami/nvme/intake-aws-ci-%i/seed
 ReadWritePaths=-/run/intake-aws-ci-%i
 InaccessiblePaths=-/etc/intake-staging -/etc/intake-aws-ci-runner -/var/lib/intake-ci -/var/lib/docker -/var/lib/containerd -/var/lib/amazon -/var/log/amazon -/var/lib/cloud -/run/containerd -/run/docker.sock
