@@ -224,7 +224,11 @@ def test_a_hop_red_raises_one_entry_with_ids_only(
         "acknowledged_at",
         "acknowledged_by",
         "register",
+        # INT-553: a CD-08 clinic item's slot and decision ids; empty on a RED
+        "slot_refs",
+        "decision_ids",
     }
+    assert (record["slot_refs"], record["decision_ids"]) == ([], [])
     carried = {str(value) for value in record.values()} | set(record["rule_ids"])
     assert carried.isdisjoint(ANSWER_VALUES)
 

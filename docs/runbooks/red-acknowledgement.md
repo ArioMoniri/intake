@@ -21,7 +21,7 @@
 | scheduled sweep | every 60 s the API recomputes `clinic_red_unacknowledged_total{tenant,age_band}` from the open entries; a sweep that cannot read the store sets `tenant="inbox_unreadable"` to +Inf | `intake_platform.safety_inbox.sweep_forever`, started by the API at boot |
 | Safety queue | `GET /admin/safety-queue` (unanswered first, with each entry's SLA and elapsed minutes); `POST /admin/safety-queue/{entry_id}/acknowledge` | `tenant_clinical_responsible` reads its tenant and acknowledges; `clinical_lead`, `platform_owner`, `auditor` read |
 | visit transitions | `SafetyInbox.visit_transition` raises a `visit_rescheduled` / `visit_cancelled` entry when the visit carries any RED entry, acknowledged or not | the surface that performs the files/02 §2b transition |
-| pages | `RedAcknowledgementOverdue`, `RedInboxEntryLate`, `RedInboxRouteFailed` | `infra/observability/safety-rules.yaml` |
+| pages | `RedAcknowledgementOverdue`, `RedInboxEntryLate`, `RedInboxRouteFailed`, `LiveTriageEvaluationFailed`, `ClinicInboxItemRouteFailed`, `ClinicInboxItemUnaudited`, `ClinicItemWatchFailed` | `infra/observability/safety-rules.yaml` |
 
 An entry is ids and instants only: no answer, no evidence text, no name. What
 happened to the patient is read in the clinical record through the tenant's
@@ -98,6 +98,66 @@ patient's on-site location answer).
    chain row names `visit:unidentified/red:<rule id>`.
 4. Otherwise open an incident: the route is built to be unable to fail (an
    in-memory append of an id-shaped entry), so a failure is a defect.
+
+## Clinic item route failed
+
+`ClinicInboxItemRouteFailed` — a live session raised a CD-08 clinician-only
+item and its route into the Safety inbox raised
+(`clinic_inbox_item_route_failures_total{kind}`, INT-547, INT-525):
+`chest_pain_arms_unresolved` (CD-04: a chest-pain slot still UNCLEAR after its
+follow-up, so both chest-pain arms may be silent) or
+`proxy_chest_pain_screen_unasked` (CD-01: a proxy session left the chest-pain
+screen unasked, so neither chest-pain rule could fire). An item is not a RED
+and has no SLA while CD-08's is draft.
+
+1. The session raises the item again on its next answer, so a page that clears
+   by itself means the item landed. Find the session from the runtime's error
+   log line `clinic item route failed`, which carries the session id, the kind
+   and the error class only.
+2. If the session has ended, the item never reached the clinic. Tell the
+   tenant's `tenant_clinical_responsible` directly, by that session id and kind.
+3. The production route is two in-memory appends — the inbox entry, and its
+   audit row queued for the runtime's audit worker (INT-553) — so a failure
+   is a defect: open an incident.
+
+## Clinic item unaudited
+
+`ClinicInboxItemUnaudited` — a CD-08 clinic item reached the clinic inbox and
+its audit row (`voice.clinic_item.raised`, resource
+`safety_inbox:<tenant>:<entry id>`) never reached the hash-chained audit log
+(`clinic_inbox_item_unaudited_total{kind}`, INT-553). Invariant 4: every share
+of clinical data is audited. The item itself went ahead; the clinic has it.
+
+1. Find the entry from the runtime's error log line `clinic item unaudited`,
+   which carries the session id, the entry id and an error only: an error
+   class (the chain refused the append) or `audit_outbox_full` (the runtime's
+   audit outbox held 1024 rows the chain had not taken).
+2. `audit_outbox_full` means the audit worker is not keeping up or has
+   stopped: check the audit store the runtime writes and that the runtime's
+   audit pump is running. Do not restart the runtime while rows wait: the
+   outbox is in memory.
+3. Record the missing share for the compliance owner by the entry id: the
+   Safety inbox entry is the evidence that the share happened. Open an
+   incident; a refused append is a defect or a store fault.
+
+## Clinic item watch failed
+
+`ClinicItemWatchFailed` — the CD-08 clinic-item watch raised when the Work
+queue ran it around a live session's state Work
+(`work_watch_faults_total{step}`, INT-553). The watch never runs inside the
+handler: the Work completed, its red-flag rules were evaluated and any RED was
+delivered as usual. What may be missing is a CD-08 item the watch was due to
+raise (`chest_pain_arms_unresolved` or `proxy_chest_pain_screen_unasked`).
+
+1. Find the session from the runtime's error log line `state work watch
+   failed`, which carries the session id, the work id, the step (`before` or
+   `after`) and the error class only.
+2. The watch looks again on the session's next Work, so an item can still
+   land; if the session has ended, tell the tenant's
+   `tenant_clinical_responsible` directly, by that session id, that its
+   chest-pain items are not to be relied on.
+3. The watch only reads the engine and builds ids, so a fault is a defect:
+   open an incident.
 
 ## Live triage unevaluated
 

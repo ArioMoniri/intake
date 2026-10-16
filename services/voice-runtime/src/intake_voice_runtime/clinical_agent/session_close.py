@@ -25,7 +25,10 @@ The close is one state-lane Work, ``close_session``:
   the change (invariant 1). A RED takes the path every RED takes: the queue
   derives ``preempt``, the clinician route is told as it settles, the queue
   seals, and the Talker, if the device is still there, triggers the
-  pre-positioned script over the data channel (invariant 21).
+  pre-positioned script over the data channel (invariant 21). The session
+  router keeps the Talker's between-turn watch running past ``end`` until the
+  close has settled, because an ended session takes no turn that could
+  deliver it otherwise (INT-545).
 
 The request is content-addressed like every other Work, from the session and
 a fixed marker, so closing twice is one close.

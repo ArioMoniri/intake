@@ -39,6 +39,7 @@ import copy
 import json
 import re
 import subprocess
+import sys
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from functools import cache
@@ -49,6 +50,10 @@ import pytest
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "scripts" / "backlog"))
+
+from roadmap_lib import blank_generated_section  # noqa: E402
+
 REALM_PATH = REPO / "infra" / "keycloak" / "dev-realm.json"
 COMPOSE_PATH = REPO / "infra" / "docker-compose.obs.yml"
 
@@ -69,6 +74,9 @@ HISTORICAL_PREFIXES = (
     "docs/backlog/",
     "files/11_ISSUE_BACKLOG.md",
 )
+#: INT-452: files/05's live status section renders the same backlog rows as
+#: files/11, so that section alone is blanked; the rest of files/05 is scanned.
+ROADMAP = "files/05_ROADMAP.md"
 #: A Keycloak image reference: the repository, then a tag or digest, up to whitespace, a
 #: quote, a backtick, a comma or a closing bracket.
 IMAGE_REFERENCE = re.compile(rf"{re.escape(KEYCLOAK_REPOSITORY)}[:@][^\s\"'`,)\]]*")
@@ -422,6 +430,8 @@ def tracked_image_references() -> tuple[tuple[str, str], ...]:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
+        if rel == ROADMAP:
+            text = blank_generated_section(text)
         found += [(rel, match) for match in IMAGE_REFERENCE.findall(text)]
     return tuple(found)
 

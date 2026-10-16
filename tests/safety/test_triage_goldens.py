@@ -339,3 +339,43 @@ def test_the_translator_carries_every_annotation_the_loader_does() -> None:
     assert len(raw_rules) == len(loaded.rules)
     for raw, entry in zip(raw_rules, loaded.rules, strict=True):
         assert translate_life_threat_rule(raw) == entry.rule, entry.rule.id
+
+
+# ---------------------------------------------------------------------------
+# INT-547 — the golden CD-04 says must reach the clinic does.
+#
+# ``hedge/c2-karakter-belirsiz`` is GREEN with both chest-pain arms Unknown:
+# the character is still UNCLEAR after its follow-up. CD-04
+# ``unresolved_after_follow_up`` raises the CD-08 clinic-inbox item
+# ``chest_pain_arms_unresolved`` for exactly that state, and the case pins it
+# beside the level. The checker reads the item from CD-04, so an expectation
+# that drops it, or a case that never asked the follow-up, is a mismatch.
+# ---------------------------------------------------------------------------
+
+
+class TestTheClinicItemTheGoldenRaises:
+    def test_the_character_hedge_is_green_and_raises_the_item(self, rule_sets: RuleSets) -> None:
+        case = CASES_BY_ID["hedge/c2-karakter-belirsiz"]
+        assert case.level is TriageLevel.GREEN and case.fired == ()
+        assert case.clinic_items == ("chest_pain_arms_unresolved",)
+        assert "chest_pain_arms_unresolved" in case.note
+        assert run_case(case, rule_sets) == []
+
+    def test_near_miss_the_follow_up_answered_raises_nothing(self, rule_sets: RuleSets) -> None:
+        case = CASES_BY_ID["hedge/c2-karakter-takipte-netlesti"]
+        assert case.clinic_items == ()
+        assert run_case(case, rule_sets) == []
+
+    def test_an_expectation_without_the_item_is_a_mismatch(self, rule_sets: RuleSets) -> None:
+        from dataclasses import replace
+
+        case = replace(CASES_BY_ID["hedge/c2-karakter-belirsiz"], clinic_items=())
+        assert run_case(case, rule_sets) == ["clinic items ('chest_pain_arms_unresolved',) != ()"]
+
+    def test_an_unclear_whose_follow_up_was_never_asked_raises_nothing(
+        self, rule_sets: RuleSets
+    ) -> None:
+        from dataclasses import replace
+
+        case = replace(CASES_BY_ID["hedge/c2-karakter-belirsiz"], follow_ups_asked={})
+        assert run_case(case, rule_sets) == ["clinic items () != ('chest_pain_arms_unresolved',)"]

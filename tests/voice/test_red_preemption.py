@@ -671,6 +671,8 @@ class TestNoPhiOnTheRedPath:
             "patient_facing",
             # INT-453 / CD-24 delivery floor: a boolean, no patient material.
             "silent_generic",
+            # INT-545: whether the device was reached, a closed enumeration.
+            "delivery",
         }
         assert isinstance(dumped["silent_generic"], bool)
         assert "sentetik_yanit" not in json.dumps(dumped, ensure_ascii=False)

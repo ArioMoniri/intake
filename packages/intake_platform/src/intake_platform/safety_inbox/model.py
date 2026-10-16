@@ -14,7 +14,7 @@ kinds and instants. So that is the whole field set:
   the kind and the source (the RED's content-addressed ``work_id``, or the
   transition's id), so a re-derived RED — files/03 §4.6 invariant 6 — lands on
   the entry already there instead of opening a second clock for one event.
-- **Four kinds, and only these.** ``red`` is the RED itself. Two are files/02
+- **Four RED kinds, and only these.** ``red`` is the RED itself. Two are files/02
   §2b's rule that *"``rescheduled`` or ``cancelled`` on a RED visit raises a
   clinic inbox entry regardless of connector presence"*: each is its own entry
   with its own clock, because the moved visit is new news to the clinic even
@@ -27,6 +27,22 @@ kinds and instants. So that is the whole field set:
   It is the one record of the RED location axis (ids and the kind only), and
   it does not index the visit — files/02 §2b reads a visit's REDs, and this is
   not one.
+- **Clinician-only clinic items, which are not REDs** (INT-547, INT-525).
+  CD-08 routes the items the clinical decisions raise to the booked clinic's
+  inbox: ``chest_pain_arms_unresolved`` is CD-04's (a chest-pain slot still
+  UNCLEAR after its follow-up), and ``proxy_chest_pain_screen_unasked`` is
+  CD-01's (a proxy session left the chest-pain screen unasked). An item entry
+  names the item by its own reference,
+  which the session derives from itself and the kind, so an item is one entry
+  per session however often it is raised. The rule ids are the chest-pain
+  rules the item concerns, never a fired RED. An item entry also keeps the
+  protocol slot ids it is about and the decision ids that raise and route it
+  (INT-553): which slot was left unresolved or unasked is what the clinician
+  acts on, and both are protocol identifiers, never an answer. No other kind
+  carries either. No item kind carries a register
+  or indexes the visit, and while CD-08 leaves their SLA
+  ``draft_needs_source`` none has an acknowledgement SLA
+  (:meth:`~intake_platform.safety_inbox.sla.AckSlaPolicy.sla_for_entry`).
 - **The clock is ``created_at``.** It is stamped where the entry is made — on
   the RED path, in-process — and nothing later moves it: a store that was
   down when the RED fired writes the entry late, but the clinic's clock still
@@ -54,8 +70,11 @@ from clinical_schemas.triage import RedRegister
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
+    "CLINIC_ITEM_KINDS",
+    "DECISION_ID_SHAPE",
     "ID_SHAPE",
     "RULE_ID_SHAPE",
+    "SLOT_REF_SHAPE",
     "AlreadyAcknowledged",
     "EntryKind",
     "InboxEntry",
@@ -78,6 +97,12 @@ _ID: Final = re.compile(ID_SHAPE)
 #: which every rules-engine rule id (``rf.<segments>``) already satisfies.
 RULE_ID_SHAPE: Final = r"^[a-z0-9][a-z0-9._-]{0,127}$"
 _RULE: Final = re.compile(RULE_ID_SHAPE)
+#: A protocol slot id, ``<section>.<slot>`` (INT-553): what a clinic item is about.
+SLOT_REF_SHAPE: Final = r"^[a-z0-9_]+\.[a-z0-9_]+$"
+_SLOT_REF: Final = re.compile(SLOT_REF_SHAPE)
+#: A clinical decision id of the D18 register (``CD-04``): what raised an item.
+DECISION_ID_SHAPE: Final = r"^CD-\d{2,3}$"
+_DECISION: Final = re.compile(DECISION_ID_SHAPE)
 #: A console subject, the id shape the audit chain accepts (files/08 §8.1).
 _SUBJECT: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$")
 _ENTRY: Final = re.compile(r"^sx_[0-9a-f]{32}$")
@@ -122,6 +147,8 @@ type _TenantId = Annotated[str, _shaped(_TENANT, "tenant_id")]
 type _Id = Annotated[str, _shaped(_ID, "id")]
 type _RuleId = Annotated[str, _shaped(_RULE, "rule id")]
 type _Subject = Annotated[str, _shaped(_SUBJECT, "subject")]
+type _SlotRef = Annotated[str, _shaped(_SLOT_REF, "slot ref")]
+type _DecisionId = Annotated[str, _shaped(_DECISION, "decision id")]
 type _EntryId = Annotated[str, _shaped(_ENTRY, "entry_id")]
 
 
@@ -138,6 +165,21 @@ class EntryKind(enum.StrEnum):
     VISIT_CANCELLED = "visit_cancelled"
     #: INT-475: the RED's patient is on site; staff are notified (files/04 §8.1 rule 7).
     RED_ON_SITE = "red_on_site"
+    #: INT-547 (CD-04, CD-08): a chest-pain slot still UNCLEAR after its follow-up.
+    CHEST_PAIN_ARMS_UNRESOLVED = "chest_pain_arms_unresolved"
+    #: INT-525 (CD-01, CD-08): a proxy session left the chest-pain screen unasked.
+    PROXY_CHEST_PAIN_SCREEN_UNASKED = "proxy_chest_pain_screen_unasked"
+
+    @property
+    def is_clinic_item(self) -> bool:
+        """A CD-08 clinician-only item: not a RED, and no SLA while CD-08's is draft."""
+        return self in CLINIC_ITEM_KINDS
+
+
+#: The CD-08 clinic items (INT-547, INT-525). Never a RED.
+CLINIC_ITEM_KINDS: Final = frozenset(
+    {EntryKind.CHEST_PAIN_ARMS_UNRESOLVED, EntryKind.PROXY_CHEST_PAIN_SCREEN_UNASKED}
+)
 
 
 class VisitTransition(enum.StrEnum):
@@ -194,13 +236,17 @@ class InboxEntry(BaseModel):
     visit_id: _Id
     kind: EntryKind
     rule_ids: tuple[_RuleId, ...] = Field(min_length=1)
-    #: The RED's ``work_id``, or the visit transition's id.
+    #: The RED's ``work_id``, the visit transition's id, or a clinic item's reference.
     source_ref: _Id
     created_at: datetime
     acknowledged_at: datetime | None = None
     acknowledged_by: _Subject | None = None
     #: INT-407: how the RED was told (files/02 §5.3 Axis 2), for the §2b re-show.
     register: RedRegister | None = None
+    #: INT-553: a clinic item's protocol slot ids; empty for every other kind.
+    slot_refs: tuple[_SlotRef, ...] = ()
+    #: INT-553: the decisions that raise and route a clinic item; empty otherwise.
+    decision_ids: tuple[_DecisionId, ...] = ()
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -209,6 +255,10 @@ class InboxEntry(BaseModel):
             raise ValueError("entry_id is derived from tenant, kind and source, never chosen")
         if self.register is not None and self.kind is not EntryKind.RED:
             raise ValueError("only a RED entry records a register; a transition was told nothing")
+        if self.kind.is_clinic_item and not (self.slot_refs and self.decision_ids):
+            raise ValueError("a clinic item entry carries its slot_refs and its decision_ids")
+        if not self.kind.is_clinic_item and (self.slot_refs or self.decision_ids):
+            raise ValueError("only a clinic item records slot refs and decision ids")
         if (self.acknowledged_at is None) != (self.acknowledged_by is None):
             raise ValueError("an acknowledgement names both who and when, or neither")
         if self.acknowledged_at is not None:
@@ -287,6 +337,42 @@ class InboxEntry(BaseModel):
             rule_ids=rule_ids,
             source_ref=transition_id,
             created_at=at,
+        )
+
+    @classmethod
+    def for_clinic_item(
+        cls,
+        *,
+        tenant_id: str,
+        session_id: str,
+        visit_id: str,
+        kind: EntryKind,
+        item_ref: str,
+        rule_ids: tuple[str, ...],
+        slot_refs: tuple[str, ...],
+        decision_ids: tuple[str, ...],
+        at: datetime,
+    ) -> InboxEntry:
+        """A CD-08 clinic item (INT-547), named by its own reference.
+
+        ``item_ref`` is derived by the session from itself and the kind, so the
+        entry id (tenant, kind, reference) is one per session and kind: a second
+        raise lands on the first entry and its clock. ``slot_refs`` and
+        ``decision_ids`` are the item's own (INT-553): which slot, which decision.
+        """
+        if not kind.is_clinic_item:
+            raise ValueError("a RED-family kind is never raised as a clinic item")
+        return cls(
+            entry_id=entry_id_for(tenant_id, kind, item_ref),
+            tenant_id=tenant_id,
+            session_id=session_id,
+            visit_id=visit_id,
+            kind=kind,
+            rule_ids=rule_ids,
+            source_ref=item_ref,
+            created_at=at,
+            slot_refs=slot_refs,
+            decision_ids=decision_ids,
         )
 
     @property

@@ -109,6 +109,9 @@ class TestTheRead:
             "visit_id",
             "kind",
             "rule_ids",
+            # INT-553 F9: a clinic item's slots and decisions; empty on a RED
+            "slot_refs",
+            "decision_ids",
             "created_at",
             "acknowledged",
             "acknowledged_at",
@@ -117,6 +120,7 @@ class TestTheRead:
             "elapsed_minutes",
             "age_band",
         }
+        assert (row["slot_refs"], row["decision_ids"]) == ([], [])
 
 
 class TestTheAcknowledgement:

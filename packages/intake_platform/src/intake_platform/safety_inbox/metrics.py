@@ -8,6 +8,9 @@ entry waiting too long for the store, and a RED whose route never made one. Thos
 four are catalogued in observability/metrics_catalog.yaml (invariant 13) and
 alerted in infra/observability/safety-rules.yaml. INT-475 adds a fifth, catalogued
 too: a notification the API raised whose audit row could not be appended.
+INT-547 adds three for the CD-08 clinic items, which are not REDs:
+raised, route failures (paged: CD-08 makes a delivery failure an SLA breach)
+and unaudited (paged since INT-553: invariant 4).
 
 Label discipline (invariant 6): ``tenant`` is a tenant id and ``age_band`` a
 closed :class:`~intake_platform.safety_inbox.sla.AgeBand` member. No session,
@@ -23,6 +26,9 @@ from prometheus_client import Counter, Gauge, Histogram
 from intake_platform.safety_inbox.sla import DEFAULT_ACK_SLA, AgeBand
 
 __all__ = [
+    "CLINIC_INBOX_ITEMS_RAISED_TOTAL",
+    "CLINIC_INBOX_ITEM_ROUTE_FAILURES_TOTAL",
+    "CLINIC_INBOX_ITEM_UNAUDITED_TOTAL",
     "CLINIC_RED_ACK_LATENCY_MIN",
     "CLINIC_RED_INBOX_PENDING_AGE_S",
     "CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL",
@@ -78,6 +84,36 @@ CLINIC_RED_NOTIFICATION_UNAUDITED_TOTAL = Counter(
     "clinic_red_notification_unaudited_total",
     "Audit rows the API owed for a RED's clinic route (a RED or on-site staff "
     "notification raised, or a RED it could not route) that could not be written.",
+)
+
+#: INT-547: CD-08 clinic items a session raised into the inbox, by kind (a
+#: closed ``protocols.clinic_items.ClinicItemKind`` value). Once per session
+#: and kind; counted when the route took it.
+CLINIC_INBOX_ITEMS_RAISED_TOTAL = Counter(
+    "clinic_inbox_items_raised_total",
+    "CD-08 clinic-inbox items raised (a chest-pain slot left unresolved, a proxy "
+    "session's unasked chest-pain screen), by kind.",
+    ["kind"],
+)
+
+#: CD-08: an inbox delivery failure counts as an SLA breach, and a breach is an
+#: emitted event. A raise whose route failed; the item is raised again on the
+#: session's next Work, never dropped.
+CLINIC_INBOX_ITEM_ROUTE_FAILURES_TOTAL = Counter(
+    "clinic_inbox_item_route_failures_total",
+    "CD-08 clinic-inbox items whose route into the Safety inbox raised, by kind.",
+    ["kind"],
+)
+
+#: Invariant 4: the audit row a raised item owes, which could not be appended
+#: (the chain refused it, or the runtime's bounded audit outbox was full,
+#: INT-553). The entry is put first and never held back for its paperwork
+#: (INT-475's order). Paged by ``ClinicInboxItemUnaudited``.
+CLINIC_INBOX_ITEM_UNAUDITED_TOTAL = Counter(
+    "clinic_inbox_item_unaudited_total",
+    "CD-08 clinic-inbox items put in the Safety inbox whose audit row could not be "
+    "appended, by kind.",
+    ["kind"],
 )
 
 #: The ``tenant`` value that means "the inbox could not be read". A sweep that

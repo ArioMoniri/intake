@@ -41,6 +41,7 @@ __all__ = [
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
     "WORK_QUEUE_DEPTH",
+    "WORK_WATCH_FAULTS_TOTAL",
 ]
 
 # The client's `_created` companion series would sit next to every counter
@@ -105,6 +106,17 @@ TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL = Counter(
     "triage_live_evaluation_failures_total",
     "Live-session rules-engine evaluations that faulted or disagreed with a handler, by kind.",
     ["kind"],
+)
+
+#: INT-553: the session's state-Work watch (the CD-08 clinic-item watch)
+#: raised when it looked at the engine. ``step`` is closed: ``before`` (ahead
+#: of the handler) or ``after`` (once the Work settled). The Work is never
+#: failed for it and its evaluation always runs; an item the watch could not
+#: raise may be missing from the clinic inbox, so any increase pages.
+WORK_WATCH_FAULTS_TOTAL = Counter(
+    "work_watch_faults_total",
+    "State-Work watch looks that raised, by step; the Work and its evaluation went ahead.",
+    ["step"],
 )
 
 
@@ -206,10 +218,14 @@ PREEMPT_RED_VIOLATIONS_TOTAL = Counter(
 #: than a violation or a refusal), ``cancelled`` (the event loop cancelled a
 #: delivery before it finished) or ``exit`` (the watch itself ended other than
 #: by being cancelled). The first two are retried, and raised, on the next turn.
-#: Any increase means a RED may not have reached the patient.
+#: INT-545 adds ``unreached``: the session ended with a RED of the first two
+#: kinds still undelivered, so no next turn will retry it; the clinician route
+#: is told the device was not reached. Any increase means a RED may not have
+#: reached the patient.
 RED_WATCH_FAILURES_TOTAL = Counter(
     "red_watch_failures_total",
-    "Between-turn RED watch failures: a pushed RED undelivered, or the watch ended, by kind.",
+    "Between-turn RED watch failures: a pushed RED undelivered, the watch ended, or a "
+    "session ended with a RED never delivered, by kind.",
     ["kind"],
 )
 

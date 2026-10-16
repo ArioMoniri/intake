@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import threading
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, fields, replace
 from datetime import UTC, datetime
@@ -147,11 +148,20 @@ class AuditChain:
     """Writer + verifier over a store. Holds the running head in memory: the
     head is the one fact a truncate-and-re-append fork cannot reproduce,
     because the forged tail never saw it. Publishing this head outside the
-    writer's blast radius (invariant 40) is the integration slice's job."""
+    writer's blast radius (invariant 40) is the integration slice's job.
+
+    **One writer at a time** (INT-553). An append reads the running head and
+    the next ``seq``, writes the store, then moves both; two threads inside it
+    at once would both link to the same head under the same ``seq`` and fork
+    the chain. A lock serialises the whole step — the voice runtime's
+    clinic-item audit worker writes from its own thread — and the reads that
+    must see the head and the store agree (:meth:`verify`, :meth:`export_worm`)
+    take it too."""
 
     def __init__(self, store: AuditStore, *, clock: Callable[[], datetime] | None = None) -> None:
         self._store = store
         self._clock = clock if clock is not None else _utc_now
+        self._lock = threading.Lock()
         tail = store.last()
         self._head = tail.entry_hash if tail is not None else GENESIS_PREV_HASH
         self._next_seq = tail.seq + 1 if tail is not None else 1
@@ -160,7 +170,8 @@ class AuditChain:
     def head(self) -> str:
         """The running head: the newest entry's hash, or the genesis value
         while the chain is empty (which is what entry 1 will link to)."""
-        return self._head
+        with self._lock:
+            return self._head
 
     def append(
         self, *, actor: str, action: str, resource_ref: str, consent_scope_ref: str
@@ -172,32 +183,35 @@ class AuditChain:
             ("consent_scope_ref", consent_scope_ref),
         ):
             _require_ref_shaped(field_name, value)
-        stamp = self._clock()
-        if stamp.tzinfo is None:
-            raise ValueError("audit clock must return timezone-aware datetimes (UTC)")
-        unsigned = AuditEntry(
-            seq=self._next_seq,
-            timestamp_utc=stamp.astimezone(UTC).isoformat(),
-            actor=actor,
-            action=action,
-            resource_ref=resource_ref,
-            consent_scope_ref=consent_scope_ref,
-            prev_hash=self._head,
-            entry_hash="",
-        )
-        entry = replace(unsigned, entry_hash=_entry_hash(unsigned))
-        self._store.append(entry)
-        self._head = entry.entry_hash
-        self._next_seq += 1
-        return entry
+        with self._lock:
+            stamp = self._clock()
+            if stamp.tzinfo is None:
+                raise ValueError("audit clock must return timezone-aware datetimes (UTC)")
+            unsigned = AuditEntry(
+                seq=self._next_seq,
+                timestamp_utc=stamp.astimezone(UTC).isoformat(),
+                actor=actor,
+                action=action,
+                resource_ref=resource_ref,
+                consent_scope_ref=consent_scope_ref,
+                prev_hash=self._head,
+                entry_hash="",
+            )
+            entry = replace(unsigned, entry_hash=_entry_hash(unsigned))
+            self._store.append(entry)
+            self._head = entry.entry_hash
+            self._next_seq += 1
+            return entry
 
     def verify(self) -> VerificationResult:
-        return verify_entries(self._store.entries(), expected_head=self._head)
+        with self._lock:
+            return verify_entries(self._store.entries(), expected_head=self._head)
 
     def export_worm(self) -> bytes:
         """The writer's view of :func:`build_worm_bundle`: this chain's
         entries under this chain's running head."""
-        return build_worm_bundle(self._store.entries(), self._head)
+        with self._lock:
+            return build_worm_bundle(self._store.entries(), self._head)
 
 
 def build_worm_bundle(entries: Sequence[AuditEntry], head: str) -> bytes:

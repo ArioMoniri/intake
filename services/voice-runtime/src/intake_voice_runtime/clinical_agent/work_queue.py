@@ -73,6 +73,17 @@ The moment the determination was in hand travels on a ``preempt`` result as
 ``evaluated_at_ms``, because files/02 §8.2 measures the RED budgets from rule
 evaluation and the Talker must not stamp a RED on arrival.
 
+**A watch looks around the Work; it is never the Work** (INT-553). A session
+may bind a :class:`StateWatch` — the CD-08 clinic-item watch is the one there
+is. The queue calls its first look before the handler and its second only
+once the Work has settled: after the handler, the rules engine's
+determination, the clinician route and the RED push. Neither look is handed
+the request, the effect or the result, and nothing either returns is read, so
+a watch cannot add a determination, a priority or speech (invariants 1 and
+9). A look that raises is logged by ids and counted
+(``work_watch_faults_total{step}``); it never fails the Work, never skips its
+evaluation and never leaves one owed.
+
 **A RED does not wait for the Talker's next turn** (INT-531). Once a RED has
 settled (and sealed the queue, where its register stops the intake) the queue
 posts it through :class:`~intake_voice_runtime.talker.red_push.RedPush` — one
@@ -121,7 +132,7 @@ from collections import deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from threading import Lock
-from typing import Final
+from typing import Final, Protocol, runtime_checkable
 
 from clinical_schemas.common import FrozenModel
 from clinical_schemas.triage import CandidateFlag, RulesTriageResult, TriageLevel
@@ -135,6 +146,7 @@ from intake_voice_runtime.metrics import (
     WORK_FAILED_TOTAL,
     WORK_LATENCY_MS,
     WORK_QUEUE_DEPTH,
+    WORK_WATCH_FAULTS_TOTAL,
 )
 from intake_voice_runtime.ports import (
     Clock,
@@ -157,7 +169,12 @@ from intake_voice_runtime.talker.preemption import (
     Priority,
     authorise_preempt,
 )
-from intake_voice_runtime.talker.red_path import REGISTER_DELIVERY, ClinicNotifier, RedNotification
+from intake_voice_runtime.talker.red_path import (
+    REGISTER_DELIVERY,
+    ClinicNotifier,
+    RedNotification,
+    delivery_before_trigger,
+)
 from intake_voice_runtime.talker.red_push import RedPush
 
 __all__ = [
@@ -171,7 +188,9 @@ __all__ = [
     "StateContext",
     "StateEffect",
     "StateHandler",
+    "StateWatch",
     "UnregisteredWorkType",
+    "WatchStep",
     "WorkLane",
     "WorkRecord",
 ]
@@ -278,6 +297,28 @@ StateHandler = Callable[[StateContext], StateEffect]
 BackgroundHandler = Callable[[ReadOnlyContext], BackgroundEffect]
 
 
+class WatchStep(enum.StrEnum):
+    """Which of a :class:`StateWatch`'s two looks ran (a metric label)."""
+
+    BEFORE = "before"
+    AFTER = "after"
+
+
+@runtime_checkable
+class StateWatch(Protocol):
+    """Looks at the engine around each state-lane Work (INT-553).
+
+    Handed the engine and nothing else — no request, no effect, no result —
+    and nothing it returns is read. **No member is awaitable** (invariant 9).
+    ``after_work`` runs once the Work has settled, so a watch can neither
+    delay nor skip the Work's evaluation; one that raises is counted.
+    """
+
+    def before_work(self, engine: IntakeEngine) -> None: ...
+
+    def after_work(self, engine: IntakeEngine) -> None: ...
+
+
 @dataclass
 class WorkRecord:
     """A delivery receipt, not a mirror of internal reasoning (files/03 §4.3).
@@ -316,6 +357,9 @@ class BackendAgent:
     #: watch. ``None`` where no RED path is bound; the turn's drain still
     #: delivers it then.
     red_push: RedPush | None = None
+    #: INT-553: looks at the engine around each state-lane Work (the CD-08
+    #: clinic-item watch). ``None`` where the session has nothing to watch.
+    watch: StateWatch | None = None
     _queue_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _engine_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _state_handlers: dict[WorkType, StateHandler] = field(default_factory=dict, init=False)
@@ -608,6 +652,41 @@ class BackendAgent:
     # --- execution ----------------------------------------------------------------
 
     def _execute_state(self, work_id: str) -> None:
+        """One state-lane Work, between the session watch's two looks (INT-553).
+
+        The second look runs once the Work has settled however it settled, so
+        the determination, the clinician route and the RED push never wait on
+        it; a look that raises costs the Work nothing.
+        """
+        self._look(work_id, WatchStep.BEFORE)
+        try:
+            self._run_state(work_id)
+        finally:
+            self._look(work_id, WatchStep.AFTER)
+
+    def _look(self, work_id: str, step: WatchStep) -> None:
+        """Run one of the watch's looks; a fault is counted and logged by ids."""
+        watch = self.watch
+        if watch is None:
+            return
+        try:
+            if step is WatchStep.BEFORE:
+                watch.before_work(self.engine)
+            else:
+                watch.after_work(self.engine)
+        except Exception as err:  # a watch never costs the Work or its evaluation; it pages
+            WORK_WATCH_FAULTS_TOTAL.labels(step=step.value).inc()
+            logger.error(
+                "state work watch failed",
+                extra={
+                    "session_id": self.session_id,
+                    "work_id": work_id,
+                    "step": step.value,
+                    "error": type(err).__name__,
+                },
+            )
+
+    def _run_state(self, work_id: str) -> None:
         record = self._records[work_id]
         handler = self._state_handlers[record.request.work_type]
         try:
@@ -819,6 +898,8 @@ class BackendAgent:
                     location=triage.location,
                     evaluated_at_ms=stamp,
                     patient_facing=REGISTER_DELIVERY[triage.register].triggers_device,
+                    # INT-545: the determination, ahead of the Talker and the device.
+                    delivery=delivery_before_trigger(triage.register),
                 )
             )
         except Exception:  # the route must never cost the RED; the failure pages

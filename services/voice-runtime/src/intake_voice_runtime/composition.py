@@ -94,6 +94,18 @@ anchor. ``close_session`` is registered on every session beside
 ``extract_slots``, and :meth:`SessionStack.close` submits it: an anchor still
 asked and unanswered when the session ends is recorded UNCLEAR, resolved and
 evaluated by the rules engine like any other answer.
+
+**The clinic hears of unresolved or unasked chest-pain arms** (INT-547,
+INT-525). Wherever a served rule reads a CD-01 chest-pain slot, both roots
+require a ``clinic_items`` route (:class:`ClinicItemRouteMissing` otherwise)
+and bind a
+:class:`~intake_voice_runtime.clinical_agent.clinic_items.ClinicItemWatch` to
+the session's Work queue, which looks around every state Work — never inside
+a handler, and its second look only once the Work has settled (INT-553):
+CD-04's ``chest_pain_arms_unresolved`` and CD-01's
+``proxy_chest_pain_screen_unasked`` reach the clinic inbox once each, by ids,
+behind the Work's determination and never in front of it. The production
+route is :class:`~intake_voice_runtime.safety_inbox.ClinicItemNotifier`.
 """
 
 from __future__ import annotations
@@ -112,6 +124,11 @@ from protocols.valuesets import ValueSetTable, load_committed_valuesets
 
 from intake_voice_runtime.adapters.pins import ModelPin, ModelStackRow, resolve_pin
 from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
+from intake_voice_runtime.clinical_agent.clinic_items import (
+    ClinicItemRoute,
+    ClinicItemRouteMissing,
+    ClinicItemWatch,
+)
 from intake_voice_runtime.clinical_agent.fsm import IntakeEngine
 from intake_voice_runtime.clinical_agent.live_triage import SessionTriage, served_rules
 from intake_voice_runtime.clinical_agent.session_close import SessionCloseHandler, close_request
@@ -152,6 +169,7 @@ from intake_voice_runtime.transcript import SessionTranscripts
 from intake_voice_runtime.typed.affordance import SlotFacts, slot_facts
 
 __all__ = [
+    "ClinicItemRouteMissing",
     "RedWiring",
     "RedWiringMissing",
     "ResidencyStack",
@@ -250,6 +268,9 @@ class SessionStack:
     #: record of the choice beside the day it bound. ``None`` where the pinned
     #: protocol declares no date answered by a closed choice.
     anchors: SessionAnchors | None = None
+    #: CD-08's chest-pain items (INT-547): what the session raised and
+    #: on which route. ``None`` where no served rule reads a chest-pain slot.
+    clinic_items: ClinicItemWatch | None = None
 
     @property
     def profile(self) -> VoiceProfile:
@@ -305,6 +326,7 @@ def build_residency_tr_session(
     red: RedWiring | None = None,
     anchor_choices: AnchorChoiceTable | None = None,
     answer_states: AnswerStateTable | None = None,
+    clinic_items: ClinicItemRoute | None = None,
 ) -> SessionStack:
     """Compose one ``residency_tr`` session and close the three joints.
 
@@ -345,6 +367,11 @@ def build_residency_tr_session(
     ``answer_states`` omitted is CD-04 read from the committed register
     (:func:`protocols.answer_states.load_answer_state_table`, INT-540), loaded
     wherever CD-05's anchors are; handed one, it is used as given.
+
+    ``clinic_items`` is required wherever a served rule reads a CD-01
+    chest-pain slot: CD-08's items are never dropped, so a session that could
+    raise one and has no route for it is not composed
+    (:class:`ClinicItemRouteMissing`, INT-547).
     """
     return _compose(
         protocol=protocol,
@@ -378,6 +405,7 @@ def build_residency_tr_session(
         red=red,
         anchor_choices=anchor_choices,
         answer_states=answer_states,
+        clinic_items=clinic_items,
     )
 
 
@@ -402,6 +430,7 @@ def build_typed_session(
     red: RedWiring | None = None,
     anchor_choices: AnchorChoiceTable | None = None,
     answer_states: AnswerStateTable | None = None,
+    clinic_items: ClinicItemRoute | None = None,
 ) -> SessionStack:
     """Compose one ``typed`` session — the same three joints, no audio.
 
@@ -420,6 +449,8 @@ def build_typed_session(
     (INT-518). ``anchor_choices`` likewise: a tapped onset choice binds its
     CD-05 day through the same handler (INT-522), and ``answer_states``: an
     unfit typed onset answer is UNCLEAR at once, as a spoken one is (INT-540).
+    ``clinic_items`` too: a tapped hedge leaves an arm as unresolved as a
+    spoken one, so the CD-08 items are raised on both lanes (INT-547).
 
     ``deadlines`` survives the change of channel deliberately. files/12 §6's
     ladder decides whether a YELLOW result is delivered or expires into the
@@ -453,6 +484,7 @@ def build_typed_session(
         red=red,
         anchor_choices=anchor_choices,
         answer_states=answer_states,
+        clinic_items=clinic_items,
     )
 
 
@@ -482,6 +514,7 @@ def _compose(
     red: RedWiring | None = None,
     anchor_choices: AnchorChoiceTable | None = None,
     answer_states: AnswerStateTable | None = None,
+    clinic_items: ClinicItemRoute | None = None,
 ) -> SessionStack:
     """Both profiles, composed once.
 
@@ -537,6 +570,9 @@ def _compose(
     # INT-521: the evaluator over the served rules, refused here (before the
     # session is counted) when the session could not deliver the RED it finds.
     triage = _session_triage(protocol, reference_time=reference_time, red=red, anchors=anchors)
+    # INT-547: CD-08's chest-pain items wherever a served rule reads a
+    # chest-pain slot, refused here when there is no route to raise them on.
+    watch = ClinicItemWatch.for_protocol(protocol, route=clinic_items, session_id=session_id)
     pinned = rule_ids | {rule.id for rule in served_rules(protocol)}
     if meter is not None:
         # INT-190: the session is counted where it is composed, by the meter
@@ -554,11 +590,12 @@ def _compose(
         clinic=clinic,
         triage=triage,
         red_push=mailbox,
+        # INT-553: the queue looks around each state Work; no handler is wrapped
+        watch=watch,
     )
+    close = SessionCloseHandler(anchors=anchors, steps=frozenset(slots))
     agent.register_state(WorkType.EXTRACT_SLOTS, handler)
-    agent.register_state(
-        WorkType.CLOSE_SESSION, SessionCloseHandler(anchors=anchors, steps=frozenset(slots))
-    )
+    agent.register_state(WorkType.CLOSE_SESSION, close)
 
     session = TalkerSession(
         config=config.model_copy(update={"rule_ids": pinned}),
@@ -585,6 +622,7 @@ def _compose(
         slot_affordances=slot_facts(protocol),
         meter=meter,
         anchors=anchors,
+        clinic_items=watch,
     )
 
 

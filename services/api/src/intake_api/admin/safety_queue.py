@@ -7,9 +7,10 @@ write-ahead by the route wrapper and the acknowledgement is a registered
 - ``GET /admin/safety-queue`` — files/08 §3: *"every RED with its inbox
   timestamp, acknowledgement clock, acknowledging person and elapsed time
   against the tenant SLA; unacknowledged REDs first; entries raised by 02 §2b
-  reschedule/cancel on a RED visit"*. The tenant is the caller's claim
-  (files/08 §8 rule a); ``platform_owner``, whose claim names none, reads every
-  tenant or names one with ``?tenant=``.
+  reschedule/cancel on a RED visit"*. Open REDs come before open CD-08 clinic
+  items (INT-553), and an item's row names its slots and decisions by id. The
+  tenant is the caller's claim (files/08 §8 rule a); ``platform_owner``, whose
+  claim names none, reads every tenant or names one with ``?tenant=``.
 - ``POST /admin/safety-queue/{entry_id}/acknowledge`` — *"acknowledge
   (tenant_clinical_responsible)"*. On the caller's own tenant's entry, once.
   A row naming the entry (``safety_inbox:<tenant>:<entry_id>``) is appended to
@@ -67,13 +68,18 @@ def _row(row: QueueRow) -> dict[str, Any]:
         "visit_id": entry.visit_id,
         "kind": entry.kind.value,
         "rule_ids": list(entry.rule_ids),
+        # INT-553: which protocol slot a CD-08 clinic item is about and which
+        # decisions raised it, ids only; both empty on every RED-family row
+        "slot_refs": list(entry.slot_refs),
+        "decision_ids": list(entry.decision_ids),
         "created_at": entry.created_at.isoformat(),
         "acknowledged": not entry.is_open,
         "acknowledged_at": (
             entry.acknowledged_at.isoformat() if entry.acknowledged_at is not None else None
         ),
         "acknowledged_by": entry.acknowledged_by,
-        "sla_minutes": _minutes(row.sla.total_seconds()),
+        # INT-547: a CD-08 clinic item states no SLA, because CD-08 decides none
+        "sla_minutes": _minutes(row.sla.total_seconds()) if row.sla is not None else None,
         "elapsed_minutes": _minutes(row.elapsed.total_seconds()),
         "age_band": row.band.value if row.band is not None else None,
     }
@@ -147,7 +153,7 @@ async def acknowledge(
     return _row(
         QueueRow(
             entry=acked,
-            sla=inbox.policy.sla_for(acked.tenant_id),
+            sla=inbox.policy.sla_for_entry(acked),
             elapsed=acked.age(acked.acknowledged_at or acked.created_at),
             band=None,
         )

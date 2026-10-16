@@ -290,8 +290,13 @@ class TestEveryRedProducesAnEntryWithinSixtySeconds:
             # INT-407: the register the RED was told in — a closed enum, for
             # the files/02 §2b re-show when the visit moves; never words
             "register",
+            # INT-553: a CD-08 clinic item's protocol slot ids and decision
+            # ids; a RED entry carries neither
+            "slot_refs",
+            "decision_ids",
         }
         assert entry.register is RED_RULE.register
+        assert (entry.slot_refs, entry.decision_ids) == ((), ())
 
     def test_the_red_settles_even_when_the_inbox_write_cannot_happen_yet(self) -> None:
         """The shared store is down: the RED still settles and seals, the
@@ -648,6 +653,25 @@ class TestTheSignalsArePaged:
         assert rule["labels"]["severity"] == "page"
         assert "clinic_red_inbox_pending_age_s" in rule["expr"]
         assert f"> {int(INBOX_ENTRY_BUDGET.total_seconds())}" in rule["expr"]
+
+    @pytest.mark.parametrize(
+        ("alert", "metric"),
+        [
+            # INT-553 F5: a CD-08 item shared with the clinic with no audit row
+            # (invariant 4), and a watch fault that may have kept an item back
+            ("ClinicInboxItemUnaudited", "clinic_inbox_item_unaudited_total"),
+            ("ClinicItemWatchFailed", "work_watch_faults_total"),
+            # near miss: the route failure INT-547 already paged
+            ("ClinicInboxItemRouteFailed", "clinic_inbox_item_route_failures_total"),
+        ],
+    )
+    def test_a_clinic_item_signal_pages(self, alert: str, metric: str) -> None:
+        rule = _alerts()[alert]
+        assert rule["labels"]["severity"] == "page"
+        assert rule["expr"] == f"increase({metric}[5m]) > 0"
+        catalog = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))
+        entries = {entry["name"]: entry for entry in catalog["metrics"]}
+        assert entries[metric].get("status", "live") == "live"
 
     def test_every_alert_links_an_anchor_that_exists(self) -> None:
         text = RUNBOOK.read_text(encoding="utf-8")
