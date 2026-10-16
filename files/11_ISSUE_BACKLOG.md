@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**344 issues.** By phase: P0 168 · P1 122 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 229 · todo 73 · withdrawn 1.
+**345 issues.** By phase: P0 168 · P1 123 · P2 47 · P3 7. By status: awaiting-human 35 · doing 6 · done 230 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -306,6 +306,7 @@
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
+| INT-511 | The synthetic host follows main: deploy, smoke and a commit status, refusing unmerged, red, frozen or unparitied | E13-infra | INT-426, INT-187 | area:observability | done |
 
 ## P2
 

@@ -1,0 +1,79 @@
+# INT-511 — the synthetic host follows main. STAGED HERE: no agent edits
+# .github/**, so the owner moves this file to
+# .github/workflows/staging-follow-main.yml (owner patch owner-511-workflow,
+# which also adds it to tests/ci/test_aws_runner.py). Until then nothing runs it.
+#
+# It fires on all three events. infra/staging/follow-main.conf decides which
+# of them deploys: FOLLOW_TRIGGER=nightly (the default until the owner picks)
+# deploys on the schedule; green_merge deploys when CI finishes green on a
+# push to main. "Run workflow" deploys under either. An event the config does
+# not name stops at the decide step, before any AWS credential is minted.
+#
+# The runner has no instance role (guard.sh blocks the metadata service), so
+# the job assumes the deploy role through GitHub's OIDC token. The role trusts
+# only this repository's `synthetic-staging` environment
+# (infra/staging/follow-main.trust.json). It may write one S3 prefix and run
+# one SSM document on one instance (infra/staging/follow-main.policy.json).
+# tests/ci/test_staging_follow_wiring.py pins this file.
+name: staging-follow-main
+
+on:
+  schedule:
+    # FOLLOW_NIGHTLY_CRON in infra/staging/follow-main.conf (UTC)
+    - cron: "17 2 * * *"
+  workflow_run:
+    workflows: [ci, security]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "a 40-hex commit on main; empty deploys main's head"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-follow-main
+  cancel-in-progress: false
+
+jobs:
+  staging-follow-main:
+    # A workflow_run of a pull request, or of a fork's branch named main,
+    # never reaches the job. The script refuses an unmerged sha as well.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: [self-hosted, linux, intake-aws-ci]
+    environment: synthetic-staging
+    timeout-minutes: 70
+    permissions:
+      contents: read
+      checks: read
+      statuses: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.event.workflow_run.head_sha || inputs.ref }}
+        run: echo "deploy=$(scripts/ci/staging_follow_main.sh --event "$EVENT" ${REF:+--ref "$REF"} --decide)" >> "$GITHUB_OUTPUT"
+      - if: steps.decide.outputs.deploy == 'true'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.STAGING_FOLLOW_ROLE_ARN }}
+          role-session-name: staging-follow-main
+          role-duration-seconds: 3600
+          aws-region: us-east-1
+      - if: steps.decide.outputs.deploy == 'true'
+        name: follow main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.event.workflow_run.head_sha || inputs.ref }}
+        run: make staging-follow-main

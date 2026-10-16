@@ -50,6 +50,17 @@ ci-aws:
 	elif [ -n "$(REF)" ] && [ -z "$(PR)" ]; then scripts/ci/aws_ci.sh --ref $(REF); \
 	else echo "usage: make ci-aws PR=<n> | REF=<40-hex sha>"; exit 2; fi
 
+# INT-511: the synthetic host follows main (docs/runbooks/staging.md,
+# "Following main"). It deploys main's head, or REF, over S3 + SSM, runs
+# smoke.sh, and posts the verdict as the commit status staging-smoke. It
+# refuses an unmerged or red sha, a frozen state, a red smoke and a sha whose
+# /version parity fails. DRY_RUN=1 prints the plan and ships nothing. EVENT
+# (default manual) is what the staged workflow passes. EVENT and REF reach the
+# script from the environment, quoted by the shell. Make never pastes them in.
+.PHONY: staging-follow-main
+staging-follow-main:
+	@scripts/ci/staging_follow_main.sh --event "$${EVENT:-manual}" $${REF:+--ref "$$REF"} $${DRY_RUN:+--dry-run}
+
 check-integration:
 	docker compose -f infra/docker-compose.dev.yml --profile clamav --profile export up -d --wait postgres openbao minio clamav hapi ehrbase-db ehrbase
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh

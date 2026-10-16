@@ -22,6 +22,7 @@ commit.
 ## 1. Deploy
 
 The host runs `infra/staging/deploy.sh` from a `git archive` of the release commit.
+`make staging-follow-main REF=<sha>` (INT-511) runs steps 1 to 4 below and posts the smoke verdict as a commit status. `DRY_RUN=1` prints its plan, and docs/runbooks/staging.md, "Following main", lists what it refuses. The steps below are what it does, and how to do it by hand.
 
 1. Build the archive: `git archive --format=tar.gz --prefix=intake/ -o onvizit-<sha>.tgz <sha>`.
    - `REVISION` is stamped by export-subst, so `/version` names the commit.
