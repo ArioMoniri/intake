@@ -384,11 +384,14 @@ def second_factor_violations(realm: Mapping[str, Any]) -> list[str]:
     for outcome in fresh:
         if AMR_FIRST_FACTOR not in outcome or not outcome & {AMR_OTP, AMR_WEBAUTHN}:
             violations.append(f"a fresh login completes only {sorted(outcome)}")
-    # both factors must stay reachable: without WebAuthn no patient-content
-    # role could ever log in, and without OTP §2.3's split would be moot
+    # WebAuthn must stay reachable: without it no patient-content role could
+    # ever log in. OTP must not be, until the owner decides INT-389 (#644): the
+    # console refuses a TOTP token today (INT-378's aaguid rule), and an OTP
+    # ALTERNATIVE beside WebAuthn refused every new staff user (INT-550,
+    # tests/admin/test_staff_passkey_enrolment.py). §2.3 is met: WebAuthn is MFA.
     offered = frozenset().union(*fresh) & {AMR_OTP, AMR_WEBAUTHN}
-    if offered != {AMR_OTP, AMR_WEBAUTHN}:
-        violations.append(f"the browser flow offers only {sorted(offered)} as a second factor")
+    if offered != {AMR_WEBAUTHN}:
+        violations.append(f"the browser flow offers {sorted(offered)} as a second factor")
     expected = {
         "auth-username-password-form": AMR_FIRST_FACTOR,
         "auth-otp-form": AMR_OTP,
@@ -445,7 +448,8 @@ class TestRealmSecondFactor:
         ("path", "value"),
         [
             (("staff second factor", 0, "requirement"), "DISABLED"),
-            (("staff second factor", 1, "requirement"), "DISABLED"),
+            # INT-550: OTP switched on beside WebAuthn (INT-389 not decided)
+            (("staff second factor", 1, "requirement"), "REQUIRED"),
             (("staff browser forms", 1, "requirement"), "CONDITIONAL"),
             (("staff browser forms", 1, "requirement"), "DISABLED"),
             (("staff browser forms", 0, "requirement"), "DISABLED"),

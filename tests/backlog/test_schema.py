@@ -225,9 +225,11 @@ def test_ids_unique_and_well_formed() -> None:
     # 300 ms budget; INT-521 residual 1, GitHub #898).
     # + INT-544 (a pull request clears CI in under 20 minutes on the
     # intake-aws-ci pool; owner order, GitHub #919).
+    # + INT-550 (a new staff user enrols a passkey after the password step;
+    # found on the synthetic host, GitHub #930).
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
-    assert len(ids) == 366
+    assert len(ids) == 367
     import re
 
     for i in ids:
