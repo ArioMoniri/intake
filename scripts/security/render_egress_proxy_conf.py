@@ -20,8 +20,20 @@ Two squid details the rendering is deliberate about:
   attached to a CONNECT-scoped `access_log` line and the other format does not
   carry it at all.
 
+Two proxies, one list (INT-442):
+
+- **build** — ``infra/security/squid/squid.conf``, the dev/build forward proxy
+  (``infra/docker-compose.egress.yml``). It admits the ``dev`` tier's tooling
+  rows and NOT the ``hosted_model_inference`` rows: package and weight pulls
+  have no business reaching a model vendor.
+- **synthetic** — ``infra/staging/egress/squid.conf``, the synthetic AWS
+  host's forward proxy (``infra/staging/compose.yaml``, service
+  ``egress-proxy``). It admits the ``hosted_model_inference`` rows and nothing
+  else (ADR-035). With no such row it admits nothing at all: the rendered
+  config then carries no allow rule, only ``http_access deny all``.
+
 Usage:
-    uv run python scripts/security/render_egress_proxy_conf.py [--check]
+    uv run python scripts/security/render_egress_proxy_conf.py [--check] [--profile build|synthetic]
 """
 
 from __future__ import annotations
@@ -37,11 +49,17 @@ sys.path.insert(0, str(REPO / "packages" / "intake_platform" / "src"))
 from intake_platform.egress import (  # noqa: E402
     DENIED_RANGES,
     AllowlistEntry,
+    EgressPurpose,
     load_allowlist,
 )
 
 ALLOWLIST = REPO / "infra" / "security" / "egress-allowlist.yaml"
 TARGET = REPO / "infra" / "security" / "squid" / "squid.conf"
+#: INT-442: the synthetic AWS host's proxy, hosted-model rows only.
+SYNTHETIC_TARGET = REPO / "infra" / "staging" / "egress" / "squid.conf"
+TARGETS = {"build": TARGET, "synthetic": SYNTHETIC_TARGET}
+#: The one purpose the synthetic proxy admits, and the build proxy never does.
+HOSTED_PURPOSE = EgressPurpose.HOSTED_MODEL_INFERENCE
 
 #: The proxy listens here inside the container; the compose file binds it to
 #: loopback on the host. 3128 is squid's own default — not a value anyone had
@@ -62,25 +80,33 @@ def _glob_regex(entry: AllowlistEntry) -> str:
     return rf"^({_LABEL}\.)+{suffix}$"
 
 
-def render() -> str:
-    allowlist = load_allowlist(ALLOWLIST)
-    dev = allowlist.tiers.dev
-    exact = sorted(entry.host for entry in dev if not entry.glob)
-    globs = [entry for entry in dev if entry.glob]
-    ports = sorted({entry.port for entry in dev})
+def build_rows() -> list[AllowlistEntry]:
+    """The build proxy's rows: the dev tier's tooling, never a model vendor."""
+    return [e for e in load_allowlist(ALLOWLIST).tiers.dev if e.purpose_id is not HOSTED_PURPOSE]
 
+
+def synthetic_rows() -> list[AllowlistEntry]:
+    """The synthetic proxy's rows: the hosted-model rows, exact hosts only."""
+    rows = [e for e in load_allowlist(ALLOWLIST).tiers.dev if e.purpose_id is HOSTED_PURPOSE]
+    for entry in rows:
+        if entry.glob or entry.phi_allowed or entry.port != 443:
+            raise SystemExit(
+                f"allow-list row {entry.name}: a hosted-model row is an exact host on 443 "
+                "with phi_allowed: false (ADR-035)"
+            )
+    return rows
+
+
+def _preamble(consumer: str, story: list[str]) -> list[str]:
     denied = " ".join(cidr for cidr, _ in DENIED_RANGES)
-
-    lines: list[str] = [
+    return [
         "# GENERATED — do not edit by hand.",
         "#",
         "# Source:      infra/security/egress-allowlist.yaml",
         "# Generator:   scripts/security/render_egress_proxy_conf.py (`make egress-conf`)",
-        "# Consumed by: infra/docker-compose.egress.yml, service `egress-proxy`",
+        f"# Consumed by: {consumer}",
         "#",
-        "# INT-018 / ADR-025: one allow-list, two enforcers. Editing this file",
-        "# instead of the allow-list makes the proxy disagree with",
-        "# intake_platform.egress, and tests/infra/test_egress_proxy.py fails.",
+        *story,
         "",
         f"http_port {PROXY_PORT}",
         "pid_filename none",
@@ -136,6 +162,23 @@ def render() -> str:
         "# unreachable even when a hostname on the list resolves to it.",
         f"acl denied_nets dst {denied}",
         "",
+    ]
+
+
+def render_build() -> str:
+    dev = build_rows()
+    exact = sorted(entry.host for entry in dev if not entry.glob)
+    globs = [entry for entry in dev if entry.glob]
+    ports = sorted({entry.port for entry in dev})
+    lines = _preamble(
+        "infra/docker-compose.egress.yml, service `egress-proxy`",
+        [
+            "# INT-018 / ADR-025: one allow-list, two enforcers. Editing this file",
+            "# instead of the allow-list makes the proxy disagree with",
+            "# intake_platform.egress, and tests/infra/test_egress_proxy.py fails.",
+        ],
+    )
+    lines += [
         "# --- the allow-list ------------------------------------------------------",
         f"acl vendor_ports port {' '.join(str(port) for port in ports)}",
         "acl SSL_ports port 443",
@@ -171,26 +214,88 @@ def render() -> str:
     return "\n".join(lines)
 
 
+def render_synthetic() -> str:
+    """The synthetic host's proxy: the hosted-model rows and nothing else.
+
+    With no such row there is no allow rule at all — an empty ``dstdomain``
+    ACL is not something every squid accepts, and a proxy that admits nothing
+    should say so in the plainest form there is.
+    """
+    hosts = sorted(entry.host for entry in synthetic_rows())
+    lines = _preamble(
+        "infra/staging/compose.yaml, service `egress-proxy` (synthetic AWS host)",
+        [
+            "# INT-442 / ADR-035: the synthetic deployment's only route out. It",
+            "# admits the allow-list's hosted_model_inference rows and nothing",
+            "# else: no package registry, no source host, no metadata endpoint.",
+            "# The in-process guard (intake_platform.egress) decides the same rows",
+            "# again, and tests/infra/test_egress_proxy.py holds the two together.",
+        ],
+    )
+    lines += [
+        "# The ICMP pinger needs CAP_NET_RAW, which this container does not hold.",
+        "pinger_enable off",
+        "",
+        "# --- the allow-list (hosted_model_inference rows only) -------------------",
+        "acl SSL_ports port 443",
+        "acl CONNECT method CONNECT",
+    ]
+    if hosts:
+        lines.append(f"acl hosted_exact dstdomain {' '.join(hosts)}")
+    lines += [
+        "",
+        "# --- order is the control -------------------------------------------------",
+        "# Deny before allow, and `deny all` last.",
+        "http_access deny denied_nets",
+        "http_access deny !CONNECT",
+        "http_access deny CONNECT !SSL_ports",
+    ]
+    if hosts:
+        lines.append("http_access allow hosted_exact")
+    else:
+        lines.append("# no hosted_model_inference row on the allow-list: nothing is admitted")
+    lines += ["http_access deny all", ""]
+    return "\n".join(lines)
+
+
+RENDERERS = {"build": render_build, "synthetic": render_synthetic}
+
+
+def render() -> str:
+    """The build proxy's config (kept for the INT-018 callers)."""
+    return render_build()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check",
         action="store_true",
-        help="exit 1 when the committed config is stale instead of rewriting it",
+        help="exit 1 when a committed config is stale instead of rewriting it",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=sorted(RENDERERS),
+        action="append",
+        help="render only this proxy's config (repeatable; default: both)",
     )
     args = parser.parse_args()
 
-    rendered = render()
-    current = TARGET.read_text(encoding="utf-8") if TARGET.is_file() else None
-    if args.check:
-        if current == rendered:
-            return 0
-        print(f"{TARGET.relative_to(REPO)} is stale — run `make egress-conf`", file=sys.stderr)
-        return 1
-    TARGET.parent.mkdir(parents=True, exist_ok=True)
-    TARGET.write_text(rendered, encoding="utf-8")
-    print(f"wrote {TARGET} ({len(rendered.splitlines())} lines)")
-    return 0
+    stale = 0
+    for profile in args.profile or sorted(RENDERERS):
+        target = TARGETS[profile]
+        rendered = RENDERERS[profile]()
+        current = target.read_text(encoding="utf-8") if target.is_file() else None
+        if args.check:
+            if current != rendered:
+                name = target.relative_to(REPO)
+                print(f"{name} is stale — run `make egress-conf`", file=sys.stderr)
+                stale = 1
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(rendered, encoding="utf-8")
+        print(f"wrote {target.relative_to(REPO)} ({len(rendered.splitlines())} lines)")
+    return stale
 
 
 if __name__ == "__main__":

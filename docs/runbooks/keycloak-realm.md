@@ -84,7 +84,13 @@ The build is reproducible, so the owner can rebuild from the tagged source and g
 bytes. The required CI job `check-py` does exactly that, as a step, on every PR. A source change changes
 the hash. Update the pin in the same PR, with a new recording (**Proof, recorded**, below).
 
-**Deploy it to the deployed Keycloak.**
+**Deploy it to the deployed Keycloak.** On the staging host this is automatic (INT-421):
+- `infra/staging/Dockerfile.keycloak` builds the jar and refuses one that is not the pin (step 1).
+- The jar goes into the image (steps 2 and 3); compose runs `start`, which re-augments.
+- `deploy.sh` runs `ensure_staff_webauthn_notes` (`infra/staging/keycloak/staff_flow.py`) for step 4 on the live realm.
+- `smoke.sh` check 7 re-reads the flow.
+
+By hand, on any other Keycloak:
 
 1. Run `make keycloak-provider` on the commit being deployed. It prints
    `intake-webauthn-session-notes-1.0.0.jar: OK` only when the jar matches the pin.
@@ -97,7 +103,18 @@ the hash. Update the pin in the same PR, with a new recording (**Proof, recorded
    `intake-webauthn-session-notes`, not `webauthn-authenticator`. Keycloak cannot change an
    execution's provider in place. Add the new execution to the subflow, give it the `amr hwk`
    reference config (`default.reference.value: hwk`, `default.reference.maxAge: 28800`), set it
-   ALTERNATIVE at the stock execution's position, then delete the stock execution.
+   REQUIRED at the stock execution's position, then delete the stock execution. Set the OTP
+   execution (`auth-otp-form`) to DISABLED and leave it in place until the owner decides
+   INT-389 (#644). Check that the required action `webauthn-register` is enabled
+   (Authentication → Required actions). When you change a requirement through the admin API,
+   send the execution's current `priority` in the same body. Keycloak copies whatever priority
+   the body carries, and a body without one sets it to 0.
+
+   **Why REQUIRED (INT-550).** Keycloak 26.7.4 sends a user who has no passkey to
+   `webauthn-register` only from a REQUIRED execution. An ALTERNATIVE WebAuthn step, with OTP
+   as the other ALTERNATIVE, refuses every new staff user after the password with "Invalid
+   username or password", and no required action runs. That was the host's state on
+   17 Oct 2026.
 5. Sign in with a WebAuthn staff account and decode the access token. `aaguid` must equal the
    AAGUID the admin console shows for that credential (Users → Credentials → Show data), and
    `credential_id` must be its id in base64url. A TOTP sign-in carries neither (below).
@@ -115,11 +132,29 @@ and one longer than 96 bytes encodes to more than 128 characters. Both fall outs
 console's id shape, so such a login is refused (fail closed) even with the provider. Until the
 console's rule changes, re-register the key for that staff member, which mints a new id.
 
+**A new staff member's first sign-in (INT-550).** The first sign-in goes like this:
+1. The password, then a new password if the one they were given is temporary.
+2. They register a security key or passkey on the `webauthn-register` page. Keycloak then
+   completes the login.
+3. The console refuses this first session, because it asserted no passkey. Its token's `amr`
+   is `["pwd"]`, with no `aaguid` and no `credential_id`.
+
+An SSO resume keeps that session's `amr`. So once the passkey is registered, the staff member:
+1. signs out of Keycloak (`https://auth.<host>/realms/intake/protocol/openid-connect/logout`,
+   and confirm);
+2. signs out of the console's proxy (`https://admin.<host>/oauth2/sign_out`);
+3. opens the console again and signs in with the password and the passkey.
+
+That login carries `hwk` and both ids, and the console admits it. Waiting out the 30-minute
+idle timeout has the same effect.
+
 **Owner decision still needed.** INT-365 lets the six roles that never reach patient content
 sign in with TOTP instead of WebAuthn. A TOTP login has no AAGUID, so the provider writes
 nothing and the console refuses the token. The choices are (a) require WebAuthn for every
 console role, or (b) require `aaguid` only when `amr` contains `hwk`. The console's rule is
-unchanged until the owner records the choice (INT-389, issue #644).
+unchanged until the owner records the choice (INT-389, issue #644). Until then the realm's OTP
+step is DISABLED (INT-550). If (b) brings it back, it cannot return as an ALTERNATIVE beside
+the WebAuthn step, because that is exactly the shape that refused every new user.
 
 ## 4. Who may write `org` and `tenant` — the user profile
 

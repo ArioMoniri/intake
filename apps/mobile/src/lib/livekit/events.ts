@@ -23,8 +23,7 @@
  * rendered ABOVE the reducer by the screen, never fed through it as a turn.
  */
 import type { DialogueStreamAction } from "../dialogue/stream";
-import type { RedPresentation } from "./red";
-import type { SessionFailure, SessionPhase, TurnQuality } from "./types";
+import type { RedTrigger, SessionFailure, SessionPhase, TurnQuality } from "./types";
 
 /**
  * Everything the session tells its caller. Every payload is ids, enums and
@@ -36,16 +35,11 @@ export type VoiceSessionEvent =
   /** One turn's RTT/jitter/loss window closed (the INT-103 acceptance). */
   | { readonly type: "turn_quality"; readonly quality: TurnQuality }
   /**
-   * A rules-engine RED arrived over the DATA channel and resolved against the
-   * pre-positioned on-device script. Renderable with media already gone
-   * (invariant 21).
+   * A rules-engine RED arrived over the DATA channel and was handed to the RED
+   * store, which renders it from the pre-positioned catalog with media already
+   * gone (invariant 21; INT-465).
    */
-  | { readonly type: "red"; readonly presentation: RedPresentation }
-  /**
-   * A RED arrived but its script is not on this device. The caller escalates
-   * generically; it must never invent clinical words to fill the gap.
-   */
-  | { readonly type: "red_unrenderable"; readonly ruleId: string }
+  | { readonly type: "red"; readonly trigger: RedTrigger }
   /** Terminal. The caller falls back to the typed intake. */
   | { readonly type: "failed"; readonly reason: SessionFailure };
 

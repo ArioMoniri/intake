@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
+.PHONY: setup check check-py check-py-static check-py-shard check-py-combine check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures put-key
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -58,7 +58,7 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src packages/hosted-lanes/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
@@ -71,6 +71,26 @@ check-py:
 	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/experience --cov=services/metrics/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/learning --cov=services/learning/src --cov-branch --cov-fail-under=90 -q -m "not integration" -o addopts=""
+
+# INT-544: check-py as CI runs it on the intake-aws-ci pool. Three
+# check-py-shard jobs on separate runners share check-py's nine pytest lines:
+# the first (the whole suite) split by file, each of the other eight run whole,
+# word for word; shard 1 also runs check-py-static (check-py's first three
+# lines, word for word). check-py-combine then enforces every floor above on the
+# data it is measured on here: the first line's on the shares' combined data,
+# each other on its own line's data only. scripts/ci/py_shards.py holds the
+# split; tests/ci/test_py_shards.py pins its lines to check-py's own.
+check-py-static:
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src packages/hosted-lanes/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
+
+check-py-shard:
+	@test -n "$(SHARD)" || { echo "usage: make check-py-shard SHARD=<1..3>"; exit 2; }
+	uv run python scripts/ci/py_shards.py run --shard $(SHARD)
+
+check-py-combine:
+	uv run python scripts/ci/py_shards.py combine
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.
@@ -173,6 +193,12 @@ security:
 # INT-031: regenerate the committed schema exports (OpenAPI bundle, per-event
 # JSON Schemas, generated TS types). tests/schemas/test_roundtrip.py fails
 # `make check` whenever these are stale.
+# INT-428 (ADR-035): put a hosted-provider key onto the synthetic AWS host from
+# a shell that already holds it (never an argument):
+#   set -a; . ~/.intake-secrets.env; set +a; make put-key PROVIDER=openai
+put-key:
+	@scripts/ops/put_provider_key.sh $(PROVIDER)
+
 schemas-codegen:
 	uv run python -m clinical_schemas.codegen
 
@@ -450,6 +476,9 @@ siem-down:
 # INT-018: the forward egress proxy. `egress-conf` re-renders squid.conf from
 # infra/security/egress-allowlist.yaml — the allow-list is the only file anyone
 # edits, and tests/infra/test_egress_proxy.py fails when the render is stale.
+# INT-442: it renders two proxies from that one list — the build proxy
+# (infra/security/squid/squid.conf, tooling rows) and the synthetic AWS host's
+# proxy (infra/staging/egress/squid.conf, hosted_model_inference rows only).
 .PHONY: egress egress-down egress-conf egress-conf-check
 
 egress-conf:

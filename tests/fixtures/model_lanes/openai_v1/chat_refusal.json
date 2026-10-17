@@ -1,0 +1,15 @@
+{
+  "_comment": "TEST FIXTURE (INT-428). A recorded-shape structured-output refusal: content null and a refusal string. Invented; no call was made.",
+  "id": "chatcmpl-unit-lane-0002",
+  "object": "chat.completion",
+  "created": 1790424000,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": null, "refusal": "I can't help with that." },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 412, "completion_tokens": 6, "total_tokens": 418 }
+}

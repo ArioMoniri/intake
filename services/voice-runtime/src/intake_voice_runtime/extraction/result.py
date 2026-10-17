@@ -35,6 +35,7 @@ __all__ = [
     "ExtractionFlag",
     "ExtractionResult",
     "FlagReason",
+    "SlotOutcome",
     "SlotUpdate",
     "SlotValue",
 ]
@@ -66,6 +67,27 @@ class FlagReason(StrEnum):
     WRONG_TYPE = "wrong_type"
     #: A code slot answered outside its valueset.
     VALUESET_VIOLATION = "valueset_violation"
+
+
+class SlotOutcome(StrEnum):
+    """What one completion did with one declared slot — exactly one of four.
+
+    The parse-side definition of ``clarification_needed`` (INT-540). The flag
+    comes first because the engine binds nothing from a Work that asks to
+    clarify (files/13 §11.1), so a value beside it was not bound either.
+    ``SILENT`` is what the instructions now rule out for a slot the patient
+    was answering, and what the runtime does not trust: for an asked tense
+    anchor it is CD-05's answer fitting no choice.
+    """
+
+    #: ``clarification_needed`` was set.
+    CLARIFY = "clarify"
+    #: A value bound.
+    BOUND = "bound"
+    #: A value was offered and refused; :class:`ExtractionFlag` says why.
+    REFUSED = "refused"
+    #: No value and no flag.
+    SILENT = "silent"
 
 
 @dataclass(frozen=True)
@@ -105,6 +127,8 @@ class ExtractionResult:
     candidate_flags: tuple[CandidateFlag, ...]
     clarification_needed: bool
     flags: tuple[ExtractionFlag, ...] = field(default=())
+    #: The refs the step declared (INT-540): the slots :meth:`outcome_of` reads.
+    declared: frozenset[str] = field(default=frozenset())
 
     #: The cap, as a ``ClassVar`` — which ``dataclasses`` excludes from the
     #: field set, so it is not a constructor argument either. A plain string
@@ -159,6 +183,18 @@ class ExtractionResult:
     def bound_refs(self) -> frozenset[str]:
         """The refs that actually bound — the measurement the eval scores."""
         return frozenset(update.ref for update in self.slot_updates)
+
+    def outcome_of(self, ref: str) -> SlotOutcome:
+        """What this completion did with one declared slot (see :class:`SlotOutcome`)."""
+        if ref not in self.declared:
+            raise LookupError(f"{ref!r} was not declared to this extraction")
+        if self.clarification_needed:
+            return SlotOutcome.CLARIFY
+        if ref in self.bound_refs():
+            return SlotOutcome.BOUND
+        if any(flag.ref == ref for flag in self.flags):
+            return SlotOutcome.REFUSED
+        return SlotOutcome.SILENT
 
     def __repr__(self) -> str:
         return (

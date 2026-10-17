@@ -31,6 +31,10 @@ members = [
     "services/metrics",
     "services/learning",
     "packages/connectors",
+    # INT-428 / ADR-035: hosted provider adapters. A workspace member so CI
+    # tests them; shipped ONLY in the synthetic deployment's image, and no
+    # PHI-closure package depends on it (tests/platform/test_model_lane_deployment.py).
+    "packages/hosted-lanes",
 ]
 
 [tool.uv.sources]
@@ -44,6 +48,7 @@ intake-voice-clips = { workspace = true }
 intake-metrics = { workspace = true }
 intake-learning = { workspace = true }
 intake-connectors = { workspace = true }
+intake-hosted-lanes = { workspace = true }
 # CI/linux gets CPU torch (the default PyPI wheel drags the full CUDA stack);
 # macOS falls back to PyPI, which is CPU-only there anyway.
 torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
@@ -91,6 +96,11 @@ extend-exclude = ["files", ".claude/skills"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "S"]
+[tool.ruff.lint.isort]
+# `coverage` is the coverage.py package; a coverage/ output directory at the
+# root (gitignored, vitest's default) must not make it first-party (INT-544).
+known-third-party = ["coverage"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S603", "S607", "S105", "S106"]  # asserts + fixture credentials are the point of tests
 # gh CLI invocations with fixed argv from our own backlog file — the "untrusted
@@ -147,3 +157,6 @@ markers = [
 # greenlet tracer every line the API executes past its first awaited DB call
 # vanishes from the report (measured under-count, not a real gap — INT-197).
 concurrency = ["thread", "greenlet"]
+# INT-544: check-py's shards run on different runners, each in its own
+# workspace path; relative paths let their data combine (scripts/ci/py_shards.py).
+relative_files = true

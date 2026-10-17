@@ -5,15 +5,16 @@ with self-hosted runners in the TR DC … probe: runner heartbeat … fallback:
 GitHub-hosted runners (no PHI in CI ever)"*. This module is the pool half of
 that row: the declaration schema, the loader, and label resolution.
 
-The pool list in ``infra/ci/runners.yaml`` is empty, and it stays empty until a
-human supplies what nobody has supplied. Every field a row would need is refused
-rather than defaulted, and resolution of a self-hosted label fails closed with
-the blocker row named. A runner label that resolves to nothing is a job running
-somewhere nobody decided, which is a worse outcome than a job that does not
-start.
+``infra/ci/runners.yaml`` declares one pool: ``intake-aws-ci``, the ephemeral
+runner on the AWS us-east-1 staging host. INT-463 added it on the owner's order
+of 3 Oct 2026, and it is not the TR-DC pool. Every field a row needs is refused
+rather than defaulted, and resolution of any other self-hosted label fails
+closed with the blocker rows named. A runner label that resolves to nothing is
+a job running somewhere nobody decided, which is a worse outcome than a job
+that does not start.
 
-**What blocks this is a decision, not capacity, and the distinction matters
-because the obvious reading is wrong.** HB-I5 records that no in-country
+**What blocks the TR-DC pool is a decision, not capacity, and the distinction
+matters because the obvious reading is wrong.** HB-I5 records that no in-country
 provider is under contract — but that row is about **GPU** supply, and a CI
 runner needs CPU. files/00_STATE.md §2 records the AWS Istanbul Local Zone as GA
 since May 2026 with C7i/M7i/R7i, which is this shape exactly. So the open
@@ -68,16 +69,17 @@ GITHUB_HOSTED_LABELS = frozenset(
 SELF_HOSTED_LABEL = "self-hosted"
 
 RUNNER_POOL_ASK = (
-    "No self-hosted runner pool is declared in infra/ci/runners.yaml, and none may be "
-    "invented. HB-I7 owns it (self-hosted CI runners — 175 issues x a 35-60 min PR gate is "
-    "100-175 CPU-hours; owner, spend), and HB-L11 is why naming a facility is a decision "
-    "rather than a lookup: physical residency is not legal residency, and the residency "
-    "claim files/06 §5 makes about CI has to be one somebody can check. Note what does NOT "
-    "block this: HB-I5's 'no in-country provider' finding is about GPU supply, and a CI "
-    "runner needs CPU — files/00_STATE.md §2 records the AWS Istanbul Local Zone as GA with "
-    "C7i/M7i/R7i, which is this shape exactly. The constraint is the decision and the spend, "
-    "not capacity. Until a pool exists, CI runs on GitHub-hosted runners, which files/08 §6 "
-    "records as the fallback exactly because no PHI is ever in CI."
+    "A self-hosted runner label resolves only to a pool declared in infra/ci/runners.yaml, "
+    "and none may be invented. The one declared pool is intake-aws-ci, the AWS us-east-1 "
+    "host (INT-463, the owner's order of 3 Oct 2026); it is not in Türkiye. A pool in the "
+    "TR DC is still undeclared. HB-I7 owns it (self-hosted CI runners — 175 issues x a "
+    "35-60 min PR gate is 100-175 CPU-hours; owner, spend), and HB-L11 is why naming a "
+    "facility is a decision rather than a lookup: physical residency is not legal residency, "
+    "and the residency claim files/06 §5 makes about CI has to be one somebody can check. "
+    "Note what does NOT block this: HB-I5's 'no in-country provider' finding is about GPU "
+    "supply, and a CI runner needs CPU — files/00_STATE.md §2 records the AWS Istanbul Local "
+    "Zone as GA with C7i/M7i/R7i, which is this shape exactly. The constraint is the decision "
+    "and the spend, not capacity. Any pool is safe only because no PHI is ever in CI."
 )
 
 

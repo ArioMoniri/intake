@@ -1,26 +1,33 @@
 /**
  * The link between the rendered console pages (INT-181): the overview, the
- * ops console, the Voice module (INT-182), the access review (INT-366) and the
- * CI/CD module (INT-187). Plain links, server-rendered, the language carried
- * along; the current page is marked, not linked. `tr` is the source of truth
- * (invariant 5).
+ * ops console, the Voice module (INT-182), the access review (INT-366), the
+ * CI/CD module (INT-187) and the Model lanes module (INT-428). Plain links,
+ * server-rendered, the language carried along; the current page is marked,
+ * not linked. `tr` is the source of truth (invariant 5).
  *
  * INT-459 — rendered as the console's sidebar: the mark, the pages grouped
  * under a visible name with a symbol beside each, and a language switch that
  * keeps the page. On a narrow screen the same markup becomes a floating tab
  * bar (app/native-shell.css). A new page is one entry in each of `CONSOLE_PAGES`,
  * `GROUP_OF`, `GLYPH_OF` and the two label tables; the Model lanes page
- * (INT-428) takes the `chip` symbol.
+ * (INT-428) sits under Services with the `chip` symbol.
  */
 import type { ReactElement } from "react";
 
 import { Glyph, type GlyphName } from "../ui/glyphs";
 import type { Lang } from "./copy";
 
-export type ConsolePage = "overview" | "ops" | "voice" | "access" | "cicd";
+export type ConsolePage = "overview" | "ops" | "voice" | "access" | "cicd" | "model-lanes";
 
 /** Every console page, in the order the sidebar lists them. */
-export const CONSOLE_PAGES: readonly ConsolePage[] = ["overview", "ops", "voice", "access", "cicd"];
+export const CONSOLE_PAGES: readonly ConsolePage[] = [
+  "overview",
+  "ops",
+  "voice",
+  "model-lanes",
+  "access",
+  "cicd",
+];
 
 type Group = "monitor" | "services" | "govern";
 
@@ -30,6 +37,7 @@ const GROUP_OF: Record<ConsolePage, Group> = {
   overview: "monitor",
   ops: "monitor",
   voice: "services",
+  "model-lanes": "services",
   access: "govern",
   cicd: "govern",
 };
@@ -38,6 +46,7 @@ const GLYPH_OF: Record<ConsolePage, GlyphName> = {
   overview: "grid",
   ops: "gauge",
   voice: "waveform",
+  "model-lanes": "chip",
   access: "key",
   cicd: "branch",
 };
@@ -63,6 +72,7 @@ const LABELS: Record<Lang, NavCopy> = {
       voice: "Ses",
       access: "Erişim",
       cicd: "CI/CD",
+      "model-lanes": "Model hatları",
     },
     langLabel: "Dil",
   },
@@ -77,6 +87,7 @@ const LABELS: Record<Lang, NavCopy> = {
       voice: "Voice",
       access: "Access",
       cicd: "CI/CD",
+      "model-lanes": "Model lanes",
     },
     langLabel: "Language",
   },
