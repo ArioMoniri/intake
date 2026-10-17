@@ -21,6 +21,9 @@ export interface TileProps {
   reason: string | null;
   c: TileCopy;
   meta?: ReactNode;
+  /** A tile whose table needs the band's whole row (half of it while unknown;
+   * app/native-layout.css). */
+  wide?: boolean;
   children?: ReactNode;
 }
 
@@ -31,12 +34,21 @@ export interface TileProps {
  * INT-450). The bands stay the page's regions; a tile stays reachable by its
  * heading.
  */
-export function Tile({ id, title, state, reason, c, meta, children }: TileProps): ReactElement {
+export function Tile({
+  id,
+  title,
+  state,
+  reason,
+  c,
+  meta,
+  wide = false,
+  children,
+}: TileProps): ReactElement {
   return (
     <article
       data-tile={id}
       data-tile-state={state}
-      className={`tile tile-${state}`}
+      className={`tile tile-${state}${wide ? " tile-wide" : ""}`}
       aria-labelledby={`tile-${id}`}
     >
       <header className="tile-head">

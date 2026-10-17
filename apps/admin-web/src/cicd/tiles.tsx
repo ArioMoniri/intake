@@ -135,6 +135,7 @@ export function Pipelines({ view, c }: { view: CicdView; c: C }): ReactElement {
   return (
     <Tile
       id="pipelines"
+      wide
       title={c.tiles.pipelines}
       state={t.state}
       reason={t.reason}
@@ -156,7 +157,7 @@ export function Gates({ view, c }: { view: CicdView; c: C }): ReactElement {
       </p>
     );
   return (
-    <Tile id="gates" title={c.tiles.gates} state={t.state} reason={t.reason} c={c} meta={meta}>
+    <Tile id="gates" title={c.tiles.gates} state={t.state} reason={t.reason} c={c} meta={meta} wide>
       <GatePass view={view} c={c} />
       <ScrollTable>
         <thead>

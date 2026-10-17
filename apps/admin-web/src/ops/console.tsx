@@ -64,7 +64,15 @@ function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
       </p>
     );
   return (
-    <Tile id="models" title={c.models.title} state={t.state} reason={t.reason} c={c} meta={meta}>
+    <Tile
+      id="models"
+      title={c.models.title}
+      state={t.state}
+      reason={t.reason}
+      c={c}
+      meta={meta}
+      wide
+    >
       <ScrollTable>
         <thead>
           <tr>

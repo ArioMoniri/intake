@@ -2,16 +2,17 @@ apps/admin-web — third-party notices (INT-450, INT-459)
 
 The admin console adapts design and code from the works below. Nothing is
 installed from them: each was ported into this package's own server-rendered
-markup (src/ui/charts.tsx) and stylesheet (app/refresh.css), because the
-console's CSP admits no inline style and no client script from elsewhere. The
+markup (src/ui/charts.tsx) and stylesheets (app/refresh.css,
+app/refresh-charts.css), because the console's CSP admits no inline style and
+no client script from elsewhere. The
 licence of each was read from its raw LICENSE blob on 3 Oct 2026; the
 retrieval record (URL, sha256, date) is docs/evidence/INT-450.md, and for the
 INT-459 follow-up (pinned source commits) docs/evidence/INT-459.md section 9.
 
 -------------------------------------------------------------------------------
 EvilCharts — https://github.com/legions-developer/evilcharts
-Used in: src/ui/charts.tsx, app/refresh.css (bar gradient, hatched pattern,
-grow-in animation, radial budget gauge); INT-459: src/ui/charts.tsx `Spark`
+Used in: src/ui/charts.tsx, app/refresh-charts.css (bar gradient, hatched
+pattern, grow-in animation, radial budget gauge); INT-459: src/ui/charts.tsx `Spark`
 and app/native-patterns.css (the vertical area fade of `GradientPattern` in
 recharts-area-chart.tsx at ecbd6a5d)
 -------------------------------------------------------------------------------
@@ -95,7 +96,8 @@ SOFTWARE.
 
 -------------------------------------------------------------------------------
 Transitions.dev (free transitions) — https://github.com/Jakubantalik/transitions.dev
-Used in: app/refresh.css (motion tokens of `panel-reveal` and `number-pop-in`)
+Used in: app/refresh.css (motion token of `panel-reveal`) and
+app/refresh-charts.css (`number-pop-in`)
 -------------------------------------------------------------------------------
 Copyright (c) 2026 Jakub Antalik / Transitions.dev
 

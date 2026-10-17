@@ -18,10 +18,16 @@ export const NATIVE_SHEETS = [
   "native-shell.css",
   "native-content.css",
   "native-patterns.css",
+  "native-layout.css",
 ] as const;
 
 /** The console's stylesheets, in the order the layout imports them. */
-export const SHEETS = ["console.css", "refresh.css", ...NATIVE_SHEETS] as const;
+export const SHEETS = [
+  "console.css",
+  "refresh.css",
+  "refresh-charts.css",
+  ...NATIVE_SHEETS,
+] as const;
 
 export function sheet(name: string): string {
   return readFileSync(join(APP, name), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");

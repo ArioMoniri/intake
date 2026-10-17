@@ -1,0 +1,94 @@
+/* INT-459 refresh — the console's layout over the shell, loaded last: a dense
+   twelve-column grid at desktop width, table cells that wrap instead of
+   clipping, and table headers that stay in view. Rebuilt from the idea of a
+   dashboard grid, nothing copied. Served from 'self': no import, no remote
+   resource, no inline style; asserted in e2e/layout.spec.ts. */
+
+/* --- the grid: twelve columns, packed densely -------------------------------- */
+
+/* Below 1024 px the shell is a tab bar and each band keeps console.css's
+   auto-fill grid. From 1024 px a band has twelve columns; a card takes half
+   and a card holding a table the whole row. From 1280 px (the owner's 1440 px
+   screen) a card takes a third, a table card half, and a calm unknown card a
+   quarter, so a band of unread sources reads as one compact block. A wide
+   tile (src/ops/tiles.tsx `wide`) keeps the whole row, or half while it is
+   unknown and holds one line. */
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+  }
+
+  .grid > * {
+    grid-column: span 6;
+  }
+
+  .grid > .tile:has(table) {
+    grid-column: span 12;
+  }
+
+  .grid > .tile-wide {
+    grid-column: 1 / -1;
+  }
+
+  .grid > .tile-wide.tile-unknown {
+    grid-column: span 6;
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid > * {
+    grid-column: span 4;
+  }
+
+  .grid > .tile:has(table) {
+    grid-column: span 6;
+  }
+
+  .grid > .tile-unknown {
+    grid-column: span 3;
+  }
+
+  .grid > .tile-wide {
+    grid-column: 1 / -1;
+  }
+
+  .grid > .tile-wide.tile-unknown {
+    grid-column: span 6;
+  }
+}
+
+/* --- cells wrap; they never clip --------------------------------------------- */
+
+/* console.css keeps every cell on one line, which clipped the deploy gate's
+   facts and the model lanes' reasons inside their cards. Here they wrap at a
+   space; an id has no space, so it may break anywhere, and only an id: prose
+   (Turkish above all) is never broken inside a word. A figure and its unit
+   are one atom already (a no-break space, src/ops/guards.ts). */
+th,
+td {
+  white-space: normal;
+}
+
+td code,
+th code,
+.facts code,
+.unknown code {
+  overflow-wrap: anywhere;
+}
+
+/* --- sticky table headers ------------------------------------------------------ */
+
+/* A table scrolls inside its card once it passes 40rem, and its header row
+   stays in view on the card's own fill. */
+.scroll {
+  max-height: 40rem;
+  overflow: auto;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}

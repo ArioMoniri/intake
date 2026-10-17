@@ -200,6 +200,7 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
   return (
     <Tile
       id="probe_matrix"
+      wide
       title={c.probes.title}
       state={m.state}
       reason={m.reason}
@@ -307,7 +308,14 @@ function ComponentStrip({
 function Components({ view, c }: { view: OverviewView; c: C }): ReactElement {
   const s = view.dependencies.components;
   return (
-    <Tile id="dep_components" title={c.deps.components} state={s.state} reason={s.reason} c={c}>
+    <Tile
+      id="dep_components"
+      title={c.deps.components}
+      state={s.state}
+      reason={s.reason}
+      c={c}
+      wide
+    >
       <ComponentStrip rows={s.rows} c={c} />
       <ScrollTable>
         <thead>

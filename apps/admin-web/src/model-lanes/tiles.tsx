@@ -179,6 +179,7 @@ export function LanesTile({ view, c }: { view: ModelLanesView; c: C }): ReactEle
   return (
     <Tile
       id="lanes"
+      wide
       title={c.tiles.lanes}
       state={known ? "ok" : "unknown"}
       reason={known ? null : view.reason}
@@ -221,6 +222,7 @@ export function UsageTile({ view, c }: { view: ModelLanesView; c: C }): ReactEle
   return (
     <Tile
       id="usage"
+      wide
       title={c.tiles.usage}
       state={reason === null ? "ok" : "unknown"}
       reason={reason}
