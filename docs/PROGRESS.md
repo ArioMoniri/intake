@@ -1,5 +1,34 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
+- Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
+- Plan:
+  - Read Keycloak 26.7.4's flow engine. The issue blamed the INT-378 provider for not allowing user setup, but it does: it inherits the stock factory's `true`.
+  - The engine sends a user without the credential to its required action only from a REQUIRED execution (`DefaultAuthenticationFlow.java:473`). The live WebAuthn step was an ALTERNATIVE beside an OTP ALTERNATIVE, so both threw `CREDENTIAL_SETUP_REQUIRED` and the flow ended with "Invalid username or password".
+  - In both realms: WebAuthn REQUIRED, and OTP DISABLED until INT-389.
+  - `staff_flow.py` switches the live realm. Its new steps are `set_required` and `disable_otp`. Each keeps the execution's priority, because Keycloak copies the body's priority. It refuses, before any change, a realm without an enabled `webauthn-register`.
+  - The jar is unchanged and reproduces its pin.
+- Tests added (with the near-miss negative for any safety rule):
+  - `StaffSecondFactorFlowTest` (12) runs Keycloak 26.7.4's own `DefaultAuthenticationFlow` over the committed subflow, with provider-semantics tests beside it (+5).
+  - `tests/admin/test_staff_passkey_enrolment.py` (41): both realms, 13 near misses each, fixture drift, and the first sign-in after enrolment.
+  - `tests/infra/test_staging_keycloak_provider.py` is reworked for the new target. INT-365's and the admin tier's flow assertions are updated.
+  - Red: Java 6 of 44 failed on the host's shape. Python 6 failed, plus a collection error in the staff_flow tests.
+  - Green: Java 46/46, with the jar `OK` against the pin. Python 378 on the affected files and 2553 on the broader set, where the container-only edge suite errors locally.
+  - 10/10 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean. mypy --strict clean on the changed Python.
+  - `make keycloak-provider` OK. files/11 regenerated, and the three pins go from 364 to 365.
+  - The full fan-out runs on the PR's AWS runner. `make safety` is not touched: no protocol or PolicyGuard change.
+- Invariants touched and still passing:
+  - 4 (no consent or share path changed);
+  - 6 (the script prints execution ids only);
+  - 14 (the jar pin is unchanged, and the bootstrap password still travels on stdin);
+  - 16 (Sec-Row `platform`, with the threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none. OTP is DISABLED, not removed: INT-389 (#644) stays the owner's, and the console already refuses TOTP.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The deploy (`./deploy.sh`, then `./smoke.sh` on the host) and the owner's first sign-in are the coordinator's steps after merge. The owner's first session after enrolment is refused by design: the runbook says to sign out of Keycloak and the proxy, then sign in with the passkey.
+- Next: merge, deploy, and the owner signs in.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.

@@ -159,11 +159,13 @@ else
 fi
 
 # 7. INT-378: the live realm's WebAuthn step is the session-notes provider, the
-#    one that puts aaguid and credential_id into a staff token. Read only.
+#    one that puts aaguid and credential_id into a staff token. INT-550: it is
+#    REQUIRED, OTP is disabled, and webauthn-register is enabled, so a new staff
+#    user enrols a passkey after the password. Read only.
 if staff_flow check >/dev/null 2>&1; then
-  pass "realm ${KEYCLOAK_REALM} runs the WebAuthn session-notes provider with the hwk reference"
+  pass "realm ${KEYCLOAK_REALM} runs the WebAuthn session-notes provider REQUIRED with the hwk reference, and a new staff user can enrol"
 else
-  fail "realm ${KEYCLOAK_REALM}: the WebAuthn step is not the session-notes provider (staff sign-in is refused)"
+  fail "realm ${KEYCLOAK_REALM}: the second factor is not the committed one (staff sign-in or enrolment is refused)"
 fi
 
 # 8. INT-442: the API's egress, from the API's own network position — no

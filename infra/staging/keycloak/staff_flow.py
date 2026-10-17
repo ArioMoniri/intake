@@ -1,4 +1,4 @@
-"""Bring the live staff realm's WebAuthn step onto the session-notes provider (INT-378, INT-421).
+"""Bring the live staff realm's second factor onto the committed shape (INT-378, INT-421, INT-550).
 
 The admin console refuses a staff token that lacks ``aaguid`` and ``credential_id``. Only the
 ``intake-webauthn-session-notes`` authenticator writes them (INT-378). The committed realm
@@ -6,18 +6,25 @@ The admin console refuses a staff token that lacks ``aaguid`` and ``credential_i
 skips a realm that already exists. So a change to the committed flow never reaches the host,
 and this script makes the live ``staff second factor`` subflow match it:
 
-- the WebAuthn alternative is ``intake-webauthn-session-notes``, ALTERNATIVE, with the
-  ``amr hwk`` reference the console's second-factor check reads (INT-365);
+- the WebAuthn step is ``intake-webauthn-session-notes``, REQUIRED, with the ``amr hwk``
+  reference the console's second-factor check reads (INT-365). REQUIRED is what lets a new
+  staff user in: Keycloak 26.7.4 sends a user without a passkey to the ``webauthn-register``
+  required action only from a REQUIRED execution, and refuses them from an ALTERNATIVE with
+  "Invalid username or password" (INT-550, ``tests/admin/test_staff_passkey_enrolment.py``);
 - the stock ``webauthn-authenticator`` is gone from the subflow;
-- WebAuthn comes before the OTP alternative, as committed.
+- the OTP step is DISABLED and stays in place, after WebAuthn, until the owner decides
+  INT-389 (#644). The console refuses a TOTP token today, and an OTP ALTERNATIVE beside
+  WebAuthn was both the dead end for new users and a way around a passkey.
 
-Nothing else is touched. In particular the OTP alternative stays: whether TOTP may sign a
-console role in is the owner's decision (INT-389), and the console refuses a TOTP token today.
+Before any change it reads the realm's ``webauthn-register`` required action and refuses, with
+the reason, unless it exists and is enabled: without it a new user still cannot enrol. A
+requirement change always sends the execution's current priority, because Keycloak's
+``updateExecutions`` copies whatever priority the body carries (an absent one is 0).
 
-It is idempotent: each step is taken only when the live flow differs, and the run ends by
-checking that the flow is in the committed state, or it fails. ``--check`` only reads. It
-runs in a one-off api container (stdlib only) on the internal network, and reads the
-bootstrap admin password on stdin, so the secret never reaches an argv, an environment or a
+Nothing else is touched. It is idempotent: each step is taken only when the live flow differs,
+and the run ends by checking that the flow is in the committed state, or it fails. ``--check``
+only reads. It runs in a one-off api container (stdlib only) on the internal network, and reads
+the bootstrap admin password on stdin, so the secret never reaches an argv, an environment or a
 log. It prints execution ids and provider ids, never a value from a credential.
 
 Usage: ``python staff_flow.py [--check] <base-url> <realm> <admin-user>``, password on stdin.
@@ -30,20 +37,25 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 PROVIDER = "intake-webauthn-session-notes"
 STOCK = "webauthn-authenticator"
 OTP = "auth-otp-form"
 SUBFLOW = "staff second factor"
-ALTERNATIVE = "ALTERNATIVE"
+REQUIRED = "REQUIRED"
+DISABLED = "DISABLED"
+#: The required action a REQUIRED WebAuthn execution sends a user without a passkey to.
+REGISTER = "webauthn-register"
 #: The committed `amr hwk` reference (intake-realm.json, authenticatorConfig).
 HWK_ALIAS = "amr hwk"
 HWK_CONFIG = {"default.reference.value": "hwk", "default.reference.maxAge": "28800"}
-#: Each pass takes one step, and at most five steps exist; more passes mean a loop.
+#: Each pass takes one step, and at most six steps exist; more passes mean a loop.
 MAX_PASSES = 8
+#: The steps that change a requirement, and the requirement each one sets.
+REQUIREMENT_STEPS = {"set_required": REQUIRED, "disable_otp": DISABLED}
 
 
 @dataclass(frozen=True)
@@ -53,18 +65,29 @@ class Execution:
     requirement: str
     config_alias: str | None
     index: int
+    priority: int
 
 
 @dataclass(frozen=True)
 class Step:
-    """One change, or ``done``. ``target`` is an execution id when the step names one."""
+    """One change, or ``done``. ``target`` is an execution id when the step names one, and
+    ``priority`` is that execution's current priority when the step changes its requirement."""
 
     action: str
     target: str | None = None
+    priority: int | None = None
 
 
 class FlowRefused(Exception):
-    """The live flow is in a state this script will not edit: a human looks first."""
+    """The live realm is in a state this script will not edit: a human looks first."""
+
+
+class FlowAdmin(Protocol):
+    def executions(self) -> list[Execution]: ...
+
+    def register_action(self) -> Mapping[str, Any] | None: ...
+
+    def apply(self, step: Step) -> None: ...
 
 
 def checked_base(base_url: str) -> str:
@@ -75,6 +98,15 @@ def checked_base(base_url: str) -> str:
     return base_url.rstrip("/")
 
 
+def register_problem(action: Mapping[str, Any] | None) -> str | None:
+    """Why a new staff user could not enrol a passkey, or None when they can."""
+    if action is None:
+        return f"the realm has no {REGISTER} required action: a new staff user cannot enrol"
+    if action.get("enabled") is not True:
+        return f"the realm's {REGISTER} required action is disabled: a new staff user cannot enrol"
+    return None
+
+
 def next_step(executions: Sequence[Execution]) -> Step:
     """The one change that moves the live subflow toward the committed one."""
     providers = [e for e in executions if e.provider == PROVIDER]
@@ -83,8 +115,8 @@ def next_step(executions: Sequence[Execution]) -> Step:
     if not providers:
         return Step("add_provider")
     provider = providers[0]
-    if provider.requirement != ALTERNATIVE:
-        return Step("set_alternative", provider.id)
+    if provider.requirement != REQUIRED:
+        return Step("set_required", provider.id, provider.priority)
     stock = [e for e in executions if e.provider == STOCK]
     if stock:
         return Step("remove_stock", stock[0].id)
@@ -93,6 +125,8 @@ def next_step(executions: Sequence[Execution]) -> Step:
     if provider.config_alias != HWK_ALIAS:
         raise FlowRefused("the provider carries an amr reference other than the committed hwk")
     otp = [e for e in executions if e.provider == OTP]
+    if otp and otp[0].requirement != DISABLED:
+        return Step("disable_otp", otp[0].id, otp[0].priority)
     if otp and provider.index > otp[0].index:
         return Step("raise_provider", provider.id)
     return Step("done")
@@ -137,9 +171,21 @@ class Admin:
                     requirement=item.get("requirement", ""),
                     config_alias=alias,
                     index=int(item.get("index", 0)),
+                    priority=int(item.get("priority", 0)),
                 )
             )
         return found
+
+    def register_action(self) -> Mapping[str, Any] | None:
+        try:
+            action: Mapping[str, Any] = self._call(
+                "GET", f"/authentication/required-actions/{REGISTER}"
+            )
+        except urllib.error.HTTPError as err:
+            if err.code == 404:
+                return None
+            raise
+        return action
 
     def apply(self, step: Step) -> None:
         flow = urllib.parse.quote(SUBFLOW, safe="")
@@ -147,11 +193,18 @@ class Admin:
             self._call(
                 "POST", f"/authentication/flows/{flow}/executions/execution", {"provider": PROVIDER}
             )
-        elif step.action == "set_alternative":
+        elif step.action in REQUIREMENT_STEPS:
+            if step.priority is None:
+                # the PUT copies the body's priority; without the current one it would be 0
+                raise FlowRefused(f"{step.action} without the execution's priority")
             self._call(
                 "PUT",
                 f"/authentication/flows/{flow}/executions",
-                {"id": step.target, "requirement": ALTERNATIVE},
+                {
+                    "id": step.target,
+                    "requirement": REQUIREMENT_STEPS[step.action],
+                    "priority": step.priority,
+                },
             )
         elif step.action == "remove_stock":
             self._call("DELETE", f"/authentication/executions/{step.target}")
@@ -181,8 +234,11 @@ def admin_bearer(base_url: str, user: str, password: str) -> str:
     return token
 
 
-def run(admin: Admin, *, check_only: bool) -> list[Step]:
+def run(admin: FlowAdmin, *, check_only: bool) -> list[Step]:
     """Apply steps until the subflow is committed-shape; return what was done."""
+    problem = register_problem(admin.register_action())
+    if problem is not None:
+        raise FlowRefused(problem)
     taken: list[Step] = []
     for _ in range(MAX_PASSES):
         step = next_step(admin.executions())
@@ -225,7 +281,10 @@ def main(argv: Sequence[str]) -> int:
         return 3
     for step in taken:
         print(f"staff flow: {step.action} {step.target or PROVIDER}")
-    print(f"staff flow: realm {realm} runs {PROVIDER} with the hwk reference")
+    print(
+        f"staff flow: realm {realm} runs {PROVIDER} REQUIRED with the hwk reference, "
+        f"OTP disabled, and {REGISTER} enabled"
+    )
     return 0
 
 

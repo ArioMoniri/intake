@@ -7196,3 +7196,28 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"
+- id: INT-550
+  epic: E12-admin
+  phase: P0
+  title: "A new staff user enrols a passkey after the password step"
+  # GitHub #930, found read-only on the synthetic host, 17 Oct 2026: realm
+  # intake refused every new staff user with "Invalid username or password".
+  # The issue blamed the INT-378 provider for not allowing user setup; it does
+  # (inherited from the stock factory, now held outright). The cause was the
+  # requirement: Keycloak 26.7.4 sends a user without the credential to its
+  # required action only from a REQUIRED execution, and the WebAuthn step was an
+  # ALTERNATIVE beside an OTP ALTERNATIVE. The jar is unchanged and reproduces
+  # its pin. The deploy itself (deploy.sh switches the live realm) is the
+  # coordinator's step after merge; evidence names it.
+  depends_on: [INT-378, INT-421, INT-538]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-550.md
+  acceptance:
+    - "The intake-webauthn-session-notes factory's isUserSetupAllowed() returns true and the authenticator's setRequiredActions adds webauthn-register, as the stock WebAuthnAuthenticator does: after the password step a user with no passkey enrols one through the required action; the session notes are still written on the first real WebAuthn sign-in."
+    - "OTP stays refused until #644 (INT-389) and must not become the fallback."
+    - "Tests: a new user goes password → passkey registration → admitted; near miss: a user with a registered passkey cannot skip it; near miss: OTP is not offered/accepted."
+    - "The provider jar is rebuilt from its pinned recipe and re-pinned (infra/keycloak/providers/webauthn-session-notes.sha256; owner patch if hook-protected); the deploy switches the realm to the new provider; deploy and verify on the host."
+    - "The owner's existing temporary password stays valid (no reset)."
+  tests: [tests/admin/test_staff_passkey_enrolment.py, tests/admin/test_staff_second_factor.py, tests/infra/test_staging_keycloak_provider.py, tests/infra/test_staging_admin_tier.py]
+  sec_row: "platform"

@@ -385,7 +385,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-544 (a pull request clears CI in under 20 minutes on the
     # intake-aws-ci pool, owner order, GitHub #919); grows only with a stated
     # reason.
-    assert len(ids) == 365, f"expected 175 blueprint + 190 added issues, got {len(ids)}"
+    # + INT-550 (a new staff user enrols a passkey after the password step,
+    # found on the synthetic host, GitHub #930); grows only with a stated reason.
+    assert len(ids) == 366, f"expected 175 blueprint + 191 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

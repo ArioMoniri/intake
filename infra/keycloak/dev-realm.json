@@ -111,7 +111,7 @@
     },
     {
       "alias": "staff second factor",
-      "description": "WebAuthn (amr hwk, UV required) or TOTP (amr otp); staff enrol via an admin-sent required action. The WebAuthn step is intake-webauthn-session-notes: the stock authenticator plus the aaguid/credential_id session notes (INT-378).",
+      "description": "WebAuthn (amr hwk, UV required) is REQUIRED: a user with no passkey enrols one via webauthn-register after the password (INT-550). TOTP (amr otp) is DISABLED until INT-389. intake-webauthn-session-notes writes the aaguid/credential_id notes (INT-378).",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": false,
@@ -120,7 +120,7 @@
           "authenticator": "intake-webauthn-session-notes",
           "authenticatorConfig": "amr hwk",
           "authenticatorFlow": false,
-          "requirement": "ALTERNATIVE",
+          "requirement": "REQUIRED",
           "priority": 10,
           "userSetupAllowed": false
         },
@@ -128,7 +128,7 @@
           "authenticator": "auth-otp-form",
           "authenticatorConfig": "amr otp",
           "authenticatorFlow": false,
-          "requirement": "ALTERNATIVE",
+          "requirement": "DISABLED",
           "priority": 20,
           "userSetupAllowed": false
         }

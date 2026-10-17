@@ -139,7 +139,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-540 (the onset anchor always resolves, so K2 cannot stay silent, GitHub #913)
     # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
     # + INT-544 (a pull request clears CI in under 20 minutes, GitHub #919)
-    assert len(actions) == 365
+    # + INT-550 (a new staff user enrols a passkey after the password step, GitHub #930)
+    assert len(actions) == 366
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
