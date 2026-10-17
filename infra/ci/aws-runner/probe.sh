@@ -25,28 +25,9 @@ set +x
 . "${BASH_SOURCE[0]%/*}/guard.sh"
 set +e
 
-PROBE_JOB_UNIT=${PROBE_JOB_UNIT:-/etc/systemd/system/intake-aws-ci-job@.service}
 TARGETS=/run/intake-aws-ci-probe.targets
-
-job_props() {
-  # $1: the instance. Every [Service] line of the job unit, %i resolved, except
-  # the command and its lifecycle: the probe runs in exactly the job's sandbox.
-  local line section=""
-  while IFS= read -r line; do
-    case "$line" in
-      "" | "#"*) continue ;;
-      "["*)
-        section=$line
-        continue
-        ;;
-    esac
-    [ "$section" = "[Service]" ] || continue
-    case "${line%%=*}" in
-      ExecStart | Type | Restart | WorkingDirectory | TimeoutStopSec) continue ;;
-    esac
-    printf '%s\n' "${line//\%i/$1}"
-  done <"$PROBE_JOB_UNIT"
-}
+# job_props (guard.sh) gives the job unit's sandbox; the cache seed's build
+# (seed.sh) runs in the same one.
 
 # --- outside, as root ------------------------------------------------------------------
 
@@ -186,6 +167,7 @@ probe_inside() {
   for p in $SECRET_FILES; do blocked "reading $p" cat "$p"; done
   blocked "the host Docker socket" curl -fsS -m 4 --unix-socket /var/run/docker.sock http://docker/version
   for p in /usr/local /etc /var/log; do blocked "writing to $p" touch "$p/intake-probe-$INSTANCE"; done
+  blocked "writing to its cache seed" touch "$CI_ROOT/seed/intake-probe-$INSTANCE"
 
   # The network: metadata, staging containers, every host listener.
   blocked "the instance metadata service" tcp 169.254.169.254 80
