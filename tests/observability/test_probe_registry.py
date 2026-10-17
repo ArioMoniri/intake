@@ -143,6 +143,12 @@ def test_shipped_registry_has_exactly_the_acceptance_schema() -> None:
         # INT-347: the digest-pinned container image, kept out of `host`
         # because the console serves `host` (tests/infra/test_object_store_image.py)
         "image",
+        # INT-561: the verdict on the fetched blob
+        # (tests/observability/test_licence_verification.py)
+        "licence_commercial_use",
+        "licence_spdx",
+        "licence_condition",
+        "licence_checked_at",
     }
     for row in raw["components"]:
         keys = set(row)
@@ -174,8 +180,10 @@ def test_ehrbase_joined_with_int032_and_is_not_enabled() -> None:
     assert row.phi_path is True and row.self_hostable is True
     assert row.license == "Apache-2.0"
     assert row.licence_verified_at == date(2026, 8, 29)
+    # INT-561: the same blob, named by the commit tag v2.35.1 dereferences to
     assert row.licence_blob_url == (
-        "https://raw.githubusercontent.com/ehrbase/ehrbase/v2.35.1/LICENSE"
+        "https://raw.githubusercontent.com/ehrbase/ehrbase/"
+        "ccd6de797ea139d38e96ab8eaaaa7de16e9b7f28/LICENSE"
     )
     assert row.licence_blob_sha256 == (
         "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"

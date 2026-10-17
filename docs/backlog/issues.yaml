@@ -7171,3 +7171,25 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"
+- id: INT-561
+  epic: E12-admin
+  phase: P1
+  title: "Every registry component's licence is verified from its raw LICENSE blob and recorded with licence_verified_at"
+  # GitHub #949, owner 17 Oct 2026 ("solve these"): 16 of 28 operability
+  # registry rows read Lisans doğrulandı = yok. Every row now carries the raw
+  # blob's url at a full revision, its sha256, the SPDX id, a commercial-use
+  # verdict and the UTC instant of the fetch; a licence that is unread or
+  # forbids commercial use can never carry the verified date. The re-read found
+  # two INT-203 hashes taken without the final newline, and two rows with no
+  # licence blob at all (whisper-tr-medical, deid-tr-ner-v1). Probes, deployment
+  # and severity columns are INT-560.
+  depends_on: [INT-183, INT-243]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-561.md
+  acceptance:
+    - "A licence-auditor pass fetches each component's raw LICENSE (pinned revision/commit for models: model_id@revision; image digest or source tag for services), records the URL, sha256 of the blob, SPDX id, commercial-use verdict and licence_verified_at in the model/service registry."
+    - "A component whose raw licence cannot be found or is not commercially usable is marked so (and blocks only if the deployed synthetic stack needs it), never shown as verified."
+    - "Tests pin every registry row to a recorded verification; a row without one fails."
+  tests: [tests/observability/test_licence_verification.py, tests/observability/test_probe_registry.py]
+  sec_row: "monitoring-contract"

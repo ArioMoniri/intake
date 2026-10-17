@@ -24,7 +24,8 @@ that disagrees with itself on the day it matters.
 **3. Red and amber are different things, and the difference is enforced.**
 A cell is RED — :attr:`CellSeverity.BLOCKING` — if and only if the gate names
 its component. Everything else worth saying is AMBER: a licence the registry
-itself records as unread, a PHI-path row that is declared but not running, a
+itself records as unread or as forbidding commercial use (INT-561's
+``licence_commercial_use``), a PHI-path row that is declared but not running, a
 component whose own probe is unhealthy while its fallback is fine. Amber is
 loud and does not block. If amber blocked too, "red blocks the release" would
 carry no information.
@@ -48,7 +49,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field
 
 from intake_probes.gate import ProbeResultRecord, evaluate_release_gate
-from intake_probes.registry import Registry, RegistryEntry
+from intake_probes.registry import CommercialUse, Registry, RegistryEntry
 from intake_probes.runner import ProbeFn, ProbeResult, ProbeStatus, run_probes_once
 
 __all__ = [
@@ -171,7 +172,20 @@ def _pin(entry: RegistryEntry) -> str | None:
 
 def _findings(entry: RegistryEntry, result: ProbeResultRecord | None) -> tuple[Finding, ...]:
     found: list[Finding] = []
-    if entry.license.upper().startswith(_UNVERIFIED_SENTINEL):
+    if entry.licence_commercial_use is CommercialUse.NO:
+        # INT-561: read, hashed — and it forbids commercial use. Invariant 19
+        # makes that a finding on any row, never a verified licence.
+        found.append(
+            Finding(
+                "licence_not_commercially_usable",
+                f"{entry.component}: the raw licence blob ({entry.licence_spdx}) forbids "
+                f"commercial use (invariant 19).",
+            )
+        )
+    elif (
+        entry.licence_commercial_use is CommercialUse.BLOB_NOT_FOUND
+        or entry.license.upper().startswith(_UNVERIFIED_SENTINEL)
+    ):
         found.append(
             Finding(
                 "licence_not_verified_from_blob",

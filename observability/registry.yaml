@@ -15,6 +15,16 @@
 # Licences here are findings, never claims: UNVERIFIED stays UNVERIFIED until
 # a raw LICENSE blob has been read (files/03 §4.9.0 rule 3).
 #
+# INT-561: every row carries a licence verification record — the raw blob's
+# url at a full revision and its sha256, the SPDX id, licence_commercial_use
+# (yes | conditional + licence_condition | no | blob_not_found) and the UTC
+# instant of the fetch (licence_checked_at). licence_verified_at, the admin
+# page's "Lisans doğrulandı" column, exists only where the blob was read and
+# permits commercial use. Where a row spans several blobs, the structured
+# fields carry the one that decides the verdict and licence_note names the
+# rest with their hashes. docs/evidence/INT-561.md holds the full table, and
+# tests/observability/test_licence_verification.py pins every row to it.
+#
 # EHRbase joined with INT-032, and not before: openEHR was cut from P0/P1 and
 # kept as a P3 export tier (files/00_STATE.md §3 D8). Its row carries
 # self_hosted_now: false because the container sits behind the compose
@@ -31,6 +41,25 @@ components:
     budget_ms: 500
     fallback: "component:backups"
     phi_path: true
+    licence_note: >-
+      Two blobs, one licence, read 2026-10-16. PostgreSQL: COPYRIGHT at
+      commit 7d3e000c5961a544302072058a1184e9a588837b (tag REL_16_15), 1198
+      bytes, the PostgreSQL Licence. 16.15 is the server the synthetic host
+      runs: its pinned image (infra/staging/compose.yaml, pgvector
+      0.8.6-pg16-trixie) declares PG_VERSION=16.15-1.pgdg13+2 in its image
+      config, read from registry-1.docker.io the same day; the dev compose's
+      floating pgvector/pgvector:pg16 is the same major line. pgvector:
+      LICENSE at commit 8ee86c96f0fd72390f890aa8a336fda6d3ab4c6c (tag
+      v0.8.6), 1104 bytes, sha256
+      6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87, the
+      same PostgreSQL Licence text. Permissive: use, copy, modify and
+      distribute for any purpose with the notice kept; no field-of-use limit.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/postgres/postgres/7d3e000c5961a544302072058a1184e9a588837b/COPYRIGHT"
+    licence_blob_sha256: "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd"
+    licence_spdx: "PostgreSQL"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:04Z"
 
   - component: redis
     self_hostable: true
@@ -44,6 +73,29 @@ components:
     # over tokenized principals only (INT-176/INT-177). The moment session or
     # clinical state lands in Redis this flips to true and the gate binds.
     phi_path: false
+    licence_note: >-
+      Read 2026-10-16 at commit aaf0ce63b3239f4b51f86ca1da8711b055721993 (tag
+      7.4.11 — the synthetic host's pinned redis:7.4.11-alpine declares
+      REDIS_VERSION=7.4.11 in its image config; the dev compose's 7.4-alpine
+      is the same line): LICENSE.txt, 733 lines, the choice of RSALv2 or
+      SSPLv1 that Redis adopted for 7.4 on 20 Mar 2024. Source-available, not
+      OSI. RSALv2's Limitations clause forbids making the software's
+      functionality available to third parties as a service or as the
+      primary value of a product; SSPLv1 section 13 would require releasing
+      the whole service stack's source if offered as a service. Internal use
+      behind our own API is neither. RSALv2 also lets the licensor update
+      the agreement ("The Licensor reserves the right to update this
+      Agreement from time to time"), so re-read it on every bump.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/redis/redis/aaf0ce63b3239f4b51f86ca1da8711b055721993/LICENSE.txt"
+    licence_blob_sha256: "abffee3703161c0a6a0cd7f635b2c1ebb3b81bd199e9d18ea89652d678ae4287"
+    licence_spdx: "LicenseRef-RSALv2 OR SSPL-1.0"
+    licence_commercial_use: "conditional"
+    licence_condition: >-
+      Internal use only: Redis may never be made available to third parties
+      as a service, or as the primary value of a product (RSALv2
+      Limitations; SSPLv1 section 13).
+    licence_checked_at: "2026-10-16T23:11:05Z"
 
   - component: minio
     self_hostable: true
@@ -81,6 +133,11 @@ components:
       client (Pigsty's AGPL fork of upstream mc), which the backup toolbox
       uses, so one pin covers both. The licence class is unchanged:
       AGPL-3.0-only is what this row carried before INT-347.
+      INT-561, 2026-10-16: re-read at the same commit, byte-identical (same
+      sha256).
+    licence_spdx: "AGPL-3.0-only"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:05Z"
 
   - component: hapi
     self_hostable: true
@@ -91,6 +148,19 @@ components:
     budget_ms: 3000
     fallback: "component:backups"
     phi_path: true
+    licence_note: >-
+      Read 2026-10-16 at commit 8f497dd7ab8d8372ec1bc9e8144d363cfc40f7eb, which
+      tag image/v7.2.0 of hapifhir/hapi-fhir-jpaserver-starter (the repository
+      that builds hapiproject/hapi) dereferences to: LICENSE, 201 lines,
+      the stock Apache License 2.0 text with the unfilled "Copyright [yyyy]
+      [name of copyright owner]" appendix — byte-identical to wazuh-indexer's
+      LICENSE.txt. No addendum, no field-of-use restriction.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/hapifhir/hapi-fhir-jpaserver-starter/8f497dd7ab8d8372ec1bc9e8144d363cfc40f7eb/LICENSE"
+    licence_blob_sha256: "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:06Z"
 
   - component: ehrbase
     self_hostable: true
@@ -107,7 +177,7 @@ components:
     fallback: "component:hapi"
     phi_path: true
     licence_verified_at: "2026-08-29"
-    licence_blob_url: "https://raw.githubusercontent.com/ehrbase/ehrbase/v2.35.1/LICENSE"
+    licence_blob_url: "https://raw.githubusercontent.com/ehrbase/ehrbase/ccd6de797ea139d38e96ab8eaaaa7de16e9b7f28/LICENSE"
     licence_blob_sha256: "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
     licence_note: >-
       Read from the raw LICENSE blob at the v2.35.1 tag, not from a badge or a
@@ -118,6 +188,13 @@ components:
       The database image ehrbase/ehrbase-v2-postgres:16.2 is the vendor's
       preconfigured PostgreSQL 16.2 (PostgreSQL Licence); it carries no
       separate LICENSE blob of its own and is covered by the same repository.
+      INT-561, 2026-10-16: re-read at commit
+      ccd6de797ea139d38e96ab8eaaaa7de16e9b7f28, which tag v2.35.1
+      dereferences to, byte-identical (same sha256); the url now names the
+      commit, because a tag can be moved.
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:06Z"
 
   - component: openbao
     self_hostable: true
@@ -128,6 +205,23 @@ components:
     budget_ms: 500
     fallback: "component:backups"
     phi_path: true
+    licence_note: >-
+      Read 2026-10-16 at two commits, byte-identical (15958 bytes, 365
+      lines): 96853bb4de27ab8ffd1b0c2898c691460d43edeb (tag v2.0.2, the dev
+      compose's image) and 63a65e6b907589dbb952c371a70260a065bf8bd7 (tag
+      v2.6.3, the synthetic host's digest-pinned image, whose
+      org.opencontainers.image.revision label names the same commit). The
+      text is "Copyright (c) 2015 HashiCorp, Inc." followed by the stock
+      Mozilla Public License 2.0. MPL is file-level copyleft and binds only
+      on distribution of modified files; we run the upstream image
+      unmodified. It is the pre-BSL Vault code base the fork kept, which is
+      why it is MPL and not BUSL-1.1.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/openbao/openbao/63a65e6b907589dbb952c371a70260a065bf8bd7/LICENSE"
+    licence_blob_sha256: "d6b1a865f1c8c697d343bd4e0ce61025f91898486a1f00d727f32e8644af77d3"
+    licence_spdx: "MPL-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:06Z"
 
   - component: api
     self_hostable: true
@@ -138,6 +232,21 @@ components:
     budget_ms: 800
     fallback: "none"
     phi_path: true
+    licence_note: >-
+      Read on 2026-10-16 through the authenticated GitHub contents API (the
+      repository is private, so the raw URL answers only an authorised reader):
+      LICENSE at main ab9b8819806d1d57a1ec8929021a340547cc6453, 533 bytes, 11
+      lines, "INTAKE — proprietary software. Copyright (c) 2026 Ario Moniri. All
+      rights reserved." with the packages/protocols/ Apache-2.0 exception. It
+      is byte-identical to the working-tree LICENSE and unchanged since
+      f8e87ba3 (27 Aug 2026). The licensor is the operator, so commercial use
+      is the owner's own; this row ships no third-party licence of its own.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/ArioMoniri/intake/ab9b8819806d1d57a1ec8929021a340547cc6453/LICENSE"
+    licence_blob_sha256: "f001b09731c8f376be0cd5af29bb0131d1f505f06164fb1178a1db96c61e16cc"
+    licence_spdx: "LicenseRef-INTAKE-Proprietary"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:04Z"
 
   - component: probes
     self_hostable: true
@@ -149,6 +258,21 @@ components:
     fallback: "none"
     # probes read health endpoints only — no PHI reaches this service
     phi_path: false
+    licence_note: >-
+      Read on 2026-10-16 through the authenticated GitHub contents API (the
+      repository is private, so the raw URL answers only an authorised reader):
+      LICENSE at main ab9b8819806d1d57a1ec8929021a340547cc6453, 533 bytes, 11
+      lines, "INTAKE — proprietary software. Copyright (c) 2026 Ario Moniri. All
+      rights reserved." with the packages/protocols/ Apache-2.0 exception. It
+      is byte-identical to the working-tree LICENSE and unchanged since
+      f8e87ba3 (27 Aug 2026). The licensor is the operator, so commercial use
+      is the owner's own; this row ships no third-party licence of its own.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/ArioMoniri/intake/ab9b8819806d1d57a1ec8929021a340547cc6453/LICENSE"
+    licence_blob_sha256: "f001b09731c8f376be0cd5af29bb0131d1f505f06164fb1178a1db96c61e16cc"
+    licence_spdx: "LicenseRef-INTAKE-Proprietary"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:04Z"
 
   - component: metrics
     self_hostable: true
@@ -161,6 +285,21 @@ components:
     # rollups are counts and scores over the PHI-free events column; the
     # patient's own words live in csat_texts, which this service never reads
     phi_path: false
+    licence_note: >-
+      Read on 2026-10-16 through the authenticated GitHub contents API (the
+      repository is private, so the raw URL answers only an authorised reader):
+      LICENSE at main ab9b8819806d1d57a1ec8929021a340547cc6453, 533 bytes, 11
+      lines, "INTAKE — proprietary software. Copyright (c) 2026 Ario Moniri. All
+      rights reserved." with the packages/protocols/ Apache-2.0 exception. It
+      is byte-identical to the working-tree LICENSE and unchanged since
+      f8e87ba3 (27 Aug 2026). The licensor is the operator, so commercial use
+      is the owner's own; this row ships no third-party licence of its own.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/ArioMoniri/intake/ab9b8819806d1d57a1ec8929021a340547cc6453/LICENSE"
+    licence_blob_sha256: "f001b09731c8f376be0cd5af29bb0131d1f505f06164fb1178a1db96c61e16cc"
+    licence_spdx: "LicenseRef-INTAKE-Proprietary"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:04Z"
 
   - component: learning
     self_hostable: true
@@ -176,6 +315,21 @@ components:
     # protocol pack and no patient content — tests/learning/
     # test_proposal_scope.py asserts it — so this sits off the PHI path
     phi_path: false
+    licence_note: >-
+      Read on 2026-10-16 through the authenticated GitHub contents API (the
+      repository is private, so the raw URL answers only an authorised reader):
+      LICENSE at main ab9b8819806d1d57a1ec8929021a340547cc6453, 533 bytes, 11
+      lines, "INTAKE — proprietary software. Copyright (c) 2026 Ario Moniri. All
+      rights reserved." with the packages/protocols/ Apache-2.0 exception. It
+      is byte-identical to the working-tree LICENSE and unchanged since
+      f8e87ba3 (27 Aug 2026). The licensor is the operator, so commercial use
+      is the owner's own; this row ships no third-party licence of its own.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/ArioMoniri/intake/ab9b8819806d1d57a1ec8929021a340547cc6453/LICENSE"
+    licence_blob_sha256: "f001b09731c8f376be0cd5af29bb0131d1f505f06164fb1178a1db96c61e16cc"
+    licence_spdx: "LicenseRef-INTAKE-Proprietary"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:04Z"
 
   - component: voice-runtime
     self_hostable: true
@@ -188,26 +342,93 @@ components:
     # same service, not a separate component, so it cannot stand as `fallback`
     fallback: "none"
     phi_path: true
+    licence_note: >-
+      Three parts, read 2026-10-16; the structured fields carry the one
+      that decides the verdict. (a) livekit/turn-detector: the Hugging Face
+      repo's own LICENSE at revision
+      fba34c38ad5d30a63ebb83a9e6bf271cf4c91d67 (its head; the model is not
+      yet pinned in code), 115 lines, the LiveKit Model License Agreement
+      of 25 Nov 2024. It grants royalty-free use and derivative works, on
+      three conditions in section 3: the models are used only with LiveKit
+      Agents, never standalone or with another framework; no output trains
+      a non-LiveKit model; redistribution keeps the notice. Section 8 lets
+      either party end it "on immediate written notice", so the exit
+      files/03 §4.9.2(d) records (Silero VAD with an adaptive
+      min_silence_duration) must stay buildable. (b) Our own code: the
+      repository LICENSE at main ab9b8819806d1d57a1ec8929021a340547cc6453,
+      sha256 f001b09731c8f376be0cd5af29bb0131d1f505f06164fb1178a1db96c61e16cc
+      (proprietary, the operator's own). (c) LiveKit server, the probe's
+      room-join target: LICENSE at commit
+      3cfbd1242618a61178f7a05b126d6c0c4cac3731 (tag v1.13.6, the dev
+      compose's image), sha256
+      cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30, the
+      stock Apache-2.0 text. LiveKit Agents itself is not a dependency at
+      this commit (services/voice-runtime/pyproject.toml lists none): its
+      LICENSE is read when it is pinned, never assumed from this line.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://huggingface.co/livekit/turn-detector/raw/fba34c38ad5d30a63ebb83a9e6bf271cf4c91d67/LICENSE"
+    licence_blob_sha256: "4f5b74db4fd26299a166688de8a3bde046fd7d9cc13ecab64532c24310bc18d7"
+    licence_spdx: "LicenseRef-INTAKE-Proprietary AND Apache-2.0 AND LicenseRef-LiveKit-Model-License"
+    licence_commercial_use: "conditional"
+    licence_condition: >-
+      livekit/turn-detector runs only inside LiveKit Agents, never standalone
+      or with another framework, and none of its output trains another model
+      (LiveKit Model License section 3); LiveKit may end the licence on
+      immediate written notice (section 8).
+    licence_checked_at: "2026-10-16T23:11:07Z"
 
   - component: edge-tls
     self_hostable: true
     self_hosted_now: false
     host: "no TLS edge in the dev tier (compose binds loopback, plaintext); probe target comes from INTAKE_TLS_PROBE_TARGET once an edge terminator exists"
-    license: "not chosen yet — recorded when the edge terminator lands"
+    license: "Apache-2.0 (Caddy, the synthetic host's TLS terminator — LICENSE blob verified @v2.11.4; the dev tier has no terminator)"
     probe: cert_expiry_days
     budget_ms: 2000
     fallback: "none"
     phi_path: true
+    licence_note: >-
+      The dev tier has no TLS terminator; on the synthetic host the
+      certificate this probe reads is served by Caddy (infra/staging/
+      compose.yaml, service `caddy`, caddy:2.11.4-alpine digest-pinned;
+      infra/staging/inventory.yaml places edge-tls there). Read 2026-10-16 at
+      commit e2eee6a7fce366321294c9c2a79f3146891dcbdf (tag v2.11.4, the
+      image's CADDY_VERSION): LICENSE, 202 lines, the stock Apache-2.0 text
+      with its unfilled appendix. If a production edge picks a different
+      terminator, its blob replaces this one.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/caddyserver/caddy/e2eee6a7fce366321294c9c2a79f3146891dcbdf/LICENSE"
+    licence_blob_sha256: "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:07Z"
 
   - component: backups
     self_hostable: true
     self_hosted_now: false
     host: "INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design"
-    license: "n/a — our own artefacts"
+    license: "our own artefacts, written by pgBackRest — MIT (LICENSE blob verified @release/2.59.3)"
     probe: backup_freshness
     budget_ms: 200
     fallback: "none"
     phi_path: true
+    licence_note: >-
+      The artefacts are ours; the tool that writes them is pgBackRest
+      (infra/docker-compose.backup.yml, infra/backup/pgbackrest.conf), with
+      the object-store mirror under the minio row's licence. Read 2026-10-16
+      at commit 46cdca625a73403cad4774d97354a1fac1e91e51 (tag
+      release/2.59.3, the latest release): LICENSE, 1168 bytes, the MIT
+      text with "Portions Copyright (c) 2015-2026, The PostgreSQL Global
+      Development Group" and "2013-2026, David Steele". Finding: the
+      compose build installs pgbackrest from apt without a version pin, so
+      the running version is whatever the base image's repositories carry;
+      the licence has been MIT throughout, and a version pin belongs with
+      the backup tier's own issue.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/pgbackrest/pgbackrest/46cdca625a73403cad4774d97354a1fac1e91e51/LICENSE"
+    licence_blob_sha256: "897e8e8103e360b556d977a95d06f75e97c55ceb22cf44ed257ea34127c1d8ab"
+    licence_spdx: "MIT"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:20:55Z"
 
   # --- INT-206: continuous integration ---------------------------------------
 
@@ -235,6 +456,18 @@ components:
     # logs, artefacts, cache and runners, and tests/infra/test_ci_no_phi.py
     # fails the build when any of them carries a patient-shaped value.
     phi_path: false
+    licence_note: >-
+      Read 2026-10-16 at commit 397b032cbf865e9c3ddfab89d533ec19325e1273
+      (tag v2.337.0, RUNNER_VERSION in infra/ci/aws-runner/runner.conf):
+      LICENSE, 20 lines, "The MIT License (MIT) Copyright (c) 2019 GitHub".
+      It covers the runner agent we install; the hosted Actions service is
+      a vendor product under GitHub's terms, not a licence we self-host.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/actions/runner/397b032cbf865e9c3ddfab89d533ec19325e1273/LICENSE"
+    licence_blob_sha256: "621a1e0b6163b9d63fe780b9d6f5a7f775a5781065024a1ebf8010726c44cec1"
+    licence_spdx: "MIT"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:08Z"
 
   # --- INT-175: the self-hosted LLM-trace tier -------------------------------
 
@@ -288,6 +521,15 @@ components:
       ee/ paths inert; setting one without a signed agreement would be an
       unlicensed commercial use (invariant 19). Re-verify both blobs on every
       version bump: an open-core vendor moves the line, not the licence text.
+      INT-561, 2026-10-16: both blobs re-read at the same commit,
+      byte-identical (same sha256s).
+    licence_spdx: "MIT AND LicenseRef-Langfuse-Enterprise"
+    licence_commercial_use: "conditional"
+    licence_condition: >-
+      MIT everywhere except ee/, web/src/ee/ and worker/src/ee/, which are
+      under the Langfuse Enterprise licence and stay inert: no enterprise
+      licence key is ever set without a signed agreement.
+    licence_checked_at: "2026-10-16T23:11:08Z"
 
   - component: langfuse-clickhouse
     self_hostable: true
@@ -312,6 +554,11 @@ components:
       rider. ClickHouse acquired Langfuse in January 2026 (files/05 §"Langfuse
       is self-hostable with an MIT core"), so both licences now sit under the
       same owner and both are re-verified together on a version bump.
+      INT-561, 2026-10-16: re-read at the same commit, byte-identical (same
+      sha256).
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:09Z"
 
   # --- model rows: pins mirror files/03 §4.9.1; licences are the verified
   # --- findings, carried verbatim (files/03 §4.9.0 rule 3) -------------------
@@ -328,6 +575,20 @@ components:
     # gate blocks on this row until a served fallback exists — by design.
     fallback: "none"
     phi_path: true
+    licence_note: >-
+      Read 2026-10-16 from the raw LICENSE blob of the Hugging Face weights
+      repo itself at revision c202236235762e1c871ad0ccb60c8ee5ba337b9a (the
+      full form of the c202236 pin in `host`; the repo is not gated), not
+      from the card's apache-2.0 tag: 201 lines, stock Apache-2.0 with the
+      appendix filled in as "Copyright 2026 Alibaba Cloud" and no trailing
+      newline — the same shape as the qwen3.6-35b-a3b row. No addendum, no
+      acceptable-use rider, no field-of-use restriction.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://huggingface.co/Qwen/Qwen3.5-9B/raw/c202236235762e1c871ad0ccb60c8ee5ba337b9a/LICENSE"
+    licence_blob_sha256: "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:09Z"
 
   - component: whisper-tr-medical
     self_hostable: true
@@ -340,6 +601,27 @@ components:
     # behind it
     fallback: "none"
     phi_path: true
+    licence_note: >-
+      No licence blob exists for these weights, checked 2026-10-16. The
+      weights repo has no LICENSE at the pinned revision
+      0e74ec8ad2e4bd62a1e8d28eda9b7455063a2cbc nor at main: both
+      https://huggingface.co/turkmedstt/whisper-large-v3-turkish-medical/raw/0e74ec8ad2e4bd62a1e8d28eda9b7455063a2cbc/LICENSE
+      and .../raw/main/LICENSE answer 404 "Entry not found", and the
+      revision's file list has no licence file. Only the card tag
+      (apache-2.0) speaks, and it disagrees with the authors' source
+      repository, github.com/muhammedkumcu/turkmedstt, whose LICENSE at
+      c26c7f485111cfa94a72e67c35353be69278e21a is the MIT text (1093 bytes,
+      sha256 31ea709aa04db96200bb4eaa03a9863cc1042e170e42134e92c52297b30431f5)
+      and covers the code, not visibly the weights. Two vendor statements
+      that disagree name no single grant. The training data is also
+      unsettled: that repo's docs/DATA_PIPELINE.md lists Common Voice (CC0),
+      ISSAI Turkish ("under the source's own terms") and OpenSLR 106, and
+      the ISSAI share dominates. To close it the authors add a LICENSE to
+      the weights repo (or counsel accepts another basis); until then this
+      row is never shown as verified.
+    licence_spdx: "NOASSERTION"
+    licence_commercial_use: "blob_not_found"
+    licence_checked_at: "2026-10-16T23:11:10Z"
 
   - component: freya-tts
     self_hostable: true
@@ -355,7 +637,7 @@ components:
     # blob — open finding" is REMOVED from this row. It was never Freya's
     # finding to carry, and it is now closed: VoxCPM2 has its own row below,
     # with the blob url and sha it was actually verified from.
-    license: "Apache-2.0 (code LICENSE blob verified @d124e07)"
+    license: "Apache-2.0 (vendor source LICENSE blob verified @146d36c; the weights repo carries none — see licence_note)"
     probe: http_health
     budget_ms: 3000
     # the bottom of the TTS ladder (files/03 §4.9.1 row 12): nothing stands
@@ -363,6 +645,26 @@ components:
     # gate blocks on this row, by design.
     fallback: "none"
     phi_path: true
+    licence_note: >-
+      Same shape as the voxcpm2-tts row, read 2026-10-16. The Hugging Face
+      weights repo freyavoice/Freya-TTS carries NO LICENSE at revision
+      d124e07493615208f58bdd21d432736849ee4230: the raw path answers 404 and
+      the revision holds only .gitattributes, README.md, config.json and
+      model.safetensors. The grant was read from the vendor SOURCE repo
+      instead, freyavoiceai/FreyaTTS at commit
+      146d36c1cb6660646be57d31339db4eed9315de3 — the inference code pin
+      that serves these weights: LICENSE, 202 lines, stock Apache-2.0 with
+      the appendix filled in as "Copyright 2026 Freya Voice AI". The same
+      commit's MODEL_CARD.md says the small model is released in full under
+      Apache-2.0 and that FreyaTTS-large is not open weights (the trap
+      files/03 §4.9.1 row 12 names). The licence class is unchanged; what
+      changed is that the blob is now named and hashed.
+    licence_verified_at: 2026-10-16
+    licence_blob_url: "https://raw.githubusercontent.com/freyavoiceai/FreyaTTS/146d36c1cb6660646be57d31339db4eed9315de3/LICENSE"
+    licence_blob_sha256: "e58b88a04502b355f2f01cd2e3935adca39e7523c91463175169c400729964b2"
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:10Z"
 
   - component: voxcpm2-tts
     self_hostable: true
@@ -399,6 +701,11 @@ components:
       artefact instead of resting on a README the vendor can edit. Audited
       2026-08-29; supersedes the "NO licence blob — open finding" that the
       freya-tts row used to carry on VoxCPM2's behalf.
+      INT-561, 2026-10-16: re-read at the same commit, byte-identical (same
+      sha256).
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:10Z"
 
   # INT-124: files/03 §4.9.1 row 9, the extraction LLM. Pinned and
   # licence-verified, and served by NO host: the probe reports it unavailable
@@ -462,18 +769,44 @@ components:
       content) that the Hub's tree API reports for each shard at the same
       revision (71903776776 bytes in all); nothing is mirrored yet, so INT-381
       re-hashes the mirrored bytes against them on the serving host.
+      INT-561, 2026-10-16: re-read at the same revision, byte-identical
+      (same sha256).
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:11Z"
 
   - component: deid-tr-ner-v1
     self_hostable: true
     self_hosted_now: true
     host: "in-process (intake_platform.deid) — pinned artefact .cache/deid-tr-ner-v1, sha256-verified by `make deid-model` (INT-015)"
-    license: "own-trained: MIT base model + CC-BY-4.0 training data"
+    license: "UNVERIFIED — own-trained: MIT base model (LICENSE blob verified) + CC-BY-4.0 training data (card statement only, no LICENSE blob)"
     # artefact presence via the freshness probe with no age bound — a pinned
     # model's mtime is its install time, not a health signal
     probe: backup_freshness
     budget_ms: 200
     fallback: "in-process:intake_platform.redaction"
     phi_path: true
+    licence_note: >-
+      Our own fine-tune (INT-015), checked 2026-10-16. The base half is
+      read: dbmdz/distilbert-base-turkish-cased has no LICENSE in its
+      Hugging Face repo, and its source repo github.com/dbmdz/berts carries
+      one at commit 74a0428e803724ac7f05057edc9088b4b4e71973 — MIT,
+      "Copyright (c) 2020 Open Source at the Bayerische Staatsbibliothek",
+      1103 bytes, sha256
+      82be7300e19615c757cae21db59d24a0a3ecb9fe2b8764bfbe7f72fe9674a0ae. The
+      training-data half is not: BTX24/turkish-privacy-pii-ner at the
+      trained-on revision 45a8e18edb57224b14368c910f701e064dbb1326 has no
+      LICENSE file
+      (https://huggingface.co/datasets/BTX24/turkish-privacy-pii-ner/raw/45a8e18edb57224b14368c910f701e064dbb1326/LICENSE
+      answers 404); only its card tag (cc-by-4.0) and a README section say
+      CC BY 4.0, and a card is not a blob (files/03 §4.9.0 rule 3). The
+      data is machine-generated synthetic text, so no person's rights are
+      at stake, but the weights' commercial use rests on that grant. To
+      close it the dataset author adds a LICENSE (or counsel accepts the
+      README); until then this row is never shown as verified.
+    licence_spdx: "NOASSERTION"
+    licence_commercial_use: "blob_not_found"
+    licence_checked_at: "2026-10-16T23:11:11Z"
 
   # --- INT-205: the detection tier (files/10 §7) -----------------------------
   # Not booted here and the rows say so: HB-I1 (disk) and HB-I2 (container
@@ -531,6 +864,13 @@ components:
       Heritage worth knowing: "Based on work Copyright (C) 2003 - 2013 Trend
       Micro, Inc." — Wazuh is an OSSEC fork, so an OSSEC-era licence question
       is a Wazuh licence question. Re-verify the blob on every version bump.
+      INT-561, 2026-10-16: re-read at the same commit, byte-identical (same
+      sha256). The SPDX id is a LicenseRef because the blob is not stock
+      GPL-2.0-only: the OpenSSL exception and the extended derivative-work
+      clause above are part of what was read.
+    licence_spdx: "LicenseRef-Wazuh-GPL-2.0-only-OpenSSL-exception"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:12Z"
 
   - component: wazuh-indexer
     self_hostable: true
@@ -558,6 +898,11 @@ components:
       assuming the wrong ancestor here would put a source-available licence on
       the PHI path. Re-verify on every version bump — a fork's licence is only
       as stable as the fork's owner.
+      INT-561, 2026-10-16: re-read at the same commit, byte-identical (same
+      sha256).
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:12Z"
 
   - component: falco
     self_hostable: true
@@ -587,6 +932,11 @@ components:
       and a rules repo relicensing would not show up in the engine's LICENSE.
       Falco is a CNCF graduated project; the driver ships as modern eBPF here,
       so no out-of-tree kernel module is built on the host.
+      INT-561, 2026-10-16: the engine and the rules blob re-read at the same
+      commits, both byte-identical (same sha256s).
+    licence_spdx: "Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:12Z"
 
   # INT-018 — the forward egress proxy (files/10 §4). Not on the PHI path in
   # the sense of *carrying* clinical data: the `phi` network in
@@ -635,6 +985,11 @@ components:
       host); re-read at tag SQUID_6_14 (commit
       a8c54a8f23f0dc41025097caab73ec445f49b78f): COPYING is byte-identical
       (same sha256) and src/main.cc carries the same GPLv2+ header.
+      INT-561, 2026-10-16: COPYING re-read at both commits, byte-identical
+      (same sha256).
+    licence_spdx: "GPL-2.0-or-later"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:13Z"
 
   # INT-203 — the edge (files/10 §4 `Edge:`). Two components, one policy:
   # infra/security/edge/edge-policy.yaml renders Traefik's static and dynamic
@@ -677,9 +1032,9 @@ components:
     # the API with no WAF in front of it".
     fallback: "none"
     phi_path: true
-    licence_verified_at: 2026-09-03
+    licence_verified_at: 2026-10-16
     licence_blob_url: "https://raw.githubusercontent.com/traefik/traefik/74bc93308b47a1a03b7dbaedd5ec2c0965f46e80/LICENSE.md"
-    licence_blob_sha256: "4785e89fcc9a0f7ca3dca1aa6caa86b38db00043a669918fe932e1d87a68579b"
+    licence_blob_sha256: "c33e29340498ccde22ba0ab9537d6eb0aa3a2eae0dda61bb6df31df6a032fa5b"
     licence_note: >-
       THREE licences, read separately on 2026-09-03, because three projects
       travel in this one process. (a) Traefik, at commit
@@ -710,6 +1065,17 @@ components:
       how much a bump needs looking at. The CRS version is stated as 4.0.0
       because the running engine reports `OWASP_CRS/4.0.0` in every rule line
       — a measurement, not a card tag.
+      INT-561, 2026-10-16: the sha256 recorded on 2026-09-03
+      (4785e89f…68579b) was of the text with its final newline stripped, so
+      nobody re-reading the blob could reproduce it. Re-read at the same
+      commit, the bytes as served are 1110 bytes, 21 lines, sha256
+      c33e2934…6a032fa5b (git blob 50d2fa2c), and licence_verified_at is
+      the date that hash was taken. The CRS blob re-read byte-identical
+      (same sha256). The coraza-http-wasm archive member was not re-fetched:
+      it is a release asset, not a raw blob.
+    licence_spdx: "MIT AND Apache-2.0"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:14Z"
 
   # Reputation and behavioural buckets, LOCAL ONLY. The community blocklist is
   # CrowdSec's headline feature and it works by sending the addresses that
@@ -731,9 +1097,9 @@ components:
     # detection, never degraded blocking.
     fallback: "none"
     phi_path: true
-    licence_verified_at: 2026-09-03
+    licence_verified_at: 2026-10-16
     licence_blob_url: "https://raw.githubusercontent.com/crowdsecurity/crowdsec/f209766efcf0b66540a4acbe35c0fc572fc2bb60/LICENSE"
-    licence_blob_sha256: "b0d4afcd015e48f7e5936dfaf93259bfc5331687d511fdd39532f7682c748a27"
+    licence_blob_sha256: "198fa694dee3f87684bd26b9ae5227e07f016cc7a3ac187d0036afaf8d08d2da"
     licence_note: >-
       Read at commit f209766efcf0b66540a4acbe35c0fc572fc2bb60 (tag v1.6.8),
       2026-09-03: 20 lines, the stock MIT text, "Copyright (c) 2020-2023
@@ -744,3 +1110,11 @@ components:
       none: hub parsers and scenarios are MIT too, but they would arrive over
       the network from a host that is not on the egress allow-list, which is
       why there are none.
+      INT-561, 2026-10-16: the sha256 recorded on 2026-09-03
+      (b0d4afcd…2c748a27) was of the text with its final newline stripped.
+      Re-read at the same commit, the bytes as served are 1070 bytes, 21
+      lines, sha256 198fa694…8d08d2da (git blob de4dbbfb), and
+      licence_verified_at is the date that hash was taken.
+    licence_spdx: "MIT"
+    licence_commercial_use: "yes"
+    licence_checked_at: "2026-10-16T23:11:15Z"

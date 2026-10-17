@@ -52,7 +52,7 @@
       "fallback": "component:backups",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "blocking",
       "findings": [
         {
@@ -88,7 +88,7 @@
       "fallback": "none",
       "phi_path": false,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "attention",
       "findings": [
         {
@@ -156,7 +156,7 @@
       "fallback": "component:backups",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "blocking",
       "findings": [
         {
@@ -224,7 +224,7 @@
       "fallback": "component:backups",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "blocking",
       "findings": [
         {
@@ -260,7 +260,7 @@
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "attention",
       "findings": [
         {
@@ -292,7 +292,7 @@
       "fallback": "none",
       "phi_path": false,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "ok",
       "findings": [],
       "benchmark": {
@@ -319,7 +319,7 @@
       "fallback": "none",
       "phi_path": false,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "ok",
       "findings": [],
       "benchmark": {
@@ -346,7 +346,7 @@
       "fallback": "none",
       "phi_path": false,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "ok",
       "findings": [],
       "benchmark": {
@@ -373,7 +373,7 @@
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "attention",
       "findings": [
         {
@@ -399,13 +399,13 @@
       "self_hostable": true,
       "self_hosted_now": false,
       "host": "no TLS edge in the dev tier (compose binds loopback, plaintext); probe target comes from INTAKE_TLS_PROBE_TARGET once an edge terminator exists",
-      "license": "not chosen yet — recorded when the edge terminator lands",
+      "license": "Apache-2.0 (Caddy, the synthetic host's TLS terminator — LICENSE blob verified @v2.11.4; the dev tier has no terminator)",
       "probe": "cert_expiry_days",
       "budget_ms": 2000,
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "attention",
       "findings": [
         {
@@ -431,13 +431,13 @@
       "self_hostable": true,
       "self_hosted_now": false,
       "host": "INTAKE_BACKUP_DIR (default .cache/backups) — INT-202 wires the pgBackRest job and the restore drill (infra/backup/, scripts/backup/restore_drill.sh, `make backup-drill`); the drill has NOT run on this host, so nothing lands here yet: HB-I1 (disk) and HB-I2 (container memory) block it and HB-I8 owes the retention window. Until a drill runs, every fallback pointing here fails the release gate, by design",
-      "license": "n/a — our own artefacts",
+      "license": "our own artefacts, written by pgBackRest — MIT (LICENSE blob verified @release/2.59.3)",
       "probe": "backup_freshness",
       "budget_ms": 200,
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "attention",
       "findings": [
         {
@@ -469,7 +469,7 @@
       "fallback": "none",
       "phi_path": false,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "ok",
       "findings": [],
       "benchmark": {
@@ -550,7 +550,7 @@
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "blocking",
       "findings": [
         {
@@ -620,13 +620,13 @@
       "self_hostable": true,
       "self_hosted_now": true,
       "host": "freyavoice/Freya-TTS@d124e07 (code pin 146d36c) — team GPU server, loopback 127.0.0.1:8803, CUDA, supervised by bin/serve_tts_supervised.sh (dev/synthetic only). files/03 §4.9.1 row 12: the whole-session TTS fallback, selected at session start",
-      "license": "Apache-2.0 (code LICENSE blob verified @d124e07)",
+      "license": "Apache-2.0 (vendor source LICENSE blob verified @146d36c; the weights repo carries none — see licence_note)",
       "probe": "http_health",
       "budget_ms": 3000,
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": null,
+      "licence_verified_at": "2026-10-16",
       "severity": "blocking",
       "findings": [
         {
@@ -724,7 +724,7 @@
       "self_hostable": true,
       "self_hosted_now": true,
       "host": "in-process (intake_platform.deid) — pinned artefact .cache/deid-tr-ner-v1, sha256-verified by `make deid-model` (INT-015)",
-      "license": "own-trained: MIT base model + CC-BY-4.0 training data",
+      "license": "UNVERIFIED — own-trained: MIT base model (LICENSE blob verified) + CC-BY-4.0 training data (card statement only, no LICENSE blob)",
       "probe": "backup_freshness",
       "budget_ms": 200,
       "fallback": "in-process:intake_platform.redaction",
@@ -733,6 +733,10 @@
       "licence_verified_at": null,
       "severity": "attention",
       "findings": [
+        {
+          "code": "licence_not_verified_from_blob",
+          "detail": "deid-tr-ner-v1: the declared licence has not been read from a raw LICENSE blob (UNVERIFIED — own-trained: MIT base model (LICENSE blob verified) + CC-BY-4.0 training data (card statement only, no LICENSE blob)). files/03 §4.9.0 rule 3 — a card tag or a badge is not a grant."
+        },
         {
           "code": "probe_not_healthy",
           "detail": "deid-tr-ner-v1: own probe backup_freshness is no probe result in this sweep."
@@ -890,7 +894,7 @@
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": "2026-09-03",
+      "licence_verified_at": "2026-10-16",
       "severity": "attention",
       "findings": [
         {
@@ -922,7 +926,7 @@
       "fallback": "none",
       "phi_path": true,
       "pin": null,
-      "licence_verified_at": "2026-09-03",
+      "licence_verified_at": "2026-10-16",
       "severity": "attention",
       "findings": [
         {

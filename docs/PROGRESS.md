@@ -4027,3 +4027,39 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-17T09:30:00+03:00 · INT-561 · done (committed and pushed; PR held by the push freeze)
+- Goal: the operability registry page read Lisans doğrulandı = yok on 16 of 28 rows. Acceptance, verbatim:
+  - "A licence-auditor pass fetches each component's raw LICENSE (pinned revision/commit for models: model_id@revision; image digest or source tag for services), records the URL, sha256 of the blob, SPDX id, commercial-use verdict and licence_verified_at in the model/service registry."
+  - "A component whose raw licence cannot be found or is not commercially usable is marked so (and blocks only if the deployed synthetic stack needs it), never shown as verified."
+  - "Tests pin every registry row to a recorded verification; a row without one fails."
+- Plan:
+  - Read every row's blob with curl at a full revision, on 2026-10-16 UTC.
+  - Add a typed verdict record to `RegistryEntry`, where only a read, usable licence may carry `licence_verified_at`.
+  - Make the console's licence finding verdict-aware.
+  - Pin every row to the evidence table.
+- Tests added: `tests/observability/test_licence_verification.py` (40). Its near misses:
+  - a record missing its URL or sha256;
+  - `no` or `blob_not_found` carrying a date;
+  - `conditional` without its condition;
+  - a not-found record claiming a hash or an SPDX id;
+  - a non-UTC fetch time;
+  - a partial record;
+  - an UNVERIFIED line over a verified record.
+  - The mutation check caught 11 of 11.
+- Result:
+  - 28 rows: 23 `yes` and 3 `conditional` (redis, voice-runtime, langfuse), so 26 verified; 0 `no`; 2 `blob_not_found` (whisper-tr-medical, deid-tr-ner-v1).
+  - Two INT-203 hashes (edge-ingress, edge-crowdsec) had been taken without the final newline, and are corrected.
+  - Whole tree: 12306 passed, 81 deselected. admin-web vitest: 385 passed. ruff and `mypy --strict` (probes and api) are clean. The PHI scan, claims scan, licence allow-list, no_placeholders and gitleaks on the staged diff are all OK.
+  - `make check` and `make security` in full run on the PR's runner.
+- Invariants touched and still passing: 13, 19 and 6 (no 64-hex string in any served `license` line).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Weights with no LICENSE of their own follow the INT-243 VoxCPM2 precedent: the grant is the vendor's source repo at the code pin, unless the vendor's own statements disagree.
+  - Freya passes on that basis. whisper-tr-medical fails it, because its card says apache-2.0 and its code repository says MIT.
+- Blocked on: nothing for this issue. The two `blob_not_found` rows need a third party:
+  - the turkmedstt authors must add a LICENSE, or counsel must accept another basis;
+  - BTX24 must add a LICENSE to the dataset, or counsel must accept its README.
+  - No HB id is minted.
+- Next:
+  - INT-560 (#950) adds keycloak, oauth2-proxy, admin-web and caddy. Their records are in the evidence table and were sent to its worker. Whichever PR merges second pastes them in, and maps `licence_not_commercially_usable` into `standing._host_scoped`.
+- LOOP_STATUS: CONTINUE
+

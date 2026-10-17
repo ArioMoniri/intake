@@ -19,7 +19,7 @@
           "phi_path": true,
           "probe": "postgres_select1",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "blocking"
         },
         {
@@ -30,7 +30,7 @@
           "phi_path": false,
           "probe": "redis_ping",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         },
         {
@@ -41,7 +41,7 @@
           "phi_path": true,
           "probe": "minio_ready",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-09-26",
           "severity": "blocking"
         },
         {
@@ -52,7 +52,7 @@
           "phi_path": true,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "blocking"
         },
         {
@@ -74,7 +74,7 @@
           "phi_path": true,
           "probe": "openbao_seal_status",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "blocking"
         },
         {
@@ -85,7 +85,7 @@
           "phi_path": true,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         },
         {
@@ -96,7 +96,7 @@
           "phi_path": false,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "ok"
         },
         {
@@ -107,7 +107,7 @@
           "phi_path": false,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "ok"
         },
         {
@@ -118,7 +118,7 @@
           "phi_path": false,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "ok"
         },
         {
@@ -129,7 +129,7 @@
           "phi_path": true,
           "probe": "livekit_room_join",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         },
         {
@@ -140,7 +140,7 @@
           "phi_path": true,
           "probe": "cert_expiry_days",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         },
         {
@@ -151,7 +151,7 @@
           "phi_path": true,
           "probe": "backup_freshness",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         },
         {
@@ -162,7 +162,7 @@
           "phi_path": false,
           "probe": "runner_heartbeat",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "ok"
         },
         {
@@ -195,7 +195,7 @@
           "phi_path": true,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "blocking"
         },
         {
@@ -217,7 +217,7 @@
           "phi_path": true,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": null,
+          "licence_verified_at": "2026-10-16",
           "severity": "blocking"
         },
         {
@@ -230,6 +230,17 @@
           "probe_status": "no_result",
           "licence_verified_at": "2026-08-29",
           "severity": "blocking"
+        },
+        {
+          "component": "qwen3.6-35b-a3b",
+          "pin": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0",
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "http_health",
+          "probe_status": "no_result",
+          "licence_verified_at": "2026-09-27",
+          "severity": "attention"
         },
         {
           "component": "deid-tr-ner-v1",
@@ -294,7 +305,7 @@
           "phi_path": true,
           "probe": "http_health",
           "probe_status": "no_result",
-          "licence_verified_at": "2026-09-03",
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         },
         {
@@ -305,7 +316,7 @@
           "phi_path": true,
           "probe": "tcp_connect",
           "probe_status": "no_result",
-          "licence_verified_at": "2026-09-03",
+          "licence_verified_at": "2026-10-16",
           "severity": "attention"
         }
       ]

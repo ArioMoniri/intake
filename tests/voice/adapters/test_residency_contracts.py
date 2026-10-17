@@ -515,21 +515,29 @@ class TestModelPins:
         assert pin.pinned
         assert pin.pinned_id == f"openbmb/VoxCPM2@{pin.revision}"
 
-    def test_the_talker_llm_row_resolves_but_its_provenance_is_prose(self) -> None:
-        """Row 7's registry entry says the blob was read — in a sentence.
+    def test_the_talker_llm_row_resolves_but_its_weights_are_unpinned(self) -> None:
+        """Row 7's licence is now a record; its weights are still a sentence.
 
-        ``license: "Apache-2.0 (LICENSE blob verified @c202236)"`` is a claim
-        an auditor cannot re-check: no blob url, no blob sha256, no weight
-        hashes, no ``licence_verified_at``, and ``c202236`` is an abbreviated
-        revision the registry's own pattern would reject. Invariant 19 asks
-        for the record, not the sentence, so the PHI gate refuses.
+        Until INT-561 the row said ``"Apache-2.0 (LICENSE blob verified
+        @c202236)"`` and nothing more. INT-561 read the Hugging Face weights
+        repo's own LICENSE at the full revision and recorded its url, sha256
+        and date, so the licence half of the gate now holds. The weights half
+        does not: no ``model_id@revision`` and no weight hashes, because
+        nobody has hashed the served artefacts, so the PHI gate still refuses
+        — now with :class:`PinNotPinned`, which names the missing block.
         """
+        from intake_voice_runtime.adapters.pins import PinNotPinned
+
         pin = resolve_pin(ModelStackRow.TALKER_LLM)
         assert pin.component == "qwen3.5-9b"
+        assert pin.licence_verified
+        assert pin.licence_blob_url == (
+            "https://huggingface.co/Qwen/Qwen3.5-9B/raw/"
+            "c202236235762e1c871ad0ccb60c8ee5ba337b9a/LICENSE"
+        )
         assert not pin.pinned
-        assert not pin.licence_verified
         assert pin.pinned_id == "qwen3.5-9b@unpinned"
-        with pytest.raises(LicenceNotVerified):
+        with pytest.raises(PinNotPinned, match="weights_sha256"):
             require_phi_path_pin(ModelStackRow.TALKER_LLM)
 
     def test_the_rows_that_cannot_serve_the_phi_path_are_named(self) -> None:
