@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**364 issues.** By phase: P0 180 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 244 · todo 74 · withdrawn 1.
+**366 issues.** By phase: P0 182 · P1 130 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 246 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -182,6 +182,7 @@
 | INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done |
 | INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
 | INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
+| INT-544 | A pull request clears CI in under 20 minutes on the intake-aws-ci pool: cache seed, sharded check-py, path-scoped lanes, queued main runs collapse | E13-infra | INT-467, INT-524 | area:ci, approval:human-infra | done |
 | INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models | E05-voice | INT-081, INT-083, INT-092, INT-095, INT-101 | area:voice, risk:clinical | doing |
 | INT-428 | Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over | E05-voice | INT-182, INT-187, INT-018 | area:api, area:voice, risk:security | awaiting-human |
 | INT-485 | Admin oauth2-proxy logs no staff email or client IP (invariant 6) | E13-infra | INT-421 | area:infra | done |
@@ -191,6 +192,7 @@
 | INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done |
 | INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
+| INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
 
 ## P1
 

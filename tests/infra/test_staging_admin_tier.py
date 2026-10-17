@@ -272,13 +272,14 @@ class TestApiGateAndConsole:
         forms = flows["staff browser forms"]["authenticationExecutions"]
         assert [e["requirement"] for e in forms] == ["REQUIRED", "REQUIRED"]
         second = flows["staff second factor"]["authenticationExecutions"]
-        # INT-378: the WebAuthn alternative is the stock authenticator's subclass that also
-        # writes aaguid and credential_id; a second factor is still required either way
-        assert {e["authenticator"] for e in second} == {
-            "intake-webauthn-session-notes",
-            "auth-otp-form",
+        # INT-378: the WebAuthn step is the stock authenticator's subclass that also writes
+        # aaguid and credential_id. INT-550: it is REQUIRED, so a staff user without a passkey
+        # enrols one after the password instead of being refused, and OTP is DISABLED until
+        # the owner decides INT-389 (#644)
+        assert {e["authenticator"]: e["requirement"] for e in second} == {
+            "intake-webauthn-session-notes": "REQUIRED",
+            "auth-otp-form": "DISABLED",
         }
-        assert {e["requirement"] for e in second} == {"ALTERNATIVE"}
 
     def test_the_key_set_is_a_read_only_mirror(self) -> None:
         assert _env("api")["INTAKE_ADMIN_OIDC_JWKS_PATH"] == "/run/intake/keycloak-jwks.json"

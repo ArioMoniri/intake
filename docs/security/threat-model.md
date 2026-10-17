@@ -123,7 +123,10 @@ it or whose tests exercise it.
   [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change;
   [I] **an operator script putting a secret where others read it** (INT-538's staff-user
   command: a temporary password or the Keycloak bootstrap password in an argv, the SSM command
-  history, a log or the terminal); [E] **a staff account created with the wrong role or org**.
+  history, a log or the terminal); [E] **a staff account created with the wrong role or org**;
+  [D] **a staff account that can never complete sign-in** (INT-550: the realm's ALTERNATIVE
+  WebAuthn step refused every user without a passkey, so no new staff user could enrol);
+  [E] **a weaker factor standing in for the passkey** (an OTP ALTERNATIVE beside WebAuthn).
 - **Controls (files/10):** §8 pre-commit set (gitleaks, Semgrep+Bandit, dependency review,
   Renovate with lockfiles); CLAUDE.md invariant 14 (gates never skipped); Makefile as the only
   entry point so gates cannot be sidestepped by ad-hoc commands. **INT-538**
@@ -137,12 +140,23 @@ it or whose tests exercise it.
   role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
   step rolls the user back. `--reset <username>` re-issues a temporary password for an existing
   user under the same rules and refuses an unknown one; the reveal prints the value alone with
-  its length.
+  its length. **INT-550** (both committed realms and
+  `infra/staging/keycloak/staff_flow.py`): the `intake-webauthn-session-notes` step is REQUIRED, so Keycloak sends a user without a
+  passkey to `webauthn-register` after the password. A user with a passkey is challenged for it
+  and offered nothing else. The OTP step is DISABLED until INT-389, so it is neither offered nor
+  accepted. The deploy switches the live realm. It refuses, before any change, a realm whose
+  `webauthn-register` action is absent or disabled. It keeps each execution's priority. The
+  enrolment login asserts no passkey, so the console still refuses that one session, and the
+  next fresh sign-in asserts the key.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
-  console and INT-205 in the SIEM.
+  console and INT-205 in the SIEM. `smoke.sh` check 7 re-reads the live staff flow (INT-550
+  shape) after every deploy.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
   tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
-  tests/infra/test_staff_user_host.py; tests/infra/test_staff_user_reset.py.
+  tests/infra/test_staff_user_host.py; tests/infra/test_staff_user_reset.py;
+  tests/admin/test_staff_passkey_enrolment.py;
+  tests/infra/test_staging_keycloak_provider.py; `StaffSecondFactorFlowTest` (Keycloak
+  26.7.4's own flow engine, in `infra/keycloak/providers/webauthn-session-notes`).
 
 ## `cicd` — pipeline, artefacts and gate integrity
 
