@@ -1583,6 +1583,36 @@ value:
       ref: T4
       amends: "change (c), and how T4 is applied"
       origin: "#935 (INT-546) clinical review, 17 Oct 2026; the reviewers' recommendations were inputs, not decisions"
+      verification:
+        round: 5
+        date: 2026-10-17
+        head: ca99030a
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: agree
+        findings: >-
+          Agree on D8, D9 and D10, no blocker. NICE NG126 1.4.3, 1.4.5 ("they may be
+          pregnant") and 1.4.8 were re-read on the live NICE page on 2026-10-17 and
+          are verbatim. D8 restates T4 change (c), which already names the three
+          examples and decides "any hedge". None of the three is a CD-04 surface:
+          "bilmiyorum" is, and "bilemiyorum" is a different whole word. Keeping
+          "galiba" and "olabilir" off CD-04's '*' list is right, because on a
+          chest-pain feature slot a hedged yes read as UNCLEAR can evaluate less
+          acutely than a plain "hayır" (CD-04's own monotonicity rule). Every mapped
+          answer opens the five items and never closes them. D9 never binds a hedged
+          choice, and a rule reads the slot as != 'hayır', the same reading CD-112
+          gives immunosuppression, so a hedged "evet" is never less acute. D10
+          changes nothing until T4's owner part is answered, and keeping (a), (b),
+          (c) and CD-106 (1) in one change avoids both half-applied states the item
+          names. Two notes, neither a change. (1) Whole-word matching does not read
+          inflected forms ("olabilirim", "galibaydı"). The negative-leaning hedges
+          ("herhalde değilim", "sanırım değilim", "zannetmiyorum") are the ones a
+          model could bind as "hayır" and so close the gate. T4(c)'s "any hedge"
+          still decides them, and they should be the first the author's listed
+          follow-up makes machine-readable. The slot is text_first, so a tapped
+          choice is the usual answer. (2) D9 states the reading for a rule. A future
+          gate on pregnancy_status should read != 'hayır' too, because a gate on
+          == 'evet' would close on a hedged "evet" recorded as "emin değilim". No
+          gate reads == 'evet' today.
       items:
         - item: D8
           question: "Make T4(c)'s named hedge examples ('galiba', 'olabilir', 'bilemiyorum') machine-readable as per-slot surfaces, or decide CD-04's '*' list is enough."
@@ -1658,7 +1688,7 @@ value:
           keys: [parts, with]
           status: active
 verifier:
-  verdict: pending
-  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
-  verified_on: 2026-10-16
-  notes: "Round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree (2026-10-03), by the independent clinical verifier (agent; EM/IM/paediatrics). Round 4 (2026-10-16, INT-519 amendment, T1 owner part re-read and the T4(b) literal, head 9034f8b9) agree, no blocker: NICE NG126 1.4.3 and 1.4.5 re-read verbatim on the live NICE page; the OR term only adds askers; one note for whoever later adds the age atom (amendments[0].verification). Round 5 (INT-554 items D8, D9 and D10, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+  verified_on: 2026-10-17
+  notes: "Round 1 agree_with_changes (pregnancy hedge mapping, reorder op, feeding, shared id type, NG18); round 2 agree_with_changes (feeding ruling, ic_hastaliklari ids); round 2b agree_with_changes (Q10 id); round 3 agree (2026-10-03), by the independent clinical verifier (agent; EM/IM/paediatrics). Round 4 (2026-10-16, INT-519 amendment, T1 owner part re-read and the T4(b) literal, head 9034f8b9) agree, no blocker: NICE NG126 1.4.3 and 1.4.5 re-read verbatim on the live NICE page; the OR term only adds askers; one note for whoever later adds the age atom (amendments[0].verification), by the independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry). Round 5 (2026-10-17, INT-554 items D8, D9 and D10, head ca99030a) agree, no blocker. NICE NG126 1.4.3, 1.4.5 and 1.4.8 were re-read verbatim on the live NICE page. The three surfaces restate T4(c), and none is a CD-04 surface. Every mapped answer opens the five items, and a hedged choice is never bound. Two notes, neither a change: inflected and negative-leaning hedges stay prose-decided only, and a future gate should read != 'hayır' (amendments[2].verification). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

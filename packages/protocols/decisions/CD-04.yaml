@@ -451,6 +451,37 @@ value:
       date: 2026-10-17
       issue: "INT-554 (GitHub #938) items D2 and D6"
       origin: "#931/#932 clinical review, 17 Oct 2026, and INT-543 (#917) finding F8; the reviewers' recommendations were inputs, not decisions"
+      verification:
+        round: 4
+        date: 2026-10-17
+        head: ca99030a
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: revise
+        findings: >-
+          D2 agrees. D6 needs a revision. Every NICE CG95 quote CD-04 carries was
+          re-read on the live NICE page on 2026-10-17 and is verbatim. The CKM
+          symptom_sign_screening v1 presence codes (at0027 Unknown, at0041 Unsure)
+          were re-read in the ADL that CKM serves today. D6: the engine's per-slot
+          clarification bound is shared with the council's appends
+          (IntakeEngine.append_verification: "Appends share the two-attempt bound of
+          files/13 §11.1 with clarifications"). The council scope excludes a tense
+          anchor, but the six slots in follow_up_bound_scope are red-flag refs the
+          council verifies. Its REASK_POSITIVE re-asks a red-flag slot answered absent
+          while any draw reads it as present or hedged. The round's engineering list
+          sets those slots' clarification bound to 1. Then a slot whose one follow-up
+          was spent and which was then answered "hayır" has no re-ask left: the
+          append returns EXHAUSTED, and a re-ask that could fire K2 is never spoken.
+          That also breaks ADR-036 ("red-flag re-asks are never capped, and each slot
+          keeps its two attempts"), and the record's safety direction ("no value
+          changes") does not cover it. The revision must state two things. The once
+          counts follow_up_tr asks after UNCLEAR, and nothing else. On these slots
+          the council's red-flag re-ask keeps the budget it has today (files/13
+          §11.1's two attempts), so the alignment can never exhaust a REASK_POSITIVE.
+          It also needs a test whose near miss is a slot with its one follow-up spent
+          whose "hayır" is still re-asked.
+        per_item:
+          D2: "agree, with a note. A pending, unclear or unasked slot already reads Unknown, so the close changes no level and only tells the clinic. The CKM presence set keeps Unknown out of No, and CG95 1.2.1.1's check of current chest pain is the check the close interrupted. Note for HB-C1: every session that closes after the chest-pain screen was asked and before it was answered now raises an item, a dropped connection included. That over-inclusion is the fail-closed direction inside D18's scope, and its inbox load is the physician of record's to weigh"
+          D6: "revise (see findings). The once is the verified round-1 value, and the trade-off of a second follow-up is disclosed. The defect is the counter the engine shares with the council's red-flag re-ask"
       items:
         - item: D2
           question: "A non-anchor CD-01 slot whose follow-up was spoken but never answered stays ASKED_PENDING at close, so the session ends GREEN with both arms Unknown and no item. Does it raise chest_pain_arms_unresolved?"
@@ -493,4 +524,4 @@ verifier:
   verdict: pending
   role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
   verified_on: 2026-10-16
-  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 8, 9 and 12, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 and CG84 quotes re-read verbatim on the live NICE pages and in the committed snapshots; the item-12 key acknowledged; one note for the physician of record on item 5 (amendments[0].verification). Round 4 (INT-554 items D2 and D6, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 8, 9 and 12, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 and CG84 quotes re-read verbatim on the live NICE pages and in the committed snapshots; the item-12 key acknowledged; one note for the physician of record on item 5 (amendments[0].verification). Round 4 (INT-554 items D2 and D6, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D2 agrees, with an HB-C1 note on its inbox load. D6 must state that the once counts follow_up_tr asks only: on these six red-flag slots the engine shares the clarification bound with ADR-036's REASK_POSITIVE, so a bound of 1 could leave a 'hayır' after a spent follow-up without its re-ask (amendments[1].verification). The verdict stays pending until the author's revision is re-verified. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

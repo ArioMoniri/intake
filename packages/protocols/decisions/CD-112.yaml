@@ -360,6 +360,23 @@ value:
       date: 2026-10-17
       issue: "INT-554 (GitHub #938) items D8 and D9"
       origin: "#935 (INT-546) clinical review, 17 Oct 2026; the reviewers' recommendations were inputs, not decisions"
+      verification:
+        round: 2
+        date: 2026-10-17
+        head: ca99030a
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: agree
+        findings: >-
+          Agree, no blocker. The round restates gates[1].hedge_mapping, whose "any
+          unmatched hedge" already records "bilmiyorum" for the three surfaces. The
+          hedged choice is kept unbound, as on the pregnancy slot, and rule_reading
+          already counts "bilmiyorum" with "evet", so no hedge reads less acutely than
+          a plain answer. NICE NG253 1.2.1 ("impaired immune function because of
+          illness or medical treatment") was re-read on the live NICE page on
+          2026-10-17 and is verbatim. The CKM screening presence codes were re-read in
+          the ADL CKM serves today. Note, not a change: CD-100 round 5's note on
+          inflected and negative-leaning hedges applies here too. Here
+          "zannetmiyorum" is the hedge a model could bind as "hayır".
       items:
         - item: D8-D9
           question: "Do T4(c)'s named hedges, and the rule for a hedge beside an explicit choice, reach pmh_fh_sh.immunosuppression, whose mapping already reads 'any unmatched hedge'?"
@@ -385,7 +402,7 @@ value:
           sources: [NICE-NG253, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
           status: active
 verifier:
-  verdict: pending
-  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
-  verified_on: 2026-10-16
-  notes: "Round 1 (2026-10-16, head 9034f8b9) agree, no blocker. Both new snapshots (NICE NG253, NICE CG178) compared line by line with the live NICE pages; every cited quote is verbatim on the live page and in its snapshot; each decided literal is a member of its committed value set. Notes on item 1 (the specialty substance-use twin) and on the NG253 snapshot's extraction spacing, neither a change (value.verification_history). Round 2 (INT-554 items D8 and D9, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+  verified_on: 2026-10-17
+  notes: "Round 1 (2026-10-16, head 9034f8b9) agree, no blocker. Both new snapshots (NICE NG253, NICE CG178) compared line by line with the live NICE pages; every cited quote is verbatim on the live page and in its snapshot; each decided literal is a member of its committed value set. Notes on item 1 (the specialty substance-use twin) and on the NG253 snapshot's extraction spacing, neither a change (value.verification_history), by the independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry). Round 2 (2026-10-17, INT-554 items D8 and D9, head ca99030a) agree, no blocker. The surfaces restate gates[1].hedge_mapping's 'any unmatched hedge', a hedged choice is never bound, and NICE NG253 1.2.1 was re-read verbatim on the live NICE page (amendments[0].verification). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

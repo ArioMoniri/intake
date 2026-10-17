@@ -390,12 +390,39 @@ value:
       effect: "reported to the tenant and the platform; never drops, delays or holds an item"
   # Round 4: what changed, item by item. Rounds 1 to 3 above are unchanged except
   # where an item says so. The independent verifier's round-4 verdict is recorded
-  # in `verifier`.
+  # in `verification` below and in `verifier`.
   amendments:
     - round: 4
       date: 2026-10-17
       issue: "INT-554 (GitHub #938) items D1, D3, D4 and D5"
       origin: "#931/#932 clinical review, 17 Oct 2026; the reviewers' recommendations were inputs, not decisions"
+      verification:
+        round: 4
+        date: 2026-10-17
+        head: ca99030a
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: revise
+        findings: >-
+          D1, D3, D4 and D5 agree. One citation defect holds the record's verdict. The
+          verifier fetched the AoMRC PDF itself on 2026-10-17: HTTP 200,
+          application/pdf, 37 pages, the same sha256 as the author's (c75d9ac9). In
+          the verifier's own pdftotext extraction, every one of the snapshot's 96 body
+          lines is verbatim and in reading order, and all nine AoMRC quotes are
+          verbatim. The RCR's listing gives the 2022 edition with a 2025 review date,
+          and no later edition was found. NICE NG143 1.3.4 and 1.3.3 and the three
+          Tebliğ quotes were re-read live and are verbatim. Revise: the three entries
+          that quote the 48-hour interval, the out-of-hours contact and "Support the
+          results notification system" give their section as "Categories of imaging
+          findings (Results Coordination Team)". In the PDF these paragraphs sit
+          under "A collaborative approach" (pages 11 and 12). "Categories of imaging
+          findings and their notification processes" begins on page 14. Each section
+          field must name the section its quote is in.
+        per_item:
+          D1: "agree. CD-04's trigger names no condition on the arms, so 'which can leave' is the decided reading, and no value changes"
+          D3: "agree. The AoMRC keeps acknowledgement of receipt and the action (or plan to act) as two records, and asks that each report be read, acknowledged and acted upon (or plan to act). Acknowledgement that never closes can only keep an item open longer, and a redirect stays open, as the AoMRC's 'safe and appropriate' redirect reads. Note for HB-C1: 'a review at the booked visit is a plan' closes an item at the urgency the reviewer sets (NG143 1.3.4), so that reviewer's judgement is what makes the close safe"
+          D4: "agree that it stays open. The four values keep the invariant-17 literal under draft_needs_source, the record stays draft_needs_source, and the AoMRC 48-hour interval is recorded with adopted false; the AoMRC itself leaves the interval to the organisation. The out-of-hours contact is a readiness condition and drops nothing"
+          D5: "agree. files/08 §2.1 defines tenant_clinical_responsible by governance (the medical director or delegate), not by title or triage training. The interim path keeps every item flowing, and only the readiness report changes"
+          citation: "revise. Three AoMRC entries name the wrong section (see findings)"
       items:
         - item: D1
           question: "Does the arms item need both chest-pain arms to read Unknown, as the decision's 'that leaves both chest-pain arms Unknown' says, or is it raised whenever the slot is unresolved?"
@@ -483,4 +510,4 @@ verifier:
   verdict: pending
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 items D1, D3, D4 and D5, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 items D1, D3, D4 and D5, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D1, D3, D4 and D5 agree. The AoMRC snapshot is verbatim against the verifier's own fetch, and so are all nine of its quotes. Three AoMRC entries name the wrong section, 'Categories of imaging findings' where the PDF has 'A collaborative approach' (amendments[0].verification). The verdict stays pending until the author's correction is re-verified. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

@@ -1,5 +1,32 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T12:00:00Z · INT-554 · D18 verifier round: revise (committed locally, not pushed; push freeze)
+- Goal: the independent D18 clinical verifier's round on the author's `ca99030a`: CD-08 round 4 (D1, D3, D4, D5), CD-04 round 4 (D2, D6), CD-01 round 4 (D7), CD-100 round 5 (D8–D10) and CD-112 round 2 (D8–D9).
+- Result: **revise.**
+  - CD-100 round 5 and CD-112 round 2 agree.
+  - D1, D2, D3, D4 and D5 agree. D4 is rightly left in the invariant-17 form.
+  - **D6 revise.** The engine shares each slot's clarification bound with ADR-036's council appends. A bound of 1 on the six red-flag slots leaves a "hayır" after a spent follow-up with no `REASK_POSITIVE`: the engine probe returns `EXHAUSTED`, against `APPENDED` at the default 2.
+  - **D7 revise.** "Never lowered" covers only a level that has already fired. Invalidating answers given before a late proxy binding removes the K2 that CD-05's `never_asked_at_close` would fire at close.
+  - **CD-08 revise.** Three AoMRC entries name "Categories of imaging findings" where the PDF has "A collaborative approach".
+  - Notes for HB-C1: D2's inbox load, D3's plan-to-act close, D8's inflected and negative-leaning hedges, and D9's gate reading.
+- Sources:
+  - The AoMRC PDF was re-fetched and has the author's sha256. All 96 snapshot lines and all nine quotes are verbatim in the verifier's own extraction.
+  - NICE CG95, NG143, NG126 and NG253 are live, and their 27 quotes are verbatim.
+  - The Tebliğ PDF and the CKM ADL are verbatim live.
+- Recorded:
+  - `verification` on each new round;
+  - the `verifier` blocks: CD-100 and CD-112 agree; CD-01, CD-04 and CD-08 pending, with revise notes;
+  - the five twins and the docs/evidence/INT-554.md verifier section;
+  - the INT-554 backlog row (`doing`), with files/11 and the roadmap's live status re-rendered.
+- Tests:
+  - The register suites: 276 passed and 1 failed, the verdict test on the three pending records, by design.
+  - Protocols lane: 97.68 %, 2164 passed, and the same 1.
+  - `make safety` exit 0: triage 100 % (631), 18/18 mutations, voice-runtime 98.46 % (2461), adversarial 121.
+  - Backlog and smoke: 106 passed.
+- Invariants touched and still passing: 1, 7, 10, 17, 21. No pack, rule, gate or runtime file changed.
+- Blocked on: the author's revision of D6, D7 and the three CD-08 section labels, then a verifier round 2. HB-C1 still stands before any real patient.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T23:30:00Z · INT-519 · D18 verifier round, agree on all four records (committed locally, not pushed)
 - Goal: the independent D18 clinical verifier's round on the author's `9034f8b9` (CD-112 round 1, CD-04 and CD-05 round 3, CD-100 round 4).
 - Result: **agree, no blocker**, on all four records.

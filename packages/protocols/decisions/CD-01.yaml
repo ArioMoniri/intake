@@ -370,12 +370,48 @@ value:
       quote: "Check immediately whether people currently have chest pain."
       guideline_id: NICE-CG95
   # Round 4: what changed. Rounds 1 to 3 above are unchanged. The independent
-  # verifier's round-4 verdict is recorded in `verifier`.
+  # verifier's round-4 verdict is recorded in `verification` below and in
+  # `verifier`.
   amendments:
     - round: 4
       date: 2026-10-17
       issue: "INT-554 (GitHub #938) item D7"
       origin: "#931/#932 clinical review, 17 Oct 2026, and the INT-525 residual 2; the reviewers' recommendations were inputs, not decisions"
+      verification:
+        round: 4
+        date: 2026-10-17
+        head: ca99030a
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: revise
+        findings: >-
+          One clause needs a revision; the rest agrees. Agree: the subject role is
+          asked and bound before any chest-pain slot (files/13 §9.1 GATEKEEPER, and
+          §11.3 bars ask-ahead at priority ≤ 1); a speaker's answer is never filed as
+          the patient's (files/13 §11.3); a late "kendim için" keeps the answers; and
+          the subject's age binds from the subject's own record only and stays unknown
+          while the band states no lower bound, so the proxy item is raised as today.
+          The CKM symptom_sign v2 phrase "as reported by the individual, parent,
+          care-giver or other party" was re-read in the ADL CKM serves today, and CG95
+          1.2.1.1 on the live NICE page. Revise: "a level the rules engine has already
+          determined ... is never lowered" protects only a level that has already
+          fired. Take a late proxy binding after chest_pain.present and one feature
+          were affirmed and before the onset anchor was asked. No level is determined
+          yet. With those answers kept, CD-05's never_asked_at_close evaluates the
+          anchor as the reference day at close, and rf.chest_pain_cardiac_features
+          fires KIRMIZI_K2. Once they are invalidated, chest_pain.present reads
+          NOT_ASKED, CD-05 does not apply, and no RED fires. The decision's own reason
+          (whoever answered reported that chest pain, and the RED script reaches
+          whoever is at the device) and files/13 §11.2's worst-case union ("if either
+          value would fire a rule, the rule fires") both say the invalidation must not
+          remove a RED those answers would fire, now or at close. The revision must
+          state that an answer invalidated by a late proxy binding leaves the
+          patient's slots but never removes a RED it would fire during the session or
+          at its close. How the record carries that answer is the author's to decide,
+          for example evaluated under the worst-case union and labelled as answered
+          before the role bound. It also needs a golden whose near miss is the same
+          answers with no late binding.
+        per_item:
+          D7: "revise (see findings). subject_role_first, the invalidation of the patient's record, the late 'kendim için' and subject_age agree"
       items:
         - item: D7
           question: "Proxy item: wire SubjectAge when a verified age fact exists; a screen answered before subject_role binds keeps the speaker's own answer and raises no item. Should the engine ask subject_role strictly first?"
@@ -425,4 +461,4 @@ verifier:
   verdict: pending
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree_with_changes; round 2 agree_with_changes (proxy stop-gap scope and F13); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 item D7, 17 Oct 2026): pending the independent verifier. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree_with_changes (proxy stop-gap scope and F13); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 item D7, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. The subject role first, the invalidation of the patient's record and the subject's age agree. 'Never lowered' covers only a level already fired. An answer invalidated by a late proxy binding must never remove a RED it would fire, including CD-05's close-time K2 (amendments[0].verification). The verdict stays pending until the author's revision is re-verified. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

@@ -7638,3 +7638,26 @@
     - "Once note.compose has a production caller, both items (chest_pain_arms_unresolved, proxy_chest_pain_screen_unasked) are pinned to the session's pre-visit note and shown there while unreviewed at visit start, never dropped (CD-04, CD-01, CD-08)."
     - "Ids and closed kinds only (invariant 6); the note never shows the item to the patient (CD-08 never_shown_to_patient)."
   sec_row: "clinical-core"
+- id: INT-554
+  epic: E03-protocols
+  phase: P1
+  title: "D18 decisions for the CD-08 clinic items: trigger wording, unanswered slots, outcome codes, recipient, proxy ordering, T4(c) surfaces"
+  # GitHub #938, from the #931/#932 clinical review (items D1 to D7) and the
+  # #935 (INT-546) clinical review (items D8 to D10), 17 Oct 2026. D18 lane: a
+  # sourced medical author agent and an independent verifier; the reviewers'
+  # recommendations are inputs, not decisions. Decisions only: no gate, pack,
+  # rule or runtime code changes here, and the engineering each decision needs
+  # is listed in the evidence. Stacked on INT-525 (PR #932). Verifier round 1
+  # (17 Oct 2026): CD-100 round 5 and CD-112 round 2 agree; CD-01 (D7), CD-04
+  # (D6) and CD-08 (three section labels) are returned for revision.
+  depends_on: [INT-432, INT-519, INT-525, INT-547]
+  labels: [area:protocols]
+  status: doing
+  evidence: docs/evidence/INT-554.md
+  acceptance:
+    - "Items D1 to D7 are amendments to CD-08, CD-04 and CD-01, and items D8 to D10 to CD-100 and CD-112, each keeping every decided value it does not change; nothing is decided in prose alone."
+    - "D4 (the SLA, out-of-hours cover and escalation role and window) is decided only where it can be sourced; anything left open stays the invariant-17 literal under draft_needs_source with the missing input named."
+    - "Every value cites a primary source against a committed verbatim snapshot (url, version, date, retrieved_on) and states its safety direction; no decision lowers a level, drops an item or removes a RED; each record carries an independent verifier verdict."
+    - "tests/protocols/test_int554_decisions.py pins that the decisions are machine-readable and consistent with the records and builds they touch, with near-miss controls; the register's provenance tests stay green."
+  tests: [tests/protocols/test_int554_decisions.py, tests/protocols/test_clinical_decisions.py, tests/protocols/test_signoff_packet_decisions.py]
+  sec_row: "clinical-content"

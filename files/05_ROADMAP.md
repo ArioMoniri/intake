@@ -26,11 +26,11 @@
 | phase | rows | done | in flight | blocked | todo | withdrawn | open PRs, no row on main | open issues, no row anywhere |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | P0 | 185 | 145 | 5 | 11 | 24 | 0 | 3 | 0 |
-| P1 | 153 | 88 | 4 | 28 | 33 | 0 | 30 | 5 |
+| P1 | 154 | 88 | 5 | 28 | 33 | 0 | 30 | 5 |
 | P2 | 47 | 14 | 5 | 3 | 24 | 1 | 1 | 3 |
 | P3 | 7 | 2 | 1 | 1 | 3 | 0 | 0 | 0 |
 | — | 0 | 0 | 0 | 0 | 0 | 0 | 9 | 0 |
-| **all** | **392** | **249** | **15** | **43** | **84** | **1** | **43** | **8** |
+| **all** | **393** | **249** | **16** | **43** | **84** | **1** | **43** | **8** |
 
 ### Live · P0 — Foundation
 
@@ -105,7 +105,7 @@ Remaining, in file order (40):
 | E00-governance | 3 | 1 | 0 | 1 |
 | E01-platform | 1 | 0 | 2 | 0 |
 | E02-data | 5 | 0 | 1 | 0 |
-| E03-protocols | 6 | 1 | 1 | 6 |
+| E03-protocols | 6 | 2 | 1 | 6 |
 | E04-engines | 2 | 0 | 0 | 0 |
 | E05-voice | 8 | 0 | 5 | 4 |
 | E06-lanes | 0 | 0 | 3 | 0 |
@@ -120,7 +120,7 @@ Remaining, in file order (40):
 | E16-experience | 3 | 0 | 0 | 0 |
 | E17-release | 1 | 0 | 0 | 1 |
 
-Remaining, in file order (65):
+Remaining, in file order (66):
 
 | id | title | epic | state | PR · blocker · dependencies | owner |
 |---|---|---|---|---|---|
@@ -189,6 +189,7 @@ Remaining, in file order (65):
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | blocked | no blocker record · PR #774 `int-442-egress-proxy` | owner — no blocker record names it |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | blocked | no blocker record · PR #775 `int-443-elevenlabs-hosted-tts` | owner — no blocker record names it |
 | INT-548 | Both CD-08 chest-pain inbox items are pinned to the pre-visit note when unreviewed at visit start | E05-voice | blocked | no blocker record | owner — no blocker record names it |
+| INT-554 | D18 decisions for the CD-08 clinic items: trigger wording, unanswered slots, outcome codes, recipient, proxy… | E03-protocols | in flight | doing; no open PR | agent · clinical-reviewer |
 
 ### Live · P2 — Hospital pilot
 
@@ -336,7 +337,7 @@ Remaining, in file order (5):
 - **`done` rows whose GitHub issue is still open** (76; `make backlog-sync` closes them, and the live sync is the operator's): INT-016 (#14), INT-018 (#16), INT-022 (#20), INT-023 (#21), INT-024 (#22), INT-025 (#23), INT-030 (#24), INT-031 (#25), INT-032 (#26), INT-033 (#27), INT-034 (#28), INT-035 (#29), INT-036 (#30), INT-037 (#31), INT-038 (#32), INT-040 (#33), INT-041 (#34), INT-042 (#35), INT-057 (#50), INT-059 (#52), INT-060 (#53), INT-080 (#67), INT-081 (#68), INT-082 (#69), INT-083 (#70), INT-084 (#71), INT-085 (#72), INT-090 (#73), INT-091 (#74), INT-092 (#75), INT-093 (#76), INT-094 (#77), INT-096 (#79), INT-102 (#85), INT-103 (#86), INT-110 (#87), INT-120 (#95), INT-131 (#101), INT-132 (#102), INT-133 (#103), INT-134 (#104), INT-136 (#106), INT-137 (#107), INT-139 (#109), INT-140 (#110), INT-141 (#111), INT-145 (#115), INT-150 (#117), INT-160 (#121), INT-170 (#125), INT-171 (#126), INT-172 (#127), INT-175 (#130), INT-228 (#252), INT-180 (#131), INT-205 (#149), INT-223 (#165), INT-224 (#166), INT-230 (#170), INT-240 (#172), INT-241 (#173), INT-242 (#174), INT-253 (#178), INT-254 (#291), INT-255 (#328), INT-263 (#364), INT-353 (#559), INT-452 (#765), INT-453 (#767), INT-446 (#756), INT-465 (#794), INT-501 (#853), INT-424 (#719), INT-475 (#814), INT-485 (#830), INT-441 (#750)
 - **`todo`/`doing` rows with a merged INT PR** (8; `scripts/backlog/reconcile.py` decides whether they are done): INT-202 (#321), INT-317 (#602), INT-320 (#485, #486, #489), INT-330 (#553), INT-336 (#702), INT-341 (#572), INT-349 (#564), INT-421 (#723)
 - **`todo` rows with an open PR** (8; shown in flight above): INT-058, INT-332, INT-336, INT-337, INT-338, INT-340, INT-342, INT-350
-- **`doing` rows with no open PR** (5): INT-317, INT-320, INT-327, INT-349, INT-421
+- **`doing` rows with no open PR** (6): INT-317, INT-320, INT-327, INT-349, INT-421, INT-554
 - **`awaiting-human` rows no blocker record names** (13): INT-144, INT-347, INT-356, INT-358, INT-389, INT-402, INT-403, INT-408, INT-398, INT-394, INT-428, INT-442, INT-443
 
 <!-- END generated live status -->

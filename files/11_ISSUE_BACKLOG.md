@@ -8,7 +8,7 @@
 > live status with GitHub state and named blocker owners is the generated
 > section of `files/05_ROADMAP.md` (INT-452).
 
-**392 issues.** By phase: P0 185 · P1 153 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 249 · todo 95 · withdrawn 1.
+**393 issues.** By phase: P0 185 · P1 154 · P2 47 · P3 7. By status: awaiting-human 40 · doing 8 · done 249 · todo 95 · withdrawn 1.
 
 ## P0
 
@@ -357,6 +357,7 @@
 | INT-519 | D18 decisions — review-queue cluster gate literals (CD-112), CD-100 T1 on the corrected premise, CD-04/CD-05 amendments for the onset anchor | E03-protocols | INT-432, INT-448, INT-522, INT-540 | area:protocols, risk:clinical | done | agent · clinical-reviewer |
 | INT-547 | The clinic Safety inbox is told once when chest-pain arms stay unresolved (CD-04's CD-08 item chest_pain_arms_unresolved) | E05-voice | INT-540 | area:voice | done | agent · runtime-reviewer |
 | INT-548 | Both CD-08 chest-pain inbox items are pinned to the pre-visit note when unreviewed at visit start | E05-voice | INT-547, INT-525 | area:voice, blocked:no-live-note | todo | owner — no blocker record names it |
+| INT-554 | D18 decisions for the CD-08 clinic items: trigger wording, unanswered slots, outcome codes, recipient, proxy ordering, T4(c) surfaces | E03-protocols | INT-432, INT-519, INT-525, INT-547 | area:protocols | doing | agent · clinical-reviewer |
 
 ## P2
 
