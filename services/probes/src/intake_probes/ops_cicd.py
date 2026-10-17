@@ -63,7 +63,9 @@ __all__ = [
 
 #: Workflow file stem -> the jobs that run on EVERY pull request (their check
 #: run names). Derived from .github/workflows/ci.yml and security.yml; a job
-#: whose ``if:`` restricts it to tags (``sign-and-attest``) is not a gate.
+#: whose ``if:`` restricts it to tags (``sign-and-attest``) is not a gate, and
+#: neither is a job a gate ``needs`` and re-asserts (INT-544: the three
+#: ``check-py-shard`` runs feed ``check-py``, which fails when any of them did).
 #: tests/observability/test_ops_cicd.py re-derives it from the YAML.
 REQUIRED_GATES: Final[Mapping[str, tuple[str, ...]]] = MappingProxyType(
     {

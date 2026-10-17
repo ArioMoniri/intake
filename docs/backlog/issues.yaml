@@ -6821,6 +6821,31 @@
     - ".github/** is owner-only: the workflow change ships as an owner patch with a commit-message file, and the test, evidence and backlog row are committed on the issue branch; scripts/ci/security_workflow.yml no longer exists, and tests/ci/test_security_gates.py passes with the patch applied"
   tests: [tests/ci/test_workflow_concurrency.py]
   sec_row: "cicd"
+- id: INT-544
+  epic: E13-infra
+  phase: P0
+  title: "A pull request clears CI in under 20 minutes on the intake-aws-ci pool: cache seed, sharded check-py, path-scoped lanes, queued main runs collapse"
+  # GitHub #919, owner order 16-17 Oct 2026. Ten runs measured: a pull
+  # request took 52-79 min. check-py ran 37 min (median) on one runner, the
+  # whole suite once and then eight directory subsets again; every other job
+  # ran under 3 min and queued behind it, and the repository's Actions cache
+  # sat at 10.5 GB of its 10 GB limit. The workflow half is the owner's
+  # commit on this branch (patch owner-544-ci-speed); it replaces INT-524's
+  # per-sha main group, so an intermediate main commit whose queued run was
+  # replaced gets no run (the owner's call, stated in the evidence).
+  depends_on: [INT-467, INT-524]
+  labels: [area:ci, approval:human-infra]
+  status: done
+  evidence: docs/evidence/INT-544.md
+  acceptance:
+    - "per-job queued and running times of the last ten completed ci and security runs on intake-aws-ci are tabled in docs/evidence/INT-544.md, with the critical path named; the after times are recorded from this pull request's own runs once the owner's patch is on it"
+    - "each runner keeps a cache seed of the uv cache, the pnpm store and the deid asset in its own CI root, root-owned and bound read-only into its jobs; its registrar (cycle.sh) rebuilds it between jobs, in the job's own sandbox, from lockfiles and manifests the owner stages (aws_runner.sh seed); uv, pnpm and the asset are pinned by sha256, a manifest pins every file, a job restores only parts that match it (ci_seed.sh) and otherwise uses the network; no secret or PHI is in a seed"
+    - "make check-py's nine pytest lines run across three check-py-shard jobs packed by recorded seconds: the whole-suite line split by file, each subset line whole and word for word; the required check-py job fails when a shard failed and enforces every floor on the data make check-py measures it on (invariant 8): the api floor on the whole-suite shares' combined data, each other floor on its own subset's data only; tests/ci/test_py_shards.py pins the lines to the Makefile's and the basis with a near miss (a subset floor the whole suite's data would rescue fails)"
+    - "check-ts and check-integration skip their steps when a pull request's diff cannot affect them and still report success; check-py, gates and every security.yml job run on every diff; tests/ci/test_lanes.py tests the mapping on real git repositories and the workflows' conditions, with near misses"
+    - "ci.yml and security.yml group runs by workflow and ref: a pull request cancels its superseded run, a running main run is never cancelled, a newer main push replaces only the one waiting, and a v* tag keeps a group of its own (tests/ci/test_workflow_concurrency.py)"
+    - "aws_runner.sh headroom reads host CPU, memory, IO pressure and disk without changing anything, and the evidence records the host reading, why runners 4-5 come with a higher pool ceiling, and the exact owner commands that add them"
+  tests: [tests/ci/test_py_shards.py, tests/ci/test_lanes.py, tests/ci/test_ci_seed.py, tests/ci/test_aws_runner_seed.py, tests/ci/test_workflow_concurrency.py]
+  sec_row: "cicd"
 - id: INT-501
   epic: E13-infra
   phase: P1
@@ -7171,6 +7196,31 @@
     - "make safety and runtime-sim (both profiles, PARITY=1) green; invariants 9, 21."
   tests: [tests/voice/test_red_between_turns.py, tests/voice/test_red_push.py, tests/voice/test_red_watch_failures.py]
   sec_row: "voice-runtime"
+- id: INT-550
+  epic: E12-admin
+  phase: P0
+  title: "A new staff user enrols a passkey after the password step"
+  # GitHub #930, found read-only on the synthetic host, 17 Oct 2026: realm
+  # intake refused every new staff user with "Invalid username or password".
+  # The issue blamed the INT-378 provider for not allowing user setup; it does
+  # (inherited from the stock factory, now held outright). The cause was the
+  # requirement: Keycloak 26.7.4 sends a user without the credential to its
+  # required action only from a REQUIRED execution, and the WebAuthn step was an
+  # ALTERNATIVE beside an OTP ALTERNATIVE. The jar is unchanged and reproduces
+  # its pin. The deploy itself (deploy.sh switches the live realm) is the
+  # coordinator's step after merge; evidence names it.
+  depends_on: [INT-378, INT-421, INT-538]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-550.md
+  acceptance:
+    - "The intake-webauthn-session-notes factory's isUserSetupAllowed() returns true and the authenticator's setRequiredActions adds webauthn-register, as the stock WebAuthnAuthenticator does: after the password step a user with no passkey enrols one through the required action; the session notes are still written on the first real WebAuthn sign-in."
+    - "OTP stays refused until #644 (INT-389) and must not become the fallback."
+    - "Tests: a new user goes password → passkey registration → admitted; near miss: a user with a registered passkey cannot skip it; near miss: OTP is not offered/accepted."
+    - "The provider jar is rebuilt from its pinned recipe and re-pinned (infra/keycloak/providers/webauthn-session-notes.sha256; owner patch if hook-protected); the deploy switches the realm to the new provider; deploy and verify on the host."
+    - "The owner's existing temporary password stays valid (no reset)."
+  tests: [tests/admin/test_staff_passkey_enrolment.py, tests/admin/test_staff_second_factor.py, tests/infra/test_staging_keycloak_provider.py, tests/infra/test_staging_admin_tier.py]
+  sec_row: "platform"
 - id: INT-561
   epic: E12-admin
   phase: P1

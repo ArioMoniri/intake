@@ -4,11 +4,13 @@
 # real file system that the guards must check. Each pass of the loop is one
 # ephemeral registration, and one job:
 #
-#   prepare  the guards (layout, disk, access, net); a fresh runner tree from
-#            the root-owned, sha256-verified distribution; an empty workspace,
-#            home and temp; the runner's rootless Docker answering as its user;
+#   prepare  the guards (layout, disk, access, net); an empty workspace, home
+#            and temp; the runner's rootless Docker answering as its user;
 #            its detached network namespace attached for the job and proved
-#            (guard.sh netns); and registration with --ephemeral. The
+#            (guard.sh netns); the runner's cache seed refreshed (seed.sh,
+#            INT-544) and the workspace wiped again; a fresh runner tree from
+#            the root-owned, sha256-verified distribution; and registration
+#            with --ephemeral. The
 #            registration token reaches
 #            config.sh in ACTIONS_RUNNER_INPUT_TOKEN, never on a command line,
 #            and it is never printed. Its source, in order:
@@ -87,6 +89,7 @@ HOME=$CI_ROOT/home
 TMPDIR=/tmp
 DOCKER_HOST=unix://$DOCKER_RUN_DIR/docker.sock
 ACTIONS_RUNNER_HOOK_JOB_STARTED=$LIB_DIR/bin/job-started.sh
+INTAKE_CI_SEED=$CI_ROOT/seed
 EOF
   printf '%s\n' "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin" >"$CI_ROOT/runner/.path"
   chown "$RUNNER_USER:$RUNNER_USER" "$CI_ROOT/runner/.env" "$CI_ROOT/runner/.path"
@@ -107,11 +110,19 @@ wait_for_docker() {
 prepare() {
   guard_layout && guard_disk && guard_access && guard_net || return 1
   wipe_job_state
+  wait_for_docker || return 1
+  guard_netns || return 1
+  # INT-544: the cache seed is rebuilt here, between jobs, when the owner has
+  # staged new inputs; it runs in the job's sandbox, so the wipe after it
+  # removes whatever the build left. A failed refresh leaves the runner without
+  # a seed, never without its next job.
+  if ! "$LIB_DIR/bin/seed.sh" "$INSTANCE" refresh; then
+    say "the cache seed did not refresh; jobs fetch from the network"
+  fi
+  wipe_job_state
   cp -a "$LIB_DIR/actions-runner-$RUNNER_VERSION/." "$CI_ROOT/runner/" || return 1
   chown -R "$RUNNER_USER:$RUNNER_USER" "$CI_ROOT/runner"
   write_runner_env
-  wait_for_docker || return 1
-  guard_netns || return 1
 
   local token
   if ! token=$(registration_token); then

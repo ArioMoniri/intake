@@ -18,8 +18,8 @@
 #   guard.sh N watch   the one-minute disk watchdog: stops the runner's job
 #                      before either disk reaches its floor
 #
-# cycle.sh, install.sh, probe.sh and job-started.sh source this file for the
-# same functions. Every check fails closed: a non-zero exit keeps the runner
+# cycle.sh, install.sh, probe.sh, seed.sh and job-started.sh source this file
+# for the same functions. Every check fails closed: a non-zero exit keeps the runner
 # from taking a job.
 set -euo pipefail
 set +x
@@ -49,6 +49,31 @@ instance_env() {
   SUBID_START=$((SUBID_BASE + (n - 1) * SUBID_COUNT))
   JOB_UNIT=intake-aws-ci-job@$n.service
   DOCKERD_UNIT=intake-aws-ci-dockerd@$n.service
+}
+
+# The job unit's sandbox, for what must run exactly as a job does: the isolation
+# probe (probe.sh) and the cache seed's build (seed.sh). PROBE_JOB_UNIT points
+# the tests at the repository's copy of the unit.
+PROBE_JOB_UNIT=${PROBE_JOB_UNIT:-/etc/systemd/system/intake-aws-ci-job@.service}
+
+job_props() {
+  # $1: the instance. Every [Service] line of the job unit, %i resolved, except
+  # the command and its lifecycle.
+  local line section=""
+  while IFS= read -r line; do
+    case "$line" in
+      "" | "#"*) continue ;;
+      "["*)
+        section=$line
+        continue
+        ;;
+    esac
+    [ "$section" = "[Service]" ] || continue
+    case "${line%%=*}" in
+      ExecStart | Type | Restart | WorkingDirectory | TimeoutStopSec) continue ;;
+    esac
+    printf '%s\n' "${line//\%i/$1}"
+  done <"$PROBE_JOB_UNIT"
 }
 
 free_gb() { df -P -BG "$1" | awk 'NR==2 { gsub("G", "", $4); print $4 }'; }

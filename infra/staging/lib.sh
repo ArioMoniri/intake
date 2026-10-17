@@ -739,8 +739,11 @@ sys.exit(0 if ok else 1)
 # carry no aaguid or credential_id and are refused by the API's admin gate.
 # keycloak/staff_flow.py makes the live `staff second factor` subflow match the
 # committed realm. It is idempotent, it fails unless the flow ends in the
-# committed state, and it changes nothing else. The OTP alternative stays: that
-# choice is the owner's (INT-389). It runs in a one-off api container (the
+# committed state, and it changes nothing else. INT-550: the committed state is
+# the provider REQUIRED, so a new staff user enrols a passkey (webauthn-register)
+# after the password instead of being refused, and OTP DISABLED until the owner
+# decides INT-389; it refuses, before any change, a realm whose webauthn-register
+# action is absent or disabled. It runs in a one-off api container (the
 # Keycloak image has no HTTP client), and the bootstrap admin password travels on
 # stdin, never in an argv, an environment or a log. `check` only reads.
 staff_flow() {
@@ -758,7 +761,7 @@ staff_flow() {
 }
 
 ensure_staff_webauthn_notes() {
-  staff_flow apply || die "the live realm's WebAuthn step is not the session-notes provider; staff sign-in stays refused"
+  staff_flow apply || die "the live realm's second factor is not the committed one (session-notes provider REQUIRED, OTP disabled, webauthn-register enabled); staff sign-in stays refused"
 }
 
 # shellcheck disable=SC2034 # JWKS_CHANGED is read by deploy.sh after its final up
