@@ -1,14 +1,13 @@
-/* INT-459 — the Apple-native layer's tokens: one set of names, a value per
-   theme (prefers-color-scheme). This sheet loads after console.css and
-   refresh.css and redefines every token they set per theme, so the two
-   earlier sheets' values never leak through. Every colour pair the console
-   paints is held to WCAG AA in e2e/native.spec.ts, text on glass included.
-   The springs are damped-spring step responses sampled into linear(),
-   derived in docs/evidence/INT-459.md; nothing here is copied from a
-   third-party library. */
+/* INT-459 — the Apple-native layer's tokens that do not change with the theme:
+   type, geometry, the glass and the two springs. Every colour, in both
+   themes, is in app/palette.css, the one file a palette change touches; it
+   loads next and redefines every colour token console.css and refresh.css set,
+   so the earlier sheets' values never leak through. The springs are
+   damped-spring step responses sampled into linear(), derived in
+   docs/evidence/INT-459.md; nothing here is copied from a third-party
+   library. */
 
 :root {
-  color-scheme: light;
   --font:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI",
     system-ui, sans-serif;
@@ -77,73 +76,4 @@
     1.003,
     1
   );
-
-  --bg: #f5f5f7;
-  --surface: #ffffff;
-  --surface-2: #f5f5f7;
-  --row-hover: #f0f0f3;
-  --field: #ffffff;
-  --field-border: #d2d2d7;
-  --ink: #1d1d1f;
-  --muted: #636368;
-  --line: #d2d2d7;
-  --hairline: #e5e5ea;
-  --ok: #157232;
-  --warn: #9a5500;
-  --bad: #c4281c;
-  --unknown: #5b4bc4;
-  --accent: #0066cc;
-  --accent-fill: #0071e3;
-  --accent-fill-active: #0060c0;
-  --on-accent: #ffffff;
-  --data: #0071e3;
-  --track: #e8e8ed;
-  --rail: #fbfbfd;
-  --focus: #0071e3;
-  --chrome: #fbfbfd;
-  --chrome-mix: 86%;
-  --chrome-edge: #dcdce1;
-  --nav-selected: #e3e3e8;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 4%);
-  --shadow-chrome: 0 10px 30px rgb(0 0 0 / 8%), 0 1px 3px rgb(0 0 0 / 6%);
-  --shadow-low: var(--shadow-card);
-  --shadow-tile: var(--shadow-card);
-  --shadow-med: var(--shadow-card);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #111113;
-    --surface: #1c1c1e;
-    --surface-2: #242426;
-    --row-hover: #2a2a2c;
-    --field: #232325;
-    --field-border: #3a3a3c;
-    --ink: #f5f5f7;
-    --muted: #a1a1a6;
-    --line: #3a3a3c;
-    --hairline: #2c2c2e;
-    --ok: #30d158;
-    --warn: #ffa940;
-    --bad: #ff6b60;
-    --unknown: #b4a7ff;
-    --accent: #4da3ff;
-    --accent-fill: #0a6fe0;
-    --accent-fill-active: #0a60c4;
-    --on-accent: #ffffff;
-    --data: #4da3ff;
-    --track: #2c2c2e;
-    --rail: #1e1e20;
-    --focus: #4da3ff;
-    --chrome: #1e1e20;
-    --chrome-mix: 86%;
-    --chrome-edge: #38383b;
-    --nav-selected: #38383b;
-    --shadow-card: 0 0 0 1px rgb(255 255 255 / 3%);
-    --shadow-chrome: 0 10px 30px rgb(0 0 0 / 45%);
-    --shadow-low: var(--shadow-card);
-    --shadow-tile: var(--shadow-card);
-    --shadow-med: var(--shadow-card);
-  }
 }

@@ -3,8 +3,9 @@
  * audit F26 — the console was headless view-models only).
  *
  * Deliberately minimal: the console's own stylesheet, the INT-450 refresh
- * layer over it, and the INT-459 Apple-native layer last (its tokens for both
- * themes, its shell, its content, the patterns its follow-up mined) — bundled
+ * layer over it, and the INT-459 Apple-native layer last (its tokens, the
+ * palette that holds every colour of both themes, its shell, its content, the
+ * patterns its follow-up mined) — bundled
  * and served from `'self'` (the CSP carries no `unsafe-inline`, so no `style`
  * attribute is used anywhere), no client component, no third-party script,
  * font or frame.
@@ -15,6 +16,7 @@ import type { ReactElement, ReactNode } from "react";
 import "./console.css";
 import "./refresh.css";
 import "./native-tokens.css";
+import "./palette.css";
 import "./native-shell.css";
 import "./native-content.css";
 import "./native-patterns.css";
@@ -25,12 +27,12 @@ export const metadata: Metadata = {
 };
 
 /** The browser's own chrome takes the page's background in each theme
- * (`--bg` in app/native-tokens.css). */
+ * (`--bg` in app/palette.css; e2e/palette.spec.ts pins the two together). */
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
-    { media: "(prefers-color-scheme: dark)", color: "#111113" },
+    { media: "(prefers-color-scheme: light)", color: "#faf8f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0e0c" },
   ],
 };
 

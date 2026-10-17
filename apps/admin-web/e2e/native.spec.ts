@@ -130,7 +130,8 @@ describe("one token set per theme", () => {
   });
 
   it("the layer redefines every token an earlier sheet sets per theme", () => {
-    const earlier = SHEETS.filter((s) => !s.startsWith("native-")).flatMap((s) =>
+    const layer: readonly string[] = NATIVE_SHEETS;
+    const earlier = SHEETS.filter((s) => !layer.includes(s)).flatMap((s) =>
       rulesOf(s).filter((r) => r.selector === ":root" && r.at.join() === DARK_MEDIA),
     );
     expect(Object.keys(tokensOf(earlier)).length).toBeGreaterThan(10);
