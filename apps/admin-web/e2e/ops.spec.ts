@@ -445,9 +445,10 @@ describe("the registry tile tells the truth about its host (INT-560)", () => {
       "/admin/ops": { status: 200, body: payload() },
       ...healthRoutes(),
     });
-    const keycloak = rowHtml(html(state, "tr"), "keycloak");
-    expect(keycloak).toContain('data-state="not_verified"');
-    expect(keycloak).toContain("doğrulanmadı");
+    // whisper-tr-medical's licence was never read from a raw blob (its card tag only)
+    const whisper = rowHtml(html(state, "tr"), "whisper-tr-medical");
+    expect(whisper).toContain('data-state="not_verified"');
+    expect(whisper).toContain("doğrulanmadı");
   });
 
   it("names the missing inventory when the deployment declares none", async () => {

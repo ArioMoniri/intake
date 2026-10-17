@@ -41,7 +41,7 @@ from intake_probes.inventory import (
     load_host_inventory,
     read_host_inventory,
 )
-from intake_probes.registry import load_registry
+from intake_probes.registry import Registry, load_registry
 from intake_probes.runner import STALE_AFTER_S, ProbeStatus
 
 REPO = Path(__file__).resolve().parents[2]
@@ -240,10 +240,42 @@ def test_the_phi_release_gate_is_advisory_on_a_synthetic_host() -> None:
 
 
 def test_a_licence_not_read_from_a_blob_is_shown_unverified() -> None:
-    row = _rows(_host_sweep())["keycloak"]
+    """A row the host runs and needs, healthy, whose licence the registry
+    records as unread: advisory with that reason, never blocking. Built on a
+    copy of one row so the test does not depend on which licences INT-561
+    has recorded; the near miss is the same row with its own record."""
+    unread = REGISTRY.get("keycloak").model_copy(
+        update={
+            "license": "UNVERIFIED — test copy, no blob read",
+            "licence_verified_at": None,
+            "licence_blob_url": None,
+            "licence_blob_sha256": None,
+        }
+    )
+    bent = Registry(components=tuple(unread if e.component == "keycloak" else e for e in REGISTRY))
+    results = _host_sweep()
+    payload = build_ops_console(
+        prom=None,
+        models=models_module(bent, results),
+        results=results,
+        now=NOW,
+        host=HostReading(INVENTORY, None),
+    )
+    row = next(r for r in payload["tiles"]["models"]["rows"] if r["component"] == "keycloak")
     assert row["licence_verified_at"] is None
-    assert row["severity"] == "attention"
-    assert row["severity_reason"] == "licence_unverified"
+    assert (row["severity"], row["severity_reason"]) == ("attention", "licence_unverified")
+    # near miss: the real row is flagged exactly when the registry still has
+    # no blob read for it (true on main today, false once INT-561 records one)
+    real = _rows(results)["keycloak"]
+    unread_now = any(
+        finding.code == "licence_not_verified_from_blob"
+        for row in models_module(REGISTRY, results).rows
+        if row.component == "keycloak"
+        for finding in row.findings
+    )
+    assert (real["severity_reason"] == "licence_unverified") is unread_now
+    # the column itself: a registry row with no recorded verification reads null
+    assert _rows(results)["whisper-tr-medical"]["licence_verified_at"] is None
 
 
 def test_a_needed_healthy_row_with_nothing_to_say_is_ok() -> None:
