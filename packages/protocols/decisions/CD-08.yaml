@@ -198,7 +198,7 @@ sources:
     version_or_date: "October 2022"
     url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
     retrieved_on: 2026-10-17
-    section: "Categories of imaging findings (Results Coordination Team)"
+    section: "A collaborative approach (Results Coordination Team paragraphs, pages 11 and 12)"
     quote: "A 48-hour interval before escalation is reasonable but this may vary depending on clinical urgency and should be agreed upon by the healthcare organisation."
     snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
     supports: "tenant_agreed.nearest_published_interval (round 4): recorded and not adopted; the escalation interval is the organisation's to agree"
@@ -209,7 +209,7 @@ sources:
     version_or_date: "October 2022"
     url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
     retrieved_on: 2026-10-17
-    section: "Categories of imaging findings (Results Coordination Team)"
+    section: "A collaborative approach (Results Coordination Team paragraphs, pages 11 and 12)"
     quote: "Every imaging referral must include a valid contact detail to which an urgent communication can be made if required, including an out of hours' contact."
     snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
     supports: "out_of_hours.constraints out_of_hours_contact_named_by_tenant (round 4)"
@@ -220,7 +220,7 @@ sources:
     version_or_date: "October 2022"
     url: "https://www.aomrc.org.uk/wp-content/uploads/2022/10/Alerts_notification_imaging_reports_recommendations_1022.pdf"
     retrieved_on: 2026-10-17
-    section: "Categories of imaging findings (Results Coordination Team)"
+    section: "A collaborative approach (Results Coordination Team paragraphs, pages 11 and 12)"
     quote: "Support the results notification system to ensure that reports are returned to the correct clinical team caring for the patient."
     snapshot: packages/protocols/sources/AOMRC-IMAGING-ALERTS-2022.txt
     supports: "built_route_conformance.tenant_safety_queue (round 4): an organisation-wide queue routes to the team caring for the patient; it does not replace it"
@@ -423,6 +423,15 @@ value:
           D4: "agree that it stays open. The four values keep the invariant-17 literal under draft_needs_source, the record stays draft_needs_source, and the AoMRC 48-hour interval is recorded with adopted false; the AoMRC itself leaves the interval to the organisation. The out-of-hours contact is a readiness condition and drops nothing"
           D5: "agree. files/08 §2.1 defines tenant_clinical_responsible by governance (the medical director or delegate), not by title or triage training. The interim path keeps every item flowing, and only the readiness report changes"
           citation: "revise. Three AoMRC entries name the wrong section (see findings)"
+      # The author's answer to the round-4 verification, for verifier round 2. The
+      # decisions D1, D3, D4 and D5 are unchanged.
+      author_revision:
+        date: 2026-10-17
+        in_response_to: "verification round 4 (revise): three AoMRC section labels"
+        changes:
+          - "the entries quoting the 48-hour interval, the out-of-hours contact and 'Support the results notification system' now name the section their quotes are in: 'A collaborative approach' (pages 11 and 12), not 'Categories of imaging findings', which begins on page 14"
+          - "the snapshot header's scope line names the same section; the snapshot body (96 lines) is unchanged"
+        decisions_changed: false
       items:
         - item: D1
           question: "Does the arms item need both chest-pain arms to read Unknown, as the decision's 'that leaves both chest-pain arms Unknown' says, or is it raised whenever the slot is unresolved?"
@@ -510,4 +519,4 @@ verifier:
   verdict: pending
   role: "independent clinical verifier (agent; EM/IM/paediatrics)"
   verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 items D1, D3, D4 and D5, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D1, D3, D4 and D5 agree. The AoMRC snapshot is verbatim against the verifier's own fetch, and so are all nine of its quotes. Three AoMRC entries name the wrong section, 'Categories of imaging findings' where the PDF has 'A collaborative approach' (amendments[0].verification). The verdict stays pending until the author's correction is re-verified. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 items D1, D3, D4 and D5, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D1, D3, D4 and D5 agree. The AoMRC snapshot is verbatim against the verifier's own fetch, and so are all nine of its quotes. Three AoMRC entries name the wrong section, 'Categories of imaging findings' where the PDF has 'A collaborative approach' (amendments[0].verification). The verdict stays pending until the author's correction is re-verified. Author revision (17 Oct 2026): the three section labels corrected (amendments[0].author_revision); pending verifier round 2. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

@@ -205,6 +205,33 @@ def test_d5_the_tenant_queue_and_role_satisfy_cd08_only_under_the_stated_conditi
     assert "booked_clinic_routing" in reasons and "out_of_hours_contact" in reasons
 
 
+#: Where each AoMRC quote sits in the PDF (verifier round 4): the Results
+#: Coordination Team paragraphs are under "A collaborative approach" (pages 11
+#: and 12); "Categories of imaging findings" begins on page 14.
+_AOMRC_SECTION_BY_QUOTE = {
+    "A 48-hour interval before escalation": "A collaborative approach",
+    "including an out of hours' contact": "A collaborative approach",
+    "Support the results notification system": "A collaborative approach",
+    "Healthcare organisations must ensure": "Recommendation on cancer imaging alerts",
+}
+
+
+def test_cd08_each_aomrc_quote_names_the_section_it_is_in() -> None:
+    aomrc = [
+        source
+        for source in _decision("CD-08").sources
+        if isinstance(source, GuidelineSource)
+        and source.guideline_id == "AOMRC-IMAGING-ALERTS-2022"
+    ]
+    assert len(aomrc) == 9
+    for fragment, section in _AOMRC_SECTION_BY_QUOTE.items():
+        [source] = [s for s in aomrc if fragment in s.quote]
+        assert source.section is not None and source.section.startswith(section), fragment
+    # near miss: no AoMRC paragraph before page 14 is labelled with the later section
+    for source in aomrc:
+        assert source.section != "Categories of imaging findings (Results Coordination Team)"
+
+
 # --- 2 · CD-04 round 4 ---------------------------------------------------------------
 
 

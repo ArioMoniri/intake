@@ -4184,3 +4184,19 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+
+### 2026-10-17T04:20:00Z · INT-554 · D18 author revision after the verifier round (committed locally, not pushed; push freeze)
+- Goal: answer the independent verifier's `3daf333a` (revise on D6, D7 and three CD-08 citation labels), keeping CD-100 round 5, CD-112 round 2 and D1–D5, D8–D10 as agreed.
+- Result:
+  - **D6 (CD-04).** The once counts `follow_up_tr` asks after UNCLEAR only. The shared re-entry bound stays files/13 §11.1's two, so ADR-036's `REASK_POSITIVE` keeps its budget after a spent follow-up.
+  - **D7 (CD-01).** An answer invalidated by a late proxy binding never removes a RED it would fire, now or at close. It is kept as `answered_before_role_bound` under files/13 §11.2's worst-case union, with a golden and a near miss.
+  - **CD-08.** The three AoMRC labels now read "A collaborative approach"; the snapshot header line follows (body unchanged).
+  - The negative-leaning hedges are recorded as open, because CD-100 round 5 is agreed.
+- Tests:
+  - New: `tests/engine/test_int554_reask_budget.py` (3) and `tests/safety/test_int554_late_proxy_golden.py` (3), plus one citation test. Red on `3daf333a`'s records: 5 failed and 22 passed. Green: 27 passed.
+  - Suites 351 passed and 1 failed (the verdict test, by design).
+  - Protocols lane 97.68 %, 2168 passed and the same 1.
+  - `make safety` exit 0: triage 100 % (634), 18/18 mutations, voice-runtime 98.46 % (2464), adversarial 121.
+- Invariants touched and still passing: 1, 7, 10, 17, 21. No pack, rule, gate or runtime file changed.
+- Blocked on: verifier round 2 for CD-01, CD-04 and CD-08. HB-C1 still stands before any real patient.
+- LOOP_STATUS: CONTINUE
