@@ -4,10 +4,8 @@
  *
  * A fresh nonce per request goes into the request's CSP header — which is
  * where Next.js reads it from to stamp its own scripts — and into the
- * response's. Production carries no `unsafe-inline` and no `unsafe-eval`; its
- * one `unsafe-*` keyword is `'unsafe-hashes'` beside the hash of React's
- * streamed segment style, for style attributes only; see `src/ops/csp.ts`.
- * Also: no referrer leaves the console, and nothing may frame or sniff it.
+ * response's. Production carries no `unsafe-*`; see `src/ops/csp.ts`. Also:
+ * no referrer leaves the console, and nothing may frame or sniff it.
  */
 import { NextResponse, type NextRequest } from "next/server";
 

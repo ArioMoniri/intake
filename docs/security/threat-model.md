@@ -1887,9 +1887,7 @@ it or whose tests exercise it.
   service with tier-3 four-eyes and write-ahead audit, signed Study Registry with expiry and
   no grace, tenant scope from the OIDC claim with a per-request DB role, four-eyes as a
   server-side pending-action protocol (distinct AAGUID/credential id), asymmetric authority,
-  k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48; the one exception is
-  `style-src-attr 'unsafe-hashes'` with a single sha256 of React's streamed-segment style
-  `display:none`, D26), `DangerousAction` registry
+  k ≥ 10 on aggregates, nonce CSP with no `unsafe-*` (inv. 48), `DangerousAction` registry
   (inv. 33).
   **Break-glass (§9, inv. 38/39):** one path, `POST /admin/break-glass`, which §9 requires
   to be proven by an import-boundary test; a closed-category reason plus at least 20 characters; a distinct
@@ -1941,9 +1939,7 @@ it or whose tests exercise it.
     read-only GitHub token read from OpenBao at collection time through the egress guard
     (`issue_tracking` purpose on the existing `api.github.com` row) — and exports only ids
     (actor and commit message are dropped). CSP: per-request nonce, `strict-dynamic`, no
-    `unsafe-*` outside `next dev` except `style-src-attr 'unsafe-hashes'` with the one sha256
-    of React's streamed-segment `display:none` (D26; `style-src` unchanged, no
-    `unsafe-inline`), `frame-src`/`frame-ancestors 'none'`, `base-uri 'none'`, plus
+    `unsafe-*` outside `next dev`, `frame-src`/`frame-ancestors 'none'`, `base-uri 'none'`, plus
     `no-referrer`, `nosniff` and `DENY` framing. **Known limit, owner decision:** the API sees the
     admin-web server, not the browser, as its transport peer, so HB-A16's ranges must name the
     admin-web host and the browser ranges move to the OIDC-terminating ingress in front of it.

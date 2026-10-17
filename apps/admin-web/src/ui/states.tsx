@@ -1,9 +1,11 @@
 /**
- * INT-459 — the console's not-found and loading states, as trees the App
- * Router files render and the spec renders the same way.
+ * INT-459 — the console's not-found state and the shared empty and next-step
+ * states, as trees the App Router files render and the spec renders the same
+ * way. There is no route-level loading state: under one the page streams and
+ * the CSP refuses what React streams (e2e/states.spec.ts).
  *
- * The router gives neither file search params, so neither can know the
- * page's language; each says its words in both, each marked with its own
+ * The router gives the not-found file no search params, so it cannot know the
+ * page's language; it says its words in both, each marked with its own
  * `lang`, `tr` first (invariant 5).
  */
 import type { ReactElement } from "react";
@@ -79,86 +81,6 @@ export function EmptyRow({
         <EmptyState {...state} />
       </td>
     </tr>
-  );
-}
-
-/** The skeleton's cards: as many as the overview's first row. */
-const SKELETON_CARDS = ["a", "b", "c", "d"] as const;
-
-/**
- * While a page's data loads: the shell's outline (sidebar, top bar, a row of
- * cards) in muted bones, the page marked busy, and one polite status line in
- * both languages. It holds no figure and no link, and every bone is hidden
- * from assistive technology. The bones breathe on the smooth spring and stand
- * still under reduced motion (app/native-content.css).
- */
-export function LoadingView(): ReactElement {
-  return (
-    <main className="ops" data-page="loading" lang="tr" aria-busy="true">
-      <div className="console-nav skeleton-nav" aria-hidden="true">
-        <p className="nav-brand">
-          <Glyph name="mark" size={28} />
-        </p>
-        <span className="bone" />
-        <span className="bone" />
-        <span className="bone" />
-        <span className="bone" />
-        <span className="bone" />
-      </div>
-      <header className="page-head">
-        <h1>Yükleniyor</h1>
-        <p role="status">
-          Sayfa hazırlanıyor. <span lang="en">Loading the page.</span>
-        </p>
-      </header>
-      <div className="grid skeleton-grid" aria-hidden="true">
-        {SKELETON_CARDS.map((card) => (
-          <div key={card} className="tile skeleton-tile">
-            <span className="bone bone-title" />
-            <span className="bone bone-figure" />
-            <span className="bone" />
-            <span className="bone bone-short" />
-          </div>
-        ))}
-        <SkeletonTable />
-      </div>
-    </main>
-  );
-}
-
-const SKELETON_ROWS = ["a", "b", "c", "d", "e"] as const;
-const SKELETON_TEXT_COLUMNS = ["a", "b", "c"] as const;
-
-/**
- * A table's outline while it loads: five rows, two thirds of a bar in each
- * text column and a short bar at the end of the figure's column.
- *
- * Adapted from beUI (MIT, (c) 2026 Saurabh Chauhan) — `SkeletonRows` in
- * `components/motion/table/skeleton-rows.tsx` at aaf32bef. Its row height is
- * an inline style there; here it is a class, and the pulse is the bones' own
- * (`app/native-content.css`), so the CSP admits it.
- */
-function SkeletonTable(): ReactElement {
-  return (
-    <div className="tile skeleton-tile skeleton-wide">
-      <span className="bone bone-title" />
-      <table className="skeleton-table">
-        <tbody>
-          {SKELETON_ROWS.map((row) => (
-            <tr key={row}>
-              {SKELETON_TEXT_COLUMNS.map((column) => (
-                <td key={column}>
-                  <span className="bone bone-text" />
-                </td>
-              ))}
-              <td>
-                <span className="bone bone-num" />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
 

@@ -40,9 +40,7 @@ SOFTWARE.
 -------------------------------------------------------------------------------
 beUI (public library) — https://github.com/starc007/ui-components
 Used in: app/refresh.css (segmented navigation rail after `morphing-tabs`,
-status halo after `animated-badge`); INT-459: src/ui/states.tsx
-`SkeletonTable` and app/native-patterns.css (`SkeletonRows` in
-components/motion/table/skeleton-rows.tsx at aaf32bef)
+status halo after `animated-badge`)
 -------------------------------------------------------------------------------
 MIT License
 
@@ -70,9 +68,7 @@ SOFTWARE.
 Astryx — https://github.com/facebook/astryx
 Used in: app/refresh.css (radius, elevation and duration scales; the
 data-visualisation blues of the neutral theme); INT-459, at c3f64eff:
-app/native-patterns.css and app/native-tokens.css (`Skeleton`: the
---skeleton token, its pulse timing and its contrast and forced-colour
-fallbacks), src/ui/charts.tsx (`ChartLegend` and `ChartSwatch` as `Legend`,
+src/ui/charts.tsx (`ChartLegend` and `ChartSwatch` as `Legend`,
 `referenceLine` as the bar threshold mark)
 -------------------------------------------------------------------------------
 MIT License

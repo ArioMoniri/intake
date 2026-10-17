@@ -25,10 +25,8 @@
  * - No PHI (invariant 6): a label that is not id-shaped refuses the payload.
  * - The k ≥ 10 floor (files/06 §8) and no target beside a figure
  *   (invariant 20) hold on the page too.
- * - The CSP is nonce-based in production (files/08 §0c F14; invariant 48 on
- *   the admin-console row). Its one `unsafe-*` keyword is `'unsafe-hashes'`
- *   in `style-src-attr`, beside the hash of React's streamed segment style
- *   (owner decision, 3 Oct 2026; pinned in e2e/states.spec.ts).
+ * - The CSP is nonce-based with no `unsafe-*` in production (files/08 §0c
+ *   F14; invariant 48 on the admin-console row).
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -37,7 +35,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { buildCsp } from "../src/ops/csp";
-import { unsafeSources } from "./support/csp";
 import { OpsConsole } from "../src/ops/console";
 import { bearerFrom, opsConfigFromEnv } from "../src/ops/access";
 import { loadOpsConsole, type FetchLike, type OpsConsoleState } from "../src/ops/load";
@@ -431,12 +428,12 @@ describe("language (tr is the source of truth; invariant 5)", () => {
 });
 
 describe("CSP (files/08 §0c F14)", () => {
-  it("is nonce-based, and its one unsafe-* is the style-attribute hash keyword", () => {
+  it("is nonce-based with no unsafe-* in production", () => {
     const csp = buildCsp("bm9uY2U=", "production");
     expect(csp).toContain("script-src 'self' 'nonce-bm9uY2U=' 'strict-dynamic'");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
-    expect(unsafeSources(csp)).toEqual(["style-src-attr 'unsafe-hashes'"]);
+    expect(csp).not.toMatch(/unsafe-/);
     // no third-party frame source — the iframe pattern is deleted (F1)
     expect(csp).toContain("frame-src 'none'");
   });

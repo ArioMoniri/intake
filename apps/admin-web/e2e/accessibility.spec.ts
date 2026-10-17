@@ -33,7 +33,6 @@ import { OverviewConsole } from "../src/overview/console";
 import { renderOverview, type ReliabilityPayload } from "../src/overview/module";
 import { VoiceConsole } from "../src/voice/console";
 import { renderVoice, type VoicePayload } from "../src/voice/module";
-import { unsafeSources } from "./support/csp";
 import { SHEETS } from "./support/css";
 
 const FIXTURES = join(__dirname, "fixtures");
@@ -258,9 +257,6 @@ describe("colour contrast, computed from the tokens in both themes", () => {
   });
 });
 
-/** The two repeating motions; every other animation plays once. */
-const REPEATING = ["halo", "breathe"];
-
 describe("motion stays calm and optional", () => {
   it("prefers-reduced-motion removes every animation and transition", () => {
     const block = /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/.exec(CSS);
@@ -270,18 +266,11 @@ describe("motion stays calm and optional", () => {
     expect(block![1]).toMatch(/\*,\s*\*::before,\s*\*::after/);
   });
 
-  it("the only repeating motions are the halo on a blocked release badge and the loading bones", () => {
+  it("the only repeating motion is the halo on a blocked release badge", () => {
     const infinite = [...CSS.matchAll(/([^{}]+)\{[^{}]*\binfinite\b[^{}]*\}/g)].map((m) =>
       m[1]!.trim(),
     );
-    expect(infinite).toEqual(['.badge[data-state="blocked"]::before', ".bone"]);
-  });
-
-  it("the loading bones only fade: no transform, no size, no position", () => {
-    const breathe = /@keyframes breathe \{([\s\S]*?)\n\}/.exec(CSS);
-    expect(breathe).not.toBeNull();
-    const properties = [...breathe![1]!.matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]);
-    expect(properties).toEqual(["opacity"]);
+    expect(infinite).toEqual(['.badge[data-state="blocked"]::before']);
   });
 
   it("every one-shot animation runs under a second", () => {
@@ -293,7 +282,7 @@ describe("motion stays calm and optional", () => {
     for (const m of found) {
       const raw = m[3] === undefined ? m[2]! : durations.get(m[3])!;
       const ms = raw.endsWith("ms") ? Number(raw.slice(0, -2)) : Number(raw.slice(0, -1)) * 1000;
-      if (!REPEATING.includes(m[1]!)) expect(ms, `${m[1]}`).toBeLessThan(1000);
+      if (m[1] !== "halo") expect(ms, `${m[1]}`).toBeLessThan(1000);
     }
   });
 });
@@ -326,12 +315,9 @@ describe("the CSP stays whole", () => {
     expect(imports.every((i) => i === "next" || i === "react" || i!.startsWith("./"))).toBe(true);
   });
 
-  it("the production policy names no external origin, no wildcard and no unsafe source", () => {
+  it("the production policy names no external origin and no unsafe source", () => {
     const csp = buildCsp("bm9uY2U=", "production");
-    expect(csp).not.toMatch(/https?:|\*/);
-    // The one exception is the style-attribute hash keyword for React's
-    // streamed segment, pinned in e2e/states.spec.ts.
-    expect(unsafeSources(csp)).toEqual(["style-src-attr 'unsafe-hashes'"]);
+    expect(csp).not.toMatch(/https?:|unsafe-|\*/);
     expect(csp).toContain("style-src 'self' 'nonce-bm9uY2U='");
   });
 });

@@ -3,12 +3,6 @@
  * console's own pages.
  *
  * Ported from MIT sources (licence hashes in docs/evidence/INT-459.md §9):
- * - **Astryx `Skeleton`**: the loading bones take a `--skeleton` token, wait a
- *   second, then pulse in a staggered wave. They deepen toward the ink under
- *   increased contrast, and paint GrayText at full opacity under forced
- *   colours.
- * - **beUI `SkeletonRows`**: the skeleton table. A figure's column gets a
- *   short right-aligned bar, and a text column gets two thirds.
  * - **Astryx `referenceLine`**: each SLO's burn rates are drawn against their
  *   alert threshold.
  * - **Astryx `ChartLegend` / `ChartSwatch`** and **EvilCharts' area fade**:
@@ -45,14 +39,12 @@ import { OverviewConsole } from "../src/overview/console";
 import { COPY as OVERVIEW_COPY } from "../src/overview/copy";
 import { renderOverview, type OverviewView, type ReliabilityPayload } from "../src/overview/module";
 import { NEXT_STEPS } from "../src/ui/next-steps";
-import { LoadingView } from "../src/ui/states";
 import { VoiceConsole } from "../src/voice/console";
 import { documentFor, violations } from "./support/axe";
 import { nativeRules, selectorsOf, type Rule } from "./support/css";
 
 const FIXTURES = join(__dirname, "fixtures");
 const NATIVE = nativeRules();
-const DARK = "@media (prefers-color-scheme: dark)";
 
 function read<T>(name: string): T {
   return JSON.parse(readFileSync(join(FIXTURES, name), "utf8")) as T;
@@ -91,73 +83,6 @@ function cicd(view: CicdView, lang: "tr" | "en" = "tr"): ReactElement {
 }
 
 const text = (el: Element | null): string => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
-
-// --- loading: Astryx's skeleton, beUI's skeleton rows -----------------------
-
-describe("loading: the bones follow Astryx's skeleton", () => {
-  const light = rule(":root");
-  const dark = rule(":root", [DARK]);
-
-  it("paint a --skeleton token that both themes define", () => {
-    expect(light["--skeleton"]).toMatch(/^#[0-9a-f]{6}$/i);
-    expect(dark["--skeleton"]).toMatch(/^#[0-9a-f]{6}$/i);
-    expect(dark["--skeleton"]).not.toBe(light["--skeleton"]);
-    expect(rule(".bone")["background"]).toBe("var(--skeleton)");
-  });
-
-  it("wait a second before pulsing, then pulse in a staggered wave of at most five steps", () => {
-    expect(rule(".bone")["animation-delay"]).toBe("1000ms");
-    const steps = NATIVE.filter((r) => /^\.bone:nth-child\(\d+\)$/.test(r.selector));
-    expect(steps.map((r) => r.decls["animation-delay"])).toEqual([
-      "1100ms",
-      "1200ms",
-      "1300ms",
-      "1400ms",
-    ]);
-  });
-
-  it("deepen toward the ink under increased contrast", () => {
-    expect(rule(".bone", ["@media (prefers-contrast: more)"])["background"]).toBe(
-      "color-mix(in srgb, var(--skeleton), var(--ink) 30%)",
-    );
-  });
-
-  it("paint GrayText at full opacity under forced colours", () => {
-    const forced = rule(".bone", ["@media (forced-colors: active)"]);
-    expect(forced["background"]).toBe("GrayText");
-    expect(forced["opacity"]).toBe("1");
-  });
-
-  it("stand still, and stay visible, under reduced motion (near-miss: the resting opacity is faint)", () => {
-    const resting = Number(rule(".bone")["opacity"]);
-    const still = Number(rule(".bone", ["@media (prefers-reduced-motion: reduce)"])["opacity"]);
-    expect(resting).toBeLessThan(0.5);
-    expect(still).toBeGreaterThanOrEqual(0.6);
-  });
-});
-
-describe("loading: the skeleton table follows beUI's SkeletonRows", () => {
-  const doc = dom(createElement(LoadingView));
-  const table = doc.querySelector("table.skeleton-table");
-
-  it("is decoration, inside the hidden skeleton", () => {
-    expect(table).not.toBeNull();
-    expect(table!.closest('[aria-hidden="true"]')).not.toBeNull();
-  });
-
-  it("has five rows: two thirds of a bar per text column, a short bar ending a figure's", () => {
-    const rows = [...table!.querySelectorAll("tbody tr")];
-    expect(rows).toHaveLength(5);
-    for (const row of rows) {
-      const cells = [...row.querySelectorAll("td")];
-      expect(cells.length).toBeGreaterThanOrEqual(3);
-      expect(cells.slice(0, -1).every((td) => td.querySelector(".bone-text"))).toBe(true);
-      expect(cells.at(-1)!.querySelector(".bone-num")).not.toBeNull();
-    }
-    expect(rule(".bone-text")["width"]).toBe("66%");
-    expect(rule(".bone-num")["margin-inline-start"]).toBe("auto");
-  });
-});
 
 // --- overview: the component status strip ----------------------------------
 
