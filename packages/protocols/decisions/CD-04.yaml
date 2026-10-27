@@ -503,6 +503,31 @@ value:
           - "D6 now states that the once counts follow_up_tr asks after UNCLEAR only, and that the slot's shared re-entry bound stays files/13 §11.1's two attempts, so REASK_POSITIVE keeps today's budget (follow_up_bound_scope.once_counts, once_never_counts, shared_reentry_bound_unchanged, council_reask_after_spent_follow_up)"
           - "test: tests/engine/test_int554_reask_budget.py, whose near miss is a slot with its one follow-up spent whose 'hayır' is still re-asked"
         decisions_changed: "D6 clarified; D2 unchanged"
+      verification_round_2:
+        round: 2
+        date: 2026-10-17
+        head: edead8b4
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: agree
+        findings: >-
+          Agree; the D6 finding is resolved and D2 is unchanged. The once now counts
+          follow_up_tr asks after UNCLEAR only. It never counts the council's re-ask
+          or confirm-back, and the slot's shared re-entry bound stays files/13
+          §11.1's two attempts. In every path this leaves the council at least as
+          many red-flag re-asks as today. After one spent follow-up one remains, as
+          before. A direct "hayır" that the council re-asks, and whose re-ask is then
+          answered unclear, still has its one follow-up inside the shared two. The
+          only turn removed is a second identical follow_up_tr, the trade-off
+          verified in round 1. The new spec_basis sentence is verbatim in ADR-036
+          (Physician decisions, 6). tests/engine/test_int554_reask_budget.py pins the
+          decision and the engine. Its near miss ("hayır" after the spent follow-up
+          is re-asked, APPENDED) and its rejected wiring (the once as the slot's whole
+          bound, EXHAUSTED) reproduce the verifier's own round-1 probe. The
+          engineering line now forbids handing the engine clarification_bounds of 1
+          for these slots and asks for a separate follow-up cap.
+        per_item:
+          D2: "agree (unchanged from round 1, with its HB-C1 note)"
+          D6: "agree. The once caps follow_up_tr only, and ADR-036's two attempts and REASK_POSITIVE are untouched"
       items:
         - item: D2
           question: "A non-anchor CD-01 slot whose follow-up was spoken but never answered stays ASKED_PENDING at close, so the session ends GREEN with both arms Unknown and no item. Does it raise chest_pain_arms_unresolved?"
@@ -548,7 +573,7 @@ value:
           spec_basis_ref: ["docs/evidence/INT-547.md Residuals (for the orchestrator), 3", "files/13_QUESTION_FLOW.md §11.1", "docs/adr/ADR-036-the-council-is-a-verifier-the-engine-decides.md Physician decisions, 6"]
           status: active
 verifier:
-  verdict: pending
-  role: "independent D18 clinical verifier (agent; EM/IM/O&G/psychiatry)"
-  verified_on: 2026-10-16
-  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 8, 9 and 12, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 and CG84 quotes re-read verbatim on the live NICE pages and in the committed snapshots; the item-12 key acknowledged; one note for the physician of record on item 5 (amendments[0].verification). Round 4 (INT-554 items D2 and D6, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D2 agrees, with an HB-C1 note on its inbox load. D6 must state that the once counts follow_up_tr asks only: on these six red-flag slots the engine shares the clarification bound with ADR-036's REASK_POSITIVE, so a bound of 1 could leave a 'hayır' after a spent follow-up without its re-ask (amendments[1].verification). The verdict stays pending until the author's revision is re-verified. Author revision (17 Oct 2026): the once counts follow_up_tr asks only, and the shared re-entry bound and REASK_POSITIVE's budget are unchanged (amendments[1].author_revision); pending verifier round 2. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+  verified_on: 2026-10-17
+  notes: "Round 1 (2026-10-03) agree_with_changes; round 2 (2026-10-03) agree, by the independent clinical verifier (agent; EM/IM/paediatrics). Round 3 (2026-10-16, INT-519 amendment, items 5, 8, 9 and 12, head 9034f8b9) agree, no blocker: the round-3 NICE CG95 and CG84 quotes re-read verbatim on the live NICE pages and in the committed snapshots; the item-12 key acknowledged; one note for the physician of record on item 5 (amendments[0].verification). Round 4 (INT-554 items D2 and D6, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D2 agrees, with an HB-C1 note on its inbox load. D6 must state that the once counts follow_up_tr asks only: on these six red-flag slots the engine shares the clarification bound with ADR-036's REASK_POSITIVE, so a bound of 1 could leave a 'hayır' after a spent follow-up without its re-ask (amendments[1].verification). The verdict stays pending until the author's revision is re-verified. Author revision (17 Oct 2026): the once counts follow_up_tr asks only, and the shared re-entry bound and REASK_POSITIVE's budget are unchanged (amendments[1].author_revision); verifier round 2 (2026-10-17, head edead8b4) agree: the once caps follow_up_tr only, the shared two-attempt bound and REASK_POSITIVE are untouched, and the re-ask budget is never below today's (amendments[1].verification_round_2). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

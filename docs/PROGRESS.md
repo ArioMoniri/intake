@@ -1,5 +1,23 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-17T18:00:00Z · INT-554 · D18 verifier round 2: agree on all five records (committed locally, not pushed; push freeze)
+- Goal: the independent verifier's round 2 on the author's revision `edead8b4` (D6, D7 and the three CD-08 section labels).
+- Result: **agree, no blocker.**
+  - **D6.** The once counts `follow_up_tr` asks only. The shared two-attempt bound and `REASK_POSITIVE` are untouched, so the re-ask budget is never below today's.
+  - **D7.** An invalidated answer stays on the triage record (`answered_before_role_bound`) under the worst-case union, so the close-time K2 still fires. The golden and its near miss pass.
+  - **CD-08.** The labels name "A collaborative approach", and the snapshot body is verbatim against the verifier's extraction.
+  - CD-100 round 5 and CD-112 round 2 stand.
+  - Note for the legal lane: the basis and retention of answers kept and attributed to a non-patient speaker.
+- Recorded:
+  - `verification_round_2` on the CD-01, CD-04 and CD-08 round-4 entries;
+  - the three `verifier` blocks, now `agree`;
+  - the twins and the evidence round-2 section, with the *Sources added* sha updated to the revised snapshot;
+  - the INT-554 backlog row `done`, with files/11 and the roadmap re-rendered.
+- Tests: targeted suites 352 passed (both register verdict tests now pass). Protocols lane 97.68 %, 2169 passed. `make safety` exit 0: triage 100 % (634), 18/18 mutations, voice-runtime 98.46 % (2464), adversarial 121. Backlog and smoke 106 passed.
+- Invariants touched and still passing: 1, 7, 10, 17, 21. No pack, rule, gate or runtime file changed.
+- Blocked on: the push freeze (#905), for the push and the PR. HB-C1 still stands before any real patient.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-17T12:00:00Z · INT-554 · D18 verifier round: revise (committed locally, not pushed; push freeze)
 - Goal: the independent D18 clinical verifier's round on the author's `ca99030a`: CD-08 round 4 (D1, D3, D4, D5), CD-04 round 4 (D2, D6), CD-01 round 4 (D7), CD-100 round 5 (D8–D10) and CD-112 round 2 (D8–D9).
 - Result: **revise.**

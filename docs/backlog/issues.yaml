@@ -7649,10 +7649,11 @@
   # rule or runtime code changes here, and the engineering each decision needs
   # is listed in the evidence. Stacked on INT-525 (PR #932). Verifier round 1
   # (17 Oct 2026): CD-100 round 5 and CD-112 round 2 agree; CD-01 (D7), CD-04
-  # (D6) and CD-08 (three section labels) are returned for revision.
+  # (D6) and CD-08 (three section labels) are returned for revision. Verifier
+  # round 2 (17 Oct 2026, on the author's edead8b4): all five records agree.
   depends_on: [INT-432, INT-519, INT-525, INT-547]
   labels: [area:protocols]
-  status: doing
+  status: done
   evidence: docs/evidence/INT-554.md
   acceptance:
     - "Items D1 to D7 are amendments to CD-08, CD-04 and CD-01, and items D8 to D10 to CD-100 and CD-112, each keeping every decided value it does not change; nothing is decided in prose alone."

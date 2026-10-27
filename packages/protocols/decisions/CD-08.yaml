@@ -432,6 +432,29 @@ value:
           - "the entries quoting the 48-hour interval, the out-of-hours contact and 'Support the results notification system' now name the section their quotes are in: 'A collaborative approach' (pages 11 and 12), not 'Categories of imaging findings', which begins on page 14"
           - "the snapshot header's scope line names the same section; the snapshot body (96 lines) is unchanged"
         decisions_changed: false
+      verification_round_2:
+        round: 2
+        date: 2026-10-17
+        head: edead8b4
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: agree
+        findings: >-
+          Agree; the citation finding is resolved, and D1, D3, D4 and D5 are
+          unchanged. The three entries now name "A collaborative approach", the
+          section their quotes sit in: the section heading is on page 11, and the
+          quoted paragraphs on page 12. The other six labels were right in round 1
+          and are unchanged. The snapshot's 96 body lines were re-checked against the
+          verifier's own extraction of the same PDF (sha256 c75d9ac9) and are
+          verbatim and in order. Only the header's scope line changed, and it now
+          describes the excerpts correctly. The snapshot's sha256 is now
+          07da2320754bf9419324b16bcbc6901fc70b302bc5cd5f818c961922030a690d.
+          test_cd08_each_aomrc_quote_names_the_section_it_is_in pins the labels.
+        per_item:
+          D1: "agree (unchanged)"
+          D3: "agree (unchanged, with its HB-C1 note)"
+          D4: "agree that it stays open (unchanged)"
+          D5: "agree (unchanged)"
+          citation: "agree. The three section labels are corrected and the snapshot body is verbatim"
       items:
         - item: D1
           question: "Does the arms item need both chest-pain arms to read Unknown, as the decision's 'that leaves both chest-pain arms Unknown' says, or is it raised whenever the slot is unresolved?"
@@ -516,7 +539,7 @@ fail_closed_while_draft: >-
   cover or out-of-hours contact, and an item not routed to the booked clinic's
   rostered clinicians (value.built_route_conformance.inbox_not_ready_report).
 verifier:
-  verdict: pending
-  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
-  verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 items D1, D3, D4 and D5, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D1, D3, D4 and D5 agree. The AoMRC snapshot is verbatim against the verifier's own fetch, and so are all nine of its quotes. Three AoMRC entries name the wrong section, 'Categories of imaging findings' where the PDF has 'A collaborative approach' (amendments[0].verification). The verdict stays pending until the author's correction is re-verified. Author revision (17 Oct 2026): the three section labels corrected (amendments[0].author_revision); pending verifier round 2. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+  verified_on: 2026-10-17
+  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 items D1, D3, D4 and D5, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. D1, D3, D4 and D5 agree. The AoMRC snapshot is verbatim against the verifier's own fetch, and so are all nine of its quotes. Three AoMRC entries name the wrong section, 'Categories of imaging findings' where the PDF has 'A collaborative approach' (amendments[0].verification). The verdict stays pending until the author's correction is re-verified. Author revision (17 Oct 2026): the three section labels corrected (amendments[0].author_revision); verifier round 2 (2026-10-17, head edead8b4) agree: the three labels now name 'A collaborative approach', and the snapshot body is verbatim against the verifier's extraction (amendments[0].verification_round_2). Rounds 1 to 3 were by the independent clinical verifier (agent; EM/IM/paediatrics). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

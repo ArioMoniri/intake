@@ -429,6 +429,35 @@ value:
           - "a golden and its near miss (answered_before_proxy_binding.golden), evaluated against the life-threat rules by tests/safety/test_int554_late_proxy_golden.py"
           - "subject_role_first, the late 'kendim için' and subject_age are unchanged"
         decisions_changed: "D7 clarified; the patient's record still never holds a speaker's answer"
+      verification_round_2:
+        round: 2
+        date: 2026-10-17
+        head: edead8b4
+        reviewer: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+        verdict: agree
+        findings: >-
+          Agree; the D7 finding is resolved and the rest of D7 is unchanged. An
+          answer invalidated by a late proxy binding still leaves the patient's
+          slots (NOT_ASKED, never shown as the patient's). It now stays on the
+          session's triage record, labelled answered_before_role_bound, and the
+          rules run under files/13 §11.2's worst-case union. At close the kept
+          answers are closed as the patient's would have been, so CD-05's
+          never_asked_at_close still reads their unasked anchor as the reference
+          day and the close-time K2 fires. Both chest-pain rules read only the seven
+          CD-01 slots, so evaluating the kept set beside the patient's set loses no
+          rule. The two new spec_basis sentences are verbatim (files/13 §11.2;
+          CD-05 never_asked_at_close). tests/safety/test_int554_late_proxy_golden.py
+          evaluates the golden against the life-threat rules as the golden suite
+          builds them. The kept answers (present "evet", character "baskı", anchor
+          at the reference day) fire rf.chest_pain_cardiac_features KIRMIZI_K2, and
+          the patient's slots alone are GREEN. The near miss, the same answers bound
+          "kendim için" first, fires the same K2 with no proxy item. Note for the
+          legal lane, not a clinical change: answers kept and attributed to a
+          speaker who may not be the patient are data about that speaker. The
+          runtime that keeps them needs the invariant-18 inventory annotation and a
+          stated basis and retention.
+        per_item:
+          D7: "agree. No invalidation removes a RED its answers would fire, now or at close; the patient's record never holds a speaker's answer; subject_role_first, the late 'kendim için' and subject_age unchanged"
       items:
         - item: D7
           question: "Proxy item: wire SubjectAge when a verified age fact exists; a screen answered before subject_role binds keeps the speaker's own answer and raises no item. Should the engine ask subject_role strictly first?"
@@ -512,7 +541,7 @@ value:
           sources: [openEHR-EHR-CLUSTER.symptom_sign.v2, NICE-CG95]
           status: active
 verifier:
-  verdict: pending
-  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
-  verified_on: 2026-10-03
-  notes: "Independent verification: round 1 agree_with_changes; round 2 agree_with_changes (proxy stop-gap scope and F13); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 item D7, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. The subject role first, the invalidation of the patient's record and the subject's age agree. 'Never lowered' covers only a level already fired. An answer invalidated by a late proxy binding must never remove a RED it would fire, including CD-05's close-time K2 (amendments[0].verification). The verdict stays pending until the author's revision is re-verified. Author revision (17 Oct 2026): an invalidated answer never removes a RED it would fire, now or at close, under the worst-case union, with a golden and a near miss (amendments[0].author_revision); pending verifier round 2. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
+  verdict: agree
+  role: "independent D18 clinical verifier (agent; EM/IM/O&G)"
+  verified_on: 2026-10-17
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree_with_changes (proxy stop-gap scope and F13); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Round 4 (INT-554 item D7, head ca99030a): revise, by the independent D18 clinical verifier (agent; EM/IM/O&G), 2026-10-17. The subject role first, the invalidation of the patient's record and the subject's age agree. 'Never lowered' covers only a level already fired. An answer invalidated by a late proxy binding must never remove a RED it would fire, including CD-05's close-time K2 (amendments[0].verification). The verdict stays pending until the author's revision is re-verified. Author revision (17 Oct 2026): an invalidated answer never removes a RED it would fire, now or at close, under the worst-case union, with a golden and a near miss (amendments[0].author_revision); verifier round 2 (2026-10-17, head edead8b4) agree: the kept answers fire the close-time K2 under the worst-case union, the golden and its near miss pass, and the patient's record never holds a speaker's answer; one note for the legal lane on the kept answers' basis and retention (amendments[0].verification_round_2). Rounds 1 to 3 were by the independent clinical verifier (agent; EM/IM/paediatrics). Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
