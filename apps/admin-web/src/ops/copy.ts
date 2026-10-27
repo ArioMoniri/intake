@@ -4,6 +4,7 @@
  * error rather than a blank cell. Operator copy: nominal, short, no verdicts —
  * no word here calls a figure good or bad (invariant 20).
  */
+import { EMPTIES, FILLS } from "../ui/fills";
 
 export type Lang = "tr" | "en";
 
@@ -12,6 +13,8 @@ const tr = {
   generatedAt: "Oluşturulma",
   prometheus: "Prometheus",
   unknown: "Bilinmiyor",
+  fills: FILLS.tr,
+  empties: EMPTIES.tr,
   yes: "evet",
   no: "hayır",
   none: "yok",
@@ -130,6 +133,8 @@ const en: Copy = {
   generatedAt: "Generated",
   prometheus: "Prometheus",
   unknown: "Unknown",
+  fills: FILLS.en,
+  empties: EMPTIES.en,
   yes: "yes",
   no: "no",
   none: "none",

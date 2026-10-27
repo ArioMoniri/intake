@@ -8,12 +8,15 @@
 import type { Lang } from "../ops/copy";
 
 export type { Lang } from "../ops/copy";
+import { EMPTIES, FILLS } from "../ui/fills";
 
 const tr = {
   title: "Genel bakış",
   generatedAt: "Oluşturulma",
   sources: "Kaynaklar",
   unknown: "Bilinmiyor",
+  fills: FILLS.tr,
+  empties: EMPTIES.tr,
   yes: "evet",
   no: "hayır",
   units: { s: "sn", min: "dk", h: "sa" },
@@ -123,6 +126,8 @@ const en: OverviewCopy = {
   generatedAt: "Generated",
   sources: "Sources",
   unknown: "Unknown",
+  fills: FILLS.en,
+  empties: EMPTIES.en,
   yes: "yes",
   no: "no",
   units: { s: "s", min: "min", h: "h" },

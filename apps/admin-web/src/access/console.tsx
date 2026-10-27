@@ -13,7 +13,7 @@
 import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
-import { Cell, ScrollTable } from "../ops/tiles";
+import { Cell, Rows, ScrollTable } from "../ops/tiles";
 import { EmptyState, NextStep } from "../ui/states";
 import { COPY, type AccessCopy, type Lang } from "./copy";
 import type { AccessState } from "./load";
@@ -113,8 +113,8 @@ function Holders({ view, c }: { view: AccessView; c: C }): ReactElement {
             <th>{h.lastReviewed}</th>
           </tr>
         </thead>
-        <tbody>
-          {view.holders.map((row) => (
+        <Rows rows={view.holders} columns={10} kind="holders" empty={c.empties.holders}>
+          {(row) => (
             <tr key={row.subject} data-subject={row.subject} data-dormant={String(row.dormant)}>
               <td>
                 <code>{row.subject}</code>
@@ -131,8 +131,8 @@ function Holders({ view, c }: { view: AccessView; c: C }): ReactElement {
               </td>
               <td>{row.lastReviewedAt === null ? c.never : <time>{row.lastReviewedAt}</time>}</td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </section>
   );

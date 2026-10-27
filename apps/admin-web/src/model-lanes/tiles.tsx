@@ -13,6 +13,7 @@
 import type { ReactElement } from "react";
 
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { EmptyState } from "../ui/states";
 import type { ModelLanesCopy } from "./copy";
 import type {
   ModelLanesView,
@@ -234,7 +235,11 @@ export function UsageTile({ view, c }: { view: ModelLanesView; c: C }): ReactEle
       }
     >
       {rows.length === 0 ? (
-        <p className="window">{c.none}</p>
+        <EmptyState
+          kind="laneCalls"
+          title={c.empties.laneCalls.title}
+          why={c.empties.laneCalls.why}
+        />
       ) : (
         <ScrollTable>
           <thead>

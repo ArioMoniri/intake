@@ -13,7 +13,7 @@
 import type { ReactElement, ReactNode } from "react";
 
 import { ConsoleNav } from "../ops/nav";
-import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
 import { BarList } from "../ui/charts";
 import { sharesOf } from "../ui/figure";
 import { NextStep } from "../ui/states";
@@ -48,8 +48,8 @@ function Sessions({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.sessions}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={3} kind="sessions" empty={c.empties.sessions}>
+          {(row) => (
             <tr key={`${row.profile}:${row.reason}`} data-profile={row.profile}>
               <td>
                 <code>{row.profile}</code>
@@ -59,8 +59,8 @@ function Sessions({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.sessions} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -140,8 +140,8 @@ function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.p95}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={3} kind="turns" empty={c.empties.turns}>
+          {(row) => (
             <tr key={row.profile} data-profile={row.profile}>
               <td>
                 <code>{row.profile}</code>
@@ -153,8 +153,8 @@ function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.p95} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -181,8 +181,8 @@ function SpeechErrors({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.errorRatio}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={5} kind="speech" empty={c.empties.speech}>
+          {(row) => (
             <tr key={`${row.component}:${row.kind}`}>
               <td>
                 <code>{row.component}</code>
@@ -194,8 +194,8 @@ function SpeechErrors({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.errorRatio} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -220,8 +220,8 @@ function Failovers({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.count}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={3} kind="failovers" empty={c.empties.failovers}>
+          {(row) => (
             <tr key={`${row.from}>${row.to}`}>
               <td>
                 <code>{row.from}</code>
@@ -233,8 +233,8 @@ function Failovers({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.count} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -251,8 +251,8 @@ function Breakers({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.state}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={2} kind="breakers" empty={c.empties.breakers}>
+          {(row) => (
             <tr key={row.component} data-breaker={row.state ?? "unknown"}>
               <td>
                 <code>{row.component}</code>
@@ -265,8 +265,8 @@ function Breakers({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 )}
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );

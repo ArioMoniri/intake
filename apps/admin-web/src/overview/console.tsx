@@ -12,7 +12,7 @@
 import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
-import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
 import { BarList, Gauge, toneOf, type BarRow } from "../ui/charts";
 import { figureOf, percentOf, sharesOf } from "../ui/figure";
 import { NextStep } from "../ui/states";
@@ -220,8 +220,8 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.probes.age}</th>
           </tr>
         </thead>
-        <tbody>
-          {m.rows.map((row) => (
+        <Rows rows={m.rows} columns={7} kind="probes" empty={c.empties.probes}>
+          {(row) => (
             <tr key={row.component} data-stale={row.stale ? "true" : "false"}>
               <td>
                 <code>{row.component}</code>
@@ -248,8 +248,8 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Cell value={ageText(row.age, c)} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -326,8 +326,8 @@ function Components({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.fallbackHealth}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.rows.map((row) => (
+        <Rows rows={s.rows} columns={4} kind="components" empty={c.empties.components}>
+          {(row) => (
             <tr key={row.component}>
               <td>
                 <code>{row.component}</code>
@@ -354,8 +354,8 @@ function Components({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 {row.fallbackKind === "none" ? "—" : <Health value={row.fallbackHealth} c={c} />}
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -392,8 +392,8 @@ function GpuHosts({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.health}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.rows.map((row) => (
+        <Rows rows={s.rows} columns={2} kind="gpuHosts" empty={c.empties.gpuHosts}>
+          {(row) => (
             <tr key={row.hostId}>
               <td>
                 <code>{row.hostId}</code>
@@ -402,8 +402,8 @@ function GpuHosts({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Health value={row.health} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -421,8 +421,8 @@ function Vendors({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.health}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.rows.map((row) => (
+        <Rows rows={s.rows} columns={3} kind="vendors" empty={c.empties.vendors}>
+          {(row) => (
             <tr key={row.component}>
               <td>
                 <code>{row.component}</code>
@@ -438,8 +438,8 @@ function Vendors({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Health value={row.health} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -462,8 +462,8 @@ function ApiReadiness({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.health}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.checks.map((row) => (
+        <Rows rows={s.checks} columns={2} kind="readiness" empty={c.empties.readiness}>
+          {(row) => (
             <tr key={row.check}>
               <td>
                 <code>{row.check}</code>
@@ -472,8 +472,8 @@ function ApiReadiness({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Health value={row.health} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );

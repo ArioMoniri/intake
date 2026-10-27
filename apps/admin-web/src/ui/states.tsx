@@ -14,6 +14,7 @@ import type { Lang } from "../ops/copy";
 import type { ConsolePage } from "../ops/nav";
 import { Glyph } from "./glyphs";
 import { NEXT_STEPS, RETRYABLE, type NextStepReason } from "./next-steps";
+import { Ticked } from "./unknown";
 
 /**
  * INT-459 — the step that follows a refusal or an unavailable source, under
@@ -60,7 +61,10 @@ export function EmptyState({
 }): ReactElement {
   return (
     <div className="empty" data-empty={kind}>
-      <p className="empty-title">{title}</p> <p className="empty-why">{why}</p>
+      <p className="empty-title">{title}</p>{" "}
+      <p className="empty-why">
+        <Ticked text={why} />
+      </p>
     </div>
   );
 }

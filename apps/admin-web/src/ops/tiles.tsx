@@ -4,14 +4,22 @@
  * no `style` attribute anywhere (the CSP has no `unsafe-inline`).
  *
  * Every tile carries `data-tile` and `data-tile-state`; an unknown tile says so
- * in words with its reason code beside it, and renders no figure (invariant 17).
+ * in words, with its cause, what fills it and its reason code, and renders no
+ * figure (invariant 17; `../ui/unknown`). An empty table keeps its header and
+ * says what puts a row there (`Rows`, INT-459 refresh).
  */
 import type { ReactElement, ReactNode } from "react";
 
-/** The two strings a tile needs from a page's copy; both pages' copies fit. */
+import type { EmptyCopy } from "../ui/fills";
+import { EmptyRow } from "../ui/states";
+import { UnknownNote } from "../ui/unknown";
+
+/** The strings a tile needs from a page's copy; every page's copy fits. */
 export interface TileCopy {
   unknown: string;
   reasons: Record<string, string>;
+  /** What fills an unknown tile, by reason (`../ui/fills` FILLS). */
+  fills: Readonly<Record<string, string>>;
 }
 
 export interface TileProps {
@@ -56,9 +64,12 @@ export function Tile({
         {meta}
       </header>
       {state === "unknown" ? (
-        <p className="unknown" data-reason={reason ?? ""}>
-          <strong>{c.unknown}</strong> · {c.reasons[reason ?? ""] ?? reason} <code>{reason}</code>
-        </p>
+        <UnknownNote
+          word={c.unknown}
+          cause={c.reasons[reason ?? ""] ?? reason ?? ""}
+          fill={c.fills[reason ?? ""] ?? null}
+          reason={reason ?? ""}
+        />
       ) : (
         children
       )}
@@ -76,4 +87,33 @@ export function ScrollTable({ children }: { children: ReactNode }): ReactElement
 
 export function Cell({ value, c }: { value: string | null; c: TileCopy }): ReactElement {
   return value === null ? <span className="cell-unknown">{c.unknown}</span> : <>{value}</>;
+}
+
+/**
+ * A table's body: its rows, or, when it has none, one row across every column
+ * that says the table is empty and what puts a row there (`../ui/fills`
+ * EMPTIES), under the header the table keeps.
+ */
+export function Rows<T>({
+  rows,
+  columns,
+  kind,
+  empty,
+  children,
+}: {
+  rows: readonly T[];
+  columns: number;
+  kind: string;
+  empty: EmptyCopy;
+  children: (row: T) => ReactElement;
+}): ReactElement {
+  return (
+    <tbody>
+      {rows.length === 0 ? (
+        <EmptyRow columns={columns} kind={kind} title={empty.title} why={empty.why} />
+      ) : (
+        rows.map(children)
+      )}
+    </tbody>
+  );
 }

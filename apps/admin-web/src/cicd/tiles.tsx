@@ -9,8 +9,8 @@
  */
 import type { ReactElement } from "react";
 
-import { Cell, ScrollTable, Tile } from "../ops/tiles";
-import { EmptyState } from "../ui/states";
+import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
+import { EmptyRow, EmptyState } from "../ui/states";
 import { GatePass, RunDurations } from "./charts";
 import type { CicdCopy } from "./copy";
 import type { CicdView } from "./module";
@@ -67,6 +67,16 @@ function RunsTable({ view, c }: { view: CicdView; c: C }): ReactElement {
             ))}
           </tr>
         </thead>
+        {view.pipelines.workflows.every((w) => w.runs.length === 0) ? (
+          <tbody role="rowgroup">
+            <EmptyRow
+              columns={columns.length}
+              kind="runs"
+              title={c.empties.runs.title}
+              why={c.empties.runs.why}
+            />
+          </tbody>
+        ) : null}
         {view.pipelines.workflows
           .filter((w) => w.runs.length > 0)
           .map((w) => (
@@ -171,8 +181,8 @@ export function Gates({ view, c }: { view: CicdView; c: C }): ReactElement {
             ))}
           </tr>
         </thead>
-        <tbody>
-          {t.refs.map((ref) => {
+        <Rows rows={t.refs} columns={2 + t.required.length} kind="refs" empty={c.empties.refs}>
+          {(ref) => {
             const by = new Map(ref.results.map((r) => [`${r.workflow}/${r.gate}`, r.conclusion]));
             return (
               <tr key={`${ref.kind}:${ref.ref}`} data-ref={`${ref.kind}:${ref.ref}`}>
@@ -192,8 +202,8 @@ export function Gates({ view, c }: { view: CicdView; c: C }): ReactElement {
                 })}
               </tr>
             );
-          })}
-        </tbody>
+          }}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -260,8 +270,8 @@ export function Deployments({ view, c }: { view: CicdView; c: C }): ReactElement
             <th>{c.cols.stamped}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={6} kind="deployments" empty={c.empties.deployments}>
+          {(row) => (
             <tr key={row.environment} data-environment={row.environment}>
               <td>
                 <code>{row.environment}</code>
@@ -288,8 +298,8 @@ export function Deployments({ view, c }: { view: CicdView; c: C }): ReactElement
               </td>
               <td data-state={row.stamped ? "ok" : "attention"}>{row.stamped ? c.yes : c.no}</td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );

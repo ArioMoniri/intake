@@ -57,8 +57,8 @@ const SPANS_AT_WIDE: [string, number][] = [
 ];
 
 function spanAtWide(card: Element, spans: [string, number][] = SPANS_AT_WIDE): number {
-  const wide = rule(".grid > .tile-wide", [WIDE])["grid-column"];
-  const wideUnknown = rule(".grid > .tile-wide.tile-unknown", [WIDE])["grid-column"];
+  const wide = rule(".grid > .tile.tile-wide", [WIDE])["grid-column"];
+  const wideUnknown = rule(".grid > .tile.tile-wide.tile-unknown", [WIDE])["grid-column"];
   if (card.matches(".tile-wide.tile-unknown")) return Number(/span (\d+)/.exec(wideUnknown!)![1]);
   if (card.matches(".tile-wide")) return wide === "1 / -1" ? 12 : 0;
   let span = 0;
@@ -67,6 +67,19 @@ function spanAtWide(card: Element, spans: [string, number][] = SPANS_AT_WIDE): n
     if (card.matches(selector.replace(".grid > ", ""))) span = n;
   }
   return span;
+}
+
+/** A selector's specificity as one number (ids, classes, types; `:has()`
+ * counts its argument, CSS Selectors 4), enough for the layer's selectors. */
+function specificity(selector: string): number {
+  const inner = [...selector.matchAll(/:has\(([^)]*)\)/g)].map((m) => m[1]!).join(" ");
+  const outer = selector.replace(/:has\([^)]*\)/g, "");
+  const count = (s: string, re: RegExp): number => (s.match(re) ?? []).length;
+  const all = `${outer} ${inner}`;
+  const ids = count(all, /#[\w-]+/g);
+  const classes = count(all, /\.[\w-]+|\[[^\]]+\]|:(?!has)[\w-]+/g);
+  const types = count(all.replace(/[.#][\w-]+|\[[^\]]+\]|:[\w-]+/g, ""), /\b[a-z][\w-]*/g);
+  return ids * 10000 + classes * 100 + types;
 }
 
 function band(doc: Document, id: string): Element[] {
@@ -90,8 +103,21 @@ describe("a dense twelve-column grid at desktop width", () => {
     expect(rule(".grid > *", [WIDE])["grid-column"]).toBe("span 4");
     expect(rule(".grid > .tile:has(table)", [WIDE])["grid-column"]).toBe("span 6");
     expect(rule(".grid > .tile-unknown", [WIDE])["grid-column"]).toBe("span 3");
-    expect(rule(".grid > .tile-wide", [WIDE])["grid-column"]).toBe("1 / -1");
-    expect(rule(".grid > .tile-wide.tile-unknown", [WIDE])["grid-column"]).toBe("span 6");
+    expect(rule(".grid > .tile.tile-wide", [WIDE])["grid-column"]).toBe("1 / -1");
+    expect(rule(".grid > .tile.tile-wide.tile-unknown", [WIDE])["grid-column"]).toBe("span 6");
+    expect(rule(".grid > .tile.tile-wide.tile-unknown:only-child", [WIDE])["grid-column"]).toBe(
+      "1 / -1",
+    );
+  });
+
+  it("a wide tile that holds a table still takes the whole row (it out-ranks the table rule)", () => {
+    expect(specificity(".grid > .tile.tile-wide")).toBeGreaterThan(
+      specificity(".grid > .tile:has(table)"),
+    );
+  });
+
+  it("near-miss: the first draft's `.grid > .tile-wide` lost to the table rule", () => {
+    expect(specificity(".grid > .tile-wide")).toBeLessThan(specificity(".grid > .tile:has(table)"));
   });
 
   it("eight unread SLOs fill exactly two rows of the band", () => {
