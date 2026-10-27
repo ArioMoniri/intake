@@ -8,6 +8,12 @@ import { JSDOM } from "jsdom";
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+/** One document's axe audit on a shared CI runner: the admin-web lane shares
+ * the pool's host with the other lanes, and a wired overview (every table
+ * answering) ran past vitest's 5 s default there (#963, run 40602198849).
+ * Every axe test audits one document and takes this allowance. */
+export const AXE_TIMEOUT_MS = 30_000;
+
 export function documentFor(tree: ReactElement, lang: "tr" | "en"): string {
   const body = renderToStaticMarkup(tree);
   return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>INTAKE admin</title></head><body>${body}</body></html>`;

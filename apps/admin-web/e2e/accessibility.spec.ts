@@ -33,6 +33,7 @@ import { OverviewConsole } from "../src/overview/console";
 import { renderOverview, type ReliabilityPayload } from "../src/overview/module";
 import { VoiceConsole } from "../src/voice/console";
 import { renderVoice, type VoicePayload } from "../src/voice/module";
+import { AXE_TIMEOUT_MS } from "./support/axe";
 import { SHEETS } from "./support/css";
 
 const FIXTURES = join(__dirname, "fixtures");
@@ -135,11 +136,15 @@ function summary(violations: axe.Result[]): string[] {
 describe("every rendered console page passes axe (WCAG 2.1 A/AA + best practice)", () => {
   for (const lang of ["tr", "en"] as const) {
     for (const [name, tree] of Object.entries(pages(lang))) {
-      it(`${name} (${lang})`, async () => {
-        const html = documentFor(tree, lang);
-        expect(html).not.toContain("style=");
-        expect(summary(await audit(html))).toEqual([]);
-      });
+      it(
+        `${name} (${lang})`,
+        async () => {
+          const html = documentFor(tree, lang);
+          expect(html).not.toContain("style=");
+          expect(summary(await audit(html))).toEqual([]);
+        },
+        AXE_TIMEOUT_MS,
+      );
     }
   }
 

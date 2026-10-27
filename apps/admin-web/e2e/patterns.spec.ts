@@ -40,7 +40,7 @@ import { COPY as OVERVIEW_COPY } from "../src/overview/copy";
 import { renderOverview, type OverviewView, type ReliabilityPayload } from "../src/overview/module";
 import { NEXT_STEPS } from "../src/ui/next-steps";
 import { VoiceConsole } from "../src/voice/console";
-import { documentFor, violations } from "./support/axe";
+import { AXE_TIMEOUT_MS, documentFor, violations } from "./support/axe";
 import { nativeRules, selectorsOf, type Rule } from "./support/css";
 
 const FIXTURES = join(__dirname, "fixtures");
@@ -340,25 +340,41 @@ describe("a refusal says why, and what to do next", () => {
 });
 
 describe("the new states pass axe", () => {
-  // One page per test: each axe run takes a second or two in jsdom.
-  it("an empty CI/CD page (grouped runs, legend, trend, empty states)", async () => {
-    const view = cicdView();
-    view.pending = { ...view.pending, actions: [] };
-    view.releases = { ...view.releases, rows: [] };
-    expect(await violations(documentFor(cicd(view), "tr"))).toEqual([]);
-  });
+  // One page per test, each with the shared-runner allowance (support/axe.ts).
+  it(
+    "an empty CI/CD page (grouped runs, legend, trend, empty states)",
+    async () => {
+      const view = cicdView();
+      view.pending = { ...view.pending, actions: [] };
+      view.releases = { ...view.releases, rows: [] };
+      expect(await violations(documentFor(cicd(view), "tr"))).toEqual([]);
+    },
+    AXE_TIMEOUT_MS,
+  );
 
-  it("a refusal with its next step", async () => {
-    const tree = createElement(OpsConsole, { state: REFUSED[2]!, lang: "tr" });
-    expect(await violations(documentFor(tree, "tr"))).toEqual([]);
-  });
+  it(
+    "a refusal with its next step",
+    async () => {
+      const tree = createElement(OpsConsole, { state: REFUSED[2]!, lang: "tr" });
+      expect(await violations(documentFor(tree, "tr"))).toEqual([]);
+    },
+    AXE_TIMEOUT_MS,
+  );
 
-  it("an unreachable API with its retry link", async () => {
-    const tree = createElement(OverviewConsole, { state: REFUSED[6]!, lang: "en" });
-    expect(await violations(documentFor(tree, "en"))).toEqual([]);
-  });
+  it(
+    "an unreachable API with its retry link",
+    async () => {
+      const tree = createElement(OverviewConsole, { state: REFUSED[6]!, lang: "en" });
+      expect(await violations(documentFor(tree, "en"))).toEqual([]);
+    },
+    AXE_TIMEOUT_MS,
+  );
 
-  it("the overview with its status strip and burn charts", async () => {
-    expect(await violations(documentFor(overview(overviewView(), "en"), "en"))).toEqual([]);
-  });
+  it(
+    "the overview with its status strip and burn charts",
+    async () => {
+      expect(await violations(documentFor(overview(overviewView(), "en"), "en"))).toEqual([]);
+    },
+    AXE_TIMEOUT_MS,
+  );
 });

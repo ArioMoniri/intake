@@ -43,7 +43,7 @@ import { CONSOLE_PAGES } from "../src/ops/nav";
 import { OverviewConsole } from "../src/overview/console";
 import { NotFoundView } from "../src/ui/states";
 import { VoiceConsole } from "../src/voice/console";
-import { documentFor, violations } from "./support/axe";
+import { AXE_TIMEOUT_MS, documentFor, violations } from "./support/axe";
 import { APP, nativeRules, selectorsOf } from "./support/css";
 
 const NATIVE = nativeRules();
@@ -131,9 +131,13 @@ describe("not found: an empty state with one way back", () => {
     expect(html).toMatch(/<svg[^>]*aria-hidden="true"[^>]*focusable="false"/);
   });
 
-  it("passes axe", async () => {
-    expect(await violations(documentFor(createElement(NotFoundView), "tr"))).toEqual([]);
-  });
+  it(
+    "passes axe",
+    async () => {
+      expect(await violations(documentFor(createElement(NotFoundView), "tr"))).toEqual([]);
+    },
+    AXE_TIMEOUT_MS,
+  );
 });
 
 /** Every console page in its refused and its unavailable state (INT-569). */
@@ -195,13 +199,19 @@ describe("refused and unavailable pages keep the console's shell (INT-569)", () 
     expect(ruleFor(".state-view > .refusal::before")["left"]).toMatch(/50%/);
   });
 
-  it("every refused and unavailable page passes axe, in both languages", async () => {
-    for (const lang of ["tr", "en"] as const) {
-      for (const [name, tree] of Object.entries(refusedPages(lang))) {
-        expect(await violations(documentFor(tree, lang)), `${name} ${lang}`).toEqual([]);
-      }
+  // One document per test (a shared runner audits twelve at once past 5 s), with
+  // the per-document allowance accessibility.spec.ts gives each page.
+  for (const lang of ["tr", "en"] as const) {
+    for (const [name, tree] of Object.entries(refusedPages(lang))) {
+      it(
+        `${name} (${lang}) passes axe`,
+        async () => {
+          expect(await violations(documentFor(tree, lang))).toEqual([]);
+        },
+        AXE_TIMEOUT_MS,
+      );
     }
-  });
+  }
 
   it("near-miss: a console page has no state view, and the old dead end is gone", () => {
     const admitted = new JSDOM(
