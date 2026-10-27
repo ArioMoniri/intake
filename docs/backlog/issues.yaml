@@ -7221,3 +7221,31 @@
     - "The owner's existing temporary password stays valid (no reset)."
   tests: [tests/admin/test_staff_passkey_enrolment.py, tests/admin/test_staff_second_factor.py, tests/infra/test_staging_keycloak_provider.py, tests/infra/test_staging_admin_tier.py]
   sec_row: "platform"
+- id: INT-528
+  epic: E01-platform
+  phase: P1
+  title: "Netgsm OTP SMS adapter behind the INT-329 SMS port, recorded fixtures only, fail-closed until the owner's credentials land"
+  # GitHub #895. Owner decision, 16 Oct 2026 (INT-358, #576): the SMS vendor
+  # is Netgsm's OTP SMS product, BTK-licensed, data in Türkiye. The owner
+  # opens the account, signs the DPA and applies for the ONVIZIT sender; the
+  # row's go-live is the owner's "SMS done". Scope addition on #895 (App
+  # Attest "keychain", HB-A3): the team id is read at deploy time from the
+  # owner's Apple Development certificate, never in git, logs or chat. The
+  # egress row is the owner's patch (owner-528-netgsm-egress.patch), because
+  # infra/security/egress-allowlist.yaml is owner-only.
+  depends_on: [INT-329, INT-358]
+  labels: [area:api, risk:security, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-528.md
+  acceptance:
+    - "A Netgsm adapter implementing the existing INT-329 SMS port (services/api otp.py / packages/intake_platform notifications ports), using Netgsm's documented OTP SMS API; request/response shapes from Netgsm's public docs, cited with URL and retrieval date."
+    - "Tests replay recorded fixtures only (RecordedTransport posture); no live call in tests or CI; vendor error codes map to typed refusals; no phone number, OTP code or message body in logs, metrics or traces (invariant 6) — tokenized refs only."
+    - "Credentials read only from OpenBao at run time (invariant 14); absent credentials keep the existing fail-closed 503 outside dev; a test proves it."
+    - "An operator script modelled on scripts/observability/langfuse_secrets.sh that prompts with no echo for the Netgsm API user, password and header, writes them to OpenBao on the host, and prints nothing secret; plus the one-line aws ssm start-session (interactive) command that runs it on the synthetic host."
+    - "The egress allow-list row (api.netgsm.com.tr, synthetic host tier only, EgressPurpose, rendered proxy config test) ships as an owner patch — infra/security/egress-allowlist.yaml is owner-only."
+    - "Every new metric in metrics_catalog.yaml; legal-reviewer pass (notifications)."
+    - "Scope addition (owner, 16 Oct 2026: App Attest \"keychain\", HB-A3): a laptop-side step reads the Team ID from the owner's Apple Development certificate subject OU in the login keychain, validates it against app_attest.py's 10-character shape and sets it with the bundle id and environment in the host's staging env over SSM, never into git, logs or chat; the parser is tested on a fixture certificate generated in the test."
+    - "Owner specifics (16 Oct 2026): the values come from SSM Parameter Store (/intake/staging/netgsm_usercode, _password, _msgheader, SecureString) and an operator sync step writes them to OpenBao on the host, stripping pasted whitespace and printing nothing secret, folded into the deploy; the sender header is never hard-coded and may contain spaces; a read-only credential check (the msgheader listing, code 30 a typed refusal) is the go-live runbook's first step; the host's Elastic IP 3.211.2.143 is in the runbook; the one-line real-OTP test command is written and never run by an agent; the official SDK netgsm-sms 1.1.2 is evaluated (licence from the raw LICENSE blob) and replaced by the plain httpx adapter where it falls short, with the reason recorded; on the synthetic host the API starts a login and sends a code only for a number on the SSM test allow-list (/intake/staging/sms_test_allowlist), failing closed when it is empty or unreadable; the synthetic API reaches Netgsm through a dedicated SMS-only forward proxy (ADR-042), the one personal-data proxy intake_platform.egress admits."
+  tests: [tests/api/test_otp_netgsm.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_otp_send_check.py, tests/api/test_sms_test_allowlist.py, tests/security/test_egress_sms_proxy.py, tests/infra/test_staging_netgsm.py, tests/infra/test_staging_sms_egress.py, tests/infra/test_app_attest_golive.py, tests/infra/test_staging_compose.py]
+  legal: "KVKK-9,DPA"
+  sec_row: "onboarding"
