@@ -524,7 +524,7 @@ measures:
     quote: "a) Verilerin e-posta yoluyla aktarılması gerekiyorsa şifreli olarak kurumsal e-posta adresiyle veya Kayıtlı Elektronik Posta (KEP) hesabı kullanılarak aktarılması,"
     controls:
       - id: no-software-email-path
-        summary: "No software path sends special-category data by e-mail: the PHI-path egress tier admits no external host at all, an unlisted host is refused, the Doctor Link delivery adapter refuses rather than sends, and notification bodies are content-free."
+        summary: "No software path sends special-category data by e-mail: the PHI-path egress tier admits exactly one external host, api.netgsm.com.tr:443, for SMS OTP delivery only (sms_otp_delivery: the sign-in code to the patient's own phone, never e-mail), reached only through the dedicated sms-egress proxy (ADR-042) and only on the synthetic host, the one deployment that sets the runtime gate; every other host is refused, the Doctor Link delivery adapter refuses rather than sends, and notification bodies are content-free."
         paths:
           - infra/security/egress-allowlist.yaml
           - packages/intake_platform/src/intake_platform/egress.py

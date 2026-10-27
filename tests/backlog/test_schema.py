@@ -227,9 +227,11 @@ def test_ids_unique_and_well_formed() -> None:
     # intake-aws-ci pool; owner order, GitHub #919).
     # + INT-550 (a new staff user enrols a passkey after the password step;
     # found on the synthetic host, GitHub #930).
+    # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
+    # owner's vendor decision on INT-358; GitHub #895).
     # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
     # a guard against the old name; owner request, GitHub #712).
-    assert len(ids) == 367
+    assert len(ids) == 368
     import re
 
     for i in ids:

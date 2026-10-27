@@ -1,6 +1,6 @@
 {
   "schema": "intake.admin.reliability.v1",
-  "generated_at": "2026-09-27T01:04:19Z",
+  "generated_at": "2026-10-16T11:18:11Z",
   "sources": {
     "prometheus": "unconfigured",
     "slo_files": "ok",

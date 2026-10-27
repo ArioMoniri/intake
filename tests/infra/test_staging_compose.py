@@ -27,10 +27,11 @@ container. What IS decidable without booting anything:
   host-generated env file with no default;
 - the restart probe refuses a process-local KEK, and the negative control
   shows why: a file-dev KEK does not survive a process restart;
-- INT-352: the API gets the App Attest and SMS keys the operator sets, each
-  with no default, and a host-generated tokenization key; deploy.sh refuses
-  an Apple team id without all three SMS keys, so a verified device is never
-  told a code was sent that nobody sent;
+- INT-352: the API gets the App Attest keys the operator sets, each with no
+  default, and a host-generated tokenization key. INT-528: the SMS vendor
+  (Netgsm) lives in OpenBao, never in the env file, and deploy.sh refuses an
+  Apple team id unless the API's own token can read the whole Netgsm document,
+  so a verified device is never told a code was sent that nobody sent;
 - INT-352 (audit F18): ``/version``'s third stamp, ``sbom_digest``, is the
   sha256 of an SPDX SBOM that syft, pinned by digest, writes of the built api
   image into the host's release directory, never into the image. compose
@@ -56,6 +57,7 @@ import shutil
 import stat
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from types import ModuleType
 from typing import Any, get_args
@@ -132,6 +134,9 @@ SERVICES = {
     "admin-web",
     # INT-442: the synthetic host's forward proxy (tests/infra/test_staging_egress.py)
     "egress-proxy",
+    # INT-528 / ADR-042: the SMS vendor's own forward proxy
+    # (tests/infra/test_staging_sms_egress.py)
+    "sms-egress",
 }
 STAGING_ENV = "staging"
 
@@ -216,13 +221,19 @@ APP_ATTEST_KEYS = tuple(
 )
 APP_ATTEST_TEAM_ID = APP_ATTEST_KEYS[0]
 
-#: INT-352: the SMS vendor's three keys, the names the API's Twilio adapter reads.
-SMS_KEYS = ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM")
+#: INT-528: the SMS vendor (Netgsm, owner decision INT-358) is an OpenBao
+#: document the API reads with its own token, never an env-file key
+#: (invariant 14). netgsm_secrets.sh writes it.
+SMS_KV_PATH = "api/netgsm"
+SMS_FIELDS = ("usercode", "password", "msgheader")
+#: The env-file names INT-352 gave the Twilio keys. None may come back, and no
+#: Netgsm value may take their place.
+RETIRED_SMS_KEYS = ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM")
 
 #: Template keys the operator sets by hand in the root-only env file. None is
 #: generated, and each may stay empty: the API reads empty as unset and fails
 #: closed on it.
-OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS, *SMS_KEYS}
+OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS}
 
 #: INT-421: generated as base64url of 32 bytes (oauth2-proxy's key form),
 #: not gen_secret's 64 hex.
@@ -232,7 +243,7 @@ COOKIE_SECRET_FORM = re.compile(r"[A-Za-z0-9_-]{43}")
 #: The phone-tokenization key: without it the OTP tier answers 503.
 TOKENIZATION_KEY = api_settings.ENV_TOKENIZATION_KEY
 
-#: lib.sh's deploy check: an Apple team id needs all three SMS keys.
+#: lib.sh's deploy check: an Apple team id needs the whole Netgsm document.
 SMS_GUARD = "require_sms_with_app_attest"
 
 #: The runbook section that tells the operator which keys to set.
@@ -242,6 +253,8 @@ ATTEST_SMS_SECTION = "App Attest and SMS"
 #: id or credential; the refusals must echo neither.
 TEAM_ID_VALUE = "ABCDE12345"
 OPERATOR_VALUE = "operator-typed-value"
+#: The Netgsm document the guard reads, as `bao kv get -format=json` prints it.
+SMS_VALUES = {"usercode": "8501234567", "password": "vault-typed-value", "msgheader": "BASLIK"}
 
 #: The issue that records the object-store image and its licence.
 OBJECT_STORE_ISSUE = "INT-347"
@@ -703,17 +716,20 @@ class TestOpenBao:
         memlock = _service("openbao")["ulimits"]["memlock"]
         assert memlock in (-1, {"soft": -1, "hard": -1})
 
-    def test_the_api_policy_grants_only_tenant_transit_keys(self) -> None:
+    def test_the_api_policy_grants_tenant_transit_keys_and_one_sms_read(self) -> None:
+        """Transit for the tenant KEKs, and outside transit/ exactly one grant:
+        read on the SMS vendor's document (INT-528)."""
         prefix = inspect.signature(TransitKekProvider.__init__).parameters["key_prefix"].default
         blocks = re.findall(
             r'path\s+"([^"]+)"\s*\{\s*capabilities\s*=\s*\[([^\]]*)\]\s*\}', _text(API_POLICY)
         )
         assert blocks
-        # INT-428 (ADR-035): the one grant outside transit/ is the hosted-lane
-        # provider keys, and exactly these two paths with these capabilities
+        # INT-428 (ADR-035): the hosted-lane provider keys; INT-528: read on the
+        # SMS vendor's document. Exactly these paths with these capabilities.
         model_lanes = {
             "secret/data/model-lanes/*": {"create", "update", "read"},
             "secret/metadata/model-lanes/*": {"read", "list", "delete"},
+            f"secret/data/{SMS_KV_PATH}": {"read"},
         }
         for path, caps in blocks:
             granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}
@@ -1450,19 +1466,50 @@ def _run_on_env(env_file: Path, function: str) -> subprocess.CompletedProcess[st
     return _bash(f'ENV_FILE="$1"; {function}', str(env_file), cwd=env_file.parent)
 
 
+#: Stands in for lib.sh's bao_as: records the token and arguments it was handed,
+#: then prints the document as `bao kv get -format=json` would, or fails as the
+#: CLI does when the document is absent or the policy refuses the read.
+_BAO_SHIM = (
+    'DOC="$2"; TOKEN_LOG="$3"; '
+    'bao_as() { printf "%s %s\\n" "$1" "${*:2}" >>"$TOKEN_LOG"; '
+    'if [[ -f $DOC ]]; then cat "$DOC"; else return 2; fi; }'
+)
+
+
+def _run_guard(
+    env_file: Path, document: Mapping[str, object] | None
+) -> subprocess.CompletedProcess[str]:
+    """The SMS guard against a scratch env file and a stand-in OpenBao."""
+    doc_file = env_file.parent / "kv-get.json"
+    if document is not None:
+        doc_file.write_text(
+            json.dumps({"data": {"data": document, "metadata": {"version": 1}}}),
+            encoding="utf-8",
+        )
+    return _bash(
+        f'ENV_FILE="$1"; {_BAO_SHIM}; {SMS_GUARD}',
+        str(env_file),
+        str(doc_file),
+        str(env_file.parent / "bao-calls.log"),
+        cwd=env_file.parent,
+    )
+
+
 class TestAttestAndSms:
-    """INT-352. The deployed API gets the Apple App Attest keys (INT-344), the
-    SMS vendor's keys and the phone-tokenization key that turns the OTP tier
-    on. The operator sets the first two groups by hand, and either may stay
-    empty. init.sh generates the tokenization key like every other secret.
+    """INT-352 and INT-528. The deployed API gets the Apple App Attest keys
+    (INT-344) and the phone-tokenization key that turns the OTP tier on. The
+    operator sets the App Attest keys by hand, and each may stay empty. init.sh
+    generates the tokenization key like every other secret. The SMS vendor is
+    not an env-file key at all: Netgsm's credentials live in OpenBao
+    (secret/api/netgsm), written by netgsm_secrets.sh.
 
     What keeps this fail-closed:
     - an empty operator key reaches the API as empty, which the API reads as
       unset. With no Apple team id every iOS attestation is refused, and
       Android's is refused until HB-A3, so no request reaches SMS delivery;
-    - an Apple team id without all three SMS keys would let a genuine device
-      through to a delivery adapter that answers "sent" and sends nothing, so
-      deploy.sh refuses that pairing before it touches docker."""
+    - an Apple team id without the whole Netgsm document, readable by the
+      API's own token, would let a genuine device through to an OTP tier with
+      no vendor, so deploy.sh refuses that pairing before the API starts."""
 
     def test_the_template_lists_every_key_with_no_value(self) -> None:
         template = _env_template()
@@ -1477,6 +1524,21 @@ class TestAttestAndSms:
         assert _environment(_service("api")).get(key) == f"${{{key}}}", key
         for name in SERVICES - {"api"}:
             assert key not in _environment(_service(name)), (name, key)
+
+    def test_the_sms_vendor_is_never_an_env_file_key(self) -> None:
+        """Invariant 14: the vendor's password is a secret, and secrets come
+        from OpenBao. Neither the retired Twilio names nor a Netgsm one may sit
+        in the template, the compose file or lib.sh."""
+        for name in SERVICES:
+            for key in _environment(_service(name)):
+                assert not key.startswith(("TWILIO_", "NETGSM_")), (name, key)
+        for key in _env_template():
+            assert not key.startswith(("TWILIO_", "NETGSM_")), key
+        lib = _code(LIB)
+        for key in RETIRED_SMS_KEYS:
+            assert key not in lib, key
+        assert f'SMS_KV_PATH="{SMS_KV_PATH}"' in lib
+        assert f"SMS_KV_FIELDS=({' '.join(SMS_FIELDS)})" in lib
 
     def test_compose_passes_the_tokenization_key_as_a_required_secret(self) -> None:
         match = REQUIRED_INTERPOLATION.match(
@@ -1501,7 +1563,7 @@ class TestAttestAndSms:
 
     def test_a_rerun_of_init_keeps_what_the_operator_set(self, tmp_path: Path) -> None:
         env_file = _operator_env(
-            tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE, SMS_KEYS[2]: OPERATOR_VALUE}
+            tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE, APP_ATTEST_KEYS[1]: OPERATOR_VALUE}
         )
         before = _read_env_file(env_file)
         result = _generate_env_file(env_file)
@@ -1521,47 +1583,100 @@ class TestAttestAndSms:
         assert f"{TOKENIZATION_KEY} is empty" in result.stderr, result.stderr
         assert "./init.sh" in result.stderr
 
-    def test_deploy_runs_the_sms_guard_after_load_env_and_before_compose(self) -> None:
+    def test_deploy_runs_the_sms_guard_once_openbao_answers_and_before_the_api_starts(
+        self,
+    ) -> None:
+        """The guard reads OpenBao, so it runs after the unseal, the token
+        renewal and the Netgsm sync from SSM (the parameters are the values'
+        source of truth), and before the compose call that starts the API."""
         assert re.search(rf"^{SMS_GUARD}\(\) \{{", _code(LIB), re.M)
         code = _code(DEPLOY)
         assert re.search(rf"^{SMS_GUARD}$", code, re.M), "deploy.sh never calls the guard"
-        assert code.index("load_env") < code.index(SMS_GUARD) < code.index("compose ")
+        api_up = code.index("compose up -d --no-build --wait --remove-orphans")
+        assert (
+            code.index("load_env")
+            < code.index("unseal_openbao")
+            < code.index("renew_api_token")
+            < code.index('netgsm_secrets.sh" --if-present')
+            < code.index(SMS_GUARD)
+            < api_up
+        )
 
-    @pytest.mark.parametrize("sms", [False, True], ids=["no-sms", "sms"])
-    def test_no_team_id_is_admitted_either_way(self, tmp_path: Path, sms: bool) -> None:
-        values = {key: OPERATOR_VALUE for key in SMS_KEYS} if sms else {}
-        result = _run_on_env(_operator_env(tmp_path, values), SMS_GUARD)
+    def test_deploy_restarts_the_api_when_the_netgsm_document_changed(self) -> None:
+        """The API reads the document at boot; a rotated value must reach it."""
+        code = _code(DEPLOY)
+        sync = code.index('NETGSM_SYNC=$("$STAGING_DIR/netgsm_secrets.sh" --if-present)')
+        restart = code.index("[[ $NETGSM_SYNC == changed ]]")
+        assert sync < code.index("compose up -d --no-build --wait --remove-orphans") < restart
+
+    @pytest.mark.parametrize("document", [None, SMS_VALUES], ids=["no-sms", "sms"])
+    def test_no_team_id_is_admitted_whatever_the_vault_holds(
+        self, tmp_path: Path, document: dict[str, object] | None
+    ) -> None:
+        result = _run_guard(_operator_env(tmp_path, {}), document)
         assert result.returncode == 0, result.stderr
+        assert not (tmp_path / "bao-calls.log").exists(), "no team id, no vault read"
 
-    def test_a_team_id_with_all_three_sms_keys_is_admitted(self, tmp_path: Path) -> None:
+    def test_a_team_id_with_the_whole_document_is_admitted(self, tmp_path: Path) -> None:
         """Positive control: the guard is a pairing check, not a refusal of
-        App Attest."""
-        values = {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE, **{key: OPERATOR_VALUE for key in SMS_KEYS}}
-        result = _run_on_env(_operator_env(tmp_path, values), SMS_GUARD)
+        App Attest. It reads with the API's own token, never the root token,
+        so a missing policy grant is caught here too."""
+        env_file = _operator_env(tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE})
+        result = _run_guard(env_file, SMS_VALUES)
         assert result.returncode == 0, result.stderr
+        [call] = (tmp_path / "bao-calls.log").read_text(encoding="utf-8").splitlines()
+        api_token = _read_env_file(env_file)["OPENBAO_TOKEN"]
+        assert call.split(" ", 1)[0] == api_token
+        assert call.endswith(f"kv get -mount=secret -format=json {SMS_KV_PATH}"), call
 
     @pytest.mark.parametrize(
-        "missing", [*((key,) for key in SMS_KEYS), SMS_KEYS], ids=[*SMS_KEYS, "all"]
+        "missing", [*((field,) for field in SMS_FIELDS), SMS_FIELDS], ids=[*SMS_FIELDS, "all"]
     )
-    def test_a_team_id_without_every_sms_key_is_refused(
-        self, tmp_path: Path, missing: tuple[str, ...]
+    @pytest.mark.parametrize("form", ["absent", "blank"])
+    def test_a_team_id_without_the_whole_document_is_refused(
+        self, tmp_path: Path, missing: tuple[str, ...], form: str
     ) -> None:
-        values = {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE}
-        values.update({key: OPERATOR_VALUE for key in SMS_KEYS if key not in missing})
-        result = _run_on_env(_operator_env(tmp_path, values), SMS_GUARD)
+        document: dict[str, object] = {
+            key: value for key, value in SMS_VALUES.items() if key not in missing
+        }
+        if form == "blank":
+            document.update(dict.fromkeys(missing, "  "))
+        env_file = _operator_env(tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE})
+        result = _run_guard(env_file, document)
         assert result.returncode != 0
-        for key in missing:
-            assert key in result.stderr, (key, result.stderr)
+        for field in missing:
+            assert field in result.stderr, (field, result.stderr)
         assert ATTEST_SMS_SECTION in result.stderr
+        assert "./netgsm_secrets.sh" in result.stderr
         assert TEAM_ID_VALUE not in result.stderr, "the refusal echoes no value"
-        assert OPERATOR_VALUE not in result.stderr, "the refusal echoes no value"
+        for value in SMS_VALUES.values():
+            assert value not in result.stderr, "the refusal echoes no value"
+
+    def test_a_document_the_api_cannot_read_is_refused_as_wholly_missing(
+        self, tmp_path: Path
+    ) -> None:
+        """No document, no KV engine, or a policy without the grant: the CLI
+        fails, and every field counts as missing."""
+        env_file = _operator_env(tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE})
+        result = _run_guard(env_file, None)
+        assert result.returncode != 0
+        for field in SMS_FIELDS:
+            assert field in result.stderr, (field, result.stderr)
+
+    def test_the_phi_egress_gate_is_open_on_the_api_alone(self) -> None:
+        """Owner patch (INT-528): the runtime half of the gate for the
+        allow-list's one phi_path row, Netgsm OTP SMS. Only the API gets it."""
+        assert _environment(_service("api")).get("INTAKE_ALLOW_PHI_EGRESS") == "explicit-yes"
+        for name in SERVICES - {"api"}:
+            assert "INTAKE_ALLOW_PHI_EGRESS" not in _environment(_service(name)), name
 
     def test_the_runbook_tells_the_operator_what_to_set(self) -> None:
         runbook = _text(RUNBOOK)
         assert re.search(rf"^## {ATTEST_SMS_SECTION}$", runbook, re.M)
         section = runbook.split(f"## {ATTEST_SMS_SECTION}", 1)[1].split("\n## ", 1)[0]
         needles = (*sorted(OPERATOR_SUPPLIED), TOKENIZATION_KEY, "/etc/intake-staging/.env")
-        for needle in (*needles, "./deploy.sh", "./init.sh", "synthetic"):
+        extra = ("./deploy.sh", "./init.sh", "synthetic", "./netgsm_secrets.sh")
+        for needle in (*needles, *extra, f"secret/{SMS_KV_PATH}"):
             assert needle in section, needle
 
 
