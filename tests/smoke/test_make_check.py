@@ -387,12 +387,15 @@ def test_backlog_parses_and_is_complete() -> None:
     # reason.
     # + INT-550 (a new staff user enrols a passkey after the password step,
     # found on the synthetic host, GitHub #930); grows only with a stated reason.
+    # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
+    # owner's vendor decision on INT-358, GitHub #895); grows only with a
+    # stated reason.
     # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
     # licence-checked, owner request, GitHub #763); grows only with a stated
     # reason.
     # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
     # chrome only; owner request, GitHub #783); grows only with a stated reason.
-    assert len(ids) == 368, f"expected 175 blueprint + 193 added issues, got {len(ids)}"
+    assert len(ids) == 369, f"expected 175 blueprint + 194 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -140,9 +140,10 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-531 (a RED evaluated between turns reaches the patient in budget, GitHub #898)
     # + INT-544 (a pull request clears CI in under 20 minutes, GitHub #919)
     # + INT-550 (a new staff user enrols a passkey after the password step, GitHub #930)
+    # + INT-528 (Netgsm OTP SMS adapter behind the INT-329 port, GitHub #895)
     # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
     # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
-    assert len(actions) == 368
+    assert len(actions) == 369
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
