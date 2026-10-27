@@ -13,11 +13,11 @@
  * form (there is no deploy controller to command): both buttons are present,
  * disabled, and say why. No `style` attribute anywhere.
  */
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
-import { EmptyRow, NextStep } from "../ui/states";
+import { EmptyRow, RefusedPage } from "../ui/states";
 import type { ResultCode } from "./actions";
 import { COPY, type CicdCopy, type Lang } from "./copy";
 import type { CicdState } from "./load";
@@ -228,15 +228,6 @@ function ControlForm({
   );
 }
 
-function Refused({ lang, c, children }: { lang: Lang; c: C; children: ReactNode }): ReactElement {
-  return (
-    <main lang={lang} className="ops" data-page="cicd">
-      <h1>{c.title}</h1>
-      {children}
-    </main>
-  );
-}
-
 export function CicdConsole({
   state,
   lang,
@@ -249,22 +240,20 @@ export function CicdConsole({
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="cicd" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-        <NextStep state={state} page="cicd" lang={lang} />
-      </Refused>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="cicd" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-        <NextStep state={state} page="cicd" lang={lang} />
-      </Refused>
+      </RefusedPage>
     );
   }
   const view = state.view;

@@ -15,7 +15,7 @@ import { ConsoleNav } from "../ops/nav";
 import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
 import { BarList, Gauge, toneOf, type BarRow } from "../ui/charts";
 import { figureOf, percentOf, sharesOf } from "../ui/figure";
-import { NextStep } from "../ui/states";
+import { RefusedPage } from "../ui/states";
 import { COPY, type Lang, type OverviewCopy } from "./copy";
 import type { OverviewState } from "./load";
 import type { Age, OverviewView, SloView } from "./module";
@@ -489,24 +489,20 @@ export function OverviewConsole({
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <main lang={lang} className="ops" data-page="overview">
-        <h1>{c.title}</h1>
+      <RefusedPage page="overview" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-        <NextStep state={state} page="overview" lang={lang} />
-      </main>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <main lang={lang} className="ops" data-page="overview">
-        <h1>{c.title}</h1>
+      <RefusedPage page="overview" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-        <NextStep state={state} page="overview" lang={lang} />
-      </main>
+      </RefusedPage>
     );
   }
   const view = state.view;

@@ -10,13 +10,13 @@
  * its reason and no figure (invariant 17). No `style` attribute anywhere — the
  * CSP has no `unsafe-inline`.
  */
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
 import { BarList } from "../ui/charts";
 import { sharesOf } from "../ui/figure";
-import { NextStep } from "../ui/states";
+import { RefusedPage } from "../ui/states";
 import type { ResultCode } from "./actions";
 import { ControlForms, ControlsTile, PendingTile } from "./controls";
 import { COPY, type Lang, type VoiceCopy } from "./copy";
@@ -272,15 +272,6 @@ function Breakers({ view, c }: { view: VoiceView; c: C }): ReactElement {
   );
 }
 
-function Refused({ lang, c, children }: { lang: Lang; c: C; children: ReactNode }): ReactElement {
-  return (
-    <main lang={lang} className="ops" data-page="voice">
-      <h1>{c.title}</h1>
-      {children}
-    </main>
-  );
-}
-
 export function VoiceConsole({
   state,
   lang,
@@ -293,22 +284,20 @@ export function VoiceConsole({
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="voice" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-        <NextStep state={state} page="voice" lang={lang} />
-      </Refused>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="voice" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-        <NextStep state={state} page="voice" lang={lang} />
-      </Refused>
+      </RefusedPage>
     );
   }
   const view = state.view;

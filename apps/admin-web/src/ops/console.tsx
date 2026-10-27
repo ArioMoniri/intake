@@ -14,7 +14,7 @@ import { ClipCharts, GpuCharts, UsageCharts } from "./charts";
 import { COPY, type Copy, type Lang } from "./copy";
 import type { OpsConsoleState } from "./load";
 import type { OpsView } from "./module";
-import { NextStep } from "../ui/states";
+import { RefusedPage } from "../ui/states";
 import { ConsoleNav } from "./nav";
 import { Cell, Rows, ScrollTable, Tile } from "./tiles";
 
@@ -402,24 +402,20 @@ export function OpsConsole({ state, lang }: { state: OpsConsoleState; lang: Lang
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <main lang={lang} className="ops" data-page="ops">
-        <h1>{c.title}</h1>
+      <RefusedPage page="ops" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-        <NextStep state={state} page="ops" lang={lang} />
-      </main>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <main lang={lang} className="ops" data-page="ops">
-        <h1>{c.title}</h1>
+      <RefusedPage page="ops" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-        <NextStep state={state} page="ops" lang={lang} />
-      </main>
+      </RefusedPage>
     );
   }
   const view = state.view;

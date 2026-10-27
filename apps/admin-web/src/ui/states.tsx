@@ -8,10 +8,10 @@
  * page's language; it says its words in both, each marked with its own
  * `lang`, `tr` first (invariant 5).
  */
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import type { Lang } from "../ops/copy";
-import type { ConsolePage } from "../ops/nav";
+import { ConsoleNav, type ConsolePage } from "../ops/nav";
 import { Glyph } from "./glyphs";
 import { NEXT_STEPS, RETRYABLE, type NextStepReason } from "./next-steps";
 import { Ticked } from "./unknown";
@@ -42,6 +42,39 @@ export function NextStep({
         </>
       ) : null}
     </p>
+  );
+}
+
+/**
+ * INT-569 — a refused or unavailable page keeps the console's shell: the
+ * sidebar with this page marked current and the page's title, then the notice
+ * (the caller's `<p className="refusal">`) and its next step in a centred
+ * state view. The audit found five of six pages rendered a dead end here.
+ */
+export function RefusedPage({
+  page,
+  lang,
+  title,
+  state,
+  children,
+}: {
+  page: ConsolePage;
+  lang: Lang;
+  title: string;
+  state: { reason: NextStepReason };
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <main lang={lang} className="ops" data-page={page}>
+      <header className="page-head">
+        <ConsoleNav current={page} lang={lang} />
+        <h1>{title}</h1>
+      </header>
+      <div className="state-view">
+        {children}
+        <NextStep state={state} page={page} lang={lang} />
+      </div>
+    </main>
   );
 }
 
@@ -91,22 +124,24 @@ export function EmptyRow({
 export function NotFoundView(): ReactElement {
   return (
     <main className="ops" data-page="not-found" lang="tr">
-      <p className="state-glyph">
-        <Glyph name="search" size={28} />
-      </p>
-      <h1>Sayfa bulunamadı</h1>
-      <p lang="en" className="state-alt">
-        Page not found
-      </p>
-      <p className="state-body">
-        Bu adres konsolun bir sayfası değil.{" "}
-        <span lang="en">This address is not a console page.</span>
-      </p>
-      <p>
-        <a href="/overview">
-          Genel bakışa dön · <span lang="en">Back to the overview</span>
-        </a>
-      </p>
+      <div className="state-view">
+        <p className="state-glyph">
+          <Glyph name="search" size={28} />
+        </p>
+        <h1>Sayfa bulunamadı</h1>
+        <p lang="en" className="state-alt">
+          Page not found
+        </p>
+        <p className="state-body">
+          Bu adres konsolun bir sayfası değil.{" "}
+          <span lang="en">This address is not a console page.</span>
+        </p>
+        <p>
+          <a href="/overview">
+            Genel bakışa dön · <span lang="en">Back to the overview</span>
+          </a>
+        </p>
+      </div>
     </main>
   );
 }

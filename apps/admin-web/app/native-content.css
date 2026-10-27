@@ -358,27 +358,29 @@ button:disabled {
   margin-left: 0;
 }
 
-/* A page with no header is a state of its own: a refusal, an unavailable API,
-   or an address that is not a page. It is centred, with its symbol above. */
-.ops:not(:has(> .page-head)) {
+/* A state view: a refusal, an unavailable API (INT-569: under the shell, the
+   sidebar and the page's title kept), or an address that is not a page. It is
+   centred in the content area, with its symbol above. */
+.state-view {
   display: grid;
   place-content: center;
   justify-items: center;
   gap: 10px;
   max-width: 560px;
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: calc(100vh - 180px);
+  min-height: calc(100dvh - 180px);
   margin: 0 auto;
   padding: 48px 20px;
   text-align: center;
 }
 
-.ops:not(:has(> .page-head)) > .refusal {
+.state-view > .refusal {
+  margin-top: 0;
   padding: 56px 24px 20px;
   font-size: 14px;
 }
 
-.ops:not(:has(> .page-head)) > .refusal::before {
+.state-view > .refusal::before {
   top: 18px;
   left: calc(50% - 15px);
   width: 30px;

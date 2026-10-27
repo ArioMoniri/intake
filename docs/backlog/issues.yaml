@@ -6662,6 +6662,13 @@
   # streams SVG segments in style attributes the CSP refuses. No code copied;
   # licences re-read (docs/evidence/INT-459.md). Model lanes (INT-428, PR
   # #751) takes the shell through its shared class names.
+  # Refresh, 17-28 Oct 2026 (owner: "ui is not good and so basic"): the shell
+  # landed on current main; D26 and the loading state withdrawn (main has no
+  # D26); Palette B (the app's warm paper and teal, owner 17 Oct) in one
+  # tokens file pinned to apps/mobile's theme; a dense twelve-column grid,
+  # wrapping cells and sticky headers; unknown tiles that say what fills them,
+  # empty tables that say what puts a row there, and refused pages that keep
+  # the shell (INT-569). Supersedes PRs #776 and #784.
   depends_on: [INT-450]
   labels: [area:admin]
   status: done

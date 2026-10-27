@@ -9,8 +9,10 @@
  *   While a page loads, the previous page stays up and the browser shows its
  *   own progress.
  * - **Not found** (`app/not-found.tsx`): an empty state with one way back.
- * - **Refused and unavailable** pages keep their markup (INT-181/351) and are
- *   laid out by the layer as a centred state view with a symbol.
+ * - **Refused and unavailable** pages keep the console's shell (INT-569): the
+ *   sidebar with this page marked current and the page's title, and the
+ *   notice with its next step in a centred state view with a symbol. The
+ *   audit found five of six pages rendered a dead end with no navigation.
  * - **Empty** — an unknown tile — keeps its word, its reason and no figure
  *   (invariant 17); the layer gives it an inset with a symbol.
  *
@@ -33,8 +35,14 @@ vi.mock("next/server", () => ({
 }));
 
 import NotFound from "../app/not-found";
+import { AccessConsole } from "../src/access/console";
+import { CicdConsole } from "../src/cicd/console";
+import { ModelLanesConsole } from "../src/model-lanes/console";
 import { OpsConsole } from "../src/ops/console";
+import { CONSOLE_PAGES } from "../src/ops/nav";
+import { OverviewConsole } from "../src/overview/console";
 import { NotFoundView } from "../src/ui/states";
+import { VoiceConsole } from "../src/voice/console";
 import { documentFor, violations } from "./support/axe";
 import { APP, nativeRules, selectorsOf } from "./support/css";
 
@@ -128,39 +136,83 @@ describe("not found: an empty state with one way back", () => {
   });
 });
 
-describe("refused and unavailable pages read as a centred state view", () => {
-  it("a page with no header (a refusal) is centred, and its notice carries a symbol", () => {
-    const page = ruleFor(".ops:not(:has(> .page-head))");
-    expect(page["place-content"]).toBe("center");
-    expect(page["min-height"]).toMatch(/dvh|vh/);
+/** Every console page in its refused and its unavailable state (INT-569). */
+function refusedPages(lang: "tr" | "en"): Record<string, ReactElement> {
+  const refused = { kind: "not_admitted" as const, reason: "no_credentials" as const };
+  const down = { kind: "unavailable" as const, reason: "api_unreachable" as const };
+  return {
+    "overview refused": createElement(OverviewConsole, { state: refused, lang }),
+    "overview unavailable": createElement(OverviewConsole, { state: down, lang }),
+    "ops refused": createElement(OpsConsole, { state: refused, lang }),
+    "ops unavailable": createElement(OpsConsole, { state: down, lang }),
+    "voice refused": createElement(VoiceConsole, { state: refused, lang, result: null }),
+    "voice unavailable": createElement(VoiceConsole, { state: down, lang, result: null }),
+    "cicd refused": createElement(CicdConsole, { state: refused, lang, result: null }),
+    "cicd unavailable": createElement(CicdConsole, { state: down, lang, result: null }),
+    "model-lanes refused": createElement(ModelLanesConsole, {
+      state: refused,
+      lang,
+      result: null,
+    }),
+    "model-lanes unavailable": createElement(ModelLanesConsole, {
+      state: down,
+      lang,
+      result: null,
+    }),
+    "access refused": createElement(AccessConsole, { state: refused, lang }),
+    "access unavailable": createElement(AccessConsole, { state: down, lang }),
+  };
+}
+
+describe("refused and unavailable pages keep the console's shell (INT-569)", () => {
+  for (const [name, tree] of Object.entries(refusedPages("tr"))) {
+    const page = name.split(" ")[0]!;
+    const doc = new JSDOM(renderToStaticMarkup(tree)).window.document;
+
+    it(`${name}: the sidebar is there, with this page marked current`, () => {
+      const nav = doc.querySelector("header.page-head > nav.console-nav");
+      expect(nav).not.toBeNull();
+      expect(nav!.querySelectorAll("[data-page-link]").length).toBe(CONSOLE_PAGES.length);
+      expect(nav!.querySelector(`[aria-current="page"][data-page-link="${page}"]`)).not.toBeNull();
+      expect(doc.querySelector(`main[data-page="${page}"] > header.page-head > h1`)).not.toBeNull();
+    });
+
+    it(`${name}: the notice and its next step sit in a centred state view`, () => {
+      const view = doc.querySelector("main > .state-view");
+      expect(view).not.toBeNull();
+      expect(
+        view!.querySelector(".refusal[data-refusal], .refusal[data-unavailable]"),
+      ).not.toBeNull();
+      expect(view!.querySelector(".next-step[data-next-step]")).not.toBeNull();
+    });
+  }
+
+  it("the state view is centred in the content area, and its notice carries a symbol", () => {
+    const view = ruleFor(".state-view");
+    expect(view["place-content"]).toBe("center");
+    expect(view["min-height"]).toMatch(/dvh|vh/);
     expect(ruleFor(".refusal::before")["content"]).toMatch(/^"!"/);
+    expect(ruleFor(".state-view > .refusal::before")["left"]).toMatch(/50%/);
   });
 
-  it("the refusal markup itself is unchanged: a heading and the reason, no navigation", () => {
-    const html = renderToStaticMarkup(
-      createElement(OpsConsole, {
-        state: { kind: "not_admitted", reason: "no_credentials" },
-        lang: "tr",
-      }),
-    );
-    expect(html).toMatch(/^<main[^>]*class="ops"[^>]*><h1>/);
-    expect(html).toContain('data-refusal="no_credentials"');
-    expect(html).not.toContain("<nav");
+  it("every refused and unavailable page passes axe, in both languages", async () => {
+    for (const lang of ["tr", "en"] as const) {
+      for (const [name, tree] of Object.entries(refusedPages(lang))) {
+        expect(await violations(documentFor(tree, lang)), `${name} ${lang}`).toEqual([]);
+      }
+    }
   });
 
-  it("near-miss: an admitted page, which has a header, is not laid out as a state view", () => {
-    const refused = renderToStaticMarkup(
-      createElement(OpsConsole, {
-        state: { kind: "unavailable", reason: "api_unreachable" },
-        lang: "en",
-      }),
-    );
-    const doc = new JSDOM(
-      `<body>${refused}<main class="ops"><header class="page-head"></header></main></body>`,
+  it("near-miss: a console page has no state view, and the old dead end is gone", () => {
+    const admitted = new JSDOM(
+      `<main class="ops" data-page="ops"><header class="page-head"></header><div class="grid"></div></main>`,
     ).window.document;
-    const centred = [...doc.querySelectorAll(".ops:not(:has(> .page-head))")];
-    expect(centred.length).toBe(1);
-    expect(centred[0]!.querySelector("[data-unavailable]")).not.toBeNull();
+    expect(admitted.querySelector(".state-view")).toBeNull();
+    const dead = new JSDOM(
+      `<main class="ops" data-page="ops"><h1>x</h1><p class="refusal" data-refusal="no_credentials">x</p></main>`,
+    ).window.document;
+    expect(dead.querySelector("nav.console-nav")).toBeNull();
+    expect(NATIVE.some((r) => selectorsOf(r).includes(".ops:not(:has(> .page-head))"))).toBe(false);
   });
 });
 

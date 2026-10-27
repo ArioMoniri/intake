@@ -14,7 +14,7 @@ import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, Rows, ScrollTable } from "../ops/tiles";
-import { EmptyState, NextStep } from "../ui/states";
+import { EmptyState, RefusedPage } from "../ui/states";
 import { COPY, type AccessCopy, type Lang } from "./copy";
 import type { AccessState } from "./load";
 import type { AccessView } from "./module";
@@ -191,14 +191,11 @@ export function AccessConsole({ state, lang }: { state: AccessState; lang: Lang 
     const text =
       state.kind === "not_admitted" ? c.refusals[state.reason] : c.unavailable[state.reason];
     return (
-      <main lang={lang} className="ops" data-page="access">
-        <ConsoleNav current="access" lang={lang} />
-        <h1>{c.title}</h1>
+      <RefusedPage page="access" lang={lang} title={c.title} state={state}>
         <p className="refusal" {...attribute}>
           {text}
         </p>
-        <NextStep state={state} page="access" lang={lang} />
-      </main>
+      </RefusedPage>
     );
   }
   const view = state.view;
