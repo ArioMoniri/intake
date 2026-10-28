@@ -4394,4 +4394,7 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on: nothing.
 - Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- Update (check-py red at `make keycloak-provider`):
+  - Cause: the jar embeds its pom, so the bump changed its bytes. main's pom still reproduces `91da1232…`, and the bumped one gives `3ca703b6…`, now the pin (pin file and runbook).
+  - Re-recorded, not edited: the passkey login ran with that jar on Keycloak 26.7.4 (dist sha256 checked) on the AWS synthetic host over SSM. It was loopback only, in a throwaway NVMe dir, with no container and the staging stack untouched. Provider admitted, stock refused. Then torn down.
 - LOOP_STATUS: CONTINUE
