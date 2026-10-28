@@ -376,6 +376,18 @@ def _bound_device(payload: AttestationPayload) -> str:
     raise attestation_unverified()
 
 
+def _retrieve_by_type(task: asyncio.Task[None]) -> None:
+    """Done-callback for a delivery task: retrieve whatever it ended with and
+    name it by type only. An exception left unretrieved is logged by asyncio
+    with its full chain when the task is freed, and a delivery's chain can hold
+    the number and the code (security review, 28 Oct 2026)."""
+    if task.cancelled():
+        return
+    failure = task.exception()
+    if failure is not None:
+        logger.warning("otp delivery task failed (%s)", type(failure).__name__)
+
+
 class OtpAuthService:
     """Orchestrates the OTP tier. Store calls hop off the event loop via
     ``asyncio.to_thread`` (sync Redis client, INT-012 precedent)."""
@@ -611,8 +623,10 @@ class OtpAuthService:
         )
         self._dispatches.add(task)
         task.add_done_callback(self._dispatches.discard)
+        task.add_done_callback(_retrieve_by_type)
 
     async def _deliver(self, *, phone: str, code: str, request_id: str, actor: str) -> None:
+        receipt: DeliveryReceipt | None = None
         try:
             receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
         except Exception as exc:  # noqa: BLE001 — a send must never leak or be lost
@@ -621,20 +635,19 @@ class OtpAuthService:
                 # message, and an unretrieved task exception is logged with its
                 # text. Contain it here: its type is logged, never its words.
                 logger.warning("otp delivery crashed (%s); recorded as failed", type(exc).__name__)
-            # the adapter logged and counted a typed reason (ids only); the caller
-            # was told nothing either way, and nothing claims a send
-            await self._audit.record(
-                actor=actor,
-                action="auth.otp.delivery_failed",
-                resource_ref=f"request:{request_id}",
-                consent_scope="scope:auth",
-            )
-            return
+        # The audit runs OUTSIDE the handler above (security review, 28 Oct
+        # 2026): an append that fails inside it carries the vendor's exception
+        # as its context, and the code and the number travel with it into any
+        # traceback. Out here a failed append chains nothing, and the task's
+        # done-callback names it by type. The adapter logged and counted a typed
+        # reason (ids only); the caller was told nothing either way, and nothing
+        # claims a send that failed.
+        if receipt is None:
+            action, resource = "auth.otp.delivery_failed", f"request:{request_id}"
+        else:
+            action, resource = "auth.otp.sent", f"delivery:{receipt.delivery_id}"
         await self._audit.record(
-            actor=actor,
-            action="auth.otp.sent",
-            resource_ref=f"delivery:{receipt.delivery_id}",
-            consent_scope="scope:auth",
+            actor=actor, action=action, resource_ref=resource, consent_scope="scope:auth"
         )
 
     async def settle(self, timeout_s: float | None = None) -> None:

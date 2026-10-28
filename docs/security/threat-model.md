@@ -666,7 +666,11 @@ it or whose tests exercise it.
   normalises every number to, nor a grouped one; both now take the `+90`, `0090`, `90` and `0` prefixes, the redactor the 3-3-2-2 groupings
   too. A delivery that raised anything but the typed error left its task holding the exception,
   and asyncio logs an unretrieved exception's text; `_deliver` now contains every exception,
-  logs its type only and records `auth.otp.delivery_failed`. On the synthetic host an unnamed
+  logs its type only and records `auth.otp.delivery_failed`. That record is appended outside
+  the handler, so an audit store that fails there chains nothing (inside it, the audit error
+  carried the vendor's exception as its context, and the code and number with it; security
+  review, 28 Oct 2026), and every delivery task has a done-callback that retrieves whatever it
+  ended with and logs only the type, so asyncio never prints a delivery's traceback. On the synthetic host an unnamed
   SMS proxy still wired Netgsm (`proxy is None` was admitted); ADR-042 makes the dedicated proxy
   the only route out, so without it the tier stays at 503 and no secret is read. A failed
   verify now leaves `auth.otp.verify_refused` with the closed outcome (`otp_verify:<outcome>`)
@@ -783,7 +787,8 @@ it or whose tests exercise it.
   canary through every path and every sink, the scanner's own near miss (a leaking log line is
   found, a timestamp holding the six digits is not), every written form of a mobile redacted and
   a landline, a lab value and a date left alone, the collector's patterns on the canonical form,
-  a crashing vendor recorded and never logged, every send and verify on the chain with ids only
+  a crashing vendor recorded and never logged, also when the audit append then fails, every
+  send and verify on the chain with ids only
   and the chain verifying, and the synthetic host refusing to wire without its SMS proxy while
   production keeps its own route (`tests/security/test_sms_data_protection.py`).
 
