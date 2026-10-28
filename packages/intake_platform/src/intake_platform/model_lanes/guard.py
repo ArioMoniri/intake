@@ -27,9 +27,11 @@ Synthetic and hosted runs never count as clinical evidence (files/04 §8.3):
 see :attr:`~intake_platform.model_lanes.router.ModelAssignment.clinical_evidence`.
 
 **The forward proxy is the synthetic deployment's alone** (INT-442). The
-synthetic host's API sits on internal networks only; its one route out is the
-default-deny forward proxy rendered from the allow-list's hosted rows
-(``infra/staging/egress/squid.conf``), named by ``INTAKE_EGRESS_PROXY_URL``.
+synthetic host's API sits on internal networks only; the hosted lanes' one
+route out is the default-deny forward proxy rendered from the allow-list's
+hosted rows (``infra/staging/egress/squid.conf``), named by
+``INTAKE_EGRESS_PROXY_URL``. (The OTP tier's SMS call has a proxy of its own,
+``sms-egress``, which carries no other purpose: ADR-042.)
 :func:`egress_proxy_url` is the only reader of that variable, and it refuses —
 the process does not boot — when the variable is set in a deployment that is
 not synthetic: a PHI deployment has no vendor row to reach and no business

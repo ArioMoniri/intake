@@ -1,5 +1,46 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T02:30:00Z · INT-529 · awaiting-human (PR #911 refreshed onto main 78330ff4; the sign-in SMS processor named)
+- Goal: main now runs Netgsm's OTP SMS on the synthetic host (INT-528, #905; D31), with the SMS-only proxy `sms-egress` (ADR-042). The vendor tripwire failed three tests against main, and the texts had to say who the sign-in code goes to.
+- Plan: merge main; name the processor, with its legal entity and country from a primary source, in exactly the text whose subject touches the sign-in number; re-sign; re-cut the tripwire's verified facts for the SMS proxy so it admits that path and still trips on any hosted-LLM path.
+- Tests added (with the near-miss negative for any safety rule): `tests/legal/hosted_reach.py` reads, per network, who can leave the host and who shares the api's networks; `test_synthetic_vendor_tripwire.py` pins the SMS row to `api.netgsm.com.tr` behind `sms-egress`, holds core to naming the processor with its country where recipients are listed and the other three texts to not naming it, and trips on the api joining `sms-wan` or `vendor`, the two proxies' networks bridged, or a new backend peer. RED: 3 failed on the merge. GREEN: 122 passed over the tripwire and the legal index.
+- Result (docs/evidence/INT-529.md §13): core `2026-10-28.syn1`, sha `fce73a8b…86d8d`, index `2026-10-28.1`; voice, lane.affect, documents unchanged (their data never reaches Netgsm). Source: Netgsm's own aydınlatma, retrieved 28 Oct 2026, snapshotted under `docs/legal/sources/netgsm-aydinlatma/`. Claims, PHI and placeholder scans OK; ruff and format clean.
+- Invariants touched and still passing: 5, 6, 14, 18, 19, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none; D31 and ADR-042 are read, not changed.
+- Backlog: union with main; the three pins at 368; files/11 re-rendered. The `aydinlatma.app` awaiting-human row now records the entity, D31 and the live status, and narrows what remains to INT-535 and INTAKE's controller identity.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): unchanged — a licensed Turkish lawyer countersigns before any real patient (HB-L27); INT-535's three questions for the phone-entry notice.
+- Next: the independent legal-reviewer verifies §13; then this refresh is merged forward into #940 and #946.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
+- Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
+- Plan:
+  - Read Keycloak 26.7.4's flow engine. The issue blamed the INT-378 provider for not allowing user setup, but it does: it inherits the stock factory's `true`.
+  - The engine sends a user without the credential to its required action only from a REQUIRED execution (`DefaultAuthenticationFlow.java:473`). The live WebAuthn step was an ALTERNATIVE beside an OTP ALTERNATIVE, so both threw `CREDENTIAL_SETUP_REQUIRED` and the flow ended with "Invalid username or password".
+  - In both realms: WebAuthn REQUIRED, and OTP DISABLED until INT-389.
+  - `staff_flow.py` switches the live realm. Its new steps are `set_required` and `disable_otp`. Each keeps the execution's priority, because Keycloak copies the body's priority. It refuses, before any change, a realm without an enabled `webauthn-register`.
+  - The jar is unchanged and reproduces its pin.
+- Tests added (with the near-miss negative for any safety rule):
+  - `StaffSecondFactorFlowTest` (12) runs Keycloak 26.7.4's own `DefaultAuthenticationFlow` over the committed subflow, with provider-semantics tests beside it (+5).
+  - `tests/admin/test_staff_passkey_enrolment.py` (41): both realms, 13 near misses each, fixture drift, and the first sign-in after enrolment.
+  - `tests/infra/test_staging_keycloak_provider.py` is reworked for the new target. INT-365's and the admin tier's flow assertions are updated.
+  - Red: Java 6 of 44 failed on the host's shape. Python 6 failed, plus a collection error in the staff_flow tests.
+  - Green: Java 46/46, with the jar `OK` against the pin. Python 378 on the affected files and 2553 on the broader set, where the container-only edge suite errors locally.
+  - 10/10 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean. mypy --strict clean on the changed Python.
+  - `make keycloak-provider` OK. files/11 regenerated, and the three pins go from 364 to 365.
+  - The full fan-out runs on the PR's AWS runner. `make safety` is not touched: no protocol or PolicyGuard change.
+- Invariants touched and still passing:
+  - 4 (no consent or share path changed);
+  - 6 (the script prints execution ids only);
+  - 14 (the jar pin is unchanged, and the bootstrap password still travels on stdin);
+  - 16 (Sec-Row `platform`, with the threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none. OTP is DISABLED, not removed: INT-389 (#644) stays the owner's, and the console already refuses TOTP.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The deploy (`./deploy.sh`, then `./smoke.sh` on the host) and the owner's first sign-in are the coordinator's steps after merge. The owner's first session after enrolment is refused by design: the runbook says to sign out of Keycloak and the proxy, then sign in with the passkey.
+- Next: merge, deploy, and the owner signs in.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.
@@ -25,6 +66,41 @@
   - INT-519 items 5, 6 and 7 are unchanged, and item 5's amendment is now one number in CD-04.
   - New items: a hedge plus a choice in one answer; a plain negative to the onset question; a never-asked anchor at session end; CD-05's own wording for "asked, never answered at close".
 - Residuals in evidence: the CD-08 inbox kind `chest_pain_arms_unresolved` is unbuilt; CD-04 is not applied to non-anchor slots; no production worker pumps the close yet.
+
+### 2026-10-16T17:45:00Z · INT-544 · done (PR #923 open, round 2; owner patch and host install pending)
+- Goal: a pull request clears CI in under 20 minutes on the intake-aws-ci pool (GitHub #919, P0, Sec-Row cicd). The acceptance is quoted verbatim in docs/evidence/INT-544.md.
+- Plan:
+  - Measure ten ci and ten security runs per job (queued and running) and name the critical path.
+  - Shard check-py three ways. Round 2, at the coordinator's order: keep each floor on the data make check-py measures it on.
+  - Add a conservative path filter with a tested mapping.
+  - Add a per-runner cache seed: built by the registrar between jobs and read-only to jobs.
+  - Collapse queued main runs.
+  - Write the owner's headroom command, and runners 4-5 with a higher pool ceiling.
+  - Ship the workflow half as an owner patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - tests/ci/test_py_shards.py: all nine check-py lines pinned word for word, with the basis: subset lanes run whole, and only the whole-suite line is split and combined. Partition, determinism and balance of files and lanes; median weight for an unrecorded file; an unrecorded lane is refused. Near misses: a subset floor that the whole suite's data would rescue fails; a missing share or lane fails; a share with failures fails.
+  - tests/ci/test_lanes.py: the mapping; decisions on real merge commits (a move out of a workspace still runs check-ts). Every lane step runs unless its lane is exactly false. Near misses: `== 'true'`, an unconditional step, a shallow checkout, a conditional decision, a job-level `if`. Security jobs and gates carry no condition.
+  - tests/ci/test_ci_seed.py: restore, no seed, a changed file, an added file, a forged manifest, an unpinned deid asset, an unknown part.
+  - tests/ci/test_aws_runner_seed.py: sha256 pins; the build in the job sandbox; the refresh order in prepare. Root refuses absolute or escaping links, pipes and setuid. Bundles hold only lockfiles; the inputs are denied to every runner; headroom only reads.
+  - tests/ci/test_workflow_concurrency.py: the workflow-plus-ref group, with INT-524's per-sha group kept as a near miss.
+  - Red run: 2 collection errors, then 28 failed and 149 passed. Round 2: the new test file against round 1's py_shards fails at collection (no `Lane`).
+- Result (`make check` / `make safety` / `make security` summary):
+  - Round 2, with the owner patch applied, on origin/main 33047ed1: three shards ran the 12117-test whole suite and the eight subset lanes. check-py-combine passes, every floor on its own data: whole-suite 94.74, schemas 92.35, protocols 97.57, triage 100.00, voice-clips 99.51, connectors 95.19, voice-runtime 98.27, metrics 95.09, learning 99.39. ruff is clean and check-py-static is clean.
+  - safety: triage 612 passed at 100.00 %, mutations 18/18 detected, voice-runtime 2185 passed at 98.27 %, adversarial and nightly plan 121 passed.
+  - security: hooks, bandit, checkov (258/0), trivy config, shellcheck, no_placeholders, phi_scan, claims_scan and vendor calls are clean. check-jsonschema and actionlint pass on the patched workflows.
+  - check-integration is CI-only (HB-I1).
+- Invariants touched and still passing:
+  - 6: no PHI in the artefacts; dist/check-py is declared.
+  - 8: floors and their basis unchanged; every floor reads what its make check-py line reads.
+  - 14: no gate skipped; actions SHA-pinned.
+  - 17: no placeholders.
+- Decisions / ADRs / `00_STATE.md` rows: none taken here. Left to the owner: the main-run collapse trade-off (evidence §5). Runners 4-5 and the 20G / 22G / 700 % ceiling follow the coordinator's host reading of 16 Oct 17:12Z (evidence §6).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner, standing .github/** ownership, so no new HB id:
+  - apply and commit issue-drafts/owner-544-ci-speed.patch with its .msg on this branch;
+  - after merge, run `scripts/ci/aws_runner.sh install`, then `seed`, then `probe`;
+  - then apply owner-544-runners-4-5.patch, merge, and run `install`, `seed`, `probe` and `headroom`.
+- Next: record the after times from this PR's own runs once the owner commit is on it. Proposed follow-up: fold the eight sub-minute security jobs into fewer jobs, which would save about 10 runner-minutes per pull request.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-16T13:45:00Z · INT-522 · done (committed locally, not pushed; stacked on #910 INT-521, INT-518, INT-441)
 - Goal: `chest_pain.onset_at`, the tense anchor of K2 and its SARI sibling, is a date answered by four closed choices. Extraction offered `format: date`, gave no reference date and forbade inference, so a spoken choice bound nothing, the anchor read Unknown and K2 could not fire live. INT-518/521 passed only on a recorded ISO date.
@@ -174,6 +250,73 @@
 - Blocked on: D18 for four review-queue cluster gates now refused (`cluster.mental_health` ×2 on `'kendim'`, `cluster.medical` and `cluster.womens_health` on `'hayir'`); push waits on the orchestrator.
 - Next: orchestrator's word to push and open the PR.
 - LOOP_STATUS: CONTINUE
+### 2026-10-16T12:30:00Z · INT-528 · done (committed locally, not pushed; live once the owner applies the egress patch and deploys)
+- Goal: acceptance verbatim (GitHub #895). In summary:
+  - a Netgsm adapter behind the INT-329 SMS port, from Netgsm's documented OTP SMS API;
+  - recorded fixtures only; typed refusals; no PII in logs, metrics or traces;
+  - credentials from OpenBao only, with a fail-closed 503 proven;
+  - an operator script modelled on `langfuse_secrets.sh`, with its one-line SSM command;
+  - the egress row as an owner patch;
+  - every metric catalogued; a legal-reviewer pass.
+- Scope additions, 16 Oct 2026:
+  - App Attest "keychain";
+  - owner orders: credentials from SSM Parameter Store, a read-only credential check first, the
+    Elastic IP 3.211.2.143, the SDK evaluated, an SMS test allow-list (SMS is real now), and one
+    authorised real OTP whose trigger is written and never run;
+  - the orchestrator's route decision, ADR-042.
+- Plan:
+  - `intake_api.otp_netgsm`: REST v2 `/sms/rest/v2/otp`, a hand-enumerated wire body, typed
+    refusals, one closed-label counter, wiring (Netgsm outside dev; Twilio unwired).
+  - `intake_api.sms_recipients`: the synthetic host's test allow-list, gating the login and the
+    send, failing closed.
+  - `intake_platform.egress.DEDICATED_PERSONAL_PROXIES` plus an `sms-egress` squid rendered from
+    the allow-list's SMS row (ADR-042).
+  - Staging: `netgsm_secrets.sh` (SSM → OpenBao, with `--check`), `netgsm_test_otp.sh`,
+    `app_attest_env.sh`, `scripts/staging/app_attest_golive.py`, the deploy sync and restart.
+  - The egress row, the runtime gate and the re-rendered SMS proxy config as
+    `owner-528-netgsm-egress.patch`.
+- Tests added:
+  - `tests/api/`: `test_otp_netgsm.py`, `test_otp_netgsm_wiring.py`, `test_otp_send_check.py`,
+    `test_sms_test_allowlist.py` (near miss one digit away);
+  - `tests/security/test_egress_sms_proxy.py`;
+  - `tests/infra/`: `test_staging_netgsm.py`, `test_staging_sms_egress.py`,
+    `test_app_attest_golive.py`, and `TestAttestAndSms` reworked.
+  - Red runs and 22/22 mutations are recorded in docs/evidence/INT-528.md.
+  - GREEN: 784 passed in the INT-528 targets.
+  - Adjacent suites: 5448 passed, 4 failed (deid NER model cache absent in a fresh worktree).
+- Result:
+  - ruff and format clean; mypy strict clean on 537 source files; shellcheck clean.
+  - no_placeholders, phi_scan and claims_scan OK.
+  - `make check` was not run as one command (check-integration needs a container runtime), and
+    the whole-suite coverage line was killed from outside. `otp_netgsm` is at 100 % branch
+    coverage.
+  - On the head with main's INT-424/428/430/475/501 merged in: the Python suite outside
+    infra/backlog/smoke gives 10642 passed, and infra/backlog/smoke all pass. The owner patch
+    re-applies (`git apply --check` OK); with it applied, 8800 passed across the 17 suites that
+    read the allow-list.
+  - After INT-442/443 (#774, #775) were merged in, the two proxies coexist, and
+    `PURPOSE_PROXIES` keeps each purpose on its own proxy (red 15 failed, then green 47
+    passed). Whole Python suite: **12408 passed**, 0 failed (`tests/infra tests/security tests/backlog tests/smoke tests/voice/adapters` plus the Netgsm API tests: 1783; everything else: 10625; integration tests deselected by the default marker; deid-NER cache through `INTAKE_DEID_MODEL_DIR`); admin-web vitest 385 passed. Patch re-cut, `git apply --check` OK; with it
+    applied: **9352 passed**, 0 failed (55 integration tests deselected).
+- Invariants touched and still passing:
+  - 6: no phone, code, password or vendor text anywhere; numbers only counted.
+  - 13: `otp_sms_delivery_total` is catalogued, and `sms-egress` has its registry row. The
+    probe sweep was re-taken with the shipped recorder (INT-124's precedent).
+  - 14: vendor secrets from OpenBao only, synced from SSM on stdin, never argv; egress via the
+    guard and ADR-042's one proxy.
+  - 17: no fake sender; fail closed everywhere.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-042, allocated by the orchestrator: the SMS vendor rides its own egress proxy, amending
+    ADR-032 for one purpose.
+  - No D-row. The owner's 16 Oct decision is cited as INT-358.
+- Blocked on (owner, no HB id exists for "SMS done"):
+  - applying the patch, which carries the corrected 2018/10 measure 5a wording;
+  - counsel's answers listed in the evidence.
+  - The instance role's SSM read is already satisfied (checked from the host).
+- Next:
+  - the orchestrator pushes and opens the PR from `.scratch/pr-528.md`;
+  - the owner applies the patch, deploys and authorises the real OTP.
+- LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-16T14:30:00Z · INT-529 · awaiting-human (7 of 16 synthetic texts built; committed locally, not pushed)
 - Goal: the owner's yes of 16 Oct 2026 (INT-498 P6), as the legal-author half of D25. The legal lane writes texts for synthetic tenants only, so the synthetic host can exercise voice, documents and sharing. The real-tenant index stays empty until counsel signs (HB-L27, G3).
