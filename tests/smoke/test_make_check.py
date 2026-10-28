@@ -390,7 +390,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358, GitHub #895); grows only with a
     # stated reason.
-    assert len(ids) == 367, f"expected 175 blueprint + 192 added issues, got {len(ids)}"
+    # + INT-574 (the RED-never-waits test is deterministic under runner load,
+    # GitHub #967); grows only with a stated reason.
+    assert len(ids) == 368, f"expected 175 blueprint + 193 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
