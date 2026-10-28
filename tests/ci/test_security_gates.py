@@ -723,7 +723,9 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
     INT-508 renewed the braces entry once, to 31 Dec 2026."""
     config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
     entries = {e["id"]: e for e in config["IgnoredVulns"]}
-    assert set(entries) == {"GHSA-86w9-cpqp-85rv", *OSV_NO_FIX_ROWS}, "nothing else is muted"
+    # INT-573: the zod row is checked in test_the_zod_rows_are_scoped_and_expire_together.
+    expected = {"GHSA-86w9-cpqp-85rv", "GHSA-mrhx-c7xc-m3w5", *OSV_NO_FIX_ROWS}
+    assert set(entries) == expected, "nothing else is muted"
     for advisory, musts in OSV_NO_FIX_ROWS.items():
         entry = entries[advisory]
         until = entry.get("ignoreUntil")
