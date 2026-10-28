@@ -233,7 +233,9 @@ def test_ids_unique_and_well_formed() -> None:
     # each licence-checked; owner request, GitHub #763).
     # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
     # chrome only, tokens and AA contrast tested; owner request, GitHub #783).
-    assert len(ids) == 369
+    # + INT-562 (the Safety queue page in the admin console, from the 18 Oct
+    # admin audit; GitHub #951).
+    assert len(ids) == 370
     import re
 
     for i in ids:

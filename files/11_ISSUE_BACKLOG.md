@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**369 issues.** By phase: P0 182 · P1 133 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 249 · todo 74 · withdrawn 1.
+**370 issues.** By phase: P0 183 · P1 133 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 250 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -193,6 +193,7 @@
 | INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
 | INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
+| INT-562 | Safety queue page in the admin console over GET /admin/safety-queue, with acknowledge | E12-admin | INT-406, INT-459 | area:admin | done |
 
 ## P1
 

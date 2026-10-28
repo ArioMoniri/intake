@@ -67,6 +67,9 @@ def _row(row: QueueRow) -> dict[str, Any]:
         "visit_id": entry.visit_id,
         "kind": entry.kind.value,
         "rule_ids": list(entry.rule_ids),
+        # INT-562: the register the RED was told in (files/02 §2b; invariant 21),
+        # a closed enum the console shows as a word; None on a transition.
+        "register": entry.register.value if entry.register is not None else None,
         "created_at": entry.created_at.isoformat(),
         "acknowledged": not entry.is_open,
         "acknowledged_at": (

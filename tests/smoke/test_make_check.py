@@ -395,7 +395,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # reason.
     # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
     # chrome only; owner request, GitHub #783); grows only with a stated reason.
-    assert len(ids) == 369, f"expected 175 blueprint + 194 added issues, got {len(ids)}"
+    # + INT-562 (the Safety queue page in the admin console, from the 18 Oct
+    # admin audit, GitHub #951); grows only with a stated reason.
+    assert len(ids) == 370, f"expected 175 blueprint + 195 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

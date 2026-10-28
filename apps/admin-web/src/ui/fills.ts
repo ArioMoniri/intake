@@ -191,6 +191,10 @@ const trEmpties = {
     title: "Bu pencerede hat çağrısı yok",
     why: "Bir hat çağrı karşılayıp Prometheus onu kaydettiğinde satırlar burada görünür.",
   },
+  safetyQueue: {
+    title: "Kuyrukta kayıt yok",
+    why: "Bir KIRMIZI tetiklendiğinde, yerinde bildirim gönderildiğinde ya da KIRMIZI bir ziyaret ertelenip iptal edildiğinde satırlar burada görünür.",
+  },
   holders: {
     title: "Rolü olan hesap yok",
     why: "Dizindeki bir hesaba konsol rolü verildiğinde satırlar burada görünür.",
@@ -275,6 +279,10 @@ const enEmpties: Record<EmptyKind, EmptyCopy> = {
   laneCalls: {
     title: "No lane call in this window",
     why: "Rows show here once a lane serves a call and Prometheus records it.",
+  },
+  safetyQueue: {
+    title: "No entry in the queue",
+    why: "Rows show here when a RED fires, an on-site notification is sent, or a RED visit is rescheduled or cancelled.",
   },
   holders: {
     title: "No account holds a role",

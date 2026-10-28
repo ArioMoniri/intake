@@ -109,6 +109,7 @@ class TestTheRead:
             "visit_id",
             "kind",
             "rule_ids",
+            "register",
             "created_at",
             "acknowledged",
             "acknowledged_at",
@@ -244,3 +245,44 @@ class TestTheRegisteredAction:
         catalog = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))
         ids = {metric.get("id", metric["name"]) for metric in catalog["metrics"]}
         assert SAFETY_QUEUE_ACKNOWLEDGE.alert_metric in ids
+
+
+class TestTheRecordedFixture:
+    """INT-562: the console's recording of this route is projected by the
+    route's own ``_row`` over entries the inbox built and ordered; the committed
+    file equals the recorder's output, so the page cannot drift from the API."""
+
+    def test_the_committed_fixture_is_the_recorders_output(self) -> None:
+        import importlib.util
+        import json
+
+        path = REPO / "scripts" / "dev" / "record_safety_queue_fixture.py"
+        spec = importlib.util.spec_from_file_location("record_safety_queue_fixture", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        committed = json.loads((REPO / module.FIXTURE).read_text(encoding="utf-8"))
+        assert committed == module.build_payload(), (
+            "apps/admin-web/e2e/fixtures/safety-queue.payload.json is stale: run "
+            "uv run python scripts/dev/record_safety_queue_fixture.py"
+        )
+
+    def test_the_fixture_holds_ids_and_clocks_only_and_the_inbox_order(self) -> None:
+        import json
+
+        rows = json.loads(
+            (
+                REPO / "apps" / "admin-web" / "e2e" / "fixtures" / "safety-queue.payload.json"
+            ).read_text(encoding="utf-8")
+        )["entries"]
+        open_rows = [row for row in rows if not row["acknowledged"]]
+        answered = rows[len(open_rows) :]
+        assert all(not row["acknowledged"] for row in open_rows)
+        assert all(row["acknowledged"] for row in answered)
+        assert [row["created_at"] for row in open_rows] == sorted(
+            row["created_at"] for row in open_rows
+        )
+        for row in rows:
+            for key in ("entry_id", "tenant_id", "session_id", "visit_id"):
+                assert " " not in row[key]
+            assert row["register"] in (None, "ALERT", "CALM", "SILENT", "DEFERRED_CLINICIAN")

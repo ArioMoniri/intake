@@ -143,7 +143,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-528 (Netgsm OTP SMS adapter behind the INT-329 port, GitHub #895)
     # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
     # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
-    assert len(actions) == 369
+    # + INT-562 (the Safety queue page in the admin console, GitHub #951)
+    assert len(actions) == 370
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

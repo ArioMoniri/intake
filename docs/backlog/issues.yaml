@@ -7307,3 +7307,30 @@
   tests: [tests/api/test_otp_netgsm.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_otp_send_check.py, tests/api/test_sms_test_allowlist.py, tests/security/test_egress_sms_proxy.py, tests/infra/test_staging_netgsm.py, tests/infra/test_staging_sms_egress.py, tests/infra/test_app_attest_golive.py, tests/infra/test_staging_compose.py]
   legal: "KVKK-9,DPA"
   sec_row: "onboarding"
+- id: INT-562
+  epic: E12-admin
+  phase: P0
+  title: "Safety queue page in the admin console over GET /admin/safety-queue, with acknowledge"
+  # GitHub #951. From the admin audit, 18 Oct 2026: on the synthetic host
+  # REDs land in the clinic Safety inbox (INT-406) and no console page shows
+  # them. The page sits on the INT-459 shell (PR #963): the inbox's own order
+  # (open first, oldest first; then answered, newest answer first), asserted
+  # and never re-sorted; ids, rule codes, the RED register, the clocks against
+  # the tenant SLA; one acknowledgement form per open entry to this app's
+  # handler, which forwards the id alone (tier 1, one key, the clinical
+  # responsible's; the API audits it write-ahead, invariant 4); the inbox's
+  # three 503s as a named unavailable state with its next step, never an
+  # empty queue; the empty queue says what puts a row there. The API row
+  # gains `register`. INT-553's clinic items (PR #944, open) extend the sealed
+  # kind vocabulary when they land; clinician outcome codes wait on INT-554.
+  depends_on: [INT-406, INT-459]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-562.md
+  acceptance:
+    - "The page renders every entry of GET /admin/safety-queue in the inbox's order (open REDs, on-site notifications and RED-visit transitions first, oldest first; then acknowledged, newest answer first) and refuses a body out of that order rather than re-sorting it."
+    - "Rows carry ids, rule codes, the RED register, the raised time, the age and the tenant SLA only (invariant 6); a name, a mail or a word in an id field is refused, and the kind, register and age-band vocabularies are sealed."
+    - "Every open entry offers one acknowledgement, a same-origin form forwarding the entry id alone; the API's refusals (role, tenant, not found, already acknowledged, inbox down) come back as codes, never prose."
+    - "The inbox's 503s render as a named unavailable state with a next step, never an empty queue; the empty queue says what fills it; a refused caller keeps the shell; every state passes axe; tr is the source of truth."
+  tests: [apps/admin-web/e2e/safety-queue.spec.ts, tests/admin/test_safety_queue.py]
+  sec_row: "admin-console"
