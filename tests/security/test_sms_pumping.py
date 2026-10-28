@@ -314,6 +314,72 @@ def test_the_operator_command_reads_engages_and_releases(tmp_path: Path) -> None
     assert not re.search(r"\+?90?5\d{9}", out.getvalue())
 
 
+def test_a_release_that_cannot_be_audited_leaves_the_switch_engaged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Security review, 28 Oct 2026 (B2): the release is appended to the hash
+    chain FIRST, and the switch is released only when that append succeeded.
+    Releasing first and auditing after left an unaudited release whenever the
+    audit store was down: sending resumed with no record of who resumed it."""
+    module = spend_module()
+    fake = fakeredis.FakeStrictRedis()
+    module.SpendKillSwitch(fake).engage("day_cap")
+    out = io.StringIO()
+    order: list[str] = []
+    real_release = module.SpendKillSwitch.release
+
+    def failing_audit(action: str) -> None:
+        order.append(f"audit:{action}")
+        raise OSError("unit: the audit store is unreachable")
+
+    def watched_release(self: Any) -> bool:
+        order.append("release")
+        return bool(real_release(self))
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(module.SpendKillSwitch, "release", watched_release)
+        code = module.main(["release"], out=out, redis_factory=lambda: fake, audit=failing_audit)
+    assert code == 1
+    assert module.SpendKillSwitch(fake).state() is not None, "released without an audit row"
+    assert order == ["audit:sms.spend.kill_switch.released"], order
+    assert "engaged" in out.getvalue()
+    # the failure is named by type only: no message, no traceback text
+    assert "unreachable" not in caplog.text
+    assert "unreachable" not in out.getvalue()
+
+
+def test_a_release_is_audited_before_the_switch_moves() -> None:
+    """Near miss: with the audit store up, the same release appends its row,
+    then releases, in that order."""
+    module = spend_module()
+    fake = fakeredis.FakeStrictRedis()
+    module.SpendKillSwitch(fake).engage("day_cap")
+    order: list[str] = []
+
+    def audit(action: str) -> None:
+        # the switch is still engaged when the row is written
+        assert module.SpendKillSwitch(fake).state() is not None
+        order.append(action)
+
+    code = module.main(["release"], out=io.StringIO(), redis_factory=lambda: fake, audit=audit)
+    assert code == 0
+    assert module.SpendKillSwitch(fake).state() is None
+    assert order == ["sms.spend.kill_switch.released"]
+
+
+def test_releasing_a_released_switch_writes_no_row() -> None:
+    module = spend_module()
+    audited: list[str] = []
+    code = module.main(
+        ["release"],
+        out=io.StringIO(),
+        redis_factory=lambda: fakeredis.FakeStrictRedis(),
+        audit=audited.append,
+    )
+    assert code == 0
+    assert audited == []
+
+
 # --- exponential resend backoff ------------------------------------------------------------
 
 

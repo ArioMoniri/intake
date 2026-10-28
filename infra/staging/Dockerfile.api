@@ -44,13 +44,14 @@ RUN if [ -z "$GIT_SHA" ] || [ "$GIT_SHA" = "dev" ] || [ -z "$BUILT_AT" ] || [ "$
  && groupadd --system --gid 10001 intake \
  && useradd --system --uid 10001 --gid 10001 --no-create-home \
       --home-dir /nonexistent --shell /usr/sbin/nologin intake \
- && install -d -o 10001 -g 10001 -m 0750 /var/lib/intake/george-clips
+ && install -d -o 10001 -g 10001 -m 0750 /var/lib/intake/george-clips /var/lib/intake/probe-results
 # root-owned and therefore read-only to the service user
 COPY --from=builder /app /app
 # INT-443: /var/lib/intake/george-clips (created above, owned by the service
 # user) is the mount point of the persistent George clip cache; a fresh named
 # volume takes this directory's ownership, so the read-only container can
-# write clips there and nowhere else.
+# write clips there and nowhere else. INT-560: /var/lib/intake/probe-results
+# is the same for the probes service's sweep, which the api mounts read-only.
 # INT-428 (ADR-035; AI/ML review): this is the SYNTHETIC deployment's image.
 # It alone carries the hosted-lane adapters (packages/hosted-lanes, put on the
 # path here rather than installed into the API's closure) and it bakes the

@@ -234,6 +234,10 @@ def test_ids_unique_and_well_formed() -> None:
     # no wall-clock budget, a store the test holds; GitHub #967).
     # + INT-576 (the Netgsm adapter parses the live success shape and never
     # retries an unreadable 200; the owner's real send, GitHub #971).
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name; owner request, GitHub #712).
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on; owner request, GitHub #948).
     # + INT-578 (OTP brute force and replay: HMAC under an OpenBao pepper,
     # device- and request-bound, atomic budget, lockout; the owner's SMS
     # security order, GitHub #973).
@@ -246,7 +250,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-580 (SMS hijacking and phishing: the tr SMS copy, the domain-bound
     # line, the new-device signal; GitHub #975) + INT-582 (the patient passkey
     # step-up split out of it, awaiting the owner; GitHub #981).
-    assert len(ids) == 376
+    assert len(ids) == 378
     import re
 
     for i in ids:

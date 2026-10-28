@@ -21,7 +21,9 @@ spent or any code minted. A switch that cannot be read (Redis unreachable) or
 whose stored state cannot be parsed counts as engaged: the request answers the
 generic 503 and nothing is sent. The kill switch only ever moves the system to
 the safer state on its own; releasing it is a deliberate operator act, audited
-on the hash chain (files/10 §2, "asymmetric authority").
+on the hash chain (files/10 §2, "asymmetric authority"). The row is appended
+FIRST and the switch released only when that succeeded, so a release the audit
+store could not record does not happen.
 
 **The alert.** ``sms_spend_kill_switch_engaged`` (a gauge, set on every read)
 and ``sms_spend_kill_switch_trips_total{reason}``; the page is
@@ -80,8 +82,10 @@ logger = logging.getLogger("intake_api.sms_spend")
 
 DAY_S: Final = 24 * 3600
 
-# Engineering defaults (module docstring; docs/evidence/INT-577.md). Every code
-# a tenant or the platform may mint, counted over a rolling window.
+# The owner's caps, D37 (files/00_STATE.md, 28 Oct 2026): 1000 a day globally,
+# 120 an hour globally and 120 an hour per tenant; a breach of the day cap stops
+# every send until the owner releases it. Every code a tenant or the platform
+# may mint, counted over a rolling window.
 TENANT_SENDS_PER_HOUR: Final = 120
 GLOBAL_SENDS_PER_HOUR: Final = 120
 GLOBAL_SENDS_PER_DAY: Final = 1000
@@ -243,6 +247,35 @@ def _describe(state: KillSwitchState | None) -> str:
     )
 
 
+def _release_audited(switch: SpendKillSwitch, audit: Callable[[str], None], out: TextIO) -> bool:
+    """Release an engaged switch only after its row is on the hash chain.
+
+    The order is the control (security review, 28 Oct 2026): released first
+    and audited after, a failed append left sending resumed with no record of
+    who resumed it. A failed append leaves the switch engaged, and is named
+    by its type only. A released switch writes no row. False when the release
+    did not happen and the operator must act."""
+    try:
+        if switch.state() is None:
+            return True
+    except SpendStateUnreadable:
+        print("sms spend kill switch: unreadable (the API refuses every send)", file=out)
+        return False
+    try:
+        audit(_AUDIT_ACTIONS["release"])
+    except Exception as exc:  # noqa: BLE001 — any failure to append must keep the switch on
+        logger.warning(
+            "kill switch release refused: the audit append failed (%s)", type(exc).__name__
+        )
+        print(
+            "sms spend kill switch: the release could not be audited, so it stays engaged",
+            file=out,
+        )
+        return False
+    switch.release()
+    return True
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -265,10 +298,11 @@ def main(
         return 2
     switch = SpendKillSwitch(redis_factory())
     if verb == "engage":
+        # stopping spend comes first; the row follows
         if switch.engage("manual"):
             audit(_AUDIT_ACTIONS["engage"])
-    elif verb == "release" and switch.release():
-        audit(_AUDIT_ACTIONS["release"])
+    elif verb == "release" and not _release_audited(switch, audit, out):
+        return 1
     try:
         print(_describe(switch.state()), file=out)
     except SpendStateUnreadable:

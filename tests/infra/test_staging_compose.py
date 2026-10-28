@@ -134,10 +134,15 @@ SERVICES = {
     "admin-web",
     # INT-442: the synthetic host's forward proxy (tests/infra/test_staging_egress.py)
     "egress-proxy",
+    # INT-560: the synthetic probes on the api image (tests/infra/test_staging_probes.py)
+    "probes",
     # INT-528 / ADR-042: the SMS vendor's own forward proxy
     # (tests/infra/test_staging_sms_egress.py)
     "sms-egress",
 }
+
+#: INT-560: services that run the api's own image, so the api's SBOM describes them.
+API_IMAGE_SERVICES = {"api", "probes"}
 STAGING_ENV = "staging"
 
 #: The dev-gate prefix, derived from the API's own gate names instead of being
@@ -772,11 +777,17 @@ class TestOpenBao:
 
 class TestSupplyChainAndExposure:
     def test_every_pulled_image_is_pinned_by_digest(self) -> None:
-        for name, service in _compose()["services"].items():
-            if "build" in service:
+        services = _compose()["services"]
+        # an image this compose builds is never pulled (INT-560: the probes
+        # service runs the api's build); everything else is pinned
+        built = {service["image"] for service in services.values() if "build" in service}
+        for name, service in services.items():
+            if "build" in service or service["image"] in built:
                 continue
             image = _object_store_image() if name == "minio" else service["image"]
             assert PINNED.match(image), f"{name}: {image}"
+        # near miss: an unpinned image that names no build is still refused
+        assert not PINNED.match("intake-staging/api:latest")
 
     def test_every_dockerfile_base_is_pinned_by_digest(self) -> None:
         aliases = {alias for _, alias in _stages() if alias}
@@ -1837,7 +1848,12 @@ class TestSbomStamp:
     def test_compose_passes_the_digest_to_the_api_as_a_required_stamp(self) -> None:
         match = REQUIRED_INTERPOLATION.match(_environment(_service("api")).get(SBOM_STAMP, ""))
         assert match and match.group(1) == SBOM_STAMP
-        for name in SERVICES - {"api"}:
+        # INT-560: the probes service runs the api's image, so the same SBOM
+        # describes it and its /version carries the same stamp
+        for name in API_IMAGE_SERVICES:
+            assert _service(name)["image"] == _service("api")["image"], name
+            assert _environment(_service(name))[SBOM_STAMP] == match.group(0), name
+        for name in SERVICES - API_IMAGE_SERVICES:
             assert SBOM_STAMP not in _environment(_service(name)), name
         assert SBOM_STAMP not in _env_template(), "a release stamp, not a host secret"
 

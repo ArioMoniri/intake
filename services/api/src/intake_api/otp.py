@@ -395,13 +395,30 @@ def _token_hash(token: str) -> str:
 
 
 def _bound_device(payload: AttestationPayload) -> str:
-    """What a code is bound to (INT-578): the key App Attest proved, when the
-    call carries one, and otherwise the install id — which only the dev tier
-    accepts. In a real mode the install id is the client's claim, and binding
-    to it would let any key that claims it spend the code."""
+    """What a code is bound to (INT-578): the key App Attest proved, or, on
+    the dev tier only, the install id. In a real mode the install id is the
+    client's claim, and binding to it would let any device that claims it
+    spend the code, so a real mode with no key it proved is refused here,
+    before any budget is spent or any code minted. Play Integrity proves no
+    key, so Android stays refused until its binding has one (HB-A3)."""
     if payload.mode == "app-attest" and payload.key_id:
         return f"{payload.mode}:{payload.key_id}"
-    return f"{payload.mode}:{payload.device_id}"
+    if payload.mode == "dev-unattested":
+        return f"{payload.mode}:{payload.device_id}"
+    logger.info("otp binding refused: a real attestation mode proved no key")
+    raise attestation_unverified()
+
+
+def _retrieve_by_type(task: asyncio.Task[None]) -> None:
+    """Done-callback for a delivery task: retrieve whatever it ended with and
+    name it by type only. An exception left unretrieved is logged by asyncio
+    with its full chain when the task is freed, and a delivery's chain can hold
+    the number and the code (security review, 28 Oct 2026)."""
+    if task.cancelled():
+        return
+    failure = task.exception()
+    if failure is not None:
+        logger.warning("otp delivery task failed (%s)", type(failure).__name__)
 
 
 class OtpAuthService:
@@ -524,6 +541,7 @@ class OtpAuthService:
 
     async def request_code(self, request: Request, phone_raw: str) -> dict[str, object]:
         payload = await self._require_attested(request, "otp.request")
+        bound = _bound_device(payload)
         try:
             phone, pseudonym = self._require_phone(phone_raw)
         except HTTPException:
@@ -553,7 +571,7 @@ class OtpAuthService:
                 pseudonym,
                 # INT-577: the address as a keyed hash, the device as the key it proved
                 self._pepper.rate_key("ip", ip),
-                self._pepper.rate_key("device", _bound_device(payload)),
+                self._pepper.rate_key("device", bound),
                 extra=self._budgets(),
                 backoff=True,
                 withhold=locked or not listed,
@@ -618,7 +636,7 @@ class OtpAuthService:
                 pseudonym,
                 digest,
                 code if self._wiring.dev_otp_peek else None,
-                binding=self._pepper.device_binding(_bound_device(payload)),
+                binding=self._pepper.device_binding(bound),
             )
             await self._audit.record(
                 actor=actor,
@@ -638,8 +656,10 @@ class OtpAuthService:
         )
         self._dispatches.add(task)
         task.add_done_callback(self._dispatches.discard)
+        task.add_done_callback(_retrieve_by_type)
 
     async def _deliver(self, *, phone: str, code: str, request_id: str, actor: str) -> None:
+        receipt: DeliveryReceipt | None = None
         try:
             receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
         except Exception as exc:  # noqa: BLE001 — a send must never leak or be lost
@@ -648,20 +668,19 @@ class OtpAuthService:
                 # message, and an unretrieved task exception is logged with its
                 # text. Contain it here: its type is logged, never its words.
                 logger.warning("otp delivery crashed (%s); recorded as failed", type(exc).__name__)
-            # the adapter logged and counted a typed reason (ids only); the caller
-            # was told nothing either way, and nothing claims a send
-            await self._audit.record(
-                actor=actor,
-                action="auth.otp.delivery_failed",
-                resource_ref=f"request:{request_id}",
-                consent_scope="scope:auth",
-            )
-            return
+        # The audit runs OUTSIDE the handler above (security review, 28 Oct
+        # 2026): an append that fails inside it carries the vendor's exception
+        # as its context, and the code and the number travel with it into any
+        # traceback. Out here a failed append chains nothing, and the task's
+        # done-callback names it by type. The adapter logged and counted a typed
+        # reason (ids only); the caller was told nothing either way, and nothing
+        # claims a send that failed.
+        if receipt is None:
+            action, resource = "auth.otp.delivery_failed", f"request:{request_id}"
+        else:
+            action, resource = "auth.otp.sent", f"delivery:{receipt.delivery_id}"
         await self._audit.record(
-            actor=actor,
-            action="auth.otp.sent",
-            resource_ref=f"delivery:{receipt.delivery_id}",
-            consent_scope="scope:auth",
+            actor=actor, action=action, resource_ref=resource, consent_scope="scope:auth"
         )
 
     async def settle(self, timeout_s: float | None = None) -> None:
@@ -742,16 +761,23 @@ class OtpAuthService:
         self, request: Request, phone_raw: str, code: str, request_id: str
     ) -> TokenBundle:
         payload = await self._require_attested(request, "otp.verify")
+        bound = _bound_device(payload)
         phone, pseudonym = self._require_phone(phone_raw)
         jkt = await self._verify_proof(request)
         locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym) is not None
         # INT-579: the attempt is taken and compared under a lockout too, so a
         # locked number costs the same work as any other wrong answer
         verdict = await asyncio.to_thread(
-            self._store.check_code,
-            pseudonym,
-            self._pepper.code_digest(pseudonym, request_id, code),
-            binding=self._pepper.device_binding(_bound_device(payload)),
+            partial(
+                self._store.check_code,
+                pseudonym,
+                self._pepper.code_digest(pseudonym, request_id, code),
+                binding=self._pepper.device_binding(bound),
+                # INT-578: a guess under the lockout spends nothing of the
+                # number's budget, so it can neither extend the lockout nor
+                # outlive it in the window
+                charge=not locked,
+            )
         )
         outcome = "locked" if locked else verdict
         OTP_VERIFY_TOTAL.labels(outcome=outcome).inc()

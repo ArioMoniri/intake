@@ -31,6 +31,7 @@ sound and these gaps, each pinned here with a near miss:
 from __future__ import annotations
 
 import contextlib
+import gc
 import json
 import logging
 import re
@@ -306,6 +307,65 @@ def test_a_crashing_vendor_is_recorded_and_its_text_never_logged(
     assert any("RuntimeError" in record.getMessage() for record in caplog.records), (
         "the failure is still visible, by its type"
     )
+
+
+def test_a_crashing_vendor_and_a_failing_audit_leak_nothing_through_the_task(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Security review, 28 Oct 2026 (B5). The delivery runs in a background
+    task. When the audit append failed inside the handler for a crashed
+    vendor, the audit error carried the vendor's exception as its context,
+    the task ended with it unretrieved, and asyncio logged the whole chain:
+    the code and the number in the vendor's message, in the traceback."""
+    from intake_api.audit import AuditWriter
+
+    real_record = AuditWriter.record
+
+    async def failing_record(self: Any, **fields: Any) -> None:
+        if fields["action"] in {"auth.otp.delivery_failed", "auth.otp.sent"}:
+            raise OSError("unit: the audit store is unreachable")
+        await real_record(self, **fields)
+
+    monkeypatch.setattr(AuditWriter, "record", failing_record)
+    caplog.set_level(logging.DEBUG)
+    with harness(tmp_path, delivery=Crashing()) as otp:
+        response = otp.request_otp(CANARY)
+        code = otp.peek(CANARY)
+        assert response.status_code == 202
+        otp.settle()
+        gc.collect()  # an unretrieved task exception is logged when the task is freed
+    text = _records_text(caplog.records)
+    assert find(text, (code,)) == []
+    assert "vendor client crashed" not in text, "the vendor's message reached a log"
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("RuntimeError" in m for m in messages), "the crash is visible by its type"
+    assert any("OSError" in m for m in messages), "the failed append is visible by its type"
+
+
+def test_a_failing_audit_after_a_good_send_is_visible_by_type(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Near miss: the vendor accepts and only the append fails. Nothing to
+    leak, and the failure is still named, by type, rather than dropped."""
+    from intake_api.audit import AuditWriter
+
+    real_record = AuditWriter.record
+
+    async def failing_record(self: Any, **fields: Any) -> None:
+        if fields["action"] == "auth.otp.sent":
+            raise OSError("unit: the audit store is unreachable")
+        await real_record(self, **fields)
+
+    monkeypatch.setattr(AuditWriter, "record", failing_record)
+    caplog.set_level(logging.DEBUG)
+    with harness(tmp_path) as otp:
+        assert otp.request_otp(CANARY).status_code == 202
+        otp.settle()
+        gc.collect()
+    assert any("OSError" in record.getMessage() for record in caplog.records)
+    assert not any(
+        record.name == "asyncio" and record.levelno >= logging.ERROR for record in caplog.records
+    ), "the task's exception was left for asyncio to report"
 
 
 # --- every send and verify on the chain, ids only ----------------------------------------
