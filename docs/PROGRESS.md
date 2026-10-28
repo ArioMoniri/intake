@@ -4385,3 +4385,13 @@
 - Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
 - Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-29T01:30:00+03:00 · INT-586 · done (PR open)
+- Goal: osv-scanner began reporting GHSA-ccrj-gw8r-854m against the Keycloak provider's test-classpath pin opentelemetry-api 1.62.0, turning the vulnerabilities gate red on main and on every open PR. 1.67.0 fixes it, so the fix is a bump, never an exception row (invariant 14).
+- Plan: raise `opentelemetry-patched.version` to 1.67.0 and swap the six 1.62.0 trusted-checksum lines for verified 1.67.0 ones.
+- Tests: local osv-scanner 2.5.1 before (exit 1) and after (exit 0); provider tests (25); backlog and smoke pins at 375. The `make check` fan-out and the strict-checksum Maven build run on the PR's AWS runner.
+- Invariants touched and still passing: 14 (no suppression; the trusted checksums still fail if anything is missing); 16 (Sec-Row `cicd`); 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- LOOP_STATUS: CONTINUE

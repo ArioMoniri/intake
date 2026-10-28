@@ -148,7 +148,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-560 (the operability registry page tells the truth, owner request, GitHub #948)
     # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
     # + INT-537 (the app grants the core consent visits and notes need, GitHub #904)
-    assert len(actions) == 374
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986)
+    assert len(actions) == 375
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
