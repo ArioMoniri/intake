@@ -1,5 +1,72 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
+- Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
+- Plan:
+  - Settle the shape from primary sources, each snapshotted verbatim with URL, date and sha256 in `tests/fixtures/netgsm/sources/`:
+    - Netgsm's documentation (OTP SMS, REST v2 and XML);
+    - the official JS SDK `@netgsm/sms` 1.1.11;
+    - the PHP OTP package the documentation links;
+    - `netgsm-sms` 1.1.2, which has no OTP method at all.
+  - The documentation's sample puts the job id in `jobid`. The JS SDK's `OtpSmsResponse` and its integration test against `/sms/rest/v2/otp` put it in `jobId`. INT-528 read `jobid` only, and replaying the SDK shape reproduces the owner's log line exactly.
+  - Accept both REST v2 shapes: code `00` and exactly one digit-string job id under `jobid` or `jobId`.
+  - Map every documented OTP code, adding 80 (`send_limit_exceeded`) and 101.
+  - Any other 2xx is `unparseable_response`, `accepted_without_job_id` or `unknown_vendor_code`, with port reason `malformed_response`, and is never retried.
+  - Add `OtpDeliveryError.retryable` (False for `malformed_response`, `timeout` and `vendor_unavailable`).
+  - The owner's check prints `unconfirmed` (exit 3), never "not sent", for those.
+  - Add the opt-in structure-only diagnostic `netgsm_test_otp.sh --shape`. It was needed: the documentation and the SDK disagree, and no source is a live capture.
+  - The wire request and the sms-egress allow-list are unchanged.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/api/test_otp_netgsm_answer.py` (new):
+    - 17 unreadable-2xx near misses: plain `00 <id>`, the XML endpoint's answer, an HTML page, empty, a JSON array, no code, a non-digit code, JSON deeper than the decoder, 00 without a job id, a non-digit job id, a numeric job id, an empty job id, both spellings, `jobID`, and the codes 99, `0` and `01` at 200;
+    - each is sent exactly once and is not retryable;
+    - the fixture against the snapshots;
+    - the code union derived from the snapshots;
+    - the retryable truth table;
+    - an AST test for no retry loop;
+    - invariant 6 over values, keys, tags, the code and the job id;
+    - the shape's rendering.
+  - Route: an unreadable 200 gives one vendor call and a 503, and the cooldown answers the resend 429.
+  - Owner check: `unconfirmed` and `--shape`.
+  - Script: `--shape` passes through; any other argument runs nothing.
+  - Red: 59 failed, 193 passed, 1 collection error. Green: 339 passed on the set, and 1273 on the wider OTP, observability, legal, egress and staging suites. 16/16 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff and format clean; mypy --strict clean (97 files).
+  - files/11 regenerated, and the three pins go from 369 to 370, on top of main's INT-573 and INT-574.
+  - The full `make check` fan-out runs on the PR's runner (no container runtime here). The local gate results are in docs/evidence/INT-576.md.
+  - `make safety` is not touched: no protocol, PolicyGuard or runtime change.
+- Invariants touched and still passing:
+  - 6: no number, code, job id or body in any error, log line or shape, tested;
+  - 14: credentials still only from OpenBao, and the egress allow-list is untouched;
+  - 16: Sec-Row `onboarding`, with the threat row updated;
+  - 17: no placeholders, and the fixture is labelled derived, not captured;
+  - 19: no SDK installed or added; the sources were read as data.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Deploy, then the owner's one retry: `netgsm_test_otp.sh --shape` over SSM. Its keys line settles `jobid` against `jobId` live.
+- Next: merge, deploy, and the owner's retry.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-28T05:30:00+03:00 · INT-574 · done (PR open)
+- Goal: GitHub #967, P1. `tests/api/test_red_notify.py::test_the_red_never_waits_on_the_inbox_store` timed one cold request against a 300 ms wall-clock budget on the shared intake-aws-ci runner: main's own run on `78330ff4` failed it at 620 ms, #963's at 350 ms, alone it passes. A required check-py shard, so it blocked every merge when it flaked.
+- Plan:
+  - Lift the test-only rewrite from #963 (`d5f1907b`, INT-459) as its own PR, and take the clock out altogether rather than keep its `elapsed < STALL_S / 2` ratio.
+  - The store holds every write until the test opens it (`_HeldStore`: an event the pump blocks on). The RED coming back while its write is still held is a fact of ordering — nothing had been written for it to wait on. The entry is pending in the outbox with the RED's own instant; the pump brings it to the store; opened refusing, as a down store does, the shutdown count is the original test's.
+  - Near miss: the same RED through an outbox that writes the store itself reaches the store and is held there, back only once the test opens it.
+  - Sweep tests/api and tests/voice for other wall-clock budgets; list each with a recommendation in the evidence; fix only this one.
+- Tests added (with the near-miss negative for any safety rule):
+  - `test_the_red_never_waits_on_the_inbox_store` rewritten: no `perf_counter`, no sleep, no threshold; `RED_BUDGET_MS`, `_down_store` and the polling `_pending_eventually` removed.
+  - `test_near_miss_a_red_that_writes_the_store_itself_is_held_with_the_write` added.
+  - Red: CI's own lines (`assert 620.08 < 300.0` on main, `assert 350.35 < 300.0` on #963). Locally the cold request reads 40 ms alone and 200 ms with one CPU-bound thread in the process: the clock measured the runner, not the property. Mutation (the RED made to write the store itself): the new test fails at `assert store.gave_up == 0` after the 30 s hold.
+  - Green: the file 41/41, ten runs alone and ten under 2 × ncpu CPU hogs; the api suite 825/825 with the file in it (docs/evidence/INT-574.md §3).
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean on the changed files; tests/backlog and tests/smoke/test_make_check.py green (74); `no_placeholders` OK; files/11 regenerated, the three pins 367 → 368.
+  - `make safety` and `make security` untouched: no protocol, PolicyGuard or product code change. The repo-wide `security/vulnerabilities` gate is red until the deps PR lands (expected).
+- Invariants touched and still passing: 9 and 21 (the RED never waits on the inbox store — now proved by ordering, not by a clock); 6 (the shutdown count names nothing; `VISIT` never reaches a log line); 8 (api coverage unchanged, test only); 17 (no placeholder, no skipped test).
+- Decisions / ADRs / `00_STATE.md` rows: none. Three other wall-clock budgets remain in tests/api and tests/voice (`test_triage_hop` p95 < 300 ms; `test_policyguard_latency` 20 ms max and 40 ms report), each with a recommendation in the evidence §4 — thread-time or a recorded measurement — for their own issues.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: merge #967's PR; open issues for the three remaining wall-clock budgets if the coordinator wants them fixed.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-17T00:30:00Z · INT-560 · done (PR open; the merge queue deploys)
 - Goal: owner, 17 Oct ("solve these"). On the synthetic AWS host the ops console's registry tile was wrong in three columns:
   - "Yoklama durumu" read `no_result` on every row, because nothing probed the host and the API had no results file;
@@ -3832,6 +3899,16 @@
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-02T12:00:00Z · INT-420 · done (PR open, not merged)
+- Goal: acceptance (GitHub #712), with the old name written as <old>: *"Every brand use of <old> on main reads Önvizit (ASCII identifier `onvizit`) … The Turkish common noun "<old>" is kept wherever it is used as a word … Identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested. A guard test fails on any new brand-case "<old>"."*
+- Plan: read int-demo `0115c60b` and `82c1a1e6` hunk by hunk, and port their intent without merging int-demo: the name, the localized CFBundleDisplayName, the V-logo `icon.png` with the `ios.icon` override dropped, and the registered bundle id. Rename every brand use (i18n, embed SDK and sample partner, dev tenant, HL7 fixtures, docs, files/, tests). Keep the common noun and dated records in a reviewed allow-list. Leave eas.json and the other release config to INT-421.
+- Tests added (with near-miss negatives): `tests/release/test_brand_name.py` (derived token, any case; the new brand, `onvizitEmbed` and bare `vizit` are not caught; planted, unlisted and stale entries are; common-noun entries must be word-shaped), `tests/release/test_brand_identifiers.py` (scheme ↔ Keycloak redirects with a planted foreign client, bundle id ↔ App Attest, push title ↔ app name, embed attribute/route/env read back from both sides), `apps/mobile/e2e/brand.spec.ts`. Three mutants were each killed.
+- Result: see docs/evidence/INT-420.md. 199 occurrences renamed. 12 common-noun and 42 dated-record occurrences kept, each listed.
+- Invariants touched and still passing: 5 (tr catalogue brand keys, en mirrored), 18 (no hash-bound consent text changed; the accessibility statement and its draft now name Önvizit; the dev legal tree outside the repo is an owner ask), 2 (the disclaimer under the new name still passes PolicyGuard).
+- Decisions / ADRs / `00_STATE.md` rows: none. Kept on purpose: the bundle id `com.ariomoniri.intakemobile` (the ASC record) and the Expo slug. The scheme is `["onvizit", "intake"]`, so old links still open the app. Dated records are not rewritten (the owner may overrule; it is one list).
+- Blocked on: nothing.
+- Next: PR `INT-420: Önvizit everywhere …` (the issue title; Closes #712, Sec-Row mobile), left unmerged.
+- LOOP_STATUS: CONTINUE
 ### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #724):
   - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*
@@ -4201,3 +4278,10 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+
+### 2026-10-28T01:40:00+03:00 · INT-573 · done
+- Goal: four advisories published on 27 Oct (next 16.3.8 RCE+DoS, certifi 2026.7.22, filelock 3.32.4) turned the vulnerabilities gate red on main and on every open PR. All four have fixed releases, so the fix is bumps, never an exception row (invariant 14).
+- Plan: `pnpm install --lockfile-only` with next pinned to 16.4.1 in apps/admin-web; `uv lock --upgrade-package certifi --upgrade-package filelock==4.2.1` (virtualenv followed). No constraint, no suppression.
+- Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
+- Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
+- LOOP_STATUS: CONTINUE

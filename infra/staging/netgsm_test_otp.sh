@@ -9,7 +9,16 @@
 #
 # The number is never typed, passed or printed: the API reads it from its own
 # OpenBao document. The output is the vendor's job id (code 00) or the refusal
-# by its typed name, never the number and never the code.
+# by its typed name, never the number and never the code. An answer after which
+# Netgsm may already have sent the code is "unconfirmed" (INT-576): check the
+# phone before running this again.
+#
+# --shape is the same one send, followed by the structure of Netgsm's answer
+# (INT-576, opt-in): its content type, kind, top-level keys or tags, the
+# vendor's code and the body length. Never the number, the code, the job id or
+# the body:
+#
+#   aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/netgsm_test_otp.sh --shape"]'
 #
 # --last prints the API's most recent Netgsm outcome lines instead, which is
 # also how a code requested through the app's sign-in is checked. Those lines
@@ -23,6 +32,7 @@ NETGSM_OUTCOME_RE='otp delivery (accepted|failed) \(netgsm\)[^"]*'
 
 main() {
   require_root
+  [[ $# -le 1 ]] || die "usage: netgsm_test_otp.sh [--last | --shape]"
   case ${1:-} in
   --last)
     compose logs --no-color --since 30m api 2>/dev/null | grep -oE "$NETGSM_OUTCOME_RE" | tail -n 5 ||
@@ -31,7 +41,10 @@ main() {
   "")
     compose exec -T api python -m intake_api.otp_send_check </dev/null
     ;;
-  *) die "usage: netgsm_test_otp.sh [--last]" ;;
+  --shape)
+    compose exec -T api python -m intake_api.otp_send_check --shape </dev/null
+    ;;
+  *) die "usage: netgsm_test_otp.sh [--last | --shape]" ;;
   esac
 }
 

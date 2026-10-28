@@ -220,7 +220,7 @@ class TestContentFreedom:
             key="leaky",
             message_class=MessageClass.TRANSACTIONAL,
             route=DeepLinkRoute.TODAY,
-            title={Locale.TR: "Vizite", Locale.EN: "Vizite"},
+            title={Locale.TR: "Önvizit", Locale.EN: "Önvizit"},
             body={
                 Locale.TR: f"{ADVERSARIAL_BRANCH} viziteniz yarın.",
                 Locale.EN: "Your visit tomorrow.",
@@ -566,7 +566,7 @@ def _fixture_commercial_template() -> Template:
         key="fixture.commercial",
         message_class=MessageClass.COMMERCIAL,
         route=DeepLinkRoute.APP_ROOT,
-        title={Locale.TR: "Vizite", Locale.EN: "Vizite"},
+        title={Locale.TR: "Önvizit", Locale.EN: "Önvizit"},
         body={Locale.TR: "Deneme iletisi.", Locale.EN: "Test message."},
     )
 
