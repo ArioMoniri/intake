@@ -83,6 +83,9 @@ done
 # App Attest pairing against what the API will read, before the API starts.
 NETGSM_SYNC=$("$STAGING_DIR/netgsm_secrets.sh" --if-present)
 require_sms_with_app_attest
+# INT-580 (D34): the association file the edge serves, from the same team id,
+# before the edge is recreated below; none without a team id (fail closed)
+write_aasa
 
 wait_healthy postgres
 run_migrations

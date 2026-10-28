@@ -693,19 +693,27 @@ it or whose tests exercise it.
   `webcredentials:` entry in the app's own `ios.associatedDomains` (`apps/mobile/app.json`,
   shipped in the API image), sent only when there is exactly one, it is a public name without a
   developer-mode suffix, and the longest message still fits a segment; anything else sends no
-  line, because a wrong line would steer the autofill elsewhere. The shipped app declares no
-  associated domain (the host name is the owner's, HB-I14, and it must also serve the app's
-  `apple-app-site-association`), so today no line goes out. A sign-in from a device the account
+  line, because a wrong line would steer the autofill elsewhere. The owner chose the domain
+  on 28 Oct 2026 (D34): the synthetic host, `webcredentials:3-211-2-143.sslip.io`, so every
+  OTP SMS ends `@3-211-2-143.sslip.io #<code>`. The host serves
+  `/.well-known/apple-app-site-association` naming the app back, as JSON with no redirect, from
+  a file `deploy.sh` renders out of the host's own Apple team id and the app's bundle id
+  (`write_aasa`); with no team id it renders nothing, the route answers 404 and iOS simply
+  offers no autofill (fail closed: the team id is not in the repository and is never
+  invented). The production domain is revisited at real launch. A sign-in from a device the
+  account
   has not signed in from — the shape of a phished code entered on the thief's phone, and of a
   SIM swap's first sign-in — is detected against the account's known devices (keyed hashes of
   the proven App Attest key, kept for a refresh-token lifetime, the class of datum INT-344
   already keeps), counted, written to the hash chain under the patient (`auth.login.new_device`,
   which the patient's access log shows as account security) and handed to a notice channel;
-  no channel to the patient exists yet, so the notice fails closed and says so. What still
-  stands open: the notice's channel and words (an owner input), and the **passkey step-up**
-  that would make a SIM swap insufficient on its own, moved to INT-582 (patients have no
-  passkeys; persisting their credentials and the list of sensitive actions are owner
-  decisions).
+  no channel to the patient exists yet, so the notice fails closed and says so. The known
+  devices are an off-schema flow of the data inventory (`intake_platform.store.facts`,
+  `sign_in_devices`: pseudonymised identity, KVKK m.12 security, 30 days after the last
+  sign-in, internal only). What still stands open: the notice's channel, push to the
+  patient's earlier devices (D35, INT-583), and the **passkey step-up** that would make a SIM
+  swap insufficient on its own (D36, INT-582: patient passkey public keys may be stored, and a
+  Doctor Link, a phone change, export and delete step up).
 - **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
   product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
   processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
@@ -820,11 +828,16 @@ it or whose tests exercise it.
   bound with INT-580: the copy's one tr source rendered by both adapters, the code and the app
   name and nothing else (and the checker's own near miss), PolicyGuard in siz with a sen form
   refused, one ASCII segment for every code length with and without a line, the shipped app's
-  missing domain pinned, the line for exactly one webcredentials domain and none for ten near
+  D34 domain and its line (a config without the entitlement as the near miss), the line for
+  exactly one webcredentials domain and none for ten near
   misses, the wiring taking the domain from the app config, the image carrying it, and the
   new-device signal: none for a first or a known device, counted, audited and told once for a
   new one, failing closed without a channel, and the known devices kept as keyed hashes for a
-  session lifetime (`tests/security/test_sms_hijacking.py`).
+  session lifetime and carrying their inventory row (`tests/security/test_sms_hijacking.py`);
+  the host's association file: the document's shape, the team id never invented (no file, a
+  404, for an empty or malformed one, and a stale file removed), the deploy rendering it
+  before the edge starts, and the edge serving that one file as JSON with no redirect
+  (`tests/infra/test_staging_aasa.py`).
 
 ## `consent` — layered consent and scope enforcement
 

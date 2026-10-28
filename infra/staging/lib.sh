@@ -336,6 +336,55 @@ require_sms_with_app_attest() {
   fi
 }
 
+# INT-580, owner decision D34: iOS honours an OTP SMS's `@<domain> #<code>`
+# line only when the app declares the domain (apps/mobile/app.json,
+# webcredentials:) and the domain names the app back in this file. Caddy
+# serves it read-only from AASA_DIR (Caddyfile, compose.yaml).
+AASA_DIR="$STATE_DIR/well-known"
+AASA_FILE="$AASA_DIR/apple-app-site-association"
+AASA_TEAM_ID_RE='^[A-Z0-9]{10}$'
+AASA_BUNDLE_ID_RE='^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$'
+
+aasa_document() {
+  # The association document for one team-prefixed bundle id, or nothing and
+  # a non-zero status when either id has the wrong shape: the shapes are
+  # intake_api.app_attest's, and nothing that matches them can break out of
+  # the JSON string it is printed into.
+  local team=$1 bundle=$2
+  [[ $team =~ $AASA_TEAM_ID_RE && $bundle =~ $AASA_BUNDLE_ID_RE ]] || return 1
+  printf '{"webcredentials":{"apps":["%s.%s"]}}\n' "$team" "$bundle"
+}
+
+app_bundle_id() {
+  # The app's committed bundle id, from the same app.json the build reads.
+  sed -n 's/^ *"bundleIdentifier": *"\([^"]*\)".*/\1/p' "$REPO_ROOT/apps/mobile/app.json" | head -n 1
+}
+
+write_aasa() {
+  # Render the file from the env file's Apple team id (the App ID prefix the
+  # operator typed into app_attest_env.sh, the one App Attest verifies) and
+  # the bundle id (the env file's, else the app's). Never invented: with no
+  # team id, or a malformed one, no file is served and the route answers 404,
+  # and a file left by an earlier id is removed. Names only in the log.
+  local team bundle document tmp
+  mkdir -p "$AASA_DIR"
+  chmod 0755 "$AASA_DIR"
+  team=$(env_get "$ENV_FILE" INTAKE_APP_ATTEST_TEAM_ID)
+  bundle=$(env_get "$ENV_FILE" INTAKE_APP_ATTEST_BUNDLE_ID)
+  [[ -n $bundle ]] || bundle=$(app_bundle_id)
+  if ! document=$(aasa_document "$team" "$bundle"); then
+    rm -f "$AASA_FILE"
+    log "apple-app-site-association not served: INTAKE_APP_ATTEST_TEAM_ID is empty or malformed, so the OTP SMS domain line will not autofill (D34)"
+    return 0
+  fi
+  # one writer (the deploy); the rename is what caddy ever sees
+  tmp="$AASA_FILE.new"
+  printf '%s\n' "$document" >"$tmp"
+  chmod 0644 "$tmp"
+  mv -f "$tmp" "$AASA_FILE"
+  log "apple-app-site-association served for the configured team and bundle id"
+}
+
 sms_document_as_api() {
   # The read the API makes at boot, with the API's own token, as
   # `bao kv get -format=json` prints it; {} when the CLI is refused (no

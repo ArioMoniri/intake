@@ -572,6 +572,9 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # INT-580 (D34): the apple-app-site-association file deploy.sh renders
+      # (write_aasa); empty without an Apple team id, so the route answers 404
+      - /etc/intake-staging/well-known:/srv/well-known:ro
       - caddy-data:/data
       - caddy-config:/config
     # public: the published ports and ACME egress; edge: the only way to the API

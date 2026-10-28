@@ -16,11 +16,13 @@ PHI and links, and these gaps:
   ``intake_api/sms_copy.tr.json``, names the app, and both adapters render from
   it; the copy passes PolicyGuard in the siz register;
 - **no domain-bound line**, and **no domain to bind to**: ``apps/mobile/app.json``
-  declares no ``ios.associatedDomains``. The mechanism reads the app's own
+  declared no ``ios.associatedDomains``. The mechanism reads the app's own
   ``webcredentials:`` entitlement and appends ``@<domain> #<code>`` only for
   exactly one valid public name; anything else — none, two, a malformed one, a
-  developer-mode one — sends no line. The shipped config has none, so today
-  no line is sent, and that is pinned (an owner input);
+  developer-mode one — sends no line. The owner chose the synthetic host
+  (D34, 28 Oct 2026): the app declares ``webcredentials:3-211-2-143.sslip.io``,
+  so the line goes out, and the host serves the association file that lets
+  iOS honour it (``tests/infra/test_staging_aasa.py``);
 - **no new-device signal**: a sign-in from a device the account has not signed
   in from is now detected (keyed hashes of the device, kept for the session
   lifetime), counted, put on the hash chain and handed to a notice channel —
@@ -74,7 +76,9 @@ def app_config(tmp_path: Path, domains: list[str] | None) -> Path:
     """A mobile app config like the shipped one, with ``domains`` as its
     ``ios.associatedDomains`` (or none at all)."""
     config = json.loads(SHIPPED_APP_CONFIG.read_text(encoding="utf-8"))
-    if domains is not None:
+    if domains is None:
+        config["expo"]["ios"].pop("associatedDomains", None)
+    else:
         config["expo"]["ios"]["associatedDomains"] = domains
     path = tmp_path / "app.json"
     path.write_text(json.dumps(config), encoding="utf-8")
@@ -160,11 +164,26 @@ def test_every_netgsm_message_is_ascii_and_one_segment(code: str, domain: str | 
 # --- the domain-bound line, from the app's own entitlement ---------------------------------
 
 
-def test_the_shipped_app_declares_no_domain_so_no_line_is_sent() -> None:
-    """The owner input, pinned: when the app gains a webcredentials domain this
-    test changes, and the line starts going out."""
+SYNTHETIC_HOST = "3-211-2-143.sslip.io"
+
+
+def test_the_shipped_app_binds_codes_to_the_synthetic_host() -> None:
+    """D34 (owner, 28 Oct 2026): the app's one webcredentials domain is the
+    synthetic host, so every OTP SMS ends with its domain-bound line, and iOS
+    offers the code only inside Önvizit."""
     module = copy_module()
-    assert module.associated_domain(SHIPPED_APP_CONFIG) is None
+    domain = module.associated_domain(SHIPPED_APP_CONFIG)
+    assert domain == SYNTHETIC_HOST
+    for ascii_only in (False, True):
+        message = module.render_otp_sms(CODE, domain=domain, ascii_only=ascii_only)
+        assert message.splitlines()[-1] == f"@{SYNTHETIC_HOST} #{CODE}"
+        assert len(message) <= module.SEGMENT_LIMIT
+
+
+def test_a_config_without_the_entitlement_sends_no_line(tmp_path: Path) -> None:
+    """Near miss for the test above: the same config without the domain."""
+    module = copy_module()
+    assert module.associated_domain(app_config(tmp_path, None)) is None
     assert "@" not in module.render_otp_sms(CODE, domain=None)
 
 
@@ -245,12 +264,19 @@ def test_the_netgsm_wiring_takes_the_domain_from_the_app_config(
     wiring = _auth_from_settings(_staging(tmp_path, configured), secrets=kit.complete_vault())
     assert isinstance(wiring, AuthWiring)
     assert wiring.delivery.domain == "onvizit.example"
-    # near miss: the shipped config, no line
+    # the shipped config carries the synthetic host (D34)
     shipped = _auth_from_settings(
         _staging(tmp_path, SHIPPED_APP_CONFIG), secrets=kit.complete_vault()
     )
     assert isinstance(shipped, AuthWiring)
-    assert shipped.delivery.domain is None
+    assert shipped.delivery.domain == SYNTHETIC_HOST
+    # near miss: a config without the entitlement, no line
+    (tmp_path / "bare").mkdir()
+    bare = _auth_from_settings(
+        _staging(tmp_path, app_config(tmp_path / "bare", None)), secrets=kit.complete_vault()
+    )
+    assert isinstance(bare, AuthWiring)
+    assert bare.delivery.domain is None
 
 
 def test_the_wire_body_carries_the_line_when_a_domain_is_configured() -> None:
@@ -349,3 +375,24 @@ def test_known_devices_are_keyed_hashes_kept_for_the_session_lifetime(tmp_path: 
         assert len(members) == 1 and re.fullmatch(r"[0-9a-f]{64}", members[0])
         assert "device-a" not in members[0]
         assert 0 < otp.redis_client.ttl(keys[0]) <= REFRESH_TTL_S
+
+
+def test_the_device_set_carries_its_inventory_annotation() -> None:
+    """Invariant 18: personal data with no column still carries the five
+    inventory fields. The device set is a pseudonymous identifier per patient
+    id, held in Redis, so it is an off-schema flow of the data inventory, and
+    the store labels are generated from the same row."""
+    from intake_platform.db.inventory import INVENTORY_FIELDS
+    from intake_platform.store.facts import OFF_SCHEMA_FLOWS, data_facts
+
+    flow = OFF_SCHEMA_FLOWS["sign_in_devices"]
+    assert set(flow.annotation) == set(INVENTORY_FIELDS)
+    for field_name in INVENTORY_FIELDS:
+        assert flow.annotation[field_name].strip(), field_name
+    assert flow.persisted and flow.active
+    assert (REPO / flow.source_path).is_file()
+    assert "auth:otp:devices" in flow.what
+    # the retention it states is the one the store enforces
+    assert REFRESH_TTL_S == 30 * 24 * 3600
+    assert "30 days" in flow.annotation["retention"]
+    assert "flow:sign_in_devices" in {fact.fact_id for fact in data_facts()}

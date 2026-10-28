@@ -7467,12 +7467,13 @@
   # INT-580 (#975). A SIM swap hands the attacker the SMS, so the OTP alone
   # cannot protect what follows sign-in; a passkey bound to the patient's own
   # device can. Not built: patients have no passkeys (staff passkeys are
-  # Keycloak's), so it needs owner decisions first.
+  # Keycloak's). The owner approved it on 28 Oct 2026 as D36 (files/00_STATE.md,
+  # recorded by INT-585, #984), so it is ready to build.
   depends_on: [INT-580]
   labels: [area:api, risk:security]
-  status: awaiting-human
+  status: todo
   acceptance:
-    - "Owner: persisting patient passkey credentials (credential id, public key, sign count) is a new category of personal data — approve it with its retention, and name which patient actions are sensitive enough to step up (candidates: issuing a Doctor Link, changing the phone number, DSAR export or delete)."
+    - "D36 (owner, 28 Oct 2026): patient passkey public keys (credential id, public key, sign count) may be stored, and these patient actions step up to the passkey: issuing a Doctor Link, changing the phone number, data export and data delete. It is a new category of personal data, so its inventory annotation {category, purpose, basis, retention, recipients} comes from the legal lane and the schema test passes."
     - "A passkey dependency on each side, each licence-verified from the raw LICENSE blob: a WebAuthn verifier for the API and a passkey module for the Expo app."
     - "Registration after the first OTP sign-in; each sensitive action requires a fresh, single-use passkey assertion bound to a server challenge and recorded on the hash chain; a patient without a passkey is told how to add one, never silently let through; tests first with near misses (a replayed assertion, another account's credential, a stale challenge)."
   tests: []

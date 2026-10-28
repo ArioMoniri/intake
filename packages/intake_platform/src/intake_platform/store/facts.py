@@ -39,8 +39,10 @@ from intake_platform.db import models
 from intake_platform.db.inventory import (
     BASIS_AWAITING_HUMAN_DIAGNOSTICS,
     BASIS_HEALTH_CONSENT,
+    BASIS_LEGAL_OBLIGATION,
     CAT_HEALTH,
     CAT_OPERATIONAL,
+    CAT_PSEUDONYM,
     INVENTORY_KEY,
     REC_AUDITOR,
     REC_CLINICIAN,
@@ -217,10 +219,39 @@ _CRASH_DIAGNOSTICS = OffSchemaFlow(
     "no default endpoint (files/10 §3-§4, INT-145)",
 )
 
+_SIGN_IN_DEVICES = OffSchemaFlow(
+    flow_id="sign_in_devices",
+    what=(
+        "keyed hashes of the devices a patient account has signed in from, in Redis "
+        "under auth:otp:devices:<patient id>"
+    ),
+    annotation=inv(
+        CAT_PSEUDONYM,
+        "tell a sign-in from a device the account has not used before, so a possible "
+        "SIM swap or intercepted code is counted and audited (INT-580); a hash under "
+        "the OTP pepper, never the device's key id",
+        BASIS_LEGAL_OBLIGATION,
+        "30 days after the last sign-in from any of the account's devices (the "
+        "refresh-token lifetime, REFRESH_TTL_S), then the key expires",
+        REC_INTERNAL,
+    )[INVENTORY_KEY],
+    persisted=True,
+    active=True,
+    source_path="services/api/src/intake_api/auth_store.py",
+    source="AuthStore.remember_device: one Redis set per patient id, members are "
+    "rate_key hashes, the key's expiry renewed to REFRESH_TTL_S on each sign-in",
+)
+
 OFF_SCHEMA_FLOWS: Final[Mapping[str, OffSchemaFlow]] = MappingProxyType(
     {
         flow.flow_id: flow
-        for flow in (_VOICE_AUDIO, _HEALTH_PLATFORM_READS, _DOCUMENT_OBJECT, _CRASH_DIAGNOSTICS)
+        for flow in (
+            _VOICE_AUDIO,
+            _HEALTH_PLATFORM_READS,
+            _DOCUMENT_OBJECT,
+            _CRASH_DIAGNOSTICS,
+            _SIGN_IN_DEVICES,
+        )
     }
 )
 
