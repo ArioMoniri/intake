@@ -75,7 +75,7 @@ export default function ConsentDetail() {
   const mirror = (scopes: readonly PurposeId[], on: boolean) => {
     for (const scope of scopes) {
       const key = purposeDef(scope)?.sessionKey;
-      if (key !== null && key !== undefined && key !== "core") {
+      if (key !== null && key !== undefined) {
         setConsent(key, on);
       }
     }

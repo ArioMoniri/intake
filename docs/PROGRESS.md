@@ -110,6 +110,18 @@
   - INT-561 records the licence blobs for the four new rows, and was told their names.
 - Refresh onto main `78330ff4` (28 Oct): main's #905 added ADR-042's `sms-egress` service. The inventory now places it as `needed: false` (`fails_closed_without_it`) and `unprobed` (`outside_probe_networks`): the probes stay off `sms-out`, which ADR-042 keeps to the API and the proxy, and a needed-but-unobserved row would have read blocking. Fixtures re-recorded with the recorders; the count pins go to 368 (evidence §9).
 - Next: the merge queue deploys. After it, `/ops` on the host should read real results with ages.
+### 2026-10-28T02:30:00Z · INT-529 · awaiting-human (PR #911 refreshed onto main 78330ff4; the sign-in SMS processor named)
+- Goal: main now runs Netgsm's OTP SMS on the synthetic host (INT-528, #905; D31), with the SMS-only proxy `sms-egress` (ADR-042). The vendor tripwire failed three tests against main, and the texts had to say who the sign-in code goes to.
+- Plan: merge main; name the processor, with its legal entity and country from a primary source, in exactly the text whose subject touches the sign-in number; re-sign; re-cut the tripwire's verified facts for the SMS proxy so it admits that path and still trips on any hosted-LLM path.
+- Tests added (with the near-miss negative for any safety rule): `tests/legal/hosted_reach.py` reads, per network, who can leave the host and who shares the api's networks; `test_synthetic_vendor_tripwire.py` pins the SMS row to `api.netgsm.com.tr` behind `sms-egress`, holds core to naming the processor with its country where recipients are listed and the other three texts to not naming it, and trips on the api joining `sms-wan` or `vendor`, the two proxies' networks bridged, or a new backend peer. RED: 3 failed on the merge. GREEN: 122 passed over the tripwire and the legal index.
+- Result (docs/evidence/INT-529.md §13): core `2026-10-28.syn1`, sha `fce73a8b…86d8d`, index `2026-10-28.1`; voice, lane.affect, documents unchanged (their data never reaches Netgsm). Source: Netgsm's own aydınlatma, retrieved 28 Oct 2026, snapshotted under `docs/legal/sources/netgsm-aydinlatma/`. Claims, PHI and placeholder scans OK; ruff and format clean.
+- Invariants touched and still passing: 5, 6, 14, 18, 19, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none; D31 and ADR-042 are read, not changed.
+- Backlog: union with main; the three pins at 368; files/11 re-rendered. The `aydinlatma.app` awaiting-human row now records the entity, D31 and the live status, and narrows what remains to INT-535 and INTAKE's controller identity.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): unchanged — a licensed Turkish lawyer countersigns before any real patient (HB-L27); INT-535's three questions for the phone-entry notice.
+- Next: the independent legal-reviewer verifies §13; then this refresh is merged forward into #940 and #946.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
 - Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
 - Plan:
@@ -137,6 +149,55 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. OTP is DISABLED, not removed: INT-389 (#644) stays the owner's, and the console already refuses TOTP.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The deploy (`./deploy.sh`, then `./smoke.sh` on the host) and the owner's first sign-in are the coordinator's steps after merge. The owner's first session after enrolment is refused by design: the runbook says to sign out of Keycloak and the proxy, then sign in with the passkey.
 - Next: merge, deploy, and the owner signs in.
+### 2026-10-17T08:00:00Z · INT-537 · done (round 2 on PR #940; the legal review's B1 and B2 fixed)
+- Goal: clear the legal review's two blocks. B1: a core withdrawal left both learning purposes `default_on` and processing, against the core text. B2: `consent.who.core` hid the RED staff alert.
+- Plan:
+  - The core cascade writes each default-on purpose's opt-out (audited, listed); the app's spare goes.
+  - Use the reviewer's wording for the who-row.
+  - Comment fix in `purposes.ts`. Visit-start copy for a tenant with no core text.
+  - Merge #911 as refreshed (`2cf0d5f3`).
+- Tests added:
+  - API: cascade inverted, re-grant re-opens nothing, voice near miss, no second opt-out.
+  - Legal: service test and sweep repair.
+  - ledger: inverted, plus the voice near miss. gate: a `no_text` reason. consent and visits specs pin the copy.
+  - RED: 13 mobile and 5 Python failed.
+  - Mutations caught: M1 5, M2 1, M3 3.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2848 tests.
+  - api, legal, research, release, backlog and platform: 2219 passed.
+  - mypy --strict is clean on `intake_platform`.
+  - Details are in `docs/evidence/INT-537.md` §8.
+- Invariants touched and still passing: 4 (opt-outs audited as `consent.cascade`, chain verified), 5, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The default-on question goes to INT-556 (the coordinator files it).
+- Blocked on: nothing.
+- Next: the legal-reviewer re-check.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T21:00:00Z · INT-537 · done (PR stacked on #911; legal-reviewer pass to follow)
+- Goal: a signed-in account can start a visit end to end on the synthetic host. The server makes `core` açık rıza, and every visit and note route requires it. The app showed `core` as information and could not grant it (INT-529 finding F2).
+- Plan:
+  - Offer `core` through the existing İzinleriniz flow, like every açık rıza purpose. It is granted against its loaded text with version and hash, and withdrawn in one tap with the server's cascade.
+  - Gate the new-visit screen on the ledger's `core` answer. The refusal is B1 copy with one action, which opens the core text.
+  - Pin the server side end to end on the synthetic stack configuration.
+- Tests added:
+  - `gate.test.ts`: 8 tests.
+  - `ledger.test.ts`: 4 tests. Near miss: an undecided default-on purpose survives a core withdrawal, as the server leaves it.
+  - `store.test.ts`: 3 tests. `consent.spec`: 3 tests, plus 1 rewritten. `visits.spec`: 4 tests. `records/api.test`: 2 tests. `records/screen.test`: 2 tests.
+  - `tests/api/test_core_consent_visit_start.py`: 9 tests. Near misses: a wrong hash, and a real tenant with no text.
+  - RED: 19 failed, plus `gate.test.ts` failing to load.
+  - The API pin passed on its first run, because the server already enforced everything. Its mutation (the core guard removed from visit create) was caught: 5 failed.
+  - App mutation (the cascade spares nothing): 3 failed.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2838 tests pass, lint has 0 errors, typecheck is clean.
+  - `make check-i18n`: 192 passed, with no new recorded finding.
+  - i18n, legal and touched API suites: 853 passed.
+  - Backlog and smoke: green. Placeholder, PHI and claims scans: clean.
+  - Details are in `docs/evidence/INT-537.md`.
+- Invariants touched and still passing: 4 (grant and withdraw audited, chain verified), 5 (tr first, two orphans deleted), 6 (ids only in refusals and audit), 18 (text from docs/legal with hash; no text, no grant), 20 (no figures).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Findings G1–G3 are in the evidence file. G1: `consent.who.core` still undersells the core text (INT-536). G2: the session mirror is never reconciled after a restart (pre-existing). G3: the learning purposes under a core withdrawal.
+- Next: the legal-reviewer pass; this PR merges after #911.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
@@ -414,6 +475,45 @@
 - Next:
   - the orchestrator pushes and opens the PR from `.scratch/pr-528.md`;
   - the owner applies the patch, deploys and authorises the real OTP.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T14:30:00Z · INT-529 · awaiting-human (7 of 16 synthetic texts built; committed locally, not pushed)
+- Goal: the owner's yes of 16 Oct 2026 (INT-498 P6), as the legal-author half of D25. The legal lane writes texts for synthetic tenants only, so the synthetic host can exercise voice, documents and sharing. The real-tenant index stays empty until counsel signs (HB-L27, G3).
+- Plan:
+  - Build a separate index at `docs/legal/synthetic/`, hash-bound the INT-210 way.
+  - Put a visible "Sentetik test metni" marker on the first line of every text.
+  - Load the index only when the image bakes `INTAKE_DEPLOYMENT_DATA_CLASS=synthetic`.
+  - Build a text only where every value it states is already declared in the repo.
+- Tests added: `tests/legal/test_synthetic_legal_index.py` and `tests/api/test_synthetic_consent_grant.py`.
+  - Near misses: an unmarked text, and a marker in the front matter, in a comment or below line one. Also a moved byte, version drift, a claim, an id outside the sixteen, and a non-synthetic index.
+  - Boot refusals in both directions, by env and by settings object. An unbuilt purpose's grant gets 409.
+  - RED: `ModuleNotFoundError`, then 67 failed / 45 passed.
+  - GREEN: 119 passed, and 120 after merging origin/main with the hosted-lane coupling test.
+  - Mutation: 6 of 6 caught.
+- Result: docs/evidence/INT-529.md §7–§9.
+  - ruff, format and mypy --strict are clean. The check-py coverage gate passes at 95.58% (floor 85%). Its only failures were the four `test_deid_ner` cases, because this fresh worktree has no model cache; they pass with `INTAKE_DEID_MODEL_DIR` pointed at an existing copy.
+  - The legal, api, infra, embed and inventory suites pass: 1718.
+  - The claims, PHI and placeholder scans pass. PolicyGuard finds nothing in 261 sentences.
+- Invariants touched and still passing: 4 (a grant binds the synthetic hash), 6 (refusals carry ids and paths), 17 (gaps are declared, not filled), 18 (hash binding, real index untouched, no fixed string created), 20 (claims gate at render and in CI).
+- Decisions / ADRs / `00_STATE.md` rows: none minted. The owner's decision is in GitHub #896. D25 is not on main yet (PR #809).
+- Blocked on: nine ids, listed in `docs/backlog/blockers.md` under INT-529:
+  - the five aydınlatma texts: legal entity (HB-L21(e)), SMS vendor and transfer ground (INT-358), the hospital or partner tenant;
+  - `lane:linguistic`: the crisis carve-out (HB-C17);
+  - the two learning purposes: KVKK m.6(3) ground and retention;
+  - `research`: ethics protocol (HB-L26).
+- Merged `origin/main` (`4bde6599`, 35 commits including INT-428's hosted lanes):
+  - the backlog pins move to 355;
+  - INT-428's data-class reader and `ENV` line are reused, not duplicated;
+  - a coupling test fails the moment a hosted provider's egress row is listed while the voice, core or documents text still says no outside company receives the data;
+  - 2836 tests pass on the merged tree (evidence §9.1).
+- Round 2: the independent legal-reviewer approved with verdict B, and nine text fixes followed (evidence §11).
+  - Safety-inbox and AWS-hosting sentences were added; the quarantine, link-holder, "uyarlamak" and redaction wording was corrected.
+  - `aydinlatma.app` is reframed around Netgsm (INT-358, INT-535).
+  - The coupling test now also trips on any non-SMS `phi_path` row.
+  - HB-C17 is routed to the INT-432 lane, and the KSVY limb to the D25 lane.
+  - A counsel question on KVKK m.7 deletion after withdrawal is added.
+  - 123 tests pass; PolicyGuard finds nothing in 273 sentences.
+- Next: the coordinator pushes and opens the PR (body at `.scratch/pr-529.md`). Follow-ups F1–F10 are in the evidence file; F1 is now INT-536 (#903) and F2 is INT-537 (#904).
 - LOOP_STATUS: WAITING_HUMAN
 
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
