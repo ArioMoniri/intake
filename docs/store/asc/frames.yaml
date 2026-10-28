@@ -109,7 +109,7 @@ must_not_show:
   - "a development, demo, test, mock or sample label, account or banner (deneme hastası, Deneme hesabıyla girin, örnek)"
   - "the synthetic-text notice of a consent text (Sentetik test metni)"
   - "a phone number, a one-time code, a share code or a share key"
-  - "a real person's or doctor's name, or any hospital or clinic name, real or invented"
+  - "a real person's or doctor's name, or a hospital's or clinic's proper name, real or invented: the new-visit form requires a hospital, so it holds the generic facility type Aile sağlığı merkezi"
   - "a synthetic or sample marker inside content (Sentetik Hastane, Örnek Hastanesi)"
   - "a third-party logo or brand"
   - "a RED, emergency or 112 screen"
