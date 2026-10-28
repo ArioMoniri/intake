@@ -34,12 +34,12 @@ describe("nextAnnouncement", () => {
   it("A → null → A announces A twice — the bug this module exists for", () => {
     // speaking → confirming (no status) → speaking is the ordinary dialogue
     // path; forgetting to clear on null silently ate the second announcement.
-    const first = nextAnnouncement(null, "Vizite konuşuyor");
-    expect(first.speak).toBe("Vizite konuşuyor");
+    const first = nextAnnouncement(null, "Önvizit konuşuyor");
+    expect(first.speak).toBe("Önvizit konuşuyor");
     const gap = nextAnnouncement(first.remember, null);
     expect(gap.speak).toBeNull();
-    const again = nextAnnouncement(gap.remember, "Vizite konuşuyor");
-    expect(again.speak).toBe("Vizite konuşuyor");
+    const again = nextAnnouncement(gap.remember, "Önvizit konuşuyor");
+    expect(again.speak).toBe("Önvizit konuşuyor");
   });
 
   it("never speaks an empty or blank message, and treats it as nothing shown", () => {

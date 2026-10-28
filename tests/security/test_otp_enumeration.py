@@ -53,12 +53,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "api"))
 
 from intake_api.auth_store import (  # noqa: E402
     DEVICE_LIMIT_PER_HOUR,
+    OTP_LOCKOUT_S,
     OTP_MAX_ATTEMPTS,
+    OTP_TTL_S,
     RESEND_COOLDOWN_S,
 )
 from intake_api.otp import DeliveryReceipt, OtpDeliveryError, OtpDeliveryFailure  # noqa: E402
 from intake_api.sms_recipients import SmsTestAllowlist  # noqa: E402
 from test_otp_abuse import PHONE, DpopClient, OtpHarness, _build  # noqa: E402
+
+REPO = Path(__file__).resolve().parents[2]
 
 LISTED = tuple(f"+90532888{n:04d}" for n in range(40))
 UNLISTED = tuple(f"+90532999{n:04d}" for n in range(40))
@@ -157,6 +161,28 @@ def test_a_locked_number_answers_like_a_fresh_one(otp: OtpHarness) -> None:
     _assert_indistinguishable(fresh, withheld)
 
 
+def test_guesses_under_the_lockout_do_not_outlive_it(otp: OtpHarness) -> None:
+    """The verify route compares under a lockout too, for the same work
+    (below). Those guesses must not join the number's miss window (INT-578):
+    if they did, a patient who kept trying while locked would find the right
+    code refused again after the lockout ended, by misses the lockout itself
+    had already answered."""
+    dpop = DpopClient()
+    assert otp.sent(PHONE, device_id="device-a")
+    real = otp.peek()
+    wrong = "000000" if real != "000000" else "111111"
+    for _ in range(OTP_MAX_ATTEMPTS):
+        otp.verify(dpop, code=wrong, device_id="device-a")
+    # locked: keep guessing from the same device while its code is still live
+    # (a guess on an expired code spends nothing of the number's budget anyway)
+    otp.clock.advance(OTP_TTL_S - 60)
+    for _ in range(2 * OTP_MAX_ATTEMPTS):
+        assert otp.verify(dpop, code=wrong, device_id="device-a").status_code == 401
+    otp.clock.advance(OTP_LOCKOUT_S - (OTP_TTL_S - 60) + 1)  # the lockout has ended
+    assert otp.sent(PHONE, device_id="device-a")
+    assert otp.verify(dpop, device_id="device-a").status_code == 200
+
+
 def test_a_registered_number_answers_like_an_unregistered_one(otp: OtpHarness) -> None:
     otp.sign_up(DpopClient())
     otp.clock.advance(3600 + 1)
@@ -216,6 +242,91 @@ def test_a_failed_delivery_answers_202_and_is_audited(tmp_path: Path) -> None:
         assert set(response.json()) == {"request_id", "resend_after_s"}
         actions = [entry.action for entry in otp.audit_store.entries()]
         assert actions[-2:] == ["auth.otp.requested", "auth.otp.delivery_failed"]
+
+
+# --- a failed send is not silent (security review, 28 Oct 2026, B3) --------------------
+
+DELIVERY_ALERT = "OtpSmsDeliveryFailing"
+BAD_DELIVERIES = 'otp_sms_delivery_total{outcome!="accepted"}'
+
+
+def _delivery_alert() -> dict[str, Any] | None:
+    import yaml
+
+    rules = yaml.safe_load(
+        (REPO / "infra" / "observability" / "security-rules.yaml").read_text("utf-8")
+    )
+    named = {r["alert"]: r for g in rules["groups"] for r in g["rules"] if "alert" in r}
+    return named.get(DELIVERY_ALERT)
+
+
+def _delivery_count(outcome: str) -> float:
+    from prometheus_client import REGISTRY
+
+    sample = REGISTRY.get_sample_value(
+        "otp_sms_delivery_total", {"vendor": "netgsm", "outcome": outcome}
+    )
+    return sample or 0.0
+
+
+@pytest.fixture()
+def phi_egress(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The Netgsm adapter's egress guard admits the PHI-path row only under
+    the explicit flag, as in tests/api/test_otp_netgsm.py."""
+    monkeypatch.setenv("INTAKE_ALLOW_PHI_EGRESS", "explicit-yes")
+
+
+def test_a_send_refused_after_the_response_is_counted_where_the_alert_reads(
+    tmp_path: Path, phi_egress: None
+) -> None:
+    """The route answers 202 whatever Netgsm says, so the vendor's refusal is
+    seen only in otp_sms_delivery_total. Through the real adapter, a refusal
+    after the response moves a series the delivery alert counts as failed."""
+    import netgsm_testkit as kit
+
+    vendor = kit.Vendor(kit.replay("error", code="50"))
+    with harness(tmp_path, delivery=kit.adapter(vendor)) as otp:
+        before = _delivery_count("number_refused")
+        assert otp.request_otp().status_code == 202
+        otp.settle()
+        assert len(vendor.requests) == 1
+        assert _delivery_count("number_refused") == before + 1
+    alert = _delivery_alert()
+    assert alert is not None, "no alert reads a failed OTP SMS send"
+    assert BAD_DELIVERIES in alert["expr"]
+
+
+def test_an_accepted_send_is_not_a_failed_one(tmp_path: Path, phi_egress: None) -> None:
+    """Near miss: an accepted send moves only the `accepted` series, which
+    the alert's numerator excludes and its denominator counts."""
+    import netgsm_testkit as kit
+
+    vendor = kit.Vendor(kit.accepted)
+    with harness(tmp_path, delivery=kit.adapter(vendor)) as otp:
+        before = (_delivery_count("accepted"), _delivery_count("number_refused"))
+        assert otp.request_otp().status_code == 202
+        otp.settle()
+        after = (_delivery_count("accepted"), _delivery_count("number_refused"))
+        assert after == (before[0] + 1, before[1])
+    alert = _delivery_alert()
+    assert alert is not None
+    assert "otp_sms_delivery_total[30m]" in alert["expr"]
+
+
+def test_failing_deliveries_page_and_the_runbook_says_what_to_do() -> None:
+    from intake_platform.alert_rules import markdown_anchors
+
+    alert = _delivery_alert()
+    assert alert is not None
+    assert alert["labels"]["severity"] == "page"
+    # a ratio over a window, with a floor so one unreachable number never pages
+    expr = " ".join(alert["expr"].split())
+    assert f"sum(increase({BAD_DELIVERIES}[30m])) / sum(increase(" in expr
+    assert "> 0.5" in expr and ">= 3" in expr
+    runbook, _, anchor = alert["annotations"]["runbook"].partition("#")
+    assert runbook == "docs/runbooks/sms-abuse.md"
+    assert anchor in markdown_anchors((REPO / runbook).read_text("utf-8"))
+    assert anchor == "otp-sms-is-not-being-delivered"
 
 
 # --- the same work: the deterministic half of the timing envelope ---------------------

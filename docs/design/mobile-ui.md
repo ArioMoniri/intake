@@ -1,4 +1,4 @@
-# Vizite mobile UI — design decisions (INT-130)
+# Önvizit mobile UI — design decisions (INT-130)
 
 The binding sources are 02 §4 (navigation map), §5 (screen specs and the
 calm-visual rules), §6 (reference study queries) and §8 (accessibility

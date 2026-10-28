@@ -1243,12 +1243,17 @@ metrics:
     owner: security
     unit: "count"
     description: >-
-      OTP requests by outcome (INT-577): admitted (a code minted), limited (a
-      request budget refused), kill_switch (the SMS spend kill switch refused
-      or the day cap tripped it), locked (the INT-578 lockout),
-      phone_invalid (not a Turkish mobile) or refused (the carrier check or
-      the synthetic host's test list). Emitted by intake_api.otp; the ops
-      console's sms tile and the OtpRequestSpike alert read it.
+      OTP requests by outcome (INT-577, INT-579): admitted (a code minted and
+      sent after the response), limited (the caller's own device or address
+      budget, or a tenant or global cap, refused with a 429), kill_switch (the
+      SMS spend kill switch refused or the day cap tripped it), and three
+      outcomes the caller cannot tell from admitted, because each answers the
+      same 202 with nothing minted or sent: locked (the number is under the
+      INT-578 lockout), withheld (the number is in its resend wait or over its
+      own budget) and not_listed (the number is off the synthetic host's SMS
+      test list). Then phone_invalid (not a Turkish mobile) and refused (the
+      carrier check). Emitted by intake_api.otp; the ops console's sms tile
+      and the OtpRequestSpike alert read it.
   - name: sec_otp_abuse_blocks
     id: sec.otp_abuse_blocks
     type: counter
@@ -1515,16 +1520,22 @@ metrics:
     labels: [component]
     owner: platform
     unit: "bool (0/1)"
-    status: planned
-    description: Synthetic probe status by component (1 = healthy).
+    status: live
+    description: >-
+      Synthetic probe status by registry component (1 = healthy, 0 = the probe
+      ran and was not). Emitted by intake_probes.host_sweep on every host
+      sweep (INT-560); a component the sweep skipped has no series, because a
+      skip is not an observation. The label is a registry component id.
   - name: probe_latency_ms
     id: probe.latency_ms
     type: histogram
     labels: [component]
     owner: platform
     unit: "ms"
-    status: planned
-    description: Synthetic probe latency by component.
+    status: live
+    description: >-
+      Synthetic probe latency by registry component, in milliseconds, for
+      every probe that ran (INT-560, intake_probes.host_sweep).
   - name: deploy_frequency
     id: deploy.frequency
     type: gauge
@@ -2002,7 +2013,10 @@ metrics:
       unparseable_response, accepted_without_job_id, not_a_tr_mobile,
       code_not_sendable, not_on_test_allowlist) or a transport reason (egress_denied, timeout,
       unreachable, auth_failed, rate_limited, rejected, vendor_unavailable,
-      malformed_response). Emitted by intake_api.otp_netgsm.
+      malformed_response). Emitted by intake_api.otp_netgsm. Since INT-579
+      the send runs after the response, so this is the only place a failed
+      send shows: OtpSmsDeliveryFailing (infra/observability/security-rules.yaml)
+      pages when over half the last 30 minutes' sends were not accepted.
   # --- INT-577: the SMS spend kill switch (intake_api.sms_spend). No label
   # carries a number, a tenant or an amount (inv. 6).
   - name: sms_spend_kill_switch_engaged
@@ -2036,9 +2050,10 @@ metrics:
     unit: "count"
     description: >-
       OTP verify attempts by outcome: ok, invalid (wrong code), unbound (the
-      right or a wrong code from a device other than the one that asked),
-      exhausted (the miss that spent the five attempts and locked the
-      number), missing (no live code) or locked (refused by the lockout).
+      right or a wrong code from a device other than the one that asked; it
+      spends nothing of the number's budget), exhausted (the miss that spent
+      the number's five attempts in a rolling hour, across codes, and locked
+      it), missing (no live code) or locked (refused by the lockout).
       Emitted by intake_api.otp.
   # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
   # series (nps.monthly, clinician.pulse) but no id for the scheduling of

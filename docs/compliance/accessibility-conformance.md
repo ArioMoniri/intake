@@ -1,4 +1,4 @@
-# Accessibility conformance report — Vizite mobile (`apps/mobile`)
+# Accessibility conformance report — Önvizit mobile (`apps/mobile`)
 
 > **Status of record moved (INT-226, 26 September 2026).** The status of each
 > criterion now lives in the generated report

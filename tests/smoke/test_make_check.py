@@ -396,6 +396,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-576 (the Netgsm adapter parses the live success shape and never
     # retries an unreadable 200, from the owner's real send, GitHub #971);
     # grows only with a stated reason.
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name, GitHub #712); grows only with a stated reason.
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on, owner request, GitHub #948); grows only with a stated reason.
     # + INT-578 (OTP brute force and replay, the owner's SMS security order,
     # GitHub #973); grows only with a stated reason.
     # + INT-577 (SMS pumping and overuse, the owner's SMS security order,
@@ -404,7 +408,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-581 (SMS data protection, the owner's SMS security order, GitHub #976);
     # grows only with a stated reason.
-    assert len(ids) == 374, f"expected 175 blueprint + 199 added issues, got {len(ids)}"
+    assert len(ids) == 376, f"expected 175 blueprint + 201 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -1,0 +1,225 @@
+# INT-420 — every tracked line that may still carry the old brand spelling.
+#
+# Read by tests/release/test_brand_name.py, which fails on any occurrence (any
+# letter case, identifiers included) that is not listed here, and on any entry
+# whose line is gone. Match is on the path plus the exact line, trimmed.
+#
+# kind:
+#   common_noun — the Turkish word (vizit + -e, "to a visit"; vizite, "a
+#                 doctor's visit"), used as a word. Never an identifier.
+#   former_name — a dated record naming the product as it was called on its
+#                 date (evidence, PROGRESS history, an audit), or INT-420's own
+#                 title. A record is not rewritten.
+#
+# Adding an entry is a review decision: say why in `why`. The brand is Önvizit
+# (ASCII `onvizit`); anything else goes, it does not get listed.
+
+entries:
+- path: apps/mobile/src/lib/i18n/tr.ts
+  kind: common_noun
+  line: '"records.needVisit.title": "Belgeler bir vizite eklenir",'
+  why: 'vizit + dative -e: documents are added to a visit (en: Documents attach to a visit)'
+- path: apps/mobile/src/lib/i18n/tr.ts
+  kind: common_noun
+  line: '"health.attach.cta": "Vizite ekleyin",'
+  why: 'vizit + dative -e, capitalised as a button label: add to the visit (en: Add to the visit)'
+- path: apps/mobile/src/components/HealthSection.tsx
+  kind: common_noun
+  line: '* "Vizite ekleyin" action that appends the labelled block to the next'
+  why: the comment quotes the health.attach.cta button label, the dative common noun
+- path: packages/intake_platform/src/intake_platform/notifications/catalogue.py
+  kind: common_noun
+  line: '"Yarınki viziteniz için hazırlığınızı tamamlayabilirsiniz. "'
+  why: 'vizite + -niz, your visit: the VISIT_PREPARE reminder body (en: tomorrow''s visit)'
+- path: packages/intake_platform/src/intake_platform/notifications/catalogue.py
+  kind: common_noun
+  line: '"Viziteniz yaklaşıyor. Hazırlığınızı uygulamada tamamlayabilirsiniz.",'
+  why: 'your visit is coming up: the VISIT_SOON reminder body (en: Your visit is coming up)'
+- path: tests/legal/test_notifications.py
+  kind: common_noun
+  line: helpful = "Kardiyoloji viziteniz yarın saat 14:00."
+  why: 'a notification-body fixture: your cardiology visit tomorrow (the leak the corpus catches)'
+- path: tests/legal/test_notifications.py
+  kind: common_noun
+  line: assert leaked_terms("Kadın viziteniz yarın.", (ADVERSARIAL_BRANCH,)) == (
+  why: 'a notification-body fixture: your visit tomorrow, with a leaked branch name'
+- path: tests/legal/test_notifications.py
+  kind: common_noun
+  line: assert leaked_terms(f"{ADVERSARIAL_BRANCH} viziteniz yarın.", (ADVERSARIAL_BRANCH,)) == (
+  why: 'a notification-body fixture: your visit tomorrow, with a leaked branch name'
+- path: tests/legal/test_notifications.py
+  kind: common_noun
+  line: assert leaked_terms("KADIN VİZİTENİZ YARIN.", (ADVERSARIAL_BRANCH,)) == (
+  why: the same fixture shouted, to prove Turkish case folding (VİZİTENİZ, your visit)
+- path: tests/legal/test_notifications.py
+  kind: common_noun
+  line: f"{ADVERSARIAL_BRANCH} viziteniz yarın."
+  why: 'a notification-body fixture: your visit tomorrow, with a leaked branch name'
+- path: tests/legal/test_notifications.py
+  kind: common_noun
+  line: 'Locale.TR: f"{ADVERSARIAL_BRANCH} viziteniz yarın.",'
+  why: 'a notification-body fixture: your visit tomorrow, with a leaked branch name'
+- path: docs/evidence/INT-141.md
+  kind: common_noun
+  line: '| The body a well-meaning engineer writes — "Kardiyoloji viziteniz yarın saat 14:00." | Caught. `kardiyoloji` and the numeral `14` are both outside the corpus (a numeral in a body is data too). |'
+  why: 'INT-141''s dated evidence quoting the same fixture: your cardiology visit tomorrow'
+- path: docs/backlog/issues.yaml
+  kind: former_name
+  line: 'title: "Önvizit everywhere — finish the Vizite→Önvizit rebrand on main"'
+  why: 'INT-420''s own title names the rename; it matches GitHub #712, which the sync keeps in step'
+- path: files/11_ISSUE_BACKLOG.md
+  kind: former_name
+  line: '| INT-420 | Önvizit everywhere — finish the Vizite→Önvizit rebrand on main | E08-mobile | INT-130, INT-320 | area:mobile | done |'
+  why: the generated backlog row for INT-420's own title
+- path: docs/PROGRESS.md
+  kind: former_name
+  line: '- Goal: make Vizite presentable as an embeddable SERVICE — a partner drops a "Start pre-visit" button into its own app, the branded intake runs for that partner''s patient, the note flows back. This is an ARCHITECTURE change, so ADR first (ADR-029) + a minimal, secure, fail-closed scaffold for ONE dev-tier synthetic partner tenant. Not a production build.'
+  why: a PROGRESS entry written before INT-420; iteration history is not rewritten
+- path: docs/PROGRESS.md
+  kind: former_name
+  line: '- THE SURFACE IS A SIGNED TICKET, NOT AN EMBEDDED UI, AND THAT IS THE DECISION EVERYTHING FOLLOWS FROM (ADR-029). An embedded Vizite UI in the partner''s origin would put a PHI surface in a third-party origin and make the partner page an injection surface. Instead: the partner BACKEND mints a launch ticket server-to-server (`POST /embed/v1/launch-tickets`), the patient device presents it (`POST /embed/v1/launch`), and only then does the branded intake start. HS256 over the stdlib `hmac` primitive `room_tokens` already uses — no token library — closed claim set `{tenant_id, nonce, iat, exp≤120s, purpose}`, no clinical or personal value in the token.'
+  why: a PROGRESS entry written before INT-420; iteration history is not rewritten
+- path: docs/PROGRESS.md
+  kind: former_name
+  line: '- NO NEW SERVICE, NO NEW TABLE, NO NEW PERSONAL-DATA FIELD. The routes live in services/api (already exposing /healthz /readyz /metrics /version — inv. 15 satisfied) under a new SEVENTH consent-scan marker `partner_embed` caged to `/embed` (the door has no Vizite data subject; consent is collected by Vizite''s own docs/legal flow afterwards, inv. 4/18). A partner-supplied patient identifier / note-back correlation is deliberately OUT of scope — linking it is a new personal-data category and recipient needing human sign-off, so the ticket carries no patient id and nothing is persisted or linked (inv. 17/18). The note flows back only through the existing connector path (ADR-026): the embed adds no new outbound PHI path.'
+  why: a PROGRESS entry written before INT-420; iteration history is not rewritten
+- path: docs/PROGRESS.md
+  kind: former_name
+  line: '- THE PARTNER BUTTON HOLDS NO SECRET. `packages/embed-sdk` (`@intake/embed-sdk`, TS strict) is a thin launcher: on a tap it calls the PARTNER''S own backend for the launch response and only ever opens an `https` Vizite URL — a non-https partner endpoint or launch URL is refused, so a tampered response cannot become an open-redirect or a `javascript:` sink.'
+  why: a PROGRESS entry written before INT-420; iteration history is not rewritten
+- path: docs/PROGRESS.md
+  kind: former_name
+  line: '- Tests added (with the near-miss negative for any safety rule): 43 — `apps/mobile/e2e/review_send.spec.ts` (27), `src/lib/intake/share.test.ts` (7), `src/lib/intake/csat.test.ts` (9). The safety rules carry negative controls and all three were proved non-vacuous by mutants that were inserted, watched to fail, and reverted: a `disabled` prop on the send CTA, a restored `router.replace`, and an invented `https://vizite.example/n/{visitId}` Doctor Link. Each fired exactly one control. The consent gate''s near-miss is a ledger with the satisfaction text loaded but not granted, and a ledger with a *different* purpose granted — both must refuse.'
+  why: a PROGRESS entry written before INT-420; iteration history is not rewritten
+- path: docs/PROGRESS.md
+  kind: former_name
+  line: '- Tests added (with the near-miss negative for any safety rule): 35 in `tests/engines/test_policyguard_locale.py`, six of them structural against the modules'' own `ast` parse (no locale-shaped parameter on the constructor, no default for `lexicon`, no `import re` and no `.compile(` anywhere in `policy_guard.py`, no shipped module constructing the guard outside its factory, no defaulted lexicon/locale/sign-off in the lexicon modules, and `SignedGuardLexicon` unconstructible outside the compiler). INT-248''s near-miss controls are re-pinned beside the five positives — *"Devam edin"*, *"Acil Servis''e gidin"*, *"Vizite tanı koymaz"*, *"…hekiminize ulaşsın"* — so a locale-aware guard that quietly re-broke them fails here too. Four perturbation runs are recorded in the evidence; one of them **found a real defect in this change**: the Turkish document filed under `ar` compiled cleanly and produced an Arabic guard running the Turkish arms, because every other check reads the document''s own locale and the document was honest. Fixed by validating the table at import.'
+  why: a PROGRESS entry written before INT-420; iteration history is not rewritten
+- path: docs/PROGRESS.md
+  kind: former_name
+  line: '- Decisions / ADRs / `00_STATE.md` rows: no ADR — this completes ADR-029''s mechanism (the launch "returns the id of the consent document set to show — Vizite then collects consent through its own docs/legal-bound flow"), it does not change the decided shape. Two choices worth the next person''s minute: (a) the `core` service consent is rendered from the SAME global consent catalogue a later `POST /v1/consents/grant` binds against — NOT a partner-branded copy — so what the patient reads and what a grant records can never drift (a per-tenant `core` copy would have failed the "grant against the text you showed" contract); the partner-specific delta is a separate `partner_processor` DISCLOSURE (aydınlatma, shown never granted), which is why it did not need a new files/06 §2 purpose. (b) the render always reads the tenant''s `legal_root`; `embed_disclosure_root` swaps the `docs/legal/` prefix for the dev-legal base (derived from `settings.legal_root.parent`), so one code path reads the committed counsel tree in prod and the dev tree locally.'
+  why: a PROGRESS entry written before INT-420; iteration history is not rewritten
+- path: docs/audit/2026-09-26-production-audit.md
+  kind: former_name
+  line: '- Untracked: `apps/mobile/eas.json`, `vizite-logo.svg`, 9 wave-4 proposals, `.claude/proven-config*`.'
+  why: the 2026-09-26 production audit records the old-name remnants it found (F31 and the remnants row); rewriting it would erase the finding
+- path: docs/audit/2026-09-26-production-audit.md
+  kind: former_name
+  line: '| F31 | BS `app.json:63-68` vs `:20-21` | **Conflicting HealthKit purpose strings.** The HealthKit plugin still says "Vizite;…" and sets `NSHealthUpdateUsageDescription:false`, while `ios.infoPlist` has the Önvizit strings. Which one wins is UNVERIFIED. | Keep one source (the plugin option). Check the generated Info.plist. |'
+  why: the 2026-09-26 production audit records the old-name remnants it found (F31 and the remnants row); rewriting it would erase the finding
+- path: docs/audit/2026-09-26-production-audit.md
+  kind: former_name
+  line: '| "Vizite" remnants (BS) | `i18n/tr.ts:837,840` `a11y.speaker.agent` "Vizite" / "Vizite konuşuyor"; `en.ts:809,812`; `app.json:65` HealthKit plugin string; comments in `theme.ts:2`, `labels.ts:82`, `DialogueIntake.tsx:236`, `HealthSection.tsx:9`. `tr.ts:799 "Vizite ekleyin"` may be the dative "add to visit": **confirm intent**. The WT uncommitted i18n diff is a separate, partial rebrand. | One rebrand PR on the consolidated branch, with a test that the brand is absent from the `a11y.*` keys. |'
+  why: the 2026-09-26 production audit records the old-name remnants it found (F31 and the remnants row); rewriting it would erase the finding
+- path: docs/audit/2026-09-26-production-audit.md
+  kind: former_name
+  line: '| 7 | TestFlight (ASC 6814005465, build 5): Önvizit name + V-logo | **PARTIAL** | Config landed on BS (`0115c60b`, `82c1a1e6`, **unpushed**): `app.json` name, `CFBundleDisplayName` via `src/locales/app-{tr,en}.json`, 1024 icon. Build-5 contents and on-device rendering UNVERIFIED. "Vizite" remnants remain (§4). |'
+  why: the 2026-09-26 production audit records the old-name remnants it found (F31 and the remnants row); rewriting it would erase the finding
+- path: docs/evidence/INT-130.md
+  kind: former_name
+  line: (name Vizite, scheme `intake`, warm-paper splash/adaptive-icon colour,
+  why: INT-130's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-137.md
+  kind: former_name
+  line: '| `const doctorLink = \`https://vizite.example/n/${visitId}\`` in `review.tsx` | `no Doctor Link payload is invented while INT-150 is open > emits no link, scheme or token of any kind` |'
+  why: INT-137's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-224.md
+  kind: former_name
+  line: 3. **`test_the_near_miss_copy…[Vizite is not a medical device.]` failed.** The denial
+  why: INT-224's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-248.md
+  kind: former_name
+  line: 2. `\btanı\s+koy` matches the negated disclaimer "Vizite tanı koymaz".
+  why: INT-248's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-248.md
+  kind: former_name
+  line: '`app.disclaimer` — *"Vizite tanı koymaz."*, the sentence that exists to'
+  why: INT-248's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-248.md
+  kind: former_name
+  line: FAILED test_a_disclaimer_is_not_a_diagnosis[Vizite tanı koymaz.]
+  why: INT-248's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-248.md
+  kind: former_name
+  line: '**Negative controls** — must pass: `Vizite tanı koymaz.` ·'
+  why: INT-248's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-248.md
+  kind: former_name
+  line: '`Bu uygulama teşhis koymaz.` · `Vizite size tanı koymuyor.` ·'
+  why: INT-248's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-248.md
+  kind: former_name
+  line: '`Tam sürümü kullanın…` (the app build) · `Vizite''yi kullanmayı bırakırsanız…`'
+  why: INT-248's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-253.md
+  kind: former_name
+  line: '> Vizite, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize'
+  why: INT-253's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-253.md
+  kind: former_name
+  line: '| `diagnosis` | 1 | `\btanı\s+koy` matches the **negated** disclaimer *"Vizite tanı koymaz"* — the one sentence in the product whose job is to deny diagnosis. |'
+  why: INT-253's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-284.md
+  kind: former_name
+  line: included the screen's own explanation of what the app is, plus the "Vizite tanı koymaz" line.
+  why: INT-284's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-284.md
+  kind: former_name
+  line: '| `INT-284-before-01-welcome-light-2.0-title-under-notch.png` | `hekiminize ulaşsın.` rendering **over** the status bar; `Vizite` and the first tagline line gone off the top |'
+  why: INT-284's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-284.md
+  kind: former_name
+  line: '| `INT-284-after-01…04` | welcome at 2.0, both themes, top and end: `Vizite` clear of the inset, `Vizite tanı koymaz…` reachable above the home indicator |'
+  why: INT-284's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-298.md
+  kind: former_name
+  line: '*"Devam edin"*, *"Acil Servis''e gidin"*, *"Vizite tanı koymaz"*, *"…hekiminize'
+  why: INT-298's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: 'Vizite becomes embeddable as a service: a partner drops a "Start pre-visit"'
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: button into its own app, the branded Vizite intake runs for that partner's
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: short-lived launch-ticket handshake** (ADR-028), *not* an embedded Vizite UI in
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: '- **Consent** renders from Vizite''s own docs/legal flow (fail closed until'
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: '- SDK: only opens an `https` launch URL; never holds a Vizite secret; refuses a'
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: partner-supplied patient identifier to a Vizite patient, and disclosing the
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: '- inv. 4 / 18 (consent + legal): consent renders only from Vizite''s docs/legal'
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-320.md
+  kind: former_name
+  line: Vizite patient is a new personal-data category + recipient; out of scope,
+  why: INT-320's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-354.md
+  kind: former_name
+  line: '`icon.png`, i18n, locales, `vizite-logo.svg`, `eas.json`) hold uncommitted owner edits'
+  why: INT-354's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-354.md
+  kind: former_name
+  line: '| S9 | INT-354 closing PR: Önvizit rebrand, one `app.json` + one `eas.json` | `0115c60b` `82c1a1e6`, build-source `2c662f12` | **owner-held**: further brand edits (Vizite logo) are in progress |'
+  why: INT-354's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-354.md
+  kind: former_name
+  line: '| 23 | `a23f838a` | feat(mobile): warm the previsit intake copy to a helper-tool register | owner allocates | no. main''s strings equal int-demo HEAD, where `82c1a1e6` dropped the warm keys again. The build source restored them (`ef277abb`) | **held.** Patient copy for fixture questions (F11, HB-C1). `dialogue.entryBody` says "Ben Vizite", a pre-rebrand name (audit §4). The build source deleted `dialogue.openInvite`, and that deletion plus two register findings wait on the owner and clinical-reviewer (handoff "Blocked on the owner") | S7 |'
+  why: INT-354's dated evidence, as recorded before INT-420 (run output and review notes)
+- path: docs/evidence/INT-421.md
+  kind: former_name
+  line: '- name `Vizite`, slug `intake-mobile`, version `0.1.0`;'
+  why: 'INT-421''s dated evidence: the `expo config` run output of 2026-10-02, before INT-420 renamed the app'

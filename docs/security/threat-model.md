@@ -100,7 +100,7 @@ it or whose tests exercise it.
 | `apps/mobile` | `mobile`, `onboarding`, `intake-voice`, `records`, `share-centre`, `kiosk`, `notifications` | the patient app |
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
-| `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/embed-sdk` | `embed` | the partner launcher, holding no Önvizit secret |
 | `packages/hosted-lanes` | `llm-boundary`, `cloud-boundary` | the hosted model-lane adapters, shipped in the synthetic deployment's image only (ADR-035) |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
@@ -361,6 +361,23 @@ it or whose tests exercise it.
 - **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
   (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
   test_slo_coverage.py (INT-021).
+- **Controls added by INT-560 (17 Oct 2026):** the synthetic AWS host is probed. The probes
+  service runs there as its own compose service and sweeps a recorded host inventory
+  (`infra/staging/inventory.yaml`). The loader refuses an inventory whose services are not
+  exactly compose's, or that sits in a process whose data class is not synthetic. The API
+  reads the sweep read-only. A blind spot on that host is now a `no_result` or a stale age on
+  the console, never an "evet", and a missing result never reads healthy.
+  - The probes service holds the least it can: a Postgres role with LOGIN and CONNECT only,
+    a Redis user that may PING only, no network with a route off the host, and no published
+    port.
+  - Its failure texts are scrubbed before they are written ([I]), and its two series carry
+    registry ids only.
+  - "Blocking" on the console's registry tile means the host's stack needs the row and its
+    probe is not healthy now. The INT-022 PHI release gate is unchanged and is shown as
+    registry-wide.
+  - Tests: tests/observability/test_host_inventory.py, test_host_sweep.py,
+    test_probes_host_service.py; tests/admin/test_registry_truth.py;
+    tests/infra/test_staging_probes.py.
 
 ## `observability-pipeline` — logs, traces, errors are not a side channel
 
@@ -542,13 +559,14 @@ it or whose tests exercise it.
   refuse with the usual 429 and roll on, and a **global day cap** (1000) **latches the spend
   kill switch** (`intake_api.sms_spend`): every OTP request answers the generic 503 and no SMS
   is sent, for everyone, until an operator releases it on the host (`python -m
-  intake_api.sms_spend release`, appended to the hash chain); a day window rolling over does
-  not release it. The switch is read before any budget is spent, and a switch that cannot be
+  intake_api.sms_spend release`, which appends its row to the hash chain first and releases
+  only when the row is written, so an audit store that is down keeps the switch engaged); a
+  day window rolling over does not release it. The switch is read before any budget is spent, and a switch that cannot be
   read, or whose stored state does not parse, counts as engaged (fail closed); engaging it is
   one act and makes the system safer, releasing it is deliberate (files/10 §2, asymmetric
-  authority). The caps are engineering defaults an order of magnitude above the pilot's
-  planned volume, so they bind only on abuse; the day cap is the spend ceiling and the owner's
-  number. The per-device budget is now keyed by the key App Attest **proved** — it was keyed by
+  authority). The caps are the owner's, D37 (files/00_STATE.md, 28 Oct 2026), an order of
+  magnitude above the pilot's planned volume, so they bind only on abuse; the day cap is the
+  spend ceiling. The per-device budget is now keyed by the key App Attest **proved** — it was keyed by
   the payload's `device_id`, the client's own claim, so one attested key rotating that string
   never met the bound — and the caller's address only as an HMAC under the OTP pepper (it sat
   in a Redis key in clear). The resend wait doubles with each code a number has had in the
@@ -574,8 +592,12 @@ it or whose tests exercise it.
   number (422), the carrier check's unallocated prefix (422, a fact of the numbering plan),
   the caller's own device or address budget (429), the platform's caps and kill switch (429,
   503). Verify already answered one `otp_invalid`; it now also takes an attempt and runs both
-  comparisons when there is no code, when it has expired and under a lockout, so a missing,
-  locked or expired number costs the same commands as a wrong guess. What it costs a
+  comparisons when there is no code, when it has expired, when the device is a stranger's and
+  under a lockout, so a missing, locked or expired number costs the same commands as a wrong
+  guess. Only the bound device's guess on a live, unlocked code joins the number's miss window
+  (INT-578); every other attempt runs the same four commands against a window that decides
+  nothing (`auth:otp:stray:*`), so guessing during a lockout can neither extend it nor outlive
+  it. What it costs a
   patient: a resend asked for inside the number's wait, or past its budget, is answered as
   sent and sends nothing; the app shows the wait the number is held to, so a patient following
   it never meets this.
@@ -610,12 +632,20 @@ it or whose tests exercise it.
   one and replaces a malformed one; the API policy reads it and cannot write or list it. The
   record also carries the **device binding**: an HMAC of the App Attest key id the request
   proved, or in dev the install id — never the install id a real-mode payload merely claims.
-  A verify must come from that device with that request id, or it is one more miss. The
-  attempt budget is an atomic `INCR` taken **before** the comparison, so callers racing on one
-  code buy at most 5 comparisons between them (INT-131's read-modify-write let every racer
-  read zero), and a match is spent by the `DEL` that removes it, so of two callers holding
-  the right code exactly one signs in. Both comparisons are `hmac.compare_digest`, against
-  stand-ins when there is no record. The fifth miss locks the number for one request window
+  A real mode that proved no key (Play Integrity, or App Attest without its key id) is
+  refused before any budget is spent, so nothing binds to a claim. A verify must come from
+  that device with that request id or it cannot sign in. The attempt budget is the
+  **number's**, over a rolling hour, not the code's: each attempt from the bound device is
+  added to the window **before** the result is used, so callers racing buy at most 5
+  comparisons between them (INT-131's read-modify-write let every racer read zero), and a
+  new code does not reset it. A budget per code let four misses on each of three codes
+  through, twelve guesses an hour with the lockout never engaged (security review, 28 Oct
+  2026). Only the bound device spends it: a stranger's device can never match the binding,
+  so its guesses are worth nothing and counting them would let any attested device lock any
+  number for an hour. A match is spent by the `DEL` that removes it, so of two callers
+  holding the right code exactly one signs in, and a match is not a miss. Both comparisons
+  are `hmac.compare_digest`, against stand-ins when there is no record. The fifth miss in
+  the hour locks the number for one request window
   (`OTP_LOCKOUT_S` = 3600 s): no code is minted for it and no verify compared until it ends.
   The length is the control: a shorter lockout lets the per-number budget hand out three codes
   an hour, the 15 guesses an hour INT-131 allowed; at a window it is 5. It adds no
@@ -698,6 +728,10 @@ it or whose tests exercise it.
   `SmsSpendKillSwitchEngaged` page and the `OtpRequestSpike` ticket
   (`infra/observability/security-rules.yaml`, runbook `docs/runbooks/sms-abuse.md`); the ops
   console's `sms` tile (`GET /admin/ops`), which judges a spike by the same definition.
+  INT-579: with the send after the response, `otp_sms_delivery_total{vendor,outcome}` is the
+  only place a failed send shows, and `OtpSmsDeliveryFailing` pages when over half the last 30
+  minutes' sends were not accepted and at least 3 were refused (same file, runbook section
+  "OTP SMS is not being delivered").
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
   boundary-crossing refusal on all three dimensions, the true retry-after (including under a
   budget tightened while windows are live) and the bounded counter key set with INT-263
@@ -722,7 +756,9 @@ it or whose tests exercise it.
   environment and in dev on the dev server, never the environment, a process-local one under
   file-dev only), the race for a spent code and the race for the attempt budget made exact by
   an interleaving store, the lockout and its one-second near miss, no more than 5 guesses a
-  number in any rolling hour over two simulated hours, constant-time comparisons, a code
+  number in any rolling hour over two simulated hours at five and at four misses a code, a
+  stranger's device unable to lock a number, a keyless real mode refused before a budget is
+  spent, constant-time comparisons, a code
   refused on another device (dev install id and App Attest key) and under another request id
   (`tests/security/test_otp_brute_force.py`, `tests/api/test_attestation_otp_flow.py`), the
   host's pepper on stdin, kept, replaced when malformed, re-asserted by every deploy, and the
@@ -731,7 +767,8 @@ it or whose tests exercise it.
   the device budget held across rotated install ids under one App Attest key and a second key
   as its near miss, no address in any Redis key, the tenant and global hour caps and their
   exact-cap near misses, the day cap latching the switch through a rolled-over day until the
-  operator command releases it, an unreadable switch refusing, the doubled resend wait and its
+  operator command releases it, a release whose audit row cannot be written leaving the switch
+  engaged, an unreadable switch refusing, the doubled resend wait and its
   one-second near miss, every non-mobile class refused without spending budget, the counters'
   closed labels, both alerts, and the ops tile's spike test at, under and over its threshold
   (`tests/security/test_sms_pumping.py`). The enumeration bound with INT-579: an unlisted,
@@ -1867,7 +1904,7 @@ it or whose tests exercise it.
   load — hex colours, bounded display name, id-shaped refs, partner markup/URLs/schemes
   refused — so there is no injection surface; `device_functions` may not be enabled for an
   embed tenant (ADR-020); a `prod` tenant is refused without `dpa_ref` + `brand_permission_ref`
-  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Vizite's own
+  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Önvizit's own
   docs/legal-bound flow (inv. 4, inv. 18), never by the partner; the note flows back only
   through the existing connector path (ADR-026), so the embed adds no new outbound PHI path;
   refusals are id-shaped codes only (inv. 6). A partner-supplied patient identifier is **out
