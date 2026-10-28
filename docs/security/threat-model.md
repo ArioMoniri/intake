@@ -556,6 +556,29 @@ it or whose tests exercise it.
   Only a Turkish mobile (`+90 5XX`, ten digits) normalises; premium (900), shared-cost (850),
   landline, short-code, foreign and international-network numbers are pinned as refusals that
   cost no budget. Still open: the carrier half (allocated 5XX prefixes) awaits the BTK list.
+- **The enumeration bound, stated (INT-579, the owner's SMS order of 28 Oct 2026):** the
+  request route said three things about a number to anyone who asked: a number off the
+  synthetic host's test list answered 422 where a listed one answered 202; a number in its
+  resend wait, over its hourly budget or (since INT-578) locked answered 429 with the wait —
+  that someone had asked for codes to it this hour; and a sent code answered a vendor round
+  trip later than a refused one, and a 503 when the vendor refused the number. Now every
+  refusal that is a fact about the NUMBER (`auth_store.NUMBER_DIMENSIONS`, the lockout, the
+  test list) is **withheld**: the caller gets the 202 an admission gets — a fresh request id
+  and a resend wait read from the caller's own device, never the number's — and no code is
+  minted or sent. A withheld request still spends the caller's address and device budgets,
+  runs the same Redis commands as an admission (the rest against a key that expires in a
+  second) and appends one audit row (`auth.otp.withheld` beside `auth.otp.requested`), so its
+  work and its time are an admission's. The vendor call left the response path
+  (`OtpAuthService._dispatch`; `settle` waits for it in tests and, bounded, at shutdown); the
+  202 carries no vendor job id. What still differs is the same for every number: a malformed
+  number (422), the carrier check's unallocated prefix (422, a fact of the numbering plan),
+  the caller's own device or address budget (429), the platform's caps and kill switch (429,
+  503). Verify already answered one `otp_invalid`; it now also takes an attempt and runs both
+  comparisons when there is no code, when it has expired and under a lockout, so a missing,
+  locked or expired number costs the same commands as a wrong guess. What it costs a
+  patient: a resend asked for inside the number's wait, or past its budget, is answered as
+  sent and sends nothing; the app shows the wait the number is held to, so a patient following
+  it never meets this.
 - **The device-attestation bound, stated (INT-344):** on iOS the OTP request and the
   session start each carry an Apple App Attest **assertion** from a Secure Enclave key the
   server registered once from an **attestation** (`POST /v1/auth/attest/key`). The
@@ -617,8 +640,11 @@ it or whose tests exercise it.
   503 outside dev, and the guard would refuse the call before a byte left anyway. The wire
   body is enumerated by hand (`msgheader`, `msg`, `no`), and a number Netgsm cannot reach (not
   a Turkish mobile) or a code that is not plain digits is refused before the wire. Every
-  documented vendor code maps to a typed refusal. A failed delivery is one generic
-  `503 otp_delivery_unavailable`, never a claimed "sent". The log line carries the job id, the
+  documented vendor code maps to a typed refusal. A failed delivery is never a claimed
+  "sent": since INT-579 the vendor is called after the response, so the route answers the
+  same 202 either way (a 503 there was an oracle — Netgsm refuses an unreachable number with
+  its own code), and the hash chain records `auth.otp.sent` with the job id or
+  `auth.otp.delivery_failed`. The log line carries the job id, the
   HTTP status, the refusal and the numeric code; the one counter,
   `otp_sms_delivery_total{vendor,outcome}`, has closed labels. Never the phone, the code, the
   password or the vendor's description. No retry: a retried SMS would put a second code in
@@ -658,7 +684,8 @@ it or whose tests exercise it.
   `apps/mobile/src/lib/auth/attestation.test.ts`). SMS delivery with INT-329: each vendor
   outcome mapped to one typed reason over MockTransport; no phone, code or token in any log
   record, error chain or transfer record; the event loop keeps running during a send; the
-  wiring matrix for `prod` and `staging`; the route's generic 503
+  wiring matrix for `prod` and `staging`; the route's identical 202 whatever the vendor
+  answered, and the chain's record of it (INT-579)
   (`tests/api/test_otp_twilio.py`, `tests/api/test_otp_twilio_wiring.py`). The async guard
   matches the sync one on a parity table (`tests/security/test_egress_async.py`), and the
   shipped allow-list refuses the SMS purpose on every tier
@@ -679,7 +706,15 @@ it or whose tests exercise it.
   operator command releases it, an unreadable switch refusing, the doubled resend wait and its
   one-second near miss, every non-mobile class refused without spending budget, the counters'
   closed labels, both alerts, and the ops tile's spike test at, under and over its threshold
-  (`tests/security/test_sms_pumping.py`).
+  (`tests/security/test_sms_pumping.py`). The enumeration bound with INT-579: an unlisted,
+  a rate-limited, an over-budget, a locked and a registered number each answered exactly as
+  an admission (status, body keys, content type, the caller's wait) while nothing is sent; the
+  caller's own budget still a 429 for every number; the same Redis commands and one audit row
+  for a sent and a withheld request; verify's same answer and same commands for a wrong, a
+  missing, a locked and an expired code; a vendor refusal answering 202 and audited; and the
+  statistical test — a 50 ms vendor, 25 sent and 25 withheld requests timed alternately, their
+  medians within a ratio of 3, which the old path missed at about 15
+  (`tests/security/test_otp_enumeration.py`).
 
 ## `consent` — layered consent and scope enforcement
 

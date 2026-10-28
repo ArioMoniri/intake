@@ -257,10 +257,13 @@ def _request_otp(client: TestClient, phone: str) -> Any:
     )
 
 
-@pytest.mark.parametrize(("phone", "status"), [(LISTED, 202), (NEAR_MISS, 422)])
+@pytest.mark.parametrize(("phone", "sent"), [(LISTED, True), (NEAR_MISS, False)])
 def test_an_unlisted_number_starts_no_login_and_sends_nothing(
-    phi_egress: None, tmp_path: Path, phone: str, status: int
+    phi_egress: None, tmp_path: Path, phone: str, sent: bool
 ) -> None:
+    """INT-579: the unlisted number gets the same 202 as the listed one, so a
+    stranger cannot read the owner's test list off the route; only the vendor
+    tells them apart."""
     vendor = Vendor(accepted)
     gate = SmsTestAllowlist.parse(LISTED)
     auth = AuthWiring(
@@ -272,6 +275,8 @@ def test_an_unlisted_number_starts_no_login_and_sends_nothing(
     )
     for client in _harness(tmp_path, auth):
         response = _request_otp(client, phone)
-        assert response.status_code == status, response.text
+        assert response.status_code == 202, response.text
+        assert set(response.json()) == {"request_id", "resend_after_s"}
         _clean(response.text, "the route's answer")
-    assert bool(vendor.requests) is (status == 202)
+    # the harness closed the app, and shutdown settles every delivery in flight
+    assert bool(vendor.requests) is sent

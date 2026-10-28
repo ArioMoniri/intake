@@ -119,32 +119,44 @@ def _request_otp(client: TestClient) -> httpx.Response:
     )
 
 
-def test_the_route_answers_202_with_the_vendor_message_id(phi_egress: None, tmp_path: Path) -> None:
+def test_the_route_answers_202_and_the_message_id_is_audited(
+    phi_egress: None, tmp_path: Path
+) -> None:
+    """INT-579: the vendor answers after the response, so its id is on the
+    hash chain, not in the 202."""
     for client in _harness(tmp_path, adapter(Vendor(created))):
         response = _request_otp(client)
         assert response.status_code == 202, response.text
-        assert response.json()["delivery_id"] == MESSAGE_SID
+        assert set(response.json()) == {"request_id", "resend_after_s"}
+        client.portal.call(client.app.state.api.auth.settle)
+        entries = client.portal.call(client.app.state.api.audit.entries)
+        assert entries[-1].resource_ref == f"delivery:{MESSAGE_SID}"
 
 
 @pytest.mark.parametrize(
     "scenario", ["invalid-number-400", "auth-failure-401", "vendor-500", "timeout"]
 )
-def test_a_failed_delivery_is_a_generic_503_never_a_fake_sent(
+def test_a_failed_delivery_answers_like_a_sent_one_and_is_audited(
     phi_egress: None, tmp_path: Path, scenario: str
 ) -> None:
+    """INT-579: the vendor answers after the response, so its refusal (an
+    invalid number among them) cannot be read off the route; never a claimed
+    send: the chain records the failure."""
     for client in _harness(tmp_path, adapter(Vendor(FAILURES[scenario][0]))):
         response = _request_otp(client)
-        assert response.status_code == 503, response.text
-        assert response.json() == {"error": "otp_delivery_unavailable"}
+        assert response.status_code == 202, response.text
+        assert set(response.json()) == {"request_id", "resend_after_s"}
         assert_clean(response.text, "the response body")
+        client.portal.call(client.app.state.api.auth.settle)
+        entries = client.portal.call(client.app.state.api.audit.entries)
+        assert entries[-1].action == "auth.otp.delivery_failed"
 
 
-def test_an_egress_refusal_reaches_the_route_as_the_same_503(
+def test_an_egress_refusal_answers_alike_and_never_reaches_the_vendor(
     phi_egress: None, tmp_path: Path
 ) -> None:
     vendor = Vendor(created)
     for client in _harness(tmp_path, adapter(vendor, empty_policy())):
         response = _request_otp(client)
-        assert response.status_code == 503
-        assert response.json() == {"error": "otp_delivery_unavailable"}
+        assert response.status_code == 202
     assert vendor.requests == []

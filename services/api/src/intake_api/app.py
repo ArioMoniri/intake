@@ -608,6 +608,10 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                     await sweeper
             if pump is not None:
                 pump.stop()
+            if state.auth is not None:
+                # INT-579: a code a patient was answered 202 for is sent before
+                # the process goes, within a bound
+                await state.auth.settle(timeout_s=10.0)
 
     app = FastAPI(title="intake-api", lifespan=lifespan)
     app.state.api = state

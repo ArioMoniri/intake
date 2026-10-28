@@ -201,6 +201,19 @@ def resend_step(admitted: int) -> float:
 LONGEST_WINDOW_SEQUENCE_S = sum(resend_step(n) for n in range(1, PHONE_LIMIT_PER_HOUR + 1))
 
 
+class CountedDelivery:
+    """Wraps the delivery a harness was built with and counts what reached it
+    (INT-579). Nothing about a send is recorded but that it happened."""
+
+    def __init__(self, inner: OtpDeliveryAdapter) -> None:
+        self.inner = inner
+        self.sends = 0
+
+    async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
+        self.sends += 1
+        return await self.inner.send(phone_e164=phone_e164, code=code)
+
+
 class Clock:
     """The suite's only clock (docs/TDD.md rule 6 — nothing here sleeps).
 
@@ -239,6 +252,21 @@ class OtpHarness:
     #: INT-578: the request id each admitted request was answered with, by
     #: canonical phone. A verify is bound to it, so the harness sends it back.
     request_ids: dict[str, str] = field(default_factory=dict)
+    #: INT-579: every send that reached the delivery adapter. A withheld
+    #: request answers exactly like a sent one, so this count is the only way
+    #: a test can tell them apart.
+    counted: Any = None
+
+    @property
+    def sends(self) -> int:
+        return int(self.counted.sends) if self.counted is not None else 0
+
+    def settle(self) -> None:
+        """Wait for the background deliveries the last request scheduled
+        (INT-579: the send is off the response path)."""
+        settle = getattr(self.client.app.state.api.auth, "settle", None)
+        if settle is not None:
+            self.client.portal.call(settle)
 
     def challenge(self) -> str:
         response = self.client.post("/v1/auth/attest/challenge")
@@ -257,15 +285,27 @@ class OtpHarness:
         return {"X-Intake-Attestation": json.dumps(payload)}
 
     def request_otp(self, phone: str = PHONE, device_id: str = "device-a") -> Any:
+        before = self.sends
         response = self.client.post(
             "/v1/auth/otp/request",
             json={"phone": phone},
             headers=self.attestation(device_id),
         )
+        self.settle()
         request_id = response.json().get("request_id") if response.status_code == 202 else None
-        if isinstance(request_id, str):
+        # only a code that was really sent has a request id worth verifying
+        # against; a withheld request's id is a decoy (INT-579)
+        if isinstance(request_id, str) and self.sends > before:
             self.request_ids[normalise_tr_phone(phone) or phone] = request_id
         return response
+
+    def sent(self, phone: str = PHONE, device_id: str = "device-a") -> bool:
+        """Request a code and say whether one was really sent: the answer is
+        the same 202 either way (INT-579)."""
+        before = self.sends
+        response = self.request_otp(phone, device_id)
+        assert response.status_code == 202, response.text
+        return self.sends > before
 
     def peek(self, phone: str = PHONE) -> str:
         response = self.client.get("/v1/auth/dev/otp-peek", params={"phone": phone})
@@ -348,6 +388,7 @@ def _build(
     delivery: OtpDeliveryAdapter | None = None,
     pepper: Any = None,
     sms_budget: Any = None,
+    recipients: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -366,6 +407,7 @@ def _build(
     delivery_adapter: OtpDeliveryAdapter = (
         delivery if delivery is not None else DevLogDeliveryAdapter()
     )
+    counted = CountedDelivery(delivery_adapter)
     wiring = ApiWiring(
         settings=ApiSettings(
             token_patient=token_patient,
@@ -383,7 +425,7 @@ def _build(
         auth=AuthWiring(
             redis_client=fake_redis,
             tokenizer=Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1"),
-            delivery=delivery_adapter,
+            delivery=counted,
             attestation=(
                 DevStructuralAttestationVerifier()
                 if attested_dev
@@ -397,6 +439,8 @@ def _build(
             **({"pepper": pepper} if pepper is not None else {}),
             # INT-577: the tenant and global send caps, when a test sets them
             **({"sms_budget": sms_budget} if sms_budget is not None else {}),
+            # INT-579: the synthetic host's test list, when a test sets one
+            **({"recipients": recipients} if recipients is not None else {}),
         ),
     )
     run(ensure_consumer_tenant(engine))
@@ -411,6 +455,7 @@ def _build(
             audit_store=audit_store,
             redis_client=fake_redis,
             delivery=delivery_adapter,
+            counted=counted,
         )
     run(engine.dispose())
     audit_engine.dispose()
@@ -582,9 +627,16 @@ def test_every_dimension_holds_its_budget_across_a_boundary(
             harness.clock.advance(step(n))
         harness.clock.advance(crossing)
         assert int(started // OTP_WINDOW_S) != int(harness.clock() // OTP_WINDOW_S)
+        sends = harness.sends
         refused = spend(harness, limit)
-        assert refused.status_code == 429, f"the {dimension} budget survived the boundary"
-        assert refused.json()["error"] == "otp_limited"
+        if dimension == "phone":
+            # INT-579: the number's own budget is withheld, never refused, so a
+            # stranger cannot read it: an admission's answer, and nothing sent
+            assert refused.status_code == 202
+            assert harness.sends == sends, "the phone budget survived the boundary"
+        else:
+            assert refused.status_code == 429, f"the {dimension} budget survived the boundary"
+            assert refused.json()["error"] == "otp_limited"
 
 
 def test_the_retry_after_is_the_true_wait_not_the_time_to_the_next_boundary(
@@ -700,33 +752,31 @@ def test_the_counter_key_set_is_bounded_and_does_not_grow_with_traffic(
 
 
 def test_resend_cooldown_blocks_immediate_burst(otp: OtpHarness) -> None:
-    assert otp.request_otp().status_code == 202
-    burst = otp.request_otp()
-    assert burst.status_code == 429
-    body = burst.json()
-    assert body["error"] == "otp_limited"
-    assert 0 < body["retry_after_s"] <= RESEND_COOLDOWN_S
+    assert otp.sent()
+    # INT-579: the number's resend wait is withheld, not refused — the burst
+    # gets an admission's answer, and no second code
+    assert not otp.sent()
     otp.clock.advance(RESEND_COOLDOWN_S + 1)
-    assert otp.request_otp().status_code == 202
+    assert otp.sent()
 
 
 def test_phone_formatting_does_not_fork_the_bucket(otp: OtpHarness) -> None:
-    assert otp.request_otp(PHONE_FORMATTED).status_code == 202
-    assert otp.request_otp(PHONE).status_code == 429
+    assert otp.sent(PHONE_FORMATTED)
+    assert not otp.sent(PHONE), "another spelling of the number is the same number"
 
 
 def test_per_phone_limit_three_per_hour(otp: OtpHarness) -> None:
     # LONGEST_WINDOW_SEQUENCE_S: the loop plus the refusal must land inside the
     # window the clock starts in, which is the whole reason that clock is not
     # seeded from time.time() (INT-285).
+    # A device of its own for each request, so only the number's budget can
+    # refuse; and INT-579 withholds that refusal rather than answering it.
     for n in range(1, PHONE_LIMIT_PER_HOUR + 1):
-        assert otp.request_otp().status_code == 202
+        assert otp.sent(device_id=f"device-{n}")
         otp.clock.advance(resend_step(n))
-    refused = otp.request_otp()
-    assert refused.status_code == 429
-    assert refused.json()["error"] == "otp_limited"
+    assert not otp.sent(device_id="device-over")
     otp.clock.advance(OTP_WINDOW_S)  # deliberately the next window: budget back
-    assert otp.request_otp().status_code == 202
+    assert otp.sent(device_id="device-next")
 
 
 def test_per_ip_limit_ten_per_hour(otp: OtpHarness) -> None:

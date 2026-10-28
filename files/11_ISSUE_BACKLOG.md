@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**371 issues.** By phase: P0 182 · P1 135 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 251 · todo 74 · withdrawn 1.
+**372 issues.** By phase: P0 182 · P1 136 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 252 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -333,6 +333,7 @@
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
 | INT-578 | OTP brute force and replay — 6 digits, TTL ≤ 5 min, single use, 5 attempts then lockout, HMAC+pepper, device-bound | E01-platform | INT-131, INT-344, INT-528 | area:api, risk:security | done |
 | INT-577 | SMS pumping and overuse — per-number/device/IP/tenant limits, global caps, spend kill switch, +90 mobile only, spike alert | E01-platform | INT-131, INT-263, INT-308, INT-528, INT-578 | area:api, risk:security | done |
+| INT-579 | OTP enumeration — identical response and timing whether a number is registered or not | E01-platform | INT-131, INT-528, INT-577, INT-578 | area:api, risk:security | done |
 
 ## P2
 

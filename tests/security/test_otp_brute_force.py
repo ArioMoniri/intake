@@ -405,15 +405,13 @@ def test_the_fifth_miss_locks_the_number_for_the_lockout(otp: OtpHarness) -> Non
     assert refused_verify.status_code == 401
     assert refused_verify.json() == {"error": "otp_invalid"}
     assert verify_count("locked") == locked_before + 1
-    # and no new code is minted for the number
-    refused = otp.request_otp()
-    assert refused.status_code == 429
-    assert refused.json()["error"] == "otp_limited"
-    assert lockout_s - 1 <= refused.json()["retry_after_s"] <= lockout_s
+    # and no new code is minted for the number — withheld, so the answer is an
+    # admission's and a stranger cannot read the lockout off it (INT-579)
+    assert not otp.sent()
     otp.clock.advance(lockout_s - 1)
-    assert otp.request_otp().status_code == 429, "one second short of the lockout"
+    assert not otp.sent(), "one second short of the lockout"
     otp.clock.advance(2)
-    assert otp.request_otp().status_code == 202
+    assert otp.sent()
     assert otp.verify(dpop).status_code == 200
 
 

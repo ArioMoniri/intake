@@ -237,7 +237,9 @@ def test_ids_unique_and_well_formed() -> None:
     # security order, GitHub #973).
     # + INT-577 (SMS pumping and overuse: proven-key and hashed-address budgets,
     # backoff, tenant and global caps, the spend kill switch; GitHub #972).
-    assert len(ids) == 371
+    # + INT-579 (OTP enumeration: number-scoped refusals withheld behind an
+    # admission's answer and work, the vendor off the response path; GitHub #974).
+    assert len(ids) == 372
     import re
 
     for i in ids:
