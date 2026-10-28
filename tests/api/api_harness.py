@@ -40,6 +40,7 @@ from intake_platform.db.models import (
 )
 from intake_platform.documents import ScanVerdict
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider
+from intake_platform.legal.synthetic import DeploymentDataClass
 from intake_platform.red_tenant import TenantKind
 from intake_platform.uploads import ScanFailedError
 from minio.commonconfig import COMPLIANCE
@@ -244,6 +245,10 @@ def build_harness(
     # INT-407: the clinic Safety inbox a RED visit's move raises its entry in.
     # None is the unwired state, in which a reschedule or cancel answers 503.
     safety_inbox: Any = None,
+    # INT-529: the deployment data class (raw env value: only the exact
+    # "synthetic" is synthetic, as ApiSettings.from_env reads it). None is the
+    # shipped real-tenant default, in which the synthetic legal tree is refused.
+    deployment_data_class: str | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -290,6 +295,11 @@ def build_harness(
         triage_signature_path=triage_signature_path,
         triage_deployment=triage_deployment,
         triage_fixture_sources=triage_fixture_sources,
+        deployment_data_class=(
+            DeploymentDataClass.SYNTHETIC
+            if deployment_data_class == DeploymentDataClass.SYNTHETIC.value
+            else DeploymentDataClass.REAL_PHI
+        ),
         triage_tenant_kind=(
             TenantKind.SYNTHETIC
             if triage_tenant_kind == TenantKind.SYNTHETIC.value

@@ -79,6 +79,16 @@ export function consentOutbox(): ConsentOutbox {
   return outbox;
 }
 
+/**
+ * Whether the working copy is this account's (INT-537). An unseeded ledger is
+ * a fresh one, so a screen that refuses on it would refuse an account that
+ * holds the consent. Seeding commits a new state, so a subscribed screen
+ * re-renders the moment this turns true.
+ */
+export function ledgerSeededFor(accountId: string): boolean {
+  return seededAccount === accountId;
+}
+
 export function subscribeToLedger(listener: () => void): () => void {
   listeners.add(listener);
   return () => {

@@ -57,6 +57,9 @@ COPY --from=builder /app /app
 # path here rather than installed into the API's closure) and it bakes the
 # data class, so no operator env can declare it anything else. A PHI image
 # carries neither line, and no package on its closure imports the adapters.
+# INT-529: the same baked class makes the API load the synthetic legal index
+# (docs/legal/synthetic, every text marked "sentetik test metni") and refuse
+# the real tree; a real_phi image refuses the synthetic one.
 ENV PATH=/app/.venv/bin:$PATH \
     PYTHONPATH=/app/packages/hosted-lanes/src \
     INTAKE_DEPLOYMENT_DATA_CLASS=synthetic \
