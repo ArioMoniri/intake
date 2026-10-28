@@ -31,14 +31,15 @@
 # docs/evidence/INT-529.md §4 is the table, docs/backlog/blockers.md the ask.
 
 # INT-529 refresh, 28 Oct 2026: the sign-in SMS processor (Netgsm, INT-528) is
-# live on the synthetic host, so core names it; re-signed.
-synthetic_index_version: "2026-10-28.1"
+# live on the synthetic host, so core names it; re-signed. Round 2 (same day,
+# legal review B1): the sign-in number is not stored anywhere; core syn2.
+synthetic_index_version: "2026-10-28.2"
 data_class: synthetic
 
 documents:
   - id: acik_riza.core
-    version: "2026-10-28.syn1"
-    sha256: "fce73a8b2decfa730b46ea7499c5494cefa6d6415f4738d91ed5755535286d8d"
+    version: "2026-10-28.syn2"
+    sha256: "8c752c9f4a143bb462b0a833f5854afa24a0b7abb5e7d324eebbb3edb9c8c7d0"
     grounds:
       retention: [clinical_record]
       recipients: [REC_PATIENT_CLINICIAN, REC_CLINICIAN, REC_INTERNAL]
@@ -103,7 +104,7 @@ awaiting_human:
   - id: aydinlatma.app
     missing:
       - "the controller's registered identity — title, MERSİS number, address, telephone, e-mail and KEP (KVKK m.10(1)(a); Aydınlatma Tebliği m.4(1)(a); the Board's 2026/347 Ek-1 template). No file in the repository names INTAKE's legal entity (HB-L21(e))."
-      - "the sign-in SMS processor is Netgsm İletişim ve Bilgi Teknolojileri A.Ş., Ankara (owner decision D31, 16 Oct 2026, INT-358; live on the synthetic host since INT-528, PR #905; legal entity and address from docs/legal/sources/netgsm-aydinlatma/, retrieved 28 Oct 2026). The synthetic core açık rıza text names it (28 Oct 2026). What the notice must still state is open (INT-535, GitHub #902): what the signed DPA confirms about location, retention, sub-processors and deletion (INT-528 evidence, awaiting-human item 4), whether the sign-in number is KVKK m.6 health data in this context, and what the notice shown at phone entry must say. The phone number carries no inventory annotation because it lives only in identity_vault, outside the ORM inventory."
+      - "the sign-in SMS processor is Netgsm İletişim ve Bilgi Teknolojileri A.Ş., Ankara (owner decision D31, 16 Oct 2026, INT-358; live on the synthetic host since INT-528, PR #905; legal entity and address from docs/legal/sources/netgsm-aydinlatma/, retrieved 28 Oct 2026). The synthetic core açık rıza text names it (28 Oct 2026). What the notice must still state is open (INT-535, GitHub #902): what the signed DPA confirms about location, retention, sub-processors and deletion (INT-528 evidence, awaiting-human item 4), whether the sign-in number is KVKK m.6 health data in this context, and what the notice shown at phone entry must say. The sign-in path persists no raw phone number: the patient row holds only the Tokenizer's keyed HMAC pseudonym of it (patients.pseudonym, CAT_PSEUDONYM; services/api/src/intake_api/otp.py l.5-6, packages/intake_platform/src/intake_platform/tokenization.py l.87-94), and IdentityVault has no caller."
       - "the KVKK m.9 ground for a tester's number transiting the us-east-1 host (infra/staging/compose.yaml: the AWS host is in us-east-1; INT-535 question 3). Synthetic scope today: only the owner's own allow-listed number receives SMS."
     ask: "Owner and counsel: name INTAKE's legal entity and its contact points; and, through INT-535 (GitHub #902), record the Netgsm DPA, the KVKK m.9 ground for the us-east-1 leg and the phone-entry notice, so the app-channel notice can name the controller, every recipient and the transfer truthfully."
     refs: [HB-L21, HB-L27, INT-358, INT-535]

@@ -61,6 +61,7 @@ named Netgsm. The legal-reviewer verifies it (docs/evidence/INT-529.md §12,
 from __future__ import annotations
 
 import ast
+import string
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -77,6 +78,7 @@ from hosted_reach import (
     python_sources,
     routed_references,
 )
+from intake_api.otp_netgsm import SMS_TEMPLATE, NetgsmOtpRequest
 from intake_platform.egress import DEDICATED_PERSONAL_PROXIES, EgressPurpose
 from intake_platform.legal.synthetic import SYNTHETIC_LEGAL_ROOT, SyntheticLegalIndex
 from intake_platform.model_lanes.model import TenantDataClass
@@ -347,10 +349,22 @@ def test_only_the_text_that_speaks_of_sign_in_names_the_sms_processor(
 
 def test_the_core_text_says_exactly_what_reaches_the_sms_processor() -> None:
     body = _index().entry("acik_riza.core").body
-    assert "Giriş için kullandığınız telefon numarası bu kayıtlardan ayrı tutulur." in body
+    assert "Giriş için kullandığınız telefon numarası bu kayıtlara yazılmaz." in body
+    assert "Kaydınız, numaranızdan üretilen bir takma kimlikle tutulur." in body
+    assert "Bu gönderim, bu onaydan önce, giriş sırasında yapılır." in body
     assert "Bu şirkete yalnızca numaranız ve kod gider; yanıtlarınız gitmez." in body
     # the us-east-1 leg (INT-528 evidence, ADR-042): the number goes out from this host
     assert "Giriş için yazdığınız numara da bu sunucu üzerinden Netgsm'e gider." in body
+
+
+def test_the_wire_carries_exactly_the_number_and_the_code() -> None:
+    """The core sentence "yalnızca numaranız ve kod gider" rests on the adapter:
+    the body is exactly the sender name, the message and the number, and the
+    message template has one field, the code (``otp_netgsm.py`` l.131, l.277)."""
+    request = NetgsmOtpRequest(msgheader="SENDER", msg="m", no="5550000000")
+    assert set(request.as_wire()) == {"msgheader", "msg", "no"}
+    fields = {name for _, name, _, _ in string.Formatter().parse(SMS_TEMPLATE) if name}
+    assert fields == {"code"}
 
 
 @pytest.mark.parametrize(
