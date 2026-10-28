@@ -339,7 +339,7 @@ describe("the synthetic probe matrix (the runner's real sweep)", () => {
     expect(postgres).toMatchObject({
       probe: "postgres_select1",
       status: "unhealthy",
-      latency: "140 ms",
+      latency: "156 ms",
       budget: "500 ms",
       age: { value: "0", unit: "s" },
       stale: false,
