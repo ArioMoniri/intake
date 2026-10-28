@@ -7307,3 +7307,23 @@
   tests: [tests/api/test_otp_netgsm.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_otp_send_check.py, tests/api/test_sms_test_allowlist.py, tests/security/test_egress_sms_proxy.py, tests/infra/test_staging_netgsm.py, tests/infra/test_staging_sms_egress.py, tests/infra/test_app_attest_golive.py, tests/infra/test_staging_compose.py]
   legal: "KVKK-9,DPA"
   sec_row: "onboarding"
+- id: INT-573
+  epic: E13-infra
+  phase: P1
+  title: "next, certifi and filelock lifted past the 27 Oct 2026 advisories, so the vulnerabilities gate is green without an exception"
+  # GitHub #965. On 27 Oct 2026 trivy began reporting four advisories with
+  # fixed releases: next 16.3.8 (GHSA-2464-fhr4-w9xw, CVE-2026-94482),
+  # certifi 2026.7.22 (GHSA-6q48-6c7w-9gw2) and filelock 3.32.4
+  # (CVE-2026-112940). Every PR and main went red. A fix exists for each, so
+  # the row is bumps only; no exception entry (invariant 14).
+  depends_on: [INT-501]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-573.md
+  acceptance:
+    - "apps/admin-web pins next 16.4.1; uv.lock carries certifi 2026.10.23 and filelock 4.2.1 (virtualenv follows); none of the four advisories gets an exception row"
+    - "a fifth advisory surfaced in CI after the bumps: zod 3.25.76 under @expo/cli (GHSA-mrhx-c7xc-m3w5 / CVE-2023-54404), whose only fix is 4.6.6 outside @expo/cli's ^3.25.76 range; its time-boxed trivy and osv rows (to 2026-12-31, both pins 3 -> 4, a test tying the two expiries) ship as the owner's own commit of issue-drafts/owner-573-zod-exception.patch, since the exception files are owner-only"
+    - "trivy fs over the lockfiles reports none of the four advisories; the only findings left are the two already-suppressed rows, recorded before and after in evidence"
+    - "admin-web tsc and vitest (385) pass on next 16.4.1; tests/ci (419) passes on the new lockfiles"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
