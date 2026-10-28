@@ -26,10 +26,15 @@ about a code, each because a race or a dump defeated the INT-131 form:
 * the code record carries the BINDING of the device that asked for it, and
   :meth:`AuthStore.check_code` compares it as it compares the digest, in
   constant time;
-* the attempt budget is an atomic ``INCR`` taken BEFORE the comparison, so
-  N callers that all read the record still buy at most
-  :data:`OTP_MAX_ATTEMPTS` comparisons between them (it was read-modify-write
-  on the record, and every racer read zero);
+* the attempt budget is the NUMBER's, over a rolling :data:`OTP_WINDOW_S`,
+  and each attempt is added to it BEFORE the comparison, so N callers that
+  all read the record still buy at most :data:`OTP_MAX_ATTEMPTS` comparisons
+  between them (it was read-modify-write on the record, and every racer read
+  zero). It does not reset with a new code: a budget per code let four misses
+  on each of three codes through, twelve guesses an hour with no lockout
+  (security review, 28 Oct 2026). Only the device the code was minted for
+  spends it; a stranger's device can never match the binding, so its guesses
+  are worth nothing, and counting them would let it lock any number;
 * a match is spent by the ``DEL`` that removes it: of two callers holding the
   right code, the one whose ``DEL`` removed the key signs in and the other is
   told the code is gone (GET, compare, DEL were three commands, and both won).
@@ -289,13 +294,13 @@ class AuthStore:
         *,
         binding: str = "",
     ) -> None:
-        """Keep one code for this pseudonym, replacing any earlier one, with a
-        fresh attempt budget. ``binding`` is the device the code was minted for
-        (an HMAC, never a key id); the Doctor Link tier passes none."""
+        """Keep one code for this pseudonym, replacing any earlier one.
+        ``binding`` is the device the code was minted for (an HMAC, never a key
+        id); the Doctor Link tier passes none. The attempt budget is the
+        number's and is NOT reset here: misses on earlier codes still count."""
         key = self._key("otp", "code", pseudonym)
         record = {"digest": digest, "binding": binding, "expires": self._now() + OTP_TTL_S}
         self._r.set(key, json.dumps(record), ex=OTP_TTL_S * 2)
-        self._r.delete(self._key("otp", "att", pseudonym))
         if peek_code is not None:
             # dev tier ONLY (INTAKE_DEV_OTP_PEEK=explicit-yes): the peek copy
             # exists so the flow is walkable without an SMS vendor
@@ -308,41 +313,60 @@ class AuthStore:
         loaded = json.loads(raw)
         return dict(loaded) if isinstance(loaded, dict) else None
 
+    def _spend_attempt(self, pseudonym: str) -> tuple[str, str, int]:
+        """Add one attempt to the number's rolling window and count the
+        window, in that order: of N callers racing, the k-th to add sees at
+        least k, so at most :data:`OTP_MAX_ATTEMPTS` of them see a count
+        inside the budget. Returns the key, this attempt's member and the count."""
+        key = self._key("otp", "miss", pseudonym)
+        now = self._now()
+        member = secrets.token_hex(8)
+        self._r.zremrangebyscore(key, "-inf", now - OTP_WINDOW_S)
+        self._r.zadd(key, {member: now})
+        self._r.expire(key, OTP_WINDOW_S * 2)
+        return key, member, int(self._r.zcard(key))
+
     def check_code(self, pseudonym: str, digest: str, *, binding: str = "") -> CodeVerdict:
         """Spend one attempt on this pseudonym's code and say what it was.
 
-        The order is the control. The attempt is taken by ``INCR`` before
-        anything is compared, so a burst of callers that all read the record
-        first still buys at most :data:`OTP_MAX_ATTEMPTS` comparisons; the
-        miss that spends the last of them answers ``exhausted``. Both
-        comparisons always run, in constant time, against stand-ins when there
-        is no record. A match is spent by the ``DEL`` that removes the key, so
-        of two callers holding the right code exactly one is ``ok``.
+        The order is the control. Both comparisons always run, in constant
+        time, against stand-ins when there is no record. Only an attempt from
+        the device the code is bound to is then counted, against the NUMBER's
+        rolling window and before the result is used, so a burst of callers
+        that all read the record first still buys at most
+        :data:`OTP_MAX_ATTEMPTS` comparisons in any hour, across codes; the
+        miss that spends the last of them answers ``exhausted``. A match is
+        spent by the ``DEL`` that removes the key, so of two callers holding
+        the right code exactly one is ``ok``, and a match is not a miss.
         """
         key = self._key("otp", "code", pseudonym)
         peek = self._key("otp", "peek", pseudonym)
-        attempts_key = self._key("otp", "att", pseudonym)
         record = self._load_code(pseudonym)
-        if record is None or float(str(record.get("expires", 0))) < self._now():
-            hmac.compare_digest(_ABSENT, digest)
-            hmac.compare_digest(_ABSENT, binding)
+        live = record is not None and float(str(record.get("expires", 0))) >= self._now()
+        stored_digest = str(record.get("digest", "")) if record is not None and live else _ABSENT
+        stored_binding = str(record.get("binding", "")) if record is not None and live else _ABSENT
+        digest_ok = hmac.compare_digest(stored_digest, digest)
+        binding_ok = hmac.compare_digest(stored_binding, binding)
+        if not live:
             if record is not None:
-                self._r.delete(key, peek, attempts_key)
+                self._r.delete(key, peek)
             return "missing"
-        attempts = int(self._r.incr(attempts_key))
-        self._r.expire(attempts_key, OTP_TTL_S * 2)
-        digest_ok = hmac.compare_digest(str(record.get("digest", "")), digest)
-        binding_ok = hmac.compare_digest(str(record.get("binding", "")), binding)
-        if attempts > OTP_MAX_ATTEMPTS:
+        if not binding_ok:
+            # a stranger's device: it can never sign in with this code, so its
+            # guess is worth nothing and spends nothing of the number's budget
+            return "unbound"
+        misses, member, spent = self._spend_attempt(pseudonym)
+        if spent > OTP_MAX_ATTEMPTS:
             return "exhausted"
-        if digest_ok and binding_ok:
+        if digest_ok:
+            self._r.zrem(misses, member)  # a match is not a miss
             if not self._r.delete(key):
                 return "missing"  # another caller spent it first
-            self._r.delete(peek, attempts_key)
+            self._r.delete(peek)
             return "ok"
-        if attempts == OTP_MAX_ATTEMPTS:
+        if spent == OTP_MAX_ATTEMPTS:
             return "exhausted"
-        return "invalid" if binding_ok else "unbound"
+        return "invalid"
 
     def peek_code(self, pseudonym: str) -> str | None:
         return _text(self._r.get(self._key("otp", "peek", pseudonym)))

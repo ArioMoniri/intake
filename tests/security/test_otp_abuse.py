@@ -338,6 +338,7 @@ def _build(
     carrier_geo: CarrierGeoCheck | None = None,
     delivery: OtpDeliveryAdapter | None = None,
     pepper: Any = None,
+    attestation: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -375,7 +376,9 @@ def _build(
             tokenizer=Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1"),
             delivery=delivery_adapter,
             attestation=(
-                DevStructuralAttestationVerifier()
+                attestation
+                if attestation is not None
+                else DevStructuralAttestationVerifier()
                 if attested_dev
                 else FailClosedAttestationVerifier()
             ),
@@ -1291,8 +1294,9 @@ def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -
             if parts[:3] == ["auth", "otp", "w"]:
                 assert parts[3] in {"ip", "device", "phone"}, key
             elif parts[:2] == ["auth", "otp"]:
-                # INT-578 added the attempt counter and the lockout instant
-                assert parts[2] in {"cool", "code", "peek", "att", "lock"}, key
+                # INT-578 added the number's rolling miss window and the
+                # lockout instant
+                assert parts[2] in {"cool", "code", "peek", "miss", "lock"}, key
             if parts[:3] == ["auth", "otp", "code"]:
                 record = json.loads(harness.redis_client.get(key))
                 # INT-578: the attempts left the record for an atomic counter,

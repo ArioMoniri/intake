@@ -301,13 +301,18 @@ def _device_ref(device_id: str) -> str:
 
 
 def _bound_device(payload: AttestationPayload) -> str:
-    """What a code is bound to (INT-578): the key App Attest proved, when the
-    call carries one, and otherwise the install id — which only the dev tier
-    accepts. In a real mode the install id is the client's claim, and binding
-    to it would let any key that claims it spend the code."""
+    """What a code is bound to (INT-578): the key App Attest proved, or, on
+    the dev tier only, the install id. In a real mode the install id is the
+    client's claim, and binding to it would let any device that claims it
+    spend the code, so a real mode with no key it proved is refused here,
+    before any budget is spent or any code minted. Play Integrity proves no
+    key, so Android stays refused until its binding has one (HB-A3)."""
     if payload.mode == "app-attest" and payload.key_id:
         return f"{payload.mode}:{payload.key_id}"
-    return f"{payload.mode}:{payload.device_id}"
+    if payload.mode == "dev-unattested":
+        return f"{payload.mode}:{payload.device_id}"
+    logger.info("otp binding refused: a real attestation mode proved no key")
+    raise attestation_unverified()
 
 
 class OtpAuthService:
@@ -418,6 +423,7 @@ class OtpAuthService:
 
     async def request_code(self, request: Request, phone_raw: str) -> dict[str, object]:
         payload = await self._require_attested(request, "otp.request")
+        bound = _bound_device(payload)
         phone, pseudonym = self._require_phone(phone_raw)
         # INT-578: a locked number gets no code, and asking costs no budget
         locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym)
@@ -455,7 +461,7 @@ class OtpAuthService:
             pseudonym,
             self._pepper.code_digest(pseudonym, request_id, code),
             code if self._wiring.dev_otp_peek else None,
-            binding=self._pepper.device_binding(_bound_device(payload)),
+            binding=self._pepper.device_binding(bound),
         )
         try:
             receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
@@ -541,6 +547,7 @@ class OtpAuthService:
         self, request: Request, phone_raw: str, code: str, request_id: str
     ) -> TokenBundle:
         payload = await self._require_attested(request, "otp.verify")
+        bound = _bound_device(payload)
         phone, pseudonym = self._require_phone(phone_raw)
         jkt = await self._verify_proof(request)
         if await asyncio.to_thread(self._store.lockout_wait, pseudonym) is not None:
@@ -550,7 +557,7 @@ class OtpAuthService:
             self._store.check_code,
             pseudonym,
             self._pepper.code_digest(pseudonym, request_id, code),
-            binding=self._pepper.device_binding(_bound_device(payload)),
+            binding=self._pepper.device_binding(bound),
         )
         OTP_VERIFY_TOTAL.labels(outcome=verdict).inc()
         if verdict == "exhausted":

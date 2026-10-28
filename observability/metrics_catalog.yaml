@@ -2014,9 +2014,10 @@ metrics:
     unit: "count"
     description: >-
       OTP verify attempts by outcome: ok, invalid (wrong code), unbound (the
-      right or a wrong code from a device other than the one that asked),
-      exhausted (the miss that spent the five attempts and locked the
-      number), missing (no live code) or locked (refused by the lockout).
+      right or a wrong code from a device other than the one that asked; it
+      spends nothing of the number's budget), exhausted (the miss that spent
+      the number's five attempts in a rolling hour, across codes, and locked
+      it), missing (no live code) or locked (refused by the lockout).
       Emitted by intake_api.otp.
   # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
   # series (nps.monthly, clinician.pulse) but no id for the scheduling of

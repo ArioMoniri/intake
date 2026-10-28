@@ -583,12 +583,20 @@ it or whose tests exercise it.
   one and replaces a malformed one; the API policy reads it and cannot write or list it. The
   record also carries the **device binding**: an HMAC of the App Attest key id the request
   proved, or in dev the install id — never the install id a real-mode payload merely claims.
-  A verify must come from that device with that request id, or it is one more miss. The
-  attempt budget is an atomic `INCR` taken **before** the comparison, so callers racing on one
-  code buy at most 5 comparisons between them (INT-131's read-modify-write let every racer
-  read zero), and a match is spent by the `DEL` that removes it, so of two callers holding
-  the right code exactly one signs in. Both comparisons are `hmac.compare_digest`, against
-  stand-ins when there is no record. The fifth miss locks the number for one request window
+  A real mode that proved no key (Play Integrity, or App Attest without its key id) is
+  refused before any budget is spent, so nothing binds to a claim. A verify must come from
+  that device with that request id or it cannot sign in. The attempt budget is the
+  **number's**, over a rolling hour, not the code's: each attempt from the bound device is
+  added to the window **before** the result is used, so callers racing buy at most 5
+  comparisons between them (INT-131's read-modify-write let every racer read zero), and a
+  new code does not reset it. A budget per code let four misses on each of three codes
+  through, twelve guesses an hour with the lockout never engaged (security review, 28 Oct
+  2026). Only the bound device spends it: a stranger's device can never match the binding,
+  so its guesses are worth nothing and counting them would let any attested device lock any
+  number for an hour. A match is spent by the `DEL` that removes it, so of two callers
+  holding the right code exactly one signs in, and a match is not a miss. Both comparisons
+  are `hmac.compare_digest`, against stand-ins when there is no record. The fifth miss in
+  the hour locks the number for one request window
   (`OTP_LOCKOUT_S` = 3600 s): no code is minted for it and no verify compared until it ends.
   The length is the control: a shorter lockout lets the per-number budget hand out three codes
   an hour, the 15 guesses an hour INT-131 allowed; at a window it is 5. It adds no
@@ -663,7 +671,9 @@ it or whose tests exercise it.
   environment and in dev on the dev server, never the environment, a process-local one under
   file-dev only), the race for a spent code and the race for the attempt budget made exact by
   an interleaving store, the lockout and its one-second near miss, no more than 5 guesses a
-  number in any rolling hour over two simulated hours, constant-time comparisons, a code
+  number in any rolling hour over two simulated hours at five and at four misses a code, a
+  stranger's device unable to lock a number, a keyless real mode refused before a budget is
+  spent, constant-time comparisons, a code
   refused on another device (dev install id and App Attest key) and under another request id
   (`tests/security/test_otp_brute_force.py`, `tests/api/test_attestation_otp_flow.py`), the
   host's pepper on stdin, kept, replaced when malformed, re-asserted by every deploy, and the
