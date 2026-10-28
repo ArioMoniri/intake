@@ -390,10 +390,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358, GitHub #895); grows only with a
     # stated reason.
+    # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
     # + INT-576 (the Netgsm adapter parses the live success shape and never
     # retries an unreadable 200, from the owner's real send, GitHub #971);
     # grows only with a stated reason.
-    assert len(ids) == 368, f"expected 175 blueprint + 193 added issues, got {len(ids)}"
+    assert len(ids) == 369, f"expected 175 blueprint + 194 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -32,7 +32,7 @@
   - Red: 59 failed, 193 passed, 1 collection error. Green: 339 passed on the set, and 1273 on the wider OTP, observability, legal, egress and staging suites. 16/16 mutations killed.
 - Result (`make check` / `make safety` / `make security` summary):
   - ruff and format clean; mypy --strict clean (97 files).
-  - files/11 regenerated, and the three pins go from 367 to 368.
+  - files/11 regenerated, and the three pins go from 368 to 369, on top of main's INT-573.
   - The full `make check` fan-out runs on the PR's runner (no container runtime here). The local gate results are in docs/evidence/INT-576.md.
   - `make safety` is not touched: no protocol, PolicyGuard or runtime change.
 - Invariants touched and still passing:
@@ -4204,3 +4204,10 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+
+### 2026-10-28T01:40:00+03:00 · INT-573 · done
+- Goal: four advisories published on 27 Oct (next 16.3.8 RCE+DoS, certifi 2026.7.22, filelock 3.32.4) turned the vulnerabilities gate red on main and on every open PR. All four have fixed releases, so the fix is bumps, never an exception row (invariant 14).
+- Plan: `pnpm install --lockfile-only` with next pinned to 16.4.1 in apps/admin-web; `uv lock --upgrade-package certifi --upgrade-package filelock==4.2.1` (virtualenv followed). No constraint, no suppression.
+- Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
+- Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
+- LOOP_STATUS: CONTINUE
