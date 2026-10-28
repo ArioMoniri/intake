@@ -1,0 +1,17 @@
+# source_id: TR-KVKK-ACIK-RIZA-HUSUSLAR
+# instrument: Kişisel Verileri Koruma Kurumu, "Açık Rıza Alırken Dikkat Edilecek Hususlar" (Kurum guidance page)
+# url: https://www.kvkk.gov.tr/Icerik/2037/Acik-Riza-Alirken-Dikkat-Edilecek-Hususlar
+# retrieved_on: 2026-10-16 (INT-529)
+# retrieved_sha256: 243ac072b0b44ac273ab58b5f5d2e25846b1032146b236eb37aaffc36ba88027 (the HTML as served)
+# transcription: the guidance body only; HTML tags removed. The detailed Rehber the page links (CMSFiles/66b2e9c4-223a-4230-b745-568f096fd7de.pdf) redirected to the Kurum home page on 2026-10-16 and was not retrieved.
+---
+Açık rıza; “belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rıza”dır.
+Kanun çerçevesinde açık rıza, kişinin sahip olduğu verinin işlenmesine, kendi isteği ile ya da karşı taraftan gelen istek üzerine, onay vermesi anlamını taşımaktadır. Açık rızanın bir diğer önemi de veri işleyene gerçekleştireceği fiil konusunda yol göstermesidir. Kişi açık rıza açıklaması ile aslında veri sorumlusuna kendi hukuksal değerine ilişkin verdiği kararı bildirmiş olmaktadır. Açık rıza, ilgili kişinin, işlenmesine izin verdiği verinin sınırlarını, kapsamını, gerçekleştirilme biçimini ve süresini de belirlemesini sağlayacaktır.
+Açık rızanın bu anlamda, rıza veren kişinin “olumlu irade beyanı”nı içermesi gerekmektedir. Diğer mevzuattaki düzenlemeler saklı kalmak üzere, açık rızanın yazılı şekilde alınmasına gerek yoktur. Açık rızanın elektronik ortam ve çağrı merkezi vb. yollarla alınması da mümkündür. Burada ispat yükümlülüğü veri sorumlusuna aittir.
+Kanunun 3. maddesinde yer verilen açık rıza tanımı kapsamında, açık rızanın 3 unsuru bulunmaktadır:
+Belirli bir konuya ilişkin olması,
+Rızanın bilgilendirmeye dayanması,
+Özgür iradeyle açıklanması.
+Belirli bir konu ile sınırlandırılmayan ve ilgili işlemle sınırlı olmayan genel nitelikteki açık rızalar “battaniye rızalar” olarak kabul edilmekte ve hukuken geçersiz sayılmaktadır. Örneğin; “her türlü ticari işlem, her türlü bankacılık işlemi ve her türlü veri işleme faaliyeti” gibi belirli bir konu ve faaliyeti işaret etmeyen rıza beyanları battaniye rıza kapsamında değerlendirilebilecek durumlardır.
+Açık rıza vermek, kişiye sıkı sıkıya bağlı bir hak olduğundan, verilen açık rıza geri alınabilir. Bu bağlamda kişisel verilerin geleceğini belirleme hakkı ilgili kişiye ait olduğundan, kişi dilediği zaman veri sorumlusuna vermiş olduğu açık rızasını geri alabilir.
+Ancak, geri alma işlemi ileriye yönelik sonuç doğuracağından, açık rızaya dayalı olarak gerçekleştirilen tüm faaliyetler geri alma beyanının veri sorumlusuna ulaştığı andan itibaren veri sorumlusu tarafından durdurulmalıdır. Bir diğer deyişle, geri alma beyanı veri sorumlusuna ulaştığı andan itibaren hüküm doğurur.

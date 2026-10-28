@@ -219,8 +219,11 @@ def test_the_api_refuses_to_boot_with_a_proxy_outside_the_synthetic_deployment(
     monkeypatch.setenv(ENV_EGRESS_PROXY_URL, PROXY_URL)
     with pytest.raises(EgressProxyRefused):
         ApiSettings.from_env()
-    # near miss: the same process, declared synthetic, boots
+    # near miss: the same process, declared synthetic, boots. INT-529 honours
+    # the synthetic class only in an explicitly named dev or staging (never the
+    # unset-means-dev reading), so the near miss names its environment.
     monkeypatch.setenv(ENV_DEPLOYMENT_DATA_CLASS, "synthetic")
+    monkeypatch.setenv("INTAKE_ENV", "dev")
     assert ApiSettings.from_env() is not None
 
 

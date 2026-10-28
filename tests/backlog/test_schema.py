@@ -238,7 +238,9 @@ def test_ids_unique_and_well_formed() -> None:
     # a guard against the old name; owner request, GitHub #712).
     # + INT-560 (the operability registry page tells the truth about the host
     # it runs on; owner request, GitHub #948).
-    assert len(ids) == 372
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
+    assert len(ids) == 373
     import re
 
     for i in ids:

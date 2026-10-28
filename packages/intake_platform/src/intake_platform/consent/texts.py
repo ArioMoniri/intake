@@ -23,6 +23,14 @@ copy. Filenames map from purpose ids with ``:`` → ``.`` plus the ``.tr.md``
 suffix (``lane:affect`` → ``lane.affect.tr.md``); a ``share:<qualifier>``
 scope binds to the ``share`` family text, whose parameters live on the
 grant, not in the copy.
+
+INT-529 adds one refusal and two helpers. A synthetic-scope text (owner,
+16 Oct 2026) carries the visible marker :data:`SYNTHETIC_MARKER` on its first
+body line and is served only by
+:class:`intake_platform.legal.synthetic.SyntheticConsentTextCatalog`. This
+catalog is the real-tenant one, so it refuses any file that carries the marker
+anywhere: a synthetic text copied into the real tree is a defect, never a text
+a real grant may bind.
 """
 
 from __future__ import annotations
@@ -31,10 +39,12 @@ import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Final
 
 from intake_platform.consent.registry import resolve_scope
 
 __all__ = [
+    "SYNTHETIC_MARKER",
     "BoundLegalText",
     "ConsentText",
     "ConsentTextCatalog",
@@ -42,6 +52,9 @@ __all__ = [
     "ConsentTextInvalidError",
     "ConsentTextMissingError",
     "bind_legal_document",
+    "carries_synthetic_marker",
+    "parse_text_file",
+    "synthetic_marker_is_visible",
     "text_filename",
 ]
 
@@ -50,6 +63,35 @@ _VERSION_LINE = re.compile(
     r"^consent_text_version:\s*(?P<version>[A-Za-z0-9][A-Za-z0-9._-]{0,63})\s*$"
 )
 _MAX_FRONT_MATTER_LINES = 10
+
+#: INT-529: the visible marker every synthetic-scope legal text carries on its
+#: first body line ("synthetic test text"). Lower-case Turkish; matching folds
+#: Turkish case first, so "SENTETİK TEST METNİ" is the same marker.
+SYNTHETIC_MARKER: Final[str] = "sentetik test metni"
+
+
+def _turkish_fold(text: str) -> str:
+    """Lower-case with the Turkish dotted/dotless pairs folded correctly —
+    ``str.lower`` turns ``İ`` into ``i`` plus a combining dot."""
+    return text.replace("İ", "i").replace("I", "ı").lower()
+
+
+def carries_synthetic_marker(text: str) -> bool:
+    """Whether ``text`` carries the synthetic marker anywhere, in any case."""
+    return SYNTHETIC_MARKER in _turkish_fold(text)
+
+
+def synthetic_marker_is_visible(body: str) -> bool:
+    """Whether the marker is on the first non-empty line of the shown copy and
+    that line is not an HTML comment — the place a reader cannot miss it. A
+    marker in the front matter, below the first line or inside a comment is
+    not visible, and a synthetic loader refuses it."""
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        return not stripped.startswith("<!--") and carries_synthetic_marker(stripped)
+    return False
 
 
 class ConsentTextError(Exception):
@@ -146,6 +188,13 @@ def _parse(path: Path, raw: bytes) -> tuple[str, str]:
     return version, body
 
 
+def parse_text_file(path: Path, raw: bytes) -> tuple[str, str]:
+    """``(version, body)`` under this module's file contract, or
+    :class:`ConsentTextInvalidError` — the one parser every legal-text loader
+    shares, so a synthetic text and a real one are read the same way."""
+    return _parse(path, raw)
+
+
 class ConsentTextCatalog:
     """Reads the legal tree fresh on every lookup — the re-prompt-on-change
     contract needs a text bump to be visible immediately, and consent
@@ -170,6 +219,11 @@ class ConsentTextCatalog:
                 "into docs/legal by INT-210; nothing may be granted without one"
             ) from exc
         version, body = _parse(path, raw)
+        if carries_synthetic_marker(raw.decode("utf-8")):
+            raise ConsentTextInvalidError(
+                f"{path}: carries the synthetic test-text marker — a real-tenant catalog "
+                "never serves a synthetic text (INT-529)"
+            )
         return ConsentText(
             purpose=purpose,
             version=version,

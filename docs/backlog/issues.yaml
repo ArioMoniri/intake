@@ -7361,3 +7361,28 @@
     - "Licence columns are INT-561."
   tests: [tests/observability/test_host_inventory.py, tests/observability/test_host_sweep.py, tests/admin/test_registry_truth.py, tests/infra/test_staging_probes.py, tests/admin/test_ops_console.py, apps/admin-web/e2e/ops.spec.ts]
   sec_row: "monitoring-contract"
+- id: INT-529
+  epic: E14-legal
+  phase: P1
+  title: "Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host"
+  # GitHub #896, 16 Oct 2026. Owner: "for third do recommended" — yes to the
+  # INT-498 audit's proposal P6. Under D25 (INT-471, GitHub #800) the legal
+  # lane authors texts for synthetic tenants only, into a separate index at
+  # docs/legal/synthetic/. docs/legal/documents.yaml stays empty until a
+  # licensed Turkish lawyer countersigns (HB-L27, G3). Seven açık rıza texts
+  # are built. The five aydınlatma texts and four açık rıza texts are listed
+  # awaiting-human in the synthetic index, each naming the value no file
+  # declares (controller identity, recipients, transfer ground, retention, the
+  # crisis carve-out): docs/evidence/INT-529.md §4, docs/backlog/blockers.md.
+  depends_on: [INT-038, INT-210]
+  labels: [area:legal, risk:legal]
+  status: awaiting-human
+  evidence: docs/evidence/INT-529.md
+  acceptance:
+    - "under D25 the legal lane (legal-author agent, then an independent legal-reviewer) authors the eleven açık rıza and five aydınlatma texts for synthetic tenants only, into a separate index under docs/legal/ with hash binding (invariant 18); every rendered text carries a visible 'sentetik test metni' marker; fixed strings in docs/legal/strings.yaml stay verbatim"
+    - "the synthetic index loads only when INTAKE_DEPLOYMENT_DATA_CLASS=synthetic is baked into the image; a non-synthetic boot refuses it (test); real tenants still refuse every id until counsel signs (G3)"
+    - "a grant on the synthetic host binds the synthetic text's hash (test); claims scan (invariant 20) and PHI scan pass on the texts; patient copy ≤ B1, siz register"
+    - "a licensed Turkish lawyer's countersign is still required before any real patient"
+  tests: [tests/legal/test_synthetic_legal_index.py, tests/legal/test_synthetic_vendor_tripwire.py, tests/api/test_synthetic_consent_grant.py]
+  legal: "KVKK-4/5/6,KVKK-10,AYD-2018"
+  sec_row: "consent"
