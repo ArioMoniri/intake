@@ -7243,10 +7243,10 @@
   # build machine with disk for an iOS release build.
   depends_on: [INT-495]
   labels: [area:mobile]
-  status: todo
+  status: doing
   acceptance:
     - "the product page header at 3840×1646 (21:9) and iPhone screenshots for the large (1320×2868) and medium (1206×2622) groups, light and dark, Turkish and English, captured from a release-equivalent build with simulated patients only (no development-client chrome, development fixture, demo or mock label), listed in docs/store/asc/assets.yaml and passing scripts/store/asc_assets.py"
     - "uploaded through the App Asset Library (reserve, put, commit, place, order) by the INT-495 writer, dry run by default and live only by the owner's own command after their explicit yes; never Submit for Review or Release"
-  tests: [tests/legal/test_asc_listing.py]
+  tests: [tests/legal/test_asc_listing.py, tests/legal/test_asc_frames.py, tests/infra/test_capture_api_host.py]
   legal: "STORE"
   sec_row: "mobile"

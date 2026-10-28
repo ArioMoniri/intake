@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**368 issues.** By phase: P0 180 · P1 133 · P2 48 · P3 7. By status: awaiting-human 38 · doing 7 · done 247 · todo 75 · withdrawn 1.
+**368 issues.** By phase: P0 180 · P1 133 · P2 48 · P3 7. By status: awaiting-human 38 · doing 8 · done 247 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -328,7 +328,7 @@
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 | INT-482 | Store listing readiness: EAS metadata, privacy labels / data safety answers, review notes, as Önvizit | E08-mobile | INT-224, INT-421 | area:mobile | done |
 | INT-495 | App Store listing for Önvizit, filled in App Store Connect as an editable draft | E08-mobile | INT-482 | area:mobile | done |
-| INT-502 | Capture the App Store header and screenshots from the merged design stack and upload them to App Store Connect | E08-mobile | INT-495 | area:mobile | todo |
+| INT-502 | Capture the App Store header and screenshots from the merged design stack and upload them to App Store Connect | E08-mobile | INT-495 | area:mobile | doing |
 
 ## P2
 

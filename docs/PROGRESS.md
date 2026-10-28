@@ -1,5 +1,29 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-29T01:30:00Z · INT-502 · doing (committed locally, not pushed; push freeze; stacked on #860 INT-495)
+- Goal: an App Store header and screenshots from the real app, synthetic patients only, with Turkish captions that pass PolicyGuard, in 6.9 inch, 6.5 inch and the required medium group; plus the App Store Connect draft values for the owner's go.
+- Plan:
+  - The captions become a legal-lane draft, and export reads served copy only.
+  - frames.yaml holds the journey, the theme tokens, the app's OFL faces pinned by sha256, the layout and the targets.
+  - The geometry is pure Python, and a CoreGraphics painter draws it.
+  - A simulator capture script records hash-only provenance.
+  - The capture API on the synthetic host's loopback (route d, coordinator 29 Oct) has an SSM up/down/forward.
+- Tests added: `tests/legal/test_asc_frames.py` (34) and `tests/infra/test_capture_api_host.py` (24).
+  - RED: collection error (no `capture_frames`). The host-script suite then caught "envfile: unbound variable" (7 failed).
+  - GREEN: 34 + 24, and `tests/legal` with the threat-model test, 691. Six of six mutations were killed.
+- Result (docs/evidence/INT-502.md):
+  - A preview of all 22 outputs passed the slot checks. It used evidence captures as stand-ins and was written outside the repo.
+  - ruff, ruff format and mypy strict are clean. shellcheck is clean.
+  - `no_placeholders`, the claims scan and the PHI scan are OK.
+- Invariants touched and still passing: 2, 5, 6, 14, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none. The capture API follows the coordinator's route (d) and the owner rule of 29 Oct: nothing server-side on the Mac.
+- Backlog: INT-502 `doing`, with the tests listed; files/11 regenerated. No id was minted.
+- Blocked on:
+  - the captures, until the host carries build 6;
+  - the caption draft's legal-lane review;
+  - App Store Connect writes, until the owner's go;
+  - the App Asset Library upload, not built in this pass.
+
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
   - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.

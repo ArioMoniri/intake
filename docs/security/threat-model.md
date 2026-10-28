@@ -1792,6 +1792,19 @@ it or whose tests exercise it.
   edits with per-endpoint attribute sets refuses submissions, releases, pricing, availability,
   deletes, version creation and the App Review contact and sign-in fields before sending; the
   log carries field names and HTTP statuses only. Tests: `tests/legal/test_asc_listing.py`.
+  **Store screenshots and the capture API (INT-502):** [I] a screenshot showing a real
+  person, a phone number, a code, a demo label or a third-party brand; [R] a caption that
+  claims what the app does not do; [E/S] a dev-gated API reachable from the internet, or dev
+  gates leaking into the public API, its database or its secrets. Controls: captions are a
+  legal draft gated by PolicyGuard, the strict claims scan and the device-claim gate, and each
+  quotes the line it rests on; export reads served captions only; captures are synthetic only,
+  checked against the device size and a must-not-show list, with hash-only provenance. The
+  capture API (`infra/staging/capture_api_host.sh`) runs only for a capture session: it is a
+  separate container of the current synthetic image, with its own database and Redis index
+  and a fresh tokenization key. It is published on the host's loopback only and reached by an
+  SSM port forward, on a second network with no masquerade. No vault, SMS vendor, egress proxy
+  or attestation setting reaches it, and no secret appears in an argv. Teardown removes only
+  what it made. Tests: `tests/legal/test_asc_frames.py`, `tests/infra/test_capture_api_host.py`.
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
   design (§9); the crash-free rate covers them (INT-145).
