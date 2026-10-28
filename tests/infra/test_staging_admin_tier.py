@@ -290,7 +290,12 @@ class TestApiGateAndConsole:
 
     def test_the_console_reaches_only_the_api(self) -> None:
         console = _service("admin-web")
-        assert _env("admin-web") == {"INTAKE_ADMIN_API_BASE": "http://api:8000"}
+        # INT-563: and Keycloak's origin, which the CSP's form-action admits
+        # for the step-up redirect — an origin, not a secret
+        assert _env("admin-web") == {
+            "INTAKE_ADMIN_API_BASE": "http://api:8000",
+            "INTAKE_ADMIN_STEP_UP_ORIGIN": "https://auth.${STAGING_HOSTNAME:?run init.sh}",
+        }
         assert console["networks"] == ["edge"]
         assert console["read_only"] is True
         assert "no-new-privileges:true" in console["security_opt"]

@@ -168,6 +168,15 @@ else
   fail "realm ${KEYCLOAK_REALM}: the second factor is not the committed one (staff sign-in or enrolment is refused)"
 fi
 
+# 7b. INT-563 (ADR-043): the live realm carries the four-eyes step-up client
+#     in its committed shape — public, PKCE S256, the console callback alone,
+#     the WebAuthn claims in the ID token only. Read only.
+if step_up_client check >/dev/null 2>&1; then
+  pass "realm ${KEYCLOAK_REALM} carries admin-web-stepup in the committed shape"
+else
+  fail "realm ${KEYCLOAK_REALM}: admin-web-stepup is absent or differs (every four-eyes approval is refused)"
+fi
+
 # 8. INT-442: the API's egress, from the API's own network position — no
 #    direct route out, an unlisted host and the metadata address refused by
 #    the forward proxy, and every hosted-model allow-list row tunnelled

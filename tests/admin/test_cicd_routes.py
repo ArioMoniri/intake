@@ -18,7 +18,6 @@ audit), and through ``python -m intake_api.admin.release_gate`` — the command
 from __future__ import annotations
 
 import io
-import uuid
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -37,6 +36,7 @@ from intake_platform.release_freeze import (
     RedisReleaseFreezeStore,
 )
 from prometheus_client import REGISTRY
+from step_up_fakes import StepUpHarness
 
 REPO = Path(__file__).resolve().parents[2]
 REASON = {
@@ -49,8 +49,8 @@ LIFT_REASON = {
 }
 
 
-def _assertion() -> str:
-    return f"assn-{uuid.uuid4().hex}"
+#: INT-563: approvals go through the step-up, the console's own sequence.
+STEP_UP = StepUpHarness.build()
 
 
 def _changes(control: str, outcome: str) -> float:
@@ -69,7 +69,9 @@ def client_redis() -> fakeredis.FakeRedis:
 
 @pytest.fixture()
 def harness(tmp_path: Path, client_redis: fakeredis.FakeRedis) -> Iterator[ApiHarness]:
-    wiring = build_admin_wiring(release_freeze=RedisReleaseFreezeStore(client_redis))
+    wiring = build_admin_wiring(
+        release_freeze=RedisReleaseFreezeStore(client_redis), step_up=STEP_UP.service
+    )
     yield from build_admin_harness(tmp_path, admin=wiring)
 
 
@@ -82,11 +84,7 @@ def _lift(client: Any, role: str = "platform_admin") -> Any:
 
 
 def _approve(client: Any, action_id: str, role: str = "qms_owner") -> Any:
-    return client.post(
-        f"/admin/cicd/freeze/lift/{action_id}/approve",
-        json={"assertion_id": _assertion()},
-        headers=bearer(role),
-    )
+    return STEP_UP.approve(client, f"/admin/cicd/freeze/lift/{action_id}/approve", action_id, role)
 
 
 class TestRoutes:

@@ -37,11 +37,14 @@
 2. Sign: `POST /admin/access/review/sign` with `{"section": …, "review_digest":
    …}` exactly as the page shows it. A digest that no longer matches the
    population is refused (`access_review_changed`): reload and read again.
-3. The second person countersigns within 24 hours:
-   `POST /admin/access/review/sign/{action_id}/countersign` with a fresh
-   WebAuthn `assertion_id`. It is refused if the population changed since the
-   signature, if it is the signer, or — for `platform_owner` — if the
-   countersigner is in the signer's organisation.
+3. The second person countersigns within 24 hours: open
+   `/step-up?action_id={action_id}` on the console and press **Onayla**. That
+   is a fresh password-and-passkey login at Keycloak, whose one-time grant the
+   console presents on `POST /admin/access/review/sign/{action_id}/countersign`
+   (INT-563, docs/runbooks/four-eyes-step-up.md); a body without a live grant
+   is refused. It is refused if the population changed since the signature, if
+   it is the signer, or — for `platform_owner` — if the countersigner is in the
+   signer's organisation.
 4. Record the KEP/e-imza signature of the review document where the owner keeps
    signed reviews. That record is organisational and outside the console
    (docs/legal/special-category-measures.yaml, gap `access-review-performed`).

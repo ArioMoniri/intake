@@ -59,6 +59,7 @@ from intake_platform.voice_control import (
 
 from intake_api.admin import views
 from intake_api.admin.deps import AdminCaller
+from intake_api.admin.step_up_routes import GRANT_FIELD, stepped_up_approver
 from intake_api.admin.voice_console import control_view, load_voice_console
 from intake_api.errors import four_eyes_refused, not_found, voice_control_refused
 
@@ -70,7 +71,7 @@ _REASON_FIELDS = frozenset({"reason_class", "justification"})
 _TENANT_BODY = _REASON_FIELDS | {"tenant"}
 _PROFILE_BODY = _REASON_FIELDS | {"profile"}
 _CANARY_BODY = _REASON_FIELDS | {"profile", "weight"}
-_APPROVE_BODY = frozenset({"assertion_id"})
+_APPROVE_BODY = frozenset({GRANT_FIELD})
 
 
 def _count(control: VoiceControlChange, outcome: str) -> None:
@@ -245,15 +246,18 @@ def _approver(action: DangerousAction, change: VoiceControlChange) -> Handler:
         _sweep(wiring)
         governor = _governor(wiring)
         payload = await _body(request, _APPROVE_BODY)
-        assertion = payload.get("assertion_id")
         action_id = request.path_params["action_id"]
+        try:
+            approver, assertion = await stepped_up_approver(
+                request, caller, wiring, role, action_id=action_id, payload=payload
+            )
+        except HTTPException:
+            _count(change, "refused")
+            raise
         try:
             control = await run_in_threadpool(
                 lambda: governor.approve(
-                    action_id,
-                    action=action,
-                    approver=caller.principal.actor_block(role),
-                    assertion_id=assertion if isinstance(assertion, str) else "",
+                    action_id, action=action, approver=approver, assertion_id=assertion
                 )
             )
         except _REFUSALS as refusal:

@@ -20,6 +20,7 @@ import { ModelLanesConsole } from "../../src/model-lanes/console";
 import { loadModelLanes, resultFrom, stagedFrom } from "../../src/model-lanes/load";
 import { bearerFrom, opsConfigFromEnv } from "../../src/ops/access";
 import { langFrom } from "../../src/ops/copy";
+import { stepUpResultFrom } from "../../src/step-up/results";
 
 export default async function ModelLanesPage({
   searchParams,
@@ -41,6 +42,7 @@ export default async function ModelLanesPage({
       lang={lang}
       result={resultFrom(params["result"])}
       staged={stagedFrom(jar.get(STAGED_COOKIE)?.value)}
+      stepUp={stepUpResultFrom(params["step_up"])}
     />
   );
 }

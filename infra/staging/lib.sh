@@ -822,6 +822,33 @@ ensure_staff_webauthn_notes() {
   staff_flow apply || die "the live realm's second factor is not the committed one (session-notes provider REQUIRED, OTP disabled, webauthn-register enabled); staff sign-in stays refused"
 }
 
+# INT-563 (ADR-043): the four-eyes step-up's public client. The committed realm
+# declares `admin-web-stepup`, but Keycloak imports a realm once, so
+# keycloak/step_up_client.py adds it to the live realm when it is absent and
+# verifies it, mapper by mapper, when it is present. A live client that differs
+# is refused and left for a human. It never reads or writes a flow or an
+# execution (a PUT without priority zeroes them: deploy e19640d2). Same one-off
+# api container and stdin password as staff_flow. `check` only reads.
+step_up_client() {
+  local mode=${1:-} value script hostname
+  case $mode in
+  apply) set -- ;;
+  check) set -- --check ;;
+  *) die "usage: step_up_client apply|check" ;;
+  esac
+  value=$(env_get "$ENV_FILE" KEYCLOAK_ADMIN_PASSWORD)
+  [[ $value =~ ^[0-9a-f]{64}$ ]] || die "KEYCLOAK_ADMIN_PASSWORD is not a generated secret: run ./init.sh"
+  hostname=$(env_get "$ENV_FILE" STAGING_HOSTNAME)
+  validate_hostname "$hostname"
+  script=$(<"$STAGING_DIR/keycloak/step_up_client.py")
+  printf '%s\n' "$value" | compose run --rm --no-deps -T api python -c "$script" \
+    "$@" http://keycloak:8080 "$KEYCLOAK_REALM" "$KEYCLOAK_BOOTSTRAP_ADMIN" "$hostname"
+}
+
+ensure_step_up_client() {
+  step_up_client apply || die "the live realm's admin-web-stepup client is absent or not the committed one; every four-eyes approval stays refused"
+}
+
 # shellcheck disable=SC2034 # JWKS_CHANGED is read by deploy.sh after its final up
 mirror_keycloak_jwks() {
   # The realm's public key set, read over the internal network by a one-off

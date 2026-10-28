@@ -29,7 +29,6 @@ are integers in 0..100, default 0.
 from __future__ import annotations
 
 import asyncio
-import uuid
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -58,6 +57,7 @@ from intake_voice_runtime.session_router import RouteReason, VoiceSessionRouter
 from intake_voice_runtime.typed import LaneSwitchReason
 from prometheus_client import REGISTRY
 from session_harness import builders
+from step_up_fakes import StepUpHarness
 from talker_harness import FakeClock
 
 TENANT = "tenant-a"
@@ -72,8 +72,8 @@ ROLLOUT = {
 }
 
 
-def _assertion() -> str:
-    return f"assn-{uuid.uuid4().hex}"
+#: INT-563: approvals go through the step-up, the console's own sequence.
+STEP_UP = StepUpHarness.build()
 
 
 def _sample(name: str, labels: dict[str, str] | None = None) -> float:
@@ -93,7 +93,8 @@ def _store(server: fakeredis.FakeServer) -> RedisVoiceControlStore:
 @pytest.fixture()
 def harness(tmp_path: Path, server: fakeredis.FakeServer) -> Iterator[ApiHarness]:
     yield from build_admin_harness(
-        tmp_path, admin=build_admin_wiring(voice_controls=_store(server))
+        tmp_path,
+        admin=build_admin_wiring(voice_controls=_store(server), step_up=STEP_UP.service),
     )
 
 
@@ -104,9 +105,7 @@ def _engage(client: Any, role: str = "sre_oncall", tenant: str = TENANT) -> Any:
 
 
 def _approve(client: Any, route: str, action_id: str, role: str) -> Any:
-    return client.post(
-        f"{route}/{action_id}/approve", json={"assertion_id": _assertion()}, headers=bearer(role)
-    )
+    return STEP_UP.approve(client, f"{route}/{action_id}/approve", action_id, role)
 
 
 def _enable_voice(client: Any, tenant: str = TENANT) -> None:

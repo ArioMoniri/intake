@@ -36,7 +36,7 @@ from intake_platform.admin.flag_governance import (
     FlagGovernanceRefused,
     build_flag_change_justification,
 )
-from intake_platform.admin.four_eyes import Justification, SelfApproval
+from intake_platform.admin.four_eyes import ActorBlock, Justification, SelfApproval
 from intake_platform.admin.metrics import (
     ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL,
     ADMIN_MODEL_LANE_CHANGES_TOTAL,
@@ -68,6 +68,7 @@ from intake_api.admin import views
 from intake_api.admin.deps import AdminCaller
 from intake_api.admin.model_lanes_console import load_model_lanes_console
 from intake_api.admin.ops_prom import prom_client_from_env
+from intake_api.admin.step_up_routes import GRANT_FIELD, stepped_up_approver
 from intake_api.errors import four_eyes_refused, model_lanes_refused, not_found
 
 __all__ = ["MODEL_LANES_HANDLERS"]
@@ -78,7 +79,7 @@ _REASON_FIELDS = frozenset({"reason_class", "justification"})
 _ENGAGE_BODY = _REASON_FIELDS | {"lanes"}
 _SWITCH_BODY = _REASON_FIELDS | {"route", "model", "fallback", "fallback_model"}
 _KEY_BODY = _REASON_FIELDS | {"api_key"}
-_APPROVE_BODY = frozenset({"assertion_id"})
+_APPROVE_BODY = frozenset({GRANT_FIELD})
 
 
 def _count(control: ModelLanesChange, outcome: str) -> None:
@@ -187,9 +188,15 @@ async def _run(
     return result
 
 
-def _assertion(payload: Mapping[str, Any]) -> str:
-    raw = payload.get("assertion_id")
-    return raw if isinstance(raw, str) else ""
+async def _stepped_up(
+    request: Request, caller: AdminCaller, wiring: AdminWiring, role: AdminRole, action_id: str
+) -> tuple[ActorBlock, str]:
+    """The approver block and assertion id, from the caller's step-up grant
+    for this action and from nothing else (INT-563; ADR-043)."""
+    payload = await _body(request, _APPROVE_BODY)
+    return await stepped_up_approver(
+        request, caller, wiring, role, action_id=action_id, payload=payload
+    )
 
 
 def _control(control: Any) -> dict[str, Any]:
@@ -312,11 +319,9 @@ async def _approve_release(
     async def work() -> dict[str, Any]:
         _sweep(wiring)
         governor = _governor(wiring)
-        assertion = _assertion(await _body(request, _APPROVE_BODY))
+        approver, assertion = await _stepped_up(request, caller, wiring, role, action_id)
         control = await run_in_threadpool(
-            lambda: governor.approve_release(
-                action_id, approver=caller.principal.actor_block(role), assertion_id=assertion
-            )
+            lambda: governor.approve_release(action_id, approver=approver, assertion_id=assertion)
         )
         return {
             "pending": views.pending_view(wiring.four_eyes.get(action_id)),
@@ -364,11 +369,9 @@ async def _approve_switch(
     async def work() -> dict[str, Any]:
         _sweep(wiring)
         governor = _governor(wiring)
-        assertion = _assertion(await _body(request, _APPROVE_BODY))
+        approver, assertion = await _stepped_up(request, caller, wiring, role, action_id)
         control = await run_in_threadpool(
-            lambda: governor.approve_switch(
-                action_id, approver=caller.principal.actor_block(role), assertion_id=assertion
-            )
+            lambda: governor.approve_switch(action_id, approver=approver, assertion_id=assertion)
         )
         return {
             "pending": views.pending_view(wiring.four_eyes.get(action_id)),
@@ -411,11 +414,9 @@ async def _approve_key_set(
     async def work() -> dict[str, Any]:
         _sweep(wiring)
         governor = _governor(wiring)
-        assertion = _assertion(await _body(request, _APPROVE_BODY))
+        approver, assertion = await _stepped_up(request, caller, wiring, role, action_id)
         status = await run_in_threadpool(
-            lambda: governor.approve_key_set(
-                action_id, approver=caller.principal.actor_block(role), assertion_id=assertion
-            )
+            lambda: governor.approve_key_set(action_id, approver=approver, assertion_id=assertion)
         )
         return {
             "pending": views.pending_view(wiring.four_eyes.get(action_id)),

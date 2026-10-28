@@ -268,6 +268,28 @@ button:disabled {
   border-radius: 999px;
 }
 
+/* INT-563: a pending row's Onayla — one submit, the form pill, in the cell. */
+form.inline-form {
+  display: inline;
+  margin: 0;
+}
+
+form.inline-form button[type="submit"] {
+  min-height: 28px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  border: 0;
+  border-radius: 999px;
+}
+
+form.inline-form button[type="submit"]:hover,
+form.inline-form button[type="submit"]:active {
+  background: var(--accent-fill-active);
+}
+
 /* --- states: notices, results, empty, refused, not found ------------------- */
 
 .refusal,

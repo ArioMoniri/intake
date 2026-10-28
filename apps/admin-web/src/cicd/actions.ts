@@ -10,9 +10,9 @@
  * - **Same origin only.** A post whose `Sec-Fetch-Site` is not `same-origin`
  *   is refused before anything is read.
  * - **The two controls and nothing else.** Freeze deploys (tier 1, one key)
- *   and request a lift (tier 2 — only a *request* for a second key). There is
- *   no approve form: approval needs a fresh single-use WebAuthn assertion
- *   (files/08 §2.3), which a script-free page cannot mint. There is no
+ *   and request a lift (tier 2 — only a *request* for a second key). Approval
+ *   is not posted here: it goes through the INT-563 step-up (`../step-up`,
+ *   ADR-043), a fresh WebAuthn re-authentication (files/08 §2.3). There is no
  *   rollback form: no deploy controller exists for it to command (Argo CD is
  *   not deployed), and a button over nothing is not a control.
  * - **Only values the API would accept.** A reason class that is not a code is

@@ -8,13 +8,14 @@
  * who may request and approve are read off the payload's control catalogue —
  * the server's `DangerousAction` registry — never from a list kept here.
  *
- * There is no approve form. Approval needs a fresh single-use WebAuthn
- * assertion (files/08 §2.3), and a script-free page cannot mint one; the
- * button is present, disabled, and says why.
+ * INT-563 (ADR-043): each pending ceremony carries an **Onayla** form that
+ * starts the four-eyes step-up — a fresh password-and-passkey login at
+ * Keycloak, proven to the API, spent once on that one action (files/08 §2.3).
  */
 import type { ReactElement } from "react";
 
 import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
+import { ApproveForm } from "../step-up/form";
 import type { Lang, VoiceCopy } from "./copy";
 import type { ControlView, VoiceView } from "./module";
 
@@ -77,11 +78,19 @@ export function ControlsTile({ view, c }: { view: VoiceView; c: C }): ReactEleme
   );
 }
 
-export function PendingTile({ view, c }: { view: VoiceView; c: C }): ReactElement {
+export function PendingTile({
+  view,
+  lang,
+  c,
+}: {
+  view: VoiceView;
+  lang: Lang;
+  c: C;
+}): ReactElement {
   const t = view.pending;
   return (
     <Tile id="pending" title={c.tiles.pending} state={t.state} reason={t.reason} c={c}>
-      <p className="window">{c.approveNeedsStepUp}</p>
+      <p className="window">{c.approveStepUp}</p>
       <ScrollTable>
         <thead>
           <tr>
@@ -115,9 +124,7 @@ export function PendingTile({ view, c }: { view: VoiceView; c: C }): ReactElemen
                 <time>{row.expiresAt}</time>
               </td>
               <td>
-                <button type="button" disabled data-reason="step_up_unwired">
-                  {c.approve}
-                </button>
+                <ApproveForm actionId={row.actionId} from="voice" lang={lang} label={c.approve} />
               </td>
             </tr>
           )}

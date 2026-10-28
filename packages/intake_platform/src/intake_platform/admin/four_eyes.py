@@ -291,6 +291,19 @@ class FourEyesService:
         self._pending[action_id] = approved
         return approved
 
+    def check_approvable(self, action_id: str, *, approver: ActorBlock) -> PendingAction:
+        """What :meth:`approve` checks before it spends an assertion — state,
+        window, distinctness, role — and nothing spent. INT-563: the step-up
+        refuses an approval that could never pass before anyone is asked for
+        a passkey. :meth:`approve` checks all of it again."""
+        pending = self.get(action_id)
+        if pending.state is not PendingActionState.PENDING:
+            raise PendingActionDecided(f"action is {pending.state.value}")
+        if self._clock() > pending.expires_at:
+            raise PendingActionExpired("the approval window closed (files/08 §2.4)")
+        self._check_distinct(pending, approver)
+        return pending
+
     def _check_distinct(self, pending: PendingAction, approver: ActorBlock) -> None:
         actor = pending.actor
         if approver.subject == actor.subject:

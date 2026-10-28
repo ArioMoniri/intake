@@ -12,9 +12,9 @@
  *   bearer would otherwise make every cross-site form a console action.
  * - **The four controls and nothing else.** Pull the kill switch (tier 1, one
  *   key), request its release, a default-profile switch or a canary weight
- *   (tier 2 — each only a *request* for a second key). There is no approve
- *   form: approval needs a fresh single-use WebAuthn assertion (files/08
- *   §2.3), which a script-free page cannot mint.
+ *   (tier 2 — each only a *request* for a second key). Approval is not
+ *   posted here: it goes through the INT-563 step-up (`../step-up`, ADR-043),
+ *   a fresh WebAuthn re-authentication the API verifies (files/08 §2.3).
  * - **Only values the API would accept.** A profile outside the two that exist
  *   (invariant 19), a weight that is not an integer 0..100, or a tenant that
  *   is not id-shaped is refused here, without a dial.

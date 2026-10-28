@@ -9,14 +9,26 @@
  * needs `eval` for its error overlay, so development alone gets it. No
  * `frame-src` beyond `'none'`: the iframe pattern is deleted (F1), and nothing
  * may frame the console (`frame-ancestors 'none'`).
+ *
+ * INT-563 (ADR-043): `form-action` admits one origin beside `'self'` — the
+ * Keycloak origin of the four-eyes step-up, when one is configured — because
+ * the **Onayla** form's 303 continues to Keycloak's authorization endpoint and
+ * browsers hold a form's redirects to `form-action`. Nothing else widens, and
+ * with no origin configured the directive stays `'self'`.
  */
 
 const NONCE = /^[A-Za-z0-9+/]{6,}={0,2}$/;
+/** An origin and nothing else: scheme, host, optional port. */
+const ORIGIN = /^https?:\/\/(?:[a-z0-9.-]+|\[::1\])(?::[0-9]{1,5})?$/;
 
-export function buildCsp(nonce: string, mode: string): string {
+export function buildCsp(nonce: string, mode: string, stepUpOrigin: string | null = null): string {
   if (!NONCE.test(nonce)) {
     throw new Error("the CSP nonce must be base64");
   }
+  if (stepUpOrigin !== null && !ORIGIN.test(stepUpOrigin)) {
+    throw new Error("the step-up origin must be a bare origin");
+  }
+  const forms = stepUpOrigin === null ? `'self'` : `'self' ${stepUpOrigin}`;
   const scripts = [`'self'`, `'nonce-${nonce}'`, `'strict-dynamic'`];
   if (mode === "development") scripts.push(`'unsafe-eval'`);
   return [
@@ -30,7 +42,7 @@ export function buildCsp(nonce: string, mode: string): string {
     `frame-src 'none'`,
     `frame-ancestors 'none'`,
     `base-uri 'none'`,
-    `form-action 'self'`,
+    `form-action ${forms}`,
   ].join("; ");
 }
 

@@ -1873,6 +1873,20 @@ metrics:
       Attempts to approve one's own tier-3 action — an intrusion signal,
       not a hygiene metric. Emitted where the ceremony refuses a self
       approval (INT-180).
+  - name: admin_step_up_total
+    id: admin.step_up_total
+    type: counter
+    labels: [stage, outcome]
+    owner: admin
+    unit: "count"
+    status: live
+    description: >-
+      The four-eyes WebAuthn step-up (INT-563, ADR-043), by stage (begin,
+      complete, redeem) and outcome (ok, or the refusal's machine code — a
+      closed set). The alert of admin.four_eyes.step_up: a run of
+      step_up_token_refused or step_up_replayed is a token presented by
+      someone who did not earn it. Who stepped up is on the audit chain, never
+      a label.
   - name: admin_pending_action_expired_total
     id: admin.pending_action_expired_total
     type: counter

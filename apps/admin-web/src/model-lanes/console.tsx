@@ -18,6 +18,8 @@ import type { ReactElement } from "react";
 import { ConsoleNav } from "../ops/nav";
 import { RefusedPage } from "../ui/states";
 import type { ResultCode, StagedKey } from "./actions";
+import { StepUpBanner } from "../step-up/form";
+import type { StepUpResult } from "../step-up/results";
 import { ControlForms, PendingTile } from "./controls";
 import { COPY, type Lang, type ModelLanesCopy } from "./copy";
 import type { ModelLanesState } from "./load";
@@ -54,10 +56,12 @@ export function ModelLanesConsole({
   lang,
   result,
   staged = null,
+  stepUp = null,
 }: {
   state: ModelLanesState;
   lang: Lang;
   result: ResultCode | null;
+  stepUp?: StepUpResult | null;
   staged?: StagedKey | null;
 }): ReactElement {
   const c = COPY[lang];
@@ -89,6 +93,7 @@ export function ModelLanesConsole({
           {c.generatedAt}: <time>{view.generatedAt}</time>
         </p>
         {result === null ? null : <Result result={result} staged={staged} c={c} />}
+        <StepUpBanner result={stepUp} lang={lang} />
       </header>
       {view.banners.map((banner) => (
         <p key={banner} className="refusal" data-banner={banner} role="note">
@@ -101,7 +106,7 @@ export function ModelLanesConsole({
         </h2>
         <div className="grid">
           <DeploymentTile view={view} c={c} />
-          <PendingTile view={view} c={c} />
+          <PendingTile view={view} lang={lang} c={c} />
           <LanesTile view={view} c={c} />
           <UsageTile view={view} c={c} />
         </div>

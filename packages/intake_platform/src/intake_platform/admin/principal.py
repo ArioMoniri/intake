@@ -51,6 +51,8 @@ __all__ = [
     "RoleNotPermitted",
     "TenantScopeRefused",
     "effective_tenant",
+    "is_credential_id",
+    "is_id_shaped",
     "principal_from_claims",
 ]
 
@@ -175,6 +177,17 @@ def _is_credential_id(value: str) -> bool:
     if base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii") != value:
         return False
     return _CREDENTIAL_ID_MIN_BYTES <= len(raw) <= _CREDENTIAL_ID_MAX_BYTES
+
+
+def is_id_shaped(value: str) -> bool:
+    """The audit chain's id shape (INT-563's step-up checks an AAGUID by it)."""
+    return _ID_SHAPE.fullmatch(value) is not None
+
+
+def is_credential_id(value: str) -> bool:
+    """The one spelling of a WebAuthn credential id (INT-563's step-up checks
+    the credential it was just shown by it)."""
+    return _is_credential_id(value)
 
 
 def _required_credential_id(claims: Mapping[str, Any]) -> str:

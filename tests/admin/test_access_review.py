@@ -67,6 +67,7 @@ from intake_platform.admin.actions import ACCESS_REVIEW_SIGN
 from intake_platform.audit import AuditEntry
 from intake_platform.slo import load_metrics_catalog
 from prometheus_client import REGISTRY
+from step_up_fakes import StepUpHarness
 
 REPO = Path(__file__).resolve().parents[2]
 SPEC = REPO / "files" / "08_ADMIN_CONSOLE_AND_OBSERVABILITY.md"
@@ -75,6 +76,8 @@ RULES = REPO / "infra" / "observability" / "security-rules.yaml"
 RUNBOOK = REPO / "docs" / "runbooks" / "access-review.md"
 REALM = REPO / "infra" / "keycloak" / "dev-realm.json"
 E2E = REPO / "apps" / "admin-web" / "e2e" / "fixtures"
+#: INT-563: approvals go through the step-up, the console's own sequence.
+STEP_UP = StepUpHarness.build()
 
 T0 = datetime(2026, 9, 27, tzinfo=UTC)
 DAY = timedelta(days=1)
@@ -298,7 +301,9 @@ def openbao() -> FakeOpenBao:
 
 @pytest.fixture()
 def harness(tmp_path: Path, keycloak: FakeKeycloak, openbao: FakeOpenBao) -> Iterator[ApiHarness]:
-    wiring = build_admin_wiring(identity=identity_wiring(keycloak, openbao))
+    wiring = build_admin_wiring(
+        identity=identity_wiring(keycloak, openbao), step_up=STEP_UP.service
+    )
     yield from build_admin_harness(tmp_path, admin=wiring, signed_sections=())
 
 
@@ -321,12 +326,10 @@ def _sign(harness: ApiHarness, role: str, section: str, digest: str) -> Any:
     )
 
 
-def _countersign(harness: ApiHarness, role: str, action_id: str, assertion: str) -> Any:
-    return harness.client.post(
-        f"/admin/access/review/sign/{action_id}/countersign",
-        json={"assertion_id": assertion},
-        headers=bearer(role),
-    )
+def _countersign(harness: ApiHarness, role: str, action_id: str) -> Any:
+    """INT-563: through the step-up, the one way a second key is presented."""
+    url = f"/admin/access/review/sign/{action_id}/countersign"
+    return STEP_UP.approve(harness.client, url, action_id, role)
 
 
 def _sign_and_countersign(
@@ -335,9 +338,7 @@ def _sign_and_countersign(
     digest = _section(_review(harness), section)["review_digest"]
     opened = _sign(harness, signer, section, digest)
     assert opened.status_code == 200, opened.text
-    return _countersign(
-        harness, countersigner, opened.json()["action_id"], f"assn-{section}-{countersigner}"
-    )
+    return _countersign(harness, countersigner, opened.json()["action_id"])
 
 
 class TestReviewRoute:
@@ -454,7 +455,7 @@ class TestSignAndCountersign:
         opened = _sign(harness, "compliance_officer", SECTION_CONSOLE_ROLES, digest)
         assert opened.status_code == 200
         keycloak.roles["kc-sub-auditor"].append("sre_oncall")
-        response = _countersign(harness, "qms_owner", opened.json()["action_id"], "assn-late")
+        response = _countersign(harness, "qms_owner", opened.json()["action_id"])
         assert response.status_code == 409
         assert response.json()["error"] == "access_review_changed"
         assert not [e for e in harness.audit_store.entries() if e.action == SIGNED_ACTION]
@@ -484,7 +485,7 @@ class TestSignAndCountersign:
         assert response.status_code == 409
         assert response.json()["error"] == "four_eyes_self_approval"
 
-    def test_an_assertion_is_spent_once(self, harness: ApiHarness) -> None:
+    def test_a_step_up_is_spent_once_on_its_own_signature(self, harness: ApiHarness) -> None:
         body = _review(harness)
         first = _sign(
             harness,
@@ -498,15 +499,21 @@ class TestSignAndCountersign:
             SECTION_PLATFORM_OWNER,
             _section(body, SECTION_PLATFORM_OWNER)["review_digest"],
         )
-        assert (
-            _countersign(harness, "qms_owner", first.json()["action_id"], "assn-once").status_code
-            == 200
-        )
-        reused = _countersign(
-            harness, "qms_owner_other_org", second.json()["action_id"], "assn-once"
-        )
-        assert reused.status_code == 409
-        assert reused.json()["error"] == "four_eyes_assertion_reused"
+        # the external countersigner may countersign either section
+        who = bearer("qms_owner_other_org")
+        grant = STEP_UP.grant(harness.client, "qms_owner_other_org", second.json()["action_id"])
+        assert grant.status_code == 200, grant.text
+        body = {"step_up_grant": grant.json()["grant"]}
+        first_url = f"/admin/access/review/sign/{first.json()['action_id']}/countersign"
+        second_url = f"/admin/access/review/sign/{second.json()['action_id']}/countersign"
+        # near miss: the grant presented for another signature is refused,
+        # and is not burnt by the attempt
+        crossed = harness.client.post(first_url, json=body, headers=who)
+        assert (crossed.status_code, crossed.json()["error"]) == (403, "step_up_unknown")
+        spent = harness.client.post(second_url, json=body, headers=who)
+        assert spent.status_code == 200, spent.text
+        reused = harness.client.post(second_url, json=body, headers=who)
+        assert (reused.status_code, reused.json()["error"]) == (403, "step_up_unknown")
 
 
 class TestReadOnlyEnforcedAtTheRoute:
@@ -559,7 +566,9 @@ class TestReadOnlyEnforcedAtTheRoute:
     def test_a_countersigned_review_readmits_the_writes(
         self, tmp_path: Path, keycloak: FakeKeycloak, openbao: FakeOpenBao
     ) -> None:
-        wiring = build_admin_wiring(identity=identity_wiring(keycloak, openbao))
+        wiring = build_admin_wiring(
+            identity=identity_wiring(keycloak, openbao), step_up=STEP_UP.service
+        )
         for harness in build_admin_harness(tmp_path, admin=wiring, signed_sections=()):
             assert self._open_break_glass(harness, "platform_owner").status_code == 403
             # the reviewers are not downgraded, so a lapsed review can always be redone

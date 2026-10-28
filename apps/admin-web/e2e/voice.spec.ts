@@ -311,7 +311,9 @@ describe("the controls — asymmetric, and only among profiles that exist", () =
     ]) {
       expect(markup).toContain(`name="action" value="${action}"`);
     }
-    expect(markup.match(/<form /g)?.length).toEqual(4);
+    // INT-563: beside the four, one step-up Onayla per pending ceremony
+    const pending = markup.match(/action="\/step-up\/start" method="post"/g)?.length ?? 0;
+    expect(markup.match(/<form /g)?.length).toEqual(4 + pending);
     expect(markup.match(/action="\/voice\/action" method="post"/g)?.length).toEqual(4);
   });
 
@@ -330,11 +332,16 @@ describe("the controls — asymmetric, and only among profiles that exist", () =
     expect(markup).toContain('type="number" min="0" max="100" step="1"');
   });
 
-  it("lists pending ceremonies with the requester's role, and approval needs the step-up", async () => {
+  it("lists pending ceremonies with the requester's role, each with the step-up's Onayla", async () => {
     const markup = await page(payload());
     expect(markup).toContain("01jbq0voicerecordedprofile01");
     expect(markup).toContain("clinical_lead");
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*data-reason="step_up_unwired"/);
+    // INT-563: one form per row, posting the action id and its page — no assertion field
+    expect(markup).toContain(
+      '<form class="inline-form" data-step-up="01jbq0voicerecordedprofile01" action="/step-up/start" method="post"><input type="hidden" name="action_id" value="01jbq0voicerecordedprofile01"/><input type="hidden" name="from" value="voice"/><input type="hidden" name="lang" value="en"/><button type="submit">Approve</button></form>',
+    );
+    expect(markup).not.toContain("step_up_unwired");
+    expect(markup).not.toMatch(/name="(assertion_id|step_up_grant)"/);
   });
 
   it("shows a result code it knows and nothing it does not", async () => {

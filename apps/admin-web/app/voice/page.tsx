@@ -15,6 +15,7 @@ import { headers } from "next/headers";
 import { bearerFrom, opsConfigFromEnv } from "../../src/ops/access";
 import { langFrom } from "../../src/ops/copy";
 import { VoiceConsole } from "../../src/voice/console";
+import { stepUpResultFrom } from "../../src/step-up/results";
 import { loadVoice, resultFrom } from "../../src/voice/load";
 
 export default async function VoicePage({
@@ -30,5 +31,12 @@ export default async function VoicePage({
     authorization: bearerFrom(requestHeaders),
     fetch: (url, init) => fetch(url, init),
   });
-  return <VoiceConsole state={state} lang={lang} result={resultFrom(params["result"])} />;
+  return (
+    <VoiceConsole
+      state={state}
+      lang={lang}
+      result={resultFrom(params["result"])}
+      stepUp={stepUpResultFrom(params["step_up"])}
+    />
+  );
 }

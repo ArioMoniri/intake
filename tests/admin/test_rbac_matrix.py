@@ -157,6 +157,17 @@ LANES_APPROVERS = frozenset(
 )
 LANES_BRIEF_READERS = LANES_SAFE_ACTORS | LANES_REQUESTERS | LANES_APPROVERS | {AdminRole.AUDITOR}
 
+#: INT-563 (ADR-043) — the four-eyes step-up is open to exactly the roles that
+#: stand as a second key on some ceremony: the union of the approver sets
+#: above, written from them rather than from the registry's derivation.
+STEP_UP_ACTORS = (
+    BREAK_GLASS_APPROVERS
+    | VOICE_APPROVERS
+    | FREEZE_LIFT_APPROVERS
+    | LANES_APPROVERS
+    | ACCESS_REVIEW_COUNTERSIGNERS
+)
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
@@ -202,6 +213,8 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("POST", "/admin/access/review/sign/{action_id}/countersign"): ACCESS_REVIEW_COUNTERSIGNERS,
     ("POST", "/admin/access/offboard"): OFFBOARDERS,
     ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
+    ("POST", "/admin/step-up"): STEP_UP_ACTORS,
+    ("POST", "/admin/step-up/complete"): STEP_UP_ACTORS,
     ("GET", "/admin/safety-queue"): SAFETY_QUEUE_READERS,
     ("POST", "/admin/safety-queue/{entry_id}/acknowledge"): SAFETY_QUEUE_ACKNOWLEDGERS,
 }

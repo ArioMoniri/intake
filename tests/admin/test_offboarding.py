@@ -80,6 +80,7 @@ from intake_platform.admin.access.offboarding import (
 from intake_platform.admin.actions import OFFBOARD
 from intake_platform.audit import AuditEntry
 from intake_platform.slo import load_metrics_catalog
+from step_up_fakes import StepUpHarness
 
 REPO = Path(__file__).resolve().parents[2]
 SPEC = REPO / "files" / "08_ADMIN_CONSOLE_AND_OBSERVABILITY.md"
@@ -92,6 +93,8 @@ RUNBOOK = REPO / "docs" / "runbooks" / "access-review.md"
 T0 = datetime(2026, 9, 27, tzinfo=UTC)
 DAY = timedelta(days=1)
 MANUAL = ("grafana", "langfuse", "unleash")
+#: INT-563: approvals go through the step-up, the console's own sequence.
+STEP_UP = StepUpHarness.build()
 
 
 class MemorySink:
@@ -134,7 +137,10 @@ def openbao() -> FakeOpenBao:
 @pytest.fixture()
 def harness(tmp_path: Path, keycloak: FakeKeycloak, openbao: FakeOpenBao) -> Iterator[ApiHarness]:
     yield from build_admin_harness(
-        tmp_path, admin=build_admin_wiring(identity=identity_wiring(keycloak, openbao))
+        tmp_path,
+        admin=build_admin_wiring(
+            identity=identity_wiring(keycloak, openbao), step_up=STEP_UP.service
+        ),
     )
 
 
@@ -401,10 +407,9 @@ class TestOneActionOffboarding:
         assert opened.status_code == 200
         body = _offboard(harness, "kc-sub-clinical-lead").json()
         assert body["expired_pending_actions"] == 1
-        approve = harness.client.post(
-            f"/admin/break-glass/{opened.json()['action_id']}/approve",
-            json={"assertion_id": "assn-after-departure"},
-            headers=bearer("qms_owner"),
+        action_id = opened.json()["action_id"]
+        approve = STEP_UP.approve(
+            harness.client, f"/admin/break-glass/{action_id}/approve", action_id, "qms_owner"
         )
         assert approve.status_code == 409
         assert approve.json()["error"] == "four_eyes_already_decided"

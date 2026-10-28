@@ -36,6 +36,7 @@ from intake_platform.admin import (
 from intake_platform.admin.access import IdentityWiring
 from intake_platform.admin.access.review import CONSOLE_SECTIONS, ReviewLedger
 from intake_platform.admin.principal import ClaimsRejected
+from intake_platform.admin.step_up import StepUpService
 from intake_platform.release_freeze import ReleaseFreezeStore
 from intake_platform.safety_inbox import SafetyInbox
 from intake_platform.voice_control import VoiceControlStore
@@ -98,6 +99,7 @@ def build_admin_wiring(
     identity: IdentityWiring | None = None,
     review_clock: Callable[[], datetime] | None = None,
     safety_inbox: SafetyInbox | None = None,
+    step_up: StepUpService | None = None,
 ) -> AdminWiring:
     return AdminWiring(
         claims=RecordedClaimsVerifier(recorded_claims()),
@@ -109,6 +111,7 @@ def build_admin_wiring(
         review_ledger=ReviewLedger(clock=review_clock),
         identity=identity,
         safety_inbox=safety_inbox,
+        step_up=step_up,
     )
 
 
@@ -192,6 +195,10 @@ LANES_REASON: dict[str, Any] = {
     "justification": "The GPU lane is down; route the synthetic stress run elsewhere.",
 }
 
+#: INT-563. A grant id no step-up ever issued: an approval that names it is
+#: refused, so the drive reaches the route past its role guard and no further.
+UNIT_LANE_GRANT = "sug_" + "0" * 32
+
 ROUTE_DRIVES: tuple[RouteDrive, ...] = (
     RouteDrive("GET", "/admin/whoami", "/admin/whoami", "auditor"),
     RouteDrive("GET", "/admin/access/roles", "/admin/access/roles", "auditor"),
@@ -222,7 +229,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/break-glass/{action_id}/approve",
         f"/admin/break-glass/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-1"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     # INT-189 — the compliance module (files/08 §4). All reads, driven by
     # `auditor`, one of the three roles §2.1 admits to these surfaces.
@@ -268,7 +275,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/voice/kill-switch/release/{action_id}/approve",
         f"/admin/voice/kill-switch/release/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-voice-1"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "PUT",
@@ -282,7 +289,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/voice/profile/pending/{action_id}/approve",
         f"/admin/voice/profile/pending/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-voice-2"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "PUT",
@@ -296,7 +303,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/voice/canary/pending/{action_id}/approve",
         f"/admin/voice/canary/pending/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-voice-3"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "GET",
@@ -323,7 +330,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/cicd/freeze/lift/{action_id}/approve",
         f"/admin/cicd/freeze/lift/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-cicd-1"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "GET",
@@ -362,7 +369,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/model-lanes/hosted/release/{action_id}/approve",
         f"/admin/model-lanes/hosted/release/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-lanes-1"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "PUT",
@@ -376,7 +383,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/model-lanes/route/pending/{action_id}/approve",
         f"/admin/model-lanes/route/pending/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-lanes-2"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "PUT",
@@ -390,7 +397,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/model-lanes/keys/pending/{action_id}/approve",
         f"/admin/model-lanes/keys/pending/{ABSENT_ACTION_ID}/approve",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-lanes-3"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "GET",
@@ -415,7 +422,7 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "/admin/access/review/sign/{action_id}/countersign",
         f"/admin/access/review/sign/{ABSENT_ACTION_ID}/countersign",
         "qms_owner",
-        {"assertion_id": "assn-unit-lane-2"},
+        {"step_up_grant": UNIT_LANE_GRANT},
     ),
     RouteDrive(
         "POST",
@@ -430,6 +437,19 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         f"/admin/access/offboard/{'0' * 32}/confirm",
         "sre_oncall",
         {"system": "grafana"},
+    ),
+    # INT-563 (ADR-043) — the four-eyes step-up. The harness wires none, so a
+    # permitted role reaches the handler and is answered 503 — past the guard,
+    # audited, and never 403.
+    RouteDrive(
+        "POST", "/admin/step-up", "/admin/step-up", "qms_owner", {"action_id": ABSENT_ACTION_ID}
+    ),
+    RouteDrive(
+        "POST",
+        "/admin/step-up/complete",
+        "/admin/step-up/complete",
+        "qms_owner",
+        {"state": "unit-lane-state", "code": "unit-lane-code"},
     ),
     # INT-406 — the Safety queue. The harness wires no inbox, so a permitted
     # role reaches the handler and is answered 503 — past the guard, audited,

@@ -89,11 +89,15 @@ describe("the forms — one key toward the GPU, a request for two toward a provi
     }
   });
 
-  it("lists pending ceremonies; Approve is present, disabled, and says why", async () => {
+  it("lists pending ceremonies; a pending one carries the step-up's Approve", async () => {
     const markup = await page(withPending());
     expect(markup).toContain('data-ceremony="route_switch"');
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*data-reason="step_up_unwired">Approve/);
-    expect(markup).not.toMatch(/name="assertion_id"/);
+    // INT-563: the form posts the action id and its page, nothing else
+    expect(markup).toMatch(
+      /<form class="inline-form" data-step-up="[^"]+" action="\/step-up\/start" method="post"><input type="hidden" name="action_id" value="[^"]+"\/><input type="hidden" name="from" value="model-lanes"\/><input type="hidden" name="lang" value="en"\/><button type="submit">Approve<\/button><\/form>/,
+    );
+    expect(markup).not.toContain("step_up_unwired");
+    expect(markup).not.toMatch(/name="(assertion_id|step_up_grant)"/);
   });
 
   it("the key field is a password input that is never given a value", async () => {

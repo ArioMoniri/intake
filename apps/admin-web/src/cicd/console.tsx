@@ -8,15 +8,18 @@
  *
  * Tier and the roles who may request and approve are read off the payload's
  * control catalogue — the server's `DangerousAction` registry — never from a
- * list kept here. There is no approve form (approval needs a fresh single-use
- * WebAuthn assertion, which a script-free page cannot mint) and no rollback
- * form (there is no deploy controller to command): both buttons are present,
- * disabled, and say why. No `style` attribute anywhere.
+ * list kept here. A pending lift carries an **Onayla** form that starts the
+ * INT-563 step-up (ADR-043): a fresh password-and-passkey login at Keycloak,
+ * proven to the API, spent once on that one request. There is no rollback
+ * form (there is no deploy controller to command): that button is present,
+ * disabled, and says why. No `style` attribute anywhere.
  */
 import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { ApproveForm, StepUpBanner } from "../step-up/form";
+import type { StepUpResult } from "../step-up/results";
 import { EmptyRow, RefusedPage } from "../ui/states";
 import type { ResultCode } from "./actions";
 import { COPY, type CicdCopy, type Lang } from "./copy";
@@ -123,11 +126,11 @@ function DeployGate({ view, c }: { view: CicdView; c: C }): ReactElement {
   );
 }
 
-function Pending({ view, c }: { view: CicdView; c: C }): ReactElement {
+function Pending({ view, lang, c }: { view: CicdView; lang: Lang; c: C }): ReactElement {
   const t = view.pending;
   return (
     <Tile id="pending" title={c.tiles.pending} state={t.state} reason={t.reason} c={c}>
-      <p className="window">{c.approveNeedsStepUp}</p>
+      <p className="window">{c.approveStepUp}</p>
       <ScrollTable>
         <thead>
           <tr>
@@ -162,9 +165,7 @@ function Pending({ view, c }: { view: CicdView; c: C }): ReactElement {
                 <time>{row.expiresAt}</time>
               </td>
               <td>
-                <button type="button" disabled data-reason="step_up_unwired">
-                  {c.approve}
-                </button>
+                <ApproveForm actionId={row.actionId} from="cicd" lang={lang} label={c.approve} />
               </td>
             </tr>
           ))}
@@ -232,10 +233,12 @@ export function CicdConsole({
   state,
   lang,
   result,
+  stepUp = null,
 }: {
   state: CicdState;
   lang: Lang;
   result: ResultCode | null;
+  stepUp?: StepUpResult | null;
 }): ReactElement {
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
@@ -272,6 +275,7 @@ export function CicdConsole({
             {c.results[result]}
           </p>
         )}
+        <StepUpBanner result={stepUp} lang={lang} />
       </header>
       <section className="band" aria-labelledby="band-release">
         <h2 id="band-release" className="band-head">
@@ -281,7 +285,7 @@ export function CicdConsole({
           <DeployGate view={view} c={c} />
           <Freeze view={view} c={c} />
           <ErrorBudget view={view} c={c} />
-          <Pending view={view} c={c} />
+          <Pending view={view} lang={lang} c={c} />
         </div>
       </section>
       <section className="band" aria-labelledby="band-ci">

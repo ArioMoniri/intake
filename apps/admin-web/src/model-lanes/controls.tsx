@@ -17,13 +17,15 @@
  * - **The key field** is `type="password"` and is never given a value: the
  *   page has nothing to put in it, and after a post it renders empty.
  *
- * There is no approve form. Approval needs a fresh single-use WebAuthn
- * assertion (files/08 §2.3), and a script-free page cannot mint one; the
- * button is present, disabled, and says why.
+ * INT-563 (ADR-043): a pending ceremony carries an **Onayla** form that
+ * starts the four-eyes step-up — a fresh password-and-passkey login at
+ * Keycloak, proven to the API, spent once on that one action (files/08 §2.3).
+ * A row no longer pending carries none.
  */
 import type { ReactElement, ReactNode } from "react";
 
 import { ScrollTable, Tile } from "../ops/tiles";
+import { ApproveForm } from "../step-up/form";
 import type { ModelLanesAction } from "./actions";
 import type { Lang, ModelLanesCopy } from "./copy";
 import { LANES, PROVIDERS, REASON_CLASSES } from "./payload";
@@ -31,10 +33,18 @@ import type { LaneOptionsView, ModelLanesView, ProviderView, RoleView } from "./
 
 type C = ModelLanesCopy;
 
-export function PendingTile({ view, c }: { view: ModelLanesView; c: C }): ReactElement {
+export function PendingTile({
+  view,
+  lang,
+  c,
+}: {
+  view: ModelLanesView;
+  lang: Lang;
+  c: C;
+}): ReactElement {
   return (
     <Tile id="pending" title={c.tiles.pending} state="ok" reason={null} c={c}>
-      <p className="window">{c.approveNeedsStepUp}</p>
+      <p className="window">{c.approveStepUp}</p>
       {view.pending.length === 0 ? (
         <p className="window">{c.none}</p>
       ) : (
@@ -64,9 +74,16 @@ export function PendingTile({ view, c }: { view: ModelLanesView; c: C }): ReactE
                   <time>{row.expiresAt}</time>
                 </td>
                 <td>
-                  <button type="button" disabled data-reason="step_up_unwired">
-                    {c.approve}
-                  </button>
+                  {row.state === "pending" ? (
+                    <ApproveForm
+                      actionId={row.actionId}
+                      from="model-lanes"
+                      lang={lang}
+                      label={c.approve}
+                    />
+                  ) : (
+                    c.none
+                  )}
                 </td>
               </tr>
             ))}

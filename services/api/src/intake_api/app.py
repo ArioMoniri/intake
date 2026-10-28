@@ -37,6 +37,7 @@ from intake_platform.admin.access.config import (
     identity_from_env,
 )
 from intake_platform.admin.oidc import KeycloakClaimsVerifier, load_jwks
+from intake_platform.admin.step_up import step_up_service_from_env
 from intake_platform.audit import AuditStore
 from intake_platform.db.audit_store import SqlAlchemyAuditStore
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider, TransitKekProvider
@@ -371,6 +372,14 @@ def _admin_from_env() -> AdminWiring | None:
     except ValueError:
         logger.warning("deploy freeze unconfigured: the store URL is not a redis URL")
         release_freeze = None
+    try:
+        # INT-563 (ADR-043): the four-eyes step-up, over the same mirrored key
+        # set. Unset, every approval answers 503 — there is no second key
+        # without it; a half-set or malformed pair is the same, loudly.
+        step_up = step_up_service_from_env(os.environ, issuer=issuer, keys=keys)
+    except ValueError:
+        logger.warning("four-eyes step-up unconfigured: the redirect or token URL is unusable")
+        step_up = None
     return AdminWiring(
         claims=KeycloakClaimsVerifier(issuer=issuer, audience=audience, keys=keys),
         ip_allowlist=IpAllowList.from_spec(os.environ.get("INTAKE_ADMIN_IP_ALLOWLIST", "")),
@@ -379,6 +388,7 @@ def _admin_from_env() -> AdminWiring | None:
         identity=_identity_from_env(),
         safety_inbox=_safety_inbox_from_env(),
         model_lanes=_model_lanes_from_env(voice_controls),
+        step_up=step_up,
     )
 
 

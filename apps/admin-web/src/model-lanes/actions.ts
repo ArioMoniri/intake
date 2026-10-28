@@ -12,9 +12,9 @@
  * - **The five controls and nothing else.** Disable hosted lanes and switch to
  *   the GPU lanes (tier 1, one key, the safe direction); request a hosted
  *   release, a route switch for a lane or role, or a provider key (tier 2 —
- *   each only a *request* for a second key). There is no approve form:
- *   approval needs a fresh single-use WebAuthn assertion (files/08 §2.3),
- *   which a script-free page cannot mint.
+ *   each only a *request* for a second key). Approval is not posted here:
+ *   it goes through the INT-563 step-up (`../step-up`, ADR-043), a fresh
+ *   WebAuthn re-authentication the API verifies (files/08 §2.3).
  * - **Only values the API would accept.** A reason class outside the closed
  *   set, a lane, role, route or provider outside theirs (there is no `mock`
  *   route), a model key that is not key-shaped or a provider key that is not

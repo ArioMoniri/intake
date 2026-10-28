@@ -36,6 +36,7 @@ __all__ = [
     "DANGEROUS_ACTIONS",
     "DEPLOY_FREEZE_ENGAGE",
     "DEPLOY_FREEZE_LIFT",
+    "FOUR_EYES_STEP_UP",
     "MODEL_BENCHMARK_RUN",
     "MODEL_LANES_CEREMONIES",
     "MODEL_LANES_HOSTED_DISABLE",
@@ -493,6 +494,38 @@ SAFETY_QUEUE_ACKNOWLEDGE = DangerousAction(
     alert_metric="clinic.red_unacknowledged_total",
 )
 
+#: INT-563 (ADR-043). Opening and completing a four-eyes step-up: a fresh
+#: WebAuthn re-authentication bound to one pending action. Tier 1 and SAFE:
+#: it changes nothing — the approval it makes possible is a tier-2 route of
+#: its own, checked and audited there — and a second key on the proof of the
+#: second key would be a regress. The actors are exactly the roles that stand
+#: as a second key on some registered ceremony; the alert is the step-up
+#: counter, whose refusals by outcome are the signal (docs/runbooks/four-eyes-step-up.md).
+FOUR_EYES_STEP_UP = DangerousAction(
+    id="admin.four_eyes.step_up",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset(
+        role
+        for action in (
+            BREAK_GLASS_OPEN,
+            VOICE_KILL_SWITCH_RELEASE,
+            VOICE_PROFILE_SWITCH,
+            VOICE_CANARY_SET,
+            DEPLOY_FREEZE_LIFT,
+            ACCESS_REVIEW_SIGN,
+            MODEL_LANES_HOSTED_RELEASE,
+            MODEL_LANES_ROUTE_SWITCH,
+            MODEL_LANES_KEY_SET,
+        )
+        for role in action.approver_roles
+    ),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/four-eyes-step-up.md",
+    alert_metric="admin.step_up_total",
+)
+
 DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN,
     MODEL_BENCHMARK_RUN.id: MODEL_BENCHMARK_RUN,
@@ -511,6 +544,7 @@ DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     MODEL_LANES_HOSTED_RELEASE.id: MODEL_LANES_HOSTED_RELEASE,
     MODEL_LANES_ROUTE_SWITCH.id: MODEL_LANES_ROUTE_SWITCH,
     MODEL_LANES_KEY_SET.id: MODEL_LANES_KEY_SET,
+    FOUR_EYES_STEP_UP.id: FOUR_EYES_STEP_UP,
 }
 
 
