@@ -230,7 +230,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
-    assert len(ids) == 368
+    # + INT-574 (the RED-never-waits test is deterministic under runner load:
+    # no wall-clock budget, a store the test holds; GitHub #967).
+    assert len(ids) == 369
     import re
 
     for i in ids:

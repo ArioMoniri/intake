@@ -142,7 +142,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-550 (a new staff user enrols a passkey after the password step, GitHub #930)
     # + INT-528 (Netgsm OTP SMS adapter behind the INT-329 port, GitHub #895)
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
-    assert len(actions) == 368
+    # + INT-574 (the RED-never-waits test is deterministic under runner load, GitHub #967)
+    assert len(actions) == 369
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -7268,4 +7268,28 @@
     - "trivy fs over the lockfiles reports none of the four advisories; the only findings left are the two already-suppressed rows, recorded before and after in evidence"
     - "admin-web tsc and vitest (385) pass on next 16.4.1; tests/ci (419) passes on the new lockfiles"
   tests: [tests/ci/test_security_gates.py]
+- id: INT-574
+  epic: E13-infra
+  phase: P1
+  title: "test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load"
+  # GitHub #967, 28 Oct 2026. The test timed one cold request against the
+  # 300 ms RED budget on the shared intake-aws-ci runner: main's own run on
+  # 78330ff4 failed it at 620 ms, #963's at 350 ms, and it passes alone. It
+  # sits in a required check-py shard, so it blocked every merge when it
+  # flaked. #963 (INT-459, d5f1907b) carries a test-only rewrite; this row
+  # lifts it onto main as its own PR and takes the clock out altogether: the
+  # store holds every write until the test opens it, so the RED coming back
+  # while its write is held is a fact of ordering, not of a clock (invariants
+  # 9, 21). The sweep of the other wall-clock budgets asserted in tests/api
+  # and tests/voice is in the evidence, with a recommendation each.
+  depends_on: [INT-475]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-574.md
+  acceptance:
+    - "tests/api/test_red_notify.py::test_the_red_never_waits_on_the_inbox_store asserts no wall-clock threshold: the RED is observed back while the Safety-inbox store still holds its write (an event the store blocks on), so it cannot have waited on the write; the entry waits in the outbox with the RED's own instant and the pump brings it to the store; at shutdown what is unwritten is counted, never named."
+    - "Near miss: a RED that writes the store itself is held with the write — it reaches the store and comes back only once the store answers — so the same observation is impossible for a RED that waits."
+    - "The test passes ten consecutive runs alone and under induced load (a GIL-burning store stub and CPU hogs); the original test's red run under load and the new test's green runs are recorded in the evidence."
+    - "Sweep: every wall-clock budget asserted in tests/api and tests/voice is listed in docs/evidence/INT-574.md with a recommendation each; only this test is changed here."
+  tests: [tests/api/test_red_notify.py]
   sec_row: "cicd"
