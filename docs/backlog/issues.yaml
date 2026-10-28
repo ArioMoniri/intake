@@ -7361,3 +7361,22 @@
     - "Licence columns are INT-561."
   tests: [tests/observability/test_host_inventory.py, tests/observability/test_host_sweep.py, tests/admin/test_registry_truth.py, tests/infra/test_staging_probes.py, tests/admin/test_ops_console.py, apps/admin-web/e2e/ops.spec.ts]
   sec_row: "monitoring-contract"
+- id: INT-585
+  epic: E01-platform
+  phase: P1
+  title: "Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation"
+  # GitHub #984, owner in chat 28 Oct 2026 ("1Y 2Y 3Y 4Y 5Y"): the iOS OTP
+  # autofill domain, the push new-device notice, patient passkeys with step-up,
+  # the SMS spend cap and the tokenization key's move into OpenBao. Each row
+  # names the issue that carries it out (INT-580, INT-583, INT-582, INT-577,
+  # INT-584). The live --shape run on f2b0d725 confirmed INT-576's parser.
+  depends_on: [INT-528, INT-576]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-585.md
+  acceptance:
+    - "files/00_STATE.md §3 carries D34-D38 exactly once each, with the owner's date and the issue that carries each out."
+    - "docs/evidence/INT-576.md records the live confirmation on f2b0d725 (structure only: content type, keys and their types, body length; no number, code, job id or body)."
+    - "TDD: a test pins the five rows; a near miss proves a row that names no issue is refused."
+  tests: [tests/docs/test_state_decisions.py]
+  sec_row: "onboarding"

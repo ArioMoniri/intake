@@ -400,7 +400,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # a guard against the old name, GitHub #712); grows only with a stated reason.
     # + INT-560 (the operability registry page tells the truth about the host
     # it runs on, owner request, GitHub #948); grows only with a stated reason.
-    assert len(ids) == 372, f"expected 175 blueprint + 197 added issues, got {len(ids)}"
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, owner in
+    # chat, GitHub #984); grows only with a stated reason.
+    assert len(ids) == 373, f"expected 175 blueprint + 198 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

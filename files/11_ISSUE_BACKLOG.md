@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**372 issues.** By phase: P0 183 · P1 135 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 252 · todo 74 · withdrawn 1.
+**373 issues.** By phase: P0 183 · P1 136 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 253 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -334,6 +334,7 @@
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
 | INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
 | INT-560 | The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns | E12-admin | INT-022, INT-183, INT-351, INT-377, INT-345 | area:observability | done |
+| INT-585 | Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation | E01-platform | INT-528, INT-576 | area:api | done |
 
 ## P2
 

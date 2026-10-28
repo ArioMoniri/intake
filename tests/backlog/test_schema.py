@@ -238,7 +238,9 @@ def test_ids_unique_and_well_formed() -> None:
     # a guard against the old name; owner request, GitHub #712).
     # + INT-560 (the operability registry page tells the truth about the host
     # it runs on; owner request, GitHub #948).
-    assert len(ids) == 372
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, and the
+    # live Netgsm OTP confirmation; owner in chat, GitHub #984).
+    assert len(ids) == 373
     import re
 
     for i in ids:
