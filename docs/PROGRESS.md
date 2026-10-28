@@ -4158,3 +4158,10 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+
+### 2026-10-28T01:40:00+03:00 · INT-573 · done
+- Goal: four advisories published on 27 Oct (next 16.3.8 RCE+DoS, certifi 2026.7.22, filelock 3.32.4) turned the vulnerabilities gate red on main and on every open PR. All four have fixed releases, so the fix is bumps, never an exception row (invariant 14).
+- Plan: `pnpm install --lockfile-only` with next pinned to 16.4.1 in apps/admin-web; `uv lock --upgrade-package certifi --upgrade-package filelock==4.2.1` (virtualenv followed). No constraint, no suppression.
+- Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
+- Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
+- LOOP_STATUS: CONTINUE
