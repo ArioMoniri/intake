@@ -1,5 +1,5 @@
 /**
- * Vizite design tokens (INT-130, premium pass INT-193;
+ * Önvizit design tokens (INT-130, premium pass INT-193;
  * docs/design/mobile-ui.md).
  *
  * Calm dark-on-light (02 §5.2): warm paper ground, deep ink, ONE accent.

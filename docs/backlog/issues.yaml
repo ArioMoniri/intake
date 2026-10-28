@@ -5169,8 +5169,8 @@
     - "ADR-029 proposes the embed surface (signed launch-ticket handshake vs an embedded UI, with a recommendation and tradeoffs), the constrained tenant-branding model, the auth/consent handshake, and how tenant isolation is preserved within D1-D15 and ADR-001..028"
     - "signed, single-use, short-lived launch ticket: the partner backend mints it server-to-server; the patient device launches it; the tenant is bound INSIDE the signature so a ticket cannot cross tenants; no PHI in the ticket; the nonce is single-use; device_functions stays off (ADR-020)"
     - "tenant embed registry (infra/tenants/embed_registry.yaml): branding is constrained data not partner markup, fail-closed, ships with ZERO prod rows and one dev-tier synthetic tenant; a prod row is refused without recorded DPA + brand-permission facts (human sign-off)"
-    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Vizite's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
-    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Vizite launch url, never holding a Vizite secret"
+    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Önvizit's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
+    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Önvizit launch url, never holding an Önvizit secret"
     - "NO real partner secrets or branding; a partner-supplied patient identifier / note-back correlation is out of scope pending human sign-off (a new personal-data category + recipient), built as the mechanism only, fail-closed, content empty"
   tests: [tests/embed/test_tickets.py, tests/embed/test_registry.py, tests/embed/test_launch.py, tests/embed/test_router.py, tests/embed/test_service.py, tests/legal/test_consent_guard.py]
   legal: "KVKK-8,DPA"
@@ -6353,7 +6353,6 @@
   tests: [tests/legal/test_legal_drafts.py]
   legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
   sec_row: "compliance-evidence"
-
 - id: INT-404
   epic: E03-protocols
   phase: P1
@@ -7317,3 +7316,23 @@
     - "An opt-in, structure-only diagnostic (netgsm_test_otp.sh --shape) prints the answer's content type, kind, top-level keys or tags, vendor code and length, never the number, the code, the job id or the body; invariant 6 tests cover every new refusal path."
   tests: [tests/api/test_otp_netgsm_answer.py, tests/api/test_otp_netgsm.py, tests/api/test_otp_send_check.py, tests/api/test_otp_netgsm_wiring.py, tests/infra/test_staging_netgsm.py]
   sec_row: "onboarding"
+- id: INT-420
+  epic: E08-mobile
+  phase: P0
+  title: "Önvizit everywhere — finish the Vizite→Önvizit rebrand on main"
+  # GitHub #712. Owner request, 27 Sep 2026: the product is Önvizit (ASCII
+  # `onvizit`). Carries the intent of int-demo 0115c60b and 82c1a1e6 (name,
+  # V-logo icon, bundle id, localized CFBundleDisplayName, purpose string)
+  # without merging int-demo; eas.json and the other release config stay with
+  # INT-421. Common-noun uses of the Turkish word and dated records are kept
+  # and listed in the allow-list the guard reads (docs/evidence/INT-420.md).
+  depends_on: [INT-130, INT-320]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-420.md
+  acceptance:
+    - "every brand use of the old name on main reads Önvizit (ASCII identifier `onvizit`): app and display name, bundle and scheme, embed sample partner, i18n, docs, store and legal artefacts, and tests; carries over the int-demo rebrand (V-logo icon, localized CFBundleDisplayName, iOS purpose strings)"
+    - "the Turkish common noun is kept wherever it is used as a word and not as the brand, and each kept occurrence is listed in the evidence"
+    - "identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested; a guard test fails on any new brand-case use of the old name"
+  tests: [tests/release/test_brand_name.py, tests/release/test_brand_identifiers.py, apps/mobile/e2e/brand.spec.ts]
+  sec_row: "mobile"

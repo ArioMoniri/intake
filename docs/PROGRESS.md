@@ -3856,6 +3856,16 @@
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-02T12:00:00Z · INT-420 · done (PR open, not merged)
+- Goal: acceptance (GitHub #712), with the old name written as <old>: *"Every brand use of <old> on main reads Önvizit (ASCII identifier `onvizit`) … The Turkish common noun "<old>" is kept wherever it is used as a word … Identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested. A guard test fails on any new brand-case "<old>"."*
+- Plan: read int-demo `0115c60b` and `82c1a1e6` hunk by hunk, and port their intent without merging int-demo: the name, the localized CFBundleDisplayName, the V-logo `icon.png` with the `ios.icon` override dropped, and the registered bundle id. Rename every brand use (i18n, embed SDK and sample partner, dev tenant, HL7 fixtures, docs, files/, tests). Keep the common noun and dated records in a reviewed allow-list. Leave eas.json and the other release config to INT-421.
+- Tests added (with near-miss negatives): `tests/release/test_brand_name.py` (derived token, any case; the new brand, `onvizitEmbed` and bare `vizit` are not caught; planted, unlisted and stale entries are; common-noun entries must be word-shaped), `tests/release/test_brand_identifiers.py` (scheme ↔ Keycloak redirects with a planted foreign client, bundle id ↔ App Attest, push title ↔ app name, embed attribute/route/env read back from both sides), `apps/mobile/e2e/brand.spec.ts`. Three mutants were each killed.
+- Result: see docs/evidence/INT-420.md. 199 occurrences renamed. 12 common-noun and 42 dated-record occurrences kept, each listed.
+- Invariants touched and still passing: 5 (tr catalogue brand keys, en mirrored), 18 (no hash-bound consent text changed; the accessibility statement and its draft now name Önvizit; the dev legal tree outside the repo is an owner ask), 2 (the disclaimer under the new name still passes PolicyGuard).
+- Decisions / ADRs / `00_STATE.md` rows: none. Kept on purpose: the bundle id `com.ariomoniri.intakemobile` (the ASC record) and the Expo slug. The scheme is `["onvizit", "intake"]`, so old links still open the app. Dated records are not rewritten (the owner may overrule; it is one list).
+- Blocked on: nothing.
+- Next: PR `INT-420: Önvizit everywhere …` (the issue title; Closes #712, Sec-Row mobile), left unmerged.
+- LOOP_STATUS: CONTINUE
 ### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #724):
   - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*
