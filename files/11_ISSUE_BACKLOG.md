@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**373 issues.** By phase: P0 183 · P1 136 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 252 · todo 74 · withdrawn 1.
+**374 issues.** By phase: P0 183 · P1 137 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 253 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -335,6 +335,7 @@
 | INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
 | INT-560 | The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns | E12-admin | INT-022, INT-183, INT-351, INT-377, INT-345 | area:observability | done |
 | INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
+| INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
 
 ## P2
 

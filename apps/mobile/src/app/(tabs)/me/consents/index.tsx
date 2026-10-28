@@ -60,7 +60,7 @@ export default function Consents() {
 
   const onToggle = (id: PurposeId) => {
     const view = views.find((v) => v.id === id);
-    if (view === undefined || view.ui === "info") {
+    if (view === undefined) {
       return;
     }
     if (view.withdrawable) {
@@ -68,7 +68,7 @@ export default function Consents() {
       const flipped = withdrawLocal(id);
       for (const scope of flipped) {
         const key = purposeDef(scope)?.sessionKey;
-        if (key !== null && key !== undefined && key !== "core") {
+        if (key !== null && key !== undefined) {
           setConsent(key, false);
         }
       }
