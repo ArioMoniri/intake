@@ -98,7 +98,8 @@ def test_non_dev_wires_netgsm_when_every_piece_is_present(
     wiring = _auth_from_settings(settings, secrets=vault)
     assert isinstance(wiring, AuthWiring)
     assert isinstance(wiring.delivery, netgsm().NetgsmSmsDeliveryAdapter)
-    assert vault.paths == ["api/netgsm"]
+    # INT-578: the OTP pepper is read after the vendor document, never before
+    assert vault.paths == ["api/netgsm", "api/otp"]
 
 
 @pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)
@@ -158,7 +159,8 @@ def test_the_shipped_allowlist_and_the_vault_wire_netgsm(
     wiring = _auth_from_settings(_settings(environment), secrets=vault)
     assert isinstance(wiring, AuthWiring)
     assert isinstance(wiring.delivery, netgsm().NetgsmSmsDeliveryAdapter)
-    assert vault.paths == ["api/netgsm"]
+    # INT-578: the OTP pepper is read after the vendor document, never before
+    assert vault.paths == ["api/netgsm", "api/otp"]
 
 
 @pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)
@@ -230,7 +232,9 @@ def test_dev_keeps_the_dev_logger_whatever_the_vault_holds(
     wiring = _auth_from_settings(_settings("dev", allowlist_with_the_row(tmp_path)), secrets=vault)
     assert isinstance(wiring, AuthWiring)
     assert isinstance(wiring.delivery, DevLogDeliveryAdapter)
-    assert vault.paths == []
+    # the vendor's document is never read in dev; the OTP pepper is (INT-578:
+    # dev on the OpenBao dev server reads it there, like every environment)
+    assert vault.paths == ["api/otp"]
 
 
 # --- the route: 202 with the job id, or a generic 503 -------------------------------

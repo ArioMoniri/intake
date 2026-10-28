@@ -41,7 +41,7 @@ import sys
 import time
 import uuid
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -97,6 +97,7 @@ from intake_api.otp import (  # noqa: E402
     DevLogDeliveryAdapter,
     OtpDeliveryAdapter,
     ensure_consumer_tenant,
+    normalise_tr_phone,
 )
 from intake_api.settings import ApiSettings  # noqa: E402
 
@@ -226,6 +227,9 @@ class OtpHarness:
     redis_client: Any
     delivery: Any = None
     base: str = "http://testserver"
+    #: INT-578: the request id each admitted request was answered with, by
+    #: canonical phone. A verify is bound to it, so the harness sends it back.
+    request_ids: dict[str, str] = field(default_factory=dict)
 
     def challenge(self) -> str:
         response = self.client.post("/v1/auth/attest/challenge")
@@ -244,11 +248,15 @@ class OtpHarness:
         return {"X-Intake-Attestation": json.dumps(payload)}
 
     def request_otp(self, phone: str = PHONE, device_id: str = "device-a") -> Any:
-        return self.client.post(
+        response = self.client.post(
             "/v1/auth/otp/request",
             json={"phone": phone},
             headers=self.attestation(device_id),
         )
+        request_id = response.json().get("request_id") if response.status_code == 202 else None
+        if isinstance(request_id, str):
+            self.request_ids[normalise_tr_phone(phone) or phone] = request_id
+        return response
 
     def peek(self, phone: str = PHONE) -> str:
         response = self.client.get("/v1/auth/dev/otp-peek", params={"phone": phone})
@@ -263,14 +271,24 @@ class OtpHarness:
         code: str | None = None,
         device_id: str = "device-a",
         jti: str | None = None,
+        request_id: str | None = None,
     ) -> Any:
         headers = self.attestation(device_id)
         headers["DPoP"] = dpop.proof(
             "POST", f"{self.base}/v1/auth/otp/verify", iat=self.clock(), jti=jti
         )
+        bound = (
+            request_id
+            if request_id is not None
+            else self.request_ids.get(normalise_tr_phone(phone) or phone)
+        )
         return self.client.post(
             "/v1/auth/otp/verify",
-            json={"phone": phone, "code": code if code is not None else self.peek(phone)},
+            json={
+                "phone": phone,
+                "code": code if code is not None else self.peek(phone),
+                "request_id": bound,
+            },
             headers=headers,
         )
 
@@ -319,6 +337,7 @@ def _build(
     clock_offset_s: float = WINDOW_START_OFFSET_S,
     carrier_geo: CarrierGeoCheck | None = None,
     delivery: OtpDeliveryAdapter | None = None,
+    pepper: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -363,6 +382,9 @@ def _build(
             dev_otp_peek=peek,
             now_fn=clock,
             carrier_geo=carrier_geo if carrier_geo is not None else CarrierGeoCheck(),
+            # INT-578: a test that needs to know the pepper passes one; every
+            # other harness takes the wiring's own (a process-local random one)
+            **({"pepper": pepper} if pepper is not None else {}),
         ),
     )
     run(ensure_consumer_tenant(engine))
@@ -715,8 +737,11 @@ def test_five_wrong_attempts_burn_the_code(otp: OtpHarness) -> None:
         assert response.json() == {"error": "otp_invalid"}
     # attempt budget exhausted: even the REAL code is refused now
     assert otp.verify(dpop, code=real_code).status_code == 401
-    # a fresh code after the cooldown works
-    otp.clock.advance(RESEND_COOLDOWN_S + 1)
+    # INT-578: the fifth miss also locked the number, so a fresh code waits
+    # for the lockout rather than the resend cooldown; read at call time so
+    # this module still collects where the constant does not exist
+    lockout_s: int = getattr(auth_store_module, "OTP_LOCKOUT_S")  # noqa: B009
+    otp.clock.advance(lockout_s + 1)
     assert otp.request_otp().status_code == 202
     assert otp.verify(dpop).status_code == 200
 
@@ -1266,10 +1291,13 @@ def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -
             if parts[:3] == ["auth", "otp", "w"]:
                 assert parts[3] in {"ip", "device", "phone"}, key
             elif parts[:2] == ["auth", "otp"]:
-                assert parts[2] in {"cool", "code", "peek"}, key
+                # INT-578 added the attempt counter and the lockout instant
+                assert parts[2] in {"cool", "code", "peek", "att", "lock"}, key
             if parts[:3] == ["auth", "otp", "code"]:
                 record = json.loads(harness.redis_client.get(key))
-                assert set(record) == {"digest", "attempts", "expires"}, record
+                # INT-578: the attempts left the record for an atomic counter,
+                # and the device binding (an HMAC) joined it
+                assert set(record) == {"digest", "binding", "expires"}, record
         # and the numbers themselves, which ARE specific enough to grep for
         for key in keys:
             blob = key + " " + str(harness.redis_client.dump(key))

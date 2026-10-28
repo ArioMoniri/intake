@@ -17,6 +17,7 @@ table, so nothing here opens a socket or asks DNS.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import importlib
 import json
 import logging
@@ -43,6 +44,9 @@ PHONE_NATIONAL = "5321234567"
 CODE = "482915"
 PUBLIC_ANSWER = "203.0.113.20"  # TEST-NET-3: routable-looking, never a real host
 VAULT_DOC: dict[str, object] = {"usercode": USERCODE, "password": PASSWORD, "msgheader": MSGHEADER}
+#: INT-578: the OTP tier's pepper document, secret/api/otp. Derived rather than
+#: written out, so no 64-hex literal sits in the tree.
+PEPPER_DOC: dict[str, object] = {"pepper": hashlib.sha256(b"int578-netgsm-kit-pepper").hexdigest()}
 SECRETS = (PHONE, PHONE_NATIONAL, CODE, PASSWORD)
 STRICT_ENVIRONMENTS = ("prod", "staging")
 
@@ -260,14 +264,22 @@ def record_text(record: logging.LogRecord) -> str:
 
 
 class Vault:
-    """The slice of SecretsProvider the wiring reads. Records every path."""
+    """The slice of SecretsProvider the wiring reads. Records every path.
+
+    INT-578: a vault holds the OTP pepper (secret/api/otp) unless a test says
+    otherwise with ``pepper=False``, because every OTP wiring outside file-dev
+    reads it once the delivery adapter is built."""
 
     def __init__(
         self,
         documents: Mapping[str, Mapping[str, object]] | None = None,
         error: Exception | None = None,
+        *,
+        pepper: bool = True,
     ) -> None:
         self.documents = dict(documents or {})
+        if pepper:
+            self.documents.setdefault("api/otp", PEPPER_DOC)
         self.error = error
         self.paths: list[str] = []
 

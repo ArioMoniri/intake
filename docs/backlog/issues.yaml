@@ -7293,3 +7293,24 @@
     - "Sweep: every wall-clock budget asserted in tests/api and tests/voice is listed in docs/evidence/INT-574.md with a recommendation each; only this test is changed here."
   tests: [tests/api/test_red_notify.py]
   sec_row: "cicd"
+- id: INT-578
+  epic: E01-platform
+  phase: P1
+  title: "OTP brute force and replay — 6 digits, TTL ≤ 5 min, single use, 5 attempts then lockout, HMAC+pepper, device-bound"
+  # GitHub #973. Owner order, 28 Oct 2026: "have all security measures to stop
+  # sms hijacking, sms loading, hacking, overuse and data hijacking over sms",
+  # split into INT-577..581, one control family each. This is the brute-force
+  # and replay family. The audit of what INT-131/INT-344/INT-528 already
+  # enforced is the five-family table in docs/evidence/INT-577.md; this row's
+  # rows of it (1-10) are copied into docs/evidence/INT-578.md.
+  depends_on: [INT-131, INT-344, INT-528]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-578.md
+  acceptance:
+    - "6-digit codes with TTL ≤ 5 minutes; single use (a race for one code admits exactly one caller); at most 5 attempts (an atomic budget a race cannot widen) then a lockout of the number for one request window; constant-time compare, against a stand-in when there is no code."
+    - "Codes stored only as an HMAC with a pepper read from OpenBao (secret/api/otp; dev on the OpenBao dev server, file-dev alone process-local, never a literal or an environment variable); a missing or malformed pepper keeps the tier at 503."
+    - "Bound to the requesting device's App Attest key (the proven key id, not the claimed install id) and to the server-minted request id, so a code is useless on another device or under another request; the app sends the id back."
+    - "The synthetic host makes the pepper on stdin from the CSPRNG and every deploy re-asserts it and the read-only grant; tests first with near misses; threat model and files/10 §9 onboarding row updated; every new metric catalogued."
+  tests: [tests/security/test_otp_brute_force.py, tests/security/test_otp_abuse.py, tests/api/test_attestation_otp_flow.py, tests/api/test_otp_netgsm_wiring.py, tests/infra/test_staging_otp_pepper.py, tests/infra/test_staging_netgsm.py, apps/mobile/src/lib/auth/pendingOtp.test.ts]
+  sec_row: "onboarding"

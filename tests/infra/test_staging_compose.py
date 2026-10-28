@@ -717,8 +717,9 @@ class TestOpenBao:
         assert memlock in (-1, {"soft": -1, "hard": -1})
 
     def test_the_api_policy_grants_tenant_transit_keys_and_one_sms_read(self) -> None:
-        """Transit for the tenant KEKs, and outside transit/ exactly one grant:
-        read on the SMS vendor's document (INT-528)."""
+        """Transit for the tenant KEKs, and outside transit/ the model-lane
+        grants, read on the SMS vendor's document (INT-528) and read on the OTP
+        pepper (INT-578)."""
         prefix = inspect.signature(TransitKekProvider.__init__).parameters["key_prefix"].default
         blocks = re.findall(
             r'path\s+"([^"]+)"\s*\{\s*capabilities\s*=\s*\[([^\]]*)\]\s*\}', _text(API_POLICY)
@@ -730,6 +731,7 @@ class TestOpenBao:
             "secret/data/model-lanes/*": {"create", "update", "read"},
             "secret/metadata/model-lanes/*": {"read", "list", "delete"},
             f"secret/data/{SMS_KV_PATH}": {"read"},
+            "secret/data/api/otp": {"read"},
         }
         for path, caps in blocks:
             granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}

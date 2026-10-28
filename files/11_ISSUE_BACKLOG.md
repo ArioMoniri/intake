@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**369 issues.** By phase: P0 182 · P1 133 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 249 · todo 74 · withdrawn 1.
+**370 issues.** By phase: P0 182 · P1 134 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 250 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -331,6 +331,7 @@
 | INT-528 | Netgsm OTP SMS adapter behind the INT-329 SMS port, recorded fixtures only, fail-closed until the owner's credentials land | E01-platform | INT-329, INT-358 | area:api, risk:security, risk:legal | done |
 | INT-573 | next, certifi and filelock lifted past the 27 Oct 2026 advisories, so the vulnerabilities gate is green without an exception | E13-infra | INT-501 | area:security | done |
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
+| INT-578 | OTP brute force and replay — 6 digits, TTL ≤ 5 min, single use, 5 attempts then lockout, HMAC+pepper, device-bound | E01-platform | INT-131, INT-344, INT-528 | area:api, risk:security | done |
 
 ## P2
 

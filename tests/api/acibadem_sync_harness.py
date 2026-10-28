@@ -218,18 +218,16 @@ class SyncHarness:
         return {"X-Intake-Attestation": json.dumps(payload)}
 
     def sign_up(self, phone: str, dpop: DpopClient) -> dict[str, Any]:
-        assert (
-            self.client.post(
-                "/v1/auth/otp/request", json={"phone": phone}, headers=self._attestation()
-            ).status_code
-            == 202
+        requested = self.client.post(
+            "/v1/auth/otp/request", json={"phone": phone}, headers=self._attestation()
         )
+        assert requested.status_code == 202
         code = self.client.get("/v1/auth/dev/otp-peek", params={"phone": phone}).json()["code"]
         headers = self._attestation()
         headers["DPoP"] = dpop.proof("POST", f"{self.base}/v1/auth/otp/verify", iat=self.clock())
-        response = self.client.post(
-            "/v1/auth/otp/verify", json={"phone": phone, "code": code}, headers=headers
-        )
+        # INT-578: a code is bound to the request id its 202 answered with
+        bound = {"phone": phone, "code": code, "request_id": requested.json().get("request_id")}
+        response = self.client.post("/v1/auth/otp/verify", json=bound, headers=headers)
         assert response.status_code == 200, response.text
         return response.json()
 

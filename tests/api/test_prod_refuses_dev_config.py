@@ -28,6 +28,7 @@ boot, unchanged.
 
 from __future__ import annotations
 
+import dataclasses
 import os
 from collections.abc import Sequence
 
@@ -236,7 +237,10 @@ def test_non_dev_never_wires_the_dev_log_delivery_adapter(environment: str) -> N
 
 
 def test_dev_tier_still_wires_the_dev_log_delivery_adapter() -> None:
-    wiring = _auth_from_settings(_settings(environment="dev"))
+    # INT-578: dev with transit KEKs reads the OTP pepper from the OpenBao dev
+    # server; the no-OpenBao dev escape, file-dev, takes a process-local one
+    settings = dataclasses.replace(_settings(environment="dev"), kek_mode="file-dev")
+    wiring = _auth_from_settings(settings)
     assert isinstance(wiring, AuthWiring)
     assert isinstance(wiring.delivery, DevLogDeliveryAdapter)
 
