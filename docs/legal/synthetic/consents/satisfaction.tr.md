@@ -1,11 +1,11 @@
 ---
-consent_text_version: 2026-10-16.syn1
+consent_text_version: 2026-10-28.syn1
 ---
 Sentetik test metni: Bu metin yalnızca uydurulmuş (sentetik) hasta bilgileriyle çalışan test ortamı içindir. Gerçek bir hasta için geçerli bir açık rıza metni değildir. Bu ortama kendi gerçek sağlık bilgilerinizi girmeyiniz.
 
 Açık rıza metni: Memnuniyet soruları
 
-Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Vizite uygulamasını sunan şirket.
+Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Önvizit uygulamasını sunan şirket.
 
 Ne için:
 Görüşmenizden sonra memnuniyetinizi sorarak hizmeti değerlendirmek için. Bir puan verirsiniz. İsterseniz bir neden seçer, kısa bir yorum da yazarsınız.
