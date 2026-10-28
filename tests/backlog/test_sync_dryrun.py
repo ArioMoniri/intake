@@ -146,7 +146,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-576 (Netgsm OTP answer parsed as documented, never retried unread, GitHub #971)
     # + INT-420 (Önvizit everywhere: the rebrand finished on main, GitHub #712)
     # + INT-560 (the operability registry page tells the truth, owner request, GitHub #948)
-    assert len(actions) == 372
+    # + INT-584 (the tokenization key moves into OpenBao, owner decision D38, GitHub #983)
+    assert len(actions) == 373
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

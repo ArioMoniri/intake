@@ -223,6 +223,9 @@ def build_harness(
     # cannot be turned into the pseudonym that addresses a patient, and the
     # committed registry has zero rows, so the route refuses every caller.
     tokenization_key: str | None = None,
+    # INT-584: why there is no key, as the API's wiring would record it
+    # (tokenization_key_absent when None and no key)
+    tokenization_key_refusal: str | None = None,
     previsit_output_recipients: Path | None = None,
     # INT-446: the served red-flag rule set. None is the shipped state (no
     # signed set exists, HB-C1), in which /v1/triage answers 503.
@@ -267,6 +270,7 @@ def build_harness(
         # too — everything that renders them fails closed (INT-037)
         dev_otp_peek=dev_otp_peek,
         tokenization_key=tokenization_key,
+        tokenization_key_refusal=tokenization_key_refusal,
         previsit_output_recipients_path=(
             previsit_output_recipients
             if previsit_output_recipients is not None

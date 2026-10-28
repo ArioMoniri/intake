@@ -23,6 +23,8 @@ from typing import Literal
 from intake_platform.model_lanes.guard import egress_proxy_url
 from intake_platform.red_tenant import TenantKind
 
+from intake_api.tokenization_key import TokenizationKeyState
+
 __all__ = [
     "ENV_TRIAGE_DEPLOYMENT",
     "ENV_TRIAGE_SIGNATURE",
@@ -41,6 +43,9 @@ __all__ = [
 # runtime environment and have no in-code default (fail closed when unset).
 ENV_TOKEN_PATIENT = "INTAKE_DEV_TOKEN_PATIENT"  # noqa: S105 — env var name
 ENV_TOKEN_ADMIN = "INTAKE_DEV_TOKEN_ADMIN"  # noqa: S105 — env var name
+# INT-584 (owner decision D38): the phone-tokenization key's OLD variable. The
+# key lives in OpenBao (secret/api/tokenization) and nothing reads this name;
+# intake_api.tokenization_key names it in a warning when it is set.
 ENV_TOKENIZATION_KEY = "INTAKE_TOKENIZATION_KEY"  # noqa: S105 — env var name
 ENV_TOKENIZATION_KEY_ID = "INTAKE_TOKENIZATION_KEY_ID"
 ENV_REDIS_URL = "INTAKE_REDIS_URL"
@@ -199,8 +204,14 @@ class ApiSettings:
     # means no OTP auth (503), and the dev gates are off unless the env
     # carries the exact phrase "explicit-yes".
     redis_url: str = DEFAULT_REDIS_URL
-    tokenization_key: str | None = None
+    # INT-584 (owner decision D38): from_env NEVER reads the key. The wiring
+    # resolves it from OpenBao (intake_api.tokenization_key.with_tokenization_key)
+    # and the test harnesses construct it. Never in repr: it is a key. Without
+    # one, tokenization_key_refusal is the typed 503 reason of every tier that
+    # needs it (tokenization_key_absent unless the wiring recorded another).
+    tokenization_key: str | None = field(default=None, repr=False)
     tokenization_key_id: str = "v1"
+    tokenization_key_refusal: str | None = None
     dev_otp_peek: bool = False
     dev_allow_unattested: bool = False
     # Where the consent texts live (INT-038; invariant 18: texts render only
@@ -282,6 +293,17 @@ class ApiSettings:
     # dev-bearer readiness check, the OTP dev delivery logger).
     environment: str = DEV_ENVIRONMENT
 
+    def __post_init__(self) -> None:
+        # a key means no refusal; no key and no recorded reason means absent
+        refusal = (
+            None
+            if self.tokenization_key
+            else (
+                self.tokenization_key_refusal or f"tokenization_key_{TokenizationKeyState.ABSENT}"
+            )
+        )
+        object.__setattr__(self, "tokenization_key_refusal", refusal)
+
     @property
     def dev_tier_expected(self) -> bool:
         """Dev bearers and dev collaborators belong to the dev environment
@@ -321,7 +343,7 @@ class ApiSettings:
             ),
             kek_mode=kek_mode,
             redis_url=os.environ.get(ENV_REDIS_URL) or DEFAULT_REDIS_URL,
-            tokenization_key=os.environ.get(ENV_TOKENIZATION_KEY) or None,
+            # INT-584: no tokenization key from the environment; see the field
             tokenization_key_id=os.environ.get(ENV_TOKENIZATION_KEY_ID) or "v1",
             dev_otp_peek=os.environ.get(ENV_DEV_OTP_PEEK) == EXPLICIT_YES,
             dev_allow_unattested=os.environ.get(ENV_DEV_ALLOW_UNATTESTED) == EXPLICIT_YES,
