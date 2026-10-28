@@ -7375,3 +7375,27 @@
     - "An opt-in, structure-only diagnostic (netgsm_test_otp.sh --shape) prints the answer's content type, kind, top-level keys or tags, vendor code and length, never the number, the code, the job id or the body; invariant 6 tests cover every new refusal path."
   tests: [tests/api/test_otp_netgsm_answer.py, tests/api/test_otp_netgsm.py, tests/api/test_otp_send_check.py, tests/api/test_otp_netgsm_wiring.py, tests/infra/test_staging_netgsm.py]
   sec_row: "onboarding"
+- id: INT-563
+  epic: E12-admin
+  phase: P1
+  title: "Console four-eyes approval through a WebAuthn step-up the script-free console can complete"
+  # GitHub #952, from the admin audit of 18 Oct 2026: every approve button was
+  # disabled ("the console cannot mint a WebAuthn assertion yet"), and the API
+  # took any unused string as the assertion. ADR-043: the API runs an OIDC
+  # re-authentication at the public PKCE client admin-web-stepup (prompt=login,
+  # max_age=0), verifies the ID token (amr hwk and a fresh auth_time; the
+  # credential notes name the key) and issues a one-time grant bound to the
+  # caller and the action; the console carries it with two server routes and
+  # no script. The old assertion_id path is deleted.
+  depends_on: [INT-459, INT-378]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-563.md
+  acceptance:
+    - "Every approve and countersign route (break-glass, voice release/profile/canary, the deploy-freeze lift, the three model-lane widenings, the access-review countersignature) accepts only a live step-up grant for that action, caller and Keycloak session; the approver block carries the credential just asserted; the old unused-string assertion_id approval is refused (near-miss tests in both the old and the new body field)."
+    - "The ID token is verified fail closed: RS256 over the mirrored key set, issuer, audience admin-web-stepup, expiry, typ ID, azp, nonce, sub and sid, auth_time no earlier than the ceremony less 30 s, amr hwk, credential id and AAGUID shape, single-use jti; an unreachable token endpoint, a reused code, state or token, an unknown or expired ceremony and a sub/sid mismatch are each refused with a code, never a fallback."
+    - "Self-approval (another tab included) is refused at the step-up and counted on admin_four_eyes_self_approval_attempt_total; every stage and refusal is counted on admin_step_up_total (catalogued); the grant and its use are on the hash-chained log by ids only, the use written ahead of the approval."
+    - "The voice, CI/CD and model-lanes pending rows carry a working Onayla form; /step-up serves break-glass and the access-review countersign; the CSP stays nonce-based with no unsafe-* and its form-action admits one configured Keycloak origin (ADR-043)."
+    - "The staging realm gets admin-web-stepup through deploy.sh (infra/staging/keycloak/step_up_client.py adds it when absent, verifies it when present, refuses a drifted one, never reads or writes a flow); smoke.sh re-checks it read-only."
+  tests: [tests/admin/test_step_up.py, tests/admin/test_step_up_routes.py, tests/infra/test_staging_step_up_client.py, apps/admin-web/e2e/step-up.spec.ts]
+  sec_row: "admin-console"

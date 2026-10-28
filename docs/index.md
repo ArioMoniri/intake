@@ -68,3 +68,4 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-029 Embeddable white-label handshake](adr/ADR-029-embeddable-white-label-handshake.md)
 - [ADR-035 Hosted model lanes for the synthetic deployment until the GPU lanes are healthy](adr/ADR-035-hosted-model-lanes-for-the-synthetic-deployment.md)
 - [ADR-036 The council is a verifier, and the deterministic engine decides](adr/ADR-036-the-council-is-a-verifier-the-engine-decides.md) *(accepted by the owner, 3 Oct 2026)*
+- [ADR-043 The four-eyes step-up is a Keycloak re-authentication the API verifies](adr/ADR-043-four-eyes-step-up-is-a-keycloak-re-authentication-the-api-verifies.md) *(INT-563; widens the console CSP's form-action by one origin)*
