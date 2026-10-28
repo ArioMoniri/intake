@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T05:30:00+03:00 · INT-574 · done (PR open)
+- Goal: GitHub #967, P1. `tests/api/test_red_notify.py::test_the_red_never_waits_on_the_inbox_store` timed one cold request against a 300 ms wall-clock budget on the shared intake-aws-ci runner: main's own run on `78330ff4` failed it at 620 ms, #963's at 350 ms, alone it passes. A required check-py shard, so it blocked every merge when it flaked.
+- Plan:
+  - Lift the test-only rewrite from #963 (`d5f1907b`, INT-459) as its own PR, and take the clock out altogether rather than keep its `elapsed < STALL_S / 2` ratio.
+  - The store holds every write until the test opens it (`_HeldStore`: an event the pump blocks on). The RED coming back while its write is still held is a fact of ordering — nothing had been written for it to wait on. The entry is pending in the outbox with the RED's own instant; the pump brings it to the store; opened refusing, as a down store does, the shutdown count is the original test's.
+  - Near miss: the same RED through an outbox that writes the store itself reaches the store and is held there, back only once the test opens it.
+  - Sweep tests/api and tests/voice for other wall-clock budgets; list each with a recommendation in the evidence; fix only this one.
+- Tests added (with the near-miss negative for any safety rule):
+  - `test_the_red_never_waits_on_the_inbox_store` rewritten: no `perf_counter`, no sleep, no threshold; `RED_BUDGET_MS`, `_down_store` and the polling `_pending_eventually` removed.
+  - `test_near_miss_a_red_that_writes_the_store_itself_is_held_with_the_write` added.
+  - Red: CI's own lines (`assert 620.08 < 300.0` on main, `assert 350.35 < 300.0` on #963). Locally the cold request reads 40 ms alone and 200 ms with one CPU-bound thread in the process: the clock measured the runner, not the property. Mutation (the RED made to write the store itself): the new test fails at `assert store.gave_up == 0` after the 30 s hold.
+  - Green: the file 41/41, ten runs alone and ten under 2 × ncpu CPU hogs; the api suite 825/825 with the file in it (docs/evidence/INT-574.md §3).
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean on the changed files; tests/backlog and tests/smoke/test_make_check.py green (74); `no_placeholders` OK; files/11 regenerated, the three pins 367 → 368.
+  - `make safety` and `make security` untouched: no protocol, PolicyGuard or product code change. The repo-wide `security/vulnerabilities` gate is red until the deps PR lands (expected).
+- Invariants touched and still passing: 9 and 21 (the RED never waits on the inbox store — now proved by ordering, not by a clock); 6 (the shutdown count names nothing; `VISIT` never reaches a log line); 8 (api coverage unchanged, test only); 17 (no placeholder, no skipped test).
+- Decisions / ADRs / `00_STATE.md` rows: none. Three other wall-clock budgets remain in tests/api and tests/voice (`test_triage_hop` p95 < 300 ms; `test_policyguard_latency` 20 ms max and 40 ms report), each with a recommendation in the evidence §4 — thread-time or a recorded measurement — for their own issues.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: merge #967's PR; open issues for the three remaining wall-clock budgets if the coordinator wants them fixed.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
 - Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
 - Plan:
@@ -4168,3 +4189,10 @@
   9. MonthlySpendLedger in dispatch.
 - LOOP_STATUS: WAITING_HUMAN
 
+
+### 2026-10-28T01:40:00+03:00 · INT-573 · done
+- Goal: four advisories published on 27 Oct (next 16.3.8 RCE+DoS, certifi 2026.7.22, filelock 3.32.4) turned the vulnerabilities gate red on main and on every open PR. All four have fixed releases, so the fix is bumps, never an exception row (invariant 14).
+- Plan: `pnpm install --lockfile-only` with next pinned to 16.4.1 in apps/admin-web; `uv lock --upgrade-package certifi --upgrade-package filelock==4.2.1` (virtualenv followed). No constraint, no suppression.
+- Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
+- Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
+- LOOP_STATUS: CONTINUE
