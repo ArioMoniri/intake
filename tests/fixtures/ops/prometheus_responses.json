@@ -454,5 +454,50 @@
         }
       ]
     }
+  },
+  "sms_requests_hour": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "14"
+          ]
+        }
+      ]
+    }
+  },
+  "sms_requests_day": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "240"
+          ]
+        }
+      ]
+    }
+  },
+  "sms_kill_switch": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790438400.0,
+            "0"
+          ]
+        }
+      ]
+    }
   }
 }

@@ -185,11 +185,20 @@ def hashes_sha256() -> Any:
 # — both pinned by the INT-285 tests.
 WINDOW_START_OFFSET_S = 60.0
 
+
 # The longest run of clock advances in this module that one window has to
 # contain: the phone budget spent a resend cooldown at a time, then the refusal
 # that proves it is spent. Derived from the limits rather than written as a
 # number, so it follows if either constant moves.
-LONGEST_WINDOW_SEQUENCE_S = PHONE_LIMIT_PER_HOUR * (RESEND_COOLDOWN_S + 1)
+def resend_step(admitted: int) -> float:
+    """How far the clock moves after the ``admitted``-th code to one number so
+    that the next request clears the resend wait. INT-577 made that wait
+    exponential: the cooldown, doubled for each code the number already had in
+    the window, plus the one second that makes it strictly enough."""
+    return float(RESEND_COOLDOWN_S * 2 ** (admitted - 1) + 1)
+
+
+LONGEST_WINDOW_SEQUENCE_S = sum(resend_step(n) for n in range(1, PHONE_LIMIT_PER_HOUR + 1))
 
 
 class Clock:
@@ -338,6 +347,7 @@ def _build(
     carrier_geo: CarrierGeoCheck | None = None,
     delivery: OtpDeliveryAdapter | None = None,
     pepper: Any = None,
+    sms_budget: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -385,6 +395,8 @@ def _build(
             # INT-578: a test that needs to know the pepper passes one; every
             # other harness takes the wiring's own (a process-local random one)
             **({"pepper": pepper} if pepper is not None else {}),
+            # INT-577: the tenant and global send caps, when a test sets them
+            **({"sms_budget": sms_budget} if sms_budget is not None else {}),
         ),
     )
     run(ensure_consumer_tenant(engine))
@@ -479,9 +491,9 @@ def test_the_per_phone_refusal_does_not_move_with_the_wall_clock(
     base = _window_floor()
     monkeypatch.setattr(time, "time", lambda: base + phase)
     with _harness(tmp_path / f"phase-{int(phase)}") as harness:
-        for _ in range(PHONE_LIMIT_PER_HOUR):
+        for n in range(1, PHONE_LIMIT_PER_HOUR + 1):
             assert harness.request_otp().status_code == 202
-            harness.clock.advance(RESEND_COOLDOWN_S + 1)
+            harness.clock.advance(resend_step(n))
         assert harness.request_otp().status_code == 429
 
 
@@ -507,7 +519,10 @@ def _boundary_offset_s(limit: int, spacing: float) -> float:
     return float(OTP_WINDOW_S) - (limit - 1) * spacing - 1.0
 
 
-PHONE_BOUNDARY_OFFSET_S = _boundary_offset_s(PHONE_LIMIT_PER_HOUR, RESEND_COOLDOWN_S + 1)
+# The phone budget is spent at the backoff's pace (INT-577), so its first and
+# last admissions are the sum of the first `limit - 1` resend steps apart.
+PHONE_SPAN_S = sum(resend_step(n) for n in range(1, PHONE_LIMIT_PER_HOUR))
+PHONE_BOUNDARY_OFFSET_S = float(OTP_WINDOW_S) - PHONE_SPAN_S - 1.0
 
 
 def test_a_boundary_crossing_does_not_hand_the_budget_back(tmp_path: Path) -> None:
@@ -519,9 +534,9 @@ def test_a_boundary_crossing_does_not_hand_the_budget_back(tmp_path: Path) -> No
     too and prove nothing."""
     with _harness(tmp_path / "boundary", clock_offset_s=PHONE_BOUNDARY_OFFSET_S) as harness:
         started = harness.clock()
-        for _ in range(PHONE_LIMIT_PER_HOUR):
+        for n in range(1, PHONE_LIMIT_PER_HOUR + 1):
             assert harness.request_otp().status_code == 202
-            harness.clock.advance(RESEND_COOLDOWN_S + 1)
+            harness.clock.advance(resend_step(n))
         refused = harness.request_otp()
         assert refused.status_code == 429, "an hour boundary is not a fresh budget"
         assert refused.json()["error"] == "otp_limited"
@@ -534,7 +549,7 @@ def test_a_boundary_crossing_does_not_hand_the_budget_back(tmp_path: Path) -> No
 @pytest.mark.parametrize(
     ("dimension", "limit", "spacing"),
     [
-        ("phone", PHONE_LIMIT_PER_HOUR, float(RESEND_COOLDOWN_S + 1)),
+        ("phone", PHONE_LIMIT_PER_HOUR, 0.0),  # paced by the resend backoff (INT-577)
         ("ip", IP_LIMIT_PER_HOUR, 0.0),
         ("device", DEVICE_LIMIT_PER_HOUR, 0.0),
     ],
@@ -555,13 +570,16 @@ def test_every_dimension_holds_its_budget_across_a_boundary(
             return harness.request_otp(f"+90532111{4400 + n:04d}", device_id=f"device-{n}")
         return harness.request_otp(f"+90533222{1100 + n:04d}", device_id="one-device")
 
-    crossing = spacing if spacing else 2.0
-    offset = _boundary_offset_s(limit, spacing)
+    def step(admitted: int) -> float:
+        return resend_step(admitted) if dimension == "phone" else spacing
+
+    crossing = 2.0
+    offset = float(OTP_WINDOW_S) - sum(step(n) for n in range(1, limit)) - 1.0
     with _harness(tmp_path / f"dim-{dimension}", clock_offset_s=offset) as harness:
         started = harness.clock()
-        for n in range(limit):
-            assert spend(harness, n).status_code == 202
-            harness.clock.advance(spacing)
+        for n in range(1, limit + 1):
+            assert spend(harness, n - 1).status_code == 202
+            harness.clock.advance(step(n))
         harness.clock.advance(crossing)
         assert int(started // OTP_WINDOW_S) != int(harness.clock() // OTP_WINDOW_S)
         refused = spend(harness, limit)
@@ -580,9 +598,9 @@ def test_the_retry_after_is_the_true_wait_not_the_time_to_the_next_boundary(
     wait is admitted."""
     with _harness(tmp_path / "retry-after", clock_offset_s=PHONE_BOUNDARY_OFFSET_S) as harness:
         oldest = harness.clock()
-        for _ in range(PHONE_LIMIT_PER_HOUR):
+        for n in range(1, PHONE_LIMIT_PER_HOUR + 1):
             assert harness.request_otp().status_code == 202
-            harness.clock.advance(RESEND_COOLDOWN_S + 1)
+            harness.clock.advance(resend_step(n))
         refused = harness.request_otp()
         assert refused.status_code == 429
         now = harness.clock()
@@ -656,17 +674,26 @@ def test_the_counter_key_set_is_bounded_and_does_not_grow_with_traffic(
         otp.request_otp()
         otp.clock.advance(step)
     keys = sorted(str(k.decode()) for k in otp.redis_client.keys("auth:otp:w:*"))
-    assert len(keys) == 3, f"one key per dimension for one caller, got {keys}"
+    # INT-577 added the tenant hour budget and the global hour and day caps:
+    # still one key each, whatever the traffic
+    assert len(keys) == 6, f"one key per dimension for one caller, got {keys}"
+    from intake_api.sms_spend import DAY_S, SmsBudget
+
+    caps = SmsBudget()
     limits = {
-        "phone": PHONE_LIMIT_PER_HOUR,
-        "ip": IP_LIMIT_PER_HOUR,
-        "device": DEVICE_LIMIT_PER_HOUR,
+        "phone": (PHONE_LIMIT_PER_HOUR, OTP_WINDOW_S),
+        "ip": (IP_LIMIT_PER_HOUR, OTP_WINDOW_S),
+        "device": (DEVICE_LIMIT_PER_HOUR, OTP_WINDOW_S),
+        "tenant": (caps.tenant_sends_per_hour, OTP_WINDOW_S),
+        "global_hour": (caps.global_sends_per_hour, OTP_WINDOW_S),
+        "global_day": (caps.global_sends_per_day, DAY_S),
     }
     for key in keys:
         dimension = key.split(":")[3]
         assert dimension in limits, key
-        assert otp.redis_client.zcard(key) <= limits[dimension]
-        assert 0 < otp.redis_client.ttl(key) <= OTP_WINDOW_S * 2
+        limit, window = limits[dimension]
+        assert otp.redis_client.zcard(key) <= limit
+        assert 0 < otp.redis_client.ttl(key) <= window * 2
 
 
 # --- limits (files/10 §2) ----------------------------------------------------------
@@ -692,9 +719,9 @@ def test_per_phone_limit_three_per_hour(otp: OtpHarness) -> None:
     # LONGEST_WINDOW_SEQUENCE_S: the loop plus the refusal must land inside the
     # window the clock starts in, which is the whole reason that clock is not
     # seeded from time.time() (INT-285).
-    for _ in range(PHONE_LIMIT_PER_HOUR):
+    for n in range(1, PHONE_LIMIT_PER_HOUR + 1):
         assert otp.request_otp().status_code == 202
-        otp.clock.advance(RESEND_COOLDOWN_S + 1)
+        otp.clock.advance(resend_step(n))
     refused = otp.request_otp()
     assert refused.status_code == 429
     assert refused.json()["error"] == "otp_limited"
@@ -1289,10 +1316,19 @@ def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -
         for key in keys:
             parts = key.split(":")
             if parts[:3] == ["auth", "otp", "w"]:
-                assert parts[3] in {"ip", "device", "phone"}, key
+                # INT-577 added the tenant budget and the two global caps
+                assert parts[3] in {
+                    "ip",
+                    "device",
+                    "phone",
+                    "tenant",
+                    "global_hour",
+                    "global_day",
+                }, key
             elif parts[:2] == ["auth", "otp"]:
-                # INT-578 added the attempt counter and the lockout instant
-                assert parts[2] in {"cool", "code", "peek", "att", "lock"}, key
+                # INT-578 added the attempt counter and the lockout instant,
+                # INT-577 the spend kill switch
+                assert parts[2] in {"cool", "code", "peek", "att", "lock", "kill"}, key
             if parts[:3] == ["auth", "otp", "code"]:
                 record = json.loads(harness.redis_client.get(key))
                 # INT-578: the attempts left the record for an atomic counter,

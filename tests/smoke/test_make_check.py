@@ -395,7 +395,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # GitHub #967); grows only with a stated reason.
     # + INT-578 (OTP brute force and replay, the owner's SMS security order,
     # GitHub #973); grows only with a stated reason.
-    assert len(ids) == 370, f"expected 175 blueprint + 195 added issues, got {len(ids)}"
+    # + INT-577 (SMS pumping and overuse, the owner's SMS security order,
+    # GitHub #972); grows only with a stated reason.
+    assert len(ids) == 371, f"expected 175 blueprint + 196 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -36,6 +36,16 @@ locks the number for a request window (``auth_store.OTP_LOCKOUT_S``): no code
 is minted for it and no verify compared until it ends. Every verify outcome is
 counted by a closed label (``otp_verify_total``); the caller still gets one
 generic refusal.
+
+INT-577 (the same order): what a request may cost. The device budget is keyed by
+the key App Attest proved, never the install id a payload claims, and the
+caller's address only as a keyed hash; the tenant hour budget and the global
+hour and day caps (``intake_api.sms_spend``) sit beside the per-caller ones;
+the resend wait doubles with each code a number has had in the window; and the
+spend kill switch is read first, failing closed — reaching the day cap latches
+it, and nothing is sent until an operator releases it. Every request and every
+block is counted by a closed label (``sec_otp_requests_total``,
+``sec_otp_abuse_blocks``).
 """
 
 from __future__ import annotations
@@ -50,10 +60,11 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
+from functools import partial
 from typing import Protocol
 
 import redis
-from fastapi import Request
+from fastapi import HTTPException, Request
 from intake_platform.db.models import KvkkRole, Patient, Tenant
 from intake_platform.tokenization import Tokenizer
 from prometheus_client import Counter
@@ -75,8 +86,8 @@ from intake_api.auth_store import (
     ACCESS_TTL_S,
     CHALLENGE_TTL_S,
     OTP_CODE_DIGITS,
-    RESEND_COOLDOWN_S,
     AuthStore,
+    Budget,
 )
 from intake_api.carrier_geo import CarrierGeoCheck
 from intake_api.db import tenant_session
@@ -98,11 +109,16 @@ from intake_api.errors import (
 )
 from intake_api.otp_pepper import OtpPepper
 from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
+from intake_api.sms_spend import DAY_S, SmsBudget, SpendKillSwitch, SpendStateUnreadable
 
 __all__ = [
     "ATTESTATION_HEADER",
+    "BLOCK_DIMENSIONS",
     "CONSUMER_TENANT_ID",
     "OTP_VERIFY_TOTAL",
+    "REQUEST_OUTCOMES",
+    "SEC_OTP_ABUSE_BLOCKS",
+    "SEC_OTP_REQUESTS_TOTAL",
     "VERIFY_OUTCOMES",
     "AuthWiring",
     "DeliveryReceipt",
@@ -133,6 +149,30 @@ OTP_VERIFY_TOTAL = Counter(
     "otp_verify_total",
     "OTP verify attempts by outcome (ok, or why not). The caller sees one refusal.",
     ("outcome",),
+)
+
+#: INT-577. How an OTP request ended (``sec.otp_requests_total``, files/08
+#: §4): a code minted, refused by a budget, by the spend kill switch, by the
+#: INT-578 lockout, as not a Turkish mobile, or by the carrier check or the
+#: synthetic host's test list.
+REQUEST_OUTCOMES = frozenset(
+    {"admitted", "limited", "kill_switch", "locked", "phone_invalid", "refused"}
+)
+#: Which budget refused (``sec.otp_abuse_blocks``): one request can be refused
+#: by several, and each is counted.
+BLOCK_DIMENSIONS = frozenset(
+    {"cooldown", "phone", "ip", "device", "tenant", "global_hour", "global_day"}
+)
+
+SEC_OTP_REQUESTS_TOTAL = Counter(
+    "sec_otp_requests_total",
+    "OTP requests by outcome (admitted, or why not).",
+    ("outcome",),
+)
+SEC_OTP_ABUSE_BLOCKS = Counter(
+    "sec_otp_abuse_blocks",
+    "OTP requests refused by a request budget, by the budget that refused.",
+    ("dimension",),
 )
 
 _TR_MOBILE = re.compile(r"^(?:\+90|90|0)?(5\d{9})$")
@@ -241,6 +281,9 @@ class AuthWiring:
     # the one OpenBao holds (secret/api/otp) and refuses to wire without it;
     # this default — random, process-local — is what a harness gets.
     pepper: OtpPepper = field(default_factory=OtpPepper.ephemeral)
+    # INT-577: the tenant and global send caps (engineering defaults in
+    # intake_api.sms_spend; a test harness passes small ones)
+    sms_budget: SmsBudget = field(default_factory=SmsBudget)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -271,11 +314,6 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("ascii")).hexdigest()
 
 
-def _device_ref(device_id: str) -> str:
-    """Redis key material for the per-device window — a digest, never the id."""
-    return hashlib.sha256(device_id.encode("utf-8")).hexdigest()[:32]
-
-
 def _bound_device(payload: AttestationPayload) -> str:
     """What a code is bound to (INT-578): the key App Attest proved, when the
     call carries one, and otherwise the install id — which only the dev tier
@@ -295,6 +333,7 @@ class OtpAuthService:
         self._store = AuthStore(wiring.redis_client, wiring.now_fn)
         self._tokenizer = wiring.tokenizer
         self._pepper = wiring.pepper
+        self._kill_switch = SpendKillSwitch(wiring.redis_client, wiring.now_fn)
         self._engine = engine
         self._audit = audit
 
@@ -392,19 +431,65 @@ class OtpAuthService:
 
     # --- the OTP flow -----------------------------------------------------------------
 
+    def _budgets(self) -> tuple[Budget, ...]:
+        """INT-577: the tenant hour budget and the global caps."""
+        caps = self._wiring.sms_budget
+        return (
+            Budget("tenant", str(CONSUMER_TENANT_ID), caps.tenant_sends_per_hour),
+            Budget("global_hour", "all", caps.global_sends_per_hour),
+            Budget("global_day", "all", caps.global_sends_per_day, DAY_S),
+        )
+
     async def request_code(self, request: Request, phone_raw: str) -> dict[str, object]:
         payload = await self._require_attested(request, "otp.request")
-        phone, pseudonym = self._require_phone(phone_raw)
+        try:
+            phone, pseudonym = self._require_phone(phone_raw)
+        except HTTPException:
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome="phone_invalid").inc()
+            raise
         # INT-578: a locked number gets no code, and asking costs no budget
         locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym)
         if locked is not None:
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome="locked").inc()
             raise otp_limited(locked)
+        # INT-577: the spend kill switch, read before any budget is spent. An
+        # unreadable switch may be on, so it refuses too (fail closed).
+        try:
+            engaged = await asyncio.to_thread(self._kill_switch.state) is not None
+        except SpendStateUnreadable:
+            logger.warning("otp request refused: the SMS spend kill switch is unreadable")
+            engaged = True
+        if engaged:
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome="kill_switch").inc()
+            raise otp_delivery_unavailable()
         ip = request.client.host if request.client is not None else "unknown"
-        retry_after = await asyncio.to_thread(
-            self._store.otp_request_gate, pseudonym, ip, _device_ref(payload.device_id)
+        decision = await asyncio.to_thread(
+            partial(
+                self._store.otp_request_decision,
+                pseudonym,
+                # INT-577: the address as a keyed hash, the device as the key it proved
+                self._pepper.rate_key("ip", ip),
+                self._pepper.rate_key("device", _bound_device(payload)),
+                extra=self._budgets(),
+                backoff=True,
+            )
         )
-        if retry_after is not None:
-            raise otp_limited(retry_after)
+        if not decision.admitted:
+            for dimension in decision.dimensions:
+                SEC_OTP_ABUSE_BLOCKS.labels(dimension=dimension).inc()
+            if "global_day" in decision.dimensions:
+                # the day's spend ceiling: latch the switch, page, stop sending
+                if await asyncio.to_thread(self._kill_switch.engage, "day_cap"):
+                    await self._audit.record(
+                        actor="system:sms-spend",
+                        action="sms.spend.kill_switch.engaged",
+                        resource_ref="sms_spend:day_cap",
+                        consent_scope="scope:auth",
+                    )
+                SEC_OTP_REQUESTS_TOTAL.labels(outcome="kill_switch").inc()
+                raise otp_delivery_unavailable()
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome="limited").inc()
+            raise otp_limited(decision.wait)
         # INT-308 — files/10 §2's carrier/geo sanity check, and it sits HERE for
         # two reasons. AFTER the gate, so a refusal costs the caller its budget
         # and probing which prefixes refuse is not free; and BEFORE the code is
@@ -415,6 +500,7 @@ class OtpAuthService:
         # row 1, generic errors). It fails OPEN — see carrier_geo — so today,
         # with an empty authority, this branch is unreachable in production.
         if self._wiring.carrier_geo.evaluate(phone).refuses:
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome="refused").inc()
             raise phone_invalid()
         # INT-528 — on the synthetic host SMS is real, so a number off the
         # owner's test allow-list starts no login: no code is minted and no SMS
@@ -422,7 +508,9 @@ class OtpAuthService:
         # same reasons; the line logged names no number.
         if not self._wiring.recipients.admits(phone):
             logger.info("otp request refused: the number is not on the SMS test allow-list")
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome="refused").inc()
             raise phone_invalid()
+        SEC_OTP_REQUESTS_TOTAL.labels(outcome="admitted").inc()
         # INT-578: the code is bound to this request and to this device
         request_id = secrets.token_hex(16)
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
@@ -448,7 +536,8 @@ class OtpAuthService:
         return {
             "delivery_id": receipt.delivery_id,
             "request_id": request_id,
-            "resend_after_s": RESEND_COOLDOWN_S,
+            # INT-577: the doubled wait this number's next code is held to
+            "resend_after_s": int(decision.wait),
         }
 
     async def peek_code(self, phone_raw: str) -> dict[str, str]:

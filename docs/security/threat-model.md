@@ -535,6 +535,27 @@ it or whose tests exercise it.
   `services/api/src/intake_api/auth_store.py` (`otp_request_gate`), constant work per request
   over a key set of one sorted set per (dimension, identifier) holding at most that
   dimension's limit.
+- **The overuse bound, stated (INT-577, the owner's SMS order of 28 Oct 2026):** the
+  per-caller budgets bound what one number, device or address costs and nothing bounded the
+  sum: a pump spread over many numbers, devices and addresses, each inside its own budget, had
+  no ceiling. Now, beside them, a **tenant hour budget** (120) and a **global hour cap** (120)
+  refuse with the usual 429 and roll on, and a **global day cap** (1000) **latches the spend
+  kill switch** (`intake_api.sms_spend`): every OTP request answers the generic 503 and no SMS
+  is sent, for everyone, until an operator releases it on the host (`python -m
+  intake_api.sms_spend release`, appended to the hash chain); a day window rolling over does
+  not release it. The switch is read before any budget is spent, and a switch that cannot be
+  read, or whose stored state does not parse, counts as engaged (fail closed); engaging it is
+  one act and makes the system safer, releasing it is deliberate (files/10 §2, asymmetric
+  authority). The caps are engineering defaults an order of magnitude above the pilot's
+  planned volume, so they bind only on abuse; the day cap is the spend ceiling and the owner's
+  number. The per-device budget is now keyed by the key App Attest **proved** — it was keyed by
+  the payload's `device_id`, the client's own claim, so one attested key rotating that string
+  never met the bound — and the caller's address only as an HMAC under the OTP pepper (it sat
+  in a Redis key in clear). The resend wait doubles with each code a number has had in the
+  window (60 s, then 120 s), weighed with the budgets so a refusal states the longer true wait.
+  Only a Turkish mobile (`+90 5XX`, ten digits) normalises; premium (900), shared-cost (850),
+  landline, short-code, foreign and international-network numbers are pinned as refusals that
+  cost no budget. Still open: the carrier half (allocated 5XX prefixes) awaits the BTK list.
 - **The device-attestation bound, stated (INT-344):** on iOS the OTP request and the
   session start each carry an Apple App Attest **assertion** from a Secure Enclave key the
   server registered once from an **attestation** (`POST /v1/auth/attest/key`). The
@@ -618,6 +639,11 @@ it or whose tests exercise it.
   land with INT-131 and the console with INT-192. `otp_verify_total{outcome}` (INT-578): a
   rise in `unbound` is codes tried from devices that did not ask for them, the interception
   signal; `exhausted` counts numbers locked; `locked` verifies refused by a lockout.
+  INT-577: `sec_otp_requests_total{outcome}` and `sec_otp_abuse_blocks{dimension}`, the
+  `sms_spend_kill_switch_engaged` gauge and `sms_spend_kill_switch_trips_total{reason}`; the
+  `SmsSpendKillSwitchEngaged` page and the `OtpRequestSpike` ticket
+  (`infra/observability/security-rules.yaml`, runbook `docs/runbooks/sms-abuse.md`); the ops
+  console's `sms` tile (`GET /admin/ops`), which judges a spike by the same definition.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
   boundary-crossing refusal on all three dimensions, the true retry-after (including under a
   budget tightened while windows are live) and the bounded counter key set with INT-263
@@ -646,7 +672,14 @@ it or whose tests exercise it.
   (`tests/security/test_otp_brute_force.py`, `tests/api/test_attestation_otp_flow.py`), the
   host's pepper on stdin, kept, replaced when malformed, re-asserted by every deploy, and the
   read-only grant (`tests/infra/test_staging_otp_pepper.py`), and the app sending the request
-  id back (`apps/mobile/src/lib/auth/pendingOtp.test.ts`).
+  id back (`apps/mobile/src/lib/auth/pendingOtp.test.ts`). The overuse bound with INT-577:
+  the device budget held across rotated install ids under one App Attest key and a second key
+  as its near miss, no address in any Redis key, the tenant and global hour caps and their
+  exact-cap near misses, the day cap latching the switch through a rolled-over day until the
+  operator command releases it, an unreadable switch refusing, the doubled resend wait and its
+  one-second near miss, every non-mobile class refused without spending budget, the counters'
+  closed labels, both alerts, and the ops tile's spike test at, under and over its threshold
+  (`tests/security/test_sms_pumping.py`).
 
 ## `consent` — layered consent and scope enforcement
 

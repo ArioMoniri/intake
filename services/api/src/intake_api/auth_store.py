@@ -46,7 +46,7 @@ import json
 import secrets
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -55,6 +55,8 @@ import redis
 __all__ = [
     "ACCESS_TTL_S",
     "AccessRecord",
+    "Budget",
+    "GateDecision",
     "AuthStore",
     "CHALLENGE_TTL_S",
     "DEVICE_LIMIT_PER_HOUR",
@@ -152,6 +154,39 @@ CodeVerdict = Literal["ok", "invalid", "unbound", "exhausted", "missing"]
 _ABSENT = "0" * 64
 
 
+@dataclass(frozen=True)
+class Budget:
+    """One more request budget for :meth:`AuthStore.otp_request_decision`
+    (INT-577): the tenant budget and the global caps. ``dimension`` is a closed
+    name, safe as a metric label; ``identifier`` is never a person."""
+
+    dimension: str
+    identifier: str
+    limit: int
+    window_s: int = OTP_WINDOW_S
+
+
+@dataclass(frozen=True)
+class GateDecision:
+    """What the gate decided. Refused: ``wait`` is the true retry-after and
+    ``dimensions`` names every budget that refused. Admitted: ``wait`` is how
+    long the number must now wait before its next code."""
+
+    admitted: bool
+    wait: float
+    dimensions: tuple[str, ...] = ()
+
+
+def resend_wait(codes_in_window: int) -> float:
+    """INT-577's exponential resend backoff: after the ``codes_in_window``-th
+    code to one number in the rolling window, the next one waits the resend
+    cooldown doubled once for every code before it — 60 s, then 120 s, then the
+    budget. Under the per-number budget of 3 it moves the third code, and that
+    is all it can do in an hour; what it buys is that a resend loop cannot run
+    at the cooldown's pace."""
+    return float(RESEND_COOLDOWN_S * 2 ** max(codes_in_window - 1, 0))
+
+
 def code_digest(pseudonym: str, code: str) -> str:
     """The INT-131 at-rest digest. Unkeyed: the Doctor Link tier's only. The
     phone tier keeps an HMAC under the OpenBao pepper instead (INT-578,
@@ -227,7 +262,9 @@ class AuthStore:
         which the key set doubles."""
         return self._key("otp", "w", dimension, identifier)
 
-    def _budget_wait(self, key: str, limit: int, now: float) -> float | None:
+    def _budget_wait(
+        self, key: str, limit: int, now: float, window_s: int = OTP_WINDOW_S
+    ) -> float | None:
         """Drop the admissions that have left the window ending at ``now``, then
         report how long this caller must wait — or None when there is room.
 
@@ -235,7 +272,7 @@ class AuthStore:
         members (a refused request writes nothing), so reading it whole is
         constant work and cannot disagree with itself the way a ZCARD followed
         by a ZRANGE can when another worker trims in between."""
-        self._r.zremrangebyscore(key, "-inf", now - OTP_WINDOW_S)
+        self._r.zremrangebyscore(key, "-inf", now - window_s)
         admissions = list(self._r.zrange(key, 0, -1, withscores=True))
         if len(admissions) < limit:
             return None
@@ -246,38 +283,79 @@ class AuthStore:
         # it is what keeps the answer true if a limit is ever LOWERED while
         # windows are live — which is exactly what tightening a budget under
         # attack does.
-        return float(admissions[len(admissions) - limit][1]) + OTP_WINDOW_S - now
+        return float(admissions[len(admissions) - limit][1]) + window_s - now
 
     def otp_request_gate(self, pseudonym: str, ip: str, device_ref: str) -> float | None:
-        """Admit or refuse one OTP request. Returns None on admission (and
+        """Admit or refuse one OTP request on the INT-131 budgets and the flat
+        cooldown (the Doctor Link tier's gate). Returns None on admission (and
         records it against every window); otherwise the retry-after seconds."""
+        decision = self.otp_request_decision(pseudonym, ip, device_ref)
+        return None if decision.admitted else decision.wait
+
+    def otp_request_decision(
+        self,
+        pseudonym: str,
+        ip: str,
+        device_ref: str,
+        *,
+        extra: Sequence[Budget] = (),
+        backoff: bool = False,
+    ) -> GateDecision:
+        """The gate, saying which budget refused. The phone tier passes the
+        tenant and global budgets in ``extra`` and asks for the exponential
+        resend ``backoff`` (INT-577); without them it is INT-263's gate."""
         now = self._now()
-        cooldown_key = self._key("otp", "cool", pseudonym)
-        last = _text(self._r.get(cooldown_key))
-        if last is not None and now - float(last) < RESEND_COOLDOWN_S:
-            return RESEND_COOLDOWN_S - (now - float(last))
+        phone_key = self._window_key("phone", pseudonym)
+        sent_before = 0
+        refused: list[tuple[str, float]] = []
+        if backoff:
+            # the number's own window is the backoff's memory: how many codes
+            # it had, and when the last one went. A backoff refusal is weighed
+            # with the budgets below, so the caller is told the true wait for
+            # whichever is longer, never only the shorter one.
+            self._r.zremrangebyscore(phone_key, "-inf", now - OTP_WINDOW_S)
+            entries = list(self._r.zrange(phone_key, 0, -1, withscores=True))
+            sent = [float(entry[1]) for entry in entries]
+            sent_before = len(sent)
+            if sent and (held := resend_wait(len(sent)) - (now - max(sent))) > 0:
+                refused.append(("cooldown", held))
+        else:
+            last = _text(self._r.get(self._key("otp", "cool", pseudonym)))
+            if last is not None and now - float(last) < RESEND_COOLDOWN_S:
+                wait = RESEND_COOLDOWN_S - (now - float(last))
+                return GateDecision(admitted=False, wait=wait, dimensions=("cooldown",))
         budgets = (
-            (self._window_key("ip", ip), IP_LIMIT_PER_HOUR),
-            (self._window_key("device", device_ref), DEVICE_LIMIT_PER_HOUR),
-            (self._window_key("phone", pseudonym), PHONE_LIMIT_PER_HOUR),
+            ("ip", self._window_key("ip", ip), IP_LIMIT_PER_HOUR, OTP_WINDOW_S),
+            ("device", self._window_key("device", device_ref), DEVICE_LIMIT_PER_HOUR, OTP_WINDOW_S),
+            ("phone", phone_key, PHONE_LIMIT_PER_HOUR, OTP_WINDOW_S),
+            *(
+                (b.dimension, self._window_key(b.dimension, b.identifier), b.limit, b.window_s)
+                for b in extra
+            ),
         )
-        waits = [
-            wait
-            for key, limit in budgets
-            if (wait := self._budget_wait(key, limit, now)) is not None
+        refused += [
+            (dimension, budget_wait)
+            for dimension, key, limit, window in budgets
+            if (budget_wait := self._budget_wait(key, limit, now, window)) is not None
         ]
-        if waits:
+        if refused:
             # every over-budget dimension has to clear, so the caller is told the
             # latest of them and is not sent back into a second refusal
-            return max(waits)
+            return GateDecision(
+                admitted=False,
+                wait=max(wait for _, wait in refused),
+                dimensions=tuple(dimension for dimension, _ in refused),
+            )
         # a fresh member per admission: two requests at the same instant (a burst
         # against one IP) are two admissions, not one score overwriting the other
         member = secrets.token_hex(8)
-        for key, _limit in budgets:
+        for _dimension, key, _limit, window in budgets:
             self._r.zadd(key, {member: now})
-            self._r.expire(key, OTP_WINDOW_S * 2)
-        self._r.set(cooldown_key, repr(now), ex=RESEND_COOLDOWN_S * 2)
-        return None
+            self._r.expire(key, window * 2)
+        if backoff:
+            return GateDecision(admitted=True, wait=resend_wait(sent_before + 1))
+        self._r.set(self._key("otp", "cool", pseudonym), repr(now), ex=RESEND_COOLDOWN_S * 2)
+        return GateDecision(admitted=True, wait=float(RESEND_COOLDOWN_S))
 
     # --- OTP codes -------------------------------------------------------------------
 

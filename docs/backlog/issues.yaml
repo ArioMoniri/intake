@@ -7314,3 +7314,24 @@
     - "The synthetic host makes the pepper on stdin from the CSPRNG and every deploy re-asserts it and the read-only grant; tests first with near misses; threat model and files/10 §9 onboarding row updated; every new metric catalogued."
   tests: [tests/security/test_otp_brute_force.py, tests/security/test_otp_abuse.py, tests/api/test_attestation_otp_flow.py, tests/api/test_otp_netgsm_wiring.py, tests/infra/test_staging_otp_pepper.py, tests/infra/test_staging_netgsm.py, apps/mobile/src/lib/auth/pendingOtp.test.ts]
   sec_row: "onboarding"
+- id: INT-577
+  epic: E01-platform
+  phase: P1
+  title: "SMS pumping and overuse — per-number/device/IP/tenant limits, global caps, spend kill switch, +90 mobile only, spike alert"
+  # GitHub #972. Owner order, 28 Oct 2026: "have all security measures to stop
+  # sms hijacking, sms loading, hacking, overuse and data hijacking over sms",
+  # split into INT-577..581, one control family each. This is the pumping and
+  # overuse family, and docs/evidence/INT-577.md carries the audit of all five
+  # families against main before any of them was built. Built on INT-578
+  # (#973), which both change the same request path.
+  depends_on: [INT-131, INT-263, INT-308, INT-528, INT-578]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-577.md
+  acceptance:
+    - "Send rate limits per phone pseudonym, per App Attest device key (the proven key, not the claimed install id), per IP (a keyed hash, never the address in a key) and per tenant, with exponential resend backoff; a global hourly and daily send cap."
+    - "A Netgsm spend kill switch that fails closed (an unreadable switch refuses) and alerts the admin: the day cap latches it until an operator releases it, audited; a page, and the ops console's sms tile."
+    - "+90 Turkish mobile ranges only: premium, shared-cost, short, landline, foreign and international-network numbers refused before any budget or SMS, each pinned with a near miss."
+    - "A spike-anomaly alert in the admin Safety/Ops view (the GET /admin/ops sms tile and the OtpRequestSpike rule, one definition); every new metric in metrics_catalog.yaml; threat model and files/10 §9 onboarding row updated; tests first with near misses."
+  tests: [tests/security/test_sms_pumping.py, tests/security/test_otp_abuse.py, tests/admin/test_ops_console.py, tests/observability/test_alert_rules.py, tests/observability/test_metrics_catalog.py]
+  sec_row: "onboarding"

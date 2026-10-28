@@ -16,7 +16,11 @@ tiles. It is built from exactly two sources, both server-side:
   collector (``intake_probes.ops_collector``); model usage from the Backend
   Work, TTS and adapter families; the clip cache from the clip build's
   families; the wait from ``wait.checkin_to_seen_min`` (INT-163); satisfaction
-  from ``csat.score`` and ``nps.monthly`` (INT-240/INT-186).
+  from ``csat.score`` and ``nps.monthly`` (INT-240/INT-186); the SMS tile
+  (INT-577) from ``sec.otp_requests_total`` and the spend kill switch's gauge —
+  the admin's view of a pumping spike and of a tripped switch, judged by
+  :func:`intake_api.sms_spend.is_spike`, the definition the ``OtpRequestSpike``
+  alert carries too.
 
 **Unknown is a state (invariant 17).** A tile whose source is unconfigured,
 unreachable, erroring or silent is ``{"state": "unknown", "reason": <code>}``
@@ -55,6 +59,7 @@ from intake_api.admin.ops_prom import (
     TileUnknown,
     prom_client_from_env,
 )
+from intake_api.sms_spend import SPIKE_FACTOR, SPIKE_FLOOR_PER_HOUR, is_spike
 
 __all__ = ["K_FLOOR", "OPS_QUERIES", "OPS_SCHEMA", "build_ops_console", "load_ops_console"]
 
@@ -63,6 +68,8 @@ K_FLOOR: Final = K_ANONYMITY_FLOOR
 USAGE_WINDOW: Final = "24h"
 COHORT_WINDOW: Final = "30d"
 CLIP_WINDOW: Final = "last_build"
+SMS_WINDOW: Final = "1h"
+SMS_BASELINE_WINDOW: Final = "1d"
 
 #: The only PromQL this API runs for the console. A caller cannot add to it.
 OPS_QUERIES: Final[Mapping[str, str]] = {
@@ -92,6 +99,11 @@ OPS_QUERIES: Final[Mapping[str, str]] = {
     "ci_runs": ("max by (workflow, branch, status, conclusion, head_sha) (ops_ci_last_run)"),
     "ci_updated": "max by (workflow, branch) (ops_ci_last_run_updated_seconds)",
     "collector_up": "max by (source) (ops_collector_source_up)",
+    # INT-577: OTP requests (every outcome) over the last hour and the last
+    # day, and whether the SMS spend kill switch is engaged on any replica
+    "sms_requests_hour": f"sum(increase(sec_otp_requests_total[{SMS_WINDOW}]))",
+    "sms_requests_day": f"sum(increase(sec_otp_requests_total[{SMS_BASELINE_WINDOW}]))",
+    "sms_kill_switch": "max(sms_spend_kill_switch_engaged)",
 }
 
 #: The label set each query must come back with — exactly.
@@ -117,6 +129,9 @@ _LABELS: Final[Mapping[str, frozenset[str]]] = {
     "ci_runs": frozenset({"workflow", "branch", "status", "conclusion", "head_sha"}),
     "ci_updated": frozenset({"workflow", "branch"}),
     "collector_up": frozenset({"source"}),
+    "sms_requests_hour": frozenset(),
+    "sms_requests_day": frozenset(),
+    "sms_kill_switch": frozenset(),
 }
 
 
@@ -301,6 +316,24 @@ def _cicd(session: PromSession) -> dict[str, Any]:
     return {"branch": branches.pop(), "workflows": workflows}
 
 
+def _sms(session: PromSession) -> dict[str, Any]:
+    """INT-577: the last hour's OTP requests against the day's own hourly
+    rate, and the spend kill switch. A figure Prometheus does not hold stays
+    null; a tile with none of them is unknown."""
+    hour = session.scalar("sms_requests_hour")
+    day = session.scalar("sms_requests_day")
+    kill = session.scalar("sms_kill_switch")
+    if hour is None and day is None and kill is None:
+        raise TileUnknown("no_series")
+    return {
+        "requests_last_hour": _count(hour),
+        "requests_last_day": _count(day),
+        "baseline_per_hour": None if day is None else round(day / 24, 2),
+        "spike": None if hour is None or day is None else is_spike(hour, day),
+        "kill_switch_engaged": None if kill is None else kill >= 1,
+    }
+
+
 #: Every tile's shape when it is unknown: the same keys, no figure.
 _EMPTY: Final[Mapping[str, Mapping[str, Any]]] = {
     "gpu": {"hosts": []},
@@ -331,6 +364,17 @@ _EMPTY: Final[Mapping[str, Mapping[str, Any]]] = {
         "nps": None,
     },
     "cicd": {"branch": None, "workflows": []},
+    "sms": {
+        "window": SMS_WINDOW,
+        "baseline_window": SMS_BASELINE_WINDOW,
+        "spike_factor": SPIKE_FACTOR,
+        "spike_floor_per_hour": SPIKE_FLOOR_PER_HOUR,
+        "requests_last_hour": None,
+        "requests_last_day": None,
+        "baseline_per_hour": None,
+        "spike": None,
+        "kill_switch_engaged": None,
+    },
 }
 
 _BUILDERS: Final[Mapping[str, Callable[[PromSession], dict[str, Any]]]] = {
@@ -340,6 +384,7 @@ _BUILDERS: Final[Mapping[str, Callable[[PromSession], dict[str, Any]]]] = {
     "wait_time": _wait,
     "satisfaction": _satisfaction,
     "cicd": _cicd,
+    "sms": _sms,
 }
 
 
