@@ -1,0 +1,19 @@
+{
+  "alias": "staff second factor",
+  "heldEqualTo": ["infra/keycloak/dev-realm.json", "infra/staging/keycloak/intake-realm.json"],
+  "heldBy": "tests/admin/test_staff_passkey_enrolment.py",
+  "authenticationExecutions": [
+    {
+      "authenticator": "intake-webauthn-session-notes",
+      "authenticatorConfig": "amr hwk",
+      "requirement": "REQUIRED",
+      "priority": 10
+    },
+    {
+      "authenticator": "auth-otp-form",
+      "authenticatorConfig": "amr otp",
+      "requirement": "DISABLED",
+      "priority": 20
+    }
+  ]
+}

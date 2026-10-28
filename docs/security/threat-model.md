@@ -123,7 +123,10 @@ it or whose tests exercise it.
   [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change;
   [I] **an operator script putting a secret where others read it** (INT-538's staff-user
   command: a temporary password or the Keycloak bootstrap password in an argv, the SSM command
-  history, a log or the terminal); [E] **a staff account created with the wrong role or org**.
+  history, a log or the terminal); [E] **a staff account created with the wrong role or org**;
+  [D] **a staff account that can never complete sign-in** (INT-550: the realm's ALTERNATIVE
+  WebAuthn step refused every user without a passkey, so no new staff user could enrol);
+  [E] **a weaker factor standing in for the passkey** (an OTP ALTERNATIVE beside WebAuthn).
 - **Controls (files/10):** §8 pre-commit set (gitleaks, Semgrep+Bandit, dependency review,
   Renovate with lockfiles); CLAUDE.md invariant 14 (gates never skipped); Makefile as the only
   entry point so gates cannot be sidestepped by ad-hoc commands. **INT-538**
@@ -135,12 +138,22 @@ it or whose tests exercise it.
   a new user joins the platform_owner's org and a differing org is refused; only the very first
   user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
   role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
-  step rolls the user back.
+  step rolls the user back. **INT-550** (both committed realms and
+  `infra/staging/keycloak/staff_flow.py`): the `intake-webauthn-session-notes` step is REQUIRED, so Keycloak sends a user without a
+  passkey to `webauthn-register` after the password. A user with a passkey is challenged for it
+  and offered nothing else. The OTP step is DISABLED until INT-389, so it is neither offered nor
+  accepted. The deploy switches the live realm. It refuses, before any change, a realm whose
+  `webauthn-register` action is absent or disabled. It keeps each execution's priority. The
+  enrolment login asserts no passkey, so the console still refuses that one session, and the
+  next fresh sign-in asserts the key.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
-  console and INT-205 in the SIEM.
+  console and INT-205 in the SIEM. `smoke.sh` check 7 re-reads the live staff flow (INT-550
+  shape) after every deploy.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
   tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
-  tests/infra/test_staff_user_host.py.
+  tests/infra/test_staff_user_host.py; tests/admin/test_staff_passkey_enrolment.py;
+  tests/infra/test_staging_keycloak_provider.py; `StaffSecondFactorFlowTest` (Keycloak
+  26.7.4's own flow engine, in `infra/keycloak/providers/webauthn-session-notes`).
 
 ## `cicd` — pipeline, artefacts and gate integrity
 
@@ -536,20 +549,40 @@ it or whose tests exercise it.
   no decoder can exist until the Play Console organisation account does (HB-A3). The
   stored record is a public key, a counter and an environment — the same class of datum as
   the DPoP thumbprint — kept 30 days rolling.
-- **The SMS delivery bound, stated (INT-329):** outside dev the OTP tier is wired only when
-  the egress policy admits `EgressPurpose.SMS_OTP_DELIVERY` to `api.twilio.com` **and** OpenBao
-  holds `secret/api/twilio` (`account_sid`, `auth_token`, `from`). The `TWILIO_*` environment
-  variables are never read. Anything missing leaves every `/v1/auth` route at 503, and the dev
-  event logger is never the fallback (INT-325). The send is async, over the INT-018 guard's
-  async twin, which runs the same admission step and pins and records exactly as the sync one
-  does. The call is declared `DataClass.PHI`, so it can only reach a `phi_allowed` row that
-  carries a recorded approval. **No such row ships.** Personal data to a processor abroad is
-  the owner's DPA and cross-border decision (docs/evidence/INT-329.md), so today the tier
-  stays at 503 outside dev, and the guard would refuse the call before a byte left anyway. A
-  failed delivery is one generic `503 otp_delivery_unavailable`, never a claimed "sent". The
-  log line carries the vendor message id, the HTTP status, a closed-vocabulary reason and
-  Twilio's numeric error code, never the phone, the code, the token or a vendor body (its
-  errors echo the number). No retry: a retried SMS would put a second code in flight.
+- **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
+  product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
+  processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
+  (AWS us-east-1) the number passes through that host first. Outside dev the OTP tier is wired only when the egress policy admits
+  `EgressPurpose.SMS_OTP_DELIVERY` to `api.netgsm.com.tr` **and** OpenBao holds
+  `secret/api/netgsm` (`usercode`, `password`, `msgheader`). No environment variable is read,
+  and the staging env file holds no vendor key at all. Anything missing leaves every
+  `/v1/auth` route at 503, and the dev event logger is never the fallback (INT-325). Twilio,
+  the INT-329 adapter, is no longer wired. The send is async, over the INT-018 guard's async
+  twin, which runs the same admission step and pins and records exactly as the sync one does.
+  The call is declared `DataClass.PHI`, so it can only reach a `phi_allowed` row that carries
+  a recorded approval, with `INTAKE_ALLOW_PHI_EGRESS=explicit-yes` at runtime. **No such row
+  ships:** it is the owner's patch (owner-528-netgsm-egress.patch), so today the tier stays at
+  503 outside dev, and the guard would refuse the call before a byte left anyway. The wire
+  body is enumerated by hand (`msgheader`, `msg`, `no`), and a number Netgsm cannot reach (not
+  a Turkish mobile) or a code that is not plain digits is refused before the wire. Every
+  documented vendor code maps to a typed refusal. A failed delivery is one generic
+  `503 otp_delivery_unavailable`, never a claimed "sent". The log line carries the job id, the
+  HTTP status, the refusal and the numeric code; the one counter,
+  `otp_sms_delivery_total{vendor,outcome}`, has closed labels. Never the phone, the code, the
+  password or the vendor's description. No retry: a retried SMS would put a second code in
+  flight. On the synthetic host the owner keeps the values as SSM SecureString parameters;
+  `infra/staging/netgsm_secrets.sh` (run by hand and by every `deploy.sh`) reads them with the
+  instance role and writes them to OpenBao on stdin, never argv, printing field names only, and
+  `deploy.sh` refuses an Apple team id the API's own token cannot pair with them. Its `--check`
+  mode asks Netgsm's read-only sender-name listing whether the credentials work from the host's
+  Elastic IP; it sends no SMS and no personal data. **SMS is real on the synthetic host**, so
+  there the API starts a login, and sends a code, only for a number on the owner's SMS test
+  allow-list (SSM `/intake/staging/sms_test_allowlist`, synced into the same OpenBao document);
+  an empty, unreadable or malformed list admits nobody, and the numbers are never printed. The
+  route out is ADR-042's: a dedicated `sms-egress` forward proxy on a network shared with the
+  API alone, rendered from the allow-list's SMS row only, with the rebinding window closed and
+  the denied ranges refused at connect; `intake_platform.egress` admits that one proxy for that
+  one purpose and refuses every other personal-data proxy (INT-203 unchanged otherwise).
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the

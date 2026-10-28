@@ -19,8 +19,10 @@
 #      sudo/docker/adm group
 #   6. pinned binaries: actions/runner and gh, each checked against its sha256
 #      before it is unpacked
-#   7. scripts, units, the slice and the jobs' resolver, then every runner's
-#      guards once (fail closed)
+#   7. scripts (seed.sh and seed-build.sh included, INT-544), units, the slice
+#      and the jobs' resolver, then every runner's guards once (fail closed).
+#      A runner's cache seed is left as it is: its registrar rebuilds it when
+#      the inputs staged by scripts/ci/aws_runner.sh seed change
 #   8. each runner's rootless Docker, proved to answer as its user and to
 #      forward nothing to the host (guard.sh netns); then its supervisor and
 #      disk watchdog are enabled and started. Each supervisor's registrar mints
@@ -216,7 +218,7 @@ fi
 
 # --- 7. scripts, units, guards -----------------------------------------------------
 install -m 0644 -o root -g root "$SRC/runner.conf" "$SRC/daemon.json" "$SRC/resolv.conf" "$LIB_DIR/"
-scripts="guard.sh cycle.sh job-started.sh fetch-credential.sh probe.sh"
+scripts="guard.sh cycle.sh job-started.sh fetch-credential.sh probe.sh seed.sh seed-build.sh"
 for script in $scripts; do
   install -m 0755 -o root -g root "$SRC/$script" "$LIB_DIR/bin/$script"
 done

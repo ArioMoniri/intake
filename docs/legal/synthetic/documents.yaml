@@ -32,13 +32,15 @@
 
 # INT-536 (17 Oct 2026): voice and lane.affect name AWS as the hosting
 # processor in their recipients sections (INT-529 F9); both re-signed.
-synthetic_index_version: "2026-10-17.1"
+# INT-529 refresh, 28 Oct 2026: the sign-in SMS processor (Netgsm, INT-528) is
+# live on the synthetic host, so core names it; re-signed.
+synthetic_index_version: "2026-10-28.1"
 data_class: synthetic
 
 documents:
   - id: acik_riza.core
-    version: "2026-10-16.syn1"
-    sha256: "e347bd14e7bf42b4d2aa4d9b979d62f9016c1f643cad29c4f9632f42266bf3b3"
+    version: "2026-10-28.syn1"
+    sha256: "fce73a8b2decfa730b46ea7499c5494cefa6d6415f4738d91ed5755535286d8d"
     grounds:
       retention: [clinical_record]
       recipients: [REC_PATIENT_CLINICIAN, REC_CLINICIAN, REC_INTERNAL]
@@ -103,7 +105,7 @@ awaiting_human:
   - id: aydinlatma.app
     missing:
       - "the controller's registered identity — title, MERSİS number, address, telephone, e-mail and KEP (KVKK m.10(1)(a); Aydınlatma Tebliği m.4(1)(a); the Board's 2026/347 Ek-1 template). No file in the repository names INTAKE's legal entity (HB-L21(e))."
-      - "the sign-in SMS processor is chosen: Netgsm replaced Twilio (owner decision, 16 Oct 2026, INT-358). What a notice must state about it is still open (INT-535, GitHub #902): the DPA confirming in-country handling, whether the sign-in number is KVKK m.6 health data in this context, and what the notice shown at phone entry must say. The phone number carries no inventory annotation because it lives only in identity_vault, outside the ORM inventory."
+      - "the sign-in SMS processor is Netgsm İletişim ve Bilgi Teknolojileri A.Ş., Ankara (owner decision D31, 16 Oct 2026, INT-358; live on the synthetic host since INT-528, PR #905; legal entity and address from docs/legal/sources/netgsm-aydinlatma/, retrieved 28 Oct 2026). The synthetic core açık rıza text names it (28 Oct 2026). What the notice must still state is open (INT-535, GitHub #902): what the signed DPA confirms about location, retention, sub-processors and deletion (INT-528 evidence, awaiting-human item 4), whether the sign-in number is KVKK m.6 health data in this context, and what the notice shown at phone entry must say. The phone number carries no inventory annotation because it lives only in identity_vault, outside the ORM inventory."
       - "the KVKK m.9 ground for a tester's number transiting the us-east-1 host (infra/staging/compose.yaml: the AWS host is in us-east-1; INT-535 question 3). Synthetic scope today: only the owner's own allow-listed number receives SMS."
     ask: "Owner and counsel: name INTAKE's legal entity and its contact points; and, through INT-535 (GitHub #902), record the Netgsm DPA, the KVKK m.9 ground for the us-east-1 leg and the phone-entry notice, so the app-channel notice can name the controller, every recipient and the transfer truthfully."
     refs: [HB-L21, HB-L27, INT-358, INT-535]

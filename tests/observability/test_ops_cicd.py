@@ -176,8 +176,9 @@ def _pull_request_jobs() -> dict[str, tuple[str, ...]]:
     for path in sorted(WORKFLOWS.glob("*.yml")):
         doc = yaml.safe_load(path.read_text(encoding="utf-8"))
         if "pull_request" in doc.get("on", doc.get(True)):  # YAML 1.1: bare `on:` is True
-            jobs = doc["jobs"].items()
-            gates[path.stem] = tuple(j for j, s in jobs if "refs/tags" not in s.get("if", ""))
+            jobs = {j: s for j, s in doc["jobs"].items() if "refs/tags" not in s.get("if", "")}
+            fed = {n for s in jobs.values() for n in ([s["needs"]] if "needs" in s else [])}
+            gates[path.stem] = tuple(j for j in jobs if j not in fed)  # INT-544: shard feeds
     return gates
 
 
