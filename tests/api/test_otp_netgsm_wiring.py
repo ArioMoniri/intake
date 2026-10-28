@@ -46,6 +46,7 @@ from netgsm_testkit import (
     PHONE,
     SHIPPED_ALLOWLIST,
     STRICT_ENVIRONMENTS,
+    UNREADABLE,
     USERCODE,
     VAULT_DOC,
     Vault,
@@ -359,6 +360,26 @@ def test_an_egress_refusal_answers_alike_and_never_reaches_the_vendor(
         assert response.status_code == 202
         assert _audited(client)[-1] == "auth.otp.delivery_failed"
     assert vendor.requests == []
+
+
+@pytest.mark.parametrize("scenario", ["plain-text-00-jobid", "00-without-jobid"])
+def test_an_unreadable_200_is_sent_once_and_the_cooldown_holds_the_resend(
+    phi_egress: None, tmp_path: Path, scenario: str
+) -> None:
+    """INT-576: Netgsm may have sent the code, so nothing sends it again: one
+    vendor call, and a resend straight after is held by the wait the first
+    request started. INT-579: the vendor answers after the response, so the
+    route says 202 to both and the chain records the unreadable answer; the
+    held resend is withheld, never sent."""
+    vendor = Vendor(UNREADABLE[scenario][0])
+    for client in _harness(tmp_path, _auth(adapter(vendor))):
+        first = _request_otp(client)
+        assert first.status_code == 202, first.text
+        assert _audited(client)[-1] == "auth.otp.delivery_failed"
+        again = _request_otp(client)
+        assert again.status_code == 202, again.text
+        assert _audited(client)[-1] == "auth.otp.withheld"
+    assert len(vendor.requests) == 1
 
 
 # --- ADR-042: the SMS-only proxy ----------------------------------------------------------

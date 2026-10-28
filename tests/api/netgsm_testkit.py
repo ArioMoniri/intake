@@ -1,12 +1,15 @@
-"""Shared fixtures for the INT-528 Netgsm tests (test_otp_netgsm*.py).
+"""Shared fixtures for the INT-528 and INT-576 Netgsm tests (test_otp_netgsm*.py).
 
-Vendor responses come from ``tests/fixtures/netgsm/otp_rest_v2.json``, which is
-built from Netgsm's public documentation and was never captured from a live
-call. :func:`replay` serves it in the posture of
+Vendor responses come from ``tests/fixtures/netgsm/otp_rest_v2.json``, which
+INT-576 re-derived from Netgsm's public documentation and its official SDKs
+(verbatim snapshots in ``tests/fixtures/netgsm/sources/``) and which was never
+captured from a live call. :func:`replay` serves it in the posture of
 ``intake_platform.notifications.ports.RecordedTransport``: a scenario the file
 does not record is refused, never invented. Transport faults (a timeout, a
 refused connection, a 5xx with no body) are not vendor shapes at all, so they
-are written here as faults and named as such.
+are written here as faults and named as such. So are the 2xx answers this
+endpoint is not documented to give (:data:`UNREADABLE`): each one is a near
+miss of a documented shape, named for what it gets wrong.
 
 The egress row exists only in memory or in a tmp file and is NOT a recorded
 decision: the shipped allow-list gains the Netgsm row only through the owner's
@@ -64,6 +67,8 @@ def recorded() -> dict[str, Any]:
 RECORDED = recorded()
 JOBID: str = RECORDED["responses"]["accepted"]["body"]["jobid"]
 DOCUMENTED_CODES: tuple[str, ...] = tuple(RECORDED["documented_error_codes"])
+#: the scenarios that are documented successes of this endpoint
+SUCCESS_SCENARIOS: tuple[str, ...] = ("accepted", "accepted_sdk")
 
 
 def netgsm() -> ModuleType:
@@ -74,6 +79,10 @@ def netgsm() -> ModuleType:
 
 def otp_module() -> ModuleType:
     return importlib.import_module("intake_api.otp")
+
+
+def shape_module() -> ModuleType:
+    return importlib.import_module("intake_api.otp_netgsm_shape")
 
 
 def resolver(host: str, port: int) -> tuple[str, ...]:
@@ -158,6 +167,21 @@ def accepted(request: httpx.Request) -> httpx.Response:
     return replay("accepted")(request)
 
 
+def accepted_sdk(request: httpx.Request) -> httpx.Response:
+    return replay("accepted_sdk")(request)
+
+
+def elsewhere(scenario: str) -> Callable[[httpx.Request], httpx.Response]:
+    """A body the documentation gives for a DIFFERENT endpoint, served at 200
+    as if this one had sent it: a near miss, never a success."""
+    text = RECORDED["documented_elsewhere"][scenario]["body"]
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=text)
+
+    return respond
+
+
 def fault(error: type[httpx.TransportError]) -> Callable[[httpx.Request], httpx.Response]:
     """A transport fault: no vendor shape, so nothing to record."""
 
@@ -167,18 +191,21 @@ def fault(error: type[httpx.TransportError]) -> Callable[[httpx.Request], httpx.
     return respond
 
 
-def bare(status: int, text: str = "") -> Callable[[httpx.Request], httpx.Response]:
+def bare(
+    status: int, text: str = "", content_type: str | None = None
+) -> Callable[[httpx.Request], httpx.Response]:
     """An HTTP answer with no Netgsm body: a gateway in front of the vendor."""
+    headers = {"content-type": content_type} if content_type is not None else None
 
     def respond(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(status, text=text)
+        return httpx.Response(status, text=text, headers=headers)
 
     return respond
 
 
-def body(status: int, payload: Mapping[str, object]) -> Callable[[httpx.Request], httpx.Response]:
+def body(status: int, payload: object) -> Callable[[httpx.Request], httpx.Response]:
     def respond(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(status, json=dict(payload))
+        return httpx.Response(status, json=payload)
 
     return respond
 
@@ -194,7 +221,9 @@ CODE_REFUSALS: dict[str, tuple[str, str]] = {
     "52": ("number_refused", "rejected"),
     "60": ("otp_package_missing", "rejected"),
     "70": ("parameters_refused", "rejected"),
+    "80": ("send_limit_exceeded", "rate_limited"),
     "100": ("vendor_system_error", "vendor_unavailable"),
+    "101": ("vendor_system_error", "vendor_unavailable"),
 }
 
 #: scenario -> (vendor behaviour, refusal or None, port reason, HTTP status)
@@ -212,20 +241,60 @@ FAULTS: dict[str, tuple[Callable[[httpx.Request], Any], str | None, str, int | N
         "rejected",
         307,
     ),
-    "ok-not-json": (bare(200, "00 17377215342605050417149344"), None, "malformed_response", 200),
-    "ok-without-jobid": (body(200, {"code": "00"}), None, "malformed_response", 200),
-    "ok-jobid-not-an-id": (
-        body(200, {"code": "00", "jobid": "see https://evil.example/x"}),
-        None,
-        "malformed_response",
-        200,
-    ),
     "unknown-code": (
         body(406, {"code": "99", "description": "x"}),
         "unknown_vendor_code",
         "rejected",
         406,
     ),
+}
+
+
+_ACCEPTED_BODY: dict[str, object] = dict(RECORDED["responses"]["accepted"]["body"])
+_HTML = "<!DOCTYPE html><html><head><title>Netgsm</title></head><body>bakim</body></html>"
+
+#: INT-576: a 2xx this endpoint is not documented to give -> (behaviour, the
+#: typed refusal). Every one is reason ``malformed_response`` at status 200,
+#: never a success and never retried: Netgsm may already have sent the code.
+UNREADABLE: dict[str, tuple[Callable[[httpx.Request], Any], str]] = {
+    # no documented code at all
+    "plain-text-00-jobid": (bare(200, f"00 {JOBID}"), "unparseable_response"),
+    "xml-otp-endpoint-answer": (elsewhere("xml_otp_accepted"), "unparseable_response"),
+    "html-page": (bare(200, _HTML, "text/html; charset=utf-8"), "unparseable_response"),
+    "empty-body": (bare(200), "unparseable_response"),
+    "json-array": (body(200, [_ACCEPTED_BODY]), "unparseable_response"),
+    "json-without-code": (
+        body(200, {k: v for k, v in _ACCEPTED_BODY.items() if k != "code"}),
+        "unparseable_response",
+    ),
+    "code-not-digits": (body(200, {**_ACCEPTED_BODY, "code": "OK"}), "unparseable_response"),
+    "json-deeper-than-the-decoder": (
+        bare(200, "[" * 100_000 + "]" * 100_000),
+        "unparseable_response",
+    ),
+    # code 00, but not exactly one digit-string job id under a documented key
+    "00-without-jobid": (
+        body(200, {"code": "00", "description": "success"}),
+        "accepted_without_job_id",
+    ),
+    "00-jobid-not-an-id": (
+        body(200, {**_ACCEPTED_BODY, "jobid": "see https://evil.example/x"}),
+        "accepted_without_job_id",
+    ),
+    "00-jobid-a-json-number": (
+        body(200, {**_ACCEPTED_BODY, "jobid": int(JOBID)}),
+        "accepted_without_job_id",
+    ),
+    "00-jobid-empty": (body(200, {**_ACCEPTED_BODY, "jobid": ""}), "accepted_without_job_id"),
+    "00-both-spellings": (body(200, {**_ACCEPTED_BODY, "jobId": JOBID}), "accepted_without_job_id"),
+    "00-xml-endpoint-spelling": (
+        body(200, {"code": "00", "description": "success", "jobID": JOBID}),
+        "accepted_without_job_id",
+    ),
+    # a code nobody documented, so nobody can say whether the SMS left
+    "undocumented-code": (body(200, {"code": "99", "description": "x"}), "unknown_vendor_code"),
+    "xml-style-code-0": (body(200, {"code": "0", "jobid": JOBID}), "unknown_vendor_code"),
+    "send-xml-style-code-01": (body(200, {**_ACCEPTED_BODY, "code": "01"}), "unknown_vendor_code"),
 }
 
 

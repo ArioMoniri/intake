@@ -75,7 +75,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partial
-from typing import Protocol
+from typing import Final, Protocol
 
 import redis
 from fastapi import HTTPException, Request
@@ -129,6 +129,7 @@ __all__ = [
     "ATTESTATION_HEADER",
     "BLOCK_DIMENSIONS",
     "CONSUMER_TENANT_ID",
+    "DELIVERY_MAY_HAVE_SENT",
     "OTP_VERIFY_TOTAL",
     "REQUEST_OUTCOMES",
     "SEC_OTP_ABUSE_BLOCKS",
@@ -233,6 +234,20 @@ class OtpDeliveryFailure(StrEnum):
     MALFORMED_RESPONSE = "malformed_response"
 
 
+#: INT-576: the failures after which the vendor may already have sent the
+#: code: an answer the adapter could not read (Netgsm had sent it, on 28 Oct
+#: 2026), no answer before the timeout, or a vendor-side failure that does not
+#: say whether the message left. Sending again could put a second code in
+#: flight, so none of these is ever sent again automatically.
+DELIVERY_MAY_HAVE_SENT: Final = frozenset(
+    {
+        OtpDeliveryFailure.MALFORMED_RESPONSE,
+        OtpDeliveryFailure.TIMEOUT,
+        OtpDeliveryFailure.VENDOR_UNAVAILABLE,
+    }
+)
+
+
 class OtpDeliveryError(Exception):
     """The SMS vendor could not deliver the code (INT-329). The tier fails
     closed: it never claims a code was sent. Carries a reason, the HTTP status
@@ -250,6 +265,15 @@ class OtpDeliveryError(Exception):
         self.status_code = status_code
         self.vendor_code = vendor_code
         super().__init__(f"otp delivery failed: {reason} (status {status_code or '-'})")
+
+    @property
+    def retryable(self) -> bool:
+        """Whether a second send could not double-deliver: False wherever the
+        vendor may already have sent the code (:data:`DELIVERY_MAY_HAVE_SENT`).
+        Nothing sends twice today, and the patient's resend after the
+        cooldown is the only second attempt; this is what any caller that
+        ever does must honour (INT-576)."""
+        return self.reason not in DELIVERY_MAY_HAVE_SENT
 
 
 class OtpDeliveryAdapter(Protocol):

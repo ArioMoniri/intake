@@ -1986,6 +1986,9 @@ metrics:
   # Both labels are closed enumerations: no phone, code, job id or tenant
   # (inv. 6). A credentials_refused or otp_package_missing outcome is the
   # operator's cue that the vendor account, not the patient, is the problem.
+  # INT-576: unparseable_response and accepted_without_job_id are 2xx answers
+  # the adapter could not read; Netgsm may have sent the code, so they are
+  # never retried, and a rise in either means the answer's shape has moved.
   - name: otp_sms_delivery_total
     type: counter
     labels: [vendor, outcome]
@@ -1995,7 +1998,8 @@ metrics:
       OTP SMS delivery attempts by vendor (netgsm) and outcome: accepted, a
       Netgsm refusal (message_refused, credentials_refused, sender_refused,
       number_refused, otp_package_missing, parameters_refused,
-      vendor_system_error, unknown_vendor_code, not_a_tr_mobile,
+      send_limit_exceeded, vendor_system_error, unknown_vendor_code,
+      unparseable_response, accepted_without_job_id, not_a_tr_mobile,
       code_not_sendable, not_on_test_allowlist) or a transport reason (egress_denied, timeout,
       unreachable, auth_failed, rate_limited, rejected, vendor_unavailable,
       malformed_response). Emitted by intake_api.otp_netgsm.

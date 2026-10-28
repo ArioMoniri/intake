@@ -232,6 +232,8 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
     # + INT-574 (the RED-never-waits test is deterministic under runner load:
     # no wall-clock budget, a store the test holds; GitHub #967).
+    # + INT-576 (the Netgsm adapter parses the live success shape and never
+    # retries an unreadable 200; the owner's real send, GitHub #971).
     # + INT-578 (OTP brute force and replay: HMAC under an OpenBao pepper,
     # device- and request-bound, atomic budget, lockout; the owner's SMS
     # security order, GitHub #973).
@@ -239,7 +241,7 @@ def test_ids_unique_and_well_formed() -> None:
     # backoff, tenant and global caps, the spend kill switch; GitHub #972).
     # + INT-579 (OTP enumeration: number-scoped refusals withheld behind an
     # admission's answer and work, the vendor off the response path; GitHub #974).
-    assert len(ids) == 372
+    assert len(ids) == 373
     import re
 
     for i in ids:
