@@ -27,7 +27,7 @@ fields:
     From your answers, a structured pre-visit note is prepared for your doctor.
     The note is shown to you before it is sent.
 
-    • You can answer by typing or by ticking the option that fits you.
+    • You can answer by typing or by choosing the option that fits you.
     • Only one question is asked at a time.
     • You can read and edit your note before you send it.
     • What gets shared is your decision.
@@ -50,7 +50,7 @@ sources:
       source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"a structured pre-visit note\")"
     - text: "The note is shown to you before it is sent."
       source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx (the note is shown for review before it is sent); legal review INT-502 B3"
-    - text: "You can answer by typing or by ticking the option that fits you."
+    - text: "You can answer by typing or by choosing the option that fits you."
       source: "apps/mobile/src/lib/i18n/en.ts intake.open.hint (typed answers) and the intake.opt.* closed choices; voice intake is __DEV__-only in a store build (legal review INT-502 B1)"
     - text: "Only one question is asked at a time."
       source: "CLAUDE.md invariant 2 (one question per turn); files/03_ARCHITECTURE.md §4.2"
