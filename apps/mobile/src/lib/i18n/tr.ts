@@ -1404,9 +1404,42 @@ export const tr = {
   "shares.issue.error.limited": "Çok fazla deneme oldu. Biraz sonra tekrar deneyin.",
   "shares.issue.error.unavailable": "Paylaşım şu anda açık değil. Sonra tekrar deneyin.",
   "shares.issue.error.unreachable": "Bağlantı kurulamadı. Sonra tekrar deneyin.",
+  // INT-587 — two more true sentences for the issuing screen.
+  "shares.issue.error.consent": "Paylaşım onayınız olmadığı için bağlantı oluşturulamadı.",
+  "shares.issue.error.session": "Oturumunuz kapalı olduğu için bağlantı oluşturulamadı.",
   "a11y.shares.revokeHint": "İki kez dokunmak bu paylaşımı durdurur.",
   "a11y.shares.confirmHint": "İki kez dokunmak durdurma isteğini gönderir.",
   "a11y.shares.issueHint": "Hekiminize gösterebileceğiniz bir bağlantı oluşturur.",
+  // INT-587 — the share consent, withdrawn from the share centre. The legal
+  // text itself is never here: it comes from docs/legal through the loader.
+  "shares.consent.title": "Paylaşım onayınız",
+  "shares.consent.withdraw": "Paylaşım onayını geri çekin",
+  "shares.consent.confirm": "Geri çekmeyi onaylayın",
+  "shares.consent.effect": "Geri çekerseniz bütün notlarınızın açık bağlantıları kapanır.",
+  "shares.consent.done": "Paylaşım onayınız geri çekildi. Açık bağlantılar kapandı.",
+  "shares.consent.unsent":
+    "Geri çekme isteğiniz sunucuya henüz ulaşmadı. Bağlantılar açık kalmış olabilir.",
+  "a11y.shares.consentHint": "İki kez dokunmak paylaşım onayınızı geri çekmeyi hazırlar.",
+  "a11y.shares.consentConfirmHint": "İki kez dokunmak geri çekme isteğini gönderir.",
+  // INT-587 — the note's way to the clinician. Only a confirmed delivery says
+  // "gönderildi" (review.sentInfo); everything here describes a note that is
+  // still on this phone, and says so.
+  "delivery.consent.title": "Paylaşım onayı",
+  "delivery.consent.body":
+    "Notunuzun hekiminizle paylaşılması için onayınız gerekir. Onay vermezseniz notunuz yalnızca bu telefonda kalır.",
+  "delivery.consent.again": "Notunuzun gitmesi için paylaşım onayınız yeniden gerekiyor.",
+  "delivery.consent.pendingBody":
+    "Paylaşım metni hazır olmadan not gönderilmez. Notunuz bu telefonda bekliyor.",
+  "delivery.edit": "Notu düzenleyin",
+  "delivery.status.title": "Gönderim durumu",
+  "delivery.queued": "Notunuz gönderilmeyi bekliyor. Bağlantı kurulunca kendiliğinden gönderilir.",
+  "delivery.held": "Notunuz bu telefonda duruyor; hekiminize ulaşmadı.",
+  "delivery.refused.session": "Oturumunuz kapalı olduğu için not gönderilemedi.",
+  "delivery.refused.core": "Temel hizmet izniniz kapalı olduğu için not gönderilemedi.",
+  "delivery.refused.notFound": "Bu vizit sunucuda bulunamadığı için not gönderilemedi.",
+  "delivery.refused.invalid": "Not bu hâliyle gönderilemedi.",
+  "delivery.refused.rejected": "Not gönderilemedi.",
+  "delivery.retry": "Tekrar deneyin",
 
   // INT-143 — kiosk mode. Mostly staff-facing (clinic PIN entry), which may be
   // plainer; the one patient-facing line is the privacy note, in siz, ≤ B1.

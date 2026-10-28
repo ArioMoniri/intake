@@ -17,6 +17,9 @@ import { purposeDef, type PurposeId } from "./purposes";
 export interface ConsentSnapshot {
   scopes: ServerScope[];
   texts: Partial<Record<PurposeId, TextEntry>>;
+  /** INT-587: the share family's text, served under the bare id `share`
+   * (consents.py `_text_lookup_scope`). Null when none is served. */
+  shareText: TextEntry | null;
 }
 
 const REASONS: readonly ServerScope["reason"][] = [
@@ -53,6 +56,23 @@ function parseScopes(raw: unknown): ServerScope[] {
   return scopes;
 }
 
+/** One served text row as a loaded entry, or null when it cannot take part in
+ * a hash-bound grant (no version, no hash, no body). */
+function loadedText(entry: Record<string, unknown>): TextEntry | null {
+  if (
+    typeof entry.version !== "string" ||
+    typeof entry.text_hash !== "string" ||
+    typeof entry.body !== "string" ||
+    entry.body.trim().length === 0
+  ) {
+    return null;
+  }
+  return {
+    status: "loaded",
+    text: { version: entry.version, textHash: entry.text_hash, body: entry.body },
+  };
+}
+
 function parseTexts(raw: unknown): Partial<Record<PurposeId, TextEntry>> {
   const texts: Partial<Record<PurposeId, TextEntry>> = {};
   if (!Array.isArray(raw)) {
@@ -64,21 +84,30 @@ function parseTexts(raw: unknown): Partial<Record<PurposeId, TextEntry>> {
     }
     const entry = item as Record<string, unknown>;
     const def = typeof entry.purpose === "string" ? purposeDef(entry.purpose) : null;
-    if (
-      def === null ||
-      typeof entry.version !== "string" ||
-      typeof entry.text_hash !== "string" ||
-      typeof entry.body !== "string" ||
-      entry.body.trim().length === 0
-    ) {
+    const text = def === null ? null : loadedText(entry);
+    if (def === null || text === null) {
       continue; // an unversionable text cannot participate in re-prompt
     }
-    texts[def.id] = {
-      status: "loaded",
-      text: { version: entry.version, textHash: entry.text_hash, body: entry.body },
-    };
+    texts[def.id] = text;
   }
   return texts;
+}
+
+/** The share family's text (INT-587). Never a purpose row: the İzinleriniz
+ * list stays the closed list, and the share is asked at the send. */
+function parseShareText(raw: unknown): TextEntry | null {
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+  for (const item of raw) {
+    if (typeof item === "object" && item !== null) {
+      const entry = item as Record<string, unknown>;
+      if (entry.purpose === "share") {
+        return loadedText(entry);
+      }
+    }
+  }
+  return null;
 }
 
 /** The loader payload: per-purpose state + the versioned, hash-bound texts.
@@ -90,7 +119,11 @@ export async function fetchConsentSnapshot(): Promise<ConsentSnapshot | null> {
       return null;
     }
     const body = (await response.json()) as Record<string, unknown>;
-    return { scopes: parseScopes(body.scopes), texts: parseTexts(body.texts) };
+    return {
+      scopes: parseScopes(body.scopes),
+      texts: parseTexts(body.texts),
+      shareText: parseShareText(body.texts),
+    };
   } catch {
     return null;
   }

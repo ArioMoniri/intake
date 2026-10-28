@@ -1,5 +1,21 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-29T02:20:00+03:00 · INT-587 · done (committed locally; push frozen for the build-6 wave)
+- Goal: GitHub #988, P1, from the store-listing legal review (B4). In a release build the patient's note never reached a clinician: "Gönder" only changed local state, no client called `PUT /v1/visits/{id}/note`, the app could not grant `share:previsit_note`, and Review & send said "gönderildi" on no evidence. Sec-Row: the issue names `sharing`, which is no files/10 §9 row; the work is the Review & send row, so `review-send`.
+- Plan:
+  - A note-sync client (`apps/mobile/src/lib/intake/delivery/`): payload from `buildNote` within the server's `NotePut` bounds; an outbox state machine (queued with capped backoff and Retry-After, never dropped; awaiting_consent; refused for a 4xx, retried only by the patient; delivered, terminal); a transport that counts only a confirmed `sent` as delivered; an attempt that flushes the consent queue first; sealed persistence through the INT-142 draft backend; a store restored from disk at sign-in; native wiring behind a lazy import.
+  - The share consent: the loader reads the served share text; a ledger slot grants it against that text at every send and returns the receipt the outbox requires; the share centre withdraws it.
+  - Review & send: `frozen` and `sent` split; `NoteDelivery` owns the confirm step and the status; only a delivery opens the "gönderildi" branch.
+  - Doctor Link: the server visit id, and a typed step-up seam (OTP session tier; INT-582's passkey later).
+  - No server code change.
+- Tests added (with the near-miss negative for any safety rule): 11 new or extended files (docs/evidence/INT-587.md §3). Near misses: no share without the grant (receipt-less enqueue refused; 403 on the share scope parks the note; the API refuses and writes nothing); a revoked grant stops the link (local refusal before network; server revokes shares, an earlier code opens nothing); offline send queues and survives a restart (memory killed, restored from sealed bytes, delivered on reconnect); a server 4xx is surfaced and not retried forever; no PHI in logs (console spied through every failure mode). Red: 10 files failed, 13 tests failed. 9/9 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary): `make check-ts` exit 0 (mobile 2974 tests); `make check-i18n` 236 passed; `make check-py-static` clean; the API, backlog, smoke, release, legal and security subsets pass; the full check-py pytest result is in the evidence. No container ran (owner rule of 29 Oct). `make safety` untouched.
+- Invariants touched and still passing: 2, 4, 5, 6, 14, 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The motion class of Review & send is now `legal`, because it renders the share text.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: review the confirm-step rendering. Owner: re-sharing after a withdrawal and a sign-out warning for a queued note are not built (evidence §7).
+- Next: push when the freeze lifts, open the PR (`Sec-Row: review-send`, `Closes #988`), legal review.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
 - Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
 - Plan:

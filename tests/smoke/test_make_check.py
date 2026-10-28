@@ -405,7 +405,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # reason.
     # + INT-537 (the app grants the core consent that visits and notes require,
     # INT-529 finding F2, GitHub #904); grows only with a stated reason.
-    assert len(ids) == 374, f"expected 175 blueprint + 199 added issues, got {len(ids)}"
+    # + INT-587 (the note reaches the clinician from a release build: note-sync
+    # client, in-app share consent, Doctor Link from the app, GitHub #988);
+    # grows only with a stated reason.
+    assert len(ids) == 375, f"expected 175 blueprint + 200 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

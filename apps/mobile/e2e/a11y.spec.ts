@@ -1564,6 +1564,8 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
   "src/lib/dialogue/useDialogueSession.ts":
     "the barge-in level meter's sampling interval: it listens, it limits nothing",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
+  "src/lib/intake/delivery/native.ts":
+    "the note outbox's retry backoff (INT-587): it delays the next delivery attempt, and the sent note stays frozen and on screen whatever the timer does",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
   "src/lib/red/locationReport.ts":
     "the retry backoff and request deadline of the location answer's delivery to the server (INT-475): they delay or abandon a request, and the patient's answer and screen are already final",

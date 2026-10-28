@@ -242,7 +242,10 @@ def test_ids_unique_and_well_formed() -> None:
     # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
     # + INT-537 (the app grants the core consent that visits and notes
     # require; INT-529 legal-author finding F2, GitHub #904).
-    assert len(ids) == 374
+    # + INT-587 (the note reaches the clinician from a release build: the
+    # note-sync client, the in-app share consent and Doctor Link from the app;
+    # store-listing legal review B4, GitHub #988).
+    assert len(ids) == 375
     import re
 
     for i in ids:

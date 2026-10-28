@@ -15,8 +15,26 @@
  * - queue: ops that could not reach the server yet stay here, in memory, in
  *   order. Nothing is persisted to disk: the server ledger is the source of
  *   truth and reconciliation happens on the next snapshot.
+ *
+ * INT-587 adds the share slot. `share:previsit_note` is the parameterised
+ * share purpose the server checks when a note is sent and a Doctor Link is
+ * issued. It has no İzinleriniz row (purposes.ts says why) and the server's
+ * snapshot reports no standing for it, so the slot holds the share TEXT the
+ * loader serves and what THIS phone did with it in this session: `unknown`
+ * until the patient grants or withdraws. A grant is asked at every send
+ * (share.tr.md: "Paylaşım onayı, notunuzu gönderirken ayrıca istenir"), binds
+ * the text shown, queues one op like any other grant, and returns the receipt
+ * the note outbox requires before it queues anything (lib/intake/delivery).
  */
 import { PURPOSES, purposeDef, type LegalBasis, type PurposeId, type PurposeUi } from "./purposes";
+
+/** The parameterised share scope a sent note is checked against
+ * (services/api notes.SHARE_SCOPE; pinned by e2e/noteDelivery.spec.ts). */
+export const SHARE_SCOPE = "share:previsit_note";
+export type ShareScope = typeof SHARE_SCOPE;
+
+/** What this phone knows of the share consent in this session. */
+export type ShareStanding = "unknown" | "granted" | "withdrawn";
 
 export interface LoadedText {
   version: string;
@@ -39,12 +57,41 @@ export interface PurposeRecord {
 }
 
 export type QueuedOp =
-  | { kind: "grant"; scope: PurposeId; version: string; textHash: string; atIso: string }
-  | { kind: "withdraw"; scope: PurposeId; atIso: string };
+  | {
+      kind: "grant";
+      scope: PurposeId | ShareScope;
+      version: string;
+      textHash: string;
+      atIso: string;
+    }
+  | { kind: "withdraw"; scope: PurposeId | ShareScope; atIso: string };
+
+export interface ShareState {
+  /** The docs/legal share text, as the loader served it (invariant 18). */
+  text: TextEntry;
+  standing: ShareStanding;
+  boundVersion: string | null;
+  boundHash: string | null;
+}
+
+declare const receiptBrand: unique symbol;
+
+/**
+ * Proof that the patient granted the share consent against a loaded text, in
+ * this session. Only `grantShare` makes one; the note outbox queues nothing
+ * without it, so "no share without the grant" holds at the type level too.
+ */
+export interface ShareGrantReceipt {
+  readonly scope: ShareScope;
+  readonly version: string;
+  readonly textHash: string;
+  readonly [receiptBrand]: true;
+}
 
 export interface LedgerState {
   records: Record<PurposeId, PurposeRecord>;
   texts: Record<PurposeId, TextEntry>;
+  share: ShareState;
   queue: readonly QueuedOp[];
 }
 
@@ -97,9 +144,13 @@ function emptyTexts(): Record<PurposeId, TextEntry> {
   return texts;
 }
 
+function freshShare(): ShareState {
+  return { text: { status: "missing" }, standing: "unknown", boundVersion: null, boundHash: null };
+}
+
 /** A brand-new account: registry defaults, no texts, nothing queued. */
 export function freshLedger(): LedgerState {
-  return { records: emptyRecords(), texts: emptyTexts(), queue: [] };
+  return { records: emptyRecords(), texts: emptyTexts(), share: freshShare(), queue: [] };
 }
 
 /**
@@ -316,10 +367,100 @@ export function withdraw(state: LedgerState, id: PurposeId, atIso: string): Chan
     };
   }
   const op: QueuedOp = { kind: "withdraw", scope: id, atIso };
-  return { state: { ...state, records, queue: [...state.queue, op] }, flipped };
+  // core's server cascade reaches the share family too (registry
+  // dependents_of(core)); mirrored locally with no op of its own
+  const share = id === "core" ? withdrawnShare(state.share) : state.share;
+  return { state: { ...state, records, share, queue: [...state.queue, op] }, flipped };
 }
 
 /** Drop the first `count` ops after they reached the server. */
 export function shiftQueue(state: LedgerState, count: number): LedgerState {
   return { ...state, queue: state.queue.slice(count) };
+}
+
+// --- INT-587: the share consent ------------------------------------------------------
+
+function withdrawnShare(share: ShareState): ShareState {
+  return { ...share, standing: "withdrawn", boundVersion: null, boundHash: null };
+}
+
+/** Merge the loader's share text. Like `applyTexts`, a text can make a grant
+ * stale but never re-grants. */
+export function applyShareText(state: LedgerState, text: TextEntry): LedgerState {
+  return { ...state, share: { ...state.share, text } };
+}
+
+export interface ShareView {
+  display: DisplayState;
+  standing: ShareStanding;
+  text: TextEntry;
+  /** True once a text is loaded: the share is asked at every send. */
+  grantable: boolean;
+  /** True unless withdrawn here already — the server may hold a grant from
+   * an earlier session, so "this phone never saw one" is not "nothing to stop". */
+  withdrawable: boolean;
+}
+
+export function shareView(state: LedgerState): ShareView {
+  const { share } = state;
+  const loaded = share.text.status === "loaded";
+  let display: DisplayState;
+  if (share.standing === "granted") {
+    const current = share.text.status === "loaded" ? share.text.text.textHash : null;
+    display = current !== null && share.boundHash !== current ? "stale" : "on";
+  } else if (!loaded) {
+    display = "pending_text";
+  } else {
+    display = "off";
+  }
+  return {
+    display,
+    standing: share.standing,
+    text: share.text,
+    grantable: loaded,
+    withdrawable: share.standing !== "withdrawn",
+  };
+}
+
+/**
+ * Grant the share consent against the CURRENTLY loaded share text. Fails
+ * closed — state unchanged, no receipt — when no text is loaded (invariant
+ * 18). A grant is recorded every time it is given, never assumed from an
+ * earlier one: each send is its own consent.
+ */
+export function grantShare(
+  state: LedgerState,
+  atIso: string,
+): { state: LedgerState; receipt: ShareGrantReceipt | null } {
+  const entry = state.share.text;
+  if (entry.status !== "loaded") {
+    return { state, receipt: null };
+  }
+  const { version, textHash } = entry.text;
+  const op: QueuedOp = { kind: "grant", scope: SHARE_SCOPE, version, textHash, atIso };
+  const receipt = { scope: SHARE_SCOPE, version, textHash } as ShareGrantReceipt;
+  return {
+    state: {
+      ...state,
+      share: { ...state.share, standing: "granted", boundVersion: version, boundHash: textHash },
+      queue: [...state.queue, op],
+    },
+    receipt,
+  };
+}
+
+/** Withdraw the share consent: instant here, one op for the server, which
+ * revokes every live share and Doctor Link in the same pass (consents.py). */
+export function withdrawShare(
+  state: LedgerState,
+  atIso: string,
+): { state: LedgerState; changed: boolean } {
+  if (state.share.standing === "withdrawn") {
+    return { state, changed: false };
+  }
+  const op: QueuedOp = { kind: "withdraw", scope: SHARE_SCOPE, atIso };
+  return {
+    state: { ...state, share: withdrawnShare(state.share), queue: [...state.queue, op] },
+    changed: true,
+  };
 }
