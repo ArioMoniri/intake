@@ -143,9 +143,10 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-528 (Netgsm OTP SMS adapter behind the INT-329 port, GitHub #895)
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
     # + INT-574 (the RED-never-waits test is deterministic under runner load, GitHub #967)
+    # + INT-576 (Netgsm OTP answer parsed as documented, never retried unread, GitHub #971)
     # + INT-578 (OTP brute force and replay, the owner's SMS security order, GitHub #973)
     # + INT-577 (SMS pumping and overuse, the owner's SMS security order, GitHub #972)
-    assert len(actions) == 371
+    assert len(actions) == 372
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

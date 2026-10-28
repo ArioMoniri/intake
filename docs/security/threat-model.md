@@ -622,7 +622,12 @@ it or whose tests exercise it.
   HTTP status, the refusal and the numeric code; the one counter,
   `otp_sms_delivery_total{vendor,outcome}`, has closed labels. Never the phone, the code, the
   password or the vendor's description. No retry: a retried SMS would put a second code in
-  flight. On the synthetic host the owner keeps the values as SSM SecureString parameters;
+  flight. INT-576: a 2xx the adapter cannot read as the documented success (code `00` with
+  the job id as `jobid`, the documentation's sample, or `jobId`, Netgsm's JS SDK) is a typed
+  refusal (`unparseable_response`, `accepted_without_job_id`, `unknown_vendor_code`) whose
+  port reason, `malformed_response`, is not retryable (`OtpDeliveryError.retryable`), with a
+  timeout and a vendor-side failure, because Netgsm may already have sent the code; the
+  cooldown the request started holds a resend. On the synthetic host the owner keeps the values as SSM SecureString parameters;
   `infra/staging/netgsm_secrets.sh` (run by hand and by every `deploy.sh`) reads them with the
   instance role and writes them to OpenBao on stdin, never argv, printing field names only, and
   `deploy.sh` refuses an Apple team id the API's own token cannot pair with them. Its `--check`

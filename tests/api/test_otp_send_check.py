@@ -9,7 +9,10 @@ vendor call) and hold:
   never printed; only the job id (code 00) or a typed refusal is printed;
 - a list with no number, or with several, sends nothing;
 - a deployment with no list (production) or a dev deployment sends nothing;
-- an unconfigured tier is reported as the 503 the route would answer.
+- an unconfigured tier is reported as the 503 the route would answer;
+- INT-576: an answer Netgsm may have sent on is reported ``unconfirmed``,
+  after exactly one send, with the owner told to check the phone before
+  running again; ``--shape`` adds the answer's structure and never a value.
 
 Every number here is synthetic.
 """
@@ -21,10 +24,19 @@ from typing import Any
 
 import httpx
 import pytest
-from intake_api.otp_send_check import NOT_SENT, REFUSED, SENT, main
+from intake_api.otp_send_check import NOT_SENT, REFUSED, SENT, UNCONFIRMED, main
 from intake_api.settings import ApiSettings
 from intake_api.sms_recipients import ADMIT_ALL, RecipientGate, SmsTestAllowlist
-from netgsm_testkit import JOBID, Vendor, accepted, credentials, netgsm, policy, replay
+from netgsm_testkit import (
+    JOBID,
+    UNREADABLE,
+    Vendor,
+    accepted,
+    credentials,
+    netgsm,
+    policy,
+    replay,
+)
 
 LISTED = "+905550000001"
 OTHER = "+905559999999"
@@ -69,9 +81,16 @@ class Recorder:
         return self.delivery
 
 
-def _run(factory: Recorder, environment: str = "staging") -> tuple[int, str]:
+def _run(
+    factory: Recorder, environment: str = "staging", argv: tuple[str, ...] = ()
+) -> tuple[int, str]:
     out = io.StringIO()
-    code = main(out=out, settings_factory=lambda: _settings(environment), delivery_factory=factory)
+    code = main(
+        out=out,
+        settings_factory=lambda: _settings(environment),
+        delivery_factory=factory,
+        argv=argv,
+    )
     return code, out.getvalue()
 
 
@@ -124,3 +143,65 @@ def test_a_vendor_refusal_is_reported_by_its_typed_names(phi_egress: None) -> No
     assert "refusal=credentials_refused" in shown and "vendor_code=30" in shown
     assert "error message desc." not in shown
     assert LISTED not in shown and LISTED[3:] not in shown
+
+
+# --- INT-576: an answer that may mean "sent" -------------------------------------------
+
+
+def test_an_unreadable_answer_is_unconfirmed_after_exactly_one_send(phi_egress: None) -> None:
+    vendor = Vendor(UNREADABLE["plain-text-00-jobid"][0])
+    code, shown = _run(Recorder(_delivery(vendor, SmsTestAllowlist.parse(LISTED))))
+    assert code == UNCONFIRMED
+    assert len(vendor.requests) == 1
+    assert shown == (
+        "unconfirmed: reason=malformed_response refusal=unparseable_response http_status=200 "
+        "vendor_code=-; Netgsm may have sent the code, so check the phone before running "
+        "this again\n"
+    )
+    assert JOBID not in shown and LISTED[3:] not in shown
+
+
+def test_shape_prints_the_structure_of_an_unreadable_answer_and_no_value(
+    phi_egress: None,
+) -> None:
+    vendor = Vendor(UNREADABLE["plain-text-00-jobid"][0])
+    code, shown = _run(
+        Recorder(_delivery(vendor, SmsTestAllowlist.parse(LISTED))), argv=("--shape",)
+    )
+    assert code == UNCONFIRMED
+    [_, shape] = shown.splitlines()
+    assert shape == (
+        f"answer shape: content_type=text/plain kind=text keys=- code=00 length={len(JOBID) + 3}"
+    )
+    sent_code = vendor.bodies[0]["msg"].split(": ")[1].split(".")[0]
+    for secret in (JOBID, LISTED, LISTED[3:], sent_code):
+        assert secret not in shown
+
+
+def test_shape_after_a_success_names_the_documented_keys(phi_egress: None) -> None:
+    vendor = Vendor(replay("accepted_sdk"))
+    code, shown = _run(
+        Recorder(_delivery(vendor, SmsTestAllowlist.parse(LISTED))), argv=("--shape",)
+    )
+    assert code == SENT
+    [accepted_line, shape] = shown.splitlines()
+    assert accepted_line == f"accepted: code 00, job id {JOBID}"
+    assert shape.startswith(
+        "answer shape: content_type=application/json kind=json-object "
+        "keys=code:string,description:string,jobId:string code=00 length="
+    )
+
+
+def test_without_shape_nothing_but_the_outcome_is_printed(phi_egress: None) -> None:
+    vendor = Vendor(replay("accepted_sdk"))
+    code, shown = _run(Recorder(_delivery(vendor, SmsTestAllowlist.parse(LISTED))))
+    assert code == SENT
+    assert shown == f"accepted: code 00, job id {JOBID}\n"
+
+
+def test_an_unknown_argument_is_refused_before_anything_is_built() -> None:
+    factory = Recorder(None)
+    with pytest.raises(SystemExit) as caught:
+        _run(factory, argv=("--number",))
+    assert caught.value.code == REFUSED
+    assert factory.calls == 0

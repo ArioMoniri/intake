@@ -15,26 +15,54 @@ to the list's one number, which it never prints and never takes as an
 argument, one random code that nothing stores or verifies, and it prints only
 the vendor's job id (code 00) or the refusal by its typed names (invariant 6).
 Nothing in the API calls it.
+
+INT-576: an answer after which Netgsm may already have sent the code (one the
+adapter could not read, or a timeout) is printed as ``unconfirmed``, never
+"not sent", with the owner told to check the phone before running it again:
+on 28 Oct 2026 such an answer said "not sent" and the SMS arrived. With
+``--shape`` it also prints the structure of Netgsm's answer
+(:mod:`intake_api.otp_netgsm_shape`): media type, kind, keys or tags, the
+vendor's code and the length, never a value.
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import secrets
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TextIO
 
 from intake_api.auth_store import OTP_CODE_DIGITS
 from intake_api.otp import OtpDeliveryAdapter, OtpDeliveryError
-from intake_api.otp_netgsm import NetgsmSmsDeliveryAdapter, otp_delivery_from_settings
+from intake_api.otp_netgsm import (
+    NetgsmDeliveryError,
+    NetgsmReceipt,
+    NetgsmSmsDeliveryAdapter,
+    otp_delivery_from_settings,
+)
 from intake_api.settings import ApiSettings
 from intake_api.sms_recipients import SmsTestAllowlist
 
 __all__ = ["main"]
 
-#: Exit codes: sent, refused by the vendor or unconfigured, refused before sending.
-SENT, NOT_SENT, REFUSED = 0, 1, 2
+#: Exit codes: sent, refused by the vendor or unconfigured, refused before
+#: sending, and sent or not: Netgsm may have sent it (INT-576).
+SENT, NOT_SENT, REFUSED, UNCONFIRMED = 0, 1, 2, 3
+
+
+def _wants_shape(argv: Sequence[str]) -> bool:
+    parser = argparse.ArgumentParser(
+        prog="python -m intake_api.otp_send_check",
+        description="Send one OTP to the synthetic host's single allow-listed number.",
+    )
+    parser.add_argument(
+        "--shape",
+        action="store_true",
+        help="also print the structure of Netgsm's answer, never a value from it",
+    )
+    return bool(parser.parse_args(list(argv)).shape)
 
 
 def main(
@@ -43,7 +71,10 @@ def main(
     delivery_factory: Callable[[ApiSettings], OtpDeliveryAdapter | None] = (
         otp_delivery_from_settings
     ),
+    *,
+    argv: Sequence[str] = (),
 ) -> int:
+    shape = _wants_shape(argv)
     settings = settings_factory()
     if settings.dev_tier_expected:
         print("refused before sending: this check runs on the synthetic host only", file=out)
@@ -71,15 +102,26 @@ def main(
         receipt = asyncio.run(delivery.send(phone_e164=phone, code=code))
     except OtpDeliveryError as exc:
         refusal = getattr(exc, "refusal", None)
-        print(
-            f"not sent: reason={exc.reason} refusal={refusal or '-'} "
-            f"http_status={exc.status_code or '-'} vendor_code={exc.vendor_code or '-'}",
-            file=out,
+        outcome = (
+            f"reason={exc.reason} refusal={refusal or '-'} "
+            f"http_status={exc.status_code or '-'} vendor_code={exc.vendor_code or '-'}"
         )
-        return NOT_SENT
+        if exc.retryable:
+            print(f"not sent: {outcome}", file=out)
+        else:
+            print(
+                f"unconfirmed: {outcome}; Netgsm may have sent the code, so check the "
+                "phone before running this again",
+                file=out,
+            )
+        if shape and isinstance(exc, NetgsmDeliveryError) and exc.shape is not None:
+            print(f"answer shape: {exc.shape.render()}", file=out)
+        return NOT_SENT if exc.retryable else UNCONFIRMED
     print(f"accepted: code 00, job id {receipt.delivery_id}", file=out)
+    if shape and isinstance(receipt, NetgsmReceipt):
+        print(f"answer shape: {receipt.shape.render()}", file=out)
     return SENT
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(argv=sys.argv[1:]))
