@@ -238,7 +238,11 @@ def test_ids_unique_and_well_formed() -> None:
     # no wall-clock budget, a store the test holds; GitHub #967).
     # + INT-576 (the Netgsm adapter parses the live success shape and never
     # retries an unreadable 200; the owner's real send, GitHub #971).
-    assert len(ids) == 372
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name; owner request, GitHub #712).
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on; owner request, GitHub #948).
+    assert len(ids) == 374
     import re
 
     for i in ids:
