@@ -432,26 +432,123 @@ def test_the_lockout_outlasts_the_request_window() -> None:
     assert auth_store_module.OTP_LOCKOUT_S >= OTP_WINDOW_S  # type: ignore[attr-defined]
 
 
-def test_a_number_takes_at_most_five_guesses_in_any_hour(otp: OtpHarness) -> None:
-    """An attacker who asks for a code, spends five guesses and asks again as
-    soon as anything lets them, for two hours: no rolling hour holds more than
-    five guesses that reached a comparison."""
+def _compared_misses() -> float:
+    """Guesses that reached a comparison and missed: the attempt budget's own
+    count, so a refusal before the comparison (locked, unbound) is not one."""
+    return verify_count("invalid") + verify_count("exhausted")
+
+
+@pytest.mark.parametrize(
+    "misses_per_code",
+    [OTP_MAX_ATTEMPTS, OTP_MAX_ATTEMPTS - 1],
+    ids=["five-a-code", "four-a-code-never-trips-the-per-code-budget"],
+)
+def test_a_number_takes_at_most_five_guesses_in_any_hour(
+    otp: OtpHarness, misses_per_code: int
+) -> None:
+    """An attacker who asks for a code, spends ``misses_per_code`` guesses
+    from the device that asked, and asks again as soon as anything lets them,
+    for two hours: no rolling hour holds more than five guesses that reached a
+    comparison.
+
+    Four a code is the review's case (28 Oct 2026). A budget that resets with
+    each new code never sees a fifth miss, so the lockout never engages and
+    three codes an hour give twelve guesses. The misses are counted per number
+    across codes."""
     dpop = DpopClient()
     compared: list[float] = []
     start = otp.clock()
     while otp.clock() - start < 2 * OTP_WINDOW_S:
-        if otp.request_otp(device_id=f"device-{int(otp.clock())}").status_code == 202:
+        device = f"device-{int(otp.clock())}"
+        if otp.request_otp(device_id=device).status_code == 202:
             real = otp.peek()
-            for _ in range(OTP_MAX_ATTEMPTS):
-                locked = verify_count("locked")
-                otp.verify(dpop, code=wrong_code(real))
-                if verify_count("locked") == locked:
+            for _ in range(misses_per_code):
+                before = _compared_misses()
+                otp.verify(dpop, code=wrong_code(real), device_id=device)
+                if _compared_misses() > before:
                     compared.append(otp.clock())
         otp.clock.advance(RESEND_COOLDOWN_S + 1)
-    assert compared, "the attacker never got a code: the test proves nothing"
+    assert len(compared) >= OTP_MAX_ATTEMPTS, "the attacker never spent a budget"
     for t in compared:
         window = [g for g in compared if t <= g < t + OTP_WINDOW_S]
         assert len(window) <= OTP_MAX_ATTEMPTS, (t, len(window))
+
+
+def test_misses_on_earlier_codes_count_against_the_next_one() -> None:
+    """The store half of the case above, on the fake clock: four misses on one
+    code, a fresh code for the same number, and its first miss is the fifth."""
+    clock = Clock()
+    store = AuthStore(fakeredis.FakeStrictRedis(), clock)
+    store.store_code(PSEUDONYM, RIGHT, binding=DEVICE)
+    for _ in range(OTP_MAX_ATTEMPTS - 1):
+        assert store.check_code(PSEUDONYM, WRONG, binding=DEVICE) == "invalid"
+    clock.advance(RESEND_COOLDOWN_S + 1)
+    store.store_code(PSEUDONYM, RIGHT, binding=DEVICE)
+    assert store.check_code(PSEUDONYM, WRONG, binding=DEVICE) == "exhausted"
+
+
+def test_a_miss_leaves_the_budget_after_one_window() -> None:
+    """Near miss: the count is a rolling hour, not a life sentence. Four
+    misses an hour ago cost nothing now."""
+    clock = Clock()
+    store = AuthStore(fakeredis.FakeStrictRedis(), clock)
+    store.store_code(PSEUDONYM, RIGHT, binding=DEVICE)
+    for _ in range(OTP_MAX_ATTEMPTS - 1):
+        assert store.check_code(PSEUDONYM, WRONG, binding=DEVICE) == "invalid"
+    clock.advance(OTP_WINDOW_S)
+    store.store_code(PSEUDONYM, RIGHT, binding=DEVICE)
+    for _ in range(OTP_MAX_ATTEMPTS - 1):
+        assert store.check_code(PSEUDONYM, WRONG, binding=DEVICE) == "invalid"
+    assert store.check_code(PSEUDONYM, RIGHT, binding=DEVICE) == "ok"
+
+
+def test_the_right_code_is_not_a_miss() -> None:
+    """A sign-in does not spend the number's budget: four misses, the right
+    code, a new code later in the hour, and the first miss on it is the
+    fifth, not the sixth."""
+    clock = Clock()
+    store = AuthStore(fakeredis.FakeStrictRedis(), clock)
+    store.store_code(PSEUDONYM, RIGHT, binding=DEVICE)
+    for _ in range(OTP_MAX_ATTEMPTS - 2):
+        assert store.check_code(PSEUDONYM, WRONG, binding=DEVICE) == "invalid"
+    assert store.check_code(PSEUDONYM, RIGHT, binding=DEVICE) == "ok"
+    store.store_code(PSEUDONYM, RIGHT, binding=DEVICE)
+    assert store.check_code(PSEUDONYM, WRONG, binding=DEVICE) == "invalid"
+    assert store.check_code(PSEUDONYM, WRONG, binding=DEVICE) == "exhausted"
+
+
+def test_a_strangers_device_cannot_lock_a_number(otp: OtpHarness) -> None:
+    """Only the device a code was minted for spends the number's budget. A
+    stranger's device can never sign in with the code (the binding refuses
+    it), so its guesses are worth nothing, and counting them would let any
+    attested device lock any number for an hour."""
+    dpop = DpopClient()
+    assert otp.request_otp(device_id="device-a").status_code == 202
+    real = otp.peek()
+    locked, unbound = verify_count("locked"), verify_count("unbound")
+    for _ in range(2 * OTP_MAX_ATTEMPTS):
+        stranger = otp.verify(dpop, code=wrong_code(real), device_id="device-b")
+        assert stranger.status_code == 401
+        assert stranger.json() == {"error": "otp_invalid"}
+    assert verify_count("unbound") == unbound + 2 * OTP_MAX_ATTEMPTS
+    assert verify_count("locked") == locked
+    # the number is not locked: its own device still signs in with its code
+    assert otp.verify(dpop, code=real, device_id="device-a").status_code == 200
+
+
+def test_the_owners_own_misses_still_lock_after_a_stranger(otp: OtpHarness) -> None:
+    """Near miss for the test above: the stranger's guesses change nothing,
+    and five from the device that asked lock the number as before."""
+    dpop = DpopClient()
+    assert otp.request_otp(device_id="device-a").status_code == 202
+    real = otp.peek()
+    for _ in range(OTP_MAX_ATTEMPTS):
+        otp.verify(dpop, code=wrong_code(real), device_id="device-b")
+    for _ in range(OTP_MAX_ATTEMPTS):
+        assert otp.verify(dpop, code=wrong_code(real), device_id="device-a").status_code == 401
+    locked = verify_count("locked")
+    assert otp.verify(dpop, code=real, device_id="device-a").status_code == 401
+    assert verify_count("locked") == locked + 1
 
 
 # --- constant-time comparison -------------------------------------------------------------
@@ -505,6 +602,83 @@ def test_a_code_is_bound_to_the_request_it_answered(otp: OtpHarness) -> None:
     assert otp.verify(dpop, request_id="0" * 32).status_code == 401
     # near miss: the id the live code was minted under
     assert otp.verify(dpop, request_id=second_id).status_code == 200
+
+
+def _payload(mode: str, *, key_id: str | None = None) -> Any:
+    from intake_api.attestation import AttestationPayload
+
+    return AttestationPayload(
+        platform="android" if mode == "play-integrity" else "ios",
+        mode=mode,  # type: ignore[arg-type]
+        token="dG9rZW4",
+        device_id="install-id-the-client-claims",
+        nonce="n",
+        key_id=key_id,
+    )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [_payload("play-integrity"), _payload("app-attest")],
+    ids=["play-integrity-proves-no-key", "app-attest-without-its-key"],
+)
+def test_a_real_mode_without_a_proven_key_binds_nothing(payload: Any) -> None:
+    """In a real mode the install id is the client's claim: binding a code to
+    it would let any device that claims the id spend the code. With no key the
+    attestation proved, there is nothing to bind to, so the call is refused."""
+    from fastapi import HTTPException
+
+    otp_module = importlib.import_module("intake_api.otp")
+    with pytest.raises(HTTPException) as refused:
+        otp_module._bound_device(payload)
+    assert refused.value.status_code == 403
+    assert refused.value.detail == {"error": "attestation_unverified"}
+
+
+def test_a_proven_key_and_the_dev_tier_bind() -> None:
+    """Near misses: App Attest's proven key binds, and the dev tier (honest
+    about being unattested) binds to its install id."""
+    otp_module = importlib.import_module("intake_api.otp")
+    assert otp_module._bound_device(_payload("app-attest", key_id="k1")) == "app-attest:k1"
+    assert (
+        otp_module._bound_device(_payload("dev-unattested"))
+        == "dev-unattested:install-id-the-client-claims"
+    )
+
+
+class _PassEverything:
+    """An attestation verifier that admits any payload: what a future Play
+    Integrity decoder would look like to the OTP tier when its verdict is good."""
+
+    def verify(self, payload: Any, *, client_data: str) -> Any:
+        from intake_api.attestation import AttestationReason, AttestationResult
+
+        del payload, client_data
+        return AttestationResult(ok=True, reason=AttestationReason.DEV_UNATTESTED)
+
+
+def test_a_keyless_real_mode_gets_no_code_and_no_sms(tmp_path: Path) -> None:
+    """On the route: an attested Play Integrity call (today refused upstream,
+    HB-A3) still mints no code and sends no SMS, and spends no budget."""
+    with harness(tmp_path, attestation=_PassEverything()) as h:
+        headers = {
+            "X-Intake-Attestation": json.dumps(
+                {
+                    "platform": "android",
+                    "mode": "play-integrity",
+                    "token": "dG9rZW4",
+                    "device_id": "device-a",
+                    "nonce": h.challenge(),
+                }
+            )
+        }
+        response = h.client.post("/v1/auth/otp/request", json={"phone": PHONE}, headers=headers)
+        assert response.status_code == 403
+        assert response.json() == {"error": "attestation_unverified"}
+        assert not any(b":otp:code:" in key for key in h.redis_client.keys("*"))
+        assert not any(b":otp:w:" in key for key in h.redis_client.keys("*"))
+        # near miss: the dev tier on the same harness is admitted
+        assert h.request_otp().status_code == 202
 
 
 def test_the_request_id_is_server_minted_and_carries_nothing(otp: OtpHarness) -> None:

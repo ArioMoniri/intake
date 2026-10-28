@@ -17,8 +17,9 @@
 | `OtpRequestSpike` (ticket) | the same file | the last hour's requests over 3 × the day's hourly rate and over 20 |
 | the ops console's `sms` tile | `GET /admin/ops` | the same spike test, the switch, the last hour and day |
 
-The caps are engineering defaults sized well above the pilot's planned volume; the daily one is
-the spend ceiling, and it is the owner's number to set (docs/evidence/INT-577.md).
+The caps are the owner's, D37 in files/00_STATE.md (28 Oct 2026): 1000 a day globally, 120 an
+hour globally and 120 an hour per tenant, a breach stopping every send until the owner looks.
+They sit well above the pilot's planned volume; the daily one is the spend ceiling.
 
 ## The kill switch is engaged
 
@@ -37,7 +38,10 @@ the spend ceiling, and it is the owner's number to set (docs/evidence/INT-577.md
 3. If the spend was an attack, leave the switch engaged until the source is blocked (the edge, the
    WAF, or a tightened budget in a reviewed change). Patients cannot sign in by SMS code meanwhile;
    existing sessions are unaffected.
-4. Release it, which appends `sms.spend.kill_switch.released` to the hash-chained audit log:
+4. Release it. The command appends `sms.spend.kill_switch.released` to the hash-chained audit
+   log first and releases the switch only when the row is written; if the audit store is down
+   it prints that the release could not be audited, exits 1 and the switch stays engaged. Fix
+   the audit store (Postgres), then run it again:
 
    ```sh
    docker compose -p intake-staging exec -T api python -m intake_api.sms_spend release

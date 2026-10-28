@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "INT-320 follow-up: a synthetic dev-tier sample partner app that embeds Vizite's Start pre-visit button end to end (ADR-029).",
+  "description": "INT-320 follow-up: a synthetic dev-tier sample partner app that embeds Önvizit's Start pre-visit button end to end (ADR-029).",
   "main": "src/partnerBackend.ts",
   "scripts": {
     "build": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json && tsc -p tsconfig.vendor.json",

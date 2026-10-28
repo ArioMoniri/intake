@@ -37,7 +37,7 @@ _DEV = {
     "legal_root": "docs/legal/embed/dev-partner-alpha",
     "device_functions": False,
     "theme": {
-        "display_name": "Vizite Dev Partner",
+        "display_name": "Önvizit Dev Partner",
         "locale": "tr",
         "primary_color": "#0B5FFF",
         "accent_color": "#00303C",
@@ -59,7 +59,7 @@ def test_dev_row_loads_and_resolves(tmp_path: Path) -> None:
     cfg = reg.resolve(_DEV["tenant_id"])  # type: ignore[arg-type]
     assert cfg.tier == "dev"
     assert cfg.device_functions is False
-    assert cfg.theme.display_name == "Vizite Dev Partner"
+    assert cfg.theme.display_name == "Önvizit Dev Partner"
     assert cfg.theme.primary_color == "#0B5FFF"
 
 

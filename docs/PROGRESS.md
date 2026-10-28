@@ -67,6 +67,49 @@
 - Next: merge #967's PR; open issues for the three remaining wall-clock budgets if the coordinator wants them fixed.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-17T00:30:00Z · INT-560 · done (PR open; the merge queue deploys)
+- Goal: owner, 17 Oct ("solve these"). On the synthetic AWS host the ops console's registry tile was wrong in three columns:
+  - "Yoklama durumu" read `no_result` on every row, because nothing probed the host and the API had no results file;
+  - "blocking" appeared on rows the host does not run (HAPI and the team GPU server's models), because the column was the registry-wide INT-022 verdict;
+  - "Şu an kendi sunucumuzda" read "evet" for anything we self-host anywhere.
+  - Acceptance (GitHub #948), verbatim:
+    - services/probes runs on the synthetic host (monitoring contract, SLO yaml, its own registry row) and every registry row gets a real probe result, with probe targets fixed to what actually runs there;
+    - the column reflects reality, and GPU-box models never show a false "evet";
+    - "blocking" only for what the deployed synthetic stack actually needs, everything else advisory with the reason;
+    - TDD against a recorded host inventory, with near misses;
+    - no PHI in probe output, and every emitted metric catalogued;
+    - licence columns are INT-561.
+- Plan:
+  - A recorded host inventory (`infra/staging/inventory.yaml`, `intake_probes.inventory`), refused unless its services are exactly compose's and the process is synthetic.
+  - A host sweep (`intake_probes.host_sweep`) in the probes app, with least-privilege credentials, scrubbed details, an atomic results file and two live series.
+  - `intake_probes.standing` derives deployment, probe age, needed and severity. The ops tile serves them, and the page renders them and refuses a tile that claims what it cannot know.
+  - On the host: compose service `probes` (api image, backend+edge only), a read-only results volume on the api, the `svc_probe` role and the `intake-probe` Redis user. deploy.sh fills the two new secrets on an existing host.
+  - Four registry rows the page lacked (keycloak, oauth2-proxy, admin-web, caddy), licence UNVERIFIED for INT-561.
+- Tests added: `tests/observability/test_host_inventory.py` (33), `test_host_sweep.py` (21), `test_probes_host_service.py` (15), `tests/admin/test_registry_truth.py` (138), `tests/infra/test_staging_probes.py` (19) and `apps/admin-web/e2e/ops.spec.ts` (+18).
+  - Near misses:
+    - a GPU-box model with a planted healthy result is still `elsewhere`;
+    - a missing result is never healthy, and stale or unknown-age results are not current;
+    - every non-needed row × five probe states is never blocking;
+    - no inventory keeps the strict INT-183 reading;
+    - a planted TCKN, phone, IBAN, email or URL credential never reaches the written file.
+  - RED (on `ab9b8819`): 4 collection errors. Then 30 failed on assertions (`host_inventory_unknown_component`; catalogue `planned` ≠ `live`). The admin-web spec failed 18 of 57 against main's sources.
+  - GREEN: 489 targeted Python tests, 226 INT-560 tests and 404 admin-web tests passed. Branch coverage: `inventory.py` 100 %, `standing.py` 100 %, `host_sweep.py` 98 %.
+- Result (docs/evidence/INT-560.md):
+  - ruff and mypy strict clean;
+  - admin-web lint, typecheck and test green;
+  - the infra suite green;
+  - `no_placeholders`, `phi_scan`, `claims_scan` and evidence/sec-row linkage OK on the staged tree;
+  - the full Python suite as recorded in the evidence.
+- Invariants touched and still passing: 6 (scrubbed details, id-only labels, nothing from a refused file logged), 13 (two series live, the registry gains the rows the host runs), 14 (digest-pinned image reuse, host secrets only, no credential in the committed inventory), 15 (the probes app gains the shared OTel setup) and 17 (unknown and no-result stay states; a skip is never healthy).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The host-scoped severity is the owner's instruction in #948.
+  - The INT-022 gate itself is unchanged. Its verdict stays on the tile's badge, labelled registry-wide, and is advisory per row on a synthetic host only.
+- Backlog: INT-560 row added (`area:observability`, `monitoring-contract`). The three pins go from 364 to 365, and files/11 was regenerated.
+- Blocked on: nothing for this row.
+  - The first deploy after merge restarts redis once to load the ACL user.
+  - INT-561 records the licence blobs for the four new rows, and was told their names.
+- Refresh onto main `78330ff4` (28 Oct): main's #905 added ADR-042's `sms-egress` service. The inventory now places it as `needed: false` (`fails_closed_without_it`) and `unprobed` (`outside_probe_networks`): the probes stay off `sms-out`, which ADR-042 keeps to the API and the proxy, and a needed-but-unobserved row would have read blocking. Fixtures re-recorded with the recorders; the count pins go to 368 (evidence §9).
+- Next: the merge queue deploys. After it, `/ops` on the host should read real results with ages.
 ### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
 - Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
 - Plan:
@@ -3856,6 +3899,16 @@
 - Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-02T12:00:00Z · INT-420 · done (PR open, not merged)
+- Goal: acceptance (GitHub #712), with the old name written as <old>: *"Every brand use of <old> on main reads Önvizit (ASCII identifier `onvizit`) … The Turkish common noun "<old>" is kept wherever it is used as a word … Identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested. A guard test fails on any new brand-case "<old>"."*
+- Plan: read int-demo `0115c60b` and `82c1a1e6` hunk by hunk, and port their intent without merging int-demo: the name, the localized CFBundleDisplayName, the V-logo `icon.png` with the `ios.icon` override dropped, and the registered bundle id. Rename every brand use (i18n, embed SDK and sample partner, dev tenant, HL7 fixtures, docs, files/, tests). Keep the common noun and dated records in a reviewed allow-list. Leave eas.json and the other release config to INT-421.
+- Tests added (with near-miss negatives): `tests/release/test_brand_name.py` (derived token, any case; the new brand, `onvizitEmbed` and bare `vizit` are not caught; planted, unlisted and stale entries are; common-noun entries must be word-shaped), `tests/release/test_brand_identifiers.py` (scheme ↔ Keycloak redirects with a planted foreign client, bundle id ↔ App Attest, push title ↔ app name, embed attribute/route/env read back from both sides), `apps/mobile/e2e/brand.spec.ts`. Three mutants were each killed.
+- Result: see docs/evidence/INT-420.md. 199 occurrences renamed. 12 common-noun and 42 dated-record occurrences kept, each listed.
+- Invariants touched and still passing: 5 (tr catalogue brand keys, en mirrored), 18 (no hash-bound consent text changed; the accessibility statement and its draft now name Önvizit; the dev legal tree outside the repo is an owner ask), 2 (the disclaimer under the new name still passes PolicyGuard).
+- Decisions / ADRs / `00_STATE.md` rows: none. Kept on purpose: the bundle id `com.ariomoniri.intakemobile` (the ASC record) and the Expo slug. The scheme is `["onvizit", "intake"]`, so old links still open the app. Dated records are not rewritten (the owner may overrule; it is one list).
+- Blocked on: nothing.
+- Next: PR `INT-420: Önvizit everywhere …` (the issue title; Closes #712, Sec-Row mobile), left unmerged.
+- LOOP_STATUS: CONTINUE
 ### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
 - Goal: acceptance verbatim (GitHub #724):
   - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*

@@ -389,6 +389,7 @@ def _build(
     pepper: Any = None,
     sms_budget: Any = None,
     recipients: Any = None,
+    attestation: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -427,7 +428,9 @@ def _build(
             tokenizer=Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1"),
             delivery=counted,
             attestation=(
-                DevStructuralAttestationVerifier()
+                attestation
+                if attestation is not None
+                else DevStructuralAttestationVerifier()
                 if attested_dev
                 else FailClosedAttestationVerifier()
             ),
@@ -1376,9 +1379,9 @@ def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -
                     "global_day",
                 }, key
             elif parts[:2] == ["auth", "otp"]:
-                # INT-578 added the attempt counter and the lockout instant,
-                # INT-577 the spend kill switch
-                assert parts[2] in {"cool", "code", "peek", "att", "lock", "kill"}, key
+                # INT-578 added the number's rolling miss window and the
+                # lockout instant, INT-577 the spend kill switch
+                assert parts[2] in {"cool", "code", "peek", "miss", "lock", "kill"}, key
             if parts[:3] == ["auth", "otp", "code"]:
                 record = json.loads(harness.redis_client.get(key))
                 # INT-578: the attempts left the record for an atomic counter,

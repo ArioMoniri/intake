@@ -216,7 +216,7 @@ When they are built:
 2. **Filled selected glyph on the rail.** It is implemented. It adds a shape cue beside ink and weight. Reverting it is a one-line registry change.
 3. **Interactive glass** (`isInteractive`) on the rail. It is not implemented, because its press response scales the element and C4 rules out scale.
 4. **Native form sheet** for `SectionSheet`. Decide with the motion spec's S13 fade measurement.
-5. **App icon.** Adopt the layered Vizite proposal (`icon/`) in Icon Composer, and point `ios.icon` at the resulting `.icon` (see `icon/README.md`).
+5. **App icon.** Adopt the layered Önvizit proposal (`icon/`) in Icon Composer, and point `ios.icon` at the resulting `.icon` (see `icon/README.md`).
 
 ## 6. Follow-ups (each needs its own issue)
 
