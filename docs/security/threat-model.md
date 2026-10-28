@@ -592,8 +592,12 @@ it or whose tests exercise it.
   number (422), the carrier check's unallocated prefix (422, a fact of the numbering plan),
   the caller's own device or address budget (429), the platform's caps and kill switch (429,
   503). Verify already answered one `otp_invalid`; it now also takes an attempt and runs both
-  comparisons when there is no code, when it has expired and under a lockout, so a missing,
-  locked or expired number costs the same commands as a wrong guess. What it costs a
+  comparisons when there is no code, when it has expired, when the device is a stranger's and
+  under a lockout, so a missing, locked or expired number costs the same commands as a wrong
+  guess. Only the bound device's guess on a live, unlocked code joins the number's miss window
+  (INT-578); every other attempt runs the same four commands against a window that decides
+  nothing (`auth:otp:stray:*`), so guessing during a lockout can neither extend it nor outlive
+  it. What it costs a
   patient: a resend asked for inside the number's wait, or past its budget, is answered as
   sent and sends nothing; the app shows the wait the number is held to, so a patient following
   it never meets this.
@@ -701,6 +705,10 @@ it or whose tests exercise it.
   `SmsSpendKillSwitchEngaged` page and the `OtpRequestSpike` ticket
   (`infra/observability/security-rules.yaml`, runbook `docs/runbooks/sms-abuse.md`); the ops
   console's `sms` tile (`GET /admin/ops`), which judges a spike by the same definition.
+  INT-579: with the send after the response, `otp_sms_delivery_total{vendor,outcome}` is the
+  only place a failed send shows, and `OtpSmsDeliveryFailing` pages when over half the last 30
+  minutes' sends were not accepted and at least 3 were refused (same file, runbook section
+  "OTP SMS is not being delivered").
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
   boundary-crossing refusal on all three dimensions, the true retry-after (including under a
   budget tightened while windows are live) and the bounded counter key set with INT-263

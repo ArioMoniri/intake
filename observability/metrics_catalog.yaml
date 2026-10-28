@@ -1243,12 +1243,17 @@ metrics:
     owner: security
     unit: "count"
     description: >-
-      OTP requests by outcome (INT-577): admitted (a code minted), limited (a
-      request budget refused), kill_switch (the SMS spend kill switch refused
-      or the day cap tripped it), locked (the INT-578 lockout),
-      phone_invalid (not a Turkish mobile) or refused (the carrier check or
-      the synthetic host's test list). Emitted by intake_api.otp; the ops
-      console's sms tile and the OtpRequestSpike alert read it.
+      OTP requests by outcome (INT-577, INT-579): admitted (a code minted and
+      sent after the response), limited (the caller's own device or address
+      budget, or a tenant or global cap, refused with a 429), kill_switch (the
+      SMS spend kill switch refused or the day cap tripped it), and three
+      outcomes the caller cannot tell from admitted, because each answers the
+      same 202 with nothing minted or sent: locked (the number is under the
+      INT-578 lockout), withheld (the number is in its resend wait or over its
+      own budget) and not_listed (the number is off the synthetic host's SMS
+      test list). Then phone_invalid (not a Turkish mobile) and refused (the
+      carrier check). Emitted by intake_api.otp; the ops console's sms tile
+      and the OtpRequestSpike alert read it.
   - name: sec_otp_abuse_blocks
     id: sec.otp_abuse_blocks
     type: counter
@@ -2008,7 +2013,10 @@ metrics:
       unparseable_response, accepted_without_job_id, not_a_tr_mobile,
       code_not_sendable, not_on_test_allowlist) or a transport reason (egress_denied, timeout,
       unreachable, auth_failed, rate_limited, rejected, vendor_unavailable,
-      malformed_response). Emitted by intake_api.otp_netgsm.
+      malformed_response). Emitted by intake_api.otp_netgsm. Since INT-579
+      the send runs after the response, so this is the only place a failed
+      send shows: OtpSmsDeliveryFailing (infra/observability/security-rules.yaml)
+      pages when over half the last 30 minutes' sends were not accepted.
   # --- INT-577: the SMS spend kill switch (intake_api.sms_spend). No label
   # carries a number, a tenant or an amount (inv. 6).
   - name: sms_spend_kill_switch_engaged

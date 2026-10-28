@@ -105,3 +105,24 @@ groups:
         addresses so that each stays inside its own budget. The per-dimension
         blocks are in sec_otp_abuse_blocks.
       runbook: docs/runbooks/sms-abuse.md#an-otp-request-spike
+  # tests/security/test_otp_enumeration.py (INT-579, security review of 28 Oct
+  # 2026). The code is sent after the request's 202, so a vendor refusal or a
+  # failed transport no longer shows on the route: the patient is told the
+  # code was sent and none arrives. Over half the last 30 minutes' sends not
+  # accepted, and at least 3 of them, so one unreachable number at night never
+  # pages. Engineering defaults (docs/evidence/INT-579.md).
+  - alert: OtpSmsDeliveryFailing
+    expr: >-
+      sum(increase(otp_sms_delivery_total{outcome!="accepted"}[30m]))
+      / sum(increase(otp_sms_delivery_total[30m])) > 0.5
+      and sum(increase(otp_sms_delivery_total{outcome!="accepted"}[30m])) >= 3
+    for: 5m
+    labels:
+      severity: page
+    annotations:
+      summary: 'most OTP SMS sends in the last 30 minutes were not accepted'
+      description: >-
+        Patients asking for a code are told it was sent and none arrives, so
+        sign-in by SMS is down. The refusal reasons are the outcome label of
+        otp_sms_delivery_total.
+      runbook: docs/runbooks/sms-abuse.md#otp-sms-is-not-being-delivered
