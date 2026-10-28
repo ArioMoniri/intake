@@ -144,7 +144,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
     # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
     # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
-    assert len(actions) == 370
+    # + INT-574 (the RED-never-waits test is deterministic under runner load, GitHub #967)
+    assert len(actions) == 371
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

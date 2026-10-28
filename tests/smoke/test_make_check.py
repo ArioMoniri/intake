@@ -396,7 +396,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # reason.
     # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
     # chrome only; owner request, GitHub #783); grows only with a stated reason.
-    assert len(ids) == 370, f"expected 175 blueprint + 195 added issues, got {len(ids)}"
+    # + INT-574 (the RED-never-waits test is deterministic under runner load,
+    # GitHub #967); grows only with a stated reason.
+    assert len(ids) == 371, f"expected 175 blueprint + 196 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

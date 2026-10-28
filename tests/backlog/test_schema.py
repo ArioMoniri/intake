@@ -234,7 +234,9 @@ def test_ids_unique_and_well_formed() -> None:
     # each licence-checked; owner request, GitHub #763).
     # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
     # chrome only, tokens and AA contrast tested; owner request, GitHub #783).
-    assert len(ids) == 370
+    # + INT-574 (the RED-never-waits test is deterministic under runner load:
+    # no wall-clock budget, a store the test holds; GitHub #967).
+    assert len(ids) == 371
     import re
 
     for i in ids:
