@@ -1,11 +1,11 @@
 ---
-consent_text_version: 2026-10-16.syn1
+consent_text_version: 2026-10-28.syn1
 ---
 Sentetik test metni: Bu metin yalnızca uydurulmuş (sentetik) hasta bilgileriyle çalışan test ortamı içindir. Gerçek bir hasta için geçerli bir açık rıza metni değildir. Bu ortama kendi gerçek sağlık bilgilerinizi girmeyiniz.
 
 Açık rıza metni: Belge yükleme
 
-Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Vizite uygulamasını sunan şirket.
+Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Önvizit uygulamasını sunan şirket.
 
 Ne için:
 Tahlil sonucu, reçete ya da epikriz (hastaneden çıkış özeti) gibi belgelerinizi yüklemeniz için. Yüklediğiniz belge önce ayrı bir bekleme alanına (karantina) kaydedilir. Orada zararlı yazılıma karşı taranır. Temiz çıkan belge saklanır ve size açılır. Zararlı yazılım bulunan belge ayrı tutulur ve hiç açılmaz. Belgedeki bilgiler, sizin kontrol edip onaylamanız için maddelere ayrılır. Sistem belgenizi yorumlamaz. Bir sonucun normal olup olmadığını söylemez.
