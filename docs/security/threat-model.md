@@ -624,6 +624,29 @@ it or whose tests exercise it.
   to a caller who asked for it on their own device; that is INT-580's (the SMS copy, the
   new-device notice, the passkey step-up). The Doctor Link tier shares the store, so it gains
   the atomic budget and single use, but keeps its unkeyed INT-131 digest and no lockout.
+- **The data-protection bound, stated (INT-581, the owner's SMS order of 28 Oct 2026):** a
+  seeded canary number, and every code it is sent, is pushed through every path — a sent and a
+  withheld request, a wrong and a right code, a refresh, a vendor refusal, a vendor that crashes
+  with the number and the code in its message, a 500 inside verify — and searched for in every
+  sink: the API's log records with their tracebacks and JSON lines, the metrics exposition,
+  spans, the error-report event after the scrubber, the HTTP answers, the audit chain, every
+  Redis key and value (but the dev peek slot) and every database row. Three gaps it found are
+  closed. `redact_text` and the collector's patterns masked a mobile written with the national
+  `0` or as the bare ten digits but **not the E.164 form** (`+90` and the ten digits) the OTP tier
+  normalises every number to, nor a grouped one; both now take the `+90`, `0090`, `90` and `0` prefixes, the redactor the 3-3-2-2 groupings
+  too. A delivery that raised anything but the typed error left its task holding the exception,
+  and asyncio logs an unretrieved exception's text; `_deliver` now contains every exception,
+  logs its type only and records `auth.otp.delivery_failed`. On the synthetic host an unnamed
+  SMS proxy still wired Netgsm (`proxy is None` was admitted); ADR-042 makes the dedicated proxy
+  the only route out, so without it the tier stays at 503 and no secret is read. A failed
+  verify now leaves `auth.otp.verify_refused` with the closed outcome (`otp_verify:<outcome>`)
+  and the number's 8-character log ref; every send (`requested`, `withheld`, `sent`,
+  `delivery_failed`) and verify (`verified`, `verify_refused`) is on the hash chain, ids only.
+  Netgsm's credentials still come from OpenBao alone (INT-528's test). Not closed here: the
+  phone-tokenization key itself is read from `INTAKE_TOKENIZATION_KEY` in the host's root-only
+  env file, not from OpenBao — moving it has to carry the existing key across, or every
+  pseudonym on the host changes; and the dev-only peek route takes the number as a query
+  parameter, so a dev access log carries a (synthetic) number.
 - **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
   product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
   processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
@@ -719,7 +742,13 @@ it or whose tests exercise it.
   missing, a locked and an expired code; a vendor refusal answering 202 and audited; and the
   statistical test — a 50 ms vendor, 25 sent and 25 withheld requests timed alternately, their
   medians within a ratio of 3, which the old path missed at about 15
-  (`tests/security/test_otp_enumeration.py`).
+  (`tests/security/test_otp_enumeration.py`). The data-protection bound with INT-581: the
+  canary through every path and every sink, the scanner's own near miss (a leaking log line is
+  found, a timestamp holding the six digits is not), every written form of a mobile redacted and
+  a landline, a lab value and a date left alone, the collector's patterns on the canonical form,
+  a crashing vendor recorded and never logged, every send and verify on the chain with ids only
+  and the chain verifying, and the synthetic host refusing to wire without its SMS proxy while
+  production keeps its own route (`tests/security/test_sms_data_protection.py`).
 
 ## `consent` — layered consent and scope enforcement
 

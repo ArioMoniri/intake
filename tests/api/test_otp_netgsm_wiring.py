@@ -84,6 +84,9 @@ def _settings(
         tokenization_key=tokenization_key,
         environment=environment,
         egress_allowlist_path=allowlist,
+        # INT-581: on the synthetic host the dedicated SMS proxy is the only
+        # route out (ADR-042), so a staging wiring names it
+        sms_egress_proxy_url="http://sms-egress:3128" if environment == "staging" else None,
     )
 
 

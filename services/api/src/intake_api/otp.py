@@ -609,8 +609,13 @@ class OtpAuthService:
     async def _deliver(self, *, phone: str, code: str, request_id: str, actor: str) -> None:
         try:
             receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
-        except OtpDeliveryError:
-            # the adapter logged and counted the reason (ids only); the caller
+        except Exception as exc:  # noqa: BLE001 — a send must never leak or be lost
+            if not isinstance(exc, OtpDeliveryError):
+                # INT-581: an adapter bug can carry the number or the code in its
+                # message, and an unretrieved task exception is logged with its
+                # text. Contain it here: its type is logged, never its words.
+                logger.warning("otp delivery crashed (%s); recorded as failed", type(exc).__name__)
+            # the adapter logged and counted a typed reason (ids only); the caller
             # was told nothing either way, and nothing claims a send
             await self._audit.record(
                 actor=actor,
@@ -715,15 +720,22 @@ class OtpAuthService:
             self._pepper.code_digest(pseudonym, request_id, code),
             binding=self._pepper.device_binding(_bound_device(payload)),
         )
-        if locked:
-            OTP_VERIFY_TOTAL.labels(outcome="locked").inc()
-            raise otp_invalid()
-        OTP_VERIFY_TOTAL.labels(outcome=verdict).inc()
-        if verdict == "exhausted":
+        outcome = "locked" if locked else verdict
+        OTP_VERIFY_TOTAL.labels(outcome=outcome).inc()
+        if verdict == "exhausted" and not locked:
             # INT-578: the miss that spent the budget locks the number
             await asyncio.to_thread(self._store.engage_lockout, pseudonym)
-        if verdict != "ok":
-            # one generic refusal for wrong/expired/exhausted/unbound (02 §8.2)
+        if outcome != "ok":
+            # INT-581: every verify is on the chain, a refused one too — the
+            # number's 8-character log ref and the closed outcome, nothing more.
+            # INT-579: one row for every kind of refusal, so the work is alike.
+            await self._audit.record(
+                actor=f"phone:{self._tokenizer.log_ref(phone)}",
+                action="auth.otp.verify_refused",
+                resource_ref=f"otp_verify:{outcome}",
+                consent_scope="scope:auth",
+            )
+            # one generic refusal for wrong/expired/exhausted/unbound/locked (02 §8.2)
             raise otp_invalid()
         patient_id = await self._get_or_create_patient(pseudonym)
         await self._audit.record(

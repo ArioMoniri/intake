@@ -611,6 +611,14 @@ def otp_delivery_from_settings(
             "one ADR-042 admits"
         )
         return None
+    if proxy is None and settings.environment in SYNTHETIC_ENVIRONMENTS:
+        # INT-581: on the synthetic host the dedicated proxy is the only route
+        # out (ADR-042); without it the adapter would try a route of its own
+        logger.warning(
+            "otp tier unconfigured on the synthetic host: no SMS egress proxy is named, "
+            "and ADR-042 makes the dedicated one the only route out"
+        )
+        return None
     document = _document_from_vault(secrets)
     if document is None:
         return None

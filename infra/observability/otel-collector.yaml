@@ -2,7 +2,10 @@
 # The transform/redact processor is the pipeline-level PII layer; the same
 # patterns live app-side in intake_platform.redaction, and a CI test extracts
 # these statements and runs them against fixture logs so the committed config
-# is what gets tested. Everything binds loopback; no external exporter — the
+# is what gets tested. INT-581: the phone pattern takes the E.164 form the OTP
+# tier normalises to (+90 then 5 and nine digits), which `\b0?5…` could not see; RE2 has no
+# lookbehind, so the prefixes are an alternation. Everything binds loopback; no
+# external exporter — the
 # Prometheus/Loki/Tempo/Grafana (or SigNoz) stack joins with INT-023.
 receivers:
   otlp:
@@ -18,10 +21,10 @@ processors:
       - context: log
         statements:
           - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
-          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "(\\+90|\\b90|\\b0|\\b)5[0-9]{9}\\b", "[PHONE]")'
           - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
           - 'replace_all_patterns(body, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
-          - 'replace_all_patterns(body, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(body, "value", "(\\+90|\\b90|\\b0|\\b)5[0-9]{9}\\b", "[PHONE]")'
           - 'replace_all_patterns(body, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
           # names allow-list: only these attribute keys survive the pipeline —
           # a name (or anything else) has no allow-listed key to travel in.
@@ -35,18 +38,18 @@ processors:
       - context: span
         statements:
           - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
-          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "(\\+90|\\b90|\\b0|\\b)5[0-9]{9}\\b", "[PHONE]")'
           - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
       - context: spanevent
         statements:
           - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
-          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "(\\+90|\\b90|\\b0|\\b)5[0-9]{9}\\b", "[PHONE]")'
           - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
     metric_statements:
       - context: datapoint
         statements:
           - 'replace_all_patterns(attributes, "value", "\\b[1-9][0-9]{10}\\b", "[TCKN]")'
-          - 'replace_all_patterns(attributes, "value", "\\b0?5[0-9]{9}\\b", "[PHONE]")'
+          - 'replace_all_patterns(attributes, "value", "(\\+90|\\b90|\\b0|\\b)5[0-9]{9}\\b", "[PHONE]")'
           - 'replace_all_patterns(attributes, "value", "\\bTR[0-9]{24}\\b", "[IBAN]")'
 
 exporters:

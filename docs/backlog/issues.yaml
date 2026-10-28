@@ -7376,3 +7376,21 @@
     - "A statistical timing test with no wall-clock budget: sent and withheld requests timed alternately against a 50 ms vendor, medians within a ratio of 3; plus a deterministic command-trace parity test; near misses throughout; threat model and files/10 §9 onboarding row updated."
   tests: [tests/security/test_otp_enumeration.py, tests/security/test_otp_abuse.py, tests/security/test_otp_brute_force.py, tests/security/test_sms_pumping.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_otp_twilio_wiring.py, tests/api/test_sms_test_allowlist.py]
   sec_row: "onboarding"
+- id: INT-581
+  epic: E01-platform
+  phase: P1
+  title: "SMS data protection — no number or code in logs/metrics/traces, tokenised at rest, OpenBao-only creds, SMS proxy only, audited sends"
+  # GitHub #976. Owner order, 28 Oct 2026, the data-protection family of
+  # INT-577..581 (the five-family audit is docs/evidence/INT-577.md, rows
+  # 34-41). Built on INT-579 (#980), whose send and verify paths it scans.
+  depends_on: [INT-528, INT-578, INT-577, INT-579]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-581.md
+  acceptance:
+    - "Invariant 6 scan test: a seeded canary number and its codes, through every send and verify path (a vendor refusal, a crashing vendor and a 500 included), reach no log, metric, trace, error report, answer, audit row, Redis key or database row; the scanner's own near miss."
+    - "The redactor and the collector mask the E.164 form the OTP tier normalises to (+90…) and the grouped forms, with near misses that stay; a crashing vendor is contained and logged by its type only."
+    - "Numbers tokenised at rest; Netgsm credentials only from OpenBao; egress only through the dedicated sms-egress proxy on the synthetic host (ADR-042), refused without it; every send and verify, refused ones included, appended to the hash-chained audit log with ids only."
+    - "Threat model and files/10 §9 onboarding row updated; the tokenization key's source recorded as a residual."
+  tests: [tests/security/test_sms_data_protection.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_sms_test_allowlist.py, tests/platform/test_redaction.py]
+  sec_row: "onboarding"
