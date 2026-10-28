@@ -9,8 +9,9 @@ port it implements.
 
 **The wire contract** comes from Netgsm's public API documentation, section
 "OTP SMS" (https://www.netgsm.com.tr/dokuman/#otp-sms, retrieved 16 Oct 2026;
-docs/evidence/INT-528.md), and the tests replay
-``tests/fixtures/netgsm/otp_rest_v2.json``, built from that page:
+docs/evidence/INT-528.md), and its answer from that page and Netgsm's official
+SDKs (retrieved 28 Oct 2026; docs/evidence/INT-576.md). The tests replay
+``tests/fixtures/netgsm/otp_rest_v2.json``, derived from those sources:
 
 - ``POST https://api.netgsm.com.tr/sms/rest/v2/otp`` with HTTP Basic auth: the
   subscriber number (``usercode``) and the API sub-user's password.
@@ -21,10 +22,18 @@ docs/evidence/INT-528.md), and the tests replay
 - ``msg`` is one segment with no Turkish letters (155 characters with an
   alphanumeric sender). :data:`SMS_TEMPLATE` is the INT-329 wording folded to
   ASCII, and a test holds the two together.
-- Success is ``{"code": "00", "jobid": ...}``. A refusal carries one of the
-  documented codes 20, 30, 40-41, 50-52, 60, 70 or 100, each mapped to a typed
-  :class:`NetgsmRefusal` and to one :class:`~intake_api.otp.OtpDeliveryFailure`.
-  The body's code decides wherever one is present, whatever the HTTP status.
+- Success is a 2xx JSON object with ``"code": "00"`` and exactly one
+  digit-string job id under :data:`JOB_ID_KEYS`: ``jobid`` in the
+  documentation's sample, ``jobId`` in Netgsm's JS SDK (INT-576: the live
+  answer was not the documentation's sample). A refusal carries one of the
+  documented OTP codes 20, 30, 40-41, 50-52, 60, 70, 80 or 100-101, each mapped
+  to a typed :class:`NetgsmRefusal` and to one
+  :class:`~intake_api.otp.OtpDeliveryFailure`. The body's code decides wherever
+  one is present, whatever the HTTP status.
+- Any other 2xx is a typed refusal and never a success: ``unparseable_response``
+  (no documented code), ``accepted_without_job_id`` (code 00 but no readable
+  job id) or ``unknown_vendor_code``. Its port reason is ``malformed_response``,
+  which is not retryable: Netgsm may already have sent the code.
 
 **The posture is INT-329's, unchanged:**
 
@@ -45,7 +54,12 @@ docs/evidence/INT-528.md), and the tests replay
   chained to them: a transport exception holds the request, and the request
   holds the body.
 - No retry. A retried SMS is a second code in flight; the patient's resend
-  after the cooldown is the retry.
+  after the cooldown is the retry. An answer that may mean "sent" says so
+  through :attr:`~intake_api.otp.OtpDeliveryError.retryable`.
+- The structure of a 2xx answer that is accepted or cannot be read, and never
+  a value from it, rides the receipt or the error as
+  :class:`~intake_api.otp_netgsm_shape.AnswerShape`, for the owner's opt-in
+  diagnostic (``intake_api.otp_send_check --shape``).
 """
 
 from __future__ import annotations
@@ -83,6 +97,7 @@ from intake_api.otp import (
     OtpDeliveryError,
     OtpDeliveryFailure,
 )
+from intake_api.otp_netgsm_shape import AnswerShape, answer_shape
 from intake_api.settings import ApiSettings
 from intake_api.sms_recipients import (
     ADMIT_ALL,
@@ -93,6 +108,7 @@ from intake_api.sms_recipients import (
 
 __all__ = [
     "DELIVERY_OUTCOMES",
+    "JOB_ID_KEYS",
     "MAX_MESSAGE_LENGTH",
     "NETGSM_API_HOST",
     "NETGSM_KV_PATH",
@@ -100,6 +116,7 @@ __all__ = [
     "OTP_SMS_DELIVERY_TOTAL",
     "SMS_EGRESS",
     "SMS_TEMPLATE",
+    "SUCCESS_CODE",
     "TEST_ALLOWLIST_FIELD",
     "VENDOR_CODE_REFUSALS",
     "KvSecrets",
@@ -107,6 +124,7 @@ __all__ = [
     "NetgsmCredentials",
     "NetgsmDeliveryError",
     "NetgsmOtpRequest",
+    "NetgsmReceipt",
     "NetgsmRefusal",
     "NetgsmSmsDeliveryAdapter",
     "otp_delivery_from_settings",
@@ -141,6 +159,13 @@ _CODE = re.compile(r"[0-9]{4,10}")
 #: Both documented job id forms are digit strings (the 2025 update lengthened them).
 _JOBID = re.compile(r"[0-9]{1,64}")
 _VENDOR_CODE = re.compile(r"[0-9]{1,3}")
+#: The documented success code.
+SUCCESS_CODE: Final = "00"
+#: Where this endpoint's success puts the job id: ``jobid`` in the
+#: documentation's REST v2 sample, ``jobId`` in Netgsm's JS SDK (its
+#: ``OtpSmsResponse`` type and its integration test against this endpoint).
+#: The XML OTP endpoint's ``jobID`` is not this endpoint's (INT-576 evidence).
+JOB_ID_KEYS: Final = ("jobid", "jobId")
 
 
 class NetgsmRefusal(StrEnum):
@@ -153,14 +178,18 @@ class NetgsmRefusal(StrEnum):
     NUMBER_REFUSED = "number_refused"
     OTP_PACKAGE_MISSING = "otp_package_missing"
     PARAMETERS_REFUSED = "parameters_refused"
+    SEND_LIMIT_EXCEEDED = "send_limit_exceeded"
     VENDOR_SYSTEM_ERROR = "vendor_system_error"
     UNKNOWN_VENDOR_CODE = "unknown_vendor_code"
+    UNPARSEABLE_RESPONSE = "unparseable_response"
+    ACCEPTED_WITHOUT_JOB_ID = "accepted_without_job_id"
     NOT_A_TR_MOBILE = "not_a_tr_mobile"
     CODE_NOT_SENDABLE = "code_not_sendable"
     NOT_ON_TEST_ALLOWLIST = "not_on_test_allowlist"
 
 
-#: The documented error codes of the OTP SMS section, and nothing else.
+#: The documented OTP error codes, and nothing else: the documentation's OTP SMS
+#: tables, Netgsm's JS SDK (adds 101) and its PHP OTP package (adds 80).
 VENDOR_CODE_REFUSALS: Final[Mapping[str, NetgsmRefusal]] = {
     "20": NetgsmRefusal.MESSAGE_REFUSED,
     "30": NetgsmRefusal.CREDENTIALS_REFUSED,
@@ -171,11 +200,14 @@ VENDOR_CODE_REFUSALS: Final[Mapping[str, NetgsmRefusal]] = {
     "52": NetgsmRefusal.NUMBER_REFUSED,
     "60": NetgsmRefusal.OTP_PACKAGE_MISSING,
     "70": NetgsmRefusal.PARAMETERS_REFUSED,
+    "80": NetgsmRefusal.SEND_LIMIT_EXCEEDED,
     "100": NetgsmRefusal.VENDOR_SYSTEM_ERROR,
+    "101": NetgsmRefusal.VENDOR_SYSTEM_ERROR,
 }
 
 _PORT_REASON: Final[Mapping[NetgsmRefusal, OtpDeliveryFailure]] = {
     NetgsmRefusal.CREDENTIALS_REFUSED: OtpDeliveryFailure.AUTH_FAILED,
+    NetgsmRefusal.SEND_LIMIT_EXCEEDED: OtpDeliveryFailure.RATE_LIMITED,
     NetgsmRefusal.VENDOR_SYSTEM_ERROR: OtpDeliveryFailure.VENDOR_UNAVAILABLE,
 }
 
@@ -198,8 +230,9 @@ class NetgsmConfigError(ValueError):
 
 class NetgsmDeliveryError(OtpDeliveryError):
     """An :class:`OtpDeliveryError` that also says which Netgsm refusal it was,
-    when it was one. The route sees the port's error and answers one generic
-    503; the refusal is for the log line and the counter."""
+    when it was one, and, for a 2xx it could not read, the answer's structure.
+    The route sees the port's error and answers one generic 503; the refusal
+    is for the log line and the counter, the shape for the owner's diagnostic."""
 
     def __init__(
         self,
@@ -208,13 +241,23 @@ class NetgsmDeliveryError(OtpDeliveryError):
         refusal: NetgsmRefusal | None = None,
         status_code: int | None = None,
         vendor_code: int | None = None,
+        shape: AnswerShape | None = None,
     ) -> None:
         super().__init__(reason, status_code=status_code, vendor_code=vendor_code)
         self.refusal = refusal
+        self.shape = shape
 
     @property
     def outcome(self) -> str:
         return self.refusal.value if self.refusal is not None else self.reason.value
+
+
+@final
+@dataclass(frozen=True)
+class NetgsmReceipt(DeliveryReceipt):
+    """The port's receipt, with the accepted answer's structure (never a value)."""
+
+    shape: AnswerShape
 
 
 class KvSecrets(Protocol):
@@ -303,7 +346,8 @@ def seal_otp_request(
 def _json_object(response: httpx.Response) -> dict[str, Any] | None:
     try:
         body = response.json()
-    except ValueError:
+    except (ValueError, RecursionError):
+        # RecursionError: JSON nested deeper than the decoder goes
         return None
     return body if isinstance(body, dict) else None
 
@@ -316,6 +360,17 @@ def _vendor_code(body: Mapping[str, Any] | None) -> str | None:
     if isinstance(raw, int) and not isinstance(raw, bool):
         raw = f"{raw:02d}"
     return raw if isinstance(raw, str) and _VENDOR_CODE.fullmatch(raw) else None
+
+
+def _job_id(body: Mapping[str, Any] | None) -> str | None:
+    """The job id when exactly one documented key holds a digit string."""
+    if body is None:
+        return None
+    values = [body[key] for key in JOB_ID_KEYS if key in body]
+    if len(values) != 1:
+        return None
+    [value] = values
+    return value if isinstance(value, str) and _JOBID.fullmatch(value) else None
 
 
 def _http_reason(status: int) -> OtpDeliveryFailure:
@@ -397,32 +452,59 @@ class NetgsmSmsDeliveryAdapter:
             raise self._failed(NetgsmDeliveryError(reason or OtpDeliveryFailure.UNREACHABLE))
         return self._receipt(response)
 
-    def _receipt(self, response: httpx.Response) -> DeliveryReceipt:
+    def _receipt(self, response: httpx.Response) -> NetgsmReceipt:
         status = response.status_code
         body = _json_object(response)
         code = _vendor_code(body)
-        if code is not None and code != "00":
-            refusal = VENDOR_CODE_REFUSALS.get(code, NetgsmRefusal.UNKNOWN_VENDOR_CODE)
+        # the vendor's code as a number, unless it is absent or the success code
+        vendor_code = int(code) if code is not None and code != SUCCESS_CODE else None
+        refusal = VENDOR_CODE_REFUSALS.get(code) if code is not None else None
+        if refusal is not None:
             raise self._failed(
                 NetgsmDeliveryError(
                     _PORT_REASON.get(refusal, OtpDeliveryFailure.REJECTED),
                     refusal=refusal,
                     status_code=status,
-                    vendor_code=int(code),
+                    vendor_code=vendor_code,
                 )
             )
         if not 200 <= status < 300:
-            raise self._failed(NetgsmDeliveryError(_http_reason(status), status_code=status))
-        jobid = body.get("jobid") if body is not None else None
-        if code != "00" or not (isinstance(jobid, str) and _JOBID.fullmatch(jobid)):
-            # accepted-looking but unprovable: never record a receipt that cannot
-            # be tied to a vendor job
+            # an undocumented code with a refusing status is a plain rejection
+            undocumented = vendor_code is not None
             raise self._failed(
-                NetgsmDeliveryError(OtpDeliveryFailure.MALFORMED_RESPONSE, status_code=status)
+                NetgsmDeliveryError(
+                    OtpDeliveryFailure.REJECTED if undocumented else _http_reason(status),
+                    refusal=NetgsmRefusal.UNKNOWN_VENDOR_CODE if undocumented else None,
+                    status_code=status,
+                    vendor_code=vendor_code,
+                )
             )
-        OTP_SMS_DELIVERY_TOTAL.labels(vendor="netgsm", outcome="accepted").inc()
-        logger.info("otp delivery accepted (netgsm) delivery_id=%s http_status=%s", jobid, status)
-        return DeliveryReceipt(delivery_id=jobid)
+        # A 2xx. Anything but the documented success is unprovable: no receipt
+        # that cannot be tied to a vendor job, and a port reason that is not
+        # retryable, because Netgsm may already have sent the code (it had).
+        shape = answer_shape(response)
+        jobid = _job_id(body)
+        if code == SUCCESS_CODE and jobid is not None:
+            OTP_SMS_DELIVERY_TOTAL.labels(vendor="netgsm", outcome="accepted").inc()
+            logger.info(
+                "otp delivery accepted (netgsm) delivery_id=%s http_status=%s", jobid, status
+            )
+            return NetgsmReceipt(delivery_id=jobid, shape=shape)
+        if code is None:
+            unreadable = NetgsmRefusal.UNPARSEABLE_RESPONSE
+        elif code == SUCCESS_CODE:
+            unreadable = NetgsmRefusal.ACCEPTED_WITHOUT_JOB_ID
+        else:
+            unreadable = NetgsmRefusal.UNKNOWN_VENDOR_CODE
+        raise self._failed(
+            NetgsmDeliveryError(
+                OtpDeliveryFailure.MALFORMED_RESPONSE,
+                refusal=unreadable,
+                status_code=status,
+                vendor_code=vendor_code,
+                shape=shape,
+            )
+        )
 
     @staticmethod
     def _failed(error: NetgsmDeliveryError) -> NetgsmDeliveryError:
