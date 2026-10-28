@@ -37,6 +37,7 @@ from typing import Any
 
 import fakeredis
 import pytest
+import redis
 import yaml
 from api_harness import ADMIN_TOKEN, PATIENT_TOKEN, ApiHarness, build_harness
 from intake_api.dev_fixture import DEV_TENANT_ID
@@ -83,6 +84,28 @@ def _down_store() -> RedisSafetyInboxStore:
     server = fakeredis.FakeServer()
     server.connected = False
     return RedisSafetyInboxStore(fakeredis.FakeStrictRedis(server=server))
+
+
+#: How long the stalled store hangs on every write before it refuses. The
+#: "never waits" test measures the RED against this, not against a wall-clock
+#: budget: on the shared CI runner the same request read 350 ms and 620 ms
+#: under load (#963, main's own run on 78330ff4), which says nothing about
+#: whether the RED waited on the store. The 300 ms budget is measured on a
+#: fake clock in the runtime (INT-531).
+STALL_S = 1.5
+
+
+class _StalledRedis(fakeredis.FakeStrictRedis):
+    """A store that is reachable but not answering: every write hangs for
+    STALL_S, then fails, so the pump keeps the entry pending."""
+
+    def pipeline(self, transaction: bool = True, shard_hint: Any = None) -> Any:
+        time.sleep(STALL_S)
+        raise redis.ConnectionError("stalled")
+
+
+def _stalled_store() -> RedisSafetyInboxStore:
+    return RedisSafetyInboxStore(_StalledRedis())
 
 
 #: The unit lane's tokenization key: a non-UUID id is stored as its keyed pseudonym.
@@ -385,16 +408,20 @@ def test_no_answer_value_reaches_a_log_line(
 def test_the_red_never_waits_on_the_inbox_store(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """The store is down: the RED still comes back at once, and the entry waits
-    in the outbox with the RED's own instant (the pending-age gauge pages at 60 s).
-    At shutdown what is still unwritten is counted, never named."""
+    """The store hangs: the RED still comes back long before the store would
+    have answered, and the entry waits in the outbox with the RED's own instant
+    (the pending-age gauge pages at 60 s). At shutdown what is still unwritten
+    is counted, never named. A warm request first (a GREEN: no RED, nothing
+    put), so the measured one carries no first-request cost."""
     with caplog.at_level(logging.ERROR):
-        for harness in _rig(tmp_path, _down_store()):
+        for harness in _rig(tmp_path, _stalled_store()):
+            green = {**FIRING, "ziyaret.basvuru_nedeni": "sentetik_degil"}
+            assert _evaluate(harness, green)["kind"] == "triage_level"
             started = time.perf_counter()
             body = _evaluate(harness)
             elapsed_ms = (time.perf_counter() - started) * 1000.0
             assert body["kind"] == "red_trigger"
-            assert elapsed_ms < RED_BUDGET_MS
+            assert elapsed_ms < STALL_S * 1000.0 / 2
             outbox = harness.client.app.state.api.red_outbox  # type: ignore[attr-defined]
             (pending,) = _pending_eventually(outbox)
             assert pending.kind is EntryKind.RED
