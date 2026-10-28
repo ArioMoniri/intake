@@ -111,7 +111,8 @@ class UnprobedReason(StrEnum):
     """Why a deployed component carries no probe address."""
 
     #: Reaching it would put the probes service on a network with a route
-    #: off the host.
+    #: off the host: ``outbound``/``vendor`` (INT-442), or ``sms-out``, whose
+    #: proxy admits CONNECT to the SMS vendor from any member (ADR-042).
     OUTSIDE_PROBE_NETWORKS = "outside_probe_networks"
 
 

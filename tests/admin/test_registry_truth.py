@@ -62,6 +62,8 @@ def _inventory() -> HostInventory:
 INVENTORY = _inventory()
 DEPLOYED = INVENTORY.deployed()
 NEEDED = INVENTORY.needed()
+#: deployed here and declared unprobed: the two boundary proxies (INT-442, ADR-042)
+UNPROBED = frozenset(c for c in DEPLOYED if INVENTORY.placement(c).probe_at is None)
 
 
 def _record(
@@ -81,11 +83,10 @@ def _host_sweep(status: str = "healthy") -> dict[str, ProbeResultRecord]:
     """What the host's sweep writes: a probe for what it runs, a skip for the rest."""
     return {
         entry.component: _record(
-            entry.component, status if entry.component in DEPLOYED else "skipped"
+            entry.component, status if entry.component in DEPLOYED - UNPROBED else "skipped"
         )
         for entry in REGISTRY
-        if entry.component != "egress-proxy"
-    } | {"egress-proxy": _record("egress-proxy", "skipped")}
+    }
 
 
 def _tile(results: dict[str, ProbeResultRecord], host: HostReading | None = None) -> dict[str, Any]:
@@ -222,6 +223,11 @@ def test_an_unneeded_component_names_why_it_is_not_needed() -> None:
     assert rows["egress-proxy"]["not_needed_reason"] == "fails_closed_without_it"
     assert rows["egress-proxy"]["severity"] == "attention"
     assert rows["egress-proxy"]["severity_reason"] == "unneeded_not_healthy"
+    # ADR-042's SMS proxy reads the same way: deployed, not needed, not probed
+    assert rows["sms-egress"]["needed"] is False
+    assert rows["sms-egress"]["not_needed_reason"] == "fails_closed_without_it"
+    assert rows["sms-egress"]["severity"] == "attention"
+    assert rows["sms-egress"]["severity_reason"] == "unneeded_not_healthy"
     assert rows["probes"]["not_needed_reason"] == "observes_only"
     assert rows["postgres"]["needed"] is True and rows["postgres"]["not_needed_reason"] is None
     assert rows["qwen3.5-9b"]["needed"] is None

@@ -97,3 +97,20 @@ services:
     components:
       - component: probes
         probe_at: http://probes:8000/readyz
+  sms-egress:
+    # ADR-042 (INT-528): the OTP tier's only route to the SMS vendor. Down,
+    # the OTP send answers 503 — never a fake "sent" — and nothing else in
+    # the stack calls it (its registry row). The tier itself is wired only
+    # once the owner's egress row and Netgsm credentials are in place; until
+    # then every /v1/auth route answers 503 (docs/runbooks/staging.md), so
+    # the stack as deployed runs without this proxy either way.
+    needed: false
+    not_needed_reason: fails_closed_without_it
+    components:
+      # it sits on `sms-out` and `sms-wan` only. `sms-out` is ADR-042's
+      # boundary network, kept to the API and this proxy alone
+      # (tests/infra/test_staging_sms_egress.py); any member of it can
+      # CONNECT through the proxy to the SMS vendor, which is a route off
+      # the host. The probes service stays off it, and the row says so.
+      - component: sms-egress
+        unprobed: outside_probe_networks

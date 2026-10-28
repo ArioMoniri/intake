@@ -1,10 +1,11 @@
-"""INT-524 — a new push to a pull request cancels that pull request's older run.
+"""INT-524, INT-544 — superseded pull request runs are cancelled; queued main runs collapse.
 
-Acceptance lines under test (docs/backlog/issues.yaml, INT-524):
-  - ci.yml and security.yml each declare a workflow-level concurrency group
-    keyed by the workflow and the pull request number (the sha outside a pull
-    request), and cancel in progress only on pull_request events, so a push to
-    main is never cancelled;
+Acceptance lines under test (docs/backlog/issues.yaml):
+  - INT-524: ci.yml and security.yml each declare a workflow-level concurrency
+    group, and cancel in progress only on pull_request events, so a push to
+    main is never cancelled in progress;
+  - INT-544: queued push-to-main runs collapse to the newest pending run, a
+    running main run is never cancelled, and a v* tag keeps a group of its own;
   - tests/ci pin the block in both workflows.
 
 GitHub's semantics, from "Control the concurrency of workflows and jobs"
@@ -18,12 +19,15 @@ read 16 Oct 2026; quoted in docs/evidence/INT-524.md):
     expression;
   - group names are case-insensitive and shared by every workflow in the repo.
 
-So "a push to main is never cancelled" needs two things. Its
-`cancel-in-progress` must be false, and no other run may join its group,
-because a joining run would replace it while it waits for a runner. The group
-therefore carries the ref as well as the sha. Without the ref, a v* tag that
-security.yml runs for the commit main just pushed would share main's group
-(the near-miss below).
+So the group is the workflow and the ref. A pull request's runs share its ref
+(refs/pull/N/merge) and cancel each other. Every push to main shares
+refs/heads/main: with cancel-in-progress false, the run in progress always
+finishes, and a newer push replaces only the run waiting behind it. That is the
+trade-off INT-544 takes and its evidence states: an intermediate main commit
+whose run was replaced gets no run of its own. A v* tag's ref is its own, so a
+tag on the commit main just pushed never replaces main's run, nor main its.
+INT-524's per-sha block (every main commit keeps its own run) is now a near
+miss below; restoring it is the one-line answer if the owner prefers it.
 
 The model evaluates only the expression shapes the block uses: a property path,
 `a || b` and `a == 'literal'`. Anything else raises, so a reworded block fails
@@ -44,7 +48,9 @@ REPO = Path(__file__).resolve().parents[2]
 WORKFLOW_DIR = REPO / ".github" / "workflows"
 WORKFLOWS = ("ci.yml", "security.yml")
 
-GROUP = (
+GROUP = "${{ github.workflow }}-${{ github.ref }}"
+#: INT-524's block: a group per main commit, so no queued main run is replaced.
+PER_SHA_GROUP = (
     "${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.ref }}"
 )
 CANCEL = "${{ github.event_name == 'pull_request' }}"
@@ -82,6 +88,7 @@ SCENARIOS: dict[str, dict[str, object]] = {
     "second v* tag on commit A": _push("refs/tags/v1.0.0-rc.1", SHA_A),
 }
 MAIN_RUN = "push to main at A"
+MAIN_RUNS = {MAIN_RUN, "push to main at B"}
 
 _EXPRESSION = re.compile(r"\$\{\{(.*?)\}\}")
 _PATH = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
@@ -199,8 +206,13 @@ def _findings(workflows: Mapping[str, Mapping[object, object]]) -> list[str]:
         main, main_cancels = runs[(file, MAIN_RUN)]
         if main_cancels:
             out.append(f"{file}: a push to main cancels the run in progress")
+        if runs[(file, "push to main at B")][0] != main:
+            out.append(
+                f"{file}: two pushes to main land in different groups, "
+                "so a queued main run is never replaced by a newer one"
+            )
         for label in SCENARIOS:
-            if label != MAIN_RUN and runs[(file, label)][0] == main:
+            if label not in MAIN_RUNS and runs[(file, label)][0] == main:
                 out.append(
                     f"{file}: a push to main shares its group with {label!r}, "
                     "which replaces it while it waits"
@@ -234,7 +246,7 @@ def test_the_workflow_declares_the_pinned_concurrency_block(name: str) -> None:
     block = _load(name).get("concurrency")
     assert block == {"group": GROUP, "cancel-in-progress": CANCEL}, (
         f"{name}: the workflow-level concurrency block must be exactly group {GROUP!r} "
-        f"and cancel-in-progress {CANCEL!r} (INT-524); found {block!r}"
+        f"and cancel-in-progress {CANCEL!r} (INT-524, INT-544); found {block!r}"
     )
 
 
@@ -273,10 +285,22 @@ def _with_block(group: str, cancel: object) -> dict[str, dict[object, object]]:
 
 NEAR_MISSES = [
     pytest.param(
+        PER_SHA_GROUP,
+        CANCEL,
+        "ci.yml: two pushes to main land in different groups",
+        id="int-524-every-main-commit-keeps-its-own-run",
+    ),
+    pytest.param(
         "${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}",
         CANCEL,
         "security.yml: a push to main shares its group with 'v* tag on commit A'",
         id="no-ref-a-tag-replaces-a-waiting-main-run",
+    ),
+    pytest.param(
+        "${{ github.workflow }}-${{ github.event_name }}",
+        CANCEL,
+        "security.yml: a push to main shares its group with 'v* tag on commit A'",
+        id="event-name-groups-every-push-together",
     ),
     pytest.param(
         GROUP,
@@ -291,12 +315,6 @@ NEAR_MISSES = [
         id="cancel-inverted",
     ),
     pytest.param(
-        "${{ github.workflow }}-${{ github.ref }}",
-        CANCEL,
-        "ci.yml: a push to main shares its group with 'push to main at B'",
-        id="ref-only-main-pushes-queue-behind-each-other",
-    ),
-    pytest.param(
         "${{ github.workflow }}-${{ github.sha }}-${{ github.ref }}",
         CANCEL,
         "ci.yml: two pushes to one pull request land in different groups",
@@ -309,7 +327,7 @@ NEAR_MISSES = [
         id="one-group-per-workflow",
     ),
     pytest.param(
-        "${{ github.event.pull_request.number || github.sha }}-${{ github.ref }}",
+        "${{ github.ref }}",
         CANCEL,
         "ci.yml and security.yml share a group for 'pull request 7, first push'",
         id="no-workflow-prefix",

@@ -403,6 +403,7 @@ describe("the registry tile tells the truth about its host (INT-560)", () => {
         "postgres",
         "probes",
         "redis",
+        "sms-egress",
       ].sort(),
     );
   });
@@ -415,10 +416,12 @@ describe("the registry tile tells the truth about its host (INT-560)", () => {
       expect(row.needed).toBe(true);
       expect(row.probeStatus === "healthy" && !row.probeStale).toBe(false);
     }
-    // near miss: a needed component the stack can do without is advisory, with why
-    const proxy = view.tiles.models.rows.find((r) => r.component === "egress-proxy")!;
-    expect(proxy.severity).toEqual("attention");
-    expect(proxy.notNeededReason).toEqual("fails_closed_without_it");
+    // near miss: a deployed component the stack can do without is advisory, with why
+    for (const name of ["egress-proxy", "sms-egress"]) {
+      const proxy = view.tiles.models.rows.find((r) => r.component === name)!;
+      expect(proxy.severity).toEqual("attention");
+      expect(proxy.notNeededReason).toEqual("fails_closed_without_it");
+    }
   });
 
   it("shows the last result with its age, and no_result only when never probed", async () => {

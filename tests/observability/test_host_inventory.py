@@ -111,7 +111,7 @@ def test_a_gpu_box_model_is_never_deployed_on_the_aws_host() -> None:
 
 
 def test_what_the_host_runs_is_derived_not_declared_twice() -> None:
-    assert _inventory().deployed() == NEEDED | {"egress-proxy", "probes"}
+    assert _inventory().deployed() == NEEDED | {"egress-proxy", "sms-egress", "probes"}
 
 
 def test_only_what_the_stack_needs_is_needed() -> None:
@@ -121,6 +121,8 @@ def test_only_what_the_stack_needs_is_needed() -> None:
 def test_a_component_that_is_not_needed_says_why() -> None:
     inventory = _inventory()
     assert inventory.not_needed_reason("egress-proxy") is NotNeededReason.FAILS_CLOSED_WITHOUT_IT
+    # ADR-042's SMS proxy: the OTP send answers 503 without it, nothing else calls it
+    assert inventory.not_needed_reason("sms-egress") is NotNeededReason.FAILS_CLOSED_WITHOUT_IT
     assert inventory.not_needed_reason("probes") is NotNeededReason.OBSERVES_ONLY
     # near miss: a needed component has no reason not to be needed
     assert inventory.not_needed_reason("postgres") is None
@@ -156,8 +158,14 @@ def test_every_probe_address_is_an_internal_compose_name_without_a_credential() 
                 assert "@" not in placement.probe_at, placement.probe_at
 
 
-def test_the_egress_proxy_is_deployed_and_honestly_unprobed() -> None:
-    placement = _inventory().placement("egress-proxy")
+#: The two boundary proxies: `outbound`/`vendor` (INT-442) and `sms-out`/`sms-wan`
+#: (ADR-042) are the networks the probes service never joins.
+UNPROBED_PROXIES = ("egress-proxy", "sms-egress")
+
+
+@pytest.mark.parametrize("proxy", UNPROBED_PROXIES)
+def test_each_boundary_proxy_is_deployed_and_honestly_unprobed(proxy: str) -> None:
+    placement = _inventory().placement(proxy)
     assert placement is not None
     assert placement.probe_at is None
     assert placement.unprobed is not None
@@ -298,8 +306,9 @@ def test_a_tcp_probe_needs_a_host_and_port_not_a_url(tmp_path: Path) -> None:
         assert _refused(tmp_path, raw) == "host_inventory_malformed", address
 
 
-def test_an_unprobed_component_dials_nothing() -> None:
-    placement = _inventory().placement("egress-proxy")
+@pytest.mark.parametrize("proxy", UNPROBED_PROXIES)
+def test_an_unprobed_component_dials_nothing(proxy: str) -> None:
+    placement = _inventory().placement(proxy)
     assert placement is not None
     assert placement.dial_port() is None
     with pytest.raises(ValueError):

@@ -11,11 +11,11 @@
 #   - The KEK mode is transit: OpenBao Transit, in server mode on file storage.
 #   - No dev gate is set anywhere in this tier.
 #   - INT-352: the OTP tier gets its host-generated tokenization key, and the
-#     App Attest and SMS keys the operator sets. Those have no default, so an
-#     empty one reaches the API empty, which it reads as unset: with no Apple
-#     team id every iOS attestation is refused and no code is sent. deploy.sh
-#     refuses a team id without all three SMS keys, which would otherwise
-#     reach a delivery adapter that answers "sent" and sends nothing.
+#     App Attest keys the operator sets. Those have no default, so an empty
+#     one reaches the API empty, which it reads as unset: with no Apple team
+#     id every iOS attestation is refused and no code is sent. The SMS vendor
+#     (Netgsm, INT-528) is read from OpenBao, never from here, and deploy.sh
+#     refuses a team id the API's token cannot pair with that document.
 #   - Every credential the API requires outside dev (INT-325: the three DB
 #     URLs and the object store's root pair) is a required interpolation of
 #     a host-generated secret. None has a default.
@@ -87,8 +87,9 @@ services:
       # class is NOT set here: the synthetic image bakes it, so no compose or
       # env edit can turn this host into something else.
       INTAKE_MODEL_LANES_REDIS_URL: redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0
-      # INT-442 (ADR-035): the synthetic host's one route out, the egress-proxy
-      # service below. Read only through intake_platform.model_lanes.guard.
+      # INT-442 (ADR-035): the hosted lanes' one route out, the egress-proxy
+      # service below (the OTP tier's SMS has its own, sms-egress, ADR-042).
+      # Read only through intake_platform.model_lanes.guard.
       # egress_proxy_url, which refuses the boot if this is set in a
       # deployment that is not synthetic. It is never set in the PHI
       # deployment (tests/infra/test_staging_egress.py pins that).
@@ -111,13 +112,19 @@ services:
       INTAKE_TOKENIZATION_KEY: ${INTAKE_TOKENIZATION_KEY:?run init.sh}
       # Operator-set, no default: empty reaches the API empty, which it reads
       # as unset and fails closed on (docs/runbooks/staging.md, "App Attest
-      # and SMS").
+      # and SMS"). The SMS vendor is not an environment value: the API reads
+      # Netgsm's credentials from OpenBao (secret/api/netgsm, INT-528).
       INTAKE_APP_ATTEST_TEAM_ID: ${INTAKE_APP_ATTEST_TEAM_ID}
       INTAKE_APP_ATTEST_BUNDLE_ID: ${INTAKE_APP_ATTEST_BUNDLE_ID}
       INTAKE_APP_ATTEST_ENVIRONMENT: ${INTAKE_APP_ATTEST_ENVIRONMENT}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      TWILIO_FROM: ${TWILIO_FROM}
+      # Owner patch (INT-528, INT-358): the runtime half of the PHI egress
+      # gate, for the allow-list's one phi_path row (Netgsm OTP SMS). Without
+      # it that row refuses, and the OTP tier answers 503.
+      INTAKE_ALLOW_PHI_EGRESS: explicit-yes
+      # ADR-042 (INT-528): the SMS-only forward proxy, which the Netgsm client
+      # alone rides. intake_platform.egress admits exactly this URL for the
+      # SMS purpose and refuses every other personal-data proxy (INT-203).
+      INTAKE_SMS_EGRESS_PROXY_URL: http://sms-egress:3128
       # INT-465: this host serves synthetic patients only, so its triage tenant
       # is synthetic. Its red rule set is base.life_threat, signed with the
       # synthetic-only test key (owner decision, 3 Oct 2026, with D18; the
@@ -175,14 +182,19 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      # started, not healthy: a proxy that is down fails the hosted calls
-      # closed, and nothing else in the API needs it
+      # started, not healthy: a proxy that is down fails its own calls closed
+      # (the hosted lanes', or the OTP tier's SMS), and nothing else in the API
+      # needs either
       egress-proxy:
         condition: service_started
-    # every network is internal: the API has no route to the internet. Its one
-    # way out is `outbound`, to the egress proxy, which answers only for the
-    # allow-list's hosted-model rows (INT-442).
-    networks: [backend, edge, outbound]
+      sms-egress:
+        condition: service_started
+    # every network is internal: the API has no route to the internet. It has
+    # two ways out, each to one default-deny proxy: `outbound`, to the egress
+    # proxy, which answers only for the allow-list's hosted-model rows
+    # (INT-442), and `sms-out`, to the SMS-only proxy, which answers only for
+    # the allow-list's SMS row (ADR-042, INT-528).
+    networks: [backend, edge, outbound, sms-out]
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -475,8 +487,9 @@ services:
   # the api mounts read-only for the console's registry page.
   #
   # It joins the two internal networks its targets sit on and no other: no
-  # route off the host, and no leg on `outbound`, which is the API's alone
-  # (INT-442) — so the egress proxy is the one deployed component it does not
+  # route off the host, no leg on `outbound`, which is the API's alone
+  # (INT-442), and none on `sms-out`, which ADR-042 keeps to the API and the
+  # SMS proxy — so the two proxies are the deployed components it does not
   # probe, and the page says so. Its credentials are its own and minimal: a
   # Postgres role with LOGIN and CONNECT only (lib.sh ensure_probe_role) and
   # the Redis user above, which may PING. It publishes no port.
@@ -514,6 +527,42 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # ADR-042 (INT-528): the SMS vendor's own forward proxy. It admits CONNECT to
+  # the allow-list's SMS host on 443 and nothing else (./sms-egress/squid.conf,
+  # GENERATED by scripts/security/render_sms_egress_conf.py), closes the
+  # rebinding window itself and refuses the denied ranges at connect. TLS runs
+  # end to end, so it sees no request content, and it logs host:port only. It
+  # is the same digest-pinned squid as egress-proxy above, run the same way as
+  # the image's unprivileged `proxy` user (uid 13), on networks of its own:
+  # neither proxy can reach the other's network, so neither carries the
+  # other's purpose (tests/infra/test_staging_sms_egress.py).
+  sms-egress:
+    image: ubuntu/squid:6.6-24.04_edge@sha256:8a3baed477e2c282ab8aa5edad442f69873246964f225c5c2ae8364b6610963c
+    user: "13:13"
+    volumes:
+      - ./sms-egress/squid.conf:/etc/squid/squid.conf:ro
+    # sms-out: the API's only way to it; sms-wan: its only way off the host
+    networks: [sms-out, sms-wan]
+    read_only: true
+    tmpfs:
+      - /tmp:uid=13,gid=13
+      - /run:uid=13,gid=13
+      - /var/spool/squid:uid=13,gid=13
+      - /var/log/squid:uid=13,gid=13
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ulimits:
+      core: 0
+    healthcheck:
+      # the listener answers; sending traffic through the boundary is not a probe
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/3128"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+    logging: *logging
+
   caddy:
     image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
     environment:
@@ -548,6 +597,11 @@ networks:
     internal: true
   backend:
     internal: true
+  # ADR-042: the API's SMS leg, shared by the API and the SMS proxy alone
+  sms-out:
+    internal: true
+  # ADR-042: the SMS proxy's only way off the host
+  sms-wan: {}
   # INT-442: the API and the egress proxy, nothing else
   outbound:
     internal: true

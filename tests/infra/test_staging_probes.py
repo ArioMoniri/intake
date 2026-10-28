@@ -125,8 +125,10 @@ def test_it_joins_only_the_internal_networks_its_targets_sit_on() -> None:
     for network in joined:
         assert networks[network].get("internal") is True, network
     # near miss: `outbound` is internal too, but it is the API's road to the
-    # egress proxy and the vendors behind it; the probes stay off it
+    # egress proxy and the vendors behind it; the probes stay off it. So is
+    # `sms-out`, ADR-042's road to the SMS proxy and the vendor behind it.
     assert "outbound" not in joined and "vendor" not in joined and "public" not in joined
+    assert "sms-out" not in joined and "sms-wan" not in joined
 
 
 def test_every_probe_address_resolves_on_a_network_the_service_joins() -> None:
@@ -142,10 +144,11 @@ def test_every_probe_address_resolves_on_a_network_the_service_joins() -> None:
                 continue
             host = placement.dial_host()
             assert set(compose["services"][host]["networks"]) & joined, placement.probe_at
-    # near miss: the one deployed component it cannot reach is declared unprobed
-    proxy = inventory.placement("egress-proxy")
-    assert proxy is not None and proxy.probe_at is None
-    assert not set(compose["services"]["egress-proxy"]["networks"]) & joined
+    # near miss: the two deployed components it cannot reach are declared unprobed
+    for name in ("egress-proxy", "sms-egress"):
+        proxy = inventory.placement(name)
+        assert proxy is not None and proxy.probe_at is None, name
+        assert not set(compose["services"][name]["networks"]) & joined, name
 
 
 def test_it_publishes_nothing_and_runs_hardened() -> None:

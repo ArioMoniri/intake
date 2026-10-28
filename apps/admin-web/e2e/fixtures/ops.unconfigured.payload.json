@@ -482,6 +482,24 @@
           "severity_reason": "planned_not_running"
         },
         {
+          "component": "sms-egress",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
+        },
+        {
           "component": "edge-ingress",
           "pin": null,
           "self_hostable": true,
