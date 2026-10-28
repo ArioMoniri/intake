@@ -62,6 +62,7 @@ const PURE = [
   "envelope.ts",
   "session.ts",
   "turn.ts",
+  "microphone.ts",
   "policy.ts",
   "asrClient.ts",
   "types.ts",
@@ -306,6 +307,39 @@ describe("the dialogue and the pill drive the capture, and close it on every tri
     expect(unmount).toContain("discardCapture()");
     const typed = body.slice(body.indexOf("const sendTyped"), body.indexOf("const bargeIn"));
     expect(typed).toContain("discardCapture()");
+  });
+
+  it("the dialogue's unmount closes the session before it discards (INT-559 review of #964, B2)", () => {
+    // Without the close, a driver that resumes past an await after the
+    // unmount opens a microphone no one owns (microphone.test.ts drives it).
+    const body = code(HOOK);
+    const unmount = body.slice(
+      body.indexOf("onHandoff(stateRef.current.pending)"),
+      body.indexOf("useAppStateChange("),
+    );
+    const closes = unmount.indexOf("closedRef.current = true");
+    expect(closes).toBeGreaterThanOrEqual(0);
+    expect(closes).toBeLessThan(unmount.indexOf("discardCapture()"));
+  });
+
+  it("the dialogue and the pill open through one microphone, so a discard reaches an open in flight", () => {
+    // The capture turn is made inside the microphone's factory and nowhere
+    // else: a turn made outside it would be one a discard cannot reach while
+    // the audio session is still being prepared.
+    for (const [name, source] of [
+      ["lib/dialogue/useDialogueSession.ts", HOOK],
+      ["components/VoiceNote.tsx", VOICE_NOTE],
+    ] as const) {
+      const body = code(source);
+      expect(body, name).toContain("createMicrophone(");
+      expect(body.split("createCaptureTurn(").length - 1, name).toBe(1);
+      const factory = body.slice(body.indexOf("createMicrophone("));
+      const turnAt = factory.indexOf("createCaptureTurn(");
+      expect(turnAt, name).toBeGreaterThan(0);
+      expect(turnAt, name).toBeLessThan(factory.indexOf("closedRef.current"));
+    }
+    const discard = code(HOOK).slice(code(HOOK).indexOf("const discardCapture = "));
+    expect(discard.slice(0, discard.indexOf(";"))).toContain(".discard()");
   });
 
   it("the dialogue and the pill both zero on app background", () => {

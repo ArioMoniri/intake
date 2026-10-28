@@ -55,6 +55,67 @@ function harness(options: { transcribe?: (segment: PcmSegment) => Promise<string
   };
 }
 
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+/**
+ * A turn whose two awaits — the native stream's creation and its start —
+ * each wait until released, so a discard or a finish can land inside either.
+ * `started` is recorded when the start settles, so a stop sent before it
+ * (which the native stream would lose) is visible in the order of calls.
+ */
+function gatedHarness() {
+  const listeners = new Set<(chunk: PcmChunk) => void>();
+  const calls: string[] = [];
+  const sent: PcmSegment[] = [];
+  let releaseCreate: () => void = () => undefined;
+  let releaseStart: () => void = () => undefined;
+  const port: PcmStreamPort = {
+    start: () => {
+      calls.push("start");
+      return new Promise<void>((resolve) => {
+        releaseStart = () => {
+          calls.push("started");
+          resolve();
+        };
+      });
+    },
+    stop: () => {
+      calls.push("stop");
+    },
+    onBuffer: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+  return {
+    calls,
+    sent,
+    listeners: () => listeners.size,
+    /** More than the one-second window, so a live capture would hand a segment to the client. */
+    emitPastTheWindow() {
+      const data = new Int16Array(1_500).fill(4).buffer as ArrayBuffer;
+      for (const listener of listeners) {
+        listener({ data, sampleRate: 1_000, channels: 1 });
+      }
+    },
+    releaseCreate: () => releaseCreate(),
+    releaseStart: () => releaseStart(),
+    deps: {
+      createStream: () => {
+        calls.push("create");
+        return new Promise<PcmStreamPort>((resolve) => {
+          releaseCreate = () => resolve(port);
+        });
+      },
+      transcribe: async (segment: PcmSegment) => {
+        sent.push(segment);
+        return "söz";
+      },
+      maxSeconds: 1,
+    },
+  };
+}
+
 describe("joinTranscripts", () => {
   it("joins the segment texts in order, dropping empties", () => {
     expect(joinTranscripts(["göğsümde", "", "  baskı var  "])).toBe("göğsümde baskı var");
@@ -164,7 +225,8 @@ describe("createCaptureTurn", () => {
     });
     expect(await turn.open()).toBe(false);
     expect(turn.capturing).toBe(false);
-    expect(h.calls).toEqual(["create"]);
+    // never started, and the native object the import created is released
+    expect(h.calls).toEqual(["create", "stop"]);
   });
 
   it("says whether anything was heard, before and after the turn ends", async () => {
@@ -190,5 +252,79 @@ describe("createCaptureTurn", () => {
     expect(turn.levelDbfs()).toBeUndefined();
     h.emit(new Int16Array(100).fill(16_384));
     expect(turn.levelDbfs()).toBeCloseTo(-6.02, 1);
+  });
+});
+
+describe("a discard or a finish that lands while the turn opens (INT-559 review of #964, B2)", () => {
+  it("a discard while the stream is being created never starts it, and releases what was created", async () => {
+    const h = gatedHarness();
+    const turn = createCaptureTurn({ ...h.deps, closed: () => false });
+    const opening = turn.open();
+    turn.discard(); // the app leaves the foreground during the lazy native import
+    h.releaseCreate();
+    expect(await opening).toBe(false);
+    expect(turn.capturing).toBe(false);
+    expect(h.listeners()).toBe(0);
+    expect(h.calls).toEqual(["create", "stop"]);
+    h.emitPastTheWindow();
+    expect(h.sent).toEqual([]);
+    expect(turn.zeroed()).toBe(true);
+    expect(await turn.finish()).toBeNull();
+    expect(h.sent).toEqual([]);
+  });
+
+  it("a discard while the stream starts leaves it stopped once the start settles, and open says false", async () => {
+    const h = gatedHarness();
+    const turn = createCaptureTurn({ ...h.deps, closed: () => false });
+    const opening = turn.open();
+    h.releaseCreate();
+    await flush();
+    expect(h.calls).toEqual(["create", "start"]);
+    turn.discard(); // the app leaves the foreground while the platform brings the input up
+    expect(h.listeners()).toBe(0);
+    h.releaseStart();
+    expect(await opening).toBe(false);
+    expect(turn.capturing).toBe(false);
+    expect(h.listeners()).toBe(0);
+    expect(h.calls).toEqual(["create", "start", "started", "stop"]);
+    h.emitPastTheWindow();
+    expect(h.sent).toEqual([]);
+    expect(turn.zeroed()).toBe(true);
+    expect(await turn.finish()).toBeNull();
+    expect(h.sent).toEqual([]);
+  });
+
+  it("a finish while the turn opens ends it: nothing opens behind the hand-over", async () => {
+    const h = gatedHarness();
+    const turn = createCaptureTurn({ ...h.deps, closed: () => false });
+    const opening = turn.open();
+    expect(await turn.finish()).toBeNull(); // "Bitirdim" before the microphone is up
+    h.releaseCreate();
+    expect(await opening).toBe(false);
+    expect(turn.capturing).toBe(false);
+    expect(h.listeners()).toBe(0);
+    expect(h.calls).toEqual(["create", "stop"]);
+    h.emitPastTheWindow();
+    expect(h.sent).toEqual([]);
+  });
+
+  it("near miss: a discard after the open settled closes the microphone at once, as before", async () => {
+    const h = gatedHarness();
+    const turn = createCaptureTurn({ ...h.deps, closed: () => false });
+    const opening = turn.open();
+    h.releaseCreate();
+    await flush();
+    h.releaseStart();
+    expect(await opening).toBe(true);
+    expect(turn.capturing).toBe(true);
+    expect(h.listeners()).toBe(1);
+    turn.discard();
+    expect(turn.capturing).toBe(false);
+    expect(h.listeners()).toBe(0);
+    expect(h.calls).toEqual(["create", "start", "started", "stop"]);
+    h.emitPastTheWindow();
+    expect(h.sent).toEqual([]);
+    expect(turn.zeroed()).toBe(true);
+    expect(await turn.finish()).toBeNull();
   });
 });

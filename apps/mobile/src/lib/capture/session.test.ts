@@ -17,14 +17,15 @@ interface FakeStream {
   calls: string[];
   emit(samples: Int16Array, sampleRate?: number, channels?: number): void;
   emitBytes(bytes: Uint8Array, sampleRate?: number, channels?: number): void;
-  release(): void;
+  /** Settle a gated start: resolve it, or reject it with `error`. */
+  release(error?: Error): void;
   listeners(): number;
 }
 
 function fakeStream(options: { gateStart?: boolean; failStart?: boolean } = {}): FakeStream {
   const listeners = new Set<(chunk: PcmChunk) => void>();
   const calls: string[] = [];
-  let release: () => void = () => undefined;
+  let release: (error?: Error) => void = () => undefined;
   return {
     port: {
       start: () => {
@@ -33,8 +34,8 @@ function fakeStream(options: { gateStart?: boolean; failStart?: boolean } = {}):
           return Promise.reject(new Error("mic_busy"));
         }
         if (options.gateStart) {
-          return new Promise<void>((resolve) => {
-            release = resolve;
+          return new Promise<void>((resolve, reject) => {
+            release = (error) => (error === undefined ? resolve() : reject(error));
           });
         }
         return Promise.resolve();
@@ -67,7 +68,7 @@ function fakeStream(options: { gateStart?: boolean; failStart?: boolean } = {}):
         listener({ data: data as ArrayBuffer, sampleRate, channels });
       }
     },
-    release: () => release(),
+    release: (error) => release(error),
     listeners: () => listeners.size,
   };
 }
@@ -397,5 +398,71 @@ describe("discarding", () => {
     session.finish();
     session.discard();
     expect(stream.calls.filter((call) => call === "stop")).toHaveLength(1);
+  });
+});
+
+describe("a discard that lands while the stream starts (INT-559 review of #964, B2)", () => {
+  it("drops the listener at once, stops the stream once the start settles, and open says false", async () => {
+    const stream = fakeStream({ gateStart: true });
+    const handed: PcmSegment[] = [];
+    const session = createCaptureSession({
+      stream: stream.port,
+      closed: () => false,
+      onSegment: (segment) => handed.push(segment),
+      maxSeconds: 1,
+    });
+    const opening = session.open();
+    session.discard(); // the app leaves the foreground while the platform brings the input up
+    expect(stream.listeners()).toBe(0);
+    // expo-audio's native AudioStream.stop returns early until its start has
+    // set isStreaming, so a stop sent now would be lost: it waits for the start.
+    expect(stream.calls).toEqual(["subscribe", "start", "unsubscribe"]);
+    stream.release();
+    expect(await opening).toBe(false);
+    expect(session.capturing).toBe(false);
+    expect(stream.calls).toEqual(["subscribe", "start", "unsubscribe", "stop"]);
+    stream.emit(ramp(1_500), RATE); // more than the window: a live capture would hand a segment out
+    expect(handed).toEqual([]);
+    expect(session.secondsBuffered()).toBe(0);
+    expect(session.zeroed()).toBe(true);
+    expect(session.finish()).toBeNull();
+  });
+
+  it("a start that then fails is still released, and the open settles false rather than throwing", async () => {
+    const stream = fakeStream({ gateStart: true });
+    const session = createCaptureSession({
+      stream: stream.port,
+      closed: () => false,
+      onSegment: () => undefined,
+    });
+    const opening = session.open();
+    session.discard();
+    stream.release(new Error("mic_busy"));
+    expect(await opening).toBe(false);
+    expect(session.capturing).toBe(false);
+    expect(stream.listeners()).toBe(0);
+    expect(stream.calls).toEqual(["subscribe", "start", "unsubscribe", "stop"]);
+  });
+
+  it("near miss: a discard after the start settled stops the stream at once, as before", async () => {
+    const stream = fakeStream({ gateStart: true });
+    const handed: PcmSegment[] = [];
+    const session = createCaptureSession({
+      stream: stream.port,
+      closed: () => false,
+      onSegment: (segment) => handed.push(segment),
+      maxSeconds: 1,
+    });
+    const opening = session.open();
+    stream.release();
+    expect(await opening).toBe(true);
+    stream.emit(ramp(400), RATE);
+    session.discard();
+    expect(session.capturing).toBe(false);
+    expect(stream.listeners()).toBe(0);
+    expect(stream.calls).toEqual(["subscribe", "start", "unsubscribe", "stop"]);
+    stream.emit(ramp(1_500), RATE);
+    expect(handed).toEqual([]);
+    expect(session.zeroed()).toBe(true);
   });
 });

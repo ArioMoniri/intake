@@ -65,11 +65,19 @@ describe("invariant 3 — the watcher reads a level, never audio, and never a fi
 
   it("one capture per turn — the watch does not open a second one", () => {
     // The capture that heard the barge-in IS the patient's answer, so there
-    // is exactly one place a turn is created, and it is guarded by
-    // `isCapturing()` before the create.
-    expect(HOOK.split("createCaptureTurn(").length - 1).toBe(1);
-    const open = HOOK.slice(HOOK.indexOf("const openMicrophone = async"));
-    expect(open.slice(0, open.indexOf("createCaptureTurn("))).toContain("isCapturing()");
+    // is exactly one place a turn is created — the factory of the dialogue's
+    // one microphone (lib/capture/microphone.ts) — and the microphone makes
+    // a turn only when nothing is capturing and no open is in flight
+    // (microphone.test.ts drives both in node).
+    const hook = code(HOOK);
+    expect(hook.split("createCaptureTurn(").length - 1).toBe(1);
+    const factory = hook.slice(hook.indexOf("createMicrophone("));
+    expect(factory.indexOf("createCaptureTurn(")).toBeGreaterThan(0);
+    const microphone = code(readFileSync(join(ROOT, "src/lib/capture/microphone.ts"), "utf8"));
+    const open = microphone.slice(microphone.indexOf("const open = "));
+    const beforeCreate = open.slice(0, open.indexOf("deps.createTurn("));
+    expect(beforeCreate).toContain("if (opening !== null)");
+    expect(beforeCreate).toContain("held?.capturing === true");
   });
 
   it("on iOS the clip plays without the microphone: expo-audio's stream would silence it", () => {

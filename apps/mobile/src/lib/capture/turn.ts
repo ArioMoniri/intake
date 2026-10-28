@@ -10,6 +10,12 @@
  * INT-551 pattern — read before the lazy native import, after it, and by the
  * session on every chunk — so a RED that lands anywhere in the opening leaves
  * no microphone behind it (invariants 9 and 21).
+ *
+ * The turn's own `discard` and `finish` end it the same way (the review of
+ * #964): either can land while `open` is suspended in the native import or
+ * the stream's start, so both set a flag that `open` reads after every await
+ * and that the session reads as part of its `closed`. A stream the import
+ * created for an ended turn is released without ever being started.
  */
 import { createCaptureSession, type CaptureSession } from "./session";
 import { CAPTURE_FORMAT, type PcmFormat, type PcmSegment, type PcmStreamPort } from "./types";
@@ -23,7 +29,10 @@ export interface CaptureTurnDeps {
 }
 
 export interface CaptureTurn {
-  /** Open the microphone unless the dialogue closes first; whether it is capturing. */
+  /**
+   * Open the microphone unless the dialogue closes, or the turn is discarded
+   * or finished, first; whether it is capturing.
+   */
   open(): Promise<boolean>;
   readonly capturing: boolean;
   /** True once any sample arrived in this turn; survives finish and discard. */
@@ -38,7 +47,7 @@ export interface CaptureTurn {
    * the microphone is closed and zeroed by then either way.
    */
   finish(): Promise<string | null>;
-  /** Close the microphone and zero; nothing is sent, nothing settles. */
+  /** Close the microphone and zero; nothing is sent, nothing settles. Ends an open in flight. */
   discard(): void;
 }
 
@@ -51,9 +60,14 @@ export function joinTranscripts(parts: readonly string[]): string {
 }
 
 export function createCaptureTurn(deps: CaptureTurnDeps): CaptureTurn {
-  const { createStream, transcribe, closed } = deps;
+  const { createStream, transcribe } = deps;
   let session: CaptureSession | null = null;
   let uploads: Promise<string>[] = [];
+  /** Set by `discard`: an open suspended at an await leaves nothing behind it. */
+  let discarded = false;
+  /** Set by `finish`: the turn is over, so an open still in flight never starts capturing. */
+  let finished = false;
+  const closed = () => discarded || finished || deps.closed();
 
   const send = (segment: PcmSegment) => {
     const upload = transcribe(segment);
@@ -74,6 +88,8 @@ export function createCaptureTurn(deps: CaptureTurnDeps): CaptureTurn {
       }
       const stream = await createStream(deps.format ?? CAPTURE_FORMAT);
       if (closed()) {
+        // Never started; the native object the import created is released.
+        stream.stop();
         return false;
       }
       session = createCaptureSession({
@@ -93,6 +109,7 @@ export function createCaptureTurn(deps: CaptureTurnDeps): CaptureTurn {
     levelDbfs: () => session?.levelDbfs(),
     zeroed: () => session === null || session.zeroed(),
     async finish() {
+      finished = true;
       const tail = session?.finish() ?? null;
       if (tail !== null) {
         send(tail);
@@ -105,6 +122,7 @@ export function createCaptureTurn(deps: CaptureTurnDeps): CaptureTurn {
       return joinTranscripts(await Promise.all(pending));
     },
     discard() {
+      discarded = true;
       session?.discard();
       uploads = [];
     },

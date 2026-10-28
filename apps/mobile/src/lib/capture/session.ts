@@ -16,6 +16,14 @@
  * from the format the platform actually delivers, a chunk that would cross
  * the cap hands a cap-sized segment out first, and no sample is ever dropped
  * or kept past the trigger that ends the turn.
+ *
+ * A discard can land while the platform is still bringing the input up (the
+ * app leaving the foreground, a typed answer — the review of #964). The
+ * listener goes at once, but the stop waits for the start to settle:
+ * expo-audio's native `AudioStream.stop` returns early until its start has
+ * set `isStreaming` (ios/AudioStream.swift, AudioStream.kt), so a stop sent
+ * mid-start would be lost and the engine would come up behind it. The open
+ * then says false, whether the start resolved or failed.
  */
 import { MAX_CAPTURE_SECONDS, capacityFor, createBoundedPcmBuffer } from "./boundedBuffer";
 import type { BoundedPcmBuffer } from "./boundedBuffer";
@@ -34,8 +42,9 @@ export interface CaptureSessionOptions {
 
 export interface CaptureSession {
   /**
-   * Open the microphone, unless the dialogue closes first. Resolves to
-   * whether it is capturing. A platform failure rejects.
+   * Open the microphone, unless the dialogue closes or the session is
+   * discarded first. Resolves to whether it is capturing. A platform failure
+   * rejects, unless a discard already ended the open.
    */
   open(): Promise<boolean>;
   readonly capturing: boolean;
@@ -50,7 +59,10 @@ export interface CaptureSession {
    * nothing arrived, or when the session is not capturing.
    */
   finish(): PcmSegment | null;
-  /** Stop the stream and zero everything; nothing is handed out. */
+  /**
+   * Stop the stream and zero everything; nothing is handed out. Mid-start,
+   * the listener goes now and the stop follows the start (see the header).
+   */
   discard(): void;
   /** True when no sample is held — the resting state and the state after every trigger. */
   zeroed(): boolean;
@@ -69,6 +81,10 @@ export function createCaptureSession(options: CaptureSessionOptions): CaptureSes
   let channels = 0;
   let lastLevel: number | undefined;
   let samplesHeard = 0;
+  /** A start is in flight: a stop sent now would be lost (see the header). */
+  let starting = false;
+  /** Advances on every discard, so an open suspended in its start can tell it was discarded. */
+  let discards = 0;
 
   const stopStream = () => {
     if (unsubscribe !== null) {
@@ -84,9 +100,17 @@ export function createCaptureSession(options: CaptureSessionOptions): CaptureSes
   };
 
   const discard = () => {
+    discards += 1;
     const wasOpen = capturing || unsubscribe !== null;
     capturing = false;
-    if (wasOpen) {
+    if (starting) {
+      // Nothing reaches the buffer from here; open() stops the stream the
+      // moment the start settles.
+      if (unsubscribe !== null) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+    } else if (wasOpen) {
       stopStream();
     }
     zeroEverything();
@@ -134,16 +158,28 @@ export function createCaptureSession(options: CaptureSessionOptions): CaptureSes
       if (closed()) {
         return false;
       }
+      const discardsBefore = discards;
       unsubscribe = stream.onBuffer(onChunk);
+      starting = true;
       try {
         await stream.start();
       } catch (error) {
-        unsubscribe();
-        unsubscribe = null;
+        if (unsubscribe !== null) {
+          unsubscribe();
+          unsubscribe = null;
+        }
+        if (discards !== discardsBefore) {
+          // Discarded mid-start: the failure is no one's, and the native
+          // object is released all the same.
+          stream.stop();
+          return false;
+        }
         throw error;
+      } finally {
+        starting = false;
       }
-      if (closed()) {
-        // The RED landed while the platform brought the input up.
+      if (discards !== discardsBefore || closed()) {
+        // A discard, or the RED, landed while the platform brought the input up.
         stopStream();
         zeroEverything();
         return false;

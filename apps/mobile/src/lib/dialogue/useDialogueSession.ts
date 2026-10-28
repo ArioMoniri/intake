@@ -64,8 +64,9 @@ import { AudioModule, createAudioPlayer, type AudioPlayer } from "expo-audio";
 
 import { useAppStateChange } from "../capture/appState";
 import { createExpoPcmStream } from "../capture/expoStream";
+import { createMicrophone, type Microphone } from "../capture/microphone";
 import { micMayOpenWhileSpeaking } from "../capture/policy";
-import { createCaptureTurn, type CaptureTurn } from "../capture/turn";
+import { createCaptureTurn } from "../capture/turn";
 import { configuredServiceCandidates } from "../dev/expoHosts";
 import { BARGE_IN_SAMPLE_MS, createSpeechOnsetDetector } from "./bargeIn";
 import { EXTRACT_PORT, extractFromCandidates, type ExtractCandidate } from "../extract";
@@ -188,12 +189,11 @@ export function useDialogueSession({
   onFailed,
   onHandoff,
 }: DialogueSessionOptions): DialogueSession {
-  /** The microphone of the current turn (INT-559): a capture turn, never a
-   * recorder. One per dialogue turn, wherever the turn opened it. */
-  const captureRef = useRef<CaptureTurn | null>(null);
-  /** An open in flight, so two drivers asking at once share one microphone. */
-  const openingRef = useRef<Promise<void> | null>(null);
-  const isCapturing = () => captureRef.current?.capturing === true;
+  /** The dialogue's one microphone (INT-559, lib/capture/microphone.ts): a
+   * capture turn per dialogue turn, never a recorder, wherever the turn opened
+   * it. Two drivers asking at once share one open, and a discard reaches an
+   * open at whichever await it is suspended in. Made on first use. */
+  const microphoneRef = useRef<Microphone | null>(null);
   const [state, dispatch] = useReducer(
     (s: DialogueStreamState, a: DialogueStreamAction) => dialogueStreamReducer(questions, s, a),
     questions,
@@ -214,6 +214,27 @@ export function useDialogueSession({
   const workRef = useRef(0);
   /** The level watch armed for the clip currently playing, if any. */
   const watchRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const microphone = (): Microphone => {
+    microphoneRef.current ??= createMicrophone({
+      prepare: () =>
+        AudioModule.setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+          shouldRouteThroughEarpiece: false,
+        }),
+      createTurn: (closed) =>
+        createCaptureTurn({
+          createStream: createExpoPcmStream,
+          transcribe: transcribeSegment,
+          closed,
+        }),
+      closed: () => closedRef.current,
+    });
+    return microphoneRef.current;
+  };
+  /** Read through the ref: a microphone never made has never opened, and has nothing to discard. */
+  const isCapturing = () => microphoneRef.current?.capturing === true;
 
   // INT-414 — conversational delivery. The cue is what the patient's LAST
   // action looked like (a barge-in, a "don't know", a correction, an empty
@@ -314,55 +335,16 @@ export function useDialogueSession({
    * Open the microphone. One capture turn per dialogue turn, wherever the
    * turn started it — the speaking driver when the clip begins (Android), the
    * listening driver when there was no clip or the platform could not have
-   * both (iOS, lib/capture/policy.ts). `closedRef` is read after every await
-   * (INT-551's pattern): a RED that lands while the session switches or the
-   * stream starts leaves no microphone behind it.
+   * both (iOS, lib/capture/policy.ts). The microphone reads `closedRef` and
+   * its own discards after every await (INT-551's pattern, carried up to the
+   * audio-session switch by the review of #964): a RED, a typed answer, the
+   * app leaving the foreground or an unmount that lands while the session
+   * switches or the stream starts leaves no microphone behind it.
    */
-  const openMicrophone = async () => {
-    if (openingRef.current !== null) {
-      return openingRef.current;
-    }
-    if (isCapturing() || closedRef.current) {
-      return;
-    }
-    const opening = (async () => {
-      await AudioModule.setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-        shouldRouteThroughEarpiece: false,
-      });
-      if (closedRef.current) {
-        return;
-      }
-      const turn = createCaptureTurn({
-        createStream: createExpoPcmStream,
-        transcribe: transcribeSegment,
-        closed: () => closedRef.current,
-      });
-      captureRef.current = turn;
-      let opened = false;
-      try {
-        opened = await turn.open();
-      } finally {
-        if (!opened && captureRef.current === turn) {
-          captureRef.current = null;
-        }
-      }
-    })();
-    openingRef.current = opening;
-    try {
-      await opening;
-    } finally {
-      openingRef.current = null;
-    }
-  };
+  const openMicrophone = () => microphone().open();
 
-  /** Close whatever microphone is open and zero its buffer; nothing is sent. */
-  const discardCapture = () => {
-    const turn = captureRef.current;
-    captureRef.current = null;
-    turn?.discard();
-  };
+  /** Close whatever microphone is open, or still opening, and zero its buffer; nothing is sent. */
+  const discardCapture = () => microphoneRef.current?.discard();
 
   /**
    * Watch the level while the agent speaks and interrupt on a real onset.
@@ -408,7 +390,7 @@ export function useDialogueSession({
         clearInterval(timer);
         return;
       }
-      const level = captureRef.current?.levelDbfs();
+      const level = microphoneRef.current?.current()?.levelDbfs();
       if (detector.sample(level, Date.now()) === "fired") {
         clearInterval(timer);
         bargeIn();
@@ -742,9 +724,11 @@ export function useDialogueSession({
   // Unmount: stop audio both ways and delete the whole agent-clip cache.
   // Whatever microphone is open is closed and zeroed, the speaking turn's
   // barge-in one included (INT-551's finding; before it only a listening
-  // turn's was).
+  // turn's was). The session closes first, as `leave` does: a driver that
+  // resumes past an await after this opens nothing (the review of #964).
   useEffect(() => {
     return () => {
+      closedRef.current = true;
       clearBargeInWatch();
       stopPlayback();
       abortRef.current?.abort();
@@ -821,9 +805,9 @@ export function useDialogueSession({
     // The microphone closes NOW, synchronously inside `finish`; the segments
     // it handed out at the cap are already with the ASR daemon and the tail
     // follows (lib/capture/turn.ts). Nothing of this turn's audio is held
-    // past this line.
-    const turn = captureRef.current;
-    captureRef.current = null;
+    // past this line, and an open still in flight is abandoned by the
+    // hand-over, so no microphone opens behind the patient's "done".
+    const turn = microphoneRef.current?.take() ?? null;
     const heard = turn?.heard === true;
     const settling: Promise<string | null> = turn === null ? Promise.resolve(null) : turn.finish();
     settling.catch(() => undefined); // awaited below; never an unhandled rejection
