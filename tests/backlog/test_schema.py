@@ -229,7 +229,9 @@ def test_ids_unique_and_well_formed() -> None:
     # found on the synthetic host, GitHub #930).
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
-    assert len(ids) == 367
+    # + INT-576 (the Netgsm adapter parses the live success shape and never
+    # retries an unreadable 200; the owner's real send, GitHub #971).
+    assert len(ids) == 368
     import re
 
     for i in ids:

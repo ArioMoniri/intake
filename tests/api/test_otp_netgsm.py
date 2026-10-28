@@ -5,8 +5,10 @@ This file pins the adapter; test_otp_netgsm_wiring.py pins where it is (and is
 not) wired.
 
 - Every vendor answer is replayed from ``tests/fixtures/netgsm/otp_rest_v2.json``,
-  built from Netgsm's public documentation, behind the INT-018 guarded async
-  transport with an injected resolver: no socket, no DNS, no vendor call.
+  derived from Netgsm's public documentation and official SDKs (INT-576
+  re-derived it; test_otp_netgsm_answer.py pins the answers), behind the
+  INT-018 guarded async transport with an injected resolver: no socket, no
+  DNS, no vendor call.
 - The wire body is enumerated by hand, exactly the documented three fields.
 - Every documented vendor code maps to one typed refusal and one port reason,
   whatever HTTP status carries it; transport faults map to the port's reasons.
@@ -40,6 +42,7 @@ from netgsm_testkit import (
     PUBLIC_ANSWER,
     RECORDED,
     SHIPPED_ALLOWLIST,
+    UNREADABLE,
     USERCODE,
     VAULT_DOC,
     Vendor,
@@ -80,10 +83,10 @@ def _failure(delivery: Any, phone: str = PHONE, code: str = CODE) -> Any:
 # --- the recorded contract ------------------------------------------------------------
 
 
-def test_the_fixture_is_labelled_as_built_from_the_documentation() -> None:
-    assert RECORDED["provenance"] == "built-from-documentation"
+def test_the_fixture_is_labelled_as_derived_from_the_documentation_and_sdk() -> None:
+    assert RECORDED["provenance"] == "derived-from-documentation-and-sdk"
     assert RECORDED["source_url"] == "https://www.netgsm.com.tr/dokuman/#otp-sms"
-    assert RECORDED["retrieved_on"] == "2026-10-16"
+    assert RECORDED["retrieved_on"] == "2026-10-28"
     assert "live call" in RECORDED["note"]
     assert RECORDED["endpoint"]["url"] == netgsm().NETGSM_OTP_URL
 
@@ -228,9 +231,10 @@ def test_each_transport_fault_maps_to_one_port_reason(phi_egress: None, scenario
 
 def test_a_failure_is_never_chained_to_the_transport_error(phi_egress: None) -> None:
     """A transport exception holds the request, and the request holds the body."""
-    for scenario in ("timeout", "connect-error", "ok-not-json"):
-        error = _failure(adapter(Vendor(FAULTS[scenario][0])))
-        assert error.__cause__ is None and error.__context__ is None, scenario
+    deep = UNREADABLE["json-deeper-than-the-decoder"][0]
+    for respond in (FAULTS["timeout"][0], FAULTS["connect-error"][0], deep):
+        error = _failure(adapter(Vendor(respond)))
+        assert error.__cause__ is None and error.__context__ is None
 
 
 # --- refused before the wire ------------------------------------------------------------
@@ -301,6 +305,7 @@ def test_the_call_declares_the_sms_purpose_and_the_strictest_class() -> None:
 def _every_failure() -> list[Any]:
     behaviours = [replay("error", code=code) for code in DOCUMENTED_CODES]
     behaviours += [respond for respond, _, _, _ in FAULTS.values()]
+    behaviours += [respond for respond, _ in UNREADABLE.values()]
     # a vendor whose description echoes the recipient and the message
     behaviours.append(body(406, {"code": "50", "description": f"{PHONE_NATIONAL} {CODE}"}))
     return behaviours

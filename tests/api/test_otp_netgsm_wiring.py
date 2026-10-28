@@ -46,6 +46,7 @@ from netgsm_testkit import (
     PHONE,
     SHIPPED_ALLOWLIST,
     STRICT_ENVIRONMENTS,
+    UNREADABLE,
     USERCODE,
     VAULT_DOC,
     Vault,
@@ -338,6 +339,24 @@ def test_an_egress_refusal_reaches_the_route_as_the_same_503(
         assert response.status_code == 503
         assert response.json() == {"error": "otp_delivery_unavailable"}
     assert vendor.requests == []
+
+
+@pytest.mark.parametrize("scenario", ["plain-text-00-jobid", "00-without-jobid"])
+def test_an_unreadable_200_is_sent_once_and_the_cooldown_holds_the_resend(
+    phi_egress: None, tmp_path: Path, scenario: str
+) -> None:
+    """INT-576: Netgsm may have sent the code, so nothing sends it again. The
+    route answers the generic 503 after exactly one vendor call, and a resend
+    straight after is held by the cooldown the first request started."""
+    vendor = Vendor(UNREADABLE[scenario][0])
+    for client in _harness(tmp_path, _auth(adapter(vendor))):
+        first = _request_otp(client)
+        assert first.status_code == 503, first.text
+        assert first.json() == {"error": "otp_delivery_unavailable"}
+        again = _request_otp(client)
+        assert again.status_code == 429, again.text
+        assert again.json()["error"] == "otp_limited"
+    assert len(vendor.requests) == 1
 
 
 # --- ADR-042: the SMS-only proxy ----------------------------------------------------------

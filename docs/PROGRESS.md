@@ -1,5 +1,51 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
+- Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
+- Plan:
+  - Settle the shape from primary sources, each snapshotted verbatim with URL, date and sha256 in `tests/fixtures/netgsm/sources/`:
+    - Netgsm's documentation (OTP SMS, REST v2 and XML);
+    - the official JS SDK `@netgsm/sms` 1.1.11;
+    - the PHP OTP package the documentation links;
+    - `netgsm-sms` 1.1.2, which has no OTP method at all.
+  - The documentation's sample puts the job id in `jobid`. The JS SDK's `OtpSmsResponse` and its integration test against `/sms/rest/v2/otp` put it in `jobId`. INT-528 read `jobid` only, and replaying the SDK shape reproduces the owner's log line exactly.
+  - Accept both REST v2 shapes: code `00` and exactly one digit-string job id under `jobid` or `jobId`.
+  - Map every documented OTP code, adding 80 (`send_limit_exceeded`) and 101.
+  - Any other 2xx is `unparseable_response`, `accepted_without_job_id` or `unknown_vendor_code`, with port reason `malformed_response`, and is never retried.
+  - Add `OtpDeliveryError.retryable` (False for `malformed_response`, `timeout` and `vendor_unavailable`).
+  - The owner's check prints `unconfirmed` (exit 3), never "not sent", for those.
+  - Add the opt-in structure-only diagnostic `netgsm_test_otp.sh --shape`. It was needed: the documentation and the SDK disagree, and no source is a live capture.
+  - The wire request and the sms-egress allow-list are unchanged.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/api/test_otp_netgsm_answer.py` (new):
+    - 17 unreadable-2xx near misses: plain `00 <id>`, the XML endpoint's answer, an HTML page, empty, a JSON array, no code, a non-digit code, JSON deeper than the decoder, 00 without a job id, a non-digit job id, a numeric job id, an empty job id, both spellings, `jobID`, and the codes 99, `0` and `01` at 200;
+    - each is sent exactly once and is not retryable;
+    - the fixture against the snapshots;
+    - the code union derived from the snapshots;
+    - the retryable truth table;
+    - an AST test for no retry loop;
+    - invariant 6 over values, keys, tags, the code and the job id;
+    - the shape's rendering.
+  - Route: an unreadable 200 gives one vendor call and a 503, and the cooldown answers the resend 429.
+  - Owner check: `unconfirmed` and `--shape`.
+  - Script: `--shape` passes through; any other argument runs nothing.
+  - Red: 59 failed, 193 passed, 1 collection error. Green: 339 passed on the set, and 1273 on the wider OTP, observability, legal, egress and staging suites. 16/16 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff and format clean; mypy --strict clean (97 files).
+  - files/11 regenerated, and the three pins go from 367 to 368.
+  - The full `make check` fan-out runs on the PR's runner (no container runtime here). The local gate results are in docs/evidence/INT-576.md.
+  - `make safety` is not touched: no protocol, PolicyGuard or runtime change.
+- Invariants touched and still passing:
+  - 6: no number, code, job id or body in any error, log line or shape, tested;
+  - 14: credentials still only from OpenBao, and the egress allow-list is untouched;
+  - 16: Sec-Row `onboarding`, with the threat row updated;
+  - 17: no placeholders, and the fixture is labelled derived, not captured;
+  - 19: no SDK installed or added; the sources were read as data.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Deploy, then the owner's one retry: `netgsm_test_otp.sh --shape` over SSM. Its keys line settles `jobid` against `jobId` live.
+- Next: merge, deploy, and the owner's retry.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
 - Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
 - Plan:
