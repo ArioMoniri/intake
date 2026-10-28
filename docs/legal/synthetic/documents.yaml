@@ -35,13 +35,15 @@
 # INT-529 refresh, 28 Oct 2026: the sign-in SMS processor (Netgsm, INT-528) is
 # live on the synthetic host, so core names it; re-signed. Round 2 (same day,
 # legal review B1): the sign-in number is not stored anywhere; core syn2.
-synthetic_index_version: "2026-10-28.2"
+# INT-536 forward merge, 28 Oct 2026: voice and lane.affect carry INT-536's
+# recipients sections and the renamed controller line; re-signed.
+synthetic_index_version: "2026-10-28.4"
 data_class: synthetic
 
 documents:
   - id: acik_riza.core
-    version: "2026-10-28.syn2"
-    sha256: "8c752c9f4a143bb462b0a833f5854afa24a0b7abb5e7d324eebbb3edb9c8c7d0"
+    version: "2026-10-28.syn3"
+    sha256: "a4b5016994b5fbe0bf0500b0dd27bb94cbb214d281088c071e1a1a151ef5203d"
     grounds:
       retention: [clinical_record]
       recipients: [REC_PATIENT_CLINICIAN, REC_CLINICIAN, REC_INTERNAL]
@@ -49,8 +51,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.voice
-    version: "2026-10-17.syn1"
-    sha256: "4c919d1e8140060546e2ac7906c78614f5b05c58f030fe9b2f0231842b9fdd54"
+    version: "2026-10-28.syn2"
+    sha256: "0aad0911904629989c62fb0201dfd7d92985225c435ef10a9e139c75f40e281c"
     grounds:
       retention: [raw_audio, clinical_record]
       recipients: [REC_INTERNAL]
@@ -58,8 +60,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.wellbeing
-    version: "2026-10-16.syn1"
-    sha256: "305072e55f012e5477050b4783bae0571d9e13aa8ffc78536d033cab726b93a4"
+    version: "2026-10-28.syn1"
+    sha256: "4fb9c344040b726d4b8c5582c16fc951f6638e72d2eae9a36b7db1d66f16b59d"
     grounds:
       retention: [clinical_record]
       recipients: [REC_PATIENT_CLINICIAN, REC_CLINICIAN]
@@ -67,8 +69,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.lane.affect
-    version: "2026-10-17.syn1"
-    sha256: "e260ee57423f69bffcb953fffe86f009c3543552f9c5af56dc99e2c8c211d74a"
+    version: "2026-10-28.syn2"
+    sha256: "3541ec7d8beed0c42287fdf86a8ae458c171eea4997ae763b9a5ab5e4ce7c670"
     grounds:
       retention: [lane_windows]
       recipients: [REC_INTERNAL]
@@ -76,8 +78,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.documents
-    version: "2026-10-16.syn1"
-    sha256: "92d8ecd53e6b209e57153e0eb25c093f4394353b1368aefb9c0a80518f4b2019"
+    version: "2026-10-28.syn1"
+    sha256: "412090dbbbeb9f903cb3a2d2ac2887609d902bac7606ecd5cca29265598d2db0"
     grounds:
       retention: [clinical_record]
       recipients: [REC_CLINICIAN, REC_INTERNAL]
@@ -85,8 +87,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.satisfaction
-    version: "2026-10-16.syn1"
-    sha256: "682d51f939eadcfc5271549e7bf887c14f16dfb26305418d37168b76bc4b18b5"
+    version: "2026-10-28.syn1"
+    sha256: "202c4331c9970efc8071a492cca2027815c449bfa497e23d9a903519537cedef"
     grounds:
       retention: [satisfaction, telemetry]
       recipients: [REC_INTERNAL]
@@ -94,8 +96,8 @@ documents:
       bases: [BASIS_SATISFACTION_CONSENT, BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.share
-    version: "2026-10-16.syn1"
-    sha256: "74f0c1dadd62702b5f4d8f9e4e5a0ecd68f6f47351ee29928c43d233012c584c"
+    version: "2026-10-28.syn1"
+    sha256: "4ef98ca6a13f18cebc7fab34eff11f499fbf2049fa34955e048dd6ea1745d9ed"
     grounds:
       retention: [doctor_link_tokens, clinical_record]
       recipients: [REC_CLINICIAN]

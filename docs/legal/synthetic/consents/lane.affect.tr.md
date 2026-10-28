@@ -1,11 +1,11 @@
 ---
-consent_text_version: 2026-10-17.syn1
+consent_text_version: 2026-10-28.syn2
 ---
 Sentetik test metni: Bu metin yalnızca uydurulmuş (sentetik) hasta bilgileriyle çalışan test ortamı içindir. Gerçek bir hasta için geçerli bir açık rıza metni değildir. Bu ortama kendi gerçek sağlık bilgilerinizi girmeyiniz.
 
 Açık rıza metni: Ses tonundan duygu ipuçları
 
-Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Vizite uygulamasını sunan şirket.
+Veri sorumlusu (bilgilerinizden sorumlu olan): INTAKE, Önvizit uygulamasını sunan şirket.
 
 Ne için:
 Bu seçenek yalnızca sesli görüşmeyle çalışır. Sistem yalnızca söylediğiniz sözlere bakmaz. Nasıl hissettiğinize dair ipuçlarını sesinizin tonundan da çıkarır. Kullanılan sistem bir duygu tanıma sistemidir. İpuçları yalnızca görüşmeyi size uyarlamak için kullanılır. Yalnızca şunlar ayarlanır: soruların hızı, ara önerisi ve yanıtın ekranda kartla onaylatılması. Bu ipuçları tanı koymaz. Bu ipuçları hekiminize bir değerlendirme olarak gönderilmez. Notunuza da yazılmaz. Size bir duygu etiketi gösterilmez.
