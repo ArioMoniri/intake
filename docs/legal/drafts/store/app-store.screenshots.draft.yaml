@@ -1,0 +1,113 @@
+# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+#
+# INT-502 (GitHub #856): the captions on the Önvizit App Store screenshots and the
+# product page header, in Turkish and English. The Turkish text governs.
+#
+# This file is a DRAFT for the legal lane (D25: a sourced legal-author agent, then an
+# independent legal-reviewer). Nothing renders it into a store asset.
+# scripts/store/render_frames.py --export reads only the served copy at
+# docs/legal/store/screenshots/app-store.captions.yaml. That file is created when the
+# legal lane approves this one and it is promoted, the INT-495 way: same bytes, banner
+# removed, status "served".
+#
+# Rules every caption keeps (tests/legal/test_asc_frames.py holds them):
+# - The Turkish headline passes PolicyGuard: no diagnosis, treatment or prognosis
+#   language, and the `siz` register.
+# - It passes the strict claims scan (invariant 20) and the device-claim gate (INT-224).
+# - It says only what the captured screen shows. Each caption names its screen, and
+#   quotes the app string or served listing line it rests on. The test checks that the
+#   quote is present in the cited file.
+# - A headline has one or two lines of at most 18 characters, and contains no digits.
+#   The header headline is the served listing subtitle, verbatim.
+#
+# Four Turkish headlines repeat INT-425's set, which the owner approved on 2 Oct 2026
+# (docs/evidence/INT-425.md on PR #738): bugun, konusma, not and gorunum. Two are
+# brought to the wording the app itself uses: "Her seferinde" (the served listing)
+# and "Yazı boyutu" (appearance.textSize). That approval does not replace the legal
+# lane's review.
+provenance:
+  issue: INT-502
+  store: app-store
+  status: pending legal-lane review
+  prepared_on: "2026-10-29"
+captions:
+  - id: header
+    screen: "the product page header: the brand and three of the frames below (bugun, konusma, not)"
+    tr:
+      eyebrow: "Önvizit"
+      headline: "Muayeneden önce ön notunuz"
+    en-US:
+      eyebrow: "Önvizit"
+      headline: "Your note before the visit"
+    source: "docs/legal/store/listing/app-store.tr.yaml subtitle, verbatim"
+    quote: "Muayeneden önce ön notunuz"
+  - id: bugun
+    screen: "Bugün: the next visit and its preparation card"
+    tr:
+      eyebrow: "Vizit hazırlığı"
+      headline: "Muayeneye\nhazır gidin."
+    en-US:
+      eyebrow: "Visit preparation"
+      headline: "Arrive at your\nvisit ready."
+    source: "apps/mobile/src/lib/i18n/tr.ts today.prep, verbatim, and today.prepareCta"
+    quote: "Vizit hazırlığı"
+  - id: konusma
+    screen: "the typed dialogue: one question, the patient's own words, the note forming"
+    tr:
+      eyebrow: "Kendi sözlerinizle"
+      headline: "Anlatın,\nbiz not alalım."
+    en-US:
+      eyebrow: "In your own words"
+      headline: "You tell us,\nwe take notes."
+    source: "apps/mobile/src/lib/i18n/tr.ts dialogue.openInvite and dialogue.noteForming"
+    quote: "Kendi sözlerinizle anlatabilirsiniz."
+  - id: tek-soru
+    screen: "a question step: one question, its choices, the progress bar"
+    tr:
+      eyebrow: "Adım adım"
+      headline: "Her seferinde\ntek soru."
+    en-US:
+      eyebrow: "Step by step"
+      headline: "One question\nat a time."
+    source: "docs/legal/store/listing/app-store.tr.yaml description"
+    quote: "Her seferinde yalnızca bir soru sorulur."
+  - id: not
+    screen: "review: the note's sections, each marked Paylaşılıyor or Paylaşılmıyor"
+    tr:
+      eyebrow: "Hekiminize gidecek not"
+      headline: "Paylaşılanı\nsiz seçin."
+    en-US:
+      eyebrow: "The note for your doctor"
+      headline: "You choose\nwhat is shared."
+    source: "apps/mobile/src/lib/i18n/tr.ts review.title and review.intro"
+    quote: "Neyin paylaşılacağına siz karar verirsiniz."
+  - id: paylasim
+    screen: "Paylaşımlarınız: the open shares of a note and its access log"
+    tr:
+      eyebrow: "Paylaşımlarınız"
+      headline: "Dilediğiniz an\ndurdurabilirsiniz."
+    en-US:
+      eyebrow: "Your shares"
+      headline: "You can stop one\nat any time."
+    source: "apps/mobile/src/lib/i18n/tr.ts shares.title and shares.guide.body"
+    quote: "Dilediğiniz an durdurabilirsiniz."
+  - id: izinler
+    screen: "İzinleriniz: the consent list, every purpose off until the patient turns it on"
+    tr:
+      eyebrow: "İzinleriniz"
+      headline: "Her izin\nayrıdır."
+    en-US:
+      eyebrow: "Your consents"
+      headline: "Each permission\nstands alone."
+    source: "apps/mobile/src/lib/i18n/tr.ts me.consents and consent.firstRun.body"
+    quote: "her izin ayrıdır."
+  - id: gorunum
+    screen: "Görünüm in dark mode: the text-size ladder with one step chosen"
+    tr:
+      eyebrow: "Görünüm"
+      headline: "Yazı boyutu\nsize göre."
+    en-US:
+      eyebrow: "Appearance"
+      headline: "Text sized\nfor you."
+    source: "apps/mobile/src/lib/i18n/tr.ts appearance.title and appearance.textSize"
+    quote: "\"appearance.textSize\": \"Yazı boyutu\""

@@ -110,6 +110,8 @@ These run from `apps/mobile`, using `eas.json`'s `production` profile.
    | App Privacy and Data safety answers, one row per inventory fact | `docs/legal/drafts/store/privacy-answers.draft.yaml` | entered by hand: App Privacy has no App Store Connect API resource |
    | what must hold before submission, the reviewer account, the 112 behaviour | `docs/legal/drafts/store/app-review-notes.draft.md` | the owner's guide |
    | the App Store creative-asset slots (header, iPhone screenshots) | `docs/store/asc/assets.yaml` | no captures yet; INT-502 (#856) |
+   | the captions on the screenshots and the header, Turkish and English | `docs/legal/drafts/store/app-store.screenshots.draft.yaml` | draft for the legal lane; export reads only its served copy (INT-502) |
+   | which screens are captured, how a frame is laid out, the sizes rendered | `docs/store/asc/frames.yaml` | INT-502: `scripts/store/capture_frames.py`, then `scripts/store/render_frames.py` |
 
    - **Render.** `make store-config` runs `scripts/release/render_store_config.py`, which wrote `apps/mobile/store.config.json` from the served files only. It prints each field it had to leave out together with the blocker that owes it. `make store-config-check` fails on drift. The file pins `automaticRelease: false`, so an approval never publishes the app by itself, and it never carries a reviewer contact or sign-in.
    - **App Store Connect draft (INT-495).**
