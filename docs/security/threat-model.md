@@ -100,7 +100,7 @@ it or whose tests exercise it.
 | `apps/mobile` | `mobile`, `onboarding`, `intake-voice`, `records`, `share-centre`, `kiosk`, `notifications` | the patient app |
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
-| `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/embed-sdk` | `embed` | the partner launcher, holding no Önvizit secret |
 | `packages/hosted-lanes` | `llm-boundary`, `cloud-boundary` | the hosted model-lane adapters, shipped in the synthetic deployment's image only (ADR-035) |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
@@ -361,6 +361,23 @@ it or whose tests exercise it.
 - **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
   (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
   test_slo_coverage.py (INT-021).
+- **Controls added by INT-560 (17 Oct 2026):** the synthetic AWS host is probed. The probes
+  service runs there as its own compose service and sweeps a recorded host inventory
+  (`infra/staging/inventory.yaml`). The loader refuses an inventory whose services are not
+  exactly compose's, or that sits in a process whose data class is not synthetic. The API
+  reads the sweep read-only. A blind spot on that host is now a `no_result` or a stale age on
+  the console, never an "evet", and a missing result never reads healthy.
+  - The probes service holds the least it can: a Postgres role with LOGIN and CONNECT only,
+    a Redis user that may PING only, no network with a route off the host, and no published
+    port.
+  - Its failure texts are scrubbed before they are written ([I]), and its two series carry
+    registry ids only.
+  - "Blocking" on the console's registry tile means the host's stack needs the row and its
+    probe is not healthy now. The INT-022 PHI release gate is unchanged and is shown as
+    registry-wide.
+  - Tests: tests/observability/test_host_inventory.py, test_host_sweep.py,
+    test_probes_host_service.py; tests/admin/test_registry_truth.py;
+    tests/infra/test_staging_probes.py.
 
 ## `observability-pipeline` — logs, traces, errors are not a side channel
 
@@ -587,12 +604,20 @@ it or whose tests exercise it.
   one and replaces a malformed one; the API policy reads it and cannot write or list it. The
   record also carries the **device binding**: an HMAC of the App Attest key id the request
   proved, or in dev the install id — never the install id a real-mode payload merely claims.
-  A verify must come from that device with that request id, or it is one more miss. The
-  attempt budget is an atomic `INCR` taken **before** the comparison, so callers racing on one
-  code buy at most 5 comparisons between them (INT-131's read-modify-write let every racer
-  read zero), and a match is spent by the `DEL` that removes it, so of two callers holding
-  the right code exactly one signs in. Both comparisons are `hmac.compare_digest`, against
-  stand-ins when there is no record. The fifth miss locks the number for one request window
+  A real mode that proved no key (Play Integrity, or App Attest without its key id) is
+  refused before any budget is spent, so nothing binds to a claim. A verify must come from
+  that device with that request id or it cannot sign in. The attempt budget is the
+  **number's**, over a rolling hour, not the code's: each attempt from the bound device is
+  added to the window **before** the result is used, so callers racing buy at most 5
+  comparisons between them (INT-131's read-modify-write let every racer read zero), and a
+  new code does not reset it. A budget per code let four misses on each of three codes
+  through, twelve guesses an hour with the lockout never engaged (security review, 28 Oct
+  2026). Only the bound device spends it: a stranger's device can never match the binding,
+  so its guesses are worth nothing and counting them would let any attested device lock any
+  number for an hour. A match is spent by the `DEL` that removes it, so of two callers
+  holding the right code exactly one signs in, and a match is not a miss. Both comparisons
+  are `hmac.compare_digest`, against stand-ins when there is no record. The fifth miss in
+  the hour locks the number for one request window
   (`OTP_LOCKOUT_S` = 3600 s): no code is minted for it and no verify compared until it ends.
   The length is the control: a shorter lockout lets the per-number budget hand out three codes
   an hour, the 15 guesses an hour INT-131 allowed; at a window it is 5. It adds no
@@ -672,7 +697,9 @@ it or whose tests exercise it.
   environment and in dev on the dev server, never the environment, a process-local one under
   file-dev only), the race for a spent code and the race for the attempt budget made exact by
   an interleaving store, the lockout and its one-second near miss, no more than 5 guesses a
-  number in any rolling hour over two simulated hours, constant-time comparisons, a code
+  number in any rolling hour over two simulated hours at five and at four misses a code, a
+  stranger's device unable to lock a number, a keyless real mode refused before a budget is
+  spent, constant-time comparisons, a code
   refused on another device (dev install id and App Attest key) and under another request id
   (`tests/security/test_otp_brute_force.py`, `tests/api/test_attestation_otp_flow.py`), the
   host's pepper on stdin, kept, replaced when malformed, re-asserted by every deploy, and the
@@ -1803,7 +1830,7 @@ it or whose tests exercise it.
   load — hex colours, bounded display name, id-shaped refs, partner markup/URLs/schemes
   refused — so there is no injection surface; `device_functions` may not be enabled for an
   embed tenant (ADR-020); a `prod` tenant is refused without `dpa_ref` + `brand_permission_ref`
-  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Vizite's own
+  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Önvizit's own
   docs/legal-bound flow (inv. 4, inv. 18), never by the partner; the note flows back only
   through the existing connector path (ADR-026), so the embed adds no new outbound PHI path;
   refusals are id-shaped codes only (inv. 6). A partner-supplied patient identifier is **out

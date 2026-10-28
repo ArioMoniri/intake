@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**372 issues.** By phase: P0 182 · P1 136 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 252 · todo 74 · withdrawn 1.
+**374 issues.** By phase: P0 183 · P1 137 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 254 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -193,6 +193,7 @@
 | INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
 | INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
+| INT-420 | Önvizit everywhere — finish the Vizite→Önvizit rebrand on main | E08-mobile | INT-130, INT-320 | area:mobile | done |
 
 ## P1
 
@@ -333,6 +334,7 @@
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
 | INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
 | INT-578 | OTP brute force and replay — 6 digits, TTL ≤ 5 min, single use, 5 attempts then lockout, HMAC+pepper, device-bound | E01-platform | INT-131, INT-344, INT-528 | area:api, risk:security | done |
+| INT-560 | The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns | E12-admin | INT-022, INT-183, INT-351, INT-377, INT-345 | area:observability | done |
 | INT-577 | SMS pumping and overuse — per-number/device/IP/tenant limits, global caps, spend kill switch, +90 mobile only, spike alert | E01-platform | INT-131, INT-263, INT-308, INT-528, INT-578 | area:api, risk:security | done |
 
 ## P2

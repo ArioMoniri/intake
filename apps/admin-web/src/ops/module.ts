@@ -14,7 +14,12 @@
  * - a mean for a cohort below the k floor (files/06 §8):
  *   {@link OpsSuppressedCohortLeaked};
  * - a target beside a figure (invariant 20): {@link OpsTargetRendered};
- * - a document of another schema: {@link OpsSchemaMismatch}.
+ * - a document of another schema: {@link OpsSchemaMismatch};
+ * - INT-560, the registry tile's host columns: a healthy status with no
+ *   observation behind it, a `no_result` that carries one, a result of unknown
+ *   age shown as current, a deployment word without an inventory to stand on,
+ *   and a row shown as blocking that the host does not run, does not need, or
+ *   whose probe is currently healthy: {@link OpsRegistryUntrue}.
  *
  * Numbers leave here as strings a reader cannot misread (invariant 22): no
  * grouping separators, and a number and its unit joined by a no-break space
@@ -28,6 +33,8 @@ import {
   OpsPayloadRefused,
   OpsSchemaMismatch,
   OpsSuppressedCohortLeaked,
+  REASON,
+  age,
   blank,
   count,
   decimal,
@@ -37,8 +44,15 @@ import {
   percent,
   reason,
   withUnit,
+  type Age,
 } from "./guards";
-import { OPS_SCHEMA, type HealthResponses, type OpsPayload, type TileState } from "./payload";
+import {
+  OPS_SCHEMA,
+  type HealthResponses,
+  type ModelRowPayload,
+  type OpsPayload,
+  type TileState,
+} from "./payload";
 
 export type * from "./payload";
 export { OPS_SCHEMA } from "./payload";
@@ -53,12 +67,21 @@ export {
   OpsUnknownCarriesFigure,
 } from "./guards";
 
+/** INT-560: a registry tile that says something about the host it cannot know. */
+export class OpsRegistryUntrue extends OpsPayloadRefused {}
+
 // --- shapes --------------------------------------------------------------------
 
 const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/;
 const PIN = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}@[A-Za-z0-9._-]{1,64}$/;
 const SHA = /^[0-9a-f]{7,40}$/;
 const GIB = 1024 ** 3;
+
+// INT-560: the registry tile's closed vocabularies.
+export type Deployment = "this_host" | "elsewhere" | "not_deployed" | "undeclared";
+const DEPLOYMENTS = new Set<string>(["this_host", "elsewhere", "not_deployed", "undeclared"]);
+const PROBE_STATUSES = new Set(["healthy", "unhealthy", "skipped", "no_result"]);
+const SEVERITIES = new Set(["ok", "attention", "blocking"]);
 
 function floor(
   n: number | null,
@@ -103,17 +126,10 @@ export interface OpsView {
       state: TileState;
       reason: string | null;
       releaseBlocked: boolean | null;
-      rows: {
-        component: string;
-        pin: string | null;
-        selfHostable: boolean;
-        selfHostedNow: boolean;
-        phiPath: boolean;
-        probe: string;
-        probeStatus: string;
-        licenceVerifiedAt: string | null;
-        severity: string;
-      }[];
+      /** INT-560: the host the tile describes, or why it names none. */
+      host: { hostId: string; dataClass: string } | null;
+      hostReason: string | null;
+      rows: ModelRowView[];
     };
     gpu: {
       state: TileState;
@@ -193,6 +209,98 @@ export interface OpsView {
   };
 }
 
+export interface ModelRowView {
+  component: string;
+  pin: string | null;
+  selfHostable: boolean;
+  selfHostedNow: boolean;
+  phiPath: boolean;
+  probe: string;
+  deployment: Deployment;
+  needed: boolean | null;
+  notNeededReason: string | null;
+  probeStatus: string;
+  probeCheckedAt: string | null;
+  probeAge: Age | null;
+  probeStale: boolean;
+  licenceVerifiedAt: string | null;
+  severity: string;
+  severityReason: string;
+}
+
+function untrue(component: string, what: string): never {
+  throw new OpsRegistryUntrue("registry_untrue", `${component}: ${what}`);
+}
+
+function code(value: string | null, what: string): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string" || !REASON.test(value)) {
+    throw new OpsPayloadRefused("reason_not_a_code", `${what} is not a code`);
+  }
+  return value;
+}
+
+/** One registry row, refused if it claims what the tile cannot know (INT-560). */
+function modelRow(row: ModelRowPayload, hostDeclared: boolean): ModelRowView {
+  const component = id(row.component, "component");
+  if (row.pin !== null && !PIN.test(row.pin)) {
+    throw new OpsLabelLeaked("label_not_id_shaped", "a model pin is not model_id@revision");
+  }
+  for (const value of [row.licence_verified_at, row.probe_checked_at]) {
+    if (value !== null && !ISO.test(value)) {
+      throw new OpsPayloadRefused("not_a_date", `${component}: a date is not a date`);
+    }
+  }
+  if (!DEPLOYMENTS.has(row.deployment)) untrue(component, "unknown deployment word");
+  if (!PROBE_STATUSES.has(row.probe_status)) untrue(component, "unknown probe status");
+  if (!SEVERITIES.has(row.severity)) untrue(component, "unknown severity");
+  const observed = row.probe_checked_at !== null;
+  const ageS = row.probe_age_s;
+  if (ageS !== null && (!Number.isInteger(ageS) || ageS < 0)) {
+    throw new OpsPayloadRefused("not_an_age", "an age is a whole number of seconds");
+  }
+  // a missing probe never shows healthy, and "no result" carries no observation
+  if (row.probe_status === "healthy" && !observed) untrue(component, "healthy with no observation");
+  if (row.probe_status === "no_result" && (observed || ageS !== null || !row.probe_stale)) {
+    untrue(component, "no_result carries an observation");
+  }
+  // a result of unknown age is not current
+  if (!row.probe_stale && ageS === null) untrue(component, "unknown age shown as current");
+  // the deployment words stand on an inventory, and only then
+  if (hostDeclared === (row.deployment === "undeclared")) {
+    untrue(component, "deployment word without the inventory to stand on");
+  }
+  const currentlyHealthy = row.probe_status === "healthy" && !row.probe_stale;
+  if (
+    hostDeclared &&
+    row.severity === "blocking" &&
+    (row.deployment !== "this_host" || row.needed !== true || currentlyHealthy)
+  ) {
+    untrue(component, "blocking a host that does not run, need, or miss it");
+  }
+  if (row.deployment !== "this_host" && (row.needed !== null || row.not_needed_reason !== null)) {
+    untrue(component, "needed is a question for what the host runs");
+  }
+  return {
+    component,
+    pin: row.pin,
+    selfHostable: row.self_hostable,
+    selfHostedNow: row.self_hosted_now,
+    phiPath: row.phi_path,
+    probe: id(row.probe, "probe"),
+    deployment: row.deployment as Deployment,
+    needed: row.needed,
+    notNeededReason: code(row.not_needed_reason, "not_needed_reason"),
+    probeStatus: row.probe_status,
+    probeCheckedAt: row.probe_checked_at,
+    probeAge: age(ageS),
+    probeStale: row.probe_stale,
+    licenceVerifiedAt: row.licence_verified_at,
+    severity: row.severity,
+    severityReason: code(row.severity_reason, "severity_reason") ?? "ok",
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -244,26 +352,19 @@ export function renderOps(payload: OpsPayload, health: HealthResponses): OpsView
   // models — the registry, rendered as it is
   const models = t.models;
   const modelsReason = reason(models, "models");
-  blank(models, [models.rows, models.release_blocked], "models");
-  const modelRows = models.rows.map((row) => {
-    if (row.pin !== null && !PIN.test(row.pin)) {
-      throw new OpsLabelLeaked("label_not_id_shaped", "a model pin is not model_id@revision");
-    }
-    if (row.licence_verified_at !== null && !ISO.test(row.licence_verified_at)) {
-      throw new OpsPayloadRefused("not_a_date", "licence_verified_at is not a date");
-    }
-    return {
-      component: id(row.component, "component"),
-      pin: row.pin,
-      selfHostable: row.self_hostable,
-      selfHostedNow: row.self_hosted_now,
-      phiPath: row.phi_path,
-      probe: id(row.probe, "probe"),
-      probeStatus: id(row.probe_status, "probe status"),
-      licenceVerifiedAt: row.licence_verified_at,
-      severity: id(row.severity, "severity"),
-    };
-  });
+  blank(models, [models.rows, models.release_blocked, models.host], "models");
+  const host =
+    models.host === null
+      ? null
+      : {
+          hostId: id(models.host.host_id, "host id"),
+          dataClass: id(models.host.data_class, "data class"),
+        };
+  const hostReason = code(models.host_reason, "host_reason");
+  if (models.state === "ok" && (host === null) === (hostReason === null)) {
+    throw new OpsRegistryUntrue("registry_untrue", "a host, or the code for why there is none");
+  }
+  const modelRows = models.rows.map((row) => modelRow(row, host !== null));
 
   // GPU
   const gpu = t.gpu;
@@ -358,6 +459,8 @@ export function renderOps(payload: OpsPayload, health: HealthResponses): OpsView
         state: models.state,
         reason: modelsReason,
         releaseBlocked: models.release_blocked,
+        host,
+        hostReason,
         rows: modelRows,
       },
       gpu: { state: gpu.state, reason: gpuReason, hosts },
