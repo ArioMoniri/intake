@@ -7336,3 +7336,28 @@
     - "identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested; a guard test fails on any new brand-case use of the old name"
   tests: [tests/release/test_brand_name.py, tests/release/test_brand_identifiers.py, apps/mobile/e2e/brand.spec.ts]
   sec_row: "mobile"
+- id: INT-560
+  epic: E12-admin
+  phase: P1
+  title: "The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns"
+  # GitHub #948, owner 17 Oct 2026 ("solve these"). On the synthetic AWS host
+  # the ops console's registry tile read no_result on every row (no sweep ran
+  # there and the API had no results file), "blocking" on rows the host does
+  # not run (HAPI, the team GPU server's models) and "evet" under "Şu an kendi
+  # sunucumuzda" for anything the registry self-hosts anywhere. The probes
+  # service now runs on the host, sweeping a recorded host inventory; the
+  # columns derive from that inventory and the live sweep. Licence data is
+  # INT-561 (#949).
+  depends_on: [INT-022, INT-183, INT-351, INT-377, INT-345]
+  labels: [area:observability]
+  status: done
+  evidence: docs/evidence/INT-560.md
+  acceptance:
+    - "services/probes runs on the synthetic host (compose service with the monitoring contract: /healthz, /readyz, /metrics, /version; invariant 15; SLO yaml; registry row for itself) and every registry row gets a real probe result; probe targets fixed to what actually runs on the host."
+    - "'Şu an kendi sunucumuzda' reflects reality: GPU-box models are not reachable from AWS, so they show as not deployed / unreachable, never a false 'evet'."
+    - "Severity 'blocking' only for what the deployed synthetic stack actually needs; everything else advisory, with the reason."
+    - "TDD: tests pin the column derivations against a recorded host inventory; near misses (a GPU-box model never shows deployed on the AWS host; a missing probe never shows healthy)."
+    - "No PHI in probe output (invariant 6); every emitted metric catalogued (invariant 13)."
+    - "Licence columns are INT-561."
+  tests: [tests/observability/test_host_inventory.py, tests/observability/test_host_sweep.py, tests/admin/test_registry_truth.py, tests/infra/test_staging_probes.py, tests/admin/test_ops_console.py, apps/admin-web/e2e/ops.spec.ts]
+  sec_row: "monitoring-contract"

@@ -236,7 +236,9 @@ def test_ids_unique_and_well_formed() -> None:
     # retries an unreadable 200; the owner's real send, GitHub #971).
     # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
     # a guard against the old name; owner request, GitHub #712).
-    assert len(ids) == 371
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on; owner request, GitHub #948).
+    assert len(ids) == 372
     import re
 
     for i in ids:
