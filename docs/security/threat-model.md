@@ -559,13 +559,14 @@ it or whose tests exercise it.
   refuse with the usual 429 and roll on, and a **global day cap** (1000) **latches the spend
   kill switch** (`intake_api.sms_spend`): every OTP request answers the generic 503 and no SMS
   is sent, for everyone, until an operator releases it on the host (`python -m
-  intake_api.sms_spend release`, appended to the hash chain); a day window rolling over does
-  not release it. The switch is read before any budget is spent, and a switch that cannot be
+  intake_api.sms_spend release`, which appends its row to the hash chain first and releases
+  only when the row is written, so an audit store that is down keeps the switch engaged); a
+  day window rolling over does not release it. The switch is read before any budget is spent, and a switch that cannot be
   read, or whose stored state does not parse, counts as engaged (fail closed); engaging it is
   one act and makes the system safer, releasing it is deliberate (files/10 §2, asymmetric
-  authority). The caps are engineering defaults an order of magnitude above the pilot's
-  planned volume, so they bind only on abuse; the day cap is the spend ceiling and the owner's
-  number. The per-device budget is now keyed by the key App Attest **proved** — it was keyed by
+  authority). The caps are the owner's, D37 (files/00_STATE.md, 28 Oct 2026), an order of
+  magnitude above the pilot's planned volume, so they bind only on abuse; the day cap is the
+  spend ceiling. The per-device budget is now keyed by the key App Attest **proved** — it was keyed by
   the payload's `device_id`, the client's own claim, so one attested key rotating that string
   never met the bound — and the caller's address only as an HMAC under the OTP pepper (it sat
   in a Redis key in clear). The resend wait doubles with each code a number has had in the
@@ -708,7 +709,8 @@ it or whose tests exercise it.
   the device budget held across rotated install ids under one App Attest key and a second key
   as its near miss, no address in any Redis key, the tenant and global hour caps and their
   exact-cap near misses, the day cap latching the switch through a rolled-over day until the
-  operator command releases it, an unreadable switch refusing, the doubled resend wait and its
+  operator command releases it, a release whose audit row cannot be written leaving the switch
+  engaged, an unreadable switch refusing, the doubled resend wait and its
   one-second near miss, every non-mobile class refused without spending budget, the counters'
   closed labels, both alerts, and the ops tile's spike test at, under and over its threshold
   (`tests/security/test_sms_pumping.py`).
