@@ -48,7 +48,8 @@ NVIDIA_SMI_QUERY: Final[tuple[str, ...]] = (
 
 #: Label values are ids: lowercase, digits, ``_`` and ``-`` (invariant 6). No
 #: dots, so an IP address cannot become a host label; no spaces, so a name
-#: cannot either.
+#: cannot either. Every shape here is held with ``fullmatch``: ``$`` also
+#: matches before a final newline, so ``match`` would pass ``"gpu-a\n"`` (INT-487).
 ID_SHAPED: Final = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 _MIB: Final = 1024 * 1024
@@ -72,7 +73,7 @@ class GpuSourceError(Exception):
 
 
 def require_id(value: str, what: str) -> str:
-    if not ID_SHAPED.match(value):
+    if not ID_SHAPED.fullmatch(value):
         raise OpsConfigError(f"{what} must be id-shaped ([a-z0-9][a-z0-9_-]{{0,63}})")
     return value
 

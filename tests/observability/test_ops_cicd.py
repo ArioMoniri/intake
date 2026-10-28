@@ -39,6 +39,7 @@ from intake_probes.ops_collector import (
     OpsCollector,
     ops_collector_from_env,
 )
+from intake_probes.ops_gpu import OpsConfigError
 from prometheus_client import REGISTRY, generate_latest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -227,6 +228,15 @@ class TestRuns:
         ci = _run(github, "ci", 814)
         assert (ci.failed_jobs, ci.failed_job_count) == (("check-integration",), 2)
 
+    def test_a_failing_job_name_with_a_trailing_newline_is_counted_not_named(self) -> None:
+        # INT-487: re's `$` also matches before a final "\n"; the recorded
+        # check-integration (named above) is the near-miss control
+        github = FakeGitHub()
+        failing = next(j for j in github.jobs(FAILED_CI_RUN) if j["name"] == "check-integration")
+        failing["name"] = "check-integration\n"  # DERIVED IN-TEST
+        ci = _run(github, "ci", 814)
+        assert (ci.failed_jobs, ci.failed_job_count) == ((), 1)
+
     def test_a_completed_attempt_s_jobs_are_read_once_while_it_is_shown(self) -> None:
         github = FakeGitHub()
         source = github.source(runs_per_workflow=4)
@@ -323,6 +333,26 @@ class TestGates:
         assert MAIN_CHECKS not in checks
         assert len(checks) == 5  # a red gate can be re-run on the same sha: read again
 
+    def test_a_head_sha_with_a_trailing_newline_is_not_a_sha(self) -> None:
+        # INT-487: the recorded heads are the near-miss control
+        snapshot = FakeGitHub().source().read()
+        assert snapshot.head_sha == MAIN_HEAD and snapshot.pulls[0].number == 661
+        github = FakeGitHub()
+        pull = github.answers["/pulls"][0]
+        pull["head"]["sha"] += "\n"  # DERIVED IN-TEST: PR #661's head
+        assert [p.number for p in github.source().read().pulls] == [660, 658, 648, 657]
+        github = FakeGitHub()
+        github.answers["/branches/main"]["commit"]["sha"] = f"{MAIN_HEAD}\n"  # DERIVED IN-TEST
+        with pytest.raises(CiSourceError) as refusal:
+            github.source().read()
+        assert refusal.value.code == "github_bad_response"
+
+    def test_a_branch_with_a_trailing_newline_is_refused(self) -> None:
+        # INT-487: the CI/CD source shares the CI source's target check
+        assert FakeGitHub().source(branch="main").branch == "main"
+        with pytest.raises(OpsConfigError):
+            FakeGitHub().source(branch="main\n")
+
 
 class TestReleases:
     def test_the_recorded_release_is_joined_with_its_tag_and_not_applicable(self) -> None:
@@ -350,6 +380,23 @@ class TestReleases:
         if tags is not None:
             github.answers["/tags"] = tags
         assert github.source().read().releases == ()
+
+    @pytest.mark.parametrize(
+        ("tag", "sha"),
+        [("deid-tr-ner-v1\n", RELEASE_SHA), ("deid-tr-ner-v1", f"{RELEASE_SHA}\n")],
+    )
+    def test_a_tag_or_commit_with_a_trailing_newline_is_dropped(self, tag: str, sha: str) -> None:
+        # INT-487: the release and its tag agree, so only the "\n" can drop it;
+        # the same release without it is the near-miss control
+        def releases(tag: str, sha: str) -> tuple[Any, ...]:
+            github = FakeGitHub()
+            github.answers["/releases"][0]["tag_name"] = tag  # DERIVED IN-TEST
+            github.answers["/tags"] = [{"name": tag, "commit": {"sha": sha}}]
+            return github.source().read().releases
+
+        (clean,) = releases("deid-tr-ner-v1", RELEASE_SHA)
+        assert (clean.tag, clean.head_sha) == ("deid-tr-ner-v1", RELEASE_SHA)
+        assert releases(tag, sha) == ()
 
     @pytest.mark.parametrize(
         ("sign_job", "run_sha", "state"),

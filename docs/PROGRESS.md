@@ -516,6 +516,30 @@
 - Next: the coordinator pushes and opens the PR (body at `.scratch/pr-529.md`). Follow-ups F1–F10 are in the evidence file; F1 is now INT-536 (#903) and F2 is INT-537 (#904).
 - LOOP_STATUS: WAITING_HUMAN
 
+### 2026-10-16T04:30:00Z · INT-487 · done (PR open, not merged)
+- Goal: the ops collector in `services/probes` held ids, refs and shas to `$`-anchored shapes with `re.match`. Python's `$` also matches before a final `"\n"`, so `"gpu-a\n"`, `"main\n"`, `"security\n"`, a sha plus `"\n"`, a job name or a release tag plus `"\n"` all passed. A pull-request head sha ending in `"\n"` also crashed the CI/CD read with an uncaught `httpx.InvalidURL`.
+  - Acceptance (verbatim, GitHub #832): "use .fullmatch everywhere, with near-miss tests per emitter."
+- Plan: write near-miss tests per emitter and field and record the red run; switch the nine call sites to `fullmatch`; add an AST guard so `.match(` stays out of the service; grep the repository for the same pattern in other emitters.
+- Tests added: `tests/observability/test_ops_collector.py` (4 tests, 7 cases: the guard, host id, repo and branch, workflow path, stem and head sha) and `tests/observability/test_ops_cicd.py` (4 tests, 5 cases: job name, pull and branch head sha, branch, release tag and tag sha).
+  - Each pairs the clean value (the near-miss control) with the same value plus `"\n"`.
+  - RED: 11 failed, each at the trailing-newline step.
+  - GREEN: 93 passed in the two files; 687 passed across tests/observability and the admin consoles that read the probes.
+  - Each of the nine sites reverted alone is caught by a near-miss test.
+- Result (docs/evidence/INT-487.md):
+  - `make check-py` and `make check-i18n` exit 0 (10659 passed in the api lane, coverage 95.72%). No TypeScript changed.
+  - `make safety` exits 0, with 18/18 mutations detected.
+  - `make security`: steps 2–12 green. The gate self-test's random checkov plant missed once and was 21/21 on a re-run. Full-history gitleaks reports 5 findings, all on other local refs. Main's history and this diff are clean.
+- Left, with reasons (in the evidence):
+  - `registry.py`'s pydantic `pattern=` shapes are already strict, because Rust regex `$` is end of text.
+  - `ops_prom.py` is INT-486 (PR #845).
+  - The repository's other `$` + `.match` validators sit in other bounded contexts (consent, audit, SIEM, legal, connectors, cost, SLO, CI pins). They are a candidate sweep issue; no id is minted here.
+- Invariants touched and still passing: 6 (label values are id-shaped), 16 (Sec-Row `admin-console`), 17 (a bad value is dropped or refused, never painted).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: PR #867 (INT-452) adds the INT-487 row, so this PR adds none. The row's status flips when #867 and this PR have both landed.
+- Blocked on: nothing.
+- Next: the orchestrator's queue.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
 - Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
 - Plan:

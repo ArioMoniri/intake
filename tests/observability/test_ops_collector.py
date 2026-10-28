@@ -25,6 +25,7 @@ Pinned here, each with its near-miss:
 
 from __future__ import annotations
 
+import ast
 import json
 from collections.abc import Sequence
 from pathlib import Path
@@ -62,6 +63,7 @@ from prometheus_client import REGISTRY, CollectorRegistry, generate_latest
 from prometheus_client.parser import text_string_to_metric_families
 
 REPO = Path(__file__).resolve().parents[2]
+PROBES_SRC = REPO / "services" / "probes" / "src" / "intake_probes"
 CATALOG = REPO / "observability" / "metrics_catalog.yaml"
 FIXTURES = REPO / "tests" / "fixtures" / "ops"
 RUNS = json.loads((FIXTURES / "github_actions_runs_main.json").read_text(encoding="utf-8"))
@@ -138,6 +140,23 @@ class TestTheCatalogue:
             assert by_name[name].status == "live"
 
 
+class TestShapeChecks:
+    def test_every_shape_check_in_the_probes_service_holds_the_whole_value(self) -> None:
+        # INT-487: re's `$` also matches before a final "\n", so `.match` on a
+        # `$`-anchored id, ref or sha shape lets "abc\n" through; `.fullmatch`
+        # does not. The near-miss tests per emitter are below and in test_ops_cicd.
+        partial = [
+            f"{path.name}:{node.lineno}"
+            for path in sorted(PROBES_SRC.glob("*.py"))
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "match"
+        ]
+        assert partial == [], f"use .fullmatch: {partial}"
+        assert len(list(PROBES_SRC.glob("ops_*.py"))) >= 3  # the scan sees the emitters
+
+
 # ----------------------------------------------------------------------- nvidia-smi
 
 
@@ -182,6 +201,13 @@ class TestNvidiaSmi:
         # reaches every dashboard (invariant 6)
         with pytest.raises(OpsConfigError):
             NvidiaSmiSource(host_id=host_id)
+
+    def test_a_host_id_with_a_trailing_newline_is_refused(self) -> None:
+        # INT-487: re's `$` also matches before a final "\n", so the shape must
+        # hold the whole value; the clean id beside it is the near-miss control
+        assert NvidiaSmiSource(host_id="gpu-a").host_id == "gpu-a"
+        with pytest.raises(OpsConfigError):
+            NvidiaSmiSource(host_id="gpu-a\n")
 
 
 # ---------------------------------------------------------------------- GitHub CI
@@ -249,6 +275,48 @@ class TestGithubActions:
     def test_a_repo_that_is_not_owner_slash_name_is_refused(self, repo: str) -> None:
         with pytest.raises(OpsConfigError):
             GithubActionsSource(repo=repo, token=lambda: "t")
+
+    @pytest.mark.parametrize(
+        ("repo", "branch"),
+        [("ArioMoniri/intake\n", "main"), ("ArioMoniri/intake", "main\n")],
+    )
+    def test_a_repo_or_branch_with_a_trailing_newline_is_refused(
+        self, repo: str, branch: str
+    ) -> None:
+        # INT-487: the near-miss control is the same target without the "\n"
+        clean = GithubActionsSource(repo="ArioMoniri/intake", token=lambda: "t", branch="main")
+        assert (clean.repo, clean.branch) == ("ArioMoniri/intake", "main")
+        with pytest.raises(OpsConfigError):
+            GithubActionsSource(repo=repo, token=lambda: "t", branch=branch)
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("path", ".github/workflows/security\n.yml"),  # the stem itself ends in "\n"
+            ("path", ".github/workflows/security.yml\n"),
+            ("head_sha", "6dd1f2a43ac9eca765beaa42e28ec1855c2d046d\n"),
+        ],
+    )
+    def test_a_run_whose_workflow_or_sha_ends_in_a_newline_is_dropped(
+        self, field: str, value: str
+    ) -> None:
+        # INT-487: the recorded newest security run is the near-miss control
+        def source(runs: object) -> GithubActionsSource:
+            return GithubActionsSource(
+                repo="ArioMoniri/intake",
+                token=lambda: "t",
+                transport=_github(lambda request: httpx.Response(200, json=runs)),
+            )
+
+        newest = next(r for r in source(RUNS).read() if r.workflow == "security")
+        assert newest.conclusion == "success"
+        bent = json.loads(json.dumps(RUNS))
+        bent["workflow_runs"][0][field] = value  # DERIVED IN-TEST
+        runs = source(bent).read()
+        # the bent row was the newest security run; the next one stands in
+        assert {run.workflow for run in runs} == {"ci", "security"}
+        assert next(r for r in runs if r.workflow == "security").conclusion == "failure"
+        assert all("\n" not in f"{run.workflow}{run.head_sha}" for run in runs)
 
 
 # ---------------------------------------------------------------------- collection
