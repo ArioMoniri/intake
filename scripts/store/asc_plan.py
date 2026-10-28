@@ -59,6 +59,7 @@ AGE_RATING_KEYS: Final[tuple[str, ...]] = (
     "unrestrictedWebAccess",
     *eas_metadata.ADVISORY_ASC_LEVEL_KEYS,
     *eas_metadata.ADVISORY_ASC_FLAG_KEYS,
+    *eas_metadata.ADVISORY_ASC_OVERRIDE_KEYS,
 )
 
 _INTERNAL: Final[str] = "INT-502 (GitHub #856)"
@@ -179,7 +180,13 @@ def build_plan(repo: Path, manifest: Path | None = None) -> Plan:
         else:
             merged = {**submission.advisory, **submission.advisory_asc}
             add("ageRatingDeclarations", None, {key: merged[key] for key in AGE_RATING_KEYS})
-        add("appStoreReviewDetails", None, {"notes": submission.review_notes})
+        # INT-502 legal review B5: the notes describe a 112 notice, a reviewer
+        # sign-in, voice and delivery to the clinician, none of which a store
+        # build has today. They stay out of App Store Connect until they are true.
+        blocked.append(
+            "appStoreReviewDetails.notes: held until the notes are true of the store build "
+            "(INT-117 112 notice, INT-488 reviewer sign-in, INT-587 delivery; legal review B5)"
+        )
     if "copyright" in apple:
         add("appStoreVersions", None, {"copyright": apple["copyright"]})
 

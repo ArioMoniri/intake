@@ -47,6 +47,7 @@ from intake_platform.store import listing as listing_mod
 __all__ = [
     "ADVISORY_ASC_FLAG_KEYS",
     "ADVISORY_ASC_LEVEL_KEYS",
+    "ADVISORY_ASC_OVERRIDE_KEYS",
     "ADVISORY_FLAG_KEYS",
     "ADVISORY_LEVELS",
     "ADVISORY_LEVEL_KEYS",
@@ -145,6 +146,21 @@ ADVISORY_ASC_FLAG_KEYS: Final[tuple[str, ...]] = (
     "userGeneratedContent",
 )
 
+#: INT-502 (legal review B8): the live override that sets the top age band.
+#: Apple's AgeRatingDeclaration attributes, read 2026-10-29: ``ageRatingOverrideV2``
+#: takes one of these values and replaces the deprecated ``ageRatingOverride``,
+#: which was the only key with ``SEVENTEEN_PLUS``.
+ADVISORY_ASC_OVERRIDE_KEYS: Final[Mapping[str, tuple[str, ...]]] = {
+    "ageRatingOverrideV2": (
+        "NONE",
+        "NINE_PLUS",
+        "THIRTEEN_PLUS",
+        "SIXTEEN_PLUS",
+        "EIGHTEEN_PLUS",
+        "UNRATED",
+    ),
+}
+
 #: The two answers of the app's ``contentRightsDeclaration`` (Apple's API reference).
 CONTENT_RIGHTS: Final[tuple[str, ...]] = (
     "DOES_NOT_USE_THIRD_PARTY_CONTENT",
@@ -235,10 +251,12 @@ def _advisory(
     section: str = "advisory",
     level_keys: tuple[str, ...] = ADVISORY_LEVEL_KEYS,
     flag_keys: tuple[str, ...] = ADVISORY_FLAG_KEYS,
+    enum_keys: Mapping[str, tuple[str, ...]] | None = None,
 ) -> tuple[dict[str, str | bool], dict[str, str]]:
     if not isinstance(raw, Mapping):
         raise StoreConfigError(f"{where}: {section} must be a mapping")
-    expected = set(level_keys) | set(flag_keys)
+    enums = dict(enum_keys or {})
+    expected = set(level_keys) | set(flag_keys) | set(enums)
     if set(raw) != expected:
         raise StoreConfigError(
             f"{where}: {section} keys differ from the schema: missing "
@@ -246,7 +264,7 @@ def _advisory(
         )
     answers: dict[str, str | bool] = {}
     sources: dict[str, str] = {}
-    for key in (*level_keys, *flag_keys):
+    for key in (*level_keys, *flag_keys, *enums):
         entry = raw[key]
         if not isinstance(entry, Mapping) or not str(entry.get("source", "")).strip():
             raise StoreConfigError(f"{where}: {section}.{key} needs an answer and a source")
@@ -254,6 +272,8 @@ def _advisory(
         if key in level_keys and isinstance(answer, str) and answer in ADVISORY_LEVELS:
             answers[key] = answer
         elif key in flag_keys and isinstance(answer, bool):
+            answers[key] = answer
+        elif key in enums and isinstance(answer, str) and answer in enums[key]:
             answers[key] = answer
         else:
             raise StoreConfigError(f"{where}: {section}.{key} has no valid answer")
@@ -303,6 +323,7 @@ def load_submission(path: Path) -> AppStoreSubmission:
             section="advisory_asc",
             level_keys=ADVISORY_ASC_LEVEL_KEYS,
             flag_keys=ADVISORY_ASC_FLAG_KEYS,
+            enum_keys=ADVISORY_ASC_OVERRIDE_KEYS,
         )
     rights, rights_source = _content_rights(body.get("content_rights"), where)
     return AppStoreSubmission(

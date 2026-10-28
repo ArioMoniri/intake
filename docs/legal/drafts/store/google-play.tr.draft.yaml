@@ -26,17 +26,14 @@ fields:
   full_description: |-
     Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı.
     Anlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır.
-    Not, yapay zekâ desteğiyle düzenlenir ve gönderilmeden önce size gösterilir.
+    Not, gönderilmeden önce size gösterilir.
 
-    • Şikâyetinizi sesli ya da yazılı olarak anlatabilirsiniz.
+    • Soruları yazarak ya da size uyan seçeneği işaretleyerek yanıtlayabilirsiniz.
     • Her seferinde yalnızca bir soru sorulur.
     • Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz.
     • Neyin paylaşılacağına siz karar verirsiniz.
     • Bir paylaşımı dilediğiniz an durdurabilirsiniz.
-    • Raporlarınızı ve tahlil sonuçlarınızı yükleyebilirsiniz.
     • İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz.
-
-    Sesiniz yazıya dökülür; ses kaydı telefonunuza ya da sunucularımıza yazılmaz.
 
     Önvizit tanı koymaz ve tedavi önermez.
     Anlattıklarınız hekim değerlendirmesinin yerine geçmez.
@@ -50,10 +47,10 @@ sources:
       source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"muayeneden önce şikâyetlerinizi … toplar\")"
     - text: "Anlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır."
       source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"hekiminize düzenli bir ön not iletir\")"
-    - text: "Not, yapay zekâ desteğiyle düzenlenir ve gönderilmeden önce size gösterilir."
-      source: "files/06_COMPLIANCE_TR.md §7 note footer (\"yapay zekâ desteğiyle yapılandırılmıştır\"); apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
-    - text: "Şikâyetinizi sesli ya da yazılı olarak anlatabilirsiniz."
-      source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"sesli ya da yazılı\")"
+    - text: "Not, gönderilmeden önce size gösterilir."
+      source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx (the note is shown for review before it is sent); legal review INT-502 B3"
+    - text: "Soruları yazarak ya da size uyan seçeneği işaretleyerek yanıtlayabilirsiniz."
+      source: "apps/mobile/src/lib/i18n/tr.ts intake.open.hint (typed answers) and the intake.opt.* closed choices; voice intake is __DEV__-only in a store build (legal review INT-502 B1)"
     - text: "Her seferinde yalnızca bir soru sorulur."
       source: "CLAUDE.md invariant 2 (one question per turn); files/03_ARCHITECTURE.md §4.2"
     - text: "Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz."
@@ -62,12 +59,8 @@ sources:
       source: "apps/mobile/src/lib/i18n/tr.ts review.intro, second sentence verbatim"
     - text: "Bir paylaşımı dilediğiniz an durdurabilirsiniz."
       source: "apps/mobile/src/lib/i18n/tr.ts shares.guide.body (\"Dilediğiniz an durdurabilirsiniz.\")"
-    - text: "Raporlarınızı ve tahlil sonuçlarınızı yükleyebilirsiniz."
-      source: "apps/mobile/src/app/(tabs)/records.tsx; apps/mobile/src/lib/i18n/tr.ts records.upload, records.guide.title"
     - text: "İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz."
       source: "apps/mobile/src/lib/health/healthKitConnector.ts (steps, resting heart rate, sleep; read-only); apps/mobile/src/lib/i18n/tr.ts health.rhr.label"
-    - text: "Sesiniz yazıya dökülür; ses kaydı telefonunuza ya da sunucularımıza yazılmaz."
-      source: "CLAUDE.md invariant 3; tests/voice/test_audio_retention_guard.py"
     - text: "Önvizit tanı koymaz ve tedavi önermez."
       source: "apps/mobile/src/lib/i18n/tr.ts app.disclaimer; files/06_COMPLIANCE_TR.md §0.4"
     - text: "Anlattıklarınız hekim değerlendirmesinin yerine geçmez."
