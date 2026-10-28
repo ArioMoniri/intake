@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**367 issues.** By phase: P0 182 · P1 131 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 247 · todo 74 · withdrawn 1.
+**368 issues.** By phase: P0 182 · P1 132 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 248 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -329,6 +329,7 @@
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 | INT-528 | Netgsm OTP SMS adapter behind the INT-329 SMS port, recorded fixtures only, fail-closed until the owner's credentials land | E01-platform | INT-329, INT-358 | area:api, risk:security, risk:legal | done |
+| INT-559 | The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build | E08-mobile | INT-194, INT-291, INT-446 | area:mobile, risk:security | done |
 
 ## P2
 

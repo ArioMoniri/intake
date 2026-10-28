@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T03:30:00+03:00 · INT-559 · done (PR open, not merged)
+- Goal: GitHub #947, P1, from the INT-536 legal review. The DEV voice lane and the VoiceNote pill recorded a temporary file on the phone through expo-audio's recorder and deleted it after upload. Invariant 3 allows no dev exception.
+- Plan:
+  - Classify every capture path: the dialogue hook, the pill and `lib/voice.ts` were file-backed; LiveKit (INT-103 → INT-515) already streams; the agent-clip cache is TTS output, not patient audio.
+  - Read what the pinned expo-audio 57.0.4 offers. The recorder is file-based on both platforms. `AudioStream` is not: an `AVAudioEngine` input tap on iOS and `AudioRecord` on Android, each emitting 100 ms PCM buffers and never naming a path. Chosen as the smallest option — no new dependency, no native module, Expo-only.
+  - A capture library (`apps/mobile/src/lib/capture`): a buffer allocated once at the 60 s cap and `fill(0)`ed on every trigger; a session that reads the dialogue's `closed()` after every await and on every chunk (INT-551's pattern); one turn for both callers; the ASR client sends bytes; the one expo-audio binding sits behind a lazy import.
+  - The hook keeps its ask-ahead shape: the microphone closes synchronously at "Bitirdim", at `leave` before its first await (the RED path), on failure, unmount, a typed answer and app background.
+  - One trade-off, recorded, not built around: expo-audio's stream puts the iOS session in `.record`, which silences playback, so on iOS the clip plays tap-interruptible and the microphone opens on the patient's turn. Android keeps INT-291's voice barge-in.
+- Tests added (with the near-miss negative for any safety rule):
+  - `lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts` (65): the cap, zeroing on take/clear/finish/discard, the closed-before/during/after-start paths, cap-sized segments with no sample lost, the envelope byte for byte, the client zeroing on success and on every failure, the deadline.
+  - `e2e/voiceCapture.spec.ts` (15): the source slice over the whole patient-audio path and a node-driven 70 s turn under a storage trap; `e2e/bargeIn.spec.ts` (7) pins moved to the file-less posture.
+  - Red: 9 files failed (8 missing modules, 4 barge-in pins). Green: 87/87 targeted, 2900/2900 whole suite.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `apps/mobile`: tsc clean, expo lint 0 errors, vitest 138 files / 2900 tests. Python: backlog, voice-doctor, threat-model and release suites green; files/11 regenerated, the two pins 367 → 368.
+  - no_placeholders, phi_scan, claims_scan, sec-row linkage and evidence_check OK. `make safety` untouched; `make security` on the PR's runner (no dependency or egress change).
+- Invariants touched and still passing: 3 (the subject), 6, 9/21 (the RED path waits on nothing; `leave` discards before any await), 11, 16 (Sec-Row `mobile`, threat row updated), 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none required — no architecture change, no new dependency. The iOS barge-in trade-off is the owner's product call (docs/evidence/INT-559.md §4); the two ways back are an upstream session-category option on expo-audio's stream or a local Expo module.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The INT-536 consent text check re-runs when INT-515 deploys voice-runtime (INT-515's step).
+- Next: merge; INT-515 re-runs the text check; #939 (INT-551) and #866 (INT-497) merge at the recorder call sites of `useDialogueSession.ts`.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
 - Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
 - Plan:

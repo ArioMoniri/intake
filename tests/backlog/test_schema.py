@@ -229,7 +229,10 @@ def test_ids_unique_and_well_formed() -> None:
     # found on the synthetic host, GitHub #930).
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
-    assert len(ids) == 367
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review;
+    # GitHub #947).
+    assert len(ids) == 368
     import re
 
     for i in ids:
