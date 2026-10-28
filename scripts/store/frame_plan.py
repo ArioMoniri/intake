@@ -104,6 +104,8 @@ class Frame:
     file: str
     appearance: str
     state: str
+    #: An issue that must land before this frame can be captured truthfully.
+    waits_for: str | None = None
 
     @property
     def capture_name(self) -> str:
@@ -117,6 +119,7 @@ class FrameSpec:
     capture_size: tuple[int, int]
     capture_mask: str
     status_bar: Mapping[str, Any]
+    app_state: Mapping[str, str]
     capture_locales: Mapping[str, Mapping[str, str]]
     fonts: Mapping[str, FontSpec]
     theme: Mapping[str, Mapping[str, str]]
@@ -204,6 +207,7 @@ def load_spec(path: Path) -> FrameSpec:
                 file=str(row["file"]),
                 appearance=str(row["appearance"]),
                 state=str(row["state"]),
+                waits_for=None if row.get("waits_for") is None else str(row["waits_for"]),
             )
             for index, row in enumerate(raw["frames"], start=1)
         )
@@ -213,6 +217,7 @@ def load_spec(path: Path) -> FrameSpec:
             capture_size=_size(capture["size"], "capture.size"),
             capture_mask=str(capture["mask"]),
             status_bar=dict(capture["status_bar"]),
+            app_state={str(k): str(v) for k, v in capture["app_state"].items()},
             capture_locales={str(k): dict(v) for k, v in capture["locales"].items()},
             fonts={
                 str(k): FontSpec(**{key: str(v[key]) for key in FontSpec.__dataclass_fields__})

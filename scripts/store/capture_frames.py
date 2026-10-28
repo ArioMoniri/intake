@@ -97,6 +97,8 @@ class CaptureSession:
     runner: Runner
     confirm: Callable[[str], None]
     visit: str | None = None
+    #: Issues the operator confirms have landed in this build (``--resolved``).
+    resolved: frozenset[str] = frozenset()
     shots: list[Shot] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -132,6 +134,8 @@ def prepare(session: CaptureSession) -> None:
         session.runner.run(
             ["xcrun", "simctl", "spawn", session.udid, "defaults", "write", "-g", key, kind, value]
         )
+    state = ", ".join(f"{k} {v}" for k, v in session.spec.app_state.items())
+    session.confirm(f"Set the app to: {state}. Press Enter when it is.")
     session.out_dir.mkdir(parents=True, exist_ok=True)
 
 
@@ -145,6 +149,13 @@ def _checklist(session: CaptureSession, frame: frame_plan.Frame) -> str:
 
 def shoot(session: CaptureSession, frame: frame_plan.Frame) -> Shot:
     """Set the appearance, confirm the screen, capture, and check the size."""
+    if frame.waits_for is not None:
+        issue = frame.waits_for.split(" ", 1)[0]
+        if issue not in session.resolved:
+            raise CaptureError(
+                f"{frame.frame_id} waits for {frame.waits_for}; capture it once {issue} "
+                "is in the build (--resolved)"
+            )
     session.runner.run(["xcrun", "simctl", "ui", session.udid, "appearance", frame.appearance])
     if session.visit is not None or "{visit}" not in frame.route:
         route = frame.route.replace("{visit}", session.visit or "")
@@ -193,6 +204,8 @@ def write_provenance(session: CaptureSession, shots: Sequence[Shot], *, captured
         "app_sha": session.app_sha,
         "api": session.api_label,
         "data_class": session.data_class,
+        "app_state": dict(session.spec.app_state),
+        "resolved": sorted(session.resolved),
         "captures": [
             {"file": s.name, "sha256": s.sha256, "appearance": s.appearance, "route": s.route}
             for s in shots
@@ -225,6 +238,12 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument("--visit")
     parser.add_argument("--udid")
     parser.add_argument("--frame", action="append", help="capture only these frame ids")
+    parser.add_argument(
+        "--resolved",
+        action="append",
+        default=[],
+        help="an issue a frame waits for, now in the build",
+    )
     parser.add_argument("--out", type=Path)
     args = parser.parse_args(list(argv))
     spec = frame_plan.load_spec(frame_plan.FRAMES)
@@ -243,10 +262,18 @@ def main(argv: Sequence[str]) -> int:
             runner=runner,
             confirm=_ask,
             visit=args.visit,
+            resolved=frozenset(args.resolved),
         )
         prepare(session)
         frames = [f for f in spec.frames if not args.frame or f.frame_id in args.frame]
-        shots = [shoot(session, frame) for frame in frames]
+        held = [
+            f
+            for f in frames
+            if f.waits_for is not None and f.waits_for.split(" ", 1)[0] not in session.resolved
+        ]
+        for frame in held:
+            print(f"HELD {frame.frame_id}: waits for {frame.waits_for}")
+        shots = [shoot(session, frame) for frame in frames if frame not in held]
     except CaptureError as exc:
         print(f"REFUSED {exc}", file=sys.stderr)
         return 2

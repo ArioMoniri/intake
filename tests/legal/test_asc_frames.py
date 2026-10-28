@@ -446,6 +446,7 @@ def _session(
         api_label="local dev API, mock SMS and attestation adapters",
         runner=runner,
         confirm=lambda _message: None,
+        resolved=frozenset(kw["resolved"].split(",")) if kw.get("resolved") else frozenset(),
     )
 
 
@@ -453,7 +454,7 @@ def test_the_session_sets_a_clean_status_bar_and_each_frames_appearance(
     tmp_path: Path, spec: frame_plan.FrameSpec
 ) -> None:
     runner = FakeRunner(spec.capture_size)
-    session = _session(tmp_path, spec, runner)
+    session = _session(tmp_path, spec, runner, resolved="INT-588")
     capture_frames.prepare(session)
     shots = [capture_frames.shoot(session, frame) for frame in spec.frames]
     flat = [" ".join(call) for call in runner.calls]
@@ -499,7 +500,7 @@ def test_provenance_records_hashes_and_the_build_never_a_value(
     tmp_path: Path, spec: frame_plan.FrameSpec
 ) -> None:
     runner = FakeRunner(spec.capture_size)
-    session = _session(tmp_path, spec, runner)
+    session = _session(tmp_path, spec, runner, resolved="INT-588")
     shots = [capture_frames.shoot(session, frame) for frame in spec.frames[:2]]
     path = capture_frames.write_provenance(session, shots, captured_on="2026-10-29")
     record = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -511,3 +512,68 @@ def test_provenance_records_hashes_and_the_build_never_a_value(
         data = (session.out_dir / row["file"]).read_bytes()
         assert row["sha256"] == hashlib.sha256(data).hexdigest()
     assert not re.search(r"\+?90\s?5\d{2}", path.read_text(encoding="utf-8"))
+    assert record["app_state"] == {"voice": "off", "start_mode": "typed"}
+
+
+def test_a_frame_waiting_for_an_issue_is_refused_until_the_build_has_it(
+    tmp_path: Path, spec: frame_plan.FrameSpec
+) -> None:
+    """Legal review B6: the typed step still shows intake.open.hint's offer to speak
+    until INT-588 lands, so that frame waits for it."""
+    waiting = spec.frame("konusma")
+    assert waiting.waits_for is not None and waiting.waits_for.startswith("INT-588")
+    runner = FakeRunner(spec.capture_size)
+    with pytest.raises(capture_frames.CaptureError, match="INT-588"):
+        capture_frames.shoot(_session(tmp_path, spec, runner), waiting)
+    assert not any("screenshot" in call for call in runner.calls)
+    landed = _session(tmp_path / "landed", spec, runner, resolved="INT-588")
+    assert capture_frames.shoot(landed, waiting).name == waiting.capture_name
+
+
+def test_the_store_builds_state_is_set_before_the_first_shot(
+    tmp_path: Path, spec: frame_plan.FrameSpec
+) -> None:
+    assert spec.app_state == {"voice": "off", "start_mode": "typed"}
+    asked: list[str] = []
+    session = _session(tmp_path, spec, FakeRunner(spec.capture_size))
+    session.confirm = asked.append
+    capture_frames.prepare(session)
+    assert any("voice off" in message and "start_mode typed" in message for message in asked)
+
+
+VOICE_SURFACES = ("DialogueIntake.tsx", "VoiceNote.tsx", "DevVoiceBanner.tsx")
+_KEY = re.compile(r'"([a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+)"')
+
+
+def _keys_in(path: Path, known: set[str]) -> set[str]:
+    return {key for key in _KEY.findall(path.read_text(encoding="utf-8")) if key in known}
+
+
+def test_no_caption_rests_on_a_key_only_the_voice_surfaces_render() -> None:
+    """Legal review: a store build renders neither the voice dialogue, the voice
+    note nor the dev voice banner. A caption sourced from a key that only those
+    render would describe a screen the store build cannot show."""
+    tr = (REPO / "apps/mobile/src/lib/i18n/tr.ts").read_text(encoding="utf-8")
+    known = set(re.findall(r'^\s*"([^"]+)":', tr, flags=re.MULTILINE))
+    src = REPO / "apps/mobile/src"
+    files = [
+        p
+        for p in src.rglob("*.ts*")
+        if "i18n" not in p.parts and ".test." not in p.name and "e2e" not in p.parts
+    ]
+    voice = set().union(*(_keys_in(p, known) for p in files if p.name in VOICE_SURFACES))
+    elsewhere = set().union(*(_keys_in(p, known) for p in files if p.name not in VOICE_SURFACES))
+    voice_only = voice - elsewhere
+    assert voice_only, "the guard is armed: the voice surfaces render keys of their own"
+    captions = frame_plan.load_captions(CAPTION_DRAFT)
+    cited = {
+        key for c in captions.values() for key in _KEY.findall(f'"{c.source}"') if key in known
+    }
+    cited |= {
+        token.strip(",;()")
+        for c in captions.values()
+        for token in c.source.split()
+        if token.strip(",;()") in known
+    }
+    assert cited, "captions cite app keys"
+    assert cited.isdisjoint(voice_only), sorted(cited & voice_only)
