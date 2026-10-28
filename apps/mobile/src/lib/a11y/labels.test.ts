@@ -55,13 +55,15 @@ describe("withContext — SC 2.5.3 Label in Name", () => {
 
 describe("spoken — the two-sided transcript", () => {
   it("attributes every turn to its speaker, speaker first", () => {
-    expect(spoken("Vizite", "Ağrınız ne zaman başladı?")).toBe("Vizite: Ağrınız ne zaman başladı?");
+    expect(spoken("Önvizit", "Ağrınız ne zaman başladı?")).toBe(
+      "Önvizit: Ağrınız ne zaman başladı?",
+    );
     expect(spoken("Siz", "İki gün önce")).toBe("Siz: İki gün önce");
   });
 
   it("joins the bubble's own lines under one attribution", () => {
-    expect(spoken("Vizite", "Şunu anladım", "İki gün", "Doğru mu?")).toBe(
-      "Vizite: Şunu anladım · İki gün · Doğru mu?",
+    expect(spoken("Önvizit", "Şunu anladım", "İki gün", "Doğru mu?")).toBe(
+      "Önvizit: Şunu anladım · İki gün · Doğru mu?",
     );
   });
 

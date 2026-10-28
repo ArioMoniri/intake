@@ -141,8 +141,11 @@ components:
 
   - component: probes
     self_hostable: true
-    self_hosted_now: false
-    host: "this package (services/probes) — runner exists; the 60 s scheduler wiring (systemd/compose) lands with the deployment issues"
+    # INT-560: runs on the synthetic AWS host as compose service `probes`,
+    # sweeping what infra/staging/inventory.yaml says that host runs. Not on
+    # the PHI path, so the release gate does not bind to it either way.
+    self_hosted_now: true
+    host: "this package (services/probes) — on the synthetic AWS host, compose service `probes` (infra/staging/compose.yaml): the api image running intake_probes.app, sweeping the host's inventory (infra/staging/inventory.yaml) every 60 s into the volume the api's registry page reads (INT-560). No dev-tier scheduler"
     license: "proprietary (repo LICENSE)"
     probe: http_health
     budget_ms: 800
@@ -772,3 +775,60 @@ components:
       none: hub parsers and scenarios are MIT too, but they would arrive over
       the network from a host that is not on the egress allow-list, which is
       why there are none.
+
+  # --- INT-560: the synthetic AWS host's admin tier and edge -----------------
+  #
+  # These four run on the synthetic AWS host only (infra/staging/compose.yaml)
+  # and the registry page could not show them until they had rows. None is on
+  # the PHI path: the host carries synthetic patients only (HB-I5, HB-L11), the
+  # admin console's payloads are ids and aggregates (invariant 6), Keycloak
+  # holds staff identities, and the PHI deployment's edge is `edge-ingress`
+  # (Traefik), not Caddy. So the INT-022 gate does not bind to them, and on
+  # the host page they are "blocking" only when the stack needs them and their
+  # probe is not healthy (infra/staging/inventory.yaml).
+  #
+  # Licences: each row's licence has NOT been recorded from a raw LICENSE blob
+  # in this registry — the evidence named below read it, but no blob url and
+  # sha256 sit here yet — so each says UNVERIFIED and the page says so.
+  # Recording the blobs is INT-561's.
+  - component: keycloak
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `keycloak`: quay.io/keycloak/keycloak 26.7.4 (INT-390's digest) plus the WebAuthn session-notes provider (Dockerfile.keycloak, INT-378); staff identity for the admin console. Management port 9000 (health) is internal, never routed"
+    license: "UNVERIFIED — Apache-2.0 as recorded by INT-390/INT-421; the raw LICENSE blob is INT-561's to record"
+    probe: http_health
+    budget_ms: 1500
+    fallback: "none"
+    phi_path: false
+
+  - component: oauth2-proxy
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `oauth2-proxy`: quay.io/oauth2-proxy/oauth2-proxy v7.15.4 (digest-pinned), the admin console's login gate on the internal edge network (oauth2-proxy/alpha.yaml)"
+    license: "UNVERIFIED — MIT as read for INT-421 (docs/evidence/INT-421.md); the blob url and sha256 are INT-561's to record"
+    probe: http_health
+    budget_ms: 500
+    fallback: "none"
+    phi_path: false
+
+  - component: admin-web
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `admin-web`: apps/admin-web (Next.js) built from the deployed commit (Dockerfile.admin-web); renders only what the API's /admin routes return for the caller's own bearer"
+    license: "UNVERIFIED — proprietary (repo LICENSE) for the console; its Next.js and React dependencies are INT-561's to record"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    phi_path: false
+
+  - component: caddy
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `caddy`: caddy 2.11.4-alpine (digest-pinned), the host's one published service (80, 443), TLS for STAGING_HOSTNAME and its admin/auth names (Caddyfile). Its certificate is the `edge-tls` row"
+    license: "UNVERIFIED — Apache-2.0 as recorded in infra/staging/compose.yaml; the raw LICENSE blob is INT-561's to record"
+    # a TCP connect to 443 on the compose network; the certificate it serves is
+    # read by `edge-tls` over a real TLS handshake with the public name
+    probe: tcp_connect
+    budget_ms: 500
+    fallback: "none"
+    phi_path: false

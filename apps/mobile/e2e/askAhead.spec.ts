@@ -20,7 +20,7 @@
  *   2. Both the live and the settled bubble render that body unconditionally,
  *      and in the live bubble the body precedes the status row.
  *   3. "Soru hazırlanıyor…" is the status row's caption swapping with
- *      "Vizite konuşuyor", never a stand-in for the question.
+ *      "Önvizit konuşuyor", never a stand-in for the question.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

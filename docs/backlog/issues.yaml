@@ -5169,8 +5169,8 @@
     - "ADR-029 proposes the embed surface (signed launch-ticket handshake vs an embedded UI, with a recommendation and tradeoffs), the constrained tenant-branding model, the auth/consent handshake, and how tenant isolation is preserved within D1-D15 and ADR-001..028"
     - "signed, single-use, short-lived launch ticket: the partner backend mints it server-to-server; the patient device launches it; the tenant is bound INSIDE the signature so a ticket cannot cross tenants; no PHI in the ticket; the nonce is single-use; device_functions stays off (ADR-020)"
     - "tenant embed registry (infra/tenants/embed_registry.yaml): branding is constrained data not partner markup, fail-closed, ships with ZERO prod rows and one dev-tier synthetic tenant; a prod row is refused without recorded DPA + brand-permission facts (human sign-off)"
-    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Vizite's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
-    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Vizite launch url, never holding a Vizite secret"
+    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Önvizit's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
+    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Önvizit launch url, never holding an Önvizit secret"
     - "NO real partner secrets or branding; a partner-supplied patient identifier / note-back correlation is out of scope pending human sign-off (a new personal-data category + recipient), built as the mechanism only, fail-closed, content empty"
   tests: [tests/embed/test_tickets.py, tests/embed/test_registry.py, tests/embed/test_launch.py, tests/embed/test_router.py, tests/embed/test_service.py, tests/legal/test_consent_guard.py]
   legal: "KVKK-8,DPA"
@@ -6353,7 +6353,6 @@
   tests: [tests/legal/test_legal_drafts.py]
   legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
   sec_row: "compliance-evidence"
-
 - id: INT-404
   epic: E03-protocols
   phase: P1
@@ -7249,6 +7248,119 @@
   tests: [tests/api/test_otp_netgsm.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_otp_send_check.py, tests/api/test_sms_test_allowlist.py, tests/security/test_egress_sms_proxy.py, tests/infra/test_staging_netgsm.py, tests/infra/test_staging_sms_egress.py, tests/infra/test_app_attest_golive.py, tests/infra/test_staging_compose.py]
   legal: "KVKK-9,DPA"
   sec_row: "onboarding"
+- id: INT-573
+  epic: E13-infra
+  phase: P1
+  title: "next, certifi and filelock lifted past the 27 Oct 2026 advisories, so the vulnerabilities gate is green without an exception"
+  # GitHub #965. On 27 Oct 2026 trivy began reporting four advisories with
+  # fixed releases: next 16.3.8 (GHSA-2464-fhr4-w9xw, CVE-2026-94482),
+  # certifi 2026.7.22 (GHSA-6q48-6c7w-9gw2) and filelock 3.32.4
+  # (CVE-2026-112940). Every PR and main went red. A fix exists for each, so
+  # the row is bumps only; no exception entry (invariant 14).
+  depends_on: [INT-501]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-573.md
+  acceptance:
+    - "apps/admin-web pins next 16.4.1; uv.lock carries certifi 2026.10.23 and filelock 4.2.1 (virtualenv follows); none of the four advisories gets an exception row"
+    - "a fifth advisory surfaced in CI after the bumps: zod 3.25.76 under @expo/cli (GHSA-mrhx-c7xc-m3w5 / CVE-2023-54404), whose only fix is 4.6.6 outside @expo/cli's ^3.25.76 range; its time-boxed trivy and osv rows (to 2026-12-31, both pins 3 -> 4, a test tying the two expiries) ship as the owner's own commit of issue-drafts/owner-573-zod-exception.patch, since the exception files are owner-only"
+    - "trivy fs over the lockfiles reports none of the four advisories; the only findings left are the two already-suppressed rows, recorded before and after in evidence"
+    - "admin-web tsc and vitest (385) pass on next 16.4.1; tests/ci (419) passes on the new lockfiles"
+  tests: [tests/ci/test_security_gates.py]
+- id: INT-574
+  epic: E13-infra
+  phase: P1
+  title: "test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load"
+  # GitHub #967, 28 Oct 2026. The test timed one cold request against the
+  # 300 ms RED budget on the shared intake-aws-ci runner: main's own run on
+  # 78330ff4 failed it at 620 ms, #963's at 350 ms, and it passes alone. It
+  # sits in a required check-py shard, so it blocked every merge when it
+  # flaked. #963 (INT-459, d5f1907b) carries a test-only rewrite; this row
+  # lifts it onto main as its own PR and takes the clock out altogether: the
+  # store holds every write until the test opens it, so the RED coming back
+  # while its write is held is a fact of ordering, not of a clock (invariants
+  # 9, 21). The sweep of the other wall-clock budgets asserted in tests/api
+  # and tests/voice is in the evidence, with a recommendation each.
+  depends_on: [INT-475]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-574.md
+  acceptance:
+    - "tests/api/test_red_notify.py::test_the_red_never_waits_on_the_inbox_store asserts no wall-clock threshold: the RED is observed back while the Safety-inbox store still holds its write (an event the store blocks on), so it cannot have waited on the write; the entry waits in the outbox with the RED's own instant and the pump brings it to the store; at shutdown what is unwritten is counted, never named."
+    - "Near miss: a RED that writes the store itself is held with the write — it reaches the store and comes back only once the store answers — so the same observation is impossible for a RED that waits."
+    - "The test passes ten consecutive runs alone and under induced load (a GIL-burning store stub and CPU hogs); the original test's red run under load and the new test's green runs are recorded in the evidence."
+    - "Sweep: every wall-clock budget asserted in tests/api and tests/voice is listed in docs/evidence/INT-574.md with a recommendation each; only this test is changed here."
+  tests: [tests/api/test_red_notify.py]
+  sec_row: "cicd"
+- id: INT-576
+  epic: E01-platform
+  phase: P1
+  title: "Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried"
+  # GitHub #971, 28 Oct 2026, P0 on the build-6 path. The owner's real send on
+  # the synthetic host logged "otp delivery failed (netgsm) refusal=-
+  # reason=malformed_response http_status=200 vendor_code=-", yet the SMS from
+  # the approved sender arrived after both tries: the request, credentials,
+  # header, Netgsm IP allow-list and sms-egress proxy (ADR-042) all work, and
+  # only INT-528's response parsing was wrong. The shape is settled from
+  # Netgsm's documentation and official SDKs, never from a live capture; the
+  # owner's retry after deploy is the live confirmation.
+  depends_on: [INT-528]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-576.md
+  acceptance:
+    - "The success and error shapes of POST /sms/rest/v2/otp are settled from Netgsm's documentation (OTP SMS, REST v2 and XML) and its official SDKs (netgsm-sms 1.1.2 for Python, @netgsm/sms 1.1.11 for JS, the PHP OTP package the documentation links), each snapshotted verbatim with URL, retrieval date and sha256; the fixtures are re-derived from them and marked as derived, not captured."
+    - "Both documented success shapes are a receipt with the job id: code 00 with jobid (the documentation's sample) or jobId (the JS SDK's response type and integration test); every documented OTP error code (20, 30, 40-41, 50-52, 60, 70, 80, 100-101) is one typed refusal."
+    - "Any other 2xx is a typed refusal and never a success: unparseable_response (no documented code: plain text, XML, HTML, empty, a non-object, JSON deeper than the decoder), accepted_without_job_id (code 00 without exactly one digit-string job id under a documented key) or unknown_vendor_code; near misses cover each."
+    - "An answer after which Netgsm may have sent the code is never sent again: exactly one vendor request, OtpDeliveryError.retryable is False, the route answers the generic 503 and the cooldown holds a resend; the owner's check prints unconfirmed, not 'not sent'. The wire request (msgheader, msg, no) and the sms-egress allow-list are unchanged."
+    - "An opt-in, structure-only diagnostic (netgsm_test_otp.sh --shape) prints the answer's content type, kind, top-level keys or tags, vendor code and length, never the number, the code, the job id or the body; invariant 6 tests cover every new refusal path."
+  tests: [tests/api/test_otp_netgsm_answer.py, tests/api/test_otp_netgsm.py, tests/api/test_otp_send_check.py, tests/api/test_otp_netgsm_wiring.py, tests/infra/test_staging_netgsm.py]
+  sec_row: "onboarding"
+- id: INT-420
+  epic: E08-mobile
+  phase: P0
+  title: "Önvizit everywhere — finish the Vizite→Önvizit rebrand on main"
+  # GitHub #712. Owner request, 27 Sep 2026: the product is Önvizit (ASCII
+  # `onvizit`). Carries the intent of int-demo 0115c60b and 82c1a1e6 (name,
+  # V-logo icon, bundle id, localized CFBundleDisplayName, purpose string)
+  # without merging int-demo; eas.json and the other release config stay with
+  # INT-421. Common-noun uses of the Turkish word and dated records are kept
+  # and listed in the allow-list the guard reads (docs/evidence/INT-420.md).
+  depends_on: [INT-130, INT-320]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-420.md
+  acceptance:
+    - "every brand use of the old name on main reads Önvizit (ASCII identifier `onvizit`): app and display name, bundle and scheme, embed sample partner, i18n, docs, store and legal artefacts, and tests; carries over the int-demo rebrand (V-logo icon, localized CFBundleDisplayName, iOS purpose strings)"
+    - "the Turkish common noun is kept wherever it is used as a word and not as the brand, and each kept occurrence is listed in the evidence"
+    - "identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested; a guard test fails on any new brand-case use of the old name"
+  tests: [tests/release/test_brand_name.py, tests/release/test_brand_identifiers.py, apps/mobile/e2e/brand.spec.ts]
+  sec_row: "mobile"
+- id: INT-560
+  epic: E12-admin
+  phase: P1
+  title: "The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns"
+  # GitHub #948, owner 17 Oct 2026 ("solve these"). On the synthetic AWS host
+  # the ops console's registry tile read no_result on every row (no sweep ran
+  # there and the API had no results file), "blocking" on rows the host does
+  # not run (HAPI, the team GPU server's models) and "evet" under "Şu an kendi
+  # sunucumuzda" for anything the registry self-hosts anywhere. The probes
+  # service now runs on the host, sweeping a recorded host inventory; the
+  # columns derive from that inventory and the live sweep. Licence data is
+  # INT-561 (#949).
+  depends_on: [INT-022, INT-183, INT-351, INT-377, INT-345]
+  labels: [area:observability]
+  status: done
+  evidence: docs/evidence/INT-560.md
+  acceptance:
+    - "services/probes runs on the synthetic host (compose service with the monitoring contract: /healthz, /readyz, /metrics, /version; invariant 15; SLO yaml; registry row for itself) and every registry row gets a real probe result; probe targets fixed to what actually runs on the host."
+    - "'Şu an kendi sunucumuzda' reflects reality: GPU-box models are not reachable from AWS, so they show as not deployed / unreachable, never a false 'evet'."
+    - "Severity 'blocking' only for what the deployed synthetic stack actually needs; everything else advisory, with the reason."
+    - "TDD: tests pin the column derivations against a recorded host inventory; near misses (a GPU-box model never shows deployed on the AWS host; a missing probe never shows healthy)."
+    - "No PHI in probe output (invariant 6); every emitted metric catalogued (invariant 13)."
+    - "Licence columns are INT-561."
+  tests: [tests/observability/test_host_inventory.py, tests/observability/test_host_sweep.py, tests/admin/test_registry_truth.py, tests/infra/test_staging_probes.py, tests/admin/test_ops_console.py, apps/admin-web/e2e/ops.spec.ts]
+  sec_row: "monitoring-contract"
 - id: INT-559
   epic: E08-mobile
   phase: P1

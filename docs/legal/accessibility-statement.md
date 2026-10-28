@@ -59,7 +59,7 @@ Nothing here supersedes either, and nothing here claims more than the report.
 
 | | |
 |---|---|
-| Product | Vizite — patient pre-visit intake, mobile application (`apps/mobile`) |
+| Product | Önvizit — patient pre-visit intake, mobile application (`apps/mobile`) |
 | Platforms | iOS and Android, via Expo / React Native |
 | Assessed | 26 September 2026 (INT-226), on `origin/main` at `066fb8a5`. First assessed 29 August 2026 (INT-144). |
 | Target | WCAG 2.2 Level AA |

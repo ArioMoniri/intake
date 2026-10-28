@@ -723,7 +723,14 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
     INT-508 renewed the braces entry once, to 31 Dec 2026."""
     config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
     entries = {e["id"]: e for e in config["IgnoredVulns"]}
-    assert set(entries) == {"GHSA-86w9-cpqp-85rv", *OSV_NO_FIX_ROWS}, "nothing else is muted"
+    # INT-573: the zod and deepmerge rows are checked by their own tests below.
+    expected = {
+        "GHSA-86w9-cpqp-85rv",
+        "GHSA-mrhx-c7xc-m3w5",
+        "GHSA-gcqx-w48m-w2h4",
+        *OSV_NO_FIX_ROWS,
+    }
+    assert set(entries) == expected, "nothing else is muted"
     for advisory, musts in OSV_NO_FIX_ROWS.items():
         entry = entries[advisory]
         until = entry.get("ignoreUntil")
@@ -757,6 +764,42 @@ def test_the_braces_trivy_row_is_scoped_and_expires_with_its_osv_entry() -> None
         "micromatch/braces",
         "expo export",
         "docs/evidence/INT-426.md",
+    ):
+        assert must in statement, f"the statement must say {must!r}"
+
+
+def test_the_deepmerge_row_is_scoped_and_expires() -> None:
+    """INT-573: osv's deepmerge row under @expo/config, which has no fixed release."""
+    config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    (entry,) = [e for e in config["IgnoredVulns"] if e["id"] == "GHSA-gcqx-w48m-w2h4"]
+    assert entry["ignoreUntil"].date() == datetime.date(2026, 12, 31), "time-boxed"
+    reason = " ".join(str(entry["reason"]).split())
+    for must in (
+        "owner-573-deepmerge-exception.patch",
+        "deepmerge 4.3.1 only",
+        "@expo/config",
+        "expo export",
+        "docs/evidence/INT-573.md",
+    ):
+        assert must in reason, f"the reason must say {must!r}"
+
+
+def test_the_zod_rows_are_scoped_and_expire_together() -> None:
+    """INT-573: trivy's and osv's view of the zod advisory under @expo/cli."""
+    rows = yaml.safe_load(TRIVYIGNORE.read_text(encoding="utf-8"))["vulnerabilities"]
+    (row,) = [r for r in rows if r.get("id") == "CVE-2023-54404"]
+    assert row["purls"] == ["pkg:npm/zod@3.25.76"], "scoped to the one version"
+    expiry = row.get("expired_at")
+    assert isinstance(expiry, datetime.date), "the row must carry trivy's expired_at"
+    config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    (entry,) = [e for e in config["IgnoredVulns"] if e["id"] == "GHSA-mrhx-c7xc-m3w5"]
+    assert expiry == entry["ignoreUntil"].date(), "trivy and osv expire together"
+    statement = " ".join(str(row.get("statement", "")).split())
+    for must in (
+        "owner-573-zod-exception.patch",
+        "@expo/cli",
+        "expo export",
+        "docs/evidence/INT-573.md",
     ):
         assert must in statement, f"the statement must say {must!r}"
 
@@ -1054,7 +1097,18 @@ OSV_SUPPRESSION_FILES = (
 #
 # INT-501 lowers it from 4 to 3. http-cache-semantics resolves to 4.3.0, outside
 # GHSA-ch52-4w7c-c8xp's range, so its entry is gone (owner-501-remove-exceptions).
-MAX_OSV_SUPPRESSIONS = 3
+#
+# INT-573 raises it from 3 to 4, by exactly one, through the owner's own commit
+# of owner-573-zod-exception.patch: zod 3.25.76 (GHSA-mrhx-c7xc-m3w5 =
+# CVE-2023-54404) sits under @expo/cli, whose ^3.25.76 range excludes the only
+# fixed release, 4.6.6. The row expires on 2026-12-31 with its trivy row
+# (test_the_zod_rows_are_scoped_and_expire_together), and the pin goes back
+# down when it goes.
+#
+# INT-573 raises it again from 4 to 5 for deepmerge 4.3.1 (GHSA-gcqx-w48m-w2h4) under
+# @expo/config, which has no fixed release; trivy does not report it (MEDIUM), so the
+# trivy pin stays. It expires on 2026-12-31 (test_the_deepmerge_row_is_scoped_and_expires).
+MAX_OSV_SUPPRESSIONS = 5
 # The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
 # the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
 # owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
@@ -1063,7 +1117,11 @@ MAX_OSV_SUPPRESSIONS = 3
 # INT-508 renews the node-forge and braces rows (trivy and osv) once, to
 # 2026-12-31, by the owner's commit of owner-508-renew-exceptions.patch. No row
 # is added, so neither pin moves.
-MAX_TRIVY_SUPPRESSIONS = 3
+#
+# INT-573 raises the trivy pin from 3 to 4 for trivy's view of the same zod
+# advisory (CVE-2023-54404), by the same owner commit; it expires with the osv
+# entry on 2026-12-31.
+MAX_TRIVY_SUPPRESSIONS = 4
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
 # apps/mobile (1753 tests) and 2 in packages/clinical-schemas (6 tests).

@@ -100,7 +100,7 @@ it or whose tests exercise it.
 | `apps/mobile` | `mobile`, `onboarding`, `intake-voice`, `records`, `share-centre`, `kiosk`, `notifications` | the patient app |
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
-| `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/embed-sdk` | `embed` | the partner launcher, holding no Önvizit secret |
 | `packages/hosted-lanes` | `llm-boundary`, `cloud-boundary` | the hosted model-lane adapters, shipped in the synthetic deployment's image only (ADR-035) |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
@@ -361,6 +361,23 @@ it or whose tests exercise it.
 - **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
   (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
   test_slo_coverage.py (INT-021).
+- **Controls added by INT-560 (17 Oct 2026):** the synthetic AWS host is probed. The probes
+  service runs there as its own compose service and sweeps a recorded host inventory
+  (`infra/staging/inventory.yaml`). The loader refuses an inventory whose services are not
+  exactly compose's, or that sits in a process whose data class is not synthetic. The API
+  reads the sweep read-only. A blind spot on that host is now a `no_result` or a stale age on
+  the console, never an "evet", and a missing result never reads healthy.
+  - The probes service holds the least it can: a Postgres role with LOGIN and CONNECT only,
+    a Redis user that may PING only, no network with a route off the host, and no published
+    port.
+  - Its failure texts are scrubbed before they are written ([I]), and its two series carry
+    registry ids only.
+  - "Blocking" on the console's registry tile means the host's stack needs the row and its
+    probe is not healthy now. The INT-022 PHI release gate is unchanged and is shown as
+    registry-wide.
+  - Tests: tests/observability/test_host_inventory.py, test_host_sweep.py,
+    test_probes_host_service.py; tests/admin/test_registry_truth.py;
+    tests/infra/test_staging_probes.py.
 
 ## `observability-pipeline` — logs, traces, errors are not a side channel
 
@@ -570,7 +587,12 @@ it or whose tests exercise it.
   HTTP status, the refusal and the numeric code; the one counter,
   `otp_sms_delivery_total{vendor,outcome}`, has closed labels. Never the phone, the code, the
   password or the vendor's description. No retry: a retried SMS would put a second code in
-  flight. On the synthetic host the owner keeps the values as SSM SecureString parameters;
+  flight. INT-576: a 2xx the adapter cannot read as the documented success (code `00` with
+  the job id as `jobid`, the documentation's sample, or `jobId`, Netgsm's JS SDK) is a typed
+  refusal (`unparseable_response`, `accepted_without_job_id`, `unknown_vendor_code`) whose
+  port reason, `malformed_response`, is not retryable (`OtpDeliveryError.retryable`), with a
+  timeout and a vendor-side failure, because Netgsm may already have sent the code; the
+  cooldown the request started holds a resend. On the synthetic host the owner keeps the values as SSM SecureString parameters;
   `infra/staging/netgsm_secrets.sh` (run by hand and by every `deploy.sh`) reads them with the
   instance role and writes them to OpenBao on stdin, never argv, printing field names only, and
   `deploy.sh` refuses an Apple team id the API's own token cannot pair with them. Its `--check`
@@ -1722,7 +1744,7 @@ it or whose tests exercise it.
   load — hex colours, bounded display name, id-shaped refs, partner markup/URLs/schemes
   refused — so there is no injection surface; `device_functions` may not be enabled for an
   embed tenant (ADR-020); a `prod` tenant is refused without `dpa_ref` + `brand_permission_ref`
-  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Vizite's own
+  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Önvizit's own
   docs/legal-bound flow (inv. 4, inv. 18), never by the partner; the note flows back only
   through the existing connector path (ADR-026), so the embed adds no new outbound PHI path;
   refusals are id-shaped codes only (inv. 6). A partner-supplied patient identifier is **out
