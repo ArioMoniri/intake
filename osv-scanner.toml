@@ -84,3 +84,20 @@ at build time, never patient input. It is not in either production `expo export`
 bundle, and no server runtime image installs npm packages: \
 infra/staging/Dockerfile.api is Python only, and no admin-web or clinician-web \
 importer reaches it (docs/evidence/INT-573.md)."""
+
+# INT-573, 28 Oct 2026: deepmerge 4.3.1 under @expo/config, with NO fixed
+# release (4.3.1 is the newest on npm). One advisory of one package, expiring on
+# 2026-12-31 (tests/ci/test_security_gates.py::test_the_deepmerge_row_is_scoped_and_expires).
+
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = 2026-12-31T00:00:00Z
+reason = """\
+OWNER-APPROVED, TIME-BOXED EXCEPTION for deepmerge 4.3.1 only, by the owner's own \
+commit of owner-573-deepmerge-exception.patch (INT-573, GitHub #965; prototype \
+pollution, CVSS 5.3). No fixed release exists: 4.3.1 is the newest deepmerge on \
+npm. It is in pnpm-lock.yaml only under @expo/config 57.0.9 (importer apps/mobile, \
+via expo 57.0.17), which merges the repository's own app config at build time, \
+never patient input. It is not in either production `expo export` bundle, and no \
+server runtime image installs npm packages: infra/staging/Dockerfile.api is Python \
+only, and no admin-web or clinician-web importer reaches it (docs/evidence/INT-573.md)."""

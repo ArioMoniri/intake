@@ -723,8 +723,13 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
     INT-508 renewed the braces entry once, to 31 Dec 2026."""
     config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
     entries = {e["id"]: e for e in config["IgnoredVulns"]}
-    # INT-573: the zod row is checked in test_the_zod_rows_are_scoped_and_expire_together.
-    expected = {"GHSA-86w9-cpqp-85rv", "GHSA-mrhx-c7xc-m3w5", *OSV_NO_FIX_ROWS}
+    # INT-573: the zod and deepmerge rows are checked by their own tests below.
+    expected = {
+        "GHSA-86w9-cpqp-85rv",
+        "GHSA-mrhx-c7xc-m3w5",
+        "GHSA-gcqx-w48m-w2h4",
+        *OSV_NO_FIX_ROWS,
+    }
     assert set(entries) == expected, "nothing else is muted"
     for advisory, musts in OSV_NO_FIX_ROWS.items():
         entry = entries[advisory]
@@ -761,6 +766,22 @@ def test_the_braces_trivy_row_is_scoped_and_expires_with_its_osv_entry() -> None
         "docs/evidence/INT-426.md",
     ):
         assert must in statement, f"the statement must say {must!r}"
+
+
+def test_the_deepmerge_row_is_scoped_and_expires() -> None:
+    """INT-573: osv's deepmerge row under @expo/config, which has no fixed release."""
+    config = tomllib.loads((REPO / "osv-scanner.toml").read_text(encoding="utf-8"))
+    (entry,) = [e for e in config["IgnoredVulns"] if e["id"] == "GHSA-gcqx-w48m-w2h4"]
+    assert entry["ignoreUntil"].date() == datetime.date(2026, 12, 31), "time-boxed"
+    reason = " ".join(str(entry["reason"]).split())
+    for must in (
+        "owner-573-deepmerge-exception.patch",
+        "deepmerge 4.3.1 only",
+        "@expo/config",
+        "expo export",
+        "docs/evidence/INT-573.md",
+    ):
+        assert must in reason, f"the reason must say {must!r}"
 
 
 def test_the_zod_rows_are_scoped_and_expire_together() -> None:
@@ -1083,7 +1104,11 @@ OSV_SUPPRESSION_FILES = (
 # fixed release, 4.6.6. The row expires on 2026-12-31 with its trivy row
 # (test_the_zod_rows_are_scoped_and_expire_together), and the pin goes back
 # down when it goes.
-MAX_OSV_SUPPRESSIONS = 4
+#
+# INT-573 raises it again from 4 to 5 for deepmerge 4.3.1 (GHSA-gcqx-w48m-w2h4) under
+# @expo/config, which has no fixed release; trivy does not report it (MEDIUM), so the
+# trivy pin stays. It expires on 2026-12-31 (test_the_deepmerge_row_is_scoped_and_expires).
+MAX_OSV_SUPPRESSIONS = 5
 # The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
 # the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
 # owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
