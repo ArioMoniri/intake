@@ -232,7 +232,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
     # + INT-574 (the RED-never-waits test is deterministic under runner load:
     # no wall-clock budget, a store the test holds; GitHub #967).
-    assert len(ids) == 369
+    # + INT-576 (the Netgsm adapter parses the live success shape and never
+    # retries an unreadable 200; the owner's real send, GitHub #971).
+    assert len(ids) == 370
     import re
 
     for i in ids:
