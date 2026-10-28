@@ -11,8 +11,10 @@
 import type { ReactElement } from "react";
 
 import { COPY, type Copy, type Lang } from "./copy";
+import type { Age } from "./guards";
+import { NBSP } from "./guards";
 import type { OpsConsoleState } from "./load";
-import type { OpsView } from "./module";
+import type { ModelRowView, OpsView } from "./module";
 import { ConsoleNav } from "./nav";
 import { Cell, ScrollTable, Tile } from "./tiles";
 
@@ -53,14 +55,88 @@ function Health({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   );
 }
 
+/** INT-560: an age as one atom, number and unit joined by a no-break space. */
+function ageText(value: Age | null, c: Copy): string | null {
+  return value === null
+    ? null
+    : `${value.value}${NBSP}${c.models.units[value.unit]} ${c.models.ago}`;
+}
+
+function Deployment({ row, c }: { row: ModelRowView; c: Copy }): ReactElement {
+  const word = c.models.deployment[row.deployment] ?? row.deployment;
+  return (
+    <>
+      <span data-state={row.deployment}>{word}</span>
+      {row.needed === false ? (
+        <div className="sub" data-not-needed={row.notNeededReason ?? ""}>
+          {c.models.notNeeded}
+          {row.notNeededReason
+            ? `: ${c.models.notNeededReasons[row.notNeededReason] ?? row.notNeededReason}`
+            : null}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function ProbeStatus({ row, c }: { row: ModelRowView; c: Copy }): ReactElement {
+  const when = ageText(row.probeAge, c);
+  const stale = row.probeStale && row.probeStatus !== "no_result";
+  return (
+    <>
+      <span data-state={row.probeStatus}>
+        {c.models.probeStatuses[row.probeStatus] ?? row.probeStatus}
+      </span>
+      {when !== null ? (
+        <div className="sub">
+          {row.probeCheckedAt ? <time dateTime={row.probeCheckedAt}>{when}</time> : when}
+        </div>
+      ) : null}
+      {stale ? (
+        <div className="sub" data-stale="true">
+          {c.models.stale}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function Severity({ row, c }: { row: ModelRowView; c: Copy }): ReactElement {
+  const why = c.models.severityReasons[row.severityReason] ?? row.severityReason;
+  return (
+    <>
+      <span data-state={row.severity}>{c.models.severities[row.severity] ?? row.severity}</span>
+      {why ? (
+        <div className="sub" data-reason={row.severityReason}>
+          {why}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const t = view.tiles.models;
-  const meta =
-    t.releaseBlocked === null ? null : (
-      <p className="badge" data-state={t.releaseBlocked ? "blocked" : "open"}>
-        {c.models.release}: {t.releaseBlocked ? c.models.blocked : c.models.open}
-      </p>
-    );
+  const meta = (
+    <>
+      {t.host !== null ? (
+        <p className="window" data-host={t.host.hostId}>
+          {c.models.host}: <code>{t.host.hostId}</code> ·{" "}
+          {c.models.dataClasses[t.host.dataClass] ?? t.host.dataClass}
+        </p>
+      ) : t.hostReason !== null ? (
+        <p className="window" data-host-reason={t.hostReason}>
+          {c.models.hostReasons[t.hostReason] ?? t.hostReason}
+        </p>
+      ) : null}
+      {t.releaseBlocked === null ? null : (
+        <p className="badge" data-state={t.releaseBlocked ? "blocked" : "open"}>
+          {c.models.release} ({c.models.releaseScope}):{" "}
+          {t.releaseBlocked ? c.models.blocked : c.models.open}
+        </p>
+      )}
+    </>
+  );
   return (
     <Tile id="models" title={c.models.title} state={t.state} reason={t.reason} c={c} meta={meta}>
       <ScrollTable>
@@ -77,19 +153,34 @@ function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
         </thead>
         <tbody>
           {t.rows.map((row) => (
-            <tr key={row.component} data-severity={row.severity}>
+            <tr
+              key={row.component}
+              data-component={row.component}
+              data-severity={row.severity}
+              data-deployment={row.deployment}
+            >
               <td>
                 <code>{row.component}</code>
                 {row.pin ? <div className="sub">{row.pin}</div> : null}
               </td>
               <td>{row.selfHostable ? c.yes : c.no}</td>
-              <td>{row.selfHostedNow ? c.yes : c.no}</td>
+              <td data-cell="deployment">
+                <Deployment row={row} c={c} />
+              </td>
               <td>
                 <code>{row.probe}</code>
               </td>
-              <td data-state={row.probeStatus}>{row.probeStatus}</td>
-              <td>{row.licenceVerifiedAt ?? c.none}</td>
-              <td data-state={row.severity}>{row.severity}</td>
+              <td data-cell="probe-status">
+                <ProbeStatus row={row} c={c} />
+              </td>
+              <td data-cell="licence">
+                {row.licenceVerifiedAt ?? (
+                  <span data-state="not_verified">{c.models.notVerified}</span>
+                )}
+              </td>
+              <td data-cell="severity">
+                <Severity row={row} c={c} />
+              </td>
             </tr>
           ))}
         </tbody>

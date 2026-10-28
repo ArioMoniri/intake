@@ -1,0 +1,160 @@
+# source: Netgsm API documentation, sections 'Duyurular' (one entry), 'OTP SMS' (REST v2) and 'XML POST OTP SMS'
+# url: https://www.netgsm.com.tr/dokuman/#otp-sms
+# artefact: https://www.netgsm.com.tr/dokuman/bundle.js
+# artefact_sha256: 4cf47bd5d1d3c295d12fcd1a64b5498266d6574313cf59fa41d2e54eca5614a3
+# retrieved_on: 2026-10-28
+# retrieval: curl with a browser user-agent (HTTP 200, Last-Modified: Fri, 09 Oct 2026 11:16:56 GMT); the documentation's markdown is one JS string literal in bundle.js, read as data; exactly these JS string escapes are undone: \r\n and \n to a newline, \t to a tab, \" to a double quote, \' to a single quote; nothing else is edited
+# scope: three verbatim excerpts, each from its start marker up to (not including) its end marker: '**11.03.2025 - Görev ID Güncellemesi**' to '**06.08.2024', '## OTP SMS' to '## Gelen SMS', '### XML POST OTP SMS' to '### XML POST Rapor'; [...] separates them; nothing paraphrased
+---
+**11.03.2025 - Görev ID Güncellemesi**
+* Bu güncelleme, request ve response yapısında herhangi bir değişikliğe neden olmayacaktır.
+
+* Yapılan değişiklikle birlikte, daha önce başarılı gönderimlerde servisten 10 haneli bir görev ID’si (örn: 173772167) dönerken, güncelleme sonrasında daha uzun bir string ifade dönecektir (örn: 17377215342605050417149344).
+[...]
+## OTP SMS
+* Anlık SMS gönderimlerinde (şifre, onay kodu vs.) OTP Servisini kullanabilirsiniz.
+
+* SMS'lerde zaman ayarı yapılamaz, 3 dakika içerisinde iletilir.
+
+* Türkçe karakterli gönderim yapılmamaktadır.
+
+* Yurtdışı ve sabit numaralara gönderim yapılamaz.
+
+* Bu servisi kullanım için hesabınızda OTP paketi tanımlı olmalıdır.
+
+* Detaylı bilgi için [tıklayınız](https://www.netgsm.com.tr/sms/otp-sms).
+
+* PHP Laravel & Symfony örnekleri için composer paketi ve detaylı bilgiye [buradan](https://github.com/netgsm1/otp) ulaşabilirsiniz.
+
+__Authentication__
+* API, **HTTP Basic Authentication** yöntemini kullanır. Bu, username ve passwordun Base64 formatında kodlanarak Authorization başlığına eklenmesini gerektirir.
+
+| OTP SMS | Diğer SMS |
+| ------- | --------- |
+| `SMS’ler 3 dakika içerisinde iletilir.` | Belirlenen tarih aralığı içerisinde mesaj gönderimi sağlanır. İletilemeyen SMS’ler stopdate gözetilerek tekrar deneme sistemine girer. |
+| `Yüksek güvenlikli ve önceliklidir, doğrudan şebekeye teslim.` | Hesap bazında gönderim sıralamasına göre kuyruklanır. |
+| `İleri tarihli gönderim gerçekleştirilemez.` | İleri tarihli gönderim gerçekleştirilebilir. |
+| `Toplu gönderim yapılamaz.` | Toplu gönderim yapılabilir. |
+| `3 operatöre OTP SMS teslim imkanı, yurt dışına OTP gönderilemez.` | Yurt içi ve yurt dışına SMS gönderimi sağlanabilir. |
+| `Yalnızca API servisleri ile gönderim sağlanır.` | API servisi, web, mobil ve masaüstü arayüzlerinden gönderim sağlanabilir. |
+| `Filtresiz gönderim (İYS kontrolü, Kara liste, Mükerrer filtresi)` | Filtrelenerek gönderilir. |
+| `Türkçe karakterli gönderim yapılamaz.)` | Türkçe karakterli gönderim yapılabilir. |
+
+** Tanımlar **
+
+| Parametre | Zorunlu | Anlamı |
+| --------- | ------- | ------ |
+| `usercode` | Evet | Netgsm'den hizmet alınan abone numarası (Format: 850xxxxxxx, 312XXXXXXX vs.). |
+| `password` | Evet | Alt kullanıcı şifresi. (Alt kullanıcı türü "API Kullanıcısı" olan alt kullanıcıya ait şifre.) |
+| `msgheader` | Evet | Sistemde tanımlı olan mesaj başlığınızdır (gönderici adınız). En az 3, en fazla 11 karakterden oluşur. |
+| `msg`	| Evet | 1 boy ve Türkçe karakter içermeyen mesaj metni bu parametrede gönderilir. XML Parse işlemlerinde özel işaretlerin sorun yaratmaması için, mesaj metni <![CDATA[Mesaj metni bu alanda olacak]] > taglari içinde yer almalıdır. |
+| `no` | Evet | Mesajın gönderileceği gsm numarasıdır.(Format: 510xxxxxxx) Yurt dışına gönderim yapılmamaktadır. |
+| `appname` | Opsiyonel | Entegrasyon sağladığınız uygulama adınız. |
+
+** Hata Durumları **
+
+| Hata Kodu | Anlamı |
+| --------- | ------ |
+| `20` | Mesaj metni ya da mesaj boyunu kontrol ediniz. (Alfanumerik başlık ile maksimum 155 karakter)|
+| `30` | Geçersiz kullanıcı adı, şifre veya kullanıcınızın API erişim izninin olmadığını gösterir. Ayrıca eğer API erişiminizde IP sınırlaması yaptıysanız ve sınırladığınız IP dışında gönderim sağlıyorsanız 30 hata kodunu alırsınız. API erişim izninizi veya IP sınırlamanızı, web arayüzden; sağ üst köşede bulunan Abonelik İşlemleri / API işlemleri menüsunden kontrol edebilirsiniz. |
+| `40-41` |	Gönderici adınızı kontrol ediniz. |
+| `50-52` |	Gönderilen numarayı kontrol ediniz. |
+| `60` | Hesabınızda OTP SMS Paketi tanımlı değildir, kontrol ediniz. |
+| `70` | Input parametrelerini kontrol ediniz. |
+| `100` | Sistem hatası. |
+
+```endpoint
+POST https://api.netgsm.com.tr/sms/rest/v2/otp
+```
+
+#### Örnek İstek (Sample Request)
+```json
+{
+    "msgheader": "BASLIK",
+    "msg": "code: 1234",
+    "no": "510XXXXXXX"
+}
+```
+
+#### Örnek Başarılı Cevap (Success Response)
+```json
+{
+    "jobid": "17377215342605050417149344",
+    "code": "00",
+    "description": "success"
+}
+```
+
+#### Örnek Hata Cevabı (Error Response)
+```json
+{
+    "code": "XX",
+    "description": "error message desc."
+}
+```
+[...]
+### XML POST OTP SMS
+
+```endpoint
+POST https://api.netgsm.com.tr/sms/send/otp
+```
+
+#### Örnek İstek (Sample Request)
+```html
+<?xml version="1.0"?>
+<mainbody>
+   <header>
+       <usercode>850xxxxxxx</usercode>
+       <password>xxxxxxxx</password>
+       <msgheader>BASLIK</msgheader>
+   </header>
+   <body>
+       <msg><![CDATA[OTP SMS Metni]]></msg>
+       <no>510xxxxxxx</no>
+   </body>
+</mainbody>
+```
+
+#### Örnek Başarılı Cevap (Success Response)
+```html
+<?xml version="1.0"?>
+<xml>
+    <main>
+        <code>0</code>
+        <jobID>172551745916519453710565585</jobID>
+    </main>
+</xml>
+```
+
+#### Örnek Hata Cevabı (Error Response)
+```html
+<?xml version="1.0"?>
+<xml>
+    <main>
+        <code>30</code>
+        <error>Kullanici bilgisi bulunamadi</error>
+    </main>
+</xml>
+```
+
+** Tanımlar **
+
+| Parametre | Zorunlu | Anlamı |
+| --------- | ------- | ------ |
+| `usercode` | Evet | Netgsm'den hizmet alınan abone numarası (Format: 850xxxxxxx, 312XXXXXXX vs.). |
+| `password` | Evet | Alt kullanıcı şifresi. (Alt kullanıcı türü "API Kullanıcısı" olan alt kullanıcıya ait şifre.) |
+| `msgheader` |	Evet | Sistemde tanımlı olan mesaj başlığınızdır (gönderici adınız). En az 3, en fazla 11 karakterden oluşur. |
+| `msg` | Evet | 1 boy ve Türkçe karakter içermeyen mesaj metni bu parametrede gönderilir. XML Parse işlemlerinde özel işaretlerin sorun yaratmamasi için, mesaj metni <![CDATA[Mesaj metni bu alanda olacak]] > taglari içinde yer almalıdır. |
+| `no` | Evet | Mesajın gönderileceği gsm numarasıdır.(5xxXXXxxxx formatında olmalıdır.) Yur dışına gönderim yapılmamaktadır. |
+
+**Hata Durumları**
+
+| Hata Kodu | Anlamı |
+| --------- | ------ |
+| `20` | Mesaj metni ya da mesaj boyunu kontrol ediniz. |
+| `30` | Geçersiz kullanıcı adı, şifre veya kullanıcınızın API erişim izninin olmadığını gösterir. Ayrıca eğer API erişiminizde IP sınırlaması yaptıysanız ve sınırladığınız ip dışında gönderim sağlıyorsanız 30 hata kodunu alırsınız. API erişim izninizi veya IP sınırlamanızı, web arayüzden; sağ üst köşede bulunan Abonelik İşlemleri / API işlemleri menüsunden kontrol edebilirsiniz. |
+| `40-41` | Gönderici adınızı kontrol ediniz. |
+| `50-52` | Gönderilen numarayı kontrol ediniz. |
+| `60` | Hesabınızda OTP SMS Paketi tanımlı değildir, kontrol ediniz. |
+| `70` | Input parametrelerini kontrol ediniz. |
+| `100` | Sistem hatası. |

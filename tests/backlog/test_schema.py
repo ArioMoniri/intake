@@ -229,9 +229,18 @@ def test_ids_unique_and_well_formed() -> None:
     # found on the synthetic host, GitHub #930).
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
+    # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-574 (the RED-never-waits test is deterministic under runner load:
+    # no wall-clock budget, a store the test holds; GitHub #967).
+    # + INT-576 (the Netgsm adapter parses the live success shape and never
+    # retries an unreadable 200; the owner's real send, GitHub #971).
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name; owner request, GitHub #712).
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on; owner request, GitHub #948).
     # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
     # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
-    assert len(ids) == 368
+    assert len(ids) == 373
     import re
 
     for i in ids:
