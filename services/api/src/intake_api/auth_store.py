@@ -482,6 +482,25 @@ class AuthStore:
     def peek_code(self, pseudonym: str) -> str | None:
         return _text(self._r.get(self._key("otp", "peek", pseudonym)))
 
+    # --- the devices an account has signed in from (INT-580) -------------------------
+
+    def remember_device(self, patient_id: str, device_ref: str) -> bool:
+        """Record that this account signed in from this device, and say whether
+        that is NEW: the account has signed in from at least one device before,
+        and never from this one. An account with no remembered device (its
+        first sign-in, or none for a session lifetime) has nothing to compare
+        against, so it is not new.
+
+        ``device_ref`` is a keyed hash (the OTP pepper's ``rate_key``), never a
+        key id; the set lives as long as a refresh token, the same class of
+        datum as the DPoP thumbprint a session already keeps (INT-344)."""
+        key = self._key("otp", "devices", patient_id)
+        known = {member for member in (_text(m) for m in self._r.smembers(key)) if member}
+        new = bool(known) and device_ref not in known
+        self._r.sadd(key, device_ref)
+        self._r.expire(key, REFRESH_TTL_S)
+        return new
+
     # --- the lockout (INT-578) ---------------------------------------------------------
 
     def lockout_wait(self, pseudonym: str) -> float | None:

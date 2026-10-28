@@ -500,7 +500,9 @@ it or whose tests exercise it.
   guessed by racing the attempt budget, or spent twice by racing a verify; [S] a code
   intercepted on its way to the patient (a notification read over a shoulder, SMS-reading
   malware, an operator-side interception) and entered on another device; [I] a dump of the
-  code store turned back into codes (INT-578).
+  code store turned back into codes (INT-578); [S] the code phished from the patient (a
+  look-alike site, a caller posing as the clinic) or taken over with the number in a SIM swap
+  (INT-580).
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
   caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
@@ -647,6 +649,29 @@ it or whose tests exercise it.
   env file, not from OpenBao — moving it has to carry the existing key across, or every
   pseudonym on the host changes; and the dev-only peek route takes the number as a query
   parameter, so a dev access log carries a (synthetic) number.
+- **The phishing bound, stated (INT-580, the owner's SMS order of 28 Oct 2026):** the SMS
+  carries the code and the app name and nothing else — no link, no PHI — in words that live in
+  one tr resource (`services/api/src/intake_api/sms_copy.tr.json`: the siz register, `-iniz`
+  for the instruction, PolicyGuard-clean); both adapters render it and Netgsm's OTP product
+  gets it folded to one ASCII segment. The domain-bound line WebKit defines, `@<domain>
+  #<code>` as the last line, makes iOS offer the code only inside an app entitled to that
+  domain, never on a look-alike page. The domain is never invented: it is the one
+  `webcredentials:` entry in the app's own `ios.associatedDomains` (`apps/mobile/app.json`,
+  shipped in the API image), sent only when there is exactly one, it is a public name without a
+  developer-mode suffix, and the longest message still fits a segment; anything else sends no
+  line, because a wrong line would steer the autofill elsewhere. The shipped app declares no
+  associated domain (the host name is the owner's, HB-I14, and it must also serve the app's
+  `apple-app-site-association`), so today no line goes out. A sign-in from a device the account
+  has not signed in from — the shape of a phished code entered on the thief's phone, and of a
+  SIM swap's first sign-in — is detected against the account's known devices (keyed hashes of
+  the proven App Attest key, kept for a refresh-token lifetime, the class of datum INT-344
+  already keeps), counted, written to the hash chain under the patient (`auth.login.new_device`,
+  which the patient's access log shows as account security) and handed to a notice channel;
+  no channel to the patient exists yet, so the notice fails closed and says so. What still
+  stands open: the notice's channel and words (an owner input), and the **passkey step-up**
+  that would make a SIM swap insufficient on its own, moved to INT-582 (patients have no
+  passkeys; persisting their credentials and the list of sensitive actions are owner
+  decisions).
 - **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
   product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
   processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
@@ -694,7 +719,8 @@ it or whose tests exercise it.
   rise in `unbound` is codes tried from devices that did not ask for them, the interception
   signal; `exhausted` counts numbers locked; `locked` verifies refused by a lockout.
   INT-577: `sec_otp_requests_total{outcome}` and `sec_otp_abuse_blocks{dimension}`, the
-  `sms_spend_kill_switch_engaged` gauge and `sms_spend_kill_switch_trips_total{reason}`; the
+  `sms_spend_kill_switch_engaged` gauge and `sms_spend_kill_switch_trips_total{reason}`;
+  INT-580: `sec_new_device_logins` and the `auth.login.new_device` audit row; the
   `SmsSpendKillSwitchEngaged` page and the `OtpRequestSpike` ticket
   (`infra/observability/security-rules.yaml`, runbook `docs/runbooks/sms-abuse.md`); the ops
   console's `sms` tile (`GET /admin/ops`), which judges a spike by the same definition.
@@ -748,7 +774,15 @@ it or whose tests exercise it.
   a landline, a lab value and a date left alone, the collector's patterns on the canonical form,
   a crashing vendor recorded and never logged, every send and verify on the chain with ids only
   and the chain verifying, and the synthetic host refusing to wire without its SMS proxy while
-  production keeps its own route (`tests/security/test_sms_data_protection.py`).
+  production keeps its own route (`tests/security/test_sms_data_protection.py`). The phishing
+  bound with INT-580: the copy's one tr source rendered by both adapters, the code and the app
+  name and nothing else (and the checker's own near miss), PolicyGuard in siz with a sen form
+  refused, one ASCII segment for every code length with and without a line, the shipped app's
+  missing domain pinned, the line for exactly one webcredentials domain and none for ten near
+  misses, the wiring taking the domain from the app config, the image carrying it, and the
+  new-device signal: none for a first or a known device, counted, audited and told once for a
+  new one, failing closed without a channel, and the known devices kept as keyed hashes for a
+  session lifetime (`tests/security/test_sms_hijacking.py`).
 
 ## `consent` — layered consent and scope enforcement
 

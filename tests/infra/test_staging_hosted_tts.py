@@ -50,7 +50,9 @@ def test_the_image_creates_the_mount_point_for_the_service_user_only() -> None:
 def test_the_image_ships_the_app_catalogue_and_nothing_else_of_apps() -> None:
     ignore = (STAGING / "Dockerfile.api.dockerignore").read_text(encoding="utf-8").splitlines()
     included = [line for line in ignore if line.startswith("!apps")]
-    assert included == [f"!{APP_CATALOGUE_DEFAULT}"]
+    # INT-580 adds the app config, whose one webcredentials domain the OTP SMS
+    # binds its code to (intake_api.sms_copy); nothing else of apps/
+    assert included == [f"!{APP_CATALOGUE_DEFAULT}", "!apps/mobile/app.json"]
     assert (REPO / APP_CATALOGUE_DEFAULT).is_file()
 
 

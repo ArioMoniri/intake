@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**374 issues.** By phase: P0 182 · P1 138 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 254 · todo 74 · withdrawn 1.
+**376 issues.** By phase: P0 182 · P1 139 · P2 48 · P3 7. By status: awaiting-human 39 · doing 7 · done 255 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -336,6 +336,7 @@
 | INT-577 | SMS pumping and overuse — per-number/device/IP/tenant limits, global caps, spend kill switch, +90 mobile only, spike alert | E01-platform | INT-131, INT-263, INT-308, INT-528, INT-578 | area:api, risk:security | done |
 | INT-579 | OTP enumeration — identical response and timing whether a number is registered or not | E01-platform | INT-131, INT-528, INT-577, INT-578 | area:api, risk:security | done |
 | INT-581 | SMS data protection — no number or code in logs/metrics/traces, tokenised at rest, OpenBao-only creds, SMS proxy only, audited sends | E01-platform | INT-528, INT-578, INT-577, INT-579 | area:api, risk:security | done |
+| INT-580 | SMS hijacking and phishing — code-only SMS, domain-bound one-time-code format, new-device notice, passkey step-up | E01-platform | INT-528, INT-578, INT-579 | area:api, risk:security | done |
 
 ## P2
 
@@ -388,6 +389,7 @@
 | INT-338 | Motion: section sheet — measured fade budget, instant privacy and RED closes | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | todo |
 | INT-339 | Motion: typed lane, fallback and completion | E08-mobile | INT-330, INT-335 | area:mobile | done |
 | INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | todo |
+| INT-582 | Patient passkeys and a passkey step-up on sensitive actions, against SIM swap | E01-platform | INT-580 | area:api, risk:security | awaiting-human |
 
 ## P3
 

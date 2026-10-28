@@ -60,6 +60,7 @@ from intake_platform.egress import (
 )
 
 from intake_api.otp import DeliveryReceipt, OtpDeliveryError, OtpDeliveryFailure
+from intake_api.sms_copy import OTP_BODY_TR
 
 __all__ = [
     "SMS_EGRESS",
@@ -78,9 +79,9 @@ TWILIO_API_PORT: Final = 443
 TWILIO_KV_PATH: Final = "api/twilio"
 SMS_EGRESS: Final = EgressContext(purpose=EgressPurpose.SMS_OTP_DELIVERY, data_class=DataClass.PHI)
 DEFAULT_TIMEOUT: Final = httpx.Timeout(8.0, connect=3.0)
-#: siz register, -iniz for instructional prose (CLAUDE.md, clinical content
-#: rules). No brand name: which one ships is not settled on main.
-SMS_TEMPLATE: Final = "Doğrulama kodunuz: {code}. Bu kodu kimseyle paylaşmayınız."
+#: INT-580: the one tr copy (``intake_api.sms_copy``): siz register, -iniz for
+#: instructional prose, the app name and the code.
+SMS_TEMPLATE: Final = OTP_BODY_TR
 
 _FIELDS: Final = ("account_sid", "auth_token", "from")
 _ACCOUNT_SID = re.compile(r"AC[0-9a-fA-F]{32}")

@@ -404,7 +404,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-581 (SMS data protection, the owner's SMS security order, GitHub #976);
     # grows only with a stated reason.
-    assert len(ids) == 374, f"expected 175 blueprint + 199 added issues, got {len(ids)}"
+    # + INT-580 (SMS hijacking and phishing, GitHub #975) and INT-582 (the
+    # patient passkey step-up split out of it, GitHub #981); grows only with a
+    # stated reason.
+    assert len(ids) == 376, f"expected 175 blueprint + 201 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

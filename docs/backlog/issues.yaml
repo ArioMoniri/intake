@@ -7394,3 +7394,42 @@
     - "Threat model and files/10 §9 onboarding row updated; the tokenization key's source recorded as a residual."
   tests: [tests/security/test_sms_data_protection.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_sms_test_allowlist.py, tests/platform/test_redaction.py]
   sec_row: "onboarding"
+- id: INT-580
+  epic: E01-platform
+  phase: P1
+  title: "SMS hijacking and phishing — code-only SMS, domain-bound one-time-code format, new-device notice, passkey step-up"
+  # GitHub #975. Owner order, 28 Oct 2026, the hijacking and phishing family of
+  # INT-577..581 (the five-family audit is docs/evidence/INT-577.md, rows
+  # 28-33). Built on INT-581 (#976's branch). The passkey step-up moved to
+  # INT-582 (#981): patients have no passkeys, and building them needs a new
+  # dependency on each side, a decision to persist patient credentials and
+  # the list of sensitive actions — the orchestrator's allocation, 28 Oct 2026.
+  depends_on: [INT-528, INT-578, INT-579]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-580.md
+  acceptance:
+    - "No PHI and no links in any SMS: the code and the app name only (template test with a near miss); the copy has one tr source (intake_api/sms_copy.tr.json) that both adapters render, passes PolicyGuard in the siz register (a sen form refused), and folds to one ASCII segment for Netgsm."
+    - "The domain-bound one-time-code line (@<domain> #<code>, the message's last line) is sent only for the one webcredentials domain the app's own config (apps/mobile/app.json ios.associatedDomains) declares; none, two, a malformed, developer-mode or oversize one sends no line. The shipped app declares none, so today no line is sent (an owner input, pinned)."
+    - "A new-device sign-in is detected (keyed hashes of the proven device, kept for the session lifetime), counted (sec.new_device_logins), audited on the hash chain under the patient (ACCOUNT_SECURITY in the access log) and handed to a notice channel, which fails closed until the owner names one."
+    - "The passkey step-up clause moved to INT-582; threat model and files/10 §9 onboarding row updated."
+  tests: [tests/security/test_sms_hijacking.py, tests/api/test_otp_netgsm.py, tests/security/test_otp_abuse.py]
+  sec_row: "onboarding"
+- id: INT-582
+  epic: E01-platform
+  phase: P2
+  title: "Patient passkeys and a passkey step-up on sensitive actions, against SIM swap"
+  # GitHub #981, allocated by the orchestrator on 28 Oct 2026, split out of
+  # INT-580 (#975). A SIM swap hands the attacker the SMS, so the OTP alone
+  # cannot protect what follows sign-in; a passkey bound to the patient's own
+  # device can. Not built: patients have no passkeys (staff passkeys are
+  # Keycloak's), so it needs owner decisions first.
+  depends_on: [INT-580]
+  labels: [area:api, risk:security]
+  status: awaiting-human
+  acceptance:
+    - "Owner: persisting patient passkey credentials (credential id, public key, sign count) is a new category of personal data — approve it with its retention, and name which patient actions are sensitive enough to step up (candidates: issuing a Doctor Link, changing the phone number, DSAR export or delete)."
+    - "A passkey dependency on each side, each licence-verified from the raw LICENSE blob: a WebAuthn verifier for the API and a passkey module for the Expo app."
+    - "Registration after the first OTP sign-in; each sensitive action requires a fresh, single-use passkey assertion bound to a server challenge and recorded on the hash chain; a patient without a passkey is told how to add one, never silently let through; tests first with near misses (a replayed assertion, another account's credential, a stale challenge)."
+  tests: []
+  sec_row: "onboarding"

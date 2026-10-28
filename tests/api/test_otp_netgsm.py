@@ -174,8 +174,12 @@ def test_the_template_is_the_twilio_wording_folded_to_ascii() -> None:
 
     fold = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
     assert netgsm().SMS_TEMPLATE == WORDING.translate(fold)
-    # pinned on its own too, so the copy outlives the unwired Twilio module
-    assert netgsm().SMS_TEMPLATE == "Dogrulama kodunuz: {code}. Bu kodu kimseyle paylasmayiniz."
+    # pinned on its own too, so the copy outlives the unwired Twilio module.
+    # INT-580: both render the one tr resource (intake_api/sms_copy.tr.json),
+    # which names the app
+    assert netgsm().SMS_TEMPLATE == (
+        "Onvizit dogrulama kodunuz: {code}. Bu kodu kimseyle paylasmayiniz."
+    )
 
 
 @pytest.mark.parametrize("code", ["0000", CODE, "9" * 10])
