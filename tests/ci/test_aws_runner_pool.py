@@ -1,7 +1,7 @@
 """INT-467 — a pool of ephemeral intake-aws-ci runners, each isolated as runner 1 is.
 
 Acceptance lines under test (docs/backlog/issues.yaml, INT-467):
-  - three ephemeral runners intake-aws-ci-1..3 on the AWS host, from templated
+  - ephemeral runners intake-aws-ci-1..5 (INT-544 added 4-5) on the AWS host, from templated
     units intake-aws-ci-{runner,job,dockerd,diskwatch}@N, each with its own
     unprivileged user ghrunnerN, a subordinate id range that overlaps no other,
     its own CI root, rootless Docker daemon and owner-match egress chain, all
@@ -35,7 +35,7 @@ REPO = Path(__file__).resolve().parents[2]
 HOST = REPO / "infra" / "ci" / "aws-runner"
 OPERATOR = REPO / "scripts" / "ci" / "aws_runner.sh"
 
-INSTANCES = ["1", "2", "3"]
+INSTANCES = ["1", "2", "3", "4", "5"]
 FIELDS = (
     "INSTANCE",
     "RUNNER_USER",
@@ -126,7 +126,7 @@ def _instance(n: str) -> dict[str, str]:
 # --- the pool and each instance's identity --------------------------------------------
 
 
-def test_the_pool_is_three_instances() -> None:
+def test_the_pool_is_five_instances() -> None:
     assert _conf()["POOL_INSTANCES"].split() == INSTANCES
 
 
@@ -148,7 +148,7 @@ def test_each_instance_derives_its_own_identity(n: str) -> None:
     assert len(env["NET_CHAIN"]) <= 28, "iptables chain names are at most 28 characters"
 
 
-@pytest.mark.parametrize("bad", ["", "0", "4", "01", "a", "1 2", "1;true", "../1"])
+@pytest.mark.parametrize("bad", ["", "0", "6", "01", "a", "1 2", "1;true", "../1"])
 def test_an_unknown_instance_is_refused(bad: str) -> None:
     """Near-miss controls: a neighbour of a valid number, a list, an injection."""
     result = _bash(f". ./guard.sh && instance_env {shlex.quote(bad)}")

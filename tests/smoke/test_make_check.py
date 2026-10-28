@@ -382,12 +382,20 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-531 (a RED evaluated between turns reaches the patient within the
     # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
     # stated reason.
+    # + INT-544 (a pull request clears CI in under 20 minutes on the
+    # intake-aws-ci pool, owner order, GitHub #919); grows only with a stated
+    # reason.
+    # + INT-550 (a new staff user enrols a passkey after the password step,
+    # found on the synthetic host, GitHub #930); grows only with a stated reason.
+    # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
+    # owner's vendor decision on INT-358, GitHub #895); grows only with a
+    # stated reason.
     # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
     # loaded only on the synthetic host, GitHub #896); grows only with a stated
     # reason.
     # + INT-537 (the app grants the core consent that visits and notes require,
     # INT-529 finding F2, GitHub #904); grows only with a stated reason.
-    assert len(ids) == 366, f"expected 175 blueprint + 191 added issues, got {len(ids)}"
+    assert len(ids) == 369, f"expected 175 blueprint + 194 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

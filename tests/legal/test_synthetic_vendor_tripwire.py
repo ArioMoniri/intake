@@ -4,19 +4,25 @@ Three synthetic texts say that the patient's audio, answers and documents reach
 no outside company. Each sentence is true only while nothing on the synthetic
 host can send that data to a vendor. Two routes could make them false:
 
-- **A PHI-path egress row.** The one admitted purpose is ``sms_otp_delivery``
-  (INT-528's Netgsm row). It carries the sign-in number and code, never audio,
-  answers or documents, so none of these sentences speaks about it.
+- **A PHI-path egress row.** The one admitted purpose is ``sms_otp_delivery``:
+  INT-528's Netgsm row, live on the synthetic host since PR #905. It carries
+  the sign-in number and the one-time code, never audio, answers or documents.
+  The core text, the only one of the four that speaks of the account and the
+  phone number, names that processor by its legal entity and country and says
+  what reaches it. The other three texts carry no sign-in data and do not
+  name it (``SMS_PROCESSOR_TEXTS``).
 - **A hosted model lane that a deployed process sends patient data through.**
   ADR-035 lists the hosted vendors' rows (``openai-api``, ``elevenlabs-api``;
   INT-442). A row alone moves no patient data. The question is which code on
   the host can hand data to a hosted backend.
 
-What the texts were verified against (16 Oct 2026; ``hosted_reach`` reads
+What the texts were verified against (28 Oct 2026; ``hosted_reach`` reads
 each from the tree):
-- **Compose.** The services; who sits on the networks that lead off the host
-  (``outbound``: api and egress-proxy; ``vendor``: egress-proxy only); and the
-  api's command, which is the image's uvicorn.
+- **Compose.** The services; who sits on each network that leads off the host
+  (``public``: caddy; ``vendor``: egress-proxy; ``sms-wan``: sms-egress); who
+  shares each of the api's networks with it (``outbound``: the hosted-lane
+  proxy alone; ``sms-out``: the SMS-only proxy alone, ADR-042); and the api's
+  command, which is the image's uvicorn.
 - **Dispatchers.** ``model_lanes.dispatch`` has three importers, in
   voice-clips and voice-runtime. None is deployed or imported by the API.
 - **Hosted-backend call sites.** The API holds the hosted backends
@@ -35,8 +41,9 @@ each from the tree):
 
 The hosted half fires when a hosted row is listed **and** any of those facts
 moves. That covers a one-line ``router.hosted.backends[p].chat_json(...)`` in
-the API, an ``importlib`` literal naming a gateway, and a gateway reached
-through another module.
+the API, an ``importlib`` literal naming a gateway, a gateway reached
+through another module, and a service that joins a network the api is on or
+one that leads off the host.
 
 When it fires, the fix is not to widen the verified sets. The texts must
 first name each recipient by its verified legal entity and country (files/06
@@ -45,8 +52,10 @@ grant is re-prompted. Only then may a set move. INT-515 (voice-runtime and an
 SFU on this host, GitHub #877) is the planned change that fires it.
 
 Narrowed from "any listed hosted row" on the INT-529 refresh, 16 Oct 2026.
-Widened again after the legal re-verification found the backend bypass. The
-legal-reviewer verifies it (docs/evidence/INT-529.md §12).
+Widened again after the legal re-verification found the backend bypass.
+Re-cut on 28 Oct 2026 for the SMS proxy (sms-egress), after the core text
+named Netgsm. The legal-reviewer verifies it (docs/evidence/INT-529.md §12,
+§13).
 """
 
 from __future__ import annotations
@@ -68,6 +77,7 @@ from hosted_reach import (
     python_sources,
     routed_references,
 )
+from intake_platform.egress import DEDICATED_PERSONAL_PROXIES, EgressPurpose
 from intake_platform.legal.synthetic import SYNTHETIC_LEGAL_ROOT, SyntheticLegalIndex
 from intake_platform.model_lanes.model import TenantDataClass
 
@@ -82,6 +92,19 @@ NO_VENDOR_SENTENCES = {
 #: The PHI-path purpose these sentences do not cover (see the module docstring).
 PHI_PATH_PURPOSES_OUTSIDE_THE_TEXTS = frozenset({"sms_otp_delivery"})
 
+#: The sign-in SMS processor, as its own aydınlatma names it
+#: (docs/legal/sources/netgsm-aydinlatma/, retrieved 28 Oct 2026), and the one
+#: text that names it. The other three carry no sign-in data, so they do not.
+SMS_PROCESSOR = "Netgsm İletişim ve Bilgi Teknolojileri Anonim Şirketi"
+SMS_PROCESSOR_COUNTRY = "Türkiye'de kuruludur"
+SMS_PROCESSOR_TEXTS = {
+    "acik_riza.core": True,
+    "acik_riza.voice": False,
+    "acik_riza.lane.affect": False,
+    "acik_riza.documents": False,
+}
+SMS_HOST = "api.netgsm.com.tr"
+
 _CONSOLE = "services/api/src/intake_api/admin/model_lanes_console.py"
 _CLIP_LANE = "services/api/src/intake_api/hosted_clip_lane.py"
 _VOICE_CLIPS_LANES = "packages/voice-clips/src/voice_clips/lanes.py"
@@ -94,8 +117,10 @@ class Reach:
     """Every fact the no-vendor sentences rest on, as the tree has it."""
 
     services: frozenset[str]
-    outbound: frozenset[str]
-    vendor: frozenset[str]
+    #: network that leads off the host → its members
+    external: Mapping[str, frozenset[str]]
+    #: each network the api sits on → who shares it with the api
+    api_peers: Mapping[str, frozenset[str]]
     api_command: object
     dispatchers: frozenset[str]
     call_sites: frozenset[tuple[str, str]]
@@ -115,11 +140,21 @@ VERIFIED = Reach(
             "oauth2-proxy",
             "admin-web",
             "egress-proxy",
+            "sms-egress",
             "caddy",
         }
     ),
-    outbound=frozenset({"api", "egress-proxy"}),
-    vendor=frozenset({"egress-proxy"}),
+    external={
+        "public": frozenset({"caddy"}),
+        "vendor": frozenset({"egress-proxy"}),
+        "sms-wan": frozenset({"sms-egress"}),
+    },
+    api_peers={
+        "backend": frozenset({"postgres", "redis", "openbao", "minio", "keycloak"}),
+        "edge": frozenset({"keycloak", "oauth2-proxy", "admin-web", "caddy"}),
+        "outbound": frozenset({"egress-proxy"}),
+        "sms-out": frozenset({"sms-egress"}),
+    },
     api_command=(
         None,
         None,
@@ -165,8 +200,8 @@ def _reach(sources: Mapping[str, str] | None = None) -> Reach:
     found = dispatchers(sources)
     return Reach(
         services=frozenset(facts["services"]),  # type: ignore[arg-type]
-        outbound=frozenset(facts["outbound"]),  # type: ignore[arg-type]
-        vendor=frozenset(facts["vendor"]),  # type: ignore[arg-type]
+        external=dict(facts["external"]),  # type: ignore[call-overload]
+        api_peers=dict(facts["api_peers"]),  # type: ignore[call-overload]
         api_command=facts["api_command"],
         dispatchers=found,
         call_sites=hosted_call_sites(sources),
@@ -175,12 +210,28 @@ def _reach(sources: Mapping[str, str] | None = None) -> Reach:
     )
 
 
+def _new_members(
+    now: Mapping[str, frozenset[str]], then: Mapping[str, frozenset[str]]
+) -> list[tuple[str, str]]:
+    return sorted(
+        (network, member)
+        for network, members in now.items()
+        for member in members - then.get(network, frozenset())
+    )
+
+
 def _paths(reach: Reach) -> list[str]:
     """Every way ``reach`` differs from what the texts were verified against."""
     paths = [
         *(f"service {s!r}" for s in sorted(reach.services - VERIFIED.services)),
-        *(f"{s!r} on the outbound network" for s in sorted(reach.outbound - VERIFIED.outbound)),
-        *(f"{s!r} on the vendor network" for s in sorted(reach.vendor - VERIFIED.vendor)),
+        *(
+            f"{m!r} can leave the host on network {n!r}"
+            for n, m in _new_members(reach.external, VERIFIED.external)
+        ),
+        *(
+            f"the api shares network {n!r} with {m!r}"
+            for n, m in _new_members(reach.api_peers, VERIFIED.api_peers)
+        ),
         *(f"{p} imports dispatch" for p in sorted(reach.dispatchers - VERIFIED.dispatchers)),
         *(f"{p}: {what}" for p, what in sorted(reach.call_sites - VERIFIED.call_sites)),
         *(f"{p} names {v!r}" for p, v in sorted(reach.routed_refs - VERIFIED.routed_refs)),
@@ -215,11 +266,24 @@ def outside_parties(allowlist: dict[str, object], reach: Reach) -> list[str]:
     return reasons
 
 
+def _index() -> SyntheticLegalIndex:
+    return SyntheticLegalIndex(REPO / SYNTHETIC_LEGAL_ROOT, data_class=TenantDataClass.SYNTHETIC)
+
+
+def names_sms_processor(body: str) -> bool:
+    """Whether a text names the SMS processor, with its country, where it lists
+    who sees the data (before "Nerede:")."""
+    if "Kimler görür:" not in body or "Nerede:" not in body:
+        return False
+    section = body[body.index("Kimler görür:") : body.index("Nerede:")]
+    return SMS_PROCESSOR in section and SMS_PROCESSOR_COUNTRY in section
+
+
 # --- the tripwire ------------------------------------------------------------------------
 
 
 def test_the_no_vendor_sentences_are_in_the_texts() -> None:
-    index = SyntheticLegalIndex(REPO / SYNTHETIC_LEGAL_ROOT, data_class=TenantDataClass.SYNTHETIC)
+    index = _index()
     for document_id, sentence in NO_VENDOR_SENTENCES.items():
         assert sentence in index.entry(document_id).body, document_id
 
@@ -248,6 +312,61 @@ def test_hosted_rows_are_listed_today() -> None:
         row["name"] for row in tiers["dev"] if row.get("purpose_id") == "hosted_model_inference"
     }
     assert listed == {"openai-api", "elevenlabs-api"}
+
+
+# --- the SMS processor: named exactly where its data is spoken of ----------------------
+
+
+def test_the_sms_row_is_the_netgsm_host_on_its_own_proxy() -> None:
+    """The one PHI-path row is Netgsm's, and the api reaches it only through
+    the SMS-only proxy on ``sms-out`` (ADR-042): the compose names that proxy
+    for the api, and the platform binds the SMS purpose to that one URL."""
+    tiers = _allowlist()["tiers"]
+    assert isinstance(tiers, dict)
+    rows = [row for row in tiers.get("phi_path") or [] if row["purpose_id"] == "sms_otp_delivery"]
+    assert [row["host"] for row in rows] == [SMS_HOST]
+    compose = yaml.safe_load((REPO / "infra/staging/compose.yaml").read_text(encoding="utf-8"))
+    api_env = compose["services"]["api"]["environment"]
+    proxy = DEDICATED_PERSONAL_PROXIES[EgressPurpose.SMS_OTP_DELIVERY]
+    assert api_env["INTAKE_SMS_EGRESS_PROXY_URL"] == proxy == "http://sms-egress:3128"
+    assert VERIFIED.api_peers["sms-out"] == {"sms-egress"}
+    assert VERIFIED.external["sms-wan"] == {"sms-egress"}
+
+
+@pytest.mark.parametrize(("document_id", "named"), sorted(SMS_PROCESSOR_TEXTS.items()))
+def test_only_the_text_that_speaks_of_sign_in_names_the_sms_processor(
+    document_id: str, named: bool
+) -> None:
+    """core says what the sign-in number is (held apart from the record) and
+    who sends the code; voice, lane:affect and documents carry no sign-in data
+    and name no SMS processor (files/06 §2.1 parity, exactly per text)."""
+    body = _index().entry(document_id).body
+    assert names_sms_processor(body) is named
+    assert ("Netgsm" in body) is named
+
+
+def test_the_core_text_says_exactly_what_reaches_the_sms_processor() -> None:
+    body = _index().entry("acik_riza.core").body
+    assert "Giriş için kullandığınız telefon numarası bu kayıtlardan ayrı tutulur." in body
+    assert "Bu şirkete yalnızca numaranız ve kod gider; yanıtlarınız gitmez." in body
+    # the us-east-1 leg (INT-528 evidence, ADR-042): the number goes out from this host
+    assert "Giriş için yazdığınız numara da bu sunucu üzerinden Netgsm'e gider." in body
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "Kimler görür:\nSiz görürsünüz.\n\nNerede:\nABD.",
+        f"Kimler görür:\n{SMS_PROCESSOR} gönderir.\n\nNerede:\nABD.",
+        "Kimler görür:\nSiz.\n\nNerede:\n"
+        f"{SMS_PROCESSOR} gönderir. Bu şirket {SMS_PROCESSOR_COUNTRY}.",
+    ],
+    ids=["unnamed", "no-country", "named-in-the-wrong-section"],
+)
+def test_a_text_that_does_not_name_the_processor_where_recipients_are_listed_fails(
+    body: str,
+) -> None:
+    assert not names_sms_processor(body)
 
 
 def _calls_to(source: str, name: str) -> list[ast.Call]:
@@ -305,7 +424,7 @@ def _with_row(tier: str, row: dict[str, str]) -> dict[str, object]:
 @pytest.mark.parametrize(
     ("tier", "row", "trips"),
     [
-        ("phi_path", {"name": "sms-otp", "purpose_id": "sms_otp_delivery"}, False),
+        ("phi_path", {"name": "sms-otp-2", "purpose_id": "sms_otp_delivery"}, False),
         ("phi_path", {"name": "asr-vendor", "purpose_id": "clinical_transcription"}, True),
         ("dev", {"name": "another-llm", "purpose_id": "hosted_model_inference"}, False),
     ],
@@ -313,8 +432,9 @@ def _with_row(tier: str, row: dict[str, str]) -> dict[str, object]:
 def test_a_new_row_trips_only_when_it_can_carry_patient_data(
     tier: str, row: dict[str, str], trips: bool
 ) -> None:
-    """Row side. The sign-in SMS row passes, any other PHI-path row trips, and
-    one more hosted row on today's tree passes: nothing hands it patient data."""
+    """Row side. A second sign-in SMS row passes this half (the host pin above
+    holds it to Netgsm), any other PHI-path row trips, and one more hosted row
+    on today's tree passes: nothing hands it patient data."""
     assert bool(outside_parties(_with_row(tier, row), VERIFIED)) is trips
 
 
@@ -370,12 +490,28 @@ def test_a_gateway_reached_transitively_trips() -> None:
     assert outside_parties(_allowlist(), reach)
 
 
+def _with_peer(network: str, member: str) -> Reach:
+    peers = {**VERIFIED.api_peers, network: VERIFIED.api_peers.get(network, frozenset()) | {member}}
+    return replace(VERIFIED, api_peers=peers)
+
+
+def _with_external(network: str, member: str) -> Reach:
+    external = {
+        **VERIFIED.external,
+        network: VERIFIED.external.get(network, frozenset()) | {member},
+    }
+    return replace(VERIFIED, external=external)
+
+
 @pytest.mark.parametrize(
     "moved",
     [
         replace(VERIFIED, services=VERIFIED.services | {"voice-runtime", "livekit"}),  # INT-515
-        replace(VERIFIED, outbound=VERIFIED.outbound | {"admin-web"}),
-        replace(VERIFIED, vendor=VERIFIED.vendor | {"api"}),
+        _with_external("sms-wan", "api"),  # the api gets its own way off the host
+        _with_external("vendor", "api"),
+        _with_peer("outbound", "sms-egress"),  # the two proxies' networks bridged
+        _with_peer("sms-out", "egress-proxy"),
+        _with_peer("backend", "voice-runtime"),
         replace(VERIFIED, api_command=(["python", "-m", "intake_voice_runtime"], None, None)),
         replace(
             VERIFIED,

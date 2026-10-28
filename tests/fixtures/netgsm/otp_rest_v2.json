@@ -1,0 +1,45 @@
+{
+  "source_url": "https://www.netgsm.com.tr/dokuman/#otp-sms",
+  "retrieved_on": "2026-10-16",
+  "provenance": "built-from-documentation",
+  "note": "INT-528. Every shape below is copied from the OTP SMS section of Netgsm's public API documentation (section 'OTP SMS', REST v2). Nothing here was captured from a live call: no Netgsm account existed when it was written, and no test or CI job may call the vendor. The documentation gives one success sample and one error sample whose code is the literal 'XX'; the error responses are that sample with each documented code substituted. The OTP section does not state the HTTP status of an error, and the REST v2 send section documents only 200 and 406, so the errors are recorded at 406. The adapter decides on the body's code wherever one is present, and the tests replay every error at 200 as well.",
+  "endpoint": {
+    "method": "POST",
+    "url": "https://api.netgsm.com.tr/sms/rest/v2/otp",
+    "auth": "http-basic: usercode (the subscriber number) and the API sub-user's password"
+  },
+  "documented_request": {
+    "msgheader": "BASLIK",
+    "msg": "code: 1234",
+    "no": "510XXXXXXX"
+  },
+  "documented_error_codes": {
+    "20": "message text or length",
+    "30": "credentials, API permission or IP restriction",
+    "40": "sender name",
+    "41": "sender name",
+    "50": "recipient number",
+    "51": "recipient number",
+    "52": "recipient number",
+    "60": "no OTP SMS package on the account",
+    "70": "input parameters",
+    "100": "system error"
+  },
+  "responses": {
+    "accepted": {
+      "status": 200,
+      "body": {
+        "jobid": "17377215342605050417149344",
+        "code": "00",
+        "description": "success"
+      }
+    },
+    "error": {
+      "status": 406,
+      "body": {
+        "code": "XX",
+        "description": "error message desc."
+      }
+    }
+  }
+}

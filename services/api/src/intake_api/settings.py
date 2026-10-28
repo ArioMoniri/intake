@@ -276,6 +276,9 @@ class ApiSettings:
     # INT-329: the egress allow-list (INT-018) the SMS vendor call must clear.
     # Absent or unreadable → the OTP tier stays unconfigured outside dev.
     egress_allowlist_path: Path = field(default_factory=lambda: Path(EGRESS_ALLOWLIST_DEFAULT))
+    # INT-528 / ADR-042: the synthetic host's SMS-only forward proxy, which the
+    # Netgsm client alone rides. Unset → the call resolves and pins in process.
+    sms_egress_proxy_url: str | None = None
     # INT-318: the clinical READ-source registry (intake_connectors.sources).
     # It ships with zero rows, so /v1/visits/sync answers "unavailable"; a row
     # is registered there by a human (HB-A15, HB-A5, HB-L27) and never built
@@ -393,6 +396,7 @@ class ApiSettings:
             egress_allowlist_path=Path(
                 os.environ.get(ENV_EGRESS_ALLOWLIST) or EGRESS_ALLOWLIST_DEFAULT
             ),
+            sms_egress_proxy_url=os.environ.get("INTAKE_SMS_EGRESS_PROXY_URL") or None,
             clinical_sources_path=Path(
                 os.environ.get("INTAKE_CLINICAL_SOURCES") or "infra/connectors/sources.yaml"
             ),

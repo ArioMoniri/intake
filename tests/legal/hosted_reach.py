@@ -88,10 +88,12 @@ def _imports(tree: ast.AST) -> list[tuple[str, tuple[str, ...], int]]:
 
 
 def compose_facts() -> dict[str, object]:
-    """The services, who sits on the two networks that lead off the host, and
-    the api's command (none in compose, so the image's own CMD runs)."""
+    """The services; who sits on each network that is not ``internal`` (a way
+    off the host); who shares each of the api's networks with it; and the api's
+    command (none in compose, so the image's own CMD runs)."""
     compose = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
     services: dict[str, dict[str, object]] = compose["services"]
+    networks: dict[str, dict[str, object] | None] = compose.get("networks") or {}
 
     def on(network: str) -> frozenset[str]:
         return frozenset(
@@ -99,6 +101,10 @@ def compose_facts() -> dict[str, object]:
         )
 
     api = services.get("api", {})
+    api_networks = [str(n) for n in (api.get("networks") or [])]
+    external = {
+        name: on(name) for name, spec in networks.items() if not (spec or {}).get("internal")
+    }
     cmd = [
         line
         for line in DOCKERFILE.read_text(encoding="utf-8").splitlines()
@@ -106,8 +112,8 @@ def compose_facts() -> dict[str, object]:
     ]
     return {
         "services": frozenset(services),
-        "outbound": on("outbound"),
-        "vendor": on("vendor"),
+        "external": {name: members for name, members in external.items() if members},
+        "api_peers": {name: on(name) - {"api"} for name in api_networks},
         "api_command": (api.get("command"), api.get("entrypoint"), cmd[-1] if cmd else None),
     }
 

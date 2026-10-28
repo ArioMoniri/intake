@@ -142,4 +142,25 @@ tiers:
   # at runtime AND a deliberate change to that topology — and never one of the
   # anthropic/openai/google API hosts, which assert_dev_only_vendors()
   # refuses outright.
-  phi_path: []
+  #
+  # ONE row, and it is not a model or speech vendor: the OTP tier's SMS
+  # processor (INT-528; the owner's decision on INT-358, 16 Oct 2026). A
+  # one-time sign-in code reaches a phone only through a licensed operator, so
+  # there is no self-hosted alternative to it. The owner's decision records
+  # Netgsm as BTK-licensed and processing the data in Türkiye; the signed DPA
+  # confirms both. The runtime half of the gate,
+  # INTAKE_ALLOW_PHI_EGRESS=explicit-yes, is set on the synthetic host's API
+  # alone (infra/staging/compose.yaml). The build proxy never renders this
+  # tier; the synthetic host's SMS-only proxy renders this row and nothing
+  # else (ADR-042, scripts/security/render_sms_egress_conf.py). On the
+  # synthetic host the API sends only to the owner's SMS test allow-list.
+  phi_path:
+    - name: netgsm-otp-sms
+      host: api.netgsm.com.tr
+      port: 443
+      protocol: https
+      purpose_id: sms_otp_delivery
+      purpose: the one-time sign-in code, by SMS, to the phone number the patient entered (Netgsm OTP SMS); transactional and non-commercial
+      phi_allowed: true
+      phi_exception_approval: "INT-358 (GitHub #576): owner decision of 16 Oct 2026, Netgsm OTP SMS; applied on the owner's 'SMS done' (account open, DPA signed, sender name approved)"
+      basis: processor under the owner's DPA with Netgsm, data processed in Türkiye (INT-358); the KVKK lawful basis is counsel's to state
