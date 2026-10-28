@@ -145,7 +145,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
     # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
     # + INT-574 (the RED-never-waits test is deterministic under runner load, GitHub #967)
-    assert len(actions) == 371
+    # + INT-576 (Netgsm OTP answer parsed as documented, never retried unread, GitHub #971)
+    assert len(actions) == 372
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -7351,3 +7351,27 @@
     - "Sweep: every wall-clock budget asserted in tests/api and tests/voice is listed in docs/evidence/INT-574.md with a recommendation each; only this test is changed here."
   tests: [tests/api/test_red_notify.py]
   sec_row: "cicd"
+- id: INT-576
+  epic: E01-platform
+  phase: P1
+  title: "Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried"
+  # GitHub #971, 28 Oct 2026, P0 on the build-6 path. The owner's real send on
+  # the synthetic host logged "otp delivery failed (netgsm) refusal=-
+  # reason=malformed_response http_status=200 vendor_code=-", yet the SMS from
+  # the approved sender arrived after both tries: the request, credentials,
+  # header, Netgsm IP allow-list and sms-egress proxy (ADR-042) all work, and
+  # only INT-528's response parsing was wrong. The shape is settled from
+  # Netgsm's documentation and official SDKs, never from a live capture; the
+  # owner's retry after deploy is the live confirmation.
+  depends_on: [INT-528]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-576.md
+  acceptance:
+    - "The success and error shapes of POST /sms/rest/v2/otp are settled from Netgsm's documentation (OTP SMS, REST v2 and XML) and its official SDKs (netgsm-sms 1.1.2 for Python, @netgsm/sms 1.1.11 for JS, the PHP OTP package the documentation links), each snapshotted verbatim with URL, retrieval date and sha256; the fixtures are re-derived from them and marked as derived, not captured."
+    - "Both documented success shapes are a receipt with the job id: code 00 with jobid (the documentation's sample) or jobId (the JS SDK's response type and integration test); every documented OTP error code (20, 30, 40-41, 50-52, 60, 70, 80, 100-101) is one typed refusal."
+    - "Any other 2xx is a typed refusal and never a success: unparseable_response (no documented code: plain text, XML, HTML, empty, a non-object, JSON deeper than the decoder), accepted_without_job_id (code 00 without exactly one digit-string job id under a documented key) or unknown_vendor_code; near misses cover each."
+    - "An answer after which Netgsm may have sent the code is never sent again: exactly one vendor request, OtpDeliveryError.retryable is False, the route answers the generic 503 and the cooldown holds a resend; the owner's check prints unconfirmed, not 'not sent'. The wire request (msgheader, msg, no) and the sms-egress allow-list are unchanged."
+    - "An opt-in, structure-only diagnostic (netgsm_test_otp.sh --shape) prints the answer's content type, kind, top-level keys or tags, vendor code and length, never the number, the code, the job id or the body; invariant 6 tests cover every new refusal path."
+  tests: [tests/api/test_otp_netgsm_answer.py, tests/api/test_otp_netgsm.py, tests/api/test_otp_send_check.py, tests/api/test_otp_netgsm_wiring.py, tests/infra/test_staging_netgsm.py]
+  sec_row: "onboarding"
