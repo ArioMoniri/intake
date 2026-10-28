@@ -106,6 +106,9 @@ class Frame:
     state: str
     #: An issue that must land before this frame can be captured truthfully.
     waits_for: str | None = None
+    #: The scroll position the capture must hold, and when the frame is dropped instead.
+    scroll: str | None = None
+    drop_if: str | None = None
 
     @property
     def capture_name(self) -> str:
@@ -208,6 +211,8 @@ def load_spec(path: Path) -> FrameSpec:
                 appearance=str(row["appearance"]),
                 state=str(row["state"]),
                 waits_for=None if row.get("waits_for") is None else str(row["waits_for"]),
+                scroll=None if row.get("scroll") is None else str(row["scroll"]),
+                drop_if=None if row.get("drop_if") is None else str(row["drop_if"]),
             )
             for index, row in enumerate(raw["frames"], start=1)
         )

@@ -549,6 +549,43 @@ def _keys_in(path: Path, known: set[str]) -> set[str]:
     return {key for key in _KEY.findall(path.read_text(encoding="utf-8")) if key in known}
 
 
+B7_MUST_NOT = (
+    "a voice or emotion affordance (Sesli görüşme rows, Ses tonundan duygu ipuçları, Yazıdan dil "
+    "ipuçları, Konuşarak, a microphone button) or an emergency-flag sentence (Acil bir işarette …)"
+)
+
+
+def test_the_frames_a_release_build_reaches_name_their_scroll_state(
+    spec: frame_plan.FrameSpec,
+) -> None:
+    """Legal review B7: izinler keeps the core footer and the Sesli görüşme group out of
+    frame, gorunum keeps appearance.start out of frame, each is dropped if no scroll
+    position does that, and must_not_show carries the voice and emergency line."""
+    izinler, gorunum = spec.frame("izinler"), spec.frame("gorunum")
+    assert izinler.scroll is not None and gorunum.scroll is not None
+    assert "neither the core footer nor the Sesli görüşme group" in izinler.scroll
+    assert "any learning row shown keeps its footer" in izinler.scroll
+    assert "appearance.start is not in frame" in gorunum.scroll
+    assert izinler.drop_if and gorunum.drop_if
+    assert B7_MUST_NOT in spec.must_not_show
+    runner = FakeRunner(spec.capture_size)
+    asked: list[str] = []
+    session = capture_frames.CaptureSession(
+        spec=spec,
+        udid="F6552A9C-2E27-4D18-816E-1217B2087507",
+        locale="tr",
+        out_dir=Path(__file__).parent / "_never_written",
+        app_sha="a" * 40,
+        data_class="synthetic",
+        api_label="capture API",
+        runner=runner,
+        confirm=asked.append,
+    )
+    message = capture_frames._checklist(session, izinler)
+    assert izinler.scroll in message and "drop the frame" in message
+    assert B7_MUST_NOT in message
+
+
 def test_no_caption_rests_on_a_key_only_the_voice_surfaces_render() -> None:
     """Legal review: a store build renders neither the voice dialogue, the voice
     note nor the dev voice banner. A caption sourced from a key that only those

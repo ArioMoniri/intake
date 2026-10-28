@@ -120,6 +120,7 @@ must_not_show:
   - "development-client chrome: the dev menu, a LogBox toast, the voice diagnostic banner"
   - "the keyboard, a text caret or a half-finished animation"
   - "a surface the store build does not have (voice intake is __DEV__-only on main today)"
+  - "a voice or emotion affordance (Sesli görüşme rows, Ses tonundan duygu ipuçları, Yazıdan dil ipuçları, Konuşarak, a microphone button) or an emergency-flag sentence (Acil bir işarette …)"
 
 # The journey, in order. route is the expo-router path; {visit} is one simulated
 # visit's id. file is the screen it renders, and the tests check that it exists.
@@ -155,8 +156,12 @@ frames:
     file: "apps/mobile/src/app/(tabs)/me/consents/index.tsx"
     appearance: light
     state: "the consent list with core on and every optional purpose off"
+    scroll: "İzinleriniz scrolled so that neither the core footer nor the Sesli görüşme group is in frame; any learning row shown keeps its footer"
+    drop_if: "no scroll position achieves the scroll state (legal review B7)"
   - id: gorunum
     route: "/me/appearance"
     file: "apps/mobile/src/app/(tabs)/me/appearance.tsx"
     appearance: dark
     state: "the text-size ladder with one step chosen, clear of the tab rail"
+    scroll: "scrolled so that appearance.start is not in frame (legal review B7: crop clear of appearance.start)"
+    drop_if: "no scroll position achieves the scroll state (legal review B7)"

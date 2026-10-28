@@ -88,11 +88,11 @@ captions:
       headline: "Silinmesini\nisteyebilirsiniz."
     en-US:
       eyebrow: "Your data"
-      headline: "You can ask for\nit to be deleted."
+      headline: "You can ask for\nit to be erased."
     source: "apps/mobile/src/lib/i18n/tr.ts me.data and data.delete (legal review B4 replaces the shares frame)"
     quote: "Kaydınızın silinmesini isteyin"
   - id: izinler
-    screen: "İzinleriniz: the consent list, every purpose off until the patient turns it on"
+    screen: "İzinleriniz scrolled so that neither the core footer nor the Sesli görüşme group is in frame; any learning row shown keeps its footer (legal review B7); every purpose off until the patient turns it on"
     tr:
       eyebrow: "İzinleriniz"
       headline: "Her izin\nayrıdır."

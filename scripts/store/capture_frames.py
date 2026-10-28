@@ -143,7 +143,12 @@ def _checklist(session: CaptureSession, frame: frame_plan.Frame) -> str:
     rules = "\n".join(f"  - {item}" for item in session.spec.must_not_show)
     return (
         f"[{frame.order:02d} {frame.frame_id}] {frame.state} ({frame.appearance})\n"
-        f"Never on screen:\n{rules}\nPress Enter to capture."
+        + (
+            f"Scroll: {frame.scroll}\nIf it cannot be held: drop the frame.\n"
+            if frame.scroll
+            else ""
+        )
+        + f"Never on screen:\n{rules}\nPress Enter to capture."
     )
 
 
