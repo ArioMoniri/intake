@@ -88,6 +88,11 @@ subjects:
 
   # --- apps ------------------------------------------------------------------------
 
+  # INT-560: the registry row exists and the synthetic host's probes service
+  # sweeps app/healthz/route.ts every 60 s (infra/staging/inventory.yaml). The
+  # other half of files/08 §6's console probe, the CSP header, is asserted by
+  # infra/staging/smoke.sh on every deploy and by apps/admin-web/e2e/ops.spec.ts;
+  # no probe id asserts a header.
   - subject: admin-web
     kind: app
     exempt:
@@ -96,16 +101,7 @@ subjects:
         which the api availability and latency SLOs measure; the Next server
         itself serves no /metrics, and no spec gives it an objective (files/08
         §4 A and files/10 §6 name none for the console).
-    gaps:
-      probe: >-
-        files/08 §6 names the console's probe — /healthz plus a CSP header
-        assertion — and app/healthz/route.ts serves the first half, but
-        observability/registry.yaml has no admin-web row. Adding one changes
-        the recorded runner sweep (tests/fixtures/reliability/probe_sweep.json,
-        held equal to the registry by tests/admin/test_reliability_console.py)
-        and the admin-web e2e payloads recorded from it; both are re-taken on
-        the recording host with scripts/dev/record_reliability_fixture.py
-        --sweep, and a CSP-asserting probe id does not exist yet.
+    probes: [admin-web]
 
   - subject: mobile
     kind: app

@@ -110,11 +110,22 @@ def compose_facts() -> dict[str, object]:
         for line in DOCKERFILE.read_text(encoding="utf-8").splitlines()
         if line.startswith("CMD")
     ]
+    # INT-560 (#950): other services run the api's own image with a command of
+    # their own (the probes service). Each such command is a fact to verify.
+    first_party = {
+        name: (
+            tuple(spec.get("command") or ()) or None,
+            tuple(spec.get("entrypoint") or ()) or None,
+        )
+        for name, spec in services.items()
+        if name != "api" and str(spec.get("image", "")).startswith("intake-staging/api:")
+    }
     return {
         "services": frozenset(services),
         "external": {name: members for name, members in external.items() if members},
         "api_peers": {name: on(name) - {"api"} for name in api_networks},
         "api_command": (api.get("command"), api.get("entrypoint"), cmd[-1] if cmd else None),
+        "image_commands": first_party,
     }
 
 
@@ -213,12 +224,19 @@ def closure(graph: Mapping[str, Iterable[str]], roots: Iterable[str]) -> frozens
     return frozenset(seen)
 
 
-def api_reach(graph: Mapping[str, Iterable[str]], gateways: frozenset[str]) -> frozenset[str]:
-    """Gateway modules in the transitive first-party import closure of
-    ``intake_api``. A gateway is a dispatcher, anything under
+def service_reach(
+    graph: Mapping[str, Iterable[str]], gateways: frozenset[str], package: str
+) -> frozenset[str]:
+    """Gateway modules in the transitive first-party import closure of one
+    deployed package. A gateway is a dispatcher, anything under
     ``intake_voice_runtime`` and anything under ``intake_hosted_lanes``."""
-    reached = closure(graph, [m for m in graph if m == "intake_api" or m.startswith("intake_api.")])
+    reached = closure(graph, [m for m in graph if m == package or m.startswith(f"{package}.")])
     return frozenset(m for m in reached if m in gateways or m.startswith(ROUTED_PREFIXES))
+
+
+def api_reach(graph: Mapping[str, Iterable[str]], gateways: frozenset[str]) -> frozenset[str]:
+    """:func:`service_reach` for ``intake_api``, the api service's code."""
+    return service_reach(graph, gateways, "intake_api")
 
 
 def gateway_modules(dispatcher_paths: Iterable[str]) -> frozenset[str]:

@@ -46,6 +46,7 @@ import yaml
 from intake_platform.slo import SLOFile, load_slo_file
 from intake_probes.gate import ProbeResultRecord, load_results
 from intake_probes.registry import FallbackKind, Registry, load_registry
+from intake_probes.runner import STALE_AFTER_S as _STALE_AFTER_S
 from intake_probes.runner import SWEEP_INTERVAL_S
 
 from intake_api.admin.models_source import PROBE_RESULTS_ENV
@@ -76,7 +77,8 @@ _ENV_REGISTRY: Final = "INTAKE_REGISTRY_PATH"
 _DEFAULT_SLO_DIR: Final = "docs/slo"
 _DEFAULT_REGISTRY: Final = "observability/registry.yaml"
 #: Three missed sweeps: past this a result is the last one, not the current one.
-STALE_AFTER_S: Final = 3 * SWEEP_INTERVAL_S
+#: One constant, shared with the ops console's registry tile (INT-560).
+STALE_AFTER_S: Final = _STALE_AFTER_S
 
 _GPU_QUERY: Final = "gpu_host_up"
 _VENDOR_QUERY: Final = "vendor_breaker_state"

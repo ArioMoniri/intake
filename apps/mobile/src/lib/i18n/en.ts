@@ -10,11 +10,11 @@ import type { MessageKey } from "./tr";
  * docs/legal/strings.yaml with sign-off (invariant 18), and a reviewer reading
  * the English catalogue has to see the same three lines called out. */
 export const en: Record<MessageKey, string> = {
-  "app.name": "Vizite",
+  "app.name": "Önvizit",
   "app.tagline": "What you tell us reaches your doctor before the visit.",
   // [REVIEW] fixed non-diagnosis line, 06 §7 family
   "app.disclaimer":
-    "Vizite does not diagnose. What you share never replaces your doctor's assessment.",
+    "Önvizit does not diagnose. What you share never replaces your doctor's assessment.",
 
   "tabs.today": "Today",
   "tabs.visits": "My visits",
@@ -23,7 +23,7 @@ export const en: Record<MessageKey, string> = {
   "tabs.me": "Profile",
 
   "welcome.body":
-    "Vizite collects your complaints by voice or text before the visit and hands your doctor a structured pre-visit note.",
+    "Önvizit collects your complaints by voice or text before the visit and hands your doctor a structured pre-visit note.",
   "welcome.devSignIn": "Sign in with a test account",
   "welcome.devNote":
     "This screen exists only in development builds; real sign-in uses phone verification.",
@@ -242,11 +242,11 @@ export const en: Record<MessageKey, string> = {
   "me.language": "Language",
   "me.learned": "What it learned about me",
   "me.learnedEmpty":
-    "Vizite never permanently learns anything about you without your confirmation.",
+    "Önvizit never permanently learns anything about you without your confirmation.",
   "learned.guide.kicker": "Transparency",
   "learned.guide.title": "Nothing is learned silently",
   "learned.guide.body":
-    "Vizite keeps a lasting fact about you only if you confirm it. Every stored fact appears in this list and can be removed whenever you wish.",
+    "Önvizit keeps a lasting fact about you only if you confirm it. Every stored fact appears in this list and can be removed whenever you wish.",
   // INT-140 — where each fact came from, where it is held, who sees it and
   // how it goes. Re-confirmation is asked during visit preparation.
   "learned.shareLabel": "Share with your doctor",
@@ -733,7 +733,7 @@ export const en: Record<MessageKey, string> = {
   // this catalog (invariant 18).
   "consent.entry.sub": "See and manage what each permission is for.",
   "consent.firstRun.body":
-    "In Vizite every permission stands on its own. Nothing that needs your permission comes switched on. You do not have to decide now; you can turn each one on when it comes up, or here.",
+    "In Önvizit every permission stands on its own. Nothing that needs your permission comes switched on. You do not have to decide now; you can turn each one on when it comes up, or here.",
   "consent.firstRun.continue": "Continue",
   "consent.group.core": "Service",
   "consent.group.voice": "Voice sessions",
@@ -838,10 +838,10 @@ export const en: Record<MessageKey, string> = {
   "a11y.learned.forgetHint": "Double tapping deletes this detail from your record.",
   "a11y.ladder.reached": "done",
   "a11y.ladder.pending": "not yet done",
-  "a11y.speaker.agent": "Vizite",
+  "a11y.speaker.agent": "Önvizit",
   "a11y.speaker.patient": "You",
   "a11y.dialogue.transcript": "Conversation transcript",
-  "a11y.dialogue.speaking": "Vizite is speaking",
+  "a11y.dialogue.speaking": "Önvizit is speaking",
   "a11y.dialogue.preparing": "Preparing the question",
   "a11y.dialogue.transcribing": "Turning what you said into text",
   "a11y.dialogue.settling": "Preparing your note",

@@ -87,6 +87,16 @@ SMS_KV_FIELDS=(usercode password msgheader)
 # characters are neither.
 COOKIE_SECRET_KEYS=(OAUTH2_PROXY_COOKIE_SECRET)
 
+# INT-560: the probes service's two logins. Both are template keys, so init.sh
+# generates them like every other secret; a host initialised before INT-560
+# lacks them, and deploy.sh fills exactly these two (ensure_probe_secrets)
+# rather than asking for an init re-run. The role holds LOGIN and CONNECT and
+# no grant on any table (ensure_probe_role); the Redis user may PING and
+# nothing else (compose.yaml's redis command). infra/staging/inventory.yaml
+# names both, without their passwords.
+PROBE_SECRET_KEYS=(PG_PROBE_PASSWORD REDIS_PROBE_PASSWORD)
+PROBE_DB_ROLE=svc_probe
+
 # INT-421: the admin tier. Keycloak keeps its own database in the staging
 # Postgres, under its own role. The API reads the realm's key set from a file
 # that deploy.sh mirrors on every deploy, so no admin request depends on
@@ -724,6 +734,40 @@ rotate_role_passwords() {
   done
   printf '%s' "$sql" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U intake -d intake >/dev/null
   log "re-keyed ${#ROLE_PASSWORD_KEYS[@]} database roles away from their committed dev passwords"
+}
+
+ensure_probe_secrets() {
+  # Generate PG_PROBE_PASSWORD and REDIS_PROBE_PASSWORD if absent or empty,
+  # exactly as generate_missing_secrets would; a value that exists is kept.
+  # Nothing else in the env file is touched.
+  [[ -f $ENV_FILE ]] || die "$ENV_FILE is missing: run ./init.sh first"
+  local key
+  for key in "${PROBE_SECRET_KEYS[@]}"; do
+    if [[ -z $(env_get "$ENV_FILE" "$key") ]]; then
+      env_set "$ENV_FILE" "$key" "$(gen_secret)"
+      log "generated $key"
+    fi
+  done
+}
+
+ensure_probe_role() {
+  # INT-560: the probes service's database login, created if absent, its
+  # password re-applied on every run. LOGIN and CONNECT on the intake
+  # database, nothing else: SELECT 1 reads no table, and every table revokes
+  # PUBLIC (migrations/versions). The SQL travels on stdin with statement
+  # logging off, so the password never reaches argv or a log, as with
+  # rotate_role_passwords.
+  local value sql
+  value=$(env_get "$ENV_FILE" PG_PROBE_PASSWORD)
+  [[ $value =~ ^[0-9a-f]{64}$ ]] || die "PG_PROBE_PASSWORD is not a generated secret: run ./deploy.sh again"
+  sql="SET log_statement = 'none'; SET log_min_error_statement = 'panic';"$'\n'
+  sql+="DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${PROBE_DB_ROLE}') THEN"
+  sql+=" CREATE ROLE ${PROBE_DB_ROLE} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION CONNECTION LIMIT 2;"
+  sql+=" END IF; END \$\$;"$'\n'
+  sql+="ALTER ROLE ${PROBE_DB_ROLE} PASSWORD '${value}';"$'\n'
+  sql+="GRANT CONNECT ON DATABASE intake TO ${PROBE_DB_ROLE};"$'\n'
+  printf '%s' "$sql" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U intake -d intake >/dev/null
+  log "probe role ${PROBE_DB_ROLE} present (LOGIN and CONNECT only)"
 }
 
 # --- the admin tier (INT-421) -----------------------------------------------------------

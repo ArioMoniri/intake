@@ -9,10 +9,10 @@
  * sign-off (invariant 18); here they gate the dev shell.
  */
 export const tr = {
-  "app.name": "Vizite",
+  "app.name": "Önvizit",
   "app.tagline": "Muayeneden önce, anlattıklarınız hekiminize ulaşsın.",
   // [REVIEW] fixed non-diagnosis line, 06 §7 family
-  "app.disclaimer": "Vizite tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
+  "app.disclaimer": "Önvizit tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
 
   "tabs.today": "Bugün",
   "tabs.visits": "Vizitlerim",
@@ -21,7 +21,7 @@ export const tr = {
   "tabs.me": "Profilim",
 
   "welcome.body":
-    "Vizite, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
+    "Önvizit, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
   "welcome.devSignIn": "Deneme hesabıyla girin",
   "welcome.devNote":
     "Bu ekran geliştirme sürümüne özeldir; gerçek giriş telefon doğrulamasıyla yapılır.",
@@ -250,11 +250,11 @@ export const tr = {
   "me.consents": "İzinleriniz",
   "me.language": "Dil",
   "me.learned": "Hakkımda öğrendikleri",
-  "me.learnedEmpty": "Vizite sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
+  "me.learnedEmpty": "Önvizit sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
   "learned.guide.kicker": "Şeffaflık",
   "learned.guide.title": "Hiçbir şey sessizce öğrenilmez",
   "learned.guide.body":
-    "Vizite sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
+    "Önvizit sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
   // INT-140 — her bilginin nereden geldiği, nerede tutulduğu, kimin gördüğü
   // ve nasıl silineceği. Yeniden onay ziyaret hazırlığında sorulur.
   "learned.shareLabel": "Hekimle paylaşılsın",
@@ -760,7 +760,7 @@ export const tr = {
   // (invariant 18) ve hiçbir zaman bu kataloğa yazılmaz.
   "consent.entry.sub": "Hangi izni ne için verdiğinizi görün ve yönetin.",
   "consent.firstRun.body":
-    "Vizite'de her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
+    "Önvizit'te her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
   "consent.firstRun.continue": "Devam edin",
   "consent.group.core": "Hizmet",
   "consent.group.voice": "Sesli görüşme",
@@ -873,10 +873,10 @@ export const tr = {
   // The two voices of the conversation. The agent is named with the product
   // name, never a human first name (02 §5: no persona presented as a
   // person); "Siz" keeps the app-wide register.
-  "a11y.speaker.agent": "Vizite",
+  "a11y.speaker.agent": "Önvizit",
   "a11y.speaker.patient": "Siz",
   "a11y.dialogue.transcript": "Konuşma dökümü",
-  "a11y.dialogue.speaking": "Vizite konuşuyor",
+  "a11y.dialogue.speaking": "Önvizit konuşuyor",
   "a11y.dialogue.preparing": "Soru hazırlanıyor",
   "a11y.dialogue.transcribing": "Söyledikleriniz yazıya dökülüyor",
   "a11y.dialogue.settling": "Notunuz hazırlanıyor",
