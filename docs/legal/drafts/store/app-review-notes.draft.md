@@ -24,6 +24,7 @@ missing item is a reason to wait. It is not something to describe around.
 | 7 | A way for a reviewer to sign in (§2). | INT-488 (#829), then the owner creates the account |
 | 8 | Voice intake can be reached in a release build. It must go through the streaming path (`apps/mobile/src/lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx`), and `createLiveVoiceSession` has no caller. The listing and the notes describe voice, so they wait for it. | INT-440 (#768), INT-454 (#769) |
 | 9 | Release stays manual, and the public release waits. The production host receives simulated patients only until an in-country host or counsel's cross-border decision exists. Use TestFlight internal testing and the Play internal track until then. `store.config.json` pins `automaticRelease: false`. | HB-I5, HB-L11 |
+| 10 | The note the patient sends reaches the clinician they choose. The notes say the app "sends it only to the clinician the user chooses". The listing promo, the store frames and the review notes may promise delivery only once it works. Until then, the review notes stay out of App Store Connect (INT-502 legal review, B4 and B5). | INT-587 (#988) |
 
 ## 2 · The reviewer account
 

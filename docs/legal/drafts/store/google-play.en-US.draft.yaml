@@ -25,18 +25,15 @@ fields:
   short_description: "Before your visit, your own words become a structured note for your doctor."
   full_description: |-
     Önvizit is made for describing your complaints before a medical visit.
-    From what you say, a structured pre-visit note is prepared for your doctor.
-    The note is organised with the help of AI and shown to you before it is sent.
+    From your answers, a structured pre-visit note is prepared for your doctor.
+    The note is shown to you before it is sent.
 
-    • You can speak or type your answers.
+    • You can answer by typing or by ticking the option that fits you.
     • Only one question is asked at a time.
     • You can read and edit your note before you send it.
     • What gets shared is your decision.
     • You can stop a share at any time.
-    • You can upload your own reports and lab results.
     • If you wish, you can also add step, sleep and resting heart rate summaries from your phone.
-
-    Your voice is turned into text; the audio is not written to your phone or to our servers.
 
     Önvizit does not diagnose and does not recommend treatment.
     What you tell it does not replace a doctor's assessment.
@@ -48,12 +45,12 @@ sources:
   full_description:
     - text: "Önvizit is made for describing your complaints before a medical visit."
       source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"collects your complaints … before the visit\")"
-    - text: "From what you say, a structured pre-visit note is prepared for your doctor."
+    - text: "From your answers, a structured pre-visit note is prepared for your doctor."
       source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"a structured pre-visit note\")"
-    - text: "The note is organised with the help of AI and shown to you before it is sent."
-      source: "files/06_COMPLIANCE_TR.md §7 note footer; apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
-    - text: "You can speak or type your answers."
-      source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"by voice or text\")"
+    - text: "The note is shown to you before it is sent."
+      source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx (the note is shown for review before it is sent); legal review INT-502 B3"
+    - text: "You can answer by typing or by ticking the option that fits you."
+      source: "apps/mobile/src/lib/i18n/en.ts intake.open.hint (typed answers) and the intake.opt.* closed choices; voice intake is __DEV__-only in a store build (legal review INT-502 B1)"
     - text: "Only one question is asked at a time."
       source: "CLAUDE.md invariant 2 (one question per turn); files/03_ARCHITECTURE.md §4.2"
     - text: "You can read and edit your note before you send it."
@@ -62,12 +59,8 @@ sources:
       source: "apps/mobile/src/lib/i18n/en.ts review.intro, second sentence verbatim"
     - text: "You can stop a share at any time."
       source: "apps/mobile/src/lib/i18n/en.ts shares.guide.body (\"You can stop one at any time.\")"
-    - text: "You can upload your own reports and lab results."
-      source: "apps/mobile/src/app/(tabs)/records.tsx; apps/mobile/src/lib/i18n/en.ts records.upload, records.guide.title"
     - text: "If you wish, you can also add step, sleep and resting heart rate summaries from your phone."
       source: "apps/mobile/src/lib/health/healthKitConnector.ts (steps, resting heart rate, sleep; read-only)"
-    - text: "Your voice is turned into text; the audio is not written to your phone or to our servers."
-      source: "CLAUDE.md invariant 3; tests/voice/test_audio_retention_guard.py"
     - text: "Önvizit does not diagnose and does not recommend treatment."
       source: "apps/mobile/src/lib/i18n/en.ts app.disclaimer; files/06_COMPLIANCE_TR.md §0.4"
     - text: "What you tell it does not replace a doctor's assessment."

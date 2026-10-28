@@ -19,7 +19,7 @@
       "violenceRealisticProlongedGraphicOrSadistic": "NONE",
       "gambling": false,
       "unrestrictedWebAccess": false,
-      "seventeenPlus": false
+      "seventeenPlus": true
     },
     "review": {
       "notes": "Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.\n\nWhat the app does not do: it does not diagnose, it does not recommend treatment, and it does not tell the user how urgent a complaint is. It makes no claim about how well it measures anything.\n\nEmergencies: Önvizit is not an emergency service. The app shows a fixed notice telling the user to call 112, the emergency number in Türkiye, or to go to the nearest emergency department.\n\nApple Health: with the user's permission, the app reads step count, resting heart rate and sleep. It only reads and never writes to Apple Health. The data stays on the device unless the user adds a summary to their note, and it is never used for advertising.\n\nMicrophone: used only during a voice intake, to turn the answer into text. Audio is never written to disk, to a database or to logs.\n\nCamera: used only to photograph the user's own medical report so that it can be uploaded.\n\nAccount deletion: Profile > Your data lets the user request deletion of their account and data.\n\nTest environment and sign-in: this build connects to a test environment that holds simulated patients only. No real patient data is present. The reviewer account is a simulated patient, and its sign-in details are in the App Review Information section of this submission."
@@ -28,7 +28,7 @@
       "en-US": {
         "title": "Önvizit",
         "subtitle": "Your note before the visit",
-        "description": "Önvizit is made for describing your complaints before a medical visit.\nFrom what you say, a structured pre-visit note is prepared for your doctor.\nThe note is organised with the help of AI and shown to you before it is sent.\n\n• You can speak or type your answers.\n• Only one question is asked at a time.\n• You can read and edit your note before you send it.\n• What gets shared is your decision.\n• You can stop a share at any time.\n• You can upload your own reports and lab results.\n• If you wish, you can also add step, sleep and resting heart rate summaries from your phone.\n\nYour voice is turned into text; the audio is not written to your phone or to our servers.\n\nÖnvizit does not diagnose and does not recommend treatment.\nWhat you tell it does not replace a doctor's assessment.\nÖnvizit is not an emergency service.\nIn an emergency, call 112 or go to the nearest emergency department.",
+        "description": "Önvizit is made for describing your complaints before a medical visit.\nFrom your answers, a structured pre-visit note is prepared for your doctor.\nThe note is shown to you before it is sent.\n\n• You can answer by typing or by ticking the option that fits you.\n• Only one question is asked at a time.\n• You can read and edit your note before you send it.\n• What gets shared is your decision.\n• You can stop a share at any time.\n• If you wish, you can also add step, sleep and resting heart rate summaries from your phone.\n\nÖnvizit does not diagnose and does not recommend treatment.\nWhat you tell it does not replace a doctor's assessment.\nÖnvizit is not an emergency service.\nIn an emergency, call 112 or go to the nearest emergency department.",
         "keywords": [
           "doctor",
           "visit",
@@ -38,16 +38,15 @@
           "health",
           "pre-visit",
           "note",
-          "reports",
-          "lab results",
-          "voice note"
+          "intake",
+          "preparation"
         ],
-        "promoText": "What you tell us reaches your doctor before the visit."
+        "promoText": "Before your visit, you can describe your complaints in your own words and check your note yourself."
       },
       "tr": {
         "title": "Önvizit",
         "subtitle": "Muayeneden önce ön notunuz",
-        "description": "Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı.\nAnlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır.\nNot, yapay zekâ desteğiyle düzenlenir ve gönderilmeden önce size gösterilir.\n\n• Şikâyetinizi sesli ya da yazılı olarak anlatabilirsiniz.\n• Her seferinde yalnızca bir soru sorulur.\n• Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz.\n• Neyin paylaşılacağına siz karar verirsiniz.\n• Bir paylaşımı dilediğiniz an durdurabilirsiniz.\n• Raporlarınızı ve tahlil sonuçlarınızı yükleyebilirsiniz.\n• İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz.\n\nSesiniz yazıya dökülür; ses kaydı telefonunuza ya da sunucularımıza yazılmaz.\n\nÖnvizit tanı koymaz ve tedavi önermez.\nAnlattıklarınız hekim değerlendirmesinin yerine geçmez.\nÖnvizit bir acil durum hizmeti değildir.\nAcil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun.",
+        "description": "Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı.\nAnlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır.\nNot, gönderilmeden önce size gösterilir.\n\n• Soruları yazarak ya da size uyan seçeneği işaretleyerek yanıtlayabilirsiniz.\n• Her seferinde yalnızca bir soru sorulur.\n• Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz.\n• Neyin paylaşılacağına siz karar verirsiniz.\n• Bir paylaşımı dilediğiniz an durdurabilirsiniz.\n• İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz.\n\nÖnvizit tanı koymaz ve tedavi önermez.\nAnlattıklarınız hekim değerlendirmesinin yerine geçmez.\nÖnvizit bir acil durum hizmeti değildir.\nAcil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun.",
         "keywords": [
           "muayene",
           "hekim",
@@ -57,11 +56,11 @@
           "şikâyet",
           "sağlık",
           "ön not",
-          "rapor",
-          "tahlil",
-          "sesli not"
+          "ön görüşme",
+          "vizit",
+          "hazırlık"
         ],
-        "promoText": "Muayeneden önce, anlattıklarınız hekiminize ulaşsın."
+        "promoText": "Muayeneden önce şikâyetlerinizi kendi sözlerinizle yazabilir, notunuzu kendiniz gözden geçirebilirsiniz."
       }
     },
     "release": {

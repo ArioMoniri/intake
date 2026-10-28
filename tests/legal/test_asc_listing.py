@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import shutil
 import struct
 import subprocess
@@ -37,9 +38,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+from intake_platform.store import eas_metadata as eas
 from store_drafts_harness import REPO, promote
 
 STORE_SCRIPTS = REPO / "scripts" / "store"
@@ -81,7 +84,7 @@ def test_the_plan_fills_every_text_field_the_served_copy_holds(served: Path) -> 
         )
     assert steps[("appInfos", None)] == ("primaryCategory",)
     assert steps[("apps", None)] == ("contentRightsDeclaration",)
-    assert steps[("appStoreReviewDetails", None)] == ("notes",)
+    assert ("appStoreReviewDetails", None) not in steps, "the notes are held (legal review B5)"
     assert set(steps[("ageRatingDeclarations", None)]) == set(asc_plan.AGE_RATING_KEYS)
 
 
@@ -100,6 +103,88 @@ def test_every_field_the_plan_cannot_fill_is_blocked_with_its_owner(served: Path
         "APP_SCREENSHOT",
     ):
         assert needle in blocked, needle
+
+
+def test_the_review_notes_are_held_until_they_are_true(served: Path) -> None:
+    """Legal review B5 (INT-502): the notes promise a 112 notice, a reviewer sign-in,
+    voice and delivery. None of these holds for a store build today, so the notes are
+    blocked with their owners rather than written."""
+    blocked = "\n".join(asc_plan.build_plan(served).blocked)
+    for needle in ("appStoreReviewDetails.notes", "INT-117", "INT-488", "INT-587"):
+        assert needle in blocked, needle
+
+
+def _store_build_has_voice() -> bool:
+    """The store build reaches voice intake only when ``voiceEligible`` stops
+    requiring ``__DEV__`` (INT-440, INT-454)."""
+    intake = REPO / "apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx"
+    text = intake.read_text(encoding="utf-8")
+    start = text.index("const voiceEligible")
+    return "__DEV__" not in text[start : text.index(";", start)]
+
+
+def _host_scans_uploads() -> bool:
+    """A store build talks to the synthetic host, and an upload succeeds only
+    where a malware scanner runs (docs/runbooks/staging.md: no ClamAV, so the
+    upload fails closed)."""
+    compose = (REPO / "infra/staging/compose.yaml").read_text(encoding="utf-8")
+    return "clamav" in compose.lower()
+
+
+VOICE_TERMS = re.compile(
+    r"(?i)\bses(?:li|iniz|ini)?\b|konuş|mikrofon|\bvoice\b|\bspeak|\baudio\b|microphone"
+)
+UPLOAD_TERMS = re.compile(r"(?i)yükle|\bupload")
+
+
+def test_the_served_listing_promises_no_voice_or_upload_this_build_lacks() -> None:
+    """Legal review B1 and B2 (INT-502): while the store build has no voice and the
+    host cannot scan an upload, no listing field may offer either."""
+    for locale in ("tr", "en-US"):
+        fields = _served_fields(locale)
+        text = "\n".join(str(v) for v in fields.values())
+        if not _store_build_has_voice():
+            assert not VOICE_TERMS.search(text), (locale, VOICE_TERMS.search(text))
+        if not _host_scans_uploads():
+            assert not UPLOAD_TERMS.search(text), (locale, UPLOAD_TERMS.search(text))
+    assert VOICE_TERMS.search("Şikâyetinizi sesli anlatabilirsiniz."), "near miss: tr voice"
+    assert VOICE_TERMS.search("You can speak your answers."), "near miss: en voice"
+    assert UPLOAD_TERMS.search("Raporlarınızı yükleyebilirsiniz."), "near miss: tr upload"
+
+
+def _served_fields(locale: str) -> dict[str, object]:
+    path = REPO / f"docs/legal/store/listing/app-store.{locale}.yaml"
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return dict(loaded["fields"])
+
+
+def _guardian_flow_exists() -> bool:
+    """A minor may use the app only through a guardian account with guardian consent
+    (apps/mobile/e2e/guardian.spec.ts). That flow needs a guardian consent text."""
+    from intake_platform.legal.documents import REQUIRED_DOCUMENTS
+
+    return any("guardian" in row.id or "veli" in row.id for row in REQUIRED_DOCUMENTS)
+
+
+def test_the_top_age_band_holds_while_no_guardian_flow_exists(served: Path) -> None:
+    """Legal review B8 (INT-502): with no guardian flow, the EAS answer is 17+ and the
+    live override is 18+ (ageRatingOverrideV2, Apple's attributes read 2026-10-29)."""
+    submission = eas.load_submission(eas.submission_path(served))
+    if not _guardian_flow_exists():
+        assert submission.advisory["seventeenPlus"] is True
+        assert submission.advisory_asc["ageRatingOverrideV2"] == "EIGHTEEN_PLUS"
+    values = asc_plan.build_plan(served).values[("ageRatingDeclarations", None)]
+    assert values["ageRatingOverrideV2"] == submission.advisory_asc["ageRatingOverrideV2"]
+
+
+def test_an_override_outside_apples_values_is_refused(tmp_path: Path) -> None:
+    root = promote(tmp_path / "repo")
+    path = eas.submission_path(root)
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    loaded["advisory_asc"]["ageRatingOverrideV2"]["answer"] = "SEVENTEEN_PLUS"
+    path.write_text(yaml.safe_dump(loaded, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(eas.StoreConfigError, match="ageRatingOverrideV2"):
+        eas.load_submission(path)
 
 
 def test_the_age_rating_speaks_the_live_api_not_the_eas_schema(served: Path) -> None:
@@ -243,7 +328,7 @@ def test_apply_writes_only_draft_metadata(served: Path) -> None:
     assert ("PATCH", "/v1/ageRatingDeclarations/age-1") in writes
     assert ("PATCH", "/v1/apps/APP") in writes
     assert ("PATCH", "/v1/appInfos/info-1") in writes
-    assert ("POST", "/v1/appStoreReviewDetails") in writes
+    assert not [p for _, p in writes if "appStoreReviewDetails" in p], "notes held (B5)"
     assert not [p for _, p, _ in fake.calls if "info-live" in p], "the live appInfo is untouched"
     # The log holds field names and statuses; no value of any field.
     plan = asc_plan.build_plan(served)

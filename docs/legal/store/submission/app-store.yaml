@@ -13,7 +13,9 @@
 # docs/legal/drafts/store/app-review-notes.draft.md §1.
 #
 # `advisory` uses the EAS schema's keys; `advisory_asc` answers the keys the live
-# App Store Connect API asks beyond them (read 2026-10-16). Every answer cites its
+# App Store Connect API asks beyond them (read 2026-10-16; ageRatingOverrideV2 read
+# 2026-10-29 for the INT-502 legal review, B8: the top age band while no guardian
+# flow exists). Every answer cites its
 # source. Answers that carry a `note` are judgements for the legal lane. The
 # reviewer contact and sign-in are never written here; the owner enters them in App
 # Store Connect. The privacy-policy link, support URL and copyright stay null until
@@ -29,7 +31,7 @@ categories_source: "files/02_PRODUCT_SPEC.md — a patient app for the visit to 
 advisory:
   alcoholTobaccoOrDrugUseOrReferences:
     answer: INFREQUENT_OR_MILD
-    source: "packages/protocols/base/intake.yaml — the base intake asks whether the patient smokes and whether they drink alcohol; docs/legal/data-categories.yaml adds substance-use questions to two specialty intakes (D3)"
+    source: "packages/protocols/base/intake.yaml — the base intake asks \"Sigara kullanıyor musunuz?\" and \"Alkol kullanıyor musunuz?\"; packages/protocols/review/cluster/mental_health.yaml asks about other substances. The app asks; it depicts and promotes nothing (re-sourced, legal review INT-502)"
   contests:
     answer: NONE
     source: "files/02_PRODUCT_SPEC.md — the app's screens are intake, visits, records, wellbeing and profile; none holds a contest"
@@ -72,9 +74,12 @@ advisory:
     answer: false
     source: "apps/mobile/src/app/(tabs)/records.tsx — the in-app browser opens only the patient's own uploaded document"
   seventeenPlus:
-    answer: false
-    source: ".claude/skills/eas-app-stores/references/app-store-metadata.md — follows from the answers above, none of which is FREQUENT_OR_INTENSE"
+    answer: true
+    source: "packages/intake_platform/src/intake_platform/legal/documents.py — REQUIRED_DOCUMENTS declares no guardian consent text, and apps/mobile/e2e/guardian.spec.ts pins \"under-18 only via guardian account with guardian consent\". Until that flow exists, the listing takes the top age band (legal review INT-502 B8, 29 Oct 2026)"
 advisory_asc:
+  ageRatingOverrideV2:
+    answer: EIGHTEEN_PLUS
+    source: "packages/intake_platform/src/intake_platform/legal/documents.py — no guardian consent text, the same reason as seventeenPlus. Apple's AgeRatingDeclaration attributes (developer.apple.com/documentation/appstoreconnectapi/ageratingdeclaration/attributes, read 2026-10-29): ageRatingOverrideV2 takes NONE, NINE_PLUS, THIRTEEN_PLUS, SIXTEEN_PLUS, EIGHTEEN_PLUS or UNRATED, and replaces the deprecated ageRatingOverride (legal review INT-502 B8)"
   advertising:
     answer: false
     source: "packages/intake_platform/src/intake_platform/store/answers.py — the privacy sheet's product answer: no inventory purpose is advertising, and apps/mobile/package.json links no ad library"
@@ -111,7 +116,7 @@ advisory_asc:
     note: "The legal lane confirms this against Apple's definition."
 content_rights:
   answer: USES_THIRD_PARTY_CONTENT
-  source: "packages/protocols/src/protocols/licences.py — the validated instruments (PHQ-9, GAD-7) are third-party content used under Pfizer's blanket permission (licence GO)"
+  source: "packages/protocols/src/protocols/licences.py — the validated instruments (PHQ-9, GAD-7) are third-party content used under Pfizer's blanket permission (licence GO); apps/mobile/package.json bundles the third-party fonts Inter, Newsreader and Fraunces (@expo-google-fonts, SIL Open Font License 1.1, read from each package's LICENSE_FONT) (re-sourced, legal review INT-502)"
   note: "The legal lane confirms; the alternative answer is DOES_NOT_USE_THIRD_PARTY_CONTENT."
 review_notes: |-
   Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.
