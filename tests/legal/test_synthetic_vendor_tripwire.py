@@ -22,8 +22,14 @@ each from the tree):
 - **Compose.** The services; who sits on each network that leads off the host
   (``public``: caddy; ``vendor``: egress-proxy; ``sms-wan``: sms-egress); who
   shares each of the api's networks with it (``outbound``: the hosted-lane
-  proxy alone; ``sms-out``: the SMS-only proxy alone, ADR-042); and the api's
-  command, which is the image's uvicorn.
+  proxy alone; ``sms-out``: the SMS-only proxy alone, ADR-042); the api's
+  command, which is the image's uvicorn; and every other service that runs
+  the api's image, with its command. Today that is ``probes`` (INT-560,
+  #950): synthetic infrastructure probes on ``backend`` and ``edge`` only,
+  both internal, so it has no way off the host. It reaches postgres as
+  ``svc_probe`` (no table grant), redis as ``intake-probe`` (PING only) and
+  health endpoints, so no patient data crosses it. Its import closure is
+  pinned like the API's.
 - **Dispatchers.** ``model_lanes.dispatch`` has three importers, in
   voice-clips and voice-runtime. None is deployed or imported by the API.
 - **Hosted-backend call sites.** The API holds the hosted backends
@@ -78,6 +84,7 @@ from hosted_reach import (
     import_graph,
     python_sources,
     routed_references,
+    service_reach,
 )
 from intake_api.otp_netgsm import SMS_TEMPLATE, NetgsmOtpRequest
 from intake_platform.egress import DEDICATED_PERSONAL_PROXIES, EgressPurpose
@@ -136,10 +143,14 @@ class Reach:
     #: each network the api sits on → who shares it with the api
     api_peers: Mapping[str, frozenset[str]]
     api_command: object
+    #: other services that run the api's own image -> their (command, entrypoint)
+    image_commands: Mapping[str, tuple[object, object]]
     dispatchers: frozenset[str]
     call_sites: frozenset[tuple[str, str]]
     routed_refs: frozenset[tuple[str, str]]
     api_reach: frozenset[str]
+    #: gateway modules the probes service's import closure reaches
+    probes_reach: frozenset[str]
 
 
 VERIFIED = Reach(
@@ -155,6 +166,8 @@ VERIFIED = Reach(
             "admin-web",
             "egress-proxy",
             "sms-egress",
+            # INT-560 (#950): synthetic probes only; see the backend/edge note below
+            "probes",
             "caddy",
         }
     ),
@@ -164,8 +177,14 @@ VERIFIED = Reach(
         "sms-wan": frozenset({"sms-egress"}),
     },
     api_peers={
-        "backend": frozenset({"postgres", "redis", "openbao", "minio", "keycloak"}),
-        "edge": frozenset({"keycloak", "oauth2-proxy", "admin-web", "caddy"}),
+        # probes (INT-560, #950) sits on backend and edge only, both internal, so
+        # it has no way off the host. It runs the api image as
+        # `intake_probes.app` and reaches postgres as svc_probe (LOGIN, CONNECT,
+        # SELECT 1; no table grant), redis as intake-probe (PING only), and
+        # health and readiness endpoints. No patient data crosses it, and its
+        # import closure reaches no gateway (pinned below).
+        "backend": frozenset({"postgres", "redis", "openbao", "minio", "keycloak", "probes"}),
+        "edge": frozenset({"keycloak", "oauth2-proxy", "admin-web", "caddy", "probes"}),
         "outbound": frozenset({"egress-proxy"}),
         "sms-out": frozenset({"sms-egress"}),
     },
@@ -175,6 +194,21 @@ VERIFIED = Reach(
         'CMD ["uvicorn", "intake_api.app:create_app", "--factory", "--host", "0.0.0.0", '
         '"--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-server-header"]',
     ),
+    image_commands={
+        "probes": (
+            (
+                "uvicorn",
+                "intake_probes.app:create_app",
+                "--factory",
+                "--host",
+                "0.0.0.0",  # noqa: S104 - the compose command pinned verbatim; nothing binds here
+                "--port",
+                "8000",
+                "--no-server-header",
+            ),
+            None,
+        ),
+    },
     dispatchers=frozenset({_VOICE_CLIPS_LANES, _ADAPTER_LANES, _EXTRACTION_LANES}),
     call_sites=frozenset(
         {
@@ -198,6 +232,7 @@ VERIFIED = Reach(
         }
     ),
     api_reach=frozenset(),
+    probes_reach=frozenset(),
 )
 
 
@@ -212,15 +247,18 @@ def _reach(sources: Mapping[str, str] | None = None) -> Reach:
     sources = python_sources() if sources is None else sources
     facts = compose_facts()
     found = dispatchers(sources)
+    graph = import_graph(sources)
     return Reach(
         services=frozenset(facts["services"]),  # type: ignore[arg-type]
         external=dict(facts["external"]),  # type: ignore[call-overload]
         api_peers=dict(facts["api_peers"]),  # type: ignore[call-overload]
         api_command=facts["api_command"],
+        image_commands=dict(facts["image_commands"]),  # type: ignore[call-overload]
         dispatchers=found,
         call_sites=hosted_call_sites(sources),
         routed_refs=routed_references(sources),
-        api_reach=api_reach(import_graph(sources), gateway_modules(found)),
+        api_reach=api_reach(graph, gateway_modules(found)),
+        probes_reach=service_reach(graph, gateway_modules(found), "intake_probes"),
     )
 
 
@@ -250,6 +288,12 @@ def _paths(reach: Reach) -> list[str]:
         *(f"{p}: {what}" for p, what in sorted(reach.call_sites - VERIFIED.call_sites)),
         *(f"{p} names {v!r}" for p, v in sorted(reach.routed_refs - VERIFIED.routed_refs)),
         *(f"the API's imports reach {m}" for m in sorted(reach.api_reach)),
+        *(f"the probes service's imports reach {m}" for m in sorted(reach.probes_reach)),
+        *(
+            f"service {name!r} runs the api image as {command!r}"
+            for name, command in sorted(reach.image_commands.items())
+            if VERIFIED.image_commands.get(name) != command
+        ),
     ]
     if reach.api_command != VERIFIED.api_command:
         paths.append(f"the api runs {reach.api_command!r}")
@@ -530,6 +574,31 @@ def test_a_gateway_reached_transitively_trips() -> None:
     assert outside_parties(_allowlist(), reach)
 
 
+def test_a_gateway_reached_by_the_probes_service_trips() -> None:
+    """The probes service runs the api's image. If its code ever imports a
+    gateway, transitively, it is a path like the API's own."""
+    sources = dict(python_sources())
+    sources["packages/intake_platform/src/intake_platform/answers_out.py"] = (
+        "from voice_clips.lanes import LaneRoutedTtsGateway\n"
+    )
+    sources["services/probes/src/intake_probes/answers_probe.py"] = (
+        "from intake_platform.answers_out import LaneRoutedTtsGateway\n"
+    )
+    reach = _reach(sources)
+    assert reach.probes_reach == {"voice_clips.lanes"}
+    assert reach.api_reach == frozenset()
+    assert outside_parties(_allowlist(), reach)
+
+
+def test_the_probes_service_as_deployed_is_quiet() -> None:
+    """Near miss: probes on backend and edge, running intake_probes.app, with no
+    gateway in reach, adds no path."""
+    reach = _reach()
+    assert reach.api_peers["backend"] >= {"probes"} and reach.api_peers["edge"] >= {"probes"}
+    assert all("probes" not in members for members in reach.external.values())
+    assert outside_parties(_allowlist(), reach) == []
+
+
 def _with_peer(network: str, member: str) -> Reach:
     peers = {**VERIFIED.api_peers, network: VERIFIED.api_peers.get(network, frozenset()) | {member}}
     return replace(VERIFIED, api_peers=peers)
@@ -552,6 +621,18 @@ def _with_external(network: str, member: str) -> Reach:
         _with_peer("outbound", "sms-egress"),  # the two proxies' networks bridged
         _with_peer("sms-out", "egress-proxy"),
         _with_peer("backend", "voice-runtime"),
+        # the probes service re-pointed at the voice runtime, a second service on
+        # the api image, probes gaining a way out, or probes reaching a gateway
+        replace(
+            VERIFIED,
+            image_commands={"probes": (("python", "-m", "intake_voice_runtime"), None)},
+        ),
+        replace(
+            VERIFIED, image_commands={**VERIFIED.image_commands, "worker": (("celery",), None)}
+        ),
+        _with_external("vendor", "probes"),
+        _with_peer("outbound", "probes"),
+        replace(VERIFIED, probes_reach=frozenset({"voice_clips.lanes"})),
         replace(VERIFIED, api_command=(["python", "-m", "intake_voice_runtime"], None, None)),
         replace(
             VERIFIED,

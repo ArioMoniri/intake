@@ -283,7 +283,7 @@ export function DialogueIntake({
   );
   // ASK-AHEAD makes two of these CONCURRENT: the next question starts
   // speaking in the same tick the utterance is taken, while ASR runs behind
-  // it. The turn phase therefore wins — "Vizite konuşuyor" is what the
+  // it. The turn phase therefore wins — "Önvizit konuşuyor" is what the
   // patient must act on, and reporting the background transcription instead
   // would describe the quieter of two simultaneous truths and never announce
   // the louder one at all. Transcribing is announced only when nothing else

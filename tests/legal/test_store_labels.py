@@ -404,7 +404,7 @@ def test_no_store_listing_is_committed_yet_and_the_loader_says_so() -> None:
 
 
 def test_a_listing_binds_its_own_bytes(tmp_path: Path) -> None:
-    path = _write_listing(tmp_path, {"description": "Vizite, ziyaret öncesi notunuzu hazırlar."})
+    path = _write_listing(tmp_path, {"description": "Önvizit, ziyaret öncesi notunuzu hazırlar."})
     loaded = listing_mod.load_listing(path)
     assert loaded.text_hash == hashlib.sha256(path.read_bytes()).hexdigest()
     assert loaded.locale == "tr"
@@ -475,14 +475,14 @@ def test_a_listing_claiming_a_device_function_is_caught(copy_line: str) -> None:
 @pytest.mark.parametrize(
     "copy_line",
     [
-        "Vizite, hekiminize iletmek üzere anlattıklarınızı düzenler.",
+        "Önvizit, hekiminize iletmek üzere anlattıklarınızı düzenler.",
         "Acil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun.",
         "Bu belge hastanın beyanına dayanır; hekim değerlendirmesinin yerine geçmez.",
         "Yapay zekâ tarafından üretilmiş sinyal — tanı değildir.",
         "İçerik yapay zekâ desteğiyle yapılandırılmıştır ve tanı niteliği taşımaz.",
         "Ziyaret öncesi hazırlığınızı kolaylaştırır.",
-        "Vizite bir tıbbi cihaz değildir.",
-        "Vizite is not a medical device.",
+        "Önvizit bir tıbbi cihaz değildir.",
+        "Önvizit is not a medical device.",
         "Uygulama triyaj yapmaz.",
         "Bu uygulama depresyon puanı hesaplamaz.",
     ],

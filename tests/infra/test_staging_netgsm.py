@@ -522,3 +522,37 @@ def test_last_prints_only_the_netgsm_outcome_lines(tmp_path: Path) -> None:
     assert "logs --no-color --since 30m api" in (tmp_path / "compose.log").read_text(
         encoding="utf-8"
     )
+
+
+def test_shape_passes_through_to_the_check_and_takes_no_number(tmp_path: Path) -> None:
+    """INT-576: the owner's opt-in diagnostic is the same one send, with the
+    answer's structure printed after the outcome (intake_api.otp_send_check)."""
+    host = Host(tmp_path)
+    result = subprocess.run(  # noqa: S603 — fixed argv, our own scripts
+        host.script(TEST_OTP_SCRIPT, f"{_COMPOSE}\nmain --shape"),
+        env=_compose_env(host, tmp_path),
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "compose.log").read_text(encoding="utf-8") == (
+        "exec -T api python -m intake_api.otp_send_check --shape\n"
+    )
+
+
+@pytest.mark.parametrize("argv", ["--shape --last", "--number 5321234567", "--shape=1"])
+def test_any_other_argument_runs_nothing(tmp_path: Path, argv: str) -> None:
+    host = Host(tmp_path)
+    result = subprocess.run(  # noqa: S603 — fixed argv, our own scripts
+        host.script(TEST_OTP_SCRIPT, f"{_COMPOSE}\nmain {argv}"),
+        env=_compose_env(host, tmp_path),
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "usage: netgsm_test_otp.sh [--last | --shape]" in result.stderr
+    assert not (tmp_path / "compose.log").exists()

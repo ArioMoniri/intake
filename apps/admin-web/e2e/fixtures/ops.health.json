@@ -16,7 +16,7 @@
   "version": {
     "status": 200,
     "body": {
-      "git_sha": "14ec2118520c3efac08440282272abb63095c170",
+      "git_sha": "0c136f9ddd0d0bbf820cdc581b63359ec77deb9c",
       "built_at": "2026-09-26T16:00:00Z",
       "sbom_digest": "dev"
     }

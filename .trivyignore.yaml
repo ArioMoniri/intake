@@ -100,3 +100,28 @@ vulnerabilities:
       configuration, never patient input. It is not in either production
       `expo export` bundle, and no server runtime image installs npm packages
       (docs/evidence/INT-426.md). Removing this row sooner is always correct.
+
+  - id: CVE-2023-54404
+    purls:
+      - "pkg:npm/zod@3.25.76"
+    # Time-boxed, same expiry as the matching osv-scanner.toml entry
+    # (GHSA-mrhx-c7xc-m3w5). trivy stops honouring this row after this date.
+    expired_at: 2026-12-31
+    statement: >
+      OWNER-APPROVED, TIME-BOXED EXCEPTION, not a quiet acceptance, by the
+      owner's own commit of owner-573-zod-exception.patch (INT-573, GitHub
+      #965). CVE-2023-54404 is a denial of service through unbounded array
+      validation in zod. Its only fixed release is 4.6.6, a major version
+      outside the ^3.25.76 range that @expo/cli 57.0.19 (and the newest,
+      58.1.16) declares, and 3.25.76 is the newest 3.x on npm, so no
+      in-range release clears it and an override would force zod 4 into the
+      Expo toolchain untested.
+
+      How it is reached: zod 3.25.76 is in pnpm-lock.yaml only under
+      @expo/cli 57.0.19 (importer apps/mobile, via expo 57.0.17). @expo/cli
+      validates the repository's own app config and dev-server inputs with
+      it at build time, never patient input. It is not in either production
+      `expo export` bundle, and no server runtime image installs npm
+      packages: infra/staging/Dockerfile.api is Python only, and no admin-web
+      or clinician-web importer reaches it (docs/evidence/INT-573.md).
+      Review on expiry: drop the row the moment @expo/cli admits zod 4.

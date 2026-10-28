@@ -284,8 +284,8 @@
     {
       "component": "probes",
       "self_hostable": true,
-      "self_hosted_now": false,
-      "host": "this package (services/probes) — runner exists; the 60 s scheduler wiring (systemd/compose) lands with the deployment issues",
+      "self_hosted_now": true,
+      "host": "this package (services/probes) — on the synthetic AWS host, compose service `probes` (infra/staging/compose.yaml): the api image running intake_probes.app, sweeping the host's inventory (infra/staging/inventory.yaml) every 60 s into the volume the api's registry page reads (INT-560). No dev-tier scheduler",
       "license": "proprietary (repo LICENSE)",
       "probe": "http_health",
       "budget_ms": 800,
@@ -293,8 +293,13 @@
       "phi_path": false,
       "pin": null,
       "licence_verified_at": null,
-      "severity": "ok",
-      "findings": [],
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "probe_not_healthy",
+          "detail": "probes: own probe http_health is no probe result in this sweep."
+        }
+      ],
       "benchmark": {
         "lanes": {
           "latency": {
@@ -960,6 +965,150 @@
         {
           "code": "planned_not_running",
           "detail": "edge-crowdsec: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/docker-compose.edge.yml, profile `edge` — crowdsecurity/crowdsec:v1.6.8; scenarios and acquisition GENERATED from infra/security/edge/edge-policy.yaml; central API disabled)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "keycloak",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "synthetic AWS host only — compose service `keycloak`: quay.io/keycloak/keycloak 26.7.4 (INT-390's digest) plus the WebAuthn session-notes provider (Dockerfile.keycloak, INT-378); staff identity for the admin console. Management port 9000 (health) is internal, never routed",
+      "license": "UNVERIFIED — Apache-2.0 as recorded by INT-390/INT-421; the raw LICENSE blob is INT-561's to record",
+      "probe": "http_health",
+      "budget_ms": 1500,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "licence_not_verified_from_blob",
+          "detail": "keycloak: the declared licence has not been read from a raw LICENSE blob (UNVERIFIED — Apache-2.0 as recorded by INT-390/INT-421; the raw LICENSE blob is INT-561's to record). files/03 §4.9.0 rule 3 — a card tag or a badge is not a grant."
+        },
+        {
+          "code": "probe_not_healthy",
+          "detail": "keycloak: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "oauth2-proxy",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "synthetic AWS host only — compose service `oauth2-proxy`: quay.io/oauth2-proxy/oauth2-proxy v7.15.4 (digest-pinned), the admin console's login gate on the internal edge network (oauth2-proxy/alpha.yaml)",
+      "license": "UNVERIFIED — MIT as read for INT-421 (docs/evidence/INT-421.md); the blob url and sha256 are INT-561's to record",
+      "probe": "http_health",
+      "budget_ms": 500,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "licence_not_verified_from_blob",
+          "detail": "oauth2-proxy: the declared licence has not been read from a raw LICENSE blob (UNVERIFIED — MIT as read for INT-421 (docs/evidence/INT-421.md); the blob url and sha256 are INT-561's to record). files/03 §4.9.0 rule 3 — a card tag or a badge is not a grant."
+        },
+        {
+          "code": "probe_not_healthy",
+          "detail": "oauth2-proxy: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "admin-web",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "synthetic AWS host only — compose service `admin-web`: apps/admin-web (Next.js) built from the deployed commit (Dockerfile.admin-web); renders only what the API's /admin routes return for the caller's own bearer",
+      "license": "UNVERIFIED — proprietary (repo LICENSE) for the console; its Next.js and React dependencies are INT-561's to record",
+      "probe": "http_health",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "licence_not_verified_from_blob",
+          "detail": "admin-web: the declared licence has not been read from a raw LICENSE blob (UNVERIFIED — proprietary (repo LICENSE) for the console; its Next.js and React dependencies are INT-561's to record). files/03 §4.9.0 rule 3 — a card tag or a badge is not a grant."
+        },
+        {
+          "code": "probe_not_healthy",
+          "detail": "admin-web: own probe http_health is no probe result in this sweep."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
+      "component": "caddy",
+      "self_hostable": true,
+      "self_hosted_now": true,
+      "host": "synthetic AWS host only — compose service `caddy`: caddy 2.11.4-alpine (digest-pinned), the host's one published service (80, 443), TLS for STAGING_HOSTNAME and its admin/auth names (Caddyfile). Its certificate is the `edge-tls` row",
+      "license": "UNVERIFIED — Apache-2.0 as recorded in infra/staging/compose.yaml; the raw LICENSE blob is INT-561's to record",
+      "probe": "tcp_connect",
+      "budget_ms": 500,
+      "fallback": "none",
+      "phi_path": false,
+      "pin": null,
+      "licence_verified_at": null,
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "licence_not_verified_from_blob",
+          "detail": "caddy: the declared licence has not been read from a raw LICENSE blob (UNVERIFIED — Apache-2.0 as recorded in infra/staging/compose.yaml; the raw LICENSE blob is INT-561's to record). files/03 §4.9.0 rule 3 — a card tag or a badge is not a grant."
+        },
+        {
+          "code": "probe_not_healthy",
+          "detail": "caddy: own probe tcp_connect is no probe result in this sweep."
         }
       ],
       "benchmark": {

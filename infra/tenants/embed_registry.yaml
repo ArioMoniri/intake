@@ -40,7 +40,7 @@ tenants:
     # this set is refused, fail closed.
     allowed_modes: ["hastanede", "brief"]
     theme:
-      display_name: "Vizite Dev Partner"
+      display_name: "Önvizit Dev Partner"
       locale: "tr"
       primary_color: "#0B5FFF"
       accent_color: "#00303C"

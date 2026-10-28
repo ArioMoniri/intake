@@ -51,6 +51,9 @@ require_sbom_image "$SBOM_IMAGE"
 require_root
 require_tools
 require_no_unencrypted_swap
+# INT-560: the probes service's two logins, which a host initialised before
+# INT-560 lacks; generated once, before load_env checks every template key
+ensure_probe_secrets
 load_env
 ensure_jwks_file
 stamp_revision
@@ -81,6 +84,8 @@ require_sms_with_app_attest
 wait_healthy postgres
 run_migrations
 rotate_role_passwords
+# INT-560: the probes service's database login (LOGIN and CONNECT only)
+ensure_probe_role
 
 # INT-421: the staff realm, then its key set, before the api starts reading it
 ensure_keycloak_database
