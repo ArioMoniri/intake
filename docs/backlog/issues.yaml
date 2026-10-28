@@ -7437,3 +7437,27 @@
   tests: [apps/mobile/src/lib/intake/delivery/payload.test.ts, apps/mobile/src/lib/intake/delivery/outbox.test.ts, apps/mobile/src/lib/intake/delivery/transport.test.ts, apps/mobile/src/lib/intake/delivery/engine.test.ts, apps/mobile/src/lib/intake/delivery/store.test.ts, apps/mobile/src/lib/consent/share.test.ts, apps/mobile/src/lib/consent/api.test.ts, apps/mobile/src/lib/shares/stepUp.test.ts, apps/mobile/src/lib/shares/issue.test.ts, apps/mobile/e2e/noteDelivery.spec.ts, tests/api/test_note_delivery.py]
   legal: "KVKK-5,KVKK-6"
   sec_row: "review-send"
+- id: INT-588
+  epic: E08-mobile
+  phase: P1
+  title: "Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts"
+  # GitHub #989, 29 Oct 2026, from the independent legal review of the store
+  # listing (B6 precondition and notes). Stacked on INT-587, which made "sent"
+  # mean delivered. A release build has no voice (intake.tsx gates it on
+  # __DEV__; INT-421 strips the lanes from production), yet the open-answer
+  # hint, the welcome line, the integrity warning, the start-mode chooser and
+  # the companion screen spoke of voice; and the voice and affect consent rows
+  # contradicted voice.tr.md and lane.affect.tr.md (residency; who sees the
+  # cues), a KVKK m.10 defect. App copy only: no legal text is edited.
+  depends_on: [INT-587, INT-253, INT-529]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-588.md
+  acceptance:
+    - "every patient string a release build shows is true for that build: build-aware copy keys where the dev build has a different truth (the open-answer hint names dictation only where the button is drawn; no voice start mode is offered; the companion's text-only effect is listed only where questions can be spoken), one line true in every build where the voice clause was never needed (welcome, integrity warning, companion footer); tr is the source of truth with an en mirror"
+    - "review.sentInfo shows only after a confirmed delivery (INT-587) and promises only what a release build shows; every delivery claim in the catalogue is pinned to a delivery-gated surface"
+    - "consent.who.voice and consent.who.laneAffect say only what voice.tr.md and lane.affect.tr.md say (no Türkiye residency claim; the affect cues are not sent to the doctor); the legal texts are not edited"
+    - "a test refuses a voice clause in a release-mode render and a delivery claim outside its gated surface, with near misses; siz register, PolicyGuard and the i18n register and B1 gates green, with the welcome line's two records struck because the false clause is gone"
+  tests: [apps/mobile/src/lib/buildCopy.test.ts, apps/mobile/e2e/releaseCopy.spec.ts, apps/mobile/e2e/guardian.spec.ts, tests/release/test_i18n_complete.py]
+  legal: "KVKK-10"
+  sec_row: "mobile"

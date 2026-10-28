@@ -1874,6 +1874,20 @@ it or whose tests exercise it.
 - **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
   drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
   `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`.
+- **INT-588 — copy true for the build it ships in.** Threat: [U/R] the release build telling
+  the patient something false about itself — a voice or dictation option it does not have, a
+  "sent" before delivery, or consent chrome that contradicts the docs/legal text the server
+  serves (KVKK m.10: an aydınlatma that misstates where data is processed or who sees it).
+  Controls: build-aware copy chosen in one pure module (`apps/mobile/src/lib/buildCopy.ts`)
+  — the open-answer hint names dictation only where the button is drawn, the voice start
+  mode is not offered in a release build, the companion's text-only effect is listed only
+  where questions can be spoken; voice clauses that never had to exist are gone from the
+  welcome line, the integrity warning and the companion footer; the voice and affect consent
+  rows say only what voice.tr.md and lane.affect.tr.md say; every "sent" line renders only
+  behind a confirmed delivery (INT-587). Tests: `apps/mobile/src/lib/buildCopy.test.ts`
+  (release-mode resolution with near misses; claims pinned to their surfaces; the rows read
+  against the served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the
+  helper on the same facts that draw the button). No signal: copy truth is a build property.
 
 ## `experience` — satisfaction and wait-time measurement
 

@@ -149,7 +149,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
     # + INT-537 (the app grants the core consent visits and notes need, GitHub #904)
     # + INT-587 (the note reaches the clinician from a release build, GitHub #988)
-    assert len(actions) == 375
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub #989)
+    assert len(actions) == 376
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

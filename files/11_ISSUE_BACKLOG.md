@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**375 issues.** By phase: P0 183 · P1 138 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 254 · todo 74 · withdrawn 1.
+**376 issues.** By phase: P0 183 · P1 139 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 255 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -337,6 +337,7 @@
 | INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
 | INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
 | INT-587 | The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app | E08-mobile | INT-137, INT-142, INT-150, INT-232, INT-311, INT-529 | area:mobile, area:api | done |
+| INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
 
 ## P2
 

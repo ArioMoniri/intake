@@ -23,7 +23,7 @@ export const en: Record<MessageKey, string> = {
   "tabs.me": "Profile",
 
   "welcome.body":
-    "Önvizit collects your complaints by voice or text before the visit and hands your doctor a structured pre-visit note.",
+    "Önvizit collects your complaints before the visit and hands your doctor a structured pre-visit note.",
   "welcome.devSignIn": "Sign in with a test account",
   "welcome.devNote":
     "This screen exists only in development builds; real sign-in uses phone verification.",
@@ -62,7 +62,7 @@ export const en: Record<MessageKey, string> = {
   "auth.biometric.retry": "Try again",
   "auth.integrity.warnTitle": "Device security",
   "auth.integrity.warnBody":
-    "A security change was detected on this device. The interview continues in writing, not by voice.",
+    "A security change was detected on this device. The interview continues in writing.",
 
   "today.nextVisit": "Next visit",
   "today.prep": "Visit preparation",
@@ -701,7 +701,7 @@ export const en: Record<MessageKey, string> = {
   "review.shared": "Shared",
   "review.notShared": "Not shared",
   "review.send": "Send to your doctor",
-  "review.sentInfo": "Your note was sent. You will see the status here once your doctor views it.",
+  "review.sentInfo": "Your note was sent. You can see when it was opened under Your shares.",
   "review.empty": "No answers yet. Answer a few questions first.",
   // INT-236 — clinician-visible deferral marker (02 §33), stale-condition
   // marker and the checkpoint summary.
@@ -738,7 +738,7 @@ export const en: Record<MessageKey, string> = {
   "consent.group.core": "Service",
   "consent.group.voice": "Voice sessions",
   "consent.group.voice.hint":
-    "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the recording; it is a separate permission.",
+    "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the voice; it is a separate permission.",
   "consent.group.purposes": "Other purposes",
   "consent.group.learning": "Learning",
   "consent.group.learning.hint":
@@ -752,9 +752,9 @@ export const en: Record<MessageKey, string> = {
   "consent.who.core":
     "You see your note. Your doctor sees it only if you share it. On an emergency sign, clinic staff see a short alert without waiting for a share.",
   "consent.who.voice":
-    "Your voice is processed only during the session; no recording is kept. Data stays on servers in Türkiye.",
+    "While you speak, your voice is turned into text and is not recorded anywhere. Where it is processed is stated in the consent text.",
   "consent.who.laneAffect":
-    "Only your doctor sees cues drawn from your tone of voice; no label is put on you.",
+    "Cues from your tone of voice only adapt the session to you. They are not sent to your doctor or written into your note.",
   "consent.who.laneLinguistic": "Only your doctor sees cues drawn from the transcribed text.",
   "consent.who.wellbeing":
     "Only you see your answers; sharing with your doctor is asked separately every time.",
@@ -905,7 +905,7 @@ export const en: Record<MessageKey, string> = {
   "companion.thirdParty.kicker": "Is anyone with you",
   "companion.thirdParty.label": "Someone else is with me",
   "companion.thirdParty.footer":
-    "With someone else present, some questions are not asked aloud. That is for your privacy.",
+    "With someone else present, some very private questions are not asked. That is for your privacy.",
   "companion.ack.kicker": "Your acknowledgement",
   "companion.ack.label": "I confirm I am speaking on the patient's behalf",
   "companion.ack.notProof":
@@ -1166,7 +1166,8 @@ export const en: Record<MessageKey, string> = {
   "intake.measure.untouched": "It is recorded once you adjust the value.",
   // --- INT-286 · open-ended asking ------------------------------------------
   "dialogue.openInvite": "You can tell me in your own words.",
-  "intake.open.hint": "You can write it, or say it, in your own words.",
+  "intake.open.hint": "You can write it in your own words.",
+  "intake.open.hintVoice": "You can write it, or say it, in your own words.",
   "intake.open.orChoose": "Or choose from below.",
 
   // --- INT-414 · conversational delivery (the words around a question, never

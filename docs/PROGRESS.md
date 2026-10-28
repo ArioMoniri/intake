@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T10:30:00+03:00 · INT-588 · done (rebased onto INT-587's legal-review fix; committed locally; push frozen)
+- Goal: GitHub #989, P1, Sec-Row `mobile`, from the store-listing legal review (B6). Make every patient string true for the build it ships in: a release build has no voice (`__DEV__` gates the lane and dictation; INT-421 strips the lanes), and two consent rows contradicted the served texts (KVKK-10).
+- Plan: one pure module, `apps/mobile/src/lib/buildCopy.ts`, for the lines whose dev truth differs (open-answer hint, start-mode chooser, companion text-only effect); plain catalogue edits for the lines whose voice clause was never needed (welcome, integrity warning, companion footer); the voice and affect rows aligned with voice.tr.md and lane.affect.tr.md; `review.sentInfo`'s second sentence pointed at the access log. Sweep of 15 release-visible strings in docs/evidence/INT-588.md §2.
+- Tests added (with the near-miss negative for any safety rule): `src/lib/buildCopy.test.ts` (release resolution has no voice clause; near misses: the dev variant does, the typed invitation survives; delivery claims pinned to gated surfaces; consent rows read against the served texts) and `e2e/releaseCopy.spec.ts` (screens use the helper on the facts that draw the button). Red: 2 files, 4 tests failed. 6/6 mutations killed, one after strengthening the spec.
+- Result (`make check` / `make safety` / `make security` summary): mobile 143 files / 2999 tests at first commit, and 144 files / 3021 tests after the rebase onto INT-587 62643b93; typecheck clean; `make check-i18n` and PolicyGuard green with the welcome line's two records struck; backlog pins at 376. Full check-py fan-out left to CI (no Python source change). `make safety` untouched.
+- Invariants touched and still passing: 2, 5, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: the two consent rows and the companion footer. Owner: the linguistic row (its text is HB-C17), voice purposes in a no-voice build, and the ladder rungs with no data source (evidence §2).
+- Next: push both when the freeze lifts; open INT-587's PR first, then this one on top.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-30T10:00:00+03:00 · INT-587 · legal review round 1 fixed (committed locally; push frozen)
 - Goal: the independent legal review returned B1 (a share consent given for one note could release another after a withdrawal — KVKK m.4/5/6) and notes N3, N5.
 - Plan: the outbox subscribes to the consent ledger and parks every queued and refused note on any share withdrawal (core included); each note is bound to the receipt given for it, sealed with it, and released only by a receipt for that note; the engine refuses a grant older than the last withdrawal; refused consent ops are dropped and re-asked (N5); "Şimdi değil" beside the grant with equal weight (N3).

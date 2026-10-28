@@ -245,7 +245,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-587 (the note reaches the clinician from a release build: the
     # note-sync client, the in-app share consent and Doctor Link from the app;
     # store-listing legal review B4, GitHub #988).
-    assert len(ids) == 375
+    # + INT-588 (patient copy is true in the no-voice release build; store-
+    # listing legal review B6 precondition, GitHub #989).
+    assert len(ids) == 376
     import re
 
     for i in ids:
