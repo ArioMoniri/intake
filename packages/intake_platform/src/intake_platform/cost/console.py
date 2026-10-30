@@ -367,18 +367,22 @@ def compose_cost_payload(
     config: CostConfig,
     *,
     config_ref: str,
-    config_sha256: str,
+    config_digest: str,
     catalog: MetricsCatalog,
     runner: QueryRunner | None,
 ) -> dict[str, Any]:
-    """The cost module's body: components, per-window cost, budgets and alerts."""
+    """The cost module's body: components, per-window cost, budgets and alerts.
+
+    ``config_digest`` is :func:`~intake_platform.cost.config.config_identity`'s
+    128-bit prefix of the price file's sha256, never the whole 64-hex value.
+    """
     resolved = resolve_components(config, catalog)
     windows = {period.value: _window(resolved, runner, period) for period in Period}
     groups = cost_rule_groups(config, catalog)
     alerts = budget_alert_names(groups)
     return {
         "currency": config.currency,
-        "config": {"path": config_ref, "sha256": config_sha256, "blocker": BLOCKER},
+        "config": {"path": config_ref, "sha256_prefix": config_digest, "blocker": BLOCKER},
         "source": {
             "configured": runner is not None,
             "reason": (

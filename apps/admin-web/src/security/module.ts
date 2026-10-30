@@ -35,9 +35,12 @@
  *   *externally anchored* head, never merely that the store agrees with itself:
  *   a truncation and a full re-forge both survive a self-check, so a green
  *   attestation with no anchor is a pass by omission (files/10 §2) and is
- *   refused (`AuditChainAttestedWithoutAnchor`). HB-I8 is open — no anchor
+ *   refused (`AuditChainAttestedWithoutAnchor`). HB-I12 is open — no anchor
  *   publisher exists yet — so the delivered state is `anchor_missing`,
- *   fail-closed, which is the honest state and not a gap.
+ *   fail-closed, which is the honest state and not a gap. The section is the
+ *   verdict alone: the head is published outside the `platform_admin` blast
+ *   radius this console sits inside, so a body carrying a chain head, or any
+ *   64-hex value, is refused (`ChainHeadOnConsole`, INT-565; INT-180).
  *
  * - **Pen-test findings tracker** (files/10 §7, §9; `sec.vulns_open` /
  *   `sec.vuln_age_days`) — findings with status against the vulnerability SLA.
@@ -100,8 +103,12 @@ export interface EgressDenialsPayload {
   /** `sec.egress_denied_total`, catalogued live (invariant 15). */
   readonly metric_id: string;
   readonly metric_status: string;
+  /** The window the count is summed over (INT-565: `24h`). */
+  readonly window: string;
   /** False when no metrics scrape backs this tile (this repo records none). */
   readonly source_available: boolean;
+  /** Why the scrape was not read (`prometheus_unconfigured`, …), else null. */
+  readonly source_reason: string | null;
   /** The denial count, or null when no scrape is available — never a bare 0. */
   readonly denied_total: number | null;
   /** The catalogue's operational paging target ("0 (any increase pages)"). */
@@ -109,6 +116,12 @@ export interface EgressDenialsPayload {
   readonly note: string;
 }
 
+/**
+ * The daily verifier's verdict, and nothing read off the chain (INT-565): no
+ * head, no length. HB-I12 publishes the head outside the `platform_admin`
+ * blast radius, and this console sits inside it, so no admin body carries a
+ * chain hash (INT-180).
+ */
 export interface AuditChainPayload {
   /** `sec.audit_chain_ok`, catalogued (invariant 15). */
   readonly metric_id: string;
@@ -118,15 +131,8 @@ export interface AuditChainPayload {
   readonly outcome: string;
   /** 1/true only when verified against the external anchor (files/10 §2). */
   readonly ok: boolean;
-  readonly entry_count: number;
-  readonly first_bad_seq: number | null;
-  /** The local head — 64 lowercase hex (the genesis value is 64 zeros). */
-  readonly local_head: string;
-  /** The anchored head, or null when no anchor was available. */
-  readonly anchor_head: string | null;
   readonly anchor_available: boolean;
   readonly reason: string;
-  readonly verified_at: string;
   readonly note: string;
 }
 
@@ -201,7 +207,9 @@ export interface SiemPresentation {
 export interface EgressDenialsPresentation {
   readonly metricId: string;
   readonly metricStatus: string;
+  readonly window: string;
   readonly sourceAvailable: boolean;
+  readonly sourceReason: string | null;
   readonly deniedTotal: string | null;
   readonly target: string;
   readonly note: string;
@@ -212,13 +220,8 @@ export interface AuditChainPresentation {
   readonly metricStatus: string;
   readonly outcome: string;
   readonly ok: boolean;
-  readonly entryCount: string;
-  readonly firstBadSeq: string | null;
-  readonly localHead: string;
-  readonly anchorHead: string | null;
   readonly anchorAvailable: boolean;
   readonly reason: string;
-  readonly verifiedAt: string;
   readonly note: string;
 }
 
@@ -341,21 +344,22 @@ export class AuditChainAttestedWithoutAnchor extends Error {
       `refusing to render an intact audit chain: ${detail}. 1 means verified against the ` +
         `EXTERNALLY ANCHORED head, never merely that the store agrees with itself — a truncation ` +
         `and a full re-forge both survive a self-check, so a green verdict with no anchor is a ` +
-        `pass by omission (files/10 §2; invariant 4; HB-I8)`,
+        `pass by omission (files/10 §2; invariant 4; HB-I12)`,
     );
     this.name = "AuditChainAttestedWithoutAnchor";
   }
 }
 
-/** An audit-chain head that is not 64 lowercase hex characters (INT-016). */
-export class AuditHeadMalformed extends Error {
-  constructor(which: string, value: string) {
+/** An audit-chain section carrying a chain head or anything shaped like one. */
+export class ChainHeadOnConsole extends Error {
+  constructor(detail: string) {
     super(
-      `refusing to render the audit chain: the ${which} '${value}' is not 64 lowercase hex ` +
-        `characters — a malformed head is a stale or tampered body, and comparing it would be ` +
-        `indistinguishable from a chain that is always broken`,
+      `refusing to render the audit chain: ${detail}. The head is published outside the ` +
+        `platform_admin blast radius and this console sits inside it, so it carries no chain ` +
+        `hash — an operator who could read the head here could check a forgery against it ` +
+        `(HB-I12; INT-180)`,
     );
-    this.name = "AuditHeadMalformed";
+    this.name = "ChainHeadOnConsole";
   }
 }
 
@@ -413,8 +417,8 @@ export class SecurityContentLeaked extends Error {
 /** Id shape mirrored from the safety module: starts alphanumeric, then id
  * characters only — a sentence carries none (invariant 6). */
 const REF_SHAPE = /^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$/;
-/** A hash-chain head: 64 lowercase hex (the genesis value is 64 zeros). */
-const HEX64 = /^[0-9a-f]{64}$/;
+/** The shape of a hash-chain head anywhere in a string (INT-180's guard). */
+const HEX64_ANYWHERE = /\b[0-9a-f]{64}\b/;
 
 /** A count crosses the boundary as one atom, no grouping separator (inv 22). */
 function count(value: number): string {
@@ -504,29 +508,36 @@ export function renderEgressDenials(payload: EgressDenialsPayload): EgressDenial
   return {
     metricId: payload.metric_id,
     metricStatus: payload.metric_status,
+    window: payload.window,
     sourceAvailable: payload.source_available,
+    sourceReason: payload.source_available ? null : payload.source_reason,
     deniedTotal: figure(payload.denied_total),
     target: payload.target,
     note: payload.note,
   };
 }
 
-/** Build the audit-chain status, refusing a green verdict with no anchor. */
+/** The keys a chain read would add; the console's section carries none. */
+const CHAIN_KEYS = ["local_head", "anchor_head", "entry_hash", "head"] as const;
+
+/** Build the audit-chain status, refusing a chain hash or a green verdict with no anchor. */
 export function renderAuditChainStatus(payload: AuditChainPayload): AuditChainPresentation {
+  for (const key of CHAIN_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      throw new ChainHeadOnConsole(`the section carries '${key}'`);
+    }
+  }
+  if (HEX64_ANYWHERE.test(JSON.stringify(payload))) {
+    throw new ChainHeadOnConsole("the section carries a 64-hex value");
+  }
   if (!payload.allowed_outcomes.includes(payload.outcome)) {
     throw new UnknownAuditOutcome(payload.outcome, payload.allowed_outcomes);
   }
-  if (!HEX64.test(payload.local_head)) {
-    throw new AuditHeadMalformed("local head", payload.local_head);
-  }
-  if (payload.anchor_head !== null && !HEX64.test(payload.anchor_head)) {
-    throw new AuditHeadMalformed("anchor head", payload.anchor_head);
-  }
-  if (payload.ok && (payload.outcome !== "intact" || payload.anchor_head === null)) {
+  if (payload.ok && (payload.outcome !== "intact" || !payload.anchor_available)) {
     throw new AuditChainAttestedWithoutAnchor(
-      `ok is true while outcome='${payload.outcome}' and anchor_head=${
-        payload.anchor_head === null ? "null" : "present"
-      }`,
+      `ok is true while outcome='${payload.outcome}' and anchor_available=${String(
+        payload.anchor_available,
+      )}`,
     );
   }
   return {
@@ -534,13 +545,8 @@ export function renderAuditChainStatus(payload: AuditChainPayload): AuditChainPr
     metricStatus: payload.metric_status,
     outcome: payload.outcome,
     ok: payload.ok,
-    entryCount: count(payload.entry_count),
-    firstBadSeq: figure(payload.first_bad_seq),
-    localHead: payload.local_head,
-    anchorHead: payload.anchor_head,
     anchorAvailable: payload.anchor_available,
     reason: payload.reason,
-    verifiedAt: payload.verified_at,
     note: payload.note,
   };
 }

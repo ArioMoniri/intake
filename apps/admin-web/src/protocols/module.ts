@@ -159,6 +159,10 @@ export interface MatrixRow {
   readonly servedPackId: string | null;
   /** Readable maturity: "L0 draft — not served", "L1 (served)", "excluded". */
   readonly maturityLabel: string;
+  /** The served pack's maturity (L1+), else null — for a page that words it itself. */
+  readonly servedMaturity: string | null;
+  /** The L0 draft's maturity, named and never counted as coverage. */
+  readonly draftMaturity: string | null;
   readonly note: string;
 }
 
@@ -329,6 +333,8 @@ function renderMatrixRow(row: CoverageRow): MatrixRow {
     servable,
     servedPackId: row.served_pack_id,
     maturityLabel,
+    servedMaturity: servable ? row.served_maturity : null,
+    draftMaturity: row.draft_maturity,
     note: row.note,
   };
 }

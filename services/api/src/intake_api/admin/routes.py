@@ -62,6 +62,7 @@ from intake_probes.console import BenchmarkKind, BenchmarkRefused
 
 from intake_api.admin import access_console, compliance_source, safety_queue, views
 from intake_api.admin.cicd_routes import CICD_HANDLERS
+from intake_api.admin.cost_console import cost_read
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
 from intake_api.admin.model_lanes_routes import MODEL_LANES_HANDLERS
 from intake_api.admin.models_source import (
@@ -71,7 +72,10 @@ from intake_api.admin.models_source import (
     run_benchmark,
 )
 from intake_api.admin.ops_console import load_ops_console
+from intake_api.admin.protocols_console import protocols_read
+from intake_api.admin.quality_safety_console import quality_safety_read
 from intake_api.admin.reliability_console import load_reliability_console
+from intake_api.admin.security_console import security_read
 from intake_api.admin.voice_routes import VOICE_HANDLERS
 from intake_api.consent_guard import administrative_action
 from intake_api.db import tenant_session
@@ -412,6 +416,11 @@ _HANDLERS: dict[str, Handler] = {
     # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49)
     "admin.safety_queue.read": safety_queue.queue_read,
     "admin.safety_queue.acknowledge": safety_queue.acknowledge,
+    # INT-565 — Protocols, Clinical quality & safety, Security, Cost (files/08 §3)
+    "admin.protocols.read": protocols_read,
+    "admin.quality_safety.read": quality_safety_read,
+    "admin.security.read": security_read,
+    "admin.cost.read": cost_read,
 }
 
 #: HTTP methods that write. The §2.7 read-only downgrade applies to these.

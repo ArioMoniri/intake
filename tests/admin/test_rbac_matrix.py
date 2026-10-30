@@ -157,6 +157,27 @@ LANES_APPROVERS = frozenset(
 )
 LANES_BRIEF_READERS = LANES_SAFE_ACTORS | LANES_REQUESTERS | LANES_APPROVERS | {AdminRole.AUDITOR}
 
+#: INT-565 — Protocols and Clinical quality & safety: platform content and
+#: counts summed over every tenant, so the all-tenant clinical roles, the
+#: platform owner and the auditor; no one-tenant role.
+PROTOCOLS_READERS = frozenset(
+    {AdminRole.CLINICAL_LEAD, AdminRole.QMS_OWNER, AdminRole.PLATFORM_OWNER, AdminRole.AUDITOR}
+)
+#: INT-565 — Security: the roles that run the platform, compliance and audit.
+SECURITY_READERS = frozenset(
+    {
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.PLATFORM_ADMIN,
+        AdminRole.SRE_ONCALL,
+        AdminRole.COMPLIANCE_OFFICER,
+        AdminRole.AUDITOR,
+    }
+)
+#: INT-565 — Cost: the roles that run the platform and answer for capacity.
+COST_READERS = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN, AdminRole.SRE_ONCALL, AdminRole.AUDITOR}
+)
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
@@ -204,6 +225,10 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
     ("GET", "/admin/safety-queue"): SAFETY_QUEUE_READERS,
     ("POST", "/admin/safety-queue/{entry_id}/acknowledge"): SAFETY_QUEUE_ACKNOWLEDGERS,
+    ("GET", "/admin/protocols"): PROTOCOLS_READERS,
+    ("GET", "/admin/quality-safety"): PROTOCOLS_READERS,
+    ("GET", "/admin/security"): SECURITY_READERS,
+    ("GET", "/admin/cost"): COST_READERS,
 }
 
 

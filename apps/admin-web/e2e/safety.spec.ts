@@ -41,6 +41,7 @@ import {
   ClinicalContentLeaked,
   ContentReadNotRefused,
   ForbiddenReviewVerdict,
+  PolicyGuardCountWithoutScrape,
   renderAcceptanceBySpecialty,
   renderFalseRedQueue,
   renderPolicyGuardClasses,
@@ -238,15 +239,31 @@ describe("PolicyGuard classes (invariant 2 categories)", () => {
     expect(view.metricStatus).toEqual("live");
   });
 
-  it("renders counts as non-grouped atoms (inv 22)", () => {
+  it("with no scrape behind it, says why and paints no count (INT-565; inv 17)", () => {
+    const view = renderPolicyGuardClasses(payload().policyguard_classes);
+    expect(view.sourceAvailable).toBe(false);
+    expect(view.sourceReason).toEqual("prometheus_unconfigured");
+    expect(view.window).toEqual("24h");
+    expect(view.classes.every((c) => c.count === null)).toBe(true);
+  });
+
+  it("renders counts as non-grouped atoms once a scrape backs them (inv 22)", () => {
     const live = payload().policyguard_classes;
     const tampered: PolicyGuardPayload = {
       ...live,
+      source_available: true,
+      source_reason: null,
       classes: [{ class: "diagnosis", count: 4200 }],
     };
     const view = renderPolicyGuardClasses(tampered);
     expect(view.classes[0]!.count).toEqual("4200");
     expect(view.classes[0]!.count).not.toMatch(/[,. ]/);
+  });
+
+  it("refuses a count while no scrape backs the section — a zero included (inv 17)", () => {
+    const live = payload().policyguard_classes;
+    const tampered: PolicyGuardPayload = { ...live, classes: [{ class: "jargon", count: 0 }] };
+    expect(() => renderPolicyGuardClasses(tampered)).toThrow(PolicyGuardCountWithoutScrape);
   });
 
   it("refuses a class outside the sealed set (invariant 2)", () => {

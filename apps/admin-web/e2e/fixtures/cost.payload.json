@@ -2,7 +2,7 @@
   "currency": "USD",
   "config": {
     "path": "infra/costs/unit-prices.yaml",
-    "sha256": "89859692c05dbafe08a1ceb838ed4273a87df6fc2321d6b3d36f520675fe4083",
+    "sha256_prefix": "89859692c05dbafe08a1ceb838ed4273",
     "blocker": "HB-O8"
   },
   "source": {

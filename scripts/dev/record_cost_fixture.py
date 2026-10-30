@@ -22,6 +22,10 @@ No figure here is a measurement of the product (invariant 20) and no payload
 carries an identifier beyond component, vendor, profile and budget ids
 (invariant 6).
 
+INT-565: both bodies are built by ``GET /admin/cost``'s own builder,
+``intake_api.admin.cost_console.cost_payload``; the committed one is exactly
+what the route serves with no Prometheus configured.
+
 Run it from the repository root::
 
     make admin-fixtures
@@ -34,20 +38,14 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from intake_platform.cost import (
-    QueryRunner,
-    compose_cost_payload,
-    config_identity,
-    load_cost_config,
-)
-from intake_platform.slo import load_metrics_catalog
+from intake_api.admin.cost_console import COST_CONFIG, cost_payload
+from intake_platform.cost import QueryRunner
 
 REPO = Path(__file__).resolve().parents[2]
 FIXTURES = REPO / "apps" / "admin-web" / "e2e" / "fixtures"
-CONFIG = REPO / "infra" / "costs" / "unit-prices.yaml"
+CONFIG = COST_CONFIG
 PRICED_CONFIG = REPO / "tests" / "fixtures" / "cost" / "unit-prices.priced.yaml"
 RESPONSES = REPO / "tests" / "fixtures" / "cost" / "prometheus_responses.json"
-CATALOG = REPO / "observability" / "metrics_catalog.yaml"
 
 
 def _recorded_runner() -> QueryRunner:
@@ -61,14 +59,7 @@ def _recorded_runner() -> QueryRunner:
 
 
 def _payload(config_path: Path, runner: QueryRunner | None) -> dict[str, Any]:
-    ref, sha = config_identity(config_path, REPO)
-    return compose_cost_payload(
-        load_cost_config(config_path),
-        config_ref=ref,
-        config_sha256=sha,
-        catalog=load_metrics_catalog(CATALOG),
-        runner=runner,
-    )
+    return cost_payload(config_path=config_path, runner=runner, repo=REPO)
 
 
 def _write(name: str, payload: dict[str, Any]) -> None:

@@ -114,7 +114,13 @@ export interface AlertRuleWire {
 
 export interface CostPayload {
   readonly currency: string;
-  readonly config: { readonly path: string; readonly sha256: string; readonly blocker: string };
+  readonly config: {
+    readonly path: string;
+    /** The first 128 bits of the price file's sha256: no admin body carries a
+     * 64-hex value, the shape of an audit-chain head (HB-I12; INT-565). */
+    readonly sha256_prefix: string;
+    readonly blocker: string;
+  };
   readonly source: { readonly configured: boolean; readonly reason: string };
   readonly sessions_metric: string;
   readonly allocation_rule: string;
@@ -195,7 +201,13 @@ export interface BudgetPresentation {
 
 export interface CostPresentation {
   readonly currency: string;
-  readonly config: { readonly path: string; readonly sha256: string; readonly blocker: string };
+  readonly config: {
+    readonly path: string;
+    /** The first 128 bits of the price file's sha256: no admin body carries a
+     * 64-hex value, the shape of an audit-chain head (HB-I12; INT-565). */
+    readonly sha256_prefix: string;
+    readonly blocker: string;
+  };
   readonly source: { readonly configured: boolean; readonly text: string };
   readonly allocationRule: string;
   readonly components: readonly ComponentPresentation[];

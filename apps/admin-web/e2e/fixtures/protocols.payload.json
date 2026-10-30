@@ -1,6 +1,6 @@
 {
   "coverage": {
-    "generated_at": "2026-09-06",
+    "generated_at": "2026-10-30",
     "taxonomy_source": "packages/protocols/taxonomy/branches.yaml",
     "pack_count": 92,
     "summary": {
@@ -1049,7 +1049,7 @@
     "rows": []
   },
   "clip_coverage": {
-    "generated_at": "2026-09-06",
+    "generated_at": "2026-10-30",
     "servable_pack_count": 0,
     "note": "clips are pre-synthesised per voice only for servable (L1+) packs (files/03 §4.9.1 row 10); every pack is L0 today, so no clip is required yet",
     "voices": [

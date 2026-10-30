@@ -124,6 +124,7 @@ export {
   ClinicalContentLeaked,
   ContentReadNotRefused,
   ForbiddenReviewVerdict,
+  PolicyGuardCountWithoutScrape,
   renderAcceptanceBySpecialty,
   renderFalseRedQueue,
   renderPolicyGuardClasses,
@@ -192,7 +193,7 @@ export {
 } from "./experience/module";
 export {
   AuditChainAttestedWithoutAnchor,
-  AuditHeadMalformed,
+  ChainHeadOnConsole,
   EgressCountWithoutScrape,
   FindingsWithoutAssessment,
   renderAuditChainStatus,
