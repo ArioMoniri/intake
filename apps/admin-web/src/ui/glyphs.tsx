@@ -10,7 +10,7 @@
 import type { ReactElement } from "react";
 
 export type GlyphName =
-  "grid" | "gauge" | "waveform" | "key" | "branch" | "chip" | "search" | "mark";
+  "grid" | "gauge" | "waveform" | "key" | "branch" | "chip" | "tray" | "search" | "mark";
 
 const SHAPES: Record<GlyphName, ReactElement> = {
   // square.grid.2x2 — the overview
@@ -54,6 +54,13 @@ const SHAPES: Record<GlyphName, ReactElement> = {
       <rect x="6.5" y="6.5" width="11" height="11" rx="2.5" />
       <rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1" />
       <path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3" />
+    </>
+  ),
+  // tray — the Safety queue, the clinic's inbox (INT-562)
+  tray: (
+    <>
+      <path d="M4 13.5h4.5l1.5 2.5h4l1.5-2.5H20" />
+      <path d="M6.2 5.5h11.6l2.2 8v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5z" />
     </>
   ),
   // magnifyingglass — not found

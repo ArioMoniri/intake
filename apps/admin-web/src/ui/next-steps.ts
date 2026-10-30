@@ -13,11 +13,18 @@
 import type { AccessUnconfigured } from "../access/load";
 import type { Lang } from "../ops/copy";
 import type { RefusalReason, UnavailableReason } from "../ops/load";
+import type { InboxUnavailable } from "../safety-queue/load";
 
-export type NextStepReason = RefusalReason | UnavailableReason | AccessUnconfigured;
+export type NextStepReason =
+  RefusalReason | UnavailableReason | AccessUnconfigured | InboxUnavailable;
 
 /** The reasons whose source may come back, so retrying can help. */
-export const RETRYABLE: readonly NextStepReason[] = ["api_unreachable", "directory_unavailable"];
+export const RETRYABLE: readonly NextStepReason[] = [
+  "api_unreachable",
+  "directory_unavailable",
+  "safety_inbox_unreachable",
+  "safety_inbox_contended",
+];
 
 export interface NextStepCopy {
   reasons: Record<NextStepReason, string>;
@@ -39,6 +46,10 @@ export const NEXT_STEPS: Record<Lang, NextStepCopy> = {
       access_review_unconfigured:
         "Keycloak ve OpenBao yönetim erişimi ayarlanmalı. Platform ekibine bildirin.",
       directory_unavailable: "Dizin yeniden okunabildiğinde gözden geçirme açılır.",
+      safety_inbox_unconfigured:
+        "`INTAKE_SAFETY_INBOX_REDIS_URL`, ses çalışma zamanının yazdığı gelen kutusu deposunu gösterdiğinde kuyruk açılır. Platform ekibine bildirin.",
+      safety_inbox_unreachable: "Gelen kutusu deposu yeniden yanıt verdiğinde kuyruk açılır.",
+      safety_inbox_contended: "Depo boşaldığında kuyruk açılır; yeniden deneyin.",
     },
     retry: "Yeniden deneyin",
   },
@@ -56,6 +67,10 @@ export const NEXT_STEPS: Record<Lang, NextStepCopy> = {
       access_review_unconfigured:
         "Keycloak and OpenBao admin access need setting up. Tell the platform team.",
       directory_unavailable: "The review opens once the directory can be read again.",
+      safety_inbox_unconfigured:
+        "The queue opens once `INTAKE_SAFETY_INBOX_REDIS_URL` names the inbox store the voice runtime writes. Tell the platform team.",
+      safety_inbox_unreachable: "The queue opens once the inbox store answers again.",
+      safety_inbox_contended: "The queue opens once the store is free; try again.",
     },
     retry: "Try again",
   },

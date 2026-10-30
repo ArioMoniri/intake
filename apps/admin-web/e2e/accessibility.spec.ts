@@ -31,6 +31,8 @@ import { buildCsp } from "../src/ops/csp";
 import { renderOps, type OpsPayload } from "../src/ops/module";
 import { OverviewConsole } from "../src/overview/console";
 import { renderOverview, type ReliabilityPayload } from "../src/overview/module";
+import { SafetyQueueConsole } from "../src/safety-queue/console";
+import { renderSafetyQueue, type SafetyQueuePayload } from "../src/safety-queue/module";
 import { VoiceConsole } from "../src/voice/console";
 import { renderVoice, type VoicePayload } from "../src/voice/module";
 import { AXE_TIMEOUT_MS } from "./support/axe";
@@ -101,6 +103,14 @@ function pages(lang: Lang): Record<string, ReactElement> {
         view: renderAccessReview(read<AccessReviewPayload>("access.payload.json"), "gün"),
       },
       lang,
+    }),
+    safety_queue: createElement(SafetyQueueConsole, {
+      state: {
+        kind: "console",
+        view: renderSafetyQueue(read<SafetyQueuePayload>("safety-queue.payload.json")),
+      },
+      lang,
+      result: null,
     }),
     refused: createElement(OpsConsole, {
       state: { kind: "not_admitted", reason: "no_credentials" },

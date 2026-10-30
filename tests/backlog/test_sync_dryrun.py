@@ -144,6 +144,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
     # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
     # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
+    # + INT-562 (the Safety queue page in the admin console, GitHub #951)
     # + INT-574 (the RED-never-waits test is deterministic under runner load, GitHub #967)
     # + INT-576 (Netgsm OTP answer parsed as documented, never retried unread, GitHub #971)
     # + INT-420 (Önvizit everywhere: the rebrand finished on main, GitHub #712)
@@ -160,7 +161,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993)
     # + INT-592 (a truthful NSHealthUpdateUsageDescription, ITMS-90683, GitHub #1000)
     # + INT-584 (the tokenization key moves into OpenBao, owner decision D38, GitHub #983)
-    assert len(actions) == 386
+    assert len(actions) == 387
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

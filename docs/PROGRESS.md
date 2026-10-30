@@ -4648,6 +4648,15 @@
 - Next: INT-562 (Safety queue page), INT-564 (Compliance, Models, Experience pages), INT-565 (Protocols, Clinical quality, Security, Cost), INT-563 (four-eyes approval through a WebAuthn step-up).
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-28T12:30:00Z · INT-562 · done
+- Goal: the Safety queue page in the admin console over `GET /admin/safety-queue`, with acknowledge (#951): on the synthetic host REDs land in the clinic inbox and nobody can see them. Acceptance verbatim in docs/evidence/INT-562.md.
+- Plan: stacked on #963 (INT-459). Record the queue with the route's own `_row` over inbox-built entries (`scripts/dev/record_safety_queue_fixture.py`); a view-model that asserts the inbox's order and refuses anything that is not an id or outside the sealed vocabularies; the shared loader with the inbox's three 503s named; one same-origin acknowledgement form per open entry forwarding the id alone; the page on the shell under Monitor; `register` added to the API row.
+- Tests added (each with its near miss): `apps/admin-web/e2e/safety-queue.spec.ts` (56: order ×3 near misses, ids-only ×5, sealed vocabularies ×4, the handler's refusals and codes, axe on four states in two languages); `tests/admin/test_safety_queue.py` (+3: the key set, the committed fixture equals the recorder, ids-only and order in the fixture).
+- Result: admin-web vitest 24 files, 694 passed; `typecheck`, `lint`, prettier clean; ruff and `mypy --strict services/api/src` clean; `tests/backlog tests/smoke` green (pins 370).
+- Invariants touched and still passing: 2 (no diagnosis word in the copy), 4 (the API audits the acknowledgement write-ahead; the console sends the id alone), 5, 6 (ids and clocks only; refusals), 17, 20, 22 (minutes as integers with their unit).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing. INT-553's clinic items (PR #944) and INT-554's outcome codes extend the page when they land.
+- Next: INT-564 (Compliance, Models, Experience pages), INT-565 (Protocols, Clinical quality, Security, Cost), INT-563 (four-eyes approval through a WebAuthn step-up).
 ### 2026-10-29T01:30:00+03:00 · INT-586 · done (PR open)
 - Goal: osv-scanner began reporting GHSA-ccrj-gw8r-854m against the Keycloak provider's test-classpath pin opentelemetry-api 1.62.0, turning the vulnerabilities gate red on main and on every open PR. 1.67.0 fixes it, so the fix is a bump, never an exception row (invariant 14).
 - Plan: raise `opentelemetry-patched.version` to 1.67.0 and swap the six 1.62.0 trusted-checksum lines for verified 1.67.0 ones.

@@ -41,6 +41,7 @@ import { ModelLanesConsole } from "../src/model-lanes/console";
 import { OpsConsole } from "../src/ops/console";
 import { CONSOLE_PAGES } from "../src/ops/nav";
 import { OverviewConsole } from "../src/overview/console";
+import { SafetyQueueConsole } from "../src/safety-queue/console";
 import { NotFoundView } from "../src/ui/states";
 import { VoiceConsole } from "../src/voice/console";
 import { AXE_TIMEOUT_MS, documentFor, violations } from "./support/axe";
@@ -159,6 +160,16 @@ function refusedPages(lang: "tr" | "en"): Record<string, ReactElement> {
       result: null,
     }),
     "model-lanes unavailable": createElement(ModelLanesConsole, {
+      state: down,
+      lang,
+      result: null,
+    }),
+    "safety-queue refused": createElement(SafetyQueueConsole, {
+      state: refused,
+      lang,
+      result: null,
+    }),
+    "safety-queue unavailable": createElement(SafetyQueueConsole, {
       state: down,
       lang,
       result: null,

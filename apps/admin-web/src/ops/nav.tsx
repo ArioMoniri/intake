@@ -10,18 +10,21 @@
  * keeps the page. On a narrow screen the same markup becomes a floating tab
  * bar (app/native-shell.css). A new page is one entry in each of `CONSOLE_PAGES`,
  * `GROUP_OF`, `GLYPH_OF` and the two label tables; the Model lanes page
- * (INT-428) sits under Services with the `chip` symbol.
+ * (INT-428) sits under Services with the `chip` symbol, the Safety queue
+ * (INT-562) under Monitor with the `tray` symbol.
  */
 import type { ReactElement } from "react";
 
 import { Glyph, type GlyphName } from "../ui/glyphs";
 import type { Lang } from "./copy";
 
-export type ConsolePage = "overview" | "ops" | "voice" | "access" | "cicd" | "model-lanes";
+export type ConsolePage =
+  "overview" | "safety-queue" | "ops" | "voice" | "access" | "cicd" | "model-lanes";
 
 /** Every console page, in the order the sidebar lists them. */
 export const CONSOLE_PAGES: readonly ConsolePage[] = [
   "overview",
+  "safety-queue",
   "ops",
   "voice",
   "model-lanes",
@@ -35,6 +38,7 @@ const GROUPS: readonly Group[] = ["monitor", "services", "govern"];
 
 const GROUP_OF: Record<ConsolePage, Group> = {
   overview: "monitor",
+  "safety-queue": "monitor",
   ops: "monitor",
   voice: "services",
   "model-lanes": "services",
@@ -44,6 +48,7 @@ const GROUP_OF: Record<ConsolePage, Group> = {
 
 const GLYPH_OF: Record<ConsolePage, GlyphName> = {
   overview: "grid",
+  "safety-queue": "tray",
   ops: "gauge",
   voice: "waveform",
   "model-lanes": "chip",
@@ -68,6 +73,7 @@ const LABELS: Record<Lang, NavCopy> = {
     groups: { monitor: "İzleme", services: "Hizmetler", govern: "Yönetim" },
     pages: {
       overview: "Genel bakış",
+      "safety-queue": "Güvenlik kuyruğu",
       ops: "Operasyon",
       voice: "Ses",
       access: "Erişim",
@@ -83,6 +89,7 @@ const LABELS: Record<Lang, NavCopy> = {
     groups: { monitor: "Monitor", services: "Services", govern: "Governance" },
     pages: {
       overview: "Overview",
+      "safety-queue": "Safety queue",
       ops: "Operations",
       voice: "Voice",
       access: "Access",

@@ -396,6 +396,8 @@ def test_backlog_parses_and_is_complete() -> None:
     # reason.
     # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
     # chrome only; owner request, GitHub #783); grows only with a stated reason.
+    # + INT-562 (the Safety queue page in the admin console, from the 18 Oct
+    # admin audit, GitHub #951); grows only with a stated reason.
     # + INT-574 (the RED-never-waits test is deterministic under runner load,
     # GitHub #967); grows only with a stated reason.
     # + INT-576 (the Netgsm adapter parses the live success shape and never
@@ -431,7 +433,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same key
     # material, owner decision D38, GitHub #983); grows only with a stated reason.
-    assert len(ids) == 386, f"expected 175 blueprint + 211 added issues, got {len(ids)}"
+    assert len(ids) == 387, f"expected 175 blueprint + 212 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
