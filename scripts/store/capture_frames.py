@@ -199,7 +199,38 @@ def shoot(session: CaptureSession, frame: frame_plan.Frame) -> Shot:
 
 
 def write_provenance(session: CaptureSession, shots: Sequence[Shot], *, captured_on: str) -> Path:
-    """``provenance.yaml`` beside the captures: hashes and the build, never a value."""
+    """``provenance.yaml`` beside the captures: hashes and the build, never a value.
+
+    A capture session runs one frame at a time (the operator walks the app between
+    shots), so an existing record is merged: a frame captured again replaces its
+    row. A record from another build, locale, device or app state is refused, so
+    one set never mixes builds."""
+    path = session.out_dir / "provenance.yaml"
+    rows: dict[str, dict[str, str]] = {}
+    build = {
+        "device": session.spec.capture_device,
+        "runtime": session.spec.capture_runtime,
+        "locale": session.locale,
+        "app_sha": session.app_sha,
+        "data_class": session.data_class,
+        "app_state": dict(session.spec.app_state),
+    }
+    if path.is_file():
+        earlier = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        differs = [key for key, value in build.items() if earlier.get(key) != value]
+        if differs:
+            raise CaptureError(
+                f"{path.name} holds captures of another {', '.join(differs)}; "
+                "start a new capture directory"
+            )
+        rows = {str(row["file"]): row for row in earlier.get("captures", [])}
+    for s in shots:
+        rows[s.name] = {
+            "file": s.name,
+            "sha256": s.sha256,
+            "appearance": s.appearance,
+            "route": s.route,
+        }
     record = {
         "issue": "INT-502",
         "captured_on": captured_on,
@@ -211,12 +242,8 @@ def write_provenance(session: CaptureSession, shots: Sequence[Shot], *, captured
         "data_class": session.data_class,
         "app_state": dict(session.spec.app_state),
         "resolved": sorted(session.resolved),
-        "captures": [
-            {"file": s.name, "sha256": s.sha256, "appearance": s.appearance, "route": s.route}
-            for s in shots
-        ],
+        "captures": [rows[name] for name in sorted(rows)],
     }
-    path = session.out_dir / "provenance.yaml"
     path.write_text(yaml.safe_dump(record, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return path
 

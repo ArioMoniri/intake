@@ -651,3 +651,28 @@ def test_a_frame_showing_delivery_waits_for_it_and_holds_the_header(
     shown = spec.frame("not")
     assert shown.waits_for is not None and shown.waits_for.startswith("INT-587")
     assert "not" in spec.header_phones
+
+
+def test_provenance_merges_one_frame_at_a_time_and_never_mixes_builds(
+    tmp_path: Path, spec: frame_plan.FrameSpec
+) -> None:
+    """The operator walks the app between shots, so each frame is a run of its own and
+    provenance.yaml accumulates them. A run from another build is refused."""
+    runner = FakeRunner(spec.capture_size)
+    first = _session(tmp_path, spec, runner)
+    capture_frames.write_provenance(
+        first, [capture_frames.shoot(first, spec.frames[0])], captured_on="2026-10-31"
+    )
+    second = _session(tmp_path, spec, runner)
+    path = capture_frames.write_provenance(
+        second, [capture_frames.shoot(second, spec.frame("tek-soru"))], captured_on="2026-10-31"
+    )
+    record = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert [row["file"] for row in record["captures"]] == sorted(
+        [spec.frames[0].capture_name, spec.frame("tek-soru").capture_name]
+    )
+    other = _session(tmp_path, spec, runner, app_sha="b" * 40)
+    with pytest.raises(capture_frames.CaptureError, match="app_sha"):
+        capture_frames.write_provenance(
+            other, [capture_frames.shoot(other, spec.frames[0])], captured_on="2026-10-31"
+        )
