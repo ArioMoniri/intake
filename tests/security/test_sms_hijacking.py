@@ -58,6 +58,7 @@ from intake_api.app import _auth_from_settings  # noqa: E402
 from intake_api.auth_store import OTP_WINDOW_S, REFRESH_TTL_S  # noqa: E402
 from intake_api.otp import AuthWiring  # noqa: E402
 from intake_api.settings import ApiSettings  # noqa: E402
+from intake_api.sign_in_notice import NoticeOutcome  # noqa: E402
 from test_otp_abuse import PHONE, DpopClient, OtpHarness, _build  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
@@ -343,14 +344,19 @@ def test_the_api_image_carries_the_app_config() -> None:
 
 
 class RecordingNotice:
-    """The sign-in notice port, recording which accounts it was asked to tell."""
+    """The sign-in notice port, recording which accounts it was asked to tell
+    (INT-583: and which device to leave out)."""
 
     def __init__(self) -> None:
         self.told: list[uuid.UUID] = []
+        self.left_out: list[str] = []
 
-    async def new_device_sign_in(self, *, patient_id: uuid.UUID) -> bool:
+    async def new_device_sign_in(
+        self, *, patient_id: uuid.UUID, new_device_ref: str
+    ) -> tuple[NoticeOutcome, ...]:
         self.told.append(patient_id)
-        return True
+        self.left_out.append(new_device_ref)
+        return (NoticeOutcome.SENT,)
 
 
 @contextlib.contextmanager
@@ -370,6 +376,8 @@ def _sign_in(otp: OtpHarness, device_id: str) -> dict[str, Any]:
     assert otp.request_otp(PHONE, device_id=device_id).status_code == 202
     response = otp.verify(DpopClient(), device_id=device_id)
     assert response.status_code == 200, response.text
+    # INT-583: the notice is told after the response, like an SMS send
+    otp.settle()
     # past every request budget, so each sign-in is a real code
     otp.clock.advance(OTP_WINDOW_S + 1)
     body: dict[str, Any] = response.json()

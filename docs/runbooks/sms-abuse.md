@@ -1,8 +1,9 @@
-# Runbook — SMS pumping and the spend kill switch (INT-577)
+# Runbook — SMS pumping, the spend kill switch and a disowned sign-in (INT-577, INT-583)
 
 > The owner's order of 28 Oct 2026: *"have all security measures to stop sms hijacking, sms
 > loading, hacking, overuse and data hijacking over sms"*. INT-577 is the overuse half: what one
-> request, one caller and the whole platform may cost in SMS.
+> request, one caller and the whole platform may cost in SMS. INT-583 adds the hijacking half's
+> last step: what to do when a patient says a sign-in was not theirs.
 
 ## What runs where
 
@@ -93,3 +94,29 @@ reach never pages on its own.
 
 Each failure is also on the hash chain as `auth.otp.delivery_failed`, by request id and with no
 number, so a patient's report ("no code came") can be matched to a cause by the time and id.
+
+## A patient says a sign-in was not theirs
+
+INT-583 (owner decision D35). When an account is signed in from a new device, the patient's
+other signed-in devices get a push notice, and the app's "Cihazlarınız" screen has a "Bu
+girişi ben yapmadım" ("that sign-in wasn't me") action. Pressing it writes
+`auth.session.disowned` to the hash chain under the patient id, increments
+`sec_sign_in_disowned_total`, and pages through the `SignInDisowned` alert
+(`infra/observability/security-rules.yaml`).
+
+1. **Treat it as SEV1.** Someone else holding a patient's session is a presumed personal-data
+   breach: the session reads the patient's clinical data.
+2. **The KVKK 72-hour clock starts at the alert.** That is when we learned of it (Kurul
+   Kararı 2019/10). Record the alert time as the learning time in the incident record.
+3. **Contain.** Once the hold has passed, the patient's report has already signed the other
+   devices out (`auth.session.signed_out_others`, right after the disowned row). A report from
+   a session younger than 24 h signs nobody out, because that session may itself be the
+   intruder. Check the chain to see which of the two happened. A SIM swap lets the intruder
+   sign in again by SMS, so lock the number (the OTP lockout, INT-578) and the account until
+   the patient is re-verified out of band.
+4. **Forensics on the chain, ids only.** Read the account's `auth.*` rows:
+   `auth.login.new_device`, `auth.notice.*`, `auth.otp.*` and `auth.session.*`. They show when
+   the new device signed in, which devices were told, and which codes were sent and verified.
+   No phone number, token or device key is on the chain, and none goes into the incident record.
+5. **Notify** per the "Notification pointers" in docs/security/incident-runbook.md. Counsel
+   decides whether the Board and data-subject notices apply.

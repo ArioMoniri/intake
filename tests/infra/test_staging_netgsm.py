@@ -71,7 +71,12 @@ def test_the_api_policy_reads_the_netgsm_document_and_nothing_else_under_secret(
         for path, caps in paths
         if path.startswith(("secret/data/api", "secret/metadata/api", "secret/api"))
     }
-    assert under_api == {"secret/data/api/netgsm": '["read"]', "secret/data/api/otp": '["read"]'}
+    # INT-583: and read on the APNs signing key (tests/infra/test_staging_apns.py)
+    assert under_api == {
+        "secret/data/api/netgsm": '["read"]',
+        "secret/data/api/otp": '["read"]',
+        "secret/data/api/apns": '["read"]',
+    }
 
 
 def test_init_enables_the_kv_engine_before_it_writes_the_policy() -> None:

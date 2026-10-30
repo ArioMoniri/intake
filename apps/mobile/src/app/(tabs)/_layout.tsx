@@ -20,11 +20,16 @@ import { FloatingTabBar } from "@/components/FloatingTabBar";
 import { useTheme } from "@/components/Themed";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { routeClassOf, tabTransition } from "@/lib/motion/transitions";
+import { usePushRegistration } from "@/lib/push/usePushRegistration";
 import { useSession, visibleTabs } from "@/lib/session";
 
 export default function TabsLayout() {
   const theme = useTheme();
-  const { account, consents } = useSession();
+  const { account, consents, kioskActive } = useSession();
+  // INT-583: keep this device's new-sign-in registration fresh, silently and
+  // only when notices are already allowed — never a prompt at launch. A
+  // synthetic dev account holds no server session to register against.
+  usePushRegistration(account?.kind === "otp" ? account.id : null, kioskActive);
   if (account === null) {
     return <Redirect href="/(auth)/welcome" />;
   }
@@ -72,6 +77,7 @@ function TabsShell({
       <Tabs.Screen name="me/data" />
       <Tabs.Screen name="me/learned" />
       <Tabs.Screen name="me/notifications" />
+      <Tabs.Screen name="me/sessions" />
       <Tabs.Screen name="me/companion" />
       <Tabs.Screen name="me/consents/index" />
       <Tabs.Screen name="me/consents/[purpose]" />

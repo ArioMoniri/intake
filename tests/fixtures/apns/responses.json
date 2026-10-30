@@ -1,0 +1,58 @@
+{
+  "_source": "INT-583. APNs answers derived from Apple's documentation, never captured from a live call: 'Handling notification responses from APNs' (https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns) for the status codes, the reason strings and the {reason, timestamp} body; 'Sending notification requests to APNs' (https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns) for the 200 answer's apns-id header, a canonical UUID. Retrieved 30 Oct 2026 through Apple's documentation JSON endpoints (developer.apple.com/tutorials/data/documentation/usernotifications/<page>.json). A success has an empty body. Re-record against the sandbox host once the owner has stored the APNs key (docs/evidence/INT-583.md).",
+  "retrieved_on": "2026-10-30",
+  "responses": {
+    "accepted": {
+      "status": 200,
+      "headers": { "apns-id": "eabeae54-14a8-11e5-b60b-1697f925ec7b" },
+      "body": null
+    },
+    "unregistered": {
+      "status": 410,
+      "headers": {},
+      "body": { "reason": "Unregistered", "timestamp": 1761800000000 }
+    },
+    "expired_token": {
+      "status": 410,
+      "headers": {},
+      "body": { "reason": "ExpiredToken", "timestamp": 1761800000000 }
+    },
+    "bad_device_token": { "status": 400, "headers": {}, "body": { "reason": "BadDeviceToken" } },
+    "device_token_not_for_topic": {
+      "status": 400,
+      "headers": {},
+      "body": { "reason": "DeviceTokenNotForTopic" }
+    },
+    "bad_topic": { "status": 400, "headers": {}, "body": { "reason": "BadTopic" } },
+    "bad_collapse_id": { "status": 400, "headers": {}, "body": { "reason": "BadCollapseId" } },
+    "expired_provider_token": {
+      "status": 403,
+      "headers": {},
+      "body": { "reason": "ExpiredProviderToken" }
+    },
+    "invalid_provider_token": {
+      "status": 403,
+      "headers": {},
+      "body": { "reason": "InvalidProviderToken" }
+    },
+    "forbidden": { "status": 403, "headers": {}, "body": { "reason": "Forbidden" } },
+    "payload_too_large": { "status": 413, "headers": {}, "body": { "reason": "PayloadTooLarge" } },
+    "too_many_requests": { "status": 429, "headers": {}, "body": { "reason": "TooManyRequests" } },
+    "too_many_provider_token_updates": {
+      "status": 429,
+      "headers": {},
+      "body": { "reason": "TooManyProviderTokenUpdates" }
+    },
+    "internal_server_error": {
+      "status": 500,
+      "headers": {},
+      "body": { "reason": "InternalServerError" }
+    },
+    "service_unavailable": {
+      "status": 503,
+      "headers": {},
+      "body": { "reason": "ServiceUnavailable" }
+    },
+    "shutdown": { "status": 503, "headers": {}, "body": { "reason": "Shutdown" } }
+  }
+}

@@ -11,7 +11,8 @@ The same key derives the device binding: the App Attest key (or, in dev, the
 install id) that asked for a code, kept as an HMAC as well, so the store never
 holds the key id itself. The two derivations are domain-separated, and every
 input is length-prefixed, so no pseudonym, request id or code can be shifted
-into another field.
+into another field. INT-583 adds one more derivation, the key a device's push
+token is sealed under at rest, separated from the others by its own domain.
 
 **Where the pepper comes from.** Outside dev, and in dev on the OpenBao dev
 server, OpenBao only: a missing or malformed document leaves the OTP tier
@@ -59,6 +60,7 @@ _PEPPER_SHAPE = re.compile(r"(?:[0-9a-f]{2}){32,128}")
 _CODE_DOMAIN: Final = b"intake.otp.code.v1"
 _DEVICE_DOMAIN: Final = b"intake.otp.device.v1"
 _RATE_DOMAIN: Final = b"intake.otp.rate.v1"
+_PUSH_TOKEN_DOMAIN: Final = b"intake.push.token.v1"
 
 
 class OtpPepperError(ValueError):
@@ -130,6 +132,13 @@ class OtpPepper:
         hash of one is reversed by enumeration."""
         message = _framed(_RATE_DOMAIN, dimension, value)
         return hmac.new(self._key, message, hashlib.sha256).hexdigest()
+
+    def push_token_key(self) -> bytes:
+        """INT-583: the AES-256-GCM key a device's push token is sealed under in
+        Redis (``intake_api.device_sessions``), derived and domain-separated
+        like the derivations above. A store dump without the pepper holds no
+        push token in clear."""
+        return hmac.new(self._key, _framed(_PUSH_TOKEN_DOMAIN), hashlib.sha256).digest()
 
 
 def otp_pepper_from_vault(secrets_reader: KvSecrets | None = None) -> OtpPepper | None:

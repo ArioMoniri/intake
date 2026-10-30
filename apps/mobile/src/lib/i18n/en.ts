@@ -1354,4 +1354,58 @@ export const en: Record<MessageKey, string> = {
   "red.location.yes": "Yes",
   "red.location.no": "No",
   "red.doNots": "Please do not",
+  // INT-583 — Your devices.
+  "me.sessions": "Your devices",
+  "sessions.entry.sub": "Devices signed in to your account",
+  "sessions.guide.kicker": "Your security",
+  "sessions.guide.title": "Where your account is open",
+  "sessions.guide.body":
+    "Every device signed in to your account appears here. If you see one you do not recognise, you can sign it out from here.",
+  "sessions.list": "Signed-in devices",
+  "sessions.thisDevice": "This device",
+  "sessions.otherDevice": "Another device",
+  "sessions.onlyThis": "Your account is open on this device only.",
+  "sessions.signOutDevice": "Sign out",
+  "sessions.signOutOthers": "Sign out of other devices",
+  "sessions.notMe": "This sign-in was not me",
+  "sessions.notMe.body":
+    "When you tell us, we record it. Your other devices are signed out too.",
+  "sessions.notMe.heldBody":
+    "When you tell us, we record it. Signing out of other devices opens a little later.",
+  "sessions.notMe.confirm": "Yes, report it",
+  "sessions.notMe.cancel": "Cancel",
+  "sessions.hold.label": "You can sign out of other devices after this time",
+  "sessions.hold.later": "You can sign out of other devices a little later",
+  "sessions.hold.body":
+    "This device signed in recently. Someone who has just signed in cannot sign you out of your other devices straight away.",
+  "sessions.hold.notYet": "Signing out of other devices needs a little more time.",
+  "sessions.done.others": "Your other devices are signed out.",
+  "sessions.done.device": "That device is signed out.",
+  "sessions.done.reported": "We received your report. Your other devices are signed out.",
+  "sessions.done.reportedHeld":
+    "We received your report. Signing out of other devices needs a little more time.",
+  "sessions.done.gone": "That device was already signed out.",
+  "sessions.error.actionUnsent":
+    "Your request could not be sent. Please check your connection and try again.",
+  "sessions.error.reportUnsent":
+    "Your report could not be sent. Please check your connection and try again.",
+  "sessions.error.unreachable":
+    "The device list could not be loaded right now. Please check your connection and try again.",
+  "sessions.retry": "Try again",
+  "sessions.push.kicker": "New sign-in notices",
+  "sessions.push.label": "Notification permission",
+  "sessions.push.enable": "Turn on notifications",
+  "sessions.push.offerBody":
+    "If your account is signed in from another device, we will tell you on this device.",
+  "sessions.push.onBody":
+    "If your account is signed in from another device, this device gets a notification.",
+  "sessions.push.deniedBody":
+    "Notifications are off, so we cannot tell you about new sign-ins on this device. You can turn them on in your phone's Settings.",
+  "sessions.push.notRegisteredBody": "New sign-in notices cannot reach this device right now.",
+  "sessions.push.unavailableBody": "This device cannot receive new sign-in notices.",
+  "a11y.sessions.signOutDeviceHint": "Signs that device out.",
+  "a11y.sessions.signOutOthersHint": "Signs out every device except this one.",
+  "a11y.sessions.notMeHint": "Opens a confirmation step.",
+  "a11y.sessions.confirmHint": "Sends your report.",
+  "a11y.sessions.pushEnableHint": "Asks your phone for notification permission.",
 };

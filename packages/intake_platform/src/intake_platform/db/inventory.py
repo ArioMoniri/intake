@@ -202,6 +202,17 @@ REC_GUARDIAN_INTERNAL = (
     "internal services only while the guardian_link gate is shut; no recipient is defined "
     "beyond the PHI boundary until counsel answers"
 )
+# INT-583 (D35): the new-device sign-in notice goes by push, and an iOS push
+# reaches the device only through Apple's push service. Apple receives the
+# device token and the notice's constant words with each notice, as a processor
+# acting on our instruction, and nothing else. Nothing leaves until the owner's
+# APNs egress row is applied (owner-583-apns-egress.patch); the string says so,
+# like the previsit-output row above. Engineering's proposal for the legal lane.
+REC_PUSH_PROCESSOR = (
+    "Apple Push Notification service, as processor, receives the device token with each "
+    "new-device sign-in notice once the owner's APNs egress row is applied; nothing else "
+    "leaves the PHI boundary"
+)
 
 # --- what an annotation says about the data subject (INT-395) --------------------------
 #

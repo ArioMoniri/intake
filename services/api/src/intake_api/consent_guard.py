@@ -217,7 +217,10 @@ class PreAuthDeclaration:
     (INT-131 onboarding: OTP, attestation, refresh). Consent scopes attach
     to an authenticated subject, so these routes cannot enforce one — but
     they may not stay silent either: the scan accepts this marker ONLY under
-    PRE_AUTH_PREFIX, so a data route elsewhere cannot borrow it."""
+    PRE_AUTH_PREFIX, so a data route elsewhere cannot borrow it. INT-583's
+    sessions and push-token routes share the auth tier's prefix and marker:
+    they hold no clinical data, and signing an intruder out must not hang on
+    a consent a withdrawal could take away."""
 
     async def __call__(self) -> None:
         return

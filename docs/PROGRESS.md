@@ -1,5 +1,24 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T20:30:00+03:00 · INT-583 · done (pushed to backup/int-583-push-new-device-notice; no PR yet; the owner's key, egress rows and App ID capability pending)
+- Goal: GitHub #982, Sec-Row `onboarding`. D35 (owner, 28 Oct 2026): the new-device sign-in notice goes by push to the patient's previously signed-in device(s), never SMS (a SIM swap would deliver the SMS to the attacker). INT-580 detects the device and failed closed on the channel; build the push path.
+- Plan:
+  - Route: direct APNs, no relay (a relay is a second processor abroad holding every token and, for Expo, our signing key). APNs needs HTTP/2, so `h2` (MIT, raw LICENSE checked) joins the API.
+  - API: a push gateway port and the APNs adapter (ES256 provider token from OpenBao `secret/api/apns`, recorded answers from Apple's documentation); the notice channel (every previously signed-in device with a token, never the new one, never SMS, three an hour, audited with ids only, told after the response); device-bound sessions and sealed push tokens in Redis; `/v1/auth/sessions` and `/v1/auth/push-token`; a 24 h hold before a new session may sign others out; "not me" as the breach hook.
+  - Mobile (subagent): expo-notifications behind one lazy import, permission denial explained, the Cihazlarınız screen.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/security/test_sign_in_notice.py`: the new device never told even with a live session and a token on its own slot; known and signed-out devices not told; no SMS; ids-only audit and no token in any log line; gone token dropped; refused and crashing pushes never fail a sign-in; rate limit; no-channel reason; the copy through PolicyGuard with a sen form refused.
+  - `tests/security/test_device_sessions.py`: registration only from a signed-in session, for its own device; near-miss tokens; sealed and slot-bound at rest; sign-out ends access tokens at once; the hold one second short and at the mark; "not me" under the hold; another patient's id; the inventory rows; the alert and the catalogue.
+  - `tests/api/test_push_apns.py`: every documented APNs answer, the JWT verified and renewed inside Apple's window, egress without the row or the gate, the wiring matrix, httpx's request line redacted.
+  - `tests/infra/test_staging_apns.py`: the owner's key script.
+  - Red: 98 failed, 33 passed, 2 collection errors against the base tree. Green: 218 passed on the set; 5437 passed on the wider api, security, legal, platform, observability, data, compliance, infra, backlog, smoke, docs, release and ci suites, after a rerun of two that needed the deid cache and the regenerated files/11.
+- Result (`make check` / `make safety` / `make security` summary): ruff and format clean; mypy --strict clean (604 files); mobile vitest, typecheck and eslint green. The `make check` run is recorded in docs/evidence/INT-583.md. `make safety` is not touched: no protocol, triage or PolicyGuard change.
+- Invariants touched and still passing: 2 (the notice copy through PolicyGuard), 4 (the sessions routes hold no clinical data and are declared pre-auth; account security is audited), 5 (one tr source for the notice; tr keys for the screen), 6 (no token, key or vendor text in any log, metric or audit row; httpx's URL redacted), 14 (the key from OpenBao only; APNs only through the egress allow-list, whose rows are the owner's), 17 (no fake channel: no key means no notice, typed), 18 (two inventory flows, proposed for the legal lane), 19 (no relay).
+- Decisions / ADRs / `00_STATE.md` rows: D35 (already recorded). Engineering defaults: a 24 h sign-out hold, three notices an hour, a 24 h APNs expiry.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner: store the APNs key with `infra/staging/apns_secrets.sh`, apply `owner-583-apns-egress.patch`, and enable Push Notifications on the App ID; legal lane: confirm the `push_tokens` and `device_sessions` annotations and whether the notice names Apple's push service.
+- Next: the merge queue, after INT-580.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
 - Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
 - Plan:

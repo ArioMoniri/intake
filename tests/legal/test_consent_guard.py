@@ -234,15 +234,24 @@ def test_pre_auth_declarations_are_exactly_the_auth_bootstrap_routes(
     harness: ApiHarness,
 ) -> None:
     """INT-131 pre-auth routes have no principal, so they cannot enforce a
-    consent scope — but they must DECLARE that, and only under /v1/auth."""
+    consent scope — but they must DECLARE that, and only under /v1/auth.
+
+    INT-583 adds the account's own sessions and push token: device ids,
+    sign-in times and a token, no clinical data, and account security a
+    consent withdrawal must not be able to lock (session_routes)."""
     marked = pre_auth_routes(harness.client.app)
     assert marked == [
+        "DELETE /v1/auth/push-token",
+        "DELETE /v1/auth/sessions/{session_id}",
         "GET /v1/auth/dev/otp-peek",
+        "GET /v1/auth/sessions",
         "POST /v1/auth/attest/challenge",
         "POST /v1/auth/attest/key",
         "POST /v1/auth/otp/request",
         "POST /v1/auth/otp/verify",
+        "POST /v1/auth/sessions/sign-out-others",
         "POST /v1/auth/token/refresh",
+        "PUT /v1/auth/push-token",
     ]
     assert all(route.split(" ", 1)[1].startswith(PRE_AUTH_PREFIX) for route in marked)
 

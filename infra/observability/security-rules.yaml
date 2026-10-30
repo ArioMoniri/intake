@@ -126,3 +126,20 @@ groups:
         sign-in by SMS is down. The refusal reasons are the outcome label of
         otp_sms_delivery_total.
       runbook: docs/runbooks/sms-abuse.md#otp-sms-is-not-being-delivered
+- name: account-takeover
+  rules:
+  # tests/security/test_device_sessions.py (INT-583). A patient pressed "Bu
+  # girişi ben yapmadım" on the sessions screen: a sign-in to their account was
+  # not theirs. That is a presumed account takeover, so it pages, and the KVKK
+  # 72-hour clock to the Board starts when we learn of it, which is now.
+  - alert: SignInDisowned
+    expr: sum(increase(sec_sign_in_disowned_total[5m])) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'a patient reported that a sign-in to their account was not theirs'
+      description: >-
+        The report is the auth.session.disowned row on the hash chain, under
+        the patient id. Treat it as a presumed personal-data breach: open the
+        incident record now, because the KVKK 72-hour clock has started.
+      runbook: docs/runbooks/sms-abuse.md#a-patient-says-a-sign-in-was-not-theirs

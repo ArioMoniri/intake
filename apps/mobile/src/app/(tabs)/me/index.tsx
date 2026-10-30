@@ -231,6 +231,17 @@ export default function Me() {
             hint={t("a11y.openHint")}
             onPress={() => router.push("/(tabs)/me/notifications")}
           />
+          {/* Cihazlarınız (INT-583): the devices signed in to this account,
+              signing the others out, and "that sign-in wasn't me". Beside
+              Bildirimler because a new-sign-in notice lands the patient
+              here. */}
+          <ListRow
+            label={t("me.sessions")}
+            sublabel={t("sessions.entry.sub")}
+            chevron
+            hint={t("a11y.openHint")}
+            onPress={() => router.push("/(tabs)/me/sessions")}
+          />
           {/* Yakınınız adına (INT-133): who is doing this sitting, and what
               that does to the note (06 §6, 13 §13). The under-18 door lives
               on that screen too, closed with its reason on it. */}

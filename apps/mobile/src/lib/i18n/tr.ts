@@ -1445,6 +1445,64 @@ export const tr = {
   "red.location.yes": "Evet",
   "red.location.no": "Hayır",
   "red.doNots": "Lütfen yapmayın",
+  // ── INT-583 · Cihazlarınız ───────────────────────────────────────────
+  // Hesabın açık olduğu cihazlar, diğerlerinden çıkış ve "bu girişi ben
+  // yapmadım". Yeni girişi haber veren bildirimin sözleri sunucudadır (D35);
+  // burada yalnızca denetimler ve açıklamaları var. Sakin, siz, en çok B1.
+  // Açıklamalar emir kipi kullanmaz ("-ebilirsiniz"); kısa düğmeler -in alır.
+  "me.sessions": "Cihazlarınız",
+  "sessions.entry.sub": "Hesabınıza giriş yapılan cihazlar",
+  "sessions.guide.kicker": "Güvenliğiniz",
+  "sessions.guide.title": "Hesabınızın açık olduğu cihazlar",
+  "sessions.guide.body":
+    "Hesabınıza giriş yapılan her cihaz burada görünür. Tanımadığınız bir cihaz görürseniz oturumunu buradan kapatabilirsiniz.",
+  "sessions.list": "Giriş yapılan cihazlar",
+  "sessions.thisDevice": "Bu cihaz",
+  "sessions.otherDevice": "Başka bir cihaz",
+  "sessions.onlyThis": "Hesabınız yalnızca bu cihazda açık.",
+  "sessions.signOutDevice": "Çıkış yapın",
+  "sessions.signOutOthers": "Diğer cihazlardan çıkış yapın",
+  "sessions.notMe": "Bu girişi ben yapmadım",
+  "sessions.notMe.body":
+    "Bunu bildirdiğinizde durumu kayda alırız. Diğer cihazlardaki oturumlar da kapanır.",
+  "sessions.notMe.heldBody":
+    "Bunu bildirdiğinizde durumu kayda alırız. Diğer cihazlardan çıkış ise biraz sonra yapılabilir.",
+  "sessions.notMe.confirm": "Evet, bildirin",
+  "sessions.notMe.cancel": "Vazgeçin",
+  "sessions.hold.label": "Diğer cihazlardan şu zamandan sonra çıkış yapabilirsiniz",
+  "sessions.hold.later": "Diğer cihazlardan biraz sonra çıkış yapabilirsiniz",
+  "sessions.hold.body":
+    "Bu cihazla yakın zamanda giriş yapıldı. Hesabınıza yeni giren biri, sizi diğer cihazlarınızdan hemen çıkaramaz.",
+  "sessions.hold.notYet": "Diğer cihazlardan çıkış için biraz beklemeniz gerekiyor.",
+  "sessions.done.others": "Diğer cihazlardaki oturumlar kapatıldı.",
+  "sessions.done.device": "O cihazdaki oturum kapatıldı.",
+  "sessions.done.reported": "Bildiriminiz alındı. Diğer cihazlardaki oturumlar kapatıldı.",
+  "sessions.done.reportedHeld":
+    "Bildiriminiz alındı. Diğer cihazlardan çıkış için biraz beklemeniz gerekiyor.",
+  "sessions.done.gone": "O cihazdaki oturum zaten kapanmıştı.",
+  "sessions.error.actionUnsent":
+    "İsteğiniz gönderilemedi. Bağlantınızı kontrol edip yeniden deneyin.",
+  "sessions.error.reportUnsent":
+    "Bildiriminiz gönderilemedi. Bağlantınızı kontrol edip yeniden deneyin.",
+  "sessions.error.unreachable":
+    "Cihaz listesi şu an yüklenemedi. Bağlantınızı kontrol edip yeniden deneyin.",
+  "sessions.retry": "Yeniden deneyin",
+  "sessions.push.kicker": "Yeni giriş bildirimleri",
+  "sessions.push.label": "Bildirim izni",
+  "sessions.push.enable": "Bildirimleri açın",
+  "sessions.push.offerBody":
+    "Hesabınıza başka bir cihazdan giriş yapılırsa size bu cihazdan haber veririz.",
+  "sessions.push.onBody":
+    "Hesabınıza başka bir cihazdan giriş yapılırsa bu cihaza bildirim gelir.",
+  "sessions.push.deniedBody":
+    "Bildirimler kapalı olduğu için yeni girişleri size bu cihazdan bildiremiyoruz. Telefonunuzun Ayarlar bölümünden açabilirsiniz.",
+  "sessions.push.notRegisteredBody": "Bu cihaza şu an yeni giriş bildirimi gönderilemiyor.",
+  "sessions.push.unavailableBody": "Bu cihaz yeni giriş bildirimi alamıyor.",
+  "a11y.sessions.signOutDeviceHint": "İki kez dokunmak o cihazdaki oturumu kapatır.",
+  "a11y.sessions.signOutOthersHint": "İki kez dokunmak bu cihaz dışındaki bütün oturumları kapatır.",
+  "a11y.sessions.notMeHint": "İki kez dokunmak onay adımını açar.",
+  "a11y.sessions.confirmHint": "İki kez dokunmak bildiriminizi gönderir.",
+  "a11y.sessions.pushEnableHint": "İki kez dokunmak telefonunuzun bildirim iznini sorar.",
 } as const;
 
 export type MessageKey = keyof typeof tr;

@@ -7670,3 +7670,27 @@
     - "Registration after the first OTP sign-in; each sensitive action requires a fresh, single-use passkey assertion bound to a server challenge and recorded on the hash chain; a patient without a passkey is told how to add one, never silently let through; tests first with near misses (a replayed assertion, another account's credential, a stale challenge)."
   tests: []
   sec_row: "onboarding"
+- id: INT-583
+  epic: E01-platform
+  phase: P2
+  title: "New-device sign-in notice by push to the previously signed-in device(s), never SMS (D35)"
+  # GitHub #982. Owner decision D35 (28 Oct 2026, files/00_STATE.md §3): push
+  # to the devices already signed in, never SMS, because a SIM swap would hand
+  # an SMS notice to the attacker. Built on INT-580 (#975's branch), which
+  # detects the new device. Direct APNs (no relay): the APNs egress rows are the
+  # owner's patch (owner-583-apns-egress.patch) and the key goes into OpenBao
+  # secret/api/apns (infra/staging/apns_secrets.sh); until both, the notice
+  # fails closed with a typed reason.
+  depends_on: [INT-580]
+  labels: [area:api, area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-583.md
+  acceptance:
+    - "A push token is registered only from a signed-in OTP session and kept for the device that session's attested sign-in bound (the client cannot name a device), sealed at rest with AES-256-GCM under a key derived from the OpenBao pepper; it carries the inventory annotation {category, purpose, basis, retention, recipients} (off-schema flows push_tokens and device_sessions), proposed for the legal lane."
+    - "A push gateway port with one adapter, direct APNs (ES256 provider token from the .p8 key read only from OpenBao secret/api/apns; HTTP/2), tested only against recorded answers derived from Apple's documentation; with no key, no egress row or no HTTP/2 there is no notice, a typed reason (push_channel_unconfigured) and a log line."
+    - "The notice copy comes from one tr source, siz, PolicyGuard-clean, B1, no PHI, no link, nothing clinical, and points the patient to the app's Cihazlarınız screen."
+    - "Send rules: every previously signed-in device with a token is told and the new device never is (near miss: the new device with a live session and a token of its own); never SMS; every notice audited with ids only (auth.notice.<outcome>); rate-limited per account; a token Apple calls gone is dropped."
+    - "Mobile: push registration behind a lazy import(), permission denial handled, and a Cihazlarınız screen that signs one or all other devices out (ending their refresh and access tokens and push tokens) and takes 'Bu girişi ben yapmadım', which audits auth.session.disowned and pages SignInDisowned: the KVKK 72-hour clock starts (docs/runbooks/sms-abuse.md). A session younger than 24 h cannot sign the others out."
+    - "Threat model and files/10 §9 onboarding row updated; every new metric in metrics_catalog.yaml."
+  tests: [tests/security/test_sign_in_notice.py, tests/security/test_device_sessions.py, tests/api/test_push_apns.py, tests/infra/test_staging_apns.py, tests/security/test_sms_hijacking.py, tests/security/test_egress_allowlist.py, tests/legal/test_consent_guard.py]
+  sec_row: "onboarding"

@@ -13,7 +13,9 @@
 # which netgsm_secrets.sh writes with the root token; the API can neither
 # write nor list it. INT-578: read on the OTP pepper, secret/api/otp, which
 # lib.sh's ensure_otp_pepper writes with the root token; the same, read only.
-# No other KV path is reachable.
+# INT-583: read on the APNs signing key, secret/api/apns, which apns_secrets.sh
+# writes with the root token from the owner's SSM parameters; the same, read
+# only. No other KV path is reachable.
 #
 # Caveat: OpenBao's trailing glob also matches the key's sub-paths, such as
 # /config. Tightening that needs a per-tenant path list, which the staging
@@ -48,5 +50,9 @@ path "secret/data/api/netgsm" {
 }
 
 path "secret/data/api/otp" {
+  capabilities = ["read"]
+}
+
+path "secret/data/api/apns" {
   capabilities = ["read"]
 }

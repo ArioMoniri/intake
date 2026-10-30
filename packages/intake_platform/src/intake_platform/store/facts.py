@@ -51,6 +51,7 @@ from intake_platform.db.inventory import (
     REC_INTERNAL,
     REC_ON_DEVICE,
     REC_PATIENT_CLINICIAN,
+    REC_PUSH_PROCESSOR,
     RET_RECORD,
     InventoryAnnotation,
     inv,
@@ -110,6 +111,11 @@ RECIPIENT_SHARING: Final[Mapping[str, Sharing]] = MappingProxyType(
         REC_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
         REC_PATIENT_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
         REC_AUDITOR: Sharing.ON_LAWFUL_REQUEST,
+        # INT-583 — a processor delivering our own notice to the patient's own
+        # device on our instruction, for no purpose of its own: not a disclosure
+        # to a third party. Engineering's classification, for the legal lane to
+        # confirm with the inventory row it serves (docs/evidence/INT-583.md).
+        REC_PUSH_PROCESSOR: Sharing.NONE,
     }
 )
 
@@ -242,6 +248,54 @@ _SIGN_IN_DEVICES = OffSchemaFlow(
     "rate_key hashes, the key's expiry renewed to REFRESH_TTL_S on each sign-in",
 )
 
+_DEVICE_SESSIONS = OffSchemaFlow(
+    flow_id="device_sessions",
+    what=(
+        "per signed-in device of a patient account, a random session id, the refresh "
+        "families it signed in with and when it last signed in, in Redis under "
+        "auth:sess:<patient id>, keyed by the same device hash as sign_in_devices"
+    ),
+    annotation=inv(
+        CAT_PSEUDONYM,
+        "show the patient the devices their account is signed in on and let them sign "
+        "one or all of the others out, or report a sign-in that was not theirs (INT-583)",
+        BASIS_LEGAL_OBLIGATION,
+        "30 days after the last sign-in on the account (REFRESH_TTL_S), or at once when "
+        "the device is signed out",
+        REC_INTERNAL,
+    )[INVENTORY_KEY],
+    persisted=True,
+    active=True,
+    source_path="services/api/src/intake_api/device_sessions.py",
+    source="DeviceSessionStore.bind and sign_out: one Redis hash per patient id, one "
+    "field per device hash, the key's expiry renewed to REFRESH_TTL_S on each sign-in",
+)
+
+_PUSH_TOKENS = OffSchemaFlow(
+    flow_id="push_tokens",
+    what=(
+        "the APNs device token of each signed-in iOS device that allowed notifications, "
+        "sealed with AES-256-GCM under a key derived from the OpenBao pepper, in Redis "
+        "under auth:push:<patient id>"
+    ),
+    annotation=inv(
+        CAT_PSEUDONYM,
+        "tell the patient, on the devices already signed in, that their account was "
+        "signed in from a new device (D35, INT-583); never used for any other message",
+        BASIS_LEGAL_OBLIGATION,
+        "until the device is signed out, the app unregisters it (sign-out or notifications "
+        "turned off), Apple reports the token gone, or 30 days after it was last "
+        "registered (REFRESH_TTL_S)",
+        REC_PUSH_PROCESSOR,
+    )[INVENTORY_KEY],
+    persisted=True,
+    active=True,
+    source_path="services/api/src/intake_api/device_sessions.py",
+    source="DeviceSessionStore.register_push, unregister_push and sign_out: one Redis "
+    "hash per patient id, one sealed token per device hash, expiry renewed to "
+    "REFRESH_TTL_S on each registration",
+)
+
 OFF_SCHEMA_FLOWS: Final[Mapping[str, OffSchemaFlow]] = MappingProxyType(
     {
         flow.flow_id: flow
@@ -251,6 +305,8 @@ OFF_SCHEMA_FLOWS: Final[Mapping[str, OffSchemaFlow]] = MappingProxyType(
             _DOCUMENT_OBJECT,
             _CRASH_DIAGNOSTICS,
             _SIGN_IN_DEVICES,
+            _DEVICE_SESSIONS,
+            _PUSH_TOKENS,
         )
     }
 )

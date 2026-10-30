@@ -721,10 +721,53 @@ it or whose tests exercise it.
   no channel to the patient exists yet, so the notice fails closed and says so. The known
   devices are an off-schema flow of the data inventory (`intake_platform.store.facts`,
   `sign_in_devices`: pseudonymised identity, KVKK m.12 security, 30 days after the last
-  sign-in, internal only). What still stands open: the notice's channel, push to the
-  patient's earlier devices (D35, INT-583), and the **passkey step-up** that would make a SIM
-  swap insufficient on its own (D36, INT-582: patient passkey public keys may be stored, and a
-  Doctor Link, a phone change, export and delete step up).
+  sign-in, internal only). What still stands open: the **passkey step-up** that would make a
+  SIM swap insufficient on its own (D36, INT-582: patient passkey public keys may be stored,
+  and a Doctor Link, a phone change, export and delete step up).
+- **The new-device sign-in notice (INT-583, owner decision D35):** the notice goes by **push to
+  the devices already signed in, never by SMS**, because a SIM swap hands the SMS to the
+  attacker, who is exactly who signed in. *Spoofing / repudiation:* the push is sent after
+  the sign-in's response to every signed-in device with a push token **except the device
+  that just signed in**. A near miss proves it: the new device has a live session and a token
+  on its own slot, and is still not told. No SMS seam is reachable from the channel.
+  *Elevation:* a push token is registered only from a signed-in OTP session, and it is kept
+  for the device that session's attested sign-in bound (`auth:sess:<patient>` maps the
+  device's keyed hash to its refresh families). The client sends a token and nothing else, so
+  it cannot name another device. *Information disclosure:* the token is sealed at rest with
+  AES-256-GCM under a key derived from the OpenBao pepper, with the patient id and device
+  hash as associated data, so a dump yields no token and a sealed token moved to another slot
+  does not open. The notice is one constant tr text: siz, PolicyGuard-clean, no PHI, no link,
+  nothing clinical; it says a new device signed in and names the app's Cihazlarınız screen.
+  httpx's request log line, whose URL carries the token, is redacted on the `httpx` logger.
+  The audit rows (`auth.notice.<outcome>`, one per device tried) carry ids only. *DoS /
+  abuse:* three notices per account per rolling hour, below which the phone's own 3-an-hour
+  code budget already sits. A token Apple calls gone (410, `BadDeviceToken`,
+  `DeviceTokenNotForTopic`) is dropped. A crashing or refusing push never fails a sign-in.
+  *The vendor:* direct APNs, with no relay (a relay would be a second processor abroad holding
+  the tokens and, for Expo, the signing key). The ES256 provider token comes from the `.p8`
+  key read only from OpenBao `secret/api/apns`, which `infra/staging/apns_secrets.sh` writes
+  from the owner's SSM parameters. The call is `EgressPurpose.PUSH_SECURITY_NOTICE`, PHI-class,
+  over HTTP/2. **Fail closed:** no APNs row ships (the owner's patch,
+  owner-583-apns-egress.patch), so the wiring reads no key and wires no channel. The sign-in
+  is still counted and audited, and `push_channel_unconfigured{reason}` with a log line says
+  why: `egress_refused`, `no_credentials`, `malformed_credentials` or `http2_unavailable`.
+  *Taking the account back:* the app's Cihazlarınız screen lists the devices, and signs one or
+  all the others out. That revokes their refresh families, and their access tokens die at
+  once (`AuthStore.family_alive`, checked on every DPoP request), not at their 15-minute
+  expiry. **A session younger than 24 h cannot sign the others out**, so whoever just signed
+  in with a stolen code cannot sign the real patient out before the notice is read. It can
+  sign itself out. "Bu girişi ben yapmadım" writes `auth.session.disowned`, counts
+  `sec_sign_in_disowned_total` and pages `SignInDisowned`, even from a held session: **a
+  presumed account takeover, which starts the KVKK 72-hour clock**
+  (docs/runbooks/sms-abuse.md, "A patient says a sign-in was not theirs"). The new data are
+  two off-schema inventory flows, `device_sessions` and `push_tokens`: pseudonymised identity,
+  KVKK m.5/2-ç with m.12, 30 days, recipients internal and Apple's push service as processor.
+  That is engineering's proposal for the legal lane. **Residuals:** a SIM-swapped intruder can
+  sign in again by SMS after being signed out; only the passkey step-up (INT-582) or an
+  operator lock ends that. A patient whose only device is lost gets no notice. On the
+  synthetic host the API has no network route to Apple until an ADR-042-style push proxy is
+  deployed. A development-signed build's sandbox token is refused by the production host and
+  dropped.
 - **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
   product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
   processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
@@ -773,7 +816,10 @@ it or whose tests exercise it.
   signal; `exhausted` counts numbers locked; `locked` verifies refused by a lockout.
   INT-577: `sec_otp_requests_total{outcome}` and `sec_otp_abuse_blocks{dimension}`, the
   `sms_spend_kill_switch_engaged` gauge and `sms_spend_kill_switch_trips_total{reason}`;
-  INT-580: `sec_new_device_logins` and the `auth.login.new_device` audit row; the
+  INT-580: `sec_new_device_logins` and the `auth.login.new_device` audit row; INT-583:
+  `sec_sign_in_notices_total{outcome}`, `push_channel_unconfigured{reason}`,
+  `push_delivery_total{vendor,outcome}`, `sec_sessions_signed_out_total{scope}`, the
+  `auth.notice.*` and `auth.session.*` audit rows, and the `SignInDisowned` page; the
   `SmsSpendKillSwitchEngaged` page and the `OtpRequestSpike` ticket
   (`infra/observability/security-rules.yaml`, runbook `docs/runbooks/sms-abuse.md`); the ops
   console's `sms` tile (`GET /admin/ops`), which judges a spike by the same definition.
@@ -848,7 +894,19 @@ it or whose tests exercise it.
   the host's association file: the document's shape, the team id never invented (no file, a
   404, for an empty or malformed one, and a stale file removed), the deploy rendering it
   before the edge starts, and the edge serving that one file as JSON with no redirect
-  (`tests/infra/test_staging_aasa.py`).
+  (`tests/infra/test_staging_aasa.py`). The new-device notice with INT-583: every previously
+  signed-in device told and the new one never (near miss: a live session and a token on its own
+  slot), a known or signed-out device not told, no SMS, ids-only audit with no token in any
+  log line, a gone token dropped, a refused or crashing push never failing a sign-in, three
+  notices an hour, fail-closed with the reason, and the copy through PolicyGuard with a sen form
+  refused (`tests/security/test_sign_in_notice.py`). Every documented APNs answer mapped, the
+  ES256 provider token verified and renewed inside Apple's window, egress refused without the
+  owner's row or the gate, and the wiring matrix (`tests/api/test_push_apns.py`). Push tokens
+  only from a signed-in session for its own device, sealed and bound to their slot, near-miss
+  tokens refused, sign-out ending access tokens at once, the 24 h hold one second short and at
+  the mark, "not me" recorded under the hold, and the two inventory rows
+  (`tests/security/test_device_sessions.py`). The key into OpenBao, never printed
+  (`tests/infra/test_staging_apns.py`).
 
 ## `consent` — layered consent and scope enforcement
 

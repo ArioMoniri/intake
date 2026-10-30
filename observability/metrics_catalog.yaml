@@ -2020,6 +2020,62 @@ metrics:
       the send runs after the response, so this is the only place a failed
       send shows: OtpSmsDeliveryFailing (infra/observability/security-rules.yaml)
       pages when over half the last 30 minutes' sends were not accepted.
+  # --- INT-583 (D35): the new-device sign-in notice by push, and the
+  # patient's sessions. No label carries a token, a device, a patient or a
+  # vendor text (inv. 6); every label value is a closed enum.
+  - name: sec_sign_in_notices_total
+    type: counter
+    labels: [outcome]
+    owner: security
+    unit: "count"
+    description: >-
+      New-device sign-in notices, one per previously signed-in device tried,
+      by outcome: sent (APNs accepted it), failed (refused, unreachable, or the
+      token gone), withheld (the account's notices for the rolling hour are
+      spent), no_device (no other signed-in device has a push token) or
+      unconfigured (no push channel is wired). Emitted by intake_api.otp; each
+      one is also an auth.notice.<outcome> audit row under the patient.
+  - name: push_channel_unconfigured
+    type: gauge
+    labels: [reason]
+    owner: security
+    unit: "bool"
+    description: >-
+      1 on the reason no push channel is wired for the sign-in notice, 0 on the
+      others; all 0 when the APNs channel is up. Reasons: no_credentials (no
+      APNs key in OpenBao secret/api/apns), malformed_credentials,
+      egress_refused (no APNs row on the allow-list, or the PHI gate shut) and
+      http2_unavailable. Set once at wiring. Emitted by intake_api.sign_in_notice.
+  - name: push_delivery_total
+    type: counter
+    labels: [vendor, outcome]
+    owner: security
+    unit: "count"
+    description: >-
+      Push sends by vendor (apns) and outcome: accepted, or a closed reason
+      (egress_denied, timeout, unreachable, auth_failed, rate_limited,
+      rejected, token_gone, vendor_unavailable, malformed_response). token_gone
+      drops the device's registration. Emitted by intake_api.push_apns.
+  - name: sec_sessions_signed_out_total
+    type: counter
+    labels: [scope]
+    owner: security
+    unit: "count"
+    description: >-
+      Devices signed out from the app's sessions screen, by what was asked:
+      self (the device signed itself out), one (another device) or others
+      (every other device, counted per device). Emitted by
+      intake_api.session_routes.
+  - name: sec_sign_in_disowned_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    description: >-
+      Patients reporting, from the sessions screen, that a sign-in to their
+      account was not theirs ("Bu girişi ben yapmadım"). A presumed account
+      takeover: SignInDisowned pages, and the KVKK 72-hour clock starts
+      (docs/runbooks/sms-abuse.md). Emitted by intake_api.session_routes.
   # --- INT-577: the SMS spend kill switch (intake_api.sms_spend). No label
   # carries a number, a tenant or an amount (inv. 6).
   - name: sms_spend_kill_switch_engaged

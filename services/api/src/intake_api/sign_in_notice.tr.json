@@ -1,0 +1,5 @@
+{
+  "_comment": "INT-583 (D35): the one source of the new-device sign-in push (tr is the source of truth, invariant 5). It shows on a lock screen, so it says that a new device signed in and where to look in the app, and nothing else: no PHI, no link, nothing clinical, no number. Patient-facing: siz register, warmth from -ebilirsiniz, B1, PolicyGuard-clean (tests/security/test_sign_in_notice.py). 'Cihazlarınız' is the app's sessions screen under Profilim (apps/mobile tr key me.sessions).",
+  "push.sign_in.title": "Önvizit",
+  "push.sign_in.body": "Hesabınıza yeni bir cihazdan giriş yapıldı. Bu giriş sizin değilse uygulamadaki Cihazlarınız ekranından o cihazın oturumunu kapatabilirsiniz."
+}

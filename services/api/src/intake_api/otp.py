@@ -100,12 +100,14 @@ from intake_api.auth_store import (
     ACCESS_TTL_S,
     CHALLENGE_TTL_S,
     OTP_CODE_DIGITS,
+    AccessRecord,
     AuthStore,
     Budget,
 )
 from intake_api.carrier_geo import CarrierGeoCheck
 from intake_api.db import tenant_session
 from intake_api.dev_fixture import DevAccount
+from intake_api.device_sessions import DeviceSession, DeviceSessionStore
 from intake_api.dpop import DpopError, verify_dpop_proof
 from intake_api.errors import (
     attestation_invalid,
@@ -122,6 +124,12 @@ from intake_api.errors import (
     unauthorized,
 )
 from intake_api.otp_pepper import OtpPepper
+from intake_api.sign_in_notice import (
+    SEC_SIGN_IN_NOTICES_TOTAL,
+    NoSignInNoticeChannel,
+    NoticeOutcome,
+    SignInNotice,
+)
 from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
 from intake_api.sms_spend import DAY_S, SmsBudget, SpendKillSwitch, SpendStateUnreadable
 
@@ -139,6 +147,7 @@ __all__ = [
     "SignInNotice",
     "VERIFY_OUTCOMES",
     "AuthWiring",
+    "CurrentSession",
     "DeliveryReceipt",
     "DevLogDeliveryAdapter",
     "OtpAuthService",
@@ -309,27 +318,6 @@ class DevLogDeliveryAdapter:
         return receipt
 
 
-class SignInNotice(Protocol):
-    """INT-580: tell the account holder that their account was signed in to
-    from a new device. True when the notice was delivered."""
-
-    async def new_device_sign_in(self, *, patient_id: uuid.UUID) -> bool: ...
-
-
-class NoSignInNoticeChannel:
-    """The default, and today the only channel: none. Which channel reaches
-    the patient — a push to the devices already signed in, or a second SMS
-    product, which Netgsm's OTP product is not — and in what words, is an owner
-    decision (docs/evidence/INT-580.md). Until then the notice fails closed: it
-    is not delivered, and the line logged says so. The signal itself (the
-    counter, the audit row) does not depend on a channel."""
-
-    async def new_device_sign_in(self, *, patient_id: uuid.UUID) -> bool:
-        del patient_id
-        logger.warning("new-device sign-in not told to the patient: no sign-in notice channel")
-        return False
-
-
 @dataclass
 class AuthWiring:
     """Everything the OTP tier needs, injectable for tests; the env path is
@@ -362,7 +350,9 @@ class AuthWiring:
     # INT-577: the tenant and global send caps (engineering defaults in
     # intake_api.sms_spend; a test harness passes small ones)
     sms_budget: SmsBudget = field(default_factory=SmsBudget)
-    # INT-580: who tells the patient about a sign-in from a new device
+    # INT-580: who tells the patient about a sign-in from a new device; INT-583:
+    # a push to the devices already signed in (intake_api.sign_in_notice), or
+    # no channel, which fails closed with its typed reason
     sign_in_notice: SignInNotice = field(default_factory=NoSignInNoticeChannel)
 
 
@@ -378,6 +368,14 @@ async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
                     kvkk_role=KvkkRole.CONTROLLER,
                 )
             )
+
+
+@dataclass(frozen=True)
+class CurrentSession:
+    """INT-583: who is calling, and from which signed-in device."""
+
+    patient_id: uuid.UUID
+    device: DeviceSession | None
 
 
 @dataclass(frozen=True)
@@ -431,6 +429,10 @@ class OtpAuthService:
         self._tokenizer = wiring.tokenizer
         self._pepper = wiring.pepper
         self._kill_switch = SpendKillSwitch(wiring.redis_client, wiring.now_fn)
+        # INT-583: the devices the account is signed in on, and their push tokens
+        self.device_sessions = DeviceSessionStore(
+            wiring.redis_client, wiring.pepper, self._store, wiring.now_fn
+        )
         # INT-579: deliveries in flight, off the response path
         self._dispatches: set[asyncio.Task[None]] = set()
         self._engine = engine
@@ -438,6 +440,10 @@ class OtpAuthService:
 
     def _now(self) -> float:
         return self._wiring.now_fn() if self._wiring.now_fn is not None else time.time()
+
+    def now(self) -> float:
+        """The tier's clock (injectable), for the INT-583 sessions routes."""
+        return self._now()
 
     # --- attestation (files/10 §2: on OTP request AND session start) --------------
 
@@ -742,6 +748,7 @@ class OtpAuthService:
             patient_id=patient_id,
             tenant_id=CONSUMER_TENANT_ID,
             jkt=jkt,
+            family_id=family,
         )
         await asyncio.to_thread(
             self._store.save_refresh,
@@ -812,20 +819,26 @@ class OtpAuthService:
             resource_ref=f"phone:{self._tokenizer.log_ref(phone)}",
             consent_scope="scope:auth",
         )
-        await self._note_device(patient_id, _bound_device(payload))
-        return await self._issue_tokens(patient_id, jkt)
+        device_ref = self._pepper.rate_key("known_device", bound)
+        await self._note_device(patient_id, device_ref)
+        # INT-583: the session is the device's, so the sessions screen can name
+        # it, sign it out, and register a push token for it alone
+        family = uuid.uuid4().hex
+        bundle = await self._issue_tokens(patient_id, jkt, family_id=family)
+        await asyncio.to_thread(self.device_sessions.bind, patient_id, device_ref, family)
+        return bundle
 
-    async def _note_device(self, patient_id: uuid.UUID, device: str) -> None:
+    async def _note_device(self, patient_id: uuid.UUID, device_ref: str) -> None:
         """INT-580: a sign-in from a device the account has not used is
         counted, put on the hash chain where the patient's own access log reads
         (``auth.*`` is ACCOUNT_SECURITY there), and handed to the notice
         channel. A stolen code entered on the thief's phone is exactly this
-        event; so is a SIM swap's first sign-in."""
-        new = await asyncio.to_thread(
-            self._store.remember_device,
-            str(patient_id),
-            self._pepper.rate_key("known_device", device),
-        )
+        event; so is a SIM swap's first sign-in. ``device_ref`` is the keyed
+        hash of the proven device (the OTP pepper's ``rate_key``).
+
+        INT-583: the notice is told after the response, like an SMS send
+        (INT-579), so a slow push provider never holds a sign-in."""
+        new = await asyncio.to_thread(self._store.remember_device, str(patient_id), device_ref)
         if not new:
             return
         SEC_NEW_DEVICE_LOGINS.inc()
@@ -835,7 +848,30 @@ class OtpAuthService:
             resource_ref=f"patient:{patient_id}",
             consent_scope="scope:auth",
         )
-        await self._wiring.sign_in_notice.new_device_sign_in(patient_id=patient_id)
+        task = asyncio.create_task(self._tell(patient_id, device_ref))
+        self._dispatches.add(task)
+        task.add_done_callback(self._dispatches.discard)
+        task.add_done_callback(_retrieve_by_type)
+
+    async def _tell(self, patient_id: uuid.UUID, new_device_ref: str) -> None:
+        """INT-583: hand the new-device sign-in to the notice channel, which
+        leaves ``new_device_ref`` out, and put each outcome on the hash chain
+        (ids only, under the patient, so their own access log shows it)."""
+        try:
+            outcomes = await self._wiring.sign_in_notice.new_device_sign_in(
+                patient_id=patient_id, new_device_ref=new_device_ref
+            )
+        except Exception as exc:  # noqa: BLE001 — a notice must never take a sign-in down
+            logger.warning("new-device sign-in notice crashed (%s)", type(exc).__name__)
+            outcomes = (NoticeOutcome.FAILED,)
+        for outcome in outcomes:
+            SEC_SIGN_IN_NOTICES_TOTAL.labels(outcome=outcome.value).inc()
+            await self._audit.record(
+                actor=f"patient:{patient_id}",
+                action=f"auth.notice.{outcome.value}",
+                resource_ref=f"patient:{patient_id}",
+                consent_scope="scope:auth",
+            )
 
     async def refresh_tokens(self, request: Request, refresh_token: str) -> TokenBundle:
         jkt = await self._verify_proof(request)
@@ -863,13 +899,44 @@ class OtpAuthService:
 
     # --- resource-request resolution (Authorization: DPoP <token>) -----------------
 
-    async def resolve_access(self, request: Request, token: str) -> DevAccount:
+    async def _access_record(self, request: Request, token: str) -> AccessRecord:
         jkt = await self._verify_proof(request, access_token=token)
         record = await asyncio.to_thread(self._store.get_access, _token_hash(token))
         if record is None:
             raise unauthorized()
         if record.jkt != jkt:
             raise dpop_invalid("dpop_mismatch")
+        # INT-583: a device signed out (or a family revoked on reuse) ends its
+        # access tokens now, not at their expiry
+        if record.family_id is not None and not await asyncio.to_thread(
+            self._store.family_alive, record.family_id
+        ):
+            raise unauthorized()
+        return record
+
+    async def resolve_session(self, request: Request, token: str) -> CurrentSession:
+        """INT-583: the signed-in device behind an access token, for the
+        sessions and push-token routes. A session issued before devices were
+        bound has no device, and is answered with ``device=None``."""
+        record = await self._access_record(request, token)
+        device: DeviceSession | None = None
+        if record.family_id is not None:
+            device = await asyncio.to_thread(
+                self.device_sessions.session_of_family, record.patient_id, record.family_id
+            )
+        return CurrentSession(patient_id=record.patient_id, device=device)
+
+    async def audit_account(self, patient_id: uuid.UUID, action: str) -> None:
+        """INT-583: one ``auth.*`` row under the patient (ids only)."""
+        await self._audit.record(
+            actor=f"patient:{patient_id}",
+            action=action,
+            resource_ref=f"patient:{patient_id}",
+            consent_scope="scope:auth",
+        )
+
+    async def resolve_access(self, request: Request, token: str) -> DevAccount:
+        record = await self._access_record(request, token)
         return DevAccount(
             account_id=f"patient:{record.patient_id}",
             role="patient",

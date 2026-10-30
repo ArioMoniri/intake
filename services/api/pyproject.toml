@@ -6,6 +6,10 @@ requires-python = ">=3.12"
 dependencies = [
     "cbor2>=6.1.4",
     "fastapi>=0.115",
+    # INT-583: APNs speaks HTTP/2 only (httpx's http2 transport needs h2).
+    # h2, hpack and hyperframe are MIT, verified from each raw LICENSE blob
+    # (python-hyper/*, 30 Oct 2026; docs/evidence/INT-583.md).
+    "h2>=4.1",
     "intake-clinical-schemas",
     "intake-connectors",
     "intake-metrics",

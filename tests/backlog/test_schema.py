@@ -265,7 +265,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-580 (SMS hijacking and phishing: the tr SMS copy, the domain-bound
     # line, the new-device signal; GitHub #975) + INT-582 (the patient passkey
     # step-up split out of it, awaiting the owner; GitHub #981).
-    assert len(ids) == 386
+    # + INT-583 (the new-device sign-in notice by push, never SMS; D35,
+    # GitHub #982).
+    assert len(ids) == 387
     import re
 
     for i in ids:

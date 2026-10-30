@@ -252,6 +252,15 @@ class EgressPurpose(StrEnum):
     #: independent key behind the ADR-035 guard. A vendor LLM host on the PHI
     #: tier stays impossible (:func:`assert_dev_only_vendors`).
     HOSTED_MODEL_INFERENCE = "hosted_model_inference"
+    #: INT-583 / D35 (owner, 28 Oct 2026). The new-device sign-in notice, by
+    #: push to the patient's previously signed-in iOS devices, sent straight
+    #: to Apple Push Notification service. A device token addressed to a
+    #: patient account is personal data, so its rows are PHI-tier rows naming
+    #: D35 and open only with the runtime gate. No row ships until the owner
+    #: applies one (``tests/security/test_egress_allowlist.py``'s
+    #: ``PURPOSES_AWAITING_THE_OWNER``), so every tier refuses APNs today and
+    #: the notice fails closed.
+    PUSH_SECURITY_NOTICE = "push_security_notice"
 
 
 class DataClass(StrEnum):

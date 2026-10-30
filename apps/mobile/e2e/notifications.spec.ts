@@ -72,17 +72,99 @@ describe("route: Bildirimler lives under Profilim and is registered", () => {
   });
 });
 
+/**
+ * INT-583 narrows the INT-141 ban without loosening what it protected. The app
+ * now receives one kind of push — the server's new-sign-in notice (D35) — so
+ * it needs the native notifications package to ask permission and read its
+ * APNs device token. It still never assembles a notification body: nothing
+ * schedules or presents a local notification, the token is the native APNs
+ * one (no Expo relay), and the package is reached from exactly one module,
+ * lazily, so every node-tested module stays free of it.
+ */
+const NATIVE_PACKAGE = "expo-notifications";
+const PUSH_NATIVE = "lib/push/native.ts";
+const LAZY_IMPORT = /await import\(\s*"expo-notifications"\s*\)/g;
+const LOCAL_NOTIFICATION_CALLS = ["scheduleNotificationAsync", "presentNotificationAsync"];
+const RELAY_TOKEN_CALL = "getExpoPushTokenAsync";
+
+/** Every rule the tree is held to, as findings over (path under src, source). */
+function nativeNotificationFindings(files: { path: string; source: string }[]): string[] {
+  const findings: string[] = [];
+  for (const { path, source } of files) {
+    const mentions = source.split(NATIVE_PACKAGE).length - 1;
+    if (mentions > 0 && path !== PUSH_NATIVE) {
+      findings.push(`${path}: reaches the native notifications package`);
+    }
+    if (path === PUSH_NATIVE && mentions !== (source.match(LAZY_IMPORT) ?? []).length) {
+      findings.push(`${path}: names the package other than as a lazy await import`);
+    }
+    for (const call of LOCAL_NOTIFICATION_CALLS) {
+      if (source.includes(call)) {
+        findings.push(`${path}: ${call}`);
+      }
+    }
+    if (source.includes(RELAY_TOKEN_CALL)) {
+      findings.push(`${path}: ${RELAY_TOKEN_CALL}`);
+    }
+  }
+  return findings;
+}
+
+const SRC_FILES = walk(SRC)
+  .filter((path) => /\.tsx?$/.test(path))
+  .map((path) => ({
+    path: path
+      .slice(SRC.length + 1)
+      .split("\\")
+      .join("/"),
+    source: readFileSync(path, "utf8"),
+  }));
+
 describe("no PHI in a push — the app never assembles a notification body", () => {
-  it("no local-notification scheduling exists anywhere in the app", () => {
+  it("no local notification is scheduled or presented, and the package lives in one module", () => {
     // A client that schedules its own reminder assembles its own body from
     // whatever it has to hand — which is the visit, the branch and the
     // slots. The seam is the server's for exactly that reason.
-    for (const path of walk(SRC)) {
-      if (!/\.tsx?$/.test(path)) continue;
-      const source = readFileSync(path, "utf8");
-      expect(source, path).not.toContain("expo-notifications");
-      expect(source, path).not.toContain("scheduleNotificationAsync");
-    }
+    expect(nativeNotificationFindings(SRC_FILES)).toEqual([]);
+  });
+
+  it("the one module that reaches the package exists, reaches it lazily, and only it does", () => {
+    const reaching = SRC_FILES.filter((f) => f.source.includes(NATIVE_PACKAGE)).map((f) => f.path);
+    expect(reaching).toEqual([PUSH_NATIVE]);
+    const native = SRC_FILES.find((f) => f.path === PUSH_NATIVE)!.source;
+    expect((native.match(LAZY_IMPORT) ?? []).length).toBe(1);
+  });
+
+  it("the token it registers is the native APNs device token", () => {
+    const native = SRC_FILES.find((f) => f.path === PUSH_NATIVE)!.source;
+    expect(native).toContain("getDevicePushTokenAsync");
+  });
+
+  describe("the guard catches each way around it (near misses)", () => {
+    const lazy = 'const n = await import("expo-notifications");';
+
+    it("the lazy import in the one module is clean", () => {
+      expect(nativeNotificationFindings([{ path: PUSH_NATIVE, source: lazy }])).toEqual([]);
+    });
+
+    it("a static import in the one module is caught", () => {
+      const source = `import * as N from "expo-notifications";\n${lazy}`;
+      expect(nativeNotificationFindings([{ path: PUSH_NATIVE, source }])).toHaveLength(1);
+    });
+
+    it("the same lazy import in any other module is caught", () => {
+      expect(
+        nativeNotificationFindings([{ path: "lib/notifications/store.ts", source: lazy }]),
+      ).toHaveLength(1);
+    });
+
+    it.each([...LOCAL_NOTIFICATION_CALLS, RELAY_TOKEN_CALL])(
+      "%s is caught even inside the one module",
+      (call) => {
+        const source = `${lazy}\nawait n.${call}();`;
+        expect(nativeNotificationFindings([{ path: PUSH_NATIVE, source }])).toHaveLength(1);
+      },
+    );
   });
 
   it("no notification copy carries a branch, symptom, clinician or document title", () => {

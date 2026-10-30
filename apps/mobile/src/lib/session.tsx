@@ -242,6 +242,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setExtraVisits([]);
     setApiVisits([]);
     setNotes({});
+    // INT-583: this device stops being told about new sign-ins to the
+    // account it just left. Best-effort and lazy, like the shred below: the
+    // native module stays out of node imports, and sign-out never waits on
+    // the network.
+    void import("./push/native")
+      .then((push) => push.forgetPushRegistration())
+      .catch(() => {
+        // the registration stays on the server; nothing to show the patient
+      });
     // INT-142: sign-out crypto-shreds every persisted draft and the DEK, so
     // nothing readable survives the session. Lazy so node import stays clean.
     void import("./intake/offline/sessionDrafts")

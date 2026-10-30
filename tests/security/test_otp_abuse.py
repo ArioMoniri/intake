@@ -391,6 +391,7 @@ def _build(
     recipients: Any = None,
     sign_in_notice: Any = None,
     attestation: Any = None,
+    push_gateway: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -410,6 +411,18 @@ def _build(
         delivery if delivery is not None else DevLogDeliveryAdapter()
     )
     counted = CountedDelivery(delivery_adapter)
+    if push_gateway is not None:
+        # INT-583: the D35 channel over a recorded push gateway, on this
+        # harness's Redis, clock and pepper
+        from intake_api.device_sessions import DeviceSessionStore
+        from intake_api.otp_pepper import OtpPepper
+        from intake_api.sign_in_notice import PushSignInNotice
+
+        pepper = pepper if pepper is not None else OtpPepper.ephemeral()
+        sign_in_notice = PushSignInNotice(
+            push_gateway,
+            DeviceSessionStore(fake_redis, pepper, AuthStore(fake_redis, clock), clock),
+        )
     wiring = ApiWiring(
         settings=ApiSettings(
             token_patient=token_patient,

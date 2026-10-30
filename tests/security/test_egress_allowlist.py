@@ -474,7 +474,14 @@ NON_VENDOR_PURPOSES = frozenset(
 #: INT-442 change, together with its two rows (openai-api, elevenlabs-api).
 #: INT-528 emptied it: SMS_OTP_DELIVERY left with its phi_path row (Netgsm, the
 #: owner's INT-358 decision of 16 Oct 2026).
-PURPOSES_AWAITING_THE_OWNER: frozenset[EgressPurpose] = frozenset()
+#: INT-583 enters it: PUSH_SECURITY_NOTICE, the new-device sign-in notice by
+#: push straight to APNs (D35, owner, 28 Oct 2026). The decision to push is
+#: made; the two APNs rows are the owner's patch to this hook-protected file
+#: (owner-583-apns-egress.patch, docs/evidence/INT-583.md), and they take the
+#: purpose out of here in the same change.
+PURPOSES_AWAITING_THE_OWNER: frozenset[EgressPurpose] = frozenset(
+    {EgressPurpose.PUSH_SECURITY_NOTICE}
+)
 
 
 def _shipped_rows() -> list[AllowlistEntry]:
@@ -533,7 +540,12 @@ def test_a_purpose_awaiting_the_owner_has_no_row_and_every_tier_refuses_it() -> 
         for purpose in PURPOSES_AWAITING_THE_OWNER:
             for data_class in DataClass:
                 context = EgressContext(purpose=purpose, data_class=data_class)
-                for host in ("api.twilio.com", "api.netgsm.com.tr"):
+                for host in (
+                    "api.twilio.com",
+                    "api.netgsm.com.tr",
+                    "api.push.apple.com",
+                    "api.sandbox.push.apple.com",
+                ):
                     assert not policy.check(host, 443, context).allowed, host
 
 

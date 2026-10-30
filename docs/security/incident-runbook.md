@@ -38,7 +38,16 @@ Where an incident announces itself (files/10 §7):
   INT-180…INT-192).
 - **Humans:** a patient, clinician, tenant, vendor or researcher telling us. Treat an
   external report as a detection source with its own clock — "learning of it" starts the
-  KVKK 72 h countdown (see Notification pointers).
+  KVKK 72 h countdown (see Notification pointers). The app gives the patient one such
+  report of their own; see the next section.
+
+### A patient says a sign-in was not theirs
+
+INT-583 (owner decision D35). The app's "Cihazlarınız" screen has a "Bu girişi ben
+yapmadım" ("that sign-in wasn't me") action. It writes `auth.session.disowned` to the hash
+chain under the patient id and pages through `SignInDisowned`. **Treat it as SEV1 and start
+the KVKK 72-hour clock at the alert**: that is when we learned of it. The steps are in
+docs/runbooks/sms-abuse.md, "A patient says a sign-in was not theirs".
 
 ## Severity ladder
 

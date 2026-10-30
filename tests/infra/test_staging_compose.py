@@ -737,6 +737,8 @@ class TestOpenBao:
             "secret/metadata/model-lanes/*": {"read", "list", "delete"},
             f"secret/data/{SMS_KV_PATH}": {"read"},
             "secret/data/api/otp": {"read"},
+            # INT-583: read on the APNs signing key (apns_secrets.sh writes it)
+            "secret/data/api/apns": {"read"},
         }
         for path, caps in blocks:
             granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}

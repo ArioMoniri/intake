@@ -78,6 +78,7 @@ from intake_api import (
     record_items,
     red_notify,
     satisfaction,
+    session_routes,
     taxonomy_routes,
     triage_hop,
     visit_lifecycle,
@@ -109,6 +110,8 @@ if TYPE_CHECKING:
     from intake_api.app_attest import AppAttestVerifier
     from intake_api.attestation import FailClosedAttestationVerifier
     from intake_api.otp_netgsm import KvSecrets
+    from intake_api.otp_pepper import OtpPepper
+    from intake_api.sign_in_notice import SignInNotice
 
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
 
@@ -292,6 +295,8 @@ def _auth_from_settings(
     redis_client = Redis.from_url(settings.redis_url)
     app_attest = _app_attest_from_settings(settings, redis_client)
     return AuthWiring(
+        # INT-583 (D35): the new-device notice by push, or no channel (typed)
+        sign_in_notice=_sign_in_notice_from_settings(settings, redis_client, pepper, secrets),
         redis_client=redis_client,
         tokenizer=Tokenizer(
             keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
@@ -316,6 +321,28 @@ def _auth_from_settings(
         recipients=recipients,
         pepper=pepper,
     )
+
+
+def _sign_in_notice_from_settings(
+    settings: ApiSettings, redis_client: Redis, pepper: OtpPepper, secrets: KvSecrets | None
+) -> SignInNotice:
+    """INT-583 (D35). The push channel when APNs is wired — the owner's egress
+    row, the key in OpenBao ``secret/api/apns``, HTTP/2 — and otherwise no
+    channel, which fails closed with its typed reason (log line and the
+    ``push_channel_unconfigured`` gauge). Never SMS."""
+    from intake_api.auth_store import AuthStore
+    from intake_api.device_sessions import DeviceSessionStore
+    from intake_api.push_apns import push_gateway_from_settings
+    from intake_api.push_port import PushUnconfigured
+    from intake_api.sign_in_notice import NoSignInNoticeChannel, PushSignInNotice, mark_channel
+
+    gateway = push_gateway_from_settings(settings, secrets)
+    if isinstance(gateway, PushUnconfigured):
+        mark_channel(gateway)
+        return NoSignInNoticeChannel(gateway)
+    mark_channel(None)
+    sessions = DeviceSessionStore(redis_client, pepper, AuthStore(redis_client))
+    return PushSignInNotice(gateway, sessions)
 
 
 def _doctor_link_service(auth: AuthWiring | None) -> DoctorLinkService | None:
@@ -700,6 +727,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(documents.router)
     app.include_router(record_items.router)
     app.include_router(otp_routes.router)
+    app.include_router(session_routes.router)
     app.include_router(consents.router)
     app.include_router(profile_routes.router)
     app.include_router(taxonomy_routes.router)

@@ -222,6 +222,9 @@ class AccessRecord:
     patient_id: uuid.UUID
     tenant_id: uuid.UUID
     jkt: str
+    #: INT-583: the refresh family the token was issued with, so signing a
+    #: device out ends its access tokens too. None on a record written before.
+    family_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -559,7 +562,13 @@ class AuthStore:
     # --- tokens ------------------------------------------------------------------------
 
     def save_access(
-        self, token_hash: str, *, patient_id: uuid.UUID, tenant_id: uuid.UUID, jkt: str
+        self,
+        token_hash: str,
+        *,
+        patient_id: uuid.UUID,
+        tenant_id: uuid.UUID,
+        jkt: str,
+        family_id: str | None = None,
     ) -> None:
         record = {
             "patient_id": str(patient_id),
@@ -567,6 +576,8 @@ class AuthStore:
             "jkt": jkt,
             "expires": self._now() + ACCESS_TTL_S,
         }
+        if family_id is not None:
+            record["family_id"] = family_id
         self._r.set(self._key("acc", token_hash), json.dumps(record), ex=ACCESS_TTL_S * 2)
 
     def get_access(self, token_hash: str) -> AccessRecord | None:
@@ -577,10 +588,12 @@ class AuthStore:
         if float(record["expires"]) < self._now():
             self._r.delete(self._key("acc", token_hash))
             return None
+        family = record.get("family_id")
         return AccessRecord(
             patient_id=uuid.UUID(record["patient_id"]),
             tenant_id=uuid.UUID(record["tenant_id"]),
             jkt=str(record["jkt"]),
+            family_id=str(family) if family is not None else None,
         )
 
     def save_refresh(
@@ -632,6 +645,12 @@ class AuthStore:
         record = json.loads(raw)
         record["status"] = "rotated"
         self._r.set(key, json.dumps(record), ex=REFRESH_TTL_S)
+
+    def family_alive(self, family_id: str) -> bool:
+        """INT-583: whether the refresh family still exists. A revoked family
+        (refresh reuse, or its device signed out) is gone, and an access token
+        issued with it is refused from then on rather than at its expiry."""
+        return bool(self._r.exists(self._key("fam", family_id)))
 
     def revoke_family(self, family_id: str) -> int:
         """Reuse detection (files/10 §2): kill every member of the family."""

@@ -64,6 +64,7 @@
       ],
       "react-native-health-connect",
       "expo-secure-store",
+      "expo-notifications",
       [
         "@livekit/react-native-expo-plugin",
         {
