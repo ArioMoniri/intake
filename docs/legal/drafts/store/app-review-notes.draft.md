@@ -26,6 +26,7 @@ missing item is a reason to wait. It is not something to describe around.
 | 9 | Release stays manual, and the public release waits. The production host receives simulated patients only until an in-country host or counsel's cross-border decision exists. Use TestFlight internal testing and the Play internal track until then. `store.config.json` pins `automaticRelease: false`. | HB-I5, HB-L11 |
 | 10 | The note the patient sends reaches the clinician they choose. The notes say the app "sends it only to the clinician the user chooses". The listing promo, the store frames and the review notes may promise delivery only once it works. Until then, the review notes stay out of App Store Connect (INT-502 legal review, B4 and B5). | INT-587 (#988) |
 | 11 | No patient-facing RED or urgency screen in the build sent for review, on the host it uses. The notes say the app 'does not tell the user how urgent a complaint is'. | INT-117 (`tests/legal/test_device_functions_gate.py`) |
+| 12 | Document upload completes on the host the review build uses. The notes say a photographed report 'can be uploaded'; today the host has no malware scanner and upload fails closed. | the host's scanner (docs/runbooks/staging.md) |
 
 ## 2 · The reviewer account
 

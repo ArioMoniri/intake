@@ -26,6 +26,7 @@ What this suite pins, in the order the harm would arrive:
 from __future__ import annotations
 
 import base64
+import dataclasses
 import json
 import re
 import shutil
@@ -133,6 +134,8 @@ def test_the_review_notes_are_held_until_they_are_true(served: Path) -> None:
         "INT-117 Stage A (static 112 notice; no patient-facing RED on the review host)",
         "INT-488",
         "INT-587",
+        "INT-440",
+        "scanner",
     ):
         assert needle in blocked, needle
     # R1: the EAS route is held by the same submission field, so neither the
@@ -180,6 +183,43 @@ def test_the_served_listing_promises_no_voice_or_upload_this_build_lacks() -> No
     assert VOICE_TERMS.search("Şikâyetinizi sesli anlatabilirsiniz."), "near miss: tr voice"
     assert VOICE_TERMS.search("You can speak your answers."), "near miss: en voice"
     assert UPLOAD_TERMS.search("Raporlarınızı yükleyebilirsiniz."), "near miss: tr upload"
+
+
+def test_unheld_review_notes_promise_no_voice_or_upload_this_build_lacks(
+    served: Path,
+) -> None:
+    """Legal re-check R4: once the hold is lifted the notes go out, so they must pass
+    the same voice and upload checks as the listing, under the same conditions."""
+    submission = eas.load_submission(eas.submission_path(served))
+    assert _unheld_note_findings(submission) == []
+    # Near miss: notes that still promise voice and upload, with the hold lifted.
+    lifted = dataclasses.replace(
+        submission,
+        review_notes_hold=None,
+        review_notes="The user describes their complaints by voice. "
+        "A photographed report can be uploaded.",
+    )
+    expected = [
+        name
+        for name, present in (
+            ("voice", not _store_build_has_voice()),
+            ("upload", not _host_scans_uploads()),
+        )
+        if present
+    ]
+    assert _unheld_note_findings(lifted) == expected
+
+
+def _unheld_note_findings(submission: eas.AppStoreSubmission) -> list[str]:
+    """What unheld notes promise that this build lacks; nothing while the hold stands."""
+    if submission.review_notes_hold is not None:
+        return []
+    found: list[str] = []
+    if not _store_build_has_voice() and VOICE_TERMS.search(submission.review_notes):
+        found.append("voice")
+    if not _host_scans_uploads() and UPLOAD_TERMS.search(submission.review_notes):
+        found.append("upload")
+    return found
 
 
 def _served_fields(locale: str) -> dict[str, object]:
