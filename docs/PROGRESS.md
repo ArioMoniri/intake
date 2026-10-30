@@ -1,5 +1,24 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T12:00:00+03:00 · INT-593 · done (PR open)
+- Goal: GitHub #1004, Sec-Row `kiosk`. `test_a_replayed_nonce_is_refused_and_a_tampered_replay_does_not_burn_it` tampered with `signature[:-2] + 'AA'` over a random nonce. When the HMAC already ended in `AA`, the tamper was the genuine token and the test failed with `DID NOT RAISE CheckinSignatureInvalid` (seen in INT-583's local `make check`). The rate is 1 in 1024, not 1 in 4096: the 43rd base64url character of a 32-byte digest carries only 4 data bits.
+- Plan: flip one bit of the decoded digest and re-encode, never rewrite a suffix (the last character's low 2 bits are padding). Parametrize the replay test over a random nonce and a derived nonce whose signature ends in `AA`. Add a near miss. Sweep the other suffix tampers. Test-only.
+- Tests added (with the near-miss negative for any safety rule): `tests/connectors/test_checkin.py`:
+  - The replay test is parametrized `[random_nonce, signature_ends_in_aa]`.
+  - Near miss: for the `AA` nonce the old tamper is the identity, and a last-character swap decodes to the same digest. For all 256 bit positions the new tamper differs in exactly one decoded bit and is refused as `CheckinSignatureInvalid`.
+  - Red: 2 failed of 22, `[signature_ends_in_aa]` with the exact CI line. Green: 22 passed, 10/10 consecutive. Over 20,000 random nonces: old tamper identity 17, new 0, new accepted 0.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py-static` green.
+  - check-py's connectors line: 342 passed, 95.19% branch coverage.
+  - tests/backlog + smoke: 74 passed at 383.
+  - `no_placeholders` OK; `evidence_check` OK.
+  - The whole-suite check-py line, check-ts, check-i18n and `make safety` were not run locally (nothing they cover changed); CI runs them.
+- Invariants touched and still passing: 14 (signing scheme, unchanged); the INT-163 kiosk control that a tampered replay never burns a nonce, now tested deterministically.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: merge once CI is green.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

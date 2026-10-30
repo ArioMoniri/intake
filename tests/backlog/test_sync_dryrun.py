@@ -156,7 +156,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-536 (consent-screen copy true for the host, GitHub #903)
     # + INT-585 (the owner's 28 Oct SMS decisions as D34-D38, GitHub #984)
     # + INT-587 (the note reaches the clinician from a release build, GitHub #988)
-    assert len(actions) == 382
+    # + INT-593 (the check-in tampered-replay test always tampers, GitHub #1004)
+    assert len(actions) == 383
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

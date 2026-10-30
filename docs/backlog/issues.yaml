@@ -7597,3 +7597,28 @@
   tests: [apps/mobile/src/lib/intake/delivery/payload.test.ts, apps/mobile/src/lib/intake/delivery/outbox.test.ts, apps/mobile/src/lib/intake/delivery/transport.test.ts, apps/mobile/src/lib/intake/delivery/engine.test.ts, apps/mobile/src/lib/intake/delivery/store.test.ts, apps/mobile/src/lib/consent/share.test.ts, apps/mobile/src/lib/consent/api.test.ts, apps/mobile/src/lib/shares/stepUp.test.ts, apps/mobile/src/lib/shares/issue.test.ts, apps/mobile/e2e/noteDelivery.spec.ts, tests/api/test_note_delivery.py]
   legal: "KVKK-5,KVKK-6"
   sec_row: "review-send"
+- id: INT-593
+  epic: E10-connectors
+  phase: P2
+  title: "The check-in tampered-replay test always tampers — a signature that already ends in AA no longer makes it flaky"
+  # GitHub #1004, 30 Oct 2026, seen in a local make check for INT-583 (three
+  # reruns passed). The replay test built its tamper as signature[:-2] + 'AA'
+  # over a random nonce, so when the HMAC already ended in "AA" the "tampered"
+  # token was the genuine one: it verified, burned the nonce, and the test
+  # failed with DID NOT RAISE CheckinSignatureInvalid. The issue estimated 1
+  # in 4096; it is 1 in 1024, because the 43rd base64url character of a
+  # 32-byte digest carries only four data bits. Test-only: the verifier, the
+  # nonce store and the order that consumes the nonce last are unchanged.
+  depends_on: [INT-163]
+  labels: [area:connectors]
+  status: done
+  evidence: docs/evidence/INT-593.md
+  acceptance:
+    - "the flake is reproduced before it is fixed: a deterministic nonce whose signature ends in \"AA\" makes the old tamper return the genuine token, and the red run is recorded in docs/evidence/INT-593.md"
+    - "the tamper always differs: it flips one bit of the DECODED 32-byte signature and re-encodes it, so the result is well-formed base64url of the right length that decodes to different bytes. Swapping the last character is not used, because the last character's two low bits are padding: 'A' -> 'B' decodes to the same digest, which a byte-comparing verifier would accept"
+    - "the test's intent is unchanged: a tampered copy of the same nonce fails the signature check before consume, and the genuine token still verifies against that store afterwards"
+    - "near miss, deterministic: for the \"AA\" nonce the old tamper equals the original and the new one differs from it in exactly one decoded bit; the helper is also checked for every bit position"
+    - "no test is skipped, quarantined or deleted (docs/TDD.md rule 7); test-only change, no product code"
+    - "sweep: every other suffix-rewrite tamper in tests/ is listed in the evidence with whether its input is random"
+  tests: [tests/connectors/test_checkin.py]
+  sec_row: "kiosk"
