@@ -586,7 +586,13 @@ it or whose tests exercise it.
   minted or sent. A withheld request still spends the caller's address and device budgets,
   runs the same Redis commands as an admission (the rest against a key that expires in a
   second) and appends one audit row (`auth.otp.withheld` beside `auth.otp.requested`), so its
-  work and its time are an admission's. The vendor call left the response path
+  work and its time are an admission's. A number off the synthetic host's test list is a
+  stranger's, typed by a caller, so its row is written under `system:otp-withheld` and carries
+  no ref of it: the chain is kept ten years in WORM storage, and INT-308 keeps no trace of a
+  number nobody admitted (legal review, 30 Oct 2026). A number on the list keeps its ref. A
+  vendor that raises anything but its typed error is contained in `_deliver` (logged by type,
+  recorded as a failed delivery, the audit appended outside the handler, the task's outcome
+  retrieved and named by type), so this branch logs no number or code on its own. The vendor call left the response path
   (`OtpAuthService._dispatch`; `settle` waits for it in tests and, bounded, at shutdown); the
   202 carries no vendor job id. What still differs is the same for every number: a malformed
   number (422), the carrier check's unallocated prefix (422, a fact of the numbering plan),

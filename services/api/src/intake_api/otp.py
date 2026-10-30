@@ -590,7 +590,10 @@ class OtpAuthService:
             SEC_OTP_REQUESTS_TOTAL.labels(outcome=outcome).inc()
             await asyncio.to_thread(self._store.withhold_code, self._wiring.dev_otp_peek)
             await self._audit.record(
-                actor=actor,
+                # legal review, 30 Oct 2026: a number off the test list is a
+                # stranger's, typed by a caller; the chain is kept ten years in
+                # WORM storage, so its row names no ref of it (INT-308)
+                actor=actor if listed else "system:otp-withheld",
                 action="auth.otp.withheld",
                 resource_ref=f"request:{request_id}",
                 consent_scope="scope:auth",
