@@ -400,10 +400,16 @@ def test_backlog_parses_and_is_complete() -> None:
     # a guard against the old name, GitHub #712); grows only with a stated reason.
     # + INT-560 (the operability registry page tells the truth about the host
     # it runs on, owner request, GitHub #948); grows only with a stated reason.
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host, GitHub #896); grows only with a stated
+    # reason.
+    # + INT-537 (the app grants the core consent that visits and notes require,
+    # INT-529 finding F2, GitHub #904); grows only with a stated reason.
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
     # + INT-559 (the app's voice lane never writes patient audio to a file —
     # invariant 3 with no dev exception, from the INT-536 legal review,
     # GitHub #947); grows only with a stated reason.
-    assert len(ids) == 373, f"expected 175 blueprint + 198 added issues, got {len(ids)}"
+    assert len(ids) == 376, f"expected 175 blueprint + 201 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

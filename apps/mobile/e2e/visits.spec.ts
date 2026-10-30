@@ -12,6 +12,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { tr } from "../src/lib/i18n/tr";
+
 const SRC = join(__dirname, "..", "src");
 const APP = join(SRC, "app");
 
@@ -103,6 +105,74 @@ describe("the OCR path sits behind the documents consent, fail closed", () => {
     // licence_verified_at entry — the engine half of the gate is anchored
     // to that clause in source, so nobody flips it without meeting it
     expect(visits).toContain("4.9.2(f)");
+  });
+});
+
+/**
+ * INT-537 (GitHub #904). Visits and notes require the `core` açık rıza scope
+ * (services/api visits.py and notes.py declare it), and nothing in the app
+ * granted it. Acceptance: without core, visit start refuses with a clear B1
+ * message that leads to the consent control; with it, a visit starts.
+ */
+describe("visit start needs the core consent, and leads to it (INT-537)", () => {
+  const screen = () => read(APP, "(tabs)/visits/new.tsx");
+
+  it("the screen reads the consent ledger, seeded for this account", () => {
+    const source = screen();
+    expect(source).toContain("useConsentLedger()");
+    expect(source).toContain("seedLedgerForAccount(account.id, consents)");
+    // a ledger nobody seeded yet is not this account's answer
+    expect(source).toContain("ledgerSeededFor(account.id)");
+    expect(source).toContain("coreGate(ledger)");
+  });
+
+  it("save refuses before a visit is added while the gate is shut", () => {
+    const source = screen();
+    const start = source.indexOf("const save = ");
+    const save = source.slice(start, source.indexOf("\n  };", start));
+    expect(save).toContain("!gate.open");
+    expect(save.indexOf("!gate.open")).toBeLessThan(save.indexOf("addVisit("));
+  });
+
+  it("the refusal is B1 copy from the catalogue and its one action opens the core text", () => {
+    const source = screen();
+    for (const key of [
+      "visits.new.core.kicker",
+      "visits.new.core.title",
+      "visits.new.core.body",
+      "visits.new.core.staleBody",
+      "visits.new.core.pendingBody",
+      "visits.new.core.cta",
+      "visits.new.core.pendingCta",
+    ]) {
+      expect(source).toContain(`"${key}"`);
+      expect(read(SRC, "lib", "i18n", "tr.ts")).toContain(`"${key}"`);
+      expect(read(SRC, "lib", "i18n", "en.ts")).toContain(`"${key}"`);
+    }
+    expect(source).toContain('router.push(`/(tabs)/me/consents/${purposeParam("core")}`)');
+  });
+
+  it("with no core text served, the screen never invites the patient to read one", () => {
+    // a real tenant serves no text until counsel signs (HB-L27): the body
+    // and the button say the text is on its way instead (legal review round 2)
+    const source = screen();
+    expect(source).toContain('gate.reason === "no_text"');
+    // the pending pair says the text is being prepared; the button does not
+    // promise a text to read
+    expect(tr["visits.new.core.pendingBody"]).toContain("hazırlanıyor");
+    expect(tr["visits.new.core.pendingCta"]).not.toMatch(/metn|okuyun/i);
+    expect(tr["visits.new.core.cta"]).toContain("okuyun");
+  });
+
+  it("the gate asks for core and for nothing optional (files/02 §7)", () => {
+    const gate = read(SRC, "lib", "consent", "gate.ts");
+    const body = gate.slice(gate.indexOf("export function coreGate"));
+    expect(body).toContain('"core"');
+    for (const optional of ["voice", "wellbeing", "documents", "satisfaction", "research"]) {
+      expect(body).not.toContain(`"${optional}"`);
+    }
+    // the screen has one consent question, and it is this one
+    expect(screen()).not.toContain("viewOf(");
   });
 });
 

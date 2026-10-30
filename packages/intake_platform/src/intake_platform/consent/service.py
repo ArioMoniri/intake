@@ -20,7 +20,10 @@ Semantics, stated once and pinned by tests/legal/:
   reaches everything) and live shares (core and share-family withdrawals
   drop live Doctor-Link rows — files/06 §2.3). Withdrawal of a default-on
   purpose with no rows materialises an opt-out row, because an opt-out that
-  leaves no record is an opt-out nobody can prove.
+  leaves no record is an opt-out nobody can prove. A core withdrawal does
+  the same for every default-on purpose that has no row (INT-537): the core
+  text tells the patient every other permission closes with it, and a
+  re-grant of core re-enables none of them.
 - **sweep** is crash recovery for the window between the revocation mark
   and its cascade: it re-derives incomplete cascades and completes them,
   sparing anything granted after the withdrawal instant. Its schedule
@@ -44,6 +47,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from intake_platform.consent.registry import (
     CHANNELS,
     CORE,
+    PURPOSES,
     dependents_of,
     resolve_scope,
 )
@@ -277,6 +281,49 @@ def _cascade_scope_ids(purpose_id: str) -> tuple[str, ...]:
     return dependents_of(purpose_id)
 
 
+def _opt_out_row(
+    *, tenant_id: uuid.UUID, patient_id: uuid.UUID, scope: str, instant: datetime
+) -> Consent:
+    """The record of an opt-out from a default-on purpose: granted and
+    revoked at the same instant, versioned OPT_OUT_VERSION (no açık rıza
+    text governs a non-consent basis)."""
+    return Consent(
+        tenant_id=tenant_id,
+        patient_id=patient_id,
+        scope=scope,
+        version=OPT_OUT_VERSION,
+        granted_at=instant,
+        revoked_at=instant,
+    )
+
+
+async def _materialise_default_opt_outs(
+    session: AsyncSession, *, tenant_id: uuid.UUID, patient_id: uuid.UUID, instant: datetime
+) -> list[Consent]:
+    """INT-537 (legal review B1): a core withdrawal closes every other
+    purpose, and the core text says so. A default-on purpose nobody decided
+    has no row to revoke, so its opt-out is written here. A purpose that
+    already has a row — a live one the core cascade just revoked, or an
+    earlier opt-out — is a recorded decision and gets nothing new."""
+    written: list[Consent] = []
+    for purpose in PURPOSES:
+        if not purpose.default_granted or purpose.parameterised:
+            continue
+        rows = await _rows_for_scope(
+            session, tenant_id=tenant_id, patient_id=patient_id, scope=purpose.id
+        )
+        if rows:
+            continue
+        row = _opt_out_row(
+            tenant_id=tenant_id, patient_id=patient_id, scope=purpose.id, instant=instant
+        )
+        session.add(row)
+        written.append(row)
+    if written:
+        await session.flush()  # ids for the audit refs
+    return written
+
+
 def _shares_fall_with(purpose_id: str) -> bool:
     # files/06 §2.3: withdrawal revokes delivered Doctor Links; a share
     # rides on the share-family consent, which rides on core.
@@ -303,6 +350,11 @@ async def _cascade(
                 continue
             row.revoked_at = revoke_at
             dependents.append(row)
+        dependents.extend(
+            await _materialise_default_opt_outs(
+                session, tenant_id=tenant_id, patient_id=patient_id, instant=revoke_at
+            )
+        )
     else:
         for child in _cascade_scope_ids(purpose_id):
             dependents.extend(
@@ -363,13 +415,8 @@ async def withdraw_consent(
             session, tenant_id=tenant_id, patient_id=patient_id, scope=scope
         )
         if all(row.revoked_at is not None for row in rows):
-            opt_out = Consent(
-                tenant_id=tenant_id,
-                patient_id=patient_id,
-                scope=scope,
-                version=OPT_OUT_VERSION,
-                granted_at=instant,
-                revoked_at=instant,
+            opt_out = _opt_out_row(
+                tenant_id=tenant_id, patient_id=patient_id, scope=scope, instant=instant
             )
             session.add(opt_out)
             await session.flush()
