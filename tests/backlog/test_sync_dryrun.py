@@ -159,7 +159,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-588 (patient copy is true in the no-voice release build, GitHub #989)
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993)
     # + INT-592 (a truthful NSHealthUpdateUsageDescription, ITMS-90683, GitHub #1000)
-    assert len(actions) == 385
+    # + INT-584 (the tokenization key moves into OpenBao, owner decision D38, GitHub #983)
+    assert len(actions) == 386
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

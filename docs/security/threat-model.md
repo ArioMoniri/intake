@@ -247,9 +247,35 @@ it or whose tests exercise it.
   compromise making pseudonyms forgeable or reversible.
 - **Controls (files/10):** §3 tokenization — keyed pseudonym (HMAC-SHA-256, rotated key),
   encrypted value in a separate vault table, logs and analytics see only the hash prefix.
+- **The pseudonym-key location bound, stated (INT-584, owner decision D38, 28 Oct 2026):**
+  the key every phone pseudonym is derived under lives in OpenBao at
+  `secret/api/tokenization` (field `key`) and the API reads it there and nowhere else
+  (`intake_api.tokenization_key`, invariant 14). No environment variable is read in any
+  environment, and a key left in the environment is never a fallback: it is named in a
+  warning and ignored. Absent, unreadable and malformed are told apart, and each keeps the
+  OTP tier and the previsit read-back at 503 with the typed reason
+  `tokenization_key_<state>`. The key is the hex text's UTF-8 bytes, exactly as the env path
+  used it, so the move changed no pseudonym; hex-decoding it would have forked every one. On
+  the synthetic host `infra/staging/tokenization_key.sh` moved the env file's
+  `INTAKE_TOKENIZATION_KEY` with the same material, on stdin only. It writes check-and-set,
+  reads back with the API's own token, proves equality without printing anything (a key
+  check value, an HMAC of a fixed label, and a fixed synthetic number's pseudonym
+  fingerprinted before the move and compared after it), and removes the env copy only after
+  both proofs. A different key already in OpenBao is refused loudly with both copies kept. A
+  deploy never makes a key. The API policy gains `read` on that one document and nothing
+  more. Dev reads the OpenBao dev server, which the dev setup seeds once with a random key;
+  only dev under file-dev KEKs takes a process-local one. **This closes the residual that
+  INT-581 recorded open** (the key read from the host's root-only env file). Residual: a
+  rollback to a release from before INT-584 needs the env copy back, and that release's
+  `init.sh` would mint a new key. The runbook forbids it, and this release's deploy refuses
+  such a key as a conflict.
 - **Signals:** redaction hits (§9 observability row) land with INT-023; catalogue entry with
-  INT-025.
-- **Tests:** tests/security/test_tokenization_roundtrip.py.
+  INT-025. `tokenization_key_state{state,origin}` (INT-584): which state the API's key is in
+  and where it came from (`env_file` after the D38 move). The owner's
+  `tokenization_key.sh --probe` prints `equal` or `differ` and nothing else.
+- **Tests:** tests/security/test_tokenization_roundtrip.py; INT-584:
+  `tests/api/test_tokenization_key.py`, `tests/api/test_tokenization_probe.py`,
+  `tests/infra/test_staging_tokenization_key.py`.
 
 ## `data-at-rest` — envelope encryption and RLS
 

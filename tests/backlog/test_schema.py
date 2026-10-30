@@ -263,7 +263,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993).
     # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
     # processing accepts the iOS build, ITMS-90683; GitHub #1000).
-    assert len(ids) == 385
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same
+    # key material, no pseudonym changes; owner decision D38, GitHub #983).
+    assert len(ids) == 386
     import re
 
     for i in ids:

@@ -83,6 +83,42 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. The motion class of Review & send is now `legal`, because it renders the share text.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: review the confirm-step rendering. Owner: re-sharing after a withdrawal and a sign-out warning for a queued note are not built (evidence §7).
 - Next: push when the freeze lifts, open the PR (`Sec-Row: review-send`, `Closes #988`), legal review.
+### 2026-10-29T00:40:00+03:00 · INT-584 · done (PR open; the merge-queue deploy runs the move, then the owner's probe)
+- Goal: GitHub #983, P1, Sec-Row `onboarding`, owner decision D38 (28 Oct 2026). The phone-tokenization key moves from the synthetic host's env file into OpenBao now, with the same key material, so no pseudonym changes. INT-581 recorded the env-file key as an open residual.
+- Plan:
+  - API: `intake_api.tokenization_key` reads OpenBao `secret/api/tokenization` (field `key`) through `SecretsProvider`, with the API's own token, and nowhere else.
+    - `ApiSettings.from_env` stops reading `INTAKE_TOKENIZATION_KEY`; a stray value is named and ignored.
+    - Absent, unreadable and malformed give the OTP tier and the previsit read-back a `503` with `reason: tokenization_key_<state>`.
+    - The key is the hex text's UTF-8 bytes, exactly as before (never hex-decoded).
+    - Dev: the OpenBao dev server, seeded once with a random key; file-dev alone takes a process-local key.
+    - `tokenization_key_state{state,origin}` is catalogued.
+  - Host: `infra/staging/tokenization_key.sh`, run by `deploy.sh` before the API starts (and by `init.sh --init`):
+    1. write the env value with check-and-set, on stdin;
+    2. read it back with the API's token;
+    3. prove equality by a key check value (HMAC of a fixed label) and by the pseudonym of a fixed synthetic number, fingerprinted before and compared after through `intake_api.tokenization_probe`;
+    4. only then remove the env copy.
+    A different key in OpenBao is a loud `CONFLICT` with both kept. A deploy never mints a key. `--probe` prints `equal` or `differ` only.
+  - compose and the env template drop the variable. The API policy gains `read` on the one document.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/api/test_tokenization_key.py` (37). Near misses: a key in the environment with OpenBao empty stays shut; a hex-decoded or one-character-off key forks the pseudonym; file-dev outside dev still reads OpenBao; with a key present, the OTP 503 names no key reason.
+  - `tests/api/test_tokenization_probe.py` (20). Near misses: one character off and another key id say `differ`.
+  - `tests/infra/test_staging_tokenization_key.py` (28): the real script over stand-ins, and the real probe module. Near misses: a one-character conflict is refused with both kept; a stale record keeps the env copy; a denied grant keeps the env copy.
+  - Updated: the staging compose, netgsm, previsit-output and netgsm-wiring tests, and the harness.
+  - Red: collection errors (`intake_api.tokenization_key` missing); 33 failed, 338 passed, 19 errors on the infra and previsit set. Green: 445 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff and format clean; mypy --strict clean (597 files); shellcheck -x clean.
+  - Whole Python suite in shards: 13147 passed, 0 failed.
+  - Catalogue gates 39 passed. no_placeholders, phi_scan, claims_scan and vendor-calls OK. gitleaks found no leaks.
+  - Pins moved from 372 to 373, and files/11 regenerated. `make safety` is untouched.
+- Invariants touched and still passing:
+  - 6: no key, pseudonym or number in any output, log or argv, tested;
+  - 13: one new series, catalogued live;
+  - 14: the secret comes only from OpenBao;
+  - 16: Sec-Row `onboarding`, with the files/10 §9 row and the threat-model `identifiers` bound updated;
+  - 17: no placeholders, never a literal key.
+- Decisions / ADRs / `00_STATE.md` rows: D38, recorded on `int-585-owner-sms-decisions`; none minted here. The policy file was edited in place: no CODEOWNERS file and no hook-protected entry cover it. LOOP.md's "never touch OpenBao policies" is flagged to the coordinator, with D38 as the owner's approval.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. After the merge-queue deploy, the owner or the queue runs `tokenization_key.sh --probe` over SSM and expects `equal`.
+- Next: merge; reconcile with #978 and the INT-577/579/581 stack (union of the policy grants, test sets and the §9 row; strike INT-581's residual sentence once both land).
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**385 issues.** By phase: P0 184 · P1 147 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 264 · todo 74 · withdrawn 1.
+**386 issues.** By phase: P0 184 · P1 148 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 265 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -347,6 +347,7 @@
 | INT-587 | The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app | E08-mobile | INT-137, INT-142, INT-150, INT-232, INT-311, INT-529 | area:mobile, area:api | done |
 | INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
 | INT-591 | Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable | E08-mobile | INT-588, INT-132 | area:mobile | done |
+| INT-584 | The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38) | E01-platform | INT-013, INT-017, INT-131, INT-345, INT-352 | area:api, risk:security | done |
 
 ## P2
 

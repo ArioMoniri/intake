@@ -429,7 +429,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
     # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
     # with a stated reason.
-    assert len(ids) == 385, f"expected 175 blueprint + 210 added issues, got {len(ids)}"
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same key
+    # material, owner decision D38, GitHub #983); grows only with a stated reason.
+    assert len(ids) == 386, f"expected 175 blueprint + 211 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

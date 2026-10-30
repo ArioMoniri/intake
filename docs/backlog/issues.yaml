@@ -7666,3 +7666,24 @@
   tests: [apps/mobile/e2e/brand.spec.ts, tests/legal/test_ios_purpose_strings.py]
   legal: "STORE"
   sec_row: "mobile"
+- id: INT-584
+  epic: E01-platform
+  phase: P1
+  title: "The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38)"
+  # GitHub #983. Owner decision D38, 28 Oct 2026 (in chat, "5Y"; recorded on
+  # int-585-owner-sms-decisions): INT-581 left the key in the synthetic host's
+  # root-only env file as a recorded residual. The API now reads it from
+  # OpenBao secret/api/tokenization only; deploy.sh moves the env copy with the
+  # same material, proves equality without printing it, and removes it only
+  # after. The probe is infra/staging/tokenization_key.sh --probe.
+  depends_on: [INT-013, INT-017, INT-131, INT-345, INT-352]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-584.md
+  acceptance:
+    - "The API reads the phone-tokenization key only from OpenBao secret/api/tokenization through the existing secrets path, in every environment; no environment variable is read and none is a fallback on the synthetic host. Absent, unreadable or malformed keeps the tiers that need it (the OTP tier, the previsit read-back) at 503 with a typed reason. Dev keeps its OpenBao dev server with a random key, never a literal."
+    - "deploy.sh migrates idempotently: OpenBao lacking the key and the env file holding it, the env value is written to OpenBao on stdin only (never argv, logs or output), equality is verified without printing it (an HMAC of a fixed label under each copy), and the env copy is removed only after verification. OpenBao holding a different value is refused loudly, both kept, exit non-zero."
+    - "A host probe computes the pseudonym of one fixed synthetic number before and after the migration and asserts equality, printing only equal or differ, never the pseudonym or the key."
+    - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
+  tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
+  sec_row: "onboarding"
