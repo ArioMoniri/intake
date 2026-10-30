@@ -258,9 +258,12 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-587 (the note reaches the clinician from a release build: the
     # note-sync client, the in-app share consent and Doctor Link from the app;
     # store-listing legal review B4, GitHub #988).
+    # + INT-588 (patient copy is true in the no-voice release build; store-
+    # listing legal review B6 precondition, GitHub #989).
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993).
     # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
     # processing accepts the iOS build, ITMS-90683; GitHub #1000).
-    assert len(ids) == 383
+    assert len(ids) == 385
     import re
 
     for i in ids:

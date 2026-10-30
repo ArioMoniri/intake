@@ -422,10 +422,14 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-587 (the note reaches the clinician from a release build: note-sync
     # client, in-app share consent, Doctor Link from the app, GitHub #988);
     # grows only with a stated reason.
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub
+    # #989); grows only with a stated reason.
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub
+    # #993); grows only with a stated reason.
     # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
     # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
     # with a stated reason.
-    assert len(ids) == 383, f"expected 175 blueprint + 208 added issues, got {len(ids)}"
+    assert len(ids) == 385, f"expected 175 blueprint + 210 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

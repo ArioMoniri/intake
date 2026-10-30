@@ -1896,6 +1896,29 @@ it or whose tests exercise it.
   whole patient-audio path plus a node-driven turn under a storage trap),
   `apps/mobile/e2e/bargeIn.spec.ts` and
   `apps/mobile/src/lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts`.
+- **INT-588 — copy true for the build it ships in.** Threat: [U/R] the release build telling
+  the patient something false about itself — a voice or dictation option it does not have, a
+  "sent" before delivery, or consent chrome that contradicts the docs/legal text the server
+  serves (KVKK m.10: an aydınlatma that misstates where data is processed or who sees it).
+  Controls: build-aware copy chosen in one pure module (`apps/mobile/src/lib/buildCopy.ts`)
+  — the open-answer hint names dictation only where the button is drawn, the voice start
+  mode is not offered in a release build, the companion's text-only effect is listed only
+  where questions can be spoken; voice clauses that never had to exist are gone from the
+  welcome line, the integrity warning and the companion footer; the consent "who" rows are
+  INT-536's on main (tests/legal/test_consent_who_lines.py), and INT-588 holds them to naming
+  no affirmative recipient without a served text; every "sent" line renders only behind a
+  confirmed delivery (INT-587). Tests: `apps/mobile/src/lib/buildCopy.test.ts` (release-mode
+  resolution with near misses; claims pinned to their surfaces; the rows read against the
+  served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the helper on the
+  same facts that draw the button). No signal: copy truth is a build property.
+- **INT-591 — no consent a release build cannot use.** Threat: [L] special-category consent
+  evidence recorded for a feature the build does not have (KVKK m.4 proportionality), and a
+  choice offered that changes nothing. Control: in a release build İzinleriniz offers no grant
+  action for `voice` and `lane:affect` and says why on the group and the detail
+  (`consentActions`, `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`); a standing grant
+  keeps its withdraw control. Tests: `apps/mobile/src/lib/buildCopy.consent.test.ts` (no grant in
+  release; near misses: a standing grant is withdrawable, dev and other purposes unchanged) and
+  `apps/mobile/e2e/releaseCopy.spec.ts`.
 
 ## `experience` — satisfaction and wait-time measurement
 
