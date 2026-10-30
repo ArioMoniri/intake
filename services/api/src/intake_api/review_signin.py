@@ -38,7 +38,7 @@ import hmac
 import logging
 import re
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
@@ -50,12 +50,13 @@ from intake_platform.red_tenant import TenantKind
 from intake_platform.secrets import SecretsBootError, SecretsProvider
 from intake_platform.tokenization import Tokenizer
 from intake_platform.voice_control.store import voice_control_store_from_env
-from prometheus_client import Counter
+from prometheus_client import Counter, Gauge
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.auth_store import OTP_CODE_DIGITS
 from intake_api.db import tenant_session
 from intake_api.otp_pepper import OtpPepper
+from intake_api.review_record import review_record_problem
 from intake_api.review_window import (
     REVIEW_TENANT_ID,
     ReviewGuards,
@@ -72,6 +73,7 @@ __all__ = [
     "REVIEW_OUTCOMES",
     "REVIEW_SIGNIN_KV_PATH",
     "REVIEW_STEPS",
+    "REVIEW_SIGNIN_DOCUMENT_UNREADABLE",
     "REVIEW_TENANT_ID",
     "SEC_REVIEW_SIGNIN_TOTAL",
     "ReviewGuards",
@@ -143,6 +145,12 @@ REVIEW_LABELS: Final[Mapping[str, frozenset[str]]] = {
 REVIEW_STEPS: Final = frozenset(REVIEW_LABELS)
 REVIEW_OUTCOMES: Final = frozenset().union(*REVIEW_LABELS.values())
 
+#: 1 while OpenBao could not answer for the reviewer document at start (not
+#: "absent": unreachable, refused, malformed), else 0. Security review N3.
+REVIEW_SIGNIN_DOCUMENT_UNREADABLE: Final = Gauge(
+    "review_signin_document_unreadable",
+    "1 while OpenBao could not be read for the App Review reviewer document, else 0.",
+)
 SEC_REVIEW_SIGNIN_TOTAL: Final = Counter(
     "sec_review_signin_total",
     "Uses of the App Review sign-in, by step (request, verify) and outcome.",
@@ -255,17 +263,35 @@ def _document_values(document: Mapping[str, object]) -> tuple[str | None, str | 
     )
 
 
+def _absent(exc: Exception) -> bool:
+    """A document that does not exist, as opposed to an OpenBao that cannot answer."""
+    if isinstance(exc, KeyError):
+        return True
+    return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 404
+
+
 def _read_document(secrets: KvSecrets | None) -> Mapping[str, object] | None:
     try:
         vault = secrets if secrets is not None else SecretsProvider.from_env()
-        return vault.get_kv(REVIEW_SIGNIN_KV_PATH)
+        document = vault.get_kv(REVIEW_SIGNIN_KV_PATH)
     except (SecretsBootError, httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
-        logger.info(
-            "review sign-in not configured: no readable document at OpenBao secret/%s (%s)",
-            REVIEW_SIGNIN_KV_PATH,
-            type(exc).__name__,
-        )
+        if _absent(exc):
+            REVIEW_SIGNIN_DOCUMENT_UNREADABLE.set(0)
+            logger.info(
+                "review sign-in not configured: no document at OpenBao secret/%s",
+                REVIEW_SIGNIN_KV_PATH,
+            )
+        else:
+            # security review N3: an OpenBao that cannot answer is not "no reviewer"
+            REVIEW_SIGNIN_DOCUMENT_UNREADABLE.set(1)
+            logger.warning(
+                "review sign-in not configured: OpenBao secret/%s could not be read (%s)",
+                REVIEW_SIGNIN_KV_PATH,
+                type(exc).__name__,
+            )
         return None
+    REVIEW_SIGNIN_DOCUMENT_UNREADABLE.set(0)
+    return document
 
 
 def review_signin_from_vault(
@@ -313,10 +339,15 @@ def review_signin_from_vault(
 
 
 def review_readiness(
-    settings: ApiSettings, secrets: KvSecrets | None, guards: ReviewGuards
+    settings: ApiSettings,
+    secrets: KvSecrets | None,
+    guards: ReviewGuards,
+    record: Callable[[], str | None] = review_record_problem,
 ) -> str | None:
     """Why the window may not open here, or None: the owner's ``on`` refuses
-    unless a reviewer could sign in. Names facts, never a value."""
+    unless a reviewer could sign in, and unless the reviewer's processing
+    record and notice are complete and hash-bound (``intake_api.review_record``).
+    Names facts, never a value."""
     failed = review_gate(settings)
     if failed:
         return "not the synthetic host's synthetic tenant (" + ", ".join(failed) + ")"
@@ -334,7 +365,7 @@ def review_readiness(
     number, code = _document_values(document)
     if number is None or code is None:
         return f"no well-formed reviewer number and code at secret/{REVIEW_SIGNIN_KV_PATH}"
-    return None
+    return record()
 
 
 # --- the reviewer's tenant and patient --------------------------------------------------------

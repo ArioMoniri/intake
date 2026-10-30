@@ -72,3 +72,16 @@ the data inventory — the invariant-18 annotations on every column, plus the
 flows that have no column — by `intake_platform.store.declaration`, and a fact
 the taxonomy does not map is refused rather than defaulted. A declaration that
 disagrees with the inventory is a defect, so it is never written by hand.
+
+## `review/` — the App Store reviewer (INT-488)
+
+The App Review reviewer signs in to a synthetic-only demo account, and is a real person while
+they do. Two files carry their side of it, and `python -m intake_api.review_cli on` refuses to
+open a review window unless both hold:
+
+- `app-review-signin-notes.en.md` — the review notes the owner pastes into App Store Connect: the
+  sign-in steps and the reviewer's notice, in the legal lane's words. `review_signin.sh
+  --reveal-to-owner` prints it byte for byte and refuses on a hash mismatch;
+- `review-signin.yaml` — the processing record {purpose, basis, retention, recipients,
+  transfer_route, notice_sha256, reviewed_by, reviewed_on}. `notice_sha256` binds the notes.
+  Every field must be set; `transfer_route` is counsel's (INT-528, HB-L11).

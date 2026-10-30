@@ -33,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import math
 import secrets
 import time
 import uuid
@@ -66,6 +67,10 @@ _WINDOW_ID_BYTES: Final = 16
 #: enough for an App Review round and its resubmission, short enough that a
 #: window nobody closed still ends. The owner may change it in a reviewed diff.
 REVIEW_WINDOW_S: Final = 14 * 24 * 3600
+#: How far ahead of this process's clock an opening instant may be before the
+#: window reads garbled (security review N4): the API and the owner's command
+#: run on one host, so anything more is a clock gone wrong or a forged document.
+_CLOCK_SKEW_S: Final = 60.0
 
 
 def review_patient(window_id: str) -> tuple[uuid.UUID, str]:
@@ -104,6 +109,7 @@ class ReviewWindow:
         self._r = redis_client
         self._now_fn = now_fn
         self._key = f"{key_prefix}:review:window"
+        self._unrecorded = f"{key_prefix}:review:unrecorded_closes"
 
     def _now(self) -> float:
         return self._now_fn() if self._now_fn is not None else time.time()
@@ -124,9 +130,13 @@ class ReviewWindow:
             window_id = document["id"]
             if not isinstance(window_id, str) or len(window_id) != 2 * _WINDOW_ID_BYTES:
                 return None
-            return WindowState(since=float(document["since"]), id=window_id)
+            since = float(document["since"])
         except (ValueError, KeyError, TypeError):
             return None
+        if not math.isfinite(since) or since > self._now() + _CLOCK_SKEW_S:
+            # a non-finite or future opening would never expire: garbled, closed
+            return None
+        return WindowState(since=since, id=window_id)
 
     def expired(self, state: WindowState) -> bool:
         return self._now() >= state.closes_at
@@ -162,6 +172,32 @@ class ReviewWindow:
             "id": secrets.token_hex(_WINDOW_ID_BYTES),
         }
         return bool(self._r.set(self._key, json.dumps(document), nx=True))
+
+    # --- closes whose audit row is not yet on the chain (security review N2) ---
+
+    def note_unrecorded_close(self, actor: str) -> None:
+        """Remember a close whose row has not been appended yet, before the
+        append is tried: a row lost to a failed append or a crash is then
+        re-recorded by the API's sweep, under the actor who closed."""
+        self._r.rpush(self._unrecorded, json.dumps({"actor": actor, "at": self._now()}))
+
+    def first_unrecorded_close(self) -> str | None:
+        """The actor of the oldest close still waiting for its row, or None."""
+        raw = self._r.lindex(self._unrecorded, 0)
+        if raw is None:
+            return None
+        try:
+            actor = json.loads(raw)["actor"]
+        except (ValueError, KeyError, TypeError):
+            return "system:review-guard"
+        return actor if isinstance(actor, str) else "system:review-guard"
+
+    def recorded_close(self) -> None:
+        """The oldest waiting close now has its row."""
+        self._r.lpop(self._unrecorded)
+
+    def unrecorded_closes(self) -> int:
+        return int(self._r.llen(self._unrecorded))
 
     def close(self, expect_id: str | None = None) -> bool:
         """Close the window. True when it held anything. With ``expect_id``,

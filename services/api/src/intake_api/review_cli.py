@@ -85,10 +85,10 @@ def _default_readiness() -> str | None:
 
 
 def _default_reset() -> str | None:
-    """Empty the reviewer tenant through the platform's erasure. Run with the
-    deployment's owner role, the one that provisions the tenant: the role a
-    patient's own erasure runs as is INT-394's open decision, and this reset
-    touches the reviewer tenant only."""
+    """Empty the reviewer tenant through the platform's erasure, as the app
+    role or the role INT-394 decides (``INTAKE_API_ERASURE_DB_URL``). Until
+    INT-394 grants that role what the erasure needs, INT-395's preflight
+    refuses, typed and audited, and ``on`` stays shut."""
     import asyncio
 
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
@@ -107,7 +107,8 @@ def _default_reset() -> str | None:
     )
 
     async def run() -> int:
-        engine = build_engine(settings.bootstrap_db_url)
+        # the app role, or the role INT-394 decides; never the owner role
+        engine = build_engine(settings.erasure_db_url or settings.app_db_url)
         audit_engine = create_engine(settings.audit_db_url)
         try:
             return await reset_review_tenant(
@@ -211,21 +212,34 @@ def _close(
     reset: Callable[[], str | None],
     out: TextIO,
 ) -> int:
-    """Closed first (the safer state), then recorded, then emptied."""
+    """Closed first (the safer state), then recorded, then emptied. The close
+    is noted before its row is tried, so a row the audit store refuses is
+    re-recorded by the API's sweep (security review N2)."""
     code = 0
     try:
         closed = window.close()
+        if closed:
+            window.note_unrecorded_close("operator:host")
     except redis.RedisError:
         print("review window: unreadable store; it reads closed, but run --off again", file=out)
         return 1
-    if closed and not _appended(
-        audit, "off", out, "review window: closed, but the close could not be audited"
-    ):
-        code = 1
+    if closed:
+        if _appended(
+            audit,
+            "off",
+            out,
+            "review window: closed, but the close could not be audited; "
+            "the API's sweep records it once the audit store answers",
+        ):
+            window.recorded_close()
+        else:
+            code = 1
     problem = reset()
     if problem is not None:
         print(
-            f"review window: closed, but the reviewer tenant was not emptied: {problem}", file=out
+            f"review window: closed, but the reviewer tenant was not emptied: {problem}; "
+            "the API's sweep retries it",
+            file=out,
         )
         code = 1
     return code

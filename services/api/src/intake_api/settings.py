@@ -75,6 +75,8 @@ ENV_KEK_MODE = "INTAKE_API_KEK_MODE"
 ENV_APP_DB_URL = "INTAKE_API_DB_URL"
 ENV_AUDIT_DB_URL = "INTAKE_API_AUDIT_DB_URL"
 ENV_BOOTSTRAP_DB_URL = "INTAKE_API_BOOTSTRAP_DB_URL"
+#: INT-488 / INT-394: the erasure role's URL, once INT-394 decides the role.
+ENV_ERASURE_DB_URL = "INTAKE_API_ERASURE_DB_URL"
 ENV_MINIO_USER = "MINIO_ROOT_USER"
 ENV_MINIO_PASSWORD = "MINIO_ROOT_PASSWORD"  # noqa: S105 — env var name
 # Each of these falls back to an in-code dev credential when absent in dev;
@@ -286,6 +288,11 @@ class ApiSettings:
     # App Review sign-in admits only the synthetic host's synthetic tenant;
     # the default, like every other reading, is real PHI (fail closed).
     deployment_data_class: TenantDataClass = TenantDataClass.REAL_PHI
+    # INT-488 / INT-394 (#650): the database role the App Review reviewer
+    # tenant's erasure runs as. Unset, it runs as the app role, and INT-395's
+    # preflight refuses it until the grants INT-394 decides exist. Set it to
+    # the decided role's URL once INT-394 is answered; nothing else changes.
+    erasure_db_url: str | None = None
     # INT-465: admit a served set citing a tests/fixtures snapshot. Test harness
     # only: from_env never sets it, so no deployment can.
     triage_fixture_sources: bool = False
@@ -379,5 +386,6 @@ class ApiSettings:
             triage_tenant_kind=_triage_tenant_kind(os.environ),
             triage_deployment=os.environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip() or None,
             deployment_data_class=declared_data_class(os.environ),
+            erasure_db_url=os.environ.get(ENV_ERASURE_DB_URL) or None,
             environment=environment_name(os.environ),
         )

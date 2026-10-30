@@ -32,6 +32,7 @@ import pytest
 from staging_host_kit import LIB, POLICY, REPO, ROOT_TOKEN, STAGING, Host, typed_session
 
 SCRIPT = STAGING / "review_signin.sh"
+NOTES = REPO / "docs" / "legal" / "store" / "review" / "app-review-signin-notes.en.md"
 RUNBOOK = REPO / "docs" / "runbooks" / "review-signin.md"
 NUMBER = re.compile(r"\+905[0-9]{9}")
 CODE = re.compile(r"[0-9]{6}")
@@ -94,8 +95,8 @@ class ReviewHost(Host):
             "COMPOSE_LOG": str(self.compose_log),
         }
 
-    def argv(self, mode: str) -> list[str]:
-        body = f'source "{LIB}"\nsource "{SCRIPT}"\n{_STAND_IN}\nmain {mode}\n'
+    def argv(self, mode: str, prelude: str = "") -> list[str]:
+        body = f'source "{LIB}"\nsource "{SCRIPT}"\n{_STAND_IN}\n{prelude}\nmain {mode}\n'
         return ["bash", "-c", body]
 
     def call(self, mode: str, **extra: str) -> subprocess.CompletedProcess[str]:
@@ -260,7 +261,12 @@ def test_reveal_prints_once_on_the_owners_terminal_and_never_again(tmp_path: Pat
     # was printed, and the review notes say the data is simulated
     assert host.document()["revealed"] is True
     assert "exec -T api python -m intake_api.review_cli revealed" in host.composed()
-    assert "simulated patients only" in shown and "made-up details" in shown
+    # the review notes, the reviewer's notice included, exactly as the file has
+    # them: one hash-bound text (legal review B2). The terminal turns each
+    # newline into CR LF.
+    printed = shown.replace("\r\n", "\n")
+    assert NOTES.read_text(encoding="utf-8") in printed
+    assert printed.count("Privacy: the developer named in this App Store listing") == 1
     assert f"{ROOT_TOKEN} kv put -mount=secret -cas=1 api/review_signin -" in host.bao_calls()
     assert number not in "\n".join(host.bao_calls()) and code not in "\n".join(host.bao_calls())
     # exactly once: the second reveal prints nothing
@@ -268,6 +274,27 @@ def test_reveal_prints_once_on_the_owners_terminal_and_never_again(tmp_path: Pat
     assert status != 0
     assert code not in again and number not in again
     assert "--generate" in again
+
+
+def test_reveal_refuses_notes_that_are_not_the_pinned_bytes(tmp_path: Path) -> None:
+    """A notice changed without the record's notice_sha256 following it is
+    never pasted, and the reveal is not used up."""
+    host = ReviewHost(tmp_path)
+    assert host.call("--generate").returncode == 0
+    number, code = _values(host)
+    changed = tmp_path / "notes.md"
+    changed.write_text(NOTES.read_text(encoding="utf-8") + "One more line.\n", encoding="utf-8")
+    status, shown = typed_session(
+        host.argv("--reveal-to-owner", prelude=f'REVIEW_NOTES="{changed}"'),
+        host.env(),
+        [(PROMPT, "")],
+    )
+    assert status != 0 and "notice_sha256" in shown
+    assert code not in shown and number not in shown
+    assert host.document()["revealed"] is False
+    # near miss: the committed notes are the pinned bytes, so the same host reveals
+    status, shown = typed_session(host.argv("--reveal-to-owner"), host.env(), [(PROMPT, "")])
+    assert status == 0, shown
 
 
 def test_reveal_refuses_without_a_terminal_and_records_nothing(tmp_path: Path) -> None:
@@ -326,6 +353,10 @@ def test_the_script_holds_no_number_and_no_code() -> None:
     assert not re.search(r"(?<![0-9{])[0-9]{6}(?![0-9}])", script), "a six-digit literal"
     assert "set -euo pipefail" in script
     assert 'python3 -I -c "$REVIEW_DOC_PY"' in script, "the helper runs isolated"
+    # never traced: `bash -x review_signin.sh` would otherwise print the code
+    head = script.split("source ", 1)[0]
+    assert "set +x" in head, "tracing is off before anything runs"
+    assert "Please enter made-up details" not in script, "the notes live in docs/legal only"
     lib = LIB.read_text(encoding="utf-8")
     assert "review_signin" not in lib, "the script owns its mode; lib.sh stays generic"
 
@@ -354,5 +385,8 @@ def test_the_runbook_describes_every_mode_and_the_order() -> None:
     assert runbook.index("--generate") < runbook.index("--reveal-to-owner")
     assert "App Store Connect" in runbook
     assert "Session Manager" in runbook, "session logging would capture the reveal"
-    assert "simulated patients only" in runbook and "made-up details" in runbook
+    # the runbook links the one hash-bound notes file, and does not quote it
+    assert "docs/legal/store/review/app-review-signin-notes.en.md" in runbook
+    assert "Please enter made-up details" not in runbook
+    assert "Privacy: the developer named" not in runbook
     assert "CloudTrail" in runbook, "who ran a flip is found by the session, not the row"

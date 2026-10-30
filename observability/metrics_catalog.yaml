@@ -2080,6 +2080,25 @@ metrics:
       one of the INT-578 verdicts (invalid, unbound, missing, exhausted),
       locked, or refused for the same five reasons. Every pair is exported at zero from start, so
       the first use of each kind alerts. Emitted by intake_api.review_flow.
+  - name: review_reset_failures_total
+    type: counter
+    labels: []
+    owner: security
+    unit: "count"
+    description: >-
+      Unattended erasures of the App Review reviewer tenant that failed: the
+      API's sweep retries every minute while a reviewer subject is unerased
+      and no review window is open, and each failed attempt counts. Pages
+      through ReviewResetFailing. Emitted by intake_api.review_flow.
+  - name: review_signin_document_unreadable
+    type: gauge
+    labels: []
+    owner: security
+    unit: "bool"
+    description: >-
+      1 while OpenBao could not be read for the App Review reviewer document
+      at the API's start (unreachable, refused, malformed), as opposed to a
+      document that does not exist (0). Emitted by intake_api.review_signin.
   # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
   # series (nps.monthly, clinician.pulse) but no id for the scheduling of
   # them, so this entry carries no `id` — the same posture as the INT-141 rows

@@ -147,7 +147,7 @@ def test_the_next_window_lands_a_different_reviewer_patient(tmp_path: Path) -> N
     with harness(tmp_path, reviewer) as otp:
         first = answer(otp, DpopClient(), reviewer, ask(otp, reviewer)).json()
         assert cli("off", otp.redis_client, reset=reset_now(otp))[0] == 0
-        assert cli("on", otp.redis_client, reset=reset_now(otp))[0] == 0
+        assert cli("on", otp.redis_client, reset=reset_now(otp), now_fn=otp.clock)[0] == 0
         otp.clock.advance(RESEND_COOLDOWN_S * 4)
         second = answer(otp, DpopClient(), reviewer, ask(otp, reviewer)).json()
         assert second["patient_id"] != first["patient_id"]
@@ -162,13 +162,15 @@ def test_a_reset_the_erasure_refuses_keeps_the_window_shut(tmp_path: Path) -> No
         blocked = reset_now(otp, privileges=lambda session: _missing(missing))
         code, said, _ = cli("off", otp.redis_client, reset=blocked)
         assert code == 1 and "patient_overlays" in said
-        assert review().ReviewWindow(otp.redis_client).is_open() is False, "closed regardless"
-        code, said, audited = cli("on", otp.redis_client, reset=blocked)
+        assert review().ReviewWindow(otp.redis_client, otp.clock).is_open() is False, (
+            "closed regardless"
+        )
+        code, said, audited = cli("on", otp.redis_client, reset=blocked, now_fn=otp.clock)
         assert code == 1 and audited == [], "a window over a reviewer's data never opens"
-        assert review().ReviewWindow(otp.redis_client).is_open() is False
+        assert review().ReviewWindow(otp.redis_client, otp.clock).is_open() is False
         # near miss: once the erasure may run, the same tenant is emptied and opens
-        assert cli("on", otp.redis_client, reset=reset_now(otp))[0] == 0
-        assert review().ReviewWindow(otp.redis_client).is_open() is True
+        assert cli("on", otp.redis_client, reset=reset_now(otp), now_fn=otp.clock)[0] == 0
+        assert review().ReviewWindow(otp.redis_client, otp.clock).is_open() is True
 
 
 async def _missing(missing: tuple[Privilege, ...]) -> tuple[Privilege, ...]:
@@ -185,7 +187,7 @@ def test_a_token_from_one_review_is_dead_in_the_next(tmp_path: Path) -> None:
         bundle = answer(otp, dpop, reviewer, ask(otp, reviewer)).json()
         # near miss: inside its own window the token works
         assert otp.get_visits(dpop, bundle["access_token"]).status_code == 403
-        window = review().ReviewWindow(otp.redis_client)
+        window = review().ReviewWindow(otp.redis_client, otp.clock)
         window.close()
         window.open()
         assert otp.get_visits(dpop, bundle["access_token"]).status_code == 401
@@ -319,14 +321,16 @@ def test_the_miss_cap_closes_the_window(tmp_path: Path) -> None:
     cap = review().REVIEW_MISS_CAP
     with harness(tmp_path, reviewer) as otp:
         _miss_rounds(otp, reviewer, cap - 1)
-        assert review().ReviewWindow(otp.redis_client).is_open(), "near miss: one short of the cap"
+        assert review().ReviewWindow(otp.redis_client, otp.clock).is_open(), (
+            "near miss: one short of the cap"
+        )
         _miss_rounds(otp, reviewer, 1)
-        assert review().ReviewWindow(otp.redis_client).is_open() is False
+        assert review().ReviewWindow(otp.redis_client, otp.clock).is_open() is False
         closing = [e for e in otp.audit_store.entries() if e.action == "auth.review.window.closed"]
         assert [entry.actor for entry in closing] == ["system:review-guard"]
         # the code is retired: reopening the window buys no more guesses, and
         # not even the right code signs in until a new one is generated
-        assert cli("on", otp.redis_client, reset=reset_now(otp))[0] == 0
+        assert cli("on", otp.redis_client, reset=reset_now(otp), now_fn=otp.clock)[0] == 0
         before = counted("verify", "code_retired")
         otp.clock.advance(OTP_LOCKOUT_S + RESEND_COOLDOWN_S * 8)
         assert answer(otp, DpopClient(), reviewer, ask(otp, reviewer)).status_code == 401
@@ -343,7 +347,7 @@ def test_off_on_a_closed_window_still_erases_the_reviewer_tenant(tmp_path: Path)
     with harness(tmp_path, reviewer) as otp:
         bundle = answer(otp, DpopClient(), reviewer, ask(otp, reviewer)).json()
         seed_session(otp, review().REVIEW_TENANT_ID, uuid.UUID(bundle["patient_id"]))
-        review().ReviewWindow(otp.redis_client).close()
+        review().ReviewWindow(otp.redis_client, otp.clock).close()
         code, said, audited = cli("off", otp.redis_client, reset=reset_now(otp))
         assert code == 0, said
         assert audited == [], "no flip, so no window row"

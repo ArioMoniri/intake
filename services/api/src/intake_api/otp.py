@@ -444,7 +444,7 @@ class OtpAuthService:
         *,
         engine: AsyncEngine,
         audit: AuditWriter,
-        review_reset: Callable[[], Awaitable[int]] | None = None,
+        review_reset: Callable[[str], Awaitable[int]] | None = None,
     ) -> None:
         self._wiring = wiring
         self._store = AuthStore(wiring.redis_client, wiring.now_fn)
@@ -471,11 +471,12 @@ class OtpAuthService:
             else None
         )
 
-    async def expire_review_window(self) -> bool:
-        """INT-488: close a review window whose time ran out (the API's own
-        sweep calls this; every reviewer step does too). False when there is
-        no reviewer account or nothing was due."""
-        return self._review is not None and await self._review.expire_if_due()
+    async def review_sweep(self) -> None:
+        """INT-488: the API's own review sweep, never a reviewer's request.
+        It records a close whose row was lost, closes a window whose 14 days
+        ran out, and retries a pending erasure of the reviewer tenant."""
+        if self._review is not None:
+            await self._review.sweep()
 
     def _now(self) -> float:
         return self._wiring.now_fn() if self._wiring.now_fn is not None else time.time()

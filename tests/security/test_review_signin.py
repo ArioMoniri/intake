@@ -216,7 +216,7 @@ def harness(
     otp = next(harnesses)
     try:
         if window:
-            review().ReviewWindow(otp.redis_client).open()
+            review().ReviewWindow(otp.redis_client, otp.clock).open()
         yield otp
     finally:
         next(harnesses, None)
@@ -494,7 +494,7 @@ def test_every_use_is_on_the_hash_chain(tmp_path: Path) -> None:
         asked = ask(otp, reviewer)
         answer(otp, DpopClient(), reviewer, asked, code=reviewer.wrong)
         answer(otp, DpopClient(), reviewer, asked)
-        review().ReviewWindow(otp.redis_client).close()
+        review().ReviewWindow(otp.redis_client, otp.clock).close()
         otp.clock.advance(RESEND_COOLDOWN_S * 4)
         closed = ask(otp, reviewer)
         answer(otp, DpopClient(), reviewer, closed)
@@ -605,10 +605,10 @@ def test_the_window_is_off_by_default_and_off_refuses(tmp_path: Path) -> None:
         assert counted("request", "window_closed") == before + 1
         assert otp.sends == 0
         # near miss: opened, the same reviewer signs in; closed again, refused
-        review().ReviewWindow(otp.redis_client).open()
+        review().ReviewWindow(otp.redis_client, otp.clock).open()
         otp.clock.advance(RESEND_COOLDOWN_S * 4)
         assert answer(otp, DpopClient(), reviewer, ask(otp, reviewer)).status_code == 200
-        review().ReviewWindow(otp.redis_client).close()
+        review().ReviewWindow(otp.redis_client, otp.clock).close()
         otp.clock.advance(RESEND_COOLDOWN_S * 8)
         assert answer(otp, DpopClient(), reviewer, ask(otp, reviewer)).status_code == 401
 
@@ -779,7 +779,7 @@ def test_readiness_needs_a_document_with_a_code() -> None:
     without = kit.Vault({"api/review_signin": {"number": reviewer.number}})
     assert review().review_readiness(strict(), without, guards()) is not None
     whole = kit.Vault({"api/review_signin": {"number": reviewer.number, "code": reviewer.code}})
-    assert review().review_readiness(strict(), whole, guards()) is None
+    assert review().review_readiness(strict(), whole, guards(), record=lambda: None) is None
     # the live guards too: hosted lanes on for the reviewer tenant refuse, by id
     lanes_on = review().review_readiness(strict(), whole, guards(voice=Voice(engaged=False)))
     assert lanes_on is not None and str(review().REVIEW_TENANT_ID) in lanes_on
@@ -801,7 +801,7 @@ def test_the_landed_patient_is_the_synthetic_reviewer(tmp_path: Path) -> None:
     with harness(tmp_path, reviewer) as otp:
         consumer = otp.sign_up(DpopClient())  # a patient of the consumer tenant
         bundle = answer(otp, DpopClient(), reviewer, ask(otp, reviewer)).json()
-        window = module.ReviewWindow(otp.redis_client).state()
+        window = module.ReviewWindow(otp.redis_client, otp.clock).state()
         patient_id, pseudonym = module.review_patient(window.id)
         assert bundle["tenant_id"] == str(module.REVIEW_TENANT_ID)
         assert bundle["patient_id"] == str(patient_id)
@@ -838,7 +838,7 @@ def test_closing_the_window_ends_the_reviewer_session(tmp_path: Path) -> None:
         bundle = answer(otp, dpop, reviewer, ask(otp, reviewer)).json()
         patient_dpop = DpopClient()
         patient = otp.sign_up(patient_dpop)
-        review().ReviewWindow(otp.redis_client).close()
+        review().ReviewWindow(otp.redis_client, otp.clock).close()
         assert otp.get_visits(dpop, bundle["access_token"]).status_code == 401
         assert otp.refresh(dpop, bundle["refresh_token"]).status_code == 401
         # near miss: a consumer patient's session is untouched by the window
@@ -928,7 +928,7 @@ def test_no_code_or_number_reaches_a_log_metric_trace_answer_or_store(
         otp.clock.advance(RESEND_COOLDOWN_S * 4)
         closed = ask(otp, reviewer)
         late = answer(otp, DpopClient(), reviewer, closed)
-        cli("on", otp.redis_client)
+        cli("on", otp.redis_client, now_fn=otp.clock)
         cli("status", otp.redis_client)
         answers += [r.text + repr(dict(r.headers)) for r in (asked, wrong, signed, refreshed)]
         answers += [r.text for r in (closed, late)]

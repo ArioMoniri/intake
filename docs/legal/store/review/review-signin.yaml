@@ -1,0 +1,29 @@
+# INT-488 — the App Review reviewer's processing record (legal lane, 30 Oct 2026).
+#
+# The App Review reviewer is a real person, so their sign-in is processing of
+# personal data with its own record. `python -m intake_api.review_cli on`
+# (intake_api.review_record) refuses to open a review window while any field
+# below is null or empty, or while `notice_sha256` is not the sha256 of the
+# notice the owner pastes into App Store Connect
+# (app-review-signin-notes.en.md, which `review_signin.sh --reveal-to-owner`
+# prints byte for byte and refuses to print on a mismatch).
+#
+# purpose, basis, retention and recipients are the legal-lane reviewer's
+# answers. `transfer_route` stays null: the server is in the United States, and
+# the route for a transfer abroad is counsel's (INT-528's open questions,
+# HUMAN_BLOCKERS HB-L11). `reviewed_by` and `reviewed_on` are the named
+# lawyer's who signs this record; no agent fills them.
+purpose: "store review demonstration and security of the review account"
+basis:
+  - "KVKK m.5/2(f) (legitimate interest)"
+  - "KVKK m.5/2(ç) for the security records"
+retention:
+  entered_data: "erased when the review window closes, at the latest 14 days after it opened"
+  device_and_session_keys: "expire within 30 days of last use"
+  id_only_records: "kept as security records"
+recipients:
+  - "Amazon Web Services (hosting, United States)"
+transfer_route: null
+notice_sha256: "0244fa613dc157d0edb2c9ecc26eaeb651300dc67c17f90a4fdc35e7a7b01d1c"
+reviewed_by: null
+reviewed_on: null

@@ -165,6 +165,10 @@ class ApiWiring:
     # raises its entry in (files/02 §2b). None = unwired: those two moves
     # answer 503 rather than happen silently.
     safety_inbox: SafetyInbox | None = None
+    # INT-488 / INT-394: the role the App Review reviewer tenant's erasure runs
+    # as, once INT-394 decides it (INTAKE_API_ERASURE_DB_URL). None = the app
+    # engine, whose missing grants INT-395's preflight refuses, typed and audited.
+    erasure_engine: AsyncEngine | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -519,6 +523,9 @@ def wiring_from_env() -> ApiWiring:
         cipher=_cipher_from_settings(settings),
         bootstrap=True,
         bootstrap_engine=build_engine(settings.bootstrap_db_url),
+        erasure_engine=(
+            build_engine(settings.erasure_db_url) if settings.erasure_db_url is not None else None
+        ),
         documents=_documents_from_env(),
         auth=_auth_from_settings(settings),
         admin=_admin_from_env(),
@@ -578,9 +585,10 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                 w.auth,
                 engine=w.engine,
                 audit=audit,
-                # INT-488: what an expired review window's close erases, with the
-                # role that provisions the reviewer tenant
-                review_reset=review_reset_for(w.bootstrap_engine or w.engine, w.documents, audit),
+                # INT-488: the reviewer tenant's erasure, which only the sweep
+                # runs: the app role, or the role INT-394 decides
+                # (INTAKE_API_ERASURE_DB_URL); never the owner role
+                review_reset=review_reset_for(w.erasure_engine or w.engine, w.documents, audit),
             )
             if w.auth is not None
             else None
@@ -643,7 +651,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         # INT-488: an App Review window closes itself when its time runs out,
         # even if no reviewer step comes to notice
         expiry = (
-            asyncio.create_task(review_expiry_forever(state.auth.expire_review_window))
+            asyncio.create_task(review_expiry_forever(state.auth.review_sweep))
             if state.auth is not None and w.auth is not None and w.auth.review is not None
             else None
         )

@@ -8,8 +8,9 @@ the owner to supply. On a fake clock:
   (the near miss);
 - at 14 days it reads closed at once, to every reviewer step and session, and
   the API closes it the way ``--off`` does: the document first, the audit row
-  (``auth.review.window.closed`` by ``system:review-expiry``) second, the
-  reviewer tenant's erasure last — on the next reviewer step or its own sweep;
+  (``auth.review.window.closed`` by ``system:review-expiry``) second — on the
+  next reviewer step or its own sweep — and the erasure last, on the sweep only
+  (never a reviewer's request), under the same actor;
 - nothing reopens it but a fresh ``--on``;
 - ``--status`` shows when it closes itself and how long is left.
 """
@@ -63,10 +64,9 @@ def rows_of(otp: OtpHarness, action: str) -> list[Any]:
     return [entry for entry in otp.audit_store.entries() if entry.action == action]
 
 
-def expire(otp: OtpHarness) -> bool:
+def sweep(otp: OtpHarness) -> None:
     """The API's own sweep, once, on the app's event loop."""
-    result: bool = otp.client.portal.call(otp.client.app.state.api.auth.expire_review_window)
-    return result
+    otp.client.portal.call(otp.client.app.state.api.auth.review_sweep)
 
 
 def test_the_window_lasts_fourteen_days() -> None:
@@ -79,7 +79,7 @@ def test_near_miss_at_13_days_23_hours_the_window_is_open(tmp_path: Path) -> Non
         opened = reopen_on_the_harness_clock(otp)
         otp.clock.advance(13 * DAY + 23 * HOUR)
         assert window(otp).is_open()
-        assert expire(otp) is False, "nothing is due yet"
+        sweep(otp)
         bundle = answer(otp, DpopClient(), reviewer, ask(otp, reviewer))
         assert bundle.status_code == 200, bundle.text
         assert window(otp).state().id == opened.id
@@ -105,9 +105,16 @@ def test_at_14_days_the_window_closes_itself_audited_then_erased(tmp_path: Path)
         [closed] = rows_of(otp, "auth.review.window.closed")
         assert closed.actor == "system:review-expiry"
         assert closed.resource_ref == "review_signin:window"
+        # the erasure never runs on a reviewer's request (security review B1)
+        assert sessions_of(otp, bundle["patient_id"]) != []
+        assert rows_of(otp, "auth.review.reset") == []
+        # the sweep erases, under the expiry's own actor (N7)
+        sweep(otp)
+        assert sessions_of(otp, bundle["patient_id"]) == [], "the reviewer's visit outlived it"
+        resets = rows_of(otp, "auth.review.reset")
+        assert resets and {entry.actor for entry in resets} == {"system:review-expiry"}
         actions = [entry.action for entry in otp.audit_store.entries()]
         assert actions.index("auth.review.window.closed") < actions.index("auth.review.reset")
-        assert sessions_of(otp, bundle["patient_id"]) == [], "the reviewer's visit outlived it"
         # the reviewer's session ended with it
         assert otp.get_visits(dpop, bundle["access_token"]).status_code == 401
 
@@ -117,8 +124,8 @@ def test_the_sweep_closes_an_expired_window_nobody_touches_once(tmp_path: Path) 
     with harness(tmp_path, reviewer) as otp:
         reopen_on_the_harness_clock(otp)
         otp.clock.advance(14 * DAY)
-        assert expire(otp) is True
-        assert expire(otp) is False, "a second pass finds nothing to close"
+        sweep(otp)
+        sweep(otp)  # a second pass finds nothing to close
         assert [entry.actor for entry in rows_of(otp, "auth.review.window.closed")] == [
             "system:review-expiry"
         ]
@@ -143,7 +150,7 @@ def test_nothing_but_a_fresh_on_reopens_it(tmp_path: Path) -> None:
     with harness(tmp_path, reviewer) as otp:
         first = reopen_on_the_harness_clock(otp)
         otp.clock.advance(14 * DAY)
-        expire(otp)
+        sweep(otp)
         otp.clock.advance(30 * DAY)
         assert window(otp).is_open() is False
         code, said, audited = cli("on", otp.redis_client, reset=reset_now(otp), now_fn=otp.clock)

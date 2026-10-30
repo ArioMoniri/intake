@@ -30,19 +30,29 @@
 #                      and nowhere else. The reveal is recorded in OpenBao,
 #                      with a check-and-set, and as auth.review.code.revealed,
 #                      before anything is printed; a second reveal is refused
-#                      until --generate makes a new code. The screen and
-#                      scrollback are cleared after.
+#                      until --generate makes a new code. Then it prints the
+#                      review notes (docs/legal/store/review/, the reviewer's
+#                      notice included) byte for byte, refusing before the
+#                      reveal if their sha256 is not the record's pin. The
+#                      screen and scrollback are cleared after.
 #
 # No value reaches an argument list, a file, the env file or a log: the
 # document moves between `bao kv get`, the python3 helper and `bao kv put`
 # through pipes, and printf is a builtin. Only --reveal-to-owner prints a
 # value, and only to a terminal.
 set -euo pipefail
+# never traced, even when run under `bash -x`: a trace would print the code
+set +x
 # shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 REVIEW_KV_PATH="api/review_signin"
 REVIEW_RUNBOOK="docs/runbooks/review-signin.md"
+# The one text the owner pastes into App Store Connect's review notes: the
+# sign-in steps and the reviewer's notice (legal lane). Hash-bound by the
+# record's notice_sha256; the reveal prints its bytes and nothing else of it.
+REVIEW_NOTES="$REPO_ROOT/docs/legal/store/review/app-review-signin-notes.en.md"
+REVIEW_RECORD="$REPO_ROOT/docs/legal/store/review/review-signin.yaml"
 
 # The document helper. stdin: `bao kv get -format=json` output ({} when there
 # is none); argv: the mode. It is the only place a value is drawn, kept or
@@ -87,10 +97,7 @@ elif mode == "show":
         " (Sign-in required). Shown once.\n"
         "  User name: " + number + "\n"
         "  Password:  " + code + "\n"
-        "Review notes: This is a test environment with simulated patients only."
-        " Enter the user name as the phone number, ask for a code, and enter the"
-        " password as the code; no SMS arrives. Please enter made-up details,"
-        " not your own health information or real documents.\n"
+        "Review notes (paste exactly, from the line after this one):\n"
     )
 else:
     sys.exit(2)
@@ -104,6 +111,22 @@ review_current() {
   # The document as `bao kv get` prints it, or {} when there is none.
   local root=$1
   bao_as "$root" kv get -mount=secret -format=json "$REVIEW_KV_PATH" 2>/dev/null || printf '{}'
+}
+
+review_notes_pinned() {
+  # True when the notes file is the bytes the record's notice_sha256 names.
+  # Paths come as arguments; nothing is read from stdin or the environment.
+  python3 -I -c '
+import hashlib, re, sys
+notes, record = sys.argv[1], sys.argv[2]
+try:
+    digest = hashlib.sha256(open(notes, "rb").read()).hexdigest()
+    text = open(record, encoding="utf-8").read()
+except OSError:
+    sys.exit(1)
+pins = re.findall(r"^notice_sha256:\s*\"?([0-9a-f]{64})\"?\s*$", text, re.M)
+sys.exit(0 if pins == [digest] else 1)
+' "$REVIEW_NOTES" "$REVIEW_RECORD"
 }
 
 review_api() {
@@ -142,6 +165,9 @@ review_reveal() {
   local root current version
   [[ -t 0 && -t 1 ]] ||
     die "--reveal-to-owner prints to an interactive terminal only (aws ssm start-session), never to a pipe or a file (${REVIEW_RUNBOOK})"
+  # checked before the reveal is used up: the notes must be the reviewed bytes
+  review_notes_pinned ||
+    die "the review notes do not match the record's notice_sha256 (docs/legal/store/review/), so nothing is revealed (${REVIEW_RUNBOOK})"
   root=$(init_field root_token)
   current=$(review_current "$root")
   printf '%s' "$current" | review_doc revealable ||
@@ -155,6 +181,7 @@ review_reveal() {
     die "the reveal could not be audited, so nothing is printed; run --generate, then reveal again"
   printf '%s' "$current" | review_doc show
   unset current
+  cat -- "$REVIEW_NOTES"
   printf 'Press Enter when it is pasted: '
   IFS= read -r _ || true
   # clear the screen and the scrollback

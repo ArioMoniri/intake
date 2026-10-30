@@ -163,3 +163,19 @@ groups:
         spent or locked code. The outcome label of sec_review_signin_total
         names which.
       runbook: docs/runbooks/review-signin.md#the-review-sign-in-refused-a-use
+  # tests/security/test_review_signin_round2.py (INT-488, legal review B4). The
+  # API's sweep retries a pending erasure of the reviewer tenant every minute
+  # while no window is open, and counts each failure, so this pages for as long
+  # as a real reviewer's input stays unerased.
+  - alert: ReviewResetFailing
+    expr: sum(increase(review_reset_failures_total[10m])) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'the App Review reviewer tenant is not being erased'
+      description: >-
+        A reviewer subject is unerased, no review window is open, and the
+        sweep's erasure keeps failing: a grant the erasure role lacks
+        (auth.review.reset_blocked rows, INT-394) or the object store or
+        database.
+      runbook: docs/runbooks/review-signin.md#the-reviewer-erasure-is-failing
