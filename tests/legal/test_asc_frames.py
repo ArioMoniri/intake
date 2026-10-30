@@ -454,7 +454,7 @@ def test_the_session_sets_a_clean_status_bar_and_each_frames_appearance(
     tmp_path: Path, spec: frame_plan.FrameSpec
 ) -> None:
     runner = FakeRunner(spec.capture_size)
-    session = _session(tmp_path, spec, runner, resolved="INT-588")
+    session = _session(tmp_path, spec, runner, resolved="INT-588,INT-587")
     capture_frames.prepare(session)
     shots = [capture_frames.shoot(session, frame) for frame in spec.frames]
     flat = [" ".join(call) for call in runner.calls]
@@ -541,7 +541,17 @@ def test_the_store_builds_state_is_set_before_the_first_shot(
     assert any("voice off" in message and "start_mode typed" in message for message in asked)
 
 
-VOICE_SURFACES = ("DialogueIntake.tsx", "VoiceNote.tsx", "DevVoiceBanner.tsx")
+#: Components a store build never renders: the voice dialogue and its section panel,
+#: the voice note and the dev voice banner (legal re-check R3 adds SectionPanel).
+VOICE_SURFACES = (
+    "DialogueIntake.tsx",
+    "SectionPanel.tsx",
+    "VoiceNote.tsx",
+    "DevVoiceBanner.tsx",
+)
+#: Keys whose only renderer is reached only from a voice surface. dialogue.openInvite
+#: is spoken by lib/dialogue/speech.ts, which only DialogueIntake imports (R3).
+VOICE_ONLY_KEYS = frozenset({"dialogue.openInvite"})
 _KEY = re.compile(r'"([a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+)"')
 
 
@@ -586,12 +596,12 @@ def test_the_frames_a_release_build_reaches_name_their_scroll_state(
     assert B7_MUST_NOT in message
 
 
-def test_no_caption_rests_on_a_key_only_the_voice_surfaces_render() -> None:
-    """Legal review: a store build renders neither the voice dialogue, the voice
-    note nor the dev voice banner. A caption sourced from a key that only those
-    render would describe a screen the store build cannot show."""
+def _known_keys() -> set[str]:
     tr = (REPO / "apps/mobile/src/lib/i18n/tr.ts").read_text(encoding="utf-8")
-    known = set(re.findall(r'^\s*"([^"]+)":', tr, flags=re.MULTILINE))
+    return set(re.findall(r'^\s*"([^"]+)":', tr, flags=re.MULTILINE))
+
+
+def _voice_only_keys(known: set[str]) -> set[str]:
     src = REPO / "apps/mobile/src"
     files = [
         p
@@ -600,17 +610,42 @@ def test_no_caption_rests_on_a_key_only_the_voice_surfaces_render() -> None:
     ]
     voice = set().union(*(_keys_in(p, known) for p in files if p.name in VOICE_SURFACES))
     elsewhere = set().union(*(_keys_in(p, known) for p in files if p.name not in VOICE_SURFACES))
-    voice_only = voice - elsewhere
-    assert voice_only, "the guard is armed: the voice surfaces render keys of their own"
+    return (voice - elsewhere) | set(VOICE_ONLY_KEYS)
+
+
+def _cited_keys(sources: list[str], known: set[str]) -> set[str]:
+    return {
+        token.strip(',;()"')
+        for source in sources
+        for token in source.split()
+        if token.strip(',;()"') in known
+    }
+
+
+def test_no_caption_rests_on_a_key_only_the_voice_surfaces_render() -> None:
+    """Legal review B6 and re-check R3: a store build renders neither the voice dialogue
+    (with its section panel), the voice note nor the dev voice banner. A caption sourced
+    from a key only those reach would describe a screen the store build cannot show."""
+    known = _known_keys()
+    voice_only = _voice_only_keys(known)
+    assert {"dialogue.openInvite", "dialogue.noteForming"} <= voice_only, "the guard is armed"
     captions = frame_plan.load_captions(CAPTION_DRAFT)
-    cited = {
-        key for c in captions.values() for key in _KEY.findall(f'"{c.source}"') if key in known
-    }
-    cited |= {
-        token.strip(",;()")
-        for c in captions.values()
-        for token in c.source.split()
-        if token.strip(",;()") in known
-    }
+    cited = _cited_keys([c.source for c in captions.values()], known)
     assert cited, "captions cite app keys"
     assert cited.isdisjoint(voice_only), sorted(cited & voice_only)
+    # Near miss: the konusma source before B6 must fail this guard.
+    before_b6 = "apps/mobile/src/lib/i18n/tr.ts dialogue.openInvite and dialogue.noteForming"
+    assert _cited_keys([before_b6], known) & voice_only == {
+        "dialogue.openInvite",
+        "dialogue.noteForming",
+    }
+
+
+def test_a_frame_showing_delivery_waits_for_it_and_holds_the_header(
+    spec: frame_plan.FrameSpec,
+) -> None:
+    """Re-check note: the `not` frame shows "Hekiminize gönderin" and "Kime gidiyor",
+    a delivery that INT-587 builds, so it waits, and the header, which shows it, waits too."""
+    shown = spec.frame("not")
+    assert shown.waits_for is not None and shown.waits_for.startswith("INT-587")
+    assert "not" in spec.header_phones

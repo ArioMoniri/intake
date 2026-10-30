@@ -146,6 +146,7 @@ frames:
     file: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
     appearance: light
     state: "the note before sending, sections marked Paylaşılıyor and one Paylaşılmıyor"
+    waits_for: "INT-587 (#988): its pixels show Hekiminize gönderin and Kime gidiyor, a delivery that does not work yet; the header, which shows this frame, waits too"
   - id: verileriniz
     route: "/me/data"
     file: "apps/mobile/src/app/(tabs)/me/data.tsx"
