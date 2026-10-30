@@ -1495,8 +1495,45 @@ it or whose tests exercise it.
   a section contains; [T] client-side scope tampering.
 - **Controls (files/10):** §9 review row — section-level scope, consent summary, explicit
   confirm step; scopes enforced server-side per §4 consent checks.
-- **Signals:** share scope distribution (§9) lands with INT-137.
-- **Tests:** UI flow tests land with INT-137.
+- **Threats added by INT-587 (delivery):** [R/U] the app telling the patient a note was sent
+  that never left the phone; [I] a note shared without — or after the withdrawal of — the share
+  consent; [D] a queued note silently dropped by a failure or a restart; [I] note text reaching a
+  log through a delivery error; [D] a client hammering a server that has already refused; [I] a
+  share consent given for one note releasing another after a withdrawal (legal review B1); [D] a
+  refused consent op stalling a later withdrawal in the queue (N5).
+- **Controls added by INT-587:** the explicit confirm step is the share consent itself, asked at
+  the send against the docs/legal share text the loader serves (body, version and binding
+  rendered; no text, no grant action; "Şimdi değil" as easy as agreeing), hash-bound and recorded
+  server-side (`consent.grant`, audited). A note enters the outbox, and a parked note is released,
+  only with the receipt given for THAT note; the binding is sealed with the note. Every share
+  withdrawal on the phone — direct or through core, from any screen — reaches the outbox through
+  the ledger subscription and parks every queued and refused note at once, unbinding its grant;
+  the engine also refuses a note whose grant predates the last withdrawal. Each attempt flushes
+  the consent queue first, so neither a grant nor a withdrawal is overtaken by the note, and a
+  consent op the server refuses is dropped (a refused grant re-asked) instead of stalling the
+  queue. The server's own share-scope check (`write_note`, `issue_link`, the OTP mint,
+  redemption) stays the authority.
+  The outbox is sealed through the INT-142 draft backend (AES-256-GCM, DEK in the
+  Keychain/Keystore, memory only in kiosk mode), restored from disk after a restart, retried
+  with capped exponential backoff and Retry-After, and never drops an item; a 4xx is an answer —
+  the item is parked with its reason and only the patient's retry re-queues it. Only a 2xx whose
+  body confirms `status: "sent"` is a delivery, and only a delivery opens the screen's "gönderildi"
+  branch. The PUT is the server's existing replace (one transaction, rolled back on refusal), so
+  a retry after a lost answer leaves one live share. Errors carry codes only; no delivery module
+  calls the console or telemetry. The patient withdraws the share consent from the share centre
+  (two-step, shown done only once the server has it), which revokes every live share and link.
+  Doctor Link issuance takes a typed `StepUpProof` (OTP session tier until INT-582's passkey) and
+  addresses the server visit the note was delivered to.
+- **Signals:** share scope distribution (§9) lands with INT-137. INT-587 adds no client metric:
+  delivery is a phone-side state, and the server already counts what it receives
+  (`api.note.share` and `api.doctor_link.issued` in the audit log, `doctor_link_events_total`).
+- **Tests:** UI flow tests land with INT-137. INT-587: `apps/mobile/src/lib/intake/delivery/*.test.ts`
+  (payload bounds, the state machine, classification, the attempt order, restart survival, never
+  dropped, 4xx not retried, no console output), `apps/mobile/src/lib/consent/share.test.ts`,
+  `apps/mobile/src/lib/shares/stepUp.test.ts`, `apps/mobile/e2e/noteDelivery.spec.ts` (the client
+  pinned to notes.py and schemas.py) and `tests/api/test_note_delivery.py` (the server contract
+  the client classifies: no share without the grant, a retried send leaves one share, a withdrawn
+  grant stops the link).
 
 ## `doctor-link` — tokenized clinician access
 
@@ -1847,6 +1884,12 @@ it or whose tests exercise it.
   [Dd] a draft outliving its session; [L/Dd] another account's draft surfacing on a shared
   device; [T] a tampered blob read as a sound draft; [D] silent data loss when a local edit
   meets a newer server copy.
+  **Voice capture (§9 mobile row, INT-559):** [I] patient audio written to a temporary file
+  on the phone by the DEV voice lane or the VoiceNote pill — reachable through a backup, a
+  crash report or another process's read of the cache between the write and the delete;
+  [Dd] a capture buffer outliving the turn, a RED, a leave, an unmount or the app's time in
+  the background; [I] a native input stream still capturing after the dialogue closed
+  because the close landed while the input was being opened.
 - **Controls (files/10):** §4 mobile — SecureStore with biometrics, FLAG_SECURE, EAS Update
   code signing, MobSF on every build, jailbreak/root as a soft signal degrading to typed
   mode, native ATS/`network_security_config` pinning with a documented rotation recovery
@@ -1857,12 +1900,51 @@ it or whose tests exercise it.
   `WHEN_UNLOCKED_THIS_DEVICE_ONLY`; the GCM tag fails the open on tamper; a deterministic
   last-writer-wins rule that preserves the losing copy, so no loss is silent; account-scoped
   hydration; visit-id path sanitisation; crypto-shred of the blobs and the DEK on sign-out.
+  **Voice capture (§9, INT-559):** the DEV voice lane and the VoiceNote pill capture through
+  expo-audio 57's `AudioStream` (AVAudioEngine input tap / AudioRecord — no file, no URI) into
+  a bounded in-memory buffer (≤ 60 s, CLAUDE.md invariant 3, `apps/mobile/src/lib/capture`),
+  handed to the dev ASR daemon as bytes with no path anywhere; `fill(0)` over the whole
+  buffer on finish, discard, RED (`leave`), unmount, a typed answer and app background; the
+  dialogue's close flag is read after every await and on every chunk (INT-551's pattern), so a
+  RED landing while the input opens leaves no microphone behind it; the lane stays
+  `__DEV__`-only and synthetic-content only; on iOS the stream's `.record` session category
+  silences playback, so the clip plays tap-interruptible and the microphone opens on the
+  patient's turn (`lib/capture/policy.ts`).
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
-  design (§9); the crash-free rate covers them (INT-145).
+  design (§9); the crash-free rate covers them (INT-145). Voice capture is device-local and
+  has no server signal by design (INT-559); `apps/mobile/e2e/voiceCapture.spec.ts` is the
+  repository gate that keeps the path file-less.
 - **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
   drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
-  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`.
+  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`. Voice
+  capture landed with INT-559: `apps/mobile/e2e/voiceCapture.spec.ts` (source slice over the
+  whole patient-audio path plus a node-driven turn under a storage trap),
+  `apps/mobile/e2e/bargeIn.spec.ts` and
+  `apps/mobile/src/lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts`.
+- **INT-588 — copy true for the build it ships in.** Threat: [U/R] the release build telling
+  the patient something false about itself — a voice or dictation option it does not have, a
+  "sent" before delivery, or consent chrome that contradicts the docs/legal text the server
+  serves (KVKK m.10: an aydınlatma that misstates where data is processed or who sees it).
+  Controls: build-aware copy chosen in one pure module (`apps/mobile/src/lib/buildCopy.ts`)
+  — the open-answer hint names dictation only where the button is drawn, the voice start
+  mode is not offered in a release build, the companion's text-only effect is listed only
+  where questions can be spoken; voice clauses that never had to exist are gone from the
+  welcome line, the integrity warning and the companion footer; the consent "who" rows are
+  INT-536's on main (tests/legal/test_consent_who_lines.py), and INT-588 holds them to naming
+  no affirmative recipient without a served text; every "sent" line renders only behind a
+  confirmed delivery (INT-587). Tests: `apps/mobile/src/lib/buildCopy.test.ts` (release-mode
+  resolution with near misses; claims pinned to their surfaces; the rows read against the
+  served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the helper on the
+  same facts that draw the button). No signal: copy truth is a build property.
+- **INT-591 — no consent a release build cannot use.** Threat: [L] special-category consent
+  evidence recorded for a feature the build does not have (KVKK m.4 proportionality), and a
+  choice offered that changes nothing. Control: in a release build İzinleriniz offers no grant
+  action for `voice` and `lane:affect` and says why on the group and the detail
+  (`consentActions`, `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`); a standing grant
+  keeps its withdraw control. Tests: `apps/mobile/src/lib/buildCopy.consent.test.ts` (no grant in
+  release; near misses: a standing grant is withdrawable, dev and other purposes unchanged) and
+  `apps/mobile/e2e/releaseCopy.spec.ts`.
 
 ## `experience` — satisfaction and wait-time measurement
 

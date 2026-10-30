@@ -16,6 +16,13 @@ that second index, and it is built so the two can never be confused:
   (ADR-035's own reader, reused). :class:`SyntheticLegalIndex` refuses
   to exist for any class but synthetic, and the index file must declare
   ``data_class: synthetic`` itself.
+- **The bound data class (INT-536, INT-529 F8).** ADR-035 binds the class into
+  the model-lane control record on the first control write, and a declaration
+  that disagrees reads as ``real_phi``. Given the deployment's control store,
+  every lookup reads the bound class fresh and refuses unless the effective
+  class is synthetic. It also refuses when the record cannot be read, because
+  then the class cannot be known. With no store configured nothing can be
+  bound, so the declaration governs.
 - **Hash binding as INT-210 does it.** Each row carries ``{version, sha256}``;
   the bytes must hash to the signed value and the front-matter version must
   equal the row's. Nothing is cached, so an edited file stops serving.
@@ -59,9 +66,10 @@ from intake_platform.legal.documents import (
     UnknownLegalDocumentError,
     required_document,
 )
-from intake_platform.model_lanes.guard import ENV_DEPLOYMENT_DATA_CLASS
+from intake_platform.model_lanes.guard import ENV_DEPLOYMENT_DATA_CLASS, effective_data_class
 from intake_platform.model_lanes.guard import deployment_data_class as deployment_data_class
 from intake_platform.model_lanes.model import TenantDataClass
+from intake_platform.model_lanes.store import ModelLanesReader, ModelLanesUnavailable
 
 __all__ = [
     "DATA_CLASS_ENV",
@@ -237,13 +245,41 @@ def _awaiting(raw: object, *, where: str) -> AwaitingHumanRow:
 class SyntheticLegalIndex:
     """Reads ``<root>/documents.yaml`` and the bytes it binds, fresh on every call."""
 
-    def __init__(self, root: Path, *, data_class: DeploymentDataClass) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        data_class: DeploymentDataClass,
+        bound: ModelLanesReader | None = None,
+    ) -> None:
         if data_class is not DeploymentDataClass.SYNTHETIC:
             raise SyntheticLegalTreeRefusedError(
                 f"the synthetic legal index loads only when {DATA_CLASS_ENV}=synthetic; "
                 f"this deployment is {data_class.value} (INT-529)"
             )
         self._root = Path(root)
+        self._declared = data_class
+        self._bound = bound
+
+    def _require_bound_synthetic(self) -> None:
+        """ADR-035's bound class, read fresh on every lookup like the bytes
+        (INT-536). Unreadable, or effectively ``real_phi``, refuses."""
+        if self._bound is None:
+            return
+        try:
+            bound = self._bound.read().data_class
+        except ModelLanesUnavailable as exc:
+            raise SyntheticLegalTreeRefusedError(
+                f"the deployment's bound data class cannot be read ({exc.code}); the "
+                "synthetic texts refuse until it can (ADR-035, INT-536)"
+            ) from None
+        effective = effective_data_class(self._declared, bound)
+        if effective is not DeploymentDataClass.SYNTHETIC:
+            named = bound.value if bound is not None else "unbound"
+            raise SyntheticLegalTreeRefusedError(
+                f"this deployment is bound {named} and so reads as {effective.value}; the "
+                "synthetic texts load only where the bound class is synthetic (ADR-035, INT-536)"
+            )
 
     @property
     def root(self) -> Path:
@@ -282,6 +318,7 @@ class SyntheticLegalIndex:
 
     def entry(self, document_id: str) -> SyntheticLegalText:
         """The servable synthetic text, or the one error that says why not."""
+        self._require_bound_synthetic()
         required = required_document(document_id)
         _known(document_id, where=str(self._root))
         index = self.index()
@@ -354,9 +391,17 @@ class SyntheticConsentTextCatalog(ConsentTextCatalog):
     answers ``None``); every other refusal is an invalid text and raises.
     """
 
-    def __init__(self, legal_root: Path, *, data_class: DeploymentDataClass) -> None:
+    def __init__(
+        self,
+        legal_root: Path,
+        *,
+        data_class: DeploymentDataClass,
+        bound: ModelLanesReader | None = None,
+    ) -> None:
         super().__init__(legal_root)
-        self._index = SyntheticLegalIndex(Path(legal_root).parent, data_class=data_class)
+        self._index = SyntheticLegalIndex(
+            Path(legal_root).parent, data_class=data_class, bound=bound
+        )
 
     def entry(self, scope: str) -> ConsentText:
         purpose = resolve_scope(scope).id

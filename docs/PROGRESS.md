@@ -1,5 +1,88 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
+- Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
+- Plan:
+  - D34 iOS OTP autofill domain (INT-580), D35 push new-device notice (INT-583), D36 patient passkeys and step-up (INT-582), D37 SMS spend cap (INT-577), D38 tokenization key into OpenBao with the same material (INT-584).
+  - No HUMAN_BLOCKERS row matched these questions, so none closes.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/docs/test_state_decisions.py`: each row present once, with the owner's date, its fact and its issue; near miss: a row that names no issue is refused.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Red run: 1 failed (D34 missing). Green run: 2 passed. tests/backlog + tests/smoke/test_make_check.py green at 373.
+  - make safety: not affected (no protocol, triage or runtime change).
+- Next: the five decisions are carried out by INT-580, INT-583, INT-582, INT-577 and INT-584.
+### 2026-10-30T19:00:00+03:00 · INT-588 · consent.health.hint made true with INT-587 (legal, for build 7)
+- Goal: the legal reviewer (on #1001) found that `consent.health.hint` says the Health data "hiçbir yere gönderilmez". With INT-587, a line the patient adds travels with a sent note, so the hint is false. This blocks build 7.
+- Plan: replace tr and en with the reviewer's text verbatim, and pin it beside the other release-copy truths.
+- Tests added (with the near-miss negative for any safety rule):
+  - `buildCopy.test.ts`: both strings pinned exactly.
+  - Near miss: the "sent nowhere" pattern catches the old tr and en lines, and matches neither new one.
+  - The hint is not a delivery claim.
+  - Red: 2 failed. Green: mobile 153 files / 3134 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `tests/release` + `tests/legal` 957 passed with no new i18n or PolicyGuard finding; claims scan clean; evidence §11.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: carry into INT-591 (merged there; INT-591's own tests re-run green on the merged tree).
+- LOOP_STATUS: CONTINUE
+### 2026-10-30T14:10:00+03:00 · INT-591 · done (committed locally, stacked on INT-588; push frozen)
+- Goal: GitHub #993, P1, Sec-Row `mobile`, the legal lane's recommendation from the INT-588 review: in a release build İzinleriniz must not offer the voice and lane:affect consents (KVKK m.4), while a standing grant stays withdrawable.
+- Plan: `consentActions` and `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`; the detail screen and the consent list read them; one new line, "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz."
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.consent.test.ts` (no grant in release; near misses: standing grants withdrawable, dev and other purposes unchanged) and source pins in `e2e/releaseCopy.spec.ts`. Red: 2 files, 10 failed. Green: mobile 145 files / 3036 tests. Mutation 2/2 killed.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; backlog pins at 377; files/11 regenerated.
+- Invariants touched and still passing: 2, 4, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: push the stack (INT-587, INT-588, INT-591) when the freeze lifts.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T13:50:00+03:00 · INT-588 · legal re-check BLOCK fixed (committed locally; push frozen)
+- Goal: the legal re-check of 7f2c0ffa blocked on `consent.who.laneLinguistic`, which named the doctor as the recipient with no served text behind it (HB-C17).
+- Plan: the reviewer's exact wording; the affect row keeps the text's "bir değerlendirme olarak"; a KVKK-10 pin that a "who" row names a recipient only where a served text exists.
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.test.ts` recipient pin over every purpose (near miss: core's row, with a text, names the doctor). Red: 3 failed. Green: mobile 144 files / 3026 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; evidence §9.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: INT-591 on top.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T10:30:00+03:00 · INT-588 · done (rebased onto INT-587's legal-review fix; committed locally; push frozen)
+- Goal: GitHub #989, P1, Sec-Row `mobile`, from the store-listing legal review (B6). Make every patient string true for the build it ships in: a release build has no voice (`__DEV__` gates the lane and dictation; INT-421 strips the lanes), and two consent rows contradicted the served texts (KVKK-10).
+- Plan: one pure module, `apps/mobile/src/lib/buildCopy.ts`, for the lines whose dev truth differs (open-answer hint, start-mode chooser, companion text-only effect); plain catalogue edits for the lines whose voice clause was never needed (welcome, integrity warning, companion footer); the voice and affect rows aligned with voice.tr.md and lane.affect.tr.md; `review.sentInfo`'s second sentence pointed at the access log. Sweep of 15 release-visible strings in docs/evidence/INT-588.md §2.
+- Tests added (with the near-miss negative for any safety rule): `src/lib/buildCopy.test.ts` (release resolution has no voice clause; near misses: the dev variant does, the typed invitation survives; delivery claims pinned to gated surfaces; consent rows read against the served texts) and `e2e/releaseCopy.spec.ts` (screens use the helper on the facts that draw the button). Red: 2 files, 4 tests failed. 6/6 mutations killed, one after strengthening the spec.
+- Result (`make check` / `make safety` / `make security` summary): mobile 143 files / 2999 tests at first commit, and 144 files / 3021 tests after the rebase onto INT-587 62643b93; typecheck clean; `make check-i18n` and PolicyGuard green with the welcome line's two records struck; backlog pins at 376. Full check-py fan-out left to CI (no Python source change). `make safety` untouched.
+- Invariants touched and still passing: 2, 5, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: the two consent rows and the companion footer. Owner: the linguistic row (its text is HB-C17), voice purposes in a no-voice build, and the ladder rungs with no data source (evidence §2).
+- Next: push both when the freeze lifts; open INT-587's PR first, then this one on top.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T10:00:00+03:00 · INT-587 · legal review round 1 fixed (committed locally; push frozen)
+- Goal: the independent legal review returned B1 (a share consent given for one note could release another after a withdrawal — KVKK m.4/5/6) and notes N3, N5.
+- Plan: the outbox subscribes to the consent ledger and parks every queued and refused note on any share withdrawal (core included); each note is bound to the receipt given for it, sealed with it, and released only by a receipt for that note; the engine refuses a grant older than the last withdrawal; refused consent ops are dropped and re-asked (N5); "Şimdi değil" beside the grant with equal weight (N3).
+- Tests added (with the near-miss negative for any safety rule): `consentBinding.test.ts` (a)(b)(c) over the real consent store with a restart from disk; near miss: a `documents` withdrawal parks nothing. Red: 6 files, 18 tests failed, including the review's scenario. Green: mobile 142 files / 2996 tests. Mutation 5/5 killed.
+- Result (`make check` / `make safety` / `make security` summary): mobile suite, typecheck, `make check-i18n` and PolicyGuard green; details in docs/evidence/INT-587.md §8.
+- Invariants touched and still passing: 4, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing; the reviewer re-verifies on this head.
+- Next: rebase INT-588 onto this head.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-29T02:20:00+03:00 · INT-587 · done (committed locally; push frozen for the build-6 wave)
+- Goal: GitHub #988, P1, from the store-listing legal review (B4). In a release build the patient's note never reached a clinician: "Gönder" only changed local state, no client called `PUT /v1/visits/{id}/note`, the app could not grant `share:previsit_note`, and Review & send said "gönderildi" on no evidence. Sec-Row: the issue names `sharing`, which is no files/10 §9 row; the work is the Review & send row, so `review-send`.
+- Plan:
+  - A note-sync client (`apps/mobile/src/lib/intake/delivery/`): payload from `buildNote` within the server's `NotePut` bounds; an outbox state machine (queued with capped backoff and Retry-After, never dropped; awaiting_consent; refused for a 4xx, retried only by the patient; delivered, terminal); a transport that counts only a confirmed `sent` as delivered; an attempt that flushes the consent queue first; sealed persistence through the INT-142 draft backend; a store restored from disk at sign-in; native wiring behind a lazy import.
+  - The share consent: the loader reads the served share text; a ledger slot grants it against that text at every send and returns the receipt the outbox requires; the share centre withdraws it.
+  - Review & send: `frozen` and `sent` split; `NoteDelivery` owns the confirm step and the status; only a delivery opens the "gönderildi" branch.
+  - Doctor Link: the server visit id, and a typed step-up seam (OTP session tier; INT-582's passkey later).
+  - No server code change.
+- Tests added (with the near-miss negative for any safety rule): 11 new or extended files (docs/evidence/INT-587.md §3). Near misses: no share without the grant (receipt-less enqueue refused; 403 on the share scope parks the note; the API refuses and writes nothing); a revoked grant stops the link (local refusal before network; server revokes shares, an earlier code opens nothing); offline send queues and survives a restart (memory killed, restored from sealed bytes, delivered on reconnect); a server 4xx is surfaced and not retried forever; no PHI in logs (console spied through every failure mode). Red: 10 files failed, 13 tests failed. 9/9 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary): `make check-ts` exit 0 (mobile 2974 tests); `make check-i18n` 236 passed; `make check-py-static` clean; the API, backlog, smoke, release, legal and security subsets pass; the full check-py pytest result is in the evidence. No container ran (owner rule of 29 Oct). `make safety` untouched.
+- Invariants touched and still passing: 2, 4, 5, 6, 14, 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The motion class of Review & send is now `legal`, because it renders the share text.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: review the confirm-step rendering. Owner: re-sharing after a withdrawal and a sign-out warning for a queued note are not built (evidence §7).
+- Next: push when the freeze lifts, open the PR (`Sec-Row: review-send`, `Closes #988`), legal review.
 ### 2026-10-29T00:40:00+03:00 · INT-584 · done (PR open; the merge-queue deploy runs the move, then the owner's probe)
 - Goal: GitHub #983, P1, Sec-Row `onboarding`, owner decision D38 (28 Oct 2026). The phone-tokenization key moves from the synthetic host's env file into OpenBao now, with the same key material, so no pseudonym changes. INT-581 recorded the env-file key as an open residual.
 - Plan:
@@ -159,6 +242,26 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): unchanged — a licensed Turkish lawyer countersigns before any real patient (HB-L27); INT-535's three questions for the phone-entry notice.
 - Next: the independent legal-reviewer verifies §13; then this refresh is merged forward into #940 and #946.
 - LOOP_STATUS: WAITING_HUMAN
+### 2026-10-28T03:30:00+03:00 · INT-559 · done (PR open, not merged)
+- Goal: GitHub #947, P1, from the INT-536 legal review. The DEV voice lane and the VoiceNote pill recorded a temporary file on the phone through expo-audio's recorder and deleted it after upload. Invariant 3 allows no dev exception.
+- Plan:
+  - Classify every capture path: the dialogue hook, the pill and `lib/voice.ts` were file-backed; LiveKit (INT-103 → INT-515) already streams; the agent-clip cache is TTS output, not patient audio.
+  - Read what the pinned expo-audio 57.0.4 offers. The recorder is file-based on both platforms. `AudioStream` is not: an `AVAudioEngine` input tap on iOS and `AudioRecord` on Android, each emitting 100 ms PCM buffers and never naming a path. Chosen as the smallest option — no new dependency, no native module, Expo-only.
+  - A capture library (`apps/mobile/src/lib/capture`): a buffer allocated once at the 60 s cap and `fill(0)`ed on every trigger; a session that reads the dialogue's `closed()` after every await and on every chunk (INT-551's pattern); one turn for both callers; the ASR client sends bytes; the one expo-audio binding sits behind a lazy import.
+  - The hook keeps its ask-ahead shape: the microphone closes synchronously at "Bitirdim", at `leave` before its first await (the RED path), on failure, unmount, a typed answer and app background.
+  - One trade-off, recorded, not built around: expo-audio's stream puts the iOS session in `.record`, which silences playback, so on iOS the clip plays tap-interruptible and the microphone opens on the patient's turn. Android keeps INT-291's voice barge-in.
+- Tests added (with the near-miss negative for any safety rule):
+  - `lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts` (65): the cap, zeroing on take/clear/finish/discard, the closed-before/during/after-start paths, cap-sized segments with no sample lost, the envelope byte for byte, the client zeroing on success and on every failure, the deadline.
+  - `e2e/voiceCapture.spec.ts` (15): the source slice over the whole patient-audio path and a node-driven 70 s turn under a storage trap; `e2e/bargeIn.spec.ts` (7) pins moved to the file-less posture.
+  - Red: 9 files failed (8 missing modules, 4 barge-in pins). Green: 87/87 targeted, 2900/2900 whole suite.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `apps/mobile`: tsc clean, expo lint 0 errors, vitest 138 files / 2900 tests. Python: backlog, voice-doctor, threat-model and release suites green; files/11 regenerated, the two pins 367 → 368.
+  - no_placeholders, phi_scan, claims_scan, sec-row linkage and evidence_check OK. `make safety` untouched; `make security` on the PR's runner (no dependency or egress change).
+- Invariants touched and still passing: 3 (the subject), 6, 9/21 (the RED path waits on nothing; `leave` discards before any await), 11, 16 (Sec-Row `mobile`, threat row updated), 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none required — no architecture change, no new dependency. The iOS barge-in trade-off is the owner's product call (docs/evidence/INT-559.md §4); the two ways back are an upstream session-category option on expo-audio's stream or a local Expo module.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The INT-536 consent text check re-runs when INT-515 deploys voice-runtime (INT-515's step).
+- Next: merge; INT-515 re-runs the text check; #939 (INT-551) and #866 (INT-497) merge at the recorder call sites of `useDialogueSession.ts`.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
 - Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
@@ -236,6 +339,35 @@
 - Blocked on: nothing.
 - Findings G1–G3 are in the evidence file. G1: `consent.who.core` still undersells the core text (INT-536). G2: the session mirror is never reconciled after a restart (pre-existing). G3: the learning purposes under a core withdrawal.
 - Next: the legal-reviewer pass; this PR merges after #911.
+### 2026-10-17T00:45:00Z · INT-536 · done (PR #946 open, stacked on #940 INT-537, which contains #911 INT-529)
+- Goal: GitHub #903, from the INT-529 legal-author findings, D25 legal lane, synthetic scope.
+  - F1: the consent-screen lines contradicted the texts and the host. "Türkiye'de kalır" is false on us-east-1, and the affect and linguistic lines said the doctor sees the cues, which never reach the doctor. INT-537 G1 adds the core line.
+  - F3: the render-time claims scanner missed "doğruluğu" beside a figure, which CI catches.
+  - F5: the satisfaction annotations said the contract ground, while the routes are gated on açık rıza.
+  - F8: the synthetic loader read the declared data class, not ADR-035's bound one.
+  - The comment's F9: voice and lane:affect did not name AWS.
+- Plan:
+  - Refresh #911 first: merge main, narrow the vendor tripwire, then close the backend bypass the legal re-verification found (INT-529 evidence §12, §12.1).
+  - Then stack this row on it. Write the five test files first, then rewrite the four who-lines (tr and en), mirror the CI expressions in `legal.claims`, add per-event-type bases, read the bound class per lookup, and re-sign voice and lane:affect at `2026-10-17.syn1`.
+- Tests added:
+  - `tests/legal/test_consent_who_lines.py`, which pins each line to its code fact; the old voice line is the near miss;
+  - `tests/legal/test_claims_ci_parity.py`, with 13 claims and 8 near misses run through both gates;
+  - `tests/data/test_satisfaction_basis.py`, where a contract ground on satisfaction is a finding;
+  - `tests/legal/test_synthetic_bound_class.py`, covering mismatch, unreadable, no store and the API wiring;
+  - a hosting-processor test in the tripwire file.
+  - RED: 19 failed and 2 collection errors. GREEN: 88 passed.
+- Result (docs/evidence/INT-536.md §7, §9):
+  - legal and synthetic grant suites: 721 passed;
+  - mobile vitest: 2819 passed;
+  - `pnpm -r typecheck`, ruff and mypy strict: clean;
+  - claims, PHI and placeholder scans: OK.
+- Invariants touched and still passing: 4, 5, 6, 11, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-536 row added; the three pins go from 365 to 366; files/11 regenerated. COUNSEL_BRIEF §2.9 and §3.6 note that the basis half is reconciled.
+- Blocked on: nothing for this row. For the legal-reviewer (evidence §8):
+  - G3 is fixed server-side by #940, which this PR now stacks on: a core withdrawal writes opt-outs for undecided default-on purposes.
+  - The voice lane's temporary file and its GPU-box route need re-verifying when INT-515 ships.
+- Next: legal-approved. #940 merged in on the reviewer's ruling (core who-line kept; consent.spec pin aligned; pins at 367). Retarget to main once #911 and #940 merge.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
@@ -4161,6 +4293,89 @@
 - Decisions / ADRs / `00_STATE.md` rows: none new; the feeding construct left open by CD-10 is closed by CD-100 T9/T48 and CD-103 L75 (both items kept, ungated).
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): 31 owner questions recorded per item in CD-100..CD-106 (generator fixed slots vs base, self/proxy wording under HB-L20, D3 categories); none blocks the merge.
 - Next: apply the packet decisions through the proposals and the generator once #642 merges.
+### 2026-10-03T04:10:00+03:00 · INT-450 · done (PR open, not merged)
+- Goal: GitHub #763, the owner's request of 3 Oct 2026. Acceptance, verbatim:
+  - "kobra, beautifului, beui, reverseui, astryx, transitions, evilcharts and kinetics are each licence-verified from their raw LICENSE."
+  - "Admin-web dashboards, charts and interactions are upgraded with the adopted ones. Accessibility is tested and before/after captures are recorded."
+- Plan:
+  - Read each licence from its raw LICENSE blob, or its licence/terms page where there is none, and record the URL, sha256 and date.
+  - Port the adopted ones into the console's own server-rendered SVG and bundled CSS. The CSP admits no inline style and no foreign script, so Recharts and Motion cannot be installed as they are.
+  - Chart the dashboards where data exists, and refresh the navigation, cards, tables, forms and motion.
+  - Gate it all with axe, a token contrast check and a reduced-motion check.
+- Licences:
+  - Adopted:
+    - EvilCharts (MIT);
+    - beUI public library (MIT);
+    - Astryx (MIT);
+    - Transitions.dev, two free transitions under its custom licence.
+  - Cleared but not used: Beautiful UI (MIT). It ships chat-agent primitives, and none fits the console.
+  - Rejected:
+    - Kinetics: no LICENSE in its repository; the site's "MIT" is a badge.
+    - Kobra: paid, per seat. Owner purchase.
+    - Reverse UI: paid lifetime licence; the free tier has no licence text. Owner purchase.
+- Tests added (with the near-miss negative for any safety rule):
+  - `apps/admin-web/e2e/accessibility.spec.ts` (33 tests):
+    - axe WCAG 2.1 A/AA + best practice over 8 page states × tr/en, all with 0 violations;
+    - token contrast in both themes;
+    - reduced motion;
+    - one repeating animation only;
+    - no `text-transform`, ellipsis or break-all (files/00_STATE Turkish casing);
+    - CSP and stylesheet origin checks.
+    - Near-misses: a nameless chart image fails axe; a 0.55 gradient fails 3:1; a planted uppercase rule is caught.
+  - `apps/admin-web/src/ui/charts.test.tsx` (15 tests). Near-misses: a grouped figure draws no bar; 0 is not unknown; a stale reading is named stale.
+  - RED runs: 1 + 7 failures, recorded in the evidence. They caught three defects:
+    - a grouped number charted as 1;
+    - a pre-existing `landmark-unique` defect on CI/CD and Voice (tiles are now `article`);
+    - a 2.1:1 bar gradient.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile 2526 passed). admin-web is now 375 passed: 327 existing plus 48 new.
+  - admin-web `build` green.
+  - `check_licenses.py` OK, and `no_placeholders` OK after staging.
+  - `tests/backlog` and `tests/smoke/test_make_check.py` green, with pins 330 → 331.
+  - `make security`: steps 2–5 and 7–12 are green.
+    - Step 1 (gitleaks, full history) reports 7 findings, all in commits already on main; the staged diff is clean.
+    - Step 6 (OSV) reports `braces@3.0.3` and `http-cache-semantics@4.2.0`. The same two are on origin/main's lockfile; none comes from this change's additions.
+  - No Python, protocol or voice change, so `make safety` is not affected.
+- Invariants touched and still passing:
+  - 6: charts carry ids only;
+  - 14: CSP unchanged, verified in Chrome under the production policy with zero violations;
+  - 17: a chart renders only in an `ok` tile, and an unknown figure draws no mark;
+  - 19: licences read from raw blobs;
+  - 20: no target drawn beside a figure;
+  - 22: a chart parses the printed atom and refuses grouping.
+- Decisions / ADRs / `00_STATE.md` rows: none. The port-not-install choice follows from the existing CSP and is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner asks, not HB rows: buy Kobra and/or Reverse UI if wanted; ask the Kinetics author for a LICENSE.
+- Next: PR `INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked)` (Closes #763, Sec-Row admin-console), left unmerged. Cost and Roadmap pages, and Model lanes (#751), take the shared chart primitives when they land.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:40:00+03:00 · INT-459 · done (PR #784 open, not merged)
+- Goal (GitHub #783, owner request): make the admin console read as premium and Apple-native rather than AI-generated.
+  - In scope: the dashboard, the shell, tables, Model lanes, settings, and the empty, loading and error states.
+  - Glass on chrome only, with fallbacks.
+  - Tokens for both themes, with AA tested.
+  - Spring motion, none on a control.
+  - No behaviour change.
+- Plan:
+  - Stack on INT-450 (#776), which already licence-checked the owner's libraries.
+  - Add three sheets (tokens, shell, content) and a sidebar `ConsoleNav` with drawn symbols and a language switch.
+  - Make the settings-style four-eyes forms still.
+  - Centre the refused states, inset the empty state, and render not-found per request.
+  - Model lanes (#751) inherits the shell through its shared class names.
+- Tests added: `e2e/native.spec.ts` (31), `e2e/states.spec.ts` (10), `src/ops/nav.test.tsx` (15). `e2e/accessibility.spec.ts` now reads every sheet. Each property has its near-miss: Apple's dark systemBlue fails AA, a 70 % glass fails, a planted glass card is caught, INT-450's tile entrance would move the forms, and React streams a late SVG segment in a style attribute.
+  - RED 1: three suites failed to load.
+  - RED 2: 23 failed against an empty layer. The critical-control test named six INT-450 rules that moved a control.
+  - RED 3: in the production build behind the CSP, a route-level `loading.tsx` streamed `<svg style="display:none">`, which was blocked; and a prerendered 404's scripts had no nonce.
+- Result:
+  - admin-web 431 passed; typecheck, lint, prettier and `next build` clean.
+  - `pnpm -r typecheck` and `pnpm -r lint` exit 0; `make check-ts` exit 0.
+  - Backlog and smoke 74 passed (pins 331 → 332, files/11 regenerated).
+  - `no_placeholders` OK after staging.
+  - Production check: zero CSP violations and no `style=` on any page.
+  - Captures are in `docs/design/admin-premium/`. `docs/design/library-patterns.md` maps the libraries and Mobbin patterns to the mobile chat; it cites #716, #717, #726, #728, #740 and #771 where they already deliver an item.
+- Invariants touched and still passing: 5 (tr first, en mirrored), 6 (ids only), 14 (the CSP is unchanged and tighter in practice: the 404 now carries the nonce), 17 (an unknown tile has no figure; no placeholder), 20 (no claim).
+- Decisions / ADRs / `00_STATE.md` rows: none. The `loading.tsx` withdrawal is recorded in the evidence.
+- Blocked on: the owner and the security reviewer. Should the CSP admit React's `style="display:none"` on streamed segments (`style-src-attr 'unsafe-hashes'` with the hash of that one string), so that the console can have a route-level loading state?
+- Next: merge #776, then #784. The Model lanes nav entry (three lines) goes to whichever of #751 and #784 merges second.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-02T20:00:00Z · INT-414 · done (PR open, not merged)
@@ -4422,4 +4637,51 @@
 - Plan: `pnpm install --lockfile-only` with next pinned to 16.4.1 in apps/admin-web; `uv lock --upgrade-package certifi --upgrade-package filelock==4.2.1` (virtualenv followed). No constraint, no suppression.
 - Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
 - Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
+### 2026-10-28T10:00:00Z · INT-459 (refresh) · done
+- Goal: land the admin console's premium shell (#776 INT-450 + #784 INT-459) on current main and fix, inside it, what the 17 Oct audit named: Unknown as a wall of equal tiles, empty tables, refusals that drop the nav, cells that clip, a flat grid. Acceptance, verbatim from the row: "Translucent glass only on chrome (sidebar, top bar, sheets); content sits on solid fills; prefers-reduced-transparency, prefers-contrast and prefers-reduced-motion each have a fallback." "Light and dark themes come from one token set, and WCAG AA contrast is asserted by tests in both themes." "Motion is subtle and spring-based, and none of it is on a critical control." "Behaviour is unchanged: no API contract, auth, approval-flow or four-eyes change; no IP restriction; no PHI in fixtures." "Before/after captures from the local dev server are recorded."
+- Plan: branch `int-459-admin-premium-refresh` from #784's head; merge `origin/main` (nav.tsx keeps the grouped sidebar and gains Model lanes; backlog union, pins 368; lockfile re-resolved); withdraw D26 and `loading.tsx` (main has no D26); Palette B in one file; the layout layer; designed unknown and empty states; the refused shell; captures with the audit's harness.
+- Tests added (each with its near miss): `e2e/palette.spec.ts` (14: one file, pinned to the app's theme, deepened shades keep the hue, the RED hex caught), `e2e/layout.spec.ts` (12: twelve columns, eight unread SLOs fill two rows, the draft selector that lost to the table rule, cells wrap, sticky headers), `e2e/fills.spec.ts` (31: every reason has its fill line, nineteen empty tables, the unknown note's shape), `e2e/states.spec.ts` (+26: all twelve refused documents keep the shell and pass axe; the old dead end caught). `e2e/model-lanes.spec.ts` follows the sidebar's markup.
+- Result: admin-web vitest 23 files, 604 passed; `typecheck`, `lint`, prettier clean; `uv run pytest tests/backlog tests/smoke` green; `no_placeholders` OK. `pnpm -r lint` outside apps/mobile clean (the mobile workspace is not installed here; CI runs it). Measured contrast ratios are in docs/evidence/INT-459.md §10.3.
+- Invariants touched and still passing: 5 (tr first, en under the type), 6 (ids only in fixtures), 17 (no figure on an unknown tile), 20 (no target line anywhere; the fill lines are nominal), 48 (the CSP is main's: no `unsafe-*`).
+- Decisions / ADRs / `00_STATE.md` rows: none minted. D26 is withdrawn from this branch (allocation is the orchestrator's). Palette B is the owner's 17 Oct decision, recorded in the evidence and the PR.
+- Blocked on: nothing. The pages still missing are INT-562..565 (#951..#954); the synthetic host's Unknowns clear with INT-567 (#956) and INT-566 (#955).
+- Next: INT-562 (Safety queue page), INT-564 (Compliance, Models, Experience pages), INT-565 (Protocols, Clinical quality, Security, Cost), INT-563 (four-eyes approval through a WebAuthn step-up).
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-29T01:30:00+03:00 · INT-586 · done (PR open)
+- Goal: osv-scanner began reporting GHSA-ccrj-gw8r-854m against the Keycloak provider's test-classpath pin opentelemetry-api 1.62.0, turning the vulnerabilities gate red on main and on every open PR. 1.67.0 fixes it, so the fix is a bump, never an exception row (invariant 14).
+- Plan: raise `opentelemetry-patched.version` to 1.67.0 and swap the six 1.62.0 trusted-checksum lines for verified 1.67.0 ones.
+- Tests: local osv-scanner 2.5.1 before (exit 1) and after (exit 0); provider tests (25); backlog and smoke pins at 375. The `make check` fan-out and the strict-checksum Maven build run on the PR's AWS runner.
+- Invariants touched and still passing: 14 (no suppression; the trusted checksums still fail if anything is missing); 16 (Sec-Row `cicd`); 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- Update (check-py red at `make keycloak-provider`):
+  - Cause: the jar embeds its pom, so the bump changed its bytes. main's pom still reproduces `91da1232…`, and the bumped one gives `3ca703b6…`, now the pin (pin file and runbook).
+  - Re-recorded, not edited: the passkey login ran with that jar on Keycloak 26.7.4 (dist sha256 checked) on the AWS synthetic host over SSM. It was loopback only, in a throwaway NVMe dir, with no container and the staging stack untouched. Provider admitted, stock refused. Then torn down.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T13:30:00+03:00 · INT-590 · done (PR open)
+- Goal: trivy began reporting CVE-2026-118664 (HIGH) against decode-uri-component 0.5.0, turning the vulnerabilities gate red on main and on every open PR. 0.5.1 fixes it, so the fix is a bump, never an exception row (invariant 14).
+- Plan: raise the root pnpm override floor to ^0.5.1, regenerate the lockfile, and raise the FIXED_VERSIONS floor and ADVISORY_IDS in tests/ci/test_security_gates.py.
+- Tests: the floor test is red on main's lockfile and green after; tests/ci 421; local trivy and osv-scanner before and after; backlog and smoke pins at 376. The `make check` fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing: 14 (no suppression added); 16 (Sec-Row `cicd`); 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T18:00:00+03:00 · INT-592 · done (PR open; legal review of the strings pending)
+- Goal: Apple rejected TestFlight build 6 with ITMS-90683. INT-420 had set the HealthKit plugin's `NSHealthUpdateUsageDescription` to `false`, so the Info.plist had no key. The library links write APIs, so the key is required although the app never writes. P0: blocks build 7.
+- Plan: give the key a truthful Turkish string saying Önvizit writes nothing to Apple Health and asks only to read. tr is the source (plugin option = app-tr.json), with an en mirror in app-en.json. The share string is localised too, so both agree with the connector's three read types. The declared key is classified in the store-label inventory.
+- Tests: brand.spec.ts has a write-denial oracle with near misses (false, empty, the library default, a write claim, a denial plus a claim) and a code-truth check (toRead only; no toShare/save/delete). The new tests/legal/test_ios_purpose_strings.py covers base = tr, tr/en parity, PolicyGuard and B1 over every purpose string, and the inventory row. Red run: 4 vitest + 5 pytest failures. Green run: mobile vitest 2971, `pnpm -r typecheck`, tests/legal + tests/release 964, claims scan, backlog and smoke pins at 382 (after merging main `4bb5ecae`, which brought INT-585's row). 3 of 3 mutations killed.
+- Invariants touched and still passing: 2 and 5 (siz, B1, PolicyGuard-clean, tr first); 13/18 (the declared key has an inventory row, with no new data category); 16 (Sec-Row `mobile`); 17 (no placeholders); 20 (claims scan covers the locales).
+- Decisions / ADRs / `00_STATE.md` rows: none. The pre-existing 19-word share string is recorded as a B1/PolicyGuard-length finding, not rewritten; its wording is the legal lane's call.
+- Blocked on: nothing. The legal-reviewer approved #1001 (30 Oct).
+- Update (legal review applied):
+  - The share string is now the reviewer's variant A, for a build carrying INT-587: an added Health line travels with a sent note. It is the same text in app.json and app-tr/en.json.
+  - The update string loses the semicolon after "Önvizit".
+  - The recorded length finding is cleared, so both findings sets are empty.
+  - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
+- Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE

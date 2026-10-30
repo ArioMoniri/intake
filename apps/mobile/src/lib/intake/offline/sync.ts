@@ -8,12 +8,17 @@
  * so the airplane-mode journey is provable without a device or a network
  * (e2e/offline.spec.ts).
  *
- * The transport speaks to INT-197's /v1/visits/{id}/note when it exists and
- * is reachable; today no note-sync client ships (the server note carries no
- * version and the raw answer-draft has no server home yet — INT-137 evidence),
- * so a production transport reports unreachable and the draft stays local and
- * sealed. That is the fail-closed state, not a gap: the CONFLICT RULE this
+ * What this pass reconciles is the DRAFT — the raw answers as the patient is
+ * still editing them — and that draft has no server home: the server note
+ * carries no version, and it holds the built note, not the answers (INT-137
+ * evidence). So no production DraftTransport is wired, and a draft stays local
+ * and sealed. That is the fail-closed state, not a gap: the CONFLICT RULE this
  * issue owns is complete and tested regardless.
+ *
+ * SENDING is a different act and ships separately since INT-587: a note the
+ * patient sends goes through the note outbox (src/lib/intake/delivery), which
+ * PUTs the built note to INT-197's /v1/visits/{id}/note once the patient has
+ * granted the share consent, retries it with backoff and never drops it.
  */
 import { loadDraft, persistConflictCopy, persistDraft, type DraftBackend } from "./draftStore";
 import { reconcile, type DraftRecord, type SyncOutcome } from "./reconcile";

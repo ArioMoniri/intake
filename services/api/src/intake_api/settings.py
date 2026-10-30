@@ -28,6 +28,7 @@ from intake_platform.legal.synthetic import (
     refuse_legal_paths_for,
 )
 from intake_platform.model_lanes.guard import egress_proxy_url
+from intake_platform.model_lanes.store import ENV_MODEL_LANES_REDIS_URL
 from intake_platform.red_tenant import TenantKind
 
 from intake_api.tokenization_key import TokenizationKeyState
@@ -328,6 +329,10 @@ class ApiSettings:
     # INT-529: what this deployment holds. Real PHI unless the image bakes
     # INTAKE_DEPLOYMENT_DATA_CLASS=synthetic (infra/staging/Dockerfile.api).
     deployment_data_class: DeploymentDataClass = DeploymentDataClass.REAL_PHI
+    # INT-536: where ADR-035's model-lane control record lives. Its bound data
+    # class is what the synthetic legal loader obeys, read fresh per lookup;
+    # unset means no store, so nothing is bound and the declaration governs.
+    model_lanes_redis_url: str | None = None
 
     def __post_init__(self) -> None:
         # INT-529: a real deployment never reads the synthetic legal tree, and
@@ -443,4 +448,5 @@ class ApiSettings:
             triage_deployment=os.environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip() or None,
             environment=environment_name(os.environ),
             deployment_data_class=data_class,
+            model_lanes_redis_url=os.environ.get(ENV_MODEL_LANES_REDIS_URL, "").strip() or None,
         )

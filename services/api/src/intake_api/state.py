@@ -16,6 +16,7 @@ from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
 from intake_platform.legal.synthetic import DeploymentDataClass, SyntheticConsentTextCatalog
+from intake_platform.model_lanes.store import ENV_MODEL_LANES_REDIS_URL, model_lanes_store_from_env
 from intake_platform.previsit_output import RecipientRegistry, load_recipients
 from intake_platform.red_tenant import TenantRedConfig
 from intake_platform.safety_inbox import SafetyInbox, SafetyInboxOutbox
@@ -47,10 +48,17 @@ def _utc_now() -> datetime:
 def consent_catalog_for(settings: ApiSettings) -> ConsentTextCatalog:
     """The one place a consent catalog is built from settings (INT-529): the
     synthetic deployment reads the synthetic index, every other deployment the
-    real tree — and ApiSettings has already refused any mixed pairing."""
+    real tree — and ApiSettings has already refused any mixed pairing. INT-536:
+    the synthetic catalog also obeys ADR-035's bound data class, read from the
+    deployment's model-lane control store when one is named."""
     if settings.deployment_data_class is DeploymentDataClass.SYNTHETIC:
+        bound = (
+            model_lanes_store_from_env({ENV_MODEL_LANES_REDIS_URL: settings.model_lanes_redis_url})
+            if settings.model_lanes_redis_url
+            else None
+        )
         return SyntheticConsentTextCatalog(
-            settings.legal_root, data_class=settings.deployment_data_class
+            settings.legal_root, data_class=settings.deployment_data_class, bound=bound
         )
     return ConsentTextCatalog(settings.legal_root)
 
