@@ -7375,3 +7375,25 @@
     - "An opt-in, structure-only diagnostic (netgsm_test_otp.sh --shape) prints the answer's content type, kind, top-level keys or tags, vendor code and length, never the number, the code, the job id or the body; invariant 6 tests cover every new refusal path."
   tests: [tests/api/test_otp_netgsm_answer.py, tests/api/test_otp_netgsm.py, tests/api/test_otp_send_check.py, tests/api/test_otp_netgsm_wiring.py, tests/infra/test_staging_netgsm.py]
   sec_row: "onboarding"
+- id: INT-564
+  epic: E12-admin
+  phase: P1
+  title: "Render the headless admin modules as pages: Compliance, Models registry, Experience wait times"
+  # GitHub #953, from the admin audit of 18 Oct 2026: the APIs and the
+  # view-models existed with no route. /compliance reads the five INT-189
+  # routes; /models reads GET /admin/models with the release gate first and a
+  # benchmark form per enabled lane; /experience reads a new console composite,
+  # GET /admin/experience, built at serve time from the tenant's own rollups
+  # (the patient-token /v1/admin route cannot take the console's bearer), and
+  # the e2e fixture is recorded through the route's own builder.
+  depends_on: [INT-459, INT-189, INT-183, INT-186, INT-241]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-564.md
+  acceptance:
+    - "/compliance, /models and /experience are console pages on the INT-459 shell, each in the sidebar, each loading through its own server-side loader with the caller's bearer and painting no tile on a refusal or a refused body."
+    - "k-floor respected: consent counts from 1 to 9 render as 'fewer than 10'; an experience surface below k >= 10 shows its count and says why nothing else is shown; a body carrying a figure below the floor is refused."
+    - "GET /admin/experience is a console route (role matrix, audit wrapper): the window is required with no default, the tenant comes from the claim and never the query, and the committed fixture is the route's own builder over empty rollups."
+    - "Honest empty states (invariant 17): every table says it is empty and what puts a row there; the Models page's quality lane stays disabled with its reason, and its benchmark form sends only a registry id and a lane."
+  tests: [tests/admin/test_experience_console.py, apps/admin-web/e2e/pages564.spec.ts]
+  sec_row: "admin-console"

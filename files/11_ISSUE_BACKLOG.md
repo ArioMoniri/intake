@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**372 issues.** By phase: P0 182 · P1 136 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 252 · todo 74 · withdrawn 1.
+**373 issues.** By phase: P0 182 · P1 137 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 253 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -334,6 +334,7 @@
 | INT-573 | next, certifi and filelock lifted past the 27 Oct 2026 advisories, so the vulnerabilities gate is green without an exception | E13-infra | INT-501 | area:security | done |
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
 | INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
+| INT-564 | Render the headless admin modules as pages: Compliance, Models registry, Experience wait times | E12-admin | INT-459, INT-189, INT-183, INT-186, INT-241 | area:admin | done |
 
 ## P2
 

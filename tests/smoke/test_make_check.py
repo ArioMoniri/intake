@@ -401,7 +401,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-576 (the Netgsm adapter parses the live success shape and never
     # retries an unreadable 200, from the owner's real send, GitHub #971);
     # grows only with a stated reason.
-    assert len(ids) == 372, f"expected 175 blueprint + 197 added issues, got {len(ids)}"
+    # + INT-564 (Compliance, Models and Experience as console pages,
+    # GitHub #953); grows only with a stated reason.
+    assert len(ids) == 373, f"expected 175 blueprint + 198 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

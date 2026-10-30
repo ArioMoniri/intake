@@ -238,7 +238,9 @@ def test_ids_unique_and_well_formed() -> None:
     # no wall-clock budget, a store the test holds; GitHub #967).
     # + INT-576 (the Netgsm adapter parses the live success shape and never
     # retries an unreadable 200; the owner's real send, GitHub #971).
-    assert len(ids) == 372
+    # + INT-564 (the headless admin modules as pages: Compliance, Models,
+    # Experience, with the experience console composite; GitHub #953).
+    assert len(ids) == 373
     import re
 
     for i in ids:
