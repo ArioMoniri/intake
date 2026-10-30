@@ -14,7 +14,10 @@ What this file proves (the branches the verifier cannot see on its own):
 - a refused attestation still burns its challenge (single-use whatever the
   outcome, so a caller cannot retry verification against one challenge);
 - an assertion made for one call is refused on another;
-- with no Apple configuration the registration endpoint fails closed.
+- with no Apple configuration the registration endpoint fails closed;
+- INT-578: a code requested under one App Attest key is refused under another,
+  even when both payloads claim the same install id — the binding is the
+  PROVEN key, never the claim.
 
 The PKI is synthetic (app_attest_testkit); the verifier is the production class
 with the test root injected through ``root=``.
@@ -91,6 +94,8 @@ class Flow:
     client: TestClient
     device: Device
     counter: int = 0
+    #: INT-578: the request id the last admitted request answered with
+    request_id: str | None = None
 
     def challenge(self) -> str:
         response = self.client.post("/v1/auth/attest/challenge")
@@ -126,11 +131,14 @@ class Flow:
         return {"X-Intake-Attestation": json.dumps(payload)}
 
     def request_otp(self, headers: dict[str, str] | None = None) -> Any:
-        return self.client.post(
+        response = self.client.post(
             "/v1/auth/otp/request",
             json={"phone": PHONE},
             headers=headers if headers is not None else self.header("otp.request"),
         )
+        if response.status_code == 202:
+            self.request_id = response.json().get("request_id")
+        return response
 
     def verify(self, dpop_key: ec.EllipticCurvePrivateKey, headers: dict[str, str]) -> Any:
         code = self.client.get("/v1/auth/dev/otp-peek", params={"phone": PHONE})
@@ -138,7 +146,7 @@ class Flow:
         url = f"{BASE}/v1/auth/otp/verify"
         return self.client.post(
             "/v1/auth/otp/verify",
-            json={"phone": PHONE, "code": code.json()["code"]},
+            json={"phone": PHONE, "code": code.json()["code"], "request_id": self.request_id},
             headers={**headers, "DPoP": _dpop(dpop_key, "POST", url, NOW.timestamp())},
         )
 
@@ -258,6 +266,21 @@ def test_an_assertion_is_bound_to_the_call_it_was_made_for(flow: Flow) -> None:
     misbound = flow.verify(dpop_key, flow.header("otp.verify", signed_for="otp.request"))
     assert misbound.status_code == 403
     assert misbound.json()["error"] == "attestation_unverified"
+
+
+def test_a_code_requested_under_one_key_is_useless_under_another(flow: Flow) -> None:
+    """INT-578: both devices claim the install id ``install-a``; only the key
+    differs, and the key is what the code is bound to."""
+    other = Flow(client=flow.client, device=Device(flow.device.pki))
+    assert flow.register().status_code == 201
+    assert other.register().status_code == 201
+    assert flow.request_otp().status_code == 202
+    dpop_key = ec.generate_private_key(ec.SECP256R1())
+    stolen = flow.verify(dpop_key, other.header("otp.verify"))
+    assert stolen.status_code == 401
+    assert stolen.json() == {"error": "otp_invalid"}
+    # near miss: the key that asked, same code, same request id
+    assert flow.verify(dpop_key, flow.header("otp.verify")).status_code == 200
 
 
 def test_an_unregistered_key_cannot_request_a_code(flow: Flow) -> None:

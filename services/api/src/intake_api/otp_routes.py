@@ -48,6 +48,8 @@ class OtpRequestIn(BaseModel):
 class OtpVerifyIn(BaseModel):
     phone: str = Field(max_length=32)
     code: str = Field(max_length=12)
+    #: INT-578: the id the request's 202 answered with; the code is bound to it
+    request_id: str = Field(min_length=32, max_length=32, pattern=r"^[0-9a-f]{32}$")
 
 
 class RefreshIn(BaseModel):
@@ -105,7 +107,9 @@ async def otp_request(payload: OtpRequestIn, request: Request, state: State) -> 
 
 @router.post("/otp/verify", response_model=TokenBundleOut)
 async def otp_verify(payload: OtpVerifyIn, request: Request, state: State) -> TokenBundleOut:
-    bundle = await _service(request, state).verify_code(request, payload.phone, payload.code)
+    bundle = await _service(request, state).verify_code(
+        request, payload.phone, payload.code, payload.request_id
+    )
     return _bundle_out(bundle)
 
 

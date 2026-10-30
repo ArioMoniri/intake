@@ -55,6 +55,13 @@ $BAO kv put secret/ehrbase \
   username="${EHRBASE_USER:-intake-dev}" \
   password="${EHRBASE_PASSWORD:-intake-dev-only}" >/dev/null
 
+# INT-578 — the OTP tier's pepper (intake_api.otp_pepper). Random from openssl,
+# never a literal, and kept across re-runs so a re-run does not void the codes
+# in flight; the value reaches the bao CLI on stdin only.
+if ! $BAO kv get -mount=secret -field=pepper api/otp >/dev/null 2>&1; then
+  printf '{"pepper": "%s"}' "$(openssl rand -hex 32)" | $BAO_I kv put -mount=secret api/otp - >/dev/null
+fi
+
 # Transit for the identity vault (INT-013); envelope-encryption engine work is INT-014
 $BAO secrets enable transit 2>/dev/null || true
 $BAO write -f transit/keys/tokenization >/dev/null
@@ -62,4 +69,4 @@ $BAO write -f transit/keys/tokenization >/dev/null
 # vault DDL + roles on the dev Postgres
 docker exec -i intake-dev-postgres-1 psql -U "${POSTGRES_USER:-intake}" -d "${POSTGRES_DB:-intake}" < scripts/security/identity_vault.sql >/dev/null
 
-echo "openbao dev setup complete (kv v2, database 24h roles, 3 policies, transit, identity vault, ehrbase creds)"
+echo "openbao dev setup complete (kv v2, database 24h roles, 3 policies, transit, identity vault, ehrbase creds, otp pepper)"

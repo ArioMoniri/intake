@@ -25,6 +25,17 @@ Honest tiering:
   verifier is real when the Apple team id is configured and fails closed with
   a typed reason when it is not. Android fails closed until HB-A3
   (attestation.py, app_attest.py, play_integrity.py).
+
+INT-578 (owner order, 28 Oct 2026): a code is useless anywhere but where it was
+asked for. Each 202 carries a server-minted ``request_id``; the code is kept
+only as an HMAC under the OpenBao pepper over (pseudonym, request id, code),
+with the device binding beside it — the App Attest key the request proved, or
+in dev the install id; never the install id a real-mode payload merely claims.
+A verify must come from that device with that request id. The fifth miss
+locks the number for a request window (``auth_store.OTP_LOCKOUT_S``): no code
+is minted for it and no verify compared until it ends. Every verify outcome is
+counted by a closed label (``otp_verify_total``); the caller still gets one
+generic refusal.
 """
 
 from __future__ import annotations
@@ -45,6 +56,7 @@ import redis
 from fastapi import Request
 from intake_platform.db.models import KvkkRole, Patient, Tenant
 from intake_platform.tokenization import Tokenizer
+from prometheus_client import Counter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -65,7 +77,6 @@ from intake_api.auth_store import (
     OTP_CODE_DIGITS,
     RESEND_COOLDOWN_S,
     AuthStore,
-    code_digest,
 )
 from intake_api.carrier_geo import CarrierGeoCheck
 from intake_api.db import tenant_session
@@ -85,12 +96,15 @@ from intake_api.errors import (
     refresh_reused,
     unauthorized,
 )
+from intake_api.otp_pepper import OtpPepper
 from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
 
 __all__ = [
     "ATTESTATION_HEADER",
     "CONSUMER_TENANT_ID",
     "DELIVERY_MAY_HAVE_SENT",
+    "OTP_VERIFY_TOTAL",
+    "VERIFY_OUTCOMES",
     "AuthWiring",
     "DeliveryReceipt",
     "DevLogDeliveryAdapter",
@@ -110,6 +124,17 @@ ATTESTATION_HEADER = "X-Intake-Attestation"
 # Consumer-app tenant (files/06 §1: INTAKE is controller for the consumer
 # app). Fixed UUIDv5 key → idempotent bootstrap, same shape as dev_fixture.
 CONSUMER_TENANT_ID = uuid.uuid5(uuid.NAMESPACE_URL, "https://intake.app/tenants/consumer")
+
+#: Every value ``otp_verify_total``'s ``outcome`` label can take (INT-578):
+#: the store's verdicts, and ``locked`` for a verify refused by the lockout
+#: before anything was compared.
+VERIFY_OUTCOMES = frozenset({"ok", "invalid", "unbound", "exhausted", "missing", "locked"})
+
+OTP_VERIFY_TOTAL = Counter(
+    "otp_verify_total",
+    "OTP verify attempts by outcome (ok, or why not). The caller sees one refusal.",
+    ("outcome",),
+)
 
 _TR_MOBILE = re.compile(r"^(?:\+90|90|0)?(5\d{9})$")
 _STRIP = re.compile(r"[\s\-().]")
@@ -236,6 +261,10 @@ class AuthWiring:
     # INT-528: on the synthetic host, the owner's SMS test allow-list; a
     # number off it starts no login. Elsewhere there is no list.
     recipients: RecipientGate = field(default_factory=lambda: ADMIT_ALL)
+    # INT-578: the key every code is kept under. The env path always passes
+    # the one OpenBao holds (secret/api/otp) and refuses to wire without it;
+    # this default — random, process-local — is what a harness gets.
+    pepper: OtpPepper = field(default_factory=OtpPepper.ephemeral)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -271,6 +300,21 @@ def _device_ref(device_id: str) -> str:
     return hashlib.sha256(device_id.encode("utf-8")).hexdigest()[:32]
 
 
+def _bound_device(payload: AttestationPayload) -> str:
+    """What a code is bound to (INT-578): the key App Attest proved, or, on
+    the dev tier only, the install id. In a real mode the install id is the
+    client's claim, and binding to it would let any device that claims it
+    spend the code, so a real mode with no key it proved is refused here,
+    before any budget is spent or any code minted. Play Integrity proves no
+    key, so Android stays refused until its binding has one (HB-A3)."""
+    if payload.mode == "app-attest" and payload.key_id:
+        return f"{payload.mode}:{payload.key_id}"
+    if payload.mode == "dev-unattested":
+        return f"{payload.mode}:{payload.device_id}"
+    logger.info("otp binding refused: a real attestation mode proved no key")
+    raise attestation_unverified()
+
+
 class OtpAuthService:
     """Orchestrates the OTP tier. Store calls hop off the event loop via
     ``asyncio.to_thread`` (sync Redis client, INT-012 precedent)."""
@@ -279,6 +323,7 @@ class OtpAuthService:
         self._wiring = wiring
         self._store = AuthStore(wiring.redis_client, wiring.now_fn)
         self._tokenizer = wiring.tokenizer
+        self._pepper = wiring.pepper
         self._engine = engine
         self._audit = audit
 
@@ -378,7 +423,12 @@ class OtpAuthService:
 
     async def request_code(self, request: Request, phone_raw: str) -> dict[str, object]:
         payload = await self._require_attested(request, "otp.request")
+        bound = _bound_device(payload)
         phone, pseudonym = self._require_phone(phone_raw)
+        # INT-578: a locked number gets no code, and asking costs no budget
+        locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym)
+        if locked is not None:
+            raise otp_limited(locked)
         ip = request.client.host if request.client is not None else "unknown"
         retry_after = await asyncio.to_thread(
             self._store.otp_request_gate, pseudonym, ip, _device_ref(payload.device_id)
@@ -403,12 +453,15 @@ class OtpAuthService:
         if not self._wiring.recipients.admits(phone):
             logger.info("otp request refused: the number is not on the SMS test allow-list")
             raise phone_invalid()
+        # INT-578: the code is bound to this request and to this device
+        request_id = secrets.token_hex(16)
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
         await asyncio.to_thread(
             self._store.store_code,
             pseudonym,
-            code_digest(pseudonym, code),
+            self._pepper.code_digest(pseudonym, request_id, code),
             code if self._wiring.dev_otp_peek else None,
+            binding=self._pepper.device_binding(bound),
         )
         try:
             receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
@@ -422,7 +475,11 @@ class OtpAuthService:
             resource_ref=f"delivery:{receipt.delivery_id}",
             consent_scope="scope:auth",
         )
-        return {"delivery_id": receipt.delivery_id, "resend_after_s": RESEND_COOLDOWN_S}
+        return {
+            "delivery_id": receipt.delivery_id,
+            "request_id": request_id,
+            "resend_after_s": RESEND_COOLDOWN_S,
+        }
 
     async def peek_code(self, phone_raw: str) -> dict[str, str]:
         """Dev tier ONLY (INTAKE_DEV_OTP_PEEK=explicit-yes; 404 otherwise —
@@ -486,15 +543,28 @@ class OtpAuthService:
             tenant_id=str(CONSUMER_TENANT_ID),
         )
 
-    async def verify_code(self, request: Request, phone_raw: str, code: str) -> TokenBundle:
-        await self._require_attested(request, "otp.verify")
+    async def verify_code(
+        self, request: Request, phone_raw: str, code: str, request_id: str
+    ) -> TokenBundle:
+        payload = await self._require_attested(request, "otp.verify")
+        bound = _bound_device(payload)
         phone, pseudonym = self._require_phone(phone_raw)
         jkt = await self._verify_proof(request)
+        if await asyncio.to_thread(self._store.lockout_wait, pseudonym) is not None:
+            OTP_VERIFY_TOTAL.labels(outcome="locked").inc()
+            raise otp_invalid()
         verdict = await asyncio.to_thread(
-            self._store.check_code, pseudonym, code_digest(pseudonym, code)
+            self._store.check_code,
+            pseudonym,
+            self._pepper.code_digest(pseudonym, request_id, code),
+            binding=self._pepper.device_binding(bound),
         )
+        OTP_VERIFY_TOTAL.labels(outcome=verdict).inc()
+        if verdict == "exhausted":
+            # INT-578: the miss that spent the budget locks the number
+            await asyncio.to_thread(self._store.engage_lockout, pseudonym)
         if verdict != "ok":
-            # one generic refusal for wrong/expired/exhausted (02 §8.2)
+            # one generic refusal for wrong/expired/exhausted/unbound (02 §8.2)
             raise otp_invalid()
         patient_id = await self._get_or_create_patient(pseudonym)
         await self._audit.record(

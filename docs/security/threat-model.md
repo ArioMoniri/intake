@@ -539,7 +539,11 @@ it or whose tests exercise it.
 - **Assets:** phone OTP flow, refresh-token families, attestation verdicts, session state.
 - **Trust boundaries:** unauthenticated caller ↔ account; device ↔ token (DPoP binding).
 - **Threats (STRIDE/LINDDUN):** [S] account takeover through OTP abuse; [D] SMS pumping
-  (cost and lockout); [I/Id] account enumeration through response differences.
+  (cost and lockout); [I/Id] account enumeration through response differences; [S] a code
+  guessed by racing the attempt budget, or spent twice by racing a verify; [S] a code
+  intercepted on its way to the patient (a notification read over a shoulder, SMS-reading
+  malware, an operator-side interception) and entered on another device; [I] a dump of the
+  code store turned back into codes (INT-578).
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
   caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
@@ -592,6 +596,41 @@ it or whose tests exercise it.
   no decoder can exist until the Play Console organisation account does (HB-A3). The
   stored record is a public key, a counter and an environment — the same class of datum as
   the DPoP thumbprint — kept 30 days rolling.
+- **The code bound, stated (INT-578, the owner's SMS order of 28 Oct 2026):** a code is
+  6 digits, lives 5 minutes and is kept only as an HMAC-SHA-256 under a pepper OpenBao holds
+  at `secret/api/otp` (`intake_api.otp_pepper`), over the number's pseudonym, the
+  server-minted `request_id` the request's 202 returned and the code, each field
+  length-prefixed. INT-131 kept `sha256(pseudonym:code)`, which a Redis dump and 10⁶ hashes
+  reversed. No wiring outside dev reads the pepper from anywhere but OpenBao, a missing or
+  malformed one leaves every `/v1/auth` route at 503, and dev under file-dev KEKs alone takes
+  a process-local random one. The synthetic host makes it once from the kernel CSPRNG
+  (`infra/staging/lib.sh`, `ensure_otp_pepper`, run by `init.sh` and by every `deploy.sh`,
+  which re-applies the API policy first), hands it to `bao kv put` on stdin only, keeps a good
+  one and replaces a malformed one; the API policy reads it and cannot write or list it. The
+  record also carries the **device binding**: an HMAC of the App Attest key id the request
+  proved, or in dev the install id — never the install id a real-mode payload merely claims.
+  A real mode that proved no key (Play Integrity, or App Attest without its key id) is
+  refused before any budget is spent, so nothing binds to a claim. A verify must come from
+  that device with that request id or it cannot sign in. The attempt budget is the
+  **number's**, over a rolling hour, not the code's: each attempt from the bound device is
+  added to the window **before** the result is used, so callers racing buy at most 5
+  comparisons between them (INT-131's read-modify-write let every racer read zero), and a
+  new code does not reset it. A budget per code let four misses on each of three codes
+  through, twelve guesses an hour with the lockout never engaged (security review, 28 Oct
+  2026). Only the bound device spends it: a stranger's device can never match the binding,
+  so its guesses are worth nothing and counting them would let any attested device lock any
+  number for an hour. A match is spent by the `DEL` that removes it, so of two callers
+  holding the right code exactly one signs in, and a match is not a miss. Both comparisons
+  are `hmac.compare_digest`, against stand-ins when there is no record. The fifth miss in
+  the hour locks the number for one request window
+  (`OTP_LOCKOUT_S` = 3600 s): no code is minted for it and no verify compared until it ends.
+  The length is the control: a shorter lockout lets the per-number budget hand out three codes
+  an hour, the 15 guesses an hour INT-131 allowed; at a window it is 5. It adds no
+  denial-of-service lever, because the same caller could already hold a number for an hour by
+  spending its request budget. What it does not stop: a patient talked into reading the code
+  to a caller who asked for it on their own device; that is INT-580's (the SMS copy, the
+  new-device notice, the passkey step-up). The Doctor Link tier shares the store, so it gains
+  the atomic budget and single use, but keeps its unkeyed INT-131 digest and no lockout.
 - **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
   product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
   processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
@@ -632,7 +671,9 @@ it or whose tests exercise it.
   the denied ranges refused at connect; `intake_platform.egress` admits that one proxy for that
   one purpose and refuses every other personal-data proxy (INT-203 unchanged otherwise).
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
-  land with INT-131 and the console with INT-192.
+  land with INT-131 and the console with INT-192. `otp_verify_total{outcome}` (INT-578): a
+  rise in `unbound` is codes tried from devices that did not ask for them, the interception
+  signal; `exhausted` counts numbers locked; `locked` verifies refused by a lockout.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
   boundary-crossing refusal on all three dimensions, the true retry-after (including under a
   budget tightened while windows are live) and the bounded counter key set with INT-263
@@ -651,7 +692,19 @@ it or whose tests exercise it.
   (`tests/api/test_otp_twilio.py`, `tests/api/test_otp_twilio_wiring.py`). The async guard
   matches the sync one on a parity table (`tests/security/test_egress_async.py`), and the
   shipped allow-list refuses the SMS purpose on every tier
-  (`tests/security/test_egress_allowlist.py`).
+  (`tests/security/test_egress_allowlist.py`). The code bound with INT-578: the HMAC under the
+  pepper and nothing recoverable in Redis, the pepper's source (OpenBao in every strict
+  environment and in dev on the dev server, never the environment, a process-local one under
+  file-dev only), the race for a spent code and the race for the attempt budget made exact by
+  an interleaving store, the lockout and its one-second near miss, no more than 5 guesses a
+  number in any rolling hour over two simulated hours at five and at four misses a code, a
+  stranger's device unable to lock a number, a keyless real mode refused before a budget is
+  spent, constant-time comparisons, a code
+  refused on another device (dev install id and App Attest key) and under another request id
+  (`tests/security/test_otp_brute_force.py`, `tests/api/test_attestation_otp_flow.py`), the
+  host's pepper on stdin, kept, replaced when malformed, re-asserted by every deploy, and the
+  read-only grant (`tests/infra/test_staging_otp_pepper.py`), and the app sending the request
+  id back (`apps/mobile/src/lib/auth/pendingOtp.test.ts`).
 
 ## `consent` — layered consent and scope enforcement
 

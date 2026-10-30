@@ -71,6 +71,9 @@ compose up -d postgres redis openbao
 wait_for_openbao
 unseal_openbao
 renew_api_token
+# INT-578: the committed API policy and the OTP pepper, re-asserted on every
+# deploy so a host initialised before them gains both before the API starts
+ensure_api_openbao
 # INT-428 (ADR-035): any hosted-provider key held in SSM Parameter Store
 # (/intake/staging/<provider>_api_key) is re-loaded into OpenBao, so the
 # terminal route, the deploy and the console read one record. Prints set /

@@ -11,7 +11,9 @@
 # on approval and destroys the staged copy; the API reads a key to call the
 # provider. INT-528: read on the SMS vendor's document, secret/api/netgsm,
 # which netgsm_secrets.sh writes with the root token; the API can neither
-# write nor list it. No other KV path is reachable.
+# write nor list it. INT-578: read on the OTP pepper, secret/api/otp, which
+# lib.sh's ensure_otp_pepper writes with the root token; the same, read only.
+# No other KV path is reachable.
 #
 # Caveat: OpenBao's trailing glob also matches the key's sub-paths, such as
 # /config. Tightening that needs a per-tenant path list, which the staging
@@ -50,5 +52,9 @@ path "secret/metadata/model-lanes/*" {
 }
 
 path "secret/data/api/netgsm" {
+  capabilities = ["read"]
+}
+
+path "secret/data/api/otp" {
   capabilities = ["read"]
 }

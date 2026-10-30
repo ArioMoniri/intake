@@ -2019,6 +2019,24 @@ metrics:
       code_not_sendable, not_on_test_allowlist) or a transport reason (egress_denied, timeout,
       unreachable, auth_failed, rate_limited, rejected, vendor_unavailable,
       malformed_response). Emitted by intake_api.otp_netgsm.
+  # --- INT-578: OTP verify outcomes. One closed label; the caller sees one
+  # generic refusal whatever the outcome, the operator sees which. `unbound`
+  # (a code tried from a device that did not ask for it) is the interception
+  # signal; `exhausted` is the miss that locked a number; `locked` a verify
+  # refused by that lockout before anything was compared (inv. 6: no phone,
+  # pseudonym, device or code).
+  - name: otp_verify_total
+    type: counter
+    labels: [outcome]
+    owner: security
+    unit: "count"
+    description: >-
+      OTP verify attempts by outcome: ok, invalid (wrong code), unbound (the
+      right or a wrong code from a device other than the one that asked; it
+      spends nothing of the number's budget), exhausted (the miss that spent
+      the number's five attempts in a rolling hour, across codes, and locked
+      it), missing (no live code) or locked (refused by the lockout).
+      Emitted by intake_api.otp.
   # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
   # series (nps.monthly, clinician.pulse) but no id for the scheduling of
   # them, so this entry carries no `id` — the same posture as the INT-141 rows

@@ -11,11 +11,37 @@ stored timestamps, so fakeredis unit tests advance time without sleeping;
 the EXPIREs exist as hygiene for the live deployment only.
 
 Nothing sensitive sits here in clear (invariants 6, 14): keys carry the
-Tokenizer pseudonym and SHA-256 hashes, codes are stored as keyed digests
-(pseudonym-salted; a 6-digit code has bounded entropy — the 5-attempt budget
-and the 5-minute TTL are the real control), and tokens are stored only as
-hashes. The one deliberate exception is the dev-peek slot, written ONLY
-when INTAKE_DEV_OTP_PEEK=explicit-yes wiring passes a peek copy in."""
+Tokenizer pseudonym and SHA-256 hashes, codes are stored as keyed digests,
+and tokens are stored only as hashes. The one deliberate exception is the
+dev-peek slot, written ONLY when INTAKE_DEV_OTP_PEEK=explicit-yes wiring
+passes a peek copy in.
+
+INT-578 (the owner's SMS security order, 28 Oct 2026) changed four things
+about a code, each because a race or a dump defeated the INT-131 form:
+
+* the phone tier hands :meth:`AuthStore.store_code` an HMAC under the OpenBao
+  pepper (``intake_api.otp_pepper``), never ``sha256(pseudonym:code)``, which
+  10⁶ hashes reversed. :func:`code_digest` is that INT-131 form and is kept
+  for the Doctor Link tier only, which has its own key prefix;
+* the code record carries the BINDING of the device that asked for it, and
+  :meth:`AuthStore.check_code` compares it as it compares the digest, in
+  constant time;
+* the attempt budget is the NUMBER's, over a rolling :data:`OTP_WINDOW_S`,
+  and each attempt is added to it BEFORE the comparison, so N callers that
+  all read the record still buy at most :data:`OTP_MAX_ATTEMPTS` comparisons
+  between them (it was read-modify-write on the record, and every racer read
+  zero). It does not reset with a new code: a budget per code let four misses
+  on each of three codes through, twelve guesses an hour with no lockout
+  (security review, 28 Oct 2026). Only the device the code was minted for
+  spends it; a stranger's device can never match the binding, so its guesses
+  are worth nothing, and counting them would let it lock any number;
+* a match is spent by the ``DEL`` that removes it: of two callers holding the
+  right code, the one whose ``DEL`` removed the key signs in and the other is
+  told the code is gone (GET, compare, DEL were three commands, and both won).
+
+The lockout (:data:`OTP_LOCKOUT_S`) is the phone tier's: the store keeps it,
+the service engages it on the fifth miss and checks it before a request or a
+verify."""
 
 from __future__ import annotations
 
@@ -39,12 +65,14 @@ __all__ = [
     "DEVICE_LIMIT_PER_HOUR",
     "IP_LIMIT_PER_HOUR",
     "OTP_CODE_DIGITS",
+    "OTP_LOCKOUT_S",
     "OTP_MAX_ATTEMPTS",
     "OTP_TTL_S",
     "OTP_WINDOW_S",
     "PHONE_LIMIT_PER_HOUR",
     "REFRESH_TTL_S",
     "RESEND_COOLDOWN_S",
+    "CodeVerdict",
     "RefreshRecord",
     "code_digest",
 ]
@@ -108,9 +136,31 @@ JTI_TTL_S = 600
 #     and send the caller straight back into a refusal.
 OTP_WINDOW_S = 3600
 
+# INT-578: the fifth miss on a code locks its number — no new code is minted
+# and no verify is compared — for one whole request window. The length is the
+# point, and tests/security/test_otp_brute_force.py proves it on the route: a
+# lockout shorter than the window lets the per-number budget hand out three
+# codes an hour, which is 15 guesses an hour, exactly what INT-131 allowed. At
+# a window it is 5. An engineering default, not a clinical value
+# (docs/evidence/INT-578.md). It costs nothing new in denial of service: the
+# same caller could already hold a number for an hour by spending its request
+# budget.
+OTP_LOCKOUT_S = OTP_WINDOW_S
+
+#: What :meth:`AuthStore.check_code` answers. ``unbound`` is a right or wrong
+#: code from a device that did not ask for it; the caller cannot tell any of
+#: these apart (one generic refusal), the metric can.
+CodeVerdict = Literal["ok", "invalid", "unbound", "exhausted", "missing"]
+
+#: What a missing or expired record is compared against, so that answering
+#: "missing" costs the same two constant-time comparisons a live record does.
+_ABSENT = "0" * 64
+
 
 def code_digest(pseudonym: str, code: str) -> str:
-    """Keyed digest for at-rest OTP comparison (never the code itself)."""
+    """The INT-131 at-rest digest. Unkeyed: the Doctor Link tier's only. The
+    phone tier keeps an HMAC under the OpenBao pepper instead (INT-578,
+    ``intake_api.otp_pepper.OtpPepper.code_digest``)."""
     return hashlib.sha256(f"{pseudonym}:{code}".encode()).hexdigest()
 
 
@@ -236,9 +286,20 @@ class AuthStore:
 
     # --- OTP codes -------------------------------------------------------------------
 
-    def store_code(self, pseudonym: str, digest: str, peek_code: str | None = None) -> None:
+    def store_code(
+        self,
+        pseudonym: str,
+        digest: str,
+        peek_code: str | None = None,
+        *,
+        binding: str = "",
+    ) -> None:
+        """Keep one code for this pseudonym, replacing any earlier one.
+        ``binding`` is the device the code was minted for (an HMAC, never a key
+        id); the Doctor Link tier passes none. The attempt budget is the
+        number's and is NOT reset here: misses on earlier codes still count."""
         key = self._key("otp", "code", pseudonym)
-        record = {"digest": digest, "attempts": 0, "expires": self._now() + OTP_TTL_S}
+        record = {"digest": digest, "binding": binding, "expires": self._now() + OTP_TTL_S}
         self._r.set(key, json.dumps(record), ex=OTP_TTL_S * 2)
         if peek_code is not None:
             # dev tier ONLY (INTAKE_DEV_OTP_PEEK=explicit-yes): the peek copy
@@ -252,29 +313,83 @@ class AuthStore:
         loaded = json.loads(raw)
         return dict(loaded) if isinstance(loaded, dict) else None
 
-    def check_code(
-        self, pseudonym: str, digest: str
-    ) -> Literal["ok", "invalid", "exhausted", "missing"]:
+    def _spend_attempt(self, pseudonym: str) -> tuple[str, str, int]:
+        """Add one attempt to the number's rolling window and count the
+        window, in that order: of N callers racing, the k-th to add sees at
+        least k, so at most :data:`OTP_MAX_ATTEMPTS` of them see a count
+        inside the budget. Returns the key, this attempt's member and the count."""
+        key = self._key("otp", "miss", pseudonym)
+        now = self._now()
+        member = secrets.token_hex(8)
+        self._r.zremrangebyscore(key, "-inf", now - OTP_WINDOW_S)
+        self._r.zadd(key, {member: now})
+        self._r.expire(key, OTP_WINDOW_S * 2)
+        return key, member, int(self._r.zcard(key))
+
+    def check_code(self, pseudonym: str, digest: str, *, binding: str = "") -> CodeVerdict:
+        """Spend one attempt on this pseudonym's code and say what it was.
+
+        The order is the control. Both comparisons always run, in constant
+        time, against stand-ins when there is no record. Only an attempt from
+        the device the code is bound to is then counted, against the NUMBER's
+        rolling window and before the result is used, so a burst of callers
+        that all read the record first still buys at most
+        :data:`OTP_MAX_ATTEMPTS` comparisons in any hour, across codes; the
+        miss that spends the last of them answers ``exhausted``. A match is
+        spent by the ``DEL`` that removes the key, so of two callers holding
+        the right code exactly one is ``ok``, and a match is not a miss.
+        """
         key = self._key("otp", "code", pseudonym)
+        peek = self._key("otp", "peek", pseudonym)
         record = self._load_code(pseudonym)
-        if record is None:
+        live = record is not None and float(str(record.get("expires", 0))) >= self._now()
+        stored_digest = str(record.get("digest", "")) if record is not None and live else _ABSENT
+        stored_binding = str(record.get("binding", "")) if record is not None and live else _ABSENT
+        digest_ok = hmac.compare_digest(stored_digest, digest)
+        binding_ok = hmac.compare_digest(stored_binding, binding)
+        if not live:
+            if record is not None:
+                self._r.delete(key, peek)
             return "missing"
-        expires = float(str(record.get("expires", 0)))
-        if expires < self._now():
-            self._r.delete(key, self._key("otp", "peek", pseudonym))
-            return "missing"
-        attempts = int(str(record.get("attempts", 0)))
-        if attempts >= OTP_MAX_ATTEMPTS:
+        if not binding_ok:
+            # a stranger's device: it can never sign in with this code, so its
+            # guess is worth nothing and spends nothing of the number's budget
+            return "unbound"
+        misses, member, spent = self._spend_attempt(pseudonym)
+        if spent > OTP_MAX_ATTEMPTS:
             return "exhausted"
-        if hmac.compare_digest(str(record.get("digest", "")), digest):
-            self._r.delete(key, self._key("otp", "peek", pseudonym))
+        if digest_ok:
+            self._r.zrem(misses, member)  # a match is not a miss
+            if not self._r.delete(key):
+                return "missing"  # another caller spent it first
+            self._r.delete(peek)
             return "ok"
-        record["attempts"] = attempts + 1
-        self._r.set(key, json.dumps(record), ex=OTP_TTL_S * 2)
+        if spent == OTP_MAX_ATTEMPTS:
+            return "exhausted"
         return "invalid"
 
     def peek_code(self, pseudonym: str) -> str | None:
         return _text(self._r.get(self._key("otp", "peek", pseudonym)))
+
+    # --- the lockout (INT-578) ---------------------------------------------------------
+
+    def lockout_wait(self, pseudonym: str) -> float | None:
+        """Seconds until this number's lockout ends, or None when it is not
+        locked. Read from the stored instant, never from the key's TTL."""
+        raw = _text(self._r.get(self._key("otp", "lock", pseudonym)))
+        if raw is None:
+            return None
+        wait = float(raw) - self._now()
+        return wait if wait > 0 else None
+
+    def engage_lockout(self, pseudonym: str) -> None:
+        """Lock the number for :data:`OTP_LOCKOUT_S` from now, unless a lockout
+        is already running: misses during a lockout never reach the store, and
+        one that did would not extend it."""
+        if self.lockout_wait(pseudonym) is not None:
+            return
+        until = self._now() + OTP_LOCKOUT_S
+        self._r.set(self._key("otp", "lock", pseudonym), repr(until), ex=OTP_LOCKOUT_S * 2)
 
     # --- tokens ------------------------------------------------------------------------
 

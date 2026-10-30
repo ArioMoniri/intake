@@ -25,6 +25,7 @@ import {
 import { dpopProof } from "./dpop";
 import { AuthApiError } from "./errors";
 import { buildApiBase } from "./expoApiBase";
+import { forgetOtpRequest, pendingOtpRequestId, rememberOtpRequest } from "./pendingOtp";
 import {
   clearSession,
   getAccessToken,
@@ -177,6 +178,8 @@ export async function requestOtp(phoneE164: string): Promise<OtpRequestResult> {
   if (!response.ok) {
     throw mapError(response.status, body as ErrorBody);
   }
+  // INT-578: the code is bound to this request id; verify sends it back
+  rememberOtpRequest(body);
   const resend = body.resend_after_s;
   return { resendAfterS: typeof resend === "number" ? resend : 60 };
 }
@@ -204,17 +207,24 @@ async function storeBundle(body: TokenBundleBody): Promise<string> {
 /** Verify the code; on success the session is stored and the patient row id
  * is returned (the server created the account when it did not exist). */
 export async function verifyOtp(phoneE164: string, code: string): Promise<string> {
+  // INT-578: a code is bound to the request that asked for it. Without that
+  // id (the app restarted since) no code can verify: ask for a new one.
+  const requestId = pendingOtpRequestId();
+  if (requestId === null) {
+    throw new AuthApiError("code");
+  }
   const base = await apiBase();
   const { response, body } = await attestedPost(
     base,
     "/v1/auth/otp/verify",
     "otp.verify",
-    { phone: phoneE164, code },
+    { phone: phoneE164, code, request_id: requestId },
     async (url) => ({ DPoP: await dpopProof({ method: "POST", url }) }),
   );
   if (!response.ok) {
     throw mapError(response.status, body as ErrorBody);
   }
+  forgetOtpRequest();
   return storeBundle(body as TokenBundleBody);
 }
 

@@ -681,6 +681,7 @@ configure_openbao() {
   # keys (model-lanes/*) and the SMS vendor's document (api/netgsm).
   ensure_secret_kv "$root"
   bao_as "$root" policy write intake-api - <"$STAGING_DIR/openbao/intake-api-policy.hcl" >/dev/null
+  ensure_otp_pepper "$root"
   if ! bao_as "$root" read -format=json "transit/keys/${PROBE_KEK}" >/dev/null 2>&1; then
     bao_as "$root" write "transit/keys/${PROBE_KEK}" type=aes256-gcm96 >/dev/null
     log "restart-probe KEK created"
@@ -702,6 +703,55 @@ ensure_secret_kv() {
     bao_as "$root" secrets enable -path=secret kv-v2 >/dev/null
     log "kv-v2 engine enabled at secret/"
   fi
+}
+
+ensure_api_openbao() {
+  # INT-578: what every deploy re-asserts before the API starts. init.sh runs
+  # once per host, so a host initialised before a grant or a document existed
+  # gains it here: the KV engine, the intake-api policy as committed, and the
+  # OTP pepper. Each step is idempotent.
+  local root
+  root=$(init_field root_token)
+  ensure_secret_kv "$root"
+  bao_as "$root" policy write intake-api - <"$STAGING_DIR/openbao/intake-api-policy.hcl" >/dev/null
+  ensure_otp_pepper "$root"
+}
+
+ensure_otp_pepper() {
+  # INT-578: the OTP tier's pepper, secret/api/otp. The API keeps a code only
+  # as an HMAC under it (intake_api.otp_pepper), so a Redis dump alone gives
+  # nothing back. It is made here, on the host, from the kernel CSPRNG
+  # (gen_secret), and reaches `bao kv put` on stdin and nothing else: no argv,
+  # no file, no log line. A good pepper is kept, because rotating it would void
+  # every code in flight; a missing or malformed one, which the API refuses
+  # with a 503, is replaced.
+  local root=$1
+  if bao_as "$root" kv get -mount=secret -format=json api/otp 2>/dev/null | otp_pepper_ok; then
+    log "otp pepper present (secret/api/otp)"
+    return 0
+  fi
+  otp_pepper_document | bao_as "$root" kv put -mount=secret api/otp - >/dev/null
+  log "otp pepper created (secret/api/otp)"
+}
+
+otp_pepper_ok() {
+  # stdin: `bao kv get -format=json` output. True when it holds the shape the
+  # API accepts: 32 to 128 bytes of lower-case hex.
+  python3 -c '
+import json, re, sys
+try:
+    doc = json.load(sys.stdin)["data"]["data"]
+except (ValueError, KeyError, TypeError):
+    sys.exit(1)
+value = doc.get("pepper") if isinstance(doc, dict) else None
+ok = isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{2}){32,128}", value)
+sys.exit(0 if ok else 1)
+'
+}
+
+otp_pepper_document() {
+  # stdout: the KV document, {"pepper": <256 bits as hex>}; printf is a builtin
+  printf '{"pepper": "%s"}' "$(gen_secret)"
 }
 
 renew_api_token() {

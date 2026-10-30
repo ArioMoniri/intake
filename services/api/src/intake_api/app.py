@@ -254,13 +254,25 @@ def _auth_from_settings(
     under the dev phrase — every unconfigured piece fails closed with a typed
     reason. Delivery (INT-329, INT-528): the dev logger in dev; outside dev
     Netgsm or nothing, never the dev logger (INT-325) — see otp_netgsm. ``secrets`` is
-    the OpenBao reader, injectable for tests."""
+    the OpenBao reader, injectable for tests. The pepper (INT-578): OpenBao
+    ``secret/api/otp``, read after the delivery adapter so a tier that cannot
+    send pulls no key; only dev under file-dev KEKs takes a process-local one."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
         return None
     from intake_api.otp_netgsm import NetgsmSmsDeliveryAdapter, otp_delivery_from_settings
     from intake_api.sms_recipients import ADMIT_ALL
 
     if (delivery := otp_delivery_from_settings(settings, secrets)) is None:
+        return None
+    from intake_api.otp_pepper import OtpPepper, otp_pepper_from_vault
+
+    if settings.kek_mode == "file-dev" and settings.dev_tier_expected:
+        # the no-OpenBao dev escape, refused at boot outside dev (INT-325):
+        # process-local, like the file-dev KEKs
+        pepper: OtpPepper | None = OtpPepper.ephemeral()
+    else:
+        pepper = otp_pepper_from_vault(secrets)
+    if pepper is None:
         return None
     # INT-528: the synthetic host's test allow-list gates the login as well as
     # the send, so a number off it never has a code minted
@@ -303,6 +315,7 @@ def _auth_from_settings(
         # one log line at wiring time.
         carrier_geo=carrier_geo_from_path(settings.msisdn_allocation_path),
         recipients=recipients,
+        pepper=pepper,
     )
 
 
