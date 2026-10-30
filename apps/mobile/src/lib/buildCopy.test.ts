@@ -354,3 +354,40 @@ describe("a delivery claim renders only behind a confirmed delivery", () => {
     expect(en["review.sentInfo"]).toMatch(/Your shares/);
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* Health readings travel with a sent note (INT-587; legal, 30 Oct)     */
+/* ------------------------------------------------------------------ */
+
+/** The claim INT-587 made false: a Health line added to a note is sent with it. */
+const SENT_NOWHERE = /hiçbir yere gönderilmez|nothing is sent anywhere|never leaves/i;
+
+describe("the health hint says where an added reading goes", () => {
+  it("is read on the phone, enters the note only if added, and goes with a sent note", () => {
+    // The legal reviewer's text, verbatim.
+    expect(tr["consent.health.hint"]).toBe(
+      "Adım, dinlenme nabzı ve uyku verileriniz bu telefonda okunur. Bir veri notunuza ancak siz eklerseniz girer; notunuzu gönderirseniz onunla birlikte gider.",
+    );
+    expect(en["consent.health.hint"]).toBe(
+      "Your step, resting heart rate and sleep data is read on this phone. It enters your note only if you add it, and goes with the note if you send it.",
+    );
+  });
+
+  it("near miss: no line says the data is sent nowhere — the pattern bites on the old one", () => {
+    expect(
+      "Adım, nabız ve uyku verileriniz yalnızca bu telefonda okunur; hiçbir yere gönderilmez.",
+    ).toMatch(SENT_NOWHERE);
+    expect(
+      "Your steps, heart rate and sleep are read only on this phone; nothing is sent anywhere.",
+    ).toMatch(SENT_NOWHERE);
+    for (const text of both("consent.health.hint")) {
+      expect(text).not.toMatch(SENT_NOWHERE);
+    }
+  });
+
+  it("is not itself a delivery claim: it says what happens if the patient sends", () => {
+    for (const text of both("consent.health.hint")) {
+      expect(text).not.toMatch(DELIVERY_CLAIM);
+    }
+  });
+});

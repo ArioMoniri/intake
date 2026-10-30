@@ -11,6 +11,20 @@
   - Red run: 1 failed (D34 missing). Green run: 2 passed. tests/backlog + tests/smoke/test_make_check.py green at 373.
   - make safety: not affected (no protocol, triage or runtime change).
 - Next: the five decisions are carried out by INT-580, INT-583, INT-582, INT-577 and INT-584.
+### 2026-10-30T19:00:00+03:00 · INT-588 · consent.health.hint made true with INT-587 (legal, for build 7)
+- Goal: the legal reviewer (on #1001) found that `consent.health.hint` says the Health data "hiçbir yere gönderilmez". With INT-587, a line the patient adds travels with a sent note, so the hint is false. This blocks build 7.
+- Plan: replace tr and en with the reviewer's text verbatim, and pin it beside the other release-copy truths.
+- Tests added (with the near-miss negative for any safety rule):
+  - `buildCopy.test.ts`: both strings pinned exactly.
+  - Near miss: the "sent nowhere" pattern catches the old tr and en lines, and matches neither new one.
+  - The hint is not a delivery claim.
+  - Red: 2 failed. Green: mobile 153 files / 3134 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `tests/release` + `tests/legal` 957 passed with no new i18n or PolicyGuard finding; claims scan clean; evidence §11.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: carry into INT-591 (merged there; INT-591's own tests re-run green on the merged tree).
+- LOOP_STATUS: CONTINUE
 ### 2026-10-30T14:10:00+03:00 · INT-591 · done (committed locally, stacked on INT-588; push frozen)
 - Goal: GitHub #993, P1, Sec-Row `mobile`, the legal lane's recommendation from the INT-588 review: in a release build İzinleriniz must not offer the voice and lane:affect consents (KVKK m.4), while a standing grant stays withdrawable.
 - Plan: `consentActions` and `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`; the detail screen and the consent list read them; one new line, "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz."

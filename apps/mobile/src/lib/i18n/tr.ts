@@ -752,7 +752,7 @@ export const tr = {
   "consent.documents": "Belge yükleme",
   "consent.health": "Sağlık verisi okuma",
   "consent.health.hint":
-    "Adım, nabız ve uyku verileriniz yalnızca bu telefonda okunur; hiçbir yere gönderilmez. Bir veri, notunuza ancak siz eklerseniz girer.",
+    "Adım, dinlenme nabzı ve uyku verileriniz bu telefonda okunur. Bir veri notunuza ancak siz eklerseniz girer; notunuzu gönderirseniz onunla birlikte gider.",
   "consent.on": "Açık",
   "consent.off": "Kapalı",
 
