@@ -724,7 +724,7 @@ export const en: Record<MessageKey, string> = {
   "consent.documents": "Document upload",
   "consent.health": "Health data reading",
   "consent.health.hint":
-    "Your steps, heart rate and sleep are read only on this phone; nothing is sent anywhere. A value enters your note only if you add it yourself.",
+    "Your step, resting heart rate and sleep data is read on this phone. It enters your note only if you add it, and goes with the note if you send it.",
   "consent.on": "On",
   "consent.off": "Off",
 
