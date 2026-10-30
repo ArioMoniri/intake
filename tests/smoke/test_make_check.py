@@ -415,7 +415,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-559 (the app's voice lane never writes patient audio to a file —
     # invariant 3 with no dev exception, from the INT-536 legal review,
     # GitHub #947); grows only with a stated reason.
-    assert len(ids) == 379, f"expected 175 blueprint + 204 added issues, got {len(ids)}"
+    # + INT-536 (consent-screen copy true for the host and matching the consent
+    # texts, GitHub #903); grows only with a stated reason.
+    assert len(ids) == 380, f"expected 175 blueprint + 205 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -251,7 +251,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-559 (the app's voice lane never writes patient audio to a file —
     # invariant 3 with no dev exception, from the INT-536 legal review;
     # GitHub #947).
-    assert len(ids) == 379
+    # + INT-536 (consent-screen copy true for the host and matching the
+    # consent texts; from the INT-529 legal-author findings, GitHub #903).
+    assert len(ids) == 380
     import re
 
     for i in ids:

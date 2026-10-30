@@ -153,7 +153,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986)
     # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991)
     # + INT-559 (the app's voice lane never writes patient audio to a file, GitHub #947)
-    assert len(actions) == 379
+    # + INT-536 (consent-screen copy true for the host, GitHub #903)
+    assert len(actions) == 380
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

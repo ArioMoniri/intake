@@ -30,10 +30,14 @@
 # to decide (CLAUDE.md, "When to stop and ask the human"); none is guessed.
 # docs/evidence/INT-529.md §4 is the table, docs/backlog/blockers.md the ask.
 
+# INT-536 (17 Oct 2026): voice and lane.affect name AWS as the hosting
+# processor in their recipients sections (INT-529 F9); both re-signed.
 # INT-529 refresh, 28 Oct 2026: the sign-in SMS processor (Netgsm, INT-528) is
 # live on the synthetic host, so core names it; re-signed. Round 2 (same day,
 # legal review B1): the sign-in number is not stored anywhere; core syn2.
-synthetic_index_version: "2026-10-28.3"
+# INT-536 forward merge, 28 Oct 2026: voice and lane.affect carry INT-536's
+# recipients sections and the renamed controller line; re-signed.
+synthetic_index_version: "2026-10-28.4"
 data_class: synthetic
 
 documents:
@@ -47,8 +51,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.voice
-    version: "2026-10-28.syn1"
-    sha256: "4b9a1ea86660aef6093584317e785e6a445964788c78b5a39c901844f90a3846"
+    version: "2026-10-28.syn2"
+    sha256: "0aad0911904629989c62fb0201dfd7d92985225c435ef10a9e139c75f40e281c"
     grounds:
       retention: [raw_audio, clinical_record]
       recipients: [REC_INTERNAL]
@@ -65,8 +69,8 @@ documents:
       bases: [BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.lane.affect
-    version: "2026-10-28.syn1"
-    sha256: "3856c1651841c1981400b4029650d67a8eee46b090544bfe623a819248206b00"
+    version: "2026-10-28.syn2"
+    sha256: "3541ec7d8beed0c42287fdf86a8ae458c171eea4997ae763b9a5ab5e4ce7c670"
     grounds:
       retention: [lane_windows]
       recipients: [REC_INTERNAL]
@@ -89,7 +93,7 @@ documents:
       retention: [satisfaction, telemetry]
       recipients: [REC_INTERNAL]
       categories: [CAT_HEALTH, CAT_OPERATIONAL]
-      bases: [BASIS_HEALTH_CONSENT]
+      bases: [BASIS_SATISFACTION_CONSENT, BASIS_HEALTH_CONSENT]
 
   - id: acik_riza.share
     version: "2026-10-28.syn1"

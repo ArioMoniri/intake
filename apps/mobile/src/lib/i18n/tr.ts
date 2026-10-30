@@ -776,14 +776,17 @@ export const tr = {
   "consent.learning.service": "Hizmeti iyileştirme",
   "consent.satisfaction": "Memnuniyet soruları",
   "consent.research": "Araştırma",
+  // INT-536: each line is true on every host. Where data is processed and who
+  // receives it depends on the host, so these lines defer to the bound text,
+  // which says it (docs/evidence/INT-536.md §2 cites the code for each sentence).
   "consent.who.core":
-    "Notunuzu siz görürsünüz. Hekiminiz, yalnızca siz paylaşırsanız görür. Acil bir işarette klinik personeli, paylaşım beklemeden kısa bir uyarı görür.",
+    "Yanıtlarınızı siz görürsünüz. Hekiminiz notunuzu yalnızca siz paylaşırsanız görür. Acil bir durum işaretinde klinik personeli, sağlık yanıtlarınızı içermeyen bir uyarı görür. Bilgilerinizin nerede işlendiği izin metninde yazar.",
   "consent.who.voice":
-    "Sesiniz yalnızca görüşme sırasında işlenir; kayıt saklanmaz. Veriler Türkiye'deki sunucularda kalır.",
+    "Sesiniz görüşme sırasında yazıya dökülür; ses kaydı saklanmaz. Sesinizin nerede işlendiği ve kimlere gittiği izin metninde yazar.",
   "consent.who.laneAffect":
-    "Ses tonunuzdan çıkan ipuçlarını yalnızca hekiminiz görür; size bir etiket konmaz.",
+    "Ses tonunuzdan çıkan ipuçları yalnızca görüşmenin hızını ve akışını ayarlar. Hekiminize gitmez, notunuza yazılmaz ve size gösterilmez.",
   "consent.who.laneLinguistic":
-    "Yazıya dökülen metinden çıkan ipuçlarını yalnızca hekiminiz görür.",
+    "Yazıya dökülen metinden çıkan ipuçları hekiminize gitmez ve notunuza yazılmaz.",
   "consent.who.wellbeing":
     "Yanıtlarınızı yalnızca siz görürsünüz; hekiminizle paylaşım her seferinde ayrıca sorulur.",
   "consent.who.documents":

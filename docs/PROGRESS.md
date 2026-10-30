@@ -218,6 +218,35 @@
 - Blocked on: nothing.
 - Findings G1–G3 are in the evidence file. G1: `consent.who.core` still undersells the core text (INT-536). G2: the session mirror is never reconciled after a restart (pre-existing). G3: the learning purposes under a core withdrawal.
 - Next: the legal-reviewer pass; this PR merges after #911.
+### 2026-10-17T00:45:00Z · INT-536 · done (PR #946 open, stacked on #940 INT-537, which contains #911 INT-529)
+- Goal: GitHub #903, from the INT-529 legal-author findings, D25 legal lane, synthetic scope.
+  - F1: the consent-screen lines contradicted the texts and the host. "Türkiye'de kalır" is false on us-east-1, and the affect and linguistic lines said the doctor sees the cues, which never reach the doctor. INT-537 G1 adds the core line.
+  - F3: the render-time claims scanner missed "doğruluğu" beside a figure, which CI catches.
+  - F5: the satisfaction annotations said the contract ground, while the routes are gated on açık rıza.
+  - F8: the synthetic loader read the declared data class, not ADR-035's bound one.
+  - The comment's F9: voice and lane:affect did not name AWS.
+- Plan:
+  - Refresh #911 first: merge main, narrow the vendor tripwire, then close the backend bypass the legal re-verification found (INT-529 evidence §12, §12.1).
+  - Then stack this row on it. Write the five test files first, then rewrite the four who-lines (tr and en), mirror the CI expressions in `legal.claims`, add per-event-type bases, read the bound class per lookup, and re-sign voice and lane:affect at `2026-10-17.syn1`.
+- Tests added:
+  - `tests/legal/test_consent_who_lines.py`, which pins each line to its code fact; the old voice line is the near miss;
+  - `tests/legal/test_claims_ci_parity.py`, with 13 claims and 8 near misses run through both gates;
+  - `tests/data/test_satisfaction_basis.py`, where a contract ground on satisfaction is a finding;
+  - `tests/legal/test_synthetic_bound_class.py`, covering mismatch, unreadable, no store and the API wiring;
+  - a hosting-processor test in the tripwire file.
+  - RED: 19 failed and 2 collection errors. GREEN: 88 passed.
+- Result (docs/evidence/INT-536.md §7, §9):
+  - legal and synthetic grant suites: 721 passed;
+  - mobile vitest: 2819 passed;
+  - `pnpm -r typecheck`, ruff and mypy strict: clean;
+  - claims, PHI and placeholder scans: OK.
+- Invariants touched and still passing: 4, 5, 6, 11, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-536 row added; the three pins go from 365 to 366; files/11 regenerated. COUNSEL_BRIEF §2.9 and §3.6 note that the basis half is reconciled.
+- Blocked on: nothing for this row. For the legal-reviewer (evidence §8):
+  - G3 is fixed server-side by #940, which this PR now stacks on: a core withdrawal writes opt-outs for undecided default-on purposes.
+  - The voice lane's temporary file and its GPU-box route need re-verifying when INT-515 ships.
+- Next: legal-approved. #940 merged in on the reviewer's ruling (core who-line kept; consent.spec pin aligned; pins at 367). Retarget to main once #911 and #940 merge.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)

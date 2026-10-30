@@ -159,14 +159,18 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
 
   it("the core who-sees-what row says what the core text says (INT-537 legal review B2)", () => {
     // the bound text: the doctor sees the note only on a share, and on an
-    // emergency sign clinic staff see a short alert without waiting for one
+    // emergency flag clinic staff see an alert with no health answers in it;
+    // where the data is processed is the text's to say (INT-536, legal ruling;
+    // tests/legal/test_consent_who_lines.py pins the same strings)
     expect(tr["consent.who.core"]).toBe(
-      "Notunuzu siz görürsünüz. Hekiminiz, yalnızca siz paylaşırsanız görür. " +
-        "Acil bir işarette klinik personeli, paylaşım beklemeden kısa bir uyarı görür.",
+      "Yanıtlarınızı siz görürsünüz. Hekiminiz notunuzu yalnızca siz paylaşırsanız görür. " +
+        "Acil bir durum işaretinde klinik personeli, sağlık yanıtlarınızı içermeyen bir uyarı görür. " +
+        "Bilgilerinizin nerede işlendiği izin metninde yazar.",
     );
     expect(en["consent.who.core"]).toBe(
-      "You see your note. Your doctor sees it only if you share it. " +
-        "On an emergency sign, clinic staff see a short alert without waiting for a share.",
+      "You see your answers. Your doctor sees your note only if you share it. " +
+        "On an emergency flag, clinic staff see an alert that does not contain your health answers. " +
+        "Where your data is processed is stated in the consent text.",
     );
     expect(tr["consent.who.core"]).not.toContain("yalnızca siz ve onay verdiğiniz hekim");
   });
