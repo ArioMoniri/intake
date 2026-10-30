@@ -154,10 +154,11 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991)
     # + INT-559 (the app's voice lane never writes patient audio to a file, GitHub #947)
     # + INT-536 (consent-screen copy true for the host, GitHub #903)
+    # + INT-585 (the owner's 28 Oct SMS decisions as D34-D38, GitHub #984)
     # + INT-587 (the note reaches the clinician from a release build, GitHub #988)
     # + INT-588 (patient copy is true in the no-voice release build, GitHub #989)
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993)
-    assert len(actions) == 383
+    assert len(actions) == 384
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

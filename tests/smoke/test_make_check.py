@@ -417,6 +417,8 @@ def test_backlog_parses_and_is_complete() -> None:
     # GitHub #947); grows only with a stated reason.
     # + INT-536 (consent-screen copy true for the host and matching the consent
     # texts, GitHub #903); grows only with a stated reason.
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, owner in
+    # chat, GitHub #984); grows only with a stated reason.
     # + INT-587 (the note reaches the clinician from a release build: note-sync
     # client, in-app share consent, Doctor Link from the app, GitHub #988);
     # grows only with a stated reason.
@@ -424,7 +426,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # #989); grows only with a stated reason.
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub
     # #993); grows only with a stated reason.
-    assert len(ids) == 383, f"expected 175 blueprint + 208 added issues, got {len(ids)}"
+    assert len(ids) == 384, f"expected 175 blueprint + 209 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

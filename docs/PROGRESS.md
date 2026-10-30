@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
+- Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
+- Plan:
+  - D34 iOS OTP autofill domain (INT-580), D35 push new-device notice (INT-583), D36 patient passkeys and step-up (INT-582), D37 SMS spend cap (INT-577), D38 tokenization key into OpenBao with the same material (INT-584).
+  - No HUMAN_BLOCKERS row matched these questions, so none closes.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/docs/test_state_decisions.py`: each row present once, with the owner's date, its fact and its issue; near miss: a row that names no issue is refused.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Red run: 1 failed (D34 missing). Green run: 2 passed. tests/backlog + tests/smoke/test_make_check.py green at 373.
+  - make safety: not affected (no protocol, triage or runtime change).
+- Next: the five decisions are carried out by INT-580, INT-583, INT-582, INT-577 and INT-584.
 ### 2026-10-30T14:10:00+03:00 · INT-591 · done (committed locally, stacked on INT-588; push frozen)
 - Goal: GitHub #993, P1, Sec-Row `mobile`, the legal lane's recommendation from the INT-588 review: in a release build İzinleriniz must not offer the voice and lane:affect consents (KVKK m.4), while a standing grant stays withdrawable.
 - Plan: `consentActions` and `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`; the detail screen and the consent list read them; one new line, "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz."
