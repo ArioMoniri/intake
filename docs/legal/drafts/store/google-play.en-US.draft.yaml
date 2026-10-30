@@ -24,6 +24,7 @@ fields:
   title: Önvizit
   short_description: "Before your visit, your own words become a structured note for your doctor."
   full_description: |-
+    Önvizit is available in Turkish only: the app's screens and questions are all in Turkish.
     Önvizit is made for describing your complaints before a medical visit.
     From your answers, a structured pre-visit note is prepared for your doctor.
     The note is shown to you before it is sent.
@@ -43,6 +44,8 @@ sources:
   title: "docs/backlog/issues.yaml — INT-421 acceptance names the Önvizit identity; the store name is GitHub #825"
   short_description: "apps/mobile/src/lib/i18n/en.ts welcome.body"
   full_description:
+    - text: "Önvizit is available in Turkish only: the app's screens and questions are all in Turkish."
+      source: "apps/mobile/src/lib/i18n/locale.ts LOCALE_REGISTRY — the build offers `tr` only (HB-O5 names any other language)"
     - text: "Önvizit is made for describing your complaints before a medical visit."
       source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"collects your complaints … before the visit\")"
     - text: "From your answers, a structured pre-visit note is prepared for your doctor."
