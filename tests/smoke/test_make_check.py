@@ -417,7 +417,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # GitHub #947); grows only with a stated reason.
     # + INT-536 (consent-screen copy true for the host and matching the consent
     # texts, GitHub #903); grows only with a stated reason.
-    assert len(ids) == 380, f"expected 175 blueprint + 205 added issues, got {len(ids)}"
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
+    # with a stated reason.
+    assert len(ids) == 381, f"expected 175 blueprint + 206 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

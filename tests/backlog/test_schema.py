@@ -253,7 +253,9 @@ def test_ids_unique_and_well_formed() -> None:
     # GitHub #947).
     # + INT-536 (consent-screen copy true for the host and matching the
     # consent texts; from the INT-529 legal-author findings, GitHub #903).
-    assert len(ids) == 380
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683; GitHub #1000).
+    assert len(ids) == 381
     import re
 
     for i in ids:

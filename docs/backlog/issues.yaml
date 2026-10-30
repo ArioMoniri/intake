@@ -7553,3 +7553,26 @@
     - "If a native platform constraint makes a file unavoidable, stop and record it as an owner/ADR decision rather than ship around invariant 3."
   tests: [apps/mobile/e2e/voiceCapture.spec.ts, apps/mobile/e2e/bargeIn.spec.ts, apps/mobile/src/lib/capture/session.test.ts, apps/mobile/src/lib/capture/turn.test.ts, apps/mobile/src/lib/capture/boundedBuffer.test.ts, apps/mobile/src/lib/capture/asrClient.test.ts, apps/mobile/src/lib/capture/envelope.test.ts, apps/mobile/src/lib/capture/level.test.ts, apps/mobile/src/lib/capture/policy.test.ts]
   sec_row: "mobile"
+- id: INT-592
+  epic: E08-mobile
+  phase: P0
+  title: "iOS build carries a truthful NSHealthUpdateUsageDescription so App Store processing accepts it (ITMS-90683)"
+  # GitHub #1000, 30 Oct 2026. TestFlight build 6 (0.1.0 (6), EAS 6113647d,
+  # main f96e5971) was rejected in Apple processing with ITMS-90683: the
+  # HealthKit library links write APIs, so the key is required although the
+  # app requests no write type. INT-420 had set the plugin option to false,
+  # which writes no key; builds 3-5 passed only on the owner's local app.json.
+  # The string now says the app writes nothing to Apple Health. P0: blocks
+  # TestFlight build 7.
+  depends_on: [INT-420, INT-208]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-592.md
+  acceptance:
+    - "the HealthKit plugin option NSHealthUpdateUsageDescription is a truthful, B1, siz-register Turkish string saying the app does not write to Apple Health; tr is the source and the string is localised through expo.locales (app-tr.json / app-en.json) like the other iOS purpose strings"
+    - "the string never claims a capability the app lacks: the connector requests read types only, and the share and update strings agree with it"
+    - "apps/mobile/e2e/brand.spec.ts requires a non-empty truthful string; near misses: false, an empty string and a string that claims writing all fail"
+    - "PolicyGuard and the claims scan are clean for the new string; the store-label inventory classifies the declared key; legal-reviewer reads the string"
+  tests: [apps/mobile/e2e/brand.spec.ts, tests/legal/test_ios_purpose_strings.py]
+  legal: "STORE"
+  sec_row: "mobile"
