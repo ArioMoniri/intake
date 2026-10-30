@@ -22,6 +22,7 @@ asserted in apps/mobile/e2e/brand.spec.ts, beside the code it describes.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Final
 
@@ -40,6 +41,7 @@ MOBILE = REPO / "apps" / "mobile"
 APP_JSON = MOBILE / "app.json"
 LOCALE_DIR = MOBILE / "src" / "locales"
 LOCALES = (LOCALE_DIR / "app-tr.json", LOCALE_DIR / "app-en.json")
+LOCALE_TS = MOBILE / "src" / "lib" / "i18n" / "locale.ts"
 HEALTHKIT_PLUGIN = "@kingstinct/react-native-healthkit"
 HEALTH_KEYS: Final[tuple[str, ...]] = (
     "NSHealthShareUsageDescription",
@@ -166,3 +168,49 @@ def test_near_miss_a_false_option_declares_no_key(tmp_path: Path) -> None:
     declared = facts_mod.declared_app_permissions(app_json, (empty,))
     assert "NSHealthUpdateUsageDescription" not in declared
     assert "NSHealthShareUsageDescription" in declared
+
+
+# --- INT-595: the binary declares only the languages the app offers ----------------------
+
+
+def _offered_locales(source: str) -> set[str]:
+    """The locales LOCALE_REGISTRY registers, read from locale.ts."""
+    block = source.split("export const LOCALE_REGISTRY", 1)[1].split("});", 1)[0]
+    return set(re.findall(r"^  ([A-Za-z-]+): \{", block, flags=re.MULTILINE))
+
+
+def _declares_only_offered(expo: dict[str, object], offered: set[str]) -> bool:
+    locales = expo.get("locales")
+    ios = expo.get("ios")
+    plist = ios.get("infoPlist", {}) if isinstance(ios, dict) else {}
+    return (
+        isinstance(locales, dict)
+        and set(locales) == offered
+        and isinstance(plist, dict)
+        and plist.get("CFBundleDevelopmentRegion") in offered
+    )
+
+
+def test_the_binary_declares_only_the_languages_the_app_offers() -> None:
+    """INT-595 (GitHub #1008). The App Store's Languages row is read from the binary's
+    .lproj folders (Apple Technical Q&A QA1828, updated 2016-03-23), and expo.locales
+    writes one folder per key, so expo.locales equals LOCALE_REGISTRY. The development
+    region is one of those languages too: iOS falls back to it when none of a reader's
+    languages is offered, so the purpose strings stay Turkish for every reader.
+
+    Near miss: build 7's app.json (tr and en, no development region) is refused."""
+    expo = json.loads(APP_JSON.read_text(encoding="utf-8"))["expo"]
+    offered = _offered_locales(LOCALE_TS.read_text(encoding="utf-8"))
+    assert offered == {"tr"}
+    assert _declares_only_offered(expo, offered)
+    assert expo["ios"]["infoPlist"]["CFBundleDevelopmentRegion"] == "tr"
+    build_7 = {
+        "locales": {"tr": "./src/locales/app-tr.json", "en": "./src/locales/app-en.json"},
+        "ios": {"infoPlist": {"ITSAppUsesNonExemptEncryption": False}},
+    }
+    assert not _declares_only_offered(build_7, offered)
+    english_region = {
+        "locales": {"tr": "./src/locales/app-tr.json"},
+        "ios": {"infoPlist": {"CFBundleDevelopmentRegion": "en"}},
+    }
+    assert not _declares_only_offered(english_region, offered)

@@ -50,10 +50,10 @@
  *    App Review question we would have no good answer to.
  *
  * 2. It does not write NSMicrophoneUsageDescription. That string is already
- *    localised through `expo.locales` (src/locales/app-tr.json and
- *    app-en.json), which is the right mechanism for a Turkish-first app:
- *    Apple shows the string in the user's own language, and tr stays the
- *    source of truth (invariant 5). A hardcoded English default here would
+ *    localised through `expo.locales` (src/locales/app-tr.json; app-en.json
+ *    returns with a second offered language, INT-595), which is the right
+ *    mechanism for a Turkish-first app: tr stays the source of truth
+ *    (invariant 5). A hardcoded English default here would
  *    quietly outrank the localised file on some builds. INT-138's
  *    NSCameraUsageDescription is declared the same way and for the same
  *    reason, which is also why `expo-image-picker`'s config plugin is NOT
