@@ -4,7 +4,8 @@
  * same layered İzinleriniz list, so the structure is disclosed once, in
  * context, with nothing pre-ticked and nothing blocking: "Devam edin" is
  * always available, because optional purposes never gate the core service
- * (02 §7 — declining everything lands in a working product).
+ * (02 §7). `core` itself (INT-537) is listed here like the rest and asked
+ * again in context, at the first visit, where it is needed.
  *
  * While docs/legal/consents has no texts (INT-210), every explicit purpose
  * here shows "Metin hazırlanıyor" and cannot be granted; the screen's job
@@ -47,14 +48,14 @@ export default function FirstRunConsent() {
 
   const onToggle = (id: PurposeId) => {
     const view = views.find((v) => v.id === id);
-    if (view === undefined || view.ui === "info") {
+    if (view === undefined) {
       return;
     }
     if (view.withdrawable) {
       const flipped = withdrawLocal(id);
       for (const scope of flipped) {
         const key = purposeDef(scope)?.sessionKey;
-        if (key !== null && key !== undefined && key !== "core") {
+        if (key !== null && key !== undefined) {
           setConsent(key, false);
         }
       }

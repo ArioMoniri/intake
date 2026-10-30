@@ -230,6 +230,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
+    # each licence-checked; owner request, GitHub #763).
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only, tokens and AA contrast tested; owner request, GitHub #783).
     # + INT-574 (the RED-never-waits test is deterministic under runner load:
     # no wall-clock budget, a store the test holds; GitHub #967).
     # + INT-576 (the Netgsm adapter parses the live success shape and never
@@ -238,6 +242,17 @@ def test_ids_unique_and_well_formed() -> None:
     # a guard against the old name; owner request, GitHub #712).
     # + INT-560 (the operability registry page tells the truth about the host
     # it runs on; owner request, GitHub #948).
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
+    # + INT-537 (the app grants the core consent that visits and notes
+    # require; INT-529 legal-author finding F2, GitHub #904).
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review;
+    # GitHub #947).
+    # + INT-536 (consent-screen copy true for the host and matching the
+    # consent texts; from the INT-529 legal-author findings, GitHub #903).
     # + INT-578 (OTP brute force and replay: HMAC under an OpenBao pepper,
     # device- and request-bound, atomic budget, lockout; the owner's SMS
     # security order, GitHub #973).
@@ -245,7 +260,7 @@ def test_ids_unique_and_well_formed() -> None:
     # backoff, tenant and global caps, the spend kill switch; GitHub #972).
     # + INT-579 (OTP enumeration: number-scoped refusals withheld behind an
     # admission's answer and work, the vendor off the response path; GitHub #974).
-    assert len(ids) == 375
+    assert len(ids) == 383
     import re
 
     for i in ids:

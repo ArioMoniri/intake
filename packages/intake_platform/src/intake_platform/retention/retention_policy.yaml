@@ -172,7 +172,11 @@ classes:
       default.
 
   - data_class: satisfaction
-    basis: "KVKK m.5/2-c — processing necessary for the service contract"
+    # INT-536 (INT-529 F5): the ground the routes enforce. Both satisfaction
+    # write routes require the `satisfaction` consent scope (files/06 §2), so
+    # the class rests on açık rıza, never on the contract; the comment text is
+    # health data under m.6/3-a (db/inventory.py BASIS_SATISFACTION_CONSENT).
+    basis: "KVKK m.5/1 — açık rıza per consent scope satisfaction (files/06 §2); the comment text, health data, under m.6/3-a"
     retention: { kind: with_account }
     action: destroy
     destruction_path: periodic

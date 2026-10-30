@@ -8,15 +8,17 @@
  * `data-tile-state`; an unknown tile says so in words with its reason code
  * beside it, and carries no figure (invariant 17).
  */
-import type { ReactElement } from "react";
+import { Fragment, type ReactElement } from "react";
 
+import { ClipCharts, GpuCharts, UsageCharts } from "./charts";
 import { COPY, type Copy, type Lang } from "./copy";
 import type { Age } from "./guards";
 import { NBSP } from "./guards";
 import type { OpsConsoleState } from "./load";
 import type { ModelRowView, OpsView } from "./module";
+import { RefusedPage } from "../ui/states";
 import { ConsoleNav } from "./nav";
-import { Cell, ScrollTable, Tile } from "./tiles";
+import { Cell, Rows, ScrollTable, Tile } from "./tiles";
 
 function windowLabel(c: Copy, window: string): string {
   return (c.windows as Record<string, string>)[window] ?? window;
@@ -138,7 +140,15 @@ function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
     </>
   );
   return (
-    <Tile id="models" title={c.models.title} state={t.state} reason={t.reason} c={c} meta={meta}>
+    <Tile
+      id="models"
+      title={c.models.title}
+      state={t.state}
+      reason={t.reason}
+      c={c}
+      meta={meta}
+      wide
+    >
       <ScrollTable>
         <thead>
           <tr>
@@ -151,8 +161,8 @@ function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.models.severity}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={7} kind="models" empty={c.empties.models}>
+          {(row) => (
             <tr
               key={row.component}
               data-component={row.component}
@@ -182,8 +192,8 @@ function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
                 <Severity row={row} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -193,6 +203,7 @@ function Gpu({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const t = view.tiles.gpu;
   return (
     <Tile id="gpu" title={c.gpu.title} state={t.state} reason={t.reason} c={c}>
+      <GpuCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -202,23 +213,25 @@ function Gpu({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.gpu.memory}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.hosts.map((host) =>
+        <Rows rows={t.hosts} columns={4} kind="gpuHosts" empty={c.empties.gpuHosts}>
+          {(host) =>
             host.up && host.gpus.length > 0 ? (
-              host.gpus.map((g) => (
-                <tr key={`${host.hostId}-${g.index}`}>
-                  <td>
-                    <code>{host.hostId}</code> <span data-state="up">{c.gpu.up}</span>
-                  </td>
-                  <td>{g.index}</td>
-                  <td>
-                    <Cell value={g.utilization} c={c} />
-                  </td>
-                  <td>
-                    <Cell value={g.memoryUsed} c={c} /> / <Cell value={g.memoryTotal} c={c} />
-                  </td>
-                </tr>
-              ))
+              <Fragment key={host.hostId}>
+                {host.gpus.map((g) => (
+                  <tr key={`${host.hostId}-${g.index}`}>
+                    <td>
+                      <code>{host.hostId}</code> <span data-state="up">{c.gpu.up}</span>
+                    </td>
+                    <td>{g.index}</td>
+                    <td>
+                      <Cell value={g.utilization} c={c} />
+                    </td>
+                    <td>
+                      <Cell value={g.memoryUsed} c={c} /> / <Cell value={g.memoryTotal} c={c} />
+                    </td>
+                  </tr>
+                ))}
+              </Fragment>
             ) : (
               <tr key={host.hostId}>
                 <td>
@@ -231,9 +244,9 @@ function Gpu({ view, c }: { view: OpsView; c: Copy }): ReactElement {
                   <span className="cell-unknown">{c.unknown}</span>
                 </td>
               </tr>
-            ),
-          )}
-        </tbody>
+            )
+          }
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -251,6 +264,7 @@ function Usage({ view, c }: { view: OpsView; c: Copy }): ReactElement {
       c={c}
       meta={meta}
     >
+      <UsageCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -261,8 +275,8 @@ function Usage({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.usage.failures}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.lanes.map((lane) => (
+        <Rows rows={t.lanes} columns={5} kind="modelUsage" empty={c.empties.modelUsage}>
+          {(lane) => (
             <tr key={`${lane.kind}-${lane.lane}`}>
               <td>
                 <code>{lane.lane}</code>
@@ -278,8 +292,8 @@ function Usage({ view, c }: { view: OpsView; c: Copy }): ReactElement {
                 <Cell value={lane.failures} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -290,6 +304,7 @@ function Clips({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const meta = <p className="window">{windowLabel(c, t.window)}</p>;
   return (
     <Tile id="clip_cache" title={c.clips.title} state={t.state} reason={t.reason} c={c} meta={meta}>
+      <ClipCharts view={view} c={c} />
       <dl className="facts">
         <dt>{c.clips.hit}</dt>
         <dd>
@@ -448,8 +463,8 @@ function Cicd({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.cicd.updated}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.workflows.map((w) => (
+        <Rows rows={t.workflows} columns={5} kind="workflows" empty={c.empties.workflows}>
+          {(w) => (
             <tr key={w.workflow}>
               <td>
                 <code>{w.workflow}</code>
@@ -467,8 +482,8 @@ function Cicd({ view, c }: { view: OpsView; c: Copy }): ReactElement {
                 )}
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -478,22 +493,20 @@ export function OpsConsole({ state, lang }: { state: OpsConsoleState; lang: Lang
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <main lang={lang} className="ops" data-page="ops">
-        <h1>{c.title}</h1>
+      <RefusedPage page="ops" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-      </main>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <main lang={lang} className="ops" data-page="ops">
-        <h1>{c.title}</h1>
+      <RefusedPage page="ops" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-      </main>
+      </RefusedPage>
     );
   }
   const view = state.view;

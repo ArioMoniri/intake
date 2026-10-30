@@ -759,7 +759,8 @@ def test_the_gate_catches_a_figure_planted_in_a_store_artefact(tmp_path: Path) -
         'fields:\n  description: "%97 doğrulukla yazıya döker (WER 3.0)."\n', encoding="utf-8"
     )
     hits = claims.scan_tree(tmp_path / "docs" / "legal", ("performance",))
-    assert {h.pattern for h in hits} == {"wer", "accuracy_tr"}
+    # INT-536: the CI gate's strict-tier arms fire on the same line too
+    assert {h.pattern for h in hits} == {"wer", "accuracy_tr", "ci_term_en", "ci_claim_tr"}
 
 
 def test_only_text_shaped_files_are_scanned(tmp_path: Path) -> None:
