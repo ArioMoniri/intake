@@ -337,7 +337,7 @@ async def fetch_previsit_output(
     recipient = _recipient(state, caller.tenant_id)
     tokenizer = state.tokenizer
     if tokenizer is None:
-        raise previsit_output_unconfigured()
+        raise previsit_output_unconfigured(state.settings.tokenization_key_refusal)
 
     actor = f"recipient:{recipient.recipient_id}"
     async with tenant_session(state.engine, caller.tenant_id) as session:

@@ -206,6 +206,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [notes, accountId, kioskActive]);
 
+  // INT-587 — the note outbox: restore this account's queued notes after a
+  // restart and keep delivering them. Lazy like the draft mirror, so this
+  // provider stays node-importable. In kiosk mode the outbox lives in memory
+  // only (INT-143): a shared clinic device never persists a note.
+  const kioskMemoryOnly = kioskSuppressesPersistence(kioskActive);
+  useEffect(() => {
+    if (accountId === null) {
+      return;
+    }
+    void import("./intake/delivery/native")
+      .then((delivery) => delivery.startNativeDelivery(accountId, kioskMemoryOnly))
+      .catch(() => {
+        // no outbox on this device: a sent note stays on the phone, and the
+        // review screen says it has not reached anyone
+      });
+  }, [accountId, kioskMemoryOnly]);
+
   const signIn = useCallback((next: TestAccount) => {
     setAccount({ ...next, kind: "dev" });
     setConsents({ ...next.consents });
@@ -242,6 +259,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setExtraVisits([]);
     setApiVisits([]);
     setNotes({});
+    // INT-587: the outbox's working copy goes with the session; its sealed
+    // blobs share the draft directory and fall to the shred below.
+    void import("./intake/delivery/native")
+      .then((delivery) => delivery.stopNativeDelivery())
+      .catch(() => {});
     // INT-142: sign-out crypto-shreds every persisted draft and the DEK, so
     // nothing readable survives the session. Lazy so node import stays clean.
     void import("./intake/offline/sessionDrafts")
@@ -278,6 +300,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const wipeSession = useCallback(() => {
     setNotes({});
     setExtraVisits([]);
+    void import("./intake/delivery/native")
+      .then((delivery) => delivery.clearNativeDeliveries())
+      .catch(() => {});
     void import("./intake/offline/sessionDrafts")
       .then((offline) => offline.shredDrafts())
       .catch(() => {

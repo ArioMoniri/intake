@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**384 issues.** By phase: P0 183 · P1 147 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 263 · todo 74 · withdrawn 1.
+**390 issues.** By phase: P0 184 · P1 152 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 269 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -194,6 +194,7 @@
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
 | INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
 | INT-420 | Önvizit everywhere — finish the Vizite→Önvizit rebrand on main | E08-mobile | INT-130, INT-320 | area:mobile | done |
+| INT-592 | iOS build carries a truthful NSHealthUpdateUsageDescription so App Store processing accepts it (ITMS-90683) | E08-mobile | INT-420, INT-208 | area:mobile | done |
 
 ## P1
 
@@ -343,6 +344,11 @@
 | INT-586 | opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception | E13-infra | INT-378 | area:security | done |
 | INT-590 | decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception | E13-infra | INT-500 | area:security | done |
 | INT-559 | The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build | E08-mobile | INT-194, INT-291, INT-446 | area:mobile, risk:security | done |
+| INT-585 | Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation | E01-platform | INT-528, INT-576 | area:api | done |
+| INT-587 | The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app | E08-mobile | INT-137, INT-142, INT-150, INT-232, INT-311, INT-529 | area:mobile, area:api | done |
+| INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
+| INT-591 | Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable | E08-mobile | INT-588, INT-132 | area:mobile | done |
+| INT-584 | The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38) | E01-platform | INT-013, INT-017, INT-131, INT-345, INT-352 | area:api, risk:security | done |
 | INT-577 | SMS pumping and overuse — per-number/device/IP/tenant limits, global caps, spend kill switch, +90 mobile only, spike alert | E01-platform | INT-131, INT-263, INT-308, INT-528, INT-578 | area:api, risk:security | done |
 | INT-579 | OTP enumeration — identical response and timing whether a number is registered or not | E01-platform | INT-131, INT-528, INT-577, INT-578 | area:api, risk:security | done |
 | INT-581 | SMS data protection — no number or code in logs/metrics/traces, tokenised at rest, OpenBao-only creds, SMS proxy only, audited sends | E01-platform | INT-528, INT-578, INT-577, INT-579 | area:api, risk:security | done |

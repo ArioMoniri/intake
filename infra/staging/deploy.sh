@@ -31,8 +31,11 @@
 #      error budget is exhausted, or the freeze cannot be read.
 #   4. Unseals OpenBao, renews the API's periodic token, loads any
 #      hosted-provider key held in SSM Parameter Store into OpenBao (INT-428),
-#      syncs the Netgsm values from SSM into OpenBao (INT-528) and checks the
-#      App Attest pairing.
+#      syncs the Netgsm values from SSM into OpenBao (INT-528), checks the
+#      App Attest pairing, and moves the phone-tokenization key from the env
+#      file into OpenBao with the same key material (INT-584, owner decision
+#      D38; tokenization_key.sh). That step stops the deploy, with both copies
+#      kept, if OpenBao already holds a different key.
 #   5. Migrates, and re-keys any new migration role.
 #   6. INT-421: makes sure Keycloak's database exists, starts Keycloak (which
 #      imports the staff realm on first start), switches the live realm's
@@ -83,6 +86,11 @@ done
 # App Attest pairing against what the API will read, before the API starts.
 NETGSM_SYNC=$("$STAGING_DIR/netgsm_secrets.sh" --if-present)
 require_sms_with_app_attest
+# INT-584 (owner decision D38): the phone-tokenization key, from the env file
+# into OpenBao, proven equal (key check value and the synthetic number's
+# pseudonym, never printed) before the env copy goes; a different key already
+# in OpenBao stops the deploy here. Prints changed or unchanged.
+TOKENIZATION_SYNC=$("$STAGING_DIR/tokenization_key.sh")
 
 wait_healthy postgres
 run_migrations
@@ -98,8 +106,9 @@ mirror_keycloak_jwks
 
 # --no-build: the api runs the image build_api_image made and syft described
 compose up -d --no-build --wait --remove-orphans
-if ((JWKS_CHANGED == 1)) || [[ $NETGSM_SYNC == changed ]]; then
-  # the API reads the key set and the Netgsm document once, at start
+if ((JWKS_CHANGED == 1)) || [[ $NETGSM_SYNC == changed ]] || [[ $TOKENIZATION_SYNC == changed ]]; then
+  # the API reads the key set, the Netgsm document and the tokenization key
+  # once, at start
   compose restart api
   wait_healthy api
 fi
