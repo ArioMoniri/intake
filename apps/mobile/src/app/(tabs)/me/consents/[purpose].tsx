@@ -31,6 +31,7 @@ import {
   SecondaryButton,
   useTheme,
 } from "@/components/Themed";
+import { consentActions, currentBuildMode } from "@/lib/buildCopy";
 import { viewOf } from "@/lib/consent/ledger";
 import { purposeDef, purposeFromParam, type PurposeId } from "@/lib/consent/purposes";
 import {
@@ -70,12 +71,15 @@ export default function ConsentDetail() {
   }
   const def = purposeDef(id)!;
   const view = viewOf(ledger).find((v) => v.id === id)!;
+  // INT-591: what this build offers — no voice consent where voice cannot
+  // run, while a standing grant keeps its withdraw control.
+  const actions = consentActions(view, currentBuildMode());
   const entry = ledger.texts[id];
 
   const mirror = (scopes: readonly PurposeId[], on: boolean) => {
     for (const scope of scopes) {
       const key = purposeDef(scope)?.sessionKey;
-      if (key !== null && key !== undefined && key !== "core") {
+      if (key !== null && key !== undefined) {
         setConsent(key, on);
       }
     }
@@ -148,15 +152,19 @@ export default function ConsentDetail() {
           </Card>
         )}
 
-        {view.grantable ? (
+        {actions.grant ? (
           <PrimaryButton label={t("consent.detail.grant")} onPress={onGrant} />
         ) : null}
-        {id === "lane:affect" && !view.grantable && !view.withdrawable ? (
+        {actions.note !== null ? (
+          <AppText role="caption" color="inkFaint">
+            {t(actions.note)}
+          </AppText>
+        ) : id === "lane:affect" && !view.grantable && !view.withdrawable ? (
           <AppText role="caption" color="inkFaint">
             {t("consent.detail.needsVoice")}
           </AppText>
         ) : null}
-        {view.withdrawable ? (
+        {actions.withdraw ? (
           <View style={styles.block}>
             <SecondaryButton label={t("consent.detail.withdraw")} onPress={onWithdraw} />
             <AppText role="caption" color="inkFaint">

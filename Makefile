@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures put-key
+.PHONY: setup check check-py check-py-static check-py-shard check-py-combine check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures put-key
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -71,6 +71,26 @@ check-py:
 	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/experience --cov=services/metrics/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/learning --cov=services/learning/src --cov-branch --cov-fail-under=90 -q -m "not integration" -o addopts=""
+
+# INT-544: check-py as CI runs it on the intake-aws-ci pool. Three
+# check-py-shard jobs on separate runners share check-py's nine pytest lines:
+# the first (the whole suite) split by file, each of the other eight run whole,
+# word for word; shard 1 also runs check-py-static (check-py's first three
+# lines, word for word). check-py-combine then enforces every floor above on the
+# data it is measured on here: the first line's on the shares' combined data,
+# each other on its own line's data only. scripts/ci/py_shards.py holds the
+# split; tests/ci/test_py_shards.py pins its lines to check-py's own.
+check-py-static:
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src packages/hosted-lanes/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
+
+check-py-shard:
+	@test -n "$(SHARD)" || { echo "usage: make check-py-shard SHARD=<1..3>"; exit 2; }
+	uv run python scripts/ci/py_shards.py run --shard $(SHARD)
+
+check-py-combine:
+	uv run python scripts/ci/py_shards.py combine
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.

@@ -9,13 +9,38 @@
  *   text existed (dev seeds, hash null) is `unbound` and honoured until the
  *   first text lands, at which instant it goes stale (the text IS the bump);
  * - withdraw: instant, cascading in the same pass (voice → lane:affect;
- *   lane:linguistic deliberately survives), one queued op for the root —
- *   the server re-derives the cascade itself;
+ *   lane:linguistic deliberately survives; core → every other purpose,
+ *   the default-on learning ones included),
+ *   one queued op for the root — the server re-derives the cascade itself;
  * - queue: ops that could not reach the server yet stay here, in memory, in
  *   order. Nothing is persisted to disk: the server ledger is the source of
  *   truth and reconciliation happens on the next snapshot.
+ *
+ * INT-587 adds the share slot (./shareConsent, re-exported here): the share
+ * text, what this phone did with it, and the per-note grant receipt the note
+ * outbox requires. A core withdrawal takes it down too, as the server cascades.
  */
 import { PURPOSES, purposeDef, type LegalBasis, type PurposeId, type PurposeUi } from "./purposes";
+import {
+  SHARE_SCOPE,
+  freshShare,
+  withdrawnShare,
+  type ShareScope,
+  type ShareState,
+} from "./shareConsent";
+
+export {
+  SHARE_SCOPE,
+  applyShareText,
+  grantShare,
+  shareView,
+  withdrawShare,
+  type ShareGrantReceipt,
+  type ShareScope,
+  type ShareStanding,
+  type ShareState,
+  type ShareView,
+} from "./shareConsent";
 
 export interface LoadedText {
   version: string;
@@ -38,16 +63,23 @@ export interface PurposeRecord {
 }
 
 export type QueuedOp =
-  | { kind: "grant"; scope: PurposeId; version: string; textHash: string; atIso: string }
-  | { kind: "withdraw"; scope: PurposeId; atIso: string };
+  | {
+      kind: "grant";
+      scope: PurposeId | ShareScope;
+      version: string;
+      textHash: string;
+      atIso: string;
+    }
+  | { kind: "withdraw"; scope: PurposeId | ShareScope; atIso: string };
 
 export interface LedgerState {
   records: Record<PurposeId, PurposeRecord>;
   texts: Record<PurposeId, TextEntry>;
+  share: ShareState;
   queue: readonly QueuedOp[];
 }
 
-export type DisplayState = "info" | "on" | "off" | "pending_text" | "stale";
+export type DisplayState = "on" | "off" | "pending_text" | "stale";
 
 export interface PurposeView {
   id: PurposeId;
@@ -98,7 +130,7 @@ function emptyTexts(): Record<PurposeId, TextEntry> {
 
 /** A brand-new account: registry defaults, no texts, nothing queued. */
 export function freshLedger(): LedgerState {
-  return { records: emptyRecords(), texts: emptyTexts(), queue: [] };
+  return { records: emptyRecords(), texts: emptyTexts(), share: freshShare(), queue: [] };
 }
 
 /**
@@ -149,10 +181,6 @@ function allowedOf(state: LedgerState, id: PurposeId): boolean {
 }
 
 function displayOf(state: LedgerState, id: PurposeId): DisplayState {
-  const def = purposeDef(id);
-  if (def === null || def.ui === "info") {
-    return "info";
-  }
   const record = state.records[id];
   if (isStale(record, state.texts[id])) {
     return "stale";
@@ -169,7 +197,7 @@ function displayOf(state: LedgerState, id: PurposeId): DisplayState {
 export function viewOf(state: LedgerState): PurposeView[] {
   return PURPOSES.map((def) => {
     const display = displayOf(state, def.id);
-    const allowed = def.ui === "info" ? state.records[def.id].granted : allowedOf(state, def.id);
+    const allowed = allowedOf(state, def.id);
     const textLoaded = state.texts[def.id].status === "loaded";
     const affectBlocked = def.id === "lane:affect" && !allowedOf(state, "voice");
     return {
@@ -182,8 +210,8 @@ export function viewOf(state: LedgerState): PurposeView[] {
       basisKey: def.basisKey,
       display,
       allowed,
-      grantable: def.ui !== "info" && textLoaded && !affectBlocked && !allowedOf(state, def.id),
-      withdrawable: def.ui !== "info" && state.records[def.id].granted,
+      grantable: textLoaded && !affectBlocked && !allowedOf(state, def.id),
+      withdrawable: state.records[def.id].granted,
     };
   });
 }
@@ -255,7 +283,7 @@ export function applyServerScopes(state: LedgerState, scopes: readonly ServerSco
 
 /**
  * Grant one purpose against the CURRENTLY loaded text. Refuses — returning
- * the state unchanged — when the purpose is information (core), the text is
+ * the state unchanged — when the purpose is off the closed list, the text is
  * missing (fail closed, invariant 18), or lane:affect is asked for without a
  * standing voice consent (it rides the voice stream).
  */
@@ -264,7 +292,6 @@ export function grant(state: LedgerState, id: PurposeId, atIso: string): ChangeR
   const entry = state.texts[id];
   if (
     def === null ||
-    def.ui === "info" ||
     entry.status !== "loaded" ||
     (id === "lane:affect" && !allowedOf(state, "voice"))
   ) {
@@ -294,10 +321,14 @@ export function grant(state: LedgerState, id: PurposeId, atIso: string): ChangeR
  * Withdraw one purpose, instantly, cascading its children in the same pass.
  * Exactly one op is queued — the root — because the server re-derives the
  * cascade itself (mirroring it here would let the two drift).
+ *
+ * Core's cascade reaches the two default-on learning purposes too: the server
+ * writes each one's opt-out (INT-537, legal review B1), because the core text
+ * tells the patient every other permission closes with it.
  */
 export function withdraw(state: LedgerState, id: PurposeId, atIso: string): ChangeResult {
   const def = purposeDef(id);
-  if (def === null || def.ui === "info") {
+  if (def === null) {
     return { state, flipped: [] };
   }
   const touched: PurposeId[] = [id, ...def.cascadeChildren];
@@ -316,10 +347,51 @@ export function withdraw(state: LedgerState, id: PurposeId, atIso: string): Chan
     };
   }
   const op: QueuedOp = { kind: "withdraw", scope: id, atIso };
-  return { state: { ...state, records, queue: [...state.queue, op] }, flipped };
+  // core's server cascade reaches the share family too (registry
+  // dependents_of(core)); mirrored locally with no op of its own
+  const share = id === "core" ? withdrawnShare(state.share, atIso) : state.share;
+  return { state: { ...state, records, share, queue: [...state.queue, op] }, flipped };
 }
 
 /** Drop the first `count` ops after they reached the server. */
 export function shiftQueue(state: LedgerState, count: number): LedgerState {
   return { ...state, queue: state.queue.slice(count) };
+}
+
+/**
+ * The server answered a queued op with a refusal a retry cannot change (a 4xx
+ * such as 409 `consent_text_changed` or 422 `purpose_unknown`). The op is
+ * dropped — held at the head of the queue it would stall every op behind it,
+ * a later withdrawal included (INT-587 legal review N5) — and a refused GRANT
+ * is undone here so the patient is asked again: the phone must not count a
+ * consent the server never recorded. A refused withdrawal changes nothing
+ * locally; the withdrawal already stands on this phone.
+ */
+export function dropRefusedHead(state: LedgerState): LedgerState {
+  const head = state.queue[0];
+  if (head === undefined) {
+    return state;
+  }
+  const queue = state.queue.slice(1);
+  if (head.kind !== "grant") {
+    return { ...state, queue };
+  }
+  if (head.scope === SHARE_SCOPE) {
+    return {
+      ...state,
+      share: { ...state.share, standing: "unknown", boundVersion: null, boundHash: null },
+      queue,
+    };
+  }
+  const records = {
+    ...state.records,
+    [head.scope]: {
+      granted: false,
+      defaultOn: false,
+      boundVersion: null,
+      boundHash: null,
+      serverStale: false,
+    },
+  };
+  return { ...state, records, queue };
 }

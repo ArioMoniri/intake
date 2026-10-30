@@ -45,10 +45,10 @@
     <!-- Test classpath only, raised above what 26.7.4 ships so this pom carries no version
          with a fixed advisory: jackson-core and jackson-databind 2.21.7 (GHSA-7hhh-6rmp-j9qf,
          GHSA-p6pp-m3f8-5c89, GHSA-cxp5-3px4-pw24, GHSA-wv8q-qhhj-9h54, GHSA-gx83-3vf8-gh7j,
-         GHSA-q4xh-88c3-wmh7, GHSA-wjgm-6hv5-3cvf) and opentelemetry-api 1.62.0
-         (GHSA-rcgg-9c38-7xpx). Nothing here is bundled into the jar. -->
+         GHSA-q4xh-88c3-wmh7, GHSA-wjgm-6hv5-3cvf) and opentelemetry-api 1.67.0
+         (GHSA-rcgg-9c38-7xpx, GHSA-ccrj-gw8r-854m). Nothing here is bundled into the jar. -->
     <jackson-patched.version>2.21.7</jackson-patched.version>
-    <opentelemetry-patched.version>1.62.0</opentelemetry-patched.version>
+    <opentelemetry-patched.version>1.67.0</opentelemetry-patched.version>
     <protostream.version>6.0.7</protostream.version>
 
     <junit.version>5.14.4</junit.version>

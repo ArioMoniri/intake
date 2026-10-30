@@ -91,6 +91,15 @@ artefact_paths:
   # what a coincidence looks like at this scale, not an identifier.
   - intake-sbom.spdx.json
   - intake-sbom.spdx.json.cosign.bundle
+  # INT-544's check-py shards: each uploads its coverage data and junit report
+  # (scripts/ci/py_shards.py) for the check-py job to combine, kept 3 days.
+  # Coverage data holds repository file paths and line and arc numbers. The
+  # upload runs only when the shard's tests passed, and pytest writes no
+  # captured output to junit by default (junit_logging=no), so the report holds
+  # test ids, timings and skip reasons, never a failure's text. Neither file
+  # holds a fixture's content, so no identifier-shaped value from
+  # tests/fixtures can reach either.
+  - dist/check-py
 
 # Repository or organisation secrets a workflow may reference. CI carries no
 # secrets by design (.github/workflows/ci.yml header; CLAUDE.md "never call

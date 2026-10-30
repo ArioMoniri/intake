@@ -141,7 +141,28 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-482 (store listing readiness as Önvizit, GitHub #825)
     # + INT-496 (Google Play deferred by the owner, GitHub #847)
     # + INT-495 (the App Store Connect draft, GitHub #846) and INT-502 (GitHub #856)
-    assert len(actions) == 368
+    # + INT-544 (a pull request clears CI in under 20 minutes, GitHub #919)
+    # + INT-550 (a new staff user enrols a passkey after the password step, GitHub #930)
+    # + INT-528 (Netgsm OTP SMS adapter behind the INT-329 port, GitHub #895)
+    # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
+    # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
+    # + INT-574 (the RED-never-waits test is deterministic under runner load, GitHub #967)
+    # + INT-576 (Netgsm OTP answer parsed as documented, never retried unread, GitHub #971)
+    # + INT-420 (Önvizit everywhere: the rebrand finished on main, GitHub #712)
+    # + INT-560 (the operability registry page tells the truth, owner request, GitHub #948)
+    # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
+    # + INT-537 (the app grants the core consent visits and notes need, GitHub #904)
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986)
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991)
+    # + INT-559 (the app's voice lane never writes patient audio to a file, GitHub #947)
+    # + INT-536 (consent-screen copy true for the host, GitHub #903)
+    # + INT-585 (the owner's 28 Oct SMS decisions as D34-D38, GitHub #984)
+    # + INT-587 (the note reaches the clinician from a release build, GitHub #988)
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub #989)
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993)
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription, ITMS-90683, GitHub #1000)
+    assert len(actions) == 389
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -5,6 +5,19 @@
 # INT-463 — every job runs on the ephemeral intake-aws-ci runner on the AWS
 # host (owner order, 3 Oct 2026: no GitHub-hosted minutes). It is installed from
 # infra/ci/aws-runner, and tests/ci/test_aws_runner.py pins every runs-on.
+# INT-544 — a pull request clears CI in under 20 minutes on that pool:
+#   - make check-py's nine pytest lines run across three check-py-shard jobs
+#     on separate runners (scripts/ci/py_shards.py): the whole-suite line
+#     split by file, each subset line whole. The check-py job enforces every
+#     floor on the data make check-py measures it on (invariant 8): the api
+#     floor on the whole suite, each other floor on its own subset;
+#   - a lane job decides first (scripts/ci/lanes.py) and skips its remaining
+#     steps only when the decision is exactly `false`, so a skipped lane still
+#     reports success to its required check. check-py runs on every diff; the
+#     gates job and every security.yml job never read the decision;
+#   - each job restores uv, pnpm and the deid model from its runner's
+#     read-only cache seed (scripts/ci/ci_seed.sh) and falls back to the
+#     Actions cache only where the seed has no verified copy.
 name: ci
 
 on:
@@ -15,33 +28,96 @@ on:
 permissions:
   contents: read
 
-# INT-524 — a new push to a pull request cancels that pull request's older
-# run, queued or in progress, so the intake-aws-ci pool builds only current
-# heads. A push run (main, and security.yml's v* tags) is never cancelled:
-# cancel-in-progress is false outside pull_request, and the sha plus the ref
-# give each push run a group of its own, so no later run can replace it while
-# it waits for a runner. tests/ci/test_workflow_concurrency.py pins this block.
+# INT-524, INT-544 — a new push to a pull request cancels that pull request's
+# older run, queued or in progress, so the intake-aws-ci pool builds only
+# current heads. A push run is never cancelled in progress: cancel-in-progress
+# is false outside pull_request. Pushes to main share one group, so while one
+# runs, a newer push replaces the one waiting behind it and the pool builds the
+# newest main instead of every intermediate commit; an intermediate main commit
+# whose run was replaced gets no run of its own (docs/evidence/INT-544.md). A v*
+# tag (security.yml) has a ref, and so a group, of its own.
+# tests/ci/test_workflow_concurrency.py pins this block.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  check-py:
+  check-py-shard:
+    # A share of the whole-suite line and some of the eight subset lines, packed
+    # by recorded seconds; shard 1 also runs ruff and mypy (scripts/ci/py_shards.py).
     runs-on: [self-hosted, linux, intake-aws-ci]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          enable-cache: true
-      - run: uv sync --all-packages
+          fetch-depth: 2
+      - id: lanes
+        env:
+          EVENT: ${{ github.event_name }}
+        run: python3 scripts/ci/lanes.py --event "$EVENT" >> "$GITHUB_OUTPUT"
+      - id: seed
+        if: steps.lanes.outputs.python != 'false'
+        run: scripts/ci/ci_seed.sh restore uv deid
+      - if: steps.lanes.outputs.python != 'false'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: ${{ steps.seed.outputs.uv != 'true' }}
+      - if: steps.lanes.outputs.python != 'false'
+        run: uv sync --all-packages
       - name: cache the pinned deid NER artefact (INT-015)
+        if: steps.lanes.outputs.python != 'false' && steps.seed.outputs.deid != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .cache/deid-tr-ner-v1
           key: deid-tr-ner-v1-d4faec57
-      - run: make deid-model
+      - if: steps.lanes.outputs.python != 'false'
+        run: make deid-model
         env:
           GH_TOKEN: ${{ github.token }}
+      - if: steps.lanes.outputs.python != 'false' && matrix.shard == 1
+        run: make check-py-static
+      - if: steps.lanes.outputs.python != 'false'
+        run: make check-py-shard SHARD=${{ matrix.shard }}
+      - if: steps.lanes.outputs.python != 'false'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: check-py-shard-${{ matrix.shard }}
+          path: dist/check-py/
+          retention-days: 3
+          if-no-files-found: error
+
+  check-py:
+    # The required check: the api floor on the whole-suite shares' combined
+    # data, every other floor on its own lane's data, as make check-py measures
+    # them. It runs, and fails, when any shard failed.
+    needs: check-py-shard
+    if: ${{ !cancelled() }}
+    runs-on: [self-hosted, linux, intake-aws-ci]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      - id: lanes
+        env:
+          EVENT: ${{ github.event_name }}
+        run: python3 scripts/ci/lanes.py --event "$EVENT" >> "$GITHUB_OUTPUT"
+      - name: every shard passed
+        if: steps.lanes.outputs.python != 'false'
+        env:
+          SHARDS: ${{ needs.check-py-shard.result }}
+        run: test "$SHARDS" = success
+      - id: seed
+        if: steps.lanes.outputs.python != 'false'
+        run: scripts/ci/ci_seed.sh restore uv
+      - if: steps.lanes.outputs.python != 'false'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: ${{ steps.seed.outputs.uv != 'true' }}
+      - if: steps.lanes.outputs.python != 'false'
+        run: uv sync --all-packages
       # INT-378: rebuild the Keycloak provider from its pinned recipe (mvnw with a
       # sha256-pinned Maven; a trusted sha256 for every artefact Maven resolves),
       # run its tests, and hold the jar byte-identical to the committed pin
@@ -50,32 +126,66 @@ jobs:
       # this required job rather than a job of its own: REQUIRED_GATES
       # (intake_probes.ops_cicd) names the jobs every pull request runs, and the
       # GitHub answers its tests replay were recorded before this build existed.
-      - run: JAVA_HOME="$JAVA_HOME_21_X64" make keycloak-provider
-      - run: make check-py
+      - if: steps.lanes.outputs.python != 'false'
+        run: JAVA_HOME="$JAVA_HOME_21_X64" make keycloak-provider
+      - if: steps.lanes.outputs.python != 'false'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: check-py-shard-*
+          path: dist/check-py
+          merge-multiple: true
+      - if: steps.lanes.outputs.python != 'false'
+        run: make check-py-combine
 
   check-ts:
     runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          fetch-depth: 2
+      - id: lanes
+        env:
+          EVENT: ${{ github.event_name }}
+        run: python3 scripts/ci/lanes.py --event "$EVENT" >> "$GITHUB_OUTPUT"
+      - id: seed
+        if: steps.lanes.outputs.ts != 'false'
+        run: scripts/ci/ci_seed.sh restore pnpm
+      - if: steps.lanes.outputs.ts != 'false'
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - if: steps.lanes.outputs.ts != 'false'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: make check-ts
+          cache: ${{ steps.seed.outputs.pnpm != 'true' && 'pnpm' || '' }}
+      - if: steps.lanes.outputs.ts != 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.lanes.outputs.ts != 'false'
+        run: make check-ts
 
   check-integration:
     # the docker-compose tier in its own required job (05 §3); INT-017 seeds it
     runs-on: [self-hosted, linux, intake-aws-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          enable-cache: true
-      - run: uv sync --all-packages
-      - run: make edge-plugin
-      - run: make check-integration
+          fetch-depth: 2
+      - id: lanes
+        env:
+          EVENT: ${{ github.event_name }}
+        run: python3 scripts/ci/lanes.py --event "$EVENT" >> "$GITHUB_OUTPUT"
+      - id: seed
+        if: steps.lanes.outputs.integration != 'false'
+        run: scripts/ci/ci_seed.sh restore uv
+      - if: steps.lanes.outputs.integration != 'false'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: ${{ steps.seed.outputs.uv != 'true' }}
+      - if: steps.lanes.outputs.integration != 'false'
+        run: uv sync --all-packages
+      - if: steps.lanes.outputs.integration != 'false'
+        run: make edge-plugin
+      - if: steps.lanes.outputs.integration != 'false'
+        run: make check-integration
 
   gates:
     runs-on: [self-hosted, linux, intake-aws-ci]

@@ -68,7 +68,7 @@ __all__ = [
 logger = logging.getLogger("intake_api.embed")
 
 #: The audit basis for a handshake step: there is no patient consent scope at
-#: this layer (the patient grants consent inside Vizite's own flow afterwards),
+#: this layer (the patient grants consent inside Önvizit's own flow afterwards),
 #: so the entry is discharged under the handshake basis, id-shaped.
 _AUDIT_BASIS = "basis:embed-handshake"
 
@@ -243,7 +243,7 @@ class EmbedService:
         tenant, and the set fails closed (503) when its texts are unauthored —
         never an empty consent shown to a patient (invariant 18). No ticket is
         needed and none is consumed: the doc set carries only public consent
-        copy, and the patient still grants through Vizite's own hash-bound flow.
+        copy, and the patient still grants through Önvizit's own hash-bound flow.
         """
         try:
             config = self._wiring.registry.resolve(tenant_id)

@@ -70,15 +70,32 @@ ROLE_PASSWORD_KEYS=(
 # empty: compose passes it to the API with no default, and the API reads empty
 # as unset and fails closed (no Apple team id: every iOS attestation is
 # refused). require_sms_with_app_attest refuses the one unsafe mix.
+# app_attest_env.sh sets them in an interactive session (INT-528).
 APP_ATTEST_KEYS=(INTAKE_APP_ATTEST_TEAM_ID INTAKE_APP_ATTEST_BUNDLE_ID INTAKE_APP_ATTEST_ENVIRONMENT)
-SMS_KEYS=(TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM)
-OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}" "${SMS_KEYS[@]}")
+OPERATOR_KEYS=("${APP_ATTEST_KEYS[@]}")
+
+# INT-528: the SMS vendor is Netgsm (owner decision, INT-358). Its credentials
+# are one OpenBao KV v2 document, never env-file keys (invariant 14):
+# netgsm_secrets.sh writes it with the root token, and the API reads it with
+# its own token through the intake-api policy's read grant on that document.
+SMS_KV_PATH="api/netgsm"
+SMS_KV_FIELDS=(usercode password msgheader)
 
 # INT-421: keys generated as 32 random bytes in base64url (43 characters, no
 # padding), rather than gen_secret's 64 hex. oauth2-proxy accepts a cookie
 # secret only as 16, 24 or 32 bytes, raw or base64-decoded, and 64 hex
 # characters are neither.
 COOKIE_SECRET_KEYS=(OAUTH2_PROXY_COOKIE_SECRET)
+
+# INT-560: the probes service's two logins. Both are template keys, so init.sh
+# generates them like every other secret; a host initialised before INT-560
+# lacks them, and deploy.sh fills exactly these two (ensure_probe_secrets)
+# rather than asking for an init re-run. The role holds LOGIN and CONNECT and
+# no grant on any table (ensure_probe_role); the Redis user may PING and
+# nothing else (compose.yaml's redis command). infra/staging/inventory.yaml
+# names both, without their passwords.
+PROBE_SECRET_KEYS=(PG_PROBE_PASSWORD REDIS_PROBE_PASSWORD)
+PROBE_DB_ROLE=svc_probe
 
 # INT-421: the admin tier. Keycloak keeps its own database in the staging
 # Postgres, under its own role. The API reads the realm's key set from a file
@@ -306,18 +323,61 @@ print("git_sha %s, built_at %s, sbom_digest %s" % (v["git_sha"], v["built_at"], 
 
 require_sms_with_app_attest() {
   # With an Apple team id, a genuine iOS app passes attestation and the API
-  # goes on to deliver the code. Without all three SMS keys it has no vendor
-  # to deliver with, and would answer "sent" having sent nothing. Without a
-  # team id no request passes attestation, so the SMS keys may be anything.
-  # Names only: no value reaches the message.
-  local key missing=()
+  # goes on to deliver the code. Without the whole Netgsm document, readable
+  # by the API's own token, it has no vendor to deliver with. Without a team
+  # id no request passes attestation, so the vault may hold anything. It reads
+  # OpenBao, so deploy.sh runs it once OpenBao is unsealed and before the API
+  # starts. Names only: no value reaches the message.
   [[ -n $(env_get "$ENV_FILE" INTAKE_APP_ATTEST_TEAM_ID) ]] || return 0
-  for key in "${SMS_KEYS[@]}"; do
-    [[ -n $(env_get "$ENV_FILE" "$key") ]] || missing+=("$key")
-  done
-  if ((${#missing[@]} > 0)); then
-    die "INTAKE_APP_ATTEST_TEAM_ID is set, but $ENV_FILE has no value for ${missing[*]}: a verified device would be told a code was sent that nobody sent. Set all three SMS keys, or empty the team id (${ATTEST_SMS_RUNBOOK})"
+  local missing
+  missing=$(sms_document_as_api | sms_missing_fields)
+  if [[ -n $missing ]]; then
+    die "INTAKE_APP_ATTEST_TEAM_ID is set, but the API's token reads no value for ${missing} in OpenBao secret/${SMS_KV_PATH}: a verified device would reach an OTP tier with no SMS vendor. Run ./netgsm_secrets.sh, or empty the team id (${ATTEST_SMS_RUNBOOK})"
   fi
+}
+
+sms_document_as_api() {
+  # The read the API makes at boot, with the API's own token, as
+  # `bao kv get -format=json` prints it; {} when the CLI is refused (no
+  # document, no KV engine, or a policy without the grant).
+  bao_as "$(env_get "$ENV_FILE" OPENBAO_TOKEN)" kv get -mount=secret -format=json "$SMS_KV_PATH" 2>/dev/null ||
+    printf '{}\n'
+}
+
+sms_missing_fields() {
+  # stdin: a KV v2 read as JSON. stdout: the SMS_KV_FIELDS it lacks or holds
+  # blank, space-separated, or nothing. Never a value.
+  python3 -c '
+import json, sys
+try:
+    doc = json.load(sys.stdin)
+except ValueError:
+    doc = {}
+data = doc.get("data") if isinstance(doc, dict) else None
+data = data.get("data") if isinstance(data, dict) else None
+data = data if isinstance(data, dict) else {}
+print(" ".join(n for n in sys.argv[1:] if not (isinstance(data.get(n), str) and data[n].strip())))
+' "${SMS_KV_FIELDS[@]}"
+}
+
+read_hidden() {
+  # read_hidden <prompt>: one line typed at the terminal with echo off, printed
+  # on stdout for the caller to capture. The prompt goes to stderr; nothing
+  # typed is echoed, logged or passed in argv. Echo goes off BEFORE the prompt
+  # shows (`read -s` turns it off only after), so an answer typed the moment
+  # the prompt appears, as the go-live helper types, is never echoed either.
+  local value=""
+  stty -echo
+  printf '%s: ' "$1" >&2
+  IFS= read -r value || true
+  stty echo
+  printf '\n' >&2
+  printf '%s' "$value"
+}
+
+require_terminal() {
+  # Typed, never piped: a value on a pipe is a value in a file or a history.
+  [[ -t 0 ]] || die "run this in an interactive terminal (aws ssm start-session): the values are typed with echo off, never piped (${ATTEST_SMS_RUNBOOK})"
 }
 
 # --- host memory -------------------------------------------------------------------------
@@ -606,9 +666,10 @@ unseal_openbao() {
 }
 
 configure_openbao() {
-  # transit engine, the model-lane KV engine, the intake-api policy, the
-  # restart-probe KEK and the API's periodic token. The token id is the host-generated OPENBAO_TOKEN, so the
-  # env file is complete before OpenBao exists. Each step is create-if-absent.
+  # transit engine, the KV v2 engine (INT-428 model lanes, INT-528 SMS), the
+  # intake-api policy, the restart-probe KEK and the API's periodic token. The
+  # token id is the host-generated OPENBAO_TOKEN, so the env file is complete
+  # before OpenBao exists. Each step is create-if-absent.
   local root api_token
   root=$(init_field root_token)
   if ! bao_as "$root" secrets list -format=json |
@@ -616,13 +677,9 @@ configure_openbao() {
     bao_as "$root" secrets enable transit >/dev/null
     log "transit engine enabled"
   fi
-  # INT-428 (ADR-035): KV v2 at secret/ holds the hosted-lane provider keys the
-  # console's key-set ceremony and load_provider_key.sh write (model-lanes/*).
-  if ! bao_as "$root" secrets list -format=json |
-    python3 -c 'import json, sys; sys.exit(0 if "secret/" in json.load(sys.stdin) else 1)'; then
-    bao_as "$root" secrets enable -path=secret kv-v2 >/dev/null
-    log "kv-v2 engine enabled at secret/"
-  fi
+  # INT-428 (ADR-035), INT-528: KV v2 at secret/ holds the hosted-lane provider
+  # keys (model-lanes/*) and the SMS vendor's document (api/netgsm).
+  ensure_secret_kv "$root"
   bao_as "$root" policy write intake-api - <"$STAGING_DIR/openbao/intake-api-policy.hcl" >/dev/null
   if ! bao_as "$root" read -format=json "transit/keys/${PROBE_KEK}" >/dev/null 2>&1; then
     bao_as "$root" write "transit/keys/${PROBE_KEK}" type=aes256-gcm96 >/dev/null
@@ -633,6 +690,17 @@ configure_openbao() {
     printf '%s' "$api_token" | bao_as "$root" write -format=json auth/token/create-orphan \
       id=- policies=intake-api period=768h display_name=intake-api-staging >/dev/null
     log "API token minted (policy intake-api, periodic 768h, orphan)"
+  fi
+}
+
+ensure_secret_kv() {
+  # INT-528: KV v2 at secret/, where netgsm_secrets.sh writes the SMS vendor's
+  # document. Create-if-absent, like every step of configure_openbao.
+  local root=$1
+  if ! bao_as "$root" secrets list -format=json |
+    python3 -c 'import json, sys; sys.exit(0 if "secret/" in json.load(sys.stdin) else 1)'; then
+    bao_as "$root" secrets enable -path=secret kv-v2 >/dev/null
+    log "kv-v2 engine enabled at secret/"
   fi
 }
 
@@ -666,6 +734,40 @@ rotate_role_passwords() {
   done
   printf '%s' "$sql" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U intake -d intake >/dev/null
   log "re-keyed ${#ROLE_PASSWORD_KEYS[@]} database roles away from their committed dev passwords"
+}
+
+ensure_probe_secrets() {
+  # Generate PG_PROBE_PASSWORD and REDIS_PROBE_PASSWORD if absent or empty,
+  # exactly as generate_missing_secrets would; a value that exists is kept.
+  # Nothing else in the env file is touched.
+  [[ -f $ENV_FILE ]] || die "$ENV_FILE is missing: run ./init.sh first"
+  local key
+  for key in "${PROBE_SECRET_KEYS[@]}"; do
+    if [[ -z $(env_get "$ENV_FILE" "$key") ]]; then
+      env_set "$ENV_FILE" "$key" "$(gen_secret)"
+      log "generated $key"
+    fi
+  done
+}
+
+ensure_probe_role() {
+  # INT-560: the probes service's database login, created if absent, its
+  # password re-applied on every run. LOGIN and CONNECT on the intake
+  # database, nothing else: SELECT 1 reads no table, and every table revokes
+  # PUBLIC (migrations/versions). The SQL travels on stdin with statement
+  # logging off, so the password never reaches argv or a log, as with
+  # rotate_role_passwords.
+  local value sql
+  value=$(env_get "$ENV_FILE" PG_PROBE_PASSWORD)
+  [[ $value =~ ^[0-9a-f]{64}$ ]] || die "PG_PROBE_PASSWORD is not a generated secret: run ./deploy.sh again"
+  sql="SET log_statement = 'none'; SET log_min_error_statement = 'panic';"$'\n'
+  sql+="DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${PROBE_DB_ROLE}') THEN"
+  sql+=" CREATE ROLE ${PROBE_DB_ROLE} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION CONNECTION LIMIT 2;"
+  sql+=" END IF; END \$\$;"$'\n'
+  sql+="ALTER ROLE ${PROBE_DB_ROLE} PASSWORD '${value}';"$'\n'
+  sql+="GRANT CONNECT ON DATABASE intake TO ${PROBE_DB_ROLE};"$'\n'
+  printf '%s' "$sql" | compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U intake -d intake >/dev/null
+  log "probe role ${PROBE_DB_ROLE} present (LOGIN and CONNECT only)"
 }
 
 # --- the admin tier (INT-421) -----------------------------------------------------------
@@ -739,8 +841,11 @@ sys.exit(0 if ok else 1)
 # carry no aaguid or credential_id and are refused by the API's admin gate.
 # keycloak/staff_flow.py makes the live `staff second factor` subflow match the
 # committed realm. It is idempotent, it fails unless the flow ends in the
-# committed state, and it changes nothing else. The OTP alternative stays: that
-# choice is the owner's (INT-389). It runs in a one-off api container (the
+# committed state, and it changes nothing else. INT-550: the committed state is
+# the provider REQUIRED, so a new staff user enrols a passkey (webauthn-register)
+# after the password instead of being refused, and OTP DISABLED until the owner
+# decides INT-389; it refuses, before any change, a realm whose webauthn-register
+# action is absent or disabled. It runs in a one-off api container (the
 # Keycloak image has no HTTP client), and the bootstrap admin password travels on
 # stdin, never in an argv, an environment or a log. `check` only reads.
 staff_flow() {
@@ -758,7 +863,7 @@ staff_flow() {
 }
 
 ensure_staff_webauthn_notes() {
-  staff_flow apply || die "the live realm's WebAuthn step is not the session-notes provider; staff sign-in stays refused"
+  staff_flow apply || die "the live realm's second factor is not the committed one (session-notes provider REQUIRED, OTP disabled, webauthn-register enabled); staff sign-in stays refused"
 }
 
 # shellcheck disable=SC2034 # JWKS_CHANGED is read by deploy.sh after its final up

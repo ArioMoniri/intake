@@ -8,13 +8,17 @@
  * `data-tile-state`; an unknown tile says so in words with its reason code
  * beside it, and carries no figure (invariant 17).
  */
-import type { ReactElement } from "react";
+import { Fragment, type ReactElement } from "react";
 
+import { ClipCharts, GpuCharts, UsageCharts } from "./charts";
 import { COPY, type Copy, type Lang } from "./copy";
+import type { Age } from "./guards";
+import { NBSP } from "./guards";
 import type { OpsConsoleState } from "./load";
-import type { OpsView } from "./module";
+import type { ModelRowView, OpsView } from "./module";
+import { RefusedPage } from "../ui/states";
 import { ConsoleNav } from "./nav";
-import { Cell, ScrollTable, Tile } from "./tiles";
+import { Cell, Rows, ScrollTable, Tile } from "./tiles";
 
 function windowLabel(c: Copy, window: string): string {
   return (c.windows as Record<string, string>)[window] ?? window;
@@ -53,16 +57,98 @@ function Health({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   );
 }
 
+/** INT-560: an age as one atom, number and unit joined by a no-break space. */
+function ageText(value: Age | null, c: Copy): string | null {
+  return value === null
+    ? null
+    : `${value.value}${NBSP}${c.models.units[value.unit]} ${c.models.ago}`;
+}
+
+function Deployment({ row, c }: { row: ModelRowView; c: Copy }): ReactElement {
+  const word = c.models.deployment[row.deployment] ?? row.deployment;
+  return (
+    <>
+      <span data-state={row.deployment}>{word}</span>
+      {row.needed === false ? (
+        <div className="sub" data-not-needed={row.notNeededReason ?? ""}>
+          {c.models.notNeeded}
+          {row.notNeededReason
+            ? `: ${c.models.notNeededReasons[row.notNeededReason] ?? row.notNeededReason}`
+            : null}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function ProbeStatus({ row, c }: { row: ModelRowView; c: Copy }): ReactElement {
+  const when = ageText(row.probeAge, c);
+  const stale = row.probeStale && row.probeStatus !== "no_result";
+  return (
+    <>
+      <span data-state={row.probeStatus}>
+        {c.models.probeStatuses[row.probeStatus] ?? row.probeStatus}
+      </span>
+      {when !== null ? (
+        <div className="sub">
+          {row.probeCheckedAt ? <time dateTime={row.probeCheckedAt}>{when}</time> : when}
+        </div>
+      ) : null}
+      {stale ? (
+        <div className="sub" data-stale="true">
+          {c.models.stale}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function Severity({ row, c }: { row: ModelRowView; c: Copy }): ReactElement {
+  const why = c.models.severityReasons[row.severityReason] ?? row.severityReason;
+  return (
+    <>
+      <span data-state={row.severity}>{c.models.severities[row.severity] ?? row.severity}</span>
+      {why ? (
+        <div className="sub" data-reason={row.severityReason}>
+          {why}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const t = view.tiles.models;
-  const meta =
-    t.releaseBlocked === null ? null : (
-      <p className="badge" data-state={t.releaseBlocked ? "blocked" : "open"}>
-        {c.models.release}: {t.releaseBlocked ? c.models.blocked : c.models.open}
-      </p>
-    );
+  const meta = (
+    <>
+      {t.host !== null ? (
+        <p className="window" data-host={t.host.hostId}>
+          {c.models.host}: <code>{t.host.hostId}</code> ·{" "}
+          {c.models.dataClasses[t.host.dataClass] ?? t.host.dataClass}
+        </p>
+      ) : t.hostReason !== null ? (
+        <p className="window" data-host-reason={t.hostReason}>
+          {c.models.hostReasons[t.hostReason] ?? t.hostReason}
+        </p>
+      ) : null}
+      {t.releaseBlocked === null ? null : (
+        <p className="badge" data-state={t.releaseBlocked ? "blocked" : "open"}>
+          {c.models.release} ({c.models.releaseScope}):{" "}
+          {t.releaseBlocked ? c.models.blocked : c.models.open}
+        </p>
+      )}
+    </>
+  );
   return (
-    <Tile id="models" title={c.models.title} state={t.state} reason={t.reason} c={c} meta={meta}>
+    <Tile
+      id="models"
+      title={c.models.title}
+      state={t.state}
+      reason={t.reason}
+      c={c}
+      meta={meta}
+      wide
+    >
       <ScrollTable>
         <thead>
           <tr>
@@ -75,24 +161,39 @@ function Models({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.models.severity}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
-            <tr key={row.component} data-severity={row.severity}>
+        <Rows rows={t.rows} columns={7} kind="models" empty={c.empties.models}>
+          {(row) => (
+            <tr
+              key={row.component}
+              data-component={row.component}
+              data-severity={row.severity}
+              data-deployment={row.deployment}
+            >
               <td>
                 <code>{row.component}</code>
                 {row.pin ? <div className="sub">{row.pin}</div> : null}
               </td>
               <td>{row.selfHostable ? c.yes : c.no}</td>
-              <td>{row.selfHostedNow ? c.yes : c.no}</td>
+              <td data-cell="deployment">
+                <Deployment row={row} c={c} />
+              </td>
               <td>
                 <code>{row.probe}</code>
               </td>
-              <td data-state={row.probeStatus}>{row.probeStatus}</td>
-              <td>{row.licenceVerifiedAt ?? c.none}</td>
-              <td data-state={row.severity}>{row.severity}</td>
+              <td data-cell="probe-status">
+                <ProbeStatus row={row} c={c} />
+              </td>
+              <td data-cell="licence">
+                {row.licenceVerifiedAt ?? (
+                  <span data-state="not_verified">{c.models.notVerified}</span>
+                )}
+              </td>
+              <td data-cell="severity">
+                <Severity row={row} c={c} />
+              </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -102,6 +203,7 @@ function Gpu({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const t = view.tiles.gpu;
   return (
     <Tile id="gpu" title={c.gpu.title} state={t.state} reason={t.reason} c={c}>
+      <GpuCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -111,23 +213,25 @@ function Gpu({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.gpu.memory}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.hosts.map((host) =>
+        <Rows rows={t.hosts} columns={4} kind="gpuHosts" empty={c.empties.gpuHosts}>
+          {(host) =>
             host.up && host.gpus.length > 0 ? (
-              host.gpus.map((g) => (
-                <tr key={`${host.hostId}-${g.index}`}>
-                  <td>
-                    <code>{host.hostId}</code> <span data-state="up">{c.gpu.up}</span>
-                  </td>
-                  <td>{g.index}</td>
-                  <td>
-                    <Cell value={g.utilization} c={c} />
-                  </td>
-                  <td>
-                    <Cell value={g.memoryUsed} c={c} /> / <Cell value={g.memoryTotal} c={c} />
-                  </td>
-                </tr>
-              ))
+              <Fragment key={host.hostId}>
+                {host.gpus.map((g) => (
+                  <tr key={`${host.hostId}-${g.index}`}>
+                    <td>
+                      <code>{host.hostId}</code> <span data-state="up">{c.gpu.up}</span>
+                    </td>
+                    <td>{g.index}</td>
+                    <td>
+                      <Cell value={g.utilization} c={c} />
+                    </td>
+                    <td>
+                      <Cell value={g.memoryUsed} c={c} /> / <Cell value={g.memoryTotal} c={c} />
+                    </td>
+                  </tr>
+                ))}
+              </Fragment>
             ) : (
               <tr key={host.hostId}>
                 <td>
@@ -140,9 +244,9 @@ function Gpu({ view, c }: { view: OpsView; c: Copy }): ReactElement {
                   <span className="cell-unknown">{c.unknown}</span>
                 </td>
               </tr>
-            ),
-          )}
-        </tbody>
+            )
+          }
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -160,6 +264,7 @@ function Usage({ view, c }: { view: OpsView; c: Copy }): ReactElement {
       c={c}
       meta={meta}
     >
+      <UsageCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -170,8 +275,8 @@ function Usage({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.usage.failures}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.lanes.map((lane) => (
+        <Rows rows={t.lanes} columns={5} kind="modelUsage" empty={c.empties.modelUsage}>
+          {(lane) => (
             <tr key={`${lane.kind}-${lane.lane}`}>
               <td>
                 <code>{lane.lane}</code>
@@ -187,8 +292,8 @@ function Usage({ view, c }: { view: OpsView; c: Copy }): ReactElement {
                 <Cell value={lane.failures} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -199,6 +304,7 @@ function Clips({ view, c }: { view: OpsView; c: Copy }): ReactElement {
   const meta = <p className="window">{windowLabel(c, t.window)}</p>;
   return (
     <Tile id="clip_cache" title={c.clips.title} state={t.state} reason={t.reason} c={c} meta={meta}>
+      <ClipCharts view={view} c={c} />
       <dl className="facts">
         <dt>{c.clips.hit}</dt>
         <dd>
@@ -357,8 +463,8 @@ function Cicd({ view, c }: { view: OpsView; c: Copy }): ReactElement {
             <th>{c.cicd.updated}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.workflows.map((w) => (
+        <Rows rows={t.workflows} columns={5} kind="workflows" empty={c.empties.workflows}>
+          {(w) => (
             <tr key={w.workflow}>
               <td>
                 <code>{w.workflow}</code>
@@ -376,8 +482,8 @@ function Cicd({ view, c }: { view: OpsView; c: Copy }): ReactElement {
                 )}
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -387,22 +493,20 @@ export function OpsConsole({ state, lang }: { state: OpsConsoleState; lang: Lang
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <main lang={lang} className="ops" data-page="ops">
-        <h1>{c.title}</h1>
+      <RefusedPage page="ops" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-      </main>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <main lang={lang} className="ops" data-page="ops">
-        <h1>{c.title}</h1>
+      <RefusedPage page="ops" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-      </main>
+      </RefusedPage>
     );
   }
   const view = state.view;

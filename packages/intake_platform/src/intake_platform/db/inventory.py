@@ -12,9 +12,13 @@ Retention strings quote the files/06 §3 matrix; bases name their KVKK ground.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TypedDict
+from types import MappingProxyType
+from typing import Final, TypedDict
 
 __all__ = [
+    "BASIS_EVENTS_BY_TYPE",
+    "BASIS_SATISFACTION_CONSENT",
+    "EVENT_TYPE_BASES",
     "INVENTORY_FIELDS",
     "INVENTORY_KEY",
     "SUBJECT_DATA_CATEGORIES",
@@ -84,6 +88,29 @@ CAT_DIRECT_IDENTIFIER = "direct_identifier"
 BASIS_CONTRACT = "KVKK m.5/2-c — processing necessary for the service contract"
 BASIS_HEALTH_CONSENT = "KVKK m.6 — special-category health data under açık rıza per consent scope"
 BASIS_LEGAL_OBLIGATION = "KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)"
+# INT-536 (INT-529 F5, COUNSEL_BRIEF §2.9): both satisfaction write routes
+# require the `satisfaction` consent scope (files/06 §2: açık rıza, default
+# off; services/api/src/intake_api/satisfaction.py), so the score rests on
+# açık rıza, never on the contract. The comment text is health data and keeps
+# BASIS_HEALTH_CONSENT.
+BASIS_SATISFACTION_CONSENT = (
+    "KVKK m.5/1 — açık rıza per consent scope satisfaction (files/06 §2); "
+    "both satisfaction write routes require the scope"
+)
+#: ``events`` holds rows of more than one purpose, and a column carries one
+#: annotation, so its basis is stated per ``event_type``. Each one is enforced
+#: on that type's write path. tests/data/test_satisfaction_basis.py holds every
+#: ``Event(...)`` writer in the tree to a type declared here (INT-536).
+EVENT_TYPE_BASES: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "csat.v1": BASIS_SATISFACTION_CONSENT,
+        "nps.v1": BASIS_SATISFACTION_CONSENT,
+        "wait.v1": BASIS_CONTRACT,
+    }
+)
+BASIS_EVENTS_BY_TYPE = "per event_type, enforced on each type's write path: " + "; ".join(
+    f"{event_type} — {basis}" for event_type, basis in EVENT_TYPE_BASES.items()
+)
 # INT-224: crash and error diagnostics are the one off-schema flow whose KVKK
 # ground no file in this repo states. The reporter ships inert (no default DSN)
 # and the basis is refused rather than assumed — counsel names it before the

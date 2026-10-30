@@ -13,7 +13,8 @@
 import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
-import { Cell, ScrollTable } from "../ops/tiles";
+import { Cell, Rows, ScrollTable } from "../ops/tiles";
+import { EmptyState, RefusedPage } from "../ui/states";
 import { COPY, type AccessCopy, type Lang } from "./copy";
 import type { AccessState } from "./load";
 import type { AccessView } from "./module";
@@ -112,8 +113,8 @@ function Holders({ view, c }: { view: AccessView; c: C }): ReactElement {
             <th>{h.lastReviewed}</th>
           </tr>
         </thead>
-        <tbody>
-          {view.holders.map((row) => (
+        <Rows rows={view.holders} columns={10} kind="holders" empty={c.empties.holders}>
+          {(row) => (
             <tr key={row.subject} data-subject={row.subject} data-dormant={String(row.dormant)}>
               <td>
                 <code>{row.subject}</code>
@@ -130,8 +131,8 @@ function Holders({ view, c }: { view: AccessView; c: C }): ReactElement {
               </td>
               <td>{row.lastReviewedAt === null ? c.never : <time>{row.lastReviewedAt}</time>}</td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </section>
   );
@@ -145,7 +146,7 @@ function Offboardings({ view, c }: { view: AccessView; c: C }): ReactElement {
         <h2 id="tile-offboardings">{o.title}</h2>
       </header>
       {view.offboardings.length === 0 ? (
-        <p>{o.none}</p>
+        <EmptyState kind="offboardings" title={o.none} why={o.noneWhy} />
       ) : (
         <ScrollTable>
           <thead>
@@ -190,13 +191,11 @@ export function AccessConsole({ state, lang }: { state: AccessState; lang: Lang 
     const text =
       state.kind === "not_admitted" ? c.refusals[state.reason] : c.unavailable[state.reason];
     return (
-      <main lang={lang} className="ops" data-page="access">
-        <ConsoleNav current="access" lang={lang} />
-        <h1>{c.title}</h1>
+      <RefusedPage page="access" lang={lang} title={c.title} state={state}>
         <p className="refusal" {...attribute}>
           {text}
         </p>
-      </main>
+      </RefusedPage>
     );
   }
   const view = state.view;
